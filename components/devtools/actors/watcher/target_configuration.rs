@@ -8,12 +8,16 @@
 use std::collections::HashMap;
 use std::net::TcpStream;
 
+use embedder_traits::Theme;
+use log::warn;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actors::browsing_context::BrowsingContextActor;
+use crate::actors::tab::TabDescriptorActor;
 use crate::protocol::JsonPacketStream;
-use crate::{EmptyReplyMsg, StreamId};
+use crate::{EmptyReplyMsg, RootActor, StreamId};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -44,15 +48,39 @@ impl Actor for TargetConfigurationActor {
     /// - `updateConfiguration`: Receives new configuration flags from the devtools host.
     fn handle_message(
         &self,
-        _registry: &ActorRegistry,
+        registry: &ActorRegistry,
         msg_type: &str,
-        _msg: &Map<String, Value>,
+        msg: &Map<String, Value>,
         stream: &mut TcpStream,
         _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "updateConfiguration" => {
-                // TODO: Actually update configuration
+                let config = match msg.get("configuration").and_then(|v| v.as_object()) {
+                    Some(config) => config,
+                    None => {
+                        let msg = EmptyReplyMsg { from: self.name() };
+                        let _ = stream.write_json_packet(&msg);
+                        return Ok(ActorMessageStatus::Processed);
+                    },
+                };
+                if let Some(scheme) = config.get("colorSchemeSimulation").and_then(|v| v.as_str()) {
+                    let theme = match scheme {
+                        "dark" => Theme::Dark,
+                        "light" => Theme::Light,
+                        _ => Theme::Light,
+                    };
+                    let root_actor = registry.find::<RootActor>("root");
+                    if let Some(tab_name) = root_actor.active_tab() {
+                        let tab_actor = registry.find::<TabDescriptorActor>(&tab_name);
+                        let browsing_context_name = tab_actor.browsing_context();
+                        let browsing_context_actor =
+                            registry.find::<BrowsingContextActor>(&browsing_context_name);
+                        browsing_context_actor.simulate_color_scheme(theme)?;
+                    } else {
+                        warn!("No active tab for updateConfiguration");
+                    }
+                }
                 let msg = EmptyReplyMsg { from: self.name() };
                 let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
@@ -69,7 +97,7 @@ impl TargetConfigurationActor {
             configuration: HashMap::new(),
             supported_options: HashMap::from([
                 ("cacheDisabled", false),
-                ("colorSchemeSimulation", false),
+                ("colorSchemeSimulation", true),
                 ("customFormatters", false),
                 ("customUserAgent", false),
                 ("javascriptEnabled", false),

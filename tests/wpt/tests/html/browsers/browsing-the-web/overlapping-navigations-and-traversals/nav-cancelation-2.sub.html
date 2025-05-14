@@ -131,7 +131,7 @@ promise_test(async t => {
   // This indicates a weird state where the grandparent's immediate child fired
   // its load event in response to navigation cancelation (see the assertions
   // above), but the grandparent itself is still blocked on the grandchild
-  // loading. If this is the case, the the postMessage() (that sets
+  // loading. If this is the case, the postMessage() (that sets
   // `grandchild_iframe_load_fired = true`) is received by the grandparent just
   // before the grandparent's load event is unblocked and fired. Therefore we
   // can detect this situation by checking `grandchild_iframe_load_fired`.

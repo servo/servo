@@ -44,7 +44,10 @@ test(t => { // https://bugs.chromium.org/p/chromium/issues/detail?id=1418727
 }, '`Date.prototype.toLocaleString` produces `yyyy-mm-dd` instead of `m/d/yyyy` for `en-CA` locale');
 
 test(t => { // https://bugzilla.mozilla.org/show_bug.cgi?id=1864612
-  assert_true(new Intl.DateTimeFormat('sv-SE', {}).format(0).endsWith('-01-01'));
-});
+  const date = new Date('1970-01-01T00:00:00');
+  const formatter = new Intl.DateTimeFormat('sv-SE')
+
+  assert_equals(formatter.format(date), '1970-01-01');
+}, '`Intl.DateTimeFormat.prototype.format` produces `yyyy-mm-dd` instead of `yyyy-m-d` for `sv-SE` locale');
 
 </script>

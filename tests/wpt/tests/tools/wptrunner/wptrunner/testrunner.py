@@ -601,7 +601,7 @@ class TestRunnerManager(threading.Thread):
                 assert self.browser.browser is not None
                 self.browser.browser.cleanup()
             impl = self.test_implementations[(self.state.subsuite, self.state.test_type)]
-            browser = impl.browser_cls(self.logger, remote_queue=self.command_queue,
+            browser = impl.browser_cls(self.logger,
                                        **impl.browser_kwargs)
             browser.setup()
             self.browser = BrowserManager(self.logger,

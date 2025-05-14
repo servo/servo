@@ -9,18 +9,19 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::id::PipelineId;
 use base64::Engine as _;
 use base64::engine::general_purpose;
-use content_security_policy::{self as csp, CspList};
+use content_security_policy as csp;
 use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource};
 use encoding_rs::Encoding;
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tendril::fmt::UTF8;
 use html5ever::tendril::{ByteTendril, StrTendril, TendrilSink};
-use html5ever::tokenizer::TokenizerResult;
-use html5ever::tree_builder::{ElementFlags, NextParserState, NodeOrText, QuirksMode, TreeSink};
-use html5ever::{Attribute, ExpandedName, LocalName, QualName, local_name, namespace_url, ns};
+use html5ever::tree_builder::{ElementFlags, NodeOrText, QuirksMode, TreeSink};
+use html5ever::{Attribute, ExpandedName, LocalName, QualName, local_name, ns};
 use hyper_serde::Serde;
+use markup5ever::TokenizerResult;
 use mime::{self, Mime};
+use net_traits::policy_container::PolicyContainer;
 use net_traits::request::RequestId;
 use net_traits::{
     FetchMetadata, FetchResponseListener, Metadata, NetworkError, ResourceFetchTiming,
@@ -59,6 +60,7 @@ use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLD
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documenttype::DocumentType;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
 use crate::dom::htmlimageelement::HTMLImageElement;
 use crate::dom::htmlinputelement::HTMLInputElement;
@@ -228,6 +230,7 @@ impl ServoParser {
             false,
             allow_declarative_shadow_roots,
             Some(context_document.insecure_requests_policy()),
+            context_document.has_trustworthy_ancestor_or_current_origin(),
             can_gc,
         );
 
@@ -354,16 +357,14 @@ impl ServoParser {
     }
 
     /// Steps 6-8 of <https://html.spec.whatwg.org/multipage/#document.write()>
-    pub(crate) fn write(&self, text: Vec<DOMString>, can_gc: CanGc) {
+    pub(crate) fn write(&self, text: DOMString, can_gc: CanGc) {
         assert!(self.can_write());
 
         if self.document.has_pending_parsing_blocking_script() {
             // There is already a pending parsing blocking script so the
             // parser is suspended, we just append everything to the
             // script input and abort these steps.
-            for chunk in text {
-                self.script_input.push_back(String::from(chunk).into());
-            }
+            self.script_input.push_back(String::from(text).into());
             return;
         }
 
@@ -373,9 +374,7 @@ impl ServoParser {
         assert!(self.script_input.is_empty());
 
         let input = BufferQueue::default();
-        for chunk in text {
-            input.push_back(String::from(chunk).into());
-        }
+        input.push_back(String::from(text).into());
 
         let profiler_chan = self
             .document
@@ -558,14 +557,6 @@ impl ServoParser {
     }
 
     fn parse_sync(&self, can_gc: CanGc) {
-        match self.tokenizer {
-            Tokenizer::Html(_) => self.do_parse_sync(can_gc),
-            Tokenizer::AsyncHtml(_) => self.do_parse_sync(can_gc),
-            Tokenizer::Xml(_) => self.do_parse_sync(can_gc),
-        }
-    }
-
-    fn do_parse_sync(&self, can_gc: CanGc) {
         assert!(self.script_input.is_empty());
 
         // This parser will continue to parse while there is either pending input or
@@ -713,7 +704,7 @@ where
 
     fn next(&mut self) -> Option<DomRoot<Node>> {
         let next = self.inner.next()?;
-        next.remove_self();
+        next.remove_self(CanGc::note());
         Some(next)
     }
 
@@ -819,6 +810,27 @@ impl ParserContext {
             pushed_entry_index: None,
         }
     }
+
+    pub(crate) fn append_parent_to_csp_list(&self, policy_container: Option<&PolicyContainer>) {
+        let Some(policy_container) = policy_container else {
+            return;
+        };
+        let Some(parent_csp_list) = &policy_container.csp_list else {
+            return;
+        };
+        let Some(parser) = self.parser.as_ref().map(|p| p.root()) else {
+            return;
+        };
+        let new_csp_list = match parser.document.get_csp_list() {
+            None => parent_csp_list.clone(),
+            Some(original_csp_list) => {
+                let mut appended_csp_list = original_csp_list.clone();
+                appended_csp_list.append(parent_csp_list.clone());
+                appended_csp_list.to_owned()
+            },
+        };
+        parser.document.set_csp_list(Some(new_csp_list));
+    }
 }
 
 impl FetchResponseListener for ParserContext {
@@ -857,29 +869,9 @@ impl FetchResponseListener for ParserContext {
             .map(Serde::into_inner)
             .map(Into::into);
 
-        // https://www.w3.org/TR/CSP/#initialize-document-csp
-        // TODO: Implement step 1 (local scheme special case)
-        let csp_list = metadata.as_ref().and_then(|m| {
-            let h = m.headers.as_ref()?;
-            let mut csp = h.get_all("content-security-policy").iter();
-            // This silently ignores the CSP if it contains invalid Unicode.
-            // We should probably report an error somewhere.
-            let c = csp.next().and_then(|c| c.to_str().ok())?;
-            let mut csp_list = CspList::parse(
-                c,
-                csp::PolicySource::Header,
-                csp::PolicyDisposition::Enforce,
-            );
-            for c in csp {
-                let c = c.to_str().ok()?;
-                csp_list.append(CspList::parse(
-                    c,
-                    csp::PolicySource::Header,
-                    csp::PolicyDisposition::Enforce,
-                ));
-            }
-            Some(csp_list)
-        });
+        let csp_list = metadata
+            .as_ref()
+            .and_then(|m| GlobalScope::parse_csp_list_from_metadata(&m.headers));
 
         let parser = match ScriptThread::page_headers_available(&self.id, metadata, CanGc::note()) {
             Some(parser) => parser,
@@ -920,7 +912,7 @@ impl FetchResponseListener for ParserContext {
                 let img = HTMLImageElement::new(local_name!("img"), None, doc, None, CanGc::note());
                 img.SetSrc(USVString(self.url.to_string()));
                 doc_body
-                    .AppendChild(&DomRoot::upcast::<Node>(img))
+                    .AppendChild(&DomRoot::upcast::<Node>(img), CanGc::note())
                     .expect("Appending failed");
             },
             (mime::TEXT, mime::PLAIN, _) => {
@@ -1075,6 +1067,17 @@ impl FetchResponseListener for ParserContext {
             CanGc::note(),
         );
     }
+
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+        let parser = match self.parser.as_ref() {
+            Some(parser) => parser.root(),
+            None => return,
+        };
+        let document = &parser.document;
+        let global = &document.global();
+        // TODO(https://github.com/w3c/webappsec-csp/issues/687): Update after spec is resolved
+        global.report_csp_violations(violations, None);
+    }
 }
 
 impl PreInvoke for ParserContext {}
@@ -1102,7 +1105,7 @@ fn insert(
             if element_in_non_fragment {
                 ScriptThread::push_new_element_queue();
             }
-            parent.InsertBefore(&n, reference_child).unwrap();
+            parent.InsertBefore(&n, reference_child, can_gc).unwrap();
             if element_in_non_fragment {
                 ScriptThread::pop_current_element_queue(can_gc);
             }
@@ -1118,7 +1121,9 @@ fn insert(
                 text.upcast::<CharacterData>().append_data(&t);
             } else {
                 let text = Text::new(String::from(t).into(), &parent.owner_doc(), can_gc);
-                parent.InsertBefore(text.upcast(), reference_child).unwrap();
+                parent
+                    .InsertBefore(text.upcast(), reference_child, can_gc)
+                    .unwrap();
             }
         },
     }
@@ -1264,7 +1269,7 @@ impl TreeSink for Sink {
         let control = elem.and_then(|e| e.as_maybe_form_control());
 
         if let Some(control) = control {
-            control.set_form_owner_from_parser(&form);
+            control.set_form_owner_from_parser(&form, CanGc::note());
         }
     }
 
@@ -1330,7 +1335,7 @@ impl TreeSink for Sink {
             CanGc::note(),
         );
         doc.upcast::<Node>()
-            .AppendChild(doctype.upcast())
+            .AppendChild(doctype.upcast(), CanGc::note())
             .expect("Appending failed");
     }
 
@@ -1350,7 +1355,7 @@ impl TreeSink for Sink {
 
     fn remove_from_parent(&self, target: &Dom<Node>) {
         if let Some(ref parent) = target.GetParentNode() {
-            parent.RemoveChild(target).unwrap();
+            parent.RemoveChild(target, CanGc::note()).unwrap();
         }
     }
 
@@ -1361,18 +1366,9 @@ impl TreeSink for Sink {
         }
     }
 
-    fn complete_script(&self, node: &Dom<Node>) -> NextParserState {
-        if let Some(script) = node.downcast() {
-            self.script.set(Some(script));
-            NextParserState::Suspend
-        } else {
-            NextParserState::Continue
-        }
-    }
-
     fn reparent_children(&self, node: &Dom<Node>, new_parent: &Dom<Node>) {
         while let Some(ref child) = node.GetFirstChild() {
-            new_parent.AppendChild(child).unwrap();
+            new_parent.AppendChild(child, CanGc::note()).unwrap();
         }
     }
 
@@ -1466,7 +1462,7 @@ impl TreeSink for Sink {
             clonable,
             serializable,
             delegatesfocus,
-            SlotAssignmentMode::Manual,
+            SlotAssignmentMode::Named,
             CanGc::note(),
         ) {
             Ok(shadow_root) => {
@@ -1476,6 +1472,9 @@ impl TreeSink for Sink {
                 // Set 8.4. Set template's template contents property to shadow.
                 let shadow = shadow_root.upcast::<DocumentFragment>();
                 template_element.set_contents(Some(shadow));
+
+                // Step 8.5. Set shadow’s available to element internals to true.
+                shadow_root.set_available_to_element_internals(true);
 
                 Ok(())
             },

@@ -9,7 +9,8 @@ function canvasPromiseTest(
     testBody, description,
     {testTypes = Object.values(CanvasTestType)} = {}) {
   if (testTypes.includes(CanvasTestType.WORKER)) {
-    promise_test(() => testBody(new OffscreenCanvas(300, 150)),
+    promise_test(() => testBody(new OffscreenCanvas(300, 150),
+                                {canvasType: CanvasTestType.WORKER}),
                 'Worker: ' + description);
   }
 }

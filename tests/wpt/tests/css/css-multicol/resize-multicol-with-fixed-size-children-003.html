@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Resize multicol with fixed-width child</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-multicol-1/#columns">
+<div id="multicol" style="position:relative; columns:2; column-fill:auto; gap:20px; width:220px; height:100px;">
+  <div style="width:50px;">
+    <div>
+      <div>
+        <div style="height:150px;"></div>
+        <div id="target"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(() => {
+    document.body.offsetTop;
+
+    // Increasing multicol width won't affect the layout of anything inside (the
+    // child has a fixed width), except for the columns themselves, which will
+    // become wider.
+    multicol.style.width = "320px";
+
+    // Check something in the second column.
+    assert_equals(target.offsetLeft, 170);
+    assert_equals(target.offsetTop, 50);
+  }, "Resize multicol with fixed-width child");
+</script>

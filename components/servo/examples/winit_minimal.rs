@@ -1,21 +1,21 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 use std::error::Error;
 use std::rc::Rc;
 
-use compositing::windowing::{AnimationState, EmbedderMethods, WindowMethods};
-use euclid::{Point2D, Scale, Size2D};
-use servo::{RenderingContext, Servo, TouchEventType, WebView, WindowRenderingContext};
-use servo_geometry::DeviceIndependentPixel;
+use euclid::{Scale, Size2D};
+use servo::{
+    RenderingContext, Servo, ServoBuilder, TouchEventType, WebView, WebViewBuilder,
+    WindowRenderingContext,
+};
 use tracing::warn;
 use url::Url;
 use webrender_api::ScrollLocation;
-use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DevicePixel, LayoutVector2D};
+use webrender_api::units::{DeviceIntPoint, DevicePixel, LayoutVector2D};
 use winit::application::ApplicationHandler;
-use winit::dpi::{PhysicalPosition, PhysicalSize};
+use winit::dpi::PhysicalSize;
 use winit::event::{MouseScrollDelta, WindowEvent};
 use winit::event_loop::EventLoop;
 use winit::raw_window_handle::{HasDisplayHandle, HasWindowHandle};
@@ -42,7 +42,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 struct AppState {
-    window_delegate: Rc<WindowDelegate>,
+    window: Window,
     servo: Servo,
     rendering_context: Rc<WindowRenderingContext>,
     webviews: RefCell<Vec<WebView>>,
@@ -50,14 +50,17 @@ struct AppState {
 
 impl ::servo::WebViewDelegate for AppState {
     fn notify_new_frame_ready(&self, _: WebView) {
-        self.window_delegate.window.request_redraw();
+        self.window.request_redraw();
     }
 
     fn request_open_auxiliary_webview(&self, parent_webview: WebView) -> Option<WebView> {
-        let webview = self.servo.new_auxiliary_webview();
-        webview.set_delegate(parent_webview.delegate());
+        let webview = WebViewBuilder::new_auxiliary(&self.servo)
+            .hidpi_scale_factor(Scale::new(self.window.scale_factor() as f32))
+            .delegate(parent_webview.delegate())
+            .build();
         webview.focus();
         webview.raise_to_top(true);
+
         self.webviews.borrow_mut().push(webview.clone());
         Some(webview)
     }
@@ -89,25 +92,16 @@ impl ApplicationHandler<WakerEvent> for App {
                 WindowRenderingContext::new(display_handle, window_handle, window.inner_size())
                     .expect("Could not create RenderingContext for window."),
             );
-            let window_delegate = Rc::new(WindowDelegate::new(window));
 
             let _ = rendering_context.make_current();
 
-            let servo = Servo::new(
-                Default::default(),
-                Default::default(),
-                rendering_context.clone(),
-                Box::new(EmbedderDelegate {
-                    waker: waker.clone(),
-                }),
-                window_delegate.clone(),
-                Default::default(),
-                Default::default(),
-            );
+            let servo = ServoBuilder::new(rendering_context.clone())
+                .event_loop_waker(Box::new(waker.clone()))
+                .build();
             servo.setup_logging();
 
             let app_state = Rc::new(AppState {
-                window_delegate,
+                window,
                 servo,
                 rendering_context,
                 webviews: Default::default(),
@@ -117,8 +111,12 @@ impl ApplicationHandler<WakerEvent> for App {
             let url = Url::parse("https://demo.servo.org/experiments/twgl-tunnel/")
                 .expect("Guaranteed by argument");
 
-            let webview = app_state.servo.new_webview(url);
-            webview.set_delegate(app_state.clone());
+            let webview = WebViewBuilder::new(&app_state.servo)
+                .url(url)
+                .hidpi_scale_factor(Scale::new(app_state.window.scale_factor() as f32))
+                .delegate(app_state.clone())
+                .build();
+
             webview.focus();
             webview.raise_to_top(true);
 
@@ -200,19 +198,6 @@ impl ApplicationHandler<WakerEvent> for App {
     }
 }
 
-struct EmbedderDelegate {
-    waker: Waker,
-}
-
-impl EmbedderMethods for EmbedderDelegate {
-    // FIXME: rust-analyzer “Implement missing members” autocompletes this as
-    // webxr_api::MainThreadWaker, which is not available when building without
-    // libservo/webxr, and even if it was, it would fail to compile with E0053.
-    fn create_event_loop_waker(&mut self) -> Box<dyn embedder_traits::EventLoopWaker> {
-        Box::new(self.waker.clone())
-    }
-}
-
 #[derive(Clone)]
 struct Waker(winit::event_loop::EventLoopProxy<WakerEvent>);
 #[derive(Debug)]
@@ -236,52 +221,6 @@ impl embedder_traits::EventLoopWaker for Waker {
     }
 }
 
-struct WindowDelegate {
-    window: Window,
-    animation_state: Cell<AnimationState>,
-}
-
-impl WindowDelegate {
-    fn new(window: Window) -> Self {
-        Self {
-            window,
-            animation_state: Cell::new(AnimationState::Idle),
-        }
-    }
-}
-
-impl WindowMethods for WindowDelegate {
-    fn get_coordinates(&self) -> compositing::windowing::EmbedderCoordinates {
-        let monitor = self
-            .window
-            .current_monitor()
-            .or_else(|| self.window.available_monitors().nth(0))
-            .expect("Failed to get winit monitor");
-        let scale =
-            Scale::<f64, DeviceIndependentPixel, DevicePixel>::new(self.window.scale_factor());
-        let window_size = winit_size_to_euclid_size(self.window.outer_size()).to_i32();
-        let window_origin = self.window.outer_position().unwrap_or_default();
-        let window_origin = winit_position_to_euclid_point(window_origin).to_i32();
-        let window_rect = DeviceIntRect::from_origin_and_size(window_origin, window_size);
-
-        compositing::windowing::EmbedderCoordinates {
-            hidpi_factor: Scale::new(self.window.scale_factor() as f32),
-            screen_size: (winit_size_to_euclid_size(monitor.size()).to_f64() / scale).to_i32(),
-            available_screen_size: (winit_size_to_euclid_size(monitor.size()).to_f64() / scale)
-                .to_i32(),
-            window_rect: (window_rect.to_f64() / scale).to_i32(),
-        }
-    }
-
-    fn set_animation_state(&self, state: compositing::windowing::AnimationState) {
-        self.animation_state.set(state);
-    }
-}
-
 pub fn winit_size_to_euclid_size<T>(size: PhysicalSize<T>) -> Size2D<T, DevicePixel> {
     Size2D::new(size.width, size.height)
-}
-
-pub fn winit_position_to_euclid_point<T>(position: PhysicalPosition<T>) -> Point2D<T, DevicePixel> {
-    Point2D::new(position.x, position.y)
 }

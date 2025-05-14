@@ -3,18 +3,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
-use std::num::NonZeroU32;
 use std::ptr;
 use std::rc::Rc;
 
-use base::id::{BlobId, BlobIndex, PipelineNamespaceId};
+use base::id::{BlobId, BlobIndex};
+use constellation_traits::{BlobData, BlobImpl};
 use dom_struct::dom_struct;
 use encoding_rs::UTF_8;
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use js::typedarray::Uint8;
 use net_traits::filemanager_thread::RelativePos;
-use script_traits::serializable::BlobImpl;
 use uuid::Uuid;
 
 use crate::body::{FetchedData, run_array_buffer_data_algorithm};
@@ -25,16 +24,16 @@ use crate::dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferViewOrBlo
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::serializable::{IntoStorageKey, Serializable, StorageKey};
+use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::structuredclone::{StructuredData, StructuredDataReader};
+use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
 use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::CanGc;
 
-// https://w3c.github.io/FileAPI/#blob
+/// <https://w3c.github.io/FileAPI/#dfn-Blob>
 #[dom_struct]
 pub(crate) struct Blob {
     reflector_: Reflector,
@@ -94,7 +93,7 @@ impl Blob {
 }
 
 impl Serializable for Blob {
-    type Id = BlobId;
+    type Index = BlobIndex;
     type Data = BlobImpl;
 
     /// <https://w3c.github.io/FileAPI/#ref-for-serialization-steps>
@@ -120,39 +119,13 @@ impl Serializable for Blob {
         Ok(deserialized_blob)
     }
 
-    fn serialized_storage(
-        reader: StructuredData<'_>,
-    ) -> &mut Option<HashMap<Self::Id, Self::Data>> {
+    fn serialized_storage<'a>(
+        reader: StructuredData<'a, '_>,
+    ) -> &'a mut Option<HashMap<BlobId, Self::Data>> {
         match reader {
             StructuredData::Reader(r) => &mut r.blob_impls,
             StructuredData::Writer(w) => &mut w.blobs,
         }
-    }
-
-    fn deserialized_storage(
-        data: &mut StructuredDataReader,
-    ) -> &mut Option<HashMap<StorageKey, DomRoot<Self>>> {
-        &mut data.blobs
-    }
-}
-
-impl From<StorageKey> for BlobId {
-    fn from(storage_key: StorageKey) -> BlobId {
-        let namespace_id = PipelineNamespaceId(storage_key.name_space);
-        let index =
-            BlobIndex(NonZeroU32::new(storage_key.index).expect("Deserialized blob index is zero"));
-
-        BlobId {
-            namespace_id,
-            index,
-        }
-    }
-}
-
-impl IntoStorageKey for BlobId {
-    fn into_storage_key(self) -> StorageKey {
-        let BlobIndex(index) = self.index;
-        StorageKey::new(self.namespace_id, index)
     }
 }
 
@@ -225,7 +198,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
         self.get_stream(can_gc)
     }
 
-    // https://w3c.github.io/FileAPI/#slice-method-algo
+    /// <https://w3c.github.io/FileAPI/#slice-method-algo>
     fn Slice(
         &self,
         start: Option<i64>,
@@ -233,17 +206,30 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
         content_type: Option<DOMString>,
         can_gc: CanGc,
     ) -> DomRoot<Blob> {
-        let type_string =
-            normalize_type_string(content_type.unwrap_or(DOMString::from("")).as_ref());
-        let rel_pos = RelativePos::from_opts(start, end);
-        let blob_impl = BlobImpl::new_sliced(rel_pos, self.blob_id, type_string);
-        Blob::new(&self.global(), blob_impl, can_gc)
+        let global = self.global();
+        let type_string = normalize_type_string(&content_type.unwrap_or_default());
+
+        // If our parent is already a sliced blob then we reference the data from the grandparent instead,
+        // to keep the blob ancestry chain short.
+        let (parent, range) = match *global.get_blob_data(&self.blob_id) {
+            BlobData::Sliced(grandparent, parent_range) => {
+                let range = RelativePos {
+                    start: parent_range.start + start.unwrap_or_default(),
+                    end: end.map(|end| end + parent_range.start).or(parent_range.end),
+                };
+                (grandparent, range)
+            },
+            _ => (self.blob_id, RelativePos::from_opts(start, end)),
+        };
+
+        let blob_impl = BlobImpl::new_sliced(range, parent, type_string);
+        Blob::new(&global, blob_impl, can_gc)
     }
 
     // https://w3c.github.io/FileAPI/#text-method-algo
     fn Text(&self, can_gc: CanGc) -> Rc<Promise> {
         let global = self.global();
-        let in_realm_proof = AlreadyInRealm::assert();
+        let in_realm_proof = AlreadyInRealm::assert::<crate::DomTypeHolder>();
         let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
         let id = self.get_blob_url_id();
         global.read_file_async(
@@ -266,7 +252,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
     // https://w3c.github.io/FileAPI/#arraybuffer-method-algo
     fn ArrayBuffer(&self, can_gc: CanGc) -> Rc<Promise> {
         let global = self.global();
-        let in_realm_proof = AlreadyInRealm::assert();
+        let in_realm_proof = AlreadyInRealm::assert::<crate::DomTypeHolder>();
         let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
 
         let id = self.get_blob_url_id();

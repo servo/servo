@@ -29,7 +29,7 @@ use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_w
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
-use crate::dom::eventtarget::{CompiledEventListener, EventTarget, ListenerPhase};
+use crate::dom::eventtarget::{EventListeners, EventTarget, ListenerPhase};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlinputelement::InputActivationState;
 use crate::dom::htmlslotelement::HTMLSlotElement;
@@ -507,7 +507,7 @@ impl Event {
                 // corresponding pre-activation behavior.
                 pre_activation_result = activation_target
                     .as_maybe_activatable()
-                    .and_then(|activatable| activatable.legacy_pre_activation_behavior());
+                    .and_then(|activatable| activatable.legacy_pre_activation_behavior(can_gc));
             }
 
             let timeline_window = DomRoot::downcast::<Window>(target.global())
@@ -584,7 +584,7 @@ impl Event {
             if let Some(target) = self.GetTarget() {
                 if let Some(node) = target.downcast::<Node>() {
                     let vtable = vtable_for(node);
-                    vtable.handle_event(self);
+                    vtable.handle_event(self, can_gc);
                 }
             }
         }
@@ -623,7 +623,7 @@ impl Event {
                 // Step 11.2 Otherwise, if activationTarget has legacy-canceled-activation behavior, then run
                 // activationTarget’s legacy-canceled-activation behavior.
                 else {
-                    activatable.legacy_canceled_activation_behavior(pre_activation_result);
+                    activatable.legacy_canceled_activation_behavior(pre_activation_result, can_gc);
                 }
             }
         }
@@ -1040,10 +1040,35 @@ impl From<bool> for EventCancelable {
 }
 
 impl From<EventCancelable> for bool {
-    fn from(bubbles: EventCancelable) -> Self {
-        match bubbles {
+    fn from(cancelable: EventCancelable) -> Self {
+        match cancelable {
             EventCancelable::Cancelable => true,
             EventCancelable::NotCancelable => false,
+        }
+    }
+}
+
+#[derive(Clone, Copy, MallocSizeOf, PartialEq)]
+pub(crate) enum EventComposed {
+    Composed,
+    NotComposed,
+}
+
+impl From<bool> for EventComposed {
+    fn from(boolean: bool) -> Self {
+        if boolean {
+            EventComposed::Composed
+        } else {
+            EventComposed::NotComposed
+        }
+    }
+}
+
+impl From<EventComposed> for bool {
+    fn from(composed: EventComposed) -> Self {
+        match composed {
+            EventComposed::Composed => true,
+            EventComposed::NotComposed => false,
         }
     }
 }
@@ -1151,10 +1176,7 @@ fn invoke(
     event.current_target.set(Some(&segment.invocation_target));
 
     // Step 6. Let listeners be a clone of event’s currentTarget attribute value’s event listener list.
-    let listeners =
-        segment
-            .invocation_target
-            .get_listeners_for(&event.type_(), Some(phase), can_gc);
+    let listeners = segment.invocation_target.get_listeners_for(&event.type_());
 
     // Step 7. Let invocationTargetInShadowTree be struct’s invocation-target-in-shadow-tree.
     let invocation_target_in_shadow_tree = segment.invocation_target_in_shadow_tree;
@@ -1207,8 +1229,8 @@ fn invoke(
 /// <https://dom.spec.whatwg.org/#concept-event-listener-inner-invoke>
 fn inner_invoke(
     event: &Event,
-    listeners: &[CompiledEventListener],
-    _phase: ListenerPhase,
+    listeners: &EventListeners,
+    phase: ListenerPhase,
     invocation_target_in_shadow_tree: bool,
     timeline_window: Option<&Window>,
     can_gc: CanGc,
@@ -1217,25 +1239,21 @@ fn inner_invoke(
     let mut found = false;
 
     // Step 2. For each listener in listeners, whose removed is false:
-    for listener in listeners {
-        // FIXME(#25479): We need an "if !listener.removed()" here,
-        // but there's a subtlety. Where Servo is currently using the
-        // CompiledEventListener, we really need something that maps to
-        // https://dom.spec.whatwg.org/#concept-event-listener
-        // which is not the same thing as the EventListener interface.
-        // script::dom::eventtarget::EventListenerEntry is the closest
-        // match we have, and is already holding the "once" flag,
-        // but it's not a drop-in replacement.
+    for listener in listeners.iter() {
+        if listener.borrow().removed() {
+            continue;
+        }
 
-        // Steps 2.1 and 2.3-2.4 are not done because `listeners` contain only the
-        // relevant ones for this invoke call during the dispatch algorithm.
-        // TODO: Step 2.1 If event’s type attribute value is not listener’s type, then continue.
+        // Step 2.1 If event’s type attribute value is not listener’s type, then continue.
 
         // Step 2.2. Set found to true.
         found = true;
 
-        // TODO Step 2.3 If phase is "capturing" and listener’s capture is false, then continue.
-        // TODO Step 2.4 If phase is "bubbling" and listener’s capture is true, then continue.
+        // Step 2.3 If phase is "capturing" and listener’s capture is false, then continue.
+        // Step 2.4 If phase is "bubbling" and listener’s capture is true, then continue.
+        if listener.borrow().phase() != phase {
+            continue;
+        }
 
         let event_target = event
             .GetCurrentTarget()
@@ -1243,12 +1261,20 @@ fn inner_invoke(
 
         // Step 2.5 If listener’s once is true, then remove an event listener given event’s currentTarget
         // attribute value and listener.
-        if let CompiledEventListener::Listener(event_listener) = listener {
-            event_target.remove_listener_if_once(&event.type_(), event_listener);
+        if listener.borrow().once() {
+            event_target.remove_listener(&event.type_(), listener);
         }
 
+        let Some(compiled_listener) =
+            listener
+                .borrow()
+                .get_compiled_listener(&event_target, &event.type_(), can_gc)
+        else {
+            continue;
+        };
+
         // Step 2.6 Let global be listener callback’s associated realm’s global object.
-        let global = listener.associated_global();
+        let global = compiled_listener.associated_global();
 
         // Step 2.7 Let currentEvent be undefined.
         let mut current_event = None;
@@ -1264,18 +1290,22 @@ fn inner_invoke(
         }
 
         // Step 2.9 If listener’s passive is true, then set event's in passive listener flag.
-        if let CompiledEventListener::Listener(event_listener) = listener {
-            event.set_in_passive_listener(event_target.is_passive(&event.type_(), event_listener));
-        }
+        event.set_in_passive_listener(event_target.is_passive(&event.type_(), listener));
 
-        // Step 2.10 If global is a Window object, then record timing info for event listener given event and listener.
+        // Step 2.10 If global is a Window object, then record timing info for event listener
+        // given event and listener.
         // Step 2.11 Call a user object’s operation with listener’s callback, "handleEvent", « event »,
         // and event’s currentTarget attribute value. If this throws an exception exception:
         //     Step 2.10.1 Report exception for listener’s callback’s corresponding JavaScript object’s
         //     associated realm’s global object.
         //     TODO Step 2.10.2 Set legacyOutputDidListenersThrowFlag if given.
         let marker = TimelineMarker::start("DOMEvent".to_owned());
-        listener.call_or_handle_event(&event_target, event, ExceptionHandling::Report, can_gc);
+        compiled_listener.call_or_handle_event(
+            &event_target,
+            event,
+            ExceptionHandling::Report,
+            can_gc,
+        );
         if let Some(window) = timeline_window {
             window.emit_timeline_marker(marker.end());
         }

@@ -6,6 +6,7 @@ from tests.support.sync import AsyncPoll
 from .. import (
     assert_response_event,
     get_cached_url,
+    get_next_event_for_url,
     IMAGE_RESPONSE_BODY,
     PAGE_EMPTY_TEXT,
     RESPONSE_COMPLETED_EVENT,
@@ -255,13 +256,16 @@ async def test_page_with_cached_link_stylesheet(
     await wait.until(lambda _: len(events) >= 4)
     assert len(events) == 4
 
+    # Assert only cached events after reload.
+    cached_events = events[2:]
+
     assert_response_event(
-        events[2],
+        get_next_event_for_url(cached_events, page_with_cached_css),
         expected_request={"method": "GET", "url": page_with_cached_css},
         expected_response={"url": page_with_cached_css, "fromCache": False},
     )
     assert_response_event(
-        events[3],
+        get_next_event_for_url(cached_events, cached_link_css_url),
         expected_request={"method": "GET", "url": cached_link_css_url},
         expected_response={"url": cached_link_css_url, "fromCache": True},
     )
@@ -327,13 +331,16 @@ async def test_page_with_cached_import_stylesheet(
     await wait.until(lambda _: len(events) >= 4)
     assert len(events) == 4
 
+    # Assert only cached events after reload.
+    cached_events = events[2:]
+
     assert_response_event(
-        events[2],
+        get_next_event_for_url(cached_events, page_with_cached_css),
         expected_request={"method": "GET", "url": page_with_cached_css},
         expected_response={"url": page_with_cached_css, "fromCache": False},
     )
     assert_response_event(
-        events[3],
+        get_next_event_for_url(cached_events, cached_import_css_url),
         expected_request={"method": "GET", "url": cached_import_css_url},
         expected_response={"url": cached_import_css_url, "fromCache": True},
     )
@@ -398,20 +405,14 @@ async def test_page_with_cached_duplicated_stylesheets(
         expected_response={"url": page_with_cached_css, "fromCache": False},
     )
 
-    link_css_event = next(
-        e for e in events if cached_link_css_url == e["request"]["url"]
-    )
     assert_response_event(
-        link_css_event,
+        get_next_event_for_url(events, cached_link_css_url),
         expected_request={"method": "GET", "url": cached_link_css_url},
         expected_response={"url": cached_link_css_url, "fromCache": False},
     )
 
-    import_css_event = next(
-        e for e in events if cached_import_css_url == e["request"]["url"]
-    )
     assert_response_event(
-        import_css_event,
+        get_next_event_for_url(events, cached_import_css_url),
         expected_request={"method": "GET", "url": cached_import_css_url},
         expected_response={"url": cached_import_css_url, "fromCache": False},
     )
@@ -428,23 +429,17 @@ async def test_page_with_cached_duplicated_stylesheets(
     cached_events = events[3:]
 
     assert_response_event(
-        cached_events[0],
+        get_next_event_for_url(cached_events, page_with_cached_css),
         expected_request={"method": "GET", "url": page_with_cached_css},
         expected_response={"url": page_with_cached_css, "fromCache": False},
     )
-    cached_link_css_event = next(
-        e for e in cached_events if cached_link_css_url == e["request"]["url"]
-    )
     assert_response_event(
-        cached_link_css_event,
+        get_next_event_for_url(cached_events, cached_link_css_url),
         expected_request={"method": "GET", "url": cached_link_css_url},
         expected_response={"url": cached_link_css_url, "fromCache": True},
     )
-    cached_import_css_event = next(
-        e for e in cached_events if cached_import_css_url == e["request"]["url"]
-    )
     assert_response_event(
-        cached_import_css_event,
+        get_next_event_for_url(cached_events, cached_import_css_url),
         expected_request={"method": "GET", "url": cached_import_css_url},
         expected_response={"url": cached_import_css_url, "fromCache": True},
     )
@@ -503,13 +498,17 @@ async def test_page_with_cached_script_javascript(
     await wait.until(lambda _: len(events) >= 4)
     assert len(events) == 4
 
+    # Assert only cached events after reload.
+    cached_events = events[2:]
+
     assert_response_event(
-        events[2],
+        get_next_event_for_url(cached_events, page_with_cached_js),
         expected_request={"method": "GET", "url": page_with_cached_js},
         expected_response={"url": page_with_cached_js, "fromCache": False},
     )
+
     assert_response_event(
-        events[3],
+        get_next_event_for_url(cached_events, cached_script_js_url),
         expected_request={"method": "GET", "url": cached_script_js_url},
         expected_response={"url": cached_script_js_url, "fromCache": True},
     )
@@ -541,23 +540,35 @@ async def test_page_with_cached_script_javascript(
     cached_events = events[4:]
 
     assert_response_event(
-        cached_events[0],
+        get_next_event_for_url(cached_events, page_with_2_cached_js),
         expected_request={"method": "GET", "url": page_with_2_cached_js},
         expected_response={"url": page_with_2_cached_js, "fromCache": False},
     )
+
+    cached_script_js_events = list(
+        e for e in cached_events if cached_script_js_url == e["request"]["url"]
+    )
     assert_response_event(
-        cached_events[1],
+        cached_script_js_events[0],
         expected_request={"method": "GET", "url": cached_script_js_url},
         expected_response={"url": cached_script_js_url, "fromCache": True},
     )
-    if len(events) > 6:
+    if len(cached_script_js_events) > 1:
         assert_response_event(
-            cached_events[2],
+            cached_script_js_events[1],
             expected_request={"method": "GET", "url": cached_script_js_url},
             expected_response={"url": cached_script_js_url, "fromCache": True},
         )
 
 
+@pytest.mark.parametrize(
+    "kind, module_template",
+    [
+        ("top-level", """<script type="module" src="{url}">"""),
+        ("statically-imported", """<script type="module">import foo from "{url}"; foo();</script>"""),
+        ("dynamically-imported", """<script type="module">const ns = await import("{url}"); ns.default();</script>"""),
+    ]
+)
 @pytest.mark.asyncio
 async def test_page_with_cached_javascript_module(
     bidi_session,
@@ -565,6 +576,8 @@ async def test_page_with_cached_javascript_module(
     inline,
     setup_network_test,
     top_context,
+    kind,
+    module_template,
 ):
     network_events = await setup_network_test(
         events=[
@@ -576,14 +589,12 @@ async def test_page_with_cached_javascript_module(
     cached_js_module_url = url(
         get_cached_url("text/javascript", SCRIPT_CONSOLE_LOG_IN_MODULE)
     )
+    module_script_tag = module_template.format(url=cached_js_module_url)
     page_with_cached_js_module = inline(
         f"""
         <body>
-            test page with cached js module
-            <script type="module">
-                import foo from "{cached_js_module_url}";
-                foo();
-            </script>
+            test page with cached {kind} js module
+            {module_script_tag}
         </body>
         """,
     )
@@ -618,13 +629,16 @@ async def test_page_with_cached_javascript_module(
     await wait.until(lambda _: len(events) >= 4)
     assert len(events) == 4
 
+    # Assert only cached events after reload.
+    cached_events = events[2:]
+
     assert_response_event(
-        events[2],
+        get_next_event_for_url(cached_events, page_with_cached_js_module),
         expected_request={"method": "GET", "url": page_with_cached_js_module},
         expected_response={"url": page_with_cached_js_module, "fromCache": False},
     )
     assert_response_event(
-        events[3],
+        get_next_event_for_url(cached_events, cached_js_module_url),
         expected_request={"method": "GET", "url": cached_js_module_url},
         expected_response={"url": cached_js_module_url, "fromCache": True},
     )
@@ -632,15 +646,9 @@ async def test_page_with_cached_javascript_module(
     page_with_2_cached_js_modules = inline(
         f"""
         <body>
-            test page with 2 cached javascript modules
-            <script type="module">
-                import foo from "{cached_js_module_url}";
-                foo();
-            </script>
-            <script type="module">
-                import foo from "{cached_js_module_url}";
-                foo();
-            </script>
+            test page with 2 cached {kind} js modules
+            {module_script_tag}
+            {module_script_tag}
         </body>
         """,
     )
@@ -660,12 +668,12 @@ async def test_page_with_cached_javascript_module(
     cached_events = events[4:]
 
     assert_response_event(
-        cached_events[0],
+        get_next_event_for_url(cached_events, page_with_2_cached_js_modules),
         expected_request={"method": "GET", "url": page_with_2_cached_js_modules},
         expected_response={"url": page_with_2_cached_js_modules, "fromCache": False},
     )
     assert_response_event(
-        cached_events[1],
+        get_next_event_for_url(cached_events, cached_js_module_url),
         expected_request={"method": "GET", "url": cached_js_module_url},
         expected_response={"url": cached_js_module_url, "fromCache": True},
     )
@@ -726,13 +734,16 @@ async def test_page_with_cached_image(
     await wait.until(lambda _: len(events) >= 4)
     assert len(events) == 4
 
+     # Assert only cached events after reload.
+    cached_events = events[2:]
+
     assert_response_event(
-        events[2],
+        get_next_event_for_url(cached_events, page_with_cached_image),
         expected_request={"method": "GET", "url": page_with_cached_image},
         expected_response={"url": page_with_cached_image, "fromCache": False},
     )
     assert_response_event(
-        events[3],
+        get_next_event_for_url(cached_events, cached_image_url),
         expected_request={"method": "GET", "url": cached_image_url},
         expected_response={"url": cached_image_url, "fromCache": True},
     )

@@ -6,15 +6,19 @@ use std::borrow::ToOwned;
 use std::cell::OnceCell;
 use std::collections::HashMap;
 use std::ops::{Deref, RangeInclusive};
-use std::sync::Arc;
 use std::{fmt, thread};
 
 use app_units::Au;
-use atomic_refcell::AtomicRefCell;
+use compositing_traits::CrossProcessCompositorApi;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use log::debug;
+use malloc_size_of::MallocSizeOf as MallocSizeOfTrait;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::{Mutex, RwLock};
+use profile_traits::mem::{
+    ProcessReports, ProfilerChan, Report, ReportKind, ReportsChan, perform_memory_report,
+};
+use profile_traits::path;
 use serde::{Deserialize, Serialize};
 use servo_config::pref;
 use servo_url::ServoUrl;
@@ -25,7 +29,6 @@ use style::values::computed::font::{
 use style::values::computed::{FontStretch, FontWeight};
 use style::values::specified::FontStretch as SpecifiedFontStretch;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey};
-use webrender_traits::CrossProcessCompositorApi;
 
 use crate::font::FontDescriptor;
 use crate::font_store::FontStore;
@@ -66,11 +69,12 @@ pub enum SystemFontServiceMessage {
     ),
     GetFontKey(IpcSender<FontKey>),
     GetFontInstanceKey(IpcSender<FontInstanceKey>),
+    CollectMemoryReport(ReportsChan),
     Exit(IpcSender<()>),
     Ping,
 }
 
-#[derive(Default)]
+#[derive(Default, MallocSizeOf)]
 struct ResolvedGenericFontFamilies {
     default: OnceCell<LowercaseFontFamilyName>,
     serif: OnceCell<LowercaseFontFamilyName>,
@@ -84,6 +88,7 @@ struct ResolvedGenericFontFamilies {
 /// The system font service. There is one of these for every Servo instance. This is a thread,
 /// responsible for reading the list of system fonts, handling requests to match against
 /// them, and ensuring that only one copy of system font data is loaded at a time.
+#[derive(MallocSizeOf)]
 pub struct SystemFontService {
     port: IpcReceiver<SystemFontServiceMessage>,
     local_families: FontStore,
@@ -118,8 +123,12 @@ impl SystemFontServiceProxySender {
 }
 
 impl SystemFontService {
-    pub fn spawn(compositor_api: CrossProcessCompositorApi) -> SystemFontServiceProxySender {
+    pub fn spawn(
+        compositor_api: CrossProcessCompositorApi,
+        memory_profiler_sender: ProfilerChan,
+    ) -> SystemFontServiceProxySender {
         let (sender, receiver) = ipc::channel().unwrap();
+        let memory_reporter_sender = sender.clone();
 
         thread::Builder::new()
             .name("SystemFontService".to_owned())
@@ -138,7 +147,13 @@ impl SystemFontService {
 
                 cache.fetch_new_keys();
                 cache.refresh_local_families();
-                cache.run();
+
+                memory_profiler_sender.run_with_memory_reporting(
+                    || cache.run(),
+                    "system-fonts".to_owned(),
+                    memory_reporter_sender,
+                    SystemFontServiceMessage::CollectMemoryReport,
+                );
             })
             .expect("Thread spawning failed");
 
@@ -172,6 +187,9 @@ impl SystemFontService {
                     self.fetch_new_keys();
                     let _ = result_sender.send(self.free_font_instance_keys.pop().unwrap());
                 },
+                SystemFontServiceMessage::CollectMemoryReport(report_sender) => {
+                    self.collect_memory_report(report_sender);
+                },
                 SystemFontServiceMessage::Ping => (),
                 SystemFontServiceMessage::Exit(result) => {
                     let _ = result.send(());
@@ -179,6 +197,17 @@ impl SystemFontService {
                 },
             }
         }
+    }
+
+    fn collect_memory_report(&self, report_sender: ReportsChan) {
+        perform_memory_report(|ops| {
+            let reports = vec![Report {
+                path: path!["system-fonts"],
+                kind: ReportKind::ExplicitSystemHeapSize,
+                size: self.size_of(ops),
+            }];
+            report_sender.send(ProcessReports::new(reports));
+        });
     }
 
     #[cfg_attr(
@@ -528,11 +557,7 @@ impl SystemFontServiceProxy {
             panic!("SystemFontService has already exited.");
         };
 
-        let templates: Vec<_> = templates
-            .into_iter()
-            .map(AtomicRefCell::new)
-            .map(Arc::new)
-            .collect();
+        let templates: Vec<_> = templates.into_iter().map(FontTemplateRef::new).collect();
         self.templates.write().insert(cache_key, templates.clone());
 
         templates

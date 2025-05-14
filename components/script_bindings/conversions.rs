@@ -13,19 +13,24 @@ use js::glue::{
     JS_GetReservedSlot, UnwrapObjectDynamic,
 };
 use js::jsapi::{
-    JS_DeprecatedStringHasLatin1Chars, JS_GetLatin1StringCharsAndLength,
+    Heap, IsWindowProxy, JS_DeprecatedStringHasLatin1Chars, JS_GetLatin1StringCharsAndLength,
     JS_GetTwoByteStringCharsAndLength, JS_NewStringCopyN, JSContext, JSObject, JSString,
 };
 use js::jsval::{ObjectValue, StringValue, UndefinedValue};
+use js::rust::wrappers::IsArrayObject;
 use js::rust::{
     HandleId, HandleValue, MutableHandleValue, ToString, get_object_class, is_dom_class,
     is_dom_object, maybe_wrap_value,
 };
+use num_traits::Float;
 
+use crate::JSTraceable;
 use crate::inheritance::Castable;
+use crate::num::Finite;
 use crate::reflector::{DomObject, Reflector};
 use crate::root::DomRoot;
 use crate::str::{ByteString, DOMString, USVString};
+use crate::trace::RootedTraceableBox;
 use crate::utils::{DOMClass, DOMJSClass};
 
 /// A trait to check whether a given `JSObject` implements an IDL interface.
@@ -240,6 +245,9 @@ pub unsafe fn get_dom_class(obj: *mut JSObject) -> Result<&'static DOMClass, ()>
     if is_dom_proxy(obj) {
         trace!("proxy dom object");
         let dom_class: *const DOMClass = GetProxyHandlerExtra(obj) as *const DOMClass;
+        if dom_class.is_null() {
+            return Err(());
+        }
         return Ok(&*dom_class);
     }
     trace!("not a dom object");
@@ -407,4 +415,177 @@ pub unsafe fn jsid_to_string(cx: *mut JSContext, id: HandleId) -> Option<DOMStri
     }
 
     None
+}
+
+impl<T: Float + ToJSValConvertible> ToJSValConvertible for Finite<T> {
+    #[inline]
+    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+        let value = **self;
+        value.to_jsval(cx, rval);
+    }
+}
+
+impl<T: Float + FromJSValConvertible<Config = ()>> FromJSValConvertible for Finite<T> {
+    type Config = ();
+
+    unsafe fn from_jsval(
+        cx: *mut JSContext,
+        value: HandleValue,
+        option: (),
+    ) -> Result<ConversionResult<Finite<T>>, ()> {
+        let result = match FromJSValConvertible::from_jsval(cx, value, option)? {
+            ConversionResult::Success(v) => v,
+            ConversionResult::Failure(error) => {
+                // FIXME(emilio): Why throwing instead of propagating the error?
+                throw_type_error(cx, &error);
+                return Err(());
+            },
+        };
+        match Finite::new(result) {
+            Some(v) => Ok(ConversionResult::Success(v)),
+            None => {
+                throw_type_error(cx, "this argument is not a finite floating-point value");
+                Err(())
+            },
+        }
+    }
+}
+
+/// Get a `*const libc::c_void` for the given DOM object, unless it is a DOM
+/// wrapper, and checking if the object is of the correct type.
+///
+/// Returns Err(()) if `obj` is a wrapper or if the object is not an object
+/// for a DOM object of the given type (as defined by the proto_id and proto_depth).
+#[inline]
+#[allow(clippy::result_unit_err)]
+unsafe fn private_from_proto_check_static(
+    obj: *mut JSObject,
+    proto_check: fn(&'static DOMClass) -> bool,
+) -> Result<*const libc::c_void, ()> {
+    let dom_class = get_dom_class(obj).map_err(|_| ())?;
+    if proto_check(dom_class) {
+        trace!("good prototype");
+        Ok(private_from_object(obj))
+    } else {
+        trace!("bad prototype");
+        Err(())
+    }
+}
+
+/// Get a `*const T` for a DOM object accessible from a `JSObject`, where the DOM object
+/// is guaranteed not to be a wrapper.
+///
+/// # Safety
+/// `obj` must point to a valid, non-null JSObject.
+#[allow(clippy::result_unit_err)]
+pub unsafe fn native_from_object_static<T>(obj: *mut JSObject) -> Result<*const T, ()>
+where
+    T: DomObject + IDLInterface,
+{
+    private_from_proto_check_static(obj, T::derives).map(|ptr| ptr as *const T)
+}
+
+/// Get a `*const T` for a DOM object accessible from a `HandleValue`.
+/// Caller is responsible for throwing a JS exception if needed in case of error.
+///
+/// # Safety
+/// `cx` must point to a valid, non-null JSContext.
+#[allow(clippy::result_unit_err)]
+pub unsafe fn native_from_handlevalue<T>(v: HandleValue, cx: *mut JSContext) -> Result<*const T, ()>
+where
+    T: DomObject + IDLInterface,
+{
+    if !v.get().is_object() {
+        return Err(());
+    }
+    native_from_object(v.get().to_object(), cx)
+}
+
+impl<T: ToJSValConvertible + JSTraceable> ToJSValConvertible for RootedTraceableBox<T> {
+    #[inline]
+    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+        let value = &**self;
+        value.to_jsval(cx, rval);
+    }
+}
+
+impl<T> FromJSValConvertible for RootedTraceableBox<Heap<T>>
+where
+    T: FromJSValConvertible + js::rust::GCMethods + Copy,
+    Heap<T>: JSTraceable + Default,
+{
+    type Config = T::Config;
+
+    unsafe fn from_jsval(
+        cx: *mut JSContext,
+        value: HandleValue,
+        config: Self::Config,
+    ) -> Result<ConversionResult<Self>, ()> {
+        T::from_jsval(cx, value, config).map(|result| match result {
+            ConversionResult::Success(inner) => {
+                ConversionResult::Success(RootedTraceableBox::from_box(Heap::boxed(inner)))
+            },
+            ConversionResult::Failure(msg) => ConversionResult::Failure(msg),
+        })
+    }
+}
+
+/// Returns whether `value` is an array-like object (Array, FileList,
+/// HTMLCollection, HTMLFormControlsCollection, HTMLOptionsCollection,
+/// NodeList, DOMTokenList).
+///
+/// # Safety
+/// `cx` must point to a valid, non-null JSContext.
+pub unsafe fn is_array_like<D: crate::DomTypes>(cx: *mut JSContext, value: HandleValue) -> bool {
+    let mut is_array = false;
+    assert!(IsArrayObject(cx, value, &mut is_array));
+    if is_array {
+        return true;
+    }
+
+    let object: *mut JSObject = match FromJSValConvertible::from_jsval(cx, value, ()).unwrap() {
+        ConversionResult::Success(object) => object,
+        _ => return false,
+    };
+
+    // TODO: HTMLAllCollection
+    if root_from_object::<D::DOMTokenList>(object, cx).is_ok() {
+        return true;
+    }
+    if root_from_object::<D::FileList>(object, cx).is_ok() {
+        return true;
+    }
+    if root_from_object::<D::HTMLCollection>(object, cx).is_ok() {
+        return true;
+    }
+    if root_from_object::<D::HTMLFormControlsCollection>(object, cx).is_ok() {
+        return true;
+    }
+    if root_from_object::<D::HTMLOptionsCollection>(object, cx).is_ok() {
+        return true;
+    }
+    if root_from_object::<D::NodeList>(object, cx).is_ok() {
+        return true;
+    }
+
+    false
+}
+
+/// Get a `DomRoot<T>` for a WindowProxy accessible from a `HandleValue`.
+/// Caller is responsible for throwing a JS exception if needed in case of error.
+pub(crate) unsafe fn windowproxy_from_handlevalue<D: crate::DomTypes>(
+    v: HandleValue,
+    _cx: *mut JSContext,
+) -> Result<DomRoot<D::WindowProxy>, ()> {
+    if !v.get().is_object() {
+        return Err(());
+    }
+    let object = v.get().to_object();
+    if !IsWindowProxy(object) {
+        return Err(());
+    }
+    let mut value = UndefinedValue();
+    GetProxyReservedSlot(object, 0, &mut value);
+    let ptr = value.to_private() as *const D::WindowProxy;
+    Ok(DomRoot::from_ref(&*ptr))
 }

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+  <link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
+  <link rel="match" href="position-sticky-table-pixel-rounding-ref.html" />
+  <link rel="author" title="Chris Harrelson" href="mailto:chrishtr@chromium.org" />
+  <meta name="assert" content="Passes if there is no gap between the second and third column">
+  <style>
+      table {
+        border-spacing: 0;
+      }
+      td {
+          padding: 0px 9.6px;
+          background-color: #fff;
+      }
+      .sticky {
+          position: sticky;
+          left: 0px;
+          background-color: #c3c3c3;
+      }
+  </style>
+  <table>
+    <tr>
+      <td class="sticky" style="width: 64.138px"></td>
+      <td class="sticky" style="width: 10px"></td>
+      <td class="sticky">Content</td>
+    </tr>
+  </table>
+

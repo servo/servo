@@ -37,6 +37,7 @@ promise_test(async t => {
     ["currententrychange", "", { from, navigationType: "reload" }],
     ["handler run", "", { from, navigationType: "reload" }],
     ["committed fulfilled", "", { from, navigationType: "reload" }],
+    ["transition.committed fulfilled", "", { from, navigationType: "reload" }],
     ["promise microtask", "", { from, navigationType: "reload" }],
     ["navigatesuccess", "", { from, navigationType: "reload" }],
     ["finished fulfilled", "", null],

@@ -6,7 +6,7 @@ use std::cell::Cell;
 use std::default::Default;
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix, local_name, namespace_url};
+use html5ever::{LocalName, Prefix, local_name};
 use js::rust::HandleObject;
 use stylo_dom::ElementState;
 
@@ -242,8 +242,10 @@ impl VirtualMethods for HTMLButtonElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
         match *attr.local_name() {
             local_name!("disabled") => {
                 let el = self.upcast::<Element>();
@@ -259,9 +261,9 @@ impl VirtualMethods for HTMLButtonElement {
                         el.check_ancestors_disabled_state_for_form_control();
                     },
                 }
-                el.update_sequentially_focusable_status(CanGc::note());
+                el.update_sequentially_focusable_status(can_gc);
                 self.validity_state()
-                    .perform_validation_and_update(ValidationFlags::all());
+                    .perform_validation_and_update(ValidationFlags::all(), can_gc);
             },
             local_name!("type") => match mutation {
                 AttributeMutation::Set(_) => {
@@ -272,32 +274,32 @@ impl VirtualMethods for HTMLButtonElement {
                     };
                     self.button_type.set(value);
                     self.validity_state()
-                        .perform_validation_and_update(ValidationFlags::all());
+                        .perform_validation_and_update(ValidationFlags::all(), can_gc);
                 },
                 AttributeMutation::Removed => {
                     self.button_type.set(ButtonType::Submit);
                 },
             },
             local_name!("form") => {
-                self.form_attribute_mutated(mutation);
+                self.form_attribute_mutated(mutation, can_gc);
                 self.validity_state()
-                    .perform_validation_and_update(ValidationFlags::empty());
+                    .perform_validation_and_update(ValidationFlags::empty(), can_gc);
             },
             _ => {},
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext) {
+    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context);
+            s.bind_to_tree(context, can_gc);
         }
 
         self.upcast::<Element>()
             .check_ancestors_disabled_state_for_form_control();
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
-        self.super_type().unwrap().unbind_from_tree(context);
+    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+        self.super_type().unwrap().unbind_from_tree(context, can_gc);
 
         let node = self.upcast::<Node>();
         let el = self.upcast::<Element>();

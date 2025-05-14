@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use html5ever::{LocalName, Prefix, QualName, local_name, namespace_url, ns};
+use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::rust::HandleObject;
 use servo_config::pref;
 
@@ -85,6 +85,7 @@ use crate::dom::htmlulistelement::HTMLUListElement;
 use crate::dom::htmlunknownelement::HTMLUnknownElement;
 use crate::dom::htmlvideoelement::HTMLVideoElement;
 use crate::dom::svgelement::SVGElement;
+use crate::dom::svgimageelement::SVGImageElement;
 use crate::dom::svgsvgelement::SVGSVGElement;
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::CanGc;
@@ -114,6 +115,7 @@ fn create_svg_element(
     }
 
     match name.local {
+        local_name!("image") => make!(SVGImageElement),
         local_name!("svg") => make!(SVGSVGElement),
         _ => make!(SVGElement),
     }

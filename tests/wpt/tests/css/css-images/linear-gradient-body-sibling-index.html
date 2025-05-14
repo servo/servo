@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>CSS Images Test: Linear gradient with sibling-index()</title>
+<link rel="help" href="https://drafts.csswg.org/css-images/#linear-gradients">
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#tree-counting">
+<link rel="match" href="linear-gradient-body-sibling-index-ref.html">
+<link rel="assert" content"sibling-index() is 2 for body">
+<style>
+  body {
+    background-position: top left;
+    background-repeat: no-repeat;
+    background-size: 100px 100px;
+    background-image: linear-gradient(blue calc(20px * sibling-index()), yellow);
+  }
+</style>
+<body>

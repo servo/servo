@@ -46,6 +46,7 @@ from .protocol import (AccessibilityProtocolPart,
                        VirtualSensorProtocolPart,
                        DevicePostureProtocolPart,
                        VirtualPressureSourceProtocolPart,
+                       DisplayFeaturesProtocolPart,
                        merge_dicts)
 
 
@@ -721,12 +722,21 @@ class MarionetteVirtualPressureSourceProtocolPart(VirtualPressureSourceProtocolP
     def create_virtual_pressure_source(self, source_type, metadata):
         raise NotImplementedError("create_virtual_pressure_source not yet implemented")
 
-    def update_virtual_pressure_source(self, source_type, sample):
+    def update_virtual_pressure_source(self, source_type, sample, own_contribution_estimate):
         raise NotImplementedError("update_virtual_pressure_source not yet implemented")
 
     def remove_virtual_pressure_source(self, source_type):
         raise NotImplementedError("remove_virtual_pressure_source not yet implemented")
 
+class MarionetteDisplayFeaturesProtocolPart(DisplayFeaturesProtocolPart):
+    def setup(self):
+        self.marionette = self.parent.marionette
+
+    def set_display_features(self, features):
+        raise NotImplementedError("set_display_features not yet implemented")
+
+    def clear_display_features(self):
+        raise NotImplementedError("clear_display_features not yet implemented")
 
 class MarionetteProtocol(Protocol):
     implements = [MarionetteBaseProtocolPart,
@@ -750,7 +760,8 @@ class MarionetteProtocol(Protocol):
                   MarionetteAccessibilityProtocolPart,
                   MarionetteVirtualSensorProtocolPart,
                   MarionetteDevicePostureProtocolPart,
-                  MarionetteVirtualPressureSourceProtocolPart]
+                  MarionetteVirtualPressureSourceProtocolPart,
+                  MarionetteDisplayFeaturesProtocolPart]
 
     def __init__(self, executor, browser, capabilities=None, timeout_multiplier=1, e10s=True, ccov=False):
         do_delayed_imports()
@@ -914,6 +925,7 @@ class MarionetteTestharnessExecutor(TestharnessExecutor):
         self.debug_test = debug_test
 
         self.install_extensions = browser.extensions
+        self.initial_window_size = None
 
         self.original_pref_values = {}
 
@@ -928,6 +940,10 @@ class MarionetteTestharnessExecutor(TestharnessExecutor):
             addons.install(extension_path)
 
         self.protocol.testharness.load_runner(self.last_environment["protocol"])
+        try:
+            self.initial_window_size = self.protocol.window.get_rect()
+        except Exception:
+            pass
 
     def is_alive(self):
         return self.protocol.is_alive()
@@ -974,6 +990,9 @@ class MarionetteTestharnessExecutor(TestharnessExecutor):
 
         test_window = protocol.base.create_window()
         self.protocol.base.set_window(test_window)
+        # Restore the window to the initial position
+        if self.browser.supports_window_resize and self.initial_window_size:
+            self.protocol.window.set_rect(self.initial_window_size)
 
         if self.debug_test and self.browser.supports_devtools:
             self.protocol.debug.load_devtools()

@@ -2,6 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use js::error::throw_type_error;
+use js::jsapi::JS_IsExceptionPending;
+
+use crate::codegen::PrototypeList::proto_id_to_name;
+use crate::script_runtime::JSContext as SafeJSContext;
+
 /// DOM exceptions that can be thrown by a native DOM method.
 #[derive(Clone, Debug, MallocSizeOf)]
 pub enum Error {
@@ -38,7 +44,7 @@ pub enum Error {
     /// InvalidNodeTypeError DOMException
     InvalidNodeType,
     /// DataCloneError DOMException
-    DataClone,
+    DataClone(Option<String>),
     /// NoModificationAllowedError DOMException
     NoModificationAllowed,
     /// QuotaExceededError DOMException
@@ -53,6 +59,8 @@ pub enum Error {
     Data,
     /// OperationError DOMException
     Operation,
+    /// NotAllowedError DOMException
+    NotAllowed,
 
     /// TypeError JavaScript Error
     Type(String),
@@ -69,3 +77,20 @@ pub type Fallible<T> = Result<T, Error>;
 /// The return type for IDL operations that can throw DOM exceptions and
 /// return `()`.
 pub type ErrorResult = Fallible<()>;
+
+/// Throw an exception to signal that a `JSObject` can not be converted to a
+/// given DOM type.
+pub fn throw_invalid_this(cx: SafeJSContext, proto_id: u16) {
+    debug_assert!(unsafe { !JS_IsExceptionPending(*cx) });
+    let error = format!(
+        "\"this\" object does not implement interface {}.",
+        proto_id_to_name(proto_id)
+    );
+    unsafe { throw_type_error(*cx, &error) };
+}
+
+pub fn throw_constructor_without_new(cx: SafeJSContext, name: &str) {
+    debug_assert!(unsafe { !JS_IsExceptionPending(*cx) });
+    let error = format!("{} constructor: 'new' is required", name);
+    unsafe { throw_type_error(*cx, &error) };
+}

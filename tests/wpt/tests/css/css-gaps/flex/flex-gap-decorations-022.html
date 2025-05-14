@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: flex column gaps are painted with different sized gaps and row-rule-outset 0.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="../agnostic/gap-decorations-002-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+
+  .flex-container {
+    height: 110px;
+    width: 120px;
+
+    display: flex;
+
+    column-gap: 20px;
+    row-gap: 10px;
+
+    column-rule-color: blue;
+    column-rule-style: solid;
+    column-rule-width: 20px;
+
+    row-rule-color: gold;
+    row-rule-style: solid;
+    row-rule-width: 10px;
+
+    row-rule-break: intersection;
+    row-rule-outset: 0;
+
+    flex-wrap: wrap;
+  }
+
+  .flex-item {
+    background: skyblue;
+    width: 50px;
+  }
+</style>
+<div class="flex-container">
+    <div class="flex-item"></div>
+    <div class="flex-item"></div>
+    <div class="flex-item"></div>
+    <div class="flex-item"></div>
+</div>

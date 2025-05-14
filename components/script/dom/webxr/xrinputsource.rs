@@ -17,6 +17,7 @@ use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::gamepad::Gamepad;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::window::Window;
 use crate::dom::xrhand::XRHand;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrspace::XRSpace;
@@ -40,14 +41,14 @@ pub(crate) struct XRInputSource {
 
 impl XRInputSource {
     pub(crate) fn new_inherited(
-        global: &GlobalScope,
+        window: &Window,
         session: &XRSession,
         info: InputSource,
         can_gc: CanGc,
     ) -> XRInputSource {
         // <https://www.w3.org/TR/webxr-gamepads-module-1/#gamepad-differences>
         let gamepad = Gamepad::new(
-            global,
+            window,
             0,
             "".into(),
             "xr-standard".into(),
@@ -74,18 +75,18 @@ impl XRInputSource {
 
     #[allow(unsafe_code)]
     pub(crate) fn new(
-        global: &GlobalScope,
+        window: &Window,
         session: &XRSession,
         info: InputSource,
         can_gc: CanGc,
     ) -> DomRoot<XRInputSource> {
         let source = reflect_dom_object(
-            Box::new(XRInputSource::new_inherited(global, session, info, can_gc)),
-            global,
+            Box::new(XRInputSource::new_inherited(window, session, info, can_gc)),
+            window,
             can_gc,
         );
 
-        let _ac = enter_realm(global);
+        let _ac = enter_realm(window);
         let cx = GlobalScope::get_cx();
         unsafe {
             rooted!(in(*cx) let mut profiles = UndefinedValue());

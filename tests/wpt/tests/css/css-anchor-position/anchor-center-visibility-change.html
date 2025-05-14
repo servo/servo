@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>Tests 'anchor-center' value when target visibility changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#valdef-justify-self-anchor-center">
+<link rel="author" href="mailto:plampe@igalia.com">
+<link rel="match" href="anchor-center-visibility-change-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+.container {
+  width: 100px;
+  height: 100px;
+  border: solid 3px;
+  position: relative;
+  margin: 50px;
+}
+
+.anchor {
+  anchor-name: --anchor;
+  position: relative;
+  width: 50px;
+  height: 50px;
+  left: 40px;
+  top: 5px;
+  background: lime;
+}
+
+.target {
+  position-anchor: --anchor;
+  position: fixed;
+  background: cyan;
+  justify-self: anchor-center;
+  display: none;
+}
+</style>
+
+<div class="container">
+  <div class="anchor"></div>
+  <div id="target" class="target">
+    <div style="width:30px;height:20px;"></div>
+  </div>
+</div>
+
+<script>
+  // #target should be invisible initially.
+  waitForAtLeastOneFrame().then(() => {
+    // Change #target to be visible.
+    document.getElementById('target').style.display = 'flow';
+    waitForAtLeastOneFrame().then(() => {
+      // #target should be visible and anchor-centered now.
+      takeScreenshot();
+    });
+  });
+</script>

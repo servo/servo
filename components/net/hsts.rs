@@ -11,13 +11,14 @@ use embedder_traits::resources::{self, Resource};
 use headers::{HeaderMapExt, StrictTransportSecurity};
 use http::HeaderMap;
 use log::{error, info};
+use malloc_size_of_derive::MallocSizeOf;
 use net_traits::IncludeSubdomains;
 use net_traits::pub_domains::reg_suffix;
 use serde::{Deserialize, Serialize};
 use servo_config::pref;
 use servo_url::{Host, ServoUrl};
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct HstsEntry {
     pub host: String,
     pub include_subdomains: bool,
@@ -60,7 +61,7 @@ impl HstsEntry {
     }
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
 pub struct HstsList {
     pub entries_map: HashMap<String, Vec<HstsEntry>>,
 }

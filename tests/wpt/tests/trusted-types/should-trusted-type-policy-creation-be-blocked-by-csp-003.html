@@ -16,10 +16,10 @@ header(Content-Security-Policy,trusted-types tt-policy-name tt-policy-name,True)
 header(Content-Security-Policy,trusted-types tt-policy-name *,True)|\
 header(Content-Security-Policy,trusted-types * tt-policy-name,True)|\
 header(Content-Security-Policy,trusted-types * *,True)|\
-header(Content-Security-Policy,trusted-types tt-policy-name none,True)|\
-header(Content-Security-Policy,trusted-types none tt-policy-name,True)|\
-header(Content-Security-Policy,trusted-types * none,True)|\
-header(Content-Security-Policy,trusted-types none *,True)|\
+header(Content-Security-Policy,trusted-types tt-policy-name 'none',True)|\
+header(Content-Security-Policy,trusted-types 'none' tt-policy-name,True)|\
+header(Content-Security-Policy,trusted-types * 'none',True)|\
+header(Content-Security-Policy,trusted-types 'none' *,True)|\
 `
     );
     assert_equals(results.length, 1);

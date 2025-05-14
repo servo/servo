@@ -10,8 +10,17 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="resources/invoker-utils.js"></script>
 
+<meta name=variant content=?method=hover>
+<meta name=variant content=?method=focus>
+
 <body>
 <script>
+// The invokerMethod parameter is provided by variants, to
+// effectively split this (slow) test into multiple runs.
+const urlParams = new URLSearchParams(window.location.search);
+invokerMethod = urlParams.get('method');
+description = `method ${invokerMethod}`;
+
 // NOTE about testing methodology:
 // This test uses popovers as an invoker target, and checks whether they are
 // hidden *after* the appropriate de-hover delay. The delay used for testing is
@@ -29,19 +38,19 @@ async function makeTestParts(t) {
   // This ensures the tests in this file don't succeed sometimes, due to the above NOTE.
   assert_true(HTMLAnchorElement.prototype.hasOwnProperty('interestTargetElement'),'interesttarget is not supported');
   let {popover, invoker, unrelated} = await createPopoverAndInvokerForHoverTests(t, /*showdelayMs*/ 0, invokerHideDelay);
-  let mouseOverInvoker;
+  let specificInvokerElement;
   invoker.innerHTML = '<span><span>Click me</span></span>';
-  mouseOverInvoker = invoker.firstElementChild.firstElementChild;
-  assert_true(!!mouseOverInvoker);
-  assert_false(popover.matches(':popover-open'));
-  await hoverOver(invoker); // Always start with the mouse over the invoker, which will invoke the popover immediately
-  assert_true(popover.matches(':popover-open'));
-  return {popover, invoker, unrelated, mouseOverInvoker};
+  specificInvokerElement = invoker.firstElementChild.firstElementChild;
+  assert_true(!!specificInvokerElement,'invalid');
+  assert_false(popover.matches(':popover-open'),'popover should start closed');
+  await hoverOrFocus(invokerMethod,invoker); // Always start with the focus/mouse over the invoker, which will invoke the popover immediately
+  assert_true(popover.matches(':popover-open'),'popover should be open');
+  return {popover, invoker, unrelated, specificInvokerElement};
 }
 
 promise_test(async (t) => {
   const {popover,invoker} = await makeTestParts(t);
-  const token = await mouseOverAndRecord(t,invoker);
+  const token = await mouseOverOrFocusAndRecord(t,invokerMethod,invoker);
   await waitForHoverTime(hoverWaitTime);
   assert_true(msSinceMouseOver(token) >= hoverWaitTime,'waitForHoverTime should wait the specified time');
   assert_true(hoverWaitTime > invokerHideDelay,'invokerHideDelay is the value from CSS, hoverWaitTime should be longer than that');
@@ -49,41 +58,55 @@ promise_test(async (t) => {
 
 promise_test(async (t) => {
   const {popover,invoker,unrelated} = await makeTestParts(t);
-  const token = await mouseOverAndRecord(t,unrelated);
+  const token = await mouseOverOrFocusAndRecord(t,invokerMethod,unrelated);
   let showing = popover.matches(':popover-open');
   if (msSinceMouseOver(token) < invokerHideDelay) {
     // Only check if the WPT runner wasn't too slow.
     assert_true(showing,'interest shouldn\'t be immediately lost');
   }
-  await hoverOver(unrelated);
+  await hoverOrFocus(invokerMethod,unrelated);
   await waitForHoverTime(hoverWaitTime);
   assert_false(popover.matches(':popover-open'),'interest should be lost after delay');
-},`The interest-target-hide-delay causes interest to be lost after a delay`);
+},`The interest-target-hide-delay causes interest to be lost after a delay, ${description}`);
 
 promise_test(async (t) => {
   const {popover,invoker,unrelated} = await makeTestParts(t);
-  await hoverOver(popover);
+  // First hover/focus unrelated.
+  const token = await mouseOverOrFocusAndRecord(t,invokerMethod,unrelated);
+  // Then immediately re-hover/focus the invoker.
+  await hoverOrFocus(invokerMethod,invoker);
+  if (msSinceMouseOver(token) >= invokerHideDelay)
+    return; // The WPT runner was too slow.
+  let showing1 = popover.matches(':popover-open');
+  await waitForHoverTime(hoverWaitTime);
+  let showing2 = popover.matches(':popover-open');
+  assert_true(showing1 && showing2,'interest should not be lost');
+},`Hide delay is cancelled if hover/focus returns, ${description}`);
+
+promise_test(async (t) => {
+  const {popover,invoker,unrelated} = await makeTestParts(t);
+  await hoverOrFocus(invokerMethod,popover);
   await waitForHoverTime(hoverWaitTime);
   assert_true(popover.matches(':popover-open'),'hovering the interest target element should keep it showing');
-  const token = await mouseOverAndRecord(t,unrelated);
+  const token = await mouseOverOrFocusAndRecord(t,invokerMethod,unrelated);
   let showing = popover.matches(':popover-open');
   if (msSinceMouseOver(token) >= invokerHideDelay)
     return; // The WPT runner was too slow.
   assert_true(showing,'subsequently hovering unrelated element shouldn\'t immediately cause interest lost');
-  await hoverOver(unrelated);
+  await hoverOrFocus(invokerMethod,unrelated);
   await waitForHoverTime(hoverWaitTime);
   assert_false(popover.matches(':popover-open'),'hovering unrelated element should cause interest lost after delay');
-},`hovering the interest target element keeps the invoker from losing interest`);
+},`hovering/focusing the interest target element keeps the invoker from losing interest, ${description}`);
 
 promise_test(async (t) => {
-  const {popover,invoker,unrelated,mouseOverInvoker} = await makeTestParts(t);
-  await hoverOver(popover);
+  const {popover,invoker,unrelated,specificInvokerElement} = await makeTestParts(t);
+  await hoverOrFocus(invokerMethod,popover);
   await waitForHoverTime(hoverWaitTime);
-  await hoverOver(mouseOverInvoker);
+  await hoverOrFocus(invokerMethod,specificInvokerElement);
   await waitForHoverTime(hoverWaitTime);
   assert_true(popover.matches(':popover-open'),'Moving hover between invoker and target should not cause interest lost');
-  await hoverOver(unrelated);
+  await hoverOrFocus(invokerMethod,unrelated);
   await waitForHoverTime(hoverWaitTime);
   assert_false(popover.matches(':popover-open'),'Moving hover to unrelated should cause interest lost');
-},`moving hover between the invoker and the target prevents interest lost`);
+},`moving hover/focus between the invoker and the target prevents interest lost, ${description}`);
 </script>

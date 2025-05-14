@@ -15,7 +15,6 @@
     await agent.navigate(nextUrl);
 
     let requestHeaders = await agent.getRequestHeaders();
-    assert_in_array(requestHeaders.purpose, ["", "prefetch"], "The vendor-specific header Purpose, if present, must be 'prefetch'.");
-    assert_equals(requestHeaders.sec_purpose, "prefetch;anonymous-client-ip");
+    assert_prefetched_anonymous_client_ip(requestHeaders);
   }, "test anonymous-client url prefetch for cross origin pages");
 </script>

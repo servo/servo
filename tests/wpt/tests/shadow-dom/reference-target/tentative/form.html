@@ -1,0 +1,172 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+</head>
+
+<body>
+  <div>
+    <template shadowrootmode="open">
+      <!-- This button shouldn't link to the real form in fancy-form-1 as it's in a different tree scope -->
+      <button id="button-in-shadow" form="fancy-form-1"></button>
+    </template>
+  </div>
+
+  <button id="reset-button-1" type="reset" form="fancy-form-1"></button>
+  <fancy-form-1 id="fancy-form-1">
+    <template shadowrootmode="open" shadowrootreferencetarget="real-form">
+      <form id="real-form">
+        <input type="text" value="default value">
+      </form>
+    </template>
+  </fancy-form-1>
+
+  <button id="reset-button-2" type="reset" form="fancy-form-2"></button>
+  <fancy-form-2 id="fancy-form-2"></fancy-form-2>
+  <script>
+    const fancyForm2 = document.querySelector('fancy-form-2');
+    fancyForm2.attachShadow({ mode: 'open', referenceTarget: 'real-form' });
+    fancyForm2.shadowRoot.innerHTML = '<form id="real-form"><input type="text" value="default value"></form>';
+  </script>
+
+  <button id="reset-button-3" type="reset"></button>
+  <fancy-form-3 id="fancy-form-3">
+    <template shadowrootmode="open" shadowrootreferencetarget="real-form">
+      <form id="real-form">
+        <input type="text" value="default value">
+      </form>
+    </template>
+  </fancy-form-3>
+
+  <script>
+    function testFormWithReferenceTarget(formId, resetButtonId, name) {
+      test(function () {
+        const fancyForm = document.getElementById(formId);
+        const realForm = fancyForm.shadowRoot.getElementById("real-form");
+        const input = realForm.firstElementChild;
+
+        input.value = "new value";
+        const resetButton = document.getElementById(resetButtonId);
+        assert_equals(realForm.elements.length, 2, "The .elements property should have 2 elements.");
+        assert_equals(realForm.elements[0], resetButton, "The first element should be the referencing element.");
+        assert_equals(realForm.elements[1], input, "The 2nd element should be the input inside the real form.");
+        assert_equals(input.value, "new value", "The input value should be updated to the new value.");
+        resetButton.click();
+        assert_equals(input.value, "default value", "The input value should be reset to the default value.");
+      }, name);
+    }
+
+    testFormWithReferenceTarget('fancy-form-1', 'reset-button-1', "Reference target works with form attribute.");
+    testFormWithReferenceTarget('fancy-form-2', 'reset-button-2', "Reference target works with form attribute via options.");
+
+    document.getElementById('reset-button-3').setAttribute('form', "fancy-form-3");
+    testFormWithReferenceTarget('fancy-form-3', 'reset-button-3', "Reference target works with setAttribute('form')");
+  </script>
+
+  <form-associated-custom-button id="custom-button" form="fancy-form-4"></form-associated-custom-button>
+  <fancy-form-4 id="fancy-form-4">
+    <template shadowrootmode="open" shadowrootreferencetarget="real-form">
+      <form id="real-form">
+        <input type="text" value="default value">
+        <!-- The internal button of the custom button below shouldn't be associated with real-form -->
+        <form-associated-custom-button id="custom-button-in-shadow"></form-associated-custom-button>
+      </form>
+    </template>
+  </fancy-form-4>
+  <script>
+    class FormAssociatedCustomButton extends HTMLElement {
+      static formAssociated = true;
+      constructor() {
+        super();
+        this.internals_ = this.attachInternals();
+        const shadow = this.attachShadow({ mode: 'open' });
+        shadow.innerHTML = `<button>fancy button</button>`;
+      }
+    }
+    window.customElements.define("form-associated-custom-button", FormAssociatedCustomButton);
+    test(function () {
+        const customElement = document.getElementById("custom-button");
+        const fancyForm = document.getElementById("fancy-form-4");
+        const realForm = fancyForm.shadowRoot.getElementById("real-form");
+        const customElementInShadow = fancyForm.shadowRoot.getElementById("custom-button-in-shadow");
+        const input = realForm.firstElementChild;
+
+        assert_equals(realForm.elements.length, 3, "The .elements property should have 3 elements.");
+        assert_equals(realForm.elements[0], customElement, "The first element should be the form-associated custom element.");
+        assert_equals(realForm.elements[1], input, "The 2nd element should be the input inside the real form.");
+        assert_equals(realForm.elements[2], customElementInShadow, "The 3rd element should be the custom element inside the real form.");
+
+        // Swap the input and the custom element in real-form.
+        realForm.moveBefore(customElementInShadow, input);
+        assert_equals(realForm.elements.length, 3, "The .elements property should have 3 elements.");
+        assert_equals(realForm.elements[0], customElement, "The first element should be the form-associated custom element.");
+        assert_equals(realForm.elements[1], customElementInShadow, "The 2nd element should be the custom element inside the real form.");
+        assert_equals(realForm.elements[2], input, "The 3rd element should be the input inside the real form.");
+
+        // Swap the referencing element and the fancy form
+        customElement.parentNode.moveBefore(fancyForm, customElement);
+        assert_equals(realForm.elements.length, 3, "The .elements property should have 3 elements.");
+        assert_equals(realForm.elements[0], customElementInShadow, "The first element should be the custom element inside the real form.");
+        assert_equals(realForm.elements[1], input, "The 2nd element should be the input inside the real form.");
+        assert_equals(realForm.elements[2], customElement, "The 3rd element should be the form-associated custom element.");
+      }, "Reference target works with form-associated custom element.");
+  </script>
+
+  <button id="reset-button-5" type="reset" form="fancy-form-5"></button>
+  <fancy-form-5 id="fancy-form-5">
+    <template shadowrootmode="open" shadowrootreferencetarget="nested-element">
+      <nested-element id="nested-element">
+        <template shadowrootmode="open" shadowrootreferencetarget="real-form">
+          <form id="real-form">
+            <input type="text" value="default value">
+          </form>
+        </template>
+      </nested-element>
+      <button id="button-in-shadow" form="nested-element"></button>
+      <div>
+        <template shadowrootmode="open">
+          <!-- This button shouldn't link to the real form in nested-element as it's in a different tree scope -->
+          <button id="button-in-different-shadow" form="nested-element"></button>
+        </template>
+      </div>
+    </template>
+  </fancy-form-5>
+  <script>
+      test(function () {
+        const fancyForm = document.getElementById("fancy-form-5");
+        const nestedElement = fancyForm.shadowRoot.getElementById("nested-element");
+        const buttonInShadow = fancyForm.shadowRoot.getElementById("button-in-shadow");
+        const realForm = nestedElement.shadowRoot.getElementById("real-form");
+        const input = realForm.firstElementChild;
+
+        input.value = "new value";
+        const resetButton = document.getElementById("reset-button-5");
+        assert_equals(realForm.elements.length, 3, "The .elements property should have 3 elements.");
+        // The elements in .elements property should be in tree order (preorder, depth-first).
+        assert_equals(realForm.elements[0], resetButton, "The first element should be the referencing element.");
+        assert_equals(realForm.elements[1], input, "The 2nd element should be the input inside the real form.");
+        assert_equals(realForm.elements[2], buttonInShadow, "The 3rd element should be the button in the shadow dom.");
+        assert_equals(input.value, "new value", "The input value should be updated to the new value.");
+        resetButton.click();
+        assert_equals(input.value, "default value", "The input value should be reset to the default value.");
+
+        // Remove the button that's using reference target in the 1st level shadow.
+        buttonInShadow.remove();
+        assert_equals(realForm.elements.length, 2, "The .elements property should have 2 elements after removing the button.");
+
+        // Add a new button using reference target in the 1st level shadow.
+        const newButtonInShadow = document.createElement("button");
+        newButtonInShadow.setAttribute("form", "nested-element");
+        nestedElement.parentNode.insertBefore(newButtonInShadow, nestedElement);
+        assert_equals(realForm.elements.length, 3, "The .elements property should have 3 elements after a new button is inserted.");
+        assert_equals(realForm.elements[0], resetButton, "The first element should be the referencing element.");
+        assert_equals(realForm.elements[1], newButtonInShadow, "The 2nd element should be the button in the shadow dom.");
+        assert_equals(realForm.elements[2], input, "The 3rd element should be the input inside the real form.");
+      }, "Reference target works with nested shadow trees.");
+  </script>
+</body>
+</html>

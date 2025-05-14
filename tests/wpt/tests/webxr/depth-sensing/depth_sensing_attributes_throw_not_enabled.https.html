@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+
+<script>
+
+const testFunctionDepthUsage = function (session, controller, t) {
+    t.step(() => {
+      assert_throws_dom("InvalidStateError", () => session.depthUsage,
+                        "session.depthUsage should throw when depth sensing is disabled");
+    });
+
+  return Promise.resolve();
+};
+
+const testFunctionDepthDataFormat = function (session, controller, t) {
+    t.step(() => {
+      assert_throws_dom("InvalidStateError", () => session.depthDataFormat,
+                        "session.depthDataFormat should throw when depth sensing is disabled");
+    });
+
+  return Promise.resolve();
+};
+
+const testFunctionDepthType = function (session, controller, t) {
+    t.step(() => {
+      assert_throws_dom("InvalidStateError", () => session.depthType,
+                        "session.depthType should throw when depth sensing is disabled");
+    });
+
+  return Promise.resolve();
+};
+
+const testFunctionDepthActive = function (session, controller, t) {
+    t.step(() => {
+      assert_throws_dom("InvalidStateError", () => session.depthActive,
+                        "session.depthActive should throw when depth sensing is disabled");
+    });
+
+  return Promise.resolve();
+};
+
+const testFunctionPauseDepthSensing = function (session, controller, t) {
+  let done = false;
+  session.requestAnimationFrame((time, frame) => {
+    t.step(() => {
+      assert_throws_dom("InvalidStateError", () => session.pauseDepthSensing(),
+                        "pauseDepthSensing() should thrown when depth sensing is disabled");
+    });
+  });
+
+  return t.step_wait(() => done);
+};
+
+const testFunctionResumeDepthSensing = function (session, controller, t) {
+  let done = false;
+  session.requestAnimationFrame((time, frame) => {
+    t.step(() => {
+      assert_throws_dom("InvalidStateError", () => session.resumeDepthSensing(),
+                        "resumeDepthSensing() should thrown when depth sensing is disabled");
+    });
+  });
+
+  return t.step_wait(() => done);
+};
+
+xr_session_promise_test(
+  "XRSession.depthUsage rejects if depth sensing is not enabled on a session",
+  testFunctionDepthUsage,
+  IMMERSIVE_AR_DEVICE,
+  'immersive-ar');
+
+xr_session_promise_test(
+  "XRSession.depthDataFormat rejects if depth sensing is not enabled on a session",
+  testFunctionDepthDataFormat,
+  IMMERSIVE_AR_DEVICE,
+  'immersive-ar');
+
+xr_session_promise_test(
+  "XRSession.depthType rejects if depth sensing is not enabled on a session",
+  testFunctionDepthType,
+  IMMERSIVE_AR_DEVICE,
+  'immersive-ar');
+
+</script>

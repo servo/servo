@@ -44,6 +44,8 @@ pub enum WebDriverCommandMsg {
     MouseButtonAction(WebViewId, MouseButtonAction, MouseButton, f32, f32),
     /// Act as if the mouse was moved in the browsing context with the given ID.
     MouseMoveAction(WebViewId, f32, f32),
+    /// Act as if the mouse wheel is scrolled in the browsing context given the given ID.
+    WheelScrollAction(WebViewId, f32, f32, f64, f64),
     /// Set the window size.
     SetWindowSize(WebViewId, DeviceIntSize, IpcSender<Size2D<f32, CSSPixel>>),
     /// Take a screenshot of the window.
@@ -78,6 +80,7 @@ pub enum WebDriverScriptCommand {
         IpcSender<Result<(), WebDriverCookieError>>,
     ),
     DeleteCookies(IpcSender<Result<(), ErrorStatus>>),
+    DeleteCookie(String, IpcSender<Result<(), ErrorStatus>>),
     ExecuteScript(String, IpcSender<WebDriverJSResult>),
     ExecuteAsyncScript(String, IpcSender<WebDriverJSResult>),
     FindElementCSS(String, IpcSender<Result<Option<String>, ErrorStatus>>),
@@ -113,6 +116,7 @@ pub enum WebDriverScriptCommand {
     FocusElement(String, IpcSender<Result<(), ErrorStatus>>),
     ElementClick(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     GetActiveElement(IpcSender<Option<String>>),
+    GetComputedRole(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     GetCookie(String, IpcSender<Vec<Serde<Cookie<'static>>>>),
     GetCookies(IpcSender<Vec<Serde<Cookie<'static>>>>),
     GetElementAttribute(
@@ -168,6 +172,7 @@ pub enum WebDriverJSError {
     /// Occurs when handler received an event message for a layout channel that is not
     /// associated with the current script thread
     BrowsingContextNotFound,
+    JSException(WebDriverJSValue),
     JSError,
     StaleElementReference,
     Timeout,

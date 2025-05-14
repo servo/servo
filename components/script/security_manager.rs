@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use js::jsapi::RuntimeCode;
 use net_traits::request::Referrer;
 use serde::Serialize;
 use servo_url::ServoUrl;
@@ -15,22 +14,17 @@ use crate::dom::bindings::codegen::Bindings::SecurityPolicyViolationEventBinding
 };
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::event::{Event, EventBubbles, EventCancelable};
+use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::securitypolicyviolationevent::SecurityPolicyViolationEvent;
 use crate::dom::types::GlobalScope;
 use crate::script_runtime::CanGc;
 use crate::task::TaskOnce;
 
-pub(crate) struct CSPViolationReporter {
-    sample: Option<String>,
-    filename: String,
-    report_only: bool,
-    runtime_code: RuntimeCode,
-    line_number: u32,
-    column_number: u32,
-    target: Trusted<EventTarget>,
+pub(crate) struct CSPViolationReportTask {
+    global: Trusted<GlobalScope>,
+    event_target: Trusted<EventTarget>,
+    violation_report: SecurityPolicyViolationReport,
 }
 
 #[derive(Debug, Serialize)]
@@ -53,71 +47,71 @@ pub(crate) struct SecurityPolicyViolationReport {
     disposition: SecurityPolicyViolationEventDisposition,
 }
 
-impl CSPViolationReporter {
-    pub(crate) fn new(
-        global: &GlobalScope,
-        sample: Option<String>,
-        report_only: bool,
-        runtime_code: RuntimeCode,
-        filename: String,
-        line_number: u32,
-        column_number: u32,
-    ) -> CSPViolationReporter {
-        CSPViolationReporter {
-            sample,
-            filename,
-            report_only,
-            runtime_code,
-            line_number,
-            column_number,
-            target: Trusted::new(global.upcast::<EventTarget>()),
-        }
+#[derive(Default)]
+pub(crate) struct CSPViolationReportBuilder {
+    pub report_only: bool,
+    /// <https://www.w3.org/TR/CSP3/#violation-sample>
+    pub sample: Option<String>,
+    /// <https://www.w3.org/TR/CSP3/#violation-resource>
+    pub resource: String,
+    /// <https://www.w3.org/TR/CSP3/#violation-line-number>
+    pub line_number: u32,
+    /// <https://www.w3.org/TR/CSP3/#violation-column-number>
+    pub column_number: u32,
+    /// <https://www.w3.org/TR/CSP3/#violation-source-file>
+    pub source_file: String,
+    /// <https://www.w3.org/TR/CSP3/#violation-effective-directive>
+    pub effective_directive: String,
+    /// <https://www.w3.org/TR/CSP3/#violation-policy>
+    pub original_policy: String,
+}
+
+impl CSPViolationReportBuilder {
+    pub fn report_only(mut self, report_only: bool) -> CSPViolationReportBuilder {
+        self.report_only = report_only;
+        self
     }
 
-    fn get_report(&self, global: &GlobalScope) -> SecurityPolicyViolationReport {
-        SecurityPolicyViolationReport {
-            sample: self.sample.clone(),
-            disposition: match self.report_only {
-                true => SecurityPolicyViolationEventDisposition::Report,
-                false => SecurityPolicyViolationEventDisposition::Enforce,
-            },
-            // https://w3c.github.io/webappsec-csp/#violation-resource
-            blocked_url: match self.runtime_code {
-                RuntimeCode::JS => "eval".to_owned(),
-                RuntimeCode::WASM => "wasm-eval".to_owned(),
-            },
-            // https://w3c.github.io/webappsec-csp/#violation-referrer
-            referrer: match global.get_referrer() {
-                Referrer::Client(url) => self.strip_url_for_reports(url),
-                Referrer::ReferrerUrl(url) => self.strip_url_for_reports(url),
-                _ => "".to_owned(),
-            },
-            status_code: global.status_code().unwrap_or(200),
-            document_url: self.strip_url_for_reports(global.get_url()),
-            source_file: self.filename.clone(),
-            violated_directive: "script-src".to_owned(),
-            effective_directive: "script-src".to_owned(),
-            line_number: self.line_number,
-            column_number: self.column_number,
-            original_policy: String::default(),
-        }
+    /// <https://www.w3.org/TR/CSP3/#violation-sample>
+    pub fn sample(mut self, sample: Option<String>) -> CSPViolationReportBuilder {
+        self.sample = sample;
+        self
     }
 
-    fn fire_violation_event(&self, can_gc: CanGc) {
-        let target = self.target.root();
-        let global = &target.global();
-        let report = self.get_report(global);
+    /// <https://www.w3.org/TR/CSP3/#violation-resource>
+    pub fn resource(mut self, resource: String) -> CSPViolationReportBuilder {
+        self.resource = resource;
+        self
+    }
 
-        let event = SecurityPolicyViolationEvent::new(
-            global,
-            Atom::from("securitypolicyviolation"),
-            EventBubbles::Bubbles,
-            EventCancelable::Cancelable,
-            &report.convert(),
-            can_gc,
-        );
+    /// <https://www.w3.org/TR/CSP3/#violation-line-number>
+    pub fn line_number(mut self, line_number: u32) -> CSPViolationReportBuilder {
+        self.line_number = line_number;
+        self
+    }
 
-        event.upcast::<Event>().fire(&target, can_gc);
+    /// <https://www.w3.org/TR/CSP3/#violation-column-number>
+    pub fn column_number(mut self, column_number: u32) -> CSPViolationReportBuilder {
+        self.column_number = column_number;
+        self
+    }
+
+    /// <https://www.w3.org/TR/CSP3/#violation-source-file>
+    pub fn source_file(mut self, source_file: String) -> CSPViolationReportBuilder {
+        self.source_file = source_file;
+        self
+    }
+
+    /// <https://www.w3.org/TR/CSP3/#violation-effective-directive>
+    pub fn effective_directive(mut self, effective_directive: String) -> CSPViolationReportBuilder {
+        self.effective_directive = effective_directive;
+        self
+    }
+
+    /// <https://www.w3.org/TR/CSP3/#violation-policy>
+    pub fn original_policy(mut self, original_policy: String) -> CSPViolationReportBuilder {
+        self.original_policy = original_policy;
+        self
     }
 
     /// <https://w3c.github.io/webappsec-csp/#strip-url-for-use-in-reports>
@@ -136,12 +130,67 @@ impl CSPViolationReporter {
         // > Step 5: Return the result of executing the URL serializer on url.
         url.into_string()
     }
+
+    pub fn build(self, global: &GlobalScope) -> SecurityPolicyViolationReport {
+        SecurityPolicyViolationReport {
+            violated_directive: self.effective_directive.clone(),
+            effective_directive: self.effective_directive.clone(),
+            document_url: self.strip_url_for_reports(global.get_url()),
+            disposition: match self.report_only {
+                true => SecurityPolicyViolationEventDisposition::Report,
+                false => SecurityPolicyViolationEventDisposition::Enforce,
+            },
+            // https://w3c.github.io/webappsec-csp/#violation-referrer
+            referrer: match global.get_referrer() {
+                Referrer::Client(url) => self.strip_url_for_reports(url),
+                Referrer::ReferrerUrl(url) => self.strip_url_for_reports(url),
+                _ => "".to_owned(),
+            },
+            sample: self.sample,
+            blocked_url: self.resource,
+            source_file: self.source_file,
+            original_policy: self.original_policy,
+            line_number: self.line_number,
+            column_number: self.column_number,
+            status_code: global.status_code().unwrap_or(0),
+        }
+    }
+}
+
+impl CSPViolationReportTask {
+    pub fn new(
+        global: Trusted<GlobalScope>,
+        event_target: Trusted<EventTarget>,
+        violation_report: SecurityPolicyViolationReport,
+    ) -> CSPViolationReportTask {
+        CSPViolationReportTask {
+            global,
+            event_target,
+            violation_report,
+        }
+    }
+
+    fn fire_violation_event(self, can_gc: CanGc) {
+        let event = SecurityPolicyViolationEvent::new(
+            &self.global.root(),
+            Atom::from("securitypolicyviolation"),
+            EventBubbles::Bubbles,
+            EventCancelable::Cancelable,
+            EventComposed::Composed,
+            &self.violation_report.convert(),
+            can_gc,
+        );
+
+        event
+            .upcast::<Event>()
+            .fire(&self.event_target.root(), can_gc);
+    }
 }
 
 /// Corresponds to the operation in 5.5 Report Violation
 /// <https://w3c.github.io/webappsec-csp/#report-violation>
 /// > Queue a task to run the following steps:
-impl TaskOnce for CSPViolationReporter {
+impl TaskOnce for CSPViolationReportTask {
     fn run_once(self) {
         // > If target implements EventTarget, fire an event named securitypolicyviolation
         // > that uses the SecurityPolicyViolationEvent interface

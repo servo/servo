@@ -4,9 +4,9 @@
 
 use std::cell::Cell;
 
+use constellation_traits::BroadcastMsg;
 use dom_struct::dom_struct;
 use js::rust::{HandleObject, HandleValue};
-use script_traits::BroadcastMsg;
 use uuid::Uuid;
 
 use crate::dom::bindings::codegen::Bindings::BroadcastChannelBinding::BroadcastChannelMethods;

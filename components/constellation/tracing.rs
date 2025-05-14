@@ -46,7 +46,7 @@ mod from_compositor {
         };
     }
 
-    impl LogTarget for constellation_traits::ConstellationMsg {
+    impl LogTarget for constellation_traits::EmbedderToConstellationMessage {
         fn log_target(&self) -> &'static str {
             match self {
                 Self::Exit => target!("Exit"),
@@ -58,7 +58,7 @@ mod from_compositor {
                 Self::LoadUrl(..) => target!("LoadUrl"),
                 Self::ClearCache => target!("ClearCache"),
                 Self::TraverseHistory(..) => target!("TraverseHistory"),
-                Self::WindowSize(..) => target!("WindowSize"),
+                Self::ChangeViewportDetails(..) => target!("ChangeViewportDetails"),
                 Self::ThemeChange(..) => target!("ThemeChange"),
                 Self::TickAnimation(..) => target!("TickAnimation"),
                 Self::WebDriverCommand(..) => target!("WebDriverCommand"),
@@ -77,6 +77,7 @@ mod from_compositor {
                 Self::SetWebViewThrottled(_, _) => target!("SetWebViewThrottled"),
                 Self::SetScrollStates(..) => target!("SetScrollStates"),
                 Self::PaintMetric(..) => target!("PaintMetric"),
+                Self::EvaluateJavaScript(..) => target!("EvaluateJavaScript"),
             }
         }
     }
@@ -113,7 +114,7 @@ mod from_script {
         };
     }
 
-    impl LogTarget for script_traits::ScriptMsg {
+    impl LogTarget for constellation_traits::ScriptToConstellationMessage {
         fn log_target(&self) -> &'static str {
             match self {
                 Self::CompleteMessagePortTransfer(..) => target!("CompleteMessagePortTransfer"),
@@ -123,8 +124,8 @@ mod from_script {
                 Self::RemoveMessagePortRouter(..) => target!("RemoveMessagePortRouter"),
                 Self::RerouteMessagePort(..) => target!("RerouteMessagePort"),
                 Self::MessagePortShipped(..) => target!("MessagePortShipped"),
-                Self::RemoveMessagePort(..) => target!("RemoveMessagePort"),
                 Self::EntanglePorts(..) => target!("EntanglePorts"),
+                Self::DisentanglePorts(..) => target!("DisentanglePorts"),
                 Self::NewBroadcastChannelRouter(..) => target!("NewBroadcastChannelRouter"),
                 Self::RemoveBroadcastChannelRouter(..) => target!("RemoveBroadcastChannelRouter"),
                 Self::NewBroadcastChannelNameInRouter(..) => {
@@ -138,7 +139,8 @@ mod from_script {
                 Self::BroadcastStorageEvent(..) => target!("BroadcastStorageEvent"),
                 Self::ChangeRunningAnimationsState(..) => target!("ChangeRunningAnimationsState"),
                 Self::CreateCanvasPaintThread(..) => target!("CreateCanvasPaintThread"),
-                Self::Focus => target!("Focus"),
+                Self::Focus(..) => target!("Focus"),
+                Self::FocusRemoteDocument(..) => target!("FocusRemoteDocument"),
                 Self::GetTopForBrowsingContext(..) => target!("GetTopForBrowsingContext"),
                 Self::GetBrowsingContextInfo(..) => target!("GetBrowsingContextInfo"),
                 Self::GetChildBrowsingContextId(..) => target!("GetChildBrowsingContextId"),
@@ -175,6 +177,7 @@ mod from_script {
                 Self::TitleChanged(..) => target!("TitleChanged"),
                 Self::IFrameSizes(..) => target!("IFrameSizes"),
                 Self::ReportMemory(..) => target!("ReportMemory"),
+                Self::FinishJavaScriptEvaluation(..) => target!("FinishJavaScriptEvaluation"),
             }
         }
     }
@@ -236,6 +239,10 @@ mod from_script {
                 Self::StopGamepadHapticEffect(..) => target_variant!("StopGamepadHapticEffect"),
                 Self::ShutdownComplete => target_variant!("ShutdownComplete"),
                 Self::ShowNotification(..) => target_variant!("ShowNotification"),
+                Self::ShowSelectElementMenu(..) => target_variant!("ShowSelectElementMenu"),
+                Self::FinishJavaScriptEvaluation(..) => {
+                    target_variant!("FinishJavaScriptEvaluation")
+                },
             }
         }
     }

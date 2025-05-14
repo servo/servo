@@ -10,10 +10,11 @@ use std::sync::Arc;
 use std::{char, mem};
 
 use app_units::{AU_PER_PX, Au};
+use content_security_policy as csp;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::Point2D;
-use html5ever::{LocalName, Prefix, QualName, local_name, namespace_url, ns};
+use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::jsapi::JSAutoRealm;
 use js::rust::HandleObject;
 use mime::{self, Mime};
@@ -96,6 +97,7 @@ enum ParseState {
     AfterDescriptor,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct SourceSet {
     image_sources: Vec<ImageSource>,
     source_size: SourceSizeList,
@@ -110,13 +112,13 @@ impl SourceSet {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 pub struct ImageSource {
     pub url: String,
     pub descriptor: Descriptor,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 pub struct Descriptor {
     pub width: Option<u32>,
     pub density: Option<f64>,
@@ -144,7 +146,7 @@ struct ImageRequest {
     parsed_url: Option<ServoUrl>,
     source_url: Option<USVString>,
     blocker: DomRefCell<Option<LoadBlocker>>,
-    #[ignore_malloc_size_of = "Arc"]
+    #[conditional_malloc_size_of]
     #[no_trace]
     image: Option<Arc<Image>>,
     #[no_trace]
@@ -161,7 +163,6 @@ pub(crate) struct HTMLImageElement {
     pending_request: DomRefCell<ImageRequest>,
     form_owner: MutNullableDom<HTMLFormElement>,
     generation: Cell<u32>,
-    #[ignore_malloc_size_of = "SourceSet"]
     source_set: DomRefCell<SourceSet>,
     last_selected_source: DomRefCell<Option<USVString>>,
     #[ignore_malloc_size_of = "promises are hard"]
@@ -294,6 +295,11 @@ impl FetchResponseListener for ImageContext {
     fn submit_resource_timing(&mut self) {
         network_listener::submit_timing(self, CanGc::note())
     }
+
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+        let global = &self.resource_timing_global();
+        global.report_csp_violations(violations, None);
+    }
 }
 
 impl ResourceTimingListener for ImageContext {
@@ -416,14 +422,17 @@ impl HTMLImageElement {
 
         // https://html.spec.whatwg.org/multipage/#update-the-image-data steps 17-20
         // This function is also used to prefetch an image in `script::dom::servoparser::prefetch`.
+        let global = document.global();
         let mut request = create_a_potential_cors_request(
             Some(window.webview_id()),
             img_url.clone(),
             Destination::Image,
             cors_setting_for_element(self.upcast()),
             None,
-            document.global().get_referrer(),
+            global.get_referrer(),
             document.insecure_requests_policy(),
+            document.has_trustworthy_ancestor_or_current_origin(),
+            global.policy_container(),
         )
         .origin(document.origin().immutable().clone())
         .pipeline_id(Some(document.global().pipeline_id()))
@@ -808,8 +817,8 @@ impl HTMLImageElement {
         let device_pixel_ratio = self
             .owner_document()
             .window()
-            .window_size()
-            .device_pixel_ratio
+            .viewport_details()
+            .hidpi_scale_factor
             .get() as f64;
         for (index, image_source) in img_sources.iter().enumerate() {
             let current_den = image_source.descriptor.density.unwrap();
@@ -1743,20 +1752,22 @@ impl VirtualMethods for HTMLImageElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn adopting_steps(&self, old_doc: &Document) {
-        self.super_type().unwrap().adopting_steps(old_doc);
-        self.update_the_image_data(CanGc::note());
+    fn adopting_steps(&self, old_doc: &Document, can_gc: CanGc) {
+        self.super_type().unwrap().adopting_steps(old_doc, can_gc);
+        self.update_the_image_data(can_gc);
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
         match attr.local_name() {
             &local_name!("src") |
             &local_name!("srcset") |
             &local_name!("width") |
             &local_name!("crossorigin") |
             &local_name!("sizes") |
-            &local_name!("referrerpolicy") => self.update_the_image_data(CanGc::note()),
+            &local_name!("referrerpolicy") => self.update_the_image_data(can_gc),
             _ => {},
         }
     }
@@ -1774,7 +1785,7 @@ impl VirtualMethods for HTMLImageElement {
         }
     }
 
-    fn handle_event(&self, event: &Event) {
+    fn handle_event(&self, event: &Event, can_gc: CanGc) {
         if event.type_() != atom!("click") {
             return;
         }
@@ -1795,9 +1806,7 @@ impl VirtualMethods for HTMLImageElement {
             mouse_event.ClientX().to_f32().unwrap(),
             mouse_event.ClientY().to_f32().unwrap(),
         );
-        let bcr = self
-            .upcast::<Element>()
-            .GetBoundingClientRect(CanGc::note());
+        let bcr = self.upcast::<Element>().GetBoundingClientRect(can_gc);
         let bcr_p = Point2D::new(bcr.X() as f32, bcr.Y() as f32);
 
         // Walk HTMLAreaElements
@@ -1808,15 +1817,15 @@ impl VirtualMethods for HTMLImageElement {
                 None => return,
             };
             if shp.hit_test(&point) {
-                element.activation_behavior(event, self.upcast(), CanGc::note());
+                element.activation_behavior(event, self.upcast(), can_gc);
                 return;
             }
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext) {
+    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context);
+            s.bind_to_tree(context, can_gc);
         }
         let document = self.owner_document();
         if context.tree_connected {
@@ -1827,20 +1836,20 @@ impl VirtualMethods for HTMLImageElement {
         // https://html.spec.whatwg.org/multipage/#relevant-mutations
         if let Some(parent) = self.upcast::<Node>().GetParentElement() {
             if parent.is::<HTMLPictureElement>() {
-                self.update_the_image_data(CanGc::note());
+                self.update_the_image_data(can_gc);
             }
         }
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
-        self.super_type().unwrap().unbind_from_tree(context);
+    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+        self.super_type().unwrap().unbind_from_tree(context, can_gc);
         let document = self.owner_document();
         document.unregister_responsive_image(self);
 
         // The element is removed from a picture parent element
         // https://html.spec.whatwg.org/multipage/#relevant-mutations
         if context.parent.is::<HTMLPictureElement>() {
-            self.update_the_image_data(CanGc::note());
+            self.update_the_image_data(can_gc);
         }
     }
 }

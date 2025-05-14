@@ -21,10 +21,11 @@ app_units = { workspace = true }
 atomic_refcell = { workspace = true }
 base = { workspace = true }
 bitflags = { workspace = true }
+compositing_traits = { workspace = true }
 euclid = { workspace = true }
 fnv = { workspace = true }
-fontsan = { git = "https://github.com/servo/fontsan" }
 fonts_traits = { workspace = true }
+fontsan = { git = "https://github.com/servo/fontsan" }
 # FIXME (#34517): macOS only needs this when building libservo without `--features media-gstreamer`
 harfbuzz-sys = { workspace = true, features = ["bundled"] }
 ipc-channel = { workspace = true }
@@ -37,23 +38,20 @@ memmap2 = { workspace = true }
 net_traits = { workspace = true }
 num-traits = { workspace = true }
 parking_lot = { workspace = true }
+profile_traits = { workspace = true }
 range = { path = "../range" }
 serde = { workspace = true }
 servo_arc = { workspace = true }
-stylo_atoms = { workspace = true }
 servo_config = { path = "../config" }
 servo_url = { path = "../url" }
 smallvec = { workspace = true, features = ["union"] }
 stylo = { workspace = true }
+stylo_atoms = { workspace = true }
 tracing = { workspace = true, optional = true }
 unicode-properties = { workspace = true }
 unicode-script = { workspace = true }
 url = { workspace = true }
 webrender_api = { workspace = true }
-webrender_traits = { workspace = true }
-
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(ohos_mock)'] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 byteorder = { workspace = true }
@@ -74,3 +72,6 @@ xml-rs = "0.8"
 [target.'cfg(target_os = "windows")'.dependencies]
 dwrote = "0.11.2"
 truetype = { version = "0.47.3", features = ["ignore-invalid-language-ids"] }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(ohos_mock)'] }

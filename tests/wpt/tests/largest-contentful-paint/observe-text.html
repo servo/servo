@@ -26,7 +26,7 @@ p {
         // PaintTimingMixin
         assert_greater_than_equal(entry.paintTime, beforeRender, 'paintTime should represent the time when the UA started painting');
 
-        if ("presentationTime" in entry) {
+        if ("presentationTime" in entry && entry.presentationTime !== null) {
           assert_greater_than(entry.presentationTime, entry.paintTime);
           assert_equals(entry.presentationTime, entry.renderTime);
         } else {

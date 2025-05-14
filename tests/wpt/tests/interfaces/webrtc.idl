@@ -13,7 +13,7 @@ dictionary RTCConfiguration {
 };
 
 dictionary RTCIceServer {
-  required (DOMString or sequence<DOMString>) urls;
+  required (USVString or sequence<USVString>) urls;
   DOMString username;
   DOMString credential;
 };
@@ -163,7 +163,7 @@ dictionary RTCLocalSessionDescriptionInit {
 
 [Exposed=Window]
 interface RTCIceCandidate {
-  constructor(optional RTCIceCandidateInit candidateInitDict = {});
+  constructor(optional RTCLocalIceCandidateInit candidateInitDict = {});
   readonly attribute DOMString candidate;
   readonly attribute DOMString? sdpMid;
   readonly attribute unsigned short? sdpMLineIndex;
@@ -179,7 +179,7 @@ interface RTCIceCandidate {
   readonly attribute unsigned short? relatedPort;
   readonly attribute DOMString? usernameFragment;
   readonly attribute RTCIceServerTransportProtocol? relayProtocol;
-  readonly attribute DOMString? url;
+  readonly attribute USVString? url;
   RTCIceCandidateInit toJSON();
 };
 
@@ -188,6 +188,11 @@ dictionary RTCIceCandidateInit {
   DOMString? sdpMid = null;
   unsigned short? sdpMLineIndex = null;
   DOMString? usernameFragment = null;
+};
+
+dictionary RTCLocalIceCandidateInit : RTCIceCandidateInit {
+  RTCIceServerTransportProtocol? relayProtocol = null;
+  USVString? url = null;
 };
 
 enum RTCIceProtocol {
@@ -218,12 +223,12 @@ enum RTCIceServerTransportProtocol {
 interface RTCPeerConnectionIceEvent : Event {
   constructor(DOMString type, optional RTCPeerConnectionIceEventInit eventInitDict = {});
   readonly attribute RTCIceCandidate? candidate;
-  readonly attribute DOMString? url;
+  readonly attribute USVString? url;
 };
 
 dictionary RTCPeerConnectionIceEventInit : EventInit {
   RTCIceCandidate? candidate;
-  DOMString? url;
+  USVString? url;
 };
 
 [Exposed=Window]
@@ -231,7 +236,7 @@ interface RTCPeerConnectionIceErrorEvent : Event {
   constructor(DOMString type, RTCPeerConnectionIceErrorEventInit eventInitDict);
   readonly attribute DOMString? address;
   readonly attribute unsigned short? port;
-  readonly attribute DOMString url;
+  readonly attribute USVString url;
   readonly attribute unsigned short errorCode;
   readonly attribute USVString errorText;
 };
@@ -239,7 +244,7 @@ interface RTCPeerConnectionIceErrorEvent : Event {
 dictionary RTCPeerConnectionIceErrorEventInit : EventInit {
   DOMString? address;
   unsigned short? port;
-  DOMString url;
+  USVString url;
   required unsigned short errorCode;
   USVString errorText;
 };

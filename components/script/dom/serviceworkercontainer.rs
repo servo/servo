@@ -5,10 +5,12 @@
 use std::default::Default;
 use std::rc::Rc;
 
+use constellation_traits::{
+    Job, JobError, JobResult, JobResultValue, JobType, ScriptToConstellationMessage,
+};
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use script_traits::{Job, JobError, JobResult, JobResultValue, JobType, ScriptMsg};
 
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::{
     RegistrationOptions, ServiceWorkerContainerMethods,
@@ -179,7 +181,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
         // B: Step 14: schedule job.
         let _ = global
             .script_to_constellation_chan()
-            .send(ScriptMsg::ScheduleJob(job));
+            .send(ScriptToConstellationMessage::ScheduleJob(job));
 
         // A: Step 7
         promise

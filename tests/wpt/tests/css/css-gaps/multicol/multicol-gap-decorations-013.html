@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="multicol-gap-decorations-013-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+     body {
+        margin: 0px;
+    }
+
+    .mc {
+        position: absolute;
+        top: 0px;
+        width: 100px;
+        height: 100px;
+        columns: 2;
+        column-fill: auto;
+        column-gap: 10px;
+        column-rule-color: gold;
+        column-rule-width: 10px;
+        column-rule-style: solid;
+        column-rule-outset: -4px;
+    }
+</style>
+
+<div class="mc">
+    <div style="height: 400px; background: cyan;">
+    </div>
+</div>

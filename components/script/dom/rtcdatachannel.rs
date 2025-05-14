@@ -5,13 +5,13 @@
 use std::cell::Cell;
 use std::ptr;
 
+use constellation_traits::BlobImpl;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{JSAutoRealm, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{ArrayBuffer, ArrayBufferView, CreateWith};
-use script_traits::serializable::BlobImpl;
 use servo_media::webrtc::{
     DataChannelId, DataChannelInit, DataChannelMessage, DataChannelState, WebRtcError,
 };
@@ -141,6 +141,7 @@ impl RTCDataChannel {
 
     pub(crate) fn on_error(&self, error: WebRtcError, can_gc: CanGc) {
         let global = self.global();
+        let window = global.as_window();
         let cx = GlobalScope::get_cx();
         let _ac = JSAutoRealm::new(*cx, self.reflector().get_jsobject().get());
         let init = RTCErrorInit {
@@ -154,8 +155,8 @@ impl RTCDataChannel {
         let message = match error {
             WebRtcError::Backend(message) => DOMString::from(message),
         };
-        let error = RTCError::new(&global, &init, message, can_gc);
-        let event = RTCErrorEvent::new(&global, atom!("error"), false, false, &error, can_gc);
+        let error = RTCError::new(window, &init, message, can_gc);
+        let event = RTCErrorEvent::new(window, atom!("error"), false, false, &error, can_gc);
         event.upcast::<Event>().fire(self.upcast(), can_gc);
     }
 

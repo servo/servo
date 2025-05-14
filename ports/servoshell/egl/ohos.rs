@@ -7,7 +7,7 @@ use std::cell::RefCell;
 use std::mem::MaybeUninit;
 use std::os::raw::c_void;
 use std::sync::mpsc::{Receiver, Sender};
-use std::sync::{Once, OnceLock, mpsc};
+use std::sync::{LazyLock, Once, OnceLock, mpsc};
 use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
@@ -22,15 +22,15 @@ use ohos_ime::{AttachOptions, Ime, ImeProxy, RawTextEditorProxy};
 use ohos_ime_sys::types::InputMethod_EnterKeyType;
 use servo::style::Zero;
 use servo::{
-    AlertResponse, InputMethodType, LoadStatus, MediaSessionPlaybackState, PermissionRequest,
-    SimpleDialog, WebView,
+    AlertResponse, EventLoopWaker, InputMethodType, LoadStatus, MediaSessionPlaybackState,
+    PermissionRequest, SimpleDialog, WebView,
 };
-use simpleservo::EventLoopWaker;
 use xcomponent_sys::{
     OH_NativeXComponent, OH_NativeXComponent_Callback, OH_NativeXComponent_GetKeyEvent,
     OH_NativeXComponent_GetKeyEventAction, OH_NativeXComponent_GetKeyEventCode,
-    OH_NativeXComponent_GetTouchEvent, OH_NativeXComponent_GetXComponentSize,
-    OH_NativeXComponent_KeyAction, OH_NativeXComponent_KeyCode, OH_NativeXComponent_KeyEvent,
+    OH_NativeXComponent_GetTouchEvent, OH_NativeXComponent_GetXComponentOffset,
+    OH_NativeXComponent_GetXComponentSize, OH_NativeXComponent_KeyAction,
+    OH_NativeXComponent_KeyCode, OH_NativeXComponent_KeyEvent,
     OH_NativeXComponent_RegisterCallback, OH_NativeXComponent_RegisterKeyEventCallback,
     OH_NativeXComponent_TouchEvent, OH_NativeXComponent_TouchEventType,
 };
@@ -268,6 +268,33 @@ extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window
     info!("Returning from on_surface_created_cb");
 }
 
+/// Returns the offset of the surface relative to its parent's top left corner
+///
+/// # Safety
+///
+/// `xcomponent` and `native_window` must be valid, non-null and aligned pointers to a
+/// live xcomponent and associated native window surface.
+unsafe fn get_xcomponent_offset(
+    xcomponent: *mut OH_NativeXComponent,
+    native_window: *mut c_void,
+) -> Result<(i32, i32), i32> {
+    let mut x: f64 = 0.0;
+    let mut y: f64 = 0.0;
+
+    let result = unsafe {
+        OH_NativeXComponent_GetXComponentOffset(xcomponent, native_window, &raw mut x, &raw mut y)
+    };
+    if result != 0 {
+        error!("OH_NativeXComponent_GetXComponentOffset failed with {result}");
+        return Err(result);
+    }
+
+    Ok((
+        (x.round() as i64).try_into().expect("X offset too large"),
+        (y.round() as i64).try_into().expect("Y offset too large"),
+    ))
+}
+
 /// Returns the size of the surface
 ///
 /// # Safety
@@ -386,32 +413,39 @@ extern "C" fn on_dispatch_key_event(xc: *mut OH_NativeXComponent, _window: *mut 
     }
 }
 
+static LOGGER: LazyLock<hilog::Logger> = LazyLock::new(|| {
+    let mut builder = hilog::Builder::new();
+    builder.set_domain(hilog::LogDomain::new(0xE0C3));
+    let filters = [
+        "fonts",
+        "servo",
+        "servoshell",
+        "servoshell::egl:gl_glue",
+        // Show redirected stdout / stderr by default
+        "servoshell::egl::log",
+        // Show JS errors by default.
+        "script::dom::bindings::error",
+        // Show GL errors by default.
+        "canvas::webgl_thread",
+        "compositing::compositor",
+        "compositing::touch",
+        "constellation::constellation",
+        "ohos_ime",
+    ];
+    for &module in &filters {
+        builder.filter_module(module, log::LevelFilter::Debug);
+    }
+
+    builder.filter_level(LevelFilter::Warn).build()
+});
+
 fn initialize_logging_once() {
     static ONCE: Once = Once::new();
     ONCE.call_once(|| {
-        let mut builder = hilog::Builder::new();
-        let filters = [
-            "fonts",
-            "servo",
-            "servoshell",
-            "servoshell::egl:gl_glue",
-            // Show redirected stdout / stderr by default
-            "servoshell::egl::log",
-            // Show JS errors by default.
-            "script::dom::bindings::error",
-            // Show GL errors by default.
-            "canvas::webgl_thread",
-            "compositing::compositor",
-            "compositing::touch",
-            "constellation::constellation",
-            "ohos_ime",
-        ];
-        for &module in &filters {
-            builder.filter_module(module, log::LevelFilter::Debug);
-        }
-
-        builder.filter_level(LevelFilter::Warn).init();
-
+        let logger: &'static hilog::Logger = &LOGGER;
+        let max_level = logger.filter();
+        let r = log::set_logger(logger).and_then(|()| Ok(log::set_max_level(max_level)));
+        debug!("Attempted to register the logger: {r:?} and set max level to: {max_level}");
         info!("Servo Register callback called!");
 
         std::panic::set_hook(Box::new(|info| {
@@ -447,7 +481,26 @@ fn initialize_logging_once() {
         if let Err(e) = super::log::redirect_stdout_and_stderr() {
             error!("Failed to redirect stdout and stderr to hilog due to: {e:?}");
         }
-    })
+    });
+}
+
+pub fn set_log_filter(filter: Option<&str>) {
+    let Some(filter) = filter else {
+        debug!("Called ohos::set_log_filter without providing a filter");
+        return;
+    };
+
+    debug!("Updating log filter to {filter}");
+    let mut builder = env_filter::Builder::new();
+    let filter = match builder.try_parse(filter) {
+        Result::Ok(filter) => filter,
+        Result::Err(err) => {
+            error!("Failed to parse log filter: {err}");
+            return;
+        },
+    };
+    let filter = filter.build();
+    (*LOGGER).set_filter(filter);
 }
 
 fn register_xcomponent_callbacks(env: &Env, xcomponent: &JsObject) -> napi_ohos::Result<()> {
@@ -654,7 +707,7 @@ impl EventLoopWaker for WakeupCallback {
     }
 
     fn wake(&self) {
-        info!("wake called!");
+        log::trace!("wake called!");
         self.chan.send(ServoAction::WakeUp).unwrap_or_else(|e| {
             error!("Failed to send wake message with: {e}");
         });

@@ -125,6 +125,11 @@ impl CSSRuleList {
         let loader = owner
             .as_ref()
             .map(|element| StylesheetLoader::for_element(element));
+        let allow_import_rules = if self.parent_stylesheet.is_constructed() {
+            AllowImportRules::No
+        } else {
+            AllowImportRules::Yes
+        };
         let new_rule = css_rules
             .insert_rule(
                 &parent_stylesheet.shared_lock,
@@ -134,7 +139,7 @@ impl CSSRuleList {
                 containing_rule_types,
                 parse_relative_rule_type,
                 loader.as_ref().map(|l| l as &dyn StyleStylesheetLoader),
-                AllowImportRules::Yes,
+                allow_import_rules,
             )
             .map_err(Convert::convert)?;
 
@@ -190,20 +195,32 @@ impl CSSRuleList {
         self.dom_rules.borrow().get(idx as usize).map(|rule| {
             rule.or_init(|| {
                 let parent_stylesheet = &self.parent_stylesheet;
-                let guard = parent_stylesheet.shared_lock().read();
+                let lock = parent_stylesheet.shared_lock();
                 match self.rules {
-                    RulesSource::Rules(ref rules) => CSSRule::new_specific(
-                        self.global().as_window(),
-                        parent_stylesheet,
-                        rules.read_with(&guard).0[idx as usize].clone(),
-                        can_gc,
-                    ),
-                    RulesSource::Keyframes(ref rules) => DomRoot::upcast(CSSKeyframeRule::new(
-                        self.global().as_window(),
-                        parent_stylesheet,
-                        rules.read_with(&guard).keyframes[idx as usize].clone(),
-                        can_gc,
-                    )),
+                    RulesSource::Rules(ref rules) => {
+                        let rule = {
+                            let guard = lock.read();
+                            rules.read_with(&guard).0[idx as usize].clone()
+                        };
+                        CSSRule::new_specific(
+                            self.global().as_window(),
+                            parent_stylesheet,
+                            rule,
+                            can_gc,
+                        )
+                    },
+                    RulesSource::Keyframes(ref rules) => {
+                        let rule = {
+                            let guard = lock.read();
+                            rules.read_with(&guard).keyframes[idx as usize].clone()
+                        };
+                        DomRoot::upcast(CSSKeyframeRule::new(
+                            self.global().as_window(),
+                            parent_stylesheet,
+                            rule,
+                            can_gc,
+                        ))
+                    },
                 }
             })
         })

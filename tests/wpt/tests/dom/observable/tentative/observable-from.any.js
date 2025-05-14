@@ -866,7 +866,7 @@ test(() => {
 }, "from(): Errors thrown in Symbol.asyncIterator() are propagated synchronously");
 
 // AsyncIterable: next() throws exception instead of return Promise. Any errors
-// that occur during the the retrieval of `next()` always result in a rejected
+// that occur during the retrieval of `next()` always result in a rejected
 // Promise. Therefore, the error makes it to the Observer with microtask timing.
 promise_test(async () => {
   const nextError = new Error('next error');
@@ -1728,3 +1728,14 @@ test(() => {
   assert_not_equals(reportedError, null, "Protocol error is reported to the global");
   assert_true(reportedError instanceof TypeError);
 }, "Invalid iterator protocol error is surfaced before Subscriber#signal is consulted");
+
+// Regression test for https://github.com/WICG/observable/issues/208.
+promise_test(async () => {
+  let errorReported = false;
+  self.onerror = e => errorReported = true;
+
+  // `first()` aborts the subscription after the first item is encountered.
+  const value = await Observable.from([1, 2, 3]).first();
+  assert_false(errorReported);
+}, "No error is reported when aborting a subscription to a sync iterator " +
+   "that has no `return()` implementation");

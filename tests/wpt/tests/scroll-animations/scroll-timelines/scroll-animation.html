@@ -133,6 +133,10 @@ promise_test(async t => {
     scroller.scrollTop =  maxScroll;
     await animation.finished;
 
+    // Wait for the next animation frame for the previous "finish"
+    // event to have dispatched.
+    await waitForNextFrame();
+
     var sent_finish_event = false;
     animation.onfinish = function() {
       sent_finish_event = true;

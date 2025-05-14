@@ -1,0 +1,67 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>::scroll-markers with content-visibility: auto ancestors and subscrollers</title>
+<link rel="match" href="nested-scroll-markers-under-content-visibility-auto-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-pseudo">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="assert" content="::scroll-markers should be captured by subscrollers when in content-visibility-auto">
+<style>
+  #scroller {
+    width: 600px;
+    height: 300px;
+    overflow: scroll;
+    scroll-marker-group: after;
+  }
+
+  .subscroller {
+    scroll-marker-group: after;
+    overflow: scroll;
+    width: 600px;
+    height: 100px;
+  }
+
+  .cv {
+    content-visibility: auto;
+    width: 100px;
+    height: 100px;
+  }
+
+  #scroller::scroll-marker-group {
+    border: 3px solid black;
+    padding: 5px;
+    height: 20px;
+    display: block;
+  }
+
+  .item {
+    height: 200px;
+  }
+
+  .item::scroll-marker {
+    content: "";
+    width: 10px;
+    height: 10px;
+    background-color: blue;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .spacer {
+    height: 10000px;
+  }
+</style>
+<div id="scroller">
+  <div class=cv>
+    <div class=subscroller>
+      <div class=item></div> <div class=item></div> <div class=item></div>
+    </div>
+  </div>
+  <div class=item></div> <div class=item></div> <div class=item></div>
+  <div class=spacer></div>
+  <div class=cv>
+    <div class=subscroller>
+      <div class=item></div> <div class=item></div> <div class=item></div>
+    </div>
+  </div>
+</div>
+

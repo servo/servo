@@ -6,35 +6,38 @@ use std::collections::HashSet;
 use std::time::{Duration, Instant};
 use std::{cmp, thread};
 
-use constellation_traits::ConstellationMsg;
+use constellation_traits::EmbedderToConstellationMessage;
 use embedder_traits::{MouseButtonAction, WebDriverCommandMsg, WebDriverScriptCommand};
 use ipc_channel::ipc;
 use keyboard_types::webdriver::KeyInputState;
 use webdriver::actions::{
     ActionSequence, ActionsType, GeneralAction, KeyAction, KeyActionItem, KeyDownAction,
     KeyUpAction, NullActionItem, PointerAction, PointerActionItem, PointerActionParameters,
-    PointerDownAction, PointerMoveAction, PointerOrigin, PointerType, PointerUpAction,
+    PointerDownAction, PointerMoveAction, PointerOrigin, PointerType, PointerUpAction, WheelAction,
+    WheelActionItem, WheelScrollAction,
 };
-use webdriver::error::ErrorStatus;
+use webdriver::error::{ErrorStatus, WebDriverError};
 
-use crate::Handler;
+use crate::{Handler, WebElement, wait_for_script_response};
 
-// Interval between pointerMove increments in ms, based on common vsync
+// Interval between wheelScroll and pointerMove increments in ms, based on common vsync
 static POINTERMOVE_INTERVAL: u64 = 17;
+static WHEELSCROLL_INTERVAL: u64 = 17;
 
 // https://w3c.github.io/webdriver/#dfn-input-source-state
 pub(crate) enum InputSourceState {
     Null,
     Key(KeyInputState),
     Pointer(PointerInputState),
+    Wheel,
 }
 
 // https://w3c.github.io/webdriver/#dfn-pointer-input-source
 pub(crate) struct PointerInputState {
     subtype: PointerType,
     pressed: HashSet<u64>,
-    x: i64,
-    y: i64,
+    x: f64,
+    y: f64,
 }
 
 impl PointerInputState {
@@ -46,8 +49,8 @@ impl PointerInputState {
                 PointerType::Touch => PointerType::Touch,
             },
             pressed: HashSet::new(),
-            x: 0,
-            y: 0,
+            x: 0.0,
+            y: 0.0,
         }
     }
 }
@@ -76,7 +79,15 @@ fn compute_tick_duration(tick_actions: &ActionSequence) -> u64 {
             }
         },
         ActionsType::Key { actions: _ } => (),
-        ActionsType::Wheel { .. } => todo!("Not implemented."),
+        ActionsType::Wheel { actions } => {
+            for action in actions.iter() {
+                let action_duration = match action {
+                    WheelActionItem::General(GeneralAction::Pause(action)) => action.duration,
+                    WheelActionItem::Wheel(WheelAction::Scroll(action)) => action.duration,
+                };
+                duration = cmp::max(duration, action_duration.unwrap_or(0));
+            }
+        },
     }
     duration
 }
@@ -176,7 +187,27 @@ impl Handler {
                     }
                 }
             },
-            ActionsType::Wheel { .. } => todo!("Not implemented."),
+            ActionsType::Wheel { actions } => {
+                for action in actions.iter() {
+                    match action {
+                        WheelActionItem::General(_action) => {
+                            self.dispatch_general_action(source_id)
+                        },
+                        WheelActionItem::Wheel(action) => {
+                            self.session_mut()
+                                .unwrap()
+                                .input_state_table
+                                .entry(source_id.to_string())
+                                .or_insert(InputSourceState::Wheel);
+                            match action {
+                                WheelAction::Scroll(action) => {
+                                    self.dispatch_scroll_action(action, tick_duration)?
+                                },
+                            }
+                        },
+                    }
+                }
+            },
         }
 
         Ok(())
@@ -188,9 +219,8 @@ impl Handler {
 
         let raw_key = action.value.chars().next().unwrap();
         let key_input_state = match session.input_state_table.get_mut(source_id).unwrap() {
-            InputSourceState::Null => unreachable!(),
             InputSourceState::Key(key_input_state) => key_input_state,
-            InputSourceState::Pointer(_) => unreachable!(),
+            _ => unreachable!(),
         };
 
         session.input_cancel_list.push(ActionSequence {
@@ -206,7 +236,7 @@ impl Handler {
         let cmd_msg =
             WebDriverCommandMsg::KeyboardAction(session.browsing_context_id, keyboard_event);
         self.constellation_chan
-            .send(ConstellationMsg::WebDriverCommand(cmd_msg))
+            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
             .unwrap();
     }
 
@@ -216,9 +246,8 @@ impl Handler {
 
         let raw_key = action.value.chars().next().unwrap();
         let key_input_state = match session.input_state_table.get_mut(source_id).unwrap() {
-            InputSourceState::Null => unreachable!(),
             InputSourceState::Key(key_input_state) => key_input_state,
-            InputSourceState::Pointer(_) => unreachable!(),
+            _ => unreachable!(),
         };
 
         session.input_cancel_list.push(ActionSequence {
@@ -234,7 +263,7 @@ impl Handler {
             let cmd_msg =
                 WebDriverCommandMsg::KeyboardAction(session.browsing_context_id, keyboard_event);
             self.constellation_chan
-                .send(ConstellationMsg::WebDriverCommand(cmd_msg))
+                .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
                 .unwrap();
         }
     }
@@ -248,9 +277,8 @@ impl Handler {
         let session = self.session.as_mut().unwrap();
 
         let pointer_input_state = match session.input_state_table.get_mut(source_id).unwrap() {
-            InputSourceState::Null => unreachable!(),
-            InputSourceState::Key(_) => unreachable!(),
             InputSourceState::Pointer(pointer_input_state) => pointer_input_state,
+            _ => unreachable!(),
         };
 
         if pointer_input_state.pressed.contains(&action.button) {
@@ -277,16 +305,15 @@ impl Handler {
             },
         });
 
-        let button = (action.button as u16).into();
         let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
             session.webview_id,
             MouseButtonAction::Down,
-            button,
+            action.button.into(),
             pointer_input_state.x as f32,
             pointer_input_state.y as f32,
         );
         self.constellation_chan
-            .send(ConstellationMsg::WebDriverCommand(cmd_msg))
+            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
             .unwrap();
     }
 
@@ -295,9 +322,8 @@ impl Handler {
         let session = self.session.as_mut().unwrap();
 
         let pointer_input_state = match session.input_state_table.get_mut(source_id).unwrap() {
-            InputSourceState::Null => unreachable!(),
-            InputSourceState::Key(_) => unreachable!(),
             InputSourceState::Pointer(pointer_input_state) => pointer_input_state,
+            _ => unreachable!(),
         };
 
         if !pointer_input_state.pressed.contains(&action.button) {
@@ -324,16 +350,15 @@ impl Handler {
             },
         });
 
-        let button = (action.button as u16).into();
         let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
             session.webview_id,
             MouseButtonAction::Up,
-            button,
+            action.button.into(),
             pointer_input_state.x as f32,
             pointer_input_state.y as f32,
         );
         self.constellation_chan
-            .send(ConstellationMsg::WebDriverCommand(cmd_msg))
+            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
             .unwrap();
     }
 
@@ -359,59 +384,39 @@ impl Handler {
             .get(source_id)
             .unwrap()
         {
-            InputSourceState::Null => unreachable!(),
-            InputSourceState::Key(_) => unreachable!(),
             InputSourceState::Pointer(pointer_input_state) => {
                 (pointer_input_state.x, pointer_input_state.y)
+            },
+            _ => unreachable!(),
+        };
+
+        let (x, y) = match action.origin {
+            PointerOrigin::Viewport => (x_offset, y_offset),
+            PointerOrigin::Pointer => (start_x + x_offset, start_y + y_offset),
+            PointerOrigin::Element(ref web_element) => {
+                let point = self.get_element_origin_relative_coordinates(web_element)?;
+                (point.0 as f64, point.1 as f64)
             },
         };
 
         // Step 5 - 6
-        let (x, y) = match action.origin {
-            PointerOrigin::Viewport => (x_offset, y_offset),
-            PointerOrigin::Pointer => (start_x + x_offset, start_y + y_offset),
-            PointerOrigin::Element(ref x) => {
-                let (sender, receiver) = ipc::channel().unwrap();
-                self.browsing_context_script_command(
-                    WebDriverScriptCommand::GetElementInViewCenterPoint(x.to_string(), sender),
-                )
-                .unwrap();
+        self.check_viewport_bound(x, y)?;
 
-                let Some(point) = receiver.recv().unwrap()? else {
-                    return Err(ErrorStatus::UnknownError);
-                };
-                point
-            },
-        };
-
-        let (sender, receiver) = ipc::channel().unwrap();
-        let cmd_msg =
-            WebDriverCommandMsg::GetWindowSize(self.session.as_ref().unwrap().webview_id, sender);
-        self.constellation_chan
-            .send(ConstellationMsg::WebDriverCommand(cmd_msg))
-            .unwrap();
-
-        // Steps 7 - 8
-        let viewport_size = receiver.recv().unwrap();
-        if x < 0 || x as f32 > viewport_size.width || y < 0 || y as f32 > viewport_size.height {
-            return Err(ErrorStatus::MoveTargetOutOfBounds);
-        }
-
-        // Step 9
+        // Step 7
         let duration = match action.duration {
             Some(duration) => duration,
             None => tick_duration,
         };
 
-        // Step 10
+        // Step 8
         if duration > 0 {
             thread::sleep(Duration::from_millis(POINTERMOVE_INTERVAL));
         }
 
-        // Step 11
+        // Step 9 - 18
         self.perform_pointer_move(source_id, duration, start_x, start_y, x, y, tick_start);
 
-        // Step 12
+        // Step 19
         Ok(())
     }
 
@@ -421,17 +426,16 @@ impl Handler {
         &mut self,
         source_id: &str,
         duration: u64,
-        start_x: i64,
-        start_y: i64,
-        target_x: i64,
-        target_y: i64,
+        start_x: f64,
+        start_y: f64,
+        target_x: f64,
+        target_y: f64,
         tick_start: Instant,
     ) {
         let session = self.session.as_mut().unwrap();
         let pointer_input_state = match session.input_state_table.get_mut(source_id).unwrap() {
-            InputSourceState::Null => unreachable!(),
-            InputSourceState::Key(_) => unreachable!(),
             InputSourceState::Pointer(pointer_input_state) => pointer_input_state,
+            _ => unreachable!(),
         };
 
         loop {
@@ -453,8 +457,8 @@ impl Handler {
                 (target_x, target_y)
             } else {
                 (
-                    (duration_ratio * (target_x - start_x) as f64) as i64 + start_x,
-                    (duration_ratio * (target_y - start_y) as f64) as i64 + start_y,
+                    duration_ratio * (target_x - start_x) + start_x,
+                    duration_ratio * (target_y - start_y) + start_y,
                 )
             };
 
@@ -467,8 +471,9 @@ impl Handler {
                 // Step 7.2
                 let cmd_msg =
                     WebDriverCommandMsg::MouseMoveAction(session.webview_id, x as f32, y as f32);
+                //TODO: Need Synchronization here before updating `pointer_input_state`
                 self.constellation_chan
-                    .send(ConstellationMsg::WebDriverCommand(cmd_msg))
+                    .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
                     .unwrap();
                 // Step 7.3
                 pointer_input_state.x = x;
@@ -482,6 +487,188 @@ impl Handler {
 
             // Step 9
             thread::sleep(Duration::from_millis(POINTERMOVE_INTERVAL));
+        }
+    }
+
+    /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-scroll-action>
+    fn dispatch_scroll_action(
+        &mut self,
+        action: &WheelScrollAction,
+        tick_duration: u64,
+    ) -> Result<(), ErrorStatus> {
+        // Note: We have not implemented `extract an action sequence` which will calls
+        // `process a wheel action` that validate many of the variable used here.
+        // Hence, we do all the checking here until those functions is properly
+        // implemented.
+        // <https://w3c.github.io/webdriver/#dfn-process-a-wheel-action>
+
+        let tick_start = Instant::now();
+
+        // Step 1
+        let Some(x_offset) = action.x else {
+            return Err(ErrorStatus::InvalidArgument);
+        };
+
+        // Step 2
+        let Some(y_offset) = action.y else {
+            return Err(ErrorStatus::InvalidArgument);
+        };
+
+        // Step 3 - 4
+        // Get coordinates relative to an origin.
+        let (x, y) = match action.origin {
+            PointerOrigin::Viewport => (x_offset, y_offset),
+            PointerOrigin::Pointer => return Err(ErrorStatus::InvalidArgument),
+            PointerOrigin::Element(ref web_element) => {
+                self.get_element_origin_relative_coordinates(web_element)?
+            },
+        };
+
+        // Step 5 - 6
+        self.check_viewport_bound(x as _, y as _)?;
+
+        // Step 7 - 8
+        let Some(delta_x) = action.deltaX else {
+            return Err(ErrorStatus::InvalidArgument);
+        };
+
+        let Some(delta_y) = action.deltaY else {
+            return Err(ErrorStatus::InvalidArgument);
+        };
+
+        // Step 9
+        let duration = match action.duration {
+            Some(duration) => duration,
+            None => tick_duration,
+        };
+
+        // Step 10
+        if duration > 0 {
+            thread::sleep(Duration::from_millis(WHEELSCROLL_INTERVAL));
+        }
+
+        // Step 11
+        self.perform_scroll(duration, x, y, delta_x, delta_y, 0, 0, tick_start);
+
+        // Step 12
+        Ok(())
+    }
+
+    /// <https://w3c.github.io/webdriver/#dfn-perform-a-scroll>
+    #[allow(clippy::too_many_arguments)]
+    fn perform_scroll(
+        &mut self,
+        duration: u64,
+        x: i64,
+        y: i64,
+        target_delta_x: i64,
+        target_delta_y: i64,
+        mut curr_delta_x: i64,
+        mut curr_delta_y: i64,
+        tick_start: Instant,
+    ) {
+        let session = self.session.as_mut().unwrap();
+
+        // Step 1
+        let time_delta = tick_start.elapsed().as_millis();
+
+        // Step 2
+        let duration_ratio = if duration > 0 {
+            time_delta as f64 / duration as f64
+        } else {
+            1.0
+        };
+
+        // Step 3
+        let last = 1.0 - duration_ratio < 0.001;
+
+        // Step 4
+        let (delta_x, delta_y) = if last {
+            (target_delta_x - curr_delta_x, target_delta_y - curr_delta_y)
+        } else {
+            (
+                (duration_ratio * target_delta_x as f64) as i64 - curr_delta_x,
+                (duration_ratio * target_delta_y as f64) as i64 - curr_delta_y,
+            )
+        };
+
+        // Step 5
+        if delta_x != 0 || delta_y != 0 {
+            // Perform implementation-specific action dispatch steps
+            let cmd_msg = WebDriverCommandMsg::WheelScrollAction(
+                session.webview_id,
+                x as f32,
+                y as f32,
+                delta_x as f64,
+                delta_y as f64,
+            );
+            self.constellation_chan
+                .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
+                .unwrap();
+
+            curr_delta_x += delta_x;
+            curr_delta_y += delta_y;
+        }
+
+        // Step 6
+        if last {
+            return;
+        }
+
+        // Step 7
+        // TODO: The two steps should be done in parallel
+        // 7.1. Asynchronously wait for an implementation defined amount of time to pass.
+        thread::sleep(Duration::from_millis(WHEELSCROLL_INTERVAL));
+        // 7.2. Perform a scroll with arguments duration, x, y, target delta x,
+        // target delta y, current delta x, current delta y.
+        self.perform_scroll(
+            duration,
+            x,
+            y,
+            target_delta_x,
+            target_delta_y,
+            curr_delta_x,
+            curr_delta_y,
+            tick_start,
+        );
+    }
+
+    fn check_viewport_bound(&self, x: f64, y: f64) -> Result<(), ErrorStatus> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        let cmd_msg =
+            WebDriverCommandMsg::GetWindowSize(self.session.as_ref().unwrap().webview_id, sender);
+        self.constellation_chan
+            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
+            .unwrap();
+
+        let viewport_size = match wait_for_script_response(receiver) {
+            Ok(response) => response,
+            Err(WebDriverError { error, .. }) => return Err(error),
+        };
+        if x < 0.0 || x > viewport_size.width.into() || y < 0.0 || y > viewport_size.height.into() {
+            Err(ErrorStatus::MoveTargetOutOfBounds)
+        } else {
+            Ok(())
+        }
+    }
+
+    fn get_element_origin_relative_coordinates(
+        &self,
+        web_element: &WebElement,
+    ) -> Result<(i64, i64), ErrorStatus> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.browsing_context_script_command(WebDriverScriptCommand::GetElementInViewCenterPoint(
+            web_element.to_string(),
+            sender,
+        ))
+        .unwrap();
+        let response = match wait_for_script_response(receiver) {
+            Ok(response) => response,
+            Err(WebDriverError { error, .. }) => return Err(error),
+        };
+        match response? {
+            Some(point) => Ok(point),
+            None => Err(ErrorStatus::UnknownError),
         }
     }
 }

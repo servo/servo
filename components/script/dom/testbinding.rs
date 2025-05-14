@@ -9,13 +9,14 @@ use std::ptr::{self, NonNull};
 use std::rc::Rc;
 use std::time::Duration;
 
+use constellation_traits::BlobImpl;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JS_NewPlainObject, JSObject};
 use js::jsval::JSVal;
 use js::rust::{CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleValue};
 use js::typedarray::{self, Uint8ClampedArray};
+use script_bindings::interfaces::TestBindingHelpers;
 use script_bindings::record::Record;
-use script_traits::serializable::BlobImpl;
 use servo_config::prefs;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
@@ -1169,5 +1170,14 @@ impl TestBindingCallback {
         self.promise
             .root()
             .resolve_native(&self.value, CanGc::note());
+    }
+}
+
+impl TestBindingHelpers for TestBinding {
+    fn condition_satisfied(cx: SafeJSContext, global: HandleObject) -> bool {
+        Self::condition_satisfied(cx, global)
+    }
+    fn condition_unsatisfied(cx: SafeJSContext, global: HandleObject) -> bool {
+        Self::condition_unsatisfied(cx, global)
     }
 }

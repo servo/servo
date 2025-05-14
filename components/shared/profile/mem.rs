@@ -6,12 +6,16 @@
 
 #![deny(missing_docs)]
 
+use std::cell::{LazyCell, RefCell};
+use std::collections::HashSet;
+use std::ffi::c_void;
 use std::marker::Send;
 
 use crossbeam_channel::Sender;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use log::warn;
+use malloc_size_of::MallocSizeOfOps;
 use serde::{Deserialize, Serialize};
 
 /// A trait to abstract away the various kinds of message senders we use.
@@ -50,6 +54,21 @@ where
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ProfilerChan(pub IpcSender<ProfilerMsg>);
 
+/// A handle that encompasses a registration with the memory profiler.
+/// The registration is tied to the lifetime of this type; the memory
+/// profiler unregister the reporter when this object is dropped.
+pub struct ProfilerRegistration {
+    sender: ProfilerChan,
+    reporter_name: String,
+}
+
+impl Drop for ProfilerRegistration {
+    fn drop(&mut self) {
+        self.sender
+            .send(ProfilerMsg::UnregisterReporter(self.reporter_name.clone()));
+    }
+}
+
 impl ProfilerChan {
     /// Send `msg` on this `IpcSender`.
     ///
@@ -60,15 +79,15 @@ impl ProfilerChan {
         }
     }
 
-    /// Runs `f()` with memory profiling.
-    pub fn run_with_memory_reporting<F, M, T, C>(
+    /// Register a new reporter and return a handle to automatically
+    /// unregister it in the future.
+    pub fn prepare_memory_reporting<M, T, C>(
         &self,
-        f: F,
         reporter_name: String,
         channel_for_reporter: C,
         msg: M,
-    ) where
-        F: FnOnce(),
+    ) -> ProfilerRegistration
+    where
         M: Fn(ReportsChan) -> T + Send + 'static,
         T: Send + 'static,
         C: OpaqueSender<T> + Send + 'static,
@@ -88,9 +107,28 @@ impl ProfilerChan {
             Reporter(reporter_sender),
         ));
 
-        f();
+        ProfilerRegistration {
+            sender: self.clone(),
+            reporter_name,
+        }
+    }
 
-        self.send(ProfilerMsg::UnregisterReporter(reporter_name));
+    /// Runs `f()` with memory profiling.
+    pub fn run_with_memory_reporting<F, M, T, C>(
+        &self,
+        f: F,
+        reporter_name: String,
+        channel_for_reporter: C,
+        msg: M,
+    ) where
+        F: FnOnce(),
+        M: Fn(ReportsChan) -> T + Send + 'static,
+        T: Send + 'static,
+        C: OpaqueSender<T> + Send + 'static,
+    {
+        let _registration = self.prepare_memory_reporting(reporter_name, channel_for_reporter, msg);
+
+        f();
     }
 }
 
@@ -140,16 +178,36 @@ pub struct Report {
     pub size: usize,
 }
 
+/// A set of reports belonging to a process.
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ProcessReports {
+    /// The set of reports.
+    pub reports: Vec<Report>,
+
+    /// The process id.
+    pub pid: u32,
+}
+
+impl ProcessReports {
+    /// Adopt these reports and configure the process pid.
+    pub fn new(reports: Vec<Report>) -> Self {
+        Self {
+            reports,
+            pid: std::process::id(),
+        }
+    }
+}
+
 /// A channel through which memory reports can be sent.
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct ReportsChan(pub IpcSender<Vec<Report>>);
+pub struct ReportsChan(pub IpcSender<ProcessReports>);
 
 impl ReportsChan {
     /// Send `report` on this `IpcSender`.
     ///
     /// Panics if the send fails.
-    pub fn send(&self, report: Vec<Report>) {
-        self.0.send(report).unwrap();
+    pub fn send(&self, reports: ProcessReports) {
+        self.0.send(reports).unwrap();
     }
 }
 
@@ -172,12 +230,8 @@ pub struct Reporter(pub IpcSender<ReporterRequest>);
 
 impl Reporter {
     /// Collect one or more memory reports. Returns true on success, and false on failure.
-    pub fn collect_reports(&self, reports_chan: ReportsChan) {
-        self.0
-            .send(ReporterRequest {
-                reports_channel: reports_chan,
-            })
-            .unwrap()
+    pub fn collect_reports(&self, reports_channel: ReportsChan) {
+        self.0.send(ReporterRequest { reports_channel }).unwrap()
     }
 }
 
@@ -215,4 +269,26 @@ pub enum ProfilerMsg {
 
     /// Triggers sending back the memory profiling metrics,
     Report(IpcSender<MemoryReportResult>),
+}
+
+thread_local!(static SEEN_POINTERS: LazyCell<RefCell<HashSet<*const c_void>>> = const {
+    LazyCell::new(Default::default)
+});
+
+/// Invoke the provided function after initializing the memory profile tools.
+/// The function is expected to call all the desired [MallocSizeOf::size_of]
+/// for allocations reachable from the current thread.
+pub fn perform_memory_report<F: FnOnce(&mut MallocSizeOfOps)>(f: F) {
+    let seen_pointer = move |ptr| SEEN_POINTERS.with(|pointers| !pointers.borrow_mut().insert(ptr));
+    let mut ops = MallocSizeOfOps::new(
+        servo_allocator::usable_size,
+        None,
+        Some(Box::new(seen_pointer)),
+    );
+    f(&mut ops);
+    SEEN_POINTERS.with(|pointers| {
+        let mut pointers = pointers.borrow_mut();
+        pointers.clear();
+        pointers.shrink_to_fit();
+    });
 }

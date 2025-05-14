@@ -122,6 +122,25 @@
         'rangeEnd set to contain 100%');
     assert_equals(getComputedStyle(target).opacity, '0.75',
                   'opacity with range set to [normal, contain 100%]');
+
+    // scroll 10% @ 160px
+    // scroll 90% @ 1440px
+    // expected opacity = (750 - 160) / (1440 - 160) = 0.4609375
+    await runAndWaitForFrameUpdate(() => {
+      anim.rangeStart = "scroll 10%";
+      anim.rangeEnd = "scroll 90%";
+    });
+    assert_timeline_offset(
+        anim.rangeStart,
+        { rangeName: 'scroll', offset: CSS.percent(10) },
+        'rangeStart set to scroll 10%');
+    assert_timeline_offset(
+        anim.rangeEnd,
+        { rangeName: 'scroll', offset: CSS.percent(90) },
+        'rangeEnd set to scroll 90%');
+    assert_approx_equals(
+        parseFloat(getComputedStyle(target).opacity), 0.4609375, 1e-6,
+        'opacity with range set to [scroll 10%, scroll 90%]');
   }, 'Getting and setting the animation range');
 </script>
 </html>

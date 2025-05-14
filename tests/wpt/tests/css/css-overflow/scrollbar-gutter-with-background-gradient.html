@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Overflow: test scrollbar-gutter with background gradient</title>
+<link rel="author" title="CGQAQ" href="mailto:m.jason.liu@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#scrollbar-gutter-property">
+<link rel="match" href="scrollbar-gutter-with-background-gradient-ref.html">
+<meta name=fuzzy content="maxDifference=0-1;totalPixels=0-70000">
+<style>
+  html {
+    scrollbar-gutter: stable both-edges;
+    background-image: linear-gradient(to right, green, blue);
+  }
+</style>

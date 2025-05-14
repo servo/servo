@@ -5,8 +5,7 @@
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::env;
-use std::fs::{File, create_dir_all};
-use std::io::Write;
+use std::fs::create_dir_all;
 use std::iter::once;
 use std::mem::take;
 use std::rc::Rc;
@@ -17,30 +16,30 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::id::{PipelineId, WebViewId};
 use base::{Epoch, WebRenderEpochToU16};
 use bitflags::bitflags;
+use compositing_traits::display_list::{CompositorDisplayListInfo, HitTestInfo, ScrollTree};
+use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::{
-    CompositionPipeline, CompositorMsg, CompositorReceiver, SendableFrameTree,
+    CompositionPipeline, CompositorMsg, ImageUpdate, SendableFrameTree, WebViewTrait,
 };
-use constellation_traits::{
-    AnimationTickType, CompositorHitTestResult, ConstellationMsg, PaintMetricEvent,
-    UntrustedNodeAddress, WindowSizeData, WindowSizeType,
-};
-use crossbeam_channel::Sender;
+use constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
+use crossbeam_channel::{Receiver, Sender};
 use dpi::PhysicalSize;
 use embedder_traits::{
-    Cursor, InputEvent, MouseButtonEvent, MouseMoveEvent, ShutdownState, TouchEventType,
+    CompositorHitTestResult, Cursor, InputEvent, MouseButtonEvent, MouseMoveEvent, ShutdownState,
+    TouchEventType, UntrustedNodeAddress, ViewportDetails, WheelDelta, WheelEvent, WheelMode,
 };
-use euclid::{Box2D, Point2D, Rect, Scale, Size2D, Transform3D};
+use euclid::{Point2D, Rect, Scale, Size2D, Transform3D, Vector2D};
 use fnv::FnvHashMap;
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use libc::c_void;
 use log::{debug, info, trace, warn};
 use pixels::{CorsStatus, Image, ImageFrame, PixelFormat};
+use profile_traits::mem::{ProcessReports, ProfilerRegistration, Report, ReportKind};
 use profile_traits::time::{self as profile_time, ProfilerCategory};
-use profile_traits::time_profile;
-use script_traits::AnimationState;
+use profile_traits::{path, time_profile};
 use servo_config::opts;
 use servo_geometry::DeviceIndependentPixel;
-use style_traits::{CSSPixel, PinchZoomFactor};
+use style_traits::CSSPixel;
 use webrender::{CaptureBits, RenderApi, Transaction};
 use webrender_api::units::{
     DeviceIntPoint, DeviceIntRect, DevicePixel, DevicePoint, DeviceRect, LayoutPoint, LayoutRect,
@@ -53,13 +52,10 @@ use webrender_api::{
     RenderReasons, SampledScrollOffset, ScrollLocation, SpaceAndClipInfo, SpatialId,
     SpatialTreeItemKey, TransformStyle,
 };
-use webrender_traits::display_list::{HitTestInfo, ScrollTree};
-use webrender_traits::rendering_context::RenderingContext;
-use webrender_traits::{CrossProcessCompositorMessage, ImageUpdate};
 
 use crate::InitialCompositorState;
-use crate::webview::{UnknownWebView, WebView, WebViewManager};
-use crate::windowing::{self, EmbedderCoordinates, WebRenderDebugOption, WindowMethods};
+use crate::webview_manager::WebViewManager;
+use crate::webview_renderer::{UnknownWebView, WebViewRenderer};
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -73,10 +69,6 @@ enum NotReadyToPaint {
     WaitingOnConstellation,
 }
 
-// Default viewport constraints
-const MAX_ZOOM: f32 = 8.0;
-const MIN_ZOOM: f32 = 0.1;
-
 /// Holds the state when running reftests that determines when it is
 /// safe to save the output image.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -84,6 +76,14 @@ enum ReadyState {
     Unknown,
     WaitingForConstellationReply,
     ReadyToSaveImage,
+}
+
+/// An option to control what kind of WebRender debugging is enabled while Servo is running.
+#[derive(Clone)]
+pub enum WebRenderDebugOption {
+    Profiler,
+    TextureCacheDebug,
+    RenderTargetDebug,
 }
 /// Data that is shared by all WebView renderers.
 pub struct ServoRenderer {
@@ -97,10 +97,10 @@ pub struct ServoRenderer {
     shutdown_state: Rc<Cell<ShutdownState>>,
 
     /// The port on which we receive messages.
-    compositor_receiver: CompositorReceiver,
+    compositor_receiver: Receiver<CompositorMsg>,
 
     /// The channel on which messages can be sent to the constellation.
-    pub(crate) constellation_sender: Sender<ConstellationMsg>,
+    pub(crate) constellation_sender: Sender<EmbedderToConstellationMessage>,
 
     /// The channel on which messages can be sent to the time profiler.
     time_profiler_chan: profile_time::ProfilerChan,
@@ -113,10 +113,6 @@ pub struct ServoRenderer {
 
     /// The GL bindings for webrender
     webrender_gl: Rc<dyn gleam::gl::Gl>,
-
-    /// The string representing the version of Servo that is running. This is used to tag
-    /// WebRender capture output.
-    version_string: String,
 
     #[cfg(feature = "webxr")]
     /// Some XR devices want to run on the main thread.
@@ -137,30 +133,11 @@ pub struct IOCompositor {
     /// Data that is shared by all WebView renderers.
     global: Rc<RefCell<ServoRenderer>>,
 
-    /// Our top-level browsing contexts.
-    webviews: WebViewManager<WebView>,
-
-    /// The application window.
-    pub window: Rc<dyn WindowMethods>,
-
-    /// "Mobile-style" zoom that does not reflow the page.
-    viewport_zoom: PinchZoomFactor,
-
-    /// Viewport zoom constraints provided by @viewport.
-    min_viewport_zoom: Option<PinchZoomFactor>,
-    max_viewport_zoom: Option<PinchZoomFactor>,
-
-    /// "Desktop-style" zoom that resizes the viewport to fit the window.
-    page_zoom: Scale<f32, CSSPixel, DeviceIndependentPixel>,
+    /// Our [`WebViewRenderer`]s, one for every `WebView`.
+    webview_renderers: WebViewManager<WebViewRenderer>,
 
     /// Tracks whether or not the view needs to be repainted.
     needs_repaint: Cell<RepaintReason>,
-
-    /// Tracks whether the zoom action has happened recently.
-    zoom_action: bool,
-
-    /// The time of the last zoom action has started.
-    zoom_time: f64,
 
     /// Used by the logic that determines when it is safe to output an
     /// image for the reftest framework.
@@ -172,15 +149,16 @@ pub struct IOCompositor {
     /// The surfman instance that webrender targets
     rendering_context: Rc<dyn RenderingContext>,
 
-    /// The coordinates of the native window, its view and the screen.
-    embedder_coordinates: EmbedderCoordinates,
-
     /// The number of frames pending to receive from WebRender.
     pending_frames: usize,
 
     /// The [`Instant`] of the last animation tick, used to avoid flooding the Constellation and
     /// ScriptThread with a deluge of animation ticks.
     last_animation_tick: Instant,
+
+    /// A handle to the memory profiler which will automatically unregister
+    /// when it's dropped.
+    _mem_profiler_registration: ProfilerRegistration,
 }
 
 /// Why we need to be repainted. This is used for debugging.
@@ -218,9 +196,6 @@ pub(crate) enum PaintMetricState {
 pub(crate) struct PipelineDetails {
     /// The pipeline associated with this PipelineDetails object.
     pub pipeline: Option<CompositionPipeline>,
-
-    /// The [`PipelineId`] of this pipeline.
-    pub id: PipelineId,
 
     /// The id of the parent pipeline, if any.
     pub parent_pipeline_id: Option<PipelineId>,
@@ -262,38 +237,15 @@ impl PipelineDetails {
         self.animation_callbacks_running
     }
 
-    pub(crate) fn tick_animations(&self, compositor: &IOCompositor) -> bool {
-        let animation_callbacks_running = self.animation_callbacks_running;
-        let animations_running = self.animations_running;
-        if !animation_callbacks_running && !animations_running {
-            return false;
-        }
-
-        if self.throttled {
-            return false;
-        }
-
-        let mut tick_type = AnimationTickType::empty();
-        if animations_running {
-            tick_type.insert(AnimationTickType::CSS_ANIMATIONS_AND_TRANSITIONS);
-        }
-        if animation_callbacks_running {
-            tick_type.insert(AnimationTickType::REQUEST_ANIMATION_FRAME);
-        }
-
-        let msg = ConstellationMsg::TickAnimation(self.id, tick_type);
-        if let Err(e) = compositor.global.borrow().constellation_sender.send(msg) {
-            warn!("Sending tick to constellation failed ({:?}).", e);
-        }
-        true
+    pub(crate) fn animating(&self) -> bool {
+        !self.throttled && (self.animation_callbacks_running || self.animations_running)
     }
 }
 
 impl PipelineDetails {
-    pub(crate) fn new(id: PipelineId) -> PipelineDetails {
+    pub(crate) fn new() -> PipelineDetails {
         PipelineDetails {
             pipeline: None,
-            id,
             parent_pipeline_id: None,
             most_recent_display_list_epoch: None,
             animations_running: false,
@@ -417,7 +369,9 @@ impl ServoRenderer {
         self.cursor = cursor;
         if let Err(e) = self
             .constellation_sender
-            .send(ConstellationMsg::SetCursor(webview_id, cursor))
+            .send(EmbedderToConstellationMessage::SetCursor(
+                webview_id, cursor,
+            ))
         {
             warn!("Sending event to constellation failed ({:?}).", e);
         }
@@ -425,12 +379,12 @@ impl ServoRenderer {
 }
 
 impl IOCompositor {
-    pub fn new(
-        window: Rc<dyn WindowMethods>,
-        state: InitialCompositorState,
-        convert_mouse_to_touch: bool,
-        version_string: String,
-    ) -> Self {
+    pub fn new(state: InitialCompositorState, convert_mouse_to_touch: bool) -> Self {
+        let registration = state.mem_profiler_chan.prepare_memory_reporting(
+            "compositor".into(),
+            state.sender.clone(),
+            CompositorMsg::CollectMemoryReport,
+        );
         let compositor = IOCompositor {
             global: Rc::new(RefCell::new(ServoRenderer {
                 shutdown_state: state.shutdown_state,
@@ -441,28 +395,20 @@ impl IOCompositor {
                 webrender_api: state.webrender_api,
                 webrender_document: state.webrender_document,
                 webrender_gl: state.webrender_gl,
-                version_string,
                 #[cfg(feature = "webxr")]
                 webxr_main_thread: state.webxr_main_thread,
                 convert_mouse_to_touch,
                 cursor: Cursor::None,
                 cursor_pos: DevicePoint::new(0.0, 0.0),
             })),
-            webviews: WebViewManager::default(),
-            embedder_coordinates: window.get_coordinates(),
-            window,
+            webview_renderers: WebViewManager::default(),
             needs_repaint: Cell::default(),
-            page_zoom: Scale::new(1.0),
-            viewport_zoom: PinchZoomFactor::new(1.0),
-            min_viewport_zoom: Some(PinchZoomFactor::new(1.0)),
-            max_viewport_zoom: None,
-            zoom_action: false,
-            zoom_time: 0f64,
             ready_to_save_state: ReadyState::Unknown,
             webrender: Some(state.webrender),
             rendering_context: state.rendering_context,
             pending_frames: 0,
             last_animation_tick: Instant::now(),
+            _mem_profiler_registration: registration,
         };
 
         {
@@ -483,6 +429,21 @@ impl IOCompositor {
         }
     }
 
+    pub fn rendering_context_size(&self) -> Size2D<u32, DevicePixel> {
+        self.rendering_context.size2d()
+    }
+
+    pub fn webxr_running(&self) -> bool {
+        #[cfg(feature = "webxr")]
+        {
+            self.global.borrow().webxr_main_thread.running()
+        }
+        #[cfg(not(feature = "webxr"))]
+        {
+            false
+        }
+    }
+
     fn set_needs_repaint(&self, reason: RepaintReason) {
         let mut needs_repaint = self.needs_repaint.get();
         needs_repaint.insert(reason);
@@ -500,8 +461,8 @@ impl IOCompositor {
             .global
             .borrow_mut()
             .compositor_receiver
-            .try_recv_compositor_msg()
-            .is_some()
+            .try_recv()
+            .is_ok()
         {}
 
         // Tell the profiler, memory profiler, and scrolling timer to shut down.
@@ -530,27 +491,43 @@ impl IOCompositor {
         }
 
         match msg {
+            CompositorMsg::CollectMemoryReport(sender) => {
+                let ops =
+                    wr_malloc_size_of::MallocSizeOfOps::new(servo_allocator::usable_size, None);
+                let report = self.global.borrow().webrender_api.report_memory(ops);
+                let reports = vec![
+                    Report {
+                        path: path!["webrender", "fonts"],
+                        kind: ReportKind::ExplicitJemallocHeapSize,
+                        size: report.fonts,
+                    },
+                    Report {
+                        path: path!["webrender", "images"],
+                        kind: ReportKind::ExplicitJemallocHeapSize,
+                        size: report.images,
+                    },
+                    Report {
+                        path: path!["webrender", "display-list"],
+                        kind: ReportKind::ExplicitJemallocHeapSize,
+                        size: report.display_list,
+                    },
+                ];
+                sender.send(ProcessReports::new(reports));
+            },
+
             CompositorMsg::ChangeRunningAnimationsState(
                 webview_id,
                 pipeline_id,
                 animation_state,
             ) => {
-                let mut throttled = true;
-                if let Some(webview) = self.webviews.get_mut(webview_id) {
-                    throttled =
-                        webview.change_running_animations_state(pipeline_id, animation_state);
-                }
-
-                // These operations should eventually happen per-WebView, but they are global now as rendering
-                // is still global to all WebViews.
-                if !throttled && animation_state == AnimationState::AnimationsPresent {
-                    self.set_needs_repaint(RepaintReason::ChangedAnimationState);
-                }
-
-                if !throttled && animation_state == AnimationState::AnimationCallbacksPresent {
-                    // We need to fetch the WebView again in order to avoid a double borrow.
-                    if let Some(webview) = self.webviews.get(webview_id) {
-                        webview.tick_animations_for_pipeline(pipeline_id, self);
+                if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
+                    if webview_renderer
+                        .change_pipeline_running_animations_state(pipeline_id, animation_state) &&
+                        webview_renderer.animating()
+                    {
+                        // These operations should eventually happen per-WebView, but they are
+                        // global now as rendering is still global to all WebViews.
+                        self.process_animations(true);
                     }
                 }
             },
@@ -564,15 +541,15 @@ impl IOCompositor {
             },
 
             CompositorMsg::TouchEventProcessed(webview_id, result) => {
-                let Some(webview) = self.webviews.get_mut(webview_id) else {
+                let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     warn!("Handling input event for unknown webview: {webview_id}");
                     return;
                 };
-                webview.on_touch_event_processed(result);
+                webview_renderer.on_touch_event_processed(result);
             },
 
-            CompositorMsg::CreatePng(page_rect, reply) => {
-                let res = self.render_to_shared_memory(page_rect);
+            CompositorMsg::CreatePng(webview_id, page_rect, reply) => {
+                let res = self.render_to_shared_memory(webview_id, page_rect);
                 if let Err(ref e) = res {
                     info!("Error retrieving PNG: {:?}", e);
                 }
@@ -596,9 +573,14 @@ impl IOCompositor {
             },
 
             CompositorMsg::SetThrottled(webview_id, pipeline_id, throttled) => {
-                if let Some(webview) = self.webviews.get_mut(webview_id) {
-                    webview.set_throttled(pipeline_id, throttled);
-                    self.process_animations(true);
+                if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
+                    if webview_renderer.set_throttled(pipeline_id, throttled) &&
+                        webview_renderer.animating()
+                    {
+                        // These operations should eventually happen per-WebView, but they are
+                        // global now as rendering is still global to all WebViews.
+                        self.process_animations(true);
+                    }
                 }
             },
 
@@ -607,8 +589,8 @@ impl IOCompositor {
                     "Compositor got pipeline exited: {:?} {:?}",
                     webview_id, pipeline_id
                 );
-                if let Some(webview) = self.webviews.get_mut(webview_id) {
-                    webview.remove_pipeline(pipeline_id);
+                if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
+                    webview_renderer.remove_pipeline(pipeline_id);
                 }
                 let _ = sender.send(());
             },
@@ -640,13 +622,13 @@ impl IOCompositor {
             },
 
             CompositorMsg::WebDriverMouseButtonEvent(webview_id, action, button, x, y) => {
-                let dppx = self.device_pixels_per_page_pixel();
-                let point = dppx.transform_point(Point2D::new(x, y));
-                let Some(webview) = self.webviews.get_mut(webview_id) else {
+                let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     warn!("Handling input event for unknown webview: {webview_id}");
                     return;
                 };
-                webview.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent {
+                let dppx = webview_renderer.device_pixels_per_page_pixel();
+                let point = dppx.transform_point(Point2D::new(x, y));
+                webview_renderer.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent {
                     point,
                     action,
                     button,
@@ -654,48 +636,51 @@ impl IOCompositor {
             },
 
             CompositorMsg::WebDriverMouseMoveEvent(webview_id, x, y) => {
-                let dppx = self.device_pixels_per_page_pixel();
-                let point = dppx.transform_point(Point2D::new(x, y));
-                let Some(webview) = self.webviews.get_mut(webview_id) else {
+                let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     warn!("Handling input event for unknown webview: {webview_id}");
                     return;
                 };
-                webview.dispatch_input_event(InputEvent::MouseMove(MouseMoveEvent { point }));
+                let dppx = webview_renderer.device_pixels_per_page_pixel();
+                let point = dppx.transform_point(Point2D::new(x, y));
+                webview_renderer
+                    .dispatch_input_event(InputEvent::MouseMove(MouseMoveEvent { point }));
             },
 
-            CompositorMsg::CrossProcess(cross_proces_message) => {
-                self.handle_cross_process_message(cross_proces_message);
+            CompositorMsg::WebDriverWheelScrollEvent(webview_id, x, y, delta_x, delta_y) => {
+                let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
+                    warn!("Handling input event for unknown webview: {webview_id}");
+                    return;
+                };
+                let delta = WheelDelta {
+                    x: delta_x,
+                    y: delta_y,
+                    z: 0.0,
+                    mode: WheelMode::DeltaPixel,
+                };
+                let dppx = webview_renderer.device_pixels_per_page_pixel();
+                let point = dppx.transform_point(Point2D::new(x, y));
+                let scroll_delta =
+                    dppx.transform_vector(Vector2D::new(delta_x as f32, delta_y as f32));
+                webview_renderer
+                    .dispatch_input_event(InputEvent::Wheel(WheelEvent { delta, point }));
+                webview_renderer.on_webdriver_wheel_action(scroll_delta, point);
             },
-        }
-    }
 
-    /// Accept messages from content processes that need to be relayed to the WebRender
-    /// instance in the parent process.
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
-    fn handle_cross_process_message(&mut self, msg: CrossProcessCompositorMessage) {
-        match msg {
-            CrossProcessCompositorMessage::SendInitialTransaction(pipeline) => {
+            CompositorMsg::SendInitialTransaction(pipeline) => {
                 let mut txn = Transaction::new();
                 txn.set_display_list(WebRenderEpoch(0), (pipeline, Default::default()));
                 self.generate_frame(&mut txn, RenderReasons::SCENE);
                 self.global.borrow_mut().send_transaction(txn);
             },
 
-            CrossProcessCompositorMessage::SendScrollNode(
-                webview_id,
-                pipeline_id,
-                point,
-                external_scroll_id,
-            ) => {
-                let Some(webview) = self.webviews.get_mut(webview_id) else {
+            CompositorMsg::SendScrollNode(webview_id, pipeline_id, point, external_scroll_id) => {
+                let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     return;
                 };
 
                 let pipeline_id = pipeline_id.into();
-                let Some(pipeline_details) = webview.pipelines.get_mut(&pipeline_id) else {
+                let Some(pipeline_details) = webview_renderer.pipelines.get_mut(&pipeline_id)
+                else {
                     return;
                 };
 
@@ -723,13 +708,25 @@ impl IOCompositor {
                 self.global.borrow_mut().send_transaction(txn);
             },
 
-            CrossProcessCompositorMessage::SendDisplayList {
+            CompositorMsg::SendDisplayList {
                 webview_id,
-                display_list_info,
                 display_list_descriptor,
                 display_list_receiver,
             } => {
                 // This must match the order from the sender, currently in `shared/script/lib.rs`.
+                let display_list_info = match display_list_receiver.recv() {
+                    Ok(display_list_info) => display_list_info,
+                    Err(error) => {
+                        return warn!("Could not receive display list info: {error}");
+                    },
+                };
+                let display_list_info: CompositorDisplayListInfo =
+                    match bincode::deserialize(&display_list_info) {
+                        Ok(display_list_info) => display_list_info,
+                        Err(error) => {
+                            return warn!("Could not deserialize display list info: {error}");
+                        },
+                    };
                 let items_data = match display_list_receiver.recv() {
                     Ok(display_list_data) => display_list_data,
                     Err(error) => {
@@ -770,12 +767,12 @@ impl IOCompositor {
                 )
                 .entered();
 
-                let Some(webview) = self.webviews.get_mut(webview_id) else {
+                let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     return warn!("Could not find WebView for incoming display list");
                 };
 
                 let pipeline_id = display_list_info.pipeline_id;
-                let details = webview.ensure_pipeline_details(pipeline_id.into());
+                let details = webview_renderer.ensure_pipeline_details(pipeline_id.into());
                 details.most_recent_display_list_epoch = Some(display_list_info.epoch);
                 details.hit_test_items = display_list_info.hit_test_info;
                 details.install_new_scroll_tree(display_list_info.scroll_tree);
@@ -800,7 +797,7 @@ impl IOCompositor {
                 self.global.borrow_mut().send_transaction(transaction);
             },
 
-            CrossProcessCompositorMessage::HitTest(pipeline, point, flags, sender) => {
+            CompositorMsg::HitTest(pipeline, point, flags, sender) => {
                 // When a display list is sent to WebRender, it starts scene building in a
                 // separate thread and then that display list is available for hit testing.
                 // Without flushing scene building, any hit test we do might be done against
@@ -826,11 +823,11 @@ impl IOCompositor {
                 let _ = sender.send(result);
             },
 
-            CrossProcessCompositorMessage::GenerateImageKey(sender) => {
+            CompositorMsg::GenerateImageKey(sender) => {
                 let _ = sender.send(self.global.borrow().webrender_api.generate_image_key());
             },
 
-            CrossProcessCompositorMessage::UpdateImages(updates) => {
+            CompositorMsg::UpdateImages(updates) => {
                 let mut txn = Transaction::new();
                 for update in updates {
                     match update {
@@ -846,26 +843,21 @@ impl IOCompositor {
                 self.global.borrow_mut().send_transaction(txn);
             },
 
-            CrossProcessCompositorMessage::AddFont(font_key, data, index) => {
+            CompositorMsg::AddFont(font_key, data, index) => {
                 self.add_font(font_key, index, data);
             },
 
-            CrossProcessCompositorMessage::AddSystemFont(font_key, native_handle) => {
+            CompositorMsg::AddSystemFont(font_key, native_handle) => {
                 let mut transaction = Transaction::new();
                 transaction.add_native_font(font_key, native_handle);
                 self.global.borrow_mut().send_transaction(transaction);
             },
 
-            CrossProcessCompositorMessage::AddFontInstance(
-                font_instance_key,
-                font_key,
-                size,
-                flags,
-            ) => {
+            CompositorMsg::AddFontInstance(font_instance_key, font_key, size, flags) => {
                 self.add_font_instance(font_instance_key, font_key, size, flags);
             },
 
-            CrossProcessCompositorMessage::RemoveFonts(keys, instance_keys) => {
+            CompositorMsg::RemoveFonts(keys, instance_keys) => {
                 let mut transaction = Transaction::new();
 
                 for instance in instance_keys.into_iter() {
@@ -878,13 +870,13 @@ impl IOCompositor {
                 self.global.borrow_mut().send_transaction(transaction);
             },
 
-            CrossProcessCompositorMessage::AddImage(key, desc, data) => {
+            CompositorMsg::AddImage(key, desc, data) => {
                 let mut txn = Transaction::new();
                 txn.add_image(key, desc, data.into(), None);
                 self.global.borrow_mut().send_transaction(txn);
             },
 
-            CrossProcessCompositorMessage::GenerateFontKeys(
+            CompositorMsg::GenerateFontKeys(
                 number_of_font_keys,
                 number_of_font_instance_keys,
                 result_sender,
@@ -902,22 +894,36 @@ impl IOCompositor {
                     .collect();
                 let _ = result_sender.send((font_keys, font_instance_keys));
             },
-            CrossProcessCompositorMessage::GetClientWindowRect(req) => {
-                if let Err(e) = req.send(self.embedder_coordinates.window_rect) {
-                    warn!("Sending response to get client window failed ({:?}).", e);
+            CompositorMsg::GetClientWindowRect(webview_id, response_sender) => {
+                let client_window_rect = self
+                    .webview_renderers
+                    .get(webview_id)
+                    .map(|webview_renderer| {
+                        webview_renderer.client_window_rect(self.rendering_context.size2d())
+                    })
+                    .unwrap_or_default();
+                if let Err(error) = response_sender.send(client_window_rect) {
+                    warn!("Sending response to get client window failed ({error:?}).");
                 }
             },
-            CrossProcessCompositorMessage::GetScreenSize(req) => {
-                if let Err(e) = req.send(self.embedder_coordinates.screen_size) {
-                    warn!("Sending response to get screen size failed ({:?}).", e);
+            CompositorMsg::GetScreenSize(webview_id, response_sender) => {
+                let screen_size = self
+                    .webview_renderers
+                    .get(webview_id)
+                    .map(WebViewRenderer::screen_size)
+                    .unwrap_or_default();
+                if let Err(error) = response_sender.send(screen_size) {
+                    warn!("Sending response to get screen size failed ({error:?}).");
                 }
             },
-            CrossProcessCompositorMessage::GetAvailableScreenSize(req) => {
-                if let Err(e) = req.send(self.embedder_coordinates.available_screen_size) {
-                    warn!(
-                        "Sending response to get screen avail size failed ({:?}).",
-                        e
-                    );
+            CompositorMsg::GetAvailableScreenSize(webview_id, response_sender) => {
+                let available_screen_size = self
+                    .webview_renderers
+                    .get(webview_id)
+                    .map(WebViewRenderer::available_screen_size)
+                    .unwrap_or_default();
+                if let Err(error) = response_sender.send(available_screen_size) {
+                    warn!("Sending response to get screen size failed ({error:?}).");
                 }
             },
         }
@@ -939,21 +945,19 @@ impl IOCompositor {
                     "Compositor got pipeline exited: {:?} {:?}",
                     webview_id, pipeline_id
                 );
-                if let Some(webview) = self.webviews.get_mut(webview_id) {
-                    webview.remove_pipeline(pipeline_id);
+                if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
+                    webview_renderer.remove_pipeline(pipeline_id);
                 }
                 let _ = sender.send(());
             },
-            CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GenerateImageKey(
-                sender,
-            )) => {
+            CompositorMsg::GenerateImageKey(sender) => {
                 let _ = sender.send(self.global.borrow().webrender_api.generate_image_key());
             },
-            CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GenerateFontKeys(
+            CompositorMsg::GenerateFontKeys(
                 number_of_font_keys,
                 number_of_font_instance_keys,
                 result_sender,
-            )) => {
+            ) => {
                 let font_keys = (0..number_of_font_keys)
                     .map(|_| self.global.borrow().webrender_api.generate_font_key())
                     .collect();
@@ -967,26 +971,19 @@ impl IOCompositor {
                     .collect();
                 let _ = result_sender.send((font_keys, font_instance_keys));
             },
-            CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GetClientWindowRect(
-                req,
-            )) => {
-                if let Err(e) = req.send(self.embedder_coordinates.window_rect) {
-                    warn!("Sending response to get client window failed ({:?}).", e);
+            CompositorMsg::GetClientWindowRect(_, response_sender) => {
+                if let Err(error) = response_sender.send(Default::default()) {
+                    warn!("Sending response to get client window failed ({error:?}).");
                 }
             },
-            CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GetScreenSize(req)) => {
-                if let Err(e) = req.send(self.embedder_coordinates.screen_size) {
-                    warn!("Sending response to get screen size failed ({:?}).", e);
+            CompositorMsg::GetScreenSize(_, response_sender) => {
+                if let Err(error) = response_sender.send(Default::default()) {
+                    warn!("Sending response to get client window failed ({error:?}).");
                 }
             },
-            CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GetAvailableScreenSize(
-                req,
-            )) => {
-                if let Err(e) = req.send(self.embedder_coordinates.available_screen_size) {
-                    warn!(
-                        "Sending response to get screen avail size failed ({:?}).",
-                        e
-                    );
+            CompositorMsg::GetAvailableScreenSize(_, response_sender) => {
+                if let Err(error) = response_sender.send(Default::default()) {
+                    warn!("Sending response to get client window failed ({error:?}).");
                 }
             },
             CompositorMsg::NewWebRenderFrameReady(..) => {
@@ -1031,43 +1028,50 @@ impl IOCompositor {
         let mut builder = webrender_api::DisplayListBuilder::new(root_pipeline);
         builder.begin();
 
-        let zoom_factor = self.device_pixels_per_page_pixel().0;
-        let zoom_reference_frame = builder.push_reference_frame(
+        let root_reference_frame = SpatialId::root_reference_frame(root_pipeline);
+
+        let viewport_size = self.rendering_context.size2d().to_f32().to_untyped();
+        let viewport_rect = LayoutRect::from_origin_and_size(
             LayoutPoint::zero(),
-            SpatialId::root_reference_frame(root_pipeline),
-            TransformStyle::Flat,
-            PropertyBinding::Value(Transform3D::scale(zoom_factor, zoom_factor, 1.)),
-            ReferenceFrameKind::Transform {
-                is_2d_scale_translation: true,
-                should_snap: true,
-                paired_with_perspective: false,
-            },
-            SpatialTreeItemKey::new(0, 0),
+            LayoutSize::from_untyped(viewport_size),
         );
 
-        let scaled_viewport_size =
-            self.rendering_context.size2d().to_f32().to_untyped() / zoom_factor;
-        let scaled_viewport_rect = LayoutRect::from_origin_and_size(
-            LayoutPoint::zero(),
-            LayoutSize::from_untyped(scaled_viewport_size),
-        );
-
-        let root_clip_id = builder.define_clip_rect(zoom_reference_frame, scaled_viewport_rect);
+        let root_clip_id = builder.define_clip_rect(root_reference_frame, viewport_rect);
         let clip_chain_id = builder.define_clip_chain(None, [root_clip_id]);
-        for (_, webview) in self.webviews.painting_order() {
-            if let Some(pipeline_id) = webview.root_pipeline_id {
-                let scaled_webview_rect = webview.rect / zoom_factor;
-                builder.push_iframe(
-                    LayoutRect::from_untyped(&scaled_webview_rect.to_untyped()),
-                    LayoutRect::from_untyped(&scaled_webview_rect.to_untyped()),
-                    &SpaceAndClipInfo {
-                        spatial_id: zoom_reference_frame,
-                        clip_chain_id,
-                    },
-                    pipeline_id.into(),
-                    true,
-                );
-            }
+        for (_, webview_renderer) in self.webview_renderers.painting_order() {
+            let Some(pipeline_id) = webview_renderer.root_pipeline_id else {
+                continue;
+            };
+
+            let device_pixels_per_page_pixel = webview_renderer.device_pixels_per_page_pixel().0;
+            let webview_reference_frame = builder.push_reference_frame(
+                LayoutPoint::zero(),
+                root_reference_frame,
+                TransformStyle::Flat,
+                PropertyBinding::Value(Transform3D::scale(
+                    device_pixels_per_page_pixel,
+                    device_pixels_per_page_pixel,
+                    1.,
+                )),
+                ReferenceFrameKind::Transform {
+                    is_2d_scale_translation: true,
+                    should_snap: true,
+                    paired_with_perspective: false,
+                },
+                SpatialTreeItemKey::new(0, 0),
+            );
+
+            let scaled_webview_rect = webview_renderer.rect / device_pixels_per_page_pixel;
+            builder.push_iframe(
+                LayoutRect::from_untyped(&scaled_webview_rect.to_untyped()),
+                LayoutRect::from_untyped(&scaled_webview_rect.to_untyped()),
+                &SpaceAndClipInfo {
+                    spatial_id: webview_reference_frame,
+                    clip_chain_id,
+                },
+                pipeline_id.into(),
+                true,
+            );
         }
 
         let built_display_list = builder.end();
@@ -1088,8 +1092,8 @@ impl IOCompositor {
     /// TODO(mrobinson): Could we only send offsets for the branch being modified
     /// and not the entire scene?
     fn update_transaction_with_all_scroll_offsets(&self, transaction: &mut Transaction) {
-        for webview in self.webviews.iter() {
-            for details in webview.pipelines.values() {
+        for webview_renderer in self.webview_renderers.iter() {
+            for details in webview_renderer.pipelines.values() {
                 for node in details.scroll_tree.nodes.iter() {
                     let (Some(offset), Some(external_id)) = (node.offset(), node.external_id())
                     else {
@@ -1109,63 +1113,43 @@ impl IOCompositor {
         }
     }
 
-    pub fn add_webview(&mut self, webview_id: WebViewId) {
-        let size = self.rendering_context.size2d().to_f32();
-        self.webviews.entry(webview_id).or_insert(WebView::new(
-            webview_id,
-            Box2D::from_origin_and_size(Point2D::origin(), size),
-            self.global.clone(),
-        ));
+    pub fn add_webview(
+        &mut self,
+        webview: Box<dyn WebViewTrait>,
+        viewport_details: ViewportDetails,
+    ) {
+        self.webview_renderers
+            .entry(webview.id())
+            .or_insert(WebViewRenderer::new(
+                self.global.clone(),
+                webview,
+                viewport_details,
+            ));
     }
 
     fn set_frame_tree_for_webview(&mut self, frame_tree: &SendableFrameTree) {
         debug!("{}: Setting frame tree for webview", frame_tree.pipeline.id);
 
         let webview_id = frame_tree.pipeline.webview_id;
-        let Some(webview) = self.webviews.get_mut(webview_id) else {
+        let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
             warn!(
                 "Attempted to set frame tree on unknown WebView (perhaps closed?): {webview_id:?}"
             );
             return;
         };
 
-        webview.set_frame_tree(frame_tree);
+        webview_renderer.set_frame_tree(frame_tree);
         self.send_root_pipeline_display_list();
     }
 
     fn remove_webview(&mut self, webview_id: WebViewId) {
         debug!("{}: Removing", webview_id);
-        if self.webviews.remove(webview_id).is_err() {
+        if self.webview_renderers.remove(webview_id).is_err() {
             warn!("{webview_id}: Removing unknown webview");
             return;
         };
 
         self.send_root_pipeline_display_list();
-    }
-
-    pub fn move_resize_webview(&mut self, webview_id: WebViewId, rect: DeviceRect) {
-        debug!("{webview_id}: Moving and/or resizing webview; rect={rect:?}");
-        let rect_changed;
-        let size_changed;
-        match self.webviews.get_mut(webview_id) {
-            Some(webview) => {
-                rect_changed = rect != webview.rect;
-                size_changed = rect.size() != webview.rect.size();
-                webview.rect = rect;
-            },
-            None => {
-                warn!("{webview_id}: MoveResizeWebView on unknown webview id");
-                return;
-            },
-        };
-
-        if rect_changed {
-            if size_changed {
-                self.send_window_size_message_for_top_level_browser_context(rect, webview_id);
-            }
-
-            self.send_root_pipeline_display_list();
-        }
     }
 
     pub fn show_webview(
@@ -1176,15 +1160,15 @@ impl IOCompositor {
         debug!("{webview_id}: Showing webview; hide_others={hide_others}");
         let painting_order_changed = if hide_others {
             let result = self
-                .webviews
+                .webview_renderers
                 .painting_order()
                 .map(|(&id, _)| id)
                 .ne(once(webview_id));
-            self.webviews.hide_all();
-            self.webviews.show(webview_id)?;
+            self.webview_renderers.hide_all();
+            self.webview_renderers.show(webview_id)?;
             result
         } else {
-            self.webviews.show(webview_id)?
+            self.webview_renderers.show(webview_id)?
         };
         if painting_order_changed {
             self.send_root_pipeline_display_list();
@@ -1194,7 +1178,7 @@ impl IOCompositor {
 
     pub fn hide_webview(&mut self, webview_id: WebViewId) -> Result<(), UnknownWebView> {
         debug!("{webview_id}: Hiding webview");
-        if self.webviews.hide(webview_id)? {
+        if self.webview_renderers.hide(webview_id)? {
             self.send_root_pipeline_display_list();
         }
         Ok(())
@@ -1208,15 +1192,15 @@ impl IOCompositor {
         debug!("{webview_id}: Raising webview to top; hide_others={hide_others}");
         let painting_order_changed = if hide_others {
             let result = self
-                .webviews
+                .webview_renderers
                 .painting_order()
                 .map(|(&id, _)| id)
                 .ne(once(webview_id));
-            self.webviews.hide_all();
-            self.webviews.raise_to_top(webview_id)?;
+            self.webview_renderers.hide_all();
+            self.webview_renderers.raise_to_top(webview_id)?;
             result
         } else {
-            self.webviews.raise_to_top(webview_id)?
+            self.webview_renderers.raise_to_top(webview_id)?
         };
         if painting_order_changed {
             self.send_root_pipeline_display_list();
@@ -1224,43 +1208,46 @@ impl IOCompositor {
         Ok(())
     }
 
-    fn send_window_size_message_for_top_level_browser_context(
-        &self,
-        rect: DeviceRect,
-        webview_id: WebViewId,
-    ) {
-        // The device pixel ratio used by the style system should include the scale from page pixels
-        // to device pixels, but not including any pinch zoom.
-        let device_pixel_ratio = self.device_pixels_per_page_pixel_not_including_page_zoom();
-        let initial_viewport = rect.size().to_f32() / device_pixel_ratio;
-        let msg = ConstellationMsg::WindowSize(
-            webview_id,
-            WindowSizeData {
-                device_pixel_ratio,
-                initial_viewport,
-            },
-            WindowSizeType::Resize,
-        );
-        if let Err(e) = self.global.borrow().constellation_sender.send(msg) {
-            warn!("Sending window resize to constellation failed ({:?}).", e);
-        }
-    }
-
-    pub fn on_embedder_window_moved(&mut self) {
-        self.embedder_coordinates = self.window.get_coordinates();
-    }
-
-    pub fn resize_rendering_context(&mut self, new_size: PhysicalSize<u32>) -> bool {
+    pub fn move_resize_webview(&mut self, webview_id: WebViewId, rect: DeviceRect) {
         if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
-            return false;
+            return;
+        }
+        let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
+            return;
+        };
+        if !webview_renderer.set_rect(rect) {
+            return;
         }
 
-        let old_hidpi_factor = self.embedder_coordinates.hidpi_factor;
-        self.embedder_coordinates = self.window.get_coordinates();
-        if self.embedder_coordinates.hidpi_factor == old_hidpi_factor &&
-            self.rendering_context.size() == new_size
-        {
-            return false;
+        self.send_root_pipeline_display_list();
+        self.set_needs_repaint(RepaintReason::Resize);
+    }
+
+    pub fn set_hidpi_scale_factor(
+        &mut self,
+        webview_id: WebViewId,
+        new_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
+    ) {
+        if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
+            return;
+        }
+        let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
+            return;
+        };
+        if !webview_renderer.set_hidpi_scale_factor(new_scale_factor) {
+            return;
+        }
+
+        self.send_root_pipeline_display_list();
+        self.set_needs_repaint(RepaintReason::Resize);
+    }
+
+    pub fn resize_rendering_context(&mut self, new_size: PhysicalSize<u32>) {
+        if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
+            return;
+        }
+        if self.rendering_context.size() == new_size {
+            return;
         }
 
         self.rendering_context.resize(new_size);
@@ -1273,9 +1260,8 @@ impl IOCompositor {
         transaction.set_document_view(output_region);
         self.global.borrow_mut().send_transaction(transaction);
 
-        self.update_after_zoom_or_hidpi_change();
+        self.send_root_pipeline_display_list();
         self.set_needs_repaint(RepaintReason::Resize);
-        true
     }
 
     /// If there are any animations running, dispatches appropriate messages to the constellation.
@@ -1291,64 +1277,45 @@ impl IOCompositor {
         }
         self.last_animation_tick = Instant::now();
 
-        #[cfg(feature = "webxr")]
-        let webxr_running = self.global.borrow().webxr_main_thread.running();
-        #[cfg(not(feature = "webxr"))]
-        let webxr_running = false;
-
-        let any_webviews_animating = !self
-            .webviews
+        let animating_webviews: Vec<_> = self
+            .webview_renderers
             .iter()
-            .all(|webview| !webview.tick_all_animations(self));
-
-        let animation_state = if !any_webviews_animating && !webxr_running {
-            windowing::AnimationState::Idle
-        } else {
-            windowing::AnimationState::Animating
-        };
-
-        self.window.set_animation_state(animation_state);
+            .filter_map(|webview_renderer| {
+                if webview_renderer.animating() {
+                    Some(webview_renderer.id)
+                } else {
+                    None
+                }
+            })
+            .collect();
+        if !animating_webviews.is_empty() {
+            if let Err(error) = self.global.borrow().constellation_sender.send(
+                EmbedderToConstellationMessage::TickAnimation(animating_webviews),
+            ) {
+                warn!("Sending tick to constellation failed ({error:?}).");
+            }
+        }
     }
 
-    fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-        self.embedder_coordinates.hidpi_factor
-    }
-
-    pub(crate) fn device_pixels_per_page_pixel(&self) -> Scale<f32, CSSPixel, DevicePixel> {
-        self.device_pixels_per_page_pixel_not_including_page_zoom() * self.pinch_zoom_level()
-    }
-
-    fn device_pixels_per_page_pixel_not_including_page_zoom(
-        &self,
-    ) -> Scale<f32, CSSPixel, DevicePixel> {
-        self.page_zoom * self.hidpi_factor()
-    }
-
-    pub fn on_zoom_reset_window_event(&mut self) {
+    pub fn on_zoom_reset_window_event(&mut self, webview_id: WebViewId) {
         if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
 
-        self.page_zoom = Scale::new(1.0);
-        self.update_after_zoom_or_hidpi_change();
+        if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
+            webview_renderer.set_page_zoom(1.0);
+        }
+        self.send_root_pipeline_display_list();
     }
 
-    pub fn on_zoom_window_event(&mut self, magnification: f32) {
+    pub fn on_zoom_window_event(&mut self, webview_id: WebViewId, magnification: f32) {
         if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
 
-        self.page_zoom =
-            Scale::new((self.page_zoom.get() * magnification).clamp(MIN_ZOOM, MAX_ZOOM));
-        self.update_after_zoom_or_hidpi_change();
-    }
-
-    fn update_after_zoom_or_hidpi_change(&mut self) {
-        for (webview_id, webview) in self.webviews.painting_order() {
-            self.send_window_size_message_for_top_level_browser_context(webview.rect, *webview_id);
+        if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
+            webview_renderer.set_page_zoom(magnification);
         }
-
-        // Update the root transform in WebRender to reflect the new zoom.
         self.send_root_pipeline_display_list();
     }
 
@@ -1359,21 +1326,24 @@ impl IOCompositor {
             .pipeline_to_webview_map
             .get(&pipeline_id)
             .cloned()?;
-        self.webviews.get(webview_id)?.pipelines.get(&pipeline_id)
+        self.webview_renderers
+            .get(webview_id)?
+            .pipelines
+            .get(&pipeline_id)
     }
 
     // Check if any pipelines currently have active animations or animation callbacks.
     fn animations_or_animation_callbacks_running(&self) -> bool {
-        self.webviews
+        self.webview_renderers
             .iter()
-            .any(WebView::animations_or_animation_callbacks_running)
+            .any(WebViewRenderer::animations_or_animation_callbacks_running)
     }
 
     /// Returns true if any animation callbacks (ie `requestAnimationFrame`) are waiting for a response.
     fn animation_callbacks_running(&self) -> bool {
-        self.webviews
+        self.webview_renderers
             .iter()
-            .any(WebView::animation_callbacks_running)
+            .any(WebViewRenderer::animation_callbacks_running)
     }
 
     /// Query the constellation to see if the current compositor
@@ -1389,7 +1359,11 @@ impl IOCompositor {
                 // This gets sent to the constellation for comparison with the current
                 // frame tree.
                 let mut pipeline_epochs = HashMap::new();
-                for id in self.webviews.iter().flat_map(WebView::pipeline_ids) {
+                for id in self
+                    .webview_renderers
+                    .iter()
+                    .flat_map(WebViewRenderer::pipeline_ids)
+                {
                     if let Some(WebRenderEpoch(epoch)) = self
                         .webrender
                         .as_ref()
@@ -1402,7 +1376,7 @@ impl IOCompositor {
 
                 // Pass the pipeline/epoch states to the constellation and check
                 // if it's safe to output the image.
-                let msg = ConstellationMsg::IsReadyToSaveImage(pipeline_epochs);
+                let msg = EmbedderToConstellationMessage::IsReadyToSaveImage(pipeline_epochs);
                 if let Err(e) = self.global.borrow().constellation_sender.send(msg) {
                     warn!("Sending ready to save to constellation failed ({:?}).", e);
                 }
@@ -1448,13 +1422,19 @@ impl IOCompositor {
     /// [`IOCompositor`]. If succesful return the output image in shared memory.
     fn render_to_shared_memory(
         &mut self,
+        webview_id: WebViewId,
         page_rect: Option<Rect<f32, CSSPixel>>,
     ) -> Result<Option<Image>, UnableToComposite> {
         self.render_inner()?;
 
         let size = self.rendering_context.size2d().to_i32();
         let rect = if let Some(rect) = page_rect {
-            let rect = self.device_pixels_per_page_pixel().transform_rect(&rect);
+            let scale = self
+                .webview_renderers
+                .get(webview_id)
+                .map(WebViewRenderer::device_pixels_per_page_pixel)
+                .unwrap_or_else(|| Scale::new(1.0));
+            let rect = scale.transform_rect(&rect);
 
             let x = rect.origin.x as i32;
             // We need to convert to the bottom-left origin coordinate
@@ -1549,8 +1529,8 @@ impl IOCompositor {
     fn send_pending_paint_metrics_messages_after_composite(&mut self) {
         let paint_time = CrossProcessInstant::now();
         let document_id = self.webrender_document();
-        for webview_details in self.webviews.iter_mut() {
-            for (pipeline_id, pipeline) in webview_details.pipelines.iter_mut() {
+        for webview_renderer in self.webview_renderers.iter_mut() {
+            for (pipeline_id, pipeline) in webview_renderer.pipelines.iter_mut() {
                 let Some(current_epoch) = self
                     .webrender
                     .as_ref()
@@ -1567,7 +1547,7 @@ impl IOCompositor {
                     PaintMetricState::Seen(epoch, first_reflow) if epoch <= current_epoch => {
                         assert!(epoch <= current_epoch);
                         if let Err(error) = self.global.borrow().constellation_sender.send(
-                            ConstellationMsg::PaintMetric(
+                            EmbedderToConstellationMessage::PaintMetric(
                                 *pipeline_id,
                                 PaintMetricEvent::FirstPaint(paint_time, first_reflow),
                             ),
@@ -1584,7 +1564,7 @@ impl IOCompositor {
                 match pipeline.first_contentful_paint_metric {
                     PaintMetricState::Seen(epoch, first_reflow) if epoch <= current_epoch => {
                         if let Err(error) = self.global.borrow().constellation_sender.send(
-                            ConstellationMsg::PaintMetric(
+                            EmbedderToConstellationMessage::PaintMetric(
                                 *pipeline_id,
                                 PaintMetricEvent::FirstContentfulPaint(paint_time, first_reflow),
                             ),
@@ -1648,12 +1628,7 @@ impl IOCompositor {
         // Check for new messages coming from the other threads in the system.
         let mut compositor_messages = vec![];
         let mut found_recomposite_msg = false;
-        while let Some(msg) = self
-            .global
-            .borrow_mut()
-            .compositor_receiver
-            .try_recv_compositor_msg()
-        {
+        while let Ok(msg) = self.global.borrow_mut().compositor_receiver.try_recv() {
             match msg {
                 CompositorMsg::NewWebRenderFrameReady(..) if found_recomposite_msg => {
                     // Only take one of duplicate NewWebRendeFrameReady messages, but do subtract
@@ -1685,15 +1660,6 @@ impl IOCompositor {
             return false;
         }
 
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs() as f64;
-        // If a pinch-zoom happened recently, ask for tiles at the new resolution
-        if self.zoom_action && now - self.zoom_time > 0.3 {
-            self.zoom_action = false;
-        }
-
         #[cfg(feature = "webxr")]
         // Run the WebXR main thread
         self.global.borrow_mut().webxr_main_thread.run_one_frame();
@@ -1702,28 +1668,12 @@ impl IOCompositor {
         if let Err(err) = self.rendering_context.make_current() {
             warn!("Failed to make the rendering context current: {:?}", err);
         }
-        let mut webviews = take(&mut self.webviews);
-        for webview in webviews.iter_mut() {
-            webview.process_pending_scroll_events(self);
+        let mut webview_renderers = take(&mut self.webview_renderers);
+        for webview_renderer in webview_renderers.iter_mut() {
+            webview_renderer.process_pending_scroll_events(self);
         }
-        self.webviews = webviews;
+        self.webview_renderers = webview_renderers;
         self.global.borrow().shutdown_state() != ShutdownState::FinishedShuttingDown
-    }
-
-    pub fn pinch_zoom_level(&self) -> Scale<f32, DevicePixel, DevicePixel> {
-        Scale::new(self.viewport_zoom.get())
-    }
-
-    pub(crate) fn set_pinch_zoom_level(&mut self, mut zoom: f32) -> bool {
-        if let Some(min) = self.min_viewport_zoom {
-            zoom = f32::max(min.get(), zoom);
-        }
-        if let Some(max) = self.max_viewport_zoom {
-            zoom = f32::min(max.get(), zoom);
-        }
-
-        let old_zoom = std::mem::replace(&mut self.viewport_zoom, PinchZoomFactor::new(zoom));
-        old_zoom != self.viewport_zoom
     }
 
     pub fn toggle_webrender_debug(&mut self, option: WebRenderDebugOption) {
@@ -1773,13 +1723,6 @@ impl IOCompositor {
             .borrow()
             .webrender_api
             .save_capture(capture_path.clone(), CaptureBits::all());
-
-        let version_file_path = capture_path.join("servo-version.txt");
-        if let Err(error) = File::create(version_file_path)
-            .and_then(|mut file| write!(file, "{}", self.global.borrow().version_string))
-        {
-            eprintln!("Unable to write servo version for WebRender Capture: {error:?}");
-        }
     }
 
     fn add_font_instance(
@@ -1814,8 +1757,8 @@ impl IOCompositor {
     }
 
     pub fn notify_input_event(&mut self, webview_id: WebViewId, event: InputEvent) {
-        if let Some(webview) = self.webviews.get_mut(webview_id) {
-            webview.notify_input_event(event);
+        if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
+            webview_renderer.notify_input_event(event);
         }
     }
 
@@ -1826,20 +1769,20 @@ impl IOCompositor {
         cursor: DeviceIntPoint,
         event_type: TouchEventType,
     ) {
-        if let Some(webview) = self.webviews.get_mut(webview_id) {
-            webview.notify_scroll_event(scroll_location, cursor, event_type);
+        if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
+            webview_renderer.notify_scroll_event(scroll_location, cursor, event_type);
         }
     }
 
     pub fn on_vsync(&mut self, webview_id: WebViewId) {
-        if let Some(webview) = self.webviews.get_mut(webview_id) {
-            webview.on_vsync();
+        if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
+            webview_renderer.on_vsync();
         }
     }
 
     pub fn set_pinch_zoom(&mut self, webview_id: WebViewId, magnification: f32) {
-        if let Some(webview) = self.webviews.get_mut(webview_id) {
-            webview.set_pinch_zoom(magnification);
+        if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
+            webview_renderer.set_pinch_zoom(magnification);
         }
     }
 

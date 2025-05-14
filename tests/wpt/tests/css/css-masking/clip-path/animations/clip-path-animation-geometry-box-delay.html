@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#basic-shape-interpolation">
+<link rel="match" href="clip-path-animation-non-shape-delay-ref.html">
+<style>
+  .container {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+    animation: clippath 1s 10s;
+    animation-fill-mode: none;
+    clip-path: border-box;
+    position: absolute;
+    left: 10px;
+    top: 10px;
+  }
+
+  .child {
+    width: 10px;
+    height: 10px;
+    background-color: blue;
+    left: 150px;
+    position: absolute;
+  }
+
+  @keyframes clippath {
+    0% {
+      clip-path: circle(50% at 50% 50%);
+    }
+
+    100% {
+      clip-path: circle(35% at 35% 35%);
+    }
+  }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="../../../../web-animations/resources/timing-utils.js"></script>
+
+<body>
+  This test passes if the blue child is occluded by the clip-path during the animation delay.
+  <div class="container">
+    <div class="child"></div>
+  </div>
+
+  <script>
+    document.getAnimations()[0].ready.then(() => requestAnimationFrame(takeScreenshot));
+  </script>
+</body>
+
+</html>

@@ -527,6 +527,8 @@
   fuzzy_test_computed_color(`lch(from lch(0.7 45 30 / 40%) calc(l) calc(c) calc(h) / calc(alpha))`, `lch(0.7 45 30 / 0.4)`);
   fuzzy_test_computed_color(`lch(from lch(50 5 10 / 0.8) calc(l + 1) calc(c + 1) calc(h + 1) / calc(alpha + 0.01))`, `lch(51 6 11 / 0.81)`);
   fuzzy_test_computed_color(`lch(from lch(0.7 45 30) calc((l / 100) * 100%) calc((c / 150) * 100%) calc((h / 360) * 360deg) / calc(alpha * 100%))`, `lch(0.7 45 30)`);
+  fuzzy_test_computed_color(`lch(from red calc((49.44 - l) * infinity) 0 0)`, `lch(0 0 0)`);
+  fuzzy_test_computed_color(`lch(from blue calc((49.44 - l) * infinity) 0 0)`, `lch(100 0 0)`);
 
   // Alpha is clamped to [0,1]
   fuzzy_test_computed_color(`lch(from lch(from lch(0.7 45 30) l c h / calc(alpha + 0.5)) l c h / calc(alpha - 0.5))`, `lch(0.7 45 30 / 0.5)`);

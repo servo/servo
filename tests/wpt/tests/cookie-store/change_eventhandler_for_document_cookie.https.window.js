@@ -63,6 +63,37 @@ cookie_test(async t => {
         ' using max-age=0');
 }, 'document.cookie set/overwrite/delete observed by CookieStore');
 
+
+cookie_test(async t => {
+  const eventPromise = observeNextCookieChangeEvent();
+  await setCookieStringDocument('DOCUMENT-cookie=ALREADY-EXPIRED; path=/; max-age=0');
+  await setCookieStringDocument('DOCUMENT-alt-cookie=IGNORE; path=/; max-age=10');
+  assert_equals(
+    await getCookieStringDocument(),
+    'DOCUMENT-alt-cookie=IGNORE',
+    'Already-expired cookie not included in document.cookie');
+  await verifyCookieChangeEvent(
+    eventPromise,
+    {deleted: [], changed: [{name: 'DOCUMENT-alt-cookie', value: 'IGNORE'}]},
+    'Deletion not observed after document.cookie sets already-expired cookie');
+}, 'document.cookie set already-expired cookie should not be observed by CookieStore');
+
+cookie_test(async t => {
+  let eventPromise = observeNextCookieChangeEvent();
+  await setCookieStringDocument('DOCUMENT-cookie=VALUE; path=/');
+  await verifyCookieChangeEvent(
+    eventPromise, {changed: [{name: 'DOCUMENT-cookie', value: 'VALUE'}]},
+      'Original cookie is observed.');
+
+  eventPromise = observeNextCookieChangeEvent();
+  // Overwrite the original cookie with a duplicate, this should not dispatch an event.
+  await setCookieStringDocument('DOCUMENT-cookie=VALUE; path=/');
+  await setCookieStringDocument('DOCUMENT-alt-cookie=IGNORE; path=/');
+  await verifyCookieChangeEvent(
+    eventPromise, {changed: [{name: 'DOCUMENT-alt-cookie', value: 'IGNORE'}]},
+    'Duplicate cookie is not observed.');
+}, 'document.cookie duplicate cookie should not be observed by CookieStore');
+
 cookie_test(async t => {
   let eventPromise = observeNextCookieChangeEvent();
   await cookieStore.set('DOCUMENT-cookie', 'value');

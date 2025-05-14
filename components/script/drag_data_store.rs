@@ -4,9 +4,9 @@
 
 use std::sync::Arc;
 
+use constellation_traits::BlobImpl;
 use indexmap::IndexMap;
 use pixels::Image;
-use script_traits::serializable::BlobImpl;
 
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::DomRoot;

@@ -64,11 +64,11 @@ impl HTMLOptGroupElement {
         )
     }
 
-    fn update_select_validity(&self) {
+    fn update_select_validity(&self, can_gc: CanGc) {
         if let Some(select) = self.owner_select_element() {
             select
                 .validity_state()
-                .perform_validation_and_update(ValidationFlags::all());
+                .perform_validation_and_update(ValidationFlags::all(), can_gc);
         }
     }
 
@@ -98,8 +98,10 @@ impl VirtualMethods for HTMLOptGroupElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
         if attr.local_name() == &local_name!("disabled") {
             let disabled_state = match mutation {
                 AttributeMutation::Set(None) => true,
@@ -132,21 +134,21 @@ impl VirtualMethods for HTMLOptGroupElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext) {
-        if let Some(s) = self.super_type() {
-            s.bind_to_tree(context);
+    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+        if let Some(super_type) = self.super_type() {
+            super_type.bind_to_tree(context, can_gc);
         }
 
-        self.update_select_validity();
+        self.update_select_validity(can_gc);
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
-        self.super_type().unwrap().unbind_from_tree(context);
+    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+        self.super_type().unwrap().unbind_from_tree(context, can_gc);
 
         if let Some(select) = context.parent.downcast::<HTMLSelectElement>() {
             select
                 .validity_state()
-                .perform_validation_and_update(ValidationFlags::all());
+                .perform_validation_and_update(ValidationFlags::all(), can_gc);
         }
     }
 }

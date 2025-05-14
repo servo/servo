@@ -79,7 +79,7 @@ impl TextTrackList {
 
                     if let Some(track) = this.item(idx) {
                         let event = TrackEvent::new(
-                            &this.global(),
+                            this.global().as_window(),
                             atom!("addtrack"),
                             false,
                             false,

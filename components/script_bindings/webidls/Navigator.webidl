@@ -9,7 +9,7 @@ interface Navigator {
 };
 Navigator includes NavigatorID;
 Navigator includes NavigatorLanguage;
-//Navigator includes NavigatorOnLine;
+Navigator includes NavigatorOnLine;
 //Navigator includes NavigatorContentUtils;
 //Navigator includes NavigatorStorageUtils;
 Navigator includes NavigatorPlugins;
@@ -43,6 +43,12 @@ interface mixin NavigatorLanguage {
   readonly attribute any languages;
 };
 
+// https://html.spec.whatwg.org/multipage/#dom-navigator-online
+[Exposed=(Window,Worker)]
+interface mixin NavigatorOnLine {
+  readonly attribute boolean onLine;
+};
+
 // https://html.spec.whatwg.org/multipage/#navigatorplugins
 interface mixin NavigatorPlugins {
   [SameObject] readonly attribute PluginArray plugins;
@@ -69,4 +75,9 @@ partial interface Navigator {
 // https://html.spec.whatwg.org/multipage/#navigatorconcurrenthardware
 interface mixin NavigatorConcurrentHardware {
   readonly attribute unsigned long long hardwareConcurrency;
+};
+
+// https://w3c.github.io/clipboard-apis/#navigator-interface
+partial interface Navigator {
+  [SecureContext, SameObject, Pref="dom_async_clipboard_enabled"] readonly attribute Clipboard clipboard;
 };

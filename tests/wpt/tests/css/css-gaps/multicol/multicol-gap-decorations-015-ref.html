@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+
+    .outer {
+        columns: 4;
+        orphans: 1;
+        widows: 1;
+        border: dotted 2px black;
+        width: 500px;
+    }
+
+    .col-box {
+        background: cyan;
+        height: 20px;
+        /* keep each box whole */
+        break-inside: avoid;
+    }
+
+    .spanner {
+        column-span: all;
+        background: grey;
+        opacity: 0.5;
+        height: 20px;
+    }
+
+    .pink-box {
+        column-span: all;
+        background: hotpink;
+        height: 20px;
+        width: 100px;
+    }
+
+    .first-column-gaps {
+        position: absolute;
+        top: 82px;
+        display: flex;
+        height: 20px;
+        left: 123px;
+        column-gap: 128px;
+    }
+
+    .column-gap {
+        background: black;
+        width: 1px;
+    }
+</style>
+<div class="first-column-gaps">
+    <div class="column-gap"></div>
+    <div class="column-gap"></div>
+    <div class="column-gap"></div>
+</div>
+<div class="column-gap" style="position: absolute; left: 123px; height: 20px; top:2px;"></div>
+<div class="outer">
+    <div class="col-box"></div>
+    <div class="col-box"></div>
+
+    <div class="spanner"></div>
+    <div class="pink-box"></div>
+    <div class="spanner"></div>
+
+    <div class="col-box"></div>
+    <div class="col-box"></div>
+    <div class="col-box"></div>
+    <div class="col-box"></div>
+</div>

@@ -9,6 +9,7 @@ interface Response {
   [Throws] constructor(optional BodyInit? body = null, optional ResponseInit init = {});
   [NewObject] static Response error();
   [NewObject, Throws] static Response redirect(USVString url, optional unsigned short status = 302);
+  [NewObject, Throws, BinaryName="createFromJson"] static Response json(any data, optional ResponseInit init = {});
 
   readonly attribute ResponseType type;
 

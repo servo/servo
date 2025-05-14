@@ -6,6 +6,8 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::ptr;
 
+use constellation_traits::BlobImpl;
+use content_security_policy::Violation;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -21,7 +23,6 @@ use net_traits::{
     CoreResourceMsg, FetchChannels, MessageData, WebSocketDomAction, WebSocketNetworkEvent,
 };
 use profile_traits::ipc as ProfiledIpc;
-use script_traits::serializable::BlobImpl;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -261,10 +262,12 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         let request = RequestBuilder::new(global.webview_id(), url_record, Referrer::NoReferrer)
             .origin(global.origin().immutable().clone())
             .insecure_requests_policy(global.insecure_requests_policy())
+            .has_trustworthy_ancestor_origin(global.has_trustworthy_ancestor_or_current_origin())
             .mode(RequestMode::WebSocket { protocols })
             .service_workers_mode(ServiceWorkersMode::None)
             .credentials_mode(CredentialsMode::Include)
             .cache_mode(CacheMode::NoCache)
+            .policy_container(global.policy_container())
             .redirect_mode(RedirectMode::Error);
 
         let channels = FetchChannels::WebSocket {
@@ -279,6 +282,13 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         ROUTER.add_typed_route(
             dom_event_receiver.to_ipc_receiver(),
             Box::new(move |message| match message.unwrap() {
+                WebSocketNetworkEvent::ReportCSPViolations(violations) => {
+                    let task = ReportCSPViolationTask {
+                        websocket: address.clone(),
+                        violations,
+                    };
+                    task_source.queue(task);
+                },
                 WebSocketNetworkEvent::ConnectionEstablished { protocol_in_use } => {
                     let open_thread = ConnectionEstablishedTask {
                         address: address.clone(),
@@ -450,6 +460,18 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
             },
         }
         Ok(()) //Return Ok
+    }
+}
+
+struct ReportCSPViolationTask {
+    websocket: Trusted<WebSocket>,
+    violations: Vec<Violation>,
+}
+
+impl TaskOnce for ReportCSPViolationTask {
+    fn run_once(self) {
+        let global = self.websocket.root().global();
+        global.report_csp_violations(self.violations, None);
     }
 }
 

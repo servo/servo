@@ -11,6 +11,7 @@ use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use std::{mem, ptr};
 
+use content_security_policy as csp;
 use encoding_rs::UTF_8;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use html5ever::local_name;
@@ -992,7 +993,7 @@ impl ModuleOwner {
                     .has_attribute(&local_name!("async"));
 
                 if !asynch && (*script.root()).get_parser_inserted() {
-                    document.deferred_script_loaded(&script.root(), load);
+                    document.deferred_script_loaded(&script.root(), load, can_gc);
                 } else if !asynch && !(*script.root()).get_non_blocking() {
                     document.asap_in_order_script_loaded(&script.root(), load, can_gc);
                 } else {
@@ -1273,6 +1274,11 @@ impl FetchResponseListener for ModuleContext {
     fn submit_resource_timing(&mut self) {
         network_listener::submit_timing(self, CanGc::note())
     }
+
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+        let global = &self.resource_timing_global();
+        global.report_csp_violations(violations, None);
+    }
 }
 
 impl ResourceTimingListener for ModuleContext {
@@ -1363,7 +1369,7 @@ pub(crate) unsafe extern "C" fn host_import_module_dynamically(
     true
 }
 
-#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[derive(Clone, Debug, JSTraceable, MallocSizeOf)]
 /// <https://html.spec.whatwg.org/multipage/#script-fetch-options>
 pub(crate) struct ScriptFetchOptions {
     #[no_trace]
@@ -1754,7 +1760,11 @@ fn fetch_single_module_script(
         .integrity_metadata(options.integrity_metadata.clone())
         .credentials_mode(options.credentials_mode)
         .referrer_policy(options.referrer_policy)
-        .mode(mode);
+        .mode(mode)
+        .insecure_requests_policy(global.insecure_requests_policy())
+        .has_trustworthy_ancestor_origin(global.has_trustworthy_ancestor_origin())
+        .policy_container(global.policy_container().to_owned())
+        .cryptographic_nonce_metadata(options.cryptographic_nonce.clone());
 
     let context = Arc::new(Mutex::new(ModuleContext {
         owner,

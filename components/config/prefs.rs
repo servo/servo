@@ -9,7 +9,7 @@ use servo_config_macro::ServoPreferences;
 
 pub use crate::pref_util::PrefValue;
 
-static PREFERENCES: RwLock<Preferences> = RwLock::new(Preferences::new());
+static PREFERENCES: RwLock<Preferences> = RwLock::new(Preferences::const_default());
 
 #[inline]
 /// Get the current set of global preferences for Servo.
@@ -69,6 +69,7 @@ pub struct Preferences {
     /// List of comma-separated backends to be used by wgpu.
     pub dom_webgpu_wgpu_backend: String,
     pub dom_abort_controller_enabled: bool,
+    pub dom_async_clipboard_enabled: bool,
     pub dom_bluetooth_enabled: bool,
     pub dom_bluetooth_testing_enabled: bool,
     pub dom_allow_scripts_to_close_windows: bool,
@@ -81,7 +82,6 @@ pub struct Preferences {
     pub dom_document_dblclick_timeout: i64,
     pub dom_document_dblclick_dist: i64,
     pub dom_fontface_enabled: bool,
-    pub dom_forcetouch_enabled: bool,
     pub dom_fullscreen_test: bool,
     pub dom_gamepad_enabled: bool,
     pub dom_imagebitmap_enabled: bool,
@@ -114,6 +114,13 @@ pub struct Preferences {
     pub dom_testing_element_activation_enabled: bool,
     pub dom_testing_html_input_element_select_files_enabled: bool,
     pub dom_testperf_enabled: bool,
+    // https://testutils.spec.whatwg.org#availability
+    pub dom_testutils_enabled: bool,
+    pub dom_trusted_types_enabled: bool,
+    /// Enable the [URLPattern] API.
+    ///
+    /// [URLPattern]: https://developer.mozilla.org/en-US/docs/Web/API/URLPattern
+    pub dom_urlpattern_enabled: bool,
     pub dom_xpath_enabled: bool,
     /// Enable WebGL2 APIs.
     pub dom_webgl2_enabled: bool,
@@ -226,16 +233,22 @@ pub struct Preferences {
     pub threadpools_resource_workers_max: i64,
     /// Maximum number of workers for webrender
     pub threadpools_webrender_workers_max: i64,
+    /// The user-agent to use for Servo. This can also be set via [`UserAgentPlatform`] in
+    /// order to set the value to the default value for the given platform.
+    pub user_agent: String,
+
+    pub log_filter: String,
 }
 
 impl Preferences {
-    const fn new() -> Self {
+    const fn const_default() -> Self {
         Self {
             css_animations_testing_enabled: false,
             devtools_server_enabled: false,
             devtools_server_port: 0,
             dom_abort_controller_enabled: false,
             dom_allow_scripts_to_close_windows: false,
+            dom_async_clipboard_enabled: false,
             dom_bluetooth_enabled: false,
             dom_bluetooth_testing_enabled: false,
             dom_canvas_capture_enabled: false,
@@ -247,7 +260,6 @@ impl Preferences {
             dom_document_dblclick_dist: 1,
             dom_document_dblclick_timeout: 300,
             dom_fontface_enabled: false,
-            dom_forcetouch_enabled: false,
             dom_fullscreen_test: false,
             dom_gamepad_enabled: true,
             dom_imagebitmap_enabled: false,
@@ -280,6 +292,9 @@ impl Preferences {
             dom_testing_element_activation_enabled: false,
             dom_testing_html_input_element_select_files_enabled: false,
             dom_testperf_enabled: false,
+            dom_testutils_enabled: false,
+            dom_trusted_types_enabled: false,
+            dom_urlpattern_enabled: false,
             dom_webgl2_enabled: false,
             dom_webgpu_enabled: false,
             dom_webgpu_wgpu_backend: String::new(),
@@ -384,12 +399,88 @@ impl Preferences {
             threadpools_resource_workers_max: 4,
             threadpools_webrender_workers_max: 4,
             webgl_testing_context_creation_error: false,
+            user_agent: String::new(),
+            log_filter: String::new(),
         }
     }
 }
 
 impl Default for Preferences {
     fn default() -> Self {
-        Self::new()
+        let mut preferences = Self::const_default();
+        preferences.user_agent = UserAgentPlatform::default().to_user_agent_string();
+        preferences
+    }
+}
+
+pub enum UserAgentPlatform {
+    Desktop,
+    Android,
+    OpenHarmony,
+    Ios,
+}
+
+impl UserAgentPlatform {
+    /// Return the default `UserAgentPlatform` for this platform. This is
+    /// not an implementation of `Default` so that it can be `const`.
+    const fn default() -> Self {
+        if cfg!(target_os = "android") {
+            Self::Android
+        } else if cfg!(target_env = "ohos") {
+            Self::OpenHarmony
+        } else if cfg!(target_os = "ios") {
+            Self::Ios
+        } else {
+            Self::Desktop
+        }
+    }
+}
+
+impl UserAgentPlatform {
+    /// Convert this [`UserAgentPlatform`] into its corresponding `String` value, ie the
+    /// default user-agent to use for this platform.
+    pub fn to_user_agent_string(&self) -> String {
+        const SERVO_VERSION: &str = env!("CARGO_PKG_VERSION");
+        match self {
+            UserAgentPlatform::Desktop
+                if cfg!(all(target_os = "windows", target_arch = "x86_64")) =>
+            {
+                #[cfg(target_arch = "x86_64")]
+                const ARCHITECTURE: &str = "x86; ";
+                #[cfg(not(target_arch = "x86_64"))]
+                const ARCHITECTURE: &str = "";
+
+                format!(
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; {ARCHITECTURE}rv:128.0) Servo/{SERVO_VERSION} Firefox/128.0"
+                )
+            },
+            UserAgentPlatform::Desktop if cfg!(target_os = "macos") => {
+                format!(
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:128.0) Servo/{SERVO_VERSION} Firefox/128.0"
+                )
+            },
+            UserAgentPlatform::Desktop => {
+                #[cfg(target_arch = "x86_64")]
+                const ARCHITECTURE: &str = "x86_64";
+                // TODO: This is clearly wrong for other platforms.
+                #[cfg(not(target_arch = "x86_64"))]
+                const ARCHITECTURE: &str = "i686";
+
+                format!(
+                    "Mozilla/5.0 (X11; Linux {ARCHITECTURE}; rv:128.0) Servo/{SERVO_VERSION} Firefox/128.0"
+                )
+            },
+            UserAgentPlatform::Android => {
+                format!(
+                    "Mozilla/5.0 (Android; Mobile; rv:128.0) Servo/{SERVO_VERSION} Firefox/128.0"
+                )
+            },
+            UserAgentPlatform::OpenHarmony => format!(
+                "Mozilla/5.0 (OpenHarmony; Mobile; rv:128.0) Servo/{SERVO_VERSION} Firefox/128.0"
+            ),
+            UserAgentPlatform::Ios => format!(
+                "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X; rv:128.0) Servo/{SERVO_VERSION} Firefox/128.0"
+            ),
+        }
     }
 }

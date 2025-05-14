@@ -29,8 +29,13 @@ promise_test(async function() {
   assert_not_equals(originalScrollPos, 0, "Should have scrolled to get the iframe into view");
 
   await new test_driver.Actions()
-    .scroll(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2, 0, -100)
+    .scroll(Math.round(bounds.left + bounds.width / 2),
+            Math.round(bounds.top + bounds.height / 2), 0, -100)
     .send();
+
+  // Await two animation frames to give a chance to scroll.
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  await new Promise(resolve => requestAnimationFrame(resolve));
 
   assert_equals(window.scrollY, originalScrollPos, "overscroll-behavior should work on the root");
 });

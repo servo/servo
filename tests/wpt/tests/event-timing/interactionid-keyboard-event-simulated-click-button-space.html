@@ -13,7 +13,7 @@
 
 <script>
   promise_test(async t => {
-
+    assert_implements(window.PerformanceEventTiming, 'Event Timing is not supported.');
     let map = new Map();
 
     const button = document.getElementById('button');

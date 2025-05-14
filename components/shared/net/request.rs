@@ -8,7 +8,7 @@ use base::id::{PipelineId, WebViewId};
 use content_security_policy::{self as csp};
 use http::header::{AUTHORIZATION, HeaderName};
 use http::{HeaderMap, Method};
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender, IpcSharedMemory};
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
 use serde::{Deserialize, Serialize};
@@ -130,7 +130,7 @@ pub enum Window {
 }
 
 /// [CORS settings attribute](https://html.spec.whatwg.org/multipage/#attr-crossorigin-anonymous)
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum CorsSettings {
     Anonymous,
     UseCredentials,
@@ -156,7 +156,7 @@ pub enum BodySource {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum BodyChunkResponse {
     /// A chunk of bytes.
-    Chunk(Vec<u8>),
+    Chunk(IpcSharedMemory),
     /// The body is done.
     Done,
     /// There was an error streaming the body,
@@ -292,6 +292,7 @@ pub struct RequestBuilder {
     /// <https://fetch.spec.whatwg.org/#concept-request-policy-container>
     pub policy_container: RequestPolicyContainer,
     pub insecure_requests_policy: InsecureRequestsPolicy,
+    pub has_trustworthy_ancestor_origin: bool,
 
     /// <https://fetch.spec.whatwg.org/#concept-request-referrer>
     pub referrer: Referrer,
@@ -344,6 +345,7 @@ impl RequestBuilder {
             origin: ImmutableOrigin::new_opaque(),
             policy_container: RequestPolicyContainer::default(),
             insecure_requests_policy: InsecureRequestsPolicy::DoNotUpgrade,
+            has_trustworthy_ancestor_origin: false,
             referrer,
             referrer_policy: ReferrerPolicy::EmptyString,
             pipeline_id: None,
@@ -493,6 +495,14 @@ impl RequestBuilder {
         self
     }
 
+    pub fn has_trustworthy_ancestor_origin(
+        mut self,
+        has_trustworthy_ancestor_origin: bool,
+    ) -> RequestBuilder {
+        self.has_trustworthy_ancestor_origin = has_trustworthy_ancestor_origin;
+        self
+    }
+
     /// <https://fetch.spec.whatwg.org/#request-service-workers-mode>
     pub fn service_workers_mode(
         mut self,
@@ -546,6 +556,7 @@ impl RequestBuilder {
         request.crash = self.crash;
         request.policy_container = self.policy_container;
         request.insecure_requests_policy = self.insecure_requests_policy;
+        request.has_trustworthy_ancestor_origin = self.has_trustworthy_ancestor_origin;
         request
     }
 }
@@ -621,6 +632,7 @@ pub struct Request {
     pub policy_container: RequestPolicyContainer,
     /// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#insecure-requests-policy>
     pub insecure_requests_policy: InsecureRequestsPolicy,
+    pub has_trustworthy_ancestor_origin: bool,
     pub https_state: HttpsState,
     /// Servo internal: if crash details are present, trigger a crash error page with these details.
     pub crash: Option<String>,
@@ -668,6 +680,7 @@ impl Request {
             response_tainting: ResponseTainting::Basic,
             policy_container: RequestPolicyContainer::Client,
             insecure_requests_policy: InsecureRequestsPolicy::DoNotUpgrade,
+            has_trustworthy_ancestor_origin: false,
             https_state,
             crash: None,
         }

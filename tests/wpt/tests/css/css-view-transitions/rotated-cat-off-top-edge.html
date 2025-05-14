@@ -16,7 +16,19 @@
 }
 ::view-transition-group(root) {
   animation-duration: 500s;
+  animation-play-state: paused;
 }
+
+::view-transition-old(*) {
+  animation: unset;
+  opacity: 1;
+}
+
+::view-transition-new(*) {
+  animation: unset;
+  opacity: 0;
+}
+
 </style>
 <body>
 <img class="target" src="support/cat.png">

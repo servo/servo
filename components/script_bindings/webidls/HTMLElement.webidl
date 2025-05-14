@@ -73,7 +73,6 @@ partial interface HTMLElement {
 };
 
 HTMLElement includes GlobalEventHandlers;
-HTMLElement includes DocumentAndElementEventHandlers;
 HTMLElement includes ElementContentEditable;
 HTMLElement includes ElementCSSInlineStyle;
 HTMLElement includes HTMLOrSVGElement;

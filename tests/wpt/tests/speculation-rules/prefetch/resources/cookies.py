@@ -1,12 +1,15 @@
 import json
 
+# TODO(https://crbug.com/406819294): Simplify relative import for util.
+import importlib
+util = importlib.import_module("speculation-rules.prefetch.resources.util")
+
 def main(request, response):
   cookies = json.dumps({
       key.decode("utf-8"): request.cookies[key].value.decode("utf-8")
       for key in request.cookies
   })
 
-  purpose = request.headers.get("Purpose", b"").decode("utf-8")
   sec_purpose = request.headers.get("Sec-Purpose", b"").decode("utf-8")
 
   cookie_count = int(
@@ -21,20 +24,8 @@ def main(request, response):
   if b"cookieindices" in request.GET:
     headers.extend([(b"Vary", b"Cookie"), (b"Cookie-Indices", b"\"vary1\", \"vary2\"")])
 
-  content = f'''
-  <!DOCTYPE html>
-  <script src="/common/dispatcher/dispatcher.js"></script>
-  <script src="utils.sub.js"></script>
-  <script>
-  window.requestHeaders = {{
-    purpose: "{purpose}",
-    sec_purpose: "{sec_purpose}"
-  }};
+  content = util.get_executor_html(
+    request,
+    f'window.requestCookies = {cookies};')
 
-  window.requestCookies = {cookies};
-
-  const uuid = new URLSearchParams(location.search).get('uuid');
-  window.executor = new Executor(uuid);
-  </script>
-  '''
   return headers, content

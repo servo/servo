@@ -5,7 +5,7 @@ use dom_struct::dom_struct;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DOMRectListBinding::DOMRectListMethods;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::domrect::DOMRect;
 use crate::dom::window::Window;
@@ -37,7 +37,7 @@ impl DOMRectList {
     ) -> DomRoot<DOMRectList> {
         reflect_dom_object_with_proto(
             Box::new(DOMRectList::new_inherited(rects)),
-            &*window.global(),
+            window,
             None,
             can_gc,
         )

@@ -57,7 +57,7 @@ subsetTest(promise_test, async t => {
 
   const headers = await agent.getRequestHeaders();
   assert_prefetched(headers, "must be prefetched");
-  assert_equals(headers.referer, '', "must send no referrer");
+  assert_equals(headers.referer, undefined, "must send no referrer");
 }, 'with "no-referrer" referrer policy');
 
 subsetTest(promise_test, async t => {

@@ -42,7 +42,7 @@ const tests = [
     selector: "colgroup",
     initial: "<div><table><colgroup><col></colgroup><tbody><tr><td>abc</td></tr></tbody></table></div>",
     // <colgroup> and its table parents cannot have paragraphs nor <br>,
-    // therefore, it should be handled outside <table> or the the first cell
+    // therefore, it should be handled outside <table> or the first cell
     // in the table.
     expected: [
       "<div><table><colgroup><col></colgroup><tbody><tr><td><br>abc</td></tr></tbody></table></div>", // handled with the first cell case

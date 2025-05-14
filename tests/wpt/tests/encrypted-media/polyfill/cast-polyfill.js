@@ -29,13 +29,8 @@
             return this._mediaKeys.setServerCertificate( certificate );
         };
 
-        MediaKeys.prototype.createSession = function createSession( sessionType ) {
-
-            if ( sessionType === 'persistent-usage-record' )
-            {
-                return cast.receiver.eme.KeySession.createSession( this._mediaKeys, 'persistent-release-message' );
-            }
-
+        MediaKeys.prototype.createSession = function createSession( sessionType )
+        {
             return this._mediaKeys.createSession( sessionType );
         };
 

@@ -11,6 +11,7 @@ use std::result::Result;
 use base::id::PipelineId;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
+use constellation_traits::ScriptToConstellationMessage;
 use crossbeam_channel::{Receiver, SendError, Sender, select};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg};
 use ipc_channel::ipc::IpcSender;
@@ -18,11 +19,11 @@ use net_traits::FetchResponseMsg;
 use net_traits::image_cache::PendingImageResponse;
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time};
-use script_traits::{Painter, ScriptMsg, ScriptThreadMessage};
+use script_traits::{Painter, ScriptThreadMessage};
 use stylo_atoms::Atom;
 use timers::TimerScheduler;
 #[cfg(feature = "webgpu")]
-use webgpu::WebGPUMsg;
+use webgpu_traits::WebGPUMsg;
 
 use crate::dom::abstractworker::WorkerScriptMsg;
 use crate::dom::bindings::trace::CustomTraceable;
@@ -71,8 +72,10 @@ impl MixedMessage {
                 ScriptThreadMessage::UpdateHistoryState(id, ..) => Some(*id),
                 ScriptThreadMessage::RemoveHistoryStates(id, ..) => Some(*id),
                 ScriptThreadMessage::FocusIFrame(id, ..) => Some(*id),
+                ScriptThreadMessage::FocusDocument(id, ..) => Some(*id),
+                ScriptThreadMessage::Unfocus(id, ..) => Some(*id),
                 ScriptThreadMessage::WebDriverScriptCommand(id, ..) => Some(*id),
-                ScriptThreadMessage::TickAllAnimations(id, ..) => Some(*id),
+                ScriptThreadMessage::TickAllAnimations(..) => None,
                 ScriptThreadMessage::WebFontLoaded(id, ..) => Some(*id),
                 ScriptThreadMessage::DispatchIFrameLoadEvent {
                     target: _,
@@ -88,6 +91,7 @@ impl MixedMessage {
                 #[cfg(feature = "webgpu")]
                 ScriptThreadMessage::SetWebGPUPort(..) => None,
                 ScriptThreadMessage::SetScrollStates(id, ..) => Some(*id),
+                ScriptThreadMessage::EvaluateJavaScript(id, _, _) => Some(*id),
             },
             MixedMessage::FromScript(inner_msg) => match inner_msg {
                 MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, _, pipeline_id, _)) => {
@@ -315,7 +319,8 @@ pub(crate) struct ScriptThreadSenders {
     /// A [`Sender`] that sends messages to the `Constellation` associated with
     /// particular pipelines.
     #[no_trace]
-    pub(crate) pipeline_to_constellation_sender: IpcSender<(PipelineId, ScriptMsg)>,
+    pub(crate) pipeline_to_constellation_sender:
+        IpcSender<(PipelineId, ScriptToConstellationMessage)>,
 
     /// The shared [`IpcSender`] which is sent to the `ImageCache` when requesting an image. The
     /// messages on this channel are routed to crossbeam [`Sender`] on the router thread, which

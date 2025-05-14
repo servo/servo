@@ -8,30 +8,35 @@
 //! embedding/rendering layer all the way to script, thus it should have very minimal dependencies
 //! on other parts of Servo.
 
-use std::collections::HashMap;
-use std::ffi::c_void;
+mod from_script_message;
+mod structured_data;
+
+use std::collections::{HashMap, VecDeque};
 use std::fmt;
 use std::time::Duration;
 
 use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::{PipelineId, ScrollTreeNodeId, WebViewId};
-use bitflags::bitflags;
-use embedder_traits::{Cursor, InputEvent, MediaSessionActionType, Theme, WebDriverCommandMsg};
-use euclid::{Scale, Size2D, Vector2D};
+use base::id::{MessagePortId, PipelineId, WebViewId};
+use embedder_traits::{
+    CompositorHitTestResult, Cursor, InputEvent, JavaScriptEvaluationId, MediaSessionActionType,
+    Theme, ViewportDetails, WebDriverCommandMsg,
+};
+use euclid::Vector2D;
+pub use from_script_message::*;
 use ipc_channel::ipc::IpcSender;
-use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use servo_url::ServoUrl;
+use serde::{Deserialize, Serialize};
+use servo_url::{ImmutableOrigin, ServoUrl};
+pub use structured_data::*;
 use strum_macros::IntoStaticStr;
-use style_traits::CSSPixel;
 use webrender_api::ExternalScrollId;
-use webrender_api::units::{DevicePixel, LayoutPixel};
+use webrender_api::units::LayoutPixel;
 
-/// Messages to the constellation.
+/// Messages to the Constellation from the embedding layer, whether from `ServoRenderer` or
+/// from `libservo` itself.
 #[derive(IntoStaticStr)]
-pub enum ConstellationMsg {
+pub enum EmbedderToConstellationMessage {
     /// Exit the constellation.
     Exit,
     /// Request that the constellation send the current focused top-level browsing context id,
@@ -47,12 +52,13 @@ pub enum ConstellationMsg {
     ClearCache,
     /// Request to traverse the joint session history of the provided browsing context.
     TraverseHistory(WebViewId, TraversalDirection),
-    /// Inform the constellation of a window being resized.
-    WindowSize(WebViewId, WindowSizeData, WindowSizeType),
+    /// Inform the Constellation that a `WebView`'s [`ViewportDetails`] have changed.
+    ChangeViewportDetails(WebViewId, ViewportDetails, WindowSizeType),
     /// Inform the constellation of a theme change.
     ThemeChange(Theme),
-    /// Requests that the constellation instruct layout to begin a new tick of the animation.
-    TickAnimation(PipelineId, AnimationTickType),
+    /// Requests that the constellation instruct script/layout to try to layout again and tick
+    /// animations.
+    TickAnimation(Vec<WebViewId>),
     /// Dispatch a webdriver command
     WebDriverCommand(WebDriverCommandMsg),
     /// Reload a top-level browsing context.
@@ -60,7 +66,7 @@ pub enum ConstellationMsg {
     /// A log entry, with the top-level browsing context id and thread name
     LogEntry(Option<WebViewId>, Option<String>, LogEntry),
     /// Create a new top level browsing context.
-    NewWebView(ServoUrl, WebViewId),
+    NewWebView(ServoUrl, WebViewId, ViewportDetails),
     /// Close a top level browsing context.
     CloseWebView(WebViewId),
     /// Panic a top level browsing context.
@@ -86,6 +92,9 @@ pub enum ConstellationMsg {
     SetScrollStates(PipelineId, Vec<ScrollState>),
     /// Notify the constellation that a particular paint metric event has happened for the given pipeline.
     PaintMetric(PipelineId, PaintMetricEvent),
+    /// Evaluate a JavaScript string in the context of a `WebView`. When execution is complete or an
+    /// error is encountered, a correpsonding message will be sent to the embedding layer.
+    EvaluateJavaScript(WebViewId, JavaScriptEvaluationId, String),
 }
 
 /// A description of a paint metric that is sent from the Servo renderer to the
@@ -95,7 +104,7 @@ pub enum PaintMetricEvent {
     FirstContentfulPaint(CrossProcessInstant, bool /* first_reflow */),
 }
 
-impl fmt::Debug for ConstellationMsg {
+impl fmt::Debug for EmbedderToConstellationMessage {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         let variant_string: &'static str = self.into();
         write!(formatter, "ConstellationMsg::{variant_string}")
@@ -115,17 +124,6 @@ pub enum LogEntry {
     Warn(String),
 }
 
-/// Data about the window size.
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
-pub struct WindowSizeData {
-    /// The size of the initial layout viewport, before parsing an
-    /// <http://www.w3.org/TR/css-device-adapt/#initial-viewport>
-    pub initial_viewport: Size2D<f32, CSSPixel>,
-
-    /// The resolution of the window in dppx, not including any "pinch zoom" factor.
-    pub device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,
-}
-
 /// The type of window size change.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum WindowSizeType {
@@ -133,39 +131,6 @@ pub enum WindowSizeType {
     Initial,
     /// Window resize.
     Resize,
-}
-
-bitflags! {
-    #[derive(Debug, Default, Deserialize, Serialize)]
-    /// Specifies if rAF should be triggered and/or CSS Animations and Transitions.
-    pub struct AnimationTickType: u8 {
-        /// Trigger a call to requestAnimationFrame.
-        const REQUEST_ANIMATION_FRAME = 0b001;
-        /// Trigger restyles for CSS Animations and Transitions.
-        const CSS_ANIMATIONS_AND_TRANSITIONS = 0b010;
-    }
-}
-
-/// The result of a hit test in the compositor.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct CompositorHitTestResult {
-    /// The pipeline id of the resulting item.
-    pub pipeline_id: PipelineId,
-
-    /// The hit test point in the item's viewport.
-    pub point_in_viewport: euclid::default::Point2D<f32>,
-
-    /// The hit test point relative to the item itself.
-    pub point_relative_to_item: euclid::default::Point2D<f32>,
-
-    /// The node address of the hit test result.
-    pub node: UntrustedNodeAddress,
-
-    /// The cursor that should be used when hovering the item hit by the hit test.
-    pub cursor: Option<Cursor>,
-
-    /// The scroll tree node associated with this hit test item.
-    pub scroll_tree_node: ScrollTreeNodeId,
 }
 
 /// The scroll state of a stacking context.
@@ -177,43 +142,6 @@ pub struct ScrollState {
     pub scroll_offset: Vector2D<f32, LayoutPixel>,
 }
 
-/// The address of a node. Layout sends these back. They must be validated via
-/// `from_untrusted_node_address` before they can be used, because we do not trust layout.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct UntrustedNodeAddress(pub *const c_void);
-
-malloc_size_of_is_0!(UntrustedNodeAddress);
-
-#[allow(unsafe_code)]
-unsafe impl Send for UntrustedNodeAddress {}
-
-impl From<style_traits::dom::OpaqueNode> for UntrustedNodeAddress {
-    fn from(o: style_traits::dom::OpaqueNode) -> Self {
-        UntrustedNodeAddress(o.0 as *const c_void)
-    }
-}
-
-impl Serialize for UntrustedNodeAddress {
-    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        (self.0 as usize).serialize(s)
-    }
-}
-
-impl<'de> Deserialize<'de> for UntrustedNodeAddress {
-    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<UntrustedNodeAddress, D::Error> {
-        let value: usize = Deserialize::deserialize(d)?;
-        Ok(UntrustedNodeAddress::from_id(value))
-    }
-}
-
-impl UntrustedNodeAddress {
-    /// Creates an `UntrustedNodeAddress` from the given pointer address value.
-    #[inline]
-    pub fn from_id(id: usize) -> UntrustedNodeAddress {
-        UntrustedNodeAddress(id as *const c_void)
-    }
-}
-
 /// The direction of a history traversal
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum TraversalDirection {
@@ -221,4 +149,40 @@ pub enum TraversalDirection {
     Forward(usize),
     /// Travel backward the given number of documents.
     Back(usize),
+}
+
+/// A task on the <https://html.spec.whatwg.org/multipage/#port-message-queue>
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct PortMessageTask {
+    /// The origin of this task.
+    pub origin: ImmutableOrigin,
+    /// A data-holder for serialized data and transferred objects.
+    pub data: StructuredSerializedData,
+}
+
+/// The information needed by a global to process the transfer of a port.
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct PortTransferInfo {
+    /// <https://html.spec.whatwg.org/multipage/#port-message-queue>
+    pub port_message_queue: VecDeque<PortMessageTask>,
+    /// A boolean indicating whether the port has been disentangled while in transfer,
+    /// if so, the disentanglement should be completed along with the transfer.
+    /// <https://html.spec.whatwg.org/multipage/#disentangle>
+    pub disentangled: bool,
+}
+
+/// Messages for communication between the constellation and a global managing ports.
+#[derive(Debug, Deserialize, Serialize)]
+#[allow(clippy::large_enum_variant)]
+pub enum MessagePortMsg {
+    /// Complete the transfer for a batch of ports.
+    CompleteTransfer(HashMap<MessagePortId, PortTransferInfo>),
+    /// Complete the transfer of a single port,
+    /// whose transfer was pending because it had been requested
+    /// while a previous failed transfer was being rolled-back.
+    CompletePendingTransfer(MessagePortId, PortTransferInfo),
+    /// <https://html.spec.whatwg.org/multipage/#disentangle>
+    CompleteDisentanglement(MessagePortId),
+    /// Handle a new port-message-task.
+    NewTask(MessagePortId, PortMessageTask),
 }

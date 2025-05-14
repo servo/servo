@@ -9,3 +9,6 @@ features:
 - name: state
   files:
   - parse-state.html
+- name: has-slotted
+  files:
+  - parse-has-slotted.tentative.html

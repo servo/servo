@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
+use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -99,13 +99,13 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-dialog-close
-    fn Close(&self, return_value: Option<DOMString>) {
+    fn Close(&self, return_value: Option<DOMString>, can_gc: CanGc) {
         let element = self.upcast::<Element>();
         let target = self.upcast::<EventTarget>();
 
         // Step 1 & 2
         if element
-            .remove_attribute(&ns!(), &local_name!("open"))
+            .remove_attribute(&ns!(), &local_name!("open"), can_gc)
             .is_none()
         {
             return;

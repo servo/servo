@@ -80,7 +80,7 @@ impl Actor for InspectorActor {
         _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         let browsing_context = registry.find::<BrowsingContextActor>(&self.browsing_context);
-        let pipeline = browsing_context.active_pipeline.get();
+        let pipeline = browsing_context.active_pipeline_id.get();
         Ok(match msg_type {
             "getWalker" => {
                 let (tx, rx) = ipc::channel().unwrap();
@@ -166,6 +166,8 @@ impl Actor for InspectorActor {
                 if self.highlighter.borrow().is_none() {
                     let highlighter_actor = HighlighterActor {
                         name: registry.new_name("highlighter"),
+                        pipeline,
+                        script_sender: self.script_chan.clone(),
                     };
                     let mut highlighter = self.highlighter.borrow_mut();
                     *highlighter = Some(highlighter_actor.name());

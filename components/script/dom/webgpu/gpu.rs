@@ -4,11 +4,11 @@
 
 use std::rc::Rc;
 
+use constellation_traits::ScriptToConstellationMessage;
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
-use script_traits::ScriptMsg;
-use webgpu::wgt::PowerPreference;
-use webgpu::{WebGPUAdapterResponse, wgc};
+use webgpu_traits::WebGPUAdapterResponse;
+use wgpu_types::PowerPreference;
 
 use super::wgsllanguagefeatures::WGSLLanguageFeatures;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -56,7 +56,9 @@ impl GPUMethods<crate::DomTypeHolder> for GPU {
     ) -> Rc<Promise> {
         let global = &self.global();
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let sender = route_promise(&promise, self);
+        let task_source = global.task_manager().dom_manipulation_task_source();
+        let sender = route_promise(&promise, self, task_source);
+
         let power_preference = match options.powerPreference {
             Some(GPUPowerPreference::Low_power) => PowerPreference::LowPower,
             Some(GPUPowerPreference::High_performance) => PowerPreference::HighPerformance,
@@ -66,9 +68,9 @@ impl GPUMethods<crate::DomTypeHolder> for GPU {
 
         let script_to_constellation_chan = global.script_to_constellation_chan();
         if script_to_constellation_chan
-            .send(ScriptMsg::RequestAdapter(
+            .send(ScriptToConstellationMessage::RequestAdapter(
                 sender,
-                wgc::instance::RequestAdapterOptions {
+                wgpu_core::instance::RequestAdapterOptions {
                     power_preference,
                     compatible_surface: None,
                     force_fallback_adapter: options.forceFallbackAdapter,

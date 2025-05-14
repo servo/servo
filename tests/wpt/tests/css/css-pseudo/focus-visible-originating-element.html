@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: ::before matches when originating element has :focus-visible selector</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#generated-content">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  input {
+    outline: none;
+
+    &:not(:disabled):focus-visible::before {
+      background-color: green;
+    }
+  }
+
+  input::before {
+    content: "";
+    background-color: red;
+    display: inline-block;
+    height: 50px;
+    width: 50px;
+  }
+</style>
+<input type="checkbox" id="target"/>
+<script>
+  promise_test(async t => {
+    const kTab = '\uE004';
+    await new test_driver.Actions()
+      .keyDown(kTab)
+      .keyUp(kTab)
+      .send();
+    assert_equals(getComputedStyle(target, "::before").backgroundColor, "rgb(0, 128, 0)");
+  });
+</script>

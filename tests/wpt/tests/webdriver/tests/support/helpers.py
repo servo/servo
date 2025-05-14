@@ -80,6 +80,10 @@ def cleanup_session(session):
 
         session.window_handle = current_window
 
+    # Do not try to clean up already ended session.
+    if session.session_id is None:
+        return
+
     _restore_timeouts(session)
     _ensure_valid_window(session)
     _dismiss_user_prompts(session)
@@ -119,10 +123,13 @@ def deep_update(source, overrides):
     """
     for key, value in overrides.items():
         if isinstance(value, collections.abc.Mapping) and value:
-            returned = deep_update(source.get(key, {}), value)
-            source[key] = returned
+            source[key] = deep_update(source.get(key, {}), value)
+        elif isinstance(value, list) and isinstance(source.get(key), list) and value:
+            # Concatenate lists, ensuring all elements are kept without duplicates
+            source[key] = list(dict.fromkeys(source[key] + value))
         else:
-            source[key] = overrides[key]
+            source[key] = value
+
     return source
 
 

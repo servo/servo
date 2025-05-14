@@ -1,0 +1,9 @@
+Content-Security-Policy: connect-src 'none'
+Content-Security-Policy: trusted-types tt-policy-name
+Content-Security-Policy-Report-Only: trusted-types tt-policy-name
+Content-Security-Policy: trusted-types other-policy-name
+Content-Security-Policy-Report-Only: trusted-types other-policy-name
+Content-Security-Policy: trusted-types *
+Content-Security-Policy-Report-Only: trusted-types *
+Content-Security-Policy: trusted-types 'none'
+Content-Security-Policy-Report-Only: trusted-types 'none'

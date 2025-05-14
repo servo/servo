@@ -9,7 +9,7 @@
 // META: variant=?9-12
 // META: variant=?13-last
 
-"use strict;"
+"use strict";
 
 ////////////////////////////////////////////////////////////////////////////////
 // Join interest group in iframe tests.
@@ -132,7 +132,7 @@ subsetTest(promise_test, async test => {
 
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
-  // Join an interest group owned by the the main frame's origin.
+  // Join an interest group owned by the main frame's origin.
   await joinInterestGroup(test, uuid);
 
   let iframe = await createIframe(test, OTHER_ORIGIN1);
@@ -147,7 +147,7 @@ subsetTest(promise_test, async test => {
 
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
-  // Join an interest group owned by the the main frame's origin.
+  // Join an interest group owned by the main frame's origin.
   await joinInterestGroup(test, uuid);
 
   let iframe = await createIframe(test, OTHER_ORIGIN1, "run-ad-auction");
@@ -183,7 +183,7 @@ subsetTest(promise_test, async test => {
 
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
-  // Join an interest group owned by the the main frame's origin.
+  // Join an interest group owned by the main frame's origin.
   await joinInterestGroup(test, uuid);
 
   let iframe = await createIframe(test, OTHER_ORIGIN1, `run-ad-auction ${OTHER_ORIGIN1}`);

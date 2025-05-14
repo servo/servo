@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use webgpu::wgc::resource::SamplerDescriptor;
-use webgpu::{WebGPU, WebGPUDevice, WebGPURequest, WebGPUSampler};
+use webgpu_traits::{WebGPU, WebGPUDevice, WebGPURequest, WebGPUSampler};
+use wgpu_core::resource::SamplerDescriptor;
 
 use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;

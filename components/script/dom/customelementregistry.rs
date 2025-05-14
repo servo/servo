@@ -9,7 +9,7 @@ use std::rc::Rc;
 use std::{mem, ptr};
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Namespace, Prefix, namespace_url, ns};
+use html5ever::{LocalName, Namespace, Prefix, ns};
 use js::conversions::ToJSValConvertible;
 use js::glue::UnwrapObjectStatic;
 use js::jsapi::{HandleValueArray, Heap, IsCallable, IsConstructor, JSAutoRealm, JSObject};
@@ -878,7 +878,7 @@ pub(crate) fn upgrade_element(
             // We know this element is is form-associated, so we can use the implementation of
             // `FormControl` for HTMLElement, which makes that assumption.
             // Step 9.1: Reset the form owner of element
-            html_element.reset_form_owner();
+            html_element.reset_form_owner(can_gc);
             if let Some(form) = html_element.form_owner() {
                 // Even though the tree hasn't structurally mutated,
                 // HTMLCollections need to be invalidated.

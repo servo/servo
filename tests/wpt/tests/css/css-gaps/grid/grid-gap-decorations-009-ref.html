@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#break">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+
+  .grid-container {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: 100px 100px 100px;
+    height: 320px;
+  }
+
+  .item {
+    background: gray;
+    opacity: 0.5;
+  }
+
+  .col-gap1 {
+    position: absolute;
+    width: 0;
+    height: 215px;
+    border-left: solid 5px blue;
+    top: 105px;
+    left: 102.5px;
+  }
+
+
+  .col-gap2 {
+    position: absolute;
+    width: 0;
+    height: 105px;
+    top: 0px;
+    left: 212.5px;
+    border-left: solid 5px blue;
+  }
+
+  .row-gap1 {
+    position: absolute;
+    height: 0px;
+    top: 102.5px;
+    left: 0px;
+    width: 320px;
+    border-bottom: solid 5px red;
+  }
+
+  .row-gap2 {
+    position: absolute;
+    height: 0px;
+    top: 212.5px;
+    left: 0px;
+    width: 105px;
+    border-bottom: solid 5px red;
+
+  }
+</style>
+<div class="grid-container">
+  <div class="item" style="grid-column: 1 / 3; grid-row: 1 / 2;"></div>
+  <div class="item" style=" grid-column: 3 / 4;"></div>
+  <div class="item"></div>
+  <div class="item" style="grid-column: 2 / 4; grid-row: 2 / 4;"></div>
+  <div class="item"></div>
+</div>
+
+<div class="col-gap1"></div>
+<div class="col-gap2"></div>
+<div class="col-gap3"></div>
+
+<div class="row-gap1"></div>
+<div class="row-gap2"></div>

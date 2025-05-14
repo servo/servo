@@ -319,18 +319,21 @@
           of 16 characters. If one of the RIDs does not meet these requirements,
           throw a TypeError.
    */
+
+["video", "audio"].forEach(kind => {
+
   test(t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
     assert_idl_attribute(pc, 'addTransceiver');
 
     assert_throws_js(TypeError, () =>
-      pc.addTransceiver('video', {
+      pc.addTransceiver(kind, {
         sendEncodings: [{
           rid: '@Invalid!'
         }]
       }));
-  }, 'addTransceiver() with rid containing invalid non-alphanumeric characters should throw TypeError');
+  }, `addTransceiver("${kind}") with rid containing invalid non-alphanumeric characters should throw TypeError`);
 
   test(t => {
     const pc = new RTCPeerConnection();
@@ -338,22 +341,41 @@
     assert_idl_attribute(pc, 'addTransceiver');
 
     assert_throws_js(TypeError, () =>
-      pc.addTransceiver('audio', {
+      pc.addTransceiver(kind, {
         sendEncodings: [{
           rid: 'a'.repeat(17)
         }]
       }));
-  }, 'addTransceiver() with rid longer than 16 characters should throw TypeError');
+  }, `addTransceiver("${kind}") with rid longer than 16 characters should throw TypeError`);
 
   test(t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    pc.addTransceiver('audio', {
+    assert_idl_attribute(pc, 'addTransceiver');
+
+    assert_throws_js(TypeError, () =>
+      pc.addTransceiver(kind, {
+        sendEncodings: [{rid: 'a'}, {rid: 'a'}]
+      }));
+  }, `addTransceiver("${kind}") with duplicate rids should throw TypeError`);
+
+  test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    pc.addTransceiver(kind, {
       sendEncodings: [{
         rid: 'foo'
       }]
     });
-  }, `addTransceiver() with valid rid value should succeed`);
+  }, `addTransceiver("${kind}") with valid rid value should succeed`);
+
+  test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    pc.addTransceiver('video', {
+      sendEncodings: [{rid: 'a'}, {rid: 'b'}]
+    });
+  }, `addTransceiver("${kind}") with multiple rid values should succeed`);
 
   test(t => {
     const pc = new RTCPeerConnection();
@@ -369,7 +391,8 @@
         rid: 'foo'
       }]
     });
-  }, `addTransceiver() with valid sendEncodings should succeed`);
+  }, `addTransceiver("${kind}") with valid sendEncodings should succeed`);
+});
 
   /*
     TODO

@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <title>animation-trigger-exit-range shorthand</title>
-<!-- TODO(crbug.com/390314945): Replace with spec link when the spec lands. -->
-<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/8942">
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/#animation-trigger-exit-range">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/shorthand-testcommon.js"></script>
@@ -18,6 +17,14 @@ test_valid_value("animation-trigger-exit-range", "entry-crossing");
 test_valid_value("animation-trigger-exit-range", "exit");
 test_valid_value("animation-trigger-exit-range", "exit-crossing");
 test_valid_value("animation-trigger-exit-range", "entry, exit");
+test_valid_value("animation-trigger-exit-range", "auto");
+test_valid_value("animation-trigger-exit-range", "auto auto", "auto");
+test_valid_value("animation-trigger-exit-range", "cover auto");
+test_valid_value("animation-trigger-exit-range", "cover 10% auto");
+test_valid_value("animation-trigger-exit-range", "auto cover");
+test_valid_value("animation-trigger-exit-range", "auto cover 90%");
+test_valid_value("animation-trigger-exit-range", "normal auto", "normal");
+test_valid_value("animation-trigger-exit-range", "auto normal", "auto");
 
 test_valid_value("animation-trigger-exit-range", "entry 0% entry 100%", "entry");
 test_valid_value("animation-trigger-exit-range", "entry-crossing 0% entry-crossing 100%",
@@ -110,13 +117,28 @@ test_invalid_value("animation-trigger-exit-range", "thing 100%");
 test_invalid_value("animation-trigger-exit-range", "thing 100px");
 test_invalid_value("animation-trigger-exit-range", "100% thing");
 
+test_shorthand_value('animation-trigger-exit-range', 'auto', {
+  'animation-trigger-exit-range-start': 'auto',
+  'animation-trigger-exit-range-end': 'auto',
+});
+
 test_shorthand_value('animation-trigger-exit-range', 'normal', {
   'animation-trigger-exit-range-start': 'normal',
-  'animation-trigger-exit-range-end': 'normal',
+  'animation-trigger-exit-range-end': 'auto',
 });
 
 test_shorthand_value('animation-trigger-exit-range', 'normal normal', {
   'animation-trigger-exit-range-start': 'normal',
+  'animation-trigger-exit-range-end': 'normal',
+});
+
+test_shorthand_value('animation-trigger-exit-range', 'normal auto', {
+  'animation-trigger-exit-range-start': 'normal',
+  'animation-trigger-exit-range-end': 'auto',
+});
+
+test_shorthand_value('animation-trigger-exit-range', 'auto normal', {
+  'animation-trigger-exit-range-start': 'auto',
   'animation-trigger-exit-range-end': 'normal',
 });
 
@@ -171,10 +193,10 @@ test_shorthand_value('animation-trigger-exit-range', 'exit calc(10% + 50px)', {
 });
 test_shorthand_value('animation-trigger-exit-range', '100px', {
   'animation-trigger-exit-range-start': '100px',
-  'animation-trigger-exit-range-end': 'normal',
+  'animation-trigger-exit-range-end': 'auto',
 });
 test_shorthand_value('animation-trigger-exit-range', '10%', {
   'animation-trigger-exit-range-start': '10%',
-  'animation-trigger-exit-range-end': 'normal',
+  'animation-trigger-exit-range-end': 'auto',
 });
 </script>

@@ -228,7 +228,7 @@ class Descriptor(DescriptorProvider):
             self.nativeType = typeName
             pathDefault = 'crate::dom::types::%s' % typeName
         elif self.interface.isCallback():
-            ty = 'crate::dom::bindings::codegen::GenericBindings::%sBinding::%s' % (ifaceName, ifaceName)
+            ty = 'crate::codegen::GenericBindings::%sBinding::%s' % (ifaceName, ifaceName)
             pathDefault = ty
             self.returnType = "Rc<%s<D>>" % ty
             self.argumentType = "???"
@@ -238,7 +238,7 @@ class Descriptor(DescriptorProvider):
             self.argumentType = "&%s%s" % (prefix, typeName)
             self.nativeType = "*const %s%s" % (prefix, typeName)
             if self.interface.isIteratorInterface():
-                pathDefault = 'crate::dom::bindings::iterable::IterableIterator'
+                pathDefault = 'crate::iterable::IterableIterator'
             else:
                 pathDefault = 'crate::dom::types::%s' % MakeNativeName(typeName)
 
@@ -353,8 +353,8 @@ class Descriptor(DescriptorProvider):
                     add('all', [config], attribute)
 
         self._binaryNames = desc.get('binaryNames', {})
-        self._binaryNames.setdefault('__legacycaller', 'LegacyCall')
-        self._binaryNames.setdefault('__stringifier', 'Stringifier')
+        self._binaryNames.setdefault(('__legacycaller', False), 'LegacyCall')
+        self._binaryNames.setdefault(('__stringifier', False), 'Stringifier')
 
         self._internalNames = desc.get('internalNames', {})
 
@@ -365,7 +365,7 @@ class Descriptor(DescriptorProvider):
             if binaryName:
                 assert isinstance(binaryName, list)
                 assert len(binaryName) == 1
-                self._binaryNames.setdefault(member.identifier.name,
+                self._binaryNames.setdefault((member.identifier.name, member.isStatic()),
                                              binaryName[0])
             self._internalNames.setdefault(member.identifier.name,
                                            member.identifier.name.replace('-', '_'))
@@ -391,8 +391,8 @@ class Descriptor(DescriptorProvider):
             return filename
         return None
 
-    def binaryNameFor(self, name):
-        return self._binaryNames.get(name, name)
+    def binaryNameFor(self, name, isStatic):
+        return self._binaryNames.get((name, isStatic), name)
 
     def internalNameFor(self, name):
         return self._internalNames.get(name, name)
@@ -491,7 +491,7 @@ def getIdlFileName(object):
 
 
 def getModuleFromObject(object):
-    return ('crate::dom::bindings::codegen::GenericBindings::' + getIdlFileName(object) + 'Binding')
+    return ('crate::codegen::GenericBindings::' + getIdlFileName(object) + 'Binding')
 
 
 def getTypesFromDescriptor(descriptor):
@@ -552,5 +552,5 @@ def iteratorNativeType(descriptor, infer=False):
     res = "IterableIterator%s" % ("" if infer else '<D, D::%s>' % descriptor.interface.identifier.name)
     # todo: this hack is telling us that something is still wrong in codegen
     if iterableDecl.isSetlike() or iterableDecl.isMaplike():
-        res = f"crate::dom::bindings::iterable::{res}"
+        res = f"crate::iterable::{res}"
     return res

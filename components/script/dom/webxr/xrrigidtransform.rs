@@ -14,7 +14,6 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::dompointreadonly::DOMPointReadOnly;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::dom::xrsession::ApiRigidTransform;
 use crate::script_runtime::{CanGc, JSContext};
@@ -45,28 +44,28 @@ impl XRRigidTransform {
     }
 
     pub(crate) fn new(
-        global: &GlobalScope,
+        window: &Window,
         transform: ApiRigidTransform,
         can_gc: CanGc,
     ) -> DomRoot<XRRigidTransform> {
-        Self::new_with_proto(global, None, transform, can_gc)
+        Self::new_with_proto(window, None, transform, can_gc)
     }
 
     fn new_with_proto(
-        global: &GlobalScope,
+        window: &Window,
         proto: Option<HandleObject>,
         transform: ApiRigidTransform,
         can_gc: CanGc,
     ) -> DomRoot<XRRigidTransform> {
         reflect_dom_object_with_proto(
             Box::new(XRRigidTransform::new_inherited(transform)),
-            global,
+            window,
             proto,
             can_gc,
         )
     }
 
-    pub(crate) fn identity(window: &GlobalScope, can_gc: CanGc) -> DomRoot<XRRigidTransform> {
+    pub(crate) fn identity(window: &Window, can_gc: CanGc) -> DomRoot<XRRigidTransform> {
         let transform = RigidTransform3D::identity();
         XRRigidTransform::new(window, transform, can_gc)
     }
@@ -123,10 +122,7 @@ impl XRRigidTransformMethods<crate::DomTypeHolder> for XRRigidTransform {
         }
         let transform = RigidTransform3D::new(rotate, translate);
         Ok(XRRigidTransform::new_with_proto(
-            &window.global(),
-            proto,
-            transform,
-            can_gc,
+            window, proto, transform, can_gc,
         ))
     }
 
@@ -161,7 +157,8 @@ impl XRRigidTransformMethods<crate::DomTypeHolder> for XRRigidTransform {
     // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-inverse
     fn Inverse(&self, can_gc: CanGc) -> DomRoot<XRRigidTransform> {
         self.inverse.or_init(|| {
-            let transform = XRRigidTransform::new(&self.global(), self.transform.inverse(), can_gc);
+            let transform =
+                XRRigidTransform::new(self.global().as_window(), self.transform.inverse(), can_gc);
             transform.inverse.set(Some(self));
             transform
         })

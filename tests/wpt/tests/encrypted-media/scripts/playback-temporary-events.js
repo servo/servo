@@ -111,7 +111,7 @@ function runTest(config,qualifier) {
                 closeMethodPromise.then(onClosed);
 
                 Promise.all([ closedAttributePromise, closeMethodPromise ]).then(function() {
-                    test.step_func(onAllClosed);
+                    test.step_func(onAllClosed)();
                 }).catch(onFailure);
             }
         }

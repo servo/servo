@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Gap Decorations: Ensure getComputedStyle for column-rule-width is as specified with multiple values</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#column-row-rule-width">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<script src="/resources/testharness.js" type="text/javascript"></script>
+<script src="/resources/testharnessreport.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="target1"></div>
+<div id="target2"></div>
+<div id="target3"></div>
+<style>
+  #target1 {
+    column-rule-width: thin;
+  }
+
+  #target2 {
+    column-rule-width: 5px 10px 15px;
+  }
+
+  #target3 {
+    column-rule-width: repeat(auto, 5px);
+  }
+</style>
+<script>
+  test(function() {
+    const containerStyle = window.getComputedStyle(document.querySelector('#target1'));
+    const columnRuleWidth = containerStyle.getPropertyValue('column-rule-width');
+    assert_equals(columnRuleWidth, '0px');
+
+  }, "`column-rule-width` should be `0px` when `column-rule-style` is `none` with single value");
+
+  test(function() {
+    const containerStyle = window.getComputedStyle(document.querySelector('#target2'));
+    const columnRuleWidth = containerStyle.getPropertyValue('column-rule-width');
+    assert_equals(columnRuleWidth, '5px 10px 15px');
+
+  }, "`column-rule-width` should be as specified regardless of `column-rule-style` with multiple values");
+
+  test(function() {
+    const containerStyle = window.getComputedStyle(document.querySelector('#target3'));
+    const columnRuleWidth = containerStyle.getPropertyValue('column-rule-width');
+    assert_equals(columnRuleWidth, 'repeat(auto, 5px)');
+
+  }, "`column-rule-width` should be as specified regardless of `column-rule-style` with multiple (repeat) values");
+</script>
+</body>
+</html>

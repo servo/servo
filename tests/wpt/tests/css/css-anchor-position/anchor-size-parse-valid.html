@@ -102,7 +102,7 @@ test_valid_value('width', 'anchor-size(10px)');
 for (const prop of ['width', 'max-width', 'margin-left']) {
   test_valid_value(prop, 'calc((anchor-size(--foo width) + anchor-size(--bar height)) / 2)', 'calc(0.5 * (anchor-size(--foo width) + anchor-size(--bar height)))');
   test_valid_value(prop, 'calc(0.5 * (anchor-size(--foo width) + anchor-size(--bar height)))');
-  test_valid_value(prop, 'anchor-size(--foo width, calc(anchor-size(--bar height) * 0.5))');
+  test_valid_value(prop, 'anchor-size(--foo width, calc(0.5 * anchor-size(--bar height)))');
   test_valid_value(prop, 'min(100px, 10%, anchor-size(--foo width), anchor-size(--bar height))');
 }
 </script>

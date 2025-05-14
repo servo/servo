@@ -41,7 +41,7 @@ impl ClipboardEventType {
 }
 
 #[dom_struct]
-pub struct ClipboardEvent {
+pub(crate) struct ClipboardEvent {
     event: Event,
     clipboard_data: MutNullableDom<DataTransfer>,
 }

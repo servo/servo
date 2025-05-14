@@ -186,6 +186,12 @@ the global scope.
 .. js:autofunction:: test_driver.remove_virtual_pressure_source
 ```
 
+### Viewport Segments ###
+```eval_rst
+.. js:autofunction:: test_driver.set_display_features
+.. js:autofunction:: test_driver.clear_display_features
+```
+
 ### Using test_driver in other browsing contexts ###
 
 Testdriver can be used in browsing contexts (i.e. windows or frames)
@@ -306,4 +312,12 @@ The module provides access to [Web Bluetooth](https://webbluetoothcg.github.io/w
 .. js:autofunction:: test_driver.bidi.bluetooth.simulate_adapter
 .. js:autofunction:: test_driver.bidi.bluetooth.simulate_preconnected_peripheral
 .. js:autofunction:: test_driver.bidi.bluetooth.request_device_prompt_updated
+```
+
+### Emulation ###
+
+Emulation of browser APIs via [WebDriver BiDi Emulation](https://www.w3.org/TR/webdriver-bidi/#module-emulation).
+
+```eval_rst
+.. js:autofunction:: test_driver.bidi.emulation.set_geolocation_override
 ```

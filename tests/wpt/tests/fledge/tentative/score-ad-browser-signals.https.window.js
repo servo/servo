@@ -6,7 +6,7 @@
 // META: timeout=long
 // META: variant=?1-last
 
-"use strict;"
+"use strict";
 
 // These tests focus on the browserSignals argument passed to scoreAd().
 

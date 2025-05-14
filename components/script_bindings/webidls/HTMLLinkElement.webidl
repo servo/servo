@@ -13,17 +13,24 @@ interface HTMLLinkElement : HTMLElement {
            attribute DOMString? crossOrigin;
   [CEReactions]
            attribute DOMString rel;
+  // [CEReactions] attribute DOMString as;
   [SameObject, PutForwards=value] readonly attribute DOMTokenList relList;
   [CEReactions]
            attribute DOMString media;
   [CEReactions]
+           attribute DOMString integrity;
+  [CEReactions]
            attribute DOMString hreflang;
   [CEReactions]
            attribute DOMString type;
-  [CEReactions]
-           attribute DOMString integrity;
+  // [SameObject, PutForwards=value] readonly attribute DOMTokenList sizes;
+  // [CEReactions] attribute USVString imageSrcset;
+  // [CEReactions] attribute DOMString imageSizes;
   [CEReactions]
            attribute DOMString referrerPolicy;
+  // [SameObject, PutForwards=value] readonly attribute DOMTokenList blocking;
+  [CEReactions] attribute boolean disabled;
+  // [CEReactions] attribute DOMString fetchPriority;
 
   // also has obsolete members
 };

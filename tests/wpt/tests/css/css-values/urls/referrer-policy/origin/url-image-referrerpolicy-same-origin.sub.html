@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Request URL Modifiers: referrerpolicy(origin)</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#typedef-request-url-modifier-referrerpolicy-modifier">
+<link rel="author" title="Sam Weinig" href="mailto:weinig@webkit.org">
+<link rel="match" href="../../url-image-ref.html">
+<meta name="assert" content="A same origin url with the request URL modifier referrerpolicy(origin) sends the appropriate referrer header.">
+<script src="../../support/image-referrerpolicy.sub.js"></script>
+<script>
+  test_image_referrer_policy({ load_type:`same-origin`, referrer_policy:`origin`, expected_referrer:`origin`});
+</script>
+</head>
+<body>
+<p>Test passes if there is a green square.</p>
+<div class="test"></div>
+</body>
+</html>

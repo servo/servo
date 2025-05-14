@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::{Cow, ToOwned};
+use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell, RefMut};
 use std::cmp;
 use std::collections::hash_map::Entry;
@@ -21,15 +21,20 @@ use base64::Engine;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLChan;
-use constellation_traits::{ScrollState, WindowSizeData, WindowSizeType};
+use compositing_traits::CrossProcessCompositorApi;
+use constellation_traits::{
+    DocumentState, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptToConstellationChan,
+    ScriptToConstellationMessage, ScrollState, StructuredSerializedData, WindowSizeType,
+};
 use crossbeam_channel::{Sender, unbounded};
-use cssparser::{Parser, ParserInput, SourceLocation};
+use cssparser::SourceLocation;
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
 use embedder_traits::user_content_manager::{UserContentManager, UserScript};
 use embedder_traits::{
-    AlertResponse, ConfirmResponse, EmbedderMsg, PromptResponse, SimpleDialog, Theme,
-    WebDriverJSError, WebDriverJSResult,
+    AlertResponse, ConfirmResponse, EmbedderMsg, GamepadEvent, GamepadSupportedHapticEffects,
+    GamepadUpdateType, PromptResponse, SimpleDialog, Theme, ViewportDetails, WebDriverJSError,
+    WebDriverJSResult,
 };
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
@@ -57,14 +62,15 @@ use num_traits::ToPrimitive;
 use profile_traits::ipc as ProfiledIpc;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
+use script_bindings::codegen::GenericBindings::NavigatorBinding::NavigatorMethods;
+use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMethods;
+use script_bindings::interfaces::WindowHelpers;
+use script_bindings::root::Root;
 use script_layout_interface::{
     FragmentType, Layout, PendingImageState, QueryMsg, Reflow, ReflowGoal, ReflowRequest,
     TrustedNodeAddress, combine_id_with_fragment_type,
 };
-use script_traits::{
-    DocumentState, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptMsg, ScriptThreadMessage,
-    ScriptToConstellationChan, StructuredSerializedData,
-};
+use script_traits::ScriptThreadMessage;
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
 use servo_config::{opts, pref};
@@ -72,20 +78,17 @@ use servo_geometry::{DeviceIndependentIntRect, MaxRect, f32_rect_to_au_rect};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::dom::OpaqueNode;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
-use style::media_queries;
-use style::parser::ParserContext as CssParserContext;
 use style::properties::PropertyId;
 use style::properties::style_structs::Font;
 use style::queries::values::PrefersColorScheme;
 use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
-use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
-use style_traits::{CSSPixel, ParsingMode};
+use style::stylesheets::UrlExtraData;
+use style_traits::CSSPixel;
 use stylo_atoms::Atom;
 use url::Position;
+use webrender_api::ExternalScrollId;
 use webrender_api::units::{DevicePixel, LayoutPixel};
-use webrender_api::{DocumentId, ExternalScrollId};
-use webrender_traits::CrossProcessCompositorApi;
 
 use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use super::bindings::trace::HashMapTracedValues;
@@ -126,12 +129,15 @@ use crate::dom::document::{AnimationFrameCallback, Document, ReflowTriggerCondit
 use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::gamepad::{Gamepad, contains_user_gesture};
+use crate::dom::gamepadevent::GamepadEventType;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::history::History;
 use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::location::Location;
+use crate::dom::medialist::MediaList;
 use crate::dom::mediaquerylist::{MediaQueryList, MediaQueryListMatchState};
 use crate::dom::mediaquerylistevent::MediaQueryListEvent;
 use crate::dom::messageevent::MessageEvent;
@@ -141,9 +147,11 @@ use crate::dom::performance::Performance;
 use crate::dom::promise::Promise;
 use crate::dom::screen::Screen;
 use crate::dom::selection::Selection;
+use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::storage::Storage;
 #[cfg(feature = "bluetooth")]
 use crate::dom::testrunner::TestRunner;
+use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::types::UIEvent;
 use crate::dom::webglrenderingcontext::WebGLCommandSender;
 #[cfg(feature = "webgpu")]
@@ -159,7 +167,7 @@ use crate::script_runtime::{CanGc, JSContext, Runtime};
 use crate::script_thread::ScriptThread;
 use crate::timers::{IsInterval, TimerCallback};
 use crate::unminify::unminified_path;
-use crate::webdriver_handlers::jsval_to_webdriver;
+use crate::webdriver_handlers::{find_node_by_unique_id_in_document, jsval_to_webdriver};
 use crate::{fetch, window_named_properties};
 
 /// A callback to call when a response comes back from the `ImageCache`.
@@ -246,6 +254,7 @@ pub(crate) struct Window {
     session_storage: MutNullableDom<Storage>,
     local_storage: MutNullableDom<Storage>,
     status: DomRefCell<DOMString>,
+    trusted_types: MutNullableDom<TrustedTypePolicyFactory>,
 
     /// For sending timeline markers. Will be ignored if
     /// no devtools server
@@ -256,7 +265,7 @@ pub(crate) struct Window {
 
     /// Most recent unhandled resize event, if any.
     #[no_trace]
-    unhandled_resize_event: DomRefCell<Option<(WindowSizeData, WindowSizeType)>>,
+    unhandled_resize_event: DomRefCell<Option<(ViewportDetails, WindowSizeType)>>,
 
     /// Platform theme.
     #[no_trace]
@@ -273,9 +282,9 @@ pub(crate) struct Window {
     #[ignore_malloc_size_of = "Rc<T> is hard"]
     js_runtime: DomRefCell<Option<Rc<Runtime>>>,
 
-    /// The current size of the window, in pixels.
+    /// The [`ViewportDetails`] of this [`Window`]'s frame.
     #[no_trace]
-    window_size: Cell<WindowSizeData>,
+    viewport_details: Cell<ViewportDetails>,
 
     /// A handle for communicating messages to the bluetooth thread.
     #[no_trace]
@@ -351,10 +360,6 @@ pub(crate) struct Window {
     test_worklet: MutNullableDom<Worklet>,
     /// <https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet>
     paint_worklet: MutNullableDom<Worklet>,
-    /// The Webrender Document id associated with this window.
-    #[ignore_malloc_size_of = "defined in webrender_api"]
-    #[no_trace]
-    webrender_document: DocumentId,
 
     /// Flag to identify whether mutation observers are present(true)/absent(false)
     exists_mut_observer: Cell<bool>,
@@ -644,6 +649,126 @@ impl Window {
     pub(crate) fn font_context(&self) -> &Arc<FontContext> {
         &self.font_context
     }
+
+    pub(crate) fn handle_gamepad_event(&self, gamepad_event: GamepadEvent) {
+        match gamepad_event {
+            GamepadEvent::Connected(index, name, bounds, supported_haptic_effects) => {
+                self.handle_gamepad_connect(
+                    index.0,
+                    name,
+                    bounds.axis_bounds,
+                    bounds.button_bounds,
+                    supported_haptic_effects,
+                );
+            },
+            GamepadEvent::Disconnected(index) => {
+                self.handle_gamepad_disconnect(index.0);
+            },
+            GamepadEvent::Updated(index, update_type) => {
+                self.receive_new_gamepad_button_or_axis(index.0, update_type);
+            },
+        };
+    }
+
+    /// <https://www.w3.org/TR/gamepad/#dfn-gamepadconnected>
+    fn handle_gamepad_connect(
+        &self,
+        // As the spec actually defines how to set the gamepad index, the GilRs index
+        // is currently unused, though in practice it will almost always be the same.
+        // More infra is currently needed to track gamepads across windows.
+        _index: usize,
+        name: String,
+        axis_bounds: (f64, f64),
+        button_bounds: (f64, f64),
+        supported_haptic_effects: GamepadSupportedHapticEffects,
+    ) {
+        // TODO: 2. If document is not null and is not allowed to use the "gamepad" permission,
+        //          then abort these steps.
+        let this = Trusted::new(self);
+        self.upcast::<GlobalScope>()
+            .task_manager()
+            .gamepad_task_source()
+            .queue(task!(gamepad_connected: move || {
+                let window = this.root();
+
+                let navigator = window.Navigator();
+                let selected_index = navigator.select_gamepad_index();
+                let gamepad = Gamepad::new(
+                    &window,
+                    selected_index,
+                    name,
+                    "standard".into(),
+                    axis_bounds,
+                    button_bounds,
+                    supported_haptic_effects,
+                    false,
+                    CanGc::note(),
+                );
+                navigator.set_gamepad(selected_index as usize, &gamepad, CanGc::note());
+            }));
+    }
+
+    /// <https://www.w3.org/TR/gamepad/#dfn-gamepaddisconnected>
+    fn handle_gamepad_disconnect(&self, index: usize) {
+        let this = Trusted::new(self);
+        self.upcast::<GlobalScope>()
+            .task_manager()
+            .gamepad_task_source()
+            .queue(task!(gamepad_disconnected: move || {
+                let window = this.root();
+                let navigator = window.Navigator();
+                if let Some(gamepad) = navigator.get_gamepad(index) {
+                    if window.Document().is_fully_active() {
+                        gamepad.update_connected(false, gamepad.exposed(), CanGc::note());
+                        navigator.remove_gamepad(index);
+                    }
+                }
+            }));
+    }
+
+    /// <https://www.w3.org/TR/gamepad/#receiving-inputs>
+    fn receive_new_gamepad_button_or_axis(&self, index: usize, update_type: GamepadUpdateType) {
+        let this = Trusted::new(self);
+
+        // <https://w3c.github.io/gamepad/#dfn-update-gamepad-state>
+        self.upcast::<GlobalScope>().task_manager().gamepad_task_source().queue(
+                task!(update_gamepad_state: move || {
+                    let window = this.root();
+                    let navigator = window.Navigator();
+                    if let Some(gamepad) = navigator.get_gamepad(index) {
+                        let current_time = window.Performance().Now();
+                        gamepad.update_timestamp(*current_time);
+                        match update_type {
+                            GamepadUpdateType::Axis(index, value) => {
+                                gamepad.map_and_normalize_axes(index, value);
+                            },
+                            GamepadUpdateType::Button(index, value) => {
+                                gamepad.map_and_normalize_buttons(index, value);
+                            }
+                        };
+                        if !navigator.has_gamepad_gesture() && contains_user_gesture(update_type) {
+                            navigator.set_has_gamepad_gesture(true);
+                            navigator.GetGamepads()
+                                .iter()
+                                .filter_map(|g| g.as_ref())
+                                .for_each(|gamepad| {
+                                    gamepad.set_exposed(true);
+                                    gamepad.update_timestamp(*current_time);
+                                    let new_gamepad = Trusted::new(&**gamepad);
+                                    if window.Document().is_fully_active() {
+                                        window.upcast::<GlobalScope>().task_manager().gamepad_task_source().queue(
+                                            task!(update_gamepad_connect: move || {
+                                                let gamepad = new_gamepad.root();
+                                                gamepad.notify_event(GamepadEventType::Connected, CanGc::note());
+                                            })
+                                        );
+                                    }
+                                });
+                        }
+                    }
+                })
+            );
+    }
 }
 
 // https://html.spec.whatwg.org/multipage/#atob
@@ -789,6 +914,32 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         doc.abort(can_gc);
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#dom-window-focus>
+    fn Focus(&self) {
+        // > 1. Let `current` be this `Window` object's browsing context.
+        // >
+        // > 2. If `current` is null, then return.
+        let current = match self.undiscarded_window_proxy() {
+            Some(proxy) => proxy,
+            None => return,
+        };
+
+        // > 3. Run the focusing steps with `current`.
+        current.focus();
+
+        // > 4. If current is a top-level browsing context, user agents are
+        // >    encouraged to trigger some sort of notification to indicate to
+        // >    the user that the page is attempting to gain focus.
+        //
+        // TODO: Step 4
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-window-blur
+    fn Blur(&self) {
+        // > User agents are encouraged to ignore calls to this `blur()` method
+        // > entirely.
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-open
     fn Open(
         &self,
@@ -903,7 +1054,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
                         // which calls into https://html.spec.whatwg.org/multipage/#discard-a-document.
                         window.discard_browsing_context();
 
-                        window.send_to_constellation(ScriptMsg::DiscardTopLevelBrowsingContext);
+                        window.send_to_constellation(ScriptToConstellationMessage::DiscardTopLevelBrowsingContext);
                     }
                 });
                 self.as_global_scope()
@@ -951,7 +1102,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto
     fn Crypto(&self) -> DomRoot<Crypto> {
-        self.as_global_scope().crypto()
+        self.as_global_scope().crypto(CanGc::note())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-frameelement
@@ -1218,20 +1369,55 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         }
     }
 
-    #[allow(unsafe_code)]
-    fn WebdriverCallback(&self, cx: JSContext, val: HandleValue) {
-        let rv = unsafe { jsval_to_webdriver(*cx, &self.globalscope, val) };
+    fn WebdriverCallback(&self, cx: JSContext, val: HandleValue, realm: InRealm, can_gc: CanGc) {
+        let rv = jsval_to_webdriver(cx, &self.globalscope, val, realm, can_gc);
         let opt_chan = self.webdriver_script_chan.borrow_mut().take();
         if let Some(chan) = opt_chan {
-            chan.send(rv).unwrap();
+            let _ = chan.send(rv);
+        }
+    }
+
+    fn WebdriverException(&self, cx: JSContext, val: HandleValue, realm: InRealm, can_gc: CanGc) {
+        let rv = jsval_to_webdriver(cx, &self.globalscope, val, realm, can_gc);
+        let opt_chan = self.webdriver_script_chan.borrow_mut().take();
+        if let Some(chan) = opt_chan {
+            if let Ok(rv) = rv {
+                let _ = chan.send(Err(WebDriverJSError::JSException(rv)));
+            } else {
+                let _ = chan.send(rv);
+            }
         }
     }
 
     fn WebdriverTimeout(&self) {
         let opt_chan = self.webdriver_script_chan.borrow_mut().take();
         if let Some(chan) = opt_chan {
-            chan.send(Err(WebDriverJSError::Timeout)).unwrap();
+            let _ = chan.send(Err(WebDriverJSError::Timeout));
         }
+    }
+
+    fn WebdriverElement(&self, id: DOMString) -> Option<DomRoot<Element>> {
+        find_node_by_unique_id_in_document(&self.Document(), id.into())
+            .ok()
+            .and_then(Root::downcast)
+    }
+
+    fn WebdriverFrame(&self, id: DOMString) -> Option<DomRoot<Element>> {
+        find_node_by_unique_id_in_document(&self.Document(), id.into())
+            .ok()
+            .and_then(Root::downcast::<HTMLIFrameElement>)
+            .map(Root::upcast::<Element>)
+    }
+
+    fn WebdriverWindow(&self, _id: DOMString) -> Option<DomRoot<Window>> {
+        warn!("Window references are not supported in webdriver yet");
+        None
+    }
+
+    fn WebdriverShadowRoot(&self, id: DOMString) -> Option<DomRoot<ShadowRoot>> {
+        find_node_by_unique_id_in_document(&self.Document(), id.into())
+            .ok()
+            .and_then(Root::downcast)
     }
 
     // https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle
@@ -1240,7 +1426,13 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         element: &Element,
         pseudo: Option<DOMString>,
     ) -> DomRoot<CSSStyleDeclaration> {
-        // Steps 1-4.
+        // Step 2: Let obj be elt.
+        // We don't store CSSStyleOwner directly because it stores a `Dom` which must be
+        // rooted. This avoids the rooting the value temporarily.
+        let mut is_null = false;
+
+        // Step 3: If pseudoElt is provided, is not the empty string, and starts with a colon, then:
+        // Step 3.1: Parse pseudoElt as a <pseudo-element-selector>, and let type be the result.
         let pseudo = pseudo.map(|mut s| {
             s.make_ascii_lowercase();
             s
@@ -1252,13 +1444,39 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             Some(ref pseudo) if pseudo == ":after" || pseudo == "::after" => {
                 Some(PseudoElement::After)
             },
+            Some(ref pseudo) if pseudo == "::selection" => Some(PseudoElement::Selection),
+            Some(ref pseudo) if pseudo == "::marker" => Some(PseudoElement::Marker),
+            Some(ref pseudo) if pseudo.starts_with(':') => {
+                // Step 3.2: If type is failure, or is a ::slotted() or ::part()
+                // pseudo-element, let obj be null.
+                is_null = true;
+                None
+            },
             _ => None,
         };
 
-        // Step 5.
+        // Step 4. Let decls be an empty list of CSS declarations.
+        // Step 5: If obj is not null, and elt is connected, part of the flat tree, and
+        // its shadow-including root has a browsing context which either doesn’t have a
+        // browsing context container, or whose browsing context container is being
+        // rendered, set decls to a list of all longhand properties that are supported CSS
+        // properties, in lexicographical order, with the value being the resolved value
+        // computed for obj using the style rules associated with doc.  Additionally,
+        // append to decls all the custom properties whose computed value for obj is not
+        // the guaranteed-invalid value.
+        //
+        // Note: The specification says to generate the list of declarations beforehand, yet
+        // also says the list should be alive. This is why we do not do step 4 and 5 here.
+        // See: https://github.com/w3c/csswg-drafts/issues/6144
+        //
+        // Step 6:  Return a live CSSStyleProperties object with the following properties:
         CSSStyleDeclaration::new(
             self,
-            CSSStyleOwner::Element(Dom::from_ref(element)),
+            if is_null {
+                CSSStyleOwner::Null
+            } else {
+                CSSStyleOwner::Element(Dom::from_ref(element))
+            },
             pseudo,
             CSSModificationAccess::Readonly,
             CanGc::note(),
@@ -1268,9 +1486,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     // https://drafts.csswg.org/cssom-view/#dom-window-innerheight
     //TODO Include Scrollbar
     fn InnerHeight(&self) -> i32 {
-        self.window_size
+        self.viewport_details
             .get()
-            .initial_viewport
+            .size
             .height
             .to_i32()
             .unwrap_or(0)
@@ -1279,12 +1497,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     // https://drafts.csswg.org/cssom-view/#dom-window-innerwidth
     //TODO Include Scrollbar
     fn InnerWidth(&self) -> i32 {
-        self.window_size
-            .get()
-            .initial_viewport
-            .width
-            .to_i32()
-            .unwrap_or(0)
+        self.viewport_details.get().size.width.to_i32().unwrap_or(0)
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollx
@@ -1353,7 +1566,17 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     // https://drafts.csswg.org/cssom-view/#dom-window-resizeto
     fn ResizeTo(&self, width: i32, height: i32) {
         // Step 1
-        //TODO determine if this operation is allowed
+        let window_proxy = match self.window_proxy.get() {
+            Some(proxy) => proxy,
+            None => return,
+        };
+
+        // If target is not an auxiliary browsing context that was created by a script
+        // (as opposed to by an action of the user), then return.
+        if !window_proxy.is_auxiliary() {
+            return;
+        }
+
         let dpr = self.device_pixel_ratio();
         let size = Size2D::new(width, height).to_f32() * dpr;
         self.send_to_embedder(EmbedderMsg::ResizeTo(self.webview_id(), size.to_i32()));
@@ -1427,21 +1650,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://drafts.csswg.org/cssom-view/#dom-window-matchmedia
     fn MatchMedia(&self, query: DOMString) -> DomRoot<MediaQueryList> {
-        let mut input = ParserInput::new(&query);
-        let mut parser = Parser::new(&mut input);
-        let url_data = UrlExtraData(self.get_url().get_arc());
-        let quirks_mode = self.Document().quirks_mode();
-        let context = CssParserContext::new(
-            Origin::Author,
-            &url_data,
-            Some(CssRuleType::Media),
-            ParsingMode::DEFAULT,
-            quirks_mode,
-            /* namespaces = */ Default::default(),
-            self.css_error_reporter(),
-            None,
-        );
-        let media_query_list = media_queries::MediaList::parse(&context, &mut parser);
+        let media_query_list = MediaList::parse_media_list(&query, self);
         let document = self.Document();
         let mql = MediaQueryList::new(&document, media_query_list, CanGc::note());
         self.media_query_lists.track(&*mql);
@@ -1493,7 +1702,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://w3c.github.io/selection-api/#dom-window-getselection
     fn GetSelection(&self) -> Option<DomRoot<Selection>> {
-        self.document.get().and_then(|d| d.GetSelection())
+        self.document
+            .get()
+            .and_then(|d| d.GetSelection(CanGc::note()))
     }
 
     // https://dom.spec.whatwg.org/#dom-window-event
@@ -1594,6 +1805,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             self,
             document.upcast(),
             Box::new(WindowNamedGetter { name }),
+            CanGc::note(),
         );
         Some(NamedPropertyValue::HTMLCollection(collection))
     }
@@ -1668,6 +1880,11 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     ) -> Fallible<()> {
         self.as_global_scope()
             .structured_clone(cx, value, options, retval)
+    }
+
+    fn TrustedTypes(&self, can_gc: CanGc) -> DomRoot<TrustedTypePolicyFactory> {
+        self.trusted_types
+            .or_init(|| TrustedTypePolicyFactory::new(self.as_global_scope(), can_gc))
     }
 }
 
@@ -1790,7 +2007,7 @@ impl Window {
 
         // Step 5 & 6
         // TODO: Remove scrollbar dimensions.
-        let viewport = self.window_size.get().initial_viewport;
+        let viewport = self.viewport_details.get().size;
 
         // Step 7 & 8
         // TODO: Consider `block-end` and `inline-end` overflow direction.
@@ -1853,18 +2070,17 @@ impl Window {
     }
 
     pub(crate) fn device_pixel_ratio(&self) -> Scale<f32, CSSPixel, DevicePixel> {
-        self.window_size.get().device_pixel_ratio
+        self.viewport_details.get().hidpi_scale_factor
     }
 
     fn client_window(&self) -> (Size2D<u32, CSSPixel>, Point2D<i32, CSSPixel>) {
         let timer_profile_chan = self.global().time_profiler_chan().clone();
-        let (send, recv) =
+        let (sender, receiver) =
             ProfiledIpc::channel::<DeviceIndependentIntRect>(timer_profile_chan).unwrap();
-        let _ = self
-            .compositor_api
-            .sender()
-            .send(webrender_traits::CrossProcessCompositorMessage::GetClientWindowRect(send));
-        let rect = recv.recv().unwrap_or_default();
+        let _ = self.compositor_api.sender().send(
+            compositing_traits::CompositorMsg::GetClientWindowRect(self.webview_id(), sender),
+        );
+        let rect = receiver.recv().unwrap_or_default();
         (
             Size2D::new(rect.size().width as u32, rect.size().height as u32),
             Point2D::new(rect.min.x, rect.min.y),
@@ -1952,6 +2168,8 @@ impl Window {
             .or_else(|| document.GetDocumentElement())
             .map(|root| root.upcast::<Node>().to_trusted_node_address());
 
+        let highlighted_dom_node = document.highlighted_dom_node().map(|node| node.to_opaque());
+
         // Send new document and relevant styles to layout.
         let reflow = ReflowRequest {
             reflow_info: Reflow {
@@ -1960,14 +2178,18 @@ impl Window {
             document: document.upcast::<Node>().to_trusted_node_address(),
             dirty_root,
             stylesheets_changed,
-            window_size: self.window_size.get(),
+            viewport_details: self.viewport_details.get(),
             origin: self.origin().immutable().clone(),
             reflow_goal,
             dom_count: document.dom_count(),
             pending_restyles,
             animation_timeline_value: document.current_animation_timeline_value(),
             animations: document.animations().sets.clone(),
+            node_to_image_animation_map: document
+                .image_animation_manager_mut()
+                .take_image_animate_set(),
             theme: self.theme.get(),
+            highlighted_dom_node,
         };
 
         let Some(results) = self.layout.borrow_mut().reflow(reflow) else {
@@ -1994,8 +2216,7 @@ impl Window {
             }
 
             let mut images = self.pending_layout_images.borrow_mut();
-            let nodes = images.entry(id).or_default();
-            if !nodes.iter().any(|n| std::ptr::eq(&**n, &*node)) {
+            if !images.contains_key(&id) {
                 let trusted_node = Trusted::new(&*node);
                 let sender = self.register_image_cache_listener(id, move |response| {
                     trusted_node
@@ -2006,6 +2227,10 @@ impl Window {
 
                 self.image_cache
                     .add_listener(ImageResponder::new(sender, self.pipeline_id(), id));
+            }
+
+            let nodes = images.entry(id).or_default();
+            if !nodes.iter().any(|n| std::ptr::eq(&**n, &*node)) {
                 nodes.push(Dom::from_ref(&*node));
             }
         }
@@ -2013,11 +2238,13 @@ impl Window {
         let size_messages = self
             .Document()
             .iframes_mut()
-            .handle_new_iframe_sizes_after_layout(results.iframe_sizes, self.device_pixel_ratio());
+            .handle_new_iframe_sizes_after_layout(results.iframe_sizes);
         if !size_messages.is_empty() {
-            self.send_to_constellation(ScriptMsg::IFrameSizes(size_messages));
+            self.send_to_constellation(ScriptToConstellationMessage::IFrameSizes(size_messages));
         }
-
+        document
+            .image_animation_manager_mut()
+            .restore_image_animate_set(results.node_to_image_animation_map);
         document.update_animations_post_reflow();
         self.update_constellation_epoch();
 
@@ -2111,7 +2338,7 @@ impl Window {
                     "{:?}: Sending DocumentState::Idle to Constellation",
                     self.pipeline_id()
                 );
-                let event = ScriptMsg::SetDocumentState(DocumentState::Idle);
+                let event = ScriptToConstellationMessage::SetDocumentState(DocumentState::Idle);
                 self.send_to_constellation(event);
                 self.has_sent_idle_message.set(true);
             }
@@ -2193,7 +2420,7 @@ impl Window {
             self.pipeline_id()
         );
         let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
-        let event = ScriptMsg::SetLayoutEpoch(epoch, sender);
+        let event = ScriptToConstellationMessage::SetLayoutEpoch(epoch, sender);
         self.send_to_constellation(event);
         let _ = receiver.recv();
     }
@@ -2224,7 +2451,9 @@ impl Window {
 
     // Query content box without considering any reflow
     pub(crate) fn content_box_query_unchecked(&self, node: &Node) -> Option<UntypedRect<Au>> {
-        self.layout.borrow().query_content_box(node.to_opaque())
+        self.layout
+            .borrow()
+            .query_content_box(node.to_trusted_node_address())
     }
 
     pub(crate) fn content_box_query(&self, node: &Node, can_gc: CanGc) -> Option<UntypedRect<Au>> {
@@ -2238,14 +2467,18 @@ impl Window {
         if !self.layout_reflow(QueryMsg::ContentBoxes, can_gc) {
             return vec![];
         }
-        self.layout.borrow().query_content_boxes(node.to_opaque())
+        self.layout
+            .borrow()
+            .query_content_boxes(node.to_trusted_node_address())
     }
 
     pub(crate) fn client_rect_query(&self, node: &Node, can_gc: CanGc) -> UntypedRect<i32> {
         if !self.layout_reflow(QueryMsg::ClientRectQuery, can_gc) {
             return Rect::zero();
         }
-        self.layout.borrow().query_client_rect(node.to_opaque())
+        self.layout
+            .borrow()
+            .query_client_rect(node.to_trusted_node_address())
     }
 
     /// Find the scroll area of the given node, if it is not None. If the node
@@ -2255,11 +2488,12 @@ impl Window {
         node: Option<&Node>,
         can_gc: CanGc,
     ) -> UntypedRect<i32> {
-        let opaque = node.map(|node| node.to_opaque());
         if !self.layout_reflow(QueryMsg::ScrollingAreaQuery, can_gc) {
             return Rect::zero();
         }
-        self.layout.borrow().query_scrolling_area(opaque)
+        self.layout
+            .borrow()
+            .query_scrolling_area(node.map(Node::to_trusted_node_address))
     }
 
     pub(crate) fn scroll_offset_query(&self, node: &Node) -> Vector2D<f32, LayoutPixel> {
@@ -2325,11 +2559,11 @@ impl Window {
     /// If the given |browsing_context_id| refers to an `<iframe>` that is an element
     /// in this [`Window`] and that `<iframe>` has been laid out, return its size.
     /// Otherwise, return `None`.
-    pub(crate) fn get_iframe_size_if_known(
+    pub(crate) fn get_iframe_viewport_details_if_known(
         &self,
         browsing_context_id: BrowsingContextId,
         can_gc: CanGc,
-    ) -> Option<Size2D<f32, CSSPixel>> {
+    ) -> Option<ViewportDetails> {
         // Reflow might fail, but do a best effort to return the right size.
         self.layout_reflow(QueryMsg::InnerWindowDimensionsQuery, can_gc);
         self.Document()
@@ -2348,7 +2582,10 @@ impl Window {
             return (None, Rect::zero());
         }
 
-        let response = self.layout.borrow().query_offset_parent(node.to_opaque());
+        let response = self
+            .layout
+            .borrow()
+            .query_offset_parent(node.to_trusted_node_address());
         let element = response.node_address.and_then(|parent_node_address| {
             let node = unsafe { from_untrusted_node_address(parent_node_address) };
             DomRoot::downcast(node)
@@ -2411,7 +2648,7 @@ impl Window {
             // Step 6
             // TODO: Fragment handling appears to have moved to step 13
             if let Some(fragment) = load_data.url.fragment() {
-                self.send_to_constellation(ScriptMsg::NavigatedToFragment(
+                self.send_to_constellation(ScriptToConstellationMessage::NavigatedToFragment(
                     load_data.url.clone(),
                     history_handling,
                 ));
@@ -2494,12 +2731,12 @@ impl Window {
         };
     }
 
-    pub(crate) fn set_window_size(&self, size: WindowSizeData) {
-        self.window_size.set(size);
+    pub(crate) fn set_viewport_details(&self, size: ViewportDetails) {
+        self.viewport_details.set(size);
     }
 
-    pub(crate) fn window_size(&self) -> WindowSizeData {
-        self.window_size.get()
+    pub(crate) fn viewport_details(&self) -> ViewportDetails {
+        self.viewport_details.get()
     }
 
     /// Handle a theme change request, triggering a reflow is any actual change occured.
@@ -2524,13 +2761,13 @@ impl Window {
         self.dom_static.windowproxy_handler
     }
 
-    pub(crate) fn add_resize_event(&self, event: WindowSizeData, event_type: WindowSizeType) {
+    pub(crate) fn add_resize_event(&self, event: ViewportDetails, event_type: WindowSizeType) {
         // Whenever we receive a new resize event we forget about all the ones that came before
         // it, to avoid unnecessary relayouts
         *self.unhandled_resize_event.borrow_mut() = Some((event, event_type))
     }
 
-    pub(crate) fn take_unhandled_resize_event(&self) -> Option<(WindowSizeData, WindowSizeType)> {
+    pub(crate) fn take_unhandled_resize_event(&self) -> Option<(ViewportDetails, WindowSizeType)> {
         self.unhandled_resize_event.borrow_mut().take()
     }
 
@@ -2646,7 +2883,7 @@ impl Window {
             return false;
         };
 
-        if self.window_size() == new_size {
+        if self.viewport_details() == new_size {
             return false;
         }
 
@@ -2654,9 +2891,9 @@ impl Window {
         debug!(
             "Resizing Window for pipeline {:?} from {:?} to {new_size:?}",
             self.pipeline_id(),
-            self.window_size(),
+            self.viewport_details(),
         );
-        self.set_window_size(new_size);
+        self.set_viewport_details(new_size);
 
         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
         if size_type == WindowSizeType::Resize {
@@ -2735,18 +2972,14 @@ impl Window {
     }
 
     pub(crate) fn send_to_embedder(&self, msg: EmbedderMsg) {
-        self.send_to_constellation(ScriptMsg::ForwardToEmbedder(msg));
+        self.send_to_constellation(ScriptToConstellationMessage::ForwardToEmbedder(msg));
     }
 
-    pub(crate) fn send_to_constellation(&self, msg: ScriptMsg) {
+    pub(crate) fn send_to_constellation(&self, msg: ScriptToConstellationMessage) {
         self.as_global_scope()
             .script_to_constellation_chan()
             .send(msg)
             .unwrap();
-    }
-
-    pub(crate) fn webrender_document(&self) -> DocumentId {
-        self.webrender_document
     }
 
     #[cfg(feature = "webxr")]
@@ -2784,21 +3017,19 @@ impl Window {
         control_chan: IpcSender<ScriptThreadMessage>,
         pipeline_id: PipelineId,
         parent_info: Option<PipelineId>,
-        window_size: WindowSizeData,
+        viewport_details: ViewportDetails,
         origin: MutableOrigin,
         creator_url: ServoUrl,
         navigation_start: CrossProcessInstant,
         webgl_chan: Option<WebGLChan>,
         #[cfg(feature = "webxr")] webxr_registry: Option<webxr_api::Registry>,
         microtask_queue: Rc<MicrotaskQueue>,
-        webrender_document: DocumentId,
         compositor_api: CrossProcessCompositorApi,
         relayout_event: bool,
         unminify_js: bool,
         unminify_css: bool,
         local_script_source: Option<String>,
         user_content_manager: UserContentManager,
-        user_agent: Cow<'static, str>,
         player_context: WindowGLContext,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
@@ -2810,7 +3041,7 @@ impl Window {
 
         let initial_viewport = f32_rect_to_au_rect(UntypedRect::new(
             Point2D::zero(),
-            window_size.initial_viewport.to_untyped(),
+            viewport_details.size.to_untyped(),
         ));
 
         let win = Box::new(Self {
@@ -2825,7 +3056,6 @@ impl Window {
                 origin,
                 Some(creator_url),
                 microtask_queue,
-                user_agent,
                 #[cfg(feature = "webgpu")]
                 gpu_id_hub,
                 inherited_secure_context,
@@ -2857,7 +3087,7 @@ impl Window {
             bluetooth_extra_permission_data: BluetoothExtraPermissionData::new(),
             page_clip_rect: Cell::new(MaxRect::max_rect()),
             unhandled_resize_event: Default::default(),
-            window_size: Cell::new(window_size),
+            viewport_details: Cell::new(viewport_details),
             current_viewport: Cell::new(initial_viewport.to_untyped()),
             layout_blocker: Cell::new(LayoutBlocker::WaitingForParse),
             current_state: Cell::new(WindowState::Alive),
@@ -2878,7 +3108,6 @@ impl Window {
             local_script_source,
             test_worklet: Default::default(),
             paint_worklet: Default::default(),
-            webrender_document,
             exists_mut_observer: Cell::new(false),
             compositor_api,
             has_sent_idle_message: Cell::new(false),
@@ -2890,6 +3119,7 @@ impl Window {
             layout_marker: DomRefCell::new(Rc::new(Cell::new(true))),
             current_event: DomRefCell::new(None),
             theme: Cell::new(PrefersColorScheme::Light),
+            trusted_types: Default::default(),
         });
 
         unsafe {
@@ -3115,5 +3345,15 @@ fn is_named_element_with_id_attribute(elem: &Element) -> bool {
 unsafe extern "C" fn dump_js_stack(cx: *mut RawJSContext) {
     unsafe {
         DumpJSStack(cx, true, false, false);
+    }
+}
+
+impl WindowHelpers for Window {
+    fn create_named_properties_object(
+        cx: JSContext,
+        proto: HandleObject,
+        object: MutableHandleObject,
+    ) {
+        Self::create_named_properties_object(cx, proto, object)
     }
 }

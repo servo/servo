@@ -8,6 +8,7 @@ use std::mem;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::gc::MutableHandle;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
@@ -97,13 +98,13 @@ impl Callback for ReadLoopFulFillmentHandler {
             };
 
             // Append the bytes represented by chunk to bytes.
-            let mut bytes = self.bytes.borrow_mut();
-            bytes.extend_from_slice(&chunk);
+            self.bytes.borrow_mut().extend_from_slice(&chunk);
 
             // Read-loop given reader, bytes, successSteps, and failureSteps.
+            rooted!(in(*cx) let mut this = Some(self.clone()));
             read_loop(
                 &global,
-                &mut Some(self.clone()),
+                this.handle_mut(),
                 Box::new(ReadLoopRejectionHandler {
                     failure_steps: self.failure_steps.clone(),
                 }),
@@ -133,7 +134,7 @@ impl Callback for ReadLoopRejectionHandler {
 /// <https://streams.spec.whatwg.org/#read-loop>
 fn read_loop(
     global: &GlobalScope,
-    fulfillment_handler: &mut Option<ReadLoopFulFillmentHandler>,
+    mut fulfillment_handler: MutableHandle<Option<ReadLoopFulFillmentHandler>>,
     rejection_handler: Box<ReadLoopRejectionHandler>,
     realm: InRealm,
     can_gc: CanGc,
@@ -500,7 +501,7 @@ impl ReadableStreamDefaultReader {
         let rejection_handler = Box::new(ReadLoopRejectionHandler { failure_steps });
         read_loop(
             global,
-            &mut fulfillment_handler,
+            fulfillment_handler.handle_mut(),
             rejection_handler,
             realm,
             can_gc,
@@ -604,8 +605,8 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
     }
 
     /// <https://streams.spec.whatwg.org/#generic-reader-cancel>
-    fn Cancel(&self, _cx: SafeJSContext, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
-        self.generic_cancel(&self.global(), reason, can_gc)
+    fn Cancel(&self, cx: SafeJSContext, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
+        self.generic_cancel(cx, &self.global(), reason, can_gc)
     }
 }
 

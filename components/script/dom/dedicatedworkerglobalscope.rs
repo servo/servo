@@ -7,6 +7,7 @@ use std::sync::atomic::AtomicBool;
 use std::thread::{self, JoinHandle};
 
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
+use constellation_traits::{WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
@@ -17,11 +18,11 @@ use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use net_traits::IpcSend;
 use net_traits::image_cache::ImageCache;
+use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, Referrer, RequestBuilder,
     RequestMode,
 };
-use script_traits::{WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use servo_rand::random;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::thread_state::{self, ThreadState};
@@ -41,6 +42,7 @@ use crate::dom::bindings::root::{DomRoot, RootCollection, ThreadLocalStackRoots}
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::{CustomTraceable, RootedTraceableBox};
+use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventtarget::EventTarget;
@@ -347,6 +349,7 @@ impl DedicatedWorkerGlobalScope {
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
         context_sender: Sender<ThreadSafeJSContext>,
         insecure_requests_policy: InsecureRequestsPolicy,
+        policy_container: PolicyContainer,
     ) -> JoinHandle<()> {
         let serialized_worker_url = worker_url.to_string();
         let webview_id = WebViewId::installed();
@@ -355,6 +358,8 @@ impl DedicatedWorkerGlobalScope {
         let referrer = current_global.get_referrer();
         let parent = current_global.runtime_handle();
         let current_global_https_state = current_global.get_https_state();
+        let current_global_ancestor_trustworthy = current_global.has_trustworthy_ancestor_origin();
+        let is_secure_context = current_global.is_secure_context();
 
         thread::Builder::new()
             .name(format!("WW:{}", worker_url.debug_compact()))
@@ -384,8 +389,9 @@ impl DedicatedWorkerGlobalScope {
                     .use_url_credentials(true)
                     .pipeline_id(Some(pipeline_id))
                     .referrer_policy(referrer_policy)
-                    .referrer_policy(referrer_policy)
                     .insecure_requests_policy(insecure_requests_policy)
+                    .has_trustworthy_ancestor_origin(current_global_ancestor_trustworthy)
+                    .policy_container(policy_container)
                     .origin(origin);
 
                 let runtime = unsafe {
@@ -418,7 +424,12 @@ impl DedicatedWorkerGlobalScope {
                 // > scope`'s url's scheme is "data", and `inherited origin`
                 // > otherwise.
                 if worker_url.scheme() == "data" {
-                    init.origin = ImmutableOrigin::new_opaque();
+                    // Workers created from a data: url are secure if they were created from secure contexts
+                    if is_secure_context {
+                        init.origin = ImmutableOrigin::new_opaque_data_url_worker();
+                    } else {
+                        init.origin = ImmutableOrigin::new_opaque();
+                    }
                 }
 
                 let global = DedicatedWorkerGlobalScope::new(
@@ -468,6 +479,7 @@ impl DedicatedWorkerGlobalScope {
                     Ok((metadata, bytes)) => (metadata, bytes),
                 };
                 scope.set_url(metadata.final_url);
+                scope.set_csp_list(GlobalScope::parse_csp_list_from_metadata(&metadata.headers));
                 global_scope.set_https_state(metadata.https_state);
                 let source = String::from_utf8_lossy(&bytes);
 
@@ -483,7 +495,12 @@ impl DedicatedWorkerGlobalScope {
 
                 {
                     let _ar = AutoWorkerReset::new(&global, worker.clone());
-                    let _ac = enter_realm(scope);
+                    let realm = enter_realm(scope);
+                    define_all_exposed_interfaces(
+                        global.upcast(),
+                        InRealm::entered(&realm),
+                        CanGc::note(),
+                    );
                     scope.execute_script(DOMString::from(source), CanGc::note());
                 }
 

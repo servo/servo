@@ -153,11 +153,11 @@ impl ShadowRoot {
         )
     }
 
-    pub(crate) fn detach(&self) {
+    pub(crate) fn detach(&self, can_gc: CanGc) {
         self.document.unregister_shadow_root(self);
         let node = self.upcast::<Node>();
         node.set_containing_shadow_root(None);
-        Node::complete_remove_subtree(node, &UnbindContext::new(node, None, None, None));
+        Node::complete_remove_subtree(node, &UnbindContext::new(node, None, None, None), can_gc);
         self.host.set(None);
     }
 
@@ -221,7 +221,7 @@ impl ShadowRoot {
 
     /// Remove any existing association between the provided id and any elements
     /// in this shadow tree.
-    pub(crate) fn unregister_element_id(&self, to_unregister: &Element, id: Atom) {
+    pub(crate) fn unregister_element_id(&self, to_unregister: &Element, id: Atom, _can_gc: CanGc) {
         self.document_or_shadow_root.unregister_named_element(
             self.document_fragment.id_map(),
             to_unregister,
@@ -230,7 +230,7 @@ impl ShadowRoot {
     }
 
     /// Associate an element present in this shadow tree with the provided id.
-    pub(crate) fn register_element_id(&self, element: &Element, id: Atom) {
+    pub(crate) fn register_element_id(&self, element: &Element, id: Atom, _can_gc: CanGc) {
         let root = self
             .upcast::<Node>()
             .inclusive_ancestors(ShadowIncluding::No)
@@ -445,12 +445,21 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
         };
 
         // Step 4. Replace all with fragment within this.
-        Node::replace_all(Some(frag.upcast()), self.upcast());
+        Node::replace_all(Some(frag.upcast()), self.upcast(), can_gc);
     }
 
     /// <https://dom.spec.whatwg.org/#dom-shadowroot-slotassignment>
     fn SlotAssignment(&self) -> SlotAssignmentMode {
         self.slot_assignment_mode
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-shadowroot-sethtmlunsafe>
+    fn SetHTMLUnsafe(&self, html: DOMString, can_gc: CanGc) {
+        // Step 2. Unsafely set HTMl given this, this's shadow host, and complaintHTML
+        let target = self.upcast::<Node>();
+        let context_element = self.Host();
+
+        Node::unsafely_set_html(target, &context_element, html, can_gc);
     }
 
     // https://dom.spec.whatwg.org/#dom-shadowroot-onslotchange
@@ -462,9 +471,9 @@ impl VirtualMethods for ShadowRoot {
         Some(self.upcast::<DocumentFragment>() as &dyn VirtualMethods)
     }
 
-    fn bind_to_tree(&self, context: &BindContext) {
+    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context);
+            s.bind_to_tree(context, can_gc);
         }
 
         if context.tree_connected {
@@ -482,17 +491,20 @@ impl VirtualMethods for ShadowRoot {
 
             // Out-of-document elements never have the descendants flag set
             debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
-            vtable_for(&node).bind_to_tree(&BindContext {
-                tree_connected: context.tree_connected,
-                tree_is_in_a_document_tree: false,
-                tree_is_in_a_shadow_tree: true,
-            });
+            vtable_for(&node).bind_to_tree(
+                &BindContext {
+                    tree_connected: context.tree_connected,
+                    tree_is_in_a_document_tree: false,
+                    tree_is_in_a_shadow_tree: true,
+                },
+                can_gc,
+            );
         }
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
+    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.unbind_from_tree(context);
+            s.unbind_from_tree(context, can_gc);
         }
 
         if context.tree_connected {

@@ -65,8 +65,14 @@ impl Path2DMethods<crate::DomTypeHolder> for Path2D {
     /// <https://html.spec.whatwg.org/multipage/#dom-path2d-addpath>
     fn AddPath(&self, other: &Path2D) {
         // Step 7. Add all the subpaths in c to a.
-        let mut dest = self.path.borrow_mut();
-        dest.extend(other.path.borrow().iter().copied());
+        if std::ptr::eq(&self.path, &other.path) {
+            // Note: this is not part of the spec, but it is a workaround to
+            // avoids borrow conflict when path is same as other.path
+            self.path.borrow_mut().extend_from_within(..);
+        } else {
+            let mut dest = self.path.borrow_mut();
+            dest.extend(other.path.borrow().iter().copied());
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-closepath>

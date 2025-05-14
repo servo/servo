@@ -1,11 +1,12 @@
 <!doctype HTML>
-<html lang="en-US">
+<html lang="en-US" class="reftest-wait">
   <meta charset="utf-8">
   <title>HTML5 Canvas Test:  The lang attribute is respected.</title>
   <link rel="match" href="canvas.2d.lang-ref.html" />
   <link rel="author" href="mailto:schenney@chromium.org"/>
   <link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#text-styles"/>
   <meta name="assert" content="When the canvas context has a lang attribute, override the document." />
+  <script src="/common/reftest-wait.js"></script>
   <style>
     #canvas-tr {
       position: absolute;
@@ -38,6 +39,7 @@
         document.fonts.add(font);
         drawText('tr');
         drawText('en');
+        takeScreenshot();
       });
     }
   </script>

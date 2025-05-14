@@ -24,7 +24,7 @@ use crate::dom::node::Node;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
-// https://html.spec.whatwg.org/multipage/#validity-states
+/// <https://html.spec.whatwg.org/multipage/#validity-states>
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
 pub(crate) struct ValidationFlags(u32);
 
@@ -107,7 +107,7 @@ impl ValidityState {
     // https://html.spec.whatwg.org/multipage/#custom-validity-error-message
     pub(crate) fn set_custom_error_message(&self, error: DOMString) {
         *self.custom_error_message.borrow_mut() = error;
-        self.perform_validation_and_update(ValidationFlags::CUSTOM_ERROR);
+        self.perform_validation_and_update(ValidationFlags::CUSTOM_ERROR, CanGc::note());
     }
 
     /// Given a set of [ValidationFlags], recalculate their value by performing
@@ -115,12 +115,16 @@ impl ValidityState {
     /// if [ValidationFlags::CUSTOM_ERROR] is in `update_flags` and a custom
     /// error has been set on this [ValidityState], the state will be updated
     /// to reflect the existance of a custom error.
-    pub(crate) fn perform_validation_and_update(&self, update_flags: ValidationFlags) {
+    pub(crate) fn perform_validation_and_update(
+        &self,
+        update_flags: ValidationFlags,
+        can_gc: CanGc,
+    ) {
         let mut invalid_flags = self.invalid_flags.get();
         invalid_flags.remove(update_flags);
 
         if let Some(validatable) = self.element.as_maybe_validatable() {
-            let new_flags = validatable.perform_validation(update_flags);
+            let new_flags = validatable.perform_validation(update_flags, can_gc);
             invalid_flags.insert(new_flags);
         }
 
@@ -132,7 +136,7 @@ impl ValidityState {
         }
 
         self.invalid_flags.set(invalid_flags);
-        self.update_pseudo_classes();
+        self.update_pseudo_classes(can_gc);
     }
 
     pub(crate) fn update_invalid_flags(&self, update_flags: ValidationFlags) {
@@ -143,7 +147,7 @@ impl ValidityState {
         self.invalid_flags.get()
     }
 
-    pub(crate) fn update_pseudo_classes(&self) {
+    pub(crate) fn update_pseudo_classes(&self, can_gc: CanGc) {
         if self.element.is_instance_validatable() {
             let is_valid = self.invalid_flags.get().is_empty();
             self.element.set_state(ElementState::VALID, is_valid);
@@ -155,7 +159,7 @@ impl ValidityState {
 
         if let Some(form_control) = self.element.as_maybe_form_control() {
             if let Some(form_owner) = form_control.form_owner() {
-                form_owner.update_validity();
+                form_owner.update_validity(can_gc);
             }
         }
 
@@ -166,7 +170,7 @@ impl ValidityState {
             .filter_map(DomRoot::downcast::<HTMLFieldSetElement>)
             .next()
         {
-            fieldset.update_validity();
+            fieldset.update_validity(can_gc);
         }
     }
 }

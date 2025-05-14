@@ -1,0 +1,29 @@
+<script>
+document.addEventListener("DOMContentLoaded" , () => {
+  c.beginElement()
+  document.onselectstart = fuzz_01
+  document.execCommand("selectAll", false, null)
+})
+function fuzz_01() {
+  document.execCommand("underline", false, null)
+  c.onend = fuzz_01
+  document.designMode = "on"
+}
+function fuzz_02() {
+  d.insertAdjacentElement("beforebegin", b)
+  a.appendChild(c)
+  h.clientTop
+  b.insertAdjacentHTML("afterend", f.innerHTML)
+}
+</script>
+<svg>
+<path id="a">
+<polygon id="b">
+<set id="c" onbegin="fuzz_02()" max="2s">
+<strong>
+<style id="d">
+</style>
+</strong>
+<time id="f">
+<form id="g">
+<output id="h" form="g">

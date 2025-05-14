@@ -6,17 +6,18 @@ use std::cell::Cell;
 
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use bitflags::bitflags;
-use constellation_traits::WindowSizeData;
+use constellation_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
+use constellation_traits::{
+    IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData, LoadOrigin,
+    NavigationHistoryBehavior, ScriptToConstellationMessage,
+};
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
+use embedder_traits::ViewportDetails;
+use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
 use net_traits::ReferrerPolicy;
 use profile_traits::ipc as ProfiledIpc;
-use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
-use script_traits::{
-    IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData, LoadOrigin,
-    NavigationHistoryBehavior, NewLayoutInfo, ScriptMsg, UpdatePipelineIdReason,
-};
+use script_traits::{NewLayoutInfo, UpdatePipelineIdReason};
 use servo_url::ServoUrl;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use stylo_atoms::Atom;
@@ -26,6 +27,8 @@ use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
+use crate::dom::bindings::codegen::UnionTypes::TrustedHTMLOrString;
+use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
@@ -39,6 +42,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{Node, NodeDamage, NodeTraits, UnbindContext};
+use crate::dom::trustedhtml::TrustedHTML;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::windowproxy::WindowProxy;
 use crate::script_runtime::CanGc;
@@ -161,8 +165,13 @@ impl HTMLIFrameElement {
         if load_data.url.scheme() == "javascript" {
             let window_proxy = self.GetContentWindow();
             if let Some(window_proxy) = window_proxy {
+                if document
+                    .global()
+                    .should_navigation_request_be_blocked(&load_data)
+                {
+                    return;
+                }
                 // Important re security. See https://github.com/servo/servo/issues/23373
-                // TODO: check according to https://w3c.github.io/webappsec-csp/#should-block-navigation-request
                 if ScriptThread::check_load_origin(&load_data.load_origin, &document.url().origin())
                 {
                     ScriptThread::eval_js_url(&window_proxy.global(), &mut load_data, can_gc);
@@ -196,12 +205,12 @@ impl HTMLIFrameElement {
             history_handling,
         };
 
-        let window_size = WindowSizeData {
-            initial_viewport: window
-                .get_iframe_size_if_known(browsing_context_id, can_gc)
-                .unwrap_or_default(),
-            device_pixel_ratio: window.device_pixel_ratio(),
-        };
+        let viewport_details = window
+            .get_iframe_viewport_details_if_known(browsing_context_id, can_gc)
+            .unwrap_or_else(|| ViewportDetails {
+                hidpi_scale_factor: window.device_pixel_ratio(),
+                ..Default::default()
+            });
 
         match pipeline_type {
             PipelineType::InitialAboutBlank => {
@@ -212,12 +221,12 @@ impl HTMLIFrameElement {
                     load_data: load_data.clone(),
                     old_pipeline_id,
                     sandbox: sandboxed,
-                    window_size,
+                    viewport_details,
                 };
                 window
                     .as_global_scope()
                     .script_to_constellation_chan()
-                    .send(ScriptMsg::ScriptNewIFrame(load_info))
+                    .send(ScriptToConstellationMessage::ScriptNewIFrame(load_info))
                     .unwrap();
 
                 let new_layout_info = NewLayoutInfo {
@@ -227,7 +236,7 @@ impl HTMLIFrameElement {
                     webview_id,
                     opener: None,
                     load_data,
-                    window_size,
+                    viewport_details,
                 };
 
                 self.pipeline_id.set(Some(new_pipeline_id));
@@ -239,12 +248,14 @@ impl HTMLIFrameElement {
                     load_data,
                     old_pipeline_id,
                     sandbox: sandboxed,
-                    window_size,
+                    viewport_details,
                 };
                 window
                     .as_global_scope()
                     .script_to_constellation_chan()
-                    .send(ScriptMsg::ScriptLoadedURLInIFrame(load_info))
+                    .send(ScriptToConstellationMessage::ScriptLoadedURLInIFrame(
+                        load_info,
+                    ))
                     .unwrap();
             },
         }
@@ -269,7 +280,9 @@ impl HTMLIFrameElement {
                 document.get_referrer_policy(),
                 Some(window.as_global_scope().is_secure_context()),
                 Some(document.insecure_requests_policy()),
+                document.has_trustworthy_ancestor_or_current_origin(),
             );
+            load_data.policy_container = Some(window.as_global_scope().policy_container());
             let element = self.upcast::<Element>();
             load_data.srcdoc = String::from(element.get_string_attribute(&local_name!("srcdoc")));
             self.navigate_or_reload_child_browsing_context(
@@ -352,7 +365,7 @@ impl HTMLIFrameElement {
             None
         };
 
-        let load_data = LoadData::new(
+        let mut load_data = LoadData::new(
             LoadOrigin::Script(document.origin().immutable().clone()),
             url,
             creator_pipeline_id,
@@ -360,6 +373,7 @@ impl HTMLIFrameElement {
             referrer_policy,
             Some(window.as_global_scope().is_secure_context()),
             Some(document.insecure_requests_policy()),
+            document.has_trustworthy_ancestor_or_current_origin(),
         );
 
         let pipeline_id = self.pipeline_id();
@@ -367,6 +381,10 @@ impl HTMLIFrameElement {
         // see https://html.spec.whatwg.org/multipage/#the-iframe-element:about:blank-3
         let is_about_blank =
             pipeline_id.is_some() && pipeline_id == self.about_blank_pipeline_id.get();
+
+        if is_about_blank {
+            load_data.policy_container = Some(window.as_global_scope().policy_container());
+        }
 
         let history_handling = if is_about_blank {
             NavigationHistoryBehavior::Replace
@@ -397,7 +415,7 @@ impl HTMLIFrameElement {
         let document = self.owner_document();
         let window = self.owner_window();
         let pipeline_id = Some(window.pipeline_id());
-        let load_data = LoadData::new(
+        let mut load_data = LoadData::new(
             LoadOrigin::Script(document.origin().immutable().clone()),
             url,
             pipeline_id,
@@ -405,7 +423,9 @@ impl HTMLIFrameElement {
             document.get_referrer_policy(),
             Some(window.as_global_scope().is_secure_context()),
             Some(document.insecure_requests_policy()),
+            document.has_trustworthy_ancestor_or_current_origin(),
         );
+        load_data.policy_container = Some(window.as_global_scope().policy_container());
         let browsing_context_id = BrowsingContextId::new();
         let webview_id = window.window_proxy().webview_id();
         self.pipeline_id.set(None);
@@ -578,13 +598,32 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
     make_url_setter!(SetSrc, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-srcdoc
-    make_getter!(Srcdoc, "srcdoc");
+    fn Srcdoc(&self) -> TrustedHTMLOrString {
+        let element = self.upcast::<Element>();
+        element.get_trusted_html_attribute(&local_name!("srcdoc"))
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-srcdoc
-    make_setter!(SetSrcdoc, "srcdoc");
+    fn SetSrcdoc(&self, value: TrustedHTMLOrString, can_gc: CanGc) -> Fallible<()> {
+        // Step 1: Let compliantString be the result of invoking the
+        // Get Trusted Type compliant string algorithm with TrustedHTML,
+        // this's relevant global object, the given value, "HTMLIFrameElement srcdoc", and "script".
+        let element = self.upcast::<Element>();
+        let local_name = &local_name!("srcdoc");
+        let value = TrustedHTML::get_trusted_script_compliant_string(
+            &element.owner_global(),
+            value,
+            "HTMLIFrameElement",
+            local_name,
+            can_gc,
+        )?;
+        // Step 2: Set an attribute value given this, srcdoc's local name, and compliantString.
+        element.set_attribute(local_name, AttrValue::String(value), can_gc);
+        Ok(())
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-sandbox
-    fn Sandbox(&self) -> DomRoot<DOMTokenList> {
+    fn Sandbox(&self, can_gc: CanGc) -> DomRoot<DOMTokenList> {
         self.sandbox.or_init(|| {
             DOMTokenList::new(
                 self.upcast::<Element>(),
@@ -597,7 +636,7 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
                     Atom::from("allow-scripts"),
                     Atom::from("allow-top-navigation"),
                 ]),
-                CanGc::note(),
+                can_gc,
             )
         })
     }
@@ -676,8 +715,10 @@ impl VirtualMethods for HTMLIFrameElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
         match *attr.local_name() {
             local_name!("sandbox") => {
                 self.sandbox_allowance
@@ -710,7 +751,7 @@ impl VirtualMethods for HTMLIFrameElement {
                 // trigger the processing of iframe attributes whenever "srcdoc" attribute is set, changed or removed
                 if self.upcast::<Node>().is_connected_with_browsing_context() {
                     debug!("iframe srcdoc modified while in browsing context.");
-                    self.process_the_iframe_attributes(ProcessingMode::NotFirstTime, CanGc::note());
+                    self.process_the_iframe_attributes(ProcessingMode::NotFirstTime, can_gc);
                 }
             },
             local_name!("src") => {
@@ -724,7 +765,7 @@ impl VirtualMethods for HTMLIFrameElement {
                 // the child browsing context to be created.
                 if self.upcast::<Node>().is_connected_with_browsing_context() {
                     debug!("iframe src set while in browsing context.");
-                    self.process_the_iframe_attributes(ProcessingMode::NotFirstTime, CanGc::note());
+                    self.process_the_iframe_attributes(ProcessingMode::NotFirstTime, can_gc);
                 }
             },
             _ => {},
@@ -761,8 +802,8 @@ impl VirtualMethods for HTMLIFrameElement {
         }
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
-        self.super_type().unwrap().unbind_from_tree(context);
+    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+        self.super_type().unwrap().unbind_from_tree(context, can_gc);
 
         let blocker = &self.load_blocker;
         LoadBlocker::terminate(blocker, CanGc::note());
@@ -780,7 +821,7 @@ impl VirtualMethods for HTMLIFrameElement {
         };
         debug!("Unbinding frame {}.", browsing_context_id);
 
-        let msg = ScriptMsg::RemoveIFrame(browsing_context_id, sender);
+        let msg = ScriptToConstellationMessage::RemoveIFrame(browsing_context_id, sender);
         window
             .as_global_scope()
             .script_to_constellation_chan()

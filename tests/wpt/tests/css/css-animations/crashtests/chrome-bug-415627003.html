@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/415627003">
+<style>
+  @keyframes --anim {
+    from {
+      text-size-adjust: calc(50% * sibling-index());
+    }
+    to {
+      text-size-adjust: calc(50%);
+    }
+  }
+  #target {
+    animation: --anim 2s;
+  }
+</style>
+<p>Pass if no crash</p>
+<div id="target"></div>

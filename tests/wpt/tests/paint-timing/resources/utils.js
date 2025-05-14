@@ -51,7 +51,7 @@ async function test_fcp(label, before_assert_fcp_func) {
     main.className = 'contentful';
     const entry = await assertFirstContentfulPaint(t);
     if ("paintTime" in entry) {
-      if ("presentationTime" in entry) {
+      if ("presentationTime" in entry && entry.presentationTime !== null) {
         assert_greater_than(entry.presentationTime, entry.paintTime);
         assert_equals(entry.startTime, entry.presentationTime);
       } else {

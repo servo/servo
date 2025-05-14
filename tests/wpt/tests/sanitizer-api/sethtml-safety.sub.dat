@@ -34,10 +34,19 @@ script
 |   "xxx"
 
 #data
-<img src="https://{{host}}/test-image" onclick="2+2" one="two">
+<a href="https://{{host}}/" onclick="2+2" one="two">
 #document
-| <img>
-|   src="https://{{host}}/test-image"
+| <a>
+|   href="https://{{host}}/"
+
+#data
+<a href="https://{{host}}/" onclick="2+2" one="two">
+#config
+{ "elements": ["a"], "attributes": ["href", "onclick", "one"]}
+#document
+| <a>
+|   href="https://{{host}}/"
+|   one="two"
 
 #data
 <img src="https://{{host}}/test-image" onclick="2+2" one="two">

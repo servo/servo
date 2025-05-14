@@ -192,7 +192,7 @@ ATTAcomm.prototype = {
 
         /* Loop strategy...
          *
-         * If the the step is a 'test' then push it into the pending queue as a promise
+         * If the step is a 'test' then push it into the pending queue as a promise
          *
          * If the step is anything else, then if there is anything in pending, wait on it
          * Once it resolves, clear the queue and then execute the other step.

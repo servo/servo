@@ -8,7 +8,7 @@ use crate::dom::bindings::codegen::Bindings::XRJointPoseBinding::XRJointPoseMeth
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::globalscope::GlobalScope;
+use crate::dom::window::Window;
 use crate::dom::xrpose::XRPose;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::ApiRigidTransform;
@@ -30,15 +30,15 @@ impl XRJointPose {
 
     #[allow(unsafe_code)]
     pub(crate) fn new(
-        global: &GlobalScope,
+        window: &Window,
         pose: ApiRigidTransform,
         radius: Option<f32>,
         can_gc: CanGc,
     ) -> DomRoot<XRJointPose> {
-        let transform = XRRigidTransform::new(global, pose, can_gc);
+        let transform = XRRigidTransform::new(window, pose, can_gc);
         reflect_dom_object(
             Box::new(XRJointPose::new_inherited(&transform, radius)),
-            global,
+            window,
             can_gc,
         )
     }

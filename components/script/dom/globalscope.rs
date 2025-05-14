@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Cow;
-use std::cell::{Cell, OnceCell};
+use std::cell::{Cell, OnceCell, Ref};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
 use std::ops::Index;
@@ -18,20 +17,26 @@ use base::id::{
     BlobId, BroadcastChannelRouterId, MessagePortId, MessagePortRouterId, PipelineId,
     ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
 };
-use content_security_policy::{CheckResult, CspList, PolicyDisposition};
+use constellation_traits::{
+    BlobData, BlobImpl, BroadcastMsg, FileBlob, LoadData, LoadOrigin, MessagePortImpl,
+    MessagePortMsg, PortMessageTask, ScriptToConstellationChan, ScriptToConstellationMessage,
+};
+use content_security_policy::{
+    CheckResult, CspList, Destination, Initiator, NavigationCheckType, ParserMetadata,
+    PolicyDisposition, PolicySource, Request, Violation, ViolationResource,
+};
 use crossbeam_channel::Sender;
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
-use embedder_traits::{
-    EmbedderMsg, GamepadEvent, GamepadSupportedHapticEffects, GamepadUpdateType,
-};
+use embedder_traits::EmbedderMsg;
+use http::HeaderMap;
+use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
 use js::jsapi::{
     Compile1, CurrentGlobalOrNull, GetNonCCWObjectGlobal, HandleObject, Heap,
-    InstantiateGlobalStencil, InstantiateOptions, JSContext, JSObject, JSScript, RuntimeCode,
-    SetScriptPrivate,
+    InstantiateGlobalStencil, InstantiateOptions, JSContext, JSObject, JSScript, SetScriptPrivate,
 };
 use js::jsval::{PrivateValue, UndefinedValue};
 use js::panic::maybe_resume_unwind;
@@ -55,16 +60,13 @@ use net_traits::{
     ResourceThreads, fetch_async,
 };
 use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
-use script_traits::serializable::{BlobData, BlobImpl, FileBlob};
-use script_traits::transferable::MessagePortImpl;
-use script_traits::{
-    BroadcastMsg, MessagePortMsg, PortMessageTask, ScriptMsg, ScriptToConstellationChan,
-};
+use script_bindings::interfaces::GlobalScopeHelpers;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use timers::{TimerEventId, TimerEventRequest, TimerSource};
+use url::Origin;
 use uuid::Uuid;
 #[cfg(feature = "webgpu")]
-use webgpu::{DeviceLostReason, WebGPUDevice};
+use webgpu_traits::{DeviceLostReason, WebGPUDevice};
 
 use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 #[cfg(feature = "webgpu")]
@@ -79,9 +81,7 @@ use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
     ImageBitmapOptions, ImageBitmapSource,
 };
-use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::NotificationBinding::NotificationPermissionCallback;
-use crate::dom::bindings::codegen::Bindings::PerformanceBinding::Performance_Binding::PerformanceMethods;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
     PermissionName, PermissionState,
 };
@@ -106,24 +106,25 @@ use crate::dom::crypto::Crypto;
 use crate::dom::dedicatedworkerglobalscope::{
     DedicatedWorkerControlMsg, DedicatedWorkerGlobalScope,
 };
+use crate::dom::element::Element;
 use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
-use crate::dom::gamepad::{Gamepad, contains_user_gesture};
-use crate::dom::gamepadevent::GamepadEventType;
 use crate::dom::htmlscriptelement::{ScriptId, SourceCode};
 use crate::dom::imagebitmap::ImageBitmap;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::messageport::MessagePort;
+use crate::dom::node::Node;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::Performance;
 use crate::dom::performanceobserver::VALID_ENTRY_TYPES;
 use crate::dom::promise::Promise;
-use crate::dom::readablestream::ReadableStream;
+use crate::dom::readablestream::{CrossRealmTransformReadable, ReadableStream};
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
+use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpudevice::GPUDevice;
@@ -132,6 +133,7 @@ use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
+use crate::dom::writablestream::CrossRealmTransformWritable;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
 use crate::network_listener::{NetworkListener, PreInvoke};
@@ -139,7 +141,7 @@ use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_module::{DynamicModuleList, ModuleScript, ModuleTree, ScriptFetchOptions};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, ThreadSafeJSContext};
 use crate::script_thread::{ScriptThread, with_script_thread};
-use crate::security_manager::CSPViolationReporter;
+use crate::security_manager::{CSPViolationReportBuilder, CSPViolationReportTask};
 use crate::task_manager::TaskManager;
 use crate::task_source::SendableTaskSource;
 use crate::timers::{
@@ -319,9 +321,6 @@ pub(crate) struct GlobalScope {
     #[allow(clippy::vec_box)]
     consumed_rejections: DomRefCell<Vec<Box<Heap<*mut JSObject>>>>,
 
-    /// An optional string allowing the user agent to be set for testing.
-    user_agent: Cow<'static, str>,
-
     /// Identity Manager for WebGPU resources
     #[ignore_malloc_size_of = "defined in wgpu"]
     #[no_trace]
@@ -456,8 +455,16 @@ pub(crate) struct ManagedMessagePort {
     /// and only add them, and ask the constellation to complete the transfer,
     /// in a subsequent task if the port hasn't been re-transfered.
     pending: bool,
-    /// Has the port been closed? If closed, it can be dropped and later GC'ed.
-    closed: bool,
+    /// Whether the port has been closed by script in this global,
+    /// so it can be removed.
+    explicitly_closed: bool,
+    /// Note: it may seem strange to use a pair of options, versus for example an enum.
+    /// But it looks like tranform streams will require both of those in their transfer.
+    /// This will be resolved when we reach that point of the implementation.
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
+    cross_realm_transform_readable: Option<CrossRealmTransformReadable>,
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
+    cross_realm_transform_writable: Option<CrossRealmTransformWritable>,
 }
 
 /// State representing whether this global is currently managing broadcast channels.
@@ -529,7 +536,7 @@ impl MessageListener {
                                 // If not managing any ports, no transfer can succeed,
                                 // so just send back everything.
                                 let _ = global.script_to_constellation_chan().send(
-                                    ScriptMsg::MessagePortTransferResult(None, vec![], ports),
+                                    ScriptToConstellationMessage::MessagePortTransferResult(None, vec![], ports),
                                 );
                                 return;
                             }
@@ -538,26 +545,39 @@ impl MessageListener {
                         let mut succeeded = vec![];
                         let mut failed = HashMap::new();
 
-                        for (id, buffer) in ports.into_iter() {
+                        for (id, info) in ports.into_iter() {
                             if global.is_managing_port(&id) {
                                 succeeded.push(id);
-                                global.complete_port_transfer(id, buffer);
+                                global.complete_port_transfer(
+                                    id,
+                                    info.port_message_queue,
+                                    info.disentangled,
+                                    CanGc::note()
+                                );
                             } else {
-                                failed.insert(id, buffer);
+                                failed.insert(id, info);
                             }
                         }
                         let _ = global.script_to_constellation_chan().send(
-                            ScriptMsg::MessagePortTransferResult(Some(router_id), succeeded, failed),
+                            ScriptToConstellationMessage::MessagePortTransferResult(Some(router_id), succeeded, failed),
                         );
                     })
                 );
             },
-            MessagePortMsg::CompletePendingTransfer(port_id, buffer) => {
+            MessagePortMsg::CompletePendingTransfer(port_id, info) => {
                 let context = self.context.clone();
                 self.task_source.queue(task!(complete_pending: move || {
                     let global = context.root();
-                    global.complete_port_transfer(port_id, buffer);
+                    global.complete_port_transfer(port_id, info.port_message_queue, info.disentangled, CanGc::note());
                 }));
+            },
+            MessagePortMsg::CompleteDisentanglement(port_id) => {
+                let context = self.context.clone();
+                self.task_source
+                    .queue(task!(try_complete_disentanglement: move || {
+                        let global = context.root();
+                        global.try_complete_disentanglement(port_id, CanGc::note());
+                    }));
             },
             MessagePortMsg::NewTask(port_id, task) => {
                 let context = self.context.clone();
@@ -565,14 +585,6 @@ impl MessageListener {
                     let global = context.root();
                     global.route_task_to_port(port_id, task, CanGc::note());
                 }));
-            },
-            MessagePortMsg::RemoveMessagePort(port_id) => {
-                let context = self.context.clone();
-                self.task_source
-                    .queue(task!(process_remove_message_port: move || {
-                        let global = context.root();
-                        global.note_entangled_port_removed(&port_id);
-                    }));
             },
         }
     }
@@ -720,7 +732,6 @@ impl GlobalScope {
         origin: MutableOrigin,
         creation_url: Option<ServoUrl>,
         microtask_queue: Rc<MicrotaskQueue>,
-        user_agent: Cow<'static, str>,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
         unminify_js: bool,
@@ -754,7 +765,6 @@ impl GlobalScope {
             event_source_tracker: DOMTracker::new(),
             uncaught_rejections: Default::default(),
             consumed_rejections: Default::default(),
-            user_agent,
             #[cfg(feature = "webgpu")]
             gpu_id_hub,
             #[cfg(feature = "webgpu")]
@@ -865,7 +875,13 @@ impl GlobalScope {
     }
 
     /// Complete the transfer of a message-port.
-    fn complete_port_transfer(&self, port_id: MessagePortId, tasks: VecDeque<PortMessageTask>) {
+    fn complete_port_transfer(
+        &self,
+        port_id: MessagePortId,
+        tasks: VecDeque<PortMessageTask>,
+        disentangled: bool,
+        can_gc: CanGc,
+    ) {
         let should_start = if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
@@ -879,6 +895,10 @@ impl GlobalScope {
                     }
                     if let Some(port_impl) = managed_port.port_impl.as_mut() {
                         port_impl.complete_transfer(tasks);
+                        if disentangled {
+                            port_impl.disentangle();
+                            managed_port.dom_port.disentangle();
+                        }
                         port_impl.enabled()
                     } else {
                         panic!("managed-port has no port-impl.");
@@ -889,7 +909,45 @@ impl GlobalScope {
             panic!("complete_port_transfer called for an unknown port.");
         };
         if should_start {
-            self.start_message_port(&port_id);
+            self.start_message_port(&port_id, can_gc);
+        }
+    }
+
+    /// The closing of `otherPort`, if it is in a different global.
+    /// <https://html.spec.whatwg.org/multipage/#disentangle>
+    fn try_complete_disentanglement(&self, port_id: MessagePortId, can_gc: CanGc) {
+        let dom_port = if let MessagePortState::Managed(_id, message_ports) =
+            &mut *self.message_port_state.borrow_mut()
+        {
+            let dom_port = if let Some(managed_port) = message_ports.get_mut(&port_id) {
+                if managed_port.pending {
+                    unreachable!("CompleteDisentanglement msg received for a pending port.");
+                }
+                let port_impl = managed_port
+                    .port_impl
+                    .as_mut()
+                    .expect("managed-port has no port-impl.");
+                port_impl.disentangle();
+                managed_port.dom_port.as_rooted()
+            } else {
+                // Note: this, and the other return below,
+                // can happen if the port has already been transferred out of this global,
+                // in which case the disentanglement will complete along with the transfer.
+                return;
+            };
+            dom_port
+        } else {
+            return;
+        };
+
+        // Fire an event named close at otherPort.
+        dom_port.upcast().fire_event(atom!("close"), can_gc);
+
+        let res = self.script_to_constellation_chan().send(
+            ScriptToConstellationMessage::DisentanglePorts(port_id, None),
+        );
+        if res.is_err() {
+            warn!("Sending DisentanglePorts failed");
         }
     }
 
@@ -921,9 +979,9 @@ impl GlobalScope {
         if let MessagePortState::Managed(router_id, _message_ports) =
             &*self.message_port_state.borrow()
         {
-            let _ = self
-                .script_to_constellation_chan()
-                .send(ScriptMsg::RemoveMessagePortRouter(*router_id));
+            let _ = self.script_to_constellation_chan().send(
+                ScriptToConstellationMessage::RemoveMessagePortRouter(*router_id),
+            );
         }
         *self.message_port_state.borrow_mut() = MessagePortState::UnManaged;
     }
@@ -934,14 +992,75 @@ impl GlobalScope {
         if let BroadcastChannelState::Managed(router_id, _channels) =
             &*self.broadcast_channel_state.borrow()
         {
-            let _ =
-                self.script_to_constellation_chan()
-                    .send(ScriptMsg::RemoveBroadcastChannelRouter(
-                        *router_id,
-                        self.origin().immutable().clone(),
-                    ));
+            let _ = self.script_to_constellation_chan().send(
+                ScriptToConstellationMessage::RemoveBroadcastChannelRouter(
+                    *router_id,
+                    self.origin().immutable().clone(),
+                ),
+            );
         }
         *self.broadcast_channel_state.borrow_mut() = BroadcastChannelState::UnManaged;
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#disentangle>
+    pub(crate) fn disentangle_port(&self, port: &MessagePort, can_gc: CanGc) {
+        let initiator_port = port.message_port_id();
+        // Let otherPort be the MessagePort which initiatorPort was entangled with.
+        let Some(other_port) = port.disentangle() else {
+            // Assert: otherPort exists.
+            // Note: ignoring the assert,
+            // because the streams spec seems to disentangle ports that are disentangled already.
+            return;
+        };
+
+        // Disentangle initiatorPort and otherPort, so that they are no longer entangled or associated with each other.
+        // Note: this is done in part here, and in part at the constellation(if otherPort is in another global).
+        let dom_port = if let MessagePortState::Managed(_id, message_ports) =
+            &mut *self.message_port_state.borrow_mut()
+        {
+            let mut dom_port = None;
+            for port_id in &[initiator_port, &other_port] {
+                match message_ports.get_mut(port_id) {
+                    None => {
+                        continue;
+                    },
+                    Some(managed_port) => {
+                        let port_impl = managed_port
+                            .port_impl
+                            .as_mut()
+                            .expect("managed-port has no port-impl.");
+                        managed_port.dom_port.disentangle();
+                        port_impl.disentangle();
+
+                        if **port_id == other_port {
+                            dom_port = Some(managed_port.dom_port.as_rooted())
+                        }
+                    },
+                }
+            }
+            dom_port
+        } else {
+            panic!("disentangle_port called on a global not managing any ports.");
+        };
+
+        // Fire an event named close at `otherPort`.
+        // Note: done here if the port is managed by the same global as `initialPort`.
+        if let Some(dom_port) = dom_port {
+            dom_port.upcast().fire_event(atom!("close"), can_gc);
+        }
+
+        let chan = self.script_to_constellation_chan().clone();
+        let initiator_port = *initiator_port;
+        self.task_manager()
+            .port_message_queue()
+            .queue(task!(post_message: move || {
+                // Note: we do this in a task to ensure it doesn't affect messages that are still to be routed,
+                // see the task queueing in `post_messageport_msg`.
+                let res = chan.send(ScriptToConstellationMessage::DisentanglePorts(initiator_port, Some(other_port)));
+                if res.is_err() {
+                    warn!("Sending DisentanglePorts failed");
+                }
+            }));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#entangle>
@@ -970,19 +1089,7 @@ impl GlobalScope {
 
         let _ = self
             .script_to_constellation_chan()
-            .send(ScriptMsg::EntanglePorts(port1, port2));
-    }
-
-    /// Note that the entangled port of `port_id` has been removed in another global.
-    pub(crate) fn note_entangled_port_removed(&self, port_id: &MessagePortId) {
-        // Note: currently this is a no-op,
-        // as we only use the `close` method to manage the local lifecyle of a port.
-        // This could be used as part of lifecyle management to determine a port can be GC'ed.
-        // See https://github.com/servo/servo/issues/25772
-        warn!(
-            "Entangled port of {:?} has been removed in another global",
-            port_id
-        );
+            .send(ScriptToConstellationMessage::EntanglePorts(port1, port2));
     }
 
     /// Handle the transfer of a port in the current task.
@@ -1002,7 +1109,7 @@ impl GlobalScope {
             port_impl.set_has_been_shipped();
             let _ = self
                 .script_to_constellation_chan()
-                .send(ScriptMsg::MessagePortShipped(*port_id));
+                .send(ScriptToConstellationMessage::MessagePortShipped(*port_id));
             port_impl
         } else {
             panic!("mark_port_as_transferred called on a global not managing any ports.");
@@ -1010,34 +1117,40 @@ impl GlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-start>
-    pub(crate) fn start_message_port(&self, port_id: &MessagePortId) {
-        if let MessagePortState::Managed(_id, message_ports) =
+    pub(crate) fn start_message_port(&self, port_id: &MessagePortId, can_gc: CanGc) {
+        let (message_buffer, dom_port) = if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
-            let message_buffer = match message_ports.get_mut(port_id) {
+            let (message_buffer, dom_port) = match message_ports.get_mut(port_id) {
                 None => panic!("start_message_port called on a unknown port."),
                 Some(managed_port) => {
                     if let Some(port_impl) = managed_port.port_impl.as_mut() {
-                        port_impl.start()
+                        (port_impl.start(), managed_port.dom_port.as_rooted())
                     } else {
                         panic!("managed-port has no port-impl.");
                     }
                 },
             };
-            if let Some(message_buffer) = message_buffer {
-                for task in message_buffer {
-                    let port_id = *port_id;
-                    let this = Trusted::new(self);
-                    self.task_manager().port_message_queue().queue(
-                        task!(process_pending_port_messages: move || {
-                            let target_global = this.root();
-                            target_global.route_task_to_port(port_id, task, CanGc::note());
-                        }),
-                    );
+            (message_buffer, dom_port)
+        } else {
+            return warn!("start_message_port called on a global not managing any ports.");
+        };
+        if let Some(message_buffer) = message_buffer {
+            for task in message_buffer {
+                self.route_task_to_port(*port_id, task, CanGc::note());
+            }
+            if dom_port.disentangled() {
+                // <https://html.spec.whatwg.org/multipage/#disentangle>
+                // Fire an event named close at otherPort.
+                dom_port.upcast().fire_event(atom!("close"), can_gc);
+
+                let res = self.script_to_constellation_chan().send(
+                    ScriptToConstellationMessage::DisentanglePorts(*port_id, None),
+                );
+                if res.is_err() {
+                    warn!("Sending DisentanglePorts failed");
                 }
             }
-        } else {
-            warn!("start_message_port called on a global not managing any ports.")
         }
     }
 
@@ -1051,7 +1164,7 @@ impl GlobalScope {
                 Some(managed_port) => {
                     if let Some(port_impl) = managed_port.port_impl.as_mut() {
                         port_impl.close();
-                        managed_port.closed = true;
+                        managed_port.explicitly_closed = true;
                     } else {
                         panic!("managed-port has no port-impl.");
                     }
@@ -1098,9 +1211,9 @@ impl GlobalScope {
     /// If we don't know about the port,
     /// send the message to the constellation for routing.
     fn re_route_port_task(&self, port_id: MessagePortId, task: PortMessageTask) {
-        let _ = self
-            .script_to_constellation_chan()
-            .send(ScriptMsg::RerouteMessagePort(port_id, task));
+        let _ = self.script_to_constellation_chan().send(
+            ScriptToConstellationMessage::RerouteMessagePort(port_id, task),
+        );
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-broadcastchannel-postmessage>
@@ -1116,9 +1229,9 @@ impl GlobalScope {
             //
             // Note: for globals in the same script-thread,
             // we could skip the hop to the constellation.
-            let _ = self
-                .script_to_constellation_chan()
-                .send(ScriptMsg::ScheduleBroadcast(*router_id, msg));
+            let _ = self.script_to_constellation_chan().send(
+                ScriptToConstellationMessage::ScheduleBroadcast(*router_id, msg),
+            );
         } else {
             panic!("Attemps to broadcast a message via global not managing any channels.");
         }
@@ -1212,13 +1325,64 @@ impl GlobalScope {
         }
     }
 
-    /// Route the task to be handled by the relevant port.
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
+    /// The "Add a handler for port’s message event with the following steps:"
+    /// and "Add a handler for port’s messageerror event with the following steps:" part.
+    pub(crate) fn note_cross_realm_transform_readable(
+        &self,
+        cross_realm_transform_readable: &CrossRealmTransformReadable,
+        port_id: &MessagePortId,
+    ) {
+        let MessagePortState::Managed(_id, message_ports) =
+            &mut *self.message_port_state.borrow_mut()
+        else {
+            unreachable!(
+                "Cross realm transform readable must be called on a global managing ports"
+            );
+        };
+
+        let Some(managed_port) = message_ports.get_mut(port_id) else {
+            unreachable!("Cross realm transform readable must match a managed port");
+        };
+
+        managed_port.cross_realm_transform_readable = Some(cross_realm_transform_readable.clone());
+    }
+
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
+    /// The "Add a handler for port’s message event with the following steps:"
+    /// and "Add a handler for port’s messageerror event with the following steps:" part.
+    pub(crate) fn note_cross_realm_transform_writable(
+        &self,
+        cross_realm_transform_writable: &CrossRealmTransformWritable,
+        port_id: &MessagePortId,
+    ) {
+        let MessagePortState::Managed(_id, message_ports) =
+            &mut *self.message_port_state.borrow_mut()
+        else {
+            unreachable!(
+                "Cross realm transform writable must be called on a global managing ports"
+            );
+        };
+
+        let Some(managed_port) = message_ports.get_mut(port_id) else {
+            unreachable!("Cross realm transform writable must match a managed port");
+        };
+
+        managed_port.cross_realm_transform_writable = Some(cross_realm_transform_writable.clone());
+    }
+
+    /// Custom routing logic, followed by the task steps of
+    /// <https://html.spec.whatwg.org/multipage/#message-port-post-message-steps>
     pub(crate) fn route_task_to_port(
         &self,
         port_id: MessagePortId,
         task: PortMessageTask,
         can_gc: CanGc,
     ) {
+        let cx = GlobalScope::get_cx();
+        rooted!(in(*cx) let mut cross_realm_transform_readable = None);
+        rooted!(in(*cx) let mut cross_realm_transform_writable = None);
+
         let should_dispatch = if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
@@ -1232,9 +1396,14 @@ impl GlobalScope {
                     // If the port is not enabled yet, or if is awaiting the completion of it's transfer,
                     // the task will be buffered and dispatched upon enablement or completion of the transfer.
                     if let Some(port_impl) = managed_port.port_impl.as_mut() {
-                        port_impl.handle_incoming(task).map(|to_dispatch| {
+                        let to_dispatch = port_impl.handle_incoming(task).map(|to_dispatch| {
                             (DomRoot::from_ref(&*managed_port.dom_port), to_dispatch)
-                        })
+                        });
+                        cross_realm_transform_readable
+                            .set(managed_port.cross_realm_transform_readable.clone());
+                        cross_realm_transform_writable
+                            .set(managed_port.cross_realm_transform_writable.clone());
+                        to_dispatch
                     } else {
                         panic!("managed-port has no port-impl.");
                     }
@@ -1244,24 +1413,93 @@ impl GlobalScope {
             self.re_route_port_task(port_id, task);
             return;
         };
+
+        // Add a task that runs the following steps to the port message queue of targetPort:
+        // Note: we are in the task, and running the relevant steps.
+
+        // Let finalTargetPort be the MessagePort in whose port message queue the task now finds itself.
         if let Some((dom_port, PortMessageTask { origin, data })) = should_dispatch {
-            // Substep 3-4
-            rooted!(in(*GlobalScope::get_cx()) let mut message_clone = UndefinedValue());
+            // Let messageEventTarget be finalTargetPort's message event target.
+            let message_event_target = dom_port.upcast();
+
+            // Let targetRealm be finalTargetPort's relevant realm.
+            // Done via the routing logic here and in the constellation: `self` is the target realm.
+
+            // Let messageClone be deserializeRecord.[[Deserialized]].
+            // Re-ordered because we need to pass it to `structuredclone::read`.
+            rooted!(in(*cx) let mut message_clone = UndefinedValue());
+
+            // Note: if this port is used to transfer a stream, we handle the events in Rust.
+            let has_cross_realm_tansform = cross_realm_transform_readable.is_some() ||
+                cross_realm_transform_writable.is_some();
+
+            let realm = enter_realm(self);
+            let comp = InRealm::Entered(&realm);
+
+            // Note: this is necessary, on top of entering the realm above,
+            // for the call to `GlobalScope::incumbent`,
+            // in `MessagePort::post_message_impl` to succeed.
+            let _aes = AutoEntryScript::new(self);
+
+            // Let deserializeRecord be StructuredDeserializeWithTransfer(serializeWithTransferResult, targetRealm).
+            // Let newPorts be a new frozen array
+            // consisting of all MessagePort objects in deserializeRecord.[[TransferredValues]],
+            // if any, maintaining their relative order.
+            // Note: both done in `structuredclone::read`.
             if let Ok(ports) = structuredclone::read(self, data, message_clone.handle_mut()) {
-                // Substep 6
-                // Dispatch the event, using the dom message-port.
-                MessageEvent::dispatch_jsval(
-                    dom_port.upcast(),
-                    self,
-                    message_clone.handle(),
-                    Some(&origin.ascii_serialization()),
-                    None,
-                    ports,
-                    can_gc,
-                );
+                // Add a handler for port’s message event with the following steps:
+                // from <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
+                if let Some(transform) = cross_realm_transform_readable.as_ref() {
+                    transform.handle_message(
+                        cx,
+                        self,
+                        &dom_port,
+                        message_clone.handle(),
+                        comp,
+                        can_gc,
+                    );
+                }
+
+                // Add a handler for port’s message event with the following steps:
+                // from <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
+                if let Some(transform) = cross_realm_transform_writable.as_ref() {
+                    transform.handle_message(cx, self, message_clone.handle(), comp, can_gc);
+                }
+
+                if !has_cross_realm_tansform {
+                    // Fire an event named message at messageEventTarget,
+                    // using MessageEvent,
+                    // with the data attribute initialized to messageClone
+                    // and the ports attribute initialized to newPorts.
+                    MessageEvent::dispatch_jsval(
+                        message_event_target,
+                        self,
+                        message_clone.handle(),
+                        Some(&origin.ascii_serialization()),
+                        None,
+                        ports,
+                        can_gc,
+                    );
+                }
             } else {
-                // Step 4, fire messageerror event.
-                MessageEvent::dispatch_error(dom_port.upcast(), self, can_gc);
+                // Add a handler for port’s messageerror event with the following steps:
+                // from <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
+                if let Some(transform) = cross_realm_transform_readable.as_ref() {
+                    transform.handle_error(cx, self, &dom_port, comp, can_gc);
+                }
+
+                // Add a handler for port’s messageerror event with the following steps:
+                // from <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
+                if let Some(transform) = cross_realm_transform_writable.as_ref() {
+                    transform.handle_error(cx, self, &dom_port, comp, can_gc);
+                }
+
+                if !has_cross_realm_tansform {
+                    // If this throws an exception, catch it,
+                    // fire an event named messageerror at messageEventTarget,
+                    // using MessageEvent, and then return.
+                    MessageEvent::dispatch_error(message_event_target, self, can_gc);
+                }
             }
         }
     }
@@ -1291,12 +1529,9 @@ impl GlobalScope {
                 }
                 managed_port.pending = false;
             }
-            let _ =
-                self.script_to_constellation_chan()
-                    .send(ScriptMsg::CompleteMessagePortTransfer(
-                        *router_id,
-                        to_be_added,
-                    ));
+            let _ = self.script_to_constellation_chan().send(
+                ScriptToConstellationMessage::CompleteMessagePortTransfer(*router_id, to_be_added),
+            );
         } else {
             warn!("maybe_add_pending_ports called on a global not managing any ports.");
         }
@@ -1310,12 +1545,7 @@ impl GlobalScope {
             let to_be_removed: Vec<MessagePortId> = message_ports
                 .iter()
                 .filter_map(|(id, managed_port)| {
-                    if managed_port.closed {
-                        // Let the constellation know to drop this port and the one it is entangled with,
-                        // and to forward this message to the script-process where the entangled is found.
-                        let _ = self
-                            .script_to_constellation_chan()
-                            .send(ScriptMsg::RemoveMessagePort(*id));
+                    if managed_port.explicitly_closed {
                         Some(*id)
                     } else {
                         None
@@ -1325,6 +1555,9 @@ impl GlobalScope {
             for id in to_be_removed {
                 message_ports.remove(&id);
             }
+            // Note: ports are only removed throught explicit closure by script in this global.
+            // TODO: #25772
+            // TODO: remove ports when we can be sure their port message queue is empty(via the constellation).
             message_ports.is_empty()
         } else {
             false
@@ -1345,7 +1578,7 @@ impl GlobalScope {
                 channels.retain(|chan| !chan.closed());
                 if channels.is_empty() {
                     let _ = self.script_to_constellation_chan().send(
-                        ScriptMsg::RemoveBroadcastChannelNameInRouter(
+                        ScriptToConstellationMessage::RemoveBroadcastChannelNameInRouter(
                             *router_id,
                             name.to_string(),
                             self.origin().immutable().clone(),
@@ -1387,19 +1620,19 @@ impl GlobalScope {
             );
             let router_id = BroadcastChannelRouterId::new();
             *current_state = BroadcastChannelState::Managed(router_id, HashMap::new());
-            let _ = self
-                .script_to_constellation_chan()
-                .send(ScriptMsg::NewBroadcastChannelRouter(
+            let _ = self.script_to_constellation_chan().send(
+                ScriptToConstellationMessage::NewBroadcastChannelRouter(
                     router_id,
                     broadcast_control_sender,
                     self.origin().immutable().clone(),
-                ));
+                ),
+            );
         }
 
         if let BroadcastChannelState::Managed(router_id, channels) = &mut *current_state {
             let entry = channels.entry(dom_channel.Name()).or_insert_with(|| {
                 let _ = self.script_to_constellation_chan().send(
-                    ScriptMsg::NewBroadcastChannelNameInRouter(
+                    ScriptToConstellationMessage::NewBroadcastChannelNameInRouter(
                         *router_id,
                         dom_channel.Name().to_string(),
                         self.origin().immutable().clone(),
@@ -1439,12 +1672,9 @@ impl GlobalScope {
             );
             let router_id = MessagePortRouterId::new();
             *current_state = MessagePortState::Managed(router_id, HashMapTracedValues::new());
-            let _ = self
-                .script_to_constellation_chan()
-                .send(ScriptMsg::NewMessagePortRouter(
-                    router_id,
-                    port_control_sender,
-                ));
+            let _ = self.script_to_constellation_chan().send(
+                ScriptToConstellationMessage::NewMessagePortRouter(router_id, port_control_sender),
+            );
         }
 
         if let MessagePortState::Managed(router_id, message_ports) = &mut *current_state {
@@ -1458,7 +1688,9 @@ impl GlobalScope {
                         port_impl: Some(port_impl),
                         dom_port: Dom::from_ref(dom_port),
                         pending: true,
-                        closed: false,
+                        explicitly_closed: false,
+                        cross_realm_transform_readable: None,
+                        cross_realm_transform_writable: None,
                     },
                 );
 
@@ -1480,15 +1712,17 @@ impl GlobalScope {
                         port_impl: Some(port_impl),
                         dom_port: Dom::from_ref(dom_port),
                         pending: false,
-                        closed: false,
+                        explicitly_closed: false,
+                        cross_realm_transform_readable: None,
+                        cross_realm_transform_writable: None,
                     },
                 );
-                let _ = self
-                    .script_to_constellation_chan()
-                    .send(ScriptMsg::NewMessagePort(
+                let _ = self.script_to_constellation_chan().send(
+                    ScriptToConstellationMessage::NewMessagePort(
                         *router_id,
                         *dom_port.message_port_id(),
-                    ));
+                    ),
+                );
             };
         } else {
             panic!("track_message_port should have first switched the state to managed.");
@@ -1589,12 +1823,8 @@ impl GlobalScope {
     /// In the case of a File-backed blob, this might incur synchronous read and caching.
     pub(crate) fn get_blob_bytes(&self, blob_id: &BlobId) -> Result<Vec<u8>, ()> {
         let parent = {
-            let blob_state = self.blob_state.borrow();
-            let blob_info = blob_state
-                .get(blob_id)
-                .expect("get_blob_bytes for an unknown blob.");
-            match blob_info.blob_impl.blob_data() {
-                BlobData::Sliced(parent, rel_pos) => Some((*parent, rel_pos.clone())),
+            match *self.get_blob_data(blob_id) {
+                BlobData::Sliced(parent, rel_pos) => Some((parent, rel_pos)),
                 _ => None,
             }
         };
@@ -1608,14 +1838,24 @@ impl GlobalScope {
         }
     }
 
+    /// Retrieve information about a specific blob from the blob store
+    ///
+    /// # Panics
+    /// This function panics if there is no blob with the given ID.
+    pub(crate) fn get_blob_data<'a>(&'a self, blob_id: &BlobId) -> Ref<'a, BlobData> {
+        Ref::map(self.blob_state.borrow(), |blob_state| {
+            blob_state
+                .get(blob_id)
+                .expect("get_blob_impl called for a unknown blob")
+                .blob_impl
+                .blob_data()
+        })
+    }
+
     /// Get bytes from a non-sliced blob
     fn get_blob_bytes_non_sliced(&self, blob_id: &BlobId) -> Result<Vec<u8>, ()> {
-        let blob_state = self.blob_state.borrow();
-        let blob_info = blob_state
-            .get(blob_id)
-            .expect("get_blob_bytes_non_sliced called for a unknown blob.");
-        match blob_info.blob_impl.blob_data() {
-            BlobData::File(f) => {
+        match *self.get_blob_data(blob_id) {
+            BlobData::File(ref f) => {
                 let (buffer, is_new_buffer) = match f.get_cache() {
                     Some(bytes) => (bytes, false),
                     None => {
@@ -1631,7 +1871,7 @@ impl GlobalScope {
 
                 Ok(buffer)
             },
-            BlobData::Memory(s) => Ok(s.clone()),
+            BlobData::Memory(ref s) => Ok(s.clone()),
             BlobData::Sliced(_, _) => panic!("This blob doesn't have a parent."),
         }
     }
@@ -1644,12 +1884,8 @@ impl GlobalScope {
     /// TODO: merge with `get_blob_bytes` by way of broader integration with blob streams.
     fn get_blob_bytes_or_file_id(&self, blob_id: &BlobId) -> BlobResult {
         let parent = {
-            let blob_state = self.blob_state.borrow();
-            let blob_info = blob_state
-                .get(blob_id)
-                .expect("get_blob_bytes_or_file_id for an unknown blob.");
-            match blob_info.blob_impl.blob_data() {
-                BlobData::Sliced(parent, rel_pos) => Some((*parent, rel_pos.clone())),
+            match *self.get_blob_data(blob_id) {
+                BlobData::Sliced(parent, rel_pos) => Some((parent, rel_pos)),
                 _ => None,
             }
         };
@@ -1674,16 +1910,12 @@ impl GlobalScope {
     /// tweaked for integration with streams.
     /// TODO: merge with `get_blob_bytes` by way of broader integration with blob streams.
     fn get_blob_bytes_non_sliced_or_file_id(&self, blob_id: &BlobId) -> BlobResult {
-        let blob_state = self.blob_state.borrow();
-        let blob_info = blob_state
-            .get(blob_id)
-            .expect("get_blob_bytes_non_sliced_or_file_id called for a unknown blob.");
-        match blob_info.blob_impl.blob_data() {
-            BlobData::File(f) => match f.get_cache() {
+        match *self.get_blob_data(blob_id) {
+            BlobData::File(ref f) => match f.get_cache() {
                 Some(bytes) => BlobResult::Bytes(bytes.clone()),
                 None => BlobResult::File(f.get_id(), f.get_size() as usize),
             },
-            BlobData::Memory(s) => BlobResult::Bytes(s.clone()),
+            BlobData::Memory(ref s) => BlobResult::Bytes(s.clone()),
             BlobData::Sliced(_, _) => panic!("This blob doesn't have a parent."),
         }
     }
@@ -1699,39 +1931,27 @@ impl GlobalScope {
 
     /// <https://w3c.github.io/FileAPI/#dfn-size>
     pub(crate) fn get_blob_size(&self, blob_id: &BlobId) -> u64 {
-        let blob_state = self.blob_state.borrow();
         let parent = {
-            let blob_info = blob_state
-                .get(blob_id)
-                .expect("get_blob_size called for a unknown blob.");
-            match blob_info.blob_impl.blob_data() {
-                BlobData::Sliced(parent, rel_pos) => Some((*parent, rel_pos.clone())),
+            match *self.get_blob_data(blob_id) {
+                BlobData::Sliced(parent, rel_pos) => Some((parent, rel_pos)),
                 _ => None,
             }
         };
         match parent {
             Some((parent_id, rel_pos)) => {
-                let parent_info = blob_state
-                    .get(&parent_id)
-                    .expect("Parent of blob whose size is unknown.");
-                let parent_size = match parent_info.blob_impl.blob_data() {
-                    BlobData::File(f) => f.get_size(),
-                    BlobData::Memory(v) => v.len() as u64,
+                let parent_size = match *self.get_blob_data(&parent_id) {
+                    BlobData::File(ref f) => f.get_size(),
+                    BlobData::Memory(ref v) => v.len() as u64,
                     BlobData::Sliced(_, _) => panic!("Blob ancestry should be only one level."),
                 };
                 rel_pos.to_abs_range(parent_size as usize).len() as u64
             },
-            None => {
-                let blob_info = blob_state
-                    .get(blob_id)
-                    .expect("Blob whose size is unknown.");
-                match blob_info.blob_impl.blob_data() {
-                    BlobData::File(f) => f.get_size(),
-                    BlobData::Memory(v) => v.len() as u64,
-                    BlobData::Sliced(_, _) => {
-                        panic!("It was previously checked that this blob does not have a parent.")
-                    },
-                }
+            None => match *self.get_blob_data(blob_id) {
+                BlobData::File(ref f) => f.get_size(),
+                BlobData::Memory(ref v) => v.len() as u64,
+                BlobData::Sliced(_, _) => {
+                    panic!("It was previously checked that this blob does not have a parent.")
+                },
             },
         }
     }
@@ -1747,7 +1967,7 @@ impl GlobalScope {
             blob_info.has_url = true;
 
             match blob_info.blob_impl.blob_data() {
-                BlobData::Sliced(parent, rel_pos) => Some((*parent, rel_pos.clone())),
+                BlobData::Sliced(parent, rel_pos) => Some((*parent, *rel_pos)),
                 _ => None,
             }
         };
@@ -1788,12 +2008,8 @@ impl GlobalScope {
         let origin = get_blob_origin(&self.get_url());
 
         let (tx, rx) = profile_ipc::channel(self.time_profiler_chan().clone()).unwrap();
-        let msg = FileManagerThreadMsg::AddSlicedURLEntry(
-            *parent_file_id,
-            rel_pos.clone(),
-            tx,
-            origin.clone(),
-        );
+        let msg =
+            FileManagerThreadMsg::AddSlicedURLEntry(*parent_file_id, *rel_pos, tx, origin.clone());
         self.send_to_file_manager(msg);
         match rx.recv().expect("File manager thread is down.") {
             Ok(new_id) => {
@@ -2137,8 +2353,8 @@ impl GlobalScope {
         unsafe { SafeJSContext::from_ptr(cx) }
     }
 
-    pub(crate) fn crypto(&self) -> DomRoot<Crypto> {
-        self.crypto.or_init(|| Crypto::new(self, CanGc::note()))
+    pub(crate) fn crypto(&self, can_gc: CanGc) -> DomRoot<Crypto> {
+        self.crypto.or_init(|| Crypto::new(self, can_gc))
     }
 
     pub(crate) fn live_devtools_updates(&self) -> bool {
@@ -2234,10 +2450,10 @@ impl GlobalScope {
     }
 
     pub(crate) fn send_to_embedder(&self, msg: EmbedderMsg) {
-        self.send_to_constellation(ScriptMsg::ForwardToEmbedder(msg));
+        self.send_to_constellation(ScriptToConstellationMessage::ForwardToEmbedder(msg));
     }
 
-    pub(crate) fn send_to_constellation(&self, msg: ScriptMsg) {
+    pub(crate) fn send_to_constellation(&self, msg: ScriptToConstellationMessage) {
         self.script_to_constellation_chan().send(msg).unwrap();
     }
 
@@ -2288,6 +2504,41 @@ impl GlobalScope {
             return worker.policy_container().to_owned();
         }
         unreachable!();
+    }
+
+    /// <https://www.w3.org/TR/CSP/#initialize-document-csp>
+    pub(crate) fn parse_csp_list_from_metadata(
+        headers: &Option<Serde<HeaderMap>>,
+    ) -> Option<CspList> {
+        // TODO: Implement step 1 (local scheme special case)
+        let headers = headers.as_ref()?;
+        let mut csp = headers.get_all("content-security-policy").iter();
+        // This silently ignores the CSP if it contains invalid Unicode.
+        // We should probably report an error somewhere.
+        let c = csp.next().and_then(|c| c.to_str().ok())?;
+        let mut csp_list = CspList::parse(c, PolicySource::Header, PolicyDisposition::Enforce);
+        for c in csp {
+            let c = c.to_str().ok()?;
+            csp_list.append(CspList::parse(
+                c,
+                PolicySource::Header,
+                PolicyDisposition::Enforce,
+            ));
+        }
+        let csp_report = headers
+            .get_all("content-security-policy-report-only")
+            .iter();
+        // This silently ignores the CSP if it contains invalid Unicode.
+        // We should probably report an error somewhere.
+        for c in csp_report {
+            let c = c.to_str().ok()?;
+            csp_list.append(CspList::parse(
+                c,
+                PolicySource::Header,
+                PolicyDisposition::Report,
+            ));
+        }
+        Some(csp_list)
     }
 
     /// Get the [base url](https://html.spec.whatwg.org/multipage/#api-base-url)
@@ -2394,6 +2645,21 @@ impl GlobalScope {
         }
         debug!("unsupported global, defaulting insecure requests policy to DoNotUpgrade");
         InsecureRequestsPolicy::DoNotUpgrade
+    }
+
+    /// Whether this document has ancestor navigables that are trustworthy
+    pub(crate) fn has_trustworthy_ancestor_origin(&self) -> bool {
+        self.downcast::<Window>()
+            .is_some_and(|window| window.Document().has_trustworthy_ancestor_origin())
+    }
+
+    // Whether this document has a trustworthy origin or has trustowrthy ancestor navigables
+    pub(crate) fn has_trustworthy_ancestor_or_current_origin(&self) -> bool {
+        self.downcast::<Window>().is_some_and(|window| {
+            window
+                .Document()
+                .has_trustworthy_ancestor_or_current_origin()
+        })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#report-the-error>
@@ -2659,35 +2925,43 @@ impl GlobalScope {
         }))
     }
 
-    #[allow(unsafe_code)]
-    pub(crate) fn is_js_evaluation_allowed(&self, cx: SafeJSContext) -> bool {
+    pub(crate) fn is_js_evaluation_allowed(&self, source: &str) -> bool {
         let Some(csp_list) = self.get_csp_list() else {
             return true;
         };
 
-        let scripted_caller = unsafe { describe_scripted_caller(*cx) }.unwrap_or_default();
-        let is_js_evaluation_allowed = csp_list.is_js_evaluation_allowed() == CheckResult::Allowed;
+        let (is_js_evaluation_allowed, violations) = csp_list.is_js_evaluation_allowed(source);
 
-        if !is_js_evaluation_allowed {
-            // FIXME: Don't fire event if `script-src` and `default-src`
-            // were not passed.
-            for policy in csp_list.0 {
-                let task = CSPViolationReporter::new(
-                    self,
-                    None,
-                    policy.disposition == PolicyDisposition::Report,
-                    RuntimeCode::JS,
-                    scripted_caller.filename.clone(),
-                    scripted_caller.line,
-                    scripted_caller.col,
-                );
-                self.task_manager()
-                    .dom_manipulation_task_source()
-                    .queue(task);
-            }
-        }
+        self.report_csp_violations(violations, None);
 
-        is_js_evaluation_allowed
+        is_js_evaluation_allowed == CheckResult::Allowed
+    }
+
+    pub(crate) fn should_navigation_request_be_blocked(&self, load_data: &LoadData) -> bool {
+        let Some(csp_list) = self.get_csp_list() else {
+            return false;
+        };
+        let request = Request {
+            url: load_data.url.clone().into_url(),
+            origin: match &load_data.load_origin {
+                LoadOrigin::Script(immutable_origin) => immutable_origin.clone().into_url_origin(),
+                _ => Origin::new_opaque(),
+            },
+            // TODO: populate this field correctly
+            redirect_count: 0,
+            destination: Destination::None,
+            initiator: Initiator::None,
+            nonce: "".to_owned(),
+            integrity_metadata: "".to_owned(),
+            parser_metadata: ParserMetadata::None,
+        };
+        // TODO: set correct navigation check type for form submission if applicable
+        let (result, violations) =
+            csp_list.should_navigation_request_be_blocked(&request, NavigationCheckType::Other);
+
+        self.report_csp_violations(violations, None);
+
+        result == CheckResult::Blocked
     }
 
     pub(crate) fn create_image_bitmap(
@@ -2696,7 +2970,7 @@ impl GlobalScope {
         options: &ImageBitmapOptions,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let in_realm_proof = AlreadyInRealm::assert();
+        let in_realm_proof = AlreadyInRealm::assert::<crate::DomTypeHolder>();
         let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
         if options.resizeWidth.is_some_and(|w| w == 0) {
             p.reject_error(Error::InvalidState, can_gc);
@@ -2716,15 +2990,11 @@ impl GlobalScope {
                     return p;
                 }
 
-                if let Some((data, size)) = canvas.fetch_all_data() {
-                    let data = data
-                        .map(|data| data.to_vec())
-                        .unwrap_or_else(|| vec![0; size.area() as usize * 4]);
-
+                if let Some(snapshot) = canvas.get_image_data() {
+                    let size = snapshot.size().cast();
                     let image_bitmap =
                         ImageBitmap::new(self, size.width, size.height, can_gc).unwrap();
-
-                    image_bitmap.set_bitmap_data(data);
+                    image_bitmap.set_bitmap_data(snapshot.to_vec());
                     image_bitmap.set_origin_clean(canvas.origin_is_clean());
                     p.resolve_native(&(image_bitmap), can_gc);
                 }
@@ -2737,14 +3007,11 @@ impl GlobalScope {
                     return p;
                 }
 
-                if let Some((data, size)) = canvas.fetch_all_data() {
-                    let data = data
-                        .map(|data| data.to_vec())
-                        .unwrap_or_else(|| vec![0; size.area() as usize * 4]);
-
+                if let Some(snapshot) = canvas.get_image_data() {
+                    let size = snapshot.size().cast();
                     let image_bitmap =
                         ImageBitmap::new(self, size.width, size.height, can_gc).unwrap();
-                    image_bitmap.set_bitmap_data(data);
+                    image_bitmap.set_bitmap_data(snapshot.to_vec());
                     image_bitmap.set_origin_clean(canvas.origin_is_clean());
                     p.resolve_native(&(image_bitmap), can_gc);
                 }
@@ -2920,10 +3187,6 @@ impl GlobalScope {
         );
     }
 
-    pub(crate) fn get_user_agent(&self) -> Cow<'static, str> {
-        self.user_agent.clone()
-    }
-
     pub(crate) fn get_https_state(&self) -> HttpsState {
         self.https_state.get()
     }
@@ -2952,10 +3215,10 @@ impl GlobalScope {
 
     /// <https://www.w3.org/TR/CSP/#get-csp-of-object>
     pub(crate) fn get_csp_list(&self) -> Option<CspList> {
-        if self.downcast::<Window>().is_some() {
+        if self.downcast::<Window>().is_some() || self.downcast::<WorkerGlobalScope>().is_some() {
             return self.policy_container().csp_list;
         }
-        // TODO: Worker and Worklet global scopes.
+        // TODO: Worklet global scopes.
         None
     }
 
@@ -2994,6 +3257,7 @@ impl GlobalScope {
         device: WebGPUDevice,
         reason: DeviceLostReason,
         msg: String,
+        can_gc: CanGc,
     ) {
         let reason = match reason {
             DeviceLostReason::Unknown => GPUDeviceLostReason::Unknown,
@@ -3007,7 +3271,7 @@ impl GlobalScope {
             .expect("GPUDevice should still be in devices hashmap")
             .root()
         {
-            device.lose(reason, msg, CanGc::note());
+            device.lose(reason, msg, can_gc);
         }
     }
 
@@ -3015,7 +3279,7 @@ impl GlobalScope {
     pub(crate) fn handle_uncaptured_gpu_error(
         &self,
         device: WebGPUDevice,
-        error: webgpu::Error,
+        error: webgpu_traits::Error,
         can_gc: CanGc,
     ) {
         if let Some(gpu_device) = self
@@ -3028,134 +3292,6 @@ impl GlobalScope {
         } else {
             warn!("Recived error for lost GPUDevice!")
         }
-    }
-
-    pub(crate) fn handle_gamepad_event(&self, gamepad_event: GamepadEvent) {
-        match gamepad_event {
-            GamepadEvent::Connected(index, name, bounds, supported_haptic_effects) => {
-                self.handle_gamepad_connect(
-                    index.0,
-                    name,
-                    bounds.axis_bounds,
-                    bounds.button_bounds,
-                    supported_haptic_effects,
-                );
-            },
-            GamepadEvent::Disconnected(index) => {
-                self.handle_gamepad_disconnect(index.0);
-            },
-            GamepadEvent::Updated(index, update_type) => {
-                self.receive_new_gamepad_button_or_axis(index.0, update_type);
-            },
-        };
-    }
-
-    /// <https://www.w3.org/TR/gamepad/#dfn-gamepadconnected>
-    fn handle_gamepad_connect(
-        &self,
-        // As the spec actually defines how to set the gamepad index, the GilRs index
-        // is currently unused, though in practice it will almost always be the same.
-        // More infra is currently needed to track gamepads across windows.
-        _index: usize,
-        name: String,
-        axis_bounds: (f64, f64),
-        button_bounds: (f64, f64),
-        supported_haptic_effects: GamepadSupportedHapticEffects,
-    ) {
-        // TODO: 2. If document is not null and is not allowed to use the "gamepad" permission,
-        //          then abort these steps.
-        let this = Trusted::new(self);
-        self.task_manager()
-            .gamepad_task_source()
-            .queue(task!(gamepad_connected: move || {
-                let global = this.root();
-
-                if let Some(window) = global.downcast::<Window>() {
-                    let navigator = window.Navigator();
-                    let selected_index = navigator.select_gamepad_index();
-                    let gamepad = Gamepad::new(
-                        &global,
-                        selected_index,
-                        name,
-                        "standard".into(),
-                        axis_bounds,
-                        button_bounds,
-                        supported_haptic_effects,
-                        false,
-                        CanGc::note(),
-                    );
-                    navigator.set_gamepad(selected_index as usize, &gamepad, CanGc::note());
-                }
-            }));
-    }
-
-    /// <https://www.w3.org/TR/gamepad/#dfn-gamepaddisconnected>
-    pub(crate) fn handle_gamepad_disconnect(&self, index: usize) {
-        let this = Trusted::new(self);
-        self.task_manager()
-            .gamepad_task_source()
-            .queue(task!(gamepad_disconnected: move || {
-                let global = this.root();
-                if let Some(window) = global.downcast::<Window>() {
-                    let navigator = window.Navigator();
-                    if let Some(gamepad) = navigator.get_gamepad(index) {
-                        if window.Document().is_fully_active() {
-                            gamepad.update_connected(false, gamepad.exposed(), CanGc::note());
-                            navigator.remove_gamepad(index);
-                        }
-                    }
-                }
-            }));
-    }
-
-    /// <https://www.w3.org/TR/gamepad/#receiving-inputs>
-    pub(crate) fn receive_new_gamepad_button_or_axis(
-        &self,
-        index: usize,
-        update_type: GamepadUpdateType,
-    ) {
-        let this = Trusted::new(self);
-
-        // <https://w3c.github.io/gamepad/#dfn-update-gamepad-state>
-        self.task_manager().gamepad_task_source().queue(
-                task!(update_gamepad_state: move || {
-                    let global = this.root();
-                    if let Some(window) = global.downcast::<Window>() {
-                        let navigator = window.Navigator();
-                        if let Some(gamepad) = navigator.get_gamepad(index) {
-                            let current_time = global.performance().Now();
-                            gamepad.update_timestamp(*current_time);
-                            match update_type {
-                                GamepadUpdateType::Axis(index, value) => {
-                                    gamepad.map_and_normalize_axes(index, value);
-                                },
-                                GamepadUpdateType::Button(index, value) => {
-                                    gamepad.map_and_normalize_buttons(index, value);
-                                }
-                            };
-                            if !navigator.has_gamepad_gesture() && contains_user_gesture(update_type) {
-                                navigator.set_has_gamepad_gesture(true);
-                                navigator.GetGamepads()
-                                    .iter()
-                                    .filter_map(|g| g.as_ref())
-                                    .for_each(|gamepad| {
-                                        gamepad.set_exposed(true);
-                                        gamepad.update_timestamp(*current_time);
-                                        let new_gamepad = Trusted::new(&**gamepad);
-                                        if window.Document().is_fully_active() {
-                                            global.task_manager().gamepad_task_source().queue(
-                                                task!(update_gamepad_connect: move || {
-                                                    let gamepad = new_gamepad.root();
-                                                    gamepad.notify_event(GamepadEventType::Connected, CanGc::note());
-                                                })
-                                            );
-                                        }
-                                });
-                            }
-                        }
-                    }
-                })
-            );
     }
 
     pub(crate) fn current_group_label(&self) -> Option<DOMString> {
@@ -3214,7 +3350,7 @@ impl GlobalScope {
 
         let data = structuredclone::write(cx, value, Some(guard))?;
 
-        structuredclone::read(self, data, retval).map_err(|_| Error::DataClone)?;
+        structuredclone::read(self, data, retval)?;
 
         Ok(())
     }
@@ -3299,6 +3435,86 @@ impl GlobalScope {
             .borrow_mut()
             .remove(&callback_id)
     }
+
+    pub(crate) fn trusted_types(&self, can_gc: CanGc) -> DomRoot<TrustedTypePolicyFactory> {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.TrustedTypes(can_gc);
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.TrustedTypes(can_gc);
+        }
+        unreachable!();
+    }
+
+    /// <https://www.w3.org/TR/CSP/#report-violation>
+    #[allow(unsafe_code)]
+    pub(crate) fn report_csp_violations(
+        &self,
+        violations: Vec<Violation>,
+        element: Option<&Element>,
+    ) {
+        let scripted_caller =
+            unsafe { describe_scripted_caller(*GlobalScope::get_cx()) }.unwrap_or_default();
+        for violation in violations {
+            let (sample, resource) = match violation.resource {
+                ViolationResource::Inline { sample } => (sample, "inline".to_owned()),
+                ViolationResource::Url(url) => (None, url.into()),
+                ViolationResource::TrustedTypePolicy { sample } => {
+                    (Some(sample), "trusted-types-policy".to_owned())
+                },
+                ViolationResource::TrustedTypeSink { sample } => {
+                    (Some(sample), "trusted-types-sink".to_owned())
+                },
+                ViolationResource::Eval { sample } => (sample, "eval".to_owned()),
+                ViolationResource::WasmEval => (None, "wasm-eval".to_owned()),
+            };
+            let report = CSPViolationReportBuilder::default()
+                .resource(resource)
+                .sample(sample)
+                .effective_directive(violation.directive.name)
+                .original_policy(violation.policy.to_string())
+                .report_only(violation.policy.disposition == PolicyDisposition::Report)
+                .source_file(scripted_caller.filename.clone())
+                .line_number(scripted_caller.line)
+                .column_number(scripted_caller.col + 1)
+                .build(self);
+            // Step 1: Let global be violation’s global object.
+            // We use `self` as `global`;
+            // Step 2: Let target be violation’s element.
+            let target = element.and_then(|event_target| {
+                // Step 3.1: If target is not null, and global is a Window,
+                // and target’s shadow-including root is not global’s associated Document, set target to null.
+                if let Some(window) = self.downcast::<Window>() {
+                    if !window
+                        .Document()
+                        .upcast::<Node>()
+                        .is_shadow_including_inclusive_ancestor_of(event_target.upcast())
+                    {
+                        return None;
+                    }
+                }
+                Some(event_target)
+            });
+            let target = match target {
+                // Step 3.2: If target is null:
+                None => {
+                    // Step 3.2.2: If target is a Window, set target to target’s associated Document.
+                    if let Some(window) = self.downcast::<Window>() {
+                        Trusted::new(window.Document().upcast())
+                    } else {
+                        // Step 3.2.1: Set target to violation’s global object.
+                        Trusted::new(self.upcast())
+                    }
+                },
+                Some(event_target) => Trusted::new(event_target.upcast()),
+            };
+            // Step 3: Queue a task to run the following steps:
+            let task = CSPViolationReportTask::new(Trusted::new(self), target, report);
+            self.task_manager()
+                .dom_manipulation_task_source()
+                .queue(task);
+        }
+    }
 }
 
 /// Returns the Rust global scope from a JS global object.
@@ -3328,28 +3544,6 @@ unsafe fn global_scope_from_global_static(global: *mut JSObject) -> DomRoot<Glob
     root_from_object_static(global).unwrap()
 }
 
-/// Operations that must be invoked from the generated bindings.
-#[allow(unsafe_code)]
-pub(crate) trait GlobalScopeHelpers<D: crate::DomTypes> {
-    unsafe fn from_context(cx: *mut JSContext, realm: InRealm) -> DomRoot<D::GlobalScope>;
-    fn get_cx() -> SafeJSContext;
-    unsafe fn from_object(obj: *mut JSObject) -> DomRoot<D::GlobalScope>;
-    fn from_reflector(reflector: &impl DomObject, realm: InRealm) -> DomRoot<D::GlobalScope>;
-
-    unsafe fn from_object_maybe_wrapped(
-        obj: *mut JSObject,
-        cx: *mut JSContext,
-    ) -> DomRoot<D::GlobalScope>;
-
-    fn origin(&self) -> &MutableOrigin;
-
-    fn incumbent() -> Option<DomRoot<D::GlobalScope>>;
-
-    fn perform_a_microtask_checkpoint(&self, can_gc: CanGc);
-
-    fn get_url(&self) -> ServoUrl;
-}
-
 #[allow(unsafe_code)]
 impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
     unsafe fn from_context(cx: *mut JSContext, realm: InRealm) -> DomRoot<Self> {
@@ -3368,10 +3562,6 @@ impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
         GlobalScope::from_reflector(reflector, realm)
     }
 
-    unsafe fn from_object_maybe_wrapped(obj: *mut JSObject, cx: *mut JSContext) -> DomRoot<Self> {
-        GlobalScope::from_object_maybe_wrapped(obj, cx)
-    }
-
     fn origin(&self) -> &MutableOrigin {
         GlobalScope::origin(self)
     }
@@ -3386,5 +3576,9 @@ impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
 
     fn get_url(&self) -> ServoUrl {
         self.get_url()
+    }
+
+    fn is_secure_context(&self) -> bool {
+        self.is_secure_context()
     }
 }

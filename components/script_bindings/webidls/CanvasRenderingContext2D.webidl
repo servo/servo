@@ -165,16 +165,16 @@ interface mixin CanvasDrawImage {
 interface mixin CanvasImageData {
   // pixel manipulation
   [Throws]
-  ImageData createImageData(long sw, long sh);
+  ImageData createImageData([EnforceRange] long sw, [EnforceRange] long sh);
   [Throws]
   ImageData createImageData(ImageData imagedata);
   [Throws]
-  ImageData getImageData(long sx, long sy, long sw, long sh);
-  undefined putImageData(ImageData imagedata, long dx, long dy);
-  undefined putImageData(ImageData imagedata,
-                    long dx, long dy,
-                    long dirtyX, long dirtyY,
-                    long dirtyWidth, long dirtyHeight);
+  ImageData getImageData([EnforceRange] long sx, [EnforceRange] long sy,
+                         [EnforceRange] long sw, [EnforceRange] long sh);
+  undefined putImageData(ImageData imagedata, [EnforceRange] long dx, [EnforceRange] long dy);
+  undefined putImageData(ImageData imagedata, [EnforceRange] long dx, [EnforceRange] long dy,
+                         [EnforceRange] long dirtyX, [EnforceRange] long dirtyY,
+                         [EnforceRange] long dirtyWidth, [EnforceRange] long dirtyHeight);
 };
 
 enum CanvasLineCap { "butt", "round", "square" };
@@ -191,9 +191,9 @@ interface mixin CanvasPathDrawingStyles {
   attribute unrestricted double miterLimit; // (default 10)
 
   // dashed lines
-  //void setLineDash(sequence<unrestricted double> segments); // default empty
-  //sequence<unrestricted double> getLineDash();
-  //attribute unrestricted double lineDashOffset;
+  undefined setLineDash(sequence<unrestricted double> segments); // default empty
+  sequence<unrestricted double> getLineDash();
+  attribute unrestricted double lineDashOffset;
 };
 
 interface mixin CanvasTextDrawingStyles {
@@ -254,7 +254,7 @@ interface CanvasPattern {
  Serializable]
 interface ImageData {
   [Throws] constructor(unsigned long sw, unsigned long sh/*, optional ImageDataSettings settings = {}*/);
-  [Throws] constructor(/* Uint8ClampedArray */ object data, unsigned long sw, optional unsigned long sh
+  [Throws] constructor(Uint8ClampedArray data, unsigned long sw, optional unsigned long sh
               /*, optional ImageDataSettings settings = {}*/);
 
   readonly attribute unsigned long width;

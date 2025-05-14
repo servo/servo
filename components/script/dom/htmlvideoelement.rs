@@ -5,9 +5,10 @@
 use std::cell::Cell;
 use std::sync::Arc;
 
+use content_security_policy as csp;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
-use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
+use html5ever::{LocalName, Prefix, local_name, ns};
 use ipc_channel::ipc;
 use js::rust::HandleObject;
 use net_traits::image_cache::{
@@ -232,8 +233,10 @@ impl HTMLVideoElement {
         .credentials_mode(CredentialsMode::Include)
         .use_url_credentials(true)
         .origin(document.origin().immutable().clone())
-        .pipeline_id(Some(document.global().pipeline_id()));
-
+        .pipeline_id(Some(document.global().pipeline_id()))
+        .insecure_requests_policy(document.insecure_requests_policy())
+        .has_trustworthy_ancestor_origin(document.has_trustworthy_ancestor_origin())
+        .policy_container(document.policy_container().to_owned());
         // Step 5.
         // This delay must be independent from the ones created by HTMLMediaElement during
         // its media load algorithm, otherwise a code like
@@ -305,8 +308,10 @@ impl VirtualMethods for HTMLVideoElement {
         Some(self.upcast::<HTMLMediaElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
 
         if attr.local_name() == &local_name!("poster") {
             if let Some(new_value) = mutation.new_value(attr) {
@@ -413,6 +418,11 @@ impl FetchResponseListener for PosterFrameFetchContext {
 
     fn submit_resource_timing(&mut self) {
         network_listener::submit_timing(self, CanGc::note())
+    }
+
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+        let global = &self.resource_timing_global();
+        global.report_csp_violations(violations, None);
     }
 }
 

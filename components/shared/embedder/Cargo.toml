@@ -12,7 +12,9 @@ name = "embedder_traits"
 path = "lib.rs"
 
 [features]
-webxr = ["dep:webxr-api"]
+# bakes default resources into the library.
+# This feature is mainly intended for testing purposes.
+baked-default-resources = []
 
 [dependencies]
 base = { workspace = true }
@@ -25,9 +27,9 @@ hyper_serde = { workspace = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
 log = { workspace = true }
-num-derive = "0.4"
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
+num-derive = "0.4"
 num-traits = { workspace = true }
 pixels = { path = "../../pixels" }
 serde = { workspace = true }
@@ -37,4 +39,3 @@ stylo_traits = { workspace = true }
 url = { workspace = true }
 webdriver = { workspace = true }
 webrender_api = { workspace = true }
-webxr-api = { workspace = true, features = ["ipc"], optional = true }

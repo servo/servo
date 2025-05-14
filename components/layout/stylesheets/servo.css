@@ -1,0 +1,259 @@
+button {
+    cursor: default;
+}
+
+button,
+input {
+  background: white;
+  border: solid lightgrey 1px;
+  color: black;
+  font-family: sans-serif;
+  font-size: 0.8333em;
+}
+
+textarea {
+  background: white;
+  border: solid lightgrey 1px;
+  color: black;
+  font-family: sans-serif;
+  font-size: 0.8333em;
+}
+
+input::selection,
+textarea::selection {
+  background: rgba(176, 214, 255, 1.0);
+  color: black;
+}
+
+button,
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+  background: lightgrey;
+  border-top: solid 1px #EEEEEE;
+  border-left: solid 1px #CCCCCC;
+  border-right: solid 1px #999999;
+  border-bottom: solid 1px #999999;
+  color: black;
+}
+
+input[type="hidden"] { display: none !important }
+
+input[type="checkbox"],
+input[type="radio"] {
+  font-family: monospace !important;
+  border: none !important;
+  background: transparent;
+}
+
+input[type="checkbox"]::before {
+  display: inline-block;
+  border: solid currentcolor 1px;
+  content: "";
+  padding: 0;
+  width: 1em;
+  height: 1em;
+  text-align: center;
+}
+
+input[type="checkbox"]:checked::before { content: "✓"; }
+input[type="checkbox"]:indeterminate::before { content: "-"; }
+
+input[type="radio"]::before {
+  display: inline-block;
+  border: solid currentcolor 1px;
+  content: "";
+  padding: 0;
+  width: 1em;
+  height: 1em;
+  border-radius: 50%;
+  text-align: center;
+}
+
+input[type="radio"]:checked::before { content: "●"; line-height: 1em; }
+
+input[type="file"]::before {
+  content: "Choose File";
+  background: lightgrey;
+  border-top: solid 1px #EEEEEE;
+  border-left: solid 1px #CCCCCC;
+  border-right: solid 1px #999999;
+  border-bottom: solid 1px #999999;
+}
+
+input[type="file"] {
+  text-align: center;
+  color: black;
+  border-style: none;
+}
+
+td[align="left"]    { text-align: left; }
+td[align="center"]  { text-align: center; }
+td[align="right"]   { text-align: right; }
+
+center { text-align: -moz-center; }
+
+label { cursor: default; }
+
+img {
+  overflow: clip !important;
+  overflow-clip-margin: 0 !important;
+}
+
+input:not([type=radio i]):not([type=checkbox i]):not([type=reset i]):not([type=button i]):not([type=submit i]) {
+  cursor: text;
+  overflow: hidden !important;
+  white-space: pre;
+}
+
+textarea {
+  cursor: text;
+  overflow: auto;
+}
+
+/* https://html.spec.whatwg.org/multipage/rendering.html#the-details-and-summary-elements */
+details {
+  display: block;
+}
+
+details::-servo-details-summary {
+  margin-left: 40px;
+  display: list-item;
+  list-style: disclosure-closed;
+}
+
+details[open]::-servo-details-summary {
+  list-style: disclosure-open;
+}
+
+*|*::-servo-details-content {
+  margin-left: 40px;
+  overflow: hidden;
+  display: block;
+}
+
+/*
+ * Until servo supports svg properly, make sure to at least prevent svg
+ * children from being layed out and rendered like usual html.
+ * https://github.com/servo/servo/issues/10646
+ */
+svg > * {
+  display: none;
+}
+
+*|*::-servo-anonymous-box {
+  unicode-bidi: inherit;
+  direction: inherit;
+  writing-mode: inherit;
+}
+
+*|*::-servo-anonymous-table {
+    display: table;
+}
+
+*|*::-servo-anonymous-table-row {
+    display: table-row;
+}
+
+*|*::-servo-anonymous-table-cell {
+    display: table-cell;
+}
+
+*|*::-servo-table-grid {
+  all: inherit;
+  margin: unset;
+  float: unset;
+  clear: unset;
+  position: unset;
+  z-index: unset;
+  page-break-before: unset;
+  page-break-after: unset;
+  page-break-inside: unset;
+  vertical-align: unset;
+  line-height: unset;
+  transform: unset;
+  transform-origin: unset;
+  backface-visibility: unset;
+  clip: unset;
+  transform-style: unset;
+  rotate: unset;
+  scale: unset;
+  translate: unset;
+  align-self: unset;
+  justify-self: unset;
+  grid-column-start: unset;
+  grid-column-end: unset;
+  grid-row-start: unset;
+  grid-row-end: unset;
+  order: unset;
+  outline: unset;
+  outline-offset: unset;
+  column-span: unset;
+  contain: unset;
+  container: unset;
+  scroll-margin: unset;
+
+  /* The grid needs to be block-level, so avoid inheriting `display: inline-table`. */
+  display: table;
+}
+
+meter {
+  display: inline-block;
+  width: 100px;
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(#e6e6e6, #e6e6e6, #eeeeee 20%, #cccccc 45%, #cccccc 55%);
+  overflow: clip;
+}
+
+/* FIXME: These should use the ::-moz-meter-bar pseudo element */
+meter div {
+  height: 100%;
+}
+
+meter:-moz-meter-optimum div {
+  background: linear-gradient(#ad7, #ad7, #cea 20%, #7a3 45%, #7a3 55%);
+}
+meter:-moz-meter-sub-optimum div {
+  background: linear-gradient(#fe7, #fe7, #ffc 20%, #db3 45%, #db3 55%);
+}
+meter:-moz-meter-sub-sub-optimum div {
+  background: linear-gradient(#f77, #f77, #fcc 20%, #d44 45%, #d44 55%);
+}
+
+/* https://html.spec.whatwg.org/#the-details-and-summary-elements */
+details, summary {
+  display: block;
+}
+details > summary:first-of-type {
+  display: list-item;
+  counter-increment: list-item 0;
+  list-style: disclosure-closed inside;
+}
+details[open] > summary:first-of-type {
+  list-style-type: disclosure-open;
+}
+
+/* Styles for the <progress> element */
+progress {
+  display: inline-block;
+  width: 200px;
+  height: 6px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.5);
+}
+/* FIXME: This should use ::-moz-progress-bar */
+progress #-servo-progress-bar {
+  display: block;
+  height: 100%;
+  background-color: #7a3;
+}
+
+select {
+  background-color: lightgrey;
+  border-radius: 5px;
+  border: 1px solid gray;
+  padding: 0 0.25em;
+  /* Don't show a text cursor when hovering selected option */
+  cursor: default;
+}

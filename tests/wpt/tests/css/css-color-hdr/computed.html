@@ -43,4 +43,6 @@ test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(dynamic-rang
                                            "dynamic-range-limit-mix(standard 15%, constrained 40%, no-limit 45%)");
 test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(no-limit 10%, dynamic-range-limit-mix(standard 25%, constrained 75%) 20%, dynamic-range-limit-mix(constrained 10%, no-limit 30%) 20%)",
                                            "dynamic-range-limit-mix(standard 10%, constrained 40%, no-limit 50%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(standard calc(50% * sign(10em - 1px)), constrained 50%)",
+                                           "dynamic-range-limit-mix(standard 50%, constrained 50%)");
 </script>

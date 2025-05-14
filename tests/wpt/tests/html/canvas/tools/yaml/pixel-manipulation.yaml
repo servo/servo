@@ -158,6 +158,69 @@
     @assert imgdata1.width === imgdata2.width;
     @assert imgdata1.height === imgdata2.height;
 
+- name: 2d.imageData.createImageBitmap.srgb.rgba.unorm8
+  desc: Verify round-trip of 8-bit sRGB data ImageData through ImageBitmap
+  attributes: '{colorSpace: "srgb", colorType:"float16"}'
+  test_type: promise
+  code: |
+    const expectedColor = [ 32, 64, 128, 255 ];
+    var imageData = new ImageData(10, 10, {colorSpace:"srgb", pixelFormat:"rgba-unorm8"});
+    for (let y = 0; y < imageData.height; ++y) {
+      for (let x = 0; x < imageData.width; ++x) {
+        for (let c = 0; c < 4; ++c) {
+          imageData.data[4*(x + y*imageData.width) + c] = expectedColor[c];
+        }
+      }
+    }
+    var bitmap = await createImageBitmap(imageData);
+    ctx.drawImage(bitmap, 0, 0);
+    var pixel = ctx.getImageData(0, 0, 1, 1, {colorSpace:"srgb", pixelFormat:"rgba-unorm8"});
+    for (let c = 0; c < 4; ++c) {
+      assert_approx_equals(pixel.data[c], expectedColor[c], 2);
+    }
+
+- name: 2d.imageData.createImageBitmap.srgb.rgba.float16
+  desc: Verify round-trip of 16-bit float sRGB data ImageData through ImageBitmap
+  attributes: '{colorSpace: "srgb", colorType:"float16"}'
+  test_type: promise
+  code: |
+    const expectedColor = [ 1.0, 2.0, -1.0, 1.0 ];
+    var imageData = new ImageData(10, 10, {colorSpace:"srgb", pixelFormat:"rgba-float16"});
+    for (let y = 0; y < imageData.height; ++y) {
+      for (let x = 0; x < imageData.width; ++x) {
+        for (let c = 0; c < 4; ++c) {
+          imageData.data[4*(x + y*imageData.width) + c] = expectedColor[c];
+        }
+      }
+    }
+    var bitmap = await createImageBitmap(imageData);
+    ctx.drawImage(bitmap, 0, 0);
+    var pixel = ctx.getImageData(0, 0, 1, 1, {colorSpace:"srgb", pixelFormat:"rgba-float16"});
+    for (let c = 0; c < 4; ++c) {
+      assert_approx_equals(pixel.data[c], expectedColor[c], 0.01);
+    }
+
+- name: 2d.imageData.createImageBitmap.p3.rgba.unorm8
+  desc: Verify round-trip of 8-bit P3 data ImageData through ImageBitmap
+  attributes: '{colorSpace: "srgb", colorType:"float16"}'
+  test_type: promise
+  code: |
+    const expectedColor = [ 255, 0, 0, 255 ];
+    var imageData = new ImageData(10, 10, {colorSpace:"display-p3", pixelFormat:"rgba-unorm8"});
+    for (let y = 0; y < imageData.height; ++y) {
+      for (let x = 0; x < imageData.width; ++x) {
+        for (let c = 0; c < 4; ++c) {
+          imageData.data[4*(x + y*imageData.width) + c] = expectedColor[c];
+        }
+      }
+    }
+    var bitmap = await createImageBitmap(imageData);
+    ctx.drawImage(bitmap, 0, 0);
+    var pixel = ctx.getImageData(0, 0, 1, 1, {colorSpace:"display-p3", pixelFormat:"rgba-unorm8"});
+    for (let c = 0; c < 4; ++c) {
+      assert_approx_equals(pixel.data[c], expectedColor[c], 2);
+    }
+
 - name: 2d.imageData.create.and.resize
   desc: Verify no crash when resizing an image bitmap to zero.
   canvas_types: ['HtmlCanvas']
@@ -482,6 +545,8 @@
     @assert typeof(imgdata.width) === 'number';
     @assert typeof(imgdata.height) === 'number';
     @assert typeof(imgdata.data) === 'object';
+    @assert typeof(imgdata.colorSpace) === 'string';
+    @assert typeof(imgdata.pixelFormat) === 'string';
 
 - name: 2d.imageData.object.readonly
   desc: ImageData objects properties are read-only
@@ -605,6 +670,69 @@
     if (window.SharedArrayBuffer) {
         @assert throws TypeError new ImageData(new Uint16Array(new SharedArrayBuffer(32)), 4, 2);
     }
+
+- name: 2d.imageData.object.ctor.pixelFormat
+  canvas_types: ['HtmlCanvas']
+  desc: Testing ImageData constructor pixelFormat behaviors
+  code: |
+    function setRGBA(imageData, i, rgba)
+    {
+        var s = i * 4;
+        imageData[s] = rgba[0];
+        imageData[s + 1] = rgba[1];
+        imageData[s + 2] = rgba[2];
+        imageData[s + 3] = rgba[3];
+    }
+
+    function getRGBA(imageData, i)
+    {
+        var result = [];
+        var s = i * 4;
+        for (var j = 0; j < 4; j++) {
+            result[j] = imageData[s + j];
+        }
+        return result;
+    }
+
+    function assertArrayEquals(actual, expected)
+    {
+        @assert typeof actual === "object";
+        @assert actual !== null;
+        @assert "length" in actual === true;
+        @assert actual.length === expected.length;
+        for (var i = 0; i < actual.length; i++) {
+            @assert actual.hasOwnProperty(i) === expected.hasOwnProperty(i);
+            @assert actual[i] === expected[i];
+        }
+    }
+
+    @assert ImageData !== undefined;
+    imageData = new ImageData(100, 50);
+    @assert imageData.pixelFormat === "rgba-unorm8";
+
+    imageData = new ImageData(100, 50, {pixelFormat:"rgba-float16"});
+    @assert imageData.pixelFormat === "rgba-float16";
+    var testColor = [0, -1, 0.5, 1024];
+    setRGBA(imageData.data, 4, testColor);
+    assertArrayEquals(getRGBA(imageData.data, 4), testColor);
+
+    data = new Float16Array(200);
+    imageData = new ImageData(data, 10, 5, {pixelFormat:"rgba-float16"});
+    @assert imageData.pixelFormat === "rgba-float16";
+    @assert imageData.data === data;
+    @assert throws INVALID_STATE_ERR new ImageData(data, 10, 5, {pixelFormat:"rgba-unorm8"});
+    @assert throws INVALID_STATE_ERR new ImageData(data, 10, 5);
+
+    data = new Uint8ClampedArray(200);
+    imageData = new ImageData(data, 10, 5);
+    @assert imageData.pixelFormat === "rgba-unorm8";
+    @assert imageData.data === data;
+    @assert throws INVALID_STATE_ERR new ImageData(data, 10, 5, {pixelFormat:"rgba-float16"});
+
+    @assert throws TypeError new ImageData(data, 10, 5, {pixelFormat:"unorm8"});
+    @assert throws TypeError new ImageData(data, 10, 5, {pixelFormat:"float16"});
+    @assert throws TypeError new ImageData(data, 10, 5, {pixelFormat:"rgba8unorm"});
+    @assert throws TypeError new ImageData(data, 10, 5, {pixelFormat:"rgba16float"});
 
 - name: 2d.imageData.object.ctor.array
   desc: ImageData has a usable constructor
@@ -775,6 +903,22 @@
     ctx.putImageData(imgdata, 0, 0);
     @assert pixel 50,25 ==~ 0,255,0,255;
   expected: green
+
+- name: 2d.imageData.put.basic.rgba.float16
+  desc: putImageData() puts 16-bit floating point image data from getImageData() onto the canvas
+  attributes: '{colorSpace: "srgb", colorType: "float16"}'
+  code: |
+    ctx.fillStyle = 'color(display-p3 1 0 0)';
+    ctx.fillRect(0, 0, 100, 50)
+    var imgdata = ctx.getImageData(0, 0, 100, 50, {colorSpace:"srgb", pixelFormat:"rgba-float16"});
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50)
+    ctx.putImageData(imgdata, 0, 0);
+    var pixel = ctx.getImageData(0, 0, 1, 1, {colorSpace:"display-p3", pixelFormat:"rgba-float16"});
+    assert_approx_equals(pixel.data[0], 1, 0.01);
+    assert_approx_equals(pixel.data[1], 0, 0.01);
+    assert_approx_equals(pixel.data[2], 0, 0.01);
+    assert_approx_equals(pixel.data[3], 1, 0.01);
 
 - name: 2d.imageData.put.created
   desc: putImageData() puts image data from createImageData() onto the canvas

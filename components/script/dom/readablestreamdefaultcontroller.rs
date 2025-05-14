@@ -383,7 +383,6 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
-    #[allow(unsafe_code)]
     pub(crate) fn setup(
         &self,
         stream: DomRoot<ReadableStream>,
@@ -540,7 +539,7 @@ impl ReadableStreamDefaultController {
         let realm = enter_realm(&*global);
         let comp = InRealm::Entered(&realm);
         let result = underlying_source
-            .call_pull_algorithm(controller, can_gc)
+            .call_pull_algorithm(controller, &global, can_gc)
             .unwrap_or_else(|| {
                 let promise = Promise::new(&global, can_gc);
                 promise.resolve_native(&(), can_gc);
@@ -563,6 +562,8 @@ impl ReadableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#rs-default-controller-private-cancel>
     pub(crate) fn perform_cancel_steps(
         &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
         reason: SafeHandleValue,
         can_gc: CanGc,
     ) -> Rc<Promise> {
@@ -573,24 +574,21 @@ impl ReadableStreamDefaultController {
             .underlying_source
             .get()
             .expect("Controller should have a source when the cancel steps are called into.");
-        let global = self.global();
-
         // Let result be the result of performing this.[[cancelAlgorithm]], passing reason.
         let result = underlying_source
-            .call_cancel_algorithm(reason, can_gc)
+            .call_cancel_algorithm(cx, global, reason, can_gc)
             .unwrap_or_else(|| {
-                let promise = Promise::new(&global, can_gc);
+                let promise = Promise::new(global, can_gc);
                 promise.resolve_native(&(), can_gc);
                 Ok(promise)
             });
         let promise = result.unwrap_or_else(|error| {
-            let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rval = UndefinedValue());
-            // TODO: check if `self.global()` is the right globalscope.
+
             error
                 .clone()
-                .to_jsval(cx, &self.global(), rval.handle_mut(), can_gc);
-            let promise = Promise::new(&global, can_gc);
+                .to_jsval(cx, global, rval.handle_mut(), can_gc);
+            let promise = Promise::new(global, can_gc);
             promise.reject_native(&rval.handle(), can_gc);
             promise
         });
@@ -812,7 +810,7 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-get-desired-size>
-    fn get_desired_size(&self) -> Option<f64> {
+    pub(crate) fn get_desired_size(&self) -> Option<f64> {
         let stream = self.stream.get()?;
 
         // If state is "errored", return null.
@@ -832,7 +830,7 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-can-close-or-enqueue>
-    fn can_close_or_enqueue(&self) -> bool {
+    pub(crate) fn can_close_or_enqueue(&self) -> bool {
         let Some(stream) = self.stream.get() else {
             return false;
         };
@@ -864,6 +862,13 @@ impl ReadableStreamDefaultController {
         self.clear_algorithms();
 
         stream.error(e, can_gc);
+    }
+
+    /// <https://streams.spec.whatwg.org/#rs-default-controller-has-backpressure>
+    pub(crate) fn has_backpressure(&self) -> bool {
+        // If ! ReadableStreamDefaultControllerShouldCallPull(controller) is true, return false.
+        // Otherwise, return true.
+        !self.should_call_pull()
     }
 }
 

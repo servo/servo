@@ -16,7 +16,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablestreambyobreader::ReadableStreamBYOBReader;
 use crate::dom::readablestreamdefaultreader::ReadableStreamDefaultReader;
-use crate::script_runtime::CanGc;
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 /// <https://streams.spec.whatwg.org/#readablestreamgenericreader>
 pub(crate) trait ReadableStreamGenericReader {
@@ -61,7 +61,13 @@ pub(crate) trait ReadableStreamGenericReader {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-reader-generic-cancel>
-    fn reader_generic_cancel(&self, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
+    fn reader_generic_cancel(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        reason: SafeHandleValue,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
         // Let stream be reader.[[stream]].
         let stream = self.get_stream();
 
@@ -70,11 +76,10 @@ pub(crate) trait ReadableStreamGenericReader {
             stream.expect("Reader should have a stream when generic cancel is called into.");
 
         // Return ! ReadableStreamCancel(stream, reason).
-        stream.cancel(reason, can_gc)
+        stream.cancel(cx, global, reason, can_gc)
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-reader-generic-release>
-    #[allow(unsafe_code)]
     fn generic_release(&self, can_gc: CanGc) -> Fallible<()> {
         // Let stream be reader.[[stream]].
 
@@ -135,6 +140,7 @@ pub(crate) trait ReadableStreamGenericReader {
     // <https://streams.spec.whatwg.org/#generic-reader-cancel>
     fn generic_cancel(
         &self,
+        cx: SafeJSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
         can_gc: CanGc,
@@ -147,7 +153,7 @@ pub(crate) trait ReadableStreamGenericReader {
             promise
         } else {
             // Return ! ReadableStreamReaderGenericCancel(this, reason).
-            self.reader_generic_cancel(reason, can_gc)
+            self.reader_generic_cancel(cx, global, reason, can_gc)
         }
     }
 

@@ -38,14 +38,14 @@ generate_fetch_test(kRequestWithValidSignature,
                     "Valid signature, same-origin: loads.");
 generate_fetch_test(kRequestWithValidSignature,
                     {
-                      host: get_host_info().REMOTE_HOST,
+                      origin: get_host_info().REMOTE_ORIGIN,
                       mode: "no-cors",
                     },
                     EXPECT_LOADED,
                     "Valid signature, cross-origin w/o cors, mode: no-cors: loads.");
 generate_fetch_test(kRequestWithValidSignature,
                     {
-                      host: get_host_info().REMOTE_HOST,
+                      origin: get_host_info().REMOTE_ORIGIN,
                       mode: "cors",
                     },
                     EXPECT_BLOCKED,
@@ -65,14 +65,14 @@ generate_fetch_test(kRequestWithValidSignatureAndCORS,
                     "Valid signature, same-origin w/ cors: loads.");
 generate_fetch_test(kRequestWithValidSignatureAndCORS,
                     {
-                      host: get_host_info().REMOTE_HOST,
+                      origin: get_host_info().REMOTE_ORIGIN,
                       mode: "no-cors",
                     },
                     EXPECT_LOADED,
                     "Valid signature, cross-origin w/ cors, mode: no-cors: loads.");
 generate_fetch_test(kRequestWithValidSignatureAndCORS,
                     {
-                      host: get_host_info().REMOTE_HOST,
+                      origin: get_host_info().REMOTE_ORIGIN,
                       mode: "cors",
                     },
                     EXPECT_LOADED,
@@ -91,14 +91,14 @@ generate_fetch_test(kRequestWithInvalidSignature,
                     "Invalid signature, same-origin: blocked.");
 generate_fetch_test(kRequestWithInvalidSignature,
                     {
-                      host: get_host_info().REMOTE_HOST,
+                      origin: get_host_info().REMOTE_ORIGIN,
                       mode: "no-cors",
                     },
                     EXPECT_BLOCKED,
                     "Invalid signature, cross-origin w/o cors, mode: no-cors: blocked.");
 generate_fetch_test(kRequestWithInvalidSignature,
                     {
-                      host: get_host_info().REMOTE_HOST,
+                      origin: get_host_info().REMOTE_ORIGIN,
                       mode: "cors",
                     },
                     EXPECT_BLOCKED,
@@ -118,14 +118,14 @@ generate_fetch_test(kRequestWithInvalidSignatureAndCORS,
                     "Invalid signature, same-origin w/ cors: blocked.");
 generate_fetch_test(kRequestWithInvalidSignatureAndCORS,
                     {
-                      host: get_host_info().REMOTE_HOST,
+                      origin: get_host_info().REMOTE_ORIGIN,
                       mode: "no-cors",
                     },
                     EXPECT_BLOCKED,
                     "Invalid signature, cross-origin w/ cors, mode: no-cors: blocked.");
 generate_fetch_test(kRequestWithInvalidSignatureAndCORS,
                     {
-                      host: get_host_info().REMOTE_HOST,
+                      origin: get_host_info().REMOTE_ORIGIN,
                       mode: "cors",
                     },
                     EXPECT_BLOCKED,

@@ -12,16 +12,16 @@ use canvas_traits::canvas::{
     FillRule, LineCapStyle, LineJoinStyle, LinearGradientStyle, PathSegment, RadialGradientStyle,
     RepetitionStyle, TextAlign, TextBaseline, TextMetrics as CanvasTextMetrics,
 };
+use constellation_traits::ScriptToConstellationMessage;
 use cssparser::color::clamp_unit_f32;
 use cssparser::{Parser, ParserInput};
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use euclid::vec2;
-use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::{self, IpcSender};
 use net_traits::image_cache::{ImageCache, ImageResponse};
 use net_traits::request::CorsSettings;
 use pixels::PixelFormat;
 use profile_traits::ipc as profiled_ipc;
-use script_traits::ScriptMsg;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::color::{AbsoluteColor, ColorFlags, ColorSpace};
 use style::context::QuirksMode;
@@ -36,6 +36,7 @@ use style_traits::{CssWriter, ParsingMode};
 use url::Url;
 use webrender_api::ImageKey;
 
+use crate::canvas_context::{OffscreenRenderingContext, RenderingContext};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
     CanvasDirection, CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,
@@ -52,10 +53,10 @@ use crate::dom::canvaspattern::CanvasPattern;
 use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::element::{Element, cors_setting_for_element};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlcanvaselement::{CanvasContext, HTMLCanvasElement};
+use crate::dom::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::imagedata::ImageData;
 use crate::dom::node::{Node, NodeTraits};
-use crate::dom::offscreencanvas::{OffscreenCanvas, OffscreenCanvasContext};
+use crate::dom::offscreencanvas::OffscreenCanvas;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::textmetrics::TextMetrics;
 use crate::script_runtime::CanGc;
@@ -94,6 +95,8 @@ pub(crate) struct CanvasContextState {
     #[no_trace]
     line_join: LineJoinStyle,
     miter_limit: f64,
+    line_dash: Vec<f64>,
+    line_dash_offset: f64,
     #[no_trace]
     transform: Transform2D<f32>,
     shadow_offset_x: f64,
@@ -134,6 +137,8 @@ impl CanvasContextState {
             text_align: Default::default(),
             text_baseline: Default::default(),
             direction: Default::default(),
+            line_dash: Vec::new(),
+            line_dash_offset: 0.0,
         }
     }
 }
@@ -148,6 +153,8 @@ pub(crate) struct CanvasState {
     canvas_id: CanvasId,
     #[no_trace]
     image_key: ImageKey,
+    #[no_trace]
+    size: Cell<Size2D<u64>>,
     state: DomRefCell<CanvasContextState>,
     origin_clean: Cell<bool>,
     #[ignore_malloc_size_of = "Arc"]
@@ -172,8 +179,11 @@ impl CanvasState {
             profiled_ipc::channel(global.time_profiler_chan().clone()).unwrap();
         let script_to_constellation_chan = global.script_to_constellation_chan();
         debug!("Asking constellation to create new canvas thread.");
+        let size = adjust_canvas_size(size);
         script_to_constellation_chan
-            .send(ScriptMsg::CreateCanvasPaintThread(size, sender))
+            .send(ScriptToConstellationMessage::CreateCanvasPaintThread(
+                size, sender,
+            ))
             .unwrap();
         let (ipc_renderer, canvas_id, image_key) = receiver.recv().unwrap();
         debug!("Done.");
@@ -188,6 +198,7 @@ impl CanvasState {
         CanvasState {
             ipc_renderer,
             canvas_id,
+            size: Cell::new(size),
             state: DomRefCell::new(CanvasContextState::new()),
             origin_clean: Cell::new(true),
             image_cache: global.image_cache(),
@@ -215,7 +226,15 @@ impl CanvasState {
         self.canvas_id
     }
 
+    pub(crate) fn is_paintable(&self) -> bool {
+        !self.size.get().is_empty()
+    }
+
     pub(crate) fn send_canvas_2d_msg(&self, msg: Canvas2dMsg) {
+        if !self.is_paintable() {
+            return;
+        }
+
         self.ipc_renderer
             .send(CanvasMsg::Canvas2d(msg, self.get_canvas_id()))
             .unwrap()
@@ -223,6 +242,10 @@ impl CanvasState {
 
     /// Updates WR image and blocks on completion
     pub(crate) fn update_rendering(&self) {
+        if !self.is_paintable() {
+            return;
+        }
+
         let (sender, receiver) = ipc::channel().unwrap();
         self.ipc_renderer
             .send(CanvasMsg::Canvas2d(
@@ -233,16 +256,27 @@ impl CanvasState {
         receiver.recv().unwrap();
     }
 
-    // https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions
+    /// <https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions>
     pub(crate) fn set_bitmap_dimensions(&self, size: Size2D<u64>) {
         self.reset_to_initial_state();
+
+        self.size.replace(adjust_canvas_size(size));
+
         self.ipc_renderer
-            .send(CanvasMsg::Recreate(Some(size), self.get_canvas_id()))
+            .send(CanvasMsg::Recreate(
+                Some(self.size.get()),
+                self.get_canvas_id(),
+            ))
             .unwrap();
     }
 
     pub(crate) fn reset(&self) {
         self.reset_to_initial_state();
+
+        if !self.is_paintable() {
+            return;
+        }
+
         self.ipc_renderer
             .send(CanvasMsg::Recreate(None, self.get_canvas_id()))
             .unwrap();
@@ -292,7 +326,7 @@ impl CanvasState {
         &self,
         url: ServoUrl,
         cors_setting: Option<CorsSettings>,
-    ) -> Option<(IpcSharedMemory, Size2D<u32>)> {
+    ) -> Option<snapshot::Snapshot> {
         let img = match self.request_image_from_cache(url, cors_setting) {
             ImageResponse::Loaded(img, _) => img,
             ImageResponse::PlaceholderLoaded(_, _) |
@@ -302,13 +336,22 @@ impl CanvasState {
             },
         };
 
-        let image_size = Size2D::new(img.width, img.height);
-        let image_data = match img.format {
-            PixelFormat::BGRA8 => img.bytes(),
+        let size = Size2D::new(img.width, img.height);
+        let format = match img.format {
+            PixelFormat::BGRA8 => snapshot::PixelFormat::BGRA,
+            PixelFormat::RGBA8 => snapshot::PixelFormat::RGBA,
             pixel_format => unimplemented!("unsupported pixel format ({:?})", pixel_format),
         };
+        let alpha_mode = snapshot::AlphaMode::Transparent {
+            premultiplied: false,
+        };
 
-        Some((image_data, image_size))
+        Some(snapshot::Snapshot::from_shared_memory(
+            size.cast(),
+            format,
+            alpha_mode,
+            img.bytes(),
+        ))
     }
 
     fn request_image_from_cache(
@@ -332,16 +375,18 @@ impl CanvasState {
 
     pub(crate) fn get_rect(&self, canvas_size: Size2D<u64>, rect: Rect<u64>) -> Vec<u8> {
         assert!(self.origin_is_clean());
-
         assert!(Rect::from_size(canvas_size).contains_rect(&rect));
 
-        let (sender, receiver) = ipc::bytes_channel().unwrap();
+        let (sender, receiver) = ipc::channel().unwrap();
         self.send_canvas_2d_msg(Canvas2dMsg::GetImageData(rect, canvas_size, sender));
-        let mut pixels = receiver.recv().unwrap().to_vec();
-
-        pixels::unmultiply_inplace::<true>(&mut pixels);
-
-        pixels
+        let mut snapshot = receiver.recv().unwrap().to_owned();
+        snapshot.transform(
+            snapshot::AlphaMode::Transparent {
+                premultiplied: false,
+            },
+            snapshot::PixelFormat::RGBA,
+        );
+        snapshot.to_vec()
     }
 
     ///
@@ -380,18 +425,22 @@ impl CanvasState {
         dw: Option<f64>,
         dh: Option<f64>,
     ) -> ErrorResult {
+        if !self.is_paintable() {
+            return Ok(());
+        }
+
         let result = match image {
             CanvasImageSource::HTMLCanvasElement(ref canvas) => {
-                // https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument
-                if !canvas.is_valid() {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                if canvas.get_size().is_empty() {
                     return Err(Error::InvalidState);
                 }
 
                 self.draw_html_canvas_element(canvas, htmlcanvas, sx, sy, sw, sh, dx, dy, dw, dh)
             },
             CanvasImageSource::OffscreenCanvas(ref canvas) => {
-                // https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument
-                if !canvas.is_valid() {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                if canvas.get_size().is_empty() {
                     return Err(Error::InvalidState);
                 }
 
@@ -474,7 +523,7 @@ impl CanvasState {
 
         if let Some(context) = canvas.context() {
             match *context {
-                OffscreenCanvasContext::OffscreenContext2d(ref context) => {
+                OffscreenRenderingContext::Context2d(ref context) => {
                     context.send_canvas_2d_msg(Canvas2dMsg::DrawImageInOther(
                         self.get_canvas_id(),
                         image_size,
@@ -510,11 +559,6 @@ impl CanvasState {
         dw: Option<f64>,
         dh: Option<f64>,
     ) -> ErrorResult {
-        // 1. Check the usability of the image argument
-        if !canvas.is_valid() {
-            return Err(Error::InvalidState);
-        }
-
         let canvas_size = canvas.get_size();
         let dw = dw.unwrap_or(canvas_size.width as f64);
         let dh = dh.unwrap_or(canvas_size.height as f64);
@@ -534,7 +578,7 @@ impl CanvasState {
 
         if let Some(context) = canvas.context() {
             match *context {
-                CanvasContext::Context2d(ref context) => {
+                RenderingContext::Context2d(ref context) => {
                     context.send_canvas_2d_msg(Canvas2dMsg::DrawImageInOther(
                         self.get_canvas_id(),
                         image_size,
@@ -543,12 +587,12 @@ impl CanvasState {
                         smoothing_enabled,
                     ));
                 },
-                CanvasContext::Placeholder(ref context) => {
+                RenderingContext::Placeholder(ref context) => {
                     let Some(context) = context.context() else {
                         return Err(Error::InvalidState);
                     };
                     match *context {
-                        OffscreenCanvasContext::OffscreenContext2d(ref context) => context
+                        OffscreenRenderingContext::Context2d(ref context) => context
                             .send_canvas_2d_msg(Canvas2dMsg::DrawImageInOther(
                                 self.get_canvas_id(),
                                 image_size,
@@ -588,10 +632,10 @@ impl CanvasState {
         dh: Option<f64>,
     ) -> ErrorResult {
         debug!("Fetching image {}.", url);
-        let (image_data, image_size) = self
+        let snapshot = self
             .fetch_image_data(url, cors_setting)
             .ok_or(Error::InvalidState)?;
-        let image_size = image_size.to_f64();
+        let image_size = snapshot.size().to_f64();
 
         let dw = dw.unwrap_or(image_size.width);
         let dh = dh.unwrap_or(image_size.height);
@@ -608,8 +652,7 @@ impl CanvasState {
 
         let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
         self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
-            image_data,
-            image_size,
+            snapshot.as_ipc(),
             dest_rect,
             source_rect,
             smoothing_enabled,
@@ -923,7 +966,7 @@ impl CanvasState {
         mut repetition: DOMString,
         can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<CanvasPattern>>> {
-        let (image_data, image_size) = match image {
+        let snapshot = match image {
             CanvasImageSource::HTMLImageElement(ref image) => {
                 // https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument
                 if !image.is_usable()? {
@@ -935,27 +978,17 @@ impl CanvasState {
                     .and_then(|url| {
                         self.fetch_image_data(url, cors_setting_for_element(image.upcast()))
                     })
-                    .map(|data| (data.0.to_vec(), data.1))
                     .ok_or(Error::InvalidState)?
             },
             CanvasImageSource::HTMLCanvasElement(ref canvas) => {
-                let (data, size) = canvas.fetch_all_data().ok_or(Error::InvalidState)?;
-                let data = data
-                    .map(|data| data.to_vec())
-                    .unwrap_or_else(|| vec![0; size.area() as usize * 4]);
-                (data, size)
+                canvas.get_image_data().ok_or(Error::InvalidState)?
             },
             CanvasImageSource::OffscreenCanvas(ref canvas) => {
-                let (data, size) = canvas.fetch_all_data().ok_or(Error::InvalidState)?;
-                let data = data
-                    .map(|data| data.to_vec())
-                    .unwrap_or_else(|| vec![0; size.area() as usize * 4]);
-                (data, size)
+                canvas.get_image_data().ok_or(Error::InvalidState)?
             },
             CanvasImageSource::CSSStyleValue(ref value) => value
                 .get_url(self.base_url.clone())
                 .and_then(|url| self.fetch_image_data(url, None))
-                .map(|data| (data.0.to_vec(), data.1))
                 .ok_or(Error::InvalidState)?,
         };
 
@@ -964,10 +997,11 @@ impl CanvasState {
         }
 
         if let Ok(rep) = RepetitionStyle::from_str(&repetition) {
+            let size = snapshot.size();
             Ok(Some(CanvasPattern::new(
                 global,
-                image_data,
-                image_size,
+                snapshot.to_vec(),
+                size.cast(),
                 rep,
                 self.is_origin_clean(image),
                 can_gc,
@@ -1286,6 +1320,59 @@ impl CanvasState {
         self.send_canvas_2d_msg(Canvas2dMsg::SetMiterLimit(limit as f32))
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-getlinedash>
+    pub(crate) fn line_dash(&self) -> Vec<f64> {
+        // > return a sequence whose values are the values of
+        // > the object's dash list, in the same order.
+        self.state.borrow().line_dash.clone()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-setlinedash>
+    pub(crate) fn set_line_dash(&self, segments: Vec<f64>) {
+        // > If any value in segments is not finite (e.g. an Infinity or a NaN value),
+        // > or if any value is negative (less than zero), then return (without throwing
+        // > an exception; user agents could show a message on a developer console,
+        // > though, as that would be helpful for debugging).
+        if segments
+            .iter()
+            .any(|segment| !segment.is_finite() || *segment < 0.0)
+        {
+            return;
+        }
+
+        // > If the number of elements in segments is odd, then let segments
+        // > be the concatenation of two copies of segments.
+        let mut line_dash: Vec<_> = segments.clone();
+        if segments.len() & 1 == 1 {
+            line_dash.extend(line_dash.clone());
+        }
+
+        // > Let the object's dash list be segments.
+        self.state.borrow_mut().line_dash = line_dash.clone();
+        self.send_canvas_2d_msg(Canvas2dMsg::SetLineDash(
+            line_dash.into_iter().map(|dash| dash as f32).collect(),
+        ))
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-linedashoffset>
+    pub(crate) fn line_dash_offset(&self) -> f64 {
+        // > On getting, it must return the current value.
+        self.state.borrow().line_dash_offset
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-linedashoffset?
+    pub(crate) fn set_line_dash_offset(&self, offset: f64) {
+        // > On setting, infinite and NaN values must be ignored,
+        // > leaving the value unchanged;
+        if !offset.is_finite() {
+            return;
+        }
+
+        // > other values must change the current value to the new value.
+        self.state.borrow_mut().line_dash_offset = offset;
+        self.send_canvas_2d_msg(Canvas2dMsg::SetLineDashOffset(offset as f32));
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
     pub(crate) fn create_image_data(
         &self,
@@ -1342,13 +1429,13 @@ impl CanvasState {
             },
         };
 
-        ImageData::new(
-            global,
-            size.width,
-            size.height,
-            Some(self.get_rect(canvas_size, read_rect)),
-            can_gc,
-        )
+        let data = if self.is_paintable() {
+            Some(self.get_rect(canvas_size, read_rect))
+        } else {
+            None
+        };
+
+        ImageData::new(global, size.width, size.height, data, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
@@ -1384,6 +1471,10 @@ impl CanvasState {
         dirty_width: i32,
         dirty_height: i32,
     ) {
+        if !self.is_paintable() {
+            return;
+        }
+
         // FIXME(nox): There are many arithmetic operations here that can
         // overflow or underflow, this should probably be audited.
 
@@ -1951,4 +2042,24 @@ where
         style.font_size.to_css_string(),
         style.font_family.to_css_string()
     )
+}
+
+fn adjust_canvas_size(size: Size2D<u64>) -> Size2D<u64> {
+    // Firefox limits width/height to 32767 pixels and Chromium to 65535 pixels,
+    // but slows down dramatically before it reaches that limit.
+    // We limit by area instead, giving us larger maximum dimensions,
+    // in exchange for a smaller maximum canvas size.
+    const MAX_CANVAS_AREA: u64 = 32768 * 8192;
+    // Max width/height to 65535 in CSS pixels.
+    const MAX_CANVAS_SIZE: u64 = 65535;
+
+    if !size.is_empty() &&
+        size.greater_than(Size2D::new(MAX_CANVAS_SIZE, MAX_CANVAS_SIZE))
+            .none() &&
+        size.area() < MAX_CANVAS_AREA
+    {
+        size
+    } else {
+        Size2D::zero()
+    }
 }

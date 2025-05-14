@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/invoker-utils.js"></script>
+<script src="/html/semantics/popovers/resources/popover-utils.js"></script>
+
+<button id=el interesttarget=target>Button</button>
+<div id=target popover>Popover with <button id=contained>button</button></div>
+<button id=otherbutton>Other button</button>
+
+<style>
+  [interesttarget] {
+    interest-target-delay: 0s;
+  }
+</style>
+
+<script>
+  promise_test(async function (t) {
+    let interestCount = 0;
+    let loseInterestCount = 0;
+    target.addEventListener('interest',(e) => ++interestCount);
+    target.addEventListener('loseinterest',(e) => ++loseInterestCount);
+    assert_false(target.matches(':popover-open'));
+    await focusOn(el);
+    assert_equals(document.activeElement,el);
+    assert_true(target.matches(':popover-open'),'Focusing should trigger interest');
+    assert_equals(interestCount,1);
+    assert_equals(loseInterestCount,0);
+    await sendShowInterestHotkey();
+    assert_equals(document.activeElement,contained);
+    assert_true(target.matches(':popover-open'),'Moving focus into popover should not lose interest');
+    assert_equals(interestCount,1);
+    assert_equals(loseInterestCount,0);
+    await sendTab();
+    assert_equals(document.activeElement,otherbutton);
+    assert_false(target.matches(':popover-open'),'Moving focus out of popover and invoker should lose interest');
+    assert_equals(interestCount,1);
+    assert_equals(loseInterestCount,1);
+  },'It should be possible to move focus into target popover');
+</script>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - grid column-rule-color and row-rule-color.</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<link rel=match href="forced-colors-mode-55-ref.html">
+<style>
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    height: 320px;
+    width: 320px;
+    row-rule-style: dotted;
+    column-rule-style: solid;
+    row-rule-color: rgb(0, 0, 255);
+    column-rule-color: rgb(0, 0, 255);
+  }
+
+  .grid-item {
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<p>
+    The grid's column-rule-color and row-rule-color should be blue
+    when forced colors mode is off and CanvasText in forced colors mode.
+</p>
+<div class="grid">
+  <div class="grid-item"></div>
+  <div class="grid-item"></div>
+  <div class="grid-item"></div>
+  <div class="grid-item"></div>
+  <div class="grid-item"></div>
+</div>

@@ -1023,12 +1023,12 @@ subsetTest(promise_test, async test => {
     }],
     adComponents: [
       {
-        renderUrl: componentURL1,
+        renderURL: componentURL1,
         sizeGroup: 'flexible',
         creativeScanningMetadata: 'c1'
       },
       {
-        renderUrl: componentURL2,
+        renderURL: componentURL2,
         sizeGroup: 'flexible',
         creativeScanningMetadata: 'c2'
       }

@@ -15,7 +15,6 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::dompointreadonly::DOMPointReadOnly;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::script_runtime::{CanGc, JSContext};
@@ -40,12 +39,12 @@ impl XRRay {
     }
 
     fn new(
-        global: &GlobalScope,
+        window: &Window,
         proto: Option<HandleObject>,
         ray: Ray<ApiSpace>,
         can_gc: CanGc,
     ) -> DomRoot<XRRay> {
-        reflect_dom_object_with_proto(Box::new(XRRay::new_inherited(ray)), global, proto, can_gc)
+        reflect_dom_object_with_proto(Box::new(XRRay::new_inherited(ray)), window, proto, can_gc)
     }
 
     pub(crate) fn ray(&self) -> Ray<ApiSpace> {
@@ -82,12 +81,7 @@ impl XRRayMethods<crate::DomTypeHolder> for XRRay {
         )
         .normalize();
 
-        Ok(Self::new(
-            &window.global(),
-            proto,
-            Ray { origin, direction },
-            can_gc,
-        ))
+        Ok(Self::new(window, proto, Ray { origin, direction }, can_gc))
     }
 
     /// <https://immersive-web.github.io/hit-test/#dom-xrray-xrray-transform>
@@ -103,12 +97,7 @@ impl XRRayMethods<crate::DomTypeHolder> for XRRay {
             .rotation
             .transform_vector3d(Vector3D::new(0., 0., -1.));
 
-        Ok(Self::new(
-            &window.global(),
-            proto,
-            Ray { origin, direction },
-            can_gc,
-        ))
+        Ok(Self::new(window, proto, Ray { origin, direction }, can_gc))
     }
 
     /// <https://immersive-web.github.io/hit-test/#dom-xrray-origin>

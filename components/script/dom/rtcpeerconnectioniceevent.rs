@@ -12,11 +12,10 @@ use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionIceEventBinding::{
 };
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::rtcicecandidate::RTCIceCandidate;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
@@ -41,18 +40,18 @@ impl RTCPeerConnectionIceEvent {
     }
 
     pub(crate) fn new(
-        global: &GlobalScope,
+        window: &Window,
         ty: Atom,
         candidate: Option<&RTCIceCandidate>,
         url: Option<DOMString>,
         trusted: bool,
         can_gc: CanGc,
     ) -> DomRoot<RTCPeerConnectionIceEvent> {
-        Self::new_with_proto(global, None, ty, candidate, url, trusted, can_gc)
+        Self::new_with_proto(window, None, ty, candidate, url, trusted, can_gc)
     }
 
     fn new_with_proto(
-        global: &GlobalScope,
+        window: &Window,
         proto: Option<HandleObject>,
         ty: Atom,
         candidate: Option<&RTCIceCandidate>,
@@ -62,7 +61,7 @@ impl RTCPeerConnectionIceEvent {
     ) -> DomRoot<RTCPeerConnectionIceEvent> {
         let e = reflect_dom_object_with_proto(
             Box::new(RTCPeerConnectionIceEvent::new_inherited(candidate, url)),
-            global,
+            window,
             proto,
             can_gc,
         );
@@ -83,7 +82,7 @@ impl RTCPeerConnectionIceEventMethods<crate::DomTypeHolder> for RTCPeerConnectio
         init: &RTCPeerConnectionIceEventInit,
     ) -> Fallible<DomRoot<RTCPeerConnectionIceEvent>> {
         Ok(RTCPeerConnectionIceEvent::new_with_proto(
-            &window.global(),
+            window,
             proto,
             ty.into(),
             init.candidate

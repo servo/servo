@@ -18,6 +18,9 @@ use crate::dom::csssupportsrule::CSSSupportsRule;
 #[dom_struct]
 pub(crate) struct CSSConditionRule {
     cssgroupingrule: CSSGroupingRule,
+    #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
+    rules: Arc<Locked<StyleCssRules>>,
 }
 
 impl CSSConditionRule {
@@ -26,7 +29,8 @@ impl CSSConditionRule {
         rules: Arc<Locked<StyleCssRules>>,
     ) -> CSSConditionRule {
         CSSConditionRule {
-            cssgroupingrule: CSSGroupingRule::new_inherited(parent_stylesheet, rules),
+            cssgroupingrule: CSSGroupingRule::new_inherited(parent_stylesheet),
+            rules,
         }
     }
 
@@ -36,6 +40,10 @@ impl CSSConditionRule {
 
     pub(crate) fn shared_lock(&self) -> &SharedRwLock {
         self.cssgroupingrule.shared_lock()
+    }
+
+    pub(crate) fn clone_rules(&self) -> Arc<Locked<StyleCssRules>> {
+        self.rules.clone()
     }
 }
 
