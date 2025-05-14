@@ -14,7 +14,6 @@ use webrender_api::units;
 use super::{BoxFragment, ContainingBlockManager, Fragment};
 use crate::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::display_list::StackingContext;
 use crate::geom::PhysicalRect;
 
 #[derive(MallocSizeOf)]
@@ -89,16 +88,6 @@ impl FragmentTree {
         }
 
         fragment_tree
-    }
-
-    pub(crate) fn build_display_list(
-        &self,
-        builder: &mut crate::display_list::DisplayListBuilder,
-        root_stacking_context: &StackingContext,
-    ) {
-        // Paint the canvas’ background (if any) before/under everything else
-        root_stacking_context.build_canvas_background_display_list(builder, self);
-        root_stacking_context.build_display_list(builder);
     }
 
     pub fn print(&self) {

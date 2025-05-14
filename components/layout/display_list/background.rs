@@ -66,7 +66,7 @@ impl<'a> BackgroundPainter<'a> {
         if &BackgroundAttachment::Fixed ==
             get_cyclic(&background.background_attachment.0, layer_index)
         {
-            let viewport_size = builder.display_list.compositor_info.viewport_size;
+            let viewport_size = builder.compositor_info.viewport_size;
             return units::LayoutRect::from_origin_and_size(Point2D::origin(), viewport_size);
         }
 
@@ -121,7 +121,7 @@ impl<'a> BackgroundPainter<'a> {
         if &BackgroundAttachment::Fixed ==
             get_cyclic(&style.get_background().background_attachment.0, layer_index)
         {
-            common.spatial_id = builder.current_reference_frame_scroll_node_id.spatial_id;
+            common.spatial_id = builder.spatial_id(builder.current_reference_frame_scroll_node_id);
         }
         common
     }

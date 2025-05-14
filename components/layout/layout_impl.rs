@@ -77,7 +77,7 @@ use webrender_api::units::{DevicePixel, DevicePoint, LayoutPixel, LayoutPoint, L
 use webrender_api::{ExternalScrollId, HitTestFlags};
 
 use crate::context::LayoutContext;
-use crate::display_list::{DisplayList, WebRenderImageInfo};
+use crate::display_list::{DisplayListBuilder, StackingContextTree, WebRenderImageInfo};
 use crate::query::{
     get_the_text_steps, process_client_rect_request, process_content_box_request,
     process_content_boxes_request, process_node_scroll_area_request, process_offset_parent_query,
@@ -143,6 +143,9 @@ pub struct LayoutThread {
 
     /// The fragment tree.
     fragment_tree: RefCell<Option<Arc<FragmentTree>>>,
+
+    /// The [`StackingContextTree`] cached from previous layouts.
+    stacking_context_tree: RefCell<Option<StackingContextTree>>,
 
     /// A counter for epoch messages
     epoch: Cell<Epoch>,
@@ -521,6 +524,7 @@ impl LayoutThread {
             first_reflow: Cell::new(true),
             box_tree: Default::default(),
             fragment_tree: Default::default(),
+            stacking_context_tree: Default::default(),
             // Epoch starts at 1 because of the initial display list for epoch 0 that we send to WR
             epoch: Cell::new(Epoch(1)),
             viewport_size: Size2D::new(
@@ -649,15 +653,17 @@ impl LayoutThread {
             highlighted_dom_node: reflow_request.highlighted_dom_node,
         };
 
-        self.restyle_and_build_trees(
+        let did_reflow = self.restyle_and_build_trees(
             &reflow_request,
             root_element,
             rayon_pool,
             &mut layout_context,
         );
-        self.build_display_list(&reflow_request, &mut layout_context);
-        self.first_reflow.set(false);
 
+        self.build_stacking_context_tree(&reflow_request, did_reflow);
+        self.build_display_list(&reflow_request, &mut layout_context);
+
+        self.first_reflow.set(false);
         if let ReflowGoal::UpdateScrollNode(scroll_state) = reflow_request.reflow_goal {
             self.update_scroll_node_state(&scroll_state);
         }
@@ -666,6 +672,7 @@ impl LayoutThread {
         let iframe_sizes = std::mem::take(&mut *layout_context.iframe_sizes.lock());
         let node_to_image_animation_map =
             std::mem::take(&mut *layout_context.node_image_animation_map.write());
+
         Some(ReflowResult {
             pending_images,
             iframe_sizes,
@@ -742,7 +749,7 @@ impl LayoutThread {
         root_element: ServoLayoutElement<'_>,
         rayon_pool: Option<&ThreadPool>,
         layout_context: &mut LayoutContext<'_>,
-    ) {
+    ) -> bool {
         let dirty_root = unsafe {
             ServoLayoutNode::new(&reflow_request.dirty_root.unwrap())
                 .as_element()
@@ -758,7 +765,7 @@ impl LayoutThread {
 
         if !token.should_traverse() {
             layout_context.style_context.stylist.rule_tree().maybe_gc();
-            return;
+            return false;
         }
 
         let dirty_root: ServoLayoutNode =
@@ -768,7 +775,7 @@ impl LayoutThread {
         let damage = compute_damage_and_repair_style(layout_context.shared_context(), root_node);
         if damage == RestyleDamage::REPAINT {
             layout_context.style_context.stylist.rule_tree().maybe_gc();
-            return;
+            return false;
         }
 
         let mut box_tree = self.box_tree.borrow_mut();
@@ -803,7 +810,14 @@ impl LayoutThread {
             run_layout()
         });
 
+        if self.debug.dump_flow_tree {
+            fragment_tree.print();
+        }
         *self.fragment_tree.borrow_mut() = Some(fragment_tree);
+
+        // The FragmentTree has been updated, so any existing StackingContext tree that layout
+        // had is now out of date and should be rebuilt.
+        *self.stacking_context_tree.borrow_mut() = None;
 
         if self.debug.dump_style_tree {
             println!(
@@ -822,6 +836,39 @@ impl LayoutThread {
 
         // GC the rule tree if some heuristics are met.
         layout_context.style_context.stylist.rule_tree().maybe_gc();
+        true
+    }
+
+    fn build_stacking_context_tree(&self, reflow_request: &ReflowRequest, did_reflow: bool) {
+        if !reflow_request.reflow_goal.needs_display_list() &&
+            !reflow_request.reflow_goal.needs_display()
+        {
+            return;
+        }
+        let Some(fragment_tree) = &*self.fragment_tree.borrow() else {
+            return;
+        };
+        if !did_reflow && self.stacking_context_tree.borrow().is_some() {
+            return;
+        }
+
+        let viewport_size = LayoutSize::from_untyped(Size2D::new(
+            self.viewport_size.width.to_f32_px(),
+            self.viewport_size.height.to_f32_px(),
+        ));
+
+        // Build the StackingContextTree. This turns the `FragmentTree` into a
+        // tree of fragments in CSS painting order and also creates all
+        // applicable spatial and clip nodes.
+        *self.stacking_context_tree.borrow_mut() = Some(StackingContextTree::new(
+            fragment_tree,
+            viewport_size,
+            fragment_tree.scrollable_overflow(),
+            self.id.into(),
+            fragment_tree.viewport_scroll_sensitivity,
+            self.first_reflow.get(),
+            &self.debug,
+        ));
     }
 
     fn build_display_list(
@@ -829,68 +876,40 @@ impl LayoutThread {
         reflow_request: &ReflowRequest,
         layout_context: &mut LayoutContext<'_>,
     ) {
+        if !reflow_request.reflow_goal.needs_display() {
+            return;
+        }
         let Some(fragment_tree) = &*self.fragment_tree.borrow() else {
             return;
         };
-        if !reflow_request.reflow_goal.needs_display_list() {
+
+        let mut stacking_context_tree = self.stacking_context_tree.borrow_mut();
+        let Some(stacking_context_tree) = stacking_context_tree.as_mut() else {
             return;
-        }
+        };
 
         let mut epoch = self.epoch.get();
         epoch.next();
         self.epoch.set(epoch);
+        stacking_context_tree.compositor_info.epoch = epoch.into();
 
-        let viewport_size = LayoutSize::from_untyped(Size2D::new(
-            self.viewport_size.width.to_f32_px(),
-            self.viewport_size.height.to_f32_px(),
-        ));
-        let mut display_list = DisplayList::new(
-            viewport_size,
-            fragment_tree.scrollable_overflow(),
-            self.id.into(),
-            epoch.into(),
-            fragment_tree.viewport_scroll_sensitivity,
-            self.first_reflow.get(),
+        let built_display_list = DisplayListBuilder::build(
+            layout_context,
+            stacking_context_tree,
+            fragment_tree,
+            &self.debug,
         );
-        display_list.wr.begin();
+        self.compositor_api.send_display_list(
+            self.webview_id,
+            &stacking_context_tree.compositor_info,
+            built_display_list,
+        );
 
-        // `dump_serialized_display_list` doesn't actually print anything. It sets up
-        // the display list for printing the serialized version when `finalize()` is called.
-        // We need to call this before adding any display items so that they are printed
-        // during `finalize()`.
-        if self.debug.dump_display_list {
-            display_list.wr.dump_serialized_display_list();
-        }
-
-        // Build the root stacking context. This turns the `FragmentTree` into a
-        // tree of fragments in CSS painting order and also creates all
-        // applicable spatial and clip nodes.
-        let root_stacking_context =
-            display_list.build_stacking_context_tree(fragment_tree, &self.debug);
-
-        // Build the rest of the display list which inclues all of the WebRender primitives.
-        display_list.build(layout_context, fragment_tree, &root_stacking_context);
-
-        if self.debug.dump_flow_tree {
-            fragment_tree.print();
-        }
-        if self.debug.dump_stacking_context_tree {
-            root_stacking_context.debug_print();
-        }
-
-        if reflow_request.reflow_goal.needs_display() {
-            self.compositor_api.send_display_list(
-                self.webview_id,
-                display_list.compositor_info,
-                display_list.wr.end().1,
-            );
-
-            let (keys, instance_keys) = self
-                .font_context
-                .collect_unused_webrender_resources(false /* all */);
-            self.compositor_api
-                .remove_unused_font_resources(keys, instance_keys)
-        }
+        let (keys, instance_keys) = self
+            .font_context
+            .collect_unused_webrender_resources(false /* all */);
+        self.compositor_api
+            .remove_unused_font_resources(keys, instance_keys)
     }
 
     fn update_scroll_node_state(&self, state: &ScrollState) {

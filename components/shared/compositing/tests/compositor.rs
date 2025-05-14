@@ -4,11 +4,12 @@
 
 use base::id::ScrollTreeNodeId;
 use compositing_traits::display_list::{
-    AxesScrollSensitivity, ScrollSensitivity, ScrollTree, ScrollableNodeInfo,
+    AxesScrollSensitivity, ScrollSensitivity, ScrollTree, ScrollableNodeInfo, SpatialTreeNodeInfo,
+    StickyNodeInfo,
 };
-use euclid::Size2D;
+use euclid::{SideOffsets2D, Size2D};
 use webrender_api::units::LayoutVector2D;
-use webrender_api::{ExternalScrollId, PipelineId, ScrollLocation, SpatialId};
+use webrender_api::{ExternalScrollId, PipelineId, ScrollLocation, StickyOffsetBounds};
 
 fn add_mock_scroll_node(tree: &mut ScrollTree) -> ScrollTreeNodeId {
     let pipeline_id = PipelineId(0, 0);
@@ -16,7 +17,6 @@ fn add_mock_scroll_node(tree: &mut ScrollTree) -> ScrollTreeNodeId {
     let parent = if num_nodes > 0 {
         Some(ScrollTreeNodeId {
             index: num_nodes - 1,
-            spatial_id: SpatialId::new(num_nodes - 1, pipeline_id),
         })
     } else {
         None
@@ -24,10 +24,10 @@ fn add_mock_scroll_node(tree: &mut ScrollTree) -> ScrollTreeNodeId {
 
     tree.add_scroll_tree_node(
         parent.as_ref(),
-        SpatialId::new(num_nodes, pipeline_id),
-        Some(ScrollableNodeInfo {
+        SpatialTreeNodeInfo::Scroll(ScrollableNodeInfo {
             external_id: ExternalScrollId(num_nodes as u64, pipeline_id),
-            scrollable_size: Size2D::new(100.0, 100.0),
+            content_rect: Size2D::new(200.0, 200.0).into(),
+            clip_rect: Size2D::new(100.0, 100.0).into(),
             scroll_sensitivity: AxesScrollSensitivity {
                 x: ScrollSensitivity::ScriptAndInputEvents,
                 y: ScrollSensitivity::ScriptAndInputEvents,
@@ -78,8 +78,15 @@ fn test_scroll_tree_simple_scroll_chaining() {
 
     let pipeline_id = PipelineId(0, 0);
     let parent_id = add_mock_scroll_node(&mut scroll_tree);
-    let unscrollable_child_id =
-        scroll_tree.add_scroll_tree_node(Some(&parent_id), SpatialId::new(1, pipeline_id), None);
+    let unscrollable_child_id = scroll_tree.add_scroll_tree_node(
+        Some(&parent_id),
+        SpatialTreeNodeInfo::Sticky(StickyNodeInfo {
+            frame_rect: Size2D::new(100.0, 100.0).into(),
+            margins: SideOffsets2D::default(),
+            vertical_offset_bounds: StickyOffsetBounds::new(0.0, 0.0),
+            horizontal_offset_bounds: StickyOffsetBounds::new(0.0, 0.0),
+        }),
+    );
 
     let (scrolled_id, offset) = scroll_tree
         .scroll_node_or_ancestor(
@@ -157,16 +164,14 @@ fn test_scroll_tree_chain_through_overflow_hidden() {
     let pipeline_id = PipelineId(0, 0);
     let parent_id = add_mock_scroll_node(&mut scroll_tree);
     let overflow_hidden_id = add_mock_scroll_node(&mut scroll_tree);
-    scroll_tree
-        .get_node_mut(&overflow_hidden_id)
-        .scroll_info
-        .as_mut()
-        .map(|info| {
-            info.scroll_sensitivity = AxesScrollSensitivity {
-                x: ScrollSensitivity::Script,
-                y: ScrollSensitivity::Script,
-            };
-        });
+    let node = scroll_tree.get_node_mut(&overflow_hidden_id);
+
+    if let SpatialTreeNodeInfo::Scroll(ref mut scroll_node_info) = node.info {
+        scroll_node_info.scroll_sensitivity = AxesScrollSensitivity {
+            x: ScrollSensitivity::Script,
+            y: ScrollSensitivity::Script,
+        };
+    }
 
     let (scrolled_id, offset) = scroll_tree
         .scroll_node_or_ancestor(
