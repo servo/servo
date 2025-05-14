@@ -1121,7 +1121,7 @@ impl ScriptThread {
                                 pipeline_id,
                                 ScriptToConstellationMessage::WebDriverInputComplete(id),
                             ))
-                            .unwrap_or_else(|e| {
+                            .unwrap_or_else(|_| {
                                 warn!(
                                     "ScriptThread failed to send WebDriverInputComplete {:?}",
                                     id
@@ -3459,7 +3459,18 @@ impl ScriptThread {
                         let pixel_dist =
                             (pixel_dist.x * pixel_dist.x + pixel_dist.y * pixel_dist.y).sqrt();
                         if pixel_dist < 10.0 * document.window().device_pixel_ratio().get() {
-                            document.note_pending_input_event(event.clone());
+                            // Pass webdriver_id to the newly generated click event
+                            document.note_pending_input_event(ConstellationInputEvent {
+                                hit_test_result: event.hit_test_result.clone(),
+                                pressed_mouse_buttons: event.pressed_mouse_buttons,
+                                active_keyboard_modifiers: event.active_keyboard_modifiers,
+                                event: InputEvent::MouseButton(MouseButtonEvent {
+                                    action: MouseButtonAction::Up,
+                                    button: mouse_button_event.button,
+                                    point: mouse_button_event.point,
+                                    webdriver_id: None,
+                                }),
+                            });
                             document.note_pending_input_event(ConstellationInputEvent {
                                 hit_test_result: event.hit_test_result,
                                 pressed_mouse_buttons: event.pressed_mouse_buttons,
@@ -3468,7 +3479,7 @@ impl ScriptThread {
                                     action: MouseButtonAction::Click,
                                     button: mouse_button_event.button,
                                     point: mouse_button_event.point,
-                                    webdriver_id: None,
+                                    webdriver_id: mouse_button_event.webdriver_id,
                                 }),
                             });
                             return;
