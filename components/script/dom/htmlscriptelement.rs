@@ -781,7 +781,7 @@ impl HTMLScriptElement {
         };
 
         // Step 24. Let cryptographic nonce be el's [[CryptographicNonce]] internal slot's value.
-        let cryptographic_nonce = self.upcast::<HTMLElement>().Nonce().into();
+        let cryptographic_nonce = self.upcast::<Element>().nonce_value();
 
         // Step 25. If el has an integrity attribute, then let integrity metadata be that attribute's value.
         // Otherwise, let integrity metadata be the empty string.

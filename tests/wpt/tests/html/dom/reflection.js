@@ -967,6 +967,7 @@ ReflectionTests.reflects = function(data, idlName, idlObj, domName, domObj) {
                                                "previous value", "getAttribute()");
                 ReflectionHarness.assertEquals(idlObj[idlName], previousIdl, "IDL get");
             } else {
+                var previousValue = domObj.getAttribute(domName);
                 idlObj[idlName] = idlTests[i];
                 if (data.type == "boolean") {
                     // Special case yay
@@ -976,6 +977,11 @@ ReflectionTests.reflects = function(data, idlName, idlObj, domName, domObj) {
                     var expected = idlDomExpected[i] + "";
                     if (data.isNullable && idlDomExpected[i] === null) {
                         expected = null;
+                    } else if (idlName == "nonce") {
+                        // nonce doesn't reflect the value, as per /content-security-policy/nonce-hiding/
+                        // tests that confirm that retrieving the nonce value post IDL change does not
+                        // reflect back to the attribute (for security reasons)
+                        expected = previousValue;
                     }
                     ReflectionHarness.assertEquals(domObj.getAttribute(domName), expected,
                                                    "getAttribute()");
