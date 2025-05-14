@@ -736,7 +736,7 @@ fn print_debug_options_usage(app: &str) {
     );
     print_option(
         "dump-flow-tree",
-        "Print the flow tree (Layout 2013) or fragment tree (Layout 2020) after each layout.",
+        "Print the fragment tree after each layout.",
     );
     print_option(
         "dump-rule-tree",
