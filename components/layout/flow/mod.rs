@@ -36,8 +36,8 @@ use crate::fragment_tree::{
     BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment, FragmentFlags,
 };
 use crate::geom::{
-    AuOrAuto, LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalPoint, PhysicalRect,
-    PhysicalSides, Size, Sizes, ToLogical, ToLogicalWithContainingBlock,
+    AuOrAuto, LazySize, LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalPoint,
+    PhysicalRect, PhysicalSides, Size, Sizes, ToLogical, ToLogicalWithContainingBlock,
 };
 use crate::layout_box_base::{CacheableLayoutResult, LayoutBoxBase};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
@@ -1217,6 +1217,15 @@ impl IndependentNonReplacedContents {
             ignore_block_margins_for_stretch,
         );
 
+        let lazy_block_size = LazySize::new(
+            &block_sizes,
+            Direction::Block,
+            Size::FitContent,
+            Au::zero,
+            available_block_size,
+            layout_style.is_table(),
+        );
+
         let layout = self.layout(
             layout_context,
             positioning_context,
@@ -1224,19 +1233,13 @@ impl IndependentNonReplacedContents {
             containing_block,
             base,
             false, /* depends_on_block_constraints */
+            &lazy_block_size,
         );
 
         let inline_size = layout
             .content_inline_size_for_table
             .unwrap_or(containing_block_for_children.size.inline);
-        let block_size = block_sizes.resolve(
-            Direction::Block,
-            Size::FitContent,
-            Au::zero,
-            available_block_size,
-            || layout.content_block_size.into(),
-            layout_style.is_table(),
-        );
+        let block_size = lazy_block_size.resolve(|| layout.content_block_size);
 
         let ResolvedMargins {
             margin,
@@ -1369,16 +1372,14 @@ impl IndependentNonReplacedContents {
             )
         };
 
-        let compute_block_size = |layout: &CacheableLayoutResult| {
-            content_box_sizes.block.resolve(
-                Direction::Block,
-                Size::FitContent,
-                Au::zero,
-                available_block_size,
-                || layout.content_block_size.into(),
-                is_table,
-            )
-        };
+        let lazy_block_size = LazySize::new(
+            &content_box_sizes.block,
+            Direction::Block,
+            Size::FitContent,
+            Au::zero,
+            available_block_size,
+            is_table,
+        );
 
         // The final inline size can depend on the available space, which depends on where
         // we are placing the box, since floats reduce the available space.
@@ -1407,10 +1408,11 @@ impl IndependentNonReplacedContents {
                 containing_block,
                 base,
                 false, /* depends_on_block_constraints */
+                &lazy_block_size,
             );
 
             content_size = LogicalVec2 {
-                block: compute_block_size(&layout),
+                block: lazy_block_size.resolve(|| layout.content_block_size),
                 inline: layout.content_inline_size_for_table.unwrap_or(inline_size),
             };
 
@@ -1472,6 +1474,7 @@ impl IndependentNonReplacedContents {
                     containing_block,
                     base,
                     false, /* depends_on_block_constraints */
+                    &lazy_block_size,
                 );
 
                 let inline_size = if let Some(inline_size) = layout.content_inline_size_for_table {
@@ -1485,7 +1488,7 @@ impl IndependentNonReplacedContents {
                     proposed_inline_size
                 };
                 content_size = LogicalVec2 {
-                    block: compute_block_size(&layout),
+                    block: lazy_block_size.resolve(|| layout.content_block_size),
                     inline: inline_size,
                 };
 
@@ -2419,6 +2422,15 @@ impl IndependentFormattingContext {
                     "Mixed horizontal and vertical writing modes are not supported yet"
                 );
 
+                let lazy_block_size = LazySize::new(
+                    &content_box_sizes_and_pbm.content_box_sizes.block,
+                    Direction::Block,
+                    Size::FitContent,
+                    Au::zero,
+                    available_block_size,
+                    is_table,
+                );
+
                 let independent_layout = non_replaced.layout(
                     layout_context,
                     child_positioning_context,
@@ -2426,18 +2438,12 @@ impl IndependentFormattingContext {
                     containing_block,
                     &self.base,
                     false, /* depends_on_block_constraints */
+                    &lazy_block_size,
                 );
                 let inline_size = independent_layout
                     .content_inline_size_for_table
                     .unwrap_or(inline_size);
-                let block_size = content_box_sizes_and_pbm.content_box_sizes.block.resolve(
-                    Direction::Block,
-                    Size::FitContent,
-                    Au::zero,
-                    available_block_size,
-                    || independent_layout.content_block_size.into(),
-                    is_table,
-                );
+                let block_size = lazy_block_size.resolve(|| independent_layout.content_block_size);
 
                 let content_size = LogicalVec2 {
                     block: block_size,

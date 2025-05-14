@@ -32,7 +32,7 @@ use crate::formatting_contexts::{Baselines, IndependentFormattingContextContents
 use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags, SpecificLayoutInfo,
 };
-use crate::geom::{AuOrAuto, LogicalRect, LogicalSides, LogicalVec2, Size, Sizes};
+use crate::geom::{AuOrAuto, LazySize, LogicalRect, LogicalSides, LogicalVec2, Size, Sizes};
 use crate::layout_box_base::CacheableLayoutResult;
 use crate::positioned::{
     AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, relative_adjustement,
@@ -1936,6 +1936,27 @@ impl FlexItem<'_> {
                     }
                 }
 
+                let lazy_block_size = if cross_axis_is_item_block_axis {
+                    // This means that an auto size with stretch alignment will behave different than
+                    // a stretch size. That's not what the spec says, but matches other browsers.
+                    // To be discussed in https://github.com/w3c/csswg-drafts/issues/11784.
+                    let stretch_size = containing_block
+                        .size
+                        .block
+                        .to_definite()
+                        .map(|size| Au::zero().max(size - self.pbm_auto_is_zero.cross));
+                    LazySize::new(
+                        &self.content_cross_sizes,
+                        Direction::Block,
+                        Size::FitContent,
+                        Au::zero,
+                        stretch_size,
+                        self.is_table(),
+                    )
+                } else {
+                    used_main_size.into()
+                };
+
                 let layout = non_replaced.layout(
                     flex_context.layout_context,
                     &mut positioning_context,
@@ -1945,6 +1966,7 @@ impl FlexItem<'_> {
                     flex_axis == FlexAxis::Column ||
                         self.cross_size_stretches_to_line ||
                         self.depends_on_block_constraints,
+                    &lazy_block_size,
                 );
                 let CacheableLayoutResult {
                     fragments,
@@ -1962,22 +1984,7 @@ impl FlexItem<'_> {
                 });
 
                 let hypothetical_cross_size = if cross_axis_is_item_block_axis {
-                    // This means that an auto size with stretch alignment will behave different than
-                    // a stretch size. That's not what the spec says, but matches other browsers.
-                    // To be discussed in https://github.com/w3c/csswg-drafts/issues/11784.
-                    let stretch_size = containing_block
-                        .size
-                        .block
-                        .to_definite()
-                        .map(|size| Au::zero().max(size - self.pbm_auto_is_zero.cross));
-                    self.content_cross_sizes.resolve(
-                        Direction::Block,
-                        Size::FitContent,
-                        Au::zero,
-                        stretch_size,
-                        || content_block_size.into(),
-                        self.is_table(),
-                    )
+                    lazy_block_size.resolve(|| content_block_size)
                 } else {
                     inline_size
                 };
@@ -2687,6 +2694,7 @@ impl FlexItemBox {
                             flex_context.containing_block,
                             &self.independent_formatting_context.base,
                             false, /* depends_on_block_constraints */
+                            &LazySize::intrinsic(),
                         )
                         .content_block_size
                 };
