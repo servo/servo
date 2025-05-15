@@ -20,8 +20,10 @@ use style::computed_values::display::T as Display;
 use style::computed_values::position::T as Position;
 use style::computed_values::visibility::T as Visibility;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapseValue;
+use style::computed_values::writing_mode;
 use style::context::{QuirksMode, SharedStyleContext, StyleContext, ThreadLocalStyleContext};
 use style::dom::{NodeInfo, OpaqueNode, TElement, TNode};
+use style::logical_geometry::LogicalSize;
 use style::properties::style_structs::Font;
 use style::properties::{
     ComputedValues, Importance, LonghandId, PropertyDeclarationBlock, PropertyDeclarationId,
@@ -36,7 +38,7 @@ use style::values::computed::{Float, Size};
 use style::values::generics::font::LineHeight;
 use style::values::generics::position::AspectRatio;
 use style::values::specified::GenericGridTemplateComponent;
-use style::values::specified::box_::DisplayInside;
+use style::values::specified::box_::{DisplayInside, DisplayOutside};
 use style_traits::{ParsingMode, ToCss};
 
 use crate::ArcRefCell;
@@ -45,6 +47,7 @@ use crate::flow::inline::construct::{TextTransformation, WhitespaceCollapse};
 use crate::fragment_tree::{
     BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo,
 };
+use crate::style_ext::ComputedValuesExt;
 use crate::taffy::SpecificTaffyGridInfo;
 
 pub fn process_content_box_request(node: ServoLayoutNode<'_>) -> Option<Rect<Au>> {
@@ -168,20 +171,6 @@ pub fn process_resolved_style_request(
     // properties we might need to walk the Fragment tree to figure those out. We always
     // fall back to returning the computed value.
 
-    // For line height, the resolved value is the computed value if it
-    // is "normal" and the used value otherwise.
-    if longhand_id == LonghandId::LineHeight {
-        let font = style.get_font();
-        let font_size = font.font_size.computed_size();
-        return match font.line_height {
-            // There could be a fragment, but it's only interesting for `min-width` and `min-height`,
-            // so just pass None.
-            LineHeight::Normal => computed_style(None),
-            LineHeight::Number(value) => (font_size * value.0).to_css_string(),
-            LineHeight::Length(value) => value.0.to_css_string(),
-        };
-    }
-
     // https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle
     // The properties that we calculate below all resolve to the computed value
     // when the element is display:none or display:contents.
@@ -191,7 +180,13 @@ pub fn process_resolved_style_request(
     }
 
     let resolve_for_fragment = |fragment: &Fragment| {
-        let (content_rect, margins, padding, specific_layout_info) = match fragment {
+        let (
+            content_rect,
+            margins,
+            padding,
+            specific_layout_info,
+            cumulative_containing_block_rect,
+        ) = match fragment {
             Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
                 let box_fragment = box_fragment.borrow();
                 if style.get_box().position != Position::Static {
@@ -214,19 +209,61 @@ pub fn process_resolved_style_request(
                 let margins = box_fragment.margin;
                 let padding = box_fragment.padding;
                 let specific_layout_info = box_fragment.specific_layout_info.clone();
-                (content_rect, margins, padding, specific_layout_info)
+                let cumulative_containing_block_rect =
+                    box_fragment.cumulative_containing_block_rect;
+                (
+                    content_rect,
+                    margins,
+                    padding,
+                    specific_layout_info,
+                    cumulative_containing_block_rect,
+                )
             },
             Fragment::Positioning(positioning_fragment) => {
                 let content_rect = positioning_fragment.borrow().rect;
+                let cumulative_containing_block_rect = positioning_fragment
+                    .borrow()
+                    .cumulative_containing_block_rect;
                 (
                     content_rect,
                     SideOffsets2D::zero(),
                     SideOffsets2D::zero(),
                     None,
+                    cumulative_containing_block_rect,
                 )
             },
             _ => return computed_style(Some(fragment)),
         };
+
+        // For line height, the resolved value is the computed value if it
+        // is "normal" and the used value otherwise.
+        if longhand_id == LonghandId::LineHeight {
+            let font = style.get_font();
+            let font_size = font.font_size.computed_size();
+            return match font.line_height {
+                // There could be a fragment, but it's only interesting for `min-width` and `min-height`,
+                // so just pass None.
+                LineHeight::Normal => computed_style(None),
+                LineHeight::Number(value) => (font_size * value.0).to_css_string(),
+                LineHeight::Length(value) => value.0.to_css_string(),
+                LineHeight::MozBlockHeight => {
+                    let mut content_rect = content_rect;
+                    let writing_mode = style.writing_mode;
+                    let base_fragment = fragment.base().expect(
+                        "Base Fragment should exist for BoxFragment or PositioningFragment",
+                    );
+
+                    // For a inline level fragment it would be the containing block of it.
+                    // But, we shouldn't need to find the writing mode, since it will inherit.
+                    if style.is_inline_box(base_fragment.flags) {
+                        content_rect = cumulative_containing_block_rect;
+                    }
+                    LogicalSize::from_physical(writing_mode, content_rect.size.to_untyped())
+                        .block
+                        .to_css_string()
+                },
+            };
+        }
 
         // https://drafts.csswg.org/css-grid/#resolved-track-list
         // > The grid-template-rows and grid-template-columns properties are
