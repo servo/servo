@@ -673,8 +673,16 @@ pub fn parse_ua_stylesheet(
         .map(DocumentStyleSheet)
 }
 
+/// Parse stylesheet for <details> element to insert its UA shadow DOM.
+///
+/// TODO(stevennovaryo): The more approriate way to handle this is to use UA stylesheet.
+///                      But this element's styles needs to be in shadow-scoped stylesheet.
+///                      This could be done if an UA shadow-scoped UA sheet is introduced.
 pub fn parse_details_stylesheet(
     shared_lock: &SharedRwLock,
 ) -> Result<ServoArc<Stylesheet>, &'static str> {
+    // FIXME: We are parsing it as a Author stylesheet, but according to, it's nature
+    //        it should be an user agent stylesheet. This is because we are only allowing
+    //        the actual UA stylesheet to have that origin.
     parse_stylesheet_as_origin(shared_lock, "details.css", DETAILS_CSS, Origin::Author)
 }
