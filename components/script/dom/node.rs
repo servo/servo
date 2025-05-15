@@ -1787,8 +1787,9 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
         {
             let input = self.unsafe_get().downcast::<HTMLInputElement>().unwrap();
 
-            // FIXME: All the non-color input types currently render as text
-            input.input_type() != InputType::Color
+            // FIXME: All the non-color and non-text input types currently render as text
+            input.input_type() != InputType::Color &&
+            input.input_type() != InputType::Text
         } else {
             type_id ==
                 NodeTypeId::Element(ElementTypeId::HTMLElement(
