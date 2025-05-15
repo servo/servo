@@ -1264,6 +1264,10 @@ impl IOCompositor {
         self.set_needs_repaint(RepaintReason::Resize);
     }
 
+    pub fn handle_refresh_tick(&mut self) {
+        self.process_animations(true);
+    }
+
     /// If there are any animations running, dispatches appropriate messages to the constellation.
     fn process_animations(&mut self, force: bool) {
         // When running animations in order to dump a screenshot (not after a full composite), don't send
@@ -1411,9 +1415,6 @@ impl IOCompositor {
         // We've painted the default target, which means that from the embedder's perspective,
         // the scene no longer needs to be repainted.
         self.needs_repaint.set(RepaintReason::empty());
-
-        // Queue up any subsequent paints for animations.
-        self.process_animations(true);
 
         true
     }

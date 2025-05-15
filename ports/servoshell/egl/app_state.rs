@@ -630,6 +630,7 @@ impl RunningAppState {
 
     pub fn notify_vsync(&self) {
         self.active_webview().notify_vsync();
+        self.servo.set_refresh_tick();
         self.perform_updates();
     }
 
