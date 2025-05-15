@@ -47,8 +47,6 @@ const DEFAULT_SUMMARY: &str = "Details";
 struct ShadowTree {
     summary: Dom<HTMLSlotElement>,
     descendants: Dom<HTMLSlotElement>,
-    /// The summary that is displayed if no other summary exists
-    implicit_summary: Dom<HTMLElement>,
 }
 
 #[dom_struct]
@@ -145,40 +143,45 @@ impl HTMLDetailsElement {
         );
         link_element.set_stylesheet(details_stylesheet.unwrap());
 
-        let summary = HTMLSlotElement::new(local_name!("slot"), None, &document, None, can_gc);
-        summary.upcast::<Element>().set_attribute(
-            &local_name!("name"),
-            AttrValue::from_atomic("internal-main-summary".to_owned()),
+        let summary_slot = HTMLSlotElement::new(local_name!("slot"), None, &document, None, can_gc);
+        summary_slot.upcast::<Element>().set_attribute(
+            &local_name!("id"),
+            AttrValue::from_atomic("internal-summary-slot".to_owned()),
             can_gc,
         );
         root.upcast::<Node>()
-            .AppendChild(summary.upcast::<Node>(), can_gc)
+            .AppendChild(summary_slot.upcast::<Node>(), can_gc)
             .unwrap();
 
         let fallback_summary =
             HTMLElement::new(local_name!("summary"), None, &document, None, can_gc);
         fallback_summary.upcast::<Element>().set_attribute(
-            &local_name!("name"),
+            &local_name!("id"),
             AttrValue::from_atomic("internal-fallback-summary".to_owned()),
             can_gc,
         );
         fallback_summary
             .upcast::<Node>()
             .SetTextContent(Some(DEFAULT_SUMMARY.into()), can_gc);
-        summary
+        summary_slot
             .upcast::<Node>()
             .AppendChild(fallback_summary.upcast::<Node>(), can_gc)
             .unwrap();
 
-        let descendants = HTMLSlotElement::new(local_name!("slot"), None, &document, None, can_gc);
+        let descendants_slot =
+            HTMLSlotElement::new(local_name!("slot"), None, &document, None, can_gc);
+        descendants_slot.upcast::<Element>().set_attribute(
+            &local_name!("id"),
+            AttrValue::from_atomic("internal-contents-slot".to_owned()),
+            can_gc,
+        );
         root.upcast::<Node>()
-            .AppendChild(descendants.upcast::<Node>(), can_gc)
+            .AppendChild(descendants_slot.upcast::<Node>(), can_gc)
             .unwrap();
 
         let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {
-            summary: summary.as_traced(),
-            descendants: descendants.as_traced(),
-            implicit_summary: fallback_summary.as_traced(),
+            summary: summary_slot.as_traced(),
+            descendants: descendants_slot.as_traced(),
         });
         self.upcast::<Node>()
             .dirty(crate::dom::node::NodeDamage::OtherNodeDamage);
