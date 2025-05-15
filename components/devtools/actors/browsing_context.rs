@@ -20,7 +20,6 @@ use ipc_channel::ipc::{self, IpcSender};
 use serde::Serialize;
 use serde_json::{Map, Value};
 
-use super::source::SourceActor;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::inspector::InspectorActor;
 use crate::actors::inspector::accessibility::AccessibilityActor;
@@ -240,8 +239,6 @@ impl BrowsingContextActor {
             browsing_context: name.clone(),
         };
 
-        let source = SourceActor::new(actors.new_name("source"), "".to_string(), "".to_string());
-
         let reflow = ReflowActor::new(actors.new_name("reflow"));
 
         let style_sheets = StyleSheetsActor::new(actors.new_name("stylesheets"));
@@ -281,7 +278,6 @@ impl BrowsingContextActor {
         actors.register(Box::new(css_properties));
         actors.register(Box::new(inspector));
         actors.register(Box::new(reflow));
-        actors.register(Box::new(source));
         actors.register(Box::new(style_sheets));
         actors.register(Box::new(tabdesc));
         actors.register(Box::new(thread));

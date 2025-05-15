@@ -50,12 +50,6 @@ struct SourceContentReply {
     source: String,
 }
 
-#[derive(Serialize)]
-struct BreakableLinesReply {
-    from: String,
-    lines: Vec<u32>,
-}
-
 impl SourceManager {
     pub fn new() -> Self {
         Self {
@@ -115,14 +109,6 @@ impl Actor for SourceActor {
                     from: self.name(),
                     content_type: self.content_type.clone(),
                     source: self.content.clone(),
-                };
-                let _ = stream.write_json_packet(&reply);
-                ActorMessageStatus::Processed
-            },
-            "getBreakableLines" => {
-                let reply = BreakableLinesReply {
-                    from: self.name(),
-                    lines: [].to_vec(),
                 };
                 let _ = stream.write_json_packet(&reply);
                 ActorMessageStatus::Processed
