@@ -655,6 +655,7 @@ impl FlexContainer {
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
         depends_on_block_constraints: bool,
+        lazy_block_size: &LazySize,
     ) -> CacheableLayoutResult {
         let depends_on_block_constraints =
             depends_on_block_constraints || self.config.flex_direction == FlexDirection::Column;
@@ -676,14 +677,13 @@ impl FlexContainer {
         // https://drafts.csswg.org/css-flexbox/#algo-main-container
         let container_main_size = match self.config.flex_axis {
             FlexAxis::Row => containing_block.size.inline,
-            FlexAxis::Column => match containing_block.size.block {
-                SizeConstraint::Definite(size) => size,
-                SizeConstraint::MinMax(min, max) => self
-                    .main_content_sizes(layout_context, &containing_block.into(), || &flex_context)
+            FlexAxis::Column => lazy_block_size.resolve(|| {
+                let mut containing_block = IndefiniteContainingBlock::from(containing_block);
+                containing_block.size.block = None;
+                self.main_content_sizes(layout_context, &containing_block, || &flex_context)
                     .sizes
                     .max_content
-                    .clamp_between_extremums(min, max),
-            },
+            }),
         };
 
         // Actual length may be less, but we guess that usually not by a lot
@@ -766,30 +766,23 @@ impl FlexContainer {
             .map(|layout| layout.line_size.cross)
             .sum::<Au>() +
             cross_gap * (line_count as i32 - 1);
+        let content_block_size = match self.config.flex_axis {
+            FlexAxis::Row => content_cross_size,
+            FlexAxis::Column => container_main_size,
+        };
 
         // https://drafts.csswg.org/css-flexbox/#algo-cross-container
-        let container_cross_size = match flex_context.container_inner_size_constraint.cross {
-            SizeConstraint::Definite(cross_size) => cross_size,
-            SizeConstraint::MinMax(min, max) => {
-                content_cross_size.clamp_between_extremums(min, max)
-            },
+        let container_cross_size = match self.config.flex_axis {
+            FlexAxis::Row => lazy_block_size.resolve(|| content_cross_size),
+            FlexAxis::Column => containing_block.size.inline,
         };
 
         let container_size = FlexRelativeVec2 {
             main: container_main_size,
             cross: container_cross_size,
         };
-        let content_block_size = flex_context
-            .config
-            .flex_axis
-            .vec2_to_flow_relative(container_size)
-            .block;
 
-        let mut remaining_free_cross_space =
-            match flex_context.container_inner_size_constraint.cross {
-                SizeConstraint::Definite(cross_size) => cross_size - content_cross_size,
-                _ => Au::zero(),
-            };
+        let mut remaining_free_cross_space = container_cross_size - content_cross_size;
 
         // Implement fallback alignment.
         //

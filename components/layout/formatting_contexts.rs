@@ -243,7 +243,7 @@ impl IndependentNonReplacedContents {
         containing_block_for_children: &ContainingBlock,
         containing_block: &ContainingBlock,
         depends_on_block_constraints: bool,
-        _lazy_block_size: &LazySize,
+        lazy_block_size: &LazySize,
     ) -> CacheableLayoutResult {
         match self {
             IndependentNonReplacedContents::Flow(bfc) => bfc.layout(
@@ -257,6 +257,7 @@ impl IndependentNonReplacedContents {
                 positioning_context,
                 containing_block_for_children,
                 depends_on_block_constraints,
+                lazy_block_size,
             ),
             IndependentNonReplacedContents::Grid(fc) => fc.layout(
                 layout_context,
