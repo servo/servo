@@ -508,7 +508,7 @@ impl DrawOptionsHelpers for DrawOptions {
 }
 
 impl GenericPathBuilder<VelloBackend> for kurbo::BezPath {
-    fn arc(
+    /*fn arc(
         &mut self,
         origin: Point2D<f32>,
         radius: f32,
@@ -527,14 +527,19 @@ impl GenericPathBuilder<VelloBackend> for kurbo::BezPath {
             arc = arc.reversed();
         }
         self.extend(arc.path_elements(0.1));
-    }
+    }*/
 
     fn bezier_curve_to(&mut self, p1: &Point2D<f32>, p2: &Point2D<f32>, p3: &Point2D<f32>) {
+        if self.elements().is_empty() {
+            self.move_to(p1.convert());
+        }
         self.curve_to(p1.convert(), p2.convert(), p3.convert());
     }
 
     fn close(&mut self) {
-        self.close_path();
+        if !self.elements().is_empty() {
+            self.close_path();
+        }
     }
 
     fn get_current_point(&mut self) -> Option<Point2D<f32>> {
@@ -544,6 +549,9 @@ impl GenericPathBuilder<VelloBackend> for kurbo::BezPath {
     }
 
     fn line_to(&mut self, point: Point2D<f32>) {
+        if self.elements().is_empty() {
+            self.move_to(point.convert());
+        }
         self.line_to(point.convert());
     }
 
@@ -552,10 +560,13 @@ impl GenericPathBuilder<VelloBackend> for kurbo::BezPath {
     }
 
     fn quadratic_curve_to(&mut self, p1: &Point2D<f32>, p2: &Point2D<f32>) {
+        if self.elements().is_empty() {
+            self.move_to(p1.convert());
+        }
         self.quad_to(p1.convert(), p2.convert());
     }
 
-    fn svg_arc(
+    /*fn svg_arc(
         &mut self,
         radius_x: f32,
         radius_y: f32,
@@ -574,7 +585,7 @@ impl GenericPathBuilder<VelloBackend> for kurbo::BezPath {
         };
         let arc = kurbo::Arc::from_svg_arc(&sarc).unwrap();
         self.extend(arc.path_elements(0.1));
-    }
+    }*/
 
     fn finish(&mut self) -> kurbo::BezPath {
         self.clone()
