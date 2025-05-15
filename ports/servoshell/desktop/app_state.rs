@@ -168,6 +168,7 @@ impl RunningAppState {
     /// painted or false otherwise. Something may not be painted if Servo is waiting
     /// for a stable image to paint.
     pub(crate) fn repaint_servo_if_necessary(&self) {
+        self.servo.set_refresh_tick();
         if !self.inner().need_repaint {
             return;
         }
