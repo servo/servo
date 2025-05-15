@@ -12,7 +12,9 @@ use std::str::FromStr;
 use std::{f64, ptr};
 
 use dom_struct::dom_struct;
-use embedder_traits::{EmbedderMsg, FilterPattern, InputMethodType, RgbColor};
+use embedder_traits::{
+    EmbedderMsg, FilterPattern, FormControl as EmbedderFormControl, InputMethodType, RgbColor,
+};
 use encoding_rs::Encoding;
 use euclid::{Point2D, Rect, Size2D};
 use html5ever::{LocalName, Prefix, local_name, ns};
@@ -2527,11 +2529,10 @@ impl HTMLInputElement {
                 green: u8::from_str_radix(&current_value[3..5], 16).unwrap(),
                 blue: u8::from_str_radix(&current_value[5..7], 16).unwrap(),
             };
-            document.send_to_embedder(EmbedderMsg::ShowColorPicker(
+            document.send_to_embedder(EmbedderMsg::ShowFormControl(
                 document.webview_id(),
-                current_color,
                 DeviceIntRect::from_untyped(&rect.to_box2d()),
-                ipc_sender,
+                EmbedderFormControl::ColorPicker(current_color, ipc_sender),
             ));
 
             let Ok(response) = ipc_receiver.recv() else {

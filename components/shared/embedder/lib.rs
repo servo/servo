@@ -364,28 +364,13 @@ pub enum EmbedderMsg {
     ShutdownComplete,
     /// Request to display a notification.
     ShowNotification(Option<WebViewId>, Notification),
-    /// Indicates that the user has activated a `<select>` element.
-    ///
-    /// The embedder should respond with the new state of the `<select>` element.
-    ShowSelectElementMenu(
-        WebViewId,
-        Vec<SelectElementOptionOrOptgroup>,
-        Option<usize>,
-        DeviceIntRect,
-        IpcSender<Option<usize>>,
-    ),
+    /// Request to display a form control to the embedder.
+    ShowFormControl(WebViewId, DeviceIntRect, FormControl),
     /// Inform the embedding layer that a JavaScript evaluation has
     /// finished with the given result.
     FinishJavaScriptEvaluation(
         JavaScriptEvaluationId,
         Result<JSValue, JavaScriptEvaluationError>,
-    ),
-    /// Indicates that the user has activated a `<input type=color>` element.
-    ShowColorPicker(
-        WebViewId,
-        RgbColor,
-        DeviceIntRect,
-        IpcSender<Option<RgbColor>>,
     ),
 }
 
@@ -394,6 +379,18 @@ impl Debug for EmbedderMsg {
         let string: &'static str = self.into();
         write!(formatter, "{string}")
     }
+}
+
+#[derive(Deserialize, Serialize)]
+pub enum FormControl {
+    /// Indicates that the user has activated a `<select>` element.
+    SelectElement(
+        Vec<SelectElementOptionOrOptgroup>,
+        Option<usize>,
+        IpcSender<Option<usize>>,
+    ),
+    /// Indicates that the user has activated a `<input type=color>` element.
+    ColorPicker(RgbColor, IpcSender<Option<RgbColor>>),
 }
 
 /// Filter for file selection;
