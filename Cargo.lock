@@ -526,7 +526,9 @@ dependencies = [
  "bitflags 2.9.1",
  "cexpr",
  "clang-sys",
- "itertools 0.10.5",
+ "itertools 0.13.0",
+ "log",
+ "prettyplease",
  "proc-macro2",
  "quote",
  "regex",
@@ -1387,6 +1389,19 @@ checksum = "6b50826342786a51a89e2da3a28f1c32b06e387201bc2d19791f622c673706b1"
 dependencies = [
  "cast",
  "itertools 0.10.5",
+]
+
+[[package]]
+name = "cross-krb5"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96ea465841101b566a7d00627150a42762c4e9497ca4941856d93e1f8d7691ba"
+dependencies = [
+ "anyhow",
+ "bitflags 2.9.0",
+ "bytes",
+ "libgssapi",
+ "windows 0.58.0",
 ]
 
 [[package]]
@@ -4248,6 +4263,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "libgssapi"
+version = "0.8.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b9e668df13f2e97f3eed52d9301f6b1c4c1ccfccc30eab9e6628e4a8c1fc3546"
+dependencies = [
+ "bitflags 2.9.0",
+ "bytes",
+ "lazy_static",
+ "libgssapi-sys",
+]
+
+[[package]]
+name = "libgssapi-sys"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7518e6902e94f92e7c7271232684b60988b4bd813529b4ef9d97aead96956ae8"
+dependencies = [
+ "bindgen 0.71.1",
+ "pkg-config",
+]
+
+[[package]]
 name = "libloading"
 version = "0.8.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4803,6 +4840,7 @@ dependencies = [
  "compositing_traits",
  "content-security-policy",
  "cookie 0.18.1",
+ "cross-krb5",
  "crossbeam-channel",
  "data-url",
  "devtools_traits",

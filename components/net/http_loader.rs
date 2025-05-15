@@ -4,12 +4,16 @@
 
 use std::collections::{HashMap, HashSet};
 use std::iter::FromIterator;
+use std::ops::Deref;
 use std::sync::{Arc as StdArc, Condvar, Mutex, RwLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use async_recursion::async_recursion;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{HistoryStateId, PipelineId};
+use base64::Engine as _;
+use base64::prelude::BASE64_STANDARD;
+use cross_krb5::{ClientCtx, InitiateFlags, Step};
 use crossbeam_channel::Sender;
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
@@ -26,7 +30,7 @@ use headers::{
 };
 use http::header::{
     self, ACCEPT, ACCESS_CONTROL_REQUEST_HEADERS, AUTHORIZATION, CONTENT_ENCODING,
-    CONTENT_LANGUAGE, CONTENT_LOCATION, CONTENT_TYPE, HeaderValue, RANGE,
+    CONTENT_LANGUAGE, CONTENT_LOCATION, CONTENT_TYPE, HeaderValue, RANGE, WWW_AUTHENTICATE,
 };
 use http::{HeaderMap, Method, Request as HyperRequest, StatusCode};
 use http_body_util::combinators::BoxBody;
@@ -1631,51 +1635,88 @@ async fn http_network_or_cache_fetch(
     if let (Some(StatusCode::UNAUTHORIZED), false, true) =
         (response.status.try_code(), cors_flag, include_credentials)
     {
-        // TODO: Step 14.1 Spec says requires testing on multiple WWW-Authenticate headers
+        'auth: {
+            // TODO: Step 14.1 Spec says requires testing on multiple WWW-Authenticate headers
 
-        let request = &mut fetch_params.request;
+            for auth in response.headers.clone().get_all(WWW_AUTHENTICATE) {
+                if let Ok(auth) = auth.to_str() {
+                    if auth.starts_with("Negotiate") {
+                        debug!("SPNEGO: Header detected - '{}'", auth);
+                        if let Some(token) = http_fetch_params
+                            .request
+                            .headers
+                            .get(AUTHORIZATION)
+                            .map(|s| s.to_str().unwrap_or_default())
+                        {
+                            debug!("SPNEGO: Negotiation in progress, sent tokens - '{}'", token);
+                            return response;
+                        } else {
+                            spnego(
+                                http_fetch_params,
+                                &mut response,
+                                authentication_fetch_flag,
+                                done_chan,
+                                context,
+                            )
+                            .await;
+                            debug!("SPNEGO: Negotiation finished");
+                            if response.status != StatusCode::UNAUTHORIZED {
+                                debug!(
+                                    "SPNEGO: HTTP Status no longer 401 Unauthorized, \
+                                    skipping further authentication methods."
+                                );
+                                break 'auth;
+                            }
+                        }
+                    }
+                }
+            }
 
-        // Step 14.2 If request’s body is non-null, then:
-        if request.body.is_some() {
-            // TODO Implement body source
+            let request = &mut fetch_params.request;
+
+            // Step 14.2 If request’s body is non-null, then:
+            if request.body.is_some() {
+                // TODO Implement body source
+            }
+
+            // Step 14.3 If request’s use-URL-credentials flag is unset or isAuthenticationFetch is true, then:
+            if !request.use_url_credentials || authentication_fetch_flag {
+                let Some(credentials) = context.state.request_authentication(request, &response)
+                else {
+                    return response;
+                };
+
+                if let Err(err) = request
+                    .current_url_mut()
+                    .set_username(&credentials.username)
+                {
+                    error!("error setting username for url: {:?}", err);
+                    return response;
+                };
+
+                if let Err(err) = request
+                    .current_url_mut()
+                    .set_password(Some(&credentials.password))
+                {
+                    error!("error setting password for url: {:?}", err);
+                    return response;
+                };
+            }
+
+            // Make sure this is set to None,
+            // since we're about to start a new `http_network_or_cache_fetch`.
+            *done_chan = None;
+
+            // Step 14.4 Set response to the result of running HTTP-network-or-cache fetch given fetchParams and true.
+            response = http_network_or_cache_fetch(
+                fetch_params,
+                true, /* authentication flag */
+                cors_flag,
+                done_chan,
+                context,
+            )
+            .await;
         }
-
-        // Step 14.3 If request’s use-URL-credentials flag is unset or isAuthenticationFetch is true, then:
-        if !request.use_url_credentials || authentication_fetch_flag {
-            let Some(credentials) = context.state.request_authentication(request, &response) else {
-                return response;
-            };
-
-            if let Err(err) = request
-                .current_url_mut()
-                .set_username(&credentials.username)
-            {
-                error!("error setting username for url: {:?}", err);
-                return response;
-            };
-
-            if let Err(err) = request
-                .current_url_mut()
-                .set_password(Some(&credentials.password))
-            {
-                error!("error setting password for url: {:?}", err);
-                return response;
-            };
-        }
-
-        // Make sure this is set to None,
-        // since we're about to start a new `http_network_or_cache_fetch`.
-        *done_chan = None;
-
-        // Step 14.4 Set response to the result of running HTTP-network-or-cache fetch given fetchParams and true.
-        response = http_network_or_cache_fetch(
-            fetch_params,
-            true, /* authentication flag */
-            cors_flag,
-            done_chan,
-            context,
-        )
-        .await;
     }
 
     // Step 15. If response’s status is 407, then:
@@ -2115,6 +2156,109 @@ async fn http_network_fetch(
     response_end_timer.neuter();
 
     response
+}
+
+/// [SPNEGO-based Kerberos and NTLM HTTP Authentication](https://datatracker.ietf.org/doc/html/rfc4559#section-4.1)
+async fn spnego(
+    fetch_params: &mut FetchParams,
+    response: &mut Response,
+    authentication_fetch_flag: bool,
+    done_chan: &mut DoneChannel,
+    context: &FetchContext,
+) {
+    if let Some(host) = fetch_params.request.url().host_str() {
+        if !fetch_params.request.headers.contains_key(WWW_AUTHENTICATE) {
+            if let Ok((mut client, token)) = ClientCtx::new(
+                InitiateFlags::empty(),
+                None,
+                format!("HTTP/{}", host).as_ref(),
+                None,
+            ) {
+                info!(
+                    "SPNEGO: Starting authentication for service 'HTTP/{}'",
+                    host
+                );
+                // First create a pending context fetching the initial token, sending it as part
+                // of the 'Authorization' header
+                let token = BASE64_STANDARD.encode(token.deref());
+                debug!("SPNEGO: Sent initial token '{}'", token);
+                fetch_params.request.headers.insert(
+                    AUTHORIZATION,
+                    HeaderValue::from_str(format!("Negotiate {}", token).as_str())
+                        .expect("Failed to convert GSSAPI tokens to header"),
+                );
+
+                *response = http_network_fetch(
+                    fetch_params,
+                    authentication_fetch_flag, /* authentication flag */
+                    done_chan,
+                    context,
+                )
+                .await;
+                // If the server responds with further Negotiate headers containing tokens,
+                // enter them into the client context and send the resulting client tokens.
+                // Repeat until the security context is established.
+                // (Who said that HTTP was a stateless protocol?)
+                while let Some(Some(token)) = response
+                    .headers
+                    .get(WWW_AUTHENTICATE)
+                    .map(|t| t.to_str().unwrap_or_default().strip_prefix("Negotiate "))
+                {
+                    debug!("SPNEGO: Token in '{}'", token);
+                    let token = if let Ok(token) = BASE64_STANDARD.decode(token.as_bytes()) {
+                        token
+                    } else {
+                        warn!("SPNEGO: Received invalid base64 encoded token, aborting.");
+                        break;
+                    };
+
+                    match client.step(token.as_slice()) {
+                        Ok(Step::Finished((_, token))) => {
+                            if let Some(token) = token {
+                                let token = BASE64_STANDARD.encode(token.deref());
+                                debug!("SPNEGO: Step out '{}'", token);
+                                fetch_params.request.headers.insert(
+                                    AUTHORIZATION,
+                                    HeaderValue::from_str(format!("Negotiate {}", token).as_str())
+                                        .expect("Failed to convert GSSAPI tokens to header"),
+                                );
+                                *response = http_network_fetch(
+                                    fetch_params,
+                                    authentication_fetch_flag,
+                                    done_chan,
+                                    context,
+                                )
+                                .await;
+                                info!("SPNEGO: Authenticated");
+                            }
+                            break;
+                        },
+                        Ok(Step::Continue((ctx, token))) => {
+                            let token = BASE64_STANDARD.encode(token.deref());
+                            debug!("SPNEGO: Step out '{}'", token);
+                            fetch_params.request.headers.insert(
+                                AUTHORIZATION,
+                                HeaderValue::from_str(format!("Negotiate {}", token).as_str())
+                                    .expect("Failed to convert GSSAPI tokens to header"),
+                            );
+                            client = ctx;
+                            *response = http_network_fetch(
+                                fetch_params,
+                                authentication_fetch_flag,
+                                done_chan,
+                                context,
+                            )
+                            .await;
+                        },
+                        Err(e) => {
+                            error!("SPNEGO: Encountered error, '{}'", e);
+                            break;
+                        },
+                    }
+                }
+            }
+        }
+    }
 }
 
 /// [CORS preflight fetch](https://fetch.spec.whatwg.org#cors-preflight-fetch)
