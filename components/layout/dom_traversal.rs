@@ -495,7 +495,7 @@ fn generate_pseudo_element_content(
                                 let lang = &pseudo_element_style.get_font()._x_lang;
                                 let quote_pair = quotes_for_lang(lang.0.as_ref(), quote_depth);
                                 Some(get_quote_from_pair(
-                                    &item,
+                                    item,
                                     &quote_pair.opening,
                                     &quote_pair.closing,
                                 ))
@@ -507,7 +507,7 @@ fn generate_pseudo_element_content(
                                     let idx = std::cmp::min(quote_depth, quote_list.0.len() - 1);
                                     let quote_pair = &quote_list.0[idx];
                                     Some(get_quote_from_pair(
-                                        &item,
+                                        item,
                                         &*quote_pair.opening,
                                         &*quote_pair.closing,
                                     ))
@@ -531,7 +531,7 @@ fn generate_pseudo_element_content(
                                     let quote_pair =
                                         quotes_for_lang(lang.0.as_ref(), updated_depth);
                                     Some(get_quote_from_pair(
-                                        &item,
+                                        item,
                                         &quote_pair.opening,
                                         &quote_pair.closing,
                                     ))
@@ -544,7 +544,7 @@ fn generate_pseudo_element_content(
                                             std::cmp::min(updated_depth, quote_list.0.len() - 1);
                                         let quote_pair = &quote_list.0[idx];
                                         Some(get_quote_from_pair(
-                                            &item,
+                                            item,
                                             &*quote_pair.opening,
                                             &*quote_pair.closing,
                                         ))
