@@ -25,7 +25,8 @@ use crossbeam_channel::{Receiver, Sender};
 use dpi::PhysicalSize;
 use embedder_traits::{
     CompositorHitTestResult, Cursor, InputEvent, MouseButtonEvent, MouseMoveEvent, ShutdownState,
-    TouchEventType, UntrustedNodeAddress, ViewportDetails, WheelDelta, WheelEvent, WheelMode,
+    TouchEventType, UntrustedNodeAddress, ViewportDetails, WebDriverInputEvent, WheelDelta,
+    WheelEvent, WheelMode,
 };
 use euclid::{Point2D, Rect, Scale, Size2D, Transform3D, Vector2D};
 use fnv::FnvHashMap;
@@ -620,32 +621,30 @@ impl IOCompositor {
                 }
             },
 
-            CompositorMsg::WebDriverMouseButtonEvent(webview_id, action, button, x, y, id) => {
+            CompositorMsg::WebDriverMouseButtonEvent(webview_id, action, button, x, y, msg_id) => {
                 let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     warn!("Handling input event for unknown webview: {webview_id}");
                     return;
                 };
                 let dppx = webview_renderer.device_pixels_per_page_pixel();
                 let point = dppx.transform_point(Point2D::new(x, y));
-                webview_renderer.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent {
-                    point,
-                    action,
-                    button,
-                    webdriver_id: Some(id),
-                }));
+                webview_renderer.dispatch_input_event(
+                    InputEvent::MouseButton(MouseButtonEvent::new(action, button, point))
+                        .with_webdriver_msg_id(Some(msg_id)),
+                );
             },
 
-            CompositorMsg::WebDriverMouseMoveEvent(webview_id, x, y, id) => {
+            CompositorMsg::WebDriverMouseMoveEvent(webview_id, x, y, msg_id) => {
                 let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     warn!("Handling input event for unknown webview: {webview_id}");
                     return;
                 };
                 let dppx = webview_renderer.device_pixels_per_page_pixel();
                 let point = dppx.transform_point(Point2D::new(x, y));
-                webview_renderer.dispatch_input_event(InputEvent::MouseMove(MouseMoveEvent {
-                    point,
-                    webdriver_id: Some(id),
-                }));
+                webview_renderer.dispatch_input_event(
+                    InputEvent::MouseMove(MouseMoveEvent::new(point))
+                        .with_webdriver_msg_id(Some(msg_id)),
+                );
             },
 
             CompositorMsg::WebDriverWheelScrollEvent(webview_id, x, y, delta_x, delta_y) => {

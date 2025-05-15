@@ -687,28 +687,17 @@ impl WebViewRenderer {
     /// <http://w3c.github.io/touch-events/#mouse-events>
     fn simulate_mouse_click(&mut self, point: DevicePoint) {
         let button = MouseButton::Left;
-        self.dispatch_input_event(InputEvent::MouseMove(MouseMoveEvent {
-            point,
-            webdriver_id: None,
-        }));
-        self.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent {
+        self.dispatch_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
+        self.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
+            MouseButtonAction::Down,
             button,
-            action: MouseButtonAction::Down,
             point,
-            webdriver_id: None,
-        }));
-        self.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent {
+        )));
+        self.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
+            MouseButtonAction::Up,
             button,
-            action: MouseButtonAction::Up,
             point,
-            webdriver_id: None,
-        }));
-        self.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent {
-            button,
-            action: MouseButtonAction::Click,
-            point,
-            webdriver_id: None,
-        }));
+        )));
     }
 
     pub(crate) fn notify_scroll_event(
