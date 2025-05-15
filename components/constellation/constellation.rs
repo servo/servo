@@ -4848,7 +4848,7 @@ where
                 mouse_button,
                 x,
                 y,
-                id,
+                msg_id,
                 response_sender,
             ) => {
                 self.webdriver.input_command_response_channel = Some(response_sender);
@@ -4860,14 +4860,16 @@ where
                         mouse_button,
                         x,
                         y,
-                        id,
+                        msg_id,
                     ));
             },
-            WebDriverCommandMsg::MouseMoveAction(webview_id, x, y, id, response_sender) => {
+            WebDriverCommandMsg::MouseMoveAction(webview_id, x, y, msg_id, response_sender) => {
                 self.webdriver.input_command_response_channel = Some(response_sender);
 
                 self.compositor_proxy
-                    .send(CompositorMsg::WebDriverMouseMoveEvent(webview_id, x, y, id));
+                    .send(CompositorMsg::WebDriverMouseMoveEvent(
+                        webview_id, x, y, msg_id,
+                    ));
             },
             WebDriverCommandMsg::WheelScrollAction(webview, x, y, delta_x, delta_y) => {
                 self.compositor_proxy

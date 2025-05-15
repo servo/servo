@@ -51,7 +51,7 @@ pub struct MouseButtonEvent {
     pub action: MouseButtonAction,
     pub button: MouseButton,
     pub point: DevicePoint,
-    pub webdriver_id: Option<WebDriverMessageId>,
+    webdriver_id: Option<WebDriverMessageId>,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
@@ -105,7 +105,7 @@ pub enum MouseButtonAction {
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct MouseMoveEvent {
     pub point: DevicePoint,
-    pub webdriver_id: Option<WebDriverMessageId>,
+    webdriver_id: Option<WebDriverMessageId>,
 }
 
 /// The type of input represented by a multi-touch event.
@@ -283,4 +283,63 @@ pub enum GamepadUpdateType {
     /// Button index and input value
     /// <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-button>
     Button(usize, f64),
+}
+
+pub trait WebDriverInputEvent {
+    fn webdriver_msg_id(&self) -> Option<WebDriverMessageId>;
+    fn with_webdriver_msg_id(&mut self, webdriver_id: Option<WebDriverMessageId>) -> Self;
+}
+
+impl WebDriverInputEvent for InputEvent {
+    fn webdriver_msg_id(&self) -> Option<WebDriverMessageId> {
+        match self {
+            InputEvent::EditingAction(..) => None,
+            InputEvent::Gamepad(..) => None,
+            InputEvent::Ime(..) => None,
+            InputEvent::Keyboard(..) => None,
+            InputEvent::MouseButton(event) => event.webdriver_id,
+            InputEvent::MouseMove(event) => event.webdriver_id,
+            InputEvent::Touch(..) => None,
+            InputEvent::Wheel(..) => None,
+        }
+    }
+
+    fn with_webdriver_msg_id(&mut self, webdriver_id: Option<WebDriverMessageId>) -> Self {
+        match self {
+            InputEvent::EditingAction(..) => {},
+            InputEvent::Gamepad(..) => {},
+            InputEvent::Ime(..) => {},
+            InputEvent::Keyboard(..) => {},
+            InputEvent::MouseButton(event) => {
+                event.webdriver_id = webdriver_id;
+            },
+            InputEvent::MouseMove(event) => {
+                event.webdriver_id = webdriver_id;
+            },
+            InputEvent::Touch(..) => {},
+            InputEvent::Wheel(..) => {},
+        };
+
+        self.clone()
+    }
+}
+
+impl MouseButtonEvent {
+    pub fn new(action: MouseButtonAction, button: MouseButton, point: DevicePoint) -> Self {
+        MouseButtonEvent {
+            action,
+            button,
+            point,
+            webdriver_id: None,
+        }
+    }
+}
+
+impl MouseMoveEvent {
+    pub fn new(point: DevicePoint) -> Self {
+        MouseMoveEvent {
+            point,
+            webdriver_id: None,
+        }
+    }
 }

@@ -52,7 +52,8 @@ use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
     CompositorHitTestResult, EmbedderMsg, FocusSequenceNumber, InputEvent,
     JavaScriptEvaluationError, JavaScriptEvaluationId, MediaSessionActionType, MouseButton,
-    MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverScriptCommand,
+    MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverInputEvent,
+    WebDriverScriptCommand,
 };
 use euclid::Point2D;
 use euclid::default::Rect;
@@ -1081,7 +1082,7 @@ impl ScriptThread {
         for event in document.take_pending_input_events().into_iter() {
             document.update_active_keyboard_modifiers(event.active_keyboard_modifiers);
 
-            match event.event {
+            match event.event.clone() {
                 InputEvent::MouseButton(mouse_button_event) => {
                     document.handle_mouse_button_event(
                         mouse_button_event,
@@ -1089,23 +1090,8 @@ impl ScriptThread {
                         event.pressed_mouse_buttons,
                         can_gc,
                     );
-
-                    if let Some(id) = mouse_button_event.webdriver_id {
-                        self.senders
-                            .pipeline_to_constellation_sender
-                            .send((
-                                pipeline_id,
-                                ScriptToConstellationMessage::WebDriverInputComplete(id),
-                            ))
-                            .unwrap_or_else(|_| {
-                                warn!(
-                                    "ScriptThread failed to send WebDriverInputComplete: {:?}",
-                                    id
-                                );
-                            });
-                    }
                 },
-                InputEvent::MouseMove(mouse_move_event) => {
+                InputEvent::MouseMove(_) => {
                     // The event itself is unecessary here, because the point in the viewport is in the hit test.
                     self.process_mouse_move_event(
                         &document,
@@ -1113,21 +1099,6 @@ impl ScriptThread {
                         event.pressed_mouse_buttons,
                         can_gc,
                     );
-
-                    if let Some(id) = mouse_move_event.webdriver_id {
-                        self.senders
-                            .pipeline_to_constellation_sender
-                            .send((
-                                pipeline_id,
-                                ScriptToConstellationMessage::WebDriverInputComplete(id),
-                            ))
-                            .unwrap_or_else(|_| {
-                                warn!(
-                                    "ScriptThread failed to send WebDriverInputComplete {:?}",
-                                    id
-                                );
-                            });
-                    }
                 },
                 InputEvent::Touch(touch_event) => {
                     let touch_result =
@@ -1170,8 +1141,32 @@ impl ScriptThread {
                     document.handle_editing_action(editing_action_event, can_gc);
                 },
             }
+
+            // Notify Constellation about the input event completion.
+            self.notify_webdriver_input_event_completed(pipeline_id, event.event);
         }
         ScriptThread::set_user_interacting(false);
+    }
+
+    fn notify_webdriver_input_event_completed<T: WebDriverInputEvent>(
+        &self,
+        pipeline_id: PipelineId,
+        event: T,
+    ) {
+        if let Some(id) = event.webdriver_msg_id() {
+            self.senders
+                .pipeline_to_constellation_sender
+                .send((
+                    pipeline_id,
+                    ScriptToConstellationMessage::WebDriverInputComplete(id),
+                ))
+                .unwrap_or_else(|_| {
+                    warn!(
+                        "ScriptThread failed to send WebDriverInputComplete {:?}",
+                        id
+                    );
+                });
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#update-the-rendering>
@@ -3450,7 +3445,7 @@ impl ScriptThread {
         // the pointer, when the user presses down and releases the primary pointer button"
 
         // Servo-specific: Trigger if within 10px of the down point
-        if let InputEvent::MouseButton(mouse_button_event) = event.event {
+        if let InputEvent::MouseButton(mouse_button_event) = &event.event {
             if let MouseButton::Left = mouse_button_event.button {
                 match mouse_button_event.action {
                     MouseButtonAction::Up => {
@@ -3464,23 +3459,18 @@ impl ScriptThread {
                                 hit_test_result: event.hit_test_result.clone(),
                                 pressed_mouse_buttons: event.pressed_mouse_buttons,
                                 active_keyboard_modifiers: event.active_keyboard_modifiers,
-                                event: InputEvent::MouseButton(MouseButtonEvent {
-                                    action: MouseButtonAction::Up,
-                                    button: mouse_button_event.button,
-                                    point: mouse_button_event.point,
-                                    webdriver_id: None,
-                                }),
+                                event: event.event.clone().with_webdriver_msg_id(None),
                             });
                             document.note_pending_input_event(ConstellationInputEvent {
                                 hit_test_result: event.hit_test_result,
                                 pressed_mouse_buttons: event.pressed_mouse_buttons,
                                 active_keyboard_modifiers: event.active_keyboard_modifiers,
-                                event: InputEvent::MouseButton(MouseButtonEvent {
-                                    action: MouseButtonAction::Click,
-                                    button: mouse_button_event.button,
-                                    point: mouse_button_event.point,
-                                    webdriver_id: mouse_button_event.webdriver_id,
-                                }),
+                                event: InputEvent::MouseButton(MouseButtonEvent::new(
+                                    MouseButtonAction::Click,
+                                    mouse_button_event.button,
+                                    mouse_button_event.point,
+                                ))
+                                .with_webdriver_msg_id(event.event.webdriver_msg_id()),
                             });
                             return;
                         }

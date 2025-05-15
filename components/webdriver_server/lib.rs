@@ -14,7 +14,6 @@ use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, HashMap};
 use std::io::Cursor;
 use std::net::{SocketAddr, SocketAddrV4};
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 use std::{env, fmt, process, thread};
 
