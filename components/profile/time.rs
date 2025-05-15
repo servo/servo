@@ -69,27 +69,6 @@ impl Formattable for Option<TimerMetadata> {
     }
 }
 
-impl Formattable for ProfilerCategory {
-    // some categories are subcategories of LayoutPerformCategory
-    // and should be printed to indicate this
-    fn format(&self, _output: &Option<OutputOptions>) -> String {
-        let padding = match *self {
-            ProfilerCategory::LayoutStyleRecalc |
-            ProfilerCategory::LayoutRestyleDamagePropagation |
-            ProfilerCategory::LayoutGeneratedContent |
-            ProfilerCategory::LayoutFloatPlacementSpeculation |
-            ProfilerCategory::LayoutMain |
-            ProfilerCategory::LayoutStoreOverflow |
-            ProfilerCategory::LayoutDispListBuild |
-            ProfilerCategory::LayoutParallelWarmup |
-            ProfilerCategory::LayoutTextShaping => "| + ",
-            _ => "",
-        };
-        let name: &'static str = self.into();
-        format!("{padding}{name}")
-    }
-}
-
 type ProfilerBuckets = BTreeMap<(ProfilerCategory, Option<TimerMetadata>), Vec<Duration>>;
 
 // back end of the profiler that handles data aggregation and performance metrics
@@ -276,7 +255,7 @@ impl Profiler {
                         writeln!(
                             file,
                             "{}\t{}\t{:15.4}\t{:15.4}\t{:15.4}\t{:15.4}\t{:15}",
-                            category.format(&self.output),
+                            category.variant_name(),
                             meta.format(&self.output),
                             mean.as_seconds_f64() * 1000.,
                             median.as_seconds_f64() * 1000.,
@@ -319,7 +298,7 @@ impl Profiler {
                         writeln!(
                             &mut lock,
                             "{:-35}{} {:15.4} {:15.4} {:15.4} {:15.4} {:15}",
-                            category.format(&self.output),
+                            category.variant_name(),
                             meta.format(&self.output),
                             mean.as_seconds_f64() * 1000.,
                             median.as_seconds_f64() * 1000.,
