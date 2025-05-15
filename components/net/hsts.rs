@@ -120,9 +120,9 @@ impl HstsPreloadList {
         let parts = host[..host.len() - base_domain.len()].rsplit_terminator('.');
         let mut domain_to_test = base_domain.to_owned();
 
-        if self.0.get(&domain_to_test).is_some_and(|key| {
-            // The FST map keys were constructed such that the parity represents the includeSubdomain flag
-            key % 2 == 1 || domain_to_test == host
+        if self.0.get(&domain_to_test).is_some_and(|id| {
+            // The FST map ids were constructed such that the parity represents the includeSubdomain flag
+            id % 2 == 1 || domain_to_test == host
         }) {
             return true;
         }
@@ -130,9 +130,9 @@ impl HstsPreloadList {
         // Check all further subdomains up to the passed host
         for part in parts {
             domain_to_test = format!("{}.{}", part, domain_to_test);
-            if self.0.get(&domain_to_test).is_some_and(|key| {
-                // The FST map keys were constructed such that the parity represents the includeSubdomain flag
-                key % 2 == 1 || domain_to_test == host
+            if self.0.get(&domain_to_test).is_some_and(|id| {
+                // The FST map ids were constructed such that the parity represents the includeSubdomain flag
+                id % 2 == 1 || domain_to_test == host
             }) {
                 return true;
             }
