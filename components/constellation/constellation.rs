@@ -532,7 +532,8 @@ pub struct InitialConstellationState {
 struct WebDriverData {
     load_channel: Option<(PipelineId, IpcSender<WebDriverLoadStatus>)>,
     resize_channel: Option<IpcSender<Size2D<f32, CSSPixel>>>,
-    sync_channel: Option<IpcSender<WebDriverCommandResponse>>,
+    // Forward responses from the script thread to the webdriver server.
+    input_command_response_channel: Option<IpcSender<WebDriverCommandResponse>>,
 }
 
 impl WebDriverData {
@@ -540,7 +541,7 @@ impl WebDriverData {
         WebDriverData {
             load_channel: None,
             resize_channel: None,
-            sync_channel: None,
+            input_command_response_channel: None,
         }
     }
 }
@@ -1870,7 +1871,7 @@ where
                 self.handle_finish_javascript_evaluation(evaluation_id, result)
             },
             ScriptToConstellationMessage::WebDriverInputComplete(msg_id) => {
-                if let Some(ref reply_chan) = self.webdriver.sync_channel {
+                if let Some(ref reply_chan) = self.webdriver.input_command_response_channel {
                     reply_chan
                         .send(WebDriverCommandResponse::WebDriverInputComplete(msg_id))
                         .unwrap_or_else(|_| {
@@ -4850,7 +4851,7 @@ where
                 id,
                 response_sender,
             ) => {
-                self.webdriver.sync_channel = Some(response_sender);
+                self.webdriver.input_command_response_channel = Some(response_sender);
 
                 self.compositor_proxy
                     .send(CompositorMsg::WebDriverMouseButtonEvent(
@@ -4863,7 +4864,7 @@ where
                     ));
             },
             WebDriverCommandMsg::MouseMoveAction(webview_id, x, y, id, response_sender) => {
-                self.webdriver.sync_channel = Some(response_sender);
+                self.webdriver.input_command_response_channel = Some(response_sender);
 
                 self.compositor_proxy
                     .send(CompositorMsg::WebDriverMouseMoveEvent(webview_id, x, y, id));

@@ -105,6 +105,7 @@ impl Handler {
     ) -> Result<(), ErrorStatus> {
         // Step 1. Wait for an action queue token with input state.
         let new_token = self.id_generator.next();
+        assert!(self.current_action_id.get().is_none());
         self.current_action_id.set(Some(new_token));
 
         // Step 2. Let actions result be the result of dispatch actions inner.
@@ -138,6 +139,15 @@ impl Handler {
             // To ensure we wait for all events to be processed, only the last event in
             // this tick action step holds the message id.
             // Whenever a new event is generated, the message id is passed to it.
+            //
+            // TO-DO: remove the first match after webdriver_id is implemented in all commands
+            match tick_actions.actions {
+                ActionsType::Key { .. } | ActionsType::Wheel { .. } | ActionsType::Null { .. } => {
+                    return Ok(());
+                },
+                _ => {},
+            }
+
             match self.constellation_receiver.recv() {
                 Ok(response) => {
                     // If you receive a response, check if it itself represents an error.
