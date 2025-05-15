@@ -69,19 +69,21 @@ use crate::actions::{InputSourceState, PointerInputState};
 
 #[derive(Default)]
 pub struct IdGenerator {
-    counter: AtomicUsize,
+    counter: Cell<usize>,
 }
 
 impl IdGenerator {
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         Self {
-            counter: AtomicUsize::new(0),
+            counter: Cell::new(0),
         }
     }
 
     /// Returns a unique ID.
     pub fn next(&self) -> WebDriverMessageId {
-        WebDriverMessageId(self.counter.fetch_add(1, Ordering::SeqCst))
+        let id = self.counter.get();
+        self.counter.set(id + 1);
+        WebDriverMessageId(id)
     }
 }
 
