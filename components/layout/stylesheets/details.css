@@ -1,18 +1,18 @@
 /* We should use `content-visibility` but it is yet to be implemented.
  * These rule would not comply with ::details-content and should be removed
  * with it's implementation */
-slot:not([name]) {
+slot[id="internal-contents-slot"] {
   display: none;
 }
-:host([open]) slot:not([name]) {
+:host([open]) slot[id="internal-contents-slot"] {
   display: block;
 }
 
-summary[name=internal-fallback-summary] {
+summary[id="internal-fallback-summary"] {
   display: list-item;
   counter-increment: list-item 0;
   list-style: disclosure-closed inside;
 }
-:host([open]) summary[name=internal-fallback-summary] {
+:host([open]) summary[id="internal-fallback-summary"] {
   list-style-type: disclosure-open;
 }
