@@ -142,7 +142,22 @@ impl Handler {
                                 .or_insert(InputSourceState::Key(KeyInputState::new()));
                             match action {
                                 KeyAction::Down(action) => {
-                                    self.dispatch_keydown_action(source_id, action)
+                                    self.dispatch_keydown_action(source_id, action);
+                                    // Step 9. If subtype is "keyDown", append a copy of action
+                                    // object with the subtype property changed to "keyUp" to
+                                    // input state's input cancel list.
+                                    self.session_mut().unwrap().input_cancel_list.push(
+                                        ActionSequence {
+                                            id: source_id.into(),
+                                            actions: ActionsType::Key {
+                                                actions: vec![KeyActionItem::Key(KeyAction::Up(
+                                                    KeyUpAction {
+                                                        value: action.value.clone(),
+                                                    },
+                                                ))],
+                                            },
+                                        },
+                                    );
                                 },
                                 KeyAction::Up(action) => {
                                     self.dispatch_keyup_action(source_id, action)
@@ -172,7 +187,28 @@ impl Handler {
                             match action {
                                 PointerAction::Cancel => (),
                                 PointerAction::Down(action) => {
-                                    self.dispatch_pointerdown_action(source_id, action)
+                                    let pointer_type =
+                                        self.dispatch_pointerdown_action(source_id, action);
+
+                                    // Step 10. If subtype is "pointerDown", append a copy of action
+                                    // object with the subtype property changed to "pointerUp" to
+                                    // input state's input cancel list.
+                                    self.session_mut().unwrap().input_cancel_list.push(
+                                        ActionSequence {
+                                            id: source_id.into(),
+                                            actions: ActionsType::Pointer {
+                                                parameters: PointerActionParameters {
+                                                    pointer_type,
+                                                },
+                                                actions: vec![PointerActionItem::Pointer(
+                                                    PointerAction::Up(PointerUpAction {
+                                                        button: action.button,
+                                                        ..Default::default()
+                                                    }),
+                                                )],
+                                            },
+                                        },
+                                    );
                                 },
                                 PointerAction::Move(action) => self.dispatch_pointermove_action(
                                     source_id,
@@ -216,23 +252,17 @@ impl Handler {
     // https://w3c.github.io/webdriver/#dfn-dispatch-a-keydown-action
     fn dispatch_keydown_action(&mut self, source_id: &str, action: &KeyDownAction) {
         let session = self.session.as_mut().unwrap();
-
+        // Step 1
         let raw_key = action.value.chars().next().unwrap();
         let key_input_state = match session.input_state_table.get_mut(source_id).unwrap() {
             InputSourceState::Key(key_input_state) => key_input_state,
             _ => unreachable!(),
         };
 
-        session.input_cancel_list.push(ActionSequence {
-            id: source_id.into(),
-            actions: ActionsType::Key {
-                actions: vec![KeyActionItem::Key(KeyAction::Up(KeyUpAction {
-                    value: action.value.clone(),
-                }))],
-            },
-        });
-
+        // Step 2 - 11. Done by `keyboard-types` crate.
         let keyboard_event = key_input_state.dispatch_keydown(raw_key);
+
+        // Step 12
         let cmd_msg =
             WebDriverCommandMsg::KeyboardAction(session.browsing_context_id, keyboard_event);
         self.constellation_chan
@@ -243,23 +273,16 @@ impl Handler {
     // https://w3c.github.io/webdriver/#dfn-dispatch-a-keyup-action
     fn dispatch_keyup_action(&mut self, source_id: &str, action: &KeyUpAction) {
         let session = self.session.as_mut().unwrap();
-
+        // Step 1
         let raw_key = action.value.chars().next().unwrap();
         let key_input_state = match session.input_state_table.get_mut(source_id).unwrap() {
             InputSourceState::Key(key_input_state) => key_input_state,
             _ => unreachable!(),
         };
 
-        session.input_cancel_list.push(ActionSequence {
-            id: source_id.into(),
-            actions: ActionsType::Key {
-                actions: vec![KeyActionItem::Key(KeyAction::Up(KeyUpAction {
-                    value: action.value.clone(),
-                }))],
-            },
-        });
-
+        // Step 2 - 11. Done by `keyboard-types` crate.
         if let Some(keyboard_event) = key_input_state.dispatch_keyup(raw_key) {
+            // Step 12
             let cmd_msg =
                 WebDriverCommandMsg::KeyboardAction(session.browsing_context_id, keyboard_event);
             self.constellation_chan
@@ -273,7 +296,7 @@ impl Handler {
         &mut self,
         source_id: &str,
         action: &PointerDownAction,
-    ) {
+    ) -> PointerType {
         let session = self.session.as_mut().unwrap();
 
         let pointer_input_state = match session.input_state_table.get_mut(source_id).unwrap() {
@@ -282,28 +305,9 @@ impl Handler {
         };
 
         if pointer_input_state.pressed.contains(&action.button) {
-            return;
+            return pointer_input_state.subtype;
         }
         pointer_input_state.pressed.insert(action.button);
-
-        session.input_cancel_list.push(ActionSequence {
-            id: source_id.into(),
-            actions: ActionsType::Pointer {
-                parameters: PointerActionParameters {
-                    pointer_type: match pointer_input_state.subtype {
-                        PointerType::Mouse => PointerType::Mouse,
-                        PointerType::Pen => PointerType::Pen,
-                        PointerType::Touch => PointerType::Touch,
-                    },
-                },
-                actions: vec![PointerActionItem::Pointer(PointerAction::Up(
-                    PointerUpAction {
-                        button: action.button,
-                        ..Default::default()
-                    },
-                ))],
-            },
-        });
 
         let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
             session.webview_id,
@@ -315,6 +319,7 @@ impl Handler {
         self.constellation_chan
             .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
             .unwrap();
+        pointer_input_state.subtype
     }
 
     // https://w3c.github.io/webdriver/#dfn-dispatch-a-pointerup-action
