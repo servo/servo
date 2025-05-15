@@ -36,6 +36,7 @@ env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   CARGO_INCREMENTAL: 0
+  BENCHER_PROJECT: ${{ vars.BENCHER_PROJECT || 'servo' }}
 
 jobs:
   build:
@@ -238,3 +239,10 @@ jobs:
           [[ $servo_pid =~ ^[0-9]+$ ]] || { echo "It looks like servo crashed!" ; exit 1; }
           # If the grep fails, then the trace output for the "page loaded" prompt is missing
           grep 'org\.servo\.servo-.* tracing_mark_write.*PageLoadEndedPrompt' test_output/servo.ftrace
+      - name: "Run benchmark"
+        run: hitrace-bench --bencher -b "org.servo.servo" -p "https://www.servo.org" -n 5
+      - name: Getting bencher
+        uses: bencherdev/bencher@main
+      - name: Uploading to bencher.dev
+        run: |
+          bencher run --adapter json --file bench.json --project '${{ env.BENCHER_PROJECT }}' --token '${{ secrets.BENCHER_API_TOKEN }}' --github-actions '${{ secrets.GITHUB_TOKEN }}'
