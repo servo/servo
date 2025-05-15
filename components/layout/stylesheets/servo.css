@@ -87,6 +87,15 @@ input[type="file"] {
   border-style: none;
 }
 
+input[type="color"] {
+  padding: 6px;
+  width: 64px;
+  height: 32px;
+  border-radius: 2px;
+  background: lightgrey;
+  border: 1px solid gray;
+}
+
 td[align="left"]    { text-align: left; }
 td[align="center"]  { text-align: center; }
 td[align="right"]   { text-align: right; }
