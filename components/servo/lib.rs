@@ -984,6 +984,7 @@ impl Servo {
                                 current_color,
                                 position,
                                 ipc_sender,
+                                self.servo_errors.sender(),
                             ))
                         },
                     };

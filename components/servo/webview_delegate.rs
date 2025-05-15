@@ -363,6 +363,7 @@ pub struct ColorPicker {
     pub(crate) current_color: RgbColor,
     pub(crate) position: DeviceIntRect,
     pub(crate) responder: IpcResponder<Option<RgbColor>>,
+    pub(crate) error_sender: ServoErrorSender,
 }
 
 impl ColorPicker {
@@ -370,11 +371,13 @@ impl ColorPicker {
         current_color: RgbColor,
         position: DeviceIntRect,
         ipc_sender: IpcSender<Option<RgbColor>>,
+        error_sender: ServoErrorSender,
     ) -> Self {
         Self {
             current_color,
             position,
             responder: IpcResponder::new(ipc_sender, None),
+            error_sender,
         }
     }
 
@@ -391,7 +394,9 @@ impl ColorPicker {
     }
 
     pub fn select(&mut self, color: Option<RgbColor>) {
-        let _ = self.responder.send(color);
+        if let Err(error) = self.responder.send(color) {
+            self.error_sender.raise_response_send_error(error);
+        }
     }
 }
 
