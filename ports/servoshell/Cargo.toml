@@ -106,10 +106,11 @@ serde_json = { workspace = true }
 surfman = { workspace = true, features = ["sm-angle-default"] }
 
 [target.'cfg(not(any(target_os = "android", target_env = "ohos")))'.dependencies]
+accesskit_winit = "0.23"
 dirs = "6.0"
-egui = "0.31.1"
+egui = { version = "0.31.1", features = ["accesskit"] }
 egui-file-dialog = "0.9.0"
-egui-winit = { version = "0.31.1", default-features = false, features = ["clipboard", "wayland"] }
+egui-winit = { version = "0.31.1", default-features = false, features = ["accesskit", "clipboard", "wayland"] }
 egui_glow = { version = "0.31.1", features = ["winit"] }
 gilrs = "0.11.0"
 glow = "0.16.0"

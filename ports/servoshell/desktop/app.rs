@@ -27,7 +27,7 @@ use winit::event_loop::{ActiveEventLoop, ControlFlow};
 use winit::window::WindowId;
 
 use super::app_state::AppState;
-use super::events_loop::{EventsLoop, WakerEvent};
+use super::events_loop::{AppEvent, EventLoopProxy, EventsLoop};
 use super::minibrowser::{Minibrowser, MinibrowserEvent};
 use super::{headed_window, headless_window};
 use crate::desktop::app_state::RunningAppState;
@@ -45,6 +45,7 @@ pub struct App {
     suspended: Cell<bool>,
     minibrowser: Option<Minibrowser>,
     waker: Box<dyn EventLoopWaker>,
+    proxy: Option<EventLoopProxy>,
     initial_url: ServoUrl,
     t_start: Instant,
     t: Instant,
@@ -89,6 +90,7 @@ impl App {
             windows: HashMap::new(),
             minibrowser: None,
             waker: events_loop.create_event_loop_waker(),
+            proxy: events_loop.event_loop_proxy(),
             initial_url: initial_url.clone(),
             t_start: t,
             t,
@@ -103,10 +105,12 @@ impl App {
         assert_eq!(headless, event_loop.is_none());
         let window = match event_loop {
             Some(event_loop) => {
+                let proxy = self.proxy.take().expect("Must have a proxy available");
                 let window = headed_window::Window::new(&self.servoshell_preferences, event_loop);
                 self.minibrowser = Some(Minibrowser::new(
-                    window.offscreen_rendering_context(),
+                    &window,
                     event_loop,
+                    proxy,
                     self.initial_url.clone(),
                 ));
                 Rc::new(window)
@@ -238,7 +242,7 @@ impl App {
     /// continue.
     pub fn handle_events_with_headless(&mut self) -> bool {
         let now = Instant::now();
-        let event = winit::event::Event::UserEvent(WakerEvent);
+        let event = winit::event::Event::UserEvent(AppEvent::WakerEvent);
         trace_winit_event!(
             event,
             "@{:?} (+{:?}) {event:?}",
@@ -360,7 +364,7 @@ impl App {
     }
 }
 
-impl ApplicationHandler<WakerEvent> for App {
+impl ApplicationHandler<AppEvent> for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         self.init(Some(event_loop));
     }
@@ -468,7 +472,19 @@ impl ApplicationHandler<WakerEvent> for App {
         self.handle_events_with_winit(event_loop, window);
     }
 
-    fn user_event(&mut self, event_loop: &ActiveEventLoop, event: WakerEvent) {
+    fn user_event(&mut self, event_loop: &ActiveEventLoop, event: AppEvent) {
+        if let AppEvent::Accessibility(ref e) = event {
+            if let Some(ref mut minibrowser) = self.minibrowser {
+                if minibrowser.handle_accesskit_event(&e.window_event) {
+                    let Some(window) = self.windows.get(&e.window_id) else {
+                        return;
+                    };
+                    window.winit_window().unwrap().request_redraw();
+                    return;
+                }
+            }
+        }
+
         let now = Instant::now();
         let event = winit::event::Event::UserEvent(event);
         trace_winit_event!(
