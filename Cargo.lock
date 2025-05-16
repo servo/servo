@@ -1103,6 +1103,7 @@ dependencies = [
  "servo_allocator",
  "servo_config",
  "servo_geometry",
+ "smallvec",
  "stylo_traits",
  "surfman",
  "tracing",
