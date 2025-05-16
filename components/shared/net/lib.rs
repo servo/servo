@@ -517,8 +517,6 @@ pub enum CoreResourceMsg {
     SetHistoryState(HistoryStateId, Vec<u8>),
     /// Removes history states for the given ids
     RemoveHistoryStates(Vec<HistoryStateId>),
-    /// Synchronization message solely for knowing the state of the ResourceChannelManager loop
-    Synchronize(IpcSender<()>),
     /// Clear the network cache.
     ClearCache,
     /// Send the service worker network mediator for an origin to CoreResourceThread

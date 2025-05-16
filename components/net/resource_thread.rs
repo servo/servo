@@ -445,9 +445,6 @@ impl ResourceChannelManager {
                     history_states.remove(&history_state);
                 }
             },
-            CoreResourceMsg::Synchronize(sender) => {
-                let _ = sender.send(());
-            },
             CoreResourceMsg::ClearCache => {
                 http_state.http_cache.write().unwrap().clear();
             },
