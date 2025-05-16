@@ -119,22 +119,23 @@ struct InputTypeColorShadowTree {
     color_value: Dom<HTMLDivElement>,
 }
 
+// FIXME: These styles should be inside UA stylesheet,
+//        but we should support pseudo element first.
 const TEXT_TREE_STYLE: &str = "
+#input-editing-root::selection, #input-placeholder::selection {
+  background: rgba(176, 214, 255, 1.0);
+  color: black;
+}
+
 #input-editing-root, #input-placeholder {
-    scrollbar-width: none;
-    resize: none;
-    word-wrap: normal;
+    overflow-wrap: normal;
     white-space: pre;
+    pointer-events: none;
 }
 
 #input-placeholder {
     color: grey;
     overflow: hidden;
-    pointer-events: none;
-    user-select: none;
-    direction: inherit;
-    text-orientation: inherit;
-    writing-mode: inherit;
 }
 ";
 
@@ -1112,10 +1113,17 @@ impl HTMLInputElement {
         let shadow_root = self.shadow_root(can_gc);
         Node::replace_all(None, shadow_root.upcast::<Node>(), can_gc);
 
-        let placeholder_container = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
+        let placeholder_container =
+            HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
         placeholder_container
             .upcast::<Element>()
             .SetId(DOMString::from("input-placeholder"), can_gc);
+        // MYNOTES:
+        // This is not a text editing root, but we should do this to show it's
+        // editing caret when placeholder is still visible
+        placeholder_container
+            .upcast::<Element>()
+            .set_text_editing_root_state(true);
         shadow_root
             .upcast::<Node>()
             .AppendChild(placeholder_container.upcast::<Node>(), can_gc)
@@ -1125,6 +1133,11 @@ impl HTMLInputElement {
         text_container
             .upcast::<Element>()
             .SetId(DOMString::from("input-editing-root"), can_gc);
+        // We should probably use pseudo element to check this.
+        // Chrome is using (private?) element attrs,
+        text_container
+            .upcast::<Element>()
+            .set_text_editing_root_state(true);
         shadow_root
             .upcast::<Node>()
             .AppendChild(text_container.upcast::<Node>(), can_gc)
@@ -1250,14 +1263,20 @@ impl HTMLInputElement {
             let text_shadow_tree = self.text_shadow_tree(can_gc);
             let value = self.Value();
 
-            let placeholder_text = if value.len() == 0 {
-                self.placeholder.to_owned().take()
-            } else {
-                DOMString::new()
+            let placeholder_text = match (value.is_empty(), self.placeholder.borrow().is_empty()) {
+                (true, false) => self.placeholder.to_owned().take(),
+                (true, true) => "\u{200B}".into(),
+                _ => DOMString::new(),
             };
 
-            text_shadow_tree.placeholder_container.upcast::<Node>().SetTextContent(Some(placeholder_text), can_gc);
-            text_shadow_tree.text_container.upcast::<Node>().SetTextContent(Some(value), can_gc);
+            text_shadow_tree
+                .placeholder_container
+                .upcast::<Node>()
+                .SetTextContent(Some(placeholder_text), can_gc);
+            text_shadow_tree
+                .text_container
+                .upcast::<Node>()
+                .SetTextContent(Some(value), can_gc);
         }
         if self.input_type() == InputType::Color {
             let color_shadow_tree = self.color_shadow_tree(can_gc);

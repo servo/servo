@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::any::Any;
 use std::borrow::Cow;
 use std::char::{ToLowercase, ToUppercase};
 
@@ -302,7 +303,6 @@ impl InlineFormattingContextBuilder {
         if new_text.is_empty() {
             return;
         }
-
         let selection_range = info.get_selection_range();
         if let Some(last_character) = new_text.chars().next_back() {
             self.on_word_boundary = last_character.is_whitespace();

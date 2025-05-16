@@ -1614,6 +1614,12 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
 
     /// Whether this element is a `<input>` rendered as text or a `<textarea>`.
     fn is_text_input(&self) -> bool;
+
+    /// Whether this element is a text input with Shadow DOM.
+    fn is_text_input_with_shadow_dom(&self) -> bool;
+
+    /// Whether this element serve as a container of editable text for a text input.
+    fn text_editing_root(&self) -> bool;
     fn text_content(self) -> Cow<'dom, str>;
     fn selection(self) -> Option<Range<usize>>;
     fn image_url(self) -> Option<ServoUrl>;
@@ -1788,13 +1794,34 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
             let input = self.unsafe_get().downcast::<HTMLInputElement>().unwrap();
 
             // FIXME: All the non-color and non-text input types currently render as text
-            input.input_type() != InputType::Color &&
-            input.input_type() != InputType::Text
+            !matches!(input.input_type(), InputType::Color | InputType::Text)
         } else {
             type_id ==
                 NodeTypeId::Element(ElementTypeId::HTMLElement(
                     HTMLElementTypeId::HTMLTextAreaElement,
                 ))
+        }
+    }
+
+    fn is_text_input_with_shadow_dom(&self) -> bool {
+        let type_id = self.type_id_for_layout();
+        if type_id ==
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLInputElement,
+            ))
+        {
+            let input = self.unsafe_get().downcast::<HTMLInputElement>().unwrap();
+
+            matches!(input.input_type(), InputType::Color | InputType::Text)
+        } else {
+            false
+        }
+    }
+
+    fn text_editing_root(&self) -> bool {
+        match self.downcast::<Element>() {
+            Some(element) => element.text_editing_root(),
+            _ => false,
         }
     }
 
@@ -1815,6 +1842,24 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     }
 
     fn selection(self) -> Option<Range<usize>> {
+        // This container is a text editing root of a <input> or <textarea> element.
+        // So we should find those corresponding element, and get its selection.
+        if self.text_editing_root() {
+            let mut maybe_parent_node = self.composed_parent_node_ref();
+            while let Some(parent_node) = maybe_parent_node {
+                if let Some(area) = parent_node.downcast::<HTMLTextAreaElement>() {
+                    return area.selection_for_layout();
+                }
+
+                if let Some(input) = parent_node.downcast::<HTMLInputElement>() {
+                    return input.selection_for_layout();
+                }
+
+                maybe_parent_node = parent_node.composed_parent_node_ref();
+            }
+            panic!("Text input element not found!");
+        }
+
         if let Some(area) = self.downcast::<HTMLTextAreaElement>() {
             return area.selection_for_layout();
         }

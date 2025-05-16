@@ -865,6 +865,13 @@ impl LayoutDom<'_, Element> {
     pub(super) fn focus_state(self) -> bool {
         self.unsafe_get().state.get().contains(ElementState::FOCUS)
     }
+
+    pub(super) fn text_editing_root(self) -> bool {
+        self.unsafe_get()
+            .state
+            .get()
+            .contains(ElementState::TEXT_EDITING_ROOT)
+    }
 }
 
 impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
@@ -4877,6 +4884,10 @@ impl Element {
 
     pub(crate) fn set_fullscreen_state(&self, value: bool) {
         self.set_state(ElementState::FULLSCREEN, value)
+    }
+
+    pub(crate) fn set_text_editing_root_state(&self, value: bool) {
+        self.set_state(ElementState::TEXT_EDITING_ROOT, value)
     }
 
     /// <https://dom.spec.whatwg.org/#connected>
