@@ -171,6 +171,18 @@ skip = [
     "rand_core",
     "wasi",
     "webpki-roots",
+
+    # duplicated by blurz/blurmock
+    "hex",
+
+    # duplciated by rustix
+    "linux-raw-sys",
+
+    # duplicated by async-io
+    "rustix",
+
+    # duplicated by zbus-xml
+    "quick-xml",
 ]
 
 # github.com organizations to allow git sources for

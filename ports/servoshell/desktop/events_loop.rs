@@ -16,15 +16,26 @@ use winit::platform::macos::{ActivationPolicy, EventLoopBuilderExtMacOS};
 
 use super::app::App;
 
-/// Another process or thread has kicked the OS event loop with EventLoopWaker.
+pub type EventLoopProxy = winit::event_loop::EventLoopProxy<AppEvent>;
+
 #[derive(Debug)]
-pub struct WakerEvent;
+pub enum AppEvent {
+    /// Another process or thread has kicked the OS event loop with EventLoopWaker.
+    WakerEvent,
+    Accessibility(accesskit_winit::Event),
+}
+
+impl From<accesskit_winit::Event> for AppEvent {
+    fn from(event: accesskit_winit::Event) -> AppEvent {
+        AppEvent::Accessibility(event)
+    }
+}
 
 /// The real or fake OS event loop.
 #[allow(dead_code)]
 enum EventLoop {
     /// A real Winit windowing event loop.
-    Winit(Option<winit::event_loop::EventLoop<WakerEvent>>),
+    Winit(Option<winit::event_loop::EventLoop<AppEvent>>),
     /// A fake event loop which contains a signalling flag used to ensure
     /// that pending events get processed in a timely fashion, and a condition
     /// variable to allow waiting on that flag changing state.
@@ -67,6 +78,18 @@ impl EventsLoop {
 }
 
 impl EventsLoop {
+    pub fn event_loop_proxy(&self) -> Option<EventLoopProxy> {
+        match self.0 {
+            EventLoop::Winit(ref events_loop) => {
+                let events_loop = events_loop
+                    .as_ref()
+                    .expect("Can't create proxy for unavailable event loop.");
+                Some(events_loop.create_proxy())
+            },
+            EventLoop::Headless(..) => None,
+        }
+    }
+
     pub fn create_event_loop_waker(&self) -> Box<dyn EventLoopWaker> {
         match self.0 {
             EventLoop::Winit(ref events_loop) => {
@@ -120,10 +143,10 @@ impl EventsLoop {
 }
 
 struct HeadedEventLoopWaker {
-    proxy: Arc<Mutex<winit::event_loop::EventLoopProxy<WakerEvent>>>,
+    proxy: Arc<Mutex<winit::event_loop::EventLoopProxy<AppEvent>>>,
 }
 impl HeadedEventLoopWaker {
-    fn new(events_loop: &winit::event_loop::EventLoop<WakerEvent>) -> HeadedEventLoopWaker {
+    fn new(events_loop: &winit::event_loop::EventLoop<AppEvent>) -> HeadedEventLoopWaker {
         let proxy = Arc::new(Mutex::new(events_loop.create_proxy()));
         HeadedEventLoopWaker { proxy }
     }
@@ -131,7 +154,7 @@ impl HeadedEventLoopWaker {
 impl EventLoopWaker for HeadedEventLoopWaker {
     fn wake(&self) {
         // Kick the OS event loop awake.
-        if let Err(err) = self.proxy.lock().unwrap().send_event(WakerEvent) {
+        if let Err(err) = self.proxy.lock().unwrap().send_event(AppEvent::WakerEvent) {
             warn!("Failed to wake up event loop ({}).", err);
         }
     }

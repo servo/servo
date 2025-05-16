@@ -31,7 +31,7 @@ pub(crate) trait LogTarget {
 
 mod from_winit {
     use super::LogTarget;
-    use crate::desktop::events_loop::WakerEvent;
+    use crate::desktop::events_loop::AppEvent;
 
     macro_rules! target {
         ($($name:literal)+) => {
@@ -39,7 +39,7 @@ mod from_winit {
         };
     }
 
-    impl LogTarget for winit::event::Event<WakerEvent> {
+    impl LogTarget for winit::event::Event<AppEvent> {
         fn log_target(&self) -> &'static str {
             use winit::event::StartCause;
             match self {
@@ -51,7 +51,8 @@ mod from_winit {
                 },
                 Self::WindowEvent { event, .. } => event.log_target(),
                 Self::DeviceEvent { .. } => target!("DeviceEvent"),
-                Self::UserEvent(WakerEvent) => target!("UserEvent(WakerEvent)"),
+                Self::UserEvent(AppEvent::WakerEvent) => target!("UserEvent(WakerEvent)"),
+                Self::UserEvent(AppEvent::Accessibility(..)) => target!("UserEvent(Accessibility)"),
                 Self::Suspended => target!("Suspended"),
                 Self::Resumed => target!("Resumed"),
                 Self::AboutToWait => target!("AboutToWait"),
