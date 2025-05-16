@@ -43,6 +43,7 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::trace::{CustomTraceable, JSTraceable, RootedTraceableBox};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+#[cfg(feature = "testbinding")]
 use crate::dom::testworkletglobalscope::TestWorkletTask;
 use crate::dom::window::Window;
 use crate::dom::workletglobalscope::{
@@ -354,6 +355,7 @@ impl WorkletThreadPool {
     }
 
     /// For testing.
+    #[cfg(feature = "testbinding")]
     pub(crate) fn test_worklet_lookup(&self, id: WorkletId, key: String) -> Option<String> {
         let (sender, receiver) = unbounded();
         let msg = WorkletData::Task(id, WorkletTask::Test(TestWorkletTask::Lookup(key, sender)));
