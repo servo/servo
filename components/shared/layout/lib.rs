@@ -28,7 +28,7 @@ use compositing_traits::CrossProcessCompositorApi;
 use embedder_traits::{Cursor, Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::Point2D;
 use euclid::default::{Point2D as UntypedPoint2D, Rect};
-use fonts::FontContext;
+use fonts::{FontContext, WebFontDocumentContext};
 pub use layout_damage::LayoutDamage;
 use libc::c_void;
 use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps, malloc_size_of_is_0};
@@ -253,7 +253,11 @@ pub trait Layout {
 
     /// Load all fonts from the given stylesheet, returning the number of fonts that
     /// need to be loaded.
-    fn load_web_fonts_from_stylesheet(&self, stylesheet: &ServoArc<Stylesheet>);
+    fn load_web_fonts_from_stylesheet(
+        &self,
+        stylesheet: &ServoArc<Stylesheet>,
+        font_context: &WebFontDocumentContext,
+    );
 
     /// Add a stylesheet to this Layout. This will add it to the Layout's `Stylist` as well as
     /// loading all web fonts defined in the stylesheet. The second stylesheet is the insertion
@@ -262,6 +266,7 @@ pub trait Layout {
         &mut self,
         stylesheet: ServoArc<Stylesheet>,
         before_stylsheet: Option<ServoArc<Stylesheet>>,
+        font_context: &WebFontDocumentContext,
     );
 
     /// Inform the layout that its ScriptThread is about to exit.
@@ -598,6 +603,8 @@ pub struct ReflowRequest {
     pub animating_images: Arc<RwLock<AnimatingImages>>,
     /// The node highlighted by the devtools, if any
     pub highlighted_dom_node: Option<OpaqueNode>,
+    /// The current font context.
+    pub document_context: WebFontDocumentContext,
 }
 
 impl ReflowRequest {

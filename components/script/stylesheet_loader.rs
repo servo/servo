@@ -8,7 +8,12 @@ use base::id::PipelineId;
 use crossbeam_channel::Sender;
 use cssparser::SourceLocation;
 use encoding_rs::UTF_8;
+<<<<<<< HEAD
 use net_traits::mime_classifier::MimeClassifier;
+=======
+use fonts::WebFontDocumentContext;
+use mime::{self, Mime};
+>>>>>>> 6b708ce6752 (Add WebFontDocumentContext for CSS Fonts 4 font fetching)
 use net_traits::request::{CorsSettings, Destination, RequestId};
 use net_traits::{
     FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming,
@@ -253,9 +258,19 @@ impl StylesheetContext {
                     link.set_stylesheet(stylesheet);
                 },
                 StylesheetContextSource::Import { import_rule } => {
+                    // Construct a new WebFontDocumentContext for the stylesheet
+                    let global = element.global();
+                    let document_context = WebFontDocumentContext {
+                        policy_container: global.policy_container(),
+                        document_url: global.api_base_url(),
+                        has_trustworthy_ancestor_origin: global
+                            .has_trustworthy_ancestor_origin(),
+                        insecure_requests_policy: global.insecure_requests_policy(),
+                    };
+
                     // Layout knows about this stylesheet, because Stylo added it to the Stylist,
                     // but Layout doesn't know about any new web fonts that it contains.
-                    document.load_web_fonts_from_stylesheet(&stylesheet);
+                    document.load_web_fonts_from_stylesheet(&stylesheet, &document_context);
 
                     let mut guard = document.style_shared_lock().write();
                     import_rule.write_with(&mut guard).stylesheet = ImportSheet::Sheet(stylesheet);

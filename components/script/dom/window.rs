@@ -43,7 +43,7 @@ use embedder_traits::{
 };
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Scale, Size2D, Vector2D};
-use fonts::FontContext;
+use fonts::{FontContext, WebFontDocumentContext};
 use ipc_channel::ipc::IpcSender;
 use js::glue::DumpJSStack;
 use js::jsapi::{
@@ -2451,6 +2451,14 @@ impl Window {
             None
         };
 
+        //Construct a new document context for the reflow.
+        let document_context = WebFontDocumentContext {
+            policy_container: self.global().policy_container(),
+            document_url: self.global().api_base_url(),
+            has_trustworthy_ancestor_origin: self.global().has_trustworthy_ancestor_origin(),
+            insecure_requests_policy: self.global().insecure_requests_policy(),
+        };
+
         let reflow = ReflowRequest {
             document: document.upcast::<Node>().to_trusted_node_address(),
             epoch: document.current_rendering_epoch(),
@@ -2463,6 +2471,7 @@ impl Window {
             animations: document.animations().sets.clone(),
             animating_images: document.image_animation_manager().animating_images(),
             highlighted_dom_node: document.highlighted_dom_node().map(|node| node.to_opaque()),
+            document_context,
         };
 
         let Some(reflow_result) = self.layout.borrow_mut().reflow(reflow) else {

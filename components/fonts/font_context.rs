@@ -18,7 +18,11 @@ use fonts_traits::{
 };
 use log::{debug, trace};
 use malloc_size_of_derive::MallocSizeOf;
-use net_traits::request::{Destination, Referrer, RequestBuilder};
+use net_traits::policy_container::PolicyContainer;
+use net_traits::request::{
+    CredentialsMode, Destination, InsecureRequestsPolicy, Referrer, RequestBuilder, RequestMode,
+    ServiceWorkersMode,
+};
 use net_traits::{CoreResourceThread, FetchResponseMsg, ResourceThreads, fetch_async};
 use parking_lot::{Mutex, RwLock};
 use rustc_hash::FxHashSet;
@@ -103,6 +107,14 @@ pub struct FontContext {
     font_data: RwLock<HashMap<FontIdentifier, FontData>>,
 
     have_removed_web_fonts: AtomicBool,
+}
+
+#[derive(Clone, Debug)]
+pub struct WebFontDocumentContext {
+    pub policy_container: PolicyContainer,
+    pub document_url: ServoUrl,
+    pub has_trustworthy_ancestor_origin: bool,
+    pub insecure_requests_policy: InsecureRequestsPolicy,
 }
 
 impl FontContext {
@@ -410,6 +422,7 @@ pub(crate) struct WebFontDownloadState {
     local_fonts: HashMap<Atom, Option<FontTemplateRef>>,
     font_context: Arc<FontContext>,
     initiator: WebFontLoadInitiator,
+    document_context: WebFontDocumentContext,
 }
 
 impl WebFontDownloadState {
@@ -420,6 +433,7 @@ impl WebFontDownloadState {
         initiator: WebFontLoadInitiator,
         sources: Vec<Source>,
         local_fonts: HashMap<Atom, Option<FontTemplateRef>>,
+        document_context: WebFontDocumentContext,
     ) -> WebFontDownloadState {
         match initiator {
             WebFontLoadInitiator::Stylesheet(ref initiator) => {
@@ -444,6 +458,7 @@ impl WebFontDownloadState {
             local_fonts,
             font_context,
             initiator,
+            document_context,
         }
     }
 
@@ -514,6 +529,7 @@ pub trait FontContextWebFontMethods {
         guard: &SharedRwLockReadGuard,
         device: &Device,
         finished_callback: StylesheetWebFontLoadFinishedCallback,
+        document_context: &WebFontDocumentContext,
     ) -> usize;
     fn load_web_font_for_script(
         &self,
@@ -521,6 +537,7 @@ pub trait FontContextWebFontMethods {
         source_list: SourceList,
         descriptors: CSSFontFaceDescriptors,
         finished_callback: ScriptWebFontLoadFinishedCallback,
+        document_context: &WebFontDocumentContext,
     );
     fn add_template_to_font_context(
         &self,
@@ -540,6 +557,7 @@ impl FontContextWebFontMethods for Arc<FontContext> {
         guard: &SharedRwLockReadGuard,
         device: &Device,
         finished_callback: StylesheetWebFontLoadFinishedCallback,
+        document_context: &WebFontDocumentContext,
     ) -> usize {
         let mut number_loading = 0;
         let custom_media = &CustomMediaMap::default();
@@ -570,6 +588,7 @@ impl FontContextWebFontMethods for Arc<FontContext> {
                 font_face.sources(),
                 css_font_face_descriptors,
                 WebFontLoadInitiator::Stylesheet(Box::new(initiator)),
+                document_context,
             );
         }
 
@@ -678,9 +697,16 @@ impl FontContextWebFontMethods for Arc<FontContext> {
         sources: SourceList,
         descriptors: CSSFontFaceDescriptors,
         finished_callback: ScriptWebFontLoadFinishedCallback,
+        document_context: &WebFontDocumentContext,
     ) {
         let completion_handler = WebFontLoadInitiator::Script(finished_callback);
-        self.start_loading_one_web_font(webview_id, &sources, descriptors, completion_handler);
+        self.start_loading_one_web_font(
+            webview_id,
+            &sources,
+            descriptors,
+            completion_handler,
+            document_context,
+        );
     }
 
     fn add_template_to_font_context(
@@ -702,6 +728,7 @@ impl FontContext {
         source_list: &SourceList,
         css_font_face_descriptors: CSSFontFaceDescriptors,
         completion_handler: WebFontLoadInitiator,
+        document_context: &WebFontDocumentContext,
     ) {
         let sources: Vec<Source> = source_list
             .0
@@ -743,6 +770,7 @@ impl FontContext {
             completion_handler,
             sources,
             local_fonts,
+            document_context.clone(),
         ));
     }
 
@@ -841,14 +869,20 @@ impl RemoteWebFontDownloader {
             None => return,
         };
 
-        // FIXME: This shouldn't use NoReferrer, but the current documents url
-        let request =
-            RequestBuilder::new(state.webview_id, url.clone().into(), Referrer::NoReferrer)
-                // TODO: Set policy_container from globalscope that contains the fontcontext
-                .policy_container(Default::default())
-                // TODO: Set origin from document that contains the fontcontext
-                .origin(ImmutableOrigin::new(url.origin()))
-                .destination(Destination::Font);
+        let document_context = &state.document_context;
+
+        let request = RequestBuilder::new(
+            state.webview_id,
+            url.clone().into(),
+            Referrer::ReferrerUrl(document_context.document_url.clone()),
+        )
+        .destination(Destination::Font)
+        .mode(RequestMode::CorsMode)
+        .credentials_mode(CredentialsMode::CredentialsSameOrigin)
+        .service_workers_mode(ServiceWorkersMode::All)
+        .policy_container(document_context.policy_container.clone())
+        .insecure_requests_policy(document_context.insecure_requests_policy)
+        .has_trustworthy_ancestor_origin(document_context.has_trustworthy_ancestor_origin);
 
         let core_resource_thread_clone = state.core_resource_thread.clone();
 
