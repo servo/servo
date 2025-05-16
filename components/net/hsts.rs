@@ -87,6 +87,7 @@ pub struct HstsList {
 /// it is split out to allow sharing between the private and public http state
 /// as well as potentially swpaping out the underlying type to something immutable
 /// and more efficient like FSTs or DAFSA/DAWGs.
+/// To generate a new version of the FST map file run `./mach update-hsts-preload`
 #[derive(Clone, Debug)]
 pub struct HstsPreloadList(pub fst::Map<Vec<u8>>);
 
