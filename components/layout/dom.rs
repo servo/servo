@@ -126,15 +126,15 @@ impl LayoutBox {
                         .repair_style(context, node, new_style);
                 }
             },
-            LayoutBox::FlexLevel(flex_level_box) => {
-                flex_level_box.borrow_mut().repair_style(context, new_style)
-            },
+            LayoutBox::FlexLevel(flex_level_box) => flex_level_box
+                .borrow_mut()
+                .repair_style(context, node, new_style),
             LayoutBox::TableLevelBox(table_level_box) => {
-                table_level_box.repair_style(context, new_style)
+                table_level_box.repair_style(context, node, new_style)
             },
-            LayoutBox::TaffyItemBox(taffy_item_box) => {
-                taffy_item_box.borrow_mut().repair_style(context, new_style)
-            },
+            LayoutBox::TaffyItemBox(taffy_item_box) => taffy_item_box
+                .borrow_mut()
+                .repair_style(context, node, new_style),
         }
     }
 }

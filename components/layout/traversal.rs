@@ -112,15 +112,14 @@ pub(crate) fn compute_damage_and_repair_style_inner(
             .element_data
             .borrow_mut();
 
+        original_damage = std::mem::take(&mut element_data.damage);
         if let Some(ref style) = element_data.styles.primary {
             if style.get_box().display == Display::None {
                 return parent_restyle_damage;
             }
         }
 
-        original_damage = std::mem::take(&mut element_data.damage);
-        element_data.damage |= parent_restyle_damage;
-        element_data.damage
+        original_damage | parent_restyle_damage
     };
 
     let mut propagated_damage = damage;
