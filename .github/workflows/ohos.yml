@@ -242,7 +242,7 @@ jobs:
       - name: Getting bencher
         uses: bencherdev/bencher@main
       - name: Getting model name
-        run: echo{MODEL_NAME}=$(hdc bugreport | head -n 20 | grep MarketName | awk '{for (i=2; i<NF; i++) printf $i " "; print $NF}' -) >> "$GITHUB_ENV"
+        run: echo "{MODEL_NAME}=$(hdc bugreport | head -n 20 | grep MarketName | awk '{for (i=2; i<NF; i++) printf $i " "; print $NF}' -)" >> "$GITHUB_ENV"
       - name: Getting model name and Uploading to bencher.dev
         run: |
           phone_name=$(hdc bugreport | head -n 20 | grep MarketName | awk '{for (i=2; i<NF; i++) printf $i " "; print $NF}' -)
