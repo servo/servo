@@ -36,7 +36,7 @@ env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   CARGO_INCREMENTAL: 0
-  BENCHER_PROJECT: ${{ vars.BENCHER_PROJECT || 'servo' }}
+  BENCHER_PROJECT: ${{ secrets.BENCHER_PROJECT }}
 
 jobs:
   build:
@@ -157,7 +157,6 @@ jobs:
     name: HarmonyOS Build (aarch64)
     continue-on-error: true
     runs-on: hos-builder
-    if: github.repository == 'servo/servo'
     steps:
       - if: ${{ github.event_name != 'pull_request_target' }}
         run: git fetch --depth=1 origin $GITHUB_SHA
@@ -183,7 +182,6 @@ jobs:
     # so in the beginning we will just do a best effort approach but ignore errors.
     continue-on-error: true
     runs-on: hos-runner
-    if: github.repository == 'servo/servo'
     needs: build-harmonyos-aarch64
     steps:
       - uses: actions/download-artifact@v4
