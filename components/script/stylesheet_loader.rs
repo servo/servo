@@ -6,6 +6,7 @@ use std::io::{Read, Seek, Write};
 
 use cssparser::SourceLocation;
 use encoding_rs::UTF_8;
+use fonts::WebFontDocumentContext;
 use mime::{self, Mime};
 use net_traits::request::{CorsSettings, Destination, RequestId};
 use net_traits::{
@@ -242,9 +243,19 @@ impl FetchResponseListener for StylesheetContext {
                 StylesheetContextSource::Import { import_rule, media } => {
                     let stylesheet = stylesheet(media.clone());
 
+                    //Construct a new WebFontDocumentContext for the stylesheet
+                    let document_context = WebFontDocumentContext {
+                        policy_container: win.global().policy_container(),
+                        document_url: win.global().api_base_url(),
+                        has_trustworthy_ancestor_origin: win
+                            .global()
+                            .has_trustworthy_ancestor_origin(),
+                        insecure_requests_policy: win.global().insecure_requests_policy(),
+                    };
+
                     // Layout knows about this stylesheet, because Stylo added it to the Stylist,
                     // but Layout doesn't know about any new web fonts that it contains.
-                    document.load_web_fonts_from_stylesheet(&stylesheet);
+                    document.load_web_fonts_from_stylesheet(&stylesheet, &document_context);
 
                     let mut guard = shared_lock.write();
                     import_rule.write_with(&mut guard).stylesheet = ImportSheet::Sheet(stylesheet);
