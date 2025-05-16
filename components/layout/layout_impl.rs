@@ -19,7 +19,7 @@ use embedder_traits::{UntrustedNodeAddress, ViewportDetails};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
 use euclid::{Point2D, Scale, Size2D, Vector2D};
 use fnv::FnvHashMap;
-use fonts::{FontContext, FontContextWebFontMethods};
+use fonts::{FontContext, FontContextWebFontMethods, WebFontDocumentContext};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
@@ -194,11 +194,16 @@ impl Layout for LayoutThread {
         self.epoch.get()
     }
 
-    fn load_web_fonts_from_stylesheet(&self, stylesheet: ServoArc<Stylesheet>) {
+    fn load_web_fonts_from_stylesheet(
+        &self,
+        stylesheet: ServoArc<Stylesheet>,
+        document_context: &WebFontDocumentContext,
+    ) {
         let guard = stylesheet.shared_lock.read();
         self.load_all_web_fonts_from_stylesheet_with_guard(
             &DocumentStyleSheet(stylesheet.clone()),
             &guard,
+            document_context,
         );
     }
 
@@ -210,10 +215,11 @@ impl Layout for LayoutThread {
         &mut self,
         stylesheet: ServoArc<Stylesheet>,
         before_stylesheet: Option<ServoArc<Stylesheet>>,
+        document_context: &WebFontDocumentContext,
     ) {
         let guard = stylesheet.shared_lock.read();
         let stylesheet = DocumentStyleSheet(stylesheet.clone());
-        self.load_all_web_fonts_from_stylesheet_with_guard(&stylesheet, &guard);
+        self.load_all_web_fonts_from_stylesheet_with_guard(&stylesheet, &guard, document_context);
 
         match before_stylesheet {
             Some(insertion_point) => self.stylist.insert_stylesheet_before(
@@ -560,6 +566,7 @@ impl LayoutThread {
         &self,
         stylesheet: &DocumentStyleSheet,
         guard: &SharedRwLockReadGuard,
+        document_context: &WebFontDocumentContext,
     ) {
         if !stylesheet.is_effective_for_device(self.stylist.device(), guard) {
             return;
@@ -579,6 +586,7 @@ impl LayoutThread {
             guard,
             self.stylist.device(),
             Arc::new(web_font_finished_loading_callback) as StylesheetWebFontLoadFinishedCallback,
+            document_context,
         );
     }
 
@@ -705,7 +713,11 @@ impl LayoutThread {
             for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
                 self.stylist
                     .append_stylesheet(stylesheet.clone(), guards.ua_or_user);
-                self.load_all_web_fonts_from_stylesheet_with_guard(stylesheet, guards.ua_or_user);
+                self.load_all_web_fonts_from_stylesheet_with_guard(
+                    stylesheet,
+                    guards.ua_or_user,
+                    &reflow_request.document_context,
+                );
             }
 
             if self.stylist.quirks_mode() != QuirksMode::NoQuirks {
@@ -716,6 +728,7 @@ impl LayoutThread {
                 self.load_all_web_fonts_from_stylesheet_with_guard(
                     &ua_stylesheets.quirks_mode_stylesheet,
                     guards.ua_or_user,
+                    &reflow_request.document_context,
                 );
             }
         }
