@@ -642,11 +642,14 @@ impl WebGLRenderingContext {
                 }
             },
             TexImageSource::HTMLVideoElement(video) => match video.get_current_frame_data() {
-                Some((data, size)) => {
-                    let data = data.unwrap_or_else(|| {
-                        IpcSharedMemory::from_bytes(&vec![0; size.area() as usize * 4])
-                    });
-                    TexPixels::new(data, size, PixelFormat::BGRA8, false)
+                Some(snapshot) => {
+                    let snapshot = snapshot.as_ipc();
+                    let size = snapshot.size().cast();
+                    let format: PixelFormat = match snapshot.format() {
+                        snapshot::PixelFormat::RGBA => PixelFormat::RGBA8,
+                        snapshot::PixelFormat::BGRA => PixelFormat::BGRA8,
+                    };
+                    TexPixels::new(snapshot.to_ipc_shared_memory(), size, format, false)
                 },
                 None => return Ok(None),
             },

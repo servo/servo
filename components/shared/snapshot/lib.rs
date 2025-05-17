@@ -48,7 +48,7 @@ impl AlphaMode {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Data {
     // TODO: https://github.com/servo/servo/issues/36594
     //IPC(IpcSharedMemory),
@@ -84,7 +84,7 @@ pub type IpcSnapshot = Snapshot<IpcSharedMemory>;
 ///
 /// Inspired by snapshot for concept in WebGPU spec:
 /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-get-a-copy-of-the-image-contents-of-a-context>
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Snapshot<T = Data> {
     size: Size2D<u64>,
     /// internal data (can be any format it will be converted on use if needed)
@@ -192,6 +192,10 @@ impl Snapshot<Data> {
 
     pub fn data(&self) -> &[u8] {
         &self.data
+    }
+
+    pub fn data_mut(&mut self) -> &mut [u8] {
+        &mut self.data
     }
 
     /// Convert inner data of snapshot to target format and alpha mode.
