@@ -25,8 +25,7 @@ use crossbeam_channel::{Receiver, Sender};
 use dpi::PhysicalSize;
 use embedder_traits::{
     CompositorHitTestResult, Cursor, InputEvent, MouseButtonEvent, MouseMoveEvent, ShutdownState,
-    TouchEventType, UntrustedNodeAddress, ViewportDetails, WebDriverInputEvent, WheelDelta,
-    WheelEvent, WheelMode,
+    TouchEventType, UntrustedNodeAddress, ViewportDetails, WheelDelta, WheelEvent, WheelMode,
 };
 use euclid::{Point2D, Rect, Scale, Size2D, Transform3D, Vector2D};
 use fnv::FnvHashMap;
@@ -630,7 +629,7 @@ impl IOCompositor {
                 let point = dppx.transform_point(Point2D::new(x, y));
                 webview_renderer.dispatch_input_event(
                     InputEvent::MouseButton(MouseButtonEvent::new(action, button, point))
-                        .with_webdriver_msg_id(Some(msg_id)),
+                        .with_webdriver_message_id(Some(msg_id)),
                 );
             },
 
@@ -643,7 +642,7 @@ impl IOCompositor {
                 let point = dppx.transform_point(Point2D::new(x, y));
                 webview_renderer.dispatch_input_event(
                     InputEvent::MouseMove(MouseMoveEvent::new(point))
-                        .with_webdriver_msg_id(Some(msg_id)),
+                        .with_webdriver_message_id(Some(msg_id)),
                 );
             },
 

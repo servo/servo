@@ -223,7 +223,7 @@ impl Handler {
                                     // Step 9. If subtype is "keyDown", append a copy of action
                                     // object with the subtype property changed to "keyUp" to
                                     // input state's input cancel list.
-                                    self.session_mut().unwrap().input_cancel_list.push(
+                                    self.session().unwrap().input_cancel_list.borrow_mut().push(
                                         ActionSequence {
                                             id: source_id.into(),
                                             actions: ActionsType::Key {
@@ -270,7 +270,7 @@ impl Handler {
                                     // Step 10. If subtype is "pointerDown", append a copy of action
                                     // object with the subtype property changed to "pointerUp" to
                                     // input state's input cancel list.
-                                    self.session_mut().unwrap().input_cancel_list.push(
+                                    self.session().unwrap().input_cancel_list.borrow_mut().push(
                                         ActionSequence {
                                             id: source_id.into(),
                                             actions: ActionsType::Pointer {
@@ -391,24 +391,6 @@ impl Handler {
         }
     }
 
-    fn get_pointer_input_state_mut(&mut self, source_id: &str) -> &mut PointerInputState {
-        let session = self.session_mut().unwrap();
-        let pointer_input_state = match session.input_state_table.get_mut(source_id).unwrap() {
-            InputSourceState::Pointer(pointer_input_state) => pointer_input_state,
-            _ => unreachable!(),
-        };
-        pointer_input_state
-    }
-
-    fn get_key_input_state_mut(&mut self, source_id: &str) -> &mut KeyInputState {
-        let session = self.session_mut().unwrap();
-        let key_input_state = match session.input_state_table.get_mut(source_id).unwrap() {
-            InputSourceState::Key(key_input_state) => key_input_state,
-            _ => unreachable!(),
-        };
-        key_input_state
-    }
-
     // https://w3c.github.io/webdriver/#dfn-dispatch-a-pointerdown-action
     pub(crate) fn dispatch_pointerdown_action(&self, source_id: &str, action: &PointerDownAction) {
         let session = self.session().unwrap();
@@ -445,7 +427,7 @@ impl Handler {
 
         let msg_id = self.current_action_id.get().unwrap();
         let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
-            webview_id,
+            session.webview_id,
             MouseButtonAction::Down,
             action.button.into(),
             pointer_input_state.x as f32,
@@ -494,7 +476,7 @@ impl Handler {
 
         let msg_id = self.current_action_id.get().unwrap();
         let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
-            webview_id,
+            session.webview_id,
             MouseButtonAction::Up,
             action.button.into(),
             pointer_input_state.x as f32,
