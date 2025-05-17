@@ -4293,7 +4293,14 @@ impl Document {
     }
 
     pub(crate) fn set_csp_list(&self, csp_list: Option<CspList>) {
-        self.policy_container.borrow_mut().set_csp_list(csp_list);
+        if let Some(new_list) = csp_list {
+            let mut current = self.get_csp_list();
+            match current {
+                Some(ref mut existing) => existing.append(new_list),
+                None => current = Some(new_list),
+            }
+            self.policy_container.borrow_mut().set_csp_list(current);
+        }
     }
 
     pub(crate) fn get_csp_list(&self) -> Option<CspList> {
