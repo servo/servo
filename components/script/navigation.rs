@@ -11,7 +11,6 @@ use std::cell::Cell;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use constellation_traits::LoadData;
-use content_security_policy::Destination;
 use crossbeam_channel::Sender;
 use embedder_traits::ViewportDetails;
 use http::header;
@@ -202,12 +201,13 @@ impl InProgressLoad {
             self.load_data.referrer.clone(),
         )
         .method(self.load_data.method.clone())
-        .destination(Destination::Document)
+        .destination(self.load_data.destination)
         .mode(RequestMode::Navigate)
         .credentials_mode(CredentialsMode::Include)
         .use_url_credentials(true)
         .pipeline_id(Some(id))
         .referrer_policy(self.load_data.referrer_policy)
+        .policy_container(self.load_data.policy_container.clone().unwrap_or_default())
         .insecure_requests_policy(
             self.load_data
                 .inherited_insecure_requests_policy

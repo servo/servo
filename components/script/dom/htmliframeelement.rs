@@ -16,6 +16,7 @@ use embedder_traits::ViewportDetails;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
 use net_traits::ReferrerPolicy;
+use net_traits::request::Destination;
 use profile_traits::ipc as ProfiledIpc;
 use script_traits::{NewLayoutInfo, UpdatePipelineIdReason};
 use servo_url::ServoUrl;
@@ -282,6 +283,7 @@ impl HTMLIFrameElement {
                 Some(document.insecure_requests_policy()),
                 document.has_trustworthy_ancestor_or_current_origin(),
             );
+            load_data.destination = Destination::IFrame;
             load_data.policy_container = Some(window.as_global_scope().policy_container());
             let element = self.upcast::<Element>();
             load_data.srcdoc = String::from(element.get_string_attribute(&local_name!("srcdoc")));
@@ -375,16 +377,14 @@ impl HTMLIFrameElement {
             Some(document.insecure_requests_policy()),
             document.has_trustworthy_ancestor_or_current_origin(),
         );
+        load_data.destination = Destination::IFrame;
+        load_data.policy_container = Some(window.as_global_scope().policy_container());
 
         let pipeline_id = self.pipeline_id();
         // If the initial `about:blank` page is the current page, load with replacement enabled,
         // see https://html.spec.whatwg.org/multipage/#the-iframe-element:about:blank-3
         let is_about_blank =
             pipeline_id.is_some() && pipeline_id == self.about_blank_pipeline_id.get();
-
-        if is_about_blank {
-            load_data.policy_container = Some(window.as_global_scope().policy_container());
-        }
 
         let history_handling = if is_about_blank {
             NavigationHistoryBehavior::Replace
@@ -425,6 +425,7 @@ impl HTMLIFrameElement {
             Some(document.insecure_requests_policy()),
             document.has_trustworthy_ancestor_or_current_origin(),
         );
+        load_data.destination = Destination::IFrame;
         load_data.policy_container = Some(window.as_global_scope().policy_container());
         let browsing_context_id = BrowsingContextId::new();
         let webview_id = window.window_proxy().webview_id();

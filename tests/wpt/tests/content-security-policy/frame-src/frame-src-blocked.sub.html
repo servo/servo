@@ -18,17 +18,17 @@
         }, false);
 
         function alert_assert(msg) {
-            t_alert.step(function() {
+            t_log.step(function() {
                 if (msg.match(/^FAIL/i)) {
                     assert_unreached(msg);
-                    t_alert.done();
+                    t_log.done();
                 }
                 for (var i = 0; i < expected_alerts.length; i++) {
                     if (expected_alerts[i] == msg) {
                         assert_equals(expected_alerts[i], msg);
                         expected_alerts.splice(i, 1);
                         if (expected_alerts.length == 0) {
-                            t_alert.done();
+                            t_log.done();
                         }
                         return;
                     }
