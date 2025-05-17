@@ -336,25 +336,6 @@ impl Handler {
         }
         pointer_input_state.pressed.remove(&action.button);
 
-        session.input_cancel_list.push(ActionSequence {
-            id: source_id.into(),
-            actions: ActionsType::Pointer {
-                parameters: PointerActionParameters {
-                    pointer_type: match pointer_input_state.subtype {
-                        PointerType::Mouse => PointerType::Mouse,
-                        PointerType::Pen => PointerType::Pen,
-                        PointerType::Touch => PointerType::Touch,
-                    },
-                },
-                actions: vec![PointerActionItem::Pointer(PointerAction::Down(
-                    PointerDownAction {
-                        button: action.button,
-                        ..Default::default()
-                    },
-                ))],
-            },
-        });
-
         let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
             session.webview_id,
             MouseButtonAction::Up,
