@@ -52,8 +52,7 @@ use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
     CompositorHitTestResult, EmbedderMsg, FocusSequenceNumber, InputEvent,
     JavaScriptEvaluationError, JavaScriptEvaluationId, MediaSessionActionType, MouseButton,
-    MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverInputEvent,
-    WebDriverScriptCommand,
+    MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverScriptCommand,
 };
 use euclid::Point2D;
 use euclid::default::Rect;
@@ -1148,12 +1147,8 @@ impl ScriptThread {
         ScriptThread::set_user_interacting(false);
     }
 
-    fn notify_webdriver_input_event_completed<T: WebDriverInputEvent>(
-        &self,
-        pipeline_id: PipelineId,
-        event: T,
-    ) {
-        if let Some(id) = event.webdriver_msg_id() {
+    fn notify_webdriver_input_event_completed(&self, pipeline_id: PipelineId, event: InputEvent) {
+        if let Some(id) = event.webdriver_message_id() {
             self.senders
                 .pipeline_to_constellation_sender
                 .send((
@@ -3459,7 +3454,7 @@ impl ScriptThread {
                                 hit_test_result: event.hit_test_result.clone(),
                                 pressed_mouse_buttons: event.pressed_mouse_buttons,
                                 active_keyboard_modifiers: event.active_keyboard_modifiers,
-                                event: event.event.clone().with_webdriver_msg_id(None),
+                                event: event.event.clone().with_webdriver_message_id(None),
                             });
                             document.note_pending_input_event(ConstellationInputEvent {
                                 hit_test_result: event.hit_test_result,
@@ -3470,7 +3465,7 @@ impl ScriptThread {
                                     mouse_button_event.button,
                                     mouse_button_event.point,
                                 ))
-                                .with_webdriver_msg_id(event.event.webdriver_msg_id()),
+                                .with_webdriver_message_id(event.event.webdriver_message_id()),
                             });
                             return;
                         }
