@@ -39,6 +39,7 @@ pub enum Initiator {
     XSLT,
     Prefetch,
     Link,
+    EarlyHint,
 }
 
 /// A request [destination](https://fetch.spec.whatwg.org/#concept-request-destination)
