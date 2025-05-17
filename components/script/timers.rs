@@ -27,6 +27,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::document::{FakeRequestAnimationFrameCallback, RefreshRedirectDue};
 use crate::dom::eventsource::EventSourceTimeoutCallback;
 use crate::dom::globalscope::GlobalScope;
+#[cfg(feature = "testbinding")]
 use crate::dom::testbinding::TestBindingCallback;
 use crate::dom::types::{Window, WorkerGlobalScope};
 use crate::dom::xmlhttprequest::XHRTimeoutCallback;
@@ -78,6 +79,7 @@ pub(crate) enum OneshotTimerCallback {
     XhrTimeout(XHRTimeoutCallback),
     EventSourceTimeout(EventSourceTimeoutCallback),
     JsTimer(JsTimerTask),
+    #[cfg(feature = "testbinding")]
     TestBindingCallback(TestBindingCallback),
     FakeRequestAnimationFrame(FakeRequestAnimationFrameCallback),
     RefreshRedirectDue(RefreshRedirectDue),
@@ -89,6 +91,7 @@ impl OneshotTimerCallback {
             OneshotTimerCallback::XhrTimeout(callback) => callback.invoke(can_gc),
             OneshotTimerCallback::EventSourceTimeout(callback) => callback.invoke(),
             OneshotTimerCallback::JsTimer(task) => task.invoke(this, js_timers, can_gc),
+            #[cfg(feature = "testbinding")]
             OneshotTimerCallback::TestBindingCallback(callback) => callback.invoke(),
             OneshotTimerCallback::FakeRequestAnimationFrame(callback) => callback.invoke(can_gc),
             OneshotTimerCallback::RefreshRedirectDue(callback) => callback.invoke(can_gc),
