@@ -7,7 +7,7 @@ check-alphabetical-order = true
 # Files that are ignored for all tidy and lint checks.
 files = [
     "./components/net/tests/parsable_mime/text",
-    "./resources/hsts_preload.json",
+    "./resources/hsts_preload.fstmap",
     "./tests/wpt/meta/MANIFEST.json",
     "./tests/wpt/mozilla/meta/MANIFEST.json",
     # Long encoded string

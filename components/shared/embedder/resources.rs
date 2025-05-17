@@ -116,7 +116,7 @@ impl Resource {
         match self {
             Resource::BluetoothBlocklist => "gatt_blocklist.txt",
             Resource::DomainList => "public_domains.txt",
-            Resource::HstsPreloadList => "hsts_preload.json",
+            Resource::HstsPreloadList => "hsts_preload.fstmap",
             Resource::BadCertHTML => "badcert.html",
             Resource::NetErrorHTML => "neterror.html",
             Resource::RippyPNG => "rippy.png",
@@ -155,7 +155,7 @@ fn resources_for_tests() -> Box<dyn ResourceReaderMethods + Sync + Send> {
                     &include_bytes!("../../../resources/public_domains.txt")[..]
                 },
                 Resource::HstsPreloadList => {
-                    &include_bytes!("../../../resources/hsts_preload.json")[..]
+                    &include_bytes!("../../../resources/hsts_preload.fstmap")[..]
                 },
                 Resource::BadCertHTML => &include_bytes!("../../../resources/badcert.html")[..],
                 Resource::NetErrorHTML => &include_bytes!("../../../resources/neterror.html")[..],
