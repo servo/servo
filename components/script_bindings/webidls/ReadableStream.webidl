@@ -20,8 +20,8 @@ interface _ReadableStream {
   [Throws]
   ReadableStreamReader getReader(optional ReadableStreamGetReaderOptions options = {});
 
-  // [Throws]
-  // ReadableStream pipeThrough(ReadableWritablePair transform, optional StreamPipeOptions options = {});
+  [Throws]
+  ReadableStream pipeThrough(ReadableWritablePair transform, optional StreamPipeOptions options = {});
 
   [NewObject]
   Promise<undefined> pipeTo(WritableStream destination, optional StreamPipeOptions options = {});

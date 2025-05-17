@@ -152,7 +152,7 @@ pub enum TraversalDirection {
 }
 
 /// A task on the <https://html.spec.whatwg.org/multipage/#port-message-queue>
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct PortMessageTask {
     /// The origin of this task.
     pub origin: ImmutableOrigin,

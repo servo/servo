@@ -20,7 +20,7 @@ pub use transferable::*;
 
 /// A data-holder for serialized data and transferred objects.
 /// <https://html.spec.whatwg.org/multipage/#structuredserializewithtransfer>
-#[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Debug, Default, Deserialize, MallocSizeOf, Serialize)]
 pub struct StructuredSerializedData {
     /// Data serialized by SpiderMonkey.
     pub serialized: Vec<u8>,

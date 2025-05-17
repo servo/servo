@@ -88,7 +88,7 @@ impl Clone for BroadcastMsg {
 }
 
 /// File-based blob
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct FileBlob {
     #[ignore_malloc_size_of = "Uuid are hard(not really)"]
     id: Uuid,
@@ -164,7 +164,7 @@ impl BroadcastClone for BlobImpl {
 }
 
 /// The data backing a DOM Blob.
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct BlobImpl {
     /// UUID of the blob.
     blob_id: BlobId,
@@ -177,7 +177,7 @@ pub struct BlobImpl {
 }
 
 /// Different backends of Blob
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum BlobData {
     /// File-based blob, whose content lives in the net process
     File(FileBlob),

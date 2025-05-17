@@ -1076,20 +1076,24 @@ impl Transferable for TransformStream {
         port_impl: MessagePortImpl,
     ) -> Result<DomRoot<Self>, ()> {
         let can_gc = CanGc::note();
+        let cx = GlobalScope::get_cx();
+
+        let port = MessagePort::transfer_receive(owner, id, port_impl)?;
 
         // Let readableRecord be ! StructuredDeserializeWithTransfer(dataHolder.[[readable]], the current Realm).
         // Set value.[[readable]] to readableRecord.[[Deserialized]].
-        let readable = ReadableStream::transfer_receive(owner, id, port_impl.clone())?;
-
         // Let writableRecord be ! StructuredDeserializeWithTransfer(dataHolder.[[writable]], the current Realm).
-        let writable = WritableStream::transfer_receive(owner, id, port_impl)?;
+        let proxy_readable = ReadableStream::new_with_proto(owner, None, can_gc);
+        proxy_readable.setup_cross_realm_transform_readable(cx, &port, can_gc);
+        let proxy_writable = WritableStream::new_with_proto(owner, None, can_gc);
+        proxy_writable.setup_cross_realm_transform_writable(cx, &port, can_gc);
 
         // Set value.[[readable]] to readableRecord.[[Deserialized]].
         // Set value.[[writable]] to writableRecord.[[Deserialized]].
         // Set value.[[backpressure]], value.[[backpressureChangePromise]], and value.[[controller]] to undefined.
         let stream = TransformStream::new_with_proto(owner, None, can_gc);
-        stream.readable.set(Some(&readable));
-        stream.writable.set(Some(&writable));
+        stream.readable.set(Some(&proxy_readable));
+        stream.writable.set(Some(&proxy_writable));
 
         Ok(stream)
     }
