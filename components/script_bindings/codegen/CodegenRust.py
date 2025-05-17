@@ -6,6 +6,7 @@
 
 from collections import defaultdict
 from itertools import groupby
+from typing import Generator, Tuple, Optional, List
 
 import operator
 import os
@@ -18,7 +19,9 @@ from WebIDL import (
     BuiltinTypes,
     IDLArgument,
     IDLBuiltinType,
+    IDLCallback,
     IDLDefaultDictionaryValue,
+    IDLDictionary,
     IDLEmptySequenceValue,
     IDLInterface,
     IDLInterfaceMember,
@@ -27,12 +30,15 @@ from WebIDL import (
     IDLObject,
     IDLPromiseType,
     IDLType,
+    IDLTypedef,
     IDLTypedefType,
     IDLUndefinedValue,
     IDLWrapperType,
 )
 
 from Configuration import (
+    Configuration,
+    Descriptor,
     MakeNativeName,
     MemberIsLegacyUnforgeable,
     getModuleFromObject,
@@ -2580,7 +2586,12 @@ class CGCallbackTempRoot(CGGeneric):
         CGGeneric.__init__(self, f"{name.replace('<D>', '::<D>')}::new(cx, ${{val}}.get().to_object())")
 
 
-def getAllTypes(descriptors, dictionaries, callbacks, typedefs):
+def getAllTypes(
+    descriptors: List[Descriptor],
+    dictionaries: List[IDLDictionary],
+    callbacks: List[IDLCallback],
+    typedefs: List[IDLTypedef]
+) -> Generator[Tuple[IDLType, Optional[Descriptor]], None, None]:
     """
     Generate all the types we're dealing with.  For each type, a tuple
     containing type, descriptor, dictionary is yielded.  The
@@ -2588,18 +2599,32 @@ def getAllTypes(descriptors, dictionaries, callbacks, typedefs):
     """
     for d in descriptors:
         for t in getTypesFromDescriptor(d):
+            if t.isRecord():
+                yield (t.inner, d)
             yield (t, d)
     for dictionary in dictionaries:
         for t in getTypesFromDictionary(dictionary):
+            if t.isRecord():
+                yield (t.inner, None)
             yield (t, None)
     for callback in callbacks:
         for t in getTypesFromCallback(callback):
+            if t.isRecord():
+                yield (t.inner, None)
             yield (t, None)
     for typedef in typedefs:
+        if typedef.innerType.isRecord():
+            yield (typedef.innerType.inner, None)
         yield (typedef.innerType, None)
 
 
-def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
+def UnionTypes(
+    descriptors: List[Descriptor],
+    dictionaries: List[IDLDictionary],
+    callbacks: List[IDLCallback],
+    typedefs: List[IDLTypedef],
+    config: Configuration
+):
     """
     Returns a CGList containing CGUnionStructs for every union.
     """
