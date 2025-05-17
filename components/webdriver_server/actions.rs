@@ -187,8 +187,7 @@ impl Handler {
                             match action {
                                 PointerAction::Cancel => (),
                                 PointerAction::Down(action) => {
-                                    let pointer_type =
-                                        self.dispatch_pointerdown_action(source_id, action);
+                                    self.dispatch_pointerdown_action(source_id, action);
 
                                     // Step 10. If subtype is "pointerDown", append a copy of action
                                     // object with the subtype property changed to "pointerUp" to
@@ -198,7 +197,7 @@ impl Handler {
                                             id: source_id.into(),
                                             actions: ActionsType::Pointer {
                                                 parameters: PointerActionParameters {
-                                                    pointer_type,
+                                                    pointer_type: parameters.pointer_type,
                                                 },
                                                 actions: vec![PointerActionItem::Pointer(
                                                     PointerAction::Up(PointerUpAction {
@@ -251,20 +250,18 @@ impl Handler {
 
     // https://w3c.github.io/webdriver/#dfn-dispatch-a-keydown-action
     fn dispatch_keydown_action(&mut self, source_id: &str, action: &KeyDownAction) {
-        let session = self.session.as_mut().unwrap();
         // Step 1
         let raw_key = action.value.chars().next().unwrap();
-        let key_input_state = match session.input_state_table.get_mut(source_id).unwrap() {
-            InputSourceState::Key(key_input_state) => key_input_state,
-            _ => unreachable!(),
-        };
+        let key_input_state = self.get_key_input_state_mut(source_id);
 
         // Step 2 - 11. Done by `keyboard-types` crate.
         let keyboard_event = key_input_state.dispatch_keydown(raw_key);
 
         // Step 12
-        let cmd_msg =
-            WebDriverCommandMsg::KeyboardAction(session.browsing_context_id, keyboard_event);
+        let cmd_msg = WebDriverCommandMsg::KeyboardAction(
+            self.session().unwrap().browsing_context_id,
+            keyboard_event,
+        );
         self.constellation_chan
             .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
             .unwrap();
@@ -272,23 +269,39 @@ impl Handler {
 
     // https://w3c.github.io/webdriver/#dfn-dispatch-a-keyup-action
     fn dispatch_keyup_action(&mut self, source_id: &str, action: &KeyUpAction) {
-        let session = self.session.as_mut().unwrap();
         // Step 1
         let raw_key = action.value.chars().next().unwrap();
-        let key_input_state = match session.input_state_table.get_mut(source_id).unwrap() {
-            InputSourceState::Key(key_input_state) => key_input_state,
-            _ => unreachable!(),
-        };
+        let key_input_state = self.get_key_input_state_mut(source_id);
 
         // Step 2 - 11. Done by `keyboard-types` crate.
         if let Some(keyboard_event) = key_input_state.dispatch_keyup(raw_key) {
             // Step 12
-            let cmd_msg =
-                WebDriverCommandMsg::KeyboardAction(session.browsing_context_id, keyboard_event);
+            let cmd_msg = WebDriverCommandMsg::KeyboardAction(
+                self.session().unwrap().browsing_context_id,
+                keyboard_event,
+            );
             self.constellation_chan
                 .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
                 .unwrap();
         }
+    }
+
+    fn get_pointer_input_state_mut(&mut self, source_id: &str) -> &mut PointerInputState {
+        let session = self.session_mut().unwrap();
+        let pointer_input_state = match session.input_state_table.get_mut(source_id).unwrap() {
+            InputSourceState::Pointer(pointer_input_state) => pointer_input_state,
+            _ => unreachable!(),
+        };
+        pointer_input_state
+    }
+
+    fn get_key_input_state_mut(&mut self, source_id: &str) -> &mut KeyInputState {
+        let session = self.session_mut().unwrap();
+        let key_input_state = match session.input_state_table.get_mut(source_id).unwrap() {
+            InputSourceState::Key(key_input_state) => key_input_state,
+            _ => unreachable!(),
+        };
+        key_input_state
     }
 
     // https://w3c.github.io/webdriver/#dfn-dispatch-a-pointerdown-action
@@ -296,21 +309,17 @@ impl Handler {
         &mut self,
         source_id: &str,
         action: &PointerDownAction,
-    ) -> PointerType {
-        let session = self.session.as_mut().unwrap();
-
-        let pointer_input_state = match session.input_state_table.get_mut(source_id).unwrap() {
-            InputSourceState::Pointer(pointer_input_state) => pointer_input_state,
-            _ => unreachable!(),
-        };
+    ) {
+        let webview_id = self.session().unwrap().webview_id;
+        let pointer_input_state = self.get_pointer_input_state_mut(source_id);
 
         if pointer_input_state.pressed.contains(&action.button) {
-            return pointer_input_state.subtype;
+            return;
         }
         pointer_input_state.pressed.insert(action.button);
 
         let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
-            session.webview_id,
+            webview_id,
             MouseButtonAction::Down,
             action.button.into(),
             pointer_input_state.x as f32,
@@ -319,17 +328,12 @@ impl Handler {
         self.constellation_chan
             .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
             .unwrap();
-        pointer_input_state.subtype
     }
 
     // https://w3c.github.io/webdriver/#dfn-dispatch-a-pointerup-action
     pub(crate) fn dispatch_pointerup_action(&mut self, source_id: &str, action: &PointerUpAction) {
-        let session = self.session.as_mut().unwrap();
-
-        let pointer_input_state = match session.input_state_table.get_mut(source_id).unwrap() {
-            InputSourceState::Pointer(pointer_input_state) => pointer_input_state,
-            _ => unreachable!(),
-        };
+        let webview_id = self.session().unwrap().webview_id;
+        let pointer_input_state = self.get_pointer_input_state_mut(source_id);
 
         if !pointer_input_state.pressed.contains(&action.button) {
             return;
@@ -337,7 +341,7 @@ impl Handler {
         pointer_input_state.pressed.remove(&action.button);
 
         let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
-            session.webview_id,
+            webview_id,
             MouseButtonAction::Up,
             action.button.into(),
             pointer_input_state.x as f32,
@@ -418,12 +422,9 @@ impl Handler {
         target_y: f64,
         tick_start: Instant,
     ) {
-        let session = self.session.as_mut().unwrap();
-        let pointer_input_state = match session.input_state_table.get_mut(source_id).unwrap() {
-            InputSourceState::Pointer(pointer_input_state) => pointer_input_state,
-            _ => unreachable!(),
-        };
-
+        let webview_id = self.session().unwrap().webview_id;
+        let chain = self.constellation_chan.clone();
+        let pointer_input_state = self.get_pointer_input_state_mut(source_id);
         loop {
             // Step 1
             let time_delta = tick_start.elapsed().as_millis();
@@ -455,10 +456,9 @@ impl Handler {
             // Step 7
             if x != current_x || y != current_y {
                 // Step 7.2
-                let cmd_msg =
-                    WebDriverCommandMsg::MouseMoveAction(session.webview_id, x as f32, y as f32);
+                let cmd_msg = WebDriverCommandMsg::MouseMoveAction(webview_id, x as f32, y as f32);
                 //TODO: Need Synchronization here before updating `pointer_input_state`
-                self.constellation_chan
+                chain
                     .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
                     .unwrap();
                 // Step 7.3
@@ -553,7 +553,7 @@ impl Handler {
         mut curr_delta_y: i64,
         tick_start: Instant,
     ) {
-        let session = self.session.as_mut().unwrap();
+        let session = self.session_mut().unwrap();
 
         // Step 1
         let time_delta = tick_start.elapsed().as_millis();
