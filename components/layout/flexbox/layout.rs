@@ -1929,7 +1929,11 @@ impl FlexItem<'_> {
                     }
                 }
 
-                let lazy_block_size = if cross_axis_is_item_block_axis {
+                let lazy_block_size = if !cross_axis_is_item_block_axis {
+                    used_main_size.into()
+                } else if let Some(cross_size) = used_cross_size_override {
+                    cross_size.into()
+                } else {
                     // This means that an auto size with stretch alignment will behave different than
                     // a stretch size. That's not what the spec says, but matches other browsers.
                     // To be discussed in https://github.com/w3c/csswg-drafts/issues/11784.
@@ -1946,8 +1950,6 @@ impl FlexItem<'_> {
                         stretch_size,
                         self.is_table(),
                     )
-                } else {
-                    used_main_size.into()
                 };
 
                 let layout = non_replaced.layout(

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#propdef-align-content" />
+<title>css-flexbox: Tests nested flex item with `align-items: stretch`</title>
+<link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#align-items-property">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="This checks that a stretched flex item in a nested flexbox streches to the size of the parent flex container's line.">
+<body>
+    <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+    <div style="display: flex;">
+        <div style="width: 50px; height: 100px; background: green;"></div>
+        <div style="display: flex;">
+            <div style="background: green; width: 50px;"></div>
+      </div>
+    </div>
+</body>
+</html>
