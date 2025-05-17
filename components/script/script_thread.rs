@@ -1272,6 +1272,15 @@ impl ScriptThread {
 
             // TODO: Mark paint timing from https://w3c.github.io/paint-timing.
 
+            // Update the rendering of those does not require a reflow.
+            // e.g. animated images.
+            if document
+                .image_animation_manager()
+                .image_animations_present()
+            {
+                document.update_image_animation();
+            }
+
             #[cfg(feature = "webgpu")]
             document.update_rendering_of_webgpu_canvases();
 
