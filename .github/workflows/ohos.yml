@@ -36,7 +36,7 @@ env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   CARGO_INCREMENTAL: 0
-  BENCHER_PROJECT: ${{ vars.BENCHER_PROJECT || 'servo' }}
+  BENCHER_PROJECT: ${{ secrets.BENCHER_PROJECT }}
 
 jobs:
   build:
@@ -157,7 +157,6 @@ jobs:
     name: HarmonyOS Build (aarch64)
     continue-on-error: true
     runs-on: hos-builder
-    if: github.repository == 'servo/servo'
     steps:
       - if: ${{ github.event_name != 'pull_request_target' }}
         run: git fetch --depth=1 origin $GITHUB_SHA
@@ -183,7 +182,6 @@ jobs:
     # so in the beginning we will just do a best effort approach but ignore errors.
     continue-on-error: true
     runs-on: hos-runner
-    if: github.repository == 'servo/servo'
     needs: build-harmonyos-aarch64
     steps:
       - uses: actions/download-artifact@v4
@@ -243,6 +241,9 @@ jobs:
         run: hitrace-bench --bencher -b "org.servo.servo" -p "https://www.servo.org" -n 5
       - name: Getting bencher
         uses: bencherdev/bencher@main
-      - name: Uploading to bencher.dev
+      - name: Getting model name
+        run: echo "{MODEL_NAME}=$(hdc bugreport | head -n 20 | grep MarketName | awk '{for (i=2; i<NF; i++) printf $i " "; print $NF}' -)" >> "$GITHUB_ENV"
+      - name: Getting model name and Uploading to bencher.dev
         run: |
-          bencher run --adapter json --file bench.json --project '${{ env.BENCHER_PROJECT }}' --token '${{ secrets.BENCHER_API_TOKEN }}' --github-actions '${{ secrets.GITHUB_TOKEN }}'
+          phone_name=$(hdc bugreport | head -n 20 | grep MarketName | awk '{for (i=2; i<NF; i++) printf $i " "; print $NF}' -)
+          bencher run --adapter json --file bench.json --project '${{ env.BENCHER_PROJECT }}' --token '${{ secrets.BENCHER_API_TOKEN }}' --github-actions '${{ secrets.GITHUB_TOKEN }}' --testbed="$MODEL_NAME"
