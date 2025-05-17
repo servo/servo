@@ -1334,7 +1334,7 @@ impl HTMLImageElement {
 
         let value = usemap_attr.value();
 
-        if value.len() == 0 || !value.is_char_boundary(1) {
+        if value.is_empty() || !value.is_char_boundary(1) {
             return None;
         }
 
@@ -1499,7 +1499,7 @@ pub(crate) fn parse_a_sizes_attribute(value: DOMString) -> SourceSizeList {
 }
 
 fn get_correct_referrerpolicy_from_raw_token(token: &DOMString) -> DOMString {
-    if token == "" {
+    if token.is_empty() {
         // Empty token is treated as the default referrer policy inside determine_policy_for_token,
         // so it should remain unchanged.
         DOMString::new()

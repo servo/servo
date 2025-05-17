@@ -13,7 +13,7 @@ authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
 edition = "2024"
 publish = false
-rust-version = "1.85.0"
+rust-version = "1.86.0"
 
 [workspace.dependencies]
 accountable-refcell = "0.2.0"
