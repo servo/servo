@@ -8,6 +8,8 @@ use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use webrender_api::units::DevicePoint;
 
+use crate::WebDriverMessageId;
+
 /// An input event that is sent from the embedder to Servo.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum InputEvent {
@@ -42,6 +44,38 @@ impl InputEvent {
             InputEvent::Wheel(event) => Some(event.point),
         }
     }
+
+    pub fn webdriver_message_id(&self) -> Option<WebDriverMessageId> {
+        match self {
+            InputEvent::EditingAction(..) => None,
+            InputEvent::Gamepad(..) => None,
+            InputEvent::Ime(..) => None,
+            InputEvent::Keyboard(..) => None,
+            InputEvent::MouseButton(event) => event.webdriver_id,
+            InputEvent::MouseMove(event) => event.webdriver_id,
+            InputEvent::Touch(..) => None,
+            InputEvent::Wheel(..) => None,
+        }
+    }
+
+    pub fn with_webdriver_message_id(self, webdriver_id: Option<WebDriverMessageId>) -> Self {
+        match self {
+            InputEvent::EditingAction(..) => {},
+            InputEvent::Gamepad(..) => {},
+            InputEvent::Ime(..) => {},
+            InputEvent::Keyboard(..) => {},
+            InputEvent::MouseButton(mut event) => {
+                event.webdriver_id = webdriver_id;
+            },
+            InputEvent::MouseMove(mut event) => {
+                event.webdriver_id = webdriver_id;
+            },
+            InputEvent::Touch(..) => {},
+            InputEvent::Wheel(..) => {},
+        };
+
+        self
+    }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
@@ -49,6 +83,18 @@ pub struct MouseButtonEvent {
     pub action: MouseButtonAction,
     pub button: MouseButton,
     pub point: DevicePoint,
+    webdriver_id: Option<WebDriverMessageId>,
+}
+
+impl MouseButtonEvent {
+    pub fn new(action: MouseButtonAction, button: MouseButton, point: DevicePoint) -> Self {
+        Self {
+            action,
+            button,
+            point,
+            webdriver_id: None,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
@@ -102,6 +148,16 @@ pub enum MouseButtonAction {
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct MouseMoveEvent {
     pub point: DevicePoint,
+    webdriver_id: Option<WebDriverMessageId>,
+}
+
+impl MouseMoveEvent {
+    pub fn new(point: DevicePoint) -> Self {
+        Self {
+            point,
+            webdriver_id: None,
+        }
+    }
 }
 
 /// The type of input represented by a multi-touch event.

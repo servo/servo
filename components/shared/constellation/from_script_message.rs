@@ -17,6 +17,7 @@ use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, Worke
 use embedder_traits::{
     AnimationState, EmbedderMsg, FocusSequenceNumber, JSValue, JavaScriptEvaluationError,
     JavaScriptEvaluationId, MediaSessionEvent, TouchEventResult, ViewportDetails,
+    WebDriverMessageId,
 };
 use euclid::default::Size2D as UntypedSize2D;
 use http::{HeaderMap, Method};
@@ -652,6 +653,8 @@ pub enum ScriptToConstellationMessage {
         JavaScriptEvaluationId,
         Result<JSValue, JavaScriptEvaluationError>,
     ),
+    /// Notify the completion of a webdriver command.
+    WebDriverInputComplete(WebDriverMessageId),
 }
 
 impl fmt::Debug for ScriptToConstellationMessage {
