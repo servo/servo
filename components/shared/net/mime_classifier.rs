@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use mime::{self, Mime};
-use net_traits::LoadContext;
+
+use crate::LoadContext;
 
 pub struct MimeClassifier {
     image_classifier: GroupedClassifier,
@@ -16,11 +17,15 @@ pub struct MimeClassifier {
     font_classifier: GroupedClassifier,
 }
 
+#[derive(PartialEq)]
 pub enum MediaType {
     Xml,
     Html,
     AudioVideo,
     Image,
+    JavaScript,
+    Json,
+    Font,
 }
 
 pub enum ApacheBugFlag {
@@ -99,7 +104,11 @@ impl MimeClassifier {
                                         Some(MediaType::AudioVideo) => {
                                             self.audio_video_classifier.classify(data)
                                         },
-                                        Some(MediaType::Xml) | None => None,
+                                        Some(MediaType::JavaScript) |
+                                        Some(MediaType::Font) |
+                                        Some(MediaType::Json) |
+                                        Some(MediaType::Xml) |
+                                        None => None,
                                     }
                                     .unwrap_or(supplied_type.clone())
                                 },
@@ -215,20 +224,24 @@ impl MimeClassifier {
             .expect("BinaryOrPlaintextClassifier always succeeds")
     }
 
+    /// <https://mimesniff.spec.whatwg.org/#xml-mime-type>
     fn is_xml(mt: &Mime) -> bool {
         mt.suffix() == Some(mime::XML) ||
-            (mt.type_() == mime::APPLICATION && mt.subtype() == mime::XML) ||
-            (mt.type_() == mime::TEXT && mt.subtype() == mime::XML)
+            *mt == mime::TEXT_XML ||
+            (mt.type_() == mime::APPLICATION && mt.subtype() == mime::XML)
     }
 
+    /// <https://mimesniff.spec.whatwg.org/#html-mime-type>
     fn is_html(mt: &Mime) -> bool {
-        mt.type_() == mime::TEXT && mt.subtype() == mime::HTML
+        *mt == mime::TEXT_HTML
     }
 
+    /// <https://mimesniff.spec.whatwg.org/#image-mime-type>
     fn is_image(mt: &Mime) -> bool {
         mt.type_() == mime::IMAGE
     }
 
+    /// <https://mimesniff.spec.whatwg.org/#audio-or-video-mime-type>
     fn is_audio_video(mt: &Mime) -> bool {
         mt.type_() == mime::AUDIO ||
             mt.type_() == mime::VIDEO ||
@@ -241,7 +254,53 @@ impl MimeClassifier {
             mt.type_() == mime::STAR && mt.subtype() == mime::STAR
     }
 
-    fn get_media_type(mime: &Mime) -> Option<MediaType> {
+    /// <https://mimesniff.spec.whatwg.org/#javascript-mime-type>
+    fn is_javascript(mt: &Mime) -> bool {
+        (mt.type_() == mime::APPLICATION &&
+            (["ecmascript", "javascript", "x-ecmascript", "x-javascript"]
+                .contains(&mt.subtype().as_str()))) ||
+            (mt.type_() == mime::TEXT &&
+                ([
+                    "ecmascript",
+                    "javascript",
+                    "javascript1.0",
+                    "javascript1.1",
+                    "javascript1.2",
+                    "javascript1.3",
+                    "javascript1.4",
+                    "javascript1.5",
+                    "jscript",
+                    "livescript",
+                    "x-ecmascript",
+                    "x-javascript",
+                ]
+                .contains(&mt.subtype().as_str())))
+    }
+
+    /// <https://mimesniff.spec.whatwg.org/#json-mime-type>
+    fn is_json(mt: &Mime) -> bool {
+        mt.suffix() == Some(mime::JSON) ||
+            (mt.subtype() == mime::JSON &&
+                (mt.type_() == mime::APPLICATION || mt.type_() == mime::TEXT))
+    }
+
+    /// <https://mimesniff.spec.whatwg.org/#font-mime-type>
+    fn is_font(mt: &Mime) -> bool {
+        mt.type_() == mime::FONT ||
+            (mt.type_() == mime::APPLICATION &&
+                ([
+                    "font-cff",
+                    "font-off",
+                    "font-sfnt",
+                    "font-ttf",
+                    "font-woff",
+                    "vnd.ms-fontobject",
+                    "vnd.ms-opentype",
+                ]
+                .contains(&mt.subtype().as_str())))
+    }
+
+    pub fn get_media_type(mime: &Mime) -> Option<MediaType> {
         if MimeClassifier::is_xml(mime) {
             Some(MediaType::Xml)
         } else if MimeClassifier::is_html(mime) {
@@ -250,6 +309,12 @@ impl MimeClassifier {
             Some(MediaType::Image)
         } else if MimeClassifier::is_audio_video(mime) {
             Some(MediaType::AudioVideo)
+        } else if MimeClassifier::is_javascript(mime) {
+            Some(MediaType::JavaScript)
+        } else if MimeClassifier::is_font(mime) {
+            Some(MediaType::Font)
+        } else if MimeClassifier::is_json(mime) {
+            Some(MediaType::Json)
         } else {
             None
         }

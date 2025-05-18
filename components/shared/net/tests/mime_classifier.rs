@@ -8,8 +8,8 @@ use std::io::{self, Read};
 use std::path::{self, PathBuf};
 
 use mime::{self, Mime};
-use net::mime_classifier::{ApacheBugFlag, MimeClassifier, Mp4Matcher, NoSniffFlag};
 use net_traits::LoadContext;
+use net_traits::mime_classifier::{ApacheBugFlag, MimeClassifier, Mp4Matcher, NoSniffFlag};
 
 fn read_file(path: &path::Path) -> io::Result<Vec<u8>> {
     let mut file = File::open(path)?;
