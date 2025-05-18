@@ -20,8 +20,9 @@ checksum = "c71b1793ee61086797f5c80b6efa2b8ffa6d5dd703f118545808a7f2e27f7046"
 
 [[package]]
 name = "accountable-refcell"
-version = "0.2.1"
-source = "git+https://github.com/jdm/accountable-refcell.git?rev=refs%2Fpull%2F6%2Fhead#642801c99bc2c62f856b467f6d3a7d0f6c787670"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6afea9052e0b2d90e38572691d87194b2e5d8d6899b9b850b22aaab17e486252"
 dependencies = [
  "backtrace",
 ]
