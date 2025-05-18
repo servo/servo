@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>overflow-clip-margin with border-radius & corner-shape</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#overflow-clip-margin">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#shadow-shape">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#border-radius">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shape">
+<link rel="match" href="corner-shape-overflow-clip-margin-ref.html">
+<meta name="fuzzy" content="maxDifference=0-64;totalPixels=0-180">
+<style>
+#outer {
+  width: 50px;
+  height: 50px;
+  overflow: clip;
+  border-radius: 25px;
+  overflow-clip-margin: 100px;
+  corner-shape: bevel scoop notch squircle;
+  margin: 125px;
+}
+#inner {
+  width: 50px;
+  height: 50px;
+  box-shadow: black 0 0 0 100px;
+  background: black;
+}
+</style>
+<div id="outer">
+  <div id="inner"></div>
+</div>

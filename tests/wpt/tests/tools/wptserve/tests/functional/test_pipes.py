@@ -146,14 +146,16 @@ server: http://localhost:{0}""".format(self.server.port).encode("ascii")
 
 class TestTrickle(TestUsingServer):
     def test_trickle(self):
-        #Actually testing that the response trickles in is not that easy
-        t0 = time.time()
-        resp = self.request("/document.txt", query="pipe=trickle(1:d2:5:d1:r2)")
-        t1 = time.time()
-        with open(os.path.join(doc_root, "document.txt"), 'rb') as f:
+        # Actually testing that the response trickles in is not that easy
+        clock_info = time.get_clock_info("monotonic")
+        t0 = time.monotonic()
+        with self.request("/document.txt", query="pipe=trickle(1:d2:5:d1:r2)") as resp:
+            actual = resp.read()
+        t1 = time.monotonic()
+        with open(os.path.join(doc_root, "document.txt"), "rb") as f:
             expected = f.read()
-        self.assertEqual(resp.read(), expected)
-        self.assertGreater(6, t1-t0)
+        self.assertEqual(actual, expected)
+        self.assertGreater(t1 - t0, 6 - clock_info.resolution)
 
     def test_headers(self):
         resp = self.request("/document.txt", query="pipe=trickle(d0.01)")

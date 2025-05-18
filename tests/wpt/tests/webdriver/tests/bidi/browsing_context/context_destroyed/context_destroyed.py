@@ -37,6 +37,7 @@ async def test_new_context(bidi_session, wait_for_event, wait_for_future_safe, s
 
     on_entry = wait_for_event(CONTEXT_DESTROYED_EVENT)
     new_context = await bidi_session.browsing_context.create(type_hint=type_hint)
+    contexts = await bidi_session.browsing_context.get_tree(root=new_context["context"])
 
     await bidi_session.browsing_context.close(context=new_context["context"])
 
@@ -48,7 +49,8 @@ async def test_new_context(bidi_session, wait_for_event, wait_for_future_safe, s
         children=0,
         url="about:blank",
         parent=None,
-        user_context="default"
+        user_context="default",
+        client_window=contexts[0]["clientWindow"],
     )
 
 
@@ -108,6 +110,7 @@ async def test_navigate_iframe(
         children=0,
         url=frame_url,
         parent=new_tab["context"],
+        client_window=contexts[0]["clientWindow"],
     )
 
 
@@ -140,6 +143,7 @@ async def test_delete_iframe(
         children=0,
         url=iframe["url"],
         parent=new_tab["context"],
+        client_window=contexts[0]["clientWindow"]
     )
 
 
@@ -180,6 +184,7 @@ async def test_nested_iframes_delete_top_iframe(
         children=1,
         url=test_page_same_origin_frame,
         parent=new_tab["context"],
+        client_window=contexts[0]["clientWindow"]
     )
 
     remove_listener()
@@ -224,6 +229,7 @@ async def test_nested_iframes_delete_deepest_iframe(
         children=0,
         url=deepest_iframe["url"],
         parent=top_iframe["context"],
+        client_window=contexts[0]["clientWindow"],
     )
 
     remove_listener()
@@ -244,6 +250,7 @@ async def test_iframe_destroy_parent(
     await bidi_session.browsing_context.navigate(
         url=test_page_nested_frames, context=new_tab["context"], wait="complete"
     )
+    contexts = await bidi_session.browsing_context.get_tree(root=new_tab["context"])
 
     # Destroy top context
     await bidi_session.browsing_context.close(context=new_tab["context"])
@@ -255,6 +262,7 @@ async def test_iframe_destroy_parent(
         children=1,
         url=test_page_nested_frames,
         parent=None,
+        client_window=contexts[0]["clientWindow"],
     )
 
     remove_listener()
@@ -315,6 +323,7 @@ async def test_new_user_context(
     context = await bidi_session.browsing_context.create(
         type_hint=type_hint, user_context=user_context
     )
+    contexts = await bidi_session.browsing_context.get_tree(root=context["context"])
     assert len(events) == 0
 
     on_entry = wait_for_event(CONTEXT_DESTROYED_EVENT)
@@ -329,6 +338,7 @@ async def test_new_user_context(
         url="about:blank",
         parent=None,
         user_context=user_context,
+        client_window=contexts[0]["clientWindow"],
     )
 
     remove_listener()
@@ -349,6 +359,7 @@ async def test_with_user_context_subscription(
     context = await bidi_session.browsing_context.create(
         type_hint="tab", user_context=user_context
     )
+    contexts = await bidi_session.browsing_context.get_tree(root=context["context"])
 
     with wait_for_events([CONTEXT_DESTROYED_EVENT]) as waiter:
         await bidi_session.browsing_context.close(context=context["context"])
@@ -362,6 +373,7 @@ async def test_with_user_context_subscription(
             url="about:blank",
             parent=None,
             user_context=user_context,
+            client_window=contexts[0]["clientWindow"]
         )
 
 

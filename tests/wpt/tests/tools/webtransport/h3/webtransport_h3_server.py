@@ -1,5 +1,3 @@
-# mypy: allow-subclassing-any, no-warn-return-any
-
 import asyncio
 import contextlib
 import logging
@@ -9,24 +7,24 @@ import sys
 import threading
 import traceback
 from enum import IntEnum
-from urllib.parse import urlparse
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, cast
+from urllib.parse import urlparse
 
-# TODO(bashi): Remove import check suppressions once aioquic dependency is resolved.
-from aioquic.buffer import Buffer  # type: ignore
-from aioquic.asyncio import QuicConnectionProtocol, serve  # type: ignore
-from aioquic.asyncio.client import connect  # type: ignore
-from aioquic.asyncio.protocol import QuicStreamAdapter  # type: ignore
-from aioquic.h3.connection import H3_ALPN, FrameType, H3Connection, ProtocolError, SettingsError  # type: ignore
-from aioquic.h3.events import H3Event, HeadersReceived, WebTransportStreamDataReceived, DatagramReceived, DataReceived  # type: ignore
-from aioquic.quic.configuration import QuicConfiguration  # type: ignore
-from aioquic.quic.connection import logger as quic_connection_logger  # type: ignore
+from aioquic.buffer import Buffer
+from aioquic.asyncio import QuicConnectionProtocol, serve
+from aioquic.asyncio.client import connect
+from aioquic.asyncio.protocol import QuicStreamAdapter
+from aioquic.h3.connection import H3_ALPN, FrameType, H3Connection, ProtocolError, SettingsError
+from aioquic.h3.events import H3Event, HeadersReceived, WebTransportStreamDataReceived, DatagramReceived, DataReceived
+from aioquic.quic.configuration import QuicConfiguration
+from aioquic.quic.connection import logger as quic_connection_logger
 from aioquic.quic.connection import (
     stream_is_client_initiated,
     stream_is_unidirectional,
 )
-from aioquic.quic.events import QuicEvent, ProtocolNegotiated, ConnectionTerminated, StreamReset  # type: ignore
-from aioquic.tls import SessionTicket  # type: ignore
+from aioquic.quic.events import QuicEvent, ProtocolNegotiated, ConnectionTerminated, StreamReset
+from aioquic.tls import SessionTicket
 
 from tools import localpaths  # noqa: F401
 from wptserve import stash
@@ -315,7 +313,8 @@ class WebTransportSession:
         self.request_headers = request_headers
 
         self._protocol: WebTransportH3Protocol = protocol
-        self._http: H3Connection = protocol._http
+        assert protocol._http is not None
+        self._http: H3ConnectionWithDatagram = protocol._http
 
         # Use the a shared default path for all handlers so that different
         # WebTransport sessions can access the same store easily.
@@ -413,7 +412,7 @@ class WebTransportSession:
         """
         if not self._protocol._allow_datagrams:
             _logger.warn(
-                "Sending a datagram while that's now allowed - discarding it")
+                "Sending a datagram while that's not allowed - discarding it")
             return
         stream_id = self.session_id
         if self._http.datagram_setting is not None:
@@ -541,17 +540,25 @@ class WebTransportH3Server:
             except Exception as e:
                 _logger.warn(str(e))
 
-        configuration = QuicConfiguration(
-            alpn_protocols=H3_ALPN,
-            is_client=False,
-            max_datagram_frame_size=65536,
-            secrets_log_file=secrets_log_file,
-        )
+        # Workaround https://github.com/aiortc/aioquic/issues/567 with if/else
+        if secrets_log_file is not None:
+            configuration = QuicConfiguration(
+                alpn_protocols=H3_ALPN,
+                is_client=False,
+                max_datagram_frame_size=65536,
+                secrets_log_file=secrets_log_file,
+            )
+        else:
+            configuration = QuicConfiguration(
+                alpn_protocols=H3_ALPN,
+                is_client=False,
+                max_datagram_frame_size=65536,
+            )
 
         _logger.info("Starting WebTransport over HTTP/3 server on %s:%s",
                      self.host, self.port)
 
-        configuration.load_cert_chain(self.cert_path, self.key_path)
+        configuration.load_cert_chain(Path(self.cert_path), Path(self.key_path))
 
         ticket_store = SessionTicketStore()
 

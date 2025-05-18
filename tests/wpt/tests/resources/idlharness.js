@@ -783,6 +783,10 @@ IdlArray.prototype.merge_partials = function()
         }
         testedPartials.set(parsed_idl.name, partialTestCount);
 
+        if (!self.shouldRunSubTest(partialTestName)) {
+            return;
+        }
+
         if (!parsed_idl.untested) {
             test(function () {
                 assert_true(originalExists, `Original ${parsed_idl.type} should be defined`);
@@ -871,6 +875,7 @@ IdlArray.prototype.merge_mixins = function()
     {
         const lhs = parsed_idl.target;
         const rhs = parsed_idl.includes;
+        const testName = lhs + " includes " + rhs + ": member names are unique";
 
         var errStr = lhs + " includes " + rhs + ", but ";
         if (!(lhs in this.members)) throw errStr + lhs + " is undefined.";
@@ -878,7 +883,7 @@ IdlArray.prototype.merge_mixins = function()
         if (!(rhs in this.members)) throw errStr + rhs + " is undefined.";
         if (!(this.members[rhs] instanceof IdlInterface)) throw errStr + rhs + " is not an interface.";
 
-        if (this.members[rhs].members.length) {
+        if (this.members[rhs].members.length && self.shouldRunSubTest(testName)) {
             test(function () {
                 var clash = this.members[rhs].members.find(function(member) {
                     return this.members[lhs].members.find(function(m) {
@@ -892,7 +897,7 @@ IdlArray.prototype.merge_mixins = function()
                     this.members[lhs].members.push(new IdlInterfaceMember(member));
                 }.bind(this));
                 assert_true(!clash, "member " + (clash && clash.name) + " is unique");
-            }.bind(this), lhs + " includes " + rhs + ": member names are unique");
+            }.bind(this), testName);
         }
     }
     this.includes = [];

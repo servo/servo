@@ -105,10 +105,11 @@
                         const options = {
                             digital: {
                                 // Results in TypeError when allowed, NotAllowedError when disallowed
-                                requests: [],
+                                requests: [{ data: {}, protocol: "openid4vp" }],
                             },
                             mediation: "required",
                         };
+                        await test_driver.bless("User activation");
                         const { data } = await new Promise((resolve) => {
                             window.addEventListener("message", resolve, {
                                 once: true,
