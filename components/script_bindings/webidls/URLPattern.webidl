@@ -11,9 +11,9 @@ interface URLPattern {
   [Throws] constructor(URLPatternInput input, USVString baseURL, optional URLPatternOptions options = {});
   [Throws] constructor(optional URLPatternInput input = {}, optional URLPatternOptions options = {});
 
-  // [Throws] boolean test(optional URLPatternInput input = {}, optional USVString baseURL);
+  [Throws] boolean test(optional URLPatternInput input = {}, optional USVString baseURL);
 
-  // [Throws] URLPatternResult? exec(optional URLPatternInput input = {}, optional USVString baseURL);
+  [Throws] URLPatternResult? exec(optional URLPatternInput input = {}, optional USVString baseURL);
 
   readonly attribute USVString protocol;
   readonly attribute USVString username;
@@ -43,20 +43,20 @@ dictionary URLPatternOptions {
   boolean ignoreCase = false;
 };
 
-// dictionary URLPatternResult {
-//   sequence<URLPatternInput> inputs;
+dictionary URLPatternResult {
+  sequence<URLPatternInput> inputs;
 
-//   URLPatternComponentResult protocol;
-//   URLPatternComponentResult username;
-//   URLPatternComponentResult password;
-//   URLPatternComponentResult hostname;
-//   URLPatternComponentResult port;
-//   URLPatternComponentResult pathname;
-//   URLPatternComponentResult search;
-//   URLPatternComponentResult hash;
-// };
+  URLPatternComponentResult protocol;
+  URLPatternComponentResult username;
+  URLPatternComponentResult password;
+  URLPatternComponentResult hostname;
+  URLPatternComponentResult port;
+  URLPatternComponentResult pathname;
+  URLPatternComponentResult search;
+  URLPatternComponentResult hash;
+};
 
-// dictionary URLPatternComponentResult {
-//   USVString input;
-//   record<USVString, (USVString or undefined)> groups;
-// };
+dictionary URLPatternComponentResult {
+  USVString input;
+  record<USVString, (USVString or undefined)> groups;
+};
