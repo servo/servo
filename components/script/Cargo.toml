@@ -100,7 +100,6 @@ phf = "0.11"
 pixels = { path = "../pixels" }
 profile_traits = { workspace = true }
 range = { path = "../range" }
-ref_filter_map = "1.0.1"
 regex = { workspace = true }
 script_bindings = { path = "../script_bindings" }
 script_layout_interface = { workspace = true }
