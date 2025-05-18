@@ -621,3 +621,9 @@ namespace TestNS {
 };
 
 typedef Promise<undefined> PromiseUndefined;
+
+// https://github.com/servo/servo/issues/37038
+dictionary NotUsedAnyWhereElse {};
+dictionary RecordFieldWithUnionInside {
+    record<USVString, (USVString or NotUsedAnyWhereElse)> recordWithUnionField;
+};
