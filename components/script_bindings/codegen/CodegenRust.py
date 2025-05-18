@@ -5114,7 +5114,7 @@ def getUnionTypeTemplateVars(type, descriptorProvider: DescriptorProvider):
             "name": type.name,
             "typeName": "()",
             "jsConversion": CGGeneric("if value.is_undefined() { Ok(Some(())) } else { Ok(None) }")
-        };
+        }
     else:
         raise TypeError(f"Can't handle {type} in unions yet")
 
