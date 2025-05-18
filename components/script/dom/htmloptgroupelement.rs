@@ -135,8 +135,8 @@ impl VirtualMethods for HTMLOptGroupElement {
     }
 
     fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
-        if let Some(s) = self.super_type() {
-            s.bind_to_tree(context, can_gc);
+        if let Some(super_type) = self.super_type() {
+            super_type.bind_to_tree(context, can_gc);
         }
 
         self.update_select_validity(can_gc);

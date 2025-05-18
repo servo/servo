@@ -16,6 +16,7 @@ use embedder_traits::ViewportDetails;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
 use net_traits::ReferrerPolicy;
+use net_traits::request::Destination;
 use profile_traits::ipc as ProfiledIpc;
 use script_traits::{NewLayoutInfo, UpdatePipelineIdReason};
 use servo_url::ServoUrl;
@@ -27,6 +28,8 @@ use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
+use crate::dom::bindings::codegen::UnionTypes::TrustedHTMLOrString;
+use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
@@ -40,6 +43,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{Node, NodeDamage, NodeTraits, UnbindContext};
+use crate::dom::trustedhtml::TrustedHTML;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::windowproxy::WindowProxy;
 use crate::script_runtime::CanGc;
@@ -279,6 +283,7 @@ impl HTMLIFrameElement {
                 Some(document.insecure_requests_policy()),
                 document.has_trustworthy_ancestor_or_current_origin(),
             );
+            load_data.destination = Destination::IFrame;
             load_data.policy_container = Some(window.as_global_scope().policy_container());
             let element = self.upcast::<Element>();
             load_data.srcdoc = String::from(element.get_string_attribute(&local_name!("srcdoc")));
@@ -372,16 +377,14 @@ impl HTMLIFrameElement {
             Some(document.insecure_requests_policy()),
             document.has_trustworthy_ancestor_or_current_origin(),
         );
+        load_data.destination = Destination::IFrame;
+        load_data.policy_container = Some(window.as_global_scope().policy_container());
 
         let pipeline_id = self.pipeline_id();
         // If the initial `about:blank` page is the current page, load with replacement enabled,
         // see https://html.spec.whatwg.org/multipage/#the-iframe-element:about:blank-3
         let is_about_blank =
             pipeline_id.is_some() && pipeline_id == self.about_blank_pipeline_id.get();
-
-        if is_about_blank {
-            load_data.policy_container = Some(window.as_global_scope().policy_container());
-        }
 
         let history_handling = if is_about_blank {
             NavigationHistoryBehavior::Replace
@@ -422,6 +425,7 @@ impl HTMLIFrameElement {
             Some(document.insecure_requests_policy()),
             document.has_trustworthy_ancestor_or_current_origin(),
         );
+        load_data.destination = Destination::IFrame;
         load_data.policy_container = Some(window.as_global_scope().policy_container());
         let browsing_context_id = BrowsingContextId::new();
         let webview_id = window.window_proxy().webview_id();
@@ -595,10 +599,29 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
     make_url_setter!(SetSrc, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-srcdoc
-    make_getter!(Srcdoc, "srcdoc");
+    fn Srcdoc(&self) -> TrustedHTMLOrString {
+        let element = self.upcast::<Element>();
+        element.get_trusted_html_attribute(&local_name!("srcdoc"))
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-srcdoc
-    make_setter!(SetSrcdoc, "srcdoc");
+    fn SetSrcdoc(&self, value: TrustedHTMLOrString, can_gc: CanGc) -> Fallible<()> {
+        // Step 1: Let compliantString be the result of invoking the
+        // Get Trusted Type compliant string algorithm with TrustedHTML,
+        // this's relevant global object, the given value, "HTMLIFrameElement srcdoc", and "script".
+        let element = self.upcast::<Element>();
+        let local_name = &local_name!("srcdoc");
+        let value = TrustedHTML::get_trusted_script_compliant_string(
+            &element.owner_global(),
+            value,
+            "HTMLIFrameElement",
+            local_name,
+            can_gc,
+        )?;
+        // Step 2: Set an attribute value given this, srcdoc's local name, and compliantString.
+        element.set_attribute(local_name, AttrValue::String(value), can_gc);
+        Ok(())
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-sandbox
     fn Sandbox(&self, can_gc: CanGc) -> DomRoot<DOMTokenList> {

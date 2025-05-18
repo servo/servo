@@ -2867,6 +2867,7 @@ impl TableSlotCell {
             block: vertical_align_offset,
         };
         let vertical_align_fragment = PositioningFragment::new_anonymous(
+            self.base.style.clone(),
             vertical_align_fragment_rect.as_physical(None),
             layout.layout.fragments,
         );

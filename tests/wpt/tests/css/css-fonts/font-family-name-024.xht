@@ -9,7 +9,11 @@
         <link rel="match" href="font-family-name-024-ref.xht"/>
         <meta name="assert" content="System font names are only allowed with the font shorthand, not in font-family rules" />
         <style type="text/css">
-            body { font-size: 36px; }
+            body {
+                font-size: 36px;
+                /* prevent scrollbar because of visually empty paragraph elements */
+                overflow: hidden;
+            }
             span#verify { font-family: CSSTest Verify; }
             div.test { font-family: CSSTest Fallback; }
             p {

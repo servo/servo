@@ -16,9 +16,9 @@ use webdriver::actions::{
     PointerDownAction, PointerMoveAction, PointerOrigin, PointerType, PointerUpAction, WheelAction,
     WheelActionItem, WheelScrollAction,
 };
-use webdriver::error::ErrorStatus;
+use webdriver::error::{ErrorStatus, WebDriverError};
 
-use crate::Handler;
+use crate::{Handler, WebElement, wait_for_script_response};
 
 // Interval between wheelScroll and pointerMove increments in ms, based on common vsync
 static POINTERMOVE_INTERVAL: u64 = 17;
@@ -36,8 +36,8 @@ pub(crate) enum InputSourceState {
 pub(crate) struct PointerInputState {
     subtype: PointerType,
     pressed: HashSet<u64>,
-    x: i64,
-    y: i64,
+    x: f64,
+    y: f64,
 }
 
 impl PointerInputState {
@@ -49,8 +49,8 @@ impl PointerInputState {
                 PointerType::Touch => PointerType::Touch,
             },
             pressed: HashSet::new(),
-            x: 0,
-            y: 0,
+            x: 0.0,
+            y: 0.0,
         }
     }
 }
@@ -393,38 +393,30 @@ impl Handler {
         let (x, y) = match action.origin {
             PointerOrigin::Viewport => (x_offset, y_offset),
             PointerOrigin::Pointer => (start_x + x_offset, start_y + y_offset),
-            PointerOrigin::Element(ref x) => {
-                let (sender, receiver) = ipc::channel().unwrap();
-                self.browsing_context_script_command(
-                    WebDriverScriptCommand::GetElementInViewCenterPoint(x.to_string(), sender),
-                )
-                .unwrap();
-
-                let Some(point) = receiver.recv().unwrap()? else {
-                    return Err(ErrorStatus::UnknownError);
-                };
-                point
+            PointerOrigin::Element(ref web_element) => {
+                let point = self.get_element_origin_relative_coordinates(web_element)?;
+                (point.0 as f64, point.1 as f64)
             },
         };
 
         // Step 5 - 6
         self.check_viewport_bound(x, y)?;
 
-        // Step 9
+        // Step 7
         let duration = match action.duration {
             Some(duration) => duration,
             None => tick_duration,
         };
 
-        // Step 10
+        // Step 8
         if duration > 0 {
             thread::sleep(Duration::from_millis(POINTERMOVE_INTERVAL));
         }
 
-        // Step 11
+        // Step 9 - 18
         self.perform_pointer_move(source_id, duration, start_x, start_y, x, y, tick_start);
 
-        // Step 12
+        // Step 19
         Ok(())
     }
 
@@ -434,10 +426,10 @@ impl Handler {
         &mut self,
         source_id: &str,
         duration: u64,
-        start_x: i64,
-        start_y: i64,
-        target_x: i64,
-        target_y: i64,
+        start_x: f64,
+        start_y: f64,
+        target_x: f64,
+        target_y: f64,
         tick_start: Instant,
     ) {
         let session = self.session.as_mut().unwrap();
@@ -465,8 +457,8 @@ impl Handler {
                 (target_x, target_y)
             } else {
                 (
-                    (duration_ratio * (target_x - start_x) as f64) as i64 + start_x,
-                    (duration_ratio * (target_y - start_y) as f64) as i64 + start_y,
+                    duration_ratio * (target_x - start_x) + start_x,
+                    duration_ratio * (target_y - start_y) + start_y,
                 )
             };
 
@@ -479,6 +471,7 @@ impl Handler {
                 // Step 7.2
                 let cmd_msg =
                     WebDriverCommandMsg::MouseMoveAction(session.webview_id, x as f32, y as f32);
+                //TODO: Need Synchronization here before updating `pointer_input_state`
                 self.constellation_chan
                     .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
                     .unwrap();
@@ -522,14 +515,17 @@ impl Handler {
         };
 
         // Step 3 - 4
-        // Get coordinates relative to an origin. Origin must be viewport.
+        // Get coordinates relative to an origin.
         let (x, y) = match action.origin {
             PointerOrigin::Viewport => (x_offset, y_offset),
-            _ => return Err(ErrorStatus::InvalidArgument),
+            PointerOrigin::Pointer => return Err(ErrorStatus::InvalidArgument),
+            PointerOrigin::Element(ref web_element) => {
+                self.get_element_origin_relative_coordinates(web_element)?
+            },
         };
 
         // Step 5 - 6
-        self.check_viewport_bound(x, y)?;
+        self.check_viewport_bound(x as _, y as _)?;
 
         // Step 7 - 8
         let Some(delta_x) = action.deltaX else {
@@ -637,7 +633,7 @@ impl Handler {
         );
     }
 
-    fn check_viewport_bound(&self, x: i64, y: i64) -> Result<(), ErrorStatus> {
+    fn check_viewport_bound(&self, x: f64, y: f64) -> Result<(), ErrorStatus> {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd_msg =
             WebDriverCommandMsg::GetWindowSize(self.session.as_ref().unwrap().webview_id, sender);
@@ -645,19 +641,34 @@ impl Handler {
             .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
             .unwrap();
 
-        match receiver.recv() {
-            Ok(viewport_size) => {
-                if x < 0 ||
-                    x as f32 > viewport_size.width ||
-                    y < 0 ||
-                    y as f32 > viewport_size.height
-                {
-                    Err(ErrorStatus::MoveTargetOutOfBounds)
-                } else {
-                    Ok(())
-                }
-            },
-            Err(_) => Err(ErrorStatus::UnknownError),
+        let viewport_size = match wait_for_script_response(receiver) {
+            Ok(response) => response,
+            Err(WebDriverError { error, .. }) => return Err(error),
+        };
+        if x < 0.0 || x > viewport_size.width.into() || y < 0.0 || y > viewport_size.height.into() {
+            Err(ErrorStatus::MoveTargetOutOfBounds)
+        } else {
+            Ok(())
+        }
+    }
+
+    fn get_element_origin_relative_coordinates(
+        &self,
+        web_element: &WebElement,
+    ) -> Result<(i64, i64), ErrorStatus> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.browsing_context_script_command(WebDriverScriptCommand::GetElementInViewCenterPoint(
+            web_element.to_string(),
+            sender,
+        ))
+        .unwrap();
+        let response = match wait_for_script_response(receiver) {
+            Ok(response) => response,
+            Err(WebDriverError { error, .. }) => return Err(error),
+        };
+        match response? {
+            Some(point) => Ok(point),
+            None => Err(ErrorStatus::UnknownError),
         }
     }
 }

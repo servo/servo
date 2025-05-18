@@ -32,6 +32,13 @@ if (swOption !== 'no-fetch-handler') {
 
     if (swOption === 'fetch-handler') {
       event.respondWith(fetch(event.request));
+    } else if (swOption === 'fetch-handler-synthetic') {
+      const finalUrl = new URL(event.request.url).searchParams.get('location');
+      if (finalUrl) {
+        event.respondWith(Response.redirect(finalUrl));
+      } else {
+        // Fallback to the network.
+      }
     } else if (swOption === 'fetch-handler-modify-url') {
       // The "Sec-Purpose: prefetch" header is dropped in fetch-handler-modify-*
       // cases in Step 33 of // https://fetch.spec.whatwg.org/#dom-request

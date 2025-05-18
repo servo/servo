@@ -24,9 +24,8 @@ pub(crate) struct PositioningFragment {
     /// The scrollable overflow of this anonymous fragment's children.
     pub scrollable_overflow: PhysicalRect<Au>,
 
-    /// If this fragment was created with a style, the style of the fragment.
-    #[conditional_malloc_size_of]
-    pub style: Option<ServoArc<ComputedValues>>,
+    /// The style of the fragment.
+    pub style: ServoArc<ComputedValues>,
 
     /// This [`PositioningFragment`]'s containing block rectangle in coordinates relative to
     /// the initial containing block, but not taking into account any transforms.
@@ -34,8 +33,12 @@ pub(crate) struct PositioningFragment {
 }
 
 impl PositioningFragment {
-    pub fn new_anonymous(rect: PhysicalRect<Au>, children: Vec<Fragment>) -> ArcRefCell<Self> {
-        Self::new_with_base_fragment(BaseFragment::anonymous(), None, rect, children)
+    pub fn new_anonymous(
+        style: ServoArc<ComputedValues>,
+        rect: PhysicalRect<Au>,
+        children: Vec<Fragment>,
+    ) -> ArcRefCell<Self> {
+        Self::new_with_base_fragment(BaseFragment::anonymous(), style, rect, children)
     }
 
     pub fn new_empty(
@@ -43,12 +46,12 @@ impl PositioningFragment {
         rect: PhysicalRect<Au>,
         style: ServoArc<ComputedValues>,
     ) -> ArcRefCell<Self> {
-        Self::new_with_base_fragment(base_fragment_info.into(), Some(style), rect, Vec::new())
+        Self::new_with_base_fragment(base_fragment_info.into(), style, rect, Vec::new())
     }
 
     fn new_with_base_fragment(
         base: BaseFragment,
-        style: Option<ServoArc<ComputedValues>>,
+        style: ServoArc<ComputedValues>,
         rect: PhysicalRect<Au>,
         children: Vec<Fragment>,
     ) -> ArcRefCell<Self> {

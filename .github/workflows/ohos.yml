@@ -36,6 +36,7 @@ env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   CARGO_INCREMENTAL: 0
+  BENCHER_PROJECT: ${{ vars.BENCHER_PROJECT || 'servo' }}
 
 jobs:
   build:
@@ -223,10 +224,8 @@ jobs:
           hdc shell snapshot_display -f /data/local/tmp/servo.jpeg
           hdc file recv /data/local/tmp/servo.jpeg  test_output/servo_hos_screenshot.jpeg
           hdc file recv /data/local/tmp/ohtrace.txt  test_output/servo.ftrace
-          # To limit the logsize we only save logs from servo. 
-          # Todo:  investigate giving servo a custom domain tag, so we can also log appspawn etc, 
-          # since another common error might be the dynamic loader failing to relocate libservoshell.so
-          hdc shell hilog --exit --pid=${servo_pid} > test_output/servo.log
+          # To limit the logsize we only save logs from servo.
+          hdc shell hilog --exit -D 0xE0C3 > test_output/servo.log
       # todo: Also benchmark some other websites....
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -240,3 +239,10 @@ jobs:
           [[ $servo_pid =~ ^[0-9]+$ ]] || { echo "It looks like servo crashed!" ; exit 1; }
           # If the grep fails, then the trace output for the "page loaded" prompt is missing
           grep 'org\.servo\.servo-.* tracing_mark_write.*PageLoadEndedPrompt' test_output/servo.ftrace
+      - name: "Run benchmark"
+        run: hitrace-bench --bencher -b "org.servo.servo" -p "https://www.servo.org" -n 5
+      - name: Getting bencher
+        uses: bencherdev/bencher@main
+      - name: Uploading to bencher.dev
+        run: |
+          bencher run --adapter json --file bench.json --project '${{ env.BENCHER_PROJECT }}' --token '${{ secrets.BENCHER_API_TOKEN }}' --github-actions '${{ secrets.GITHUB_TOKEN }}'

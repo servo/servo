@@ -6,6 +6,7 @@ use app_units::Au;
 use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::ServoLayoutElement;
 use servo_arc::Arc;
+use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 
@@ -14,6 +15,7 @@ use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::flexbox::FlexContainer;
 use crate::flow::BlockFormattingContext;
 use crate::fragment_tree::{BaseFragmentInfo, FragmentFlags};
+use crate::geom::LazySize;
 use crate::layout_box_base::{
     CacheableLayoutResult, CacheableLayoutResultAndInputs, LayoutBoxBase,
 };
@@ -217,6 +219,20 @@ impl IndependentFormattingContext {
             },
         }
     }
+
+    pub(crate) fn repair_style(
+        &mut self,
+        context: &SharedStyleContext,
+        new_style: &Arc<ComputedValues>,
+    ) {
+        self.base.repair_style(new_style);
+        match &mut self.contents {
+            IndependentFormattingContextContents::NonReplaced(content) => {
+                content.repair_style(context, new_style);
+            },
+            IndependentFormattingContextContents::Replaced(..) => {},
+        }
+    }
 }
 
 impl IndependentNonReplacedContents {
@@ -227,6 +243,7 @@ impl IndependentNonReplacedContents {
         containing_block_for_children: &ContainingBlock,
         containing_block: &ContainingBlock,
         depends_on_block_constraints: bool,
+        lazy_block_size: &LazySize,
     ) -> CacheableLayoutResult {
         match self {
             IndependentNonReplacedContents::Flow(bfc) => bfc.layout(
@@ -240,6 +257,7 @@ impl IndependentNonReplacedContents {
                 positioning_context,
                 containing_block_for_children,
                 depends_on_block_constraints,
+                lazy_block_size,
             ),
             IndependentNonReplacedContents::Grid(fc) => fc.layout(
                 layout_context,
@@ -266,6 +284,7 @@ impl IndependentNonReplacedContents {
             level = "trace",
         )
     )]
+    #[allow(clippy::too_many_arguments)]
     pub fn layout(
         &self,
         layout_context: &LayoutContext,
@@ -274,6 +293,7 @@ impl IndependentNonReplacedContents {
         containing_block: &ContainingBlock,
         base: &LayoutBoxBase,
         depends_on_block_constraints: bool,
+        lazy_block_size: &LazySize,
     ) -> CacheableLayoutResult {
         if let Some(cache) = base.cached_layout_result.borrow().as_ref() {
             let cache = &**cache;
@@ -302,6 +322,7 @@ impl IndependentNonReplacedContents {
             containing_block_for_children,
             containing_block,
             depends_on_block_constraints,
+            lazy_block_size,
         );
 
         *base.cached_layout_result.borrow_mut() = Some(Box::new(CacheableLayoutResultAndInputs {
@@ -333,6 +354,19 @@ impl IndependentNonReplacedContents {
     #[inline]
     pub(crate) fn is_table(&self) -> bool {
         matches!(self, Self::Table(_))
+    }
+
+    fn repair_style(&mut self, context: &SharedStyleContext, new_style: &Arc<ComputedValues>) {
+        match self {
+            IndependentNonReplacedContents::Flow(..) => {},
+            IndependentNonReplacedContents::Flex(flex_container) => {
+                flex_container.repair_style(new_style)
+            },
+            IndependentNonReplacedContents::Grid(taffy_container) => {
+                taffy_container.repair_style(new_style)
+            },
+            IndependentNonReplacedContents::Table(table) => table.repair_style(context, new_style),
+        }
     }
 }
 

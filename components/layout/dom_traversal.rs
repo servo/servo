@@ -23,6 +23,7 @@ use style::values::specified::Quotes;
 
 use crate::context::LayoutContext;
 use crate::dom::{BoxSlot, LayoutBox, NodeExt};
+use crate::flow::inline::SharedInlineStyles;
 use crate::fragment_tree::{BaseFragmentInfo, FragmentFlags, Tag};
 use crate::quotes::quotes_for_lang;
 use crate::replaced::ReplacedContents;
@@ -185,6 +186,12 @@ pub(super) trait TraversalHandler<'dom> {
         contents: Contents,
         box_slot: BoxSlot<'dom>,
     );
+
+    /// Notify the handler that we are about to recurse into a `display: contents` element.
+    fn enter_display_contents(&mut self, _: SharedInlineStyles) {}
+
+    /// Notify the handler that we have finished a `display: contents` element.
+    fn leave_display_contents(&mut self) {}
 }
 
 fn traverse_children_of<'dom>(
@@ -194,18 +201,11 @@ fn traverse_children_of<'dom>(
 ) {
     traverse_eager_pseudo_element(PseudoElement::Before, parent_element, context, handler);
 
-    let is_text_input_element = matches!(
-        parent_element.type_id(),
-        LayoutNodeType::Element(LayoutElementType::HTMLInputElement)
-    );
-
-    let is_textarea_element = matches!(
-        parent_element.type_id(),
-        LayoutNodeType::Element(LayoutElementType::HTMLTextAreaElement)
-    );
-
-    if is_text_input_element || is_textarea_element {
-        let info = NodeAndStyleInfo::new(parent_element, parent_element.style(context));
+    if parent_element.is_text_input() {
+        let info = NodeAndStyleInfo::new(
+            parent_element,
+            parent_element.style(context.shared_context()),
+        );
         let node_text_content = parent_element.to_threadsafe().node_text_content();
         if node_text_content.is_empty() {
             // The addition of zero-width space here forces the text input to have an inline formatting
@@ -219,12 +219,10 @@ fn traverse_children_of<'dom>(
         } else {
             handler.handle_text(&info, node_text_content);
         }
-    }
-
-    if !is_text_input_element && !is_textarea_element {
+    } else {
         for child in iter_child_nodes(parent_element) {
             if child.is_text_node() {
-                let info = NodeAndStyleInfo::new(child, child.style(context));
+                let info = NodeAndStyleInfo::new(child, child.style(context.shared_context()));
                 handler.handle_text(&info, child.to_threadsafe().node_text_content());
             } else if child.is_element() {
                 traverse_element(child, context, handler);
@@ -245,7 +243,7 @@ fn traverse_element<'dom>(
     element.unset_pseudo_element_box(PseudoElement::Marker);
 
     let replaced = ReplacedContents::for_element(element, context);
-    let style = element.style(context);
+    let style = element.style(context.shared_context());
     match Display::from(style.get_box().display) {
         Display::None => element.unset_all_boxes(),
         Display::Contents => {
@@ -254,8 +252,15 @@ fn traverse_element<'dom>(
                 // <https://drafts.csswg.org/css-display-3/#valdef-display-contents>
                 element.unset_all_boxes()
             } else {
-                element.element_box_slot().set(LayoutBox::DisplayContents);
-                traverse_children_of(element, context, handler)
+                let shared_inline_styles: SharedInlineStyles =
+                    (&NodeAndStyleInfo::new(element, style)).into();
+                element
+                    .element_box_slot()
+                    .set(LayoutBox::DisplayContents(shared_inline_styles.clone()));
+
+                handler.enter_display_contents(shared_inline_styles);
+                traverse_children_of(element, context, handler);
+                handler.leave_display_contents();
             }
         },
         Display::GeneratingBox(display) => {
@@ -308,8 +313,12 @@ fn traverse_eager_pseudo_element<'dom>(
         Display::Contents => {
             let items = generate_pseudo_element_content(&info.style, node, context);
             let box_slot = node.pseudo_element_box_slot(pseudo_element_type);
-            box_slot.set(LayoutBox::DisplayContents);
+            let shared_inline_styles: SharedInlineStyles = (&info).into();
+            box_slot.set(LayoutBox::DisplayContents(shared_inline_styles.clone()));
+
+            handler.enter_display_contents(shared_inline_styles);
             traverse_pseudo_element_contents(&info, context, handler, items);
+            handler.leave_display_contents();
         },
         Display::GeneratingBox(display) => {
             let items = generate_pseudo_element_content(&info.style, node, context);

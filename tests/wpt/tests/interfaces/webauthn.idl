@@ -311,20 +311,35 @@ enum PublicKeyCredentialHint {
 partial dictionary AuthenticationExtensionsClientInputs {
   DOMString appid;
 };
+partial dictionary AuthenticationExtensionsClientInputsJSON {
+  DOMString appid;
+};
 
 partial dictionary AuthenticationExtensionsClientOutputs {
+  boolean appid;
+};
+partial dictionary AuthenticationExtensionsClientOutputsJSON {
   boolean appid;
 };
 
 partial dictionary AuthenticationExtensionsClientInputs {
   DOMString appidExclude;
 };
+partial dictionary AuthenticationExtensionsClientInputsJSON {
+  DOMString appidExclude;
+};
 
 partial dictionary AuthenticationExtensionsClientOutputs {
   boolean appidExclude;
 };
+partial dictionary AuthenticationExtensionsClientOutputsJSON {
+  boolean appidExclude;
+};
 
 partial dictionary AuthenticationExtensionsClientInputs {
+    boolean credProps;
+};
+partial dictionary AuthenticationExtensionsClientInputsJSON {
     boolean credProps;
 };
 
@@ -335,32 +350,56 @@ dictionary CredentialPropertiesOutput {
 partial dictionary AuthenticationExtensionsClientOutputs {
     CredentialPropertiesOutput credProps;
 };
+partial dictionary AuthenticationExtensionsClientOutputsJSON {
+    CredentialPropertiesOutput credProps;
+};
 
 dictionary AuthenticationExtensionsPRFValues {
     required BufferSource first;
     BufferSource second;
+};
+dictionary AuthenticationExtensionsPRFValuesJSON {
+    required Base64URLString first;
+    Base64URLString second;
 };
 
 dictionary AuthenticationExtensionsPRFInputs {
     AuthenticationExtensionsPRFValues eval;
     record<DOMString, AuthenticationExtensionsPRFValues> evalByCredential;
 };
+dictionary AuthenticationExtensionsPRFInputsJSON {
+    AuthenticationExtensionsPRFValuesJSON eval;
+    record<DOMString, AuthenticationExtensionsPRFValuesJSON> evalByCredential;
+};
 
 partial dictionary AuthenticationExtensionsClientInputs {
     AuthenticationExtensionsPRFInputs prf;
+};
+partial dictionary AuthenticationExtensionsClientInputsJSON {
+    AuthenticationExtensionsPRFInputsJSON prf;
 };
 
 dictionary AuthenticationExtensionsPRFOutputs {
     boolean enabled;
     AuthenticationExtensionsPRFValues results;
 };
+dictionary AuthenticationExtensionsPRFOutputsJSON {
+    boolean enabled;
+    AuthenticationExtensionsPRFValuesJSON results;
+};
 
 partial dictionary AuthenticationExtensionsClientOutputs {
     AuthenticationExtensionsPRFOutputs prf;
 };
+partial dictionary AuthenticationExtensionsClientOutputsJSON {
+    AuthenticationExtensionsPRFOutputsJSON prf;
+};
 
 partial dictionary AuthenticationExtensionsClientInputs {
     AuthenticationExtensionsLargeBlobInputs largeBlob;
+};
+partial dictionary AuthenticationExtensionsClientInputsJSON {
+    AuthenticationExtensionsLargeBlobInputsJSON largeBlob;
 };
 
 enum LargeBlobSupport {
@@ -373,13 +412,26 @@ dictionary AuthenticationExtensionsLargeBlobInputs {
     boolean read;
     BufferSource write;
 };
+dictionary AuthenticationExtensionsLargeBlobInputsJSON {
+    DOMString support;
+    boolean read;
+    Base64URLString write;
+};
 
 partial dictionary AuthenticationExtensionsClientOutputs {
     AuthenticationExtensionsLargeBlobOutputs largeBlob;
+};
+partial dictionary AuthenticationExtensionsClientOutputsJSON {
+    AuthenticationExtensionsLargeBlobOutputsJSON largeBlob;
 };
 
 dictionary AuthenticationExtensionsLargeBlobOutputs {
     boolean supported;
     ArrayBuffer blob;
+    boolean written;
+};
+dictionary AuthenticationExtensionsLargeBlobOutputsJSON {
+    boolean supported;
+    Base64URLString blob;
     boolean written;
 };

@@ -21,6 +21,11 @@ def main(request, response):
   request_count["prefetch" if prefetch else "nonPrefetch"] += 1
   request.server.stash.put(uuid, request_count)
 
+  if b"location" in request.GET:
+    response.status = 302
+    response.headers.set(b"Location", request.GET[b"location"])
+    return
+
   response.content = template(
     request,
     open(os.path.join(os.path.dirname(__file__), "executor.sub.html"), "rb").read())

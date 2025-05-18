@@ -61,6 +61,7 @@ use crate::dom::htmlvideoelement::HTMLVideoElement;
 use crate::dom::node::{BindContext, ChildrenMutation, CloneChildrenFlag, Node, UnbindContext};
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::svgelement::SVGElement;
+use crate::dom::svgimageelement::SVGImageElement;
 use crate::dom::svgsvgelement::SVGSVGElement;
 
 /// Trait to allow DOM nodes to opt-in to overriding (or adding to) common
@@ -298,6 +299,9 @@ pub(crate) fn vtable_for(node: &Node) -> &dyn VirtualMethods {
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTitleElement)) => {
             node.downcast::<HTMLTitleElement>().unwrap() as &dyn VirtualMethods
         },
+        NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(
+            SVGGraphicsElementTypeId::SVGImageElement,
+        ))) => node.downcast::<SVGImageElement>().unwrap() as &dyn VirtualMethods,
         NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(
             SVGGraphicsElementTypeId::SVGSVGElement,
         ))) => node.downcast::<SVGSVGElement>().unwrap() as &dyn VirtualMethods,

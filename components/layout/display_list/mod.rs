@@ -14,6 +14,7 @@ use euclid::{Point2D, SideOffsets2D, Size2D, UnknownUnit};
 use fonts::GlyphStore;
 use gradient::WebRenderGradient;
 use range::Range as ServoRange;
+use servo_arc::Arc as ServoArc;
 use servo_geometry::MaxRect;
 use style::Zero;
 use style::color::{AbsoluteColor, ColorSpace};
@@ -470,18 +471,16 @@ impl Fragment {
             Fragment::AbsoluteOrFixedPositioned(_) => {},
             Fragment::Positioning(positioning_fragment) => {
                 let positioning_fragment = positioning_fragment.borrow();
-                if let Some(style) = positioning_fragment.style.as_ref() {
-                    let rect = positioning_fragment
-                        .rect
-                        .translate(containing_block.origin.to_vector());
-                    self.maybe_push_hit_test_for_style_and_tag(
-                        builder,
-                        style,
-                        positioning_fragment.base.tag,
-                        rect,
-                        Cursor::Default,
-                    );
-                }
+                let rect = positioning_fragment
+                    .rect
+                    .translate(containing_block.origin.to_vector());
+                self.maybe_push_hit_test_for_style_and_tag(
+                    builder,
+                    &positioning_fragment.style,
+                    positioning_fragment.base.tag,
+                    rect,
+                    Cursor::Default,
+                );
             },
             Fragment::Image(image) => {
                 let image = image.borrow();
@@ -544,7 +543,13 @@ impl Fragment {
             },
             Fragment::Text(text) => {
                 let text = &*text.borrow();
-                match text.parent_style.get_inherited_box().visibility {
+                match text
+                    .inline_styles
+                    .style
+                    .borrow()
+                    .get_inherited_box()
+                    .visibility
+                {
                     Visibility::Visible => {
                         self.build_display_list_for_text_fragment(text, builder, containing_block)
                     },
@@ -604,22 +609,23 @@ impl Fragment {
             return;
         }
 
+        let parent_style = fragment.inline_styles.style.borrow();
         self.maybe_push_hit_test_for_style_and_tag(
             builder,
-            &fragment.parent_style,
+            &parent_style,
             fragment.base.tag,
             rect,
             Cursor::Text,
         );
 
-        let color = fragment.parent_style.clone_color();
+        let color = parent_style.clone_color();
         let font_metrics = &fragment.font_metrics;
         let dppx = builder.context.style_context.device_pixel_ratio().get();
-        let common = builder.common_properties(rect.to_webrender(), &fragment.parent_style);
+        let common = builder.common_properties(rect.to_webrender(), &parent_style);
 
         // Shadows. According to CSS-BACKGROUNDS, text shadows render in *reverse* order (front to
         // back).
-        let shadows = &fragment.parent_style.get_inherited_text().text_shadow;
+        let shadows = &parent_style.get_inherited_text().text_shadow;
         for shadow in shadows.0.iter().rev() {
             builder.wr().push_shadow(
                 &wr::SpaceAndClipInfo {
@@ -642,7 +648,7 @@ impl Fragment {
             let mut rect = rect;
             rect.origin.y += font_metrics.ascent - font_metrics.underline_offset;
             rect.size.height = Au::from_f32_px(font_metrics.underline_size.to_nearest_pixel(dppx));
-            self.build_display_list_for_text_decoration(fragment, builder, &rect, &color);
+            self.build_display_list_for_text_decoration(&parent_style, builder, &rect, &color);
         }
 
         if fragment
@@ -651,7 +657,7 @@ impl Fragment {
         {
             let mut rect = rect;
             rect.size.height = Au::from_f32_px(font_metrics.underline_size.to_nearest_pixel(dppx));
-            self.build_display_list_for_text_decoration(fragment, builder, &rect, &color);
+            self.build_display_list_for_text_decoration(&parent_style, builder, &rect, &color);
         }
 
         // TODO: This caret/text selection implementation currently does not account for vertical text
@@ -678,12 +684,13 @@ impl Fragment {
                     Point2D::new(end.x.to_f32_px(), containing_block.max_y().to_f32_px()),
                 );
                 if let Some(selection_color) = fragment
-                    .selected_style
+                    .inline_styles
+                    .selected
+                    .borrow()
                     .clone_background_color()
                     .as_absolute()
                 {
-                    let selection_common =
-                        builder.common_properties(selection_rect, &fragment.parent_style);
+                    let selection_common = builder.common_properties(selection_rect, &parent_style);
                     builder.wr().push_rect(
                         &selection_common,
                         selection_rect,
@@ -709,7 +716,7 @@ impl Fragment {
                     ),
                 );
                 let insertion_point_common =
-                    builder.common_properties(insertion_point_rect, &fragment.parent_style);
+                    builder.common_properties(insertion_point_rect, &parent_style);
                 // TODO: The color of the caret is currently hardcoded to the text color.
                 // We should be retrieving the caret color from the style properly.
                 builder
@@ -734,7 +741,7 @@ impl Fragment {
             let mut rect = rect;
             rect.origin.y += font_metrics.ascent - font_metrics.strikeout_offset;
             rect.size.height = Au::from_f32_px(font_metrics.strikeout_size.to_nearest_pixel(dppx));
-            self.build_display_list_for_text_decoration(fragment, builder, &rect, &color);
+            self.build_display_list_for_text_decoration(&parent_style, builder, &rect, &color);
         }
 
         if !shadows.0.is_empty() {
@@ -744,23 +751,22 @@ impl Fragment {
 
     fn build_display_list_for_text_decoration(
         &self,
-        fragment: &TextFragment,
+        parent_style: &ServoArc<ComputedValues>,
         builder: &mut DisplayListBuilder,
         rect: &PhysicalRect<Au>,
         color: &AbsoluteColor,
     ) {
         let rect = rect.to_webrender();
         let wavy_line_thickness = (0.33 * rect.size().height).ceil();
-        let text_decoration_color = fragment
-            .parent_style
+        let text_decoration_color = parent_style
             .clone_text_decoration_color()
             .resolve_to_absolute(color);
-        let text_decoration_style = fragment.parent_style.clone_text_decoration_style();
+        let text_decoration_style = parent_style.clone_text_decoration_style();
         if text_decoration_style == ComputedTextDecorationStyle::MozNone {
             return;
         }
         builder.display_list.wr.push_line(
-            &builder.common_properties(rect, &fragment.parent_style),
+            &builder.common_properties(rect, parent_style),
             &rect,
             wavy_line_thickness,
             wr::LineOrientation::Horizontal,
@@ -1026,7 +1032,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             for extra_background in extra_backgrounds {
                 let positioning_area = extra_background.rect;
                 let painter = BackgroundPainter {
-                    style: &extra_background.style.borrow_mut().0,
+                    style: &extra_background.style.borrow_mut(),
                     painting_area_override: None,
                     positioning_area_override: Some(
                         positioning_area

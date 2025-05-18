@@ -34,46 +34,6 @@
 // MLOperand maxPool2d(
 //     MLOperand input, optional MLPool2dOptions options = {});
 
-
-const getPoolingOperatorsPrecisionTolerance = (graphResources) => {
-  const args = graphResources.operators[0].arguments;
-  const inputShape =
-      graphResources.inputs[args[0][Object.keys(args[0])[0]]].descriptor.shape;
-  const options =
-      args.length === 2 ? {...args[1][Object.keys(args[1])[0]]} : {};
-  let height;
-  let width;
-
-  if (options.windowDimensions) {
-    height = options.windowDimensions[0];
-    width = options.windowDimensions[1];
-  } else {
-    // If not present, the window dimensions are assumed to be the height and
-    // width dimensions of the input shape
-    if (options.layout && options.layout === 'nhwc') {
-      height = inputShape[1];
-      width = inputShape[2];
-    } else {
-      // nhwc layout of input
-      height = inputShape[2];
-      width = inputShape[3];
-    }
-  }
-
-  const tolerance = height * width + 2;
-  const toleranceDict = {
-    averagePool2d: {float32: tolerance, float16: tolerance},
-    l2Pool2d: {float32: tolerance, float16: tolerance},
-    maxPool2d: {float32: 0, float16: 0},
-  };
-  const expectedDataType =
-      getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
-  return {
-    metricType: 'ULP',
-    value: toleranceDict[graphResources.operators[0].name][expectedDataType]
-  };
-};
-
 const poolingOperatorsTests = [
   // averagePool2d tests
   {
@@ -2345,8 +2305,7 @@ const poolingOperatorsTests = [
 
 if (navigator.ml) {
   poolingOperatorsTests.forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getPoolingOperatorsPrecisionTolerance, test);
+    webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

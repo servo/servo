@@ -4,7 +4,6 @@ from webdriver.bidi.modules.emulation import CoordinatesOptions
 from webdriver.bidi.modules.script import ContextTarget
 
 from ... import remote_mapping_to_dict
-from . import get_current_geolocation
 
 
 pytestmark = pytest.mark.asyncio
@@ -22,7 +21,12 @@ pytestmark = pytest.mark.asyncio
     ],
 )
 async def test_get_current_position(
-    bidi_session, new_tab, url, set_geolocation_permission, test_coordinates
+    bidi_session,
+    new_tab,
+    url,
+    get_current_geolocation,
+    set_geolocation_permission,
+    test_coordinates,
 ):
     test_url = url("/common/blank.html")
     await bidi_session.browsing_context.navigate(
@@ -32,7 +36,7 @@ async def test_get_current_position(
     )
     await set_geolocation_permission(new_tab)
 
-    default_coordinates = await get_current_geolocation(bidi_session, new_tab)
+    default_coordinates = await get_current_geolocation(new_tab)
 
     # Set default accuracy value.
     if "accuracy" not in test_coordinates:
@@ -44,7 +48,7 @@ async def test_get_current_position(
         contexts=[new_tab["context"]], coordinates=test_coordinates
     )
 
-    assert await get_current_geolocation(bidi_session, new_tab) == test_coordinates
+    assert await get_current_geolocation(new_tab) == test_coordinates
 
 
 async def test_watch_position(
@@ -132,7 +136,7 @@ async def test_watch_position(
 
 
 async def test_persists_on_reload(
-    bidi_session, url, new_tab, set_geolocation_permission
+    bidi_session, url, new_tab, get_current_geolocation, set_geolocation_permission
 ):
     test_url = url("/common/blank.html")
     await bidi_session.browsing_context.navigate(
@@ -153,17 +157,17 @@ async def test_persists_on_reload(
         ),
     )
 
-    assert await get_current_geolocation(bidi_session, new_tab) == test_coordinates
+    assert await get_current_geolocation(new_tab) == test_coordinates
 
     await bidi_session.browsing_context.reload(
         context=new_tab["context"], wait="complete"
     )
 
-    assert await get_current_geolocation(bidi_session, new_tab) == test_coordinates
+    assert await get_current_geolocation(new_tab) == test_coordinates
 
 
 async def test_persists_on_navigation(
-    bidi_session, url, new_tab, set_geolocation_permission
+    bidi_session, url, new_tab, get_current_geolocation, set_geolocation_permission
 ):
     test_url = url("/common/blank.html")
     await bidi_session.browsing_context.navigate(
@@ -184,7 +188,7 @@ async def test_persists_on_navigation(
         ),
     )
 
-    assert await get_current_geolocation(bidi_session, new_tab) == test_coordinates
+    assert await get_current_geolocation(new_tab) == test_coordinates
 
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"],
@@ -192,4 +196,24 @@ async def test_persists_on_navigation(
         wait="complete",
     )
 
-    assert await get_current_geolocation(bidi_session, new_tab) == test_coordinates
+    assert await get_current_geolocation(new_tab) == test_coordinates
+
+
+async def test_reset_without_override(
+    bidi_session, new_tab, url, get_current_geolocation, set_geolocation_permission
+):
+    test_url = url("/common/blank.html")
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"],
+        url=test_url,
+        wait="complete",
+    )
+    await set_geolocation_permission(new_tab)
+
+    default_coordinates = await get_current_geolocation(new_tab)
+
+    await bidi_session.emulation.set_geolocation_override(
+        contexts=[new_tab["context"]], coordinates=None
+    )
+
+    assert await get_current_geolocation(new_tab) == default_coordinates

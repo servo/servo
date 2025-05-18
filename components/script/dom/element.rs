@@ -63,8 +63,9 @@ use xml5ever::serialize::TraversalScope::{
     ChildrenOnly as XmlChildrenOnly, IncludeNode as XmlIncludeNode,
 };
 
+use crate::conversions::Convert;
 use crate::dom::activation::Activatable;
-use crate::dom::attr::{Attr, AttrHelpersForLayout};
+use crate::dom::attr::{Attr, AttrHelpersForLayout, is_relevant_attribute};
 use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut};
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -80,7 +81,9 @@ use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
     ScrollBehavior, ScrollToOptions, WindowMethods,
 };
-use crate::dom::bindings::codegen::UnionTypes::{NodeOrString, TrustedScriptURLOrUSVString};
+use crate::dom::bindings::codegen::UnionTypes::{
+    NodeOrString, TrustedHTMLOrNullIsEmptyString, TrustedHTMLOrString, TrustedScriptURLOrUSVString,
+};
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
@@ -125,6 +128,7 @@ use crate::dom::htmllinkelement::HTMLLinkElement;
 use crate::dom::htmlobjectelement::HTMLObjectElement;
 use crate::dom::htmloptgroupelement::HTMLOptGroupElement;
 use crate::dom::htmloutputelement::HTMLOutputElement;
+use crate::dom::htmlscriptelement::HTMLScriptElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
 use crate::dom::htmlslotelement::{HTMLSlotElement, Slottable};
 use crate::dom::htmlstyleelement::HTMLStyleElement;
@@ -142,8 +146,8 @@ use crate::dom::intersectionobserver::{IntersectionObserver, IntersectionObserve
 use crate::dom::mutationobserver::{Mutation, MutationObserver};
 use crate::dom::namednodemap::NamedNodeMap;
 use crate::dom::node::{
-    BindContext, ChildrenMutation, LayoutNodeHelpers, Node, NodeDamage, NodeFlags, NodeTraits,
-    ShadowIncluding, UnbindContext,
+    BindContext, ChildrenMutation, CloneChildrenFlag, LayoutNodeHelpers, Node, NodeDamage,
+    NodeFlags, NodeTraits, ShadowIncluding, UnbindContext,
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::promise::Promise;
@@ -151,6 +155,7 @@ use crate::dom::raredata::ElementRareData;
 use crate::dom::servoparser::ServoParser;
 use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
 use crate::dom::text::Text;
+use crate::dom::trustedhtml::TrustedHTML;
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
@@ -354,7 +359,7 @@ impl Element {
 
         if damage == NodeDamage::OtherNodeDamage {
             doc.note_node_with_dirty_descendants(self.upcast());
-            restyle.damage = RestyleDamage::rebuild_and_reflow();
+            restyle.damage = RestyleDamage::reconstruct();
         }
     }
 
@@ -1701,7 +1706,7 @@ impl Element {
         assert!(attr.GetOwnerElement().as_deref() == Some(self));
         self.will_mutate_attr(attr);
         self.attrs.borrow_mut().push(Dom::from_ref(attr));
-        if attr.namespace() == &ns!() {
+        if is_relevant_attribute(attr.namespace(), attr.local_name()) {
             vtable_for(self.upcast()).attribute_mutated(attr, AttributeMutation::Set(None), can_gc);
         }
     }
@@ -1843,7 +1848,7 @@ impl Element {
         local_name: &LocalName,
         value: DOMString,
     ) -> AttrValue {
-        if *namespace == ns!() {
+        if is_relevant_attribute(namespace, local_name) {
             vtable_for(self.upcast()).parse_plain_attribute(local_name, value)
         } else {
             AttrValue::String(value.into())
@@ -1898,7 +1903,7 @@ impl Element {
 
             self.attrs.borrow_mut().remove(idx);
             attr.set_owner(None);
-            if attr.namespace() == &ns!() {
+            if is_relevant_attribute(attr.namespace(), attr.local_name()) {
                 vtable_for(self.upcast()).attribute_mutated(
                     &attr,
                     AttributeMutation::Removed,
@@ -1990,6 +1995,15 @@ impl Element {
             .join(value)
             .map(|parsed| TrustedScriptURLOrUSVString::USVString(USVString(parsed.into_string())))
             .unwrap_or_else(|_| TrustedScriptURLOrUSVString::USVString(USVString(value.to_owned())))
+    }
+
+    pub(crate) fn get_trusted_html_attribute(&self, local_name: &LocalName) -> TrustedHTMLOrString {
+        assert_eq!(*local_name, local_name.to_ascii_lowercase());
+        let value = match self.get_attribute(&ns!(), local_name) {
+            Some(attr) => (&**attr.value()).into(),
+            None => "".into(),
+        };
+        TrustedHTMLOrString::String(value)
     }
 
     pub(crate) fn get_string_attribute(&self, local_name: &LocalName) -> DOMString {
@@ -2175,6 +2189,77 @@ impl Element {
         };
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#nonce-attributes>
+    pub(crate) fn update_nonce_internal_slot(&self, nonce: String) {
+        self.ensure_rare_data().cryptographic_nonce = nonce;
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#nonce-attributes>
+    pub(crate) fn nonce_value(&self) -> String {
+        match self.rare_data().as_ref() {
+            None => String::new(),
+            Some(rare_data) => rare_data.cryptographic_nonce.clone(),
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#nonce-attributes>
+    pub(crate) fn update_nonce_post_connection(&self) {
+        // Whenever an element including HTMLOrSVGElement becomes browsing-context connected,
+        // the user agent must execute the following steps on the element:
+        if !self.upcast::<Node>().is_connected_with_browsing_context() {
+            return;
+        }
+        let global = self.owner_global();
+        // Step 1: Let CSP list be element's shadow-including root's policy container's CSP list.
+        let csp_list = match global.get_csp_list() {
+            None => return,
+            Some(csp_list) => csp_list,
+        };
+        // Step 2: If CSP list contains a header-delivered Content Security Policy,
+        // and element has a nonce content attribute whose value is not the empty string, then:
+        if !csp_list.contains_a_header_delivered_content_security_policy() ||
+            self.get_string_attribute(&local_name!("nonce")).is_empty()
+        {
+            return;
+        }
+        // Step 2.1: Let nonce be element's [[CryptographicNonce]].
+        let nonce = self.nonce_value();
+        // Step 2.2: Set an attribute value for element using "nonce" and the empty string.
+        self.set_string_attribute(&local_name!("nonce"), "".into(), CanGc::note());
+        // Step 2.3: Set element's [[CryptographicNonce]] to nonce.
+        self.update_nonce_internal_slot(nonce);
+    }
+
+    /// <https://www.w3.org/TR/CSP/#is-element-nonceable>
+    pub(crate) fn nonce_value_if_nonceable(&self) -> Option<String> {
+        // Step 1: If element does not have an attribute named "nonce", return "Not Nonceable".
+        if !self.has_attribute(&local_name!("nonce")) {
+            return None;
+        }
+        // Step 2: If element is a script element, then for each attribute of element’s attribute list:
+        if self.downcast::<HTMLScriptElement>().is_some() {
+            for attr in self.attrs().iter() {
+                // Step 2.1: If attribute’s name contains an ASCII case-insensitive match
+                // for "<script" or "<style", return "Not Nonceable".
+                let attr_name = attr.name().to_ascii_lowercase();
+                if attr_name.contains("<script") || attr_name.contains("<style") {
+                    return None;
+                }
+                // Step 2.2: If attribute’s value contains an ASCII case-insensitive match
+                // for "<script" or "<style", return "Not Nonceable".
+                let attr_value = attr.value().to_ascii_lowercase();
+                if attr_value.contains("<script") || attr_value.contains("<style") {
+                    return None;
+                }
+            }
+        }
+        // Step 3: If element had a duplicate-attribute parse error during tokenization, return "Not Nonceable".
+        // TODO(https://github.com/servo/servo/issues/4577 and https://github.com/whatwg/html/issues/3257):
+        // Figure out how to retrieve this information from the parser
+        // Step 4: Return "Nonceable".
+        Some(self.nonce_value().trim().to_owned())
+    }
+
     // https://dom.spec.whatwg.org/#insert-adjacent
     pub(crate) fn insert_adjacent(
         &self,
@@ -2294,18 +2379,25 @@ impl Element {
         Ok(fragment)
     }
 
+    /// Step 4 of <https://html.spec.whatwg.org/multipage/#dom-element-insertadjacenthtml>
     pub(crate) fn fragment_parsing_context(
         owner_doc: &Document,
         element: Option<&Self>,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
+        // If context is not an Element or all of the following are true:
         match element {
             Some(elem)
+                // context's node document is an HTML document;
+                // context's local name is "html"; and
+                // context's namespace is the HTML namespace,
                 if elem.local_name() != &local_name!("html") ||
                     !elem.html_element_in_html_document() =>
             {
                 DomRoot::from_ref(elem)
             },
+            // set context to the result of creating an element
+            // given this's node document, "body", and the HTML namespace.
             _ => DomRoot::upcast(HTMLBodyElement::new(
                 local_name!("body"),
                 None,
@@ -2417,6 +2509,13 @@ impl Element {
                 .expect("ensure_element_internals should only be called for an HTMLElement");
             Dom::from_ref(&*ElementInternals::new(elem, can_gc))
         }))
+    }
+
+    pub(crate) fn outer_html(&self, can_gc: CanGc) -> Fallible<DOMString> {
+        match self.GetOuterHTML(can_gc)? {
+            TrustedHTMLOrNullIsEmptyString::NullIsEmptyString(str) => Ok(str),
+            TrustedHTMLOrNullIsEmptyString::TrustedHTML(_) => unreachable!(),
+        }
     }
 }
 
@@ -2676,7 +2775,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             attr.set_owner(Some(self));
             self.attrs.borrow_mut()[position] = Dom::from_ref(attr);
             old_attr.set_owner(None);
-            if attr.namespace() == &ns!() {
+            if is_relevant_attribute(attr.namespace(), attr.local_name()) {
                 vtable.attribute_mutated(
                     attr,
                     AttributeMutation::Set(Some(&old_attr.value())),
@@ -3072,7 +3171,17 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-sethtmlunsafe>
-    fn SetHTMLUnsafe(&self, html: DOMString, can_gc: CanGc) {
+    fn SetHTMLUnsafe(&self, html: TrustedHTMLOrString, can_gc: CanGc) -> ErrorResult {
+        // Step 1. Let compliantHTML be the result of invoking the
+        // Get Trusted Type compliant string algorithm with TrustedHTML,
+        // this's relevant global object, html, "Element setHTMLUnsafe", and "script".
+        let html = DOMString::from(TrustedHTML::get_trusted_script_compliant_string(
+            &self.owner_global(),
+            html,
+            "Element",
+            "setHTMLUnsafe",
+            can_gc,
+        )?);
         // Step 2. Let target be this's template contents if this is a template element; otherwise this.
         let target = if let Some(template) = self.downcast::<HTMLTemplateElement>() {
             DomRoot::upcast(template.Content(can_gc))
@@ -3082,6 +3191,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // Step 3. Unsafely set HTML given target, this, and compliantHTML
         Node::unsafely_set_html(&target, self, html, can_gc);
+        Ok(())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-gethtml>
@@ -3097,7 +3207,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-innerhtml>
-    fn GetInnerHTML(&self, can_gc: CanGc) -> Fallible<DOMString> {
+    fn GetInnerHTML(&self, can_gc: CanGc) -> Fallible<TrustedHTMLOrNullIsEmptyString> {
         let qname = QualName::new(
             self.prefix().clone(),
             self.namespace().clone(),
@@ -3114,16 +3224,28 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
                 .xml_serialize(XmlChildrenOnly(Some(qname)))
         };
 
-        Ok(result)
+        Ok(TrustedHTMLOrNullIsEmptyString::NullIsEmptyString(result))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-innerhtml>
-    fn SetInnerHTML(&self, value: DOMString, can_gc: CanGc) -> ErrorResult {
-        // Step 2.
+    fn SetInnerHTML(&self, value: TrustedHTMLOrNullIsEmptyString, can_gc: CanGc) -> ErrorResult {
+        // Step 1: Let compliantString be the result of invoking the
+        // Get Trusted Type compliant string algorithm with TrustedHTML,
+        // this's relevant global object, the given value, "Element innerHTML", and "script".
+        let value = DOMString::from(TrustedHTML::get_trusted_script_compliant_string(
+            &self.owner_global(),
+            value.convert(),
+            "Element",
+            "innerHTML",
+            can_gc,
+        )?);
         // https://github.com/w3c/DOM-Parsing/issues/1
         let target = if let Some(template) = self.downcast::<HTMLTemplateElement>() {
+            // Step 4: If context is a template element, then set context to
+            // the template element's template contents (a DocumentFragment).
             DomRoot::upcast(template.Content(can_gc))
         } else {
+            // Step 2: Let context be this.
             DomRoot::from_ref(self.upcast())
         };
 
@@ -3140,15 +3262,17 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             return Ok(());
         }
 
-        // Step 1.
+        // Step 3: Let fragment be the result of invoking the fragment parsing algorithm steps
+        // with context and compliantString.
         let frag = self.parse_fragment(value, can_gc)?;
 
+        // Step 5: Replace all with fragment within context.
         Node::replace_all(Some(frag.upcast()), &target, can_gc);
         Ok(())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-outerhtml>
-    fn GetOuterHTML(&self, can_gc: CanGc) -> Fallible<DOMString> {
+    fn GetOuterHTML(&self, can_gc: CanGc) -> Fallible<TrustedHTMLOrNullIsEmptyString> {
         // FIXME: This should use the fragment serialization algorithm, which takes
         // care of distinguishing between html/xml documents
         let result = if self.owner_document().is_html_document() {
@@ -3158,27 +3282,39 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             self.upcast::<Node>().xml_serialize(XmlIncludeNode)
         };
 
-        Ok(result)
+        Ok(TrustedHTMLOrNullIsEmptyString::NullIsEmptyString(result))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-outerhtml>
-    fn SetOuterHTML(&self, value: DOMString, can_gc: CanGc) -> ErrorResult {
+    fn SetOuterHTML(&self, value: TrustedHTMLOrNullIsEmptyString, can_gc: CanGc) -> ErrorResult {
+        // Step 1: Let compliantString be the result of invoking the
+        // Get Trusted Type compliant string algorithm with TrustedHTML,
+        // this's relevant global object, the given value, "Element outerHTML", and "script".
+        let value = DOMString::from(TrustedHTML::get_trusted_script_compliant_string(
+            &self.owner_global(),
+            value.convert(),
+            "Element",
+            "outerHTML",
+            can_gc,
+        )?);
         let context_document = self.owner_document();
         let context_node = self.upcast::<Node>();
-        // Step 1.
+        // Step 2: Let parent be this's parent.
         let context_parent = match context_node.GetParentNode() {
             None => {
-                // Step 2.
+                // Step 3: If parent is null, return. There would be no way to
+                // obtain a reference to the nodes created even if the remaining steps were run.
                 return Ok(());
             },
             Some(parent) => parent,
         };
 
         let parent = match context_parent.type_id() {
-            // Step 3.
+            // Step 4: If parent is a Document, throw a "NoModificationAllowedError" DOMException.
             NodeTypeId::Document(_) => return Err(Error::NoModificationAllowed),
 
-            // Step 4.
+            // Step 5: If parent is a DocumentFragment, set parent to the result of
+            // creating an element given this's node document, "body", and the HTML namespace.
             NodeTypeId::DocumentFragment(_) => {
                 let body_elem = Element::create(
                     QualName::new(None, ns!(html), local_name!("body")),
@@ -3194,9 +3330,10 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             _ => context_node.GetParentElement().unwrap(),
         };
 
-        // Step 5.
+        // Step 6: Let fragment be the result of invoking the
+        // fragment parsing algorithm steps given parent and compliantString.
         let frag = parent.parse_fragment(value, can_gc)?;
-        // Step 6.
+        // Step 7: Replace this with fragment within this's parent.
         context_parent.ReplaceChild(frag.upcast(), context_node, can_gc)?;
         Ok(())
     }
@@ -3363,38 +3500,57 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn InsertAdjacentHTML(
         &self,
         position: DOMString,
-        text: DOMString,
+        text: TrustedHTMLOrString,
         can_gc: CanGc,
     ) -> ErrorResult {
-        // Step 1.
+        // Step 1: Let compliantString be the result of invoking the
+        // Get Trusted Type compliant string algorithm with TrustedHTML,
+        // this's relevant global object, string, "Element insertAdjacentHTML", and "script".
+        let text = DOMString::from(TrustedHTML::get_trusted_script_compliant_string(
+            &self.owner_global(),
+            text,
+            "Element",
+            "insertAdjacentHTML",
+            can_gc,
+        )?);
         let position = position.parse::<AdjacentPosition>()?;
 
+        // Step 2: Let context be null.
+        // Step 3: Use the first matching item from this list:
         let context = match position {
+            // If position is an ASCII case-insensitive match for the string "beforebegin"
+            // If position is an ASCII case-insensitive match for the string "afterend"
             AdjacentPosition::BeforeBegin | AdjacentPosition::AfterEnd => {
                 match self.upcast::<Node>().GetParentNode() {
+                    // Step 3.2: If context is null or a Document, throw a "NoModificationAllowedError" DOMException.
                     Some(ref node) if node.is::<Document>() => {
                         return Err(Error::NoModificationAllowed);
                     },
                     None => return Err(Error::NoModificationAllowed),
+                    // Step 3.1: Set context to this's parent.
                     Some(node) => node,
                 }
             },
+            // If position is an ASCII case-insensitive match for the string "afterbegin"
+            // If position is an ASCII case-insensitive match for the string "beforeend"
             AdjacentPosition::AfterBegin | AdjacentPosition::BeforeEnd => {
+                // Set context to this.
                 DomRoot::from_ref(self.upcast::<Node>())
             },
         };
 
-        // Step 2.
+        // Step 4.
         let context = Element::fragment_parsing_context(
             &context.owner_doc(),
             context.downcast::<Element>(),
             can_gc,
         );
 
-        // Step 3.
+        // Step 5: Let fragment be the result of invoking the
+        // fragment parsing algorithm steps with context and compliantString.
         let fragment = context.parse_fragment(text, can_gc)?;
 
-        // Step 4.
+        // Step 6.
         self.insert_adjacent(position, fragment.upcast(), can_gc)
             .map(|_| ())
     }
@@ -4083,6 +4239,31 @@ impl VirtualMethods for Element {
 
         if self.owner_document().is_html_document() != old_doc.is_html_document() {
             self.tag_name.clear();
+        }
+    }
+
+    fn post_connection_steps(&self) {
+        if let Some(s) = self.super_type() {
+            s.post_connection_steps();
+        }
+
+        self.update_nonce_post_connection();
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#nonce-attributes%3Aconcept-node-clone-ext>
+    fn cloning_steps(
+        &self,
+        copy: &Node,
+        maybe_doc: Option<&Document>,
+        clone_children: CloneChildrenFlag,
+        can_gc: CanGc,
+    ) {
+        if let Some(s) = self.super_type() {
+            s.cloning_steps(copy, maybe_doc, clone_children, can_gc);
+        }
+        let elem = copy.downcast::<Element>().unwrap();
+        if let Some(rare_data) = self.rare_data().as_ref() {
+            elem.update_nonce_internal_slot(rare_data.cryptographic_nonce.clone());
         }
     }
 }

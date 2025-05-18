@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: Decorations are painted when rule thickness is greater than gap size.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="grid-gap-decorations-033-ref.html">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+    overflow: hidden;
+  }
+
+  .grid-container {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(3, 50px);
+    grid-template-rows: repeat(6, 50px);
+    width: 50px;
+    height: 50px;
+
+    column-rule-color: blue;
+    column-rule-style: solid;
+    column-rule-width: 10px;
+  }
+
+</style>
+
+<body>
+  <div class="grid-container"></div>
+<script>
+  const grid = document.querySelector('.grid-container');
+
+  grid.style.rowRuleColor =  'red';
+  grid.style.rowRuleStyle = 'solid';
+  grid.style.rowRuleWidth = 'repeat(4, 5px) 200px';
+</script>
+</body>

@@ -6,8 +6,11 @@ use std::fmt;
 
 use dom_struct::dom_struct;
 
+use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::TrustedHTMLBinding::TrustedHTMLMethods;
-use crate::dom::bindings::codegen::UnionTypes::TrustedHTMLOrString;
+use crate::dom::bindings::codegen::UnionTypes::{
+    TrustedHTMLOrNullIsEmptyString, TrustedHTMLOrString,
+};
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
@@ -78,5 +81,18 @@ impl TrustedHTMLMethods<crate::DomTypeHolder> for TrustedHTML {
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedhtml-tojson>
     fn ToJSON(&self) -> DOMString {
         DOMString::from(&*self.data)
+    }
+}
+
+impl Convert<TrustedHTMLOrString> for TrustedHTMLOrNullIsEmptyString {
+    fn convert(self) -> TrustedHTMLOrString {
+        match self {
+            TrustedHTMLOrNullIsEmptyString::TrustedHTML(trusted_html) => {
+                TrustedHTMLOrString::TrustedHTML(trusted_html)
+            },
+            TrustedHTMLOrNullIsEmptyString::NullIsEmptyString(str) => {
+                TrustedHTMLOrString::String(str)
+            },
+        }
     }
 }

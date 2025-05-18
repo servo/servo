@@ -191,9 +191,6 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#globaleventhandlers
     global_event_handlers!(NoOnload);
 
-    // https://html.spec.whatwg.org/multipage/#documentandelementeventhandlers
-    document_and_element_event_handlers!();
-
     // https://html.spec.whatwg.org/multipage/#dom-dataset
     fn Dataset(&self, can_gc: CanGc) -> DomRoot<DOMStringMap> {
         self.dataset.or_init(|| DOMStringMap::new(self, can_gc))
@@ -648,13 +645,16 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         Ok(internals)
     }
 
-    // FIXME: The nonce should be stored in an internal slot instead of an
-    // attribute (https://html.spec.whatwg.org/multipage/#cryptographicnonce)
     // https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce
-    make_getter!(Nonce, "nonce");
+    fn Nonce(&self) -> DOMString {
+        self.as_element().nonce_value().into()
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce
-    make_setter!(SetNonce, "nonce");
+    fn SetNonce(&self, value: DOMString) {
+        self.as_element()
+            .update_nonce_internal_slot(value.to_string())
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-autofocus
     fn Autofocus(&self) -> bool {
@@ -1140,6 +1140,15 @@ impl VirtualMethods for HTMLElement {
                         element.set_read_write_state(false);
                     },
                 }
+            },
+            (&local_name!("nonce"), mutation) => match mutation {
+                AttributeMutation::Set(_) => {
+                    let nonce = &**attr.value();
+                    element.update_nonce_internal_slot(nonce.to_owned());
+                },
+                AttributeMutation::Removed => {
+                    element.update_nonce_internal_slot("".to_owned());
+                },
             },
             _ => {},
         }

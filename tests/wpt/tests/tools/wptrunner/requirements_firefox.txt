@@ -7,4 +7,5 @@ mozprofile==3.0.0
 mozrunner==8.3.2
 mozversion==2.4.0
 psutil==5.9.8
+types-psutil==6.1.0.20241221
 redo==3.0.0

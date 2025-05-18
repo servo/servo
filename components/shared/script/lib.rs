@@ -27,8 +27,8 @@ use crossbeam_channel::{RecvTimeoutError, Sender};
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    CompositorHitTestResult, FocusSequenceNumber, InputEvent, MediaSessionActionType, Theme,
-    ViewportDetails, WebDriverScriptCommand,
+    CompositorHitTestResult, FocusSequenceNumber, InputEvent, JavaScriptEvaluationId,
+    MediaSessionActionType, Theme, ViewportDetails, WebDriverScriptCommand,
 };
 use euclid::{Rect, Scale, Size2D, UnknownUnit};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
@@ -245,6 +245,9 @@ pub enum ScriptThreadMessage {
     /// The compositor scrolled and is updating the scroll states of the nodes in the given
     /// pipeline via the Constellation.
     SetScrollStates(PipelineId, Vec<ScrollState>),
+    /// Evaluate the given JavaScript and return a result via a corresponding message
+    /// to the Constellation.
+    EvaluateJavaScript(PipelineId, JavaScriptEvaluationId, String),
 }
 
 impl fmt::Debug for ScriptThreadMessage {

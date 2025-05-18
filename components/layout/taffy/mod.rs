@@ -8,6 +8,7 @@ use std::fmt;
 use app_units::Au;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc;
+use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
 use stylo_taffy::TaffyStyloStyle;
 
@@ -24,7 +25,6 @@ use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct TaffyContainer {
     children: Vec<ArcRefCell<TaffyItemBox>>,
-    #[conditional_malloc_size_of]
     style: Arc<ComputedValues>,
 }
 
@@ -69,6 +69,10 @@ impl TaffyContainer {
             style: info.style.clone(),
         }
     }
+
+    pub(crate) fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
+        self.style = new_style.clone();
+    }
 }
 
 #[derive(MallocSizeOf)]
@@ -76,7 +80,6 @@ pub(crate) struct TaffyItemBox {
     pub(crate) taffy_layout: taffy::Layout,
     pub(crate) child_fragments: Vec<Fragment>,
     pub(crate) positioning_context: PositioningContext,
-    #[conditional_malloc_size_of]
     pub(crate) style: Arc<ComputedValues>,
     pub(crate) taffy_level_box: TaffyItemBoxInner,
 }
@@ -143,6 +146,23 @@ impl TaffyItemBox {
             TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(ref positioned_box) => {
                 positioned_box.borrow().context.base.fragments()
             },
+        }
+    }
+
+    pub(crate) fn repair_style(
+        &mut self,
+        context: &SharedStyleContext,
+        new_style: &Arc<ComputedValues>,
+    ) {
+        self.style = new_style.clone();
+        match &mut self.taffy_level_box {
+            TaffyItemBoxInner::InFlowBox(independent_formatting_context) => {
+                independent_formatting_context.repair_style(context, new_style)
+            },
+            TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(positioned_box) => positioned_box
+                .borrow_mut()
+                .context
+                .repair_style(context, new_style),
         }
     }
 }

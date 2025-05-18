@@ -5,17 +5,14 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <style>
-div {
+div[contenteditable] {
   white-space: pre;
-  font-family: Ahem;
-  font-size: 10px;
-  line-height: 1;
+  font: 10px/1 Ahem;
   width: 10ch;
 }
 </style>
 <body>
 <div contenteditable></div>
-</body>
 <script>
 function getBoundingClientRect(node, offset) {
   const range = document.createRange();
@@ -37,3 +34,4 @@ test(function() {
   assert_less_than(rect6.y, rect7.y);
 }, 'Range.getBoundingClientRect() should return the first position of the next line when the collapsed range is a newline character');
 </script>
+</body>

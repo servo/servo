@@ -1,6 +1,35 @@
 import pytest_asyncio
 
-from ... import get_context_origin
+from webdriver.bidi.modules.script import ContextTarget
+
+from ... import get_context_origin, remote_mapping_to_dict
+
+
+@pytest_asyncio.fixture
+async def get_current_geolocation(bidi_session, configuration):
+    async def get_current_geolocation(context):
+        # Per geolocation spec, the geolocation coordinates are returned
+        # only for an active browsing context. It might be required to
+        # re-activate the previously active tab in the test.
+        await bidi_session.browsing_context.activate(context=context["context"])
+
+        result = await bidi_session.script.call_function(
+            function_declaration="""(multiplier) =>
+                new Promise(
+                    resolve => window.navigator.geolocation.getCurrentPosition(
+                        position => resolve(position.coords.toJSON()),
+                        error => resolve({code: error.code}),
+                        {timeout: 500 * multiplier}
+                ))
+            """,
+            arguments=[{"type": "number", "value": configuration["timeout_multiplier"]}],
+            target=ContextTarget(context["context"]),
+            await_promise=True,
+        )
+
+        return remote_mapping_to_dict(result["value"])
+
+    return get_current_geolocation
 
 
 @pytest_asyncio.fixture

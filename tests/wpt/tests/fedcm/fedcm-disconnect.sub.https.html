@@ -13,6 +13,7 @@ import {fedcm_test,
         mark_signed_in,
         disconnect_options,
         fedcm_get_and_select_first_account,
+        fedcm_select_account_promise,
         request_options_with_mediation_required,
         alt_manifest_origin,
         alt_request_options_with_mediation_required,
@@ -82,4 +83,20 @@ fedcm_test(async t => {
   await IdentityCredential.disconnect(disconnect_options("1"));
   return IdentityCredential.disconnect(alt_disconnect_options("2"));
 }, 'Disconnect is bound to each IDP');
+
+fedcm_test(async t => {
+  await mark_signed_in(alt_manifest_origin);
+  // Get at least one connected account that can be disconnected.
+  await fedcm_get_and_select_first_account(t, alt_request_options_with_mediation_required());
+
+  // Pending get request.
+  const credentialPromise = navigator.credentials.get(alt_request_options_with_mediation_required());
+
+  // Disconnect the one connected account.
+  await IdentityCredential.disconnect(alt_disconnect_options("1234"));
+
+  // Select an account to resolve the pending get request.
+  fedcm_select_account_promise(t, 0);
+  return credentialPromise;
+}, 'Test that disconnect succeeds when there is a pending get request and the get request succeeds after the disconnect');
 </script>

@@ -75,4 +75,5 @@ pub(crate) struct ElementRareData {
     /// > Element objects have an internal [[RegisteredIntersectionObservers]] slot,
     /// > which is initialized to an empty list. This list holds IntersectionObserverRegistration records, which have:
     pub(crate) registered_intersection_observers: Vec<IntersectionObserverRegistration>,
+    pub(crate) cryptographic_nonce: String,
 }

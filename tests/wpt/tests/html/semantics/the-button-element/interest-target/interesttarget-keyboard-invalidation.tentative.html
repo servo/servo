@@ -13,7 +13,7 @@
 <button id=b3 interesttarget=target>Button</button>
 <button id=b4>Button</button>
 <button id=b5>Button</button>
-<div id=target>Target</div>
+<div popover id=target>Target</div>
 
 <style>
   :has-interest {
@@ -22,17 +22,23 @@
   :has-interest:has-partial-interest {
     background-color: red;
   }
-  :has-partial-interest + button {
+  /* Test complicated combinators: */
+  :has-interest + button {
     background-color: green;
   }
   :root:has(:has-interest) #b5 {
     background-color: green;
   }
-  :target-of-interest:target-of-partial-interest {
+  :target-of-interest {
     background-color: yellow;
   }
   [interesttarget] {
     interest-target-delay: 0s;
+  }
+  #target {
+    inset:auto;
+    top:50px;
+    left:0;
   }
 </style>
 

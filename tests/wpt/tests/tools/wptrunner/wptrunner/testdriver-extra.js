@@ -263,11 +263,14 @@
 
     window.test_driver_internal.bidi.emulation.set_geolocation_override =
         function (params) {
+            if ('coordinates' in params && 'error' in params) {
+                throw new Error(
+                    "`coordinates` and `error` are mutually exclusive in set_geolocation_override");
+            }
+
             return create_action("bidi.emulation.set_geolocation_override", {
                 // Default to the current window.
                 contexts: [window],
-                // Default to no coordinates.
-                coordinates: null,
                 ...(params ?? {})
             });
         }

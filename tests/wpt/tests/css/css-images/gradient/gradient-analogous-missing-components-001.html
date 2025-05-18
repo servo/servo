@@ -1,43 +1,43 @@
 <!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <title>Gradient analogous missing components carry forward logic tests</title>
-    <link rel="author" title="CGQAQ" href="mailto:m.jason.liu@gmail.com">
-    <link rel="author" title="一丝" href="mailto:yiorsi@gmail.com">
-    <link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
-    <meta name="assert" content="Tests that analogous missing components logic works.">
-    <link rel="match" href="gradient-analogous-missing-components-001-ref.html">
-    <style>
-        .test {
-            margin: 50px;
-            width: 200px;
-            height: 50px;
-            border: 1px solid black;
-        }
+<meta charset="utf-8">
+<title>Gradient analogous missing components carry forward logic tests</title>
+<link rel="author" title="CGQAQ" href="mailto:m.jason.liu@gmail.com">
+<link rel="author" title="一丝" href="mailto:yiorsi@gmail.com">
+<link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
+<meta name="assert" content="Tests that analogous missing components logic works.">
+<meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-40000">
+<link rel="match" href="gradient-analogous-missing-components-001-ref.html">
+<style>
+    .test {
+        margin: 50px;
+        width: 200px;
+        height: 50px;
+        border: 1px solid black;
+    }
 
-        .test1 {
-            background: linear-gradient(90deg in srgb, hsl(60deg 0 50%), yellow);
-        }
-        .test2 {
-            background: linear-gradient(90deg in srgb, hsl(20deg 0 50%), yellow);
-        }
-        .test3 {
-            background: linear-gradient(90deg in srgb, hsl(60deg none 50%), yellow);
-        }
-        .test4 {
-            background: linear-gradient(90deg in srgb, hsl(none 0 50%), yellow);
-        }
-        .test5 {
-            background: linear-gradient(90deg in srgb, hsl(none none 50%), yellow);
-        }
-    </style>
-</head>
-<body>
-    <div class="test test1"></div>
-    <div class="test test2"></div>
-    <div class="test test3"></div>
-    <div class="test test4"></div>
-    <div class="test test5"></div>
-</body>
-</html>
+    .test1 {
+        background: linear-gradient(90deg in srgb, hsl(60deg 0 50%), yellow);
+    }
+
+    .test2 {
+        background: linear-gradient(90deg in srgb, hsl(20deg 0 50%), yellow);
+    }
+
+    .test3 {
+        background: linear-gradient(90deg in srgb, hsl(60deg none 50%), yellow);
+    }
+
+    .test4 {
+        background: linear-gradient(90deg in srgb, hsl(none 0 50%), yellow);
+    }
+
+    .test5 {
+        background: linear-gradient(90deg in srgb, hsl(none none 50%), yellow);
+    }
+</style>
+
+<div class="test test1"></div>
+<div class="test test2"></div>
+<div class="test test3"></div>
+<div class="test test4"></div>
+<div class="test test5"></div>

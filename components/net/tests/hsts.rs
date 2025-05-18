@@ -3,32 +3,18 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
+use std::num::NonZeroU64;
 use std::time::Duration as StdDuration;
 
-use base::cross_process_instant::CrossProcessInstant;
-use net::hsts::{HstsEntry, HstsList};
+use net::hsts::{HstsEntry, HstsList, HstsPreloadList};
 use net_traits::IncludeSubdomains;
-use time::Duration;
 
 #[test]
-fn test_hsts_entry_is_not_expired_when_it_has_no_timestamp() {
+fn test_hsts_entry_is_not_expired_when_it_has_no_expires_at() {
     let entry = HstsEntry {
         host: "mozilla.org".to_owned(),
         include_subdomains: false,
-        max_age: Some(StdDuration::from_secs(20)),
-        timestamp: None,
-    };
-
-    assert!(!entry.is_expired());
-}
-
-#[test]
-fn test_hsts_entry_is_not_expired_when_it_has_no_max_age() {
-    let entry = HstsEntry {
-        host: "mozilla.org".to_owned(),
-        include_subdomains: false,
-        max_age: None,
-        timestamp: Some(CrossProcessInstant::now()),
+        expires_at: None,
     };
 
     assert!(!entry.is_expired());
@@ -39,8 +25,7 @@ fn test_hsts_entry_is_expired_when_it_has_reached_its_max_age() {
     let entry = HstsEntry {
         host: "mozilla.org".to_owned(),
         include_subdomains: false,
-        max_age: Some(StdDuration::from_secs(10)),
-        timestamp: Some(CrossProcessInstant::now() - Duration::seconds(20)),
+        expires_at: Some(NonZeroU64::new(1).unwrap()),
     };
 
     assert!(entry.is_expired());
@@ -102,7 +87,7 @@ fn test_base_domain_in_entries_map() {
 }
 
 #[test]
-fn test_push_entry_with_0_max_age_evicts_entry_from_list() {
+fn test_push_entry_with_0_max_age_is_not_secure() {
     let mut entries_map = HashMap::new();
     entries_map.insert(
         "mozilla.org".to_owned(),
@@ -131,6 +116,36 @@ fn test_push_entry_with_0_max_age_evicts_entry_from_list() {
     assert_eq!(list.is_host_secure("mozilla.org"), false)
 }
 
+fn test_push_entry_with_0_max_age_evicts_entry_from_list() {
+    let mut entries_map = HashMap::new();
+    entries_map.insert(
+        "mozilla.org".to_owned(),
+        vec![
+            HstsEntry::new(
+                "mozilla.org".to_owned(),
+                IncludeSubdomains::NotIncluded,
+                Some(StdDuration::from_secs(500000)),
+            )
+            .unwrap(),
+        ],
+    );
+    let mut list = HstsList {
+        entries_map: entries_map,
+    };
+
+    assert_eq!(list.entries_map.get("mozilla.org").unwrap().len(), 1);
+
+    list.push(
+        HstsEntry::new(
+            "mozilla.org".to_owned(),
+            IncludeSubdomains::NotIncluded,
+            Some(StdDuration::ZERO),
+        )
+        .unwrap(),
+    );
+    assert_eq!(list.entries_map.get("mozilla.org").unwrap().len(), 0);
+}
+
 #[test]
 fn test_push_entry_to_hsts_list_should_not_add_subdomains_whose_superdomain_is_already_matched() {
     let mut entries_map = HashMap::new();
@@ -152,6 +167,36 @@ fn test_push_entry_to_hsts_list_should_not_add_subdomains_whose_superdomain_is_a
     );
 
     assert_eq!(list.entries_map.get("mozilla.org").unwrap().len(), 1)
+}
+
+#[test]
+fn test_push_entry_to_hsts_list_should_add_subdomains_whose_superdomain_doesnt_include() {
+    let mut entries_map = HashMap::new();
+    entries_map.insert(
+        "mozilla.org".to_owned(),
+        vec![
+            HstsEntry::new(
+                "mozilla.org".to_owned(),
+                IncludeSubdomains::NotIncluded,
+                None,
+            )
+            .unwrap(),
+        ],
+    );
+    let mut list = HstsList {
+        entries_map: entries_map,
+    };
+
+    list.push(
+        HstsEntry::new(
+            "servo.mozilla.org".to_owned(),
+            IncludeSubdomains::NotIncluded,
+            None,
+        )
+        .unwrap(),
+    );
+
+    assert_eq!(list.entries_map.get("mozilla.org").unwrap().len(), 2)
 }
 
 #[test]
@@ -244,7 +289,7 @@ fn test_push_entry_to_hsts_list_should_add_an_entry() {
 fn test_parse_hsts_preload_should_return_none_when_json_invalid() {
     let mock_preload_content = "derp";
     assert!(
-        HstsList::from_preload(mock_preload_content).is_none(),
+        HstsPreloadList::from_preload(mock_preload_content).is_none(),
         "invalid preload list should not have parsed"
     )
 }
@@ -253,7 +298,7 @@ fn test_parse_hsts_preload_should_return_none_when_json_invalid() {
 fn test_parse_hsts_preload_should_return_none_when_json_contains_no_entries_map_key() {
     let mock_preload_content = "{\"nothing\": \"to see here\"}";
     assert!(
-        HstsList::from_preload(mock_preload_content).is_none(),
+        HstsPreloadList::from_preload(mock_preload_content).is_none(),
         "invalid preload list should not have parsed"
     )
 }
@@ -266,7 +311,7 @@ fn test_parse_hsts_preload_should_decode_host_and_includes_subdomains() {
                                 \"include_subdomains\": false}\
                                 ]\
                                 }";
-    let hsts_list = HstsList::from_preload(mock_preload_content);
+    let hsts_list = HstsPreloadList::from_preload(mock_preload_content);
     let entries_map = hsts_list.unwrap().entries_map;
 
     assert_eq!(
@@ -378,8 +423,7 @@ fn test_hsts_list_with_expired_entry_is_not_is_host_secure() {
         vec![HstsEntry {
             host: "mozilla.org".to_owned(),
             include_subdomains: false,
-            max_age: Some(StdDuration::from_secs(20)),
-            timestamp: Some(CrossProcessInstant::now() - Duration::seconds(100)),
+            expires_at: Some(NonZeroU64::new(1).unwrap()),
         }],
     );
     let hsts_list = HstsList {
@@ -391,6 +435,6 @@ fn test_hsts_list_with_expired_entry_is_not_is_host_secure() {
 
 #[test]
 fn test_preload_hsts_domains_well_formed() {
-    let hsts_list = HstsList::from_servo_preload();
+    let hsts_list = HstsPreloadList::from_servo_preload();
     assert!(!hsts_list.entries_map.is_empty());
 }

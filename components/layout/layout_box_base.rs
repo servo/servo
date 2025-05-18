@@ -27,7 +27,6 @@ use crate::{ConstraintSpace, ContainingBlockSize};
 #[derive(MallocSizeOf)]
 pub(crate) struct LayoutBoxBase {
     pub base_fragment_info: BaseFragmentInfo,
-    #[conditional_malloc_size_of]
     pub style: Arc<ComputedValues>,
     pub cached_inline_content_size:
         AtomicRefCell<Option<Box<(SizeConstraint, InlineContentSizesResult)>>>,
@@ -89,6 +88,13 @@ impl LayoutBoxBase {
 
     pub(crate) fn clear_fragments(&self) {
         self.fragments.borrow_mut().clear();
+    }
+
+    pub(crate) fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
+        self.style = new_style.clone();
+        for fragment in self.fragments.borrow_mut().iter_mut() {
+            fragment.repair_style(new_style);
+        }
     }
 }
 

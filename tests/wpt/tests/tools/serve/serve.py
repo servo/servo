@@ -93,9 +93,7 @@ def inject_script(html, script_tag):
         return html[:offset] + script_tag + html[offset:]
 
 
-class WrapperHandler:
-
-    __meta__ = abc.ABCMeta
+class WrapperHandler(metaclass=abc.ABCMeta):
 
     headers: ClassVar[List[Tuple[str, str]]] = []
 
@@ -207,7 +205,6 @@ class WrapperHandler:
         # a specific metadata key: value pair.
         pass
 
-    @abc.abstractmethod
     def check_exposure(self, request):
         # Raise an exception if this handler shouldn't be exposed after all.
         pass

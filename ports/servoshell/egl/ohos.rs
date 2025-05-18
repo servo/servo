@@ -217,6 +217,8 @@ static SERVO_CHANNEL: OnceLock<Sender<ServoAction>> = OnceLock::new();
 #[unsafe(no_mangle)]
 extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window: *mut c_void) {
     info!("on_surface_created_cb");
+    #[cfg(feature = "tracing-hitrace")]
+    let _ = hitrace::ScopedTrace::start_trace(&c"on_surface_created_cb");
 
     let xc_wrapper = XComponentWrapper(xcomponent);
     let window_wrapper = WindowWrapper(window);
@@ -812,6 +814,12 @@ impl HostTrait for HostCallbacks {
             #[cfg(feature = "tracing-hitrace")]
             let _scope = hitrace::ScopedTrace::start_trace(&c"PageLoadEndedPrompt");
             self.show_alert("Page finished loading!".to_string());
+        } else {
+            #[cfg(feature = "tracing-hitrace")]
+            let _ = hitrace::ScopedTrace::start_trace_str(&format!(
+                "load status changed {:?}",
+                load_status
+            ));
         }
     }
 

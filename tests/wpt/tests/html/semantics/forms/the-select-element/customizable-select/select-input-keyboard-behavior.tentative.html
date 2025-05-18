@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/402429384">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<style>
+select, ::picker(select) {
+  appearance: base-select;
+}
+</style>
+
+<select>
+  <div id=inputwrapper></div>
+  <option class=one>one</option>
+  <option class=two>two</option>
+</select>
+
+<script>
+const select = document.querySelector('select');
+const optionOne = select.querySelector('option.one');
+const optionTwo = select.querySelector('option.two');
+const input = document.createElement('input');
+document.getElementById('inputwrapper').appendChild(input);
+
+function pressKey(key) {
+  return (new test_driver.Actions()
+    .keyDown(key)
+    .keyUp(key))
+    .send();
+}
+const spaceKey = '\uE00D';
+const arrowDown = '\uE015';
+const arrowUp = '\uE013';
+
+promise_test(async () => {
+  assert_equals(getComputedStyle(select).appearance, 'base-select',
+    'appearance: base-select must be supported for this test to run.');
+
+  select.focus();
+  await pressKey(spaceKey);
+  assert_true(select.matches(':open'),
+    'select should be open after pressing space.');
+  assert_equals(document.activeElement, input,
+    'input should be focused after opening select.');
+
+  await pressKey(arrowDown);
+  assert_equals(document.activeElement, optionOne,
+    'first option should be focused after arrow down from input.');
+
+  await pressKey(arrowUp);
+  assert_equals(document.activeElement, input,
+    'input should be focused after arrow up from first option.');
+}, 'Keyboard behavior of <input> in <select>.');
+</script>

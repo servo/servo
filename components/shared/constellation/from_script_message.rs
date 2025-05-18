@@ -15,15 +15,15 @@ use base::id::{
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::{
-    AnimationState, EmbedderMsg, FocusSequenceNumber, MediaSessionEvent, TouchEventResult,
-    ViewportDetails,
+    AnimationState, EmbedderMsg, FocusSequenceNumber, JSValue, JavaScriptEvaluationError,
+    JavaScriptEvaluationId, MediaSessionEvent, TouchEventResult, ViewportDetails,
 };
 use euclid::default::Size2D as UntypedSize2D;
 use http::{HeaderMap, Method};
 use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use net_traits::policy_container::PolicyContainer;
-use net_traits::request::{InsecureRequestsPolicy, Referrer, RequestBody};
+use net_traits::request::{Destination, InsecureRequestsPolicy, Referrer, RequestBody};
 use net_traits::storage_thread::StorageType;
 use net_traits::{CoreResourceMsg, ReferrerPolicy, ResourceThreads};
 use profile_traits::mem::MemoryReportResult;
@@ -111,6 +111,8 @@ pub struct LoadData {
     pub has_trustworthy_ancestor_origin: bool,
     /// Servo internal: if crash details are present, trigger a crash error page with these details.
     pub crash: Option<String>,
+    /// Destination, used for CSP checks
+    pub destination: Destination,
 }
 
 /// The result of evaluating a javascript scheme url.
@@ -152,6 +154,7 @@ impl LoadData {
             crash: None,
             inherited_insecure_requests_policy,
             has_trustworthy_ancestor_origin,
+            destination: Destination::Document,
         }
     }
 }
@@ -644,6 +647,11 @@ pub enum ScriptToConstellationMessage {
     IFrameSizes(Vec<IFrameSizeMsg>),
     /// Request results from the memory reporter.
     ReportMemory(IpcSender<MemoryReportResult>),
+    /// Return the result of the evaluated JavaScript with the given [`JavaScriptEvaluationId`].
+    FinishJavaScriptEvaluation(
+        JavaScriptEvaluationId,
+        Result<JSValue, JavaScriptEvaluationError>,
+    ),
 }
 
 impl fmt::Debug for ScriptToConstellationMessage {

@@ -4313,9 +4313,7 @@ impl Document {
             },
             Some(csp_list) => {
                 let element = csp::Element {
-                    nonce: el
-                        .get_attribute(&ns!(), &local_name!("nonce"))
-                        .map(|attr| Cow::Owned(attr.value().to_string())),
+                    nonce: el.nonce_value_if_nonceable().map(Cow::Owned),
                 };
                 csp_list.should_elements_inline_type_behavior_be_blocked(&element, type_, source)
             },
@@ -6568,9 +6566,6 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
         Ok(())
     }
-
-    // https://html.spec.whatwg.org/multipage/#documentandelementeventhandlers
-    document_and_element_event_handlers!();
 
     // https://fullscreen.spec.whatwg.org/#handler-document-onfullscreenerror
     event_handler!(fullscreenerror, GetOnfullscreenerror, SetOnfullscreenerror);

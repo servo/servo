@@ -19,14 +19,14 @@ use script_layout_interface::{
     GenericLayoutDataTrait, LayoutElementType, LayoutNodeType as ScriptLayoutNodeType,
 };
 use servo_arc::Arc as ServoArc;
+use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 
 use crate::cell::ArcRefCell;
-use crate::context::LayoutContext;
 use crate::flexbox::FlexLevelBox;
 use crate::flow::BlockLevelBox;
-use crate::flow::inline::InlineItem;
+use crate::flow::inline::{InlineItem, SharedInlineStyles};
 use crate::fragment_tree::Fragment;
 use crate::geom::PhysicalSize;
 use crate::replaced::CanvasInfo;
@@ -59,7 +59,7 @@ impl InnerDOMLayoutData {
 /// A box that is stored in one of the `DOMLayoutData` slots.
 #[derive(MallocSizeOf)]
 pub(super) enum LayoutBox {
-    DisplayContents,
+    DisplayContents(SharedInlineStyles),
     BlockLevel(ArcRefCell<BlockLevelBox>),
     InlineLevel(Vec<ArcRefCell<InlineItem>>),
     FlexLevel(ArcRefCell<FlexLevelBox>),
@@ -70,7 +70,7 @@ pub(super) enum LayoutBox {
 impl LayoutBox {
     fn invalidate_cached_fragment(&self) {
         match self {
-            LayoutBox::DisplayContents => {},
+            LayoutBox::DisplayContents(..) => {},
             LayoutBox::BlockLevel(block_level_box) => {
                 block_level_box.borrow().invalidate_cached_fragment()
             },
@@ -91,7 +91,7 @@ impl LayoutBox {
 
     pub(crate) fn fragments(&self) -> Vec<Fragment> {
         match self {
-            LayoutBox::DisplayContents => vec![],
+            LayoutBox::DisplayContents(..) => vec![],
             LayoutBox::BlockLevel(block_level_box) => block_level_box.borrow().fragments(),
             LayoutBox::InlineLevel(inline_items) => inline_items
                 .iter()
@@ -100,6 +100,41 @@ impl LayoutBox {
             LayoutBox::FlexLevel(flex_level_box) => flex_level_box.borrow().fragments(),
             LayoutBox::TaffyItemBox(taffy_item_box) => taffy_item_box.borrow().fragments(),
             LayoutBox::TableLevelBox(table_box) => table_box.fragments(),
+        }
+    }
+
+    fn repair_style(
+        &self,
+        context: &SharedStyleContext,
+        node: &ServoLayoutNode,
+        new_style: &ServoArc<ComputedValues>,
+    ) {
+        match self {
+            LayoutBox::DisplayContents(inline_shared_styles) => {
+                *inline_shared_styles.style.borrow_mut() = new_style.clone();
+                *inline_shared_styles.selected.borrow_mut() = node.to_threadsafe().selected_style();
+            },
+            LayoutBox::BlockLevel(block_level_box) => {
+                block_level_box
+                    .borrow_mut()
+                    .repair_style(context, node, new_style);
+            },
+            LayoutBox::InlineLevel(inline_items) => {
+                for inline_item in inline_items {
+                    inline_item
+                        .borrow_mut()
+                        .repair_style(context, node, new_style);
+                }
+            },
+            LayoutBox::FlexLevel(flex_level_box) => {
+                flex_level_box.borrow_mut().repair_style(context, new_style)
+            },
+            LayoutBox::TableLevelBox(table_level_box) => {
+                table_level_box.repair_style(context, new_style)
+            },
+            LayoutBox::TaffyItemBox(taffy_item_box) => {
+                taffy_item_box.borrow_mut().repair_style(context, new_style)
+            },
         }
     }
 }
@@ -167,7 +202,7 @@ pub(crate) trait NodeExt<'dom> {
     fn as_iframe(&self) -> Option<(PipelineId, BrowsingContextId)>;
     fn as_video(&self) -> Option<(Option<webrender_api::ImageKey>, Option<PhysicalSize<f64>>)>;
     fn as_typeless_object_with_data_attribute(&self) -> Option<String>;
-    fn style(&self, context: &LayoutContext) -> ServoArc<ComputedValues>;
+    fn style(&self, context: &SharedStyleContext) -> ServoArc<ComputedValues>;
 
     fn layout_data_mut(&self) -> AtomicRefMut<'dom, InnerDOMLayoutData>;
     fn layout_data(&self) -> Option<AtomicRef<'dom, InnerDOMLayoutData>>;
@@ -180,6 +215,8 @@ pub(crate) trait NodeExt<'dom> {
 
     fn fragments_for_pseudo(&self, pseudo_element: Option<PseudoElement>) -> Vec<Fragment>;
     fn invalidate_cached_fragment(&self);
+
+    fn repair_style(&self, context: &SharedStyleContext);
 }
 
 impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
@@ -253,8 +290,8 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
             .map(|string| string.to_owned())
     }
 
-    fn style(&self, context: &LayoutContext) -> ServoArc<ComputedValues> {
-        self.to_threadsafe().style(context.shared_context())
+    fn style(&self, context: &SharedStyleContext) -> ServoArc<ComputedValues> {
+        self.to_threadsafe().style(context)
     }
 
     fn layout_data_mut(&self) -> AtomicRefMut<'dom, InnerDOMLayoutData> {
@@ -338,5 +375,31 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
                     .map(LayoutBox::fragments)
             })
             .unwrap_or_default()
+    }
+
+    fn repair_style(&self, context: &SharedStyleContext) {
+        let data = self.layout_data_mut();
+        if let Some(layout_object) = &*data.self_box.borrow() {
+            let style = self.to_threadsafe().style(context);
+            layout_object.repair_style(context, self, &style);
+        }
+
+        if let Some(layout_object) = &*data.pseudo_before_box.borrow() {
+            if let Some(node) = self.to_threadsafe().with_pseudo(PseudoElement::Before) {
+                layout_object.repair_style(context, self, &node.style(context));
+            }
+        }
+
+        if let Some(layout_object) = &*data.pseudo_after_box.borrow() {
+            if let Some(node) = self.to_threadsafe().with_pseudo(PseudoElement::After) {
+                layout_object.repair_style(context, self, &node.style(context));
+            }
+        }
+
+        if let Some(layout_object) = &*data.pseudo_marker_box.borrow() {
+            if let Some(node) = self.to_threadsafe().with_pseudo(PseudoElement::Marker) {
+                layout_object.repair_style(context, self, &node.style(context));
+            }
+        }
     }
 }

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<title>getClientRects on fragmented table-column and table-column-group</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-getclientrects">
+<link rel="help" href="https://drafts.csswg.org/css-multicol/">
+<style>
+  body {
+    margin: 8px;
+  }
+</style>
+<div style="columns:6; gap:20px; inline-size:580px; column-rule:solid; column-fill:auto; block-size:100px; background:yellow;">
+  <div style="block-size:110px;"></div>
+  <div style="display:table; inline-size:100%; border-spacing:5px; border:2px solid; background:pink;">
+    <div style="display:table-caption; block-size:100px;"></div>
+    <div style="display:table-caption; caption-side:bottom; block-size:100px;"></div>
+    <div id="col1" style="display:table-column; inline-size:15px; background:blue;"></div>
+    <div id="col2" style="display:table-column; background:lime;"></div>
+    <div id="group" style="display:table-column-group;">
+      <div id="col3" style="display:table-column; inline-size:20px; background:hotpink;"></div>
+      <div id="col4" style="display:table-column; inline-size:10px; background:cyan;" id="col2"></div>
+    </div>
+    <div style="display:table-row-group;">
+      <div style="display:table-cell;">
+        <div style="block-size:5px;"></div>
+      </div>
+    </div>
+    <div style="display:table-row-group;">
+      <div style="display:table-cell;">
+        <div style="block-size:240px;"></div>
+      </div>
+      <div style="display:table-cell;"></div>
+      <div style="display:table-cell;"></div>
+      <div style="display:table-cell;"></div>
+    </div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> {
+    let rects = col1.getClientRects();
+    assert_equals(rects.length, 3);
+
+    assert_equals(rects[0].left, 215);
+    assert_equals(rects[0].top, 25);
+    assert_equals(rects[0].width, 15);
+    assert_equals(rects[0].height, 83);
+
+    assert_equals(rects[1].left, 315);
+    assert_equals(rects[1].top, 8);
+    assert_equals(rects[1].width, 15);
+    assert_equals(rects[1].height, 100);
+
+    assert_equals(rects[2].left, 415);
+    assert_equals(rects[2].top, 8);
+    assert_equals(rects[2].width, 15);
+    assert_equals(rects[2].height, 67);
+  }, "#col1");
+
+  test(()=> {
+    let rects = col2.getClientRects();
+    assert_equals(rects.length, 3);
+
+    assert_equals(rects[0].left, 235);
+    assert_equals(rects[0].top, 25);
+    assert_equals(rects[0].width, 10);
+    assert_equals(rects[0].height, 83);
+
+    assert_equals(rects[1].left, 335);
+    assert_equals(rects[1].top, 8);
+    assert_equals(rects[1].width, 10);
+    assert_equals(rects[1].height, 100);
+
+    assert_equals(rects[2].left, 435);
+    assert_equals(rects[2].top, 8);
+    assert_equals(rects[2].width, 10);
+    assert_equals(rects[2].height, 67);
+  }, "#col2");
+
+  test(()=> {
+    let rects = col3.getClientRects();
+    assert_equals(rects.length, 3);
+
+    assert_equals(rects[0].left, 250);
+    assert_equals(rects[0].top, 25);
+    assert_equals(rects[0].width, 20);
+    assert_equals(rects[0].height, 83);
+
+    assert_equals(rects[1].left, 350);
+    assert_equals(rects[1].top, 8);
+    assert_equals(rects[1].width, 20);
+    assert_equals(rects[1].height, 100);
+
+    assert_equals(rects[2].left, 450);
+    assert_equals(rects[2].top, 8);
+    assert_equals(rects[2].width, 20);
+    assert_equals(rects[2].height, 67);
+  }, "#col3");
+
+  test(()=> {
+    let rects = col4.getClientRects();
+    assert_equals(rects.length, 3);
+
+    assert_equals(rects[0].left, 275);
+    assert_equals(rects[0].top, 25);
+    assert_equals(rects[0].width, 10);
+    assert_equals(rects[0].height, 83);
+
+    assert_equals(rects[1].left, 375);
+    assert_equals(rects[1].top, 8);
+    assert_equals(rects[1].width, 10);
+    assert_equals(rects[1].height, 100);
+
+    assert_equals(rects[2].left, 475);
+    assert_equals(rects[2].top, 8);
+    assert_equals(rects[2].width, 10);
+    assert_equals(rects[2].height, 67);
+  }, "#col4");
+
+  test(()=> {
+    let rects = group.getClientRects();
+    assert_equals(rects.length, 3);
+
+    assert_equals(rects[0].left, 250);
+    assert_equals(rects[0].top, 25);
+    assert_equals(rects[0].width, 35);
+    assert_equals(rects[0].height, 83);
+
+    assert_equals(rects[1].left, 350);
+    assert_equals(rects[1].top, 8);
+    assert_equals(rects[1].width, 35);
+    assert_equals(rects[1].height, 100);
+
+    assert_equals(rects[2].left, 450);
+    assert_equals(rects[2].top, 8);
+    assert_equals(rects[2].width, 35);
+    assert_equals(rects[2].height, 67);
+  }, "#group");
+</script>

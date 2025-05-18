@@ -134,7 +134,18 @@ pub(crate) trait GenericPathBuilder<B: Backend> {
         start_angle: f32,
         end_angle: f32,
         anticlockwise: bool,
-    );
+    ) {
+        Self::ellipse(
+            self,
+            origin,
+            radius,
+            radius,
+            0.,
+            start_angle,
+            end_angle,
+            anticlockwise,
+        );
+    }
     fn bezier_curve_to(
         &mut self,
         control_point1: &Point2D<f32>,
@@ -212,7 +223,23 @@ pub(crate) trait GenericPathBuilder<B: Backend> {
         large_arc: bool,
         sweep: bool,
         end_point: Point2D<f32>,
-    );
+    ) {
+        let Some(start) = self.get_current_point() else {
+            return;
+        };
+
+        let arc = lyon_geom::SvgArc {
+            from: start,
+            to: end_point,
+            radii: lyon_geom::vector(radius_x, radius_y),
+            x_rotation: lyon_geom::Angle::degrees(rotation_angle),
+            flags: lyon_geom::ArcFlags { large_arc, sweep },
+        };
+
+        arc.for_each_quadratic_bezier(&mut |q| {
+            self.quadratic_curve_to(&q.ctrl, &q.to);
+        });
+    }
     fn finish(&mut self) -> B::Path;
 }
 

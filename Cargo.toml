@@ -164,7 +164,7 @@ unicode-segmentation = "1.12.0"
 url = "2.5"
 urlpattern = "0.3"
 uuid = { version = "1.12.1", features = ["v4"] }
-webdriver = "0.51.0"
+webdriver = "0.53.0"
 webgpu_traits = { path = "components/shared/webgpu" }
 webpki-roots = "0.26"
 webrender = { git = "https://github.com/servo/webrender", branch = "0.67", features = ["capture"] }

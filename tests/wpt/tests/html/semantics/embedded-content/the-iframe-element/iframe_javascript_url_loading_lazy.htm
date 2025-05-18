@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>javascript: URL in iframe src and loading="lazy"</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+async_test(t => {
+  const iframe = document.createElement('iframe');
+  iframe.src = 'javascript:"test"';
+  iframe.hidden = true;
+  iframe.loading = 'lazy';
+  iframe.onload = t.step_func_done(() => {
+    assert_false(iframe.hidden, 'Got unexpected load event on iframe while still hidden');
+    assert_equals(iframe.contentDocument.body.textContent, 'test', 'Expected the document created from the javascript: URL');
+  });
+  document.body.append(iframe);
+  window.onload = t.step_func(() => {
+    assert_equals(iframe.contentDocument.body.textContent, '', 'Expected initial about:blank');
+    iframe.hidden = false; // run the lazy load resumption steps, which navigates
+  });
+});
+</script>

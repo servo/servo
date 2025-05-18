@@ -59,7 +59,7 @@ impl BoxTree {
         // > none, user agents must instead apply the overflow-* values of the first such child
         // > element to the viewport. The element from which the value is propagated must then have a
         // > used overflow value of visible.
-        let root_style = root_element.style(context);
+        let root_style = root_element.style(context.shared_context());
 
         let mut viewport_overflow_x = root_style.clone_overflow_x();
         let mut viewport_overflow_y = root_style.clone_overflow_y();
@@ -76,7 +76,7 @@ impl BoxTree {
                     continue;
                 }
 
-                let style = child.style(context);
+                let style = child.style(context.shared_context());
                 if !style.get_box().display.is_none() {
                     viewport_overflow_x = style.clone_overflow_x();
                     viewport_overflow_y = style.clone_overflow_y();
@@ -174,7 +174,7 @@ impl BoxTree {
 
             let update_point =
                 match &*AtomicRef::filter_map(layout_data.self_box.borrow(), Option::as_ref)? {
-                    LayoutBox::DisplayContents => return None,
+                    LayoutBox::DisplayContents(..) => return None,
                     LayoutBox::BlockLevel(block_level_box) => match &*block_level_box.borrow() {
                         BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(_)
                             if box_style.position.is_absolutely_positioned() =>
@@ -293,7 +293,7 @@ fn construct_for_root_element(
     context: &LayoutContext,
     root_element: ServoLayoutNode<'_>,
 ) -> Vec<ArcRefCell<BlockLevelBox>> {
-    let info = NodeAndStyleInfo::new(root_element, root_element.style(context));
+    let info = NodeAndStyleInfo::new(root_element, root_element.style(context.shared_context()));
     let box_style = info.style.get_box();
 
     let display_inside = match Display::from(box_style.display) {

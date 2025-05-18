@@ -21,7 +21,7 @@
 
   promise_test(async function () {
     await loadIframe(
-      "<input type='number' style='width: 100px; height: 20px'>"
+      "<input type='number' style='width: 100px; height: 20px' value='5'>"
     );
     const inputElement = frame.contentDocument.querySelector("input");
 
@@ -38,12 +38,14 @@
       events.push("change");
     });
 
+    assert_equals(inputElement.value, "5", "Original value should be 5");
+
     // Roughly get the offset to the spin up arrow button's center point within
     // the iframe's viewport. Note that this is fragile and might need specific
     // coordinates for each browser and maybe platform.
     const rect = inputElement.getBoundingClientRect();
-    const x = rect.x + rect.width - 10;
-    const y = rect.y + Math.round(rect.height / 4);
+    const x = Math.round(rect.x + rect.width - 5);
+    const y = Math.round(rect.y + (3 * rect.height) / 4);
 
     const actions = new test_driver.Actions()
       .setContext(frame.contentWindow)
@@ -52,6 +54,7 @@
       .pointerUp();
     await actions.send();
 
+    assert_equals(inputElement.value, "6", "Value should increase after clicking the up arrow");
     assert_array_equals(events, ['beforeinput']);
     assert_false(document.body.contains(frame));
   }, "Number input should not crash and not fire subsequent events when event handler removes document");

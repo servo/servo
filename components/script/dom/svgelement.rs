@@ -8,12 +8,13 @@ use js::rust::HandleObject;
 use script_bindings::str::DOMString;
 use stylo_dom::ElementState;
 
+use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::SVGElementBinding::SVGElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
 use crate::dom::document::Document;
-use crate::dom::element::Element;
+use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
@@ -59,11 +60,33 @@ impl SVGElement {
             can_gc,
         )
     }
+
+    fn as_element(&self) -> &Element {
+        self.upcast::<Element>()
+    }
 }
 
 impl VirtualMethods for SVGElement {
     fn super_type(&self) -> Option<&dyn VirtualMethods> {
-        Some(self.upcast::<Element>() as &dyn VirtualMethods)
+        Some(self.as_element() as &dyn VirtualMethods)
+    }
+
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
+        let element = self.as_element();
+        if let (&local_name!("nonce"), mutation) = (attr.local_name(), mutation) {
+            match mutation {
+                AttributeMutation::Set(_) => {
+                    let nonce = &**attr.value();
+                    element.update_nonce_internal_slot(nonce.to_owned());
+                },
+                AttributeMutation::Removed => {
+                    element.update_nonce_internal_slot(String::new());
+                },
+            }
+        }
     }
 }
 
@@ -82,13 +105,19 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
         })
     }
 
-    // FIXME: The nonce should be stored in an internal slot instead of an
-    // attribute (https://html.spec.whatwg.org/multipage/#cryptographicnonce)
-    // https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce
-    make_getter!(Nonce, "nonce");
+    // <https://html.spec.whatwg.org/multipage/#globaleventhandlers>
+    global_event_handlers!();
 
     // https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce
-    make_setter!(SetNonce, "nonce");
+    fn Nonce(&self) -> DOMString {
+        self.as_element().nonce_value().into()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce
+    fn SetNonce(&self, value: DOMString) {
+        self.as_element()
+            .update_nonce_internal_slot(value.to_string())
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-autofocus
     fn Autofocus(&self) -> bool {

@@ -7,7 +7,7 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::sync::{Arc, Mutex};
 use std::{mem, thread};
 
-use compositing_traits::{CrossProcessCompositorApi, SerializableImageData};
+use compositing_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
 use imsz::imsz_from_reader;
 use ipc_channel::ipc::IpcSharedMemory;
 use log::{debug, warn};
@@ -672,6 +672,20 @@ impl ImageCache for ImageCacheImpl {
             })),
             thread_pool: self.thread_pool.clone(),
         })
+    }
+}
+
+impl Drop for ImageCacheStore {
+    fn drop(&mut self) {
+        let image_updates = self
+            .completed_loads
+            .values()
+            .filter_map(|load| match &load.image_response {
+                ImageResponse::Loaded(image, _) => image.id.map(ImageUpdate::DeleteImage),
+                _ => None,
+            })
+            .collect();
+        self.compositor_api.update_images(image_updates);
     }
 }
 

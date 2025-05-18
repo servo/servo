@@ -5,13 +5,13 @@ import json
 import io
 import os
 from datetime import datetime, timedelta
-from typing import Any, Callable, List, Optional, Text
+from typing import Any, Callable, List, Optional, Text, cast
 from urllib.request import urlopen
 
 try:
     import zstandard
 except ImportError:
-    zstandard = None
+    zstandard = cast(Any, None)
 
 from .utils import git
 

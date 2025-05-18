@@ -6,7 +6,9 @@ pytestmark = pytest.mark.asyncio
 
 
 @pytest.mark.parametrize("value", ["tab", "window"])
-async def test_reference_context(bidi_session, value):
+async def test_reference_context(bidi_session, wait_for_event, wait_for_future_safe, subscribe_events, value):
+    await subscribe_events(["browsingContext.contextCreated"])
+
     contexts = await bidi_session.browsing_context.get_tree(max_depth=0)
     assert len(contexts) == 1
 
@@ -14,9 +16,11 @@ async def test_reference_context(bidi_session, value):
     contexts = await bidi_session.browsing_context.get_tree(max_depth=0)
     assert len(contexts) == 2
 
+    on_entry = wait_for_event("browsingContext.contextCreated")
     new_context = await bidi_session.browsing_context.create(
         reference_context=reference_context["context"], type_hint=value
     )
+    context_info = await wait_for_future_safe(on_entry)
     assert contexts[0]["context"] != new_context["context"]
     assert contexts[0]["context"] != new_context["context"]
 
@@ -35,6 +39,7 @@ async def test_reference_context(bidi_session, value):
         parent_expected=True,
         parent=None,
         url="about:blank",
+        client_window=context_info["clientWindow"],
     )
 
     # We can not assert the specific behavior of reference_context here,

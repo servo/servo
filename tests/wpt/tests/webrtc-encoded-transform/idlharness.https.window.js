@@ -1,3 +1,6 @@
+// META: variant=?exclude=SFrameTransform.*
+// META: variant=?include=SFrameTransform.*
+// META: script=/common/subset-tests-by-key.js
 // META: script=/resources/WebIDLParser.js
 // META: script=/resources/idlharness.js
 // META: script=./RTCPeerConnection-helper.js

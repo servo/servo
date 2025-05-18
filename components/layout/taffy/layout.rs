@@ -23,8 +23,8 @@ use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags, SpecificLayoutInfo,
 };
 use crate::geom::{
-    LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, Size, SizeConstraint,
-    Sizes,
+    LazySize, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, Size,
+    SizeConstraint, Sizes,
 };
 use crate::layout_box_base::CacheableLayoutResult;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
@@ -251,6 +251,12 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                             style,
                         };
 
+                        let lazy_block_size = match content_box_known_dimensions.height {
+                            // FIXME: use the correct min/max sizes.
+                            None => LazySize::intrinsic(),
+                            Some(height) => Au::from_f32_px(height).into(),
+                        };
+
                         child.positioning_context = PositioningContext::default();
                         let layout = non_replaced.layout_without_caching(
                             self.layout_context,
@@ -258,13 +264,16 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                             &content_box_size_override,
                             containing_block,
                             false, /* depends_on_block_constraints */
+                            &lazy_block_size,
                         );
 
                         child.child_fragments = layout.fragments;
                         self.child_specific_layout_infos[usize::from(node_id)] =
                             layout.specific_layout_info;
 
-                        let block_size = layout.content_block_size.to_f32_px();
+                        let block_size = lazy_block_size
+                            .resolve(|| layout.content_block_size)
+                            .to_f32_px();
 
                         let computed_size = taffy::Size {
                             width: inline_size + pb_sum.inline,

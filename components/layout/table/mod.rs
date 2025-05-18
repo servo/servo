@@ -76,16 +76,20 @@ pub(crate) use construct::AnonymousTableContent;
 pub use construct::TableBuilder;
 use euclid::{Point2D, Size2D, UnknownUnit, Vector2D};
 use malloc_size_of_derive::MallocSizeOf;
+use script::layout_dom::ServoLayoutElement;
 use servo_arc::Arc;
+use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
 use style::properties::style_structs::Font;
+use style::selector_parser::PseudoElement;
 use style_traits::dom::OpaqueNode;
 
 use super::flow::BlockFormattingContext;
+use crate::SharedStyle;
 use crate::cell::ArcRefCell;
 use crate::flow::BlockContainer;
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragment_tree::{BaseFragmentInfo, Fragment, SharedBackgroundStyle};
+use crate::fragment_tree::{BaseFragmentInfo, Fragment};
 use crate::geom::PhysicalVec;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::BorderStyleColor;
@@ -98,12 +102,10 @@ pub struct Table {
     /// The style of this table. These are the properties that apply to the "wrapper" ie the element
     /// that contains both the grid and the captions. Not all properties are actually used on the
     /// wrapper though, such as background and borders, which apply to the grid.
-    #[conditional_malloc_size_of]
     style: Arc<ComputedValues>,
 
     /// The style of this table's grid. This is an anonymous style based on the table's style, but
     /// eliminating all the properties handled by the "wrapper."
-    #[conditional_malloc_size_of]
     grid_style: Arc<ComputedValues>,
 
     /// The [`BaseFragmentInfo`] for this table's grid. This is necessary so that when the
@@ -192,6 +194,19 @@ impl Table {
             ),
         }
     }
+
+    pub(crate) fn repair_style(
+        &mut self,
+        context: &SharedStyleContext,
+        new_style: &Arc<ComputedValues>,
+    ) {
+        self.style = new_style.clone();
+        self.grid_style = context.stylist.style_for_anonymous::<ServoLayoutElement>(
+            &context.guards,
+            &PseudoElement::ServoTableGrid,
+            new_style,
+        );
+    }
 }
 
 type TableSlotCoordinates = Point2D<usize, UnknownUnit>;
@@ -232,6 +247,10 @@ impl TableSlotCell {
     /// Get the node id of this cell's [`BaseFragmentInfo`]. This is used for unit tests.
     pub fn node_id(&self) -> usize {
         self.base.base_fragment_info.tag.map_or(0, |tag| tag.node.0)
+    }
+
+    fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
+        self.base.repair_style(new_style);
     }
 }
 
@@ -292,7 +311,14 @@ pub struct TableTrack {
     /// A shared container for this track's style, used to share the style for the purposes
     /// of drawing backgrounds in individual cells. This allows updating the style in a
     /// single place and having it affect all cell `Fragment`s.
-    shared_background_style: SharedBackgroundStyle,
+    shared_background_style: SharedStyle,
+}
+
+impl TableTrack {
+    fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
+        self.base.repair_style(new_style);
+        self.shared_background_style = SharedStyle::new(new_style.clone());
+    }
 }
 
 #[derive(Debug, MallocSizeOf, PartialEq)]
@@ -317,12 +343,17 @@ pub struct TableTrackGroup {
     /// A shared container for this track's style, used to share the style for the purposes
     /// of drawing backgrounds in individual cells. This allows updating the style in a
     /// single place and having it affect all cell `Fragment`s.
-    shared_background_style: SharedBackgroundStyle,
+    shared_background_style: SharedStyle,
 }
 
 impl TableTrackGroup {
     pub(super) fn is_empty(&self) -> bool {
         self.track_range.is_empty()
+    }
+
+    fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
+        self.base.repair_style(new_style);
+        self.shared_background_style = SharedStyle::new(new_style.clone());
     }
 }
 
@@ -388,6 +419,24 @@ impl TableLevelBox {
             TableLevelBox::Cell(cell) => cell.borrow().base.fragments(),
             TableLevelBox::TrackGroup(track_group) => track_group.borrow().base.fragments(),
             TableLevelBox::Track(track) => track.borrow().base.fragments(),
+        }
+    }
+
+    pub(crate) fn repair_style(
+        &self,
+        context: &SharedStyleContext<'_>,
+        new_style: &Arc<ComputedValues>,
+    ) {
+        match self {
+            TableLevelBox::Caption(caption) => caption
+                .borrow_mut()
+                .context
+                .repair_style(context, new_style),
+            TableLevelBox::Cell(cell) => cell.borrow_mut().repair_style(new_style),
+            TableLevelBox::TrackGroup(track_group) => {
+                track_group.borrow_mut().repair_style(new_style);
+            },
+            TableLevelBox::Track(track) => track.borrow_mut().repair_style(new_style),
         }
     }
 }
