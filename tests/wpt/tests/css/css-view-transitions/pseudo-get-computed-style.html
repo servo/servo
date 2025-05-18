@@ -47,24 +47,25 @@ promise_test(async () => {
     assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").colorScheme, "normal", "container(target)");
     assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").mixBlendMode, "normal", "container(target)");
     assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(root)").mixBlendMode, "normal", "container(root)");
-
-    // After one frame, the activation of the view transition should be done, so
-    // we have updated the pseudo-element styles.
-    requestAnimationFrame(() => {
-      assert_equals(getComputedStyle(document.documentElement, "::view-transition").position, "fixed", "raf ::view-transition");
-      assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").position, "absolute", "raf container(target)");
-      assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").mixBlendMode, "multiply", "raf container(target)");
-      assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").textOrientation, "upright", "raf container(target)");
-      assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").colorScheme, "dark light", "raf container(target)");
-      assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(target)").position, "fixed", "raf wrapper(target)");
-      assert_equals(getComputedStyle(document.documentElement, "::view-transition-old(target)").position, "absolute", "raf outgoing(target)");
-
-      assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(root)").position, "absolute", "raf container(root)");
-      assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(root)").mixBlendMode, "normal", "raf container(root)");
-      assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(root)").position, "absolute", "raf wrapper(root)");
-      assert_equals(getComputedStyle(document.documentElement, "::view-transition-old(root)").position, "absolute", "raf outgoing(root)");
-    });
   });
+
+  // When transition is ready, the activation of the view transition should be done, so
+  // we have updated the pseudo-element styles.
+  await transition.ready;
+
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition").position, "fixed", "raf ::view-transition");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").position, "absolute", "raf container(target)");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").mixBlendMode, "multiply", "raf container(target)");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").textOrientation, "upright", "raf container(target)");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").colorScheme, "dark light", "raf container(target)");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(target)").position, "fixed", "raf wrapper(target)");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-old(target)").position, "absolute", "raf outgoing(target)");
+
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(root)").position, "absolute", "raf container(root)");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(root)").mixBlendMode, "normal", "raf container(root)");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(root)").position, "absolute", "raf wrapper(root)");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-old(root)").position, "absolute", "raf outgoing(root)");
+
   await transition.finished;
 }, "properties of pseudo elements in update callback");
 

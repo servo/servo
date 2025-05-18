@@ -1,11 +1,14 @@
 // META: title=Cookie Store API: cookieStore.delete() arguments
+// META: script=resources/cookie-test-helpers.js
 // META: global=window,serviceworker
 
 'use strict';
 
 promise_test(async testCase => {
   await cookieStore.set('cookie-name', 'cookie-value');
-
+  testCase.add_cleanup(async () => {
+    await setCookieStringHttp(`cookie-name=deleted; Max-Age=0`);
+  });
   await cookieStore.delete('cookie-name');
   const cookie = await cookieStore.get('cookie-name');
   assert_equals(cookie, null);
@@ -14,7 +17,7 @@ promise_test(async testCase => {
 promise_test(async testCase => {
   await cookieStore.set('cookie-name', 'cookie-value');
   testCase.add_cleanup(async () => {
-    await cookieStore.delete('cookie-name');
+    await setCookieStringHttp(`cookie-name=deleted; Max-Age=0`);
   });
 
   await cookieStore.delete({ name: 'cookie-name' });
@@ -42,7 +45,7 @@ promise_test(async testCase => {
   await cookieStore.set(
       { name: 'cookie-name', value: 'cookie-value', domain: currentDomain });
   testCase.add_cleanup(async () => {
-    await cookieStore.delete({ name: 'cookie-name', domain: currentDomain });
+    await setCookieStringHttp(`cookie-name=deleted; Domain=${currentDomain}; Max-Age=0`);
   });
 
   await cookieStore.delete({ name: 'cookie-name', domain: currentDomain });
@@ -79,7 +82,8 @@ promise_test(async testCase => {
   await cookieStore.set(
       { name: 'cookie-name', value: 'cookie-value', path: currentDirectory });
   testCase.add_cleanup(async () => {
-    await cookieStore.delete({ name: 'cookie-name', path: currentDirectory });
+    await setCookieStringHttp(`cookie-name=deleted; Path=${currentDirectory}; Max-Age=0`);
+    await setCookieStringHttp(`cookie-name=deleted; Path=${currentDirectory}/; Max-Age=0`);
   });
 
   await cookieStore.delete({ name: 'cookie-name', path: currentDirectory });
@@ -96,7 +100,8 @@ promise_test(async testCase => {
   await cookieStore.set(
       { name: 'cookie-name', value: 'cookie-value', path: currentDirectory });
   testCase.add_cleanup(async () => {
-    await cookieStore.delete({ name: 'cookie-name', path: currentDirectory });
+    await setCookieStringHttp(`cookie-name=deleted; Path=${currentDirectory}; Max-Age=0`);
+    await setCookieStringHttp(`cookie-name=deleted; Path=${currentDirectory}/; Max-Age=0`);
   });
 
   await cookieStore.delete({ name: 'cookie-name', path: subDirectory });
@@ -109,18 +114,36 @@ promise_test(async testCase => {
   const currentUrl = new URL(self.location.href);
   const currentPath = currentUrl.pathname;
   const currentDirectory = currentPath.substr(0, currentPath.lastIndexOf('/'));
-  await cookieStore.set(
-      { name: 'cookie-name',
-        value: 'cookie-value',
-        path: currentDirectory + '/' });
+  await setCookieStringHttp(`cookie-name=cookie-value; Path=${currentDirectory};`);
+
   testCase.add_cleanup(async () => {
-    await cookieStore.delete({ name: 'cookie-name', path: currentDirectory });
+    await setCookieStringHttp(`cookie-name=deleted; Path=${currentDirectory}; Max-Age=0`);
+    await setCookieStringHttp(`cookie-name=deleted; Path=${currentDirectory}/; Max-Age=0`);
   });
 
   await cookieStore.delete({ name: 'cookie-name', path: currentDirectory });
   const cookie = await cookieStore.get('cookie-name');
   assert_equals(cookie, null);
-}, 'cookieStore.delete with missing / at the end of path');
+}, 'cookieStore.delete does not append / at the end of path');
+
+promise_test(async testCase => {
+  if (typeof self.document === 'undefined') {
+    // The test is being run from a service worker context where document is undefined
+    testCase.done();
+    return;
+  }
+  const currentUrl = new URL(self.location.href);
+  const currentPath = currentUrl.pathname;
+  const currentDirectory = currentPath.substr(0, currentPath.lastIndexOf('/'));
+  await setCookieStringDocument('cookie-name=cookie-value; path=' + currentDirectory);
+  testCase.add_cleanup(async () => {
+    await setCookieStringHttp(`cookie-name=deleted; Path=${currentDirectory}; Max-Age=0`);
+    await setCookieStringHttp(`cookie-name=deleted; Path=${currentDirectory}/; Max-Age=0`);
+  });
+  await cookieStore.delete({ name: 'cookie-name', path: currentDirectory });
+  const cookie = await cookieStore.get('cookie-name');
+  assert_equals(cookie, null);
+}, 'cookieStore.delete can delete a cookie set by document.cookie if document is defined');
 
 promise_test(async testCase => {
   const currentUrl = new URL(self.location.href);
@@ -136,7 +159,7 @@ promise_test(async testCase => {
 promise_test(async testCase => {
   await cookieStore.set('cookie-name', 'cookie-value');
   testCase.add_cleanup(async () => {
-    await cookieStore.delete('cookie-name');
+    await setCookieStringHttp(`cookie-name=deleted; Max-Age=0`);
   });
 
   const cookie_attributes = await cookieStore.get('cookie-name');
@@ -151,7 +174,7 @@ promise_test(async testCase => {
 promise_test(async testCase => {
   await cookieStore.set('', 'cookie-value');
   testCase.add_cleanup(async () => {
-    await cookieStore.delete('');
+    await setCookieStringHttp(`=deleted; Max-Age=0`);
   });
 
   await cookieStore.delete('');
@@ -162,10 +185,25 @@ promise_test(async testCase => {
 promise_test(async testCase => {
   await cookieStore.set('', 'cookie-value');
   testCase.add_cleanup(async () => {
-    await cookieStore.delete('');
+    await setCookieStringHttp(`=deleted; Max-Age=0`);
   });
 
   await cookieStore.delete({ name: '' });
   const cookie = await cookieStore.get('');
   assert_equals(cookie, null);
 }, 'cookieStore.delete with empty name in options');
+
+promise_test(async testCase => {
+  // Cookies having a __Host- prefix are not allowed to specify a domain
+  await cookieStore.delete('cookie-name');
+
+  const currentUrl = new URL(self.location.href);
+  const currentDomain = currentUrl.hostname;
+
+  await promise_rejects_js(testCase, TypeError, cookieStore.delete(
+      { name: '__Host-cookie-name',
+        value: 'cookie-value',
+        domain: currentDomain }));
+  const cookie = await cookieStore.get('cookie-name');
+  assert_equals(cookie, null);
+}, 'cookieStore.delete with a __Host- prefix should not have a domain');

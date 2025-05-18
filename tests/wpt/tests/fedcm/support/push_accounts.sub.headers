@@ -1,0 +1,5 @@
+Content-Type: text/html
+Set-Login: logged-in
+Access-Control-Allow-Origin: https://{{host}}:{{ports[https][0]}}
+Access-Control-Allow-Credentials: true
+Supports-Loading-Mode: fenced-frame

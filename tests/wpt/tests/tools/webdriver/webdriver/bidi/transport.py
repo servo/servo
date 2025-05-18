@@ -28,7 +28,7 @@ class Transport:
                  msg_handler: Callable[[Mapping[str, Any]], Coroutine[Any, Any, None]],
                  loop: Optional[asyncio.AbstractEventLoop] = None):
         self.url = url
-        self.connection: Optional[websockets.WebSocketClientProtocol] = None  # type: ignore
+        self.connection: Optional[websockets.WebSocketClientProtocol] = None
         self.msg_handler = msg_handler
         self.send_buf: List[Mapping[str, Any]] = []
 
@@ -41,7 +41,7 @@ class Transport:
     async def start(self) -> None:
         # Default max_size of 1048576 bytes is too small for some messages.
         # 128MB should be enough.
-        self.connection = await websockets.connect(self.url, max_size=128 * 1024 * 1024)  # type: ignore
+        self.connection = await websockets.connect(self.url, max_size=128 * 1024 * 1024)
         self.read_message_task = self.loop.create_task(self.read_messages())
 
         for msg in self.send_buf:
@@ -55,7 +55,7 @@ class Transport:
 
     @staticmethod
     async def _send(
-        connection: websockets.WebSocketClientProtocol,  # type: ignore
+        connection: websockets.WebSocketClientProtocol,
         data: Mapping[str, Any]
     ) -> None:
         msg = json.dumps(data)
