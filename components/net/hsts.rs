@@ -89,7 +89,7 @@ pub struct HstsList {
 /// and more efficient like FSTs or DAFSA/DAWGs.
 /// To generate a new version of the FST map file run `./mach update-hsts-preload`
 #[derive(Clone, Debug)]
-pub struct HstsPreloadList(fst::Map<Vec<u8>>);
+pub struct HstsPreloadList(pub fst::Map<Vec<u8>>);
 
 impl MallocSizeOf for HstsPreloadList {
     #[allow(unsafe_code)]
