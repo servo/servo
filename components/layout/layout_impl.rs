@@ -263,7 +263,7 @@ impl Layout for LayoutThread {
 
     fn load_web_fonts_from_stylesheet(
         &self,
-        stylesheet: ServoArc<Stylesheet>,
+        stylesheet: &ServoArc<Stylesheet>,
         document_context: &WebFontDocumentContext,
     ) {
         let guard = stylesheet.shared_lock.read();

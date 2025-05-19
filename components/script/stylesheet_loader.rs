@@ -8,12 +8,9 @@ use base::id::PipelineId;
 use crossbeam_channel::Sender;
 use cssparser::SourceLocation;
 use encoding_rs::UTF_8;
-<<<<<<< HEAD
-use net_traits::mime_classifier::MimeClassifier;
-=======
 use fonts::WebFontDocumentContext;
 use mime::{self, Mime};
->>>>>>> 6b708ce6752 (Add WebFontDocumentContext for CSS Fonts 4 font fetching)
+use net_traits::mime_classifier::MimeClassifier;
 use net_traits::request::{CorsSettings, Destination, RequestId};
 use net_traits::{
     FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming,
@@ -259,14 +256,8 @@ impl StylesheetContext {
                 },
                 StylesheetContextSource::Import { import_rule } => {
                     // Construct a new WebFontDocumentContext for the stylesheet
-                    let global = element.global();
-                    let document_context = WebFontDocumentContext {
-                        policy_container: global.policy_container(),
-                        document_url: global.api_base_url(),
-                        has_trustworthy_ancestor_origin: global
-                            .has_trustworthy_ancestor_origin(),
-                        insecure_requests_policy: global.insecure_requests_policy(),
-                    };
+                    let window = element.owner_window();
+                    let document_context = window.new_document_context();
 
                     // Layout knows about this stylesheet, because Stylo added it to the Stylist,
                     // but Layout doesn't know about any new web fonts that it contains.
@@ -356,6 +347,101 @@ impl FetchResponseListener for StylesheetContext {
         self.unminify_css(metadata.final_url.clone());
         if !is_css {
             self.data.clear();
+=======
+            // From <https://html.spec.whatwg.org/multipage/#link-type-stylesheet>:
+            // > Quirk: If the document has been set to quirks mode, has the same origin as
+            // > the URL of the external resource, and the Content-Type metadata of the
+            // > external resource is not a supported style sheet type, the user agent must
+            // > instead assume it to be text/css.
+            if document.quirks_mode() == QuirksMode::Quirks &&
+                document.url().origin() == self.url.origin()
+            {
+                is_css = true;
+            }
+
+            let data = if is_css {
+                let data = std::mem::take(&mut self.data);
+                self.unminify_css(data, metadata.final_url.clone())
+            } else {
+                vec![]
+            };
+
+            // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
+            let environment_encoding = UTF_8;
+            let protocol_encoding_label = metadata.charset.as_deref();
+            let final_url = metadata.final_url;
+
+            let win = element.owner_window();
+
+            let loader = ElementStylesheetLoader::new(&element);
+            let shared_lock = document.style_shared_lock();
+            let stylesheet = |media| {
+                #[cfg(feature = "tracing")]
+                let _span =
+                    tracing::trace_span!("ParseStylesheet", servo_profiling = true).entered();
+                Arc::new(Stylesheet::from_bytes(
+                    &data,
+                    UrlExtraData(final_url.get_arc()),
+                    protocol_encoding_label,
+                    Some(environment_encoding),
+                    Origin::Author,
+                    media,
+                    shared_lock.clone(),
+                    Some(&loader),
+                    win.css_error_reporter(),
+                    document.quirks_mode(),
+                ))
+            };
+            match &self.source {
+                StylesheetContextSource::LinkElement { media } => {
+                    let link = element.downcast::<HTMLLinkElement>().unwrap();
+                    // We must first check whether the generations of the context and the element match up,
+                    // else we risk applying the wrong stylesheet when responses come out-of-order.
+                    let is_stylesheet_load_applicable = self
+                        .request_generation_id
+                        .is_none_or(|generation| generation == link.get_request_generation_id());
+                    if is_stylesheet_load_applicable {
+                        let stylesheet = stylesheet(media.clone());
+                        if link.is_effectively_disabled() {
+                            stylesheet.set_disabled(true);
+                        }
+                        link.set_stylesheet(stylesheet);
+                    }
+                },
+                StylesheetContextSource::Import { import_rule, media } => {
+                    let stylesheet = stylesheet(media.clone());
+
+                    // Construct a new WebFontDocumentContext for the stylesheet
+                    let document_context = win.new_document_context();
+
+                    // Layout knows about this stylesheet, because Stylo added it to the Stylist,
+                    // but Layout doesn't know about any new web fonts that it contains.
+                    document.load_web_fonts_from_stylesheet(&stylesheet, &document_context);
+
+                    let mut guard = shared_lock.write();
+                    import_rule.write_with(&mut guard).stylesheet = ImportSheet::Sheet(stylesheet);
+                },
+            }
+
+            if let Some(ref shadow_root) = self.shadow_root {
+                shadow_root.root().invalidate_stylesheets();
+            } else {
+                document.invalidate_stylesheets();
+            }
+
+            // FIXME: Revisit once consensus is reached at:
+            // https://github.com/whatwg/html/issues/1142
+            successful = metadata.status == http::StatusCode::OK;
+        }
+
+        let owner = element
+            .upcast::<Element>()
+            .as_stylesheet_owner()
+            .expect("Stylesheet not loaded by <style> or <link> element!");
+        owner.set_origin_clean(self.origin_clean);
+        if owner.parser_inserted() {
+            document.decrement_script_blocking_stylesheet_count();
+>>>>>>> 8f6719e1036 (Add Helper method for creating new WebFontDocumentContext)
         }
 
         // From <https://html.spec.whatwg.org/multipage/#link-type-stylesheet>:

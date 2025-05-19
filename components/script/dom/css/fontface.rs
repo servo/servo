@@ -7,10 +7,7 @@ use std::rc::Rc;
 
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
-use fonts::{
-    FontContext, FontContextWebFontMethods, FontTemplate, LowercaseFontFamilyName,
-    WebFontDocumentContext,
-};
+use fonts::{FontContext, FontContextWebFontMethods, FontTemplate, LowercaseFontFamilyName};
 use js::rust::HandleObject;
 use style::error_reporting::ParseErrorReporter;
 use style::font_face::SourceList;
@@ -541,13 +538,8 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
         )
         .expect("Parsing shouldn't fail as descriptors are valid by construction");
 
-        //Construct a WebFontDocumentContext object for the current document.
-        let document_context = WebFontDocumentContext {
-            policy_container: global.policy_container(),
-            document_url: global.api_base_url(),
-            has_trustworthy_ancestor_origin: global.has_trustworthy_ancestor_origin(),
-            insecure_requests_policy: global.insecure_requests_policy(),
-        };
+        // Construct a WebFontDocumentContext object for the current document.
+        let document_context = global.as_window().new_document_context();
 
         // Step 4. Using the value of font face’s [[Urls]] slot, attempt to load a font as defined
         // in [CSS-FONTS-3], as if it was the value of a @font-face rule’s src descriptor.

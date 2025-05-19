@@ -4197,15 +4197,7 @@ impl Document {
 
         if self.has_browsing_context() {
             // Construct WebFontDocumentContext for font fetching
-            let document_context = WebFontDocumentContext {
-                policy_container: self.window.global().policy_container(),
-                document_url: self.window.global().api_base_url(),
-                has_trustworthy_ancestor_origin: self
-                    .window
-                    .global()
-                    .has_trustworthy_ancestor_origin(),
-                insecure_requests_policy: self.window.global().insecure_requests_policy(),
-            };
+            let document_context = self.window.new_document_context();
 
             self.window.layout_mut().add_stylesheet(
                 sheet.clone(),
@@ -4244,6 +4236,7 @@ impl Document {
             self.window.layout_mut().add_stylesheet(
                 sheet.clone(),
                 insertion_point.as_ref().map(|s| s.sheet.clone()),
+                &self.window.new_document_context(),
             );
         }
 

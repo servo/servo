@@ -843,6 +843,15 @@ impl Window {
     pub(crate) fn perform_a_microtask_checkpoint(&self, can_gc: CanGc) {
         with_script_thread(|script_thread| script_thread.perform_a_microtask_checkpoint(can_gc));
     }
+
+    pub fn new_document_context(&self) -> WebFontDocumentContext {
+        WebFontDocumentContext {
+            policy_container: self.global().policy_container(),
+            document_url: self.global().api_base_url(),
+            has_trustworthy_ancestor_origin: self.global().has_trustworthy_ancestor_origin(),
+            insecure_requests_policy: self.global().insecure_requests_policy(),
+        }
+    }
 }
 
 // https://html.spec.whatwg.org/multipage/#atob
@@ -2452,13 +2461,9 @@ impl Window {
         };
 
         //Construct a new document context for the reflow.
-        let document_context = WebFontDocumentContext {
-            policy_container: self.global().policy_container(),
-            document_url: self.global().api_base_url(),
-            has_trustworthy_ancestor_origin: self.global().has_trustworthy_ancestor_origin(),
-            insecure_requests_policy: self.global().insecure_requests_policy(),
-        };
+        let document_context = self.new_document_context();
 
+        // Send new document and relevant styles to layout.
         let reflow = ReflowRequest {
             document: document.upcast::<Node>().to_trusted_node_address(),
             epoch: document.current_rendering_epoch(),
