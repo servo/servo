@@ -1224,7 +1224,7 @@ dependencies = [
 [[package]]
 name = "content-security-policy"
 version = "0.5.4"
-source = "git+https://github.com/servo/rust-content-security-policy/?branch=servo-csp#334bfcbf0a3f503b21c90aee6aee30d4b8c9558a"
+source = "git+https://github.com/servo/rust-content-security-policy/?branch=servo-csp#58a09ee320fd6fbb828748ae04255e4c8d3f9c9e"
 dependencies = [
  "base64 0.22.1",
  "bitflags 2.9.1",
