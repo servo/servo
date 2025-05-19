@@ -356,19 +356,18 @@ def check_by_line(file_name: str, lines: list[bytes]):
             yield error
 
 
-def check_flake8(file_name, contents):
-    if not file_name.endswith(".py"):
-        return
-
-    output = ""
+def check_ruff_lints():
     try:
-        args = ["flake8", file_name]
+        args = ["ruff", "check", "--output-format", "json"]
         subprocess.check_output(args, universal_newlines=True)
     except subprocess.CalledProcessError as e:
-        output = e.output
-    for error in output.splitlines():
-        _, line_num, _, message = error.split(":", 3)
-        yield line_num, message.strip()
+        for error in json.loads(e.output):
+            yield (
+                os.path.join(".", os.path.relpath(error["filename"])),
+                error["location"]["row"],
+                f"[{error['code']}] {error['message']} ({error['url']})",
+            )
+
 
 
 def run_cargo_deny_lints():
@@ -976,17 +975,18 @@ def scan(only_changed_files=False, progress=False):
     directory_errors = check_directory_files(config['check_ext'])
     # standard checks
     files_to_check = filter_files('.', only_changed_files, progress)
-    checking_functions = (check_flake8, check_webidl_spec)
+    checking_functions = (check_webidl_spec,)
     line_checking_functions = (check_license, check_by_line, check_toml, check_shell,
                                check_rust, check_spec, check_modeline)
     file_errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
 
+    python_errors = check_ruff_lints()
     cargo_lock_errors = run_cargo_deny_lints()
     wpt_errors = run_wpt_lints(only_changed_files)
 
     # chain all the iterators
     errors = itertools.chain(config_errors, directory_errors, file_errors,
-                             wpt_errors, cargo_lock_errors)
+                             python_errors, wpt_errors, cargo_lock_errors)
 
     colorama.init()
     error = None

@@ -79,7 +79,7 @@ for (name, raw_samples) in sorted(iter(thread_data.items()), key=lambda x: threa
         for frame in sample[1]:
             if not frame['name']:
                 continue
-            if not frame['name'] in frameMap:
+            if frame['name'] not in frameMap:
                 frameMap[frame['name']] = len(frames)
                 frame_index = string_table.get(frame['name'])
                 frames.append([frame_index])
