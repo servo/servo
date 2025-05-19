@@ -31,7 +31,7 @@ pub(crate) struct InlineFormattingContextBuilder {
     /// inline box stack, and importantly, one for every `display: contents` element that we are
     /// currently processing. Normally `display: contents` elements don't affect the structure of
     /// the [`InlineFormattingContext`], but the styles they provide do style their children.
-    shared_inline_styles_stack: Vec<SharedInlineStyles>,
+    pub shared_inline_styles_stack: Vec<SharedInlineStyles>,
 
     /// The collection of text strings that make up this [`InlineFormattingContext`] under
     /// construction.
