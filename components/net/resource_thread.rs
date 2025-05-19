@@ -24,6 +24,7 @@ use log::{debug, trace, warn};
 use malloc_size_of::MallocSizeOf;
 use net_traits::blob_url_store::parse_blob_url;
 use net_traits::filemanager_thread::FileTokenCheck;
+use net_traits::pub_domains::public_suffix_list_size_of;
 use net_traits::request::{Destination, RequestBuilder, RequestId};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
@@ -287,11 +288,18 @@ impl ResourceChannelManager {
         perform_memory_report(|ops| {
             let mut reports = public_http_state.memory_reports("public", ops);
             reports.extend(private_http_state.memory_reports("private", ops));
-            reports.push(Report {
-                path: path!["hsts-preload-list"],
-                kind: ReportKind::ExplicitJemallocHeapSize,
-                size: hsts::PRELOAD_LIST_ENTRIES.size_of(ops),
-            });
+            reports.extend(vec![
+                Report {
+                    path: path!["hsts-preload-list"],
+                    kind: ReportKind::ExplicitJemallocHeapSize,
+                    size: hsts::PRELOAD_LIST_ENTRIES.size_of(ops),
+                },
+                Report {
+                    path: path!["public-suffix-list"],
+                    kind: ReportKind::ExplicitJemallocHeapSize,
+                    size: public_suffix_list_size_of(ops),
+                },
+            ]);
             msg.send(ProcessReports::new(reports));
         })
     }
