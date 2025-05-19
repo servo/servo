@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
 use std::collections::HashSet;
 use std::time::{Duration, Instant};
 use std::{cmp, thread};
@@ -33,28 +34,51 @@ pub(crate) enum InputSourceState {
 }
 
 // https://w3c.github.io/webdriver/#dfn-pointer-input-source
-// TODO: subtype is used for https://w3c.github.io/webdriver/#dfn-get-a-pointer-id
-// Need to add pointer-id to the following struct
 #[allow(dead_code)]
 pub(crate) struct PointerInputState {
     subtype: PointerType,
     pressed: HashSet<u64>,
+    pointer_id: u32,
     x: f64,
     y: f64,
 }
 
 impl PointerInputState {
-    pub fn new(subtype: &PointerType) -> PointerInputState {
+    pub fn new(
+        subtype: &PointerType,
+        next_pointer_id_below_2: &Cell<u32>,
+        next_pointer_id_above_2: &Cell<u32>,
+    ) -> PointerInputState {
         PointerInputState {
-            subtype: match subtype {
-                PointerType::Mouse => PointerType::Mouse,
-                PointerType::Pen => PointerType::Pen,
-                PointerType::Touch => PointerType::Touch,
-            },
+            subtype: *subtype,
             pressed: HashSet::new(),
+            pointer_id: PointerInputState::get_pointer_id(
+                subtype,
+                next_pointer_id_below_2,
+                next_pointer_id_above_2,
+            ),
             x: 0.0,
             y: 0.0,
         }
+    }
+
+    // https://w3c.github.io/webdriver/#dfn-get-a-pointer-id
+    fn get_pointer_id(
+        subtype: &PointerType,
+        next_pointer_id_below_2: &Cell<u32>,
+        next_pointer_id_above_2: &Cell<u32>,
+    ) -> u32 {
+        if let PointerType::Mouse = *subtype {
+            let val = next_pointer_id_below_2.get();
+            if val < 2 {
+                next_pointer_id_below_2.set(val + 1);
+                return val;
+            }
+        }
+
+        let val = next_pointer_id_above_2.get();
+        next_pointer_id_above_2.set(val + 1);
+        val
     }
 }
 
@@ -244,14 +268,18 @@ impl Handler {
                             self.dispatch_general_action(source_id);
                         },
                         PointerActionItem::Pointer(action) => {
+                            let new_input_source =
+                                InputSourceState::Pointer(PointerInputState::new(
+                                    &parameters.pointer_type,
+                                    &self.next_pointer_id_below_2,
+                                    &self.next_pointer_id_above_2,
+                                ));
                             self.session()
                                 .unwrap()
                                 .input_state_table
                                 .borrow_mut()
                                 .entry(source_id.to_string())
-                                .or_insert(InputSourceState::Pointer(PointerInputState::new(
-                                    &parameters.pointer_type,
-                                )));
+                                .or_insert(new_input_source);
                             match action {
                                 PointerAction::Cancel => (),
                                 PointerAction::Down(action) => {
