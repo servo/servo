@@ -105,7 +105,9 @@ pub(crate) fn compute_damage_and_repair_style_inner(
     parent_restyle_damage: RestyleDamage,
 ) -> RestyleDamage {
     let original_damage;
-    let damage = {
+    let damage;
+
+    {
         let mut element_data = node
             .style_data()
             .expect("Should not run `compute_damage` before styling.")
@@ -113,14 +115,14 @@ pub(crate) fn compute_damage_and_repair_style_inner(
             .borrow_mut();
 
         original_damage = std::mem::take(&mut element_data.damage);
+        damage = original_damage | parent_restyle_damage;
+
         if let Some(ref style) = element_data.styles.primary {
             if style.get_box().display == Display::None {
-                return parent_restyle_damage;
+                return damage;
             }
         }
-
-        original_damage | parent_restyle_damage
-    };
+    }
 
     let mut propagated_damage = damage;
     for child in iter_child_nodes(node) {

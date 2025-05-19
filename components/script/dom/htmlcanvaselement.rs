@@ -27,6 +27,7 @@ use servo_media::streams::registry::MediaStreamId;
 use snapshot::Snapshot;
 use style::attr::AttrValue;
 
+use super::node::NodeDamage;
 pub(crate) use crate::canvas_context::*;
 use crate::conversions::Convert;
 use crate::dom::attr::Attr;
@@ -687,8 +688,11 @@ impl VirtualMethods for HTMLCanvasElement {
             .unwrap()
             .attribute_mutated(attr, mutation, can_gc);
         match attr.local_name() {
-            &local_name!("width") | &local_name!("height") => self.recreate_contexts_after_resize(),
-            _ => (),
+            &local_name!("width") | &local_name!("height") => {
+                self.recreate_contexts_after_resize();
+                self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+            },
+            _ => {},
         };
     }
 

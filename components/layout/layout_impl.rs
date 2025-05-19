@@ -766,7 +766,7 @@ impl LayoutThread {
 
         let root_node = root_element.as_node();
         let damage = compute_damage_and_repair_style(layout_context.shared_context(), root_node);
-        if damage == RestyleDamage::REPAINT {
+        if damage.is_empty() || damage == RestyleDamage::REPAINT {
             layout_context.style_context.stylist.rule_tree().maybe_gc();
             return;
         }
