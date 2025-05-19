@@ -21,7 +21,6 @@ use embedder_traits::EmbedderProxy;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use log::{debug, trace, warn};
-use malloc_size_of::MallocSizeOf;
 use net_traits::blob_url_store::parse_blob_url;
 use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::pub_domains::public_suffix_list_size_of;
@@ -292,7 +291,7 @@ impl ResourceChannelManager {
                 Report {
                     path: path!["hsts-preload-list"],
                     kind: ReportKind::ExplicitJemallocHeapSize,
-                    size: hsts::PRELOAD_LIST_ENTRIES.size_of(ops),
+                    size: hsts::hsts_preload_size_of(ops),
                 },
                 Report {
                     path: path!["public-suffix-list"],

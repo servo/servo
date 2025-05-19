@@ -13,7 +13,7 @@ use fst::{Map, MapBuilder};
 use headers::{HeaderMapExt, StrictTransportSecurity};
 use http::HeaderMap;
 use log::{debug, error, info};
-use malloc_size_of::MallocSizeOf;
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::IncludeSubdomains;
 use net_traits::pub_domains::reg_suffix;
@@ -89,7 +89,7 @@ pub struct HstsList {
 /// and more efficient like FSTs or DAFSA/DAWGs.
 /// To generate a new version of the FST map file run `./mach update-hsts-preload`
 #[derive(Clone, Debug)]
-pub struct HstsPreloadList(pub fst::Map<Vec<u8>>);
+pub struct HstsPreloadList(fst::Map<Vec<u8>>);
 
 impl MallocSizeOf for HstsPreloadList {
     #[allow(unsafe_code)]
@@ -98,8 +98,12 @@ impl MallocSizeOf for HstsPreloadList {
     }
 }
 
-pub static PRELOAD_LIST_ENTRIES: LazyLock<HstsPreloadList> =
+static PRELOAD_LIST_ENTRIES: LazyLock<HstsPreloadList> =
     LazyLock::new(HstsPreloadList::from_servo_preload);
+
+pub fn hsts_preload_size_of(ops: &mut MallocSizeOfOps) -> usize {
+    PRELOAD_LIST_ENTRIES.size_of(ops)
+}
 
 impl HstsPreloadList {
     /// Create an `HstsList` from the bytes of a JSON preload file.
