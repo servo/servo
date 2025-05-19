@@ -19,6 +19,7 @@ use crate::dom::webgpu::gpu::GPU;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::script_runtime::{CanGc, JSContext};
 
+
 // https://html.spec.whatwg.org/multipage/#workernavigator
 #[dom_struct]
 pub(crate) struct WorkerNavigator {
@@ -107,7 +108,7 @@ impl WorkerNavigatorMethods<crate::DomTypeHolder> for WorkerNavigator {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-online>
     fn OnLine(&self) -> bool {
-        true
+       *self.global().is_online().lock().unwrap()
     }
 
     // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension

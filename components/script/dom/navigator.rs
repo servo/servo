@@ -224,8 +224,9 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-online>
     fn OnLine(&self) -> bool {
-        true
+        *self.global().is_online().lock().unwrap()
     }
+
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-plugins
     fn Plugins(&self) -> DomRoot<PluginArray> {
