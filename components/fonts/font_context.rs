@@ -28,7 +28,7 @@ use parking_lot::{Mutex, RwLock};
 use rustc_hash::FxHashSet;
 use servo_arc::Arc as ServoArc;
 use servo_config::pref;
-use servo_url::{ImmutableOrigin, ServoUrl};
+use servo_url::ServoUrl;
 use style::Atom;
 use style::computed_values::font_variant_caps::T as FontVariantCaps;
 use style::font_face::{
