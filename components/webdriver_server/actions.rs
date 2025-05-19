@@ -426,7 +426,7 @@ impl Handler {
         tick_start: Instant,
     ) {
         let webview_id = self.session().unwrap().webview_id;
-        let chain = self.constellation_chan.clone();
+        let constellation_chan = self.constellation_chan.clone();
         let pointer_input_state = self.get_pointer_input_state_mut(source_id);
         loop {
             // Step 1
@@ -461,7 +461,7 @@ impl Handler {
                 // Step 7.2
                 let cmd_msg = WebDriverCommandMsg::MouseMoveAction(webview_id, x as f32, y as f32);
                 //TODO: Need Synchronization here before updating `pointer_input_state`
-                chain
+                constellation_chan
                     .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
                     .unwrap();
                 // Step 7.3
