@@ -1,5 +1,5 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
+
+/* License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! The script thread is the thread that owns the DOM in memory, runs JavaScript, and triggers
@@ -23,7 +23,7 @@ use std::default::Default;
 use std::option::Option;
 use std::rc::Rc;
 use std::result::Result;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime};
@@ -336,6 +336,10 @@ pub struct ScriptThread {
     /// The screen coordinates where the primary mouse button was pressed.
     #[no_trace]
     relative_mouse_down_point: Cell<Point2D<f32, DevicePixel>>,
+
+    /// Switch offline and online events
+    #[no_trace]
+    is_online: Arc<Mutex<bool>>,
 }
 
 struct BHMExitSignal {
@@ -957,6 +961,7 @@ impl ScriptThread {
             inherited_secure_context: state.inherited_secure_context,
             layout_factory,
             relative_mouse_down_point: Cell::new(Point2D::zero()),
+            is_online: Arc::new(Mutex::new(true)),
         }
     }
 
@@ -3224,6 +3229,7 @@ impl ScriptThread {
             #[cfg(feature = "webgpu")]
             self.gpu_id_hub.clone(),
             incomplete.load_data.inherited_secure_context,
+            self.is_online.clone(),
         );
 
         let _realm = enter_realm(&*window);

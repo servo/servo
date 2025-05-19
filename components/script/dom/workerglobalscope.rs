@@ -5,7 +5,7 @@
 use std::cell::{RefCell, RefMut};
 use std::default::Default;
 use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
@@ -174,6 +174,7 @@ impl WorkerGlobalScope {
                 gpu_id_hub,
                 init.inherited_secure_context,
                 false,
+                Arc::new(Mutex::new(true)),
             ),
             worker_id: init.worker_id,
             worker_name,

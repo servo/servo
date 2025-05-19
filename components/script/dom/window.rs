@@ -398,6 +398,12 @@ pub(crate) struct Window {
 
     /// <https://dom.spec.whatwg.org/#window-current-event>
     current_event: DomRefCell<Option<Dom<Event>>>,
+    
+
+    /// Switch offline and online events
+    #[no_trace]
+    #[ignore_malloc_size_of = "Arc<Mutex<bool>> does not implement MallocSizeOf"]
+    is_online: Arc<Mutex<bool>>,
 }
 
 impl Window {
@@ -3033,6 +3039,7 @@ impl Window {
         player_context: WindowGLContext,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
+        is_online: Arc<Mutex<bool>>,
     ) -> DomRoot<Self> {
         let error_reporter = CSSErrorReporter {
             pipelineid: pipeline_id,
@@ -3060,6 +3067,8 @@ impl Window {
                 gpu_id_hub,
                 inherited_secure_context,
                 unminify_js,
+                is_online,
+            
             ),
             script_chan,
             layout: RefCell::new(layout),
@@ -3120,6 +3129,7 @@ impl Window {
             current_event: DomRefCell::new(None),
             theme: Cell::new(PrefersColorScheme::Light),
             trusted_types: Default::default(),
+            is_online: Arc::new(Mutex::new(true)),
         });
 
         unsafe {

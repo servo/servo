@@ -374,6 +374,11 @@ pub(crate) struct GlobalScope {
     #[ignore_malloc_size_of = "Rc<T> is hard"]
     notification_permission_request_callback_map:
         DomRefCell<HashMap<String, Rc<NotificationPermissionCallback>>>,
+
+    /// Switch offline and online events
+    #[no_trace]
+    #[ignore_malloc_size_of = "Arc<Mutex<bool>> does not implement MallocSizeOf"]
+    is_online: Arc<Mutex<bool>>,
 }
 
 /// A wrapper for glue-code between the ipc router and the event-loop.
@@ -735,6 +740,7 @@ impl GlobalScope {
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
         unminify_js: bool,
+        is_online: Arc<Mutex<bool>>,
     ) -> Self {
         Self {
             task_manager: Default::default(),
@@ -779,6 +785,7 @@ impl GlobalScope {
             byte_length_queuing_strategy_size_function: OnceCell::new(),
             count_queuing_strategy_size_function: OnceCell::new(),
             notification_permission_request_callback_map: Default::default(),
+            is_online,
         }
     }
 
@@ -3444,6 +3451,10 @@ impl GlobalScope {
             return worker.TrustedTypes(can_gc);
         }
         unreachable!();
+    }
+
+    pub(crate) fn is_online(&self) -> Arc<Mutex<bool> {
+        Arc::clone(&self.is_online)
     }
 
     /// <https://www.w3.org/TR/CSP/#report-violation>
