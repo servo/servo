@@ -15,6 +15,12 @@ use strum::EnumIter;
 
 use crate::PortMessageTask;
 
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct TransformStreamData {
+    pub readable: (MessagePortId, MessagePortImpl),
+    pub writable: (MessagePortId, MessagePortImpl),
+}
+
 /// All the DOM interfaces that can be transferred.
 #[derive(Clone, Copy, Debug, EnumIter)]
 pub enum Transferrable {

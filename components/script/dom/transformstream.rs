@@ -8,7 +8,7 @@ use std::ptr::{self};
 use std::rc::Rc;
 
 use base::id::{MessagePortId, MessagePortIndex};
-use constellation_traits::MessagePortImpl;
+use constellation_traits::TransformStreamData;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, IsPromiseObject, JSObject};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
@@ -1007,9 +1007,9 @@ impl TransformStreamMethods<crate::DomTypeHolder> for TransformStream {
 /// <https://streams.spec.whatwg.org/#ts-transfer>
 impl Transferable for TransformStream {
     type Index = MessagePortIndex;
-    type Data = MessagePortImpl;
+    type Data = TransformStreamData;
 
-    fn transfer(&self) -> Result<(MessagePortId, MessagePortImpl), ()> {
+    fn transfer(&self) -> Result<(MessagePortId, TransformStreamData), ()> {
         let global = self.global();
         let realm = enter_realm(&*global);
         let comp = InRealm::Entered(&realm);
@@ -1023,70 +1023,80 @@ impl Transferable for TransformStream {
         let writable = self.get_writable();
 
         // If ! IsReadableStreamLocked(readable) is true, throw a "DataCloneError" DOMException.
-        if readable.is_locked() {
-            return Err(());
-        }
-
         // If ! IsWritableStreamLocked(writable) is true, throw a "DataCloneError" DOMException.
-        if writable.is_locked() {
+        if readable.is_locked() || writable.is_locked() {
             return Err(());
         }
 
-        // Create the shared port pair
-        let port_1 = MessagePort::new(&global, can_gc);
-        global.track_message_port(&port_1, None);
-        let port_2 = MessagePort::new(&global, can_gc);
-        global.track_message_port(&port_2, None);
-        global.entangle_ports(*port_1.message_port_id(), *port_2.message_port_id());
+        // First port pair (readable → proxy writable)
+        let port1 = MessagePort::new(&global, can_gc);
+        global.track_message_port(&port1, None);
+        let port1_peer = MessagePort::new(&global, can_gc);
+        global.track_message_port(&port1_peer, None);
+        global.entangle_ports(*port1.message_port_id(), *port1_peer.message_port_id());
 
-        // Create a proxy WritableStream wired to port_1
+        let proxy_readable = ReadableStream::new_with_proto(&global, None, can_gc);
+        proxy_readable.setup_cross_realm_transform_readable(cx, &port1, can_gc);
+        proxy_readable
+            .pipe_to(cx, &global, &writable, false, false, false, comp, can_gc)
+            .set_promise_is_handled();
+
+        // Second port pair (proxy readable → writable)
+        let port2 = MessagePort::new(&global, can_gc);
+        global.track_message_port(&port2, None);
+        let port2_peer = MessagePort::new(&global, can_gc);
+        global.track_message_port(&port2_peer, None);
+        global.entangle_ports(*port2.message_port_id(), *port2_peer.message_port_id());
+
         let proxy_writable = WritableStream::new_with_proto(&global, None, can_gc);
-        proxy_writable.setup_cross_realm_transform_writable(cx, &port_1, can_gc);
+        proxy_writable.setup_cross_realm_transform_writable(cx, &port2, can_gc);
 
         // Pipe readable into the proxy writable (→ port_1)
-        let pipe1 = readable.pipe_to(
-            cx,
-            &global,
-            &proxy_writable,
-            false,
-            false,
-            false,
-            comp,
-            can_gc,
-        );
-        pipe1.set_promise_is_handled();
-
-        // Create a proxy ReadableStream wired to port_1
-        let proxy_readable = ReadableStream::new_with_proto(&global, None, can_gc);
-        proxy_readable.setup_cross_realm_transform_readable(cx, &port_1, can_gc);
-
-        // Pipe proxy readable (← port_1) into writable
-        let pipe2 =
-            proxy_readable.pipe_to(cx, &global, &writable, false, false, false, comp, can_gc);
-        pipe2.set_promise_is_handled();
+        readable
+            .pipe_to(
+                cx,
+                &global,
+                &proxy_writable,
+                false,
+                false,
+                false,
+                comp,
+                can_gc,
+            )
+            .set_promise_is_handled();
 
         // Set dataHolder.[[readable]] to ! StructuredSerializeWithTransfer(readable, « readable »).
         // Set dataHolder.[[writable]] to ! StructuredSerializeWithTransfer(writable, « writable »).
-        port_2.transfer()
+        Ok((
+            *port1_peer.message_port_id(),
+            TransformStreamData {
+                readable: port1_peer.transfer()?,
+                writable: port2_peer.transfer()?,
+            },
+        ))
     }
 
     fn transfer_receive(
         owner: &GlobalScope,
-        id: MessagePortId,
-        port_impl: MessagePortImpl,
+        _id: MessagePortId,
+        port_impl: TransformStreamData,
     ) -> Result<DomRoot<Self>, ()> {
         let can_gc = CanGc::note();
         let cx = GlobalScope::get_cx();
 
-        let port = MessagePort::transfer_receive(owner, id, port_impl)?;
+        let port1 =
+            MessagePort::transfer_receive(owner, port_impl.readable.0, port_impl.readable.1)?;
+        let port2 =
+            MessagePort::transfer_receive(owner, port_impl.writable.0, port_impl.writable.1)?;
 
         // Let readableRecord be ! StructuredDeserializeWithTransfer(dataHolder.[[readable]], the current Realm).
         // Set value.[[readable]] to readableRecord.[[Deserialized]].
         // Let writableRecord be ! StructuredDeserializeWithTransfer(dataHolder.[[writable]], the current Realm).
         let proxy_readable = ReadableStream::new_with_proto(owner, None, can_gc);
-        proxy_readable.setup_cross_realm_transform_readable(cx, &port, can_gc);
+        proxy_readable.setup_cross_realm_transform_readable(cx, &port2, can_gc);
+
         let proxy_writable = WritableStream::new_with_proto(owner, None, can_gc);
-        proxy_writable.setup_cross_realm_transform_writable(cx, &port, can_gc);
+        proxy_writable.setup_cross_realm_transform_writable(cx, &port1, can_gc);
 
         // Set value.[[readable]] to readableRecord.[[Deserialized]].
         // Set value.[[writable]] to writableRecord.[[Deserialized]].
@@ -1102,8 +1112,8 @@ impl Transferable for TransformStream {
         data: StructuredData<'a, '_>,
     ) -> &'a mut Option<HashMap<MessagePortId, Self::Data>> {
         match data {
-            StructuredData::Reader(r) => &mut r.port_impls,
-            StructuredData::Writer(w) => &mut w.ports,
+            StructuredData::Reader(r) => &mut r.transform_streams_port_impls,
+            StructuredData::Writer(w) => &mut w.transform_streams_port,
         }
     }
 }

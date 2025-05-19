@@ -32,6 +32,8 @@ pub struct StructuredSerializedData {
     pub exceptions: Option<HashMap<DomExceptionId, DomException>>,
     /// Transferred objects.
     pub ports: Option<HashMap<MessagePortId, MessagePortImpl>>,
+    /// Transform streams transferred objects.
+    pub transform_streams: Option<HashMap<MessagePortId, TransformStreamData>>,
 }
 
 impl StructuredSerializedData {

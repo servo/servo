@@ -14,7 +14,7 @@ use base::id::{
 };
 use constellation_traits::{
     BlobImpl, DomException, DomPoint, MessagePortImpl, Serializable as SerializableInterface,
-    StructuredSerializedData, Transferrable as TransferrableInterface,
+    StructuredSerializedData, Transferrable as TransferrableInterface, TransformStreamData,
 };
 use js::gc::RootedVec;
 use js::glue::{
@@ -517,6 +517,8 @@ pub(crate) struct StructuredDataReader<'a> {
     /// used as part of the "transfer-receiving" steps of ports,
     /// to produce the DOM ports stored in `message_ports` above.
     pub(crate) port_impls: Option<HashMap<MessagePortId, MessagePortImpl>>,
+    /// A map of transform stream implementations,
+    pub(crate) transform_streams_port_impls: Option<HashMap<MessagePortId, TransformStreamData>>,
     /// A map of blob implementations,
     /// used as part of the "deserialize" steps of blobs,
     /// to produce the DOM blobs stored in `blobs` above.
@@ -535,6 +537,8 @@ pub(crate) struct StructuredDataWriter {
     pub(crate) errors: DOMErrorRecord,
     /// Transferred ports.
     pub(crate) ports: Option<HashMap<MessagePortId, MessagePortImpl>>,
+    /// Transferred transform streams.
+    pub(crate) transform_streams_port: Option<HashMap<MessagePortId, TransformStreamData>>,
     /// Serialized points.
     pub(crate) points: Option<HashMap<DomPointId, DomPoint>>,
     /// Serialized exceptions.
@@ -591,6 +595,7 @@ pub(crate) fn write(
         let data = StructuredSerializedData {
             serialized: data,
             ports: sc_writer.ports.take(),
+            transform_streams: sc_writer.transform_streams_port.take(),
             points: sc_writer.points.take(),
             exceptions: sc_writer.exceptions.take(),
             blobs: sc_writer.blobs.take(),
@@ -613,6 +618,7 @@ pub(crate) fn read(
     let mut sc_reader = StructuredDataReader {
         roots,
         port_impls: data.ports.take(),
+        transform_streams_port_impls: data.transform_streams.take(),
         blob_impls: data.blobs.take(),
         points: data.points.take(),
         exceptions: data.exceptions.take(),
