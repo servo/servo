@@ -57,11 +57,12 @@
       const expected_scroll_top = document.scrollingElement.scrollHeight -
         document.scrollingElement.clientHeight;
 
-      const scroll_start_target_top = top_box.getBoundingClientRect().height;
+      const scroll_start_target_top = Math.round(top_box.getBoundingClientRect().height);
 
-      if (document.scrollingElement.scrollTop == scroll_start_target_top) {
+      const actual_scroll_top = Math.round(document.scrollingElement.scrollTop);
+      if (actual_scroll_top == scroll_start_target_top) {
         scroll_position = "AT_SCROLL_START_TARGET";
-      } else if (document.scrollingElement.scrollTop == expected_scroll_top) {
+      } else if (actual_scroll_top == expected_scroll_top) {
         scroll_position = "AT_TEXT_FRAGMENT";
       }
 

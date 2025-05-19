@@ -18,6 +18,7 @@ use http::{HeaderValue, Method, StatusCode};
 use ipc_channel::ipc;
 use log::{debug, trace, warn};
 use mime::{self, Mime};
+use net_traits::fetch::headers::extract_mime_type_as_mime;
 use net_traits::filemanager_thread::{FileTokenCheck, RelativePos};
 use net_traits::http_status::HttpStatus;
 use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
@@ -886,7 +887,7 @@ pub fn should_be_blocked_due_to_nosniff(
 
     // Step 2
     // Note: an invalid MIME type will produce a `None`.
-    let content_type_header = response_headers.typed_get::<ContentType>();
+    let mime_type = extract_mime_type_as_mime(response_headers);
 
     /// <https://html.spec.whatwg.org/multipage/#scriptingLanguages>
     #[inline]
@@ -915,16 +916,12 @@ pub fn should_be_blocked_due_to_nosniff(
             .any(|mime| mime.type_() == mime_type.type_() && mime.subtype() == mime_type.subtype())
     }
 
-    match content_type_header {
+    match mime_type {
         // Step 4
-        Some(ref ct) if destination.is_script_like() => {
-            !is_javascript_mime_type(&ct.clone().into())
-        },
-
+        Some(ref mime_type) if destination.is_script_like() => !is_javascript_mime_type(mime_type),
         // Step 5
-        Some(ref ct) if destination == Destination::Style => {
-            let m: mime::Mime = ct.clone().into();
-            m.type_() != mime::TEXT && m.subtype() != mime::CSS
+        Some(ref mime_type) if destination == Destination::Style => {
+            mime_type.type_() != mime::TEXT && mime_type.subtype() != mime::CSS
         },
 
         None if destination == Destination::Style || destination.is_script_like() => true,
@@ -938,18 +935,22 @@ fn should_be_blocked_due_to_mime_type(
     destination: Destination,
     response_headers: &HeaderMap,
 ) -> bool {
-    // Step 1
-    let mime_type: mime::Mime = match response_headers.typed_get::<ContentType>() {
-        Some(header) => header.into(),
+    // Step 1: Let mimeType be the result of extracting a MIME type from response’s header list.
+    let mime_type: mime::Mime = match extract_mime_type_as_mime(response_headers) {
+        Some(mime_type) => mime_type,
+        // Step 2: If mimeType is failure, then return allowed.
         None => return false,
     };
 
-    // Step 2-3
+    // Step 3: Let destination be request’s destination.
+    // Step 4: If destination is script-like and one of the following is true, then return blocked:
+    //    - mimeType’s essence starts with "audio/", "image/", or "video/".
+    //    - mimeType’s essence is "text/csv".
+    // Step 5: Return allowed.
     destination.is_script_like() &&
         match mime_type.type_() {
             mime::AUDIO | mime::VIDEO | mime::IMAGE => true,
             mime::TEXT if mime_type.subtype() == mime::CSV => true,
-            // Step 4
             _ => false,
         }
 }

@@ -1,1 +1,2 @@
 psutil==5.9.8
+types-psutil==6.1.0.20241221

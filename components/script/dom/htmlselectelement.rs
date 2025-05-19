@@ -14,7 +14,7 @@ use style::attr::AttrValue;
 use stylo_dom::ElementState;
 use embedder_traits::{SelectElementOptionOrOptgroup, SelectElementOption};
 use euclid::{Size2D, Point2D, Rect};
-use embedder_traits::EmbedderMsg;
+use embedder_traits::{FormControl as EmbedderFormControl, EmbedderMsg};
 
 use crate::dom::bindings::codegen::GenericBindings::HTMLOptGroupElementBinding::HTMLOptGroupElement_Binding::HTMLOptGroupElementMethods;
 use crate::dom::activation::Activatable;
@@ -406,12 +406,10 @@ impl HTMLSelectElement {
         let selected_index = self.list_of_options().position(|option| option.Selected());
 
         let document = self.owner_document();
-        document.send_to_embedder(EmbedderMsg::ShowSelectElementMenu(
+        document.send_to_embedder(EmbedderMsg::ShowFormControl(
             document.webview_id(),
-            options,
-            selected_index,
             DeviceIntRect::from_untyped(&rect.to_box2d()),
-            ipc_sender,
+            EmbedderFormControl::SelectElement(options, selected_index, ipc_sender),
         ));
 
         let Ok(response) = ipc_receiver.recv() else {

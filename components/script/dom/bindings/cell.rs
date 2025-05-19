@@ -9,10 +9,8 @@ use std::cell::{BorrowError, BorrowMutError};
 pub(crate) use std::cell::{Ref, RefCell, RefMut};
 
 #[cfg(feature = "refcell_backtrace")]
-pub(crate) use accountable_refcell::{Ref, RefCell, RefMut, ref_filter_map};
+pub(crate) use accountable_refcell::{Ref, RefCell, RefMut};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOfOps};
-#[cfg(not(feature = "refcell_backtrace"))]
-pub(crate) use ref_filter_map::ref_filter_map;
 
 use crate::dom::bindings::root::{assert_in_layout, assert_in_script};
 

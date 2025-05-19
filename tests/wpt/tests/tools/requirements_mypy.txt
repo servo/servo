@@ -1,14 +1,27 @@
-mypy==1.14.0
-mypy-extensions==1.0.0
-pydantic==2.10.6
-toml==0.10.2
-tomli==2.0.1
+mypy==1.14.1
+
 types-atomicwrites==1.4.5.1
-types-python-dateutil==2.9.0.20240906
-types-PyYAML==6.0.12.12
-types-requests==2.32.0.20240905
-types-setuptools==69.5.0.20240423
-types-six==1.16.21.20241105
-types-ujson==5.9.0.0
-types-urllib3==1.26.25.14
+types-html5lib==1.1.11.20241018
+types-setuptools==75.8.0.20250110
+types-ujson==5.10.0.20240515
 typing_extensions==4.12.2
+
+# Install dependencies so we get type signatures from them.
+-r ci/requirements_build.txt
+-r ci/requirements_tc.txt
+-r docker/requirements.txt
+-r manifest/requirements.txt
+-r metadata/yaml/requirements.txt
+-r requirements_pytest.txt
+-r wave/requirements.txt
+-r webtransport/requirements.txt
+-r wpt/requirements_android.txt
+-r wpt/requirements_install.txt
+-r wpt/requirements_metadata.txt
+-r wpt/requirements.txt
+-r wptrunner/requirements_chromium.txt
+-r wptrunner/requirements_firefox.txt
+-r wptrunner/requirements_opera.txt
+-r wptrunner/requirements_safari.txt
+-r wptrunner/requirements_sauce.txt
+-r wptrunner/requirements.txt

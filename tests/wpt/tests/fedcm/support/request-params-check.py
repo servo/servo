@@ -1,6 +1,7 @@
-def commonCheck(request, mode=b"no-cors"):
-  if request.headers.get(b"Accept") != b"application/json":
-    return (531, [], "Wrong Accept")
+def commonCheck(request, mode=b"no-cors", accept=b"application/json"):
+  if accept:
+    if request.headers.get(b"Accept") != accept:
+      return (531, [], "Wrong Accept")
   if request.headers.get(b"Sec-Fetch-Dest") != b"webidentity":
     return (532, [], "Wrong Sec-Fetch-Dest header")
   if request.headers.get(b"Referer"):
@@ -104,3 +105,15 @@ def revokeCheck(request):
 
   if not request.POST.get(b"account_hint"):
     return (544, [], "Missing 'account_hint' POST parameter")
+
+def pictureCheck(request):
+  common_error = commonCheck(request, accept=None)
+  if (common_error):
+    return common_error
+
+  common_uncredentialed_error = commonUncredentialedRequestCheck(request)
+  if (common_uncredentialed_error):
+    return common_uncredentialed_error
+
+  if request.headers.get(b"Origin"):
+    return (539, [], "Should not have Origin")

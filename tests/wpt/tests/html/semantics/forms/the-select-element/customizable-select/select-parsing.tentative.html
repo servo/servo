@@ -104,6 +104,14 @@
   </div>
 </select>
 
+<select class=test
+        data-description='Input tags should close select when directly inside an <option>'
+        data-expect='<option></option>'>
+  <option>
+    <input>
+  </option>
+</select>
+
 <div id=afterlast>
   keep this div after the last test case
 </div>

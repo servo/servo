@@ -89,7 +89,8 @@ function run_generic_sensor_iframe_tests(sensorData, readingData) {
     };
 
     // Create main frame sensor.
-    await test_driver.set_permission({name: permissionName}, 'granted');
+    await test_driver.bidi.permissions.set_permission(
+        {descriptor: {name: permissionName}, state: 'granted'});
     await test_driver.create_virtual_sensor(testDriverName);
     const sensor = new sensorType();
     t.add_cleanup(async () => {
@@ -192,7 +193,8 @@ function run_generic_sensor_iframe_tests(sensorData, readingData) {
 
   sensor_test(async (t, readings) => {
     // Create main frame sensor.
-    await test_driver.set_permission({name: permissionName}, 'granted');
+    await test_driver.bidi.permissions.set_permission(
+        {descriptor: {name: permissionName}, state: 'granted'});
     await test_driver.create_virtual_sensor(testDriverName);
     const sensor = new sensorType();
     t.add_cleanup(async () => {
@@ -277,7 +279,8 @@ function run_generic_sensor_iframe_tests(sensorData, readingData) {
     await iframeLoadWatcher.wait_for('load');
 
     // Create sensor in the iframe.
-    await test_driver.set_permission({name: permissionName}, 'granted');
+    await test_driver.bidi.permissions.set_permission(
+        {descriptor: {name: permissionName}, state: 'granted'});
     await test_driver.create_virtual_sensor(testDriverName);
     iframe.contentWindow.focus();
     const iframeSensor = new iframe.contentWindow[sensorName]();
@@ -310,7 +313,8 @@ function run_generic_sensor_iframe_tests(sensorData, readingData) {
     await iframeLoadWatcher.wait_for('load');
 
     // Create sensor in the iframe.
-    await test_driver.set_permission({name: permissionName}, 'granted');
+    await test_driver.bidi.permissions.set_permission(
+        {descriptor: {name: permissionName}, state: 'granted'});
     await test_driver.create_virtual_sensor(testDriverName);
     const iframeSensor = new iframe.contentWindow[sensorName]();
     t.add_cleanup(async () => {

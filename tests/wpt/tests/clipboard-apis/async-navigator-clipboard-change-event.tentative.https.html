@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>
+  'clipboardchange' event should be fired upon setting clipboard using JS
+</title>
+<link rel="help" href="https://www.w3.org/TR/clipboard-apis/#clipboard-event-clipboardchange" />
+
+<body>
+  Body needed for test_driver.click()
+  <p><button id="button">Put payload in the clipboard</button></p>
+  <div id="output"></div>
+  <iframe id="iframe" srcdoc="<p>Some text</p>"></iframe>
+  <link rel="help" href="https://issues.chromium.org/issues/41442253" />
+
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="resources/user-activation.js"></script>
+
+  <script>
+    function waitForRender() {
+      return new Promise(resolve => {
+        requestAnimationFrame(() => requestAnimationFrame(resolve));
+      });
+    }
+
+    button.onclick = () => document.execCommand("copy");
+    document.oncopy = (ev) => {
+      ev.preventDefault();
+      ev.clipboardData.setData("text/html", `<div>Test html</div>`);
+    };
+
+    function triggerCopyToClipboard() {
+      return test_driver.click(button);
+    }
+
+    promise_test(async (test) => {
+      let clipboardChangeEventCount = 0;
+      let eventType = "";
+      navigator.clipboard.addEventListener("clipboardchange", (ev) => {
+        clipboardChangeEventCount++;
+        eventType = ev.type;
+      });
+      await triggerCopyToClipboard();
+      assert_equals(clipboardChangeEventCount, 1, "clipboardchange event should be called exactly once");
+      assert_equals(eventType, "clipboardchange", "Event type should be 'clipboardchange'");
+    }, "clipboardchange event is invoked");
+
+    promise_test(async (test) => {
+      await tryGrantWritePermission();
+      let clipboardChangeEventCount = 0;
+      navigator.clipboard.addEventListener("clipboardchange", (ev) => {
+        clipboardChangeEventCount++;
+      });
+      await navigator.clipboard.writeText("Test text");
+      await waitForRender();
+      assert_equals(clipboardChangeEventCount, 1, "clipboardchange event should be called exactly once");
+    }, "clipboardchange event is invoked with async clipboard API");
+
+    promise_test(async (test) => {
+      let onClipboardChangeAttributeCount = 0;
+      navigator.clipboard.onclipboardchange = () => {
+        onClipboardChangeAttributeCount++;
+      };
+      await triggerCopyToClipboard();
+      assert_equals(onClipboardChangeAttributeCount, 1, "onclipboardchange attribute should be called exactly once");
+    }, "clipboardchange event is invoked using onclipboardchange attribute");
+
+    promise_test(async (test) => {
+      let listenerCallCount = 0;
+      function clipboardChangeListener() {
+        listenerCallCount++;
+      }
+
+      // 1. Add listener and verify it's called
+      navigator.clipboard.addEventListener("clipboardchange", clipboardChangeListener);
+      await triggerCopyToClipboard();
+      assert_equals(listenerCallCount, 1, "Event listener should be called exactly once after adding");
+
+      // 2. Remove listener and verify it's not called
+      navigator.clipboard.removeEventListener("clipboardchange", clipboardChangeListener);
+      await triggerCopyToClipboard();
+      assert_equals(listenerCallCount, 1, "Event listener should not be called after removing");
+
+      // 3. Re-add listener and verify it's called again
+      navigator.clipboard.addEventListener("clipboardchange", clipboardChangeListener);
+      await triggerCopyToClipboard();
+      assert_equals(listenerCallCount, 2, "Event listener should be called exactly once after re-adding");
+    }, "clipboardchange event listener behavior when adding, removing, and re-adding");
+
+    promise_test(async (test) => {
+      // Focus the document and acquire permission to write to the clipboard
+      await test_driver.click(document.body);
+      await tryGrantWritePermission();
+
+      const iframe = document.getElementById('iframe');
+
+      let frameEventCount = 0;
+      let focusEventFired = false;
+      iframe.contentWindow.addEventListener("focus", () => {
+        focusEventFired = true;
+      });
+
+      // Add listener to iframe
+      iframe.contentWindow.navigator.clipboard.addEventListener("clipboardchange", () => {
+        assert_true(focusEventFired, "focus event should fire before clipboardchange event");
+        frameEventCount++;
+      });
+
+      // Ensure iFrame doesn't have the focus
+      assert_false(iframe.contentWindow.document.hasFocus(), "iFrame should not have focus");
+      assert_false(focusEventFired, "focus event should not have fired yet");
+
+      // Trigger multiple clipboard changes
+      await navigator.clipboard.writeText("Test text");
+      await navigator.clipboard.writeText("Test text 2");
+      await waitForRender();
+
+      assert_equals(frameEventCount, 0, "iframe should not recieve any clipboardchange event yet");
+
+      iframe.focus();
+      assert_true(iframe.contentWindow.document.hasFocus(), "iFrame should have focus");
+      assert_equals(frameEventCount, 1, "iframe should receive event only 1 event after focus");
+    }, "clipboardchange event should only fire in the focused context");
+  </script>
+</body>

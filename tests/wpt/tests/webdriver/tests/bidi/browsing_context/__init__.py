@@ -54,8 +54,7 @@ def assert_browsing_context(
     assert info["url"] == url
     assert info["userContext"] == user_context
     assert info["originalOpener"] == original_opener
-    if client_window is not None:
-        assert info["clientWindow"] == client_window
+    assert info["clientWindow"] == client_window
 
 
 async def assert_document_status(bidi_session, context, visible, focused):
@@ -107,3 +106,14 @@ async def get_visibility_state(bidi_session, context: Mapping[str, Any]) -> str:
         target=ContextTarget(context["context"]),
         await_promise=False)
     return result["value"]
+
+
+def find_context_info(contexts, context):
+    return next(
+        (
+            context_info
+            for context_info in contexts
+            if context_info["context"] == context
+        ),
+        None,
+    )

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="../resources/util.js"></script>
+<body></body>
+<script>
+'use strict';
+
+const { HTTPS_ORIGIN, HTTPS_NOTSAMESITE_ORIGIN } = get_host_info();
+const PATH = location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1);
+const IFRAME_PATH = PATH + 'resources/iframe-helper.html';
+
+promise_test(async t => {
+  const src = HTTPS_NOTSAMESITE_ORIGIN + IFRAME_PATH;
+  const iframe = await load_iframe(src, /*permission_policy=*/'');
+  await promise_rejects_dom(t, 'NotAllowedError', run_iframe_test(iframe, 'WriterCreate'));
+}, 'Throw a \'NotAllowedError\' when creating Writer within cross-origin iframe');
+
+promise_test(async t => {
+  const src = HTTPS_NOTSAMESITE_ORIGIN + IFRAME_PATH;
+  const iframe = await load_iframe(src, 'writer');
+  assert_equals(await run_iframe_test(iframe, 'WriterCreate'), 'Success');
+}, 'Writer can be created within cross-origin iframe with permission policy');
+
+promise_test(async t => {
+  const src = HTTPS_ORIGIN + IFRAME_PATH;
+  const iframe = await load_iframe(src, /*permission_policy=*/'');
+  assert_equals(await run_iframe_test(iframe, 'WriterCreate'), 'Success');
+}, 'Writer can be used within same-origin iframe');
+
+promise_test(async t => {
+  const src = HTTPS_NOTSAMESITE_ORIGIN + IFRAME_PATH;
+  const iframe = await load_iframe(src, /*permission_policy=*/'');
+  assert_equals(
+    await run_iframe_test(iframe, 'WriterAvailability'), 'unavailable');
+}, 'Writer is unavailable within cross-origin iframe');
+
+promise_test(async t => {
+  const src = HTTPS_NOTSAMESITE_ORIGIN + IFRAME_PATH;
+  const iframe = await load_iframe(src, 'writer');
+  assert_in_array(
+    await run_iframe_test(iframe, 'WriterAvailability'),
+    kAvailableAvailabilities);
+}, 'Writer is available within cross-origin iframe with permission policy');
+
+promise_test(async t => {
+  const src = HTTPS_ORIGIN + IFRAME_PATH;
+  const iframe = await load_iframe(src, /*permission_policy=*/'');
+  assert_in_array(
+    await run_iframe_test(iframe, 'WriterAvailability'),
+    kAvailableAvailabilities);
+}, 'Writer is available within same-origin iframe');
+
+</script>

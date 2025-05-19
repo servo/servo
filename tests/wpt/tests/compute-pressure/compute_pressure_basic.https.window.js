@@ -31,13 +31,34 @@ pressure_test(async (t) => {
     const observer = new PressureObserver(resolve);
     t.add_cleanup(() => observer.disconnect());
     observer.observe('cpu').catch(reject);
+    update_virtual_pressure_source('cpu', 'critical', 0.5).catch(reject);
+  });
+  assert_equals(1, changes.length);
+  assert_equals(changes[0].state, 'critical');
+  assert_equals(changes[0].source, 'cpu');
+  assert_equals(typeof changes[0].time, 'number');
+  assert_equals(typeof changes[0].ownContributionEstimate, 'number');
+  assert_equals(changes[0].ownContributionEstimate, 0.5);
+}, 'Basic functionality test');
+
+pressure_test(async (t) => {
+  await create_virtual_pressure_source('cpu');
+  t.add_cleanup(async () => {
+    await remove_virtual_pressure_source('cpu');
+  });
+
+  const changes = await new Promise((resolve, reject) => {
+    const observer = new PressureObserver(resolve);
+    t.add_cleanup(() => observer.disconnect());
+    observer.observe('cpu').catch(reject);
     update_virtual_pressure_source('cpu', 'critical').catch(reject);
   });
   assert_equals(1, changes.length);
   assert_equals(changes[0].state, 'critical');
   assert_equals(changes[0].source, 'cpu');
   assert_equals(typeof changes[0].time, 'number');
-}, 'Basic functionality test');
+  assert_equals(changes[0].ownContributionEstimate, null);
+}, 'Basic functionality test with no ownContributionEstimate');
 
 pressure_test(async (t) => {
   await create_virtual_pressure_source('cpu');

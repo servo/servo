@@ -43,8 +43,8 @@ function remove_virtual_pressure_source(source) {
   return send_message({command: 'remove', params: [source]});
 }
 
-function update_virtual_pressure_source(source, state) {
-  return send_message({command: 'update', params: [source, state]});
+function update_virtual_pressure_source(source, state, estimate) {
+  return send_message({command: 'update', params: [source, state, estimate]});
 }
 
 const uuid = new URLSearchParams(location.search).get('uuid');

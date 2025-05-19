@@ -37,6 +37,10 @@ export function set_alt_fedcm_cookie() {
   return set_fedcm_cookie(alt_manifest_origin);
 }
 
+export function setup_accounts_push(origin = manifest_origin) {
+  return open_and_wait_for_popup(origin, '/fedcm/support/push_accounts');
+}
+
 export function mark_signed_in(origin = manifest_origin) {
   return open_and_wait_for_popup(origin, '/fedcm/support/mark_signedin');
 }

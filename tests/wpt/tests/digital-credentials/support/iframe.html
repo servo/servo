@@ -27,8 +27,8 @@
       }
       data.options.signal = abortController.signal;
     }
-    if (data.needsActivation) {
-      await test_driver.bless("user activation", null, window);
+    if (data.needsActivation && !navigator.userActivation.isActive) {
+      await test_driver.bless("user activation");
     }
     let result;
     try {

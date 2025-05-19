@@ -40,6 +40,17 @@
     } else if (opname === 'push-state') {
       history.pushState("foo", null, "some/path");
       event.source.postMessage('pushState called');
+    } else if (opname === "set-host-cookie") {
+      const { name, value } = event.data
+      await cookieStore.set({
+        name,
+        value,
+      });
+      event.source.postMessage('Cookie has been set', event.origin);
+    } else if (opname === "delete-host-cookie") {
+      const { name} = event.data
+      await cookieStore.delete({ name: name});
+      event.source.postMessage('Cookie has been deleted', event.origin);
     }
   });
 </script>

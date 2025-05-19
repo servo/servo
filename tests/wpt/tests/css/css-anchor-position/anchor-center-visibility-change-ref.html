@@ -17,16 +17,43 @@
   background: lime;
 }
 
-.target {
-  position: fixed;
-  background: cyan;
-  left: 111px;
+.target-inner {
+  width: 30px;
+  height: 20px;
 }
+
+.target {
+  position: absolute;
+}
+
+#target-1 {
+  background: cyan;
+  left: 50px;
+}
+
+#target-2 {
+  top: 20px;
+  left: 0;
+  background: blue;
+}
+
+#target-3 {
+  top: 20px;
+  left: 50px;
+  background: magenta;
+}
+
 </style>
 
 <div class="container">
   <div class="anchor"></div>
-  <div class="target">
-    <div style="width:30px;height:20px;"></div>
+  <div id="target-1" class="target">
+    <div class="target-inner"></div>
+  </div>
+  <div id="target-2" class="target">
+    <div class="target-inner"></div>
+  </div>
+  <div id="target-3" class="target">
+    <div class="target-inner"></div>
   </div>
 </div>

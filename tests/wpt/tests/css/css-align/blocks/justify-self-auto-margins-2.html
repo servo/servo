@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <link rel="help" href="https://drafts.csswg.org/css-align-3/#justify-abspos">
 <link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
-<meta name="assert"
-  content="auto margins are calculated correctly when justify-self is specified but should have no effect" />
+<meta name="assert" content="auto margins do not disable fit-content sizing when justify-self is specified">
 <style>
   #reference-overlapped-red {
     position: absolute;
@@ -18,9 +17,8 @@
 
 <div id=reference-overlapped-red></div>
 
-<div style="width: 100px;">
-  <div
-    style="height:100px; margin: auto; justify-self: right; background: green;">
-    <div style="width: 50px;"></div>
+<div style="width: 200px; margin-left: -50px;">
+  <div style="height:100px; margin: auto; justify-self: right; background: green;">
+    <div style="width: 100px;"></div>
   </div>
 </div>

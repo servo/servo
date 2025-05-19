@@ -201,17 +201,7 @@ fn traverse_children_of<'dom>(
 ) {
     traverse_eager_pseudo_element(PseudoElement::Before, parent_element, context, handler);
 
-    let is_text_input_element = matches!(
-        parent_element.type_id(),
-        LayoutNodeType::Element(LayoutElementType::HTMLInputElement)
-    );
-
-    let is_textarea_element = matches!(
-        parent_element.type_id(),
-        LayoutNodeType::Element(LayoutElementType::HTMLTextAreaElement)
-    );
-
-    if is_text_input_element || is_textarea_element {
+    if parent_element.is_text_input() {
         let info = NodeAndStyleInfo::new(
             parent_element,
             parent_element.style(context.shared_context()),
@@ -229,9 +219,7 @@ fn traverse_children_of<'dom>(
         } else {
             handler.handle_text(&info, node_text_content);
         }
-    }
-
-    if !is_text_input_element && !is_textarea_element {
+    } else {
         for child in iter_child_nodes(parent_element) {
             if child.is_text_node() {
                 let info = NodeAndStyleInfo::new(child, child.style(context.shared_context()));

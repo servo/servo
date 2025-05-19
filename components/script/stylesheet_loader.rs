@@ -163,7 +163,8 @@ impl FetchResponseListener for StylesheetContext {
                 Some(meta) => meta,
                 None => return,
             };
-            let is_css = metadata.content_type.is_some_and(|ct| {
+
+            let mut is_css = metadata.content_type.is_some_and(|ct| {
                 let mime: Mime = ct.into_inner().into();
                 mime.type_() == mime::TEXT && mime.subtype() == mime::CSS
             }) || (
@@ -176,6 +177,17 @@ impl FetchResponseListener for StylesheetContext {
                 document.quirks_mode() == QuirksMode::Quirks &&
                     document.origin().immutable().clone() == metadata.final_url.origin()
             );
+
+            // From <https://html.spec.whatwg.org/multipage/#link-type-stylesheet>:
+            // > Quirk: If the document has been set to quirks mode, has the same origin as
+            // > the URL of the external resource, and the Content-Type metadata of the
+            // > external resource is not a supported style sheet type, the user agent must
+            // > instead assume it to be text/css.
+            if document.quirks_mode() == QuirksMode::Quirks &&
+                document.url().origin() == self.url.origin()
+            {
+                is_css = true;
+            }
 
             let data = if is_css {
                 let data = std::mem::take(&mut self.data);

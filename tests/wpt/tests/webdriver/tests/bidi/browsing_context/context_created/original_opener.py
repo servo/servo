@@ -1,7 +1,7 @@
 import pytest
 from webdriver.bidi.modules.script import ContextTarget
 
-from .. import assert_browsing_context
+from .. import assert_browsing_context, find_context_info
 
 pytestmark = pytest.mark.asyncio
 
@@ -15,6 +15,7 @@ async def test_original_opener_context_create(bidi_session, wait_for_event, wait
     on_created = wait_for_event(CONTEXT_CREATED_EVENT)
 
     top_level_context = await bidi_session.browsing_context.create(type_hint=type_hint)
+    contexts = await bidi_session.browsing_context.get_tree(root=top_level_context["context"])
 
     context_info = await wait_for_future_safe(on_created)
 
@@ -23,6 +24,7 @@ async def test_original_opener_context_create(bidi_session, wait_for_event, wait
         context=top_level_context["context"],
         original_opener=None,
         url="about:blank",
+        client_window=contexts[0]["clientWindow"]
     )
 
 
@@ -57,9 +59,16 @@ async def test_original_opener_window_open(bidi_session, wait_for_event, wait_fo
     if returns_window:
         context = result["value"]["context"]
 
+    contexts = await bidi_session.browsing_context.get_tree()
+
+    assert len(contexts) == 3
+
+    found_context = find_context_info(contexts, context_info["context"])
+
     assert_browsing_context(
         context_info,
         context=context,
         original_opener=top_level_context["context"],
         url="about:blank",
+        client_window=found_context["clientWindow"]
     )

@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::iter::Peekable;
-use std::str::Chars;
+use std::str::{Chars, FromStr};
 
+use data_url::mime::Mime as DataUrlMime;
 use headers::HeaderMap;
 
 /// <https://fetch.spec.whatwg.org/#http-tab-or-space>
@@ -183,4 +184,94 @@ fn collect_http_quoted_string(position: &mut Peekable<Chars>, extract_value: boo
 
     // Step 6, 7
     value
+}
+
+/// <https://fetch.spec.whatwg.org/#concept-header-extract-mime-type>
+/// This function uses data_url::Mime to parse the MIME Type because
+/// mime::Mime does not provide a parser following the Fetch spec
+/// see <https://github.com/hyperium/mime/issues/106>
+pub fn extract_mime_type_as_dataurl_mime(headers: &HeaderMap) -> Option<DataUrlMime> {
+    // > 1: Let charset be null.
+    let mut charset = None;
+    // > 2: Let essence be null.
+    let mut essence = String::new();
+    // > 3: Let mimeType be null.
+    let mut mime_type = None;
+
+    // > 4: Let values be the result of getting, decoding, and splitting `Content-Type`
+    // from headers.
+    // > 5: If values is null, then return failure.
+    let headers_values = get_decode_and_split_header_name("content-type", headers)?;
+
+    // > 6: For each value of values:
+    for header_value in headers_values.iter() {
+        // > 6.1: Let temporaryMimeType be the result of parsing value.
+        match DataUrlMime::from_str(header_value) {
+            // > 6.2: If temporaryMimeType is failure or its essence is "*/*", then continue.
+            Err(_) => continue,
+            Ok(temp_mime) => {
+                let temp_essence = format!("{}/{}", temp_mime.type_, temp_mime.subtype);
+
+                // > 6.2: If temporaryMimeType is failure or its essence is "*/*", then
+                // continue.
+                if temp_essence == "*/*" {
+                    continue;
+                }
+
+                // > 6.3: Set mimeType to temporaryMimeType.
+                mime_type = Some(DataUrlMime {
+                    type_: temp_mime.type_.to_string(),
+                    subtype: temp_mime.subtype.to_string(),
+                    parameters: temp_mime.parameters.clone(),
+                });
+
+                // > 6.4: If mimeType’s essence is not essence, then:
+                let temp_charset = &temp_mime.get_parameter("charset");
+                if temp_essence != essence {
+                    // > 6.4.1: Set charset to null.
+                    // > 6.4.2: If mimeType’s parameters["charset"] exists, then set
+                    //   charset to mimeType’s parameters["charset"].
+                    charset = temp_charset.map(|c| c.to_string());
+                    // > 6.4.3: Set essence to mimeType’s essence.
+                    essence = temp_essence.to_owned();
+                } else {
+                    // > 6.5: Otherwise, if mimeType’s parameters["charset"] does not exist,
+                    //   and charset is non-null, set mimeType’s parameters["charset"] to charset.
+                    if temp_charset.is_none() && charset.is_some() {
+                        let DataUrlMime {
+                            type_: t,
+                            subtype: st,
+                            parameters: p,
+                        } = mime_type.unwrap();
+                        let mut params = p;
+                        params.push(("charset".to_string(), charset.clone().unwrap()));
+                        mime_type = Some(DataUrlMime {
+                            type_: t.to_string(),
+                            subtype: st.to_string(),
+                            parameters: params,
+                        })
+                    }
+                }
+            },
+        }
+    }
+
+    // > 7: If mimeType is null, then return failure.
+    // > 8: Return mimeType.
+    mime_type
+}
+
+pub fn extract_mime_type(headers: &HeaderMap) -> Option<Vec<u8>> {
+    extract_mime_type_as_dataurl_mime(headers).map(|m| format!("{}", m).into_bytes())
+}
+
+pub fn extract_mime_type_as_mime(headers: &HeaderMap) -> Option<mime::Mime> {
+    extract_mime_type_as_dataurl_mime(headers).and_then(|mime: DataUrlMime| {
+        // Try to transform a data-url::mime::Mime into a mime::Mime
+        let mut mime_as_str = format!("{}/{}", mime.type_, mime.subtype);
+        for p in mime.parameters {
+            mime_as_str.push_str(format!("; {}={}", p.0, p.1).as_str());
+        }
+        mime_as_str.parse().ok()
+    })
 }

@@ -4,9 +4,13 @@ from .. import assert_browsing_context
 
 pytestmark = pytest.mark.asyncio
 
+CONTEXT_CREATED_EVENT = "browsingContext.contextCreated"
 
 @pytest.mark.parametrize("type_hint", ["tab", "window"])
-async def test_user_context(bidi_session, type_hint, create_user_context):
+async def test_user_context(bidi_session,  wait_for_event, wait_for_future_safe, subscribe_events, type_hint, create_user_context):
+    await subscribe_events([CONTEXT_CREATED_EVENT])
+
+    on_entry = wait_for_event(CONTEXT_CREATED_EVENT)
     contexts = await bidi_session.browsing_context.get_tree(max_depth=0)
     assert len(contexts) == 1
 
@@ -18,6 +22,7 @@ async def test_user_context(bidi_session, type_hint, create_user_context):
     new_context = await bidi_session.browsing_context.create(
         user_context=user_context, type_hint=type_hint
     )
+    context_info = await wait_for_future_safe(on_entry)
 
     contexts = await bidi_session.browsing_context.get_tree(max_depth=0)
     assert len(contexts) == 2
@@ -30,16 +35,21 @@ async def test_user_context(bidi_session, type_hint, create_user_context):
         parent=None,
         url="about:blank",
         user_context=user_context,
+        client_window=context_info["clientWindow"]
     )
 
 
-async def test_user_context_default(bidi_session, create_user_context):
+async def test_user_context_default(bidi_session, wait_for_event, wait_for_future_safe, subscribe_events, create_user_context):
+    await subscribe_events([CONTEXT_CREATED_EVENT])
+
+    on_entry = wait_for_event(CONTEXT_CREATED_EVENT)
     user_context = await create_user_context()
 
     # Create a browsing context with userContext set to "default"
     context_1 = await bidi_session.browsing_context.create(
         type_hint="tab", user_context="default"
     )
+    context_info_1 = await wait_for_future_safe(on_entry)
     context_tree_1 = await bidi_session.browsing_context.get_tree(
         max_depth=0, root=context_1["context"]
     )
@@ -48,12 +58,14 @@ async def test_user_context_default(bidi_session, create_user_context):
         context_1["context"],
         url="about:blank",
         user_context="default",
+        client_window=context_info_1["clientWindow"],
     )
 
     # Create a browsing context with no userContext parameter
     context_2 = await bidi_session.browsing_context.create(
         type_hint="tab",
     )
+    context_info_2 = await wait_for_future_safe(on_entry)
     context_tree_2 = await bidi_session.browsing_context.get_tree(
         max_depth=0, root=context_2["context"]
     )
@@ -62,6 +74,7 @@ async def test_user_context_default(bidi_session, create_user_context):
         context_2["context"],
         url="about:blank",
         user_context="default",
+        client_window=context_info_2["clientWindow"],
     )
 
 

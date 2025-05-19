@@ -96,6 +96,10 @@ impl<'dom> ServoLayoutNode<'dom> {
             .map(LayoutDom::upcast)
             .map(ServoLayoutElement::from_layout_js)
     }
+
+    pub fn is_text_input(&self) -> bool {
+        self.node.is_text_input()
+    }
 }
 
 impl style::dom::NodeInfo for ServoLayoutNode<'_> {

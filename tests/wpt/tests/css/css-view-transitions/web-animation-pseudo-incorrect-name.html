@@ -3,6 +3,7 @@
 <title>View transitions: creating animation for non-existant view transition pseudo</title>
 <link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
 <link rel="author" href="mailto:khushalsagar@chromium.org">
+<script src="/dom/events/scrolling/scroll_support.js"></script>
 
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -22,18 +23,16 @@ div {
 <script>
 promise_test(async t => {
   assert_implements(document.startViewTransition, "Missing document.startViewTransition");
-  return new Promise(async (resolve, reject) => {
+  await waitForCompositorReady();
+  return new Promise(async (resolve) => {
     let transition = document.startViewTransition();
     await transition.ready;
 
     let animation = document.documentElement.animate(
         { transform: ['translate(100px)', 'translate(200px)'] },
         {duration: 100, pseudoElement: '::view-transition-group(bad-target)', fill: "forwards"});
-
-    requestAnimationFrame(() => {
-      animation.currentTime = 200;
-      requestAnimationFrame(() => requestAnimationFrame(resolve));
-    });
+    assert_true(!!animation, "animation is created");
+    resolve();
   });
 }, "animation created with incorrect name");
 </script>

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Content Test: counter() in alt text parsing</title>
+<link rel="help" href="https://drafts.csswg.org/css-content-3/#content-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<div id="target"></div>
+<script>
+  test_valid_value("content", `"" / counter(cnt)`);
+  test_valid_value("content", `"regular text" / "alt text 1" counter(cnt) "alt text 2"`);
+  test_valid_value("content", `"regular text" / counter(cnt) "alt text"`);
+</script>

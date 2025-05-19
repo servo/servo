@@ -78,6 +78,15 @@ impl BlockContainer {
             BlockContainer::InlineFormattingContext(context) => context.contains_floats,
         }
     }
+
+    pub(crate) fn repair_style(&mut self, node: &ServoLayoutNode, new_style: &Arc<ComputedValues>) {
+        match self {
+            BlockContainer::BlockLevelBoxes(..) => {},
+            BlockContainer::InlineFormattingContext(inline_formatting_context) => {
+                inline_formatting_context.repair_style(node, new_style)
+            },
+        }
+    }
 }
 
 #[derive(Debug, MallocSizeOf)]
@@ -106,20 +115,21 @@ impl BlockLevelBox {
 
         match self {
             BlockLevelBox::Independent(independent_formatting_context) => {
-                independent_formatting_context.repair_style(context, new_style)
+                independent_formatting_context.repair_style(context, node, new_style)
             },
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(positioned_box) => positioned_box
                 .borrow_mut()
                 .context
-                .repair_style(context, new_style),
+                .repair_style(context, node, new_style),
             BlockLevelBox::OutOfFlowFloatBox(float_box) => {
-                float_box.contents.repair_style(context, new_style)
+                float_box.contents.repair_style(context, node, new_style)
             },
             BlockLevelBox::OutsideMarker(outside_marker) => {
                 outside_marker.repair_style(context, node, new_style)
             },
-            BlockLevelBox::SameFormattingContextBlock { base, .. } => {
+            BlockLevelBox::SameFormattingContextBlock { base, contents, .. } => {
                 base.repair_style(new_style);
+                contents.repair_style(node, new_style);
             },
         }
     }
@@ -476,6 +486,10 @@ impl BlockFormattingContext {
     #[inline]
     pub(crate) fn layout_style<'a>(&self, base: &'a LayoutBoxBase) -> LayoutStyle<'a> {
         LayoutStyle::Default(&base.style)
+    }
+
+    pub(crate) fn repair_style(&mut self, node: &ServoLayoutNode, new_style: &Arc<ComputedValues>) {
+        self.contents.repair_style(node, new_style);
     }
 }
 

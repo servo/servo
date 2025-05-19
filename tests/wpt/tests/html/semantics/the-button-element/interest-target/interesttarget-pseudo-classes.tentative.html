@@ -128,6 +128,28 @@ promise_test(async (t) => {
 promise_test(async (t) => {
   checkPseudos(invoker,target,false,false,false,false,'initial');
   await focusOn(invoker);
+  checkPseudos(invoker,target,true,true,true,true,'focusing invoker shows partial interest');
+  invoker.setAttribute('style',`interest-target-delay: 10000s`);
+  await hoverOver(target);
+  checkPseudos(invoker,target,false,true,false,true,'invoker now has full interest');
+  assert_equals(document.activeElement,invoker,'focus does not move in this case');
+  await do_cleanup();
+},'Hovering the popover confers "full interest", without any delays');
+
+promise_test(async (t) => {
+  checkPseudos(invoker,target,false,false,false,false,'initial');
+  await focusOn(invoker);
+  checkPseudos(invoker,target,true,true,true,true,'focusing invoker shows partial interest');
+  invoker.setAttribute('style',`interest-target-delay: 10000s`);
+  await hoverOver(invoker);
+  checkPseudos(invoker,target,false,true,false,true,'invoker now has full interest');
+  assert_equals(document.activeElement,invoker,'focus does not move in this case');
+  await do_cleanup();
+},'Hovering the invoker confers "full interest", without any delays');
+
+promise_test(async (t) => {
+  checkPseudos(invoker,target,false,false,false,false,'initial');
+  await focusOn(invoker);
   await sendShowInterestHotkey();
   checkPseudos(invoker,target,false,true,false,true,'invoker now has full interest');
   await sendTab();
@@ -151,6 +173,27 @@ promise_test(async (t) => {
   checkPseudos(invoker,target,false,false,false,false,'Hot key loses interest immediately (no delays)');
   await do_cleanup();
 },`Lose interest hotkey works`);
+
+promise_test(async (t) => {
+  checkPseudos(invoker,target,false,false,false,false,'initial');
+  await focusOn(invoker);
+  checkPseudos(invoker,target,true,true,true,true,'focusing invoker shows partial interest');
+  invoker.setAttribute('style',`interest-target-delay: 10000s`);
+  target.hidePopover();
+  checkPseudos(invoker,target,false,false,false,false,'closing the popover loses interest');
+  assert_equals(document.activeElement,invoker,'focus does not move');
+  await do_cleanup();
+},'Closing the target popover loses interest, without any delays (keyboard activation)');
+
+promise_test(async (t) => {
+  checkPseudos(invoker,target,false,false,false,false,'initial');
+  await hoverOver(invoker);
+  checkPseudos(invoker,target,false,true,false,true,'hovering invoker shows full interest (and not partial interest)');
+  invoker.setAttribute('style',`interest-target-delay: 10000s`);
+  target.hidePopover();
+  checkPseudos(invoker,target,false,false,false,false,'closing the popover loses interest');
+  await do_cleanup();
+},'Closing the target popover loses interest, without any delays (mouse activation)');
 
 const invokerDelayMs = 100; // The CSS delay setting.
 const hoverWaitTime = 200; // How long to wait to cover the delay for sure.

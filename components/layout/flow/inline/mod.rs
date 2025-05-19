@@ -91,6 +91,7 @@ use line_breaker::LineBreaker;
 use malloc_size_of_derive::MallocSizeOf;
 use range::Range;
 use script::layout_dom::ServoLayoutNode;
+use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use servo_arc::Arc;
 use style::Zero;
 use style::computed_values::text_wrap_mode::T as TextWrapMode;
@@ -157,6 +158,10 @@ pub(crate) struct InlineFormattingContext {
     /// A store of font information for all the shaped segments in this formatting
     /// context in order to avoid duplicating this information.
     pub font_metrics: Vec<FontKeyAndMetrics>,
+
+    /// The [`SharedInlineStyles`] for the root of this [`InlineFormattingContext`] that are used to
+    /// share styles with all [`TextRun`] children.
+    pub(super) shared_inline_styles: SharedInlineStyles,
 
     pub(super) text_decoration_line: TextDecorationLine,
 
@@ -237,12 +242,14 @@ impl InlineItem {
             InlineItem::OutOfFlowAbsolutelyPositionedBox(positioned_box, ..) => positioned_box
                 .borrow_mut()
                 .context
-                .repair_style(context, new_style),
+                .repair_style(context, node, new_style),
             InlineItem::OutOfFlowFloatBox(float_box) => float_box
                 .borrow_mut()
                 .contents
-                .repair_style(context, new_style),
-            InlineItem::Atomic(atomic, ..) => atomic.borrow_mut().repair_style(context, new_style),
+                .repair_style(context, node, new_style),
+            InlineItem::Atomic(atomic, ..) => {
+                atomic.borrow_mut().repair_style(context, node, new_style)
+            },
         }
     }
 
@@ -1699,12 +1706,22 @@ impl InlineFormattingContext {
             inline_items: builder.inline_items,
             inline_boxes: builder.inline_boxes,
             font_metrics,
+            shared_inline_styles: builder
+                .shared_inline_styles_stack
+                .last()
+                .expect("Should have at least one SharedInlineStyle for the root of an IFC")
+                .clone(),
             text_decoration_line: propagated_data.text_decoration,
             has_first_formatted_line,
             contains_floats: builder.contains_floats,
             is_single_line_text_input,
             has_right_to_left_content,
         }
+    }
+
+    pub(crate) fn repair_style(&self, node: &ServoLayoutNode, new_style: &Arc<ComputedValues>) {
+        *self.shared_inline_styles.style.borrow_mut() = new_style.clone();
+        *self.shared_inline_styles.selected.borrow_mut() = node.to_threadsafe().selected_style();
     }
 
     pub(super) fn layout(

@@ -82,13 +82,13 @@
   </style>
 </template>
 
-<template data-name="attr() cycle through fallback in local">
+<template data-name="attr() cycle through unused fallback in local">
   <style>
     @function --f() {
-      --valid: valid;
+      --valid: PASS;
       --x: var(--valid, attr(data-x type(*)));
-      --y: attr(data-x type(*), PASS);
-      result: var(--y, PASS);
+      --y: attr(data-x type(*), FAIL);
+      result: var(--y, FAIL);
     }
     #target {
       --x: FAIL1;

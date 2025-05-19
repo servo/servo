@@ -7,7 +7,7 @@
 <script src="/resources/testdriver-vendor.js"></script>
 
 <style>
-select, select::picker(select) {
+select, ::picker(select) {
   appearance: base-select;
 }
 </style>
@@ -92,8 +92,6 @@ promise_test(async () => {
   optionOne.remove();
   assert_equals(selectedcontent.innerHTML, '',
     'The content of <selectedcontent> should be cleared if there is no selected <option>.');
-
-  // TODO(crbug.com/336844298): Add tests for mutation records during parsing
 }, 'The <selectedcontent> element should reflect the HTML contents of the selected <option>.');
 </script>
 

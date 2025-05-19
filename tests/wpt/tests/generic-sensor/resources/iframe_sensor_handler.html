@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <title>cross-origin iframe sensor tester</title>
-<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/generic-sensor/resources/generic-sensor-helpers.js"></script>
 <script>
@@ -31,7 +31,8 @@
           // really work when permissions are granted by default. This can only
           // be fixed by testdriver.js allowing set_permission() to specify a
           // different origin.
-          await test_driver.set_permission({ name: permissionName }, 'granted');
+          await test_driver.bidi.permissions.set_permission(
+              {descriptor: {name: permissionName}, state: 'granted'});
           sensor = new self[sensorName]();
         }
         return Promise.resolve();

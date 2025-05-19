@@ -2,7 +2,11 @@ name: documentation
 on:
   push:
     branches:
-      - ubuntu-24.04
+      - master
+    paths:
+      - 'docs/**'
+      - 'resources/**'
+      - 'tools/**'
   pull_request:
     paths:
       - 'docs/**'
@@ -30,4 +34,4 @@ jobs:
       - name: Run website_build.sh
         run: ./tools/ci/website_build.sh
         env:
-          DEPLOY_TOKEN: dummy
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}

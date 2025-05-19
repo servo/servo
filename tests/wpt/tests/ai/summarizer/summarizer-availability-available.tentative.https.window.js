@@ -1,4 +1,5 @@
 // META: title=Summarizer Availability Available
+// META: script=/resources/testdriver.js
 // META: script=../resources/util.js
 // META: timeout=long
 

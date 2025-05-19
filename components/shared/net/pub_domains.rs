@@ -19,9 +19,11 @@ use std::iter::FromIterator;
 use std::sync::LazyLock;
 
 use embedder_traits::resources::{self, Resource};
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use malloc_size_of_derive::MallocSizeOf;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, MallocSizeOf)]
 pub struct PubDomainRules {
     rules: HashSet<String>,
     wildcards: HashSet<String>,
@@ -29,6 +31,10 @@ pub struct PubDomainRules {
 }
 
 static PUB_DOMAINS: LazyLock<PubDomainRules> = LazyLock::new(load_pub_domains);
+
+pub fn public_suffix_list_size_of(ops: &mut MallocSizeOfOps) -> usize {
+    PUB_DOMAINS.size_of(ops)
+}
 
 impl<'a> FromIterator<&'a str> for PubDomainRules {
     fn from_iter<T>(iter: T) -> Self

@@ -7,7 +7,9 @@
 setup({ single_test: true });
 const worker = new Worker("resources/worker-source-phase.js", { type: "module" });
 worker.onmessage = (msg) => {
-  assert_equals(msg.data, 42);
+  assert_equals(msg.data.value, 42);
+  assert_equals(msg.data.checks.length, 2);
+  msg.data.checks.forEach(assert_true);
   done();
 }
 </script>

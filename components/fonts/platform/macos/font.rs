@@ -287,7 +287,7 @@ impl PlatformFontMethods for PlatformFont {
             .unwrap_or(average_advance);
 
         let metrics = FontMetrics {
-            underline_size: Au::from_f64_au(underline_thickness),
+            underline_size: Au::from_f64_px(underline_thickness),
             // TODO(Issue #201): underline metrics are not reliable. Have to pull out of font table
             // directly.
             //

@@ -66,6 +66,7 @@ use constellation::{
 };
 use constellation_traits::{EmbedderToConstellationMessage, ScriptToConstellationChan};
 use crossbeam_channel::{Receiver, Sender, unbounded};
+use embedder_traits::FormControl as EmbedderFormControl;
 use embedder_traits::user_content_manager::UserContentManager;
 pub use embedder_traits::*;
 use env_logger::Builder as EnvLoggerBuilder;
@@ -125,8 +126,8 @@ pub use crate::servo_delegate::{ServoDelegate, ServoError};
 use crate::webrender_api::FrameReadyParams;
 pub use crate::webview::{WebView, WebViewBuilder};
 pub use crate::webview_delegate::{
-    AllowOrDenyRequest, AuthenticationRequest, FormControl, NavigationRequest, PermissionRequest,
-    SelectElement, WebResourceLoad, WebViewDelegate,
+    AllowOrDenyRequest, AuthenticationRequest, ColorPicker, FormControl, NavigationRequest,
+    PermissionRequest, SelectElement, WebResourceLoad, WebViewDelegate,
 };
 
 #[cfg(feature = "webdriver")]
@@ -965,18 +966,30 @@ impl Servo {
                     None => self.delegate().show_notification(notification),
                 }
             },
-            EmbedderMsg::ShowSelectElementMenu(
-                webview_id,
-                options,
-                selected_option,
-                position,
-                ipc_sender,
-            ) => {
+            EmbedderMsg::ShowFormControl(webview_id, position, form_control) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
-                    let prompt = SelectElement::new(options, selected_option, position, ipc_sender);
-                    webview
-                        .delegate()
-                        .show_form_control(webview, FormControl::SelectElement(prompt));
+                    let form_control = match form_control {
+                        EmbedderFormControl::SelectElement(
+                            options,
+                            selected_option,
+                            ipc_sender,
+                        ) => FormControl::SelectElement(SelectElement::new(
+                            options,
+                            selected_option,
+                            position,
+                            ipc_sender,
+                        )),
+                        EmbedderFormControl::ColorPicker(current_color, ipc_sender) => {
+                            FormControl::ColorPicker(ColorPicker::new(
+                                current_color,
+                                position,
+                                ipc_sender,
+                                self.servo_errors.sender(),
+                            ))
+                        },
+                    };
+
+                    webview.delegate().show_form_control(webview, form_control);
                 }
             },
         }

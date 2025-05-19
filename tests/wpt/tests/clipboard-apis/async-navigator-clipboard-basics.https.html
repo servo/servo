@@ -24,56 +24,6 @@ test(() => {
   assert_equals(navigator.clipboard, navigator.clipboard);
 }, 'navigator.clipboard exists');
 
-promise_test(async t => {
-  await getPermissions();
-  const text_plain = "This text was copied using `Clipboard.prototype.write`.";
-  const html_text = "<p style='color: red; font-style: oblique;'>Test</p>";
-  await navigator.clipboard.write([
-   new ClipboardItem({
-            "text/plain":  text_plain,
-            "text/html" : html_text
-        }),
-    ]);
-  }, 'navigator.clipboard.write(DOMString) succeeds');
-
-promise_test(async () => {
-  await getPermissions();
-  const promise_text_string = Promise.resolve('hello');
-  const promise_html_string = Promise.resolve("<p style='color: red; font-style: oblique;'>hello</p>");
-  const item = new ClipboardItem({
-    'text/plain': promise_text_string,
-    'text/html': promise_html_string
-  });
-  await navigator.clipboard.write([item]);
-}, 'navigator.clipboard.write(Promise<DOMString>) succeeds');
-
-promise_test(async t => {
-  await getPermissions();
-  const text_plain = 'hello';
-  const html_text = "<p style='color: red; font-style: oblique;'>hello</p>";
-  const image = await fetch("/clipboard-apis/resources/greenbox.png");
-  const item = new ClipboardItem({
-    'text/plain':  text_plain,
-    'text/html':  new Blob([html_text], {type: 'text/html'}),
-    'image/png': image.blob(), // Promise<Blob>
-    'web text/csv': 'hello,world'
-  });
-  await navigator.clipboard.write([item]);
-}, 'navigator.clipboard.write(web_custom_format) succeeds');
-
-promise_test(async () => {
-  await getPermissions();
-  const html_text = "<p style='color: red; font-style: oblique;'>Test</p>";
-  const item = new ClipboardItem({
-    'text/plain': 'hello',
-    'text/html': new Blob([html_text], {type: 'text/html'})
-  });
-  const text = await item.getType('text/plain');
-  const blob = await item.getType('text/html');
-  assert_true(text instanceof Blob, "item.getType('text/plain') didn't return a Blob");
-  assert_true(blob instanceof Blob, "item.getType('text/html') didn't return a Blob");
-}, 'validate GetType(type) on a contructed ClipboardItem returns Blob');
-
 promise_test(async () => {
   await getPermissions();
   const blob = new Blob(['hello'], {type: 'text/plain'});

@@ -1,0 +1,15 @@
+<script>
+const func_a = function(arg1) {
+  let a = document.getElementById("x")
+  a.insertBefore(arg1.originalTarget, a.childNodes[0])
+}
+window.addEventListener("load", () => {
+  let b = document.createElement("video")
+  document.documentElement.appendChild(b)
+  document.createElement("slot").assign(b)
+  document.addEventListener("DOMAttrModified", func_a, true)
+  b.setAttribute("width", 165)
+  document.createElement("slot").assign(b)
+})
+</script>
+<marquee id="x">

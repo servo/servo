@@ -110,9 +110,7 @@ allInterestTargetElements.forEach(el => {
 
   let events = [];
   function addListeners(t,element) {
-    const controller = new AbortController();
-    const signal = controller.signal;
-    t.add_cleanup(() => controller.abort());
+    const signal = t.get_signal();
     element.addEventListener('interest',(e) => events.push(`${e.target.id} interest`),{signal});
     element.addEventListener('loseinterest',(e) => events.push(`${e.target.id} loseinterest`),{signal});
   }
@@ -147,10 +145,16 @@ allInterestTargetElements.forEach(el => {
     await focusOn(el);
     assert_array_equals(events,['target interest'],'setup');
     verifyInterest(el,`After show interest in ${el.id}`);
-    target.addEventListener('loseinterest',(e) => e.preventDefault(),{once: true});
+    const signal = t.get_signal();
+    let shouldCancelLoseInterest = true;
+    target.addEventListener('loseinterest',(e) => {
+      if (shouldCancelLoseInterest) {
+        e.preventDefault();
+      }
+    },{signal});
     await focusOn(another);
-    assert_array_equals(events,['target interest','target loseinterest','anothertarget interest'],
-        'the loseinterest listener should fire, and anothertarget should still get interest');
+    assert_array_equals(events,['target interest','target loseinterest','anothertarget interest','target loseinterest'],
+        'the loseinterest listener should fire but get cancelled, anothertarget should still get interest, and that should close the first target popover firing another loseinterest');
     events = [];
     verifyInterest([el,another],`${el.id} should still have interest because loseinterest was cancelled`);
     assert_false(target.matches(':popover-open'),'anothertarget popover opens, closing target');
@@ -159,6 +163,7 @@ allInterestTargetElements.forEach(el => {
     assert_array_equals(events,['anothertarget loseinterest'],'Lose interest hot key on focused element loses just interest in that element');
     assert_false(target.matches(':popover-open'));
     assert_false(anothertarget.matches(':popover-open'));
+    shouldCancelLoseInterest = false;
     await focusOn(el);
     await sendLoseInterestHotkey();
     assert_array_equals(events,['anothertarget loseinterest','target loseinterest'],'Now both lost interest');

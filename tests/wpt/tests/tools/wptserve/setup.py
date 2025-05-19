@@ -1,6 +1,6 @@
 from setuptools import setup
 
-PACKAGE_VERSION = '4.0.2'
+PACKAGE_VERSION = '4.0.3'
 deps = [
     "h2>=4.1.0",
     "pywebsocket3>=4.0.2",

@@ -96,17 +96,20 @@
   attrElem.style.setProperty('--x', null);
   attrElem.removeAttribute('data-bar');
 
-  /* Cycle in fallback */
-  test_attr_cycle('--y', 'attr(data-foo type(*), var(--y))', '3');
-  test_attr_cycle('--y', 'attr(data-foo type(*), attr(data-foo))', '3');
+  /* Cycle in unused fallbacks */
+  test_attr_no_cycle('--y', 'attr(data-foo type(*), var(--y))', '3', '3');
+  test_attr_no_cycle('--y', 'attr(data-foo type(*), attr(data-foo))', '3', '3');
 
   attrElem.style.setProperty('--x', 'var(--y)');
-  test_attr_cycle('--y', 'attr(data-foo type(*), var(--x))', '3');
+  test_attr_no_cycle('--y', 'attr(data-foo type(*), var(--x))', '3', '3');
   attrElem.style.setProperty('--x', null);
 
   attrElem.setAttribute('data-bar', 'attr(data-foo type(*))');
-  test_attr_cycle('--y', 'attr(data-foo type(*), attr(data-bar type(*)))', '3');
+  test_attr_no_cycle('--y', 'attr(data-foo type(*), attr(data-bar type(*)))', '3', '3');
   attrElem.removeAttribute('data-bar');
+
+  /* Cycle in fallback */
+  test_attr_cycle('--y', 'attr(data-unknown type(*), var(--y))', '3');
 
   /* No cycle, use raw CSS string without substitution */
   attrElem.setAttribute('data-bar', 'var(--y)');

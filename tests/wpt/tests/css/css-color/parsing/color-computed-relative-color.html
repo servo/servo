@@ -871,6 +871,7 @@
   fuzzy_test_computed_color(`lch(from var(--mycolor) l 0 h)`, `lch(62.75 0 326.96)`, 0.02);
   fuzzy_test_computed_color(`var(--mygray)`, `lch(62.75 0 326.96)`, 0.02);
   fuzzy_test_computed_color(`lch(from var(--mygray) l 30 h)`, `lch(62.75 30 326.96)`, 0.02);
+  fuzzy_test_computed_color(`LCH(from var(--accent) l c calc(h + 180 * sibling-index()))`, `lch(65.49 39.45 10.11)`, 0.02);
 </script>
 </body>
 </html>

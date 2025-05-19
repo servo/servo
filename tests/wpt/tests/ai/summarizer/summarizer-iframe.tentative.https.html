@@ -1,7 +1,11 @@
 <!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
+<script src="../resources/util.js"></script>
 <body></body>
 <script>
 'use strict';
@@ -10,106 +14,45 @@ const { HTTPS_ORIGIN, HTTPS_NOTSAMESITE_ORIGIN } = get_host_info();
 const PATH = location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1);
 const IFRAME_PATH = PATH + 'resources/iframe-helper.html';
 
-function load_iframe(src, permission_policy, test_name) {
-  let iframe = document.createElement('iframe');
-  return new Promise((resolve, reject) => {
-    iframe.onload = () => {
-      iframe.contentWindow.postMessage({type: test_name}, '*');
-      resolve(iframe);
-    }
-    iframe.src = src;
-    iframe.allow = permission_policy;
-    document.body.appendChild(iframe);
-  });
-}
+promise_test(async t => {
+  const src = HTTPS_NOTSAMESITE_ORIGIN + IFRAME_PATH;
+  const iframe = await load_iframe(src, /*permission_policy=*/'');
+  await promise_rejects_dom(t, 'NotAllowedError', run_iframe_test(iframe, 'SummarizerCreate'));
+}, 'Throw a \'NotAllowedError\' when creating Summarizer within cross-origin iframe');
 
 promise_test(async t => {
   const src = HTTPS_NOTSAMESITE_ORIGIN + IFRAME_PATH;
-  await load_iframe(src, /*permission_policy=*/"", "SummarizerCreate");
-  return new Promise((resolve, reject) => {
-    window.onmessage = message => {
-      if (message.data == 'Failure: NotAllowedError') {
-        resolve();
-      } else {
-        reject(message.data)
-      }
-    }
-  });
-}, "Throw a 'NotAllowedError' when creating Summarizer within cross-origin iframe");
-
-promise_test(async t => {
-  const src = HTTPS_NOTSAMESITE_ORIGIN + IFRAME_PATH;
-  load_iframe(src, "summarizer", "SummarizerCreate");
-
-  return new Promise((resolve, reject) => {
-    window.onmessage = message => {
-      if (message.data == 'Success') {
-        resolve();
-      } else {
-        reject(message.data)
-      }
-    }
-  });
-}, "Summarizer can be created within cross-origin iframe with permission policy");
+  const iframe = await load_iframe(src, 'summarizer');
+  assert_equals(await run_iframe_test(iframe, 'SummarizerCreate'), 'Success');
+}, 'Summarizer can be created within cross-origin iframe with permission policy');
 
 promise_test(async t => {
   const src = HTTPS_ORIGIN + IFRAME_PATH;
-  load_iframe(src, /*permission_policy=*/"", "SummarizerCreate");
-
-  return new Promise((resolve, reject) => {
-    window.onmessage = message => {
-      if (message.data == 'Success') {
-        resolve();
-      } else {
-        reject(message.data)
-      }
-    }
-  });
-}, "Summarizer can be used within same-origin iframe");
+  const iframe = await load_iframe(src, /*permission_policy=*/'');
+  assert_equals(await run_iframe_test(iframe, 'SummarizerCreate'), 'Success');
+}, 'Summarizer can be used within same-origin iframe');
 
 promise_test(async t => {
   const src = HTTPS_NOTSAMESITE_ORIGIN + IFRAME_PATH;
-  load_iframe(src, /*permission_policy=*/"", "SummarizerAvailability");
-
-  return new Promise((resolve, reject) => {
-    window.onmessage = message => {
-      if (message.data == 'unavailable') {
-        resolve();
-      } else {
-        reject(message.data)
-      }
-    }
-  });
-}, "Summarizer is unavailable within cross-origin iframe");
+  const iframe = await load_iframe(src, /*permission_policy=*/'');
+  assert_equals(
+    await run_iframe_test(iframe, 'SummarizerAvailability'), 'unavailable');
+}, 'Summarizer is unavailable within cross-origin iframe');
 
 promise_test(async t => {
   const src = HTTPS_NOTSAMESITE_ORIGIN + IFRAME_PATH;
-  load_iframe(src, "summarizer", "SummarizerAvailability");
-
-  return new Promise((resolve, reject) => {
-    window.onmessage = message => {
-      if (message.data != 'unavailable') {
-        resolve();
-      } else {
-        reject(message.data)
-      }
-    }
-  });
-}, "Summarizer is available within cross-origin iframe with permission policy");
+  const iframe = await load_iframe(src, 'summarizer');
+  assert_in_array(
+    await run_iframe_test(iframe, 'SummarizerAvailability'),
+    kAvailableAvailabilities);
+}, 'Summarizer is available within cross-origin iframe with permission policy');
 
 promise_test(async t => {
   const src = HTTPS_ORIGIN + IFRAME_PATH;
-  load_iframe(src, /*permission_policy=*/"", "SummarizerAvailability");
-
-  return new Promise((resolve, reject) => {
-    window.onmessage = message => {
-      if (message.data != 'unavailable') {
-        resolve();
-      } else {
-        reject(message.data)
-      }
-    }
-  });
-}, "Summarizer is available within same-origin iframe");
+  const iframe = await load_iframe(src, /*permission_policy=*/'');
+  assert_in_array(
+    await run_iframe_test(iframe, 'SummarizerAvailability'),
+    kAvailableAvailabilities);
+}, 'Summarizer is available within same-origin iframe');
 
 </script>

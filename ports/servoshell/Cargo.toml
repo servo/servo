@@ -63,7 +63,7 @@ icu_locid = "1.5.0"
 image = { workspace = true }
 keyboard-types = { workspace = true }
 libc = { workspace = true }
-libservo = { path = "../../components/servo", features = ["background_hang_monitor", "bluetooth"] }
+libservo = { path = "../../components/servo", features = ["background_hang_monitor", "bluetooth", "testbinding"] }
 log = { workspace = true }
 mime_guess = { workspace = true }
 raw-window-handle = { workspace = true }

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>Navigate an iframe to a javascript: URL</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+const tests = [
+  // url, expected_load_event
+  ['javascript:"foo"', true],
+  ['javascript:1', false],
+];
+for (const [url, expected_load_event] of tests) {
+  promise_test(async t => {
+    const iframe = document.createElement('iframe');
+    const loaded = new Promise(resolve => { iframe.onload = resolve; });
+    document.body.append(iframe);
+    await loaded;
+    const secondLoad = new Promise((resolve, reject) => {
+      iframe.onload = () => {
+        expected_load_event ? resolve() : reject();
+      };
+    });
+    const timeout = new Promise((resolve, reject) => {
+      t.step_timeout(() => {
+        expected_load_event ? reject() : resolve();
+      }, 100);
+    });
+    iframe.contentWindow.location.href = url;
+    await Promise.race([secondLoad, timeout]);
+  }, `location.href = '${url}' should ${expected_load_event ? '' : 'not '}fire a load event`);
+}
+</script>

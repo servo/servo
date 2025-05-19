@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: Gaps are painted with container with overflow scroll and no background.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="grid-gap-decorations-037-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+
+    .grid-container {
+        display: grid;
+        grid-gap: 10px;
+        grid-template-columns: 100px 100px 100px;
+        grid-template-rows: 100px 100px 100px;
+        width: 130px;
+        height: 130px;
+        overflow: scroll;
+
+        column-rule-color: blue;
+        column-rule-style: solid;
+        column-rule-width: 5px;
+
+        row-rule-color: gold;
+        row-rule-style: solid;
+        row-rule-width: 5px;
+    }
+
+    .item {
+        background: gray;
+    }
+</style>
+
+<body>
+    <div class="grid-container">
+        <div class="item"></div>
+        <div class="item"></div>
+        <div class="item"></div>
+        <div class="item"></div>
+        <div class="item"></div>
+        <div class="item"></div>
+        <div class="item"></div>
+        <div class="item"></div>
+        <div class="item"></div>
+    </div>
+</body>

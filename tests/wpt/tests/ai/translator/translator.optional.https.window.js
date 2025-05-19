@@ -57,14 +57,6 @@ promise_test(async t => {
   assert_equals(translator.targetLanguage, 'ja');
 }, 'Translator: sourceLanguage and targetLanguage are equal to their respective option passed in to Translator.create.');
 
-promise_test(async (t) => {
-  const translator =
-      await createTranslator({sourceLanguage: 'en', targetLanguage: 'ja'});
-  translator.destroy();
-  await promise_rejects_dom(
-      t, 'InvalidStateError', translator.translate('hello'));
-}, 'Translator.translate() fails after destroyed');
-
 promise_test(async t => {
   const controller = new AbortController();
   controller.abort();
@@ -103,9 +95,51 @@ promise_test(async t => {
 }, 'Aborting Translator.translate().');
 
 promise_test(async t => {
+  const translator =
+      await createTranslator({sourceLanguage: 'en', targetLanguage: 'ja'});
+
+  const text = 'this string is in English';
+  const promises =
+      [translator.translate(text), translator.measureInputUsage(text)];
+
+  translator.destroy();
+
+  promises.push(translator.translate(text), translator.measureInputUsage(text));
+
+  for (const promise of promises) {
+    await promise_rejects_dom(t, 'AbortError', promise);
+  }
+}, 'Calling Translator.destroy() aborts calls to translate and measureInputUsage.');
+
+promise_test(async t => {
+  const controller = new AbortController();
+  const translator = await createTranslator(
+      {sourceLanguage: 'en', targetLanguage: 'ja', signal: controller.signal});
+
+  const text = 'this string is in English';
+  const promises =
+      [translator.translate(text), translator.measureInputUsage(text)];
+
+  const error = new Error('The create abort signal was aborted.');
+  controller.abort(error);
+
+  promises.push(translator.translate(text), translator.measureInputUsage(text));
+
+  for (const promise of promises) {
+    await promise_rejects_exactly(t, error, promise);
+  }
+}, 'Translator.create()\'s abort signal destroys its Translator after creation.');
+
+
+promise_test(async t => {
   await testMonitor(
       createTranslator, {sourceLanguage: 'en', targetLanguage: 'ja'});
 }, 'Translator.create() notifies its monitor on downloadprogress');
+
+promise_test(async t => {
+  await testCreateMonitorWithAbort(
+      t, createTranslator, {sourceLanguage: 'en', targetLanguage: 'ja'});
+}, 'Progress events are not emitted after aborted.');
 
 promise_test(async t => {
   const translator =

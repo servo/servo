@@ -1,40 +1,40 @@
 <!DOCTYPE html>
-<html>
- <head>
-  <title>Gradient interpolation with single stop that has missing components</title>
-  <link rel="author" title="CGQAQ" href="mailto:m.jason.liu@gmail.com">
-  <link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
-  <meta name="assert" content="Gradients with single color stop that having missing components should resolve to zero.">
-  <link rel="match" href="gradient-single-stop-none-interpolation-ref.html">
-  <style>
-    div {
-      height: 100px;
-    }
-    #basic {
-      /* "none" should resolve to zero when we only have one single stop. */
-      background: linear-gradient(to right in srgb, color(srgb none 0.5 0.5));
-    }
-    #multipleNone {
-      /* "none" and "none" gives zero. */
-      background: linear-gradient(to right in srgb, color(srgb none 0 none));
-    }
-    #allNone {
-      /* "none" and "none" gives zero. */
-      background: linear-gradient(to right in srgb, color(srgb none none none));
-    }
-    #noneHue {
-      background: linear-gradient(to right in oklch, oklch(0.8 0.4 none));
-    }
-    #noneHueLonger {
-      background: linear-gradient(to right in oklch longer hue, oklch(0.5 0.3 none));
-    }
- </style>
- </head>
- <body>
-  <div id="basic"></div>
-  <div id="multipleNone"></div>
-  <div id="allNone"></div>
-  <div id="noneHue"></div>
-  <div id="noneHueLonger"></div>
- </body>
-</html>
+<meta charset="utf-8">
+<title>Gradient interpolation with single stop that has missing components</title>
+<link rel="author" title="CGQAQ" href="mailto:m.jason.liu@gmail.com">
+<link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
+<meta name="assert" content="Gradients with single color stop that having missing components should resolve to zero.">
+<link rel="match" href="gradient-single-stop-none-interpolation-ref.html">
+<style>
+  div {
+    height: 100px;
+  }
+
+  #basic {
+    /* "none" should resolve to zero when we only have one single stop. */
+    background: linear-gradient(to right in srgb, color(srgb none 0.5 0.5));
+  }
+
+  #multipleNone {
+    /* "none" and "none" gives zero. */
+    background: linear-gradient(to right in srgb, color(srgb none 0 none));
+  }
+
+  #allNone {
+    /* "none" and "none" gives zero. */
+    background: linear-gradient(to right in srgb, color(srgb none none none));
+  }
+
+  #noneHue {
+    background: linear-gradient(to right in oklch, oklch(0.8 0.4 none));
+  }
+
+  #noneHueLonger {
+    background: linear-gradient(to right in oklch longer hue, oklch(0.5 0.3 none));
+  }
+</style>
+<div id="basic"></div>
+<div id="multipleNone"></div>
+<div id="allNone"></div>
+<div id="noneHue"></div>
+<div id="noneHueLonger"></div>

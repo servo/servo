@@ -12,6 +12,31 @@
 <body>
 <video id="video" autoplay controls playsinline></video>
 <script>
+promise_test(async (test) => {
+    const worker = new Worker('RTCRtpScriptTransform-encoded-transform-worker.js');
+    let sender, receiver;
+    const senderTransform = new RTCRtpScriptTransform(worker, {name:'sender'});
+    const receiverTransform = new RTCRtpScriptTransform(worker, {name:'receiver'});
+
+    const pc = new RTCPeerConnection();
+    const transceiver1 = pc.addTransceiver("audio");
+    const transceiver2 = pc.addTransceiver("audio");
+
+    transceiver1.sender.transform = senderTransform;
+    transceiver1.receiver.transform = receiverTransform;
+
+    transceiver1.sender.transform = senderTransform;
+    transceiver1.receiver.transform = receiverTransform;
+
+    assert_throws_dom("InvalidStateError", () => transceiver2.sender.transform = senderTransform, "set a used transform 1");
+    assert_throws_dom("InvalidStateError", () => transceiver2.receiver.transform = receiverTransform, "set a used transform 2");
+
+    transceiver1.sender.transform = null;
+    transceiver1.receiver.transform = null;
+
+    assert_throws_dom("InvalidStateError", () => transceiver2.sender.transform = senderTransform, "set a used transform 3");
+    assert_throws_dom("InvalidStateError", () => transceiver2.receiver.transform = receiverTransform, "set a used transform 4");
+}, "Once a transform has been attached, it cannot be reused elsewhere.");
 
 promise_test(async (test) => {
     const worker = new Worker('RTCRtpScriptTransform-encoded-transform-worker.js');

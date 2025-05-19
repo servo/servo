@@ -1,21 +1,26 @@
 <!DOCTYPE HTML>
 <meta charset="utf-8">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body></body>
 <script>
+test_driver.set_test_context(parent);
+
 window.onmessage = async message => {
-  switch (message.data.type) {
-    case 'SummarizerCreate':
-      Summarizer.create()
-        .then(t => parent.postMessage('Success', '*'))
-        .catch(err => parent.postMessage('Failure: ' + err.name, '*'));
-      break;
-    case 'SummarizerAvailability':
-        Summarizer.availability({
-          type: "tl;dr",
-          format: "plain-text",
-          length: "medium"})
-        .then(availability => parent.postMessage(availability, '*'))
-        .catch(err => parent.postMessage('Failure: ' + err.name, '*'));
-      break;
-  };
+  const { id, type } = message.data;
+  try {
+    switch (type) {
+      case 'SummarizerCreate':
+        await test_driver.bless('Summarizer.create', Summarizer.create, window);
+        parent.postMessage({id, success: 'Success'}, '*');
+        break;
+      case 'SummarizerAvailability':
+        const availability = await Summarizer.availability();
+        parent.postMessage({id, success: availability}, '*');
+        break;
+    }
+  } catch (err) {
+    parent.postMessage({id, err: err}, '*');
+  }
 };
 </script>

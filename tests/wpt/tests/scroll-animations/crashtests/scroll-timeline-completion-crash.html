@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>This test passes if it does not crash</title>
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/">
+<script src="/web-animations/testcommon.js"></script>
+
+<style>
+    @keyframes grow-progress {
+        from { background-color: green; }
+        to { background-color: red; }
+    }
+
+    #container {
+        overflow: scroll;
+        width: 100px;
+        height: 100px;
+        animation: grow-progress linear forwards;
+        animation-timeline: scroll(self);
+    }
+
+    #content {
+        width: 200px;
+        height: 200px;
+    }
+</style>
+<body onload="runTest()">
+<div id="container">
+    <div id="content"></div>
+</div>
+<script>
+
+async function runTest() {
+    const container = document.getElementById("container");
+    container.scrollTo(0, container.scrollHeight - container.clientHeight);
+    await waitForNextFrame();
+
+    const elem = document.getElementById("content");
+    elem.style.width = "0px";
+    elem.style.height = "0px";
+
+    await waitForNextFrame();
+  }
+</script>

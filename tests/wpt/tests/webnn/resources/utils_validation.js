@@ -205,7 +205,7 @@ promise_setup(async () => {
 function assert_throws_with_label(func, regrexp) {
   try {
     func.call(this);
-    assert_true(false, 'Graph builder method unexpectedly succeeded');
+    assert_unreached('Graph builder method unexpectedly succeeded');
   } catch (e) {
     assert_equals(e.name, 'TypeError');
     const error_message = e.message;

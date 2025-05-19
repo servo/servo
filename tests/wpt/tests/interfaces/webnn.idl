@@ -799,8 +799,7 @@ partial dictionary MLOpSupportLimits {
 enum MLPaddingMode {
   "constant",
   "edge",
-  "reflection",
-  "symmetric"
+  "reflection"
 };
 
 dictionary MLPadOptions : MLOperatorOptions {
