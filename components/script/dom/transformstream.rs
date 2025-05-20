@@ -1079,15 +1079,13 @@ impl Transferable for TransformStream {
     fn transfer_receive(
         owner: &GlobalScope,
         _id: MessagePortId,
-        port_impl: TransformStreamData,
+        data: TransformStreamData,
     ) -> Result<DomRoot<Self>, ()> {
         let can_gc = CanGc::note();
         let cx = GlobalScope::get_cx();
 
-        let port1 =
-            MessagePort::transfer_receive(owner, port_impl.readable.0, port_impl.readable.1)?;
-        let port2 =
-            MessagePort::transfer_receive(owner, port_impl.writable.0, port_impl.writable.1)?;
+        let port1 = MessagePort::transfer_receive(owner, data.readable.0, data.readable.1)?;
+        let port2 = MessagePort::transfer_receive(owner, data.writable.0, data.writable.1)?;
 
         // Let readableRecord be ! StructuredDeserializeWithTransfer(dataHolder.[[readable]], the current Realm).
         // Set value.[[readable]] to readableRecord.[[Deserialized]].
