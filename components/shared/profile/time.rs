@@ -71,7 +71,6 @@ pub enum ProfilerCategory {
     ImageSaving = 0x51,
     ScriptAttachLayout = 0x60,
     ScriptConstellationMsg = 0x61,
-    ScriptDatabaseAccessEvent = 0x85,
     ScriptDevtoolsMsg = 0x62,
     ScriptDocumentEvent = 0x63,
 
@@ -112,6 +111,8 @@ pub enum ProfilerCategory {
     ScriptPortMessage = 0x7e,
     ScriptWebGPUMsg = 0x7f,
 
+    ScriptDatabaseAccessEvent = 0x80,
+
     /// Web performance metrics.
     TimeToFirstPaint = 0x90,
     TimeToFirstContentfulPaint = 0x91,
@@ -129,6 +130,7 @@ impl ProfilerCategory {
             ProfilerCategory::ImageSaving => "ImageSaving",
             ProfilerCategory::ScriptAttachLayout => "ScriptAttachLayout",
             ProfilerCategory::ScriptConstellationMsg => "ScriptConstellationMsg",
+            ProfilerCategory::ScriptDatabaseAccessEvent => "ScriptDatabaseAccessEvent",
             ProfilerCategory::ScriptDevtoolsMsg => "ScriptDevtoolsMsg",
             ProfilerCategory::ScriptDocumentEvent => "ScriptDocumentEvent",
             ProfilerCategory::ScriptEvaluate => "ScriptEvaluate",

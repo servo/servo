@@ -9,11 +9,11 @@
 
 // https://w3c.github.io/IndexedDB/#idbfactory
 partial interface mixin WindowOrWorkerGlobalScope {
-  [Pref="dom.indexeddb.enabled", SameObject] readonly attribute IDBFactory indexedDB;
+  [Pref="dom_indexeddb_enabled", SameObject] readonly attribute IDBFactory indexedDB;
 };
 
 // https://w3c.github.io/IndexedDB/#idbfactory
-[Pref="dom.indexeddb.enabled", Exposed=(Window,Worker)]
+[Pref="dom_indexeddb_enabled", Exposed=(Window,Worker)]
 interface IDBFactory {
   [NewObject, Throws] IDBOpenDBRequest open(DOMString name,
                                     optional [EnforceRange] unsigned long long version);

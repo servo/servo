@@ -8,7 +8,7 @@
  */
 
 // https://w3c.github.io/IndexedDB/#idbopendbrequest
-[Pref="dom.indexeddb.enabled", Exposed=(Window,Worker)]
+[Pref="dom_indexeddb_enabled", Exposed=(Window,Worker)]
 interface IDBOpenDBRequest : IDBRequest {
   // Event handlers:
   attribute EventHandler onblocked;

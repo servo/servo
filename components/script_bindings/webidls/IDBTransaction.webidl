@@ -8,7 +8,7 @@
  */
 
 // https://w3c.github.io/IndexedDB/#idbtransaction
-[Pref="dom.indexeddb.enabled", Exposed=(Window,Worker)]
+[Pref="dom_indexeddb_enabled", Exposed=(Window,Worker)]
 interface IDBTransaction : EventTarget {
   readonly attribute DOMStringList objectStoreNames;
   readonly attribute IDBTransactionMode mode;

@@ -8,7 +8,7 @@
  */
 
 // https://w3c.github.io/IndexedDB/#idbrequest
-[Pref="dom.indexeddb.enabled", Exposed=(Window,Worker)]
+[Pref="dom_indexeddb_enabled", Exposed=(Window,Worker)]
 interface IDBRequest : EventTarget {
   readonly attribute any result;
   readonly attribute DOMException? error;

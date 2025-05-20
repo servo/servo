@@ -8,7 +8,7 @@
  */
 
 // https://w3c.github.io/IndexedDB/#idbobjectstore
-[Pref="dom.indexeddb.enabled", Exposed=(Window,Worker)]
+[Pref="dom_indexeddb_enabled", Exposed=(Window,Worker)]
 interface IDBObjectStore {
   attribute DOMString name;
   readonly attribute any keyPath;

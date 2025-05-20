@@ -12,6 +12,7 @@ use net_traits::indexeddb_thread::{AsyncOperation, IndexedDBTxnMode};
 use tokio::sync::oneshot;
 
 use super::{KvsEngine, KvsTransaction, SanitizedName};
+use crate::resource_thread::CoreResourceThreadPool;
 
 type HeedDatabase = Database<Bytes, Bytes>;
 
@@ -27,12 +28,16 @@ struct Store {
 pub struct HeedEngine {
     heed_env: Arc<Env>,
     open_stores: Arc<RwLock<HashMap<SanitizedName, Store>>>,
-    read_pool: rayon::ThreadPool,
-    write_pool: rayon::ThreadPool,
+    read_pool: Arc<CoreResourceThreadPool>,
+    write_pool: Arc<CoreResourceThreadPool>,
 }
 
 impl HeedEngine {
-    pub fn new(base_dir: &Path, db_file_name: &Path) -> Self {
+    pub fn new(
+        base_dir: &Path,
+        db_file_name: &Path,
+        thread_pool: Arc<CoreResourceThreadPool>,
+    ) -> Self {
         let mut db_dir = PathBuf::new();
         db_dir.push(base_dir);
         db_dir.push(db_file_name);
@@ -46,19 +51,11 @@ impl HeedEngine {
                 .open(db_dir)
                 .expect("Failed to open db_dir")
         };
-        // FIXME:(arihant2math) What is a reasonable number of threads?
-        let threads = 4;
         Self {
             heed_env: Arc::new(env),
             open_stores: Arc::new(RwLock::new(HashMap::new())),
-            read_pool: rayon::ThreadPoolBuilder::new()
-                .num_threads(threads - 1)
-                .build()
-                .expect("Could not create IDBTransaction read thread pool"),
-            write_pool: rayon::ThreadPoolBuilder::new()
-                .num_threads(1)
-                .build()
-                .expect("Could not create IDBTransaction write thread pool"),
+            read_pool: thread_pool.clone(),
+            write_pool: thread_pool,
         }
     }
 }
@@ -75,13 +72,7 @@ impl KvsEngine for HeedEngine {
             .create_database(&mut write_txn, Some(&*store_name.to_string()))
             .expect("Failed to create idb store");
 
-        let key_generator = {
-            if auto_increment {
-                Some(0)
-            } else {
-                None
-            }
-        };
+        let key_generator = { if auto_increment { Some(0) } else { None } };
 
         let store = Store {
             inner: new_store,
@@ -187,22 +178,17 @@ impl KvsEngine for HeedEngine {
                                 let result =
                                     store.inner.put(&mut wtxn, &key, &value).ok().and(Some(key));
                                 request.sender.send(result).unwrap();
+                            } else if store
+                                .inner
+                                .get(&wtxn, &key)
+                                .expect("Could not get item")
+                                .is_none()
+                            {
+                                let result =
+                                    store.inner.put(&mut wtxn, &key, &value).ok().and(Some(key));
+                                let _ = request.sender.send(result);
                             } else {
-                                if store
-                                    .inner
-                                    .get(&mut wtxn, &key)
-                                    .expect("Could not get item")
-                                    .is_none()
-                                {
-                                    let result = store
-                                        .inner
-                                        .put(&mut wtxn, &key, &value)
-                                        .ok()
-                                        .and(Some(key));
-                                    request.sender.send(result).unwrap();
-                                } else {
-                                    request.sender.send(None).unwrap();
-                                }
+                                let _ = request.sender.send(None);
                             }
                         },
                         AsyncOperation::GetItem(key) => {
@@ -216,9 +202,9 @@ impl KvsEngine for HeedEngine {
                             let result = store.inner.get(&wtxn, &key).expect("Could not get item");
 
                             if let Some(blob) = result {
-                                request.sender.send(Some(blob.to_vec())).unwrap();
+                                let _ = request.sender.send(Some(blob.to_vec()));
                             } else {
-                                request.sender.send(None).unwrap();
+                                let _ = request.sender.send(None);
                             }
                         },
                         AsyncOperation::RemoveItem(key) => {
@@ -230,14 +216,14 @@ impl KvsEngine for HeedEngine {
                                 .get(&request.store_name)
                                 .expect("Could not get store");
                             let result = store.inner.delete(&mut wtxn, &key).ok().and(Some(key));
-                            request.sender.send(result).unwrap();
+                            let _ = request.sender.send(result);
                         },
                         AsyncOperation::Count(key) => {
-                            let key: Vec<u8> = bincode::serialize(&key).unwrap();
+                            let _key: Vec<u8> = bincode::serialize(&key).unwrap();
                             let stores = stores
                                 .read()
                                 .expect("Could not acquire read lock on stores");
-                            let store = stores
+                            let _store = stores
                                 .get(&request.store_name)
                                 .expect("Could not get store");
                             // FIXME:(arihant2math) Return count with sender

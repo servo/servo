@@ -10,7 +10,7 @@
 // FIXME:(arihant2math) Expose to Worker too
 
 // https://w3c.github.io/IndexedDB/#idbversionchangeevent
-[Pref="dom.indexeddb.enabled", Exposed=(Window)]
+[Pref="dom_indexeddb_enabled", Exposed=(Window)]
 interface IDBVersionChangeEvent : Event {
   constructor(DOMString type, optional IDBVersionChangeEventInit eventInitDict = {});
 

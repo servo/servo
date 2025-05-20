@@ -5,10 +5,11 @@ use std::borrow::ToOwned;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::thread;
 
 use ipc_channel::ipc::{self, IpcError, IpcReceiver, IpcSender};
-use log::{error, warn};
+use log::{debug, warn};
 use net_traits::indexeddb_thread::{
     AsyncOperation, IndexedDBThreadMsg, IndexedDBThreadReturnType, IndexedDBTxnMode, SyncOperation,
 };
@@ -18,6 +19,7 @@ use servo_url::origin::ImmutableOrigin;
 use crate::indexeddb::engines::{
     HeedEngine, KvsEngine, KvsOperation, KvsTransaction, SanitizedName,
 };
+use crate::resource_thread::CoreResourceThreadPool;
 
 pub trait IndexedDBThreadFactory {
     fn new(config_dir: Option<PathBuf>) -> Self;
@@ -94,7 +96,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
     ) {
         self.transactions
             .entry(serial_number)
-            .or_insert(KvsTransaction {
+            .or_insert_with(|| KvsTransaction {
                 requests: VecDeque::new(),
                 mode,
             })
@@ -153,21 +155,32 @@ struct IndexedDBManager {
     port: IpcReceiver<IndexedDBThreadMsg>,
     idb_base_dir: PathBuf,
     databases: HashMap<IndexedDBDescription, IndexedDBEnvironment<HeedEngine>>,
+    thread_pool: Arc<CoreResourceThreadPool>,
 }
 
 impl IndexedDBManager {
     fn new(port: IpcReceiver<IndexedDBThreadMsg>, idb_base_dir: PathBuf) -> IndexedDBManager {
+        debug!("New indexedDBManager");
+
+        let thread_count = thread::available_parallelism()
+            .map(|i| i.get())
+            .unwrap_or(pref!(threadpools_fallback_worker_num) as usize)
+            .min(pref!(threadpools_async_runtime_workers_max).max(1) as usize);
         IndexedDBManager {
             port,
             idb_base_dir,
             databases: HashMap::new(),
+            thread_pool: Arc::new(CoreResourceThreadPool::new(
+                thread_count,
+                "ImageCache".to_string(),
+            )),
         }
     }
 }
 
 impl IndexedDBManager {
     fn start(&mut self) {
-        if !pref!(dom.indexeddb.enabled) {
+        if !pref!(dom_indexeddb_enabled) {
             return;
         }
         loop {
@@ -179,7 +192,10 @@ impl IndexedDBManager {
                     IpcError::Disconnected => {
                         break;
                     },
-                    other => Err(other).unwrap(),
+                    other => {
+                        warn!("Error in IndexedDB thread: {:?}", other);
+                        continue;
+                    },
                 },
             };
             match message {
@@ -236,6 +252,16 @@ impl IndexedDBManager {
 
     fn handle_sync_operation(&mut self, operation: SyncOperation) {
         match operation {
+            SyncOperation::CloseDatabase(sender, origin, db_name) => {
+                let idb_description = IndexedDBDescription {
+                    origin,
+                    name: db_name,
+                };
+                if let Some(db) = self.databases.remove(&idb_description) {
+                    // TODO: maybe close store here?
+                }
+                let _ = sender.send(Ok(()));
+            },
             SyncOperation::OpenDatabase(sender, origin, db_name, version) => {
                 let idb_description = IndexedDBDescription {
                     origin,
@@ -247,7 +273,11 @@ impl IndexedDBManager {
                 match self.databases.entry(idb_description.clone()) {
                     Entry::Vacant(e) => {
                         let db = IndexedDBEnvironment::new(
-                            HeedEngine::new(idb_base_dir, &idb_description.as_path()),
+                            HeedEngine::new(
+                                idb_base_dir,
+                                &idb_description.as_path(),
+                                self.thread_pool.clone(),
+                            ),
                             version.unwrap_or(0),
                         );
                         let _ = sender.send(db.version);
@@ -268,7 +298,7 @@ impl IndexedDBManager {
                 // FIXME:(rasviitanen) Possible security issue?
                 // FIXME:(arihant2math) using remove_dir_all with arbitrary input ...
                 let mut db_dir = self.idb_base_dir.clone();
-                db_dir.push(&idb_description.as_path());
+                db_dir.push(idb_description.as_path());
                 if std::fs::remove_dir_all(&db_dir).is_err() {
                     let _ = sender.send(Err(()));
                 } else {
@@ -334,7 +364,7 @@ impl IndexedDBManager {
                     db.serial_number_counter += 1;
                     let _ = sender.send(db.serial_number_counter);
                 }
-            }
+            },
             SyncOperation::Exit(sender) => {
                 // FIXME:(rasviitanen) Nothing to do?
                 let _ = sender.send(IndexedDBThreadReturnType::Exit);

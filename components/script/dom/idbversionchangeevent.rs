@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::IDBVersionChangeEventBinding::{
@@ -11,17 +11,16 @@ use crate::dom::bindings::codegen::Bindings::IDBVersionChangeEventBinding::{
 };
 use crate::dom::bindings::import::module::HandleObject;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{
-    reflect_dom_object, reflect_dom_object_with_proto, DomObject,
-};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct IDBVersionChangeEvent {
+pub(crate) struct IDBVersionChangeEvent {
     event: Event,
     old_version: u64,
     new_version: Option<u64>,
@@ -43,8 +42,17 @@ impl IDBVersionChangeEvent {
         cancelable: EventCancelable,
         old_version: u64,
         new_version: Option<u64>,
+        can_gc: CanGc,
     ) -> DomRoot<IDBVersionChangeEvent> {
-        Self::new_with_proto(global, type_, bool::from(bubbles), bool::from(cancelable), old_version, new_version)
+        Self::new_with_proto(
+            global,
+            type_,
+            bool::from(bubbles),
+            bool::from(cancelable),
+            old_version,
+            new_version,
+            can_gc,
+        )
     }
 
     fn new_with_proto(
@@ -54,6 +62,7 @@ impl IDBVersionChangeEvent {
         cancelable: bool,
         old_version: u64,
         new_version: Option<u64>,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         let ev = reflect_dom_object(
             Box::new(IDBVersionChangeEvent::new_inherited(
@@ -61,6 +70,7 @@ impl IDBVersionChangeEvent {
                 new_version,
             )),
             global,
+            can_gc,
         );
         {
             let event = ev.upcast::<Event>();
@@ -68,19 +78,27 @@ impl IDBVersionChangeEvent {
         }
         ev
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl IDBVersionChangeEventMethods<crate::DomTypeHolder> for IDBVersionChangeEvent {
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: &IDBVersionChangeEventInit,
     ) -> DomRoot<Self> {
-        Self::new_with_proto(&window.global(), Atom::from(type_), init.parent.bubbles, init.parent.cancelable, init.oldVersion, init.newVersion)
+        Self::new_with_proto(
+            &window.global(),
+            Atom::from(type_),
+            init.parent.bubbles,
+            init.parent.cancelable,
+            init.oldVersion,
+            init.newVersion,
+            can_gc,
+        )
     }
-}
 
-impl IDBVersionChangeEventMethods for IDBVersionChangeEvent {
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbversionchangeevent-oldversion
     fn OldVersion(&self) -> u64 {
         self.old_version
