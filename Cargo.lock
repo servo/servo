@@ -870,9 +870,9 @@ dependencies = [
 
 [[package]]
 name = "cfg-expr"
-version = "0.17.2"
+version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8d4ba6e40bd1184518716a6e1a781bf9160e286d219ccdb8ab2612e74cfe4789"
+checksum = "e34e221e91c7eb5e8315b5c9cf1a61670938c0626451f954a51693ed44b37f45"
 dependencies = [
  "smallvec",
  "target-lexicon",
@@ -7494,9 +7494,9 @@ dependencies = [
 
 [[package]]
 name = "system-deps"
-version = "7.0.3"
+version = "7.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "66d23aaf9f331227789a99e8de4c91bf46703add012bdfd45fdecdfb2975a005"
+checksum = "550b2c61a9c30b85ca1f6ef0afcd2befcb12e73b1d31ef0526423bc7b6a99d7f"
 dependencies = [
  "cfg-expr",
  "heck",
@@ -7530,9 +7530,9 @@ dependencies = [
 
 [[package]]
 name = "target-lexicon"
-version = "0.12.16"
+version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61c41af27dd6d1e27b1b16b489db798443478cef1f06a660c96db617ba5de3b1"
+checksum = "e502f78cdbb8ba4718f566c418c52bc729126ffd16baee5baa718cf25dd5a69a"
 
 [[package]]
 name = "task_info"
