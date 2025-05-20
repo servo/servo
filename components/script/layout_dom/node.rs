@@ -102,7 +102,7 @@ impl<'dom> ServoLayoutNode<'dom> {
     }
 
     pub fn is_text_editing_root(&self) -> bool {
-        self.node.text_editing_root()
+        self.node.is_text_editing_root()
     }
 }
 

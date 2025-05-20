@@ -4,8 +4,6 @@ button {
 
 button,
 input {
-  padding-block: 2px;
-  padding-inline: 1px;
   background: white;
   border: solid lightgrey 1px;
   color: black;

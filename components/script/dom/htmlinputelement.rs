@@ -119,12 +119,19 @@ struct InputTypeColorShadowTree {
     color_value: Dom<HTMLDivElement>,
 }
 
-// FIXME: These styles should be inside UA stylesheet,
-//        but we should support pseudo element first.
+// FIXME: These styles should be inside UA stylesheet, but it is not possible without internal pseudo element support.
+// FIXME: We are setting `pointer-events: none;` because focus is not propagated to its ancestor.
+// FIXME: We are using `position: absolute` to put place the editing root and placeholder
+//        on top of each other, but this will create a unnecessary element in between.
 const TEXT_TREE_STYLE: &str = "
 #input-editing-root::selection, #input-placeholder::selection {
-  background: rgba(176, 214, 255, 1.0);
-  color: black;
+    background: rgba(176, 214, 255, 1.0);
+    color: black;
+}
+
+#input-container {
+    position: relative;
+    pointer-events: none;
 }
 
 #input-editing-root, #input-placeholder {
@@ -134,6 +141,7 @@ const TEXT_TREE_STYLE: &str = "
 }
 
 #input-placeholder {
+    position: absolute;
     color: grey;
     overflow: hidden;
 }
@@ -1113,18 +1121,22 @@ impl HTMLInputElement {
         let shadow_root = self.shadow_root(can_gc);
         Node::replace_all(None, shadow_root.upcast::<Node>(), can_gc);
 
+        let inner_container =
+            HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
+        inner_container
+            .upcast::<Element>()
+            .SetId(DOMString::from("input-container"), can_gc);
+        shadow_root
+            .upcast::<Node>()
+            .AppendChild(inner_container.upcast::<Node>(), can_gc)
+            .unwrap();
+
         let placeholder_container =
             HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
         placeholder_container
             .upcast::<Element>()
             .SetId(DOMString::from("input-placeholder"), can_gc);
-        // MYNOTES:
-        // This is not a text editing root, but we should do this to show it's
-        // editing caret when placeholder is still visible
-        placeholder_container
-            .upcast::<Element>()
-            .set_text_editing_root_state(true);
-        shadow_root
+        inner_container
             .upcast::<Node>()
             .AppendChild(placeholder_container.upcast::<Node>(), can_gc)
             .unwrap();
@@ -1136,9 +1148,9 @@ impl HTMLInputElement {
         // We should probably use pseudo element to check this.
         // Chrome is using (private?) element attrs,
         text_container
-            .upcast::<Element>()
-            .set_text_editing_root_state(true);
-        shadow_root
+            .upcast::<Node>()
+            .set_text_editing_root();
+        inner_container
             .upcast::<Node>()
             .AppendChild(text_container.upcast::<Node>(), can_gc)
             .unwrap();
@@ -1265,8 +1277,12 @@ impl HTMLInputElement {
 
             let placeholder_text = match (value.is_empty(), self.placeholder.borrow().is_empty()) {
                 (true, false) => self.placeholder.to_owned().take(),
-                (true, true) => "\u{200B}".into(),
                 _ => DOMString::new(),
+            };
+
+            let value_text = match value.is_empty() {
+                false => value,
+                true => "\u{200B}".into(),
             };
 
             text_shadow_tree
@@ -1276,7 +1292,7 @@ impl HTMLInputElement {
             text_shadow_tree
                 .text_container
                 .upcast::<Node>()
-                .SetTextContent(Some(value), can_gc);
+                .SetTextContent(Some(value_text), can_gc);
         }
         if self.input_type() == InputType::Color {
             let color_shadow_tree = self.color_shadow_tree(can_gc);

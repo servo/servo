@@ -230,6 +230,10 @@ bitflags! {
         /// Whether this node has a weird parser insertion mode. i.e whether setting innerHTML
         /// needs extra work or not
         const HAS_WEIRD_PARSER_INSERTION_MODE = 1 << 11;
+
+        /// Whether this node has a serve as the text container for editable content of
+        /// <input> or <textarea> element.
+        const IS_TEXT_EDITING_ROOT = 1 << 13;
     }
 }
 
@@ -695,6 +699,14 @@ impl Node {
     /// <https://dom.spec.whatwg.org/#connected>
     pub(crate) fn is_connected(&self) -> bool {
         self.flags.get().contains(NodeFlags::IS_CONNECTED)
+    }
+
+    pub(crate) fn set_text_editing_root(&self) {
+        self.set_flag(NodeFlags::IS_TEXT_EDITING_ROOT, true)
+    }
+
+    pub(crate) fn is_text_editing_root(&self) -> bool {
+        self.flags.get().contains(NodeFlags::IS_TEXT_EDITING_ROOT)
     }
 
     /// Returns the type ID of this node.
@@ -1619,7 +1631,7 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
     fn is_text_input_with_shadow_dom(&self) -> bool;
 
     /// Whether this element serve as a container of editable text for a text input.
-    fn text_editing_root(&self) -> bool;
+    fn is_text_editing_root(&self) -> bool;
     fn text_content(self) -> Cow<'dom, str>;
     fn selection(self) -> Option<Range<usize>>;
     fn image_url(self) -> Option<ServoUrl>;
@@ -1818,11 +1830,8 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
         }
     }
 
-    fn text_editing_root(&self) -> bool {
-        match self.downcast::<Element>() {
-            Some(element) => element.text_editing_root(),
-            _ => false,
-        }
+    fn is_text_editing_root(&self) -> bool {
+        self.unsafe_get().is_text_editing_root()
     }
 
     fn text_content(self) -> Cow<'dom, str> {
@@ -1844,7 +1853,7 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     fn selection(self) -> Option<Range<usize>> {
         // This container is a text editing root of a <input> or <textarea> element.
         // So we should find those corresponding element, and get its selection.
-        if self.text_editing_root() {
+        if self.is_text_editing_root() {
             let mut maybe_parent_node = self.composed_parent_node_ref();
             while let Some(parent_node) = maybe_parent_node {
                 if let Some(area) = parent_node.downcast::<HTMLTextAreaElement>() {
