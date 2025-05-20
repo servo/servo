@@ -236,7 +236,7 @@ impl CrossProcessCompositorApi {
     pub fn send_display_list(
         &self,
         webview_id: WebViewId,
-        display_list_info: CompositorDisplayListInfo,
+        display_list_info: &CompositorDisplayListInfo,
         list: BuiltDisplayList,
     ) {
         let (display_list_data, display_list_descriptor) = list.into_data();

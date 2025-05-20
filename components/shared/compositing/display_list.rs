@@ -6,11 +6,17 @@
 
 use base::id::ScrollTreeNodeId;
 use embedder_traits::Cursor;
+use euclid::SideOffsets2D;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use style::values::specified::Overflow;
-use webrender_api::units::{LayoutSize, LayoutVector2D};
-use webrender_api::{Epoch, ExternalScrollId, PipelineId, ScrollLocation, SpatialId};
+use webrender_api::units::{
+    LayoutPixel, LayoutPoint, LayoutRect, LayoutSize, LayoutTransform, LayoutVector2D,
+};
+use webrender_api::{
+    Epoch, ExternalScrollId, PipelineId, ReferenceFrameKind, ScrollLocation, SpatialId,
+    StickyOffsetBounds, TransformStyle,
+};
 
 /// The scroll sensitivity of a scroll node in a particular axis ie whether it can be scrolled due to
 /// input events and script events or only script events.
@@ -56,6 +62,29 @@ pub struct HitTestInfo {
     pub scroll_tree_node: ScrollTreeNodeId,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+pub enum SpatialTreeNodeInfo {
+    ReferenceFrame(ReferenceFrameNodeInfo),
+    Scroll(ScrollableNodeInfo),
+    Sticky(StickyNodeInfo),
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct StickyNodeInfo {
+    pub frame_rect: LayoutRect,
+    pub margins: SideOffsets2D<Option<f32>, LayoutPixel>,
+    pub vertical_offset_bounds: StickyOffsetBounds,
+    pub horizontal_offset_bounds: StickyOffsetBounds,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ReferenceFrameNodeInfo {
+    pub origin: LayoutPoint,
+    pub transform_style: TransformStyle,
+    pub transform: LayoutTransform,
+    pub kind: ReferenceFrameKind,
+}
+
 /// Data stored for nodes in the [ScrollTree] that actually scroll,
 /// as opposed to reference frames and sticky nodes which do not.
 #[derive(Debug, Deserialize, Serialize)]
@@ -64,14 +93,23 @@ pub struct ScrollableNodeInfo {
     /// it between successive re-layouts.
     pub external_id: ExternalScrollId,
 
-    /// Amount that this `ScrollableNode` can scroll in both directions.
-    pub scrollable_size: LayoutSize,
+    /// The content rectangle for this scroll node;
+    pub content_rect: LayoutRect,
+
+    /// The clip rectange for this scroll node.
+    pub clip_rect: LayoutRect,
 
     /// Whether this `ScrollableNode` is sensitive to input events.
     pub scroll_sensitivity: AxesScrollSensitivity,
 
     /// The current offset of this scroll node.
     pub offset: LayoutVector2D,
+}
+
+impl ScrollableNodeInfo {
+    fn scrollable_size(&self) -> LayoutSize {
+        self.content_rect.size() - self.clip_rect.size()
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -82,35 +120,51 @@ pub struct ScrollTreeNode {
     /// None then this is the root node.
     pub parent: Option<ScrollTreeNodeId>,
 
-    /// Scrolling data which will not be None if this is a scrolling node.
-    pub scroll_info: Option<ScrollableNodeInfo>,
+    /// The WebRender id, which is filled in when this tree is serialiezd
+    /// into a WebRender display list.
+    pub webrender_id: Option<SpatialId>,
+
+    /// Specific information about this node, depending on whether it is a scroll node
+    /// or a reference frame.
+    pub info: SpatialTreeNodeInfo,
 }
 
 impl ScrollTreeNode {
+    /// Get the WebRender [`SpatialId`] for the given [`ScrollNodeId`]. This will
+    /// panic if [`ScrollTree::build_display_list`] has not been called yet.
+    pub fn webrender_id(&self) -> SpatialId {
+        self.webrender_id
+            .expect("Should have called ScrollTree::build_display_list before querying SpatialId")
+    }
+
     /// Get the external id of this node.
     pub fn external_id(&self) -> Option<ExternalScrollId> {
-        self.scroll_info.as_ref().map(|info| info.external_id)
+        match self.info {
+            SpatialTreeNodeInfo::Scroll(ref info) => Some(info.external_id),
+            _ => None,
+        }
     }
 
     /// Get the offset id of this node if it applies.
     pub fn offset(&self) -> Option<LayoutVector2D> {
-        self.scroll_info.as_ref().map(|info| info.offset)
+        match self.info {
+            SpatialTreeNodeInfo::Scroll(ref info) => Some(info.offset),
+            _ => None,
+        }
     }
 
     /// Set the offset for this node, returns false if this was a
     /// non-scrolling node for which you cannot set the offset.
     pub fn set_offset(&mut self, new_offset: LayoutVector2D) -> bool {
-        match self.scroll_info {
-            Some(ref mut info) => {
-                let scrollable_width = info.scrollable_size.width;
-                let scrollable_height = info.scrollable_size.height;
-
-                if scrollable_width > 0. {
-                    info.offset.x = (new_offset.x).min(0.0).max(-scrollable_width);
+        match self.info {
+            SpatialTreeNodeInfo::Scroll(ref mut info) => {
+                let scrollable_size = info.scrollable_size();
+                if scrollable_size.width > 0. {
+                    info.offset.x = (new_offset.x).min(0.0).max(-scrollable_size.width);
                 }
 
-                if scrollable_height > 0. {
-                    info.offset.y = (new_offset.y).min(0.0).max(-scrollable_height);
+                if scrollable_size.height > 0. {
+                    info.offset.y = (new_offset.y).min(0.0).max(-scrollable_size.height);
                 }
                 true
             },
@@ -125,9 +179,9 @@ impl ScrollTreeNode {
         &mut self,
         scroll_location: ScrollLocation,
     ) -> Option<(ExternalScrollId, LayoutVector2D)> {
-        let info = match self.scroll_info {
-            Some(ref mut data) => data,
-            None => return None,
+        let info = match self.info {
+            SpatialTreeNodeInfo::Scroll(ref mut info) => info,
+            _ => return None,
         };
 
         if info.scroll_sensitivity.x != ScrollSensitivity::ScriptAndInputEvents &&
@@ -148,7 +202,7 @@ impl ScrollTreeNode {
                 return Some((info.external_id, info.offset));
             },
             ScrollLocation::End => {
-                let end_pos = -info.scrollable_size.height;
+                let end_pos = -info.scrollable_size().height;
                 if info.offset.y.round() <= end_pos {
                     // Nothing to do on this layer.
                     return None;
@@ -159,20 +213,23 @@ impl ScrollTreeNode {
             },
         };
 
-        let scrollable_width = info.scrollable_size.width;
-        let scrollable_height = info.scrollable_size.height;
+        let scrollable_size = info.scrollable_size();
         let original_layer_scroll_offset = info.offset;
 
-        if scrollable_width > 0. &&
+        if scrollable_size.width > 0. &&
             info.scroll_sensitivity.x == ScrollSensitivity::ScriptAndInputEvents
         {
-            info.offset.x = (info.offset.x + delta.x).min(0.0).max(-scrollable_width);
+            info.offset.x = (info.offset.x + delta.x)
+                .min(0.0)
+                .max(-scrollable_size.width);
         }
 
-        if scrollable_height > 0. &&
+        if scrollable_size.height > 0. &&
             info.scroll_sensitivity.y == ScrollSensitivity::ScriptAndInputEvents
         {
-            info.offset.y = (info.offset.y + delta.y).min(0.0).max(-scrollable_height);
+            info.offset.y = (info.offset.y + delta.y)
+                .min(0.0)
+                .max(-scrollable_size.height);
         }
 
         if info.offset != original_layer_scroll_offset {
@@ -199,16 +256,23 @@ impl ScrollTree {
     pub fn add_scroll_tree_node(
         &mut self,
         parent: Option<&ScrollTreeNodeId>,
-        spatial_id: SpatialId,
-        scroll_info: Option<ScrollableNodeInfo>,
+        info: SpatialTreeNodeInfo,
     ) -> ScrollTreeNodeId {
         self.nodes.push(ScrollTreeNode {
             parent: parent.cloned(),
-            scroll_info,
+            webrender_id: None,
+            info,
         });
         ScrollTreeNodeId {
             index: self.nodes.len() - 1,
-            spatial_id,
+        }
+    }
+
+    /// Once WebRender display list construction is complete for this [`ScrollTree`], update
+    /// the mapping of nodes to WebRender [`SpatialId`]s.
+    pub fn update_mapping(&mut self, mapping: Vec<SpatialId>) {
+        for (spatial_id, node) in mapping.into_iter().zip(self.nodes.iter_mut()) {
+            node.webrender_id = Some(spatial_id);
         }
     }
 
@@ -218,8 +282,14 @@ impl ScrollTree {
     }
 
     /// Get an immutable reference to the node with the given index.
-    pub fn get_node(&mut self, id: &ScrollTreeNodeId) -> &ScrollTreeNode {
+    pub fn get_node(&self, id: &ScrollTreeNodeId) -> &ScrollTreeNode {
         &self.nodes[id.index]
+    }
+
+    /// Get the WebRender [`SpatialId`] for the given [`ScrollNodeId`]. This will
+    /// panic if [`ScrollTree::build_display_list`] has not been called yet.
+    pub fn webrender_id(&self, id: &ScrollTreeNodeId) -> SpatialId {
+        self.get_node(id).webrender_id()
     }
 
     /// Scroll the given scroll node on this scroll tree. If the node cannot be scrolled,
@@ -251,8 +321,10 @@ impl ScrollTree {
         offset: LayoutVector2D,
     ) -> bool {
         for node in self.nodes.iter_mut() {
-            match node.scroll_info {
-                Some(ref mut scroll_info) if scroll_info.external_id == external_scroll_id => {
+            match node.info {
+                SpatialTreeNodeInfo::Scroll(ref mut scroll_info)
+                    if scroll_info.external_id == external_scroll_id =>
+                {
                     scroll_info.offset = offset;
                     return true;
                 },
@@ -320,15 +392,19 @@ impl CompositorDisplayListInfo {
         let mut scroll_tree = ScrollTree::default();
         let root_reference_frame_id = scroll_tree.add_scroll_tree_node(
             None,
-            SpatialId::root_reference_frame(pipeline_id),
-            None,
+            SpatialTreeNodeInfo::ReferenceFrame(ReferenceFrameNodeInfo {
+                origin: Default::default(),
+                transform_style: TransformStyle::Flat,
+                transform: LayoutTransform::identity(),
+                kind: ReferenceFrameKind::default(),
+            }),
         );
         let root_scroll_node_id = scroll_tree.add_scroll_tree_node(
             Some(&root_reference_frame_id),
-            SpatialId::root_scroll_node(pipeline_id),
-            Some(ScrollableNodeInfo {
+            SpatialTreeNodeInfo::Scroll(ScrollableNodeInfo {
                 external_id: ExternalScrollId(0, pipeline_id),
-                scrollable_size: content_size - viewport_size,
+                content_rect: LayoutRect::from_origin_and_size(LayoutPoint::zero(), content_size),
+                clip_rect: LayoutRect::from_origin_and_size(LayoutPoint::zero(), viewport_size),
                 scroll_sensitivity: viewport_scroll_sensitivity,
                 offset: LayoutVector2D::zero(),
             }),

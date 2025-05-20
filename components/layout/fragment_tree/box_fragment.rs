@@ -92,7 +92,7 @@ pub(crate) struct BoxFragment {
     pub scrollable_overflow_from_children: PhysicalRect<Au>,
 
     /// The resolved box insets if this box is `position: sticky`. These are calculated
-    /// during stacking context tree construction because they rely on the size of the
+    /// during `StackingContextTree` construction because they rely on the size of the
     /// scroll container.
     pub(crate) resolved_sticky_insets: AtomicRefCell<Option<PhysicalSides<AuOrAuto>>>,
 

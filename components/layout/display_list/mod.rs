@@ -8,13 +8,15 @@ use std::sync::Arc;
 use app_units::{AU_PER_PX, Au};
 use base::WebRenderEpochToU16;
 use base::id::ScrollTreeNodeId;
-use compositing_traits::display_list::{AxesScrollSensitivity, CompositorDisplayListInfo};
+use clip::{Clip, ClipId};
+use compositing_traits::display_list::{CompositorDisplayListInfo, SpatialTreeNodeInfo};
 use embedder_traits::Cursor;
 use euclid::{Point2D, SideOffsets2D, Size2D, UnknownUnit};
 use fonts::GlyphStore;
 use gradient::WebRenderGradient;
 use range::Range as ServoRange;
 use servo_arc::Arc as ServoArc;
+use servo_config::opts::DebugOptions;
 use servo_geometry::MaxRect;
 use style::Zero;
 use style::color::{AbsoluteColor, ColorSpace};
@@ -35,8 +37,9 @@ use style::values::specified::ui::CursorKind;
 use style_traits::CSSPixel;
 use webrender_api::units::{DevicePixel, LayoutPixel, LayoutRect, LayoutSize};
 use webrender_api::{
-    self as wr, BorderDetails, BoxShadowClipMode, ClipChainId, CommonItemProperties,
-    ImageRendering, NinePatchBorder, NinePatchBorderSource, SpatialId, units,
+    self as wr, BorderDetails, BoxShadowClipMode, BuiltDisplayList, ClipChainId, ClipMode,
+    CommonItemProperties, ComplexClipRegion, ImageRendering, NinePatchBorder,
+    NinePatchBorderSource, PropertyBinding, SpatialId, SpatialTreeItemKey, units,
 };
 use wr::units::LayoutVector2D;
 
@@ -55,7 +58,7 @@ use crate::replaced::NaturalSizes;
 use crate::style_ext::{BorderStyleColor, ComputedValuesExt};
 
 mod background;
-mod clip_path;
+mod clip;
 mod conversions;
 mod gradient;
 mod stacking_context;
@@ -74,68 +77,6 @@ type ItemTag = (u64, u16);
 type HitInfo = Option<ItemTag>;
 const INSERTION_POINT_LOGICAL_WIDTH: Au = Au(AU_PER_PX);
 
-/// Where the information that's used to build display lists is stored. This
-/// includes both a [wr::DisplayListBuilder] for building up WebRender-specific
-/// display list information and a [CompositorDisplayListInfo] used to store
-/// information used by the compositor, such as a compositor-side scroll tree.
-pub struct DisplayList {
-    /// The [wr::DisplayListBuilder] used to collect display list items.
-    pub wr: wr::DisplayListBuilder,
-
-    /// The information about the WebRender display list that the compositor
-    /// consumes. This curerntly contains the out-of-band hit testing information
-    /// data structure that the compositor uses to map hit tests to information
-    /// about the item hit.
-    pub compositor_info: CompositorDisplayListInfo,
-
-    /// A count of the number of SpatialTree nodes pushed to the WebRender display
-    /// list. This is merely to ensure that the currently-unused SpatialTreeItemKey
-    /// produced for every SpatialTree node is unique.
-    pub spatial_tree_count: u64,
-}
-
-impl DisplayList {
-    /// Create a new [DisplayList] given the dimensions of the layout and the WebRender
-    /// pipeline id.
-    pub fn new(
-        viewport_size: units::LayoutSize,
-        content_size: units::LayoutSize,
-        pipeline_id: wr::PipelineId,
-        epoch: wr::Epoch,
-        viewport_scroll_sensitivity: AxesScrollSensitivity,
-        first_reflow: bool,
-    ) -> Self {
-        Self {
-            wr: wr::DisplayListBuilder::new(pipeline_id),
-            compositor_info: CompositorDisplayListInfo::new(
-                viewport_size,
-                content_size,
-                pipeline_id,
-                epoch,
-                viewport_scroll_sensitivity,
-                first_reflow,
-            ),
-            spatial_tree_count: 0,
-        }
-    }
-
-    pub fn define_clip_chain<I>(&mut self, parent: ClipChainId, clips: I) -> ClipChainId
-    where
-        I: IntoIterator<Item = wr::ClipId>,
-        I::IntoIter: ExactSizeIterator + Clone,
-    {
-        // WebRender has two different ways of expressing "no clip." ClipChainId::INVALID should be
-        // used for primitives, but `None` is used for stacking contexts and clip chains. We convert
-        // to the `Option<ClipChainId>` representation here. Just passing Some(ClipChainId::INVALID)
-        // leads to a crash.
-        let parent = match parent {
-            ClipChainId::INVALID => None,
-            parent => Some(parent),
-        };
-        self.wr.define_clip_chain(parent, clips)
-    }
-}
-
 pub(crate) struct DisplayListBuilder<'a> {
     /// The current [ScrollTreeNodeId] for this [DisplayListBuilder]. This
     /// allows only passing the builder instead passing the containing
@@ -148,18 +89,21 @@ pub(crate) struct DisplayListBuilder<'a> {
     /// `background-attachment: fixed` need to not scroll while the rest of the fragment does.
     current_reference_frame_scroll_node_id: ScrollTreeNodeId,
 
-    /// The current [wr::ClipId] for this [DisplayListBuilder]. This allows
+    /// The current [`ClipId`] for this [DisplayListBuilder]. This allows
     /// only passing the builder instead passing the containing
     /// [stacking_context::StackingContextContent::Fragment] as an argument to display
     /// list building functions.
-    current_clip_chain_id: ClipChainId,
+    current_clip_id: ClipId,
 
     /// A [LayoutContext] used to get information about the device pixel ratio
     /// and get handles to WebRender images.
     pub context: &'a LayoutContext<'a>,
 
-    /// The [DisplayList] used to collect display list items and metadata.
-    pub display_list: &'a mut DisplayList,
+    /// The [`wr::DisplayListBuilder`] for this Servo [`DisplayListBuilder`].
+    pub webrender_display_list_builder: &'a mut wr::DisplayListBuilder,
+
+    /// The [`CompositorDisplayListInfo`] used to collect display list items and metadata.
+    pub compositor_info: &'a mut CompositorDisplayListInfo,
 
     /// Data about the fragments that are highlighted by the inspector, if any.
     ///
@@ -171,6 +115,10 @@ pub(crate) struct DisplayListBuilder<'a> {
     /// element inherits the `<body>`'s background to paint the page canvas background.
     /// See <https://drafts.csswg.org/css-backgrounds/#body-background>.
     paint_body_background: bool,
+
+    /// A mapping from [`ClipId`] To WebRender [`ClipChainId`] used when building this WebRender
+    /// display list.
+    clip_map: Vec<ClipChainId>,
 }
 
 struct InspectorHighlight {
@@ -207,45 +155,224 @@ impl InspectorHighlight {
     }
 }
 
-impl DisplayList {
-    pub fn build(
-        &mut self,
+impl DisplayListBuilder<'_> {
+    pub(crate) fn build(
         context: &LayoutContext,
+        stacking_context_tree: &mut StackingContextTree,
         fragment_tree: &FragmentTree,
-        root_stacking_context: &StackingContext,
-    ) {
+        debug: &DebugOptions,
+    ) -> BuiltDisplayList {
+        // Build the rest of the display list which inclues all of the WebRender primitives.
+        let compositor_info = &mut stacking_context_tree.compositor_info;
+        compositor_info.hit_test_info.clear();
+
+        let mut webrender_display_list_builder =
+            webrender_api::DisplayListBuilder::new(compositor_info.pipeline_id);
+        webrender_display_list_builder.begin();
+
+        // `dump_serialized_display_list` doesn't actually print anything. It sets up
+        // the display list for printing the serialized version when `finalize()` is called.
+        // We need to call this before adding any display items so that they are printed
+        // during `finalize()`.
+        if debug.dump_display_list {
+            webrender_display_list_builder.dump_serialized_display_list();
+        }
+
         #[cfg(feature = "tracing")]
-        let _span = tracing::trace_span!("display_list::build", servo_profiling = true).entered();
+        let _span =
+            tracing::trace_span!("DisplayListBuilder::build", servo_profiling = true).entered();
         let mut builder = DisplayListBuilder {
-            current_scroll_node_id: self.compositor_info.root_reference_frame_id,
-            current_reference_frame_scroll_node_id: self.compositor_info.root_reference_frame_id,
-            current_clip_chain_id: ClipChainId::INVALID,
+            current_scroll_node_id: compositor_info.root_reference_frame_id,
+            current_reference_frame_scroll_node_id: compositor_info.root_reference_frame_id,
+            current_clip_id: ClipId::INVALID,
             context,
-            display_list: self,
+            webrender_display_list_builder: &mut webrender_display_list_builder,
+            compositor_info,
             inspector_highlight: context
                 .highlighted_dom_node
                 .map(InspectorHighlight::for_node),
             paint_body_background: true,
+            clip_map: Default::default(),
         };
-        fragment_tree.build_display_list(&mut builder, root_stacking_context);
 
-        if let Some(highlight) = builder
-            .inspector_highlight
-            .take()
-            .and_then(|highlight| highlight.state)
-        {
-            builder.paint_dom_inspector_highlight(highlight);
+        builder.add_all_spatial_nodes();
+
+        for clip in stacking_context_tree.clip_store.0.iter() {
+            builder.add_clip_to_display_list(clip);
         }
-    }
-}
 
-impl DisplayListBuilder<'_> {
+        // Paint the canvas’ background (if any) before/under everything else
+        stacking_context_tree
+            .root_stacking_context
+            .build_canvas_background_display_list(&mut builder, fragment_tree);
+        stacking_context_tree
+            .root_stacking_context
+            .build_display_list(&mut builder);
+        builder.paint_dom_inspector_highlight();
+
+        webrender_display_list_builder.end().1
+    }
+
     fn wr(&mut self) -> &mut wr::DisplayListBuilder {
-        &mut self.display_list.wr
+        self.webrender_display_list_builder
+    }
+
+    fn pipeline_id(&mut self) -> wr::PipelineId {
+        self.compositor_info.pipeline_id
     }
 
     fn mark_is_contentful(&mut self) {
-        self.display_list.compositor_info.is_contentful = true;
+        self.compositor_info.is_contentful = true;
+    }
+
+    fn spatial_id(&self, id: ScrollTreeNodeId) -> SpatialId {
+        self.compositor_info.scroll_tree.webrender_id(&id)
+    }
+
+    fn clip_chain_id(&self, id: ClipId) -> ClipChainId {
+        match id {
+            ClipId::INVALID => ClipChainId::INVALID,
+            _ => *self
+                .clip_map
+                .get(id.0)
+                .expect("Should never try to get clip before adding it to WebRender display list"),
+        }
+    }
+
+    pub(crate) fn add_all_spatial_nodes(&mut self) {
+        // A count of the number of SpatialTree nodes pushed to the WebRender display
+        // list. This is merely to ensure that the currently-unused SpatialTreeItemKey
+        // produced for every SpatialTree node is unique.
+        let mut spatial_tree_count = 0;
+        let mut scroll_tree = std::mem::take(&mut self.compositor_info.scroll_tree);
+        let mut mapping = Vec::with_capacity(scroll_tree.nodes.len());
+
+        mapping.push(SpatialId::root_reference_frame(self.pipeline_id()));
+        mapping.push(SpatialId::root_scroll_node(self.pipeline_id()));
+
+        let pipeline_id = self.pipeline_id();
+        let pipeline_tag = ((pipeline_id.0 as u64) << 32) | pipeline_id.1 as u64;
+
+        for node in scroll_tree.nodes.iter().skip(2) {
+            let parent_scroll_node_id = node
+                .parent
+                .expect("Should have already added root reference frame");
+            let parent_spatial_node_id = mapping
+                .get(parent_scroll_node_id.index)
+                .expect("Should add spatial nodes to display list in order");
+
+            // Produce a new SpatialTreeItemKey. This is currently unused by WebRender,
+            // but has to be unique to the entire scene.
+            spatial_tree_count += 1;
+            let spatial_tree_item_key = SpatialTreeItemKey::new(pipeline_tag, spatial_tree_count);
+
+            mapping.push(match &node.info {
+                SpatialTreeNodeInfo::ReferenceFrame(info) => {
+                    let spatial_id = self.wr().push_reference_frame(
+                        info.origin,
+                        *parent_spatial_node_id,
+                        info.transform_style,
+                        PropertyBinding::Value(info.transform),
+                        info.kind,
+                        spatial_tree_item_key,
+                    );
+                    self.wr().pop_reference_frame();
+                    spatial_id
+                },
+                SpatialTreeNodeInfo::Scroll(info) => {
+                    self.wr().define_scroll_frame(
+                        *parent_spatial_node_id,
+                        info.external_id,
+                        info.content_rect,
+                        info.clip_rect,
+                        LayoutVector2D::zero(), /* external_scroll_offset */
+                        0,                      /* scroll_offset_generation */
+                        wr::HasScrollLinkedEffect::No,
+                        spatial_tree_item_key,
+                    )
+                },
+                SpatialTreeNodeInfo::Sticky(info) => {
+                    self.wr().define_sticky_frame(
+                        *parent_spatial_node_id,
+                        info.frame_rect,
+                        info.margins,
+                        info.vertical_offset_bounds,
+                        info.horizontal_offset_bounds,
+                        LayoutVector2D::zero(), /* previously_applied_offset */
+                        spatial_tree_item_key,
+                        None, /* transform */
+                    )
+                },
+            });
+        }
+
+        scroll_tree.update_mapping(mapping);
+        self.compositor_info.scroll_tree = scroll_tree;
+    }
+
+    /// Add the given [`Clip`] to the WebRender display list and create a mapping from
+    /// its [`ClipId`] to a WebRender [`ClipChainId`]. This happens:
+    ///  - When WebRender display list construction starts: All clips created during the
+    ///    `StackingContextTree` construction are added in one batch. These clips are used
+    ///    for things such as `overflow: scroll` elements.
+    ///  - When a clip is added during WebRender display list construction for individual
+    ///    items. In that case, this is called by [`Self::maybe_create_clip`].
+    pub(crate) fn add_clip_to_display_list(&mut self, clip: &Clip) -> ClipChainId {
+        assert_eq!(
+            clip.id.0,
+            self.clip_map.len(),
+            "Clips should be added in order"
+        );
+
+        let spatial_id = self.spatial_id(clip.parent_scroll_node_id);
+        let new_clip_id = if clip.radii.is_zero() {
+            self.wr().define_clip_rect(spatial_id, clip.rect)
+        } else {
+            self.wr().define_clip_rounded_rect(
+                spatial_id,
+                ComplexClipRegion {
+                    rect: clip.rect,
+                    radii: clip.radii,
+                    mode: ClipMode::Clip,
+                },
+            )
+        };
+
+        // WebRender has two different ways of expressing "no clip." ClipChainId::INVALID should be
+        // used for primitives, but `None` is used for stacking contexts and clip chains. We convert
+        // to the `Option<ClipChainId>` representation here. Just passing Some(ClipChainId::INVALID)
+        // leads to a crash.
+        let parent_clip_chain_id = match self.clip_chain_id(clip.parent_clip_id) {
+            ClipChainId::INVALID => None,
+            parent => Some(parent),
+        };
+        let clip_chain_id = self
+            .wr()
+            .define_clip_chain(parent_clip_chain_id, [new_clip_id]);
+        self.clip_map.push(clip_chain_id);
+        clip_chain_id
+    }
+
+    /// Add a new clip to the WebRender display list being built. This only happens during
+    /// WebRender display list building and these clips should be added after all clips
+    /// from the `StackingContextTree` have already been processed.
+    fn maybe_create_clip(
+        &mut self,
+        radii: wr::BorderRadius,
+        rect: units::LayoutRect,
+        force_clip_creation: bool,
+    ) -> Option<ClipChainId> {
+        if radii.is_zero() && !force_clip_creation {
+            return None;
+        }
+
+        Some(self.add_clip_to_display_list(&Clip {
+            id: ClipId(self.clip_map.len()),
+            radii,
+            rect,
+            parent_scroll_node_id: self.current_scroll_node_id,
+            parent_clip_id: self.current_clip_id,
+        }))
     }
 
     fn common_properties(
@@ -258,8 +385,8 @@ impl DisplayListBuilder<'_> {
         // for fragments that paint their entire border rectangle.
         wr::CommonItemProperties {
             clip_rect,
-            spatial_id: self.current_scroll_node_id.spatial_id,
-            clip_chain_id: self.current_clip_chain_id,
+            spatial_id: self.spatial_id(self.current_scroll_node_id),
+            clip_chain_id: self.clip_chain_id(self.current_clip_id),
             flags: style.get_webrender_primitive_flags(),
         }
     }
@@ -277,19 +404,24 @@ impl DisplayListBuilder<'_> {
             return None;
         }
 
-        let hit_test_index = self.display_list.compositor_info.add_hit_test_info(
+        let hit_test_index = self.compositor_info.add_hit_test_info(
             tag?.node.0 as u64,
             Some(cursor(inherited_ui.cursor.keyword, auto_cursor)),
             self.current_scroll_node_id,
         );
-        Some((
-            hit_test_index as u64,
-            self.display_list.compositor_info.epoch.as_u16(),
-        ))
+        Some((hit_test_index as u64, self.compositor_info.epoch.as_u16()))
     }
 
     /// Draw highlights around the node that is currently hovered in the devtools.
-    fn paint_dom_inspector_highlight(&mut self, highlight: HighlightTraversalState) {
+    fn paint_dom_inspector_highlight(&mut self) {
+        let Some(highlight) = self
+            .inspector_highlight
+            .take()
+            .and_then(|highlight| highlight.state)
+        else {
+            return;
+        };
+
         const CONTENT_BOX_HIGHLIGHT_COLOR: webrender_api::ColorF = webrender_api::ColorF {
             r: 0.23,
             g: 0.7,
@@ -327,8 +459,7 @@ impl DisplayListBuilder<'_> {
             flags: wr::PrimitiveFlags::default(),
         };
 
-        self.display_list
-            .wr
+        self.wr()
             .push_rect(&properties, content_box, CONTENT_BOX_HIGHLIGHT_COLOR);
 
         // Highlight margin, border and padding
@@ -442,12 +573,14 @@ impl Fragment {
         is_hit_test_for_scrollable_overflow: bool,
         is_collapsed_table_borders: bool,
     ) {
+        let spatial_id = builder.spatial_id(builder.current_scroll_node_id);
+        let clip_chain_id = builder.clip_chain_id(builder.current_clip_id);
         if let Some(inspector_highlight) = &mut builder.inspector_highlight {
             if self.tag() == Some(inspector_highlight.tag) {
                 inspector_highlight.register_fragment_of_highlighted_dom_node(
                     self,
-                    builder.current_scroll_node_id.spatial_id,
-                    builder.current_clip_chain_id,
+                    spatial_id,
+                    clip_chain_id,
                     containing_block,
                 );
             }
@@ -574,8 +707,8 @@ impl Fragment {
             None => return,
         };
 
-        let clip_chain_id = builder.current_clip_chain_id;
-        let spatial_id = builder.current_scroll_node_id.spatial_id;
+        let clip_chain_id = builder.clip_chain_id(builder.current_clip_id);
+        let spatial_id = builder.spatial_id(builder.current_scroll_node_id);
         builder.wr().push_hit_test(
             rect.to_webrender(),
             clip_chain_id,
@@ -765,8 +898,9 @@ impl Fragment {
         if text_decoration_style == ComputedTextDecorationStyle::MozNone {
             return;
         }
-        builder.display_list.wr.push_line(
-            &builder.common_properties(rect, parent_style),
+        let common_properties = builder.common_properties(rect, parent_style);
+        builder.wr().push_line(
+            &common_properties,
             &rect,
             wavy_line_thickness,
             wr::LineOrientation::Horizontal,
@@ -878,12 +1012,8 @@ impl<'a> BuilderForBoxFragment<'a> {
             return Some(clip);
         }
 
-        let maybe_clip = create_clip_chain(
-            self.border_radius,
-            self.border_rect,
-            builder,
-            force_clip_creation,
-        );
+        let maybe_clip =
+            builder.maybe_create_clip(self.border_radius, self.border_rect, force_clip_creation);
         *self.border_edge_clip_chain_id.borrow_mut() = maybe_clip;
         maybe_clip
     }
@@ -899,7 +1029,7 @@ impl<'a> BuilderForBoxFragment<'a> {
 
         let radii = inner_radii(self.border_radius, self.fragment.border.to_webrender());
         let maybe_clip =
-            create_clip_chain(radii, *self.padding_rect(), builder, force_clip_creation);
+            builder.maybe_create_clip(radii, *self.padding_rect(), force_clip_creation);
         *self.padding_edge_clip_chain_id.borrow_mut() = maybe_clip;
         maybe_clip
     }
@@ -918,7 +1048,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             (self.fragment.border + self.fragment.padding).to_webrender(),
         );
         let maybe_clip =
-            create_clip_chain(radii, *self.content_rect(), builder, force_clip_creation);
+            builder.maybe_create_clip(radii, *self.content_rect(), force_clip_creation);
         *self.content_edge_clip_chain_id.borrow_mut() = maybe_clip;
         maybe_clip
     }
@@ -1551,38 +1681,6 @@ fn offset_radii(mut radii: wr::BorderRadius, offset: f32) -> wr::BorderRadius {
     expand(&mut radii.bottom_left.width);
     expand(&mut radii.bottom_left.height);
     radii
-}
-
-fn create_clip_chain(
-    radii: wr::BorderRadius,
-    rect: units::LayoutRect,
-    builder: &mut DisplayListBuilder,
-    force_clip_creation: bool,
-) -> Option<ClipChainId> {
-    if radii.is_zero() && !force_clip_creation {
-        return None;
-    }
-
-    let spatial_id = builder.current_scroll_node_id.spatial_id;
-    let parent_clip_chain_id = builder.current_clip_chain_id;
-    let new_clip_id = if radii.is_zero() {
-        builder.wr().define_clip_rect(spatial_id, rect)
-    } else {
-        builder.wr().define_clip_rounded_rect(
-            spatial_id,
-            wr::ComplexClipRegion {
-                rect,
-                radii,
-                mode: wr::ClipMode::Clip,
-            },
-        )
-    };
-
-    Some(
-        builder
-            .display_list
-            .define_clip_chain(parent_clip_chain_id, [new_clip_id]),
-    )
 }
 
 /// Resolve the WebRender border-image outset area from the style values.
