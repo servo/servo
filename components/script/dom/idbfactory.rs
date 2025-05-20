@@ -2,21 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use dom_struct::dom_struct;
-use js::rust::HandleValue;
 use servo_url::origin::ImmutableOrigin;
 
 use crate::dom::bindings::codegen::Bindings::IDBFactoryBinding::IDBFactoryMethods;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::idbopendbrequest::IDBOpenDBRequest;
-use crate::dom::promise::Promise;
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct IDBFactory {
@@ -30,12 +26,12 @@ impl IDBFactory {
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<IDBFactory> {
-        reflect_dom_object(Box::new(IDBFactory::new_inherited()), global)
+    pub fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<IDBFactory> {
+        reflect_dom_object(Box::new(IDBFactory::new_inherited()), global, can_gc)
     }
 }
 
-impl IDBFactoryMethods for IDBFactory {
+impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbfactory-open
     fn Open(&self, name: DOMString, version: Option<u64>) -> Fallible<DomRoot<IDBOpenDBRequest>> {
         // Step 1: If version is 0 (zero), throw a TypeError.
@@ -57,7 +53,7 @@ impl IDBFactoryMethods for IDBFactory {
         }
 
         // Step 4: Let request be a new open request.
-        let request = IDBOpenDBRequest::new(&self.global());
+        let request = IDBOpenDBRequest::new(&self.global(), CanGc::note());
 
         // Step 5: Runs in parallel
         request.open_database(name, version);
@@ -80,7 +76,7 @@ impl IDBFactoryMethods for IDBFactory {
         }
 
         // Step 3: Let request be a new open request
-        let request = IDBOpenDBRequest::new(&self.global());
+        let request = IDBOpenDBRequest::new(&self.global(), CanGc::note());
 
         // Step 4: Runs in parallel
         request.delete_database(name.to_string());

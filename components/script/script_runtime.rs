@@ -134,6 +134,9 @@ impl From<ScriptThreadEventCategory> for ProfilerCategory {
         match category {
             ScriptThreadEventCategory::AttachLayout => ProfilerCategory::ScriptAttachLayout,
             ScriptThreadEventCategory::ConstellationMsg => ProfilerCategory::ScriptConstellationMsg,
+            ScriptThreadEventCategory::DatabaseAccessEvent => {
+                ProfilerCategory::ScriptDatabaseAccessEvent
+            },
             ScriptThreadEventCategory::DevtoolsMsg => ProfilerCategory::ScriptDevtoolsMsg,
             ScriptThreadEventCategory::DocumentEvent => ProfilerCategory::ScriptDocumentEvent,
             ScriptThreadEventCategory::EnterFullscreen => ProfilerCategory::ScriptEnterFullscreen,
@@ -178,6 +181,9 @@ impl From<ScriptThreadEventCategory> for ScriptHangAnnotation {
         match category {
             ScriptThreadEventCategory::AttachLayout => ScriptHangAnnotation::AttachLayout,
             ScriptThreadEventCategory::ConstellationMsg => ScriptHangAnnotation::ConstellationMsg,
+            ScriptThreadEventCategory::DatabaseAccessEvent => {
+                ScriptHangAnnotation::DatabaseAccessEvent
+            },
             ScriptThreadEventCategory::DevtoolsMsg => ScriptHangAnnotation::DevtoolsMsg,
             ScriptThreadEventCategory::DocumentEvent => ScriptHangAnnotation::DocumentEvent,
             ScriptThreadEventCategory::InputEvent => ScriptHangAnnotation::InputEvent,

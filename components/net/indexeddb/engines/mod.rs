@@ -37,9 +37,11 @@ impl SanitizedName {
             .collect();
         SanitizedName { name }
     }
+}
 
-    pub fn to_string(&self) -> String {
-        self.name.clone()
+impl std::fmt::Display for SanitizedName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
     }
 }
 
@@ -59,6 +61,7 @@ pub trait KvsEngine {
 
     fn delete_store(&self, store_name: SanitizedName);
 
+    #[expect(dead_code)]
     fn close_store(&self, store_name: SanitizedName);
 
     fn process_transaction(

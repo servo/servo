@@ -8,13 +8,13 @@
  */
 
 // https://w3c.github.io/IndexedDB/#idbdatabase
-[Pref="dom.indexeddb.enabled", Exposed=(Window,Worker)]
+[Pref="dom_indexeddb_enabled", Exposed=(Window,Worker)]
 interface IDBDatabase : EventTarget {
   readonly attribute DOMString name;
   readonly attribute unsigned long long version;
   readonly attribute DOMStringList objectStoreNames;
 
-  [NewObject] IDBTransaction transaction((DOMString or sequence<DOMString>) storeNames,
+  [Throws, NewObject] IDBTransaction transaction((DOMString or sequence<DOMString>) storeNames,
                                          optional IDBTransactionMode mode = "readonly",
                                          optional IDBTransactionOptions options = {});
   undefined close();
@@ -23,7 +23,7 @@ interface IDBDatabase : EventTarget {
     DOMString name,
     optional IDBObjectStoreParameters options = {}
   );
-  undefined deleteObjectStore(DOMString name);
+  [Throws] undefined deleteObjectStore(DOMString name);
 
   // Event handlers:
   attribute EventHandler onabort;

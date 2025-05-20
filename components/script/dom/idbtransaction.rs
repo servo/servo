@@ -7,21 +7,20 @@ use std::collections::HashMap;
 
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
-use net_traits::indexeddb_thread::{IndexedDBThreadMsg, IndexedDBThreadReturnType, SyncOperation};
 use net_traits::IpcSend;
+use net_traits::indexeddb_thread::{IndexedDBThreadMsg, IndexedDBThreadReturnType, SyncOperation};
 use profile_traits::ipc;
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DOMStringListBinding::DOMStringListMethods;
-use crate::dom::bindings::codegen::Bindings::IDBDatabaseBinding::IDBTransactionDurability;
 use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::{
     IDBTransactionMethods, IDBTransactionMode,
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::domexception::DOMException;
@@ -32,7 +31,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::idbdatabase::IDBDatabase;
 use crate::dom::idbobjectstore::IDBObjectStore;
 use crate::dom::idbrequest::IDBRequest;
-use crate::task_source::TaskSource;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct IDBTransaction {
@@ -82,6 +81,7 @@ impl IDBTransaction {
         connection: &IDBDatabase,
         mode: IDBTransactionMode,
         scope: DomRoot<DOMStringList>,
+        can_gc: CanGc,
     ) -> DomRoot<IDBTransaction> {
         let serial_number = IDBTransaction::register_new(&global, connection.get_name());
         reflect_dom_object(
@@ -92,6 +92,7 @@ impl IDBTransaction {
                 serial_number,
             )),
             global,
+            can_gc,
         )
     }
 
@@ -184,23 +185,20 @@ impl IDBTransaction {
     fn dispatch_complete(&self) {
         let global = self.global();
         let this = Trusted::new(self);
-        global
-            .database_access_task_source()
-            .queue(
-                task!(send_complete_notification: move || {
-                    let this = this.root();
-                    let global = this.global();
-                    let event = Event::new(
-                        &global,
-                        Atom::from("complete"),
-                        EventBubbles::DoesNotBubble,
-                        EventCancelable::NotCancelable,
-                    );
-                    event.fire(this.upcast());
-                }),
-                global.upcast(),
-            )
-            .unwrap();
+        global.task_manager().database_access_task_source().queue(
+            task!(send_complete_notification: move || {
+                let this = this.root();
+                let global = this.global();
+                let event = Event::new(
+                    &global,
+                    Atom::from("complete"),
+                    EventBubbles::DoesNotBubble,
+                    EventCancelable::NotCancelable,
+                    CanGc::note()
+                );
+                event.fire(this.upcast(), CanGc::note());
+            }),
+        );
     }
 
     fn get_idb_thread(&self) -> IpcSender<IndexedDBThreadMsg> {
@@ -208,7 +206,7 @@ impl IDBTransaction {
     }
 }
 
-impl IDBTransactionMethods for IDBTransaction {
+impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-db
     fn Db(&self) -> DomRoot<IDBDatabase> {
         DomRoot::from_ref(&*self.db)
@@ -231,7 +229,13 @@ impl IDBTransactionMethods for IDBTransaction {
         // returns the same IDBObjectStore instance.
         let mut store_handles = self.store_handles.borrow_mut();
         let store = store_handles.entry(name.to_string()).or_insert_with(|| {
-            let store = IDBObjectStore::new(&self.global(), self.db.get_name(), name, None);
+            let store = IDBObjectStore::new(
+                &self.global(),
+                self.db.get_name(),
+                name,
+                None,
+                CanGc::note(),
+            );
             store.set_transaction(&self);
             Dom::from_ref(&*store)
         });

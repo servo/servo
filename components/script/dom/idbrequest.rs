@@ -4,16 +4,16 @@
 
 use std::cell::Cell;
 
+use constellation_traits::StructuredSerializedData;
 use dom_struct::dom_struct;
 use ipc_channel::router::ROUTER;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleValue;
-use net_traits::indexeddb_thread::{AsyncOperation, IndexedDBThreadMsg, IndexedDBTxnMode};
 use net_traits::IpcSend;
+use net_traits::indexeddb_thread::{AsyncOperation, IndexedDBThreadMsg, IndexedDBTxnMode};
 use profile_traits::ipc;
-use script_traits::StructuredSerializedData;
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::IDBRequestBinding::{
     IDBRequestMethods, IDBRequestReadyState,
@@ -22,7 +22,7 @@ use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransacti
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::structuredclone;
 use crate::dom::domexception::{DOMErrorName, DOMException};
@@ -32,9 +32,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::idbobjectstore::IDBObjectStore;
 use crate::dom::idbtransaction::IDBTransaction;
 use crate::enter_realm;
-use crate::script_runtime::JSContext as SafeJSContext;
-use crate::task_source::database_access::DatabaseAccessTaskSource;
-use crate::task_source::TaskSource;
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[derive(Clone)]
 struct RequestListener {
@@ -55,8 +53,7 @@ impl RequestListener {
         if let Some(serialized_data) = result {
             let data = StructuredSerializedData {
                 serialized: serialized_data,
-                ports: None,
-                blobs: None,
+                ..Default::default()
             };
 
             if let Err(_) = structuredclone::read(&global, data, answer.handle_mut()) {
@@ -75,10 +72,13 @@ impl RequestListener {
                 Atom::from("success"),
                 EventBubbles::DoesNotBubble,
                 EventCancelable::NotCancelable,
+                CanGc::note(),
             );
 
             transaction.set_active_flag(true);
-            event.upcast::<Event>().fire(request.upcast());
+            event
+                .upcast::<Event>()
+                .fire(request.upcast(), CanGc::note());
             transaction.set_active_flag(false);
         } else {
             request.set_result(answer.handle());
@@ -96,10 +96,13 @@ impl RequestListener {
                 Atom::from("error"),
                 EventBubbles::Bubbles,
                 EventCancelable::Cancelable,
+                CanGc::note(),
             );
 
             transaction.set_active_flag(true);
-            event.upcast::<Event>().fire(request.upcast());
+            event
+                .upcast::<Event>()
+                .fire(request.upcast(), CanGc::note());
             transaction.set_active_flag(false);
         }
     }
@@ -129,8 +132,8 @@ impl IDBRequest {
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<IDBRequest> {
-        reflect_dom_object(Box::new(IDBRequest::new_inherited()), global)
+    pub fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<IDBRequest> {
+        reflect_dom_object(Box::new(IDBRequest::new_inherited()), global, can_gc)
     }
 
     pub fn set_source(&self, source: Option<&IDBObjectStore>) {
@@ -145,12 +148,13 @@ impl IDBRequest {
         self.result.set(result.get());
     }
 
-    pub fn set_error(&self, error: Error) {
+    pub fn set_error(&self, error: Error, can_gc: CanGc) {
         // FIXME:(rasviitanen) Support all error types
         if let Error::Version = error {
             self.error.set(Some(&DOMException::new(
                 &self.global(),
                 DOMErrorName::VersionError,
+                can_gc,
             )));
         }
     }
@@ -164,6 +168,7 @@ impl IDBRequest {
         source: &IDBObjectStore,
         operation: AsyncOperation,
         request: Option<DomRoot<IDBRequest>>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<IDBRequest>> {
         // Step 1: Let transaction be the transaction associated with source.
         let transaction = source.transaction().expect("Store has no transaction");
@@ -176,7 +181,7 @@ impl IDBRequest {
 
         // Step 3: If request was not given, let request be a new request with source as source.
         let request = request.unwrap_or_else(|| {
-            let new_request = IDBRequest::new(&global);
+            let new_request = IDBRequest::new(&global, can_gc);
             new_request.set_source(Some(source));
             new_request.set_transaction(&transaction);
             new_request
@@ -193,26 +198,27 @@ impl IDBRequest {
             IDBTransactionMode::Versionchange => IndexedDBTxnMode::Versionchange,
         };
 
-        let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) =
+            ipc::channel::<std::option::Option<Vec<u8>>>(global.time_profiler_chan().clone())
+                .unwrap();
 
         let response_listener = RequestListener {
             request: Trusted::new(&request),
         };
 
-        let task_source = global.database_access_task_source();
-        let canceller = global.task_canceller(DatabaseAccessTaskSource::NAME);
+        let task_source = global
+            .task_manager()
+            .database_access_task_source()
+            .to_sendable();
 
-        ROUTER.add_route(
-            receiver.to_opaque(),
+        ROUTER.add_typed_route(
+            receiver.to_ipc_receiver(),
             Box::new(move |message| {
                 let response_listener = response_listener.clone();
-                let _ = task_source.queue_with_canceller(
-                    task!(request_callback: move || {
-                        response_listener.handle_async_request_finished(
-                            message.to().expect("Could not unwrap message"));
-                    }),
-                    &canceller,
-                );
+                task_source.queue(task!(request_callback: move || {
+                    response_listener.handle_async_request_finished(
+                        message.expect("Could not unwrap message"));
+                }));
             }),
         );
 
@@ -236,10 +242,10 @@ impl IDBRequest {
     }
 }
 
-impl IDBRequestMethods for IDBRequest {
+impl IDBRequestMethods<crate::DomTypeHolder> for IDBRequest {
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbrequest-result
-    fn Result(&self, _cx: SafeJSContext) -> JSVal {
-        self.result.get()
+    fn Result(&self, _cx: SafeJSContext, _val: js::rust::MutableHandle<'_, js::jsapi::Value>) {
+        self.result.get();
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbrequest-error

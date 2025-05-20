@@ -110,6 +110,12 @@ pub enum SyncOperation {
         String, // Store
     ),
 
+    CloseDatabase(
+        IpcSender<Result<(), ()>>,
+        ImmutableOrigin,
+        String, // Database
+    ),
+
     OpenDatabase(
         IpcSender<u64>, // Returns the version
         ImmutableOrigin,

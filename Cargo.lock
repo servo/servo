@@ -5048,6 +5048,7 @@ dependencies = [
  "async-tungstenite",
  "base",
  "base64 0.22.1",
+ "bincode",
  "bytes",
  "chrono",
  "compositing_traits",

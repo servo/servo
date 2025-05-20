@@ -281,7 +281,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     fn IndexedDB(&self) -> DomRoot<IDBFactory> {
         self.indexeddb.or_init(|| {
             let global_scope = self.upcast::<GlobalScope>();
-            IDBFactory::new(global_scope)
+            IDBFactory::new(global_scope, CanGc::note())
         })
     }
 

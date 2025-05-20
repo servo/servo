@@ -7,16 +7,16 @@ use std::ptr;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{
-    ESClass, GetBuiltinClass, IsArrayBufferObject, JSObject, JS_DeleteUCProperty,
-    JS_GetOwnUCPropertyDescriptor, JS_GetStringLength, JS_IsArrayBufferViewObject, ObjectOpResult,
-    ObjectOpResult_SpecialCodes, PropertyDescriptor,
+    ESClass, GetBuiltinClass, IsArrayBufferObject, JS_DeleteUCProperty,
+    JS_GetOwnUCPropertyDescriptor, JS_GetStringLength, JS_IsArrayBufferViewObject, JSObject,
+    ObjectOpResult, ObjectOpResult_SpecialCodes, PropertyDescriptor,
 };
-use js::jsval::{JSVal, UndefinedValue};
+use js::jsval::UndefinedValue;
 use js::rust::{HandleValue, MutableHandleValue};
+use net_traits::IpcSend;
 use net_traits::indexeddb_thread::{
     AsyncOperation, IndexedDBKeyType, IndexedDBThreadMsg, SyncOperation,
 };
-use net_traits::IpcSend;
 use profile_traits::ipc;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -26,7 +26,7 @@ use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransacti
 // We need to alias this name, otherwise test-tidy complains at &String reference.
 use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence as StrOrStringSequence;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
@@ -34,7 +34,7 @@ use crate::dom::domstringlist::DOMStringList;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::idbrequest::IDBRequest;
 use crate::dom::idbtransaction::IDBTransaction;
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub enum KeyPath {
@@ -62,6 +62,7 @@ impl IDBObjectStore {
         db_name: DOMString,
         name: DOMString,
         options: Option<&IDBObjectStoreParameters>,
+        can_gc: CanGc,
     ) -> IDBObjectStore {
         let key_path: Option<KeyPath> = match options {
             Some(options) => options.keyPath.as_ref().map(|path| match path {
@@ -78,7 +79,7 @@ impl IDBObjectStore {
             name: DomRefCell::new(name),
             key_path,
 
-            index_names: DOMStringList::new(global, Vec::new()),
+            index_names: DOMStringList::new(global.as_window(), Vec::new(), can_gc),
             transaction: Default::default(),
             // FIXME:(arihant2math)
             auto_increment: false,
@@ -92,12 +93,14 @@ impl IDBObjectStore {
         db_name: DOMString,
         name: DOMString,
         options: Option<&IDBObjectStoreParameters>,
+        can_gc: CanGc,
     ) -> DomRoot<IDBObjectStore> {
         reflect_dom_object(
             Box::new(IDBObjectStore::new_inherited(
-                global, db_name, name, options,
+                global, db_name, name, options, can_gc,
             )),
             global,
+            can_gc,
         )
     }
 
@@ -121,7 +124,6 @@ impl IDBObjectStore {
         }
 
         let is_valid = |path: &DOMString| {
-            let path = path.to_string();
             return if path.is_empty() {
                 true
             } else if is_identifier(&path) {
@@ -164,12 +166,12 @@ impl IDBObjectStore {
         if input.is_number() {
             // FIXME:(rasviitanen) check for NaN
             let key = structuredclone::write(cx, input, None).expect("Could not serialize key");
-            return Ok(IndexedDBKeyType::Number(key.serialized.clone()));
+            return Ok(IndexedDBKeyType::Number(key.serialized));
         }
 
         if input.is_string() {
             let key = structuredclone::write(cx, input, None).expect("Could not serialize key");
-            return Ok(IndexedDBKeyType::String(key.serialized.clone()));
+            return Ok(IndexedDBKeyType::String(key.serialized));
         }
 
         if input.is_object() {
@@ -216,7 +218,7 @@ impl IDBObjectStore {
     ) {
         // The implementation is translated from gecko:
         // https://github.com/mozilla/gecko-dev/blob/master/dom/indexedDB/KeyPath.cpp
-        *return_val = *value;
+        return_val.set(*value);
 
         rooted!(in(*cx) let mut target_object = ptr::null_mut::<JSObject>());
         rooted!(in(*cx) let mut current_val = *value);
@@ -232,10 +234,13 @@ impl IDBObjectStore {
 
                 while let Some(token) = tokenizer.next() {
                     if target_object.get().is_null() {
-                        if token == "length" && current_val.is_string() {
+                        if token == "length" &&
+                            tokenizer.peek().is_none() &&
+                            current_val.is_string()
+                        {
                             rooted!(in(*cx) let input_val = current_val.to_string());
                             unsafe {
-                                let string_len = JS_GetStringLength(*input_val);
+                                let string_len = JS_GetStringLength(*input_val) as u64;
                                 string_len.to_jsval(*cx, return_val);
                             }
                             break;
@@ -246,7 +251,7 @@ impl IDBObjectStore {
                             return;
                         }
 
-                        *object = current_val.to_object();
+                        object.handle_mut().set(current_val.to_object());
                         rooted!(in(*cx) let mut desc = PropertyDescriptor::default());
                         rooted!(in(*cx) let mut intermediate = UndefinedValue());
 
@@ -271,8 +276,8 @@ impl IDBObjectStore {
                                 return;
                             }
 
-                            if desc.hasValue_() {
-                                *intermediate = desc.handle().value_;
+                            if desc.hasWritable_() || desc.hasValue_() {
+                                intermediate.handle_mut().set(desc.handle().value_);
                                 has_prop = true;
                             } else {
                                 // If we get here it means the object doesn't have the property or the
@@ -294,13 +299,13 @@ impl IDBObjectStore {
 
                             if tokenizer.peek().is_some() {
                                 // ...and walk to it if there are more steps...
-                                *current_val = *intermediate;
+                                current_val.handle_mut().set(*intermediate);
                             } else {
                                 // ...otherwise use it as key
-                                *return_val = *intermediate;
+                                return_val.set(*intermediate);
                             }
                         } else {
-                            *target_object = *object;
+                            target_object.handle_mut().set(*object);
                             target_object_prop_name = Some(token.to_string());
                         }
                     }
@@ -392,6 +397,7 @@ impl IDBObjectStore {
         value: HandleValue,
         key: HandleValue,
         overwrite: bool,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<IDBRequest>> {
         // Step 1: Let transaction be this object store handle's transaction.
         let transaction = self
@@ -453,17 +459,14 @@ impl IDBObjectStore {
 
         IDBRequest::execute_async(
             &*self,
-            AsyncOperation::PutItem(
-                serialized_key,
-                serialized_value.serialized.clone(),
-                overwrite,
-            ),
+            AsyncOperation::PutItem(serialized_key, serialized_value.serialized, overwrite),
             None,
+            can_gc,
         )
     }
 }
 
-impl IDBObjectStoreMethods for IDBObjectStore {
+impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-put
     fn Put(
         &self,
@@ -471,7 +474,7 @@ impl IDBObjectStoreMethods for IDBObjectStore {
         value: HandleValue,
         key: HandleValue,
     ) -> Fallible<DomRoot<IDBRequest>> {
-        self.put(cx, value, key, true)
+        self.put(cx, value, key, true, CanGc::note())
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-add
@@ -481,16 +484,15 @@ impl IDBObjectStoreMethods for IDBObjectStore {
         value: HandleValue,
         key: HandleValue,
     ) -> Fallible<DomRoot<IDBRequest>> {
-        self.put(cx, value, key, false)
+        self.put(cx, value, key, false, CanGc::note())
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-delete
     fn Delete(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
         let serialized_query = IDBObjectStore::convert_value_to_key(cx, query, None);
-        match serialized_query {
-            Ok(q) => IDBRequest::execute_async(&*self, AsyncOperation::RemoveItem(q), None),
-            Err(e) => Err(e),
-        }
+        serialized_query.and_then(|q| {
+            IDBRequest::execute_async(&*self, AsyncOperation::RemoveItem(q), None, CanGc::note())
+        })
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-clear
@@ -501,10 +503,9 @@ impl IDBObjectStoreMethods for IDBObjectStore {
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-get
     fn Get(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
         let serialized_query = IDBObjectStore::convert_value_to_key(cx, query, None);
-        match serialized_query {
-            Ok(q) => IDBRequest::execute_async(&*self, AsyncOperation::GetItem(q), None),
-            Err(e) => Err(e),
-        }
+        serialized_query.and_then(|q| {
+            IDBRequest::execute_async(&*self, AsyncOperation::GetItem(q), None, CanGc::note())
+        })
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-getkey
@@ -549,7 +550,7 @@ impl IDBObjectStoreMethods for IDBObjectStore {
         }
 
         // Step 5
-        let serialized_query = IDBObjectStore::convert_value_to_key(cx, query, None);
+        let _serialized_query = IDBObjectStore::convert_value_to_key(cx, query, None);
 
         // Step 6
         // match serialized_query {
@@ -566,11 +567,11 @@ impl IDBObjectStoreMethods for IDBObjectStore {
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-setname
     fn SetName(&self, value: DOMString) {
-        std::mem::replace(&mut *self.name.borrow_mut(), value);
+        *self.name.borrow_mut() = value;
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-keypath
-    fn KeyPath(&self, _cx: SafeJSContext) -> JSVal {
+    fn KeyPath(&self, _cx: SafeJSContext, _val: MutableHandleValue) {
         unimplemented!();
     }
 
