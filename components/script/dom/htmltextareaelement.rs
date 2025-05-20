@@ -643,6 +643,17 @@ impl VirtualMethods for HTMLTextAreaElement {
                 match action {
                     KeyReaction::TriggerDefaultAction => (),
                     KeyReaction::DispatchInput => {
+                        if event.IsTrusted() {
+                            self.owner_global()
+                                .task_manager()
+                                .user_interaction_task_source()
+                                .queue_event(
+                                    self.upcast(),
+                                    atom!("input"),
+                                    EventBubbles::Bubbles,
+                                    EventCancelable::NotCancelable,
+                                );
+                        }
                         self.value_dirty.set(true);
                         self.update_placeholder_shown_state();
                         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
@@ -656,17 +667,9 @@ impl VirtualMethods for HTMLTextAreaElement {
                 }
             }
         } else if event.type_() == atom!("keypress") && !event.DefaultPrevented() {
-            if event.IsTrusted() {
-                self.owner_global()
-                    .task_manager()
-                    .user_interaction_task_source()
-                    .queue_event(
-                        self.upcast(),
-                        atom!("input"),
-                        EventBubbles::Bubbles,
-                        EventCancelable::NotCancelable,
-                    );
-            }
+            // keypress should be deprecated and replaced by beforeinput.
+            // keypress was supposed to fire "blur" and "focus" events
+            // but already done in `document.rs`
         } else if event.type_() == atom!("compositionstart") ||
             event.type_() == atom!("compositionupdate") ||
             event.type_() == atom!("compositionend")

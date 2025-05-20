@@ -2374,6 +2374,9 @@ impl Document {
         let mut cancel_state = event.get_cancel_state();
 
         // https://w3c.github.io/uievents/#keys-cancelable-keys
+        // it MUST prevent the respective beforeinput and input
+        // (and keypress if supported) events from being generated
+        // TODO: keypress should be deprecated and superceded by beforeinput
         if keyboard_event.state == KeyState::Down &&
             is_character_value_key(&(keyboard_event.key)) &&
             !keyboard_event.is_composing &&
@@ -3911,6 +3914,28 @@ impl Document {
 
 fn is_character_value_key(key: &Key) -> bool {
     matches!(key, Key::Character(_) | Key::Enter)
+}
+
+#[allow(dead_code)]
+// https://w3c.github.io/uievents/#dictdef-eventmodifierinit
+fn is_modifier_key(key: &Key) -> bool {
+    matches!(
+        key,
+        Key::Shift |
+            Key::Control |
+            Key::Alt |
+            Key::Meta |
+            Key::Fn |
+            Key::AltGraph |
+            Key::CapsLock |
+            Key::NumLock |
+            Key::ScrollLock |
+            Key::Symbol |
+            Key::SymbolLock |
+            Key::FnLock |
+            Key::Hyper |
+            Key::Super
+    )
 }
 
 #[derive(MallocSizeOf, PartialEq)]
