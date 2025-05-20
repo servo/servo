@@ -94,14 +94,15 @@ pub fn new_resource_threads(
     let (public_core, private_core) = new_core_resource_thread(
         devtools_sender,
         time_profiler_chan,
-        mem_profiler_chan,
+        mem_profiler_chan.clone(),
         embedder_proxy,
         config_dir.clone(),
         ca_certificates,
         ignore_certificate_errors,
         protocols,
     );
-    let storage: IpcSender<StorageThreadMsg> = StorageThreadFactory::new(config_dir);
+    let storage: IpcSender<StorageThreadMsg> =
+        StorageThreadFactory::new(config_dir, mem_profiler_chan);
     (
         ResourceThreads::new(public_core, storage.clone()),
         ResourceThreads::new(private_core, storage),
