@@ -71,3 +71,4 @@ support/macos/Brewfile.lock.json
 
 # direnv
 .envrc
+tests/wpt/web-platform-tests/
