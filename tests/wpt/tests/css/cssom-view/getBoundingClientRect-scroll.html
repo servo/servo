@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<title>getBoundingClientRect for a element inside scroll container</title>
+<link rel="author" title="Jo Steven Novaryo" href="mailto:steven.novaryo@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<html>
+  <head>
+    <style>
+      body {
+        margin: 0;
+      }
+      .scroll_container {
+        width: 300px;
+        height: 300px;
+        overflow: scroll;
+        scrollbar-width: none;
+      }
+      .dummy_overflowing_box {
+        width: 5000px;
+        height: 5000px;
+      }
+      .target_box {
+        width: 100px;
+        height: 100px;
+        background-color: green;
+      }
+      .position_absolute {
+        position: absolute;
+      }
+      .position_fixed {
+        position: fixed;
+      }
+      .absolute_containing_block {
+        position: relative;
+      }
+      .fixed_containing_block {
+        will-change: transform;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target_fixed_uncontained" class="target_box position_fixed"></div>
+    <div class="scroll_container fixed_containing_block">
+      <div class="scroll_container absolute_containing_block">
+        <div class="scroll_container">
+          <div id="target_fixed" class="target_box position_fixed"></div>
+          <div id="target_absolute" class="target_box position_absolute"></div>
+          <div id="target_static" class="target_box"></div>
+          <div class="dummy_overflowing_box"></div>
+        </div>
+        <div class="dummy_overflowing_box"></div>
+      </div>
+      <div class="dummy_overflowing_box"></div>
+    </div>
+    <div id="log" class="dummy_overflowing_box"></div>
+    <script>
+      setup(() => {
+        var offset_left = 1;
+        var offset_top = 2;
+        window.scrollTo(offset_left, offset_top);
+        for (scroll_container of document.getElementsByClassName('scroll_container')) {
+          offset_left *= 4;
+          offset_top *= 4;
+          scroll_container.scrollTo(offset_left, offset_top)
+        }
+      });
+      test(function() {
+        var target = document.querySelector('#target_static');
+        let staticRect = target.getBoundingClientRect();
+        assert_equals(staticRect.left, -85, 'static positioned target left');
+        assert_equals(staticRect.top, -170, 'static positioned target top');
+        assert_equals(staticRect.width, 100, 'static positioned target width');
+        assert_equals(staticRect.height, 100, 'static positioned target height');
+      }, "getBoundingClientRect for element inside scroll container");
+      test(function() {
+        var target = document.querySelector('#target_absolute');
+        let absoluteRect = target.getBoundingClientRect();
+        assert_equals(absoluteRect.left, -21, 'absolute positioned target left');
+        assert_equals(absoluteRect.top, -42, 'absolute positioned target top');
+        assert_equals(absoluteRect.width, 100, 'absolute positioned target width');
+        assert_equals(absoluteRect.height, 100, 'absolute positioned target height');
+      }, "getBoundingClientRect for absolute element inside scroll container");
+      test(function() {
+        var target = document.querySelector('#target_fixed');
+        let fixedRect = target.getBoundingClientRect();
+        assert_equals(fixedRect.left, -5, 'fixed positioned target left');
+        assert_equals(fixedRect.top, -10, 'fixed positioned target top');
+        assert_equals(fixedRect.width, 100, 'fixed positioned target width');
+        assert_equals(fixedRect.height, 100, 'fixed positioned target height');
+      }, "getBoundingClientRect for fixed element inside scroll container");
+      test(function() {
+        var target = document.querySelector('#target_fixed_uncontained');
+        let fixedUncontainedRect = target.getBoundingClientRect();
+        assert_equals(fixedUncontainedRect.left, 0, 'fixed positioned uncontained target left');
+        assert_equals(fixedUncontainedRect.top, 0, 'fixed positioned uncontained target top');
+        assert_equals(fixedUncontainedRect.width, 100, 'fixed positioned uncontained target width');
+        assert_equals(fixedUncontainedRect.height, 100, 'fixed positioned uncontained target height');
+      }, "getBoundingClientRect for uncontained fixed element");
+    </script>
+  </body>
+</html>
