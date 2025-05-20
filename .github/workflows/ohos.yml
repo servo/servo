@@ -169,11 +169,16 @@ jobs:
       - name: Build for aarch64 HarmonyOS
         run: |
           ./mach build --locked --target aarch64-unknown-linux-ohos --profile=${{ inputs.profile }} --flavor=harmonyos --no-default-features --features tracing,tracing-hitrace
+      - name: Upload supprt/hitrace-bencher/runs.json
+        uses: actions/upload-artifact@v4
+        with:
+          name: runs.json
+          path: support/hitrace-bencher/runs.json
       - uses: actions/upload-artifact@v4
         with:
           # Upload the **unsigned** artifact - We don't have the signing materials in pull request workflows
-          path: target/openharmony/aarch64-unknown-linux-ohos/${{ inputs.profile }}/entry/build/harmonyos/outputs/default/servoshell-default-unsigned.hap
           name: servoshell-hos-${{ inputs.profile }}.hap
+          path: target/openharmony/aarch64-unknown-linux-ohos/${{ inputs.profile }}/entry/build/harmonyos/outputs/default/servoshell-default-unsigned.hap
 
 
   test-harmonyos-aarch64:
@@ -239,8 +244,14 @@ jobs:
           [[ $servo_pid =~ ^[0-9]+$ ]] || { echo "It looks like servo crashed!" ; exit 1; }
           # If the grep fails, then the trace output for the "page loaded" prompt is missing
           grep 'org\.servo\.servo-.* tracing_mark_write.*PageLoadEndedPrompt' test_output/servo.ftrace
+      - name: Getting runs file
+        uses: actions/download-artifact@v4
+        with:
+          # Name of the artifact to download.
+          # If unspecified, all artifacts for the run are downloaded.
+          name: runs.json
       - name: "Run benchmark"
-        run: hitrace-bench --bencher -b "org.servo.servo" -p "https://www.servo.org" -n 5
+        run: hitrace-bench -r runs.json
       - name: Getting bencher
         uses: bencherdev/bencher@main
       - name: Getting model name
