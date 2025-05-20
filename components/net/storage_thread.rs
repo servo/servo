@@ -8,7 +8,12 @@ use std::path::PathBuf;
 use std::thread;
 
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use malloc_size_of::MallocSizeOf;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
+use profile_traits::mem::{
+    ProcessReports, ProfilerChan as MemProfilerChan, Report, ReportKind, perform_memory_report,
+};
+use profile_traits::path;
 use servo_url::ServoUrl;
 
 use crate::resource_thread;
@@ -16,17 +21,26 @@ use crate::resource_thread;
 const QUOTA_SIZE_LIMIT: usize = 5 * 1024 * 1024;
 
 pub trait StorageThreadFactory {
-    fn new(config_dir: Option<PathBuf>) -> Self;
+    fn new(config_dir: Option<PathBuf>, mem_profiler_chan: MemProfilerChan) -> Self;
 }
 
 impl StorageThreadFactory for IpcSender<StorageThreadMsg> {
     /// Create a storage thread
-    fn new(config_dir: Option<PathBuf>) -> IpcSender<StorageThreadMsg> {
+    fn new(
+        config_dir: Option<PathBuf>,
+        mem_profiler_chan: MemProfilerChan,
+    ) -> IpcSender<StorageThreadMsg> {
         let (chan, port) = ipc::channel().unwrap();
+        let chan2 = chan.clone();
         thread::Builder::new()
             .name("StorageManager".to_owned())
             .spawn(move || {
-                StorageManager::new(port, config_dir).start();
+                mem_profiler_chan.run_with_memory_reporting(
+                    || StorageManager::new(port, config_dir).start(),
+                    String::from("storage-reporter"),
+                    chan2,
+                    StorageThreadMsg::CollectMemoryReport,
+                );
             })
             .expect("Thread spawning failed");
         chan
@@ -83,6 +97,10 @@ impl StorageManager {
                     self.clear(sender, url, storage_type);
                     self.save_state()
                 },
+                StorageThreadMsg::CollectMemoryReport(sender) => {
+                    let reports = self.collect_memory_reports();
+                    sender.send(ProcessReports::new(reports));
+                },
                 StorageThreadMsg::Exit(sender) => {
                     // Nothing to do since we save localstorage set eagerly.
                     let _ = sender.send(());
@@ -90,6 +108,24 @@ impl StorageManager {
                 },
             }
         }
+    }
+
+    fn collect_memory_reports(&self) -> Vec<Report> {
+        let mut reports = vec![];
+        perform_memory_report(|ops| {
+            reports.push(Report {
+                path: path!["storage", "local"],
+                kind: ReportKind::ExplicitJemallocHeapSize,
+                size: self.local_data.size_of(ops),
+            });
+
+            reports.push(Report {
+                path: path!["storage", "session"],
+                kind: ReportKind::ExplicitJemallocHeapSize,
+                size: self.session_data.size_of(ops),
+            });
+        });
+        reports
     }
 
     fn save_state(&self) {
