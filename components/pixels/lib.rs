@@ -4,6 +4,7 @@
 
 use std::borrow::Cow;
 use std::io::Cursor;
+use std::ops::Range;
 use std::time::Duration;
 use std::{cmp, fmt, vec};
 
@@ -126,13 +127,24 @@ pub struct Image {
     pub format: PixelFormat,
     pub id: Option<ImageKey>,
     pub cors_status: CorsStatus,
+    pub bytes: IpcSharedMemory,
     pub frames: Vec<ImageFrame>,
 }
 
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct ImageFrame {
     pub delay: Option<Duration>,
-    pub bytes: IpcSharedMemory,
+    /// References a range of the `bytes` field from the image that this
+    /// frame belongs to.
+    pub byte_range: Range<usize>,
+    pub width: u32,
+    pub height: u32,
+}
+
+/// A non-owning reference to the data of an [ImageFrame]
+pub struct ImageFrameView<'a> {
+    pub delay: Option<Duration>,
+    pub bytes: &'a [u8],
     pub width: u32,
     pub height: u32,
 }
@@ -142,12 +154,19 @@ impl Image {
         self.frames.len() > 1
     }
 
-    pub fn bytes(&self) -> IpcSharedMemory {
-        self.frames
-            .first()
-            .expect("Should have at least one frame")
-            .bytes
-            .clone()
+    pub fn frames(&self) -> impl Iterator<Item = ImageFrameView> {
+        self.frames.iter().map(|frame| ImageFrameView {
+            delay: frame.delay,
+            bytes: self.bytes.get(frame.byte_range.clone()).unwrap(),
+            width: frame.width,
+            height: frame.height,
+        })
+    }
+
+    pub fn first_frame(&self) -> ImageFrameView {
+        self.frames()
+            .next()
+            .expect("All images should have at least one frame")
     }
 }
 
@@ -189,7 +208,7 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Image>
                     rgba8_byte_swap_colors_inplace(&mut rgba);
                     let frame = ImageFrame {
                         delay: None,
-                        bytes: IpcSharedMemory::from_bytes(&rgba),
+                        byte_range: 0..rgba.len(),
                         width: rgba.width(),
                         height: rgba.height(),
                     };
@@ -198,6 +217,7 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Image>
                         height: rgba.height(),
                         format: PixelFormat::BGRA8,
                         frames: vec![frame],
+                        bytes: IpcSharedMemory::from_bytes(&rgba),
                         id: None,
                         cors_status,
                     })
@@ -364,45 +384,61 @@ fn decode_gif(buffer: &[u8], cors_status: CorsStatus) -> Option<Image> {
     // This uses `map_while`, because the first non-decodable frame seems to
     // send the frame iterator into an infinite loop. See
     // <https://github.com/image-rs/image/issues/2442>.
+    let mut frame_data = vec![];
+    let mut total_number_of_bytes = 0;
     let frames: Vec<ImageFrame> = decoded_gif
         .into_frames()
         .map_while(|decoded_frame| {
-            let mut frame = match decoded_frame {
+            let mut gif_frame = match decoded_frame {
                 Ok(decoded_frame) => decoded_frame,
                 Err(error) => {
                     debug!("decode GIF frame error: {error}");
                     return None;
                 },
             };
-            rgba8_byte_swap_colors_inplace(frame.buffer_mut());
-
-            let frame = ImageFrame {
-                bytes: IpcSharedMemory::from_bytes(frame.buffer()),
-                delay: Some(Duration::from(frame.delay())),
-                width: frame.buffer().width(),
-                height: frame.buffer().height(),
-            };
+            rgba8_byte_swap_colors_inplace(gif_frame.buffer_mut());
+            let frame_start = total_number_of_bytes;
+            total_number_of_bytes += gif_frame.buffer().len();
 
             // The image size should be at least as large as the largest frame.
-            width = cmp::max(width, frame.width);
-            height = cmp::max(height, frame.height);
+            let frame_width = gif_frame.buffer().width();
+            let frame_height = gif_frame.buffer().height();
+            width = cmp::max(width, frame_width);
+            height = cmp::max(height, frame_height);
+
+            let frame = ImageFrame {
+                byte_range: frame_start..total_number_of_bytes,
+                delay: Some(Duration::from(gif_frame.delay())),
+                width: frame_width,
+                height: frame_height,
+            };
+
+            frame_data.push(gif_frame);
+
             Some(frame)
         })
         .collect();
 
     if frames.is_empty() {
         debug!("Animated Image decoding error");
-        None
-    } else {
-        Some(Image {
-            width,
-            height,
-            cors_status,
-            frames,
-            id: None,
-            format: PixelFormat::BGRA8,
-        })
+        return None;
     }
+
+    // Coalesce the frame data into one single shared memory region.
+    let mut bytes = Vec::with_capacity(total_number_of_bytes);
+    for frame in frame_data {
+        bytes.extend_from_slice(frame.buffer());
+    }
+
+    Some(Image {
+        width,
+        height,
+        cors_status,
+        frames,
+        id: None,
+        format: PixelFormat::BGRA8,
+        bytes: IpcSharedMemory::from_bytes(&bytes),
+    })
 }
 
 #[cfg(test)]
