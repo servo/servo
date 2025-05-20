@@ -474,33 +474,86 @@ fn generate_pseudo_element_content(
                             vec.push(PseudoElementContentItem::Replaced(replaced_content));
                         }
                     },
-                    ContentItem::OpenQuote | ContentItem::CloseQuote => {
-                        // TODO(xiaochengh): calculate quote depth
+                    // https://drafts.csswg.org/css-content/#valdef-content-open-quote
+                    ContentItem::OpenQuote => {
+                        let quote_depth = context.get_quote_depth();
                         let maybe_quote = match &pseudo_element_style.get_list().quotes {
+                            // https://drafts.csswg.org/css-content/#quotes-property
+                            Quotes::Auto => {
+                                let lang = &pseudo_element_style.get_font()._x_lang;
+                                let quote_pair = quotes_for_lang(lang.0.as_ref(), quote_depth);
+                                Some(get_quote_from_pair(
+                                    item,
+                                    &quote_pair.opening,
+                                    &quote_pair.closing,
+                                ))
+                            },
                             Quotes::QuoteList(quote_list) => {
-                                quote_list.0.first().map(|quote_pair| {
-                                    get_quote_from_pair(
+                                if quote_list.0.is_empty() {
+                                    None
+                                } else {
+                                    let idx = std::cmp::min(quote_depth, quote_list.0.len() - 1);
+                                    let quote_pair = &quote_list.0[idx];
+                                    Some(get_quote_from_pair(
                                         item,
                                         &*quote_pair.opening,
                                         &*quote_pair.closing,
-                                    )
-                                })
-                            },
-                            Quotes::Auto => {
-                                let lang = &pseudo_element_style.get_font()._x_lang;
-                                let quotes = quotes_for_lang(lang.0.as_ref(), 0);
-                                Some(get_quote_from_pair(item, &quotes.opening, &quotes.closing))
+                                    ))
+                                }
                             },
                         };
                         if let Some(quote) = maybe_quote {
                             vec.push(PseudoElementContentItem::Text(quote));
                         }
+                        context.increment_quote_depth();
                     },
-                    ContentItem::Counter(_, _) |
-                    ContentItem::Counters(_, _, _) |
-                    ContentItem::NoOpenQuote |
+                    // https://drafts.csswg.org/css-content/#valdef-content-close-quote
+                    ContentItem::CloseQuote => {
+                        let quote_depth = context.get_quote_depth();
+                        if quote_depth > 0 {
+                            let updated_depth = context.decrement_quote_depth();
+                            let maybe_quote = match &pseudo_element_style.get_list().quotes {
+                                // https://drafts.csswg.org/css-content/#quotes-property
+                                Quotes::Auto => {
+                                    let lang = &pseudo_element_style.get_font()._x_lang;
+                                    let quote_pair =
+                                        quotes_for_lang(lang.0.as_ref(), updated_depth);
+                                    Some(get_quote_from_pair(
+                                        item,
+                                        &quote_pair.opening,
+                                        &quote_pair.closing,
+                                    ))
+                                },
+                                Quotes::QuoteList(quote_list) => {
+                                    if quote_list.0.is_empty() {
+                                        None
+                                    } else {
+                                        let idx =
+                                            std::cmp::min(updated_depth, quote_list.0.len() - 1);
+                                        let quote_pair = &quote_list.0[idx];
+                                        Some(get_quote_from_pair(
+                                            item,
+                                            &*quote_pair.opening,
+                                            &*quote_pair.closing,
+                                        ))
+                                    }
+                                },
+                            };
+                            if let Some(quote) = maybe_quote {
+                                vec.push(PseudoElementContentItem::Text(quote));
+                            }
+                        }
+                    },
+                    // https://drafts.csswg.org/css-content/#valdef-content-no-open-quote
+                    ContentItem::NoOpenQuote => {
+                        context.increment_quote_depth();
+                    },
+                    // https://drafts.csswg.org/css-content/#valdef-content-no-close-quote
                     ContentItem::NoCloseQuote => {
-                        // TODO: Add support for counters and quotes.
+                        context.decrement_quote_depth();
+                    },
+                    ContentItem::Counter(_, _) | ContentItem::Counters(_, _, _) => {
+                        // TODO: Add support for counters if needed.
                     },
                 }
             }
