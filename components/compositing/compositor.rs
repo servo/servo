@@ -1456,10 +1456,11 @@ impl IOCompositor {
                 format: PixelFormat::RGBA8,
                 frames: vec![ImageFrame {
                     delay: None,
-                    bytes: ipc::IpcSharedMemory::from_bytes(&image),
+                    byte_range: 0..image.len(),
                     width: image.width(),
                     height: image.height(),
                 }],
+                bytes: ipc::IpcSharedMemory::from_bytes(&image),
                 id: None,
                 cors_status: CorsStatus::Safe,
             }))

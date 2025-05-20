@@ -17,7 +17,7 @@ use cssparser::color::clamp_unit_f32;
 use cssparser::{Parser, ParserInput};
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use euclid::vec2;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use net_traits::image_cache::{ImageCache, ImageResponse};
 use net_traits::request::CorsSettings;
 use pixels::PixelFormat;
@@ -350,7 +350,7 @@ impl CanvasState {
             size.cast(),
             format,
             alpha_mode,
-            img.bytes(),
+            IpcSharedMemory::from_bytes(img.first_frame().bytes),
         ))
     }
 

@@ -619,7 +619,8 @@ impl WebGLRenderingContext {
 
                 let size = Size2D::new(img.width, img.height);
 
-                TexPixels::new(img.bytes(), size, img.format, false)
+                let data = IpcSharedMemory::from_bytes(img.first_frame().bytes);
+                TexPixels::new(data, size, img.format, false)
             },
             // TODO(emilio): Getting canvas data is implemented in CanvasRenderingContext2D,
             // but we need to refactor it moving it to `HTMLCanvasElement` and support
