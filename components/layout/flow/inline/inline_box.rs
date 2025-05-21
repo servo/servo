@@ -256,13 +256,7 @@ impl InlineBoxContainerState {
         }
 
         Self {
-            base: InlineContainerState::new(
-                style,
-                flags,
-                Some(parent_container),
-                parent_container.text_decoration_line,
-                font_metrics,
-            ),
+            base: InlineContainerState::new(style, flags, Some(parent_container), font_metrics),
             identifier: inline_box.identifier,
             base_fragment_info: inline_box.base.base_fragment_info,
             pbm,

@@ -314,7 +314,7 @@ fn construct_for_root_element(
     let contents = ReplacedContents::for_element(root_element, context)
         .map_or_else(|| NonReplacedContents::OfElement.into(), Contents::Replaced);
 
-    let propagated_data = PropagatedBoxTreeData::default().union(&info.style);
+    let propagated_data = PropagatedBoxTreeData::default();
     let root_box = if box_style.position.is_absolutely_positioned() {
         BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(ArcRefCell::new(
             AbsolutelyPositionedBox::construct(context, &info, display_inside, contents),

@@ -572,6 +572,7 @@ impl Fragment {
         section: StackingContextSection,
         is_hit_test_for_scrollable_overflow: bool,
         is_collapsed_table_borders: bool,
+        text_decorations: &Arc<Vec<FragmentTextDecoration>>,
     ) {
         let spatial_id = builder.spatial_id(builder.current_scroll_node_id);
         let clip_chain_id = builder.clip_chain_id(builder.current_clip_id);
@@ -683,9 +684,12 @@ impl Fragment {
                     .get_inherited_box()
                     .visibility
                 {
-                    Visibility::Visible => {
-                        self.build_display_list_for_text_fragment(text, builder, containing_block)
-                    },
+                    Visibility::Visible => self.build_display_list_for_text_fragment(
+                        text,
+                        builder,
+                        containing_block,
+                        text_decorations,
+                    ),
                     Visibility::Hidden => (),
                     Visibility::Collapse => (),
                 }
@@ -723,6 +727,7 @@ impl Fragment {
         fragment: &TextFragment,
         builder: &mut DisplayListBuilder,
         containing_block: &PhysicalRect<Au>,
+        text_decorations: &Arc<Vec<FragmentTextDecoration>>,
     ) {
         // NB: The order of painting text components (CSS Text Decoration Module Level 3) is:
         // shadows, underline, overline, text, text-emphasis, and then line-through.
@@ -774,23 +779,33 @@ impl Fragment {
             );
         }
 
-        if fragment
-            .text_decoration_line
-            .contains(TextDecorationLine::UNDERLINE)
-        {
-            let mut rect = rect;
-            rect.origin.y += font_metrics.ascent - font_metrics.underline_offset;
-            rect.size.height = Au::from_f32_px(font_metrics.underline_size.to_nearest_pixel(dppx));
-            self.build_display_list_for_text_decoration(&parent_style, builder, &rect, &color);
+        for text_decoration in text_decorations.iter() {
+            if text_decoration.line.contains(TextDecorationLine::UNDERLINE) {
+                let mut rect = rect;
+                rect.origin.y += font_metrics.ascent - font_metrics.underline_offset;
+                rect.size.height =
+                    Au::from_f32_px(font_metrics.underline_size.to_nearest_pixel(dppx));
+                self.build_display_list_for_text_decoration(
+                    &parent_style,
+                    builder,
+                    &rect,
+                    text_decoration,
+                );
+            }
         }
 
-        if fragment
-            .text_decoration_line
-            .contains(TextDecorationLine::OVERLINE)
-        {
-            let mut rect = rect;
-            rect.size.height = Au::from_f32_px(font_metrics.underline_size.to_nearest_pixel(dppx));
-            self.build_display_list_for_text_decoration(&parent_style, builder, &rect, &color);
+        for text_decoration in text_decorations.iter() {
+            if text_decoration.line.contains(TextDecorationLine::OVERLINE) {
+                let mut rect = rect;
+                rect.size.height =
+                    Au::from_f32_px(font_metrics.underline_size.to_nearest_pixel(dppx));
+                self.build_display_list_for_text_decoration(
+                    &parent_style,
+                    builder,
+                    &rect,
+                    text_decoration,
+                );
+            }
         }
 
         // TODO: This caret/text selection implementation currently does not account for vertical text
@@ -867,14 +882,22 @@ impl Fragment {
             None,
         );
 
-        if fragment
-            .text_decoration_line
-            .contains(TextDecorationLine::LINE_THROUGH)
-        {
-            let mut rect = rect;
-            rect.origin.y += font_metrics.ascent - font_metrics.strikeout_offset;
-            rect.size.height = Au::from_f32_px(font_metrics.strikeout_size.to_nearest_pixel(dppx));
-            self.build_display_list_for_text_decoration(&parent_style, builder, &rect, &color);
+        for text_decoration in text_decorations.iter() {
+            if text_decoration
+                .line
+                .contains(TextDecorationLine::LINE_THROUGH)
+            {
+                let mut rect = rect;
+                rect.origin.y += font_metrics.ascent - font_metrics.strikeout_offset;
+                rect.size.height =
+                    Au::from_f32_px(font_metrics.strikeout_size.to_nearest_pixel(dppx));
+                self.build_display_list_for_text_decoration(
+                    &parent_style,
+                    builder,
+                    &rect,
+                    text_decoration,
+                );
+            }
         }
 
         if !shadows.0.is_empty() {
@@ -887,15 +910,11 @@ impl Fragment {
         parent_style: &ServoArc<ComputedValues>,
         builder: &mut DisplayListBuilder,
         rect: &PhysicalRect<Au>,
-        color: &AbsoluteColor,
+        text_decoration: &FragmentTextDecoration,
     ) {
         let rect = rect.to_webrender();
         let wavy_line_thickness = (0.33 * rect.size().height).ceil();
-        let text_decoration_color = parent_style
-            .clone_text_decoration_color()
-            .resolve_to_absolute(color);
-        let text_decoration_style = parent_style.clone_text_decoration_style();
-        if text_decoration_style == ComputedTextDecorationStyle::MozNone {
+        if text_decoration.style == ComputedTextDecorationStyle::MozNone {
             return;
         }
         let common_properties = builder.common_properties(rect, parent_style);
@@ -904,8 +923,8 @@ impl Fragment {
             &rect,
             wavy_line_thickness,
             wr::LineOrientation::Horizontal,
-            &rgba(text_decoration_color),
-            text_decoration_style.to_webrender(),
+            &rgba(text_decoration.color),
+            text_decoration.style.to_webrender(),
         );
         // XXX(ferjm) support text-decoration-style: double
     }
