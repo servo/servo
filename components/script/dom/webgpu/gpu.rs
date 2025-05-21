@@ -86,8 +86,12 @@ impl GPUMethods<crate::DomTypeHolder> for GPU {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpu-getpreferredcanvasformat>
     fn GetPreferredCanvasFormat(&self) -> GPUTextureFormat {
-        // TODO: real implementation
-        GPUTextureFormat::Rgba8unorm
+        // From https://github.com/mozilla-firefox/firefox/blob/24d49101ce17b78c3ba1217d00297fe2891be6b3/dom/webgpu/Instance.h#L68
+        if cfg!(target_os = "android") {
+            GPUTextureFormat::Rgba8unorm
+        } else {
+            GPUTextureFormat::Bgra8unorm
+        }
     }
 
     /// <https://www.w3.org/TR/webgpu/#dom-gpu-wgsllanguagefeatures>
