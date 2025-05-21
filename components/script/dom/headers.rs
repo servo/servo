@@ -13,6 +13,7 @@ use net_traits::fetch::headers::{
     is_forbidden_method,
 };
 use net_traits::request::is_cors_safelisted_request_header;
+use net_traits::trim_http_whitespace;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
@@ -33,7 +34,7 @@ pub(crate) struct Headers {
     header_list: DomRefCell<HyperHeaders>,
 }
 
-// https://fetch.spec.whatwg.org/#concept-headers-guard
+/// <https://fetch.spec.whatwg.org/#concept-headers-guard>
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub(crate) enum Guard {
     Immutable,
@@ -66,7 +67,7 @@ impl Headers {
 }
 
 impl HeadersMethods<crate::DomTypeHolder> for Headers {
-    // https://fetch.spec.whatwg.org/#dom-headers
+    /// <https://fetch.spec.whatwg.org/#dom-headers>
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -78,47 +79,41 @@ impl HeadersMethods<crate::DomTypeHolder> for Headers {
         Ok(dom_headers_new)
     }
 
-    // https://fetch.spec.whatwg.org/#concept-headers-append
+    /// <https://fetch.spec.whatwg.org/#concept-headers-append>
     fn Append(&self, name: ByteString, value: ByteString) -> ErrorResult {
-        // Step 1
-        let value = normalize_value(value);
+        // 1. Normalize value.
+        let value = trim_http_whitespace(&value);
 
-        // Step 2
-        // https://fetch.spec.whatwg.org/#headers-validate
-        let (mut valid_name, valid_value) = validate_name_and_value(name, value)?;
+        // 2. If validating (name, value) for headers returns false, then return.
+        let Some((mut valid_name, valid_value)) =
+            self.validate_name_and_value(name, ByteString::new(value.into()))?
+        else {
+            return Ok(());
+        };
 
         valid_name = valid_name.to_lowercase();
 
-        if self.guard.get() == Guard::Immutable {
-            return Err(Error::Type("Guard is immutable".to_string()));
-        }
-        if self.guard.get() == Guard::Request &&
-            is_forbidden_request_header(&valid_name, &valid_value)
-        {
-            return Ok(());
-        }
-        if self.guard.get() == Guard::Response && is_forbidden_response_header(&valid_name) {
-            return Ok(());
-        }
-
-        // Step 3
+        // 3. If headers’s guard is "request-no-cors":
         if self.guard.get() == Guard::RequestNoCors {
+            // 3.1. Let temporaryValue be the result of getting name from headers’s header list.
             let tmp_value = if let Some(mut value) =
                 get_value_from_header_list(&valid_name, &self.header_list.borrow())
             {
+                // 3.3. Otherwise, set temporaryValue to temporaryValue, followed by 0x2C 0x20, followed by value.
                 value.extend(b", ");
-                value.extend(valid_value.clone());
+                value.extend(valid_value.to_vec());
                 value
             } else {
-                valid_value.clone()
+                // 3.2. If temporaryValue is null, then set temporaryValue to value.
+                valid_value.to_vec()
             };
-
+            // 3.4. If (name, temporaryValue) is not a no-CORS-safelisted request-header, then return.
             if !is_cors_safelisted_request_header(&valid_name, &tmp_value) {
                 return Ok(());
             }
         }
 
-        // Step 4
+        // 4. Append (name, value) to headers’s header list.
         match HeaderValue::from_bytes(&valid_value) {
             Ok(value) => {
                 self.header_list
@@ -134,7 +129,7 @@ impl HeadersMethods<crate::DomTypeHolder> for Headers {
             },
         };
 
-        // Step 5
+        // 5. If headers’s guard is "request-no-cors", then remove privileged no-CORS request-headers from headers.
         if self.guard.get() == Guard::RequestNoCors {
             self.remove_privileged_no_cors_request_headers();
         }
@@ -142,50 +137,53 @@ impl HeadersMethods<crate::DomTypeHolder> for Headers {
         Ok(())
     }
 
-    // https://fetch.spec.whatwg.org/#dom-headers-delete
+    /// <https://fetch.spec.whatwg.org/#dom-headers-delete>
     fn Delete(&self, name: ByteString) -> ErrorResult {
-        // Step 1
-        let (mut valid_name, valid_value) = validate_name_and_value(name, ByteString::new(vec![]))?;
+        // Step 1 If validating (name, ``) for this returns false, then return.
+        let name_and_value = self.validate_name_and_value(name, ByteString::new(vec![]))?;
+        let Some((mut valid_name, _valid_value)) = name_and_value else {
+            return Ok(());
+        };
 
         valid_name = valid_name.to_lowercase();
 
-        // Step 2
-        if self.guard.get() == Guard::Immutable {
-            return Err(Error::Type("Guard is immutable".to_string()));
-        }
-        // Step 3
-        if self.guard.get() == Guard::Request &&
-            is_forbidden_request_header(&valid_name, &valid_value)
-        {
-            return Ok(());
-        }
-        // Step 4
+        // Step 2 If this’s guard is "request-no-cors", name is not a no-CORS-safelisted request-header name,
+        // and name is not a privileged no-CORS request-header name, then return.
         if self.guard.get() == Guard::RequestNoCors &&
             !is_cors_safelisted_request_header(&valid_name, &b"invalid".to_vec())
         {
             return Ok(());
         }
-        // Step 5
-        if self.guard.get() == Guard::Response && is_forbidden_response_header(&valid_name) {
-            return Ok(());
+
+        // 3. If this’s header list does not contain name, then return.
+        // 4. Delete name from this’s header list.
+        self.header_list.borrow_mut().remove(valid_name);
+
+        // 5. If this’s guard is "request-no-cors", then remove privileged no-CORS request-headers from this.
+        if self.guard.get() == Guard::RequestNoCors {
+            self.remove_privileged_no_cors_request_headers();
         }
-        // Step 6
-        self.header_list.borrow_mut().remove(&valid_name);
+
         Ok(())
     }
 
-    // https://fetch.spec.whatwg.org/#dom-headers-get
+    /// <https://fetch.spec.whatwg.org/#dom-headers-get>
     fn Get(&self, name: ByteString) -> Fallible<Option<ByteString>> {
-        // Step 1
+        // 1. If name is not a header name, then throw a TypeError.
         let valid_name = validate_name(name)?;
+
+        // 2. Return the result of getting name from this’s header list.
         Ok(
             get_value_from_header_list(&valid_name, &self.header_list.borrow())
                 .map(ByteString::new),
         )
     }
 
-    // https://fetch.spec.whatwg.org/#dom-headers-getsetcookie
+    /// <https://fetch.spec.whatwg.org/#dom-headers-getsetcookie>
     fn GetSetCookie(&self) -> Vec<ByteString> {
+        // 1. If this’s header list does not contain `Set-Cookie`, then return « ».
+        // 2. Return the values of all headers in this’s header list whose name is a
+        // byte-case-insensitive match for `Set-Cookie`, in order.
         self.header_list
             .borrow()
             .get_all("set-cookie")
@@ -194,42 +192,36 @@ impl HeadersMethods<crate::DomTypeHolder> for Headers {
             .collect()
     }
 
-    // https://fetch.spec.whatwg.org/#dom-headers-has
+    /// <https://fetch.spec.whatwg.org/#dom-headers-has>
     fn Has(&self, name: ByteString) -> Fallible<bool> {
-        // Step 1
+        // 1. If name is not a header name, then throw a TypeError.
         let valid_name = validate_name(name)?;
-        // Step 2
+        // 2. Return true if this’s header list contains name; otherwise false.
         Ok(self.header_list.borrow_mut().get(&valid_name).is_some())
     }
 
-    // https://fetch.spec.whatwg.org/#dom-headers-set
+    /// <https://fetch.spec.whatwg.org/#dom-headers-set>
     fn Set(&self, name: ByteString, value: ByteString) -> Fallible<()> {
-        // Step 1
-        let value = normalize_value(value);
-        // Step 2
-        let (mut valid_name, valid_value) = validate_name_and_value(name, value)?;
+        // 1. Normalize value
+        let value = trim_http_whitespace(&value);
+
+        // 2. If validating (name, value) for this returns false, then return.
+        let Some((mut valid_name, valid_value)) =
+            self.validate_name_and_value(name, ByteString::new(value.into()))?
+        else {
+            return Ok(());
+        };
         valid_name = valid_name.to_lowercase();
-        // Step 3
-        if self.guard.get() == Guard::Immutable {
-            return Err(Error::Type("Guard is immutable".to_string()));
-        }
-        // Step 4
-        if self.guard.get() == Guard::Request &&
-            is_forbidden_request_header(&valid_name, &valid_value)
-        {
-            return Ok(());
-        }
-        // Step 5
+
+        // 3. If this’s guard is "request-no-cors" and (name, value) is not a
+        // no-CORS-safelisted request-header, then return.
         if self.guard.get() == Guard::RequestNoCors &&
-            !is_cors_safelisted_request_header(&valid_name, &valid_value)
+            !is_cors_safelisted_request_header(&valid_name, &valid_value.to_vec())
         {
             return Ok(());
         }
-        // Step 6
-        if self.guard.get() == Guard::Response && is_forbidden_response_header(&valid_name) {
-            return Ok(());
-        }
-        // Step 7
+
+        // 4. Set (name, value) in this’s header list.
         // https://fetch.spec.whatwg.org/#concept-header-list-set
         match HeaderValue::from_bytes(&valid_value) {
             Ok(value) => {
@@ -245,6 +237,12 @@ impl HeadersMethods<crate::DomTypeHolder> for Headers {
                 );
             },
         };
+
+        // 5. If this’s guard is "request-no-cors", then remove privileged no-CORS request-headers from this.
+        if self.guard.get() == Guard::RequestNoCors {
+            self.remove_privileged_no_cors_request_headers();
+        }
+
         Ok(())
     }
 }
@@ -260,7 +258,7 @@ impl Headers {
         Ok(())
     }
 
-    // https://fetch.spec.whatwg.org/#concept-headers-fill
+    /// <https://fetch.spec.whatwg.org/#concept-headers-fill>
     pub(crate) fn fill(&self, filler: Option<HeadersInit>) -> ErrorResult {
         match filler {
             Some(HeadersInit::ByteStringSequenceSequence(v)) => {
@@ -316,12 +314,12 @@ impl Headers {
         self.header_list.borrow_mut().clone()
     }
 
-    // https://fetch.spec.whatwg.org/#concept-header-extract-mime-type
+    /// <https://fetch.spec.whatwg.org/#concept-header-extract-mime-type>
     pub(crate) fn extract_mime_type(&self) -> Vec<u8> {
         extract_mime_type(&self.header_list.borrow()).unwrap_or_default()
     }
 
-    // https://fetch.spec.whatwg.org/#concept-header-list-sort-and-combine
+    /// <https://fetch.spec.whatwg.org/#concept-header-list-sort-and-combine>
     pub(crate) fn sort_and_combine(&self) -> Vec<(String, Vec<u8>)> {
         let borrowed_header_list = self.header_list.borrow();
         let mut header_vec = vec![];
@@ -341,10 +339,37 @@ impl Headers {
         header_vec
     }
 
-    // https://fetch.spec.whatwg.org/#ref-for-privileged-no-cors-request-header-name
+    /// <https://fetch.spec.whatwg.org/#ref-for-privileged-no-cors-request-header-name>
     pub(crate) fn remove_privileged_no_cors_request_headers(&self) {
-        // https://fetch.spec.whatwg.org/#privileged-no-cors-request-header-name
+        // <https://fetch.spec.whatwg.org/#privileged-no-cors-request-header-name>
         self.header_list.borrow_mut().remove("range");
+    }
+
+    /// <https://fetch.spec.whatwg.org/#headers-validate>
+    pub(crate) fn validate_name_and_value(
+        &self,
+        name: ByteString,
+        value: ByteString,
+    ) -> Fallible<Option<(String, ByteString)>> {
+        // 1. If name is not a header name or value is not a header value, then throw a TypeError.
+        let valid_name = validate_name(name)?;
+        if !is_legal_header_value(&value) {
+            return Err(Error::Type("Header value is not valid".to_string()));
+        }
+        // 2. If headers’s guard is "immutable", then throw a TypeError.
+        if self.guard.get() == Guard::Immutable {
+            return Err(Error::Type("Guard is immutable".to_string()));
+        }
+        // 3. If headers’s guard is "request" and (name, value) is a forbidden request-header, then return false.
+        if self.guard.get() == Guard::Request && is_forbidden_request_header(&valid_name, &value) {
+            return Ok(None);
+        }
+        // 4. If headers’s guard is "response" and name is a forbidden response-header name, then return false.
+        if self.guard.get() == Guard::Response && is_forbidden_response_header(&valid_name) {
+            return Ok(None);
+        }
+
+        Ok(Some((valid_name, value)))
     }
 }
 
@@ -391,6 +416,7 @@ pub(crate) fn is_forbidden_request_header(name: &str, value: &[u8]) -> bool {
         "keep-alive",
         "origin",
         "referer",
+        "set-cookie",
         "te",
         "trailer",
         "transfer-encoding",
@@ -448,26 +474,11 @@ pub(crate) fn is_forbidden_request_header(name: &str, value: &[u8]) -> bool {
     false
 }
 
-// https://fetch.spec.whatwg.org/#forbidden-response-header-name
+/// <https://fetch.spec.whatwg.org/#forbidden-response-header-name>
 fn is_forbidden_response_header(name: &str) -> bool {
-    matches!(name, "set-cookie" | "set-cookie2")
-}
-
-// There is some unresolved confusion over the definition of a name and a value.
-//
-// As of December 2019, WHATWG has no formal grammar production for value;
-// https://fetch.spec.whatg.org/#concept-header-value just says not to have
-// newlines, nulls, or leading/trailing whitespace. It even allows
-// octets that aren't a valid UTF-8 encoding, and WPT tests reflect this.
-// The HeaderValue class does not fully reflect this, so headers
-// containing bytes with values 1..31 or 127 can't be created, failing
-// WPT tests but probably not affecting anything important on the real Internet.
-fn validate_name_and_value(name: ByteString, value: ByteString) -> Fallible<(String, Vec<u8>)> {
-    let valid_name = validate_name(name)?;
-    if !is_legal_header_value(&value) {
-        return Err(Error::Type("Header value is not valid".to_string()));
-    }
-    Ok((valid_name, value.into()))
+    // A forbidden response-header name is a header name that is a byte-case-insensitive match for one of
+    let name = name.to_ascii_lowercase();
+    matches!(name.as_str(), "set-cookie" | "set-cookie2")
 }
 
 fn validate_name(name: ByteString) -> Fallible<String> {
@@ -480,47 +491,20 @@ fn validate_name(name: ByteString) -> Fallible<String> {
     }
 }
 
-// Removes trailing and leading HTTP whitespace bytes.
-// https://fetch.spec.whatwg.org/#concept-header-value-normalize
-pub fn normalize_value(value: ByteString) -> ByteString {
-    match (
-        index_of_first_non_whitespace(&value),
-        index_of_last_non_whitespace(&value),
-    ) {
-        (Some(begin), Some(end)) => ByteString::new(value[begin..end + 1].to_owned()),
-        _ => ByteString::new(vec![]),
-    }
-}
-
-fn is_http_whitespace(byte: u8) -> bool {
-    byte == b'\t' || byte == b'\n' || byte == b'\r' || byte == b' '
-}
-
-fn index_of_first_non_whitespace(value: &ByteString) -> Option<usize> {
-    for (index, &byte) in value.iter().enumerate() {
-        if !is_http_whitespace(byte) {
-            return Some(index);
-        }
-    }
-    None
-}
-
-fn index_of_last_non_whitespace(value: &ByteString) -> Option<usize> {
-    for (index, &byte) in value.iter().enumerate().rev() {
-        if !is_http_whitespace(byte) {
-            return Some(index);
-        }
-    }
-    None
-}
-
-// http://tools.ietf.org/html/rfc7230#section-3.2
+/// <http://tools.ietf.org/html/rfc7230#section-3.2>
 fn is_field_name(name: &ByteString) -> bool {
     is_token(name)
 }
 
-// https://fetch.spec.whatg.org/#concept-header-value
-fn is_legal_header_value(value: &ByteString) -> bool {
+// As of December 2019, WHATWG has no formal grammar production for value;
+// https://fetch.spec.whatg.org/#concept-header-value just says not to have
+// newlines, nulls, or leading/trailing whitespace. It even allows
+// octets that aren't a valid UTF-8 encoding, and WPT tests reflect this.
+// The HeaderValue class does not fully reflect this, so headers
+// containing bytes with values 1..31 or 127 can't be created, failing
+// WPT tests but probably not affecting anything important on the real Internet.
+/// <https://fetch.spec.whatg.org/#concept-header-value>
+fn is_legal_header_value(value: &[u8]) -> bool {
     let value_len = value.len();
     if value_len == 0 {
         return true;
@@ -533,7 +517,7 @@ fn is_legal_header_value(value: &ByteString) -> bool {
         b' ' | b'\t' => return false,
         _ => {},
     };
-    for &ch in &value[..] {
+    for &ch in value {
         match ch {
             b'\0' | b'\n' | b'\r' => return false,
             _ => {},
@@ -555,12 +539,12 @@ fn is_legal_header_value(value: &ByteString) -> bool {
     // }
 }
 
-// https://tools.ietf.org/html/rfc5234#appendix-B.1
+/// <https://tools.ietf.org/html/rfc5234#appendix-B.1>
 pub(crate) fn is_vchar(x: u8) -> bool {
     matches!(x, 0x21..=0x7E)
 }
 
-// http://tools.ietf.org/html/rfc7230#section-3.2.6
+/// <http://tools.ietf.org/html/rfc7230#section-3.2.6>
 pub(crate) fn is_obs_text(x: u8) -> bool {
     matches!(x, 0x80..=0xFF)
 }
