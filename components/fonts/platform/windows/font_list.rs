@@ -25,7 +25,9 @@ where
 {
     let system_fc = FontCollection::system();
     for family in system_fc.families_iter() {
-        callback(family.family_name().unwrap());
+        if let Ok(family_name) = family.family_name() {
+            callback(family_name);
+        }
     }
 }
 
@@ -95,7 +97,9 @@ where
     if let Ok(Some(family)) = system_fc.font_family_by_name(family_name) {
         let count = family.get_font_count();
         for i in 0..count {
-            let font = family.font(i).unwrap();
+            let Ok(font) = family.font(i) else {
+                continue;
+            };
             let template_descriptor = (&font).into();
             let local_font_identifier = LocalFontIdentifier {
                 font_descriptor: Arc::new(font.to_descriptor()),
