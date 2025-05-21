@@ -1369,7 +1369,6 @@ impl HTMLMediaElement {
             .lock()
             .unwrap()
             .render_poster_frame(image);
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
 
         if pref!(media_testing_enabled) {
             self.owner_global()
@@ -1618,7 +1617,6 @@ impl HTMLMediaElement {
                 // TODO: 6. Abort the overall resource selection algorithm.
             },
             PlayerEvent::VideoFrameUpdated => {
-                self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                 // Check if the frame was resized
                 if let Some(frame) = self.video_renderer.lock().unwrap().current_frame {
                     self.handle_resize(Some(frame.width as u32), Some(frame.height as u32));
@@ -2017,12 +2015,12 @@ impl HTMLMediaElement {
     pub(crate) fn clear_current_frame_data(&self) {
         self.handle_resize(None, None);
         self.video_renderer.lock().unwrap().current_frame = None;
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
     fn handle_resize(&self, width: Option<u32>, height: Option<u32>) {
         if let Some(video_elem) = self.downcast::<HTMLVideoElement>() {
             video_elem.resize(width, height);
+            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
         }
     }
 
