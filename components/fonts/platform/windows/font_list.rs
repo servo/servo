@@ -25,7 +25,7 @@ where
 {
     let system_fc = FontCollection::system();
     for family in system_fc.families_iter() {
-        callback(family.name());
+        callback(family.family_name().unwrap());
     }
 }
 
@@ -40,13 +40,17 @@ pub struct LocalFontIdentifier {
 impl LocalFontIdentifier {
     pub fn index(&self) -> u32 {
         FontCollection::system()
-            .get_font_from_descriptor(&self.font_descriptor)
+            .font_from_descriptor(&self.font_descriptor)
+            .ok()
+            .flatten()
             .map_or(0, |font| font.create_font_face().get_index())
     }
 
     pub(crate) fn native_font_handle(&self) -> NativeFontHandle {
         let face = FontCollection::system()
-            .get_font_from_descriptor(&self.font_descriptor)
+            .font_from_descriptor(&self.font_descriptor)
+            .ok()
+            .flatten()
             .expect("Could not create Font from FontDescriptor")
             .create_font_face();
         let path = face
@@ -62,7 +66,9 @@ impl LocalFontIdentifier {
     }
 
     pub(crate) fn read_data_from_file(&self) -> Option<Vec<u8>> {
-        let font = FontCollection::system().get_font_from_descriptor(&self.font_descriptor)?;
+        let font = FontCollection::system()
+            .font_from_descriptor(&self.font_descriptor)
+            .ok()??;
         let face = font.create_font_face();
         let files = face.get_files();
         assert!(!files.is_empty());
@@ -86,10 +92,10 @@ where
     F: FnMut(FontTemplate),
 {
     let system_fc = FontCollection::system();
-    if let Some(family) = system_fc.get_font_family_by_name(family_name) {
+    if let Ok(Some(family)) = system_fc.font_family_by_name(family_name) {
         let count = family.get_font_count();
         for i in 0..count {
-            let font = family.get_font(i);
+            let font = family.font(i).unwrap();
             let template_descriptor = (&font).into();
             let local_font_identifier = LocalFontIdentifier {
                 font_descriptor: Arc::new(font.to_descriptor()),
