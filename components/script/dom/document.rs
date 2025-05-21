@@ -1556,11 +1556,14 @@ impl Document {
                 return;
             }
 
+            // For a node within a text input UA shadow DOM, redirect the focus target into its shadow host.
+            let target_el = el.find_focusable_shadow_host_if_necessary();
+
             self.begin_focus_transaction();
             // Try to focus `el`. If it's not focusable, focus the document
             // instead.
             self.request_focus(None, FocusInitiator::Local, can_gc);
-            self.request_focus(Some(&*el), FocusInitiator::Local, can_gc);
+            self.request_focus(target_el.as_deref(), FocusInitiator::Local, can_gc);
         }
 
         let dom_event = DomRoot::upcast::<Event>(MouseEvent::for_platform_mouse_event(

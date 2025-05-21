@@ -103,7 +103,20 @@ const DEFAULT_FILE_INPUT_VALUE: &str = "No file chosen";
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-/// MYNOTES: document this and check name later.
+/// Contains reference to text editing root and placeholder container element in the UA
+/// shadow tree for `<input type=text>`. The following is the structure of the shadow tree.
+///
+/// ```
+/// <input type="text">
+///     <div id="inner-container">
+///         <div id="input-editing-root"></div>
+///         <div id="input-placeholder"></div>
+///     </div>
+/// </input>
+/// ```
+// TODO(stevennovaryo): We have an additional `<div>` element that contains both placeholder and editing root
+//                      because we are using `position: absolute` to put the editing root and placeholder
+//                      on top of each other. But we should probably provide a specifing layout algorithm instead.
 struct InputTypeTextShadowTree {
     text_container: Dom<HTMLDivElement>,
     placeholder_container: Dom<HTMLDivElement>,
@@ -120,9 +133,6 @@ struct InputTypeColorShadowTree {
 }
 
 // FIXME: These styles should be inside UA stylesheet, but it is not possible without internal pseudo element support.
-// FIXME: We are setting `pointer-events: none;` because focus is not propagated to its ancestor.
-// FIXME: We are using `position: absolute` to put place the editing root and placeholder
-//        on top of each other, but this will create a unnecessary element in between.
 const TEXT_TREE_STYLE: &str = "
 #input-editing-root::selection, #input-placeholder::selection {
     background: rgba(176, 214, 255, 1.0);
@@ -131,19 +141,18 @@ const TEXT_TREE_STYLE: &str = "
 
 #input-container {
     position: relative;
-    pointer-events: none;
 }
 
 #input-editing-root, #input-placeholder {
     overflow-wrap: normal;
     white-space: pre;
-    pointer-events: none;
 }
 
 #input-placeholder {
     position: absolute;
     color: grey;
     overflow: hidden;
+    pointer-events: none;
 }
 ";
 
@@ -1145,11 +1154,7 @@ impl HTMLInputElement {
         text_container
             .upcast::<Element>()
             .SetId(DOMString::from("input-editing-root"), can_gc);
-        // We should probably use pseudo element to check this.
-        // Chrome is using (private?) element attrs,
-        text_container
-            .upcast::<Node>()
-            .set_text_editing_root();
+        text_container.upcast::<Node>().set_text_editing_root();
         inner_container
             .upcast::<Node>()
             .AppendChild(text_container.upcast::<Node>(), can_gc)
@@ -1191,7 +1196,6 @@ impl HTMLInputElement {
         }
 
         let shadow_tree = self.shadow_tree.borrow();
-        // MYNOTES: will check again for shadow tree getter.
         Ref::filter_map(shadow_tree, |shadow_tree| {
             let shadow_tree = shadow_tree.as_ref()?;
             match shadow_tree {
@@ -1258,7 +1262,6 @@ impl HTMLInputElement {
         }
 
         let shadow_tree = self.shadow_tree.borrow();
-        // MYNOTES: will check again for shadow tree getter.
         Ref::filter_map(shadow_tree, |shadow_tree| {
             let shadow_tree = shadow_tree.as_ref()?;
             match shadow_tree {
@@ -1275,11 +1278,18 @@ impl HTMLInputElement {
             let text_shadow_tree = self.text_shadow_tree(can_gc);
             let value = self.Value();
 
-            let placeholder_text = match (value.is_empty(), self.placeholder.borrow().is_empty()) {
-                (true, false) => self.placeholder.to_owned().take(),
-                _ => DOMString::new(),
+            let placeholder_text = match value.is_empty() {
+                true => self.placeholder.to_owned().take(),
+                false => DOMString::new(),
             };
 
+            // The addition of zero-width space here forces the text input to have an inline formatting
+            // context that might otherwise be trimmed if there's no text. This is important to ensure
+            // that the input element is at least as tall as the line gap of the caret:
+            // <https://drafts.csswg.org/css-ui/#element-with-default-preferred-size>.
+            //
+            // This is also used to ensure that the caret will still be rendered when the input is empty.
+            // TODO: Is there a less hacky way to do this?
             let value_text = match value.is_empty() {
                 false => value,
                 true => "\u{200B}".into(),
@@ -1416,7 +1426,6 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
         self.unsafe_get().size.get()
     }
 
-    // MYNOTES is implemented for text
     fn selection_for_layout(self) -> Option<Range<usize>> {
         if !self.upcast::<Element>().focus_state() {
             return None;

@@ -62,7 +62,7 @@ impl<'dom> NodeAndStyleInfo<'dom> {
     // Whether this is a container for the editable text within a single-line text input.
     pub(crate) fn is_single_line_text_input(&self) -> bool {
         self.node.type_id() == LayoutNodeType::Element(LayoutElementType::HTMLInputElement) ||
-        self.node.is_text_editing_root()
+            self.node.is_text_editing_root()
     }
 
     pub(crate) fn pseudo(

@@ -1632,6 +1632,23 @@ impl Element {
         )
     }
 
+    pub(crate) fn find_focusable_shadow_host_if_necessary(&self) -> Option<DomRoot<Element>> {
+        if self.is_focusable_area() {
+            Some(DomRoot::from_ref(self))
+        } else if self.upcast::<Node>().is_text_editing_root() {
+            let containing_shadow_host = self.containing_shadow_root().map(|root| root.Host());
+            if containing_shadow_host
+                .as_ref()
+                .is_some_and(|e| e.is_focusable_area())
+            {
+                return containing_shadow_host;
+            }
+            panic!("Containing shadow host is not focusable");
+        } else {
+            None
+        }
+    }
+
     pub(crate) fn is_actually_disabled(&self) -> bool {
         let node = self.upcast::<Node>();
         match node.type_id() {

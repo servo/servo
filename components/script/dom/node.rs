@@ -1627,9 +1627,6 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
     /// Whether this element is a `<input>` rendered as text or a `<textarea>`.
     fn is_text_input(&self) -> bool;
 
-    /// Whether this element is a text input with Shadow DOM.
-    fn is_text_input_with_shadow_dom(&self) -> bool;
-
     /// Whether this element serve as a container of editable text for a text input.
     fn is_text_editing_root(&self) -> bool;
     fn text_content(self) -> Cow<'dom, str>;
@@ -1815,21 +1812,6 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
         }
     }
 
-    fn is_text_input_with_shadow_dom(&self) -> bool {
-        let type_id = self.type_id_for_layout();
-        if type_id ==
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLInputElement,
-            ))
-        {
-            let input = self.unsafe_get().downcast::<HTMLInputElement>().unwrap();
-
-            matches!(input.input_type(), InputType::Color | InputType::Text)
-        } else {
-            false
-        }
-    }
-
     fn is_text_editing_root(&self) -> bool {
         self.unsafe_get().is_text_editing_root()
     }
@@ -1854,19 +1836,18 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
         // This container is a text editing root of a <input> or <textarea> element.
         // So we should find those corresponding element, and get its selection.
         if self.is_text_editing_root() {
-            let mut maybe_parent_node = self.composed_parent_node_ref();
-            while let Some(parent_node) = maybe_parent_node {
-                if let Some(area) = parent_node.downcast::<HTMLTextAreaElement>() {
+            let shadow_root = self.containing_shadow_root_for_layout();
+            if let Some(containing_shadow_host) = shadow_root.map(|root| root.get_host_for_layout())
+            {
+                if let Some(area) = containing_shadow_host.downcast::<HTMLTextAreaElement>() {
                     return area.selection_for_layout();
                 }
 
-                if let Some(input) = parent_node.downcast::<HTMLInputElement>() {
+                if let Some(input) = containing_shadow_host.downcast::<HTMLInputElement>() {
                     return input.selection_for_layout();
                 }
-
-                maybe_parent_node = parent_node.composed_parent_node_ref();
             }
-            panic!("Text input element not found!");
+            panic!("Text input element not found");
         }
 
         if let Some(area) = self.downcast::<HTMLTextAreaElement>() {
