@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::collections::hash_map::Keys;
+use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;
 
 use base::id::{PipelineId, WebViewId};
@@ -25,7 +25,7 @@ use webrender_api::units::{
 };
 use webrender_api::{ExternalScrollId, HitTestFlags, ScrollLocation};
 
-use crate::compositor::{PipelineDetails, ServoRenderer};
+use crate::compositor::{HitTestError, PipelineDetails, ServoRenderer};
 use crate::touch::{TouchHandler, TouchMoveAction, TouchMoveAllowed, TouchSequenceState};
 
 // Default viewport constraints
@@ -98,6 +98,8 @@ pub(crate) struct WebViewRenderer {
     /// Whether or not this [`WebViewRenderer`] isn't throttled and has a pipeline with
     /// active animations or animation frame callbacks.
     animating: bool,
+    /// Pending input events queue. Priavte and only this thread pushes events to it.
+    pending_input_events: RefCell<VecDeque<InputEvent>>,
 }
 
 impl Drop for WebViewRenderer {
@@ -132,6 +134,7 @@ impl WebViewRenderer {
             max_viewport_zoom: None,
             hidpi_scale_factor: Scale::new(hidpi_scale_factor.0),
             animating: false,
+            pending_input_events: Default::default(),
         }
     }
 
@@ -316,14 +319,27 @@ impl WebViewRenderer {
             return;
         };
 
+        if self.pending_input_events.borrow().len() > 0 {
+            self.pending_input_events.borrow_mut().push_back(event);
+            return;
+        }
+
         // If we can't find a pipeline to send this event to, we cannot continue.
         let get_pipeline_details = |pipeline_id| self.pipelines.get(&pipeline_id);
-        let Some(result) = self
+        let result = match self
             .global
             .borrow()
             .hit_test_at_point(point, get_pipeline_details)
-        else {
-            return;
+        {
+            Ok(Some(hit_test_results)) => hit_test_results,
+            Err(HitTestError::EpochMismatch) => {
+                dbg!("A hit test failed with epoch mismatch. Retrying");
+                self.pending_input_events.borrow_mut().push_back(event);
+                return;
+            },
+            _ => {
+                return;
+            },
         };
 
         self.global.borrow_mut().update_cursor(point, &result);
@@ -332,6 +348,35 @@ impl WebViewRenderer {
             EmbedderToConstellationMessage::ForwardInputEvent(self.id, event, Some(result)),
         ) {
             warn!("Sending event to constellation failed ({error:?}).");
+        }
+    }
+
+    pub(crate) fn dispatch_pending_input_events(&self) {
+        while let Some(event) = self.pending_input_events.borrow_mut().pop_front() {
+            // Events that do not need to do hit testing are sent directly to the
+            // constellation to filter down.
+            let Some(point) = event.point() else {
+                continue;
+            };
+
+            // If we can't find a pipeline to send this event to, we cannot continue.
+            let get_pipeline_details = |pipeline_id| self.pipelines.get(&pipeline_id);
+            let Ok(Some(result)) = self
+                .global
+                .borrow()
+                .hit_test_at_point(point, get_pipeline_details)
+            else {
+                continue;
+            };
+
+            dbg!("Hit test for pending event succeeded");
+            self.global.borrow_mut().update_cursor(point, &result);
+
+            if let Err(error) = self.global.borrow().constellation_sender.send(
+                EmbedderToConstellationMessage::ForwardInputEvent(self.id, event, Some(result)),
+            ) {
+                warn!("Sending event to constellation failed ({error:?}).");
+            }
         }
     }
 
@@ -406,7 +451,7 @@ impl WebViewRenderer {
 
     fn send_touch_event(&self, mut event: TouchEvent) -> bool {
         let get_pipeline_details = |pipeline_id| self.pipelines.get(&pipeline_id);
-        let Some(result) = self
+        let Ok(Some(result)) = self
             .global
             .borrow()
             .hit_test_at_point(event.point, get_pipeline_details)
@@ -858,7 +903,8 @@ impl WebViewRenderer {
                 HitTestFlags::FIND_ALL,
                 None,
                 get_pipeline_details,
-            );
+            )
+            .unwrap_or_default();
 
         // Iterate through all hit test results, processing only the first node of each pipeline.
         // This is needed to propagate the scroll events from a pipeline representing an iframe to

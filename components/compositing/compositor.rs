@@ -281,6 +281,12 @@ impl PipelineDetails {
     }
 }
 
+pub enum HitTestError {
+    EpochMismatch,
+    #[allow(dead_code)]
+    Other,
+}
+
 impl ServoRenderer {
     pub fn shutdown_state(&self) -> ShutdownState {
         self.shutdown_state.get()
@@ -290,15 +296,16 @@ impl ServoRenderer {
         &self,
         point: DevicePoint,
         details_for_pipeline: impl Fn(PipelineId) -> Option<&'a PipelineDetails>,
-    ) -> Option<CompositorHitTestResult> {
-        self.hit_test_at_point_with_flags_and_pipeline(
+    ) -> Result<Option<CompositorHitTestResult>, HitTestError> {
+        match self.hit_test_at_point_with_flags_and_pipeline(
             point,
             HitTestFlags::empty(),
             None,
             details_for_pipeline,
-        )
-        .first()
-        .cloned()
+        ) {
+            Ok(hit_test_results) => Ok(hit_test_results.first().cloned()),
+            Err(error) => Err(error),
+        }
     }
 
     // TODO: split this into first half (global) and second half (one for whole compositor, one for webview)
@@ -308,14 +315,15 @@ impl ServoRenderer {
         flags: HitTestFlags,
         pipeline_id: Option<WebRenderPipelineId>,
         details_for_pipeline: impl Fn(PipelineId) -> Option<&'a PipelineDetails>,
-    ) -> Vec<CompositorHitTestResult> {
+    ) -> Result<Vec<CompositorHitTestResult>, HitTestError> {
         // DevicePoint and WorldPoint are the same for us.
         let world_point = WorldPoint::from_untyped(point.to_untyped());
         let results =
             self.webrender_api
                 .hit_test(self.webrender_document, pipeline_id, world_point, flags);
 
-        results
+        let mut epoch_mismatch = false;
+        let results = results
             .items
             .iter()
             .filter_map(|item| {
@@ -323,10 +331,16 @@ impl ServoRenderer {
                 let details = details_for_pipeline(pipeline_id)?;
 
                 // If the epoch in the tag does not match the current epoch of the pipeline,
-                // then the hit test is against an old version of the display list and we
-                // should ignore this hit test for now.
+                // then the hit test is against an old version of the display list.
                 match details.most_recent_display_list_epoch {
-                    Some(epoch) if epoch.as_u16() == item.tag.1 => {},
+                    Some(epoch) => {
+                        if epoch.as_u16() != item.tag.1 {
+                            // It's too early to hit test for now.
+                            // New scene building is in progress.
+                            epoch_mismatch = true;
+                            return None;
+                        }
+                    },
                     _ => return None,
                 }
 
@@ -340,7 +354,13 @@ impl ServoRenderer {
                     scroll_tree_node: info.scroll_tree_node,
                 })
             })
-            .collect()
+            .collect();
+
+        if epoch_mismatch {
+            return Err(HitTestError::EpochMismatch);
+        }
+
+        Ok(results)
     }
 
     pub(crate) fn send_transaction(&mut self, transaction: Transaction) {
@@ -619,7 +639,7 @@ impl IOCompositor {
                         .global
                         .borrow()
                         .hit_test_at_point(point, details_for_pipeline);
-                    if let Some(result) = result {
+                    if let Ok(Some(result)) = result {
                         self.global.borrow_mut().update_cursor(point, &result);
                     }
                 }
@@ -841,7 +861,8 @@ impl IOCompositor {
                         flags,
                         pipeline,
                         details_for_pipeline,
-                    );
+                    )
+                    .unwrap_or_default();
                 let _ = sender.send(result);
             },
 
@@ -1629,11 +1650,19 @@ impl IOCompositor {
                 },
                 CompositorMsg::NewWebRenderFrameReady(..) => {
                     found_recomposite_msg = true;
-                    compositor_messages.push(msg)
+                    compositor_messages.push(msg);
                 },
                 _ => compositor_messages.push(msg),
             }
         }
+
+        if found_recomposite_msg {
+            // Process all pending events
+            self.webview_renderers.iter().for_each(|webview| {
+                webview.dispatch_pending_input_events();
+            });
+        }
+
         for msg in compositor_messages {
             self.handle_browser_message(msg);
 
