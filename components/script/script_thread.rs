@@ -1081,7 +1081,11 @@ impl ScriptThread {
         for event in document.take_pending_input_events().into_iter() {
             document.update_active_keyboard_modifiers(event.active_keyboard_modifiers);
 
-            match event.event.clone() {
+            // We do this now, because the event is consumed below, but the order doesn't really
+            // matter as the event will be handled before any new ScriptThread messages are processed.
+            self.notify_webdriver_input_event_completed(pipeline_id, &event.event);
+
+            match event.event {
                 InputEvent::MouseButton(mouse_button_event) => {
                     document.handle_mouse_button_event(
                         mouse_button_event,
@@ -1140,27 +1144,20 @@ impl ScriptThread {
                     document.handle_editing_action(editing_action_event, can_gc);
                 },
             }
-
-            // Notify Constellation about the input event completion.
-            self.notify_webdriver_input_event_completed(pipeline_id, event.event);
         }
         ScriptThread::set_user_interacting(false);
     }
 
-    fn notify_webdriver_input_event_completed(&self, pipeline_id: PipelineId, event: InputEvent) {
-        if let Some(id) = event.webdriver_message_id() {
-            self.senders
-                .pipeline_to_constellation_sender
-                .send((
-                    pipeline_id,
-                    ScriptToConstellationMessage::WebDriverInputComplete(id),
-                ))
-                .unwrap_or_else(|_| {
-                    warn!(
-                        "ScriptThread failed to send WebDriverInputComplete {:?}",
-                        id
-                    );
-                });
+    fn notify_webdriver_input_event_completed(&self, pipeline_id: PipelineId, event: &InputEvent) {
+        let Some(id) = event.webdriver_message_id() else {
+            return;
+        };
+
+        if let Err(error) = self.senders.pipeline_to_constellation_sender.send((
+            pipeline_id,
+            ScriptToConstellationMessage::WebDriverInputComplete(id),
+        )) {
+            warn!("ScriptThread failed to send WebDriverInputComplete {id:?}: {error:?}",);
         }
     }
 
