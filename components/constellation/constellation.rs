@@ -533,7 +533,7 @@ struct WebDriverData {
     load_channel: Option<(PipelineId, IpcSender<WebDriverLoadStatus>)>,
     resize_channel: Option<IpcSender<Size2D<f32, CSSPixel>>>,
     // Forward responses from the script thread to the webdriver server.
-    input_command_response_channel: Option<IpcSender<WebDriverCommandResponse>>,
+    input_command_response_sender: Option<IpcSender<WebDriverCommandResponse>>,
 }
 
 impl WebDriverData {
@@ -541,7 +541,7 @@ impl WebDriverData {
         WebDriverData {
             load_channel: None,
             resize_channel: None,
-            input_command_response_channel: None,
+            input_command_response_sender: None,
         }
     }
 }
@@ -1871,12 +1871,15 @@ where
                 self.handle_finish_javascript_evaluation(evaluation_id, result)
             },
             ScriptToConstellationMessage::WebDriverInputComplete(msg_id) => {
-                if let Some(ref reply_chan) = self.webdriver.input_command_response_channel {
-                    reply_chan
-                        .send(WebDriverCommandResponse::WebDriverInputComplete(msg_id))
+                if let Some(ref reply_sender) = self.webdriver.input_command_response_sender {
+                    reply_sender
+                        .send(WebDriverCommandResponse { id: msg_id })
                         .unwrap_or_else(|_| {
                             warn!("Failed to send WebDriverInputComplete {:?}", msg_id);
+                            self.webdriver.input_command_response_sender = None;
                         });
+                } else {
+                    warn!("No WebDriver input_command_response_sender");
                 }
             },
         }
@@ -4851,7 +4854,7 @@ where
                 msg_id,
                 response_sender,
             ) => {
-                self.webdriver.input_command_response_channel = Some(response_sender);
+                self.webdriver.input_command_response_sender = Some(response_sender);
 
                 self.compositor_proxy
                     .send(CompositorMsg::WebDriverMouseButtonEvent(
@@ -4864,7 +4867,7 @@ where
                     ));
             },
             WebDriverCommandMsg::MouseMoveAction(webview_id, x, y, msg_id, response_sender) => {
-                self.webdriver.input_command_response_channel = Some(response_sender);
+                self.webdriver.input_command_response_sender = Some(response_sender);
 
                 self.compositor_proxy
                     .send(CompositorMsg::WebDriverMouseMoveEvent(

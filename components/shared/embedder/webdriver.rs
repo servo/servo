@@ -206,9 +206,8 @@ pub enum WebDriverFrameId {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub enum WebDriverCommandResponse {
-    WebDriverInputComplete(WebDriverMessageId),
-    WebDriverLoadStatus(WebDriverLoadStatus),
+pub struct WebDriverCommandResponse {
+    pub id: WebDriverMessageId,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

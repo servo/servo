@@ -7,9 +7,7 @@ use std::time::{Duration, Instant};
 use std::{cmp, thread};
 
 use constellation_traits::EmbedderToConstellationMessage;
-use embedder_traits::{
-    MouseButtonAction, WebDriverCommandMsg, WebDriverCommandResponse, WebDriverScriptCommand,
-};
+use embedder_traits::{MouseButtonAction, WebDriverCommandMsg, WebDriverScriptCommand};
 use ipc_channel::ipc;
 use keyboard_types::webdriver::KeyInputState;
 use webdriver::actions::{
@@ -150,23 +148,15 @@ impl Handler {
 
             match self.constellation_receiver.recv() {
                 Ok(response) => {
-                    // If you receive a response, check if it itself represents an error.
-                    // For example, if response is defined as Result<_, ErrorStatus>:
-                    match response {
-                        WebDriverCommandResponse::WebDriverInputComplete(msg_id) => {
-                            let current_waiting_id = self.current_action_id.get().expect(
-                                "Current id should be set before dispat_actions_inner is called",
-                            );
+                    let current_waiting_id = self
+                        .current_action_id
+                        .get()
+                        .expect("Current id should be set before dispat_actions_inner is called");
 
-                            if current_waiting_id != msg_id {
-                                dbg!("Dispatch actions completed with wrong id in response");
-                                return Err(ErrorStatus::UnknownError);
-                            }
-                        },
-                        _ => {
-                            return Err(ErrorStatus::UnknownError);
-                        },
-                    };
+                    if current_waiting_id != response.id {
+                        dbg!("Dispatch actions completed with wrong id in response");
+                        return Err(ErrorStatus::UnknownError);
+                    }
                 },
                 Err(error) => {
                     dbg!("Dispatch actions completed with IPC error: {:?}", error);
@@ -391,7 +381,7 @@ impl Handler {
         }
     }
 
-    // https://w3c.github.io/webdriver/#dfn-dispatch-a-pointerdown-action
+    /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pointerdown-action>
     pub(crate) fn dispatch_pointerdown_action(&self, source_id: &str, action: &PointerDownAction) {
         let session = self.session().unwrap();
 

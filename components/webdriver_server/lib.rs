@@ -67,11 +67,11 @@ use webdriver::server::{self, Session, SessionTeardownKind, WebDriverHandler};
 use crate::actions::{InputSourceState, PointerInputState};
 
 #[derive(Default)]
-pub struct IdGenerator {
+pub struct WebDriverMessageIdGenerator {
     counter: Cell<usize>,
 }
 
-impl IdGenerator {
+impl WebDriverMessageIdGenerator {
     pub fn new() -> Self {
         Self {
             counter: Cell::new(0),
@@ -167,13 +167,11 @@ pub struct WebDriverSession {
 
     unhandled_prompt_behavior: String,
 
-    // https://w3c.github.io/webdriver/#dfn-input-state-table
+    /// <https://w3c.github.io/webdriver/#dfn-input-state-map>
     input_state_table: RefCell<HashMap<String, InputSourceState>>,
 
-    // https://w3c.github.io/webdriver/#dfn-input-cancel-list
+    /// <https://w3c.github.io/webdriver/#dfn-input-cancel-list>
     input_cancel_list: RefCell<Vec<ActionSequence>>,
-    // https://w3c.github.io/webdriver/#dfn-actions-queue
-    // Currently, we don't need a queue because only 1 thread run actions at a time.
 }
 
 impl WebDriverSession {
@@ -224,7 +222,7 @@ struct Handler {
     /// Receiver notification from the constellation when a command is completed
     constellation_receiver: IpcReceiver<WebDriverCommandResponse>,
 
-    id_generator: IdGenerator,
+    id_generator: WebDriverMessageIdGenerator,
 
     current_action_id: Cell<Option<WebDriverMessageId>>,
 
@@ -458,7 +456,7 @@ impl Handler {
             constellation_chan,
             constellation_sender,
             constellation_receiver,
-            id_generator: IdGenerator::new(),
+            id_generator: WebDriverMessageIdGenerator::new(),
             current_action_id: Cell::new(None),
             resize_timeout: 500,
         }
