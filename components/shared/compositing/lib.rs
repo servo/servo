@@ -10,6 +10,7 @@ use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::Sender;
 use embedder_traits::{
     AnimationState, EventLoopWaker, MouseButton, MouseButtonAction, TouchEventResult,
+    WebDriverMessageId,
 };
 use euclid::Rect;
 use ipc_channel::ipc::IpcSender;
@@ -101,9 +102,16 @@ pub enum CompositorMsg {
     /// The load of a page has completed
     LoadComplete(WebViewId),
     /// WebDriver mouse button event
-    WebDriverMouseButtonEvent(WebViewId, MouseButtonAction, MouseButton, f32, f32),
+    WebDriverMouseButtonEvent(
+        WebViewId,
+        MouseButtonAction,
+        MouseButton,
+        f32,
+        f32,
+        WebDriverMessageId,
+    ),
     /// WebDriver mouse move event
-    WebDriverMouseMoveEvent(WebViewId, f32, f32),
+    WebDriverMouseMoveEvent(WebViewId, f32, f32, WebDriverMessageId),
     // Webdriver wheel scroll event
     WebDriverWheelScrollEvent(WebViewId, f32, f32, f64, f64),
 

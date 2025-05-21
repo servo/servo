@@ -620,29 +620,37 @@ impl IOCompositor {
                 }
             },
 
-            CompositorMsg::WebDriverMouseButtonEvent(webview_id, action, button, x, y) => {
+            CompositorMsg::WebDriverMouseButtonEvent(
+                webview_id,
+                action,
+                button,
+                x,
+                y,
+                message_id,
+            ) => {
                 let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     warn!("Handling input event for unknown webview: {webview_id}");
                     return;
                 };
                 let dppx = webview_renderer.device_pixels_per_page_pixel();
                 let point = dppx.transform_point(Point2D::new(x, y));
-                webview_renderer.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent {
-                    point,
-                    action,
-                    button,
-                }));
+                webview_renderer.dispatch_input_event(
+                    InputEvent::MouseButton(MouseButtonEvent::new(action, button, point))
+                        .with_webdriver_message_id(Some(message_id)),
+                );
             },
 
-            CompositorMsg::WebDriverMouseMoveEvent(webview_id, x, y) => {
+            CompositorMsg::WebDriverMouseMoveEvent(webview_id, x, y, message_id) => {
                 let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     warn!("Handling input event for unknown webview: {webview_id}");
                     return;
                 };
                 let dppx = webview_renderer.device_pixels_per_page_pixel();
                 let point = dppx.transform_point(Point2D::new(x, y));
-                webview_renderer
-                    .dispatch_input_event(InputEvent::MouseMove(MouseMoveEvent { point }));
+                webview_renderer.dispatch_input_event(
+                    InputEvent::MouseMove(MouseMoveEvent::new(point))
+                        .with_webdriver_message_id(Some(message_id)),
+                );
             },
 
             CompositorMsg::WebDriverWheelScrollEvent(webview_id, x, y, delta_x, delta_y) => {
