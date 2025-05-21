@@ -9,6 +9,9 @@ use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::color::AbsoluteColor;
 use style::context::QuirksMode;
 
+use super::attr::Attr;
+use super::element::AttributeMutation;
+use super::node::NodeDamage;
 use crate::dom::bindings::codegen::Bindings::HTMLTableCellElementBinding::HTMLTableCellElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -172,6 +175,19 @@ impl<'dom> HTMLTableCellElementLayoutHelpers<'dom> for LayoutDom<'dom, HTMLTable
 impl VirtualMethods for HTMLTableCellElement {
     fn super_type(&self) -> Option<&dyn VirtualMethods> {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    }
+
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        if let Some(super_type) = self.super_type() {
+            super_type.attribute_mutated(attr, mutation, can_gc);
+        }
+
+        if matches!(*attr.local_name(), local_name!("colspan")) {
+            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        }
+        if matches!(*attr.local_name(), local_name!("rowspan")) {
+            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        }
     }
 
     fn parse_plain_attribute(&self, local_name: &LocalName, value: DOMString) -> AttrValue {

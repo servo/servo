@@ -520,6 +520,7 @@ impl HTMLInputElement {
         let mut value = textinput.single_line_content().clone();
         self.sanitize_value(&mut value);
         textinput.set_content(value);
+        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
     fn does_minmaxlength_apply(&self) -> bool {
@@ -2668,6 +2669,7 @@ impl VirtualMethods for HTMLInputElement {
                         let mut value = textinput.single_line_content().clone();
                         self.sanitize_value(&mut value);
                         textinput.set_content(value);
+                        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
 
                         // Steps 7-9
                         if !previously_selectable && self.selection_api_applies() {
@@ -2695,6 +2697,8 @@ impl VirtualMethods for HTMLInputElement {
                 self.sanitize_value(&mut value);
                 self.textinput.borrow_mut().set_content(value);
                 self.update_placeholder_shown_state();
+
+                self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
             },
             local_name!("name") if self.input_type() == InputType::Radio => {
                 self.radio_group_updated(
