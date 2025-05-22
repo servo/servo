@@ -1,5 +1,5 @@
-
-/* License, v. 2.0. If a copy of the MPL was not distributed with this
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! The script thread is the thread that owns the DOM in memory, runs JavaScript, and triggers
@@ -23,8 +23,8 @@ use std::default::Default;
 use std::option::Option;
 use std::rc::Rc;
 use std::result::Result;
-use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime};
 
@@ -128,6 +128,7 @@ use crate::dom::document::{
     Document, DocumentSource, FocusInitiator, HasBrowsingContext, IsHTMLDocument, TouchEventResult,
 };
 use crate::dom::element::Element;
+use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
@@ -1904,6 +1905,24 @@ impl ScriptThread {
             ScriptThreadMessage::EvaluateJavaScript(pipeline_id, evaluation_id, script) => {
                 self.handle_evaluate_javascript(pipeline_id, evaluation_id, script, can_gc);
             },
+            ScriptThreadMessage::SetNetWorkState(is_online) => {
+                self.handle_network_state(is_online, can_gc);
+            },
+        }
+    }
+
+    fn fire_network_events(&self, is_online: bool, can_gc: CanGc) {
+        for (_, document) in self.documents.borrow().iter() {
+            let window = document.window();
+
+            let event_name = if is_online {
+                Atom::from("online")
+            } else {
+                Atom::from("offline")
+            };
+
+            let event_target = window.upcast::<EventTarget>();
+            event_target.fire_event(event_name, can_gc);
         }
     }
 
@@ -3821,6 +3840,17 @@ impl ScriptThread {
         } else {
             warn!("No MediaSession for this pipeline ID");
         };
+    }
+
+    fn handle_network_state(&self, is_online: bool, can_gc: CanGc) -> bool {
+        let previous = *self.is_online.lock().unwrap();
+        *self.is_online.lock().unwrap() = is_online;
+
+        if previous != is_online {
+            self.fire_network_events(is_online, can_gc);
+        }
+
+        false
     }
 
     pub(crate) fn enqueue_microtask(job: Microtask) {
