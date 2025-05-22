@@ -11,7 +11,7 @@ use base::id::ScrollTreeNodeId;
 use clip::{Clip, ClipId};
 use compositing_traits::display_list::{CompositorDisplayListInfo, SpatialTreeNodeInfo};
 use embedder_traits::Cursor;
-use euclid::{Point2D, SideOffsets2D, Size2D, UnknownUnit};
+use euclid::{Point2D, SideOffsets2D, Size2D, UnknownUnit, Vector2D};
 use fonts::GlyphStore;
 use gradient::WebRenderGradient;
 use range::Range as ServoRange;
@@ -21,7 +21,9 @@ use servo_geometry::MaxRect;
 use style::Zero;
 use style::color::{AbsoluteColor, ColorSpace};
 use style::computed_values::border_image_outset::T as BorderImageOutset;
-use style::computed_values::text_decoration_style::T as ComputedTextDecorationStyle;
+use style::computed_values::text_decoration_style::{
+    T as ComputedTextDecorationStyle, T as TextDecorationStyle,
+};
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use style::properties::longhands::visibility::computed_value::T as Visibility;
@@ -737,6 +739,7 @@ impl Fragment {
         let rect = fragment.rect.translate(containing_block.origin.to_vector());
         let mut baseline_origin = rect.origin;
         baseline_origin.y += fragment.font_metrics.ascent;
+
         let glyphs = glyphs(
             &fragment.glyphs,
             baseline_origin,
@@ -785,11 +788,13 @@ impl Fragment {
                 rect.origin.y += font_metrics.ascent - font_metrics.underline_offset;
                 rect.size.height =
                     Au::from_f32_px(font_metrics.underline_size.to_nearest_pixel(dppx));
+
                 self.build_display_list_for_text_decoration(
                     &parent_style,
                     builder,
                     &rect,
                     text_decoration,
+                    TextDecorationLine::UNDERLINE,
                 );
             }
         }
@@ -804,6 +809,7 @@ impl Fragment {
                     builder,
                     &rect,
                     text_decoration,
+                    TextDecorationLine::OVERLINE,
                 );
             }
         }
@@ -896,6 +902,7 @@ impl Fragment {
                     builder,
                     &rect,
                     text_decoration,
+                    TextDecorationLine::LINE_THROUGH,
                 );
             }
         }
@@ -911,22 +918,46 @@ impl Fragment {
         builder: &mut DisplayListBuilder,
         rect: &PhysicalRect<Au>,
         text_decoration: &FragmentTextDecoration,
+        line: TextDecorationLine,
     ) {
-        let rect = rect.to_webrender();
-        let wavy_line_thickness = (0.33 * rect.size().height).ceil();
         if text_decoration.style == ComputedTextDecorationStyle::MozNone {
             return;
         }
+
+        let mut rect = rect.to_webrender();
+        let line_thickness = rect.height().ceil();
+
+        if text_decoration.style == ComputedTextDecorationStyle::Wavy {
+            rect = rect.inflate(0.0, line_thickness * 1.0);
+        }
+
         let common_properties = builder.common_properties(rect, parent_style);
         builder.wr().push_line(
             &common_properties,
             &rect,
-            wavy_line_thickness,
+            line_thickness,
             wr::LineOrientation::Horizontal,
             &rgba(text_decoration.color),
             text_decoration.style.to_webrender(),
         );
-        // XXX(ferjm) support text-decoration-style: double
+
+        if text_decoration.style == TextDecorationStyle::Double {
+            let half_height = (rect.height() / 2.0).floor().max(1.0);
+            let y_offset = match line {
+                TextDecorationLine::OVERLINE => -rect.height() - half_height,
+                _ => rect.height() + half_height,
+            };
+            let rect = rect.translate(Vector2D::new(0.0, y_offset));
+            let common_properties = builder.common_properties(rect, parent_style);
+            builder.wr().push_line(
+                &common_properties,
+                &rect,
+                line_thickness,
+                wr::LineOrientation::Horizontal,
+                &rgba(text_decoration.color),
+                text_decoration.style.to_webrender(),
+            );
+        }
     }
 }
 
