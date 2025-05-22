@@ -14,12 +14,10 @@ use std::rc::Rc;
 use deny_public_fields::DenyPublicFields;
 use dom_struct::dom_struct;
 use fnv::FnvHasher;
-use js::jsapi::JS_GetFunctionObject;
+use js::jsapi::JS::CompileFunction;
+use js::jsapi::{JS_GetFunctionObject, SupportUnscopables};
 use js::jsval::JSVal;
-use js::rust::wrappers::CompileFunction;
-use js::rust::{
-    CompileOptionsWrapper, HandleObject, RootedObjectVectorWrapper, transform_u16_to_source_text,
-};
+use js::rust::{CompileOptionsWrapper, HandleObject, transform_u16_to_source_text};
 use libc::c_char;
 use servo_url::ServoUrl;
 use style::str::HTML_SPACE_CHARACTERS;
@@ -646,7 +644,7 @@ impl EventTarget {
         };
 
         // Step 3.9, subsection Scope steps 1-6
-        let scopechain = RootedObjectVectorWrapper::new(*cx);
+        let scopechain = js::rust::EnvironmentChain::new(*cx, SupportUnscopables::Yes);
 
         if let Some(element) = element {
             scopechain.append(document.reflector().get_jsobject().get());
@@ -659,7 +657,7 @@ impl EventTarget {
         rooted!(in(*cx) let mut handler = unsafe {
             CompileFunction(
                 *cx,
-                scopechain.handle(),
+                scopechain.get(),
                 options.ptr,
                 name.as_ptr(),
                 args.len() as u32,

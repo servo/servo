@@ -31,7 +31,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
 use js::jsapi::{
-    Compile1, CurrentGlobalOrNull, GetNonCCWObjectGlobal, HandleObject, Heap,
+    Compile1, CurrentGlobalOrNull, DelazificationOption, GetNonCCWObjectGlobal, HandleObject, Heap,
     InstantiateGlobalStencil, InstantiateOptions, JSContext, JSObject, JSScript, SetScriptPrivate,
 };
 use js::jsval::{PrivateValue, UndefinedValue};
@@ -2820,6 +2820,7 @@ impl GlobalScope {
                         skipFilenameValidation: false,
                         hideScriptFromDebugger: false,
                         deferDebugMetadata: false,
+                        eagerDelazificationStrategy_: DelazificationOption::OnDemandOnly,
                     };
                     let script = InstantiateGlobalStencil(
                         *cx,
