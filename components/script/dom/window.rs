@@ -398,7 +398,6 @@ pub(crate) struct Window {
 
     /// <https://dom.spec.whatwg.org/#window-current-event>
     current_event: DomRefCell<Option<Dom<Event>>>,
-    
 
     /// Switch offline and online events
     #[no_trace]
@@ -3068,7 +3067,6 @@ impl Window {
                 inherited_secure_context,
                 unminify_js,
                 is_online,
-            
             ),
             script_chan,
             layout: RefCell::new(layout),

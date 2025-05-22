@@ -227,7 +227,6 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
         *self.global().is_online().lock().unwrap()
     }
 
-
     // https://html.spec.whatwg.org/multipage/#dom-navigator-plugins
     fn Plugins(&self) -> DomRoot<PluginArray> {
         self.plugins

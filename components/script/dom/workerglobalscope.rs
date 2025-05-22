@@ -5,8 +5,8 @@
 use std::cell::{RefCell, RefMut};
 use std::default::Default;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use base::cross_process_instant::CrossProcessInstant;
