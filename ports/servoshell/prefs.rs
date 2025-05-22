@@ -363,6 +363,13 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         "FILTER",
     );
 
+    opts.optmulti(
+        "",
+        "dev-tools",
+        "Start the devtools on the supplied port",
+        "1234",
+    );
+
     opts.optflag(
         "",
         "enable-experimental-web-platform-features",
@@ -506,9 +513,9 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
                 })
             });
 
-    if opt_match.opt_present("devtools") {
+    if opt_match.opt_present("dev-tools") {
         let port = opt_match
-            .opt_str("devtools")
+            .opt_str("dev-tools")
             .map(|port| {
                 port.parse().unwrap_or_else(|err| {
                     args_fail(&format!("Error parsing option: --devtools ({})", err))
