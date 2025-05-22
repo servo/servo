@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>CSS Test: z-index - dynamic changes</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#z-index" />
+<link rel="match" href="../../reference/ref-filled-green-200px-square.html">
+<meta name="assert" content="Checks that z-index can be changed dynamically.">
+<style>
+div {
+  width: 200px;
+  height: 200px;
+  position: absolute;
+}
+#red {
+  background: red;
+}
+#target {
+  background: green;
+  z-index: -1;
+}
+#target.front {
+  z-index: 1;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="red"></div>
+<div id="target"></div>
+
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<script>
+waitForAtLeastOneFrame().then(() => {
+  document.getElementById("target").className = "front";
+  takeScreenshot();
+});
+</script>
+</html>

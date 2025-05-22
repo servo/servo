@@ -646,7 +646,7 @@ impl LayoutThread {
             highlighted_dom_node: reflow_request.highlighted_dom_node,
         };
 
-        let did_reflow = self.restyle_and_build_trees(
+        let damage = self.restyle_and_build_trees(
             &reflow_request,
             root_element,
             rayon_pool,
@@ -654,7 +654,7 @@ impl LayoutThread {
             viewport_changed,
         );
 
-        self.build_stacking_context_tree(&reflow_request, did_reflow);
+        self.build_stacking_context_tree(&reflow_request, damage);
         self.build_display_list(&reflow_request, &mut layout_context);
 
         self.first_reflow.set(false);
@@ -744,7 +744,7 @@ impl LayoutThread {
         rayon_pool: Option<&ThreadPool>,
         layout_context: &mut LayoutContext<'_>,
         viewport_changed: bool,
-    ) -> bool {
+    ) -> RestyleDamage {
         let dirty_root = unsafe {
             ServoLayoutNode::new(&reflow_request.dirty_root.unwrap())
                 .as_element()
@@ -760,7 +760,7 @@ impl LayoutThread {
 
         if !token.should_traverse() {
             layout_context.style_context.stylist.rule_tree().maybe_gc();
-            return false;
+            return RestyleDamage::empty();
         }
 
         let dirty_root: ServoLayoutNode =
@@ -768,9 +768,9 @@ impl LayoutThread {
 
         let root_node = root_element.as_node();
         let damage = compute_damage_and_repair_style(layout_context.shared_context(), root_node);
-        if !viewport_changed && (damage.is_empty() || damage == RestyleDamage::REPAINT) {
+        if !viewport_changed && !damage.contains(RestyleDamage::REBUILD_BOX) {
             layout_context.style_context.stylist.rule_tree().maybe_gc();
-            return false;
+            return damage;
         }
 
         let mut box_tree = self.box_tree.borrow_mut();
@@ -828,10 +828,10 @@ impl LayoutThread {
 
         // GC the rule tree if some heuristics are met.
         layout_context.style_context.stylist.rule_tree().maybe_gc();
-        true
+        damage
     }
 
-    fn build_stacking_context_tree(&self, reflow_request: &ReflowRequest, did_reflow: bool) {
+    fn build_stacking_context_tree(&self, reflow_request: &ReflowRequest, damage: RestyleDamage) {
         if !reflow_request.reflow_goal.needs_display_list() &&
             !reflow_request.reflow_goal.needs_display()
         {
@@ -840,7 +840,9 @@ impl LayoutThread {
         let Some(fragment_tree) = &*self.fragment_tree.borrow() else {
             return;
         };
-        if !did_reflow && self.stacking_context_tree.borrow().is_some() {
+        if !damage.contains(RestyleDamage::REBUILD_STACKING_CONTEXT) &&
+            self.stacking_context_tree.borrow().is_some()
+        {
             return;
         }
 
