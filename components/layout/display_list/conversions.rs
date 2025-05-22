@@ -125,11 +125,15 @@ impl ToWebRender for ComputedTextDecorationStyle {
     type Type = LineStyle;
     fn to_webrender(&self) -> Self::Type {
         match *self {
-            ComputedTextDecorationStyle::Solid => LineStyle::Solid,
+            ComputedTextDecorationStyle::Solid | ComputedTextDecorationStyle::Double => {
+                LineStyle::Solid
+            },
             ComputedTextDecorationStyle::Dotted => LineStyle::Dotted,
             ComputedTextDecorationStyle::Dashed => LineStyle::Dashed,
             ComputedTextDecorationStyle::Wavy => LineStyle::Wavy,
-            _ => LineStyle::Solid,
+            ComputedTextDecorationStyle::MozNone => {
+                unreachable!("Should never try to draw a moz-none text decoration")
+            },
         }
     }
 }
