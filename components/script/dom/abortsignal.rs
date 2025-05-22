@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, Value};
+use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, MutableHandleValue};
 
@@ -56,7 +56,7 @@ impl AbortSignalMethods<crate::DomTypeHolder> for AbortSignal {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-abortsignal-reason>
-    fn Reason(&self, _: JSContext,  _rval: MutableHandleValue) {
+    fn Reason(&self, _: JSContext, _rval: MutableHandleValue) {
         // TODO
     }
 
@@ -66,6 +66,6 @@ impl AbortSignalMethods<crate::DomTypeHolder> for AbortSignal {
         // TODO
     }
 
-    /// <https://dom.spec.whatwg.org/#dom-abortsignal-onabort>
+    // <https://dom.spec.whatwg.org/#dom-abortsignal-onabort>
     event_handler!(abort, GetOnabort, SetOnabort);
 }
