@@ -72,8 +72,9 @@ def main():
 
     for webidl in webidls:
         filename = os.path.join(webidls_dir, webidl)
-        prefix = "Bindings/%sBinding" % webidl[:-len(".webidl")]
-        module = CGBindingRoot(config, prefix, filename).define()
+        name = webidl[:-len(".webidl")]
+        prefix = "Bindings/%sBinding" % name
+        module = CGBindingRoot(config, prefix, filename, name).define()
         if module:
             with open(os.path.join(out_dir, prefix + ".rs"), "wb") as f:
                 f.write(module.encode("utf-8"))

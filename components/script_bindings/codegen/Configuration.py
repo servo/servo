@@ -248,6 +248,7 @@ class Descriptor(DescriptorProvider):
         self.inRealmMethods = [name for name in desc.get('inRealms', [])]
         self.canGcMethods = [name for name in desc.get('canGc', [])]
         self.additionalTraits = [name for name in desc.get('additionalTraits', [])]
+        self.ifaceName = ifaceName
         self.bindingPath = f"{getModuleFromObject(self.interface)}::{ifaceName}_Binding"
         self.outerObjectHook = desc.get('outerObjectHook', 'None')
         self.proxy = False
