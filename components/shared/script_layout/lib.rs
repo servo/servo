@@ -13,6 +13,7 @@ pub mod wrapper_traits;
 use std::any::Any;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicIsize, AtomicU64, Ordering};
+use std::time::Duration;
 
 use app_units::Au;
 use atomic_refcell::AtomicRefCell;
@@ -507,21 +508,116 @@ pub fn node_id_from_scroll_id(id: usize) -> Option<usize> {
 #[derive(Clone, Debug, MallocSizeOf)]
 pub struct ImageAnimationState {
     #[ignore_malloc_size_of = "Arc is hard"]
-    image: Arc<Image>,
-    active_frame: usize,
+    pub image: Arc<Image>,
+    pub active_frame: usize,
     last_update_time: f64,
 }
 
 impl ImageAnimationState {
-    pub fn new(image: Arc<Image>) -> Self {
+    pub fn new(image: Arc<Image>, last_update_time: f64) -> Self {
         Self {
             image,
             active_frame: 0,
-            last_update_time: 0.,
+            last_update_time,
         }
     }
 
     pub fn image_key(&self) -> Option<ImageKey> {
         self.image.id
+    }
+
+    pub fn time_to_next_frame(&self, now: f64) -> f64 {
+        let frame_delay = self
+            .image
+            .frames
+            .get(self.active_frame)
+            .expect("Image frame should always be valid")
+            .delay
+            .map_or(0., |delay| delay.as_secs_f64());
+        (frame_delay - now + self.last_update_time).max(0.0)
+    }
+
+    /// check whether image active frame need to be updated given current time,
+    /// return true if there are image that need to be updated.
+    /// false otherwise.
+    pub fn update_frame_for_animation_timeline_value(&mut self, now: f64) -> bool {
+        if self.image.frames.len() <= 1 {
+            return false;
+        }
+        let image = &self.image;
+        let time_interval_since_last_update = now - self.last_update_time;
+        let mut remain_time_interval = time_interval_since_last_update -
+            image
+                .frames
+                .get(self.active_frame)
+                .unwrap()
+                .delay
+                .unwrap()
+                .as_secs_f64();
+        let mut next_active_frame_id = self.active_frame;
+        while remain_time_interval > 0.0 {
+            next_active_frame_id = (next_active_frame_id + 1) % image.frames.len();
+            remain_time_interval -= image
+                .frames
+                .get(next_active_frame_id)
+                .unwrap()
+                .delay
+                .unwrap()
+                .as_secs_f64();
+        }
+        if self.active_frame == next_active_frame_id {
+            return false;
+        }
+        self.active_frame = next_active_frame_id;
+        self.last_update_time = now;
+        true
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::sync::Arc;
+    use std::time::Duration;
+
+    use ipc_channel::ipc::IpcSharedMemory;
+    use pixels::{CorsStatus, Image, ImageFrame, PixelFormat};
+
+    use crate::ImageAnimationState;
+
+    #[test]
+    fn test() {
+        let image_frames: Vec<ImageFrame> = std::iter::repeat_with(|| ImageFrame {
+            delay: Some(Duration::from_millis(100)),
+            byte_range: 0..1,
+            width: 100,
+            height: 100,
+        })
+        .take(10)
+        .collect();
+        let image = Image {
+            width: 100,
+            height: 100,
+            format: PixelFormat::BGRA8,
+            id: None,
+            bytes: IpcSharedMemory::from_byte(1, 1),
+            frames: image_frames,
+            cors_status: CorsStatus::Unsafe,
+        };
+        let mut image_animation_state = ImageAnimationState::new(Arc::new(image), 0.0);
+
+        assert_eq!(image_animation_state.active_frame, 0);
+        assert_eq!(image_animation_state.last_update_time, 0.0);
+        assert_eq!(
+            image_animation_state.update_frame_for_animation_timeline_value(0.101),
+            true
+        );
+        assert_eq!(image_animation_state.active_frame, 1);
+        assert_eq!(image_animation_state.last_update_time, 0.101);
+        assert_eq!(
+            image_animation_state.update_frame_for_animation_timeline_value(0.116),
+            false
+        );
+        assert_eq!(image_animation_state.active_frame, 1);
+        assert_eq!(image_animation_state.last_update_time, 0.101);
     }
 }

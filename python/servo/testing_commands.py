@@ -175,6 +175,7 @@ class MachCommands(CommandBase):
             "net",
             "net_traits",
             "pixels",
+            "script_layout_interface",
             "script_traits",
             "selectors",
             "servo_config",
