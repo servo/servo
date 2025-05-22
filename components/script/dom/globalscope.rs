@@ -3453,7 +3453,7 @@ impl GlobalScope {
         unreachable!();
     }
 
-    pub(crate) fn is_online(&self) -> Arc<Mutex<bool> {
+    pub(crate) fn is_online(&self) -> Arc<Mutex<bool>> {
         Arc::clone(&self.is_online)
     }
 
