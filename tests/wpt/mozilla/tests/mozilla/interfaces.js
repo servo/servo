@@ -19,6 +19,7 @@ function test_interfaces(interfaceNamesInGlobalScope) {
       "Error",
       "EvalError",
       "FinalizationRegistry",
+      "Float16Array",
       "Float32Array",
       "Float64Array",
       "Function",
