@@ -328,15 +328,6 @@ impl Handler {
             _ => unreachable!(),
         };
 
-        session.input_cancel_list.borrow_mut().push(ActionSequence {
-            id: source_id.into(),
-            actions: ActionsType::Key {
-                actions: vec![KeyActionItem::Key(KeyAction::Up(KeyUpAction {
-                    value: action.value.clone(),
-                }))],
-            },
-        });
-
         let keyboard_event = key_input_state.dispatch_keydown(raw_key);
 
         // Step 12
@@ -359,15 +350,6 @@ impl Handler {
             InputSourceState::Key(key_input_state) => key_input_state,
             _ => unreachable!(),
         };
-
-        session.input_cancel_list.borrow_mut().push(ActionSequence {
-            id: source_id.into(),
-            actions: ActionsType::Key {
-                actions: vec![KeyActionItem::Key(KeyAction::Up(KeyUpAction {
-                    value: action.value.clone(),
-                }))],
-            },
-        });
 
         if let Some(keyboard_event) = key_input_state.dispatch_keyup(raw_key) {
             // Step 12
@@ -395,25 +377,6 @@ impl Handler {
             return;
         }
         pointer_input_state.pressed.insert(action.button);
-
-        session.input_cancel_list.borrow_mut().push(ActionSequence {
-            id: source_id.into(),
-            actions: ActionsType::Pointer {
-                parameters: PointerActionParameters {
-                    pointer_type: match pointer_input_state.subtype {
-                        PointerType::Mouse => PointerType::Mouse,
-                        PointerType::Pen => PointerType::Pen,
-                        PointerType::Touch => PointerType::Touch,
-                    },
-                },
-                actions: vec![PointerActionItem::Pointer(PointerAction::Up(
-                    PointerUpAction {
-                        button: action.button,
-                        ..Default::default()
-                    },
-                ))],
-            },
-        });
 
         let msg_id = self.current_action_id.get().unwrap();
         let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
@@ -444,25 +407,6 @@ impl Handler {
             return;
         }
         pointer_input_state.pressed.remove(&action.button);
-
-        session.input_cancel_list.borrow_mut().push(ActionSequence {
-            id: source_id.into(),
-            actions: ActionsType::Pointer {
-                parameters: PointerActionParameters {
-                    pointer_type: match pointer_input_state.subtype {
-                        PointerType::Mouse => PointerType::Mouse,
-                        PointerType::Pen => PointerType::Pen,
-                        PointerType::Touch => PointerType::Touch,
-                    },
-                },
-                actions: vec![PointerActionItem::Pointer(PointerAction::Down(
-                    PointerDownAction {
-                        button: action.button,
-                        ..Default::default()
-                    },
-                ))],
-            },
-        });
 
         let msg_id = self.current_action_id.get().unwrap();
         let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
