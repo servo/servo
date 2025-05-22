@@ -1635,7 +1635,7 @@ impl Element {
     pub(crate) fn find_focusable_shadow_host_if_necessary(&self) -> Option<DomRoot<Element>> {
         if self.is_focusable_area() {
             Some(DomRoot::from_ref(self))
-        } else if self.upcast::<Node>().is_text_editing_root() {
+        } else if self.upcast::<Node>().is_text_control_inner_editor() {
             let containing_shadow_host = self.containing_shadow_root().map(|root| root.Host());
             if containing_shadow_host
                 .as_ref()

@@ -103,20 +103,21 @@ const DEFAULT_FILE_INPUT_VALUE: &str = "No file chosen";
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-/// Contains reference to text editing root and placeholder container element in the UA
+/// Contains reference to text control inner editor and placeholder container element in the UA
 /// shadow tree for `<input type=text>`. The following is the structure of the shadow tree.
 ///
 /// ```
 /// <input type="text">
-///     <div id="inner-container">
-///         <div id="input-editing-root"></div>
-///         <div id="input-placeholder"></div>
-///     </div>
+///     #shadow-root
+///         <div id="inner-container">
+///             <div id="input-editor"></div>
+///             <div id="input-placeholder"></div>
+///         </div>
 /// </input>
 /// ```
-// TODO(stevennovaryo): We have an additional `<div>` element that contains both placeholder and editing root
-//                      because we are using `position: absolute` to put the editing root and placeholder
-//                      on top of each other. But we should probably provide a specifing layout algorithm instead.
+// TODO(stevennovaryo): We are trying to use CSS to mimic Chrome and Firefox's layout for the <input> element.
+//                      But this does have some discrepencies. For example, they would try to vertically align
+//                      <input> text baseline with the baseline of other TextNode within an inline flow.
 struct InputTypeTextShadowTree {
     text_container: Dom<HTMLDivElement>,
     placeholder_container: Dom<HTMLDivElement>,
@@ -134,25 +135,38 @@ struct InputTypeColorShadowTree {
 
 // FIXME: These styles should be inside UA stylesheet, but it is not possible without internal pseudo element support.
 const TEXT_TREE_STYLE: &str = "
-#input-editing-root::selection, #input-placeholder::selection {
+#input-editor::selection, #input-placeholder::selection {
     background: rgba(176, 214, 255, 1.0);
     color: black;
 }
 
-#input-container {
-    position: relative;
+:host:not(:placeholder-shown) #input-placeholder {
+    visibility: hidden !important
 }
 
-#input-editing-root, #input-placeholder {
+#input-container {
+    position: relative !important;
+    height: 100% !important;
+    pointer-events: none !important;
+}
+
+#input-editor {
+    pointer-events: auto !important;
+}
+
+#input-editor, #input-placeholder {
+    position: absolute !important;
     overflow-wrap: normal;
     white-space: pre;
+    margin-block: auto;
+    inset-block: 0;
+    block-size: fit-content;
 }
 
 #input-placeholder {
-    position: absolute;
     color: grey;
-    overflow: hidden;
-    pointer-events: none;
+    overflow: hidden !important;
+    pointer-events: none !important;
 }
 ";
 
@@ -1153,8 +1167,10 @@ impl HTMLInputElement {
         let text_container = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
         text_container
             .upcast::<Element>()
-            .SetId(DOMString::from("input-editing-root"), can_gc);
-        text_container.upcast::<Node>().set_text_editing_root();
+            .SetId(DOMString::from("input-editor"), can_gc);
+        text_container
+            .upcast::<Node>()
+            .set_text_control_inner_editor();
         inner_container
             .upcast::<Node>()
             .AppendChild(text_container.upcast::<Node>(), can_gc)
@@ -1168,6 +1184,8 @@ impl HTMLInputElement {
             ElementCreator::ScriptCreated,
             can_gc,
         );
+        // TODO(stevennovaryo): Either use UA stylesheet with internal pseudo element or preemptively parse the stylesheet
+        //                      to reduce the costly operation and avoid CSP related error.
         style
             .upcast::<Node>()
             .SetTextContent(Some(DOMString::from(TEXT_TREE_STYLE)), can_gc);
@@ -1274,49 +1292,48 @@ impl HTMLInputElement {
     }
 
     fn update_shadow_tree_if_needed(&self, can_gc: CanGc) {
-        if self.input_type() == InputType::Text {
-            let text_shadow_tree = self.text_shadow_tree(can_gc);
-            let value = self.Value();
+        match self.input_type() {
+            InputType::Text => {
+                let text_shadow_tree = self.text_shadow_tree(can_gc);
+                let value = self.Value();
 
-            let placeholder_text = match value.is_empty() {
-                true => self.placeholder.to_owned().take(),
-                false => DOMString::new(),
-            };
+                // The addition of zero-width space here forces the text input to have an inline formatting
+                // context that might otherwise be trimmed if there's no text. This is important to ensure
+                // that the input element is at least as tall as the line gap of the caret:
+                // <https://drafts.csswg.org/css-ui/#element-with-default-preferred-size>.
+                //
+                // This is also used to ensure that the caret will still be rendered when the input is empty.
+                // TODO: Is there a less hacky way to do this?
+                let value_text = match value.is_empty() {
+                    false => value,
+                    true => "\u{200B}".into(),
+                };
 
-            // The addition of zero-width space here forces the text input to have an inline formatting
-            // context that might otherwise be trimmed if there's no text. This is important to ensure
-            // that the input element is at least as tall as the line gap of the caret:
-            // <https://drafts.csswg.org/css-ui/#element-with-default-preferred-size>.
-            //
-            // This is also used to ensure that the caret will still be rendered when the input is empty.
-            // TODO: Is there a less hacky way to do this?
-            let value_text = match value.is_empty() {
-                false => value,
-                true => "\u{200B}".into(),
-            };
-
-            text_shadow_tree
-                .placeholder_container
-                .upcast::<Node>()
-                .SetTextContent(Some(placeholder_text), can_gc);
-            text_shadow_tree
-                .text_container
-                .upcast::<Node>()
-                .SetTextContent(Some(value_text), can_gc);
-        }
-        if self.input_type() == InputType::Color {
-            let color_shadow_tree = self.color_shadow_tree(can_gc);
-            let mut value = self.Value();
-            if value.str().is_valid_simple_color_string() {
-                value.make_ascii_lowercase();
-            } else {
-                value = DOMString::from("#000000");
-            }
-            let style = format!("background-color: {value}");
-            color_shadow_tree
-                .color_value
-                .upcast::<Element>()
-                .set_string_attribute(&local_name!("style"), style.into(), can_gc);
+                // TODO(stevennovaryo): Introduce caching to prevent costly update.
+                text_shadow_tree
+                    .placeholder_container
+                    .upcast::<Node>()
+                    .SetTextContent(Some(self.placeholder.to_owned().take()), can_gc);
+                text_shadow_tree
+                    .text_container
+                    .upcast::<Node>()
+                    .SetTextContent(Some(value_text), can_gc);
+            },
+            InputType::Color => {
+                let color_shadow_tree = self.color_shadow_tree(can_gc);
+                let mut value = self.Value();
+                if value.str().is_valid_simple_color_string() {
+                    value.make_ascii_lowercase();
+                } else {
+                    value = DOMString::from("#000000");
+                }
+                let style = format!("background-color: {value}");
+                color_shadow_tree
+                    .color_value
+                    .upcast::<Element>()
+                    .set_string_attribute(&local_name!("style"), style.into(), can_gc);
+            },
+            _ => {},
         }
     }
 }

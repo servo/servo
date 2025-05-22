@@ -101,8 +101,8 @@ impl<'dom> ServoLayoutNode<'dom> {
         self.node.is_text_input()
     }
 
-    pub fn is_text_editing_root(&self) -> bool {
-        self.node.is_text_editing_root()
+    pub fn is_text_control_inner_editor(&self) -> bool {
+        self.node.is_text_control_inner_editor()
     }
 }
 

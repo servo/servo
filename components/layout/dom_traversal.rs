@@ -62,7 +62,7 @@ impl<'dom> NodeAndStyleInfo<'dom> {
     // Whether this is a container for the editable text within a single-line text input.
     pub(crate) fn is_single_line_text_input(&self) -> bool {
         self.node.type_id() == LayoutNodeType::Element(LayoutElementType::HTMLInputElement) ||
-            self.node.is_text_editing_root()
+            self.node.is_text_control_inner_editor()
     }
 
     pub(crate) fn pseudo(
@@ -221,7 +221,9 @@ fn traverse_children_of<'dom>(
         } else {
             handler.handle_text(&info, node_text_content);
         }
-    } else if parent_element.is_text_editing_root() {
+    } else if parent_element.is_text_control_inner_editor() {
+        // We are using parent's style for caret and selection color.
+        // FIXME: Once textarea and input element's shadow tree is supported, this would replace the if condition above.
         let info = NodeAndStyleInfo::new(
             parent_element,
             parent_element.style(context.shared_context()),
