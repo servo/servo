@@ -795,7 +795,6 @@ dependencies = [
  "log",
  "lyon_geom",
  "net_traits",
- "num-traits",
  "pixels",
  "range",
  "raqote",
@@ -1099,11 +1098,9 @@ dependencies = [
  "net",
  "pixels",
  "profile_traits",
- "script_traits",
  "servo_allocator",
  "servo_config",
  "servo_geometry",
- "smallvec",
  "stylo_traits",
  "surfman",
  "tracing",
@@ -1198,7 +1195,6 @@ name = "constellation_traits"
 version = "0.0.1"
 dependencies = [
  "base",
- "bitflags 2.9.1",
  "canvas_traits",
  "devtools_traits",
  "embedder_traits",
@@ -1913,7 +1909,6 @@ name = "embedder_traits"
 version = "0.0.1"
 dependencies = [
  "base",
- "cfg-if",
  "cookie 0.18.1",
  "crossbeam-channel",
  "euclid",
@@ -4160,7 +4155,6 @@ dependencies = [
  "atomic_refcell",
  "base",
  "bitflags 2.9.1",
- "canvas_traits",
  "compositing_traits",
  "constellation_traits",
  "data-url",
@@ -4294,7 +4288,6 @@ dependencies = [
  "bluetooth_traits",
  "canvas",
  "canvas_traits",
- "cfg-if",
  "compositing",
  "compositing_traits",
  "constellation",
@@ -4572,7 +4565,6 @@ name = "metrics"
 version = "0.0.1"
 dependencies = [
  "base",
- "constellation_traits",
  "ipc-channel",
  "log",
  "malloc_size_of_derive",
@@ -4843,7 +4835,6 @@ dependencies = [
  "rustls-pki-types",
  "serde",
  "serde_json",
- "servo_allocator",
  "servo_arc",
  "servo_config",
  "servo_malloc_size_of",
@@ -5830,7 +5821,6 @@ dependencies = [
  "ipc-channel",
  "libc",
  "log",
- "parking_lot",
  "profile_traits",
  "regex",
  "serde",
@@ -5866,7 +5856,6 @@ dependencies = [
  "servo_config",
  "servo_malloc_size_of",
  "signpost",
- "strum_macros",
  "time",
  "tracing",
 ]
@@ -6339,7 +6328,6 @@ dependencies = [
  "nom",
  "num-traits",
  "num_cpus",
- "parking_lot",
  "percent-encoding",
  "phf",
  "pixels",
@@ -6434,7 +6422,6 @@ dependencies = [
  "app_units",
  "atomic_refcell",
  "base",
- "canvas_traits",
  "compositing_traits",
  "constellation_traits",
  "embedder_traits",
@@ -6447,7 +6434,6 @@ dependencies = [
  "ipc-channel",
  "libc",
  "malloc_size_of_derive",
- "metrics",
  "net_traits",
  "pixels",
  "profile_traits",
@@ -6459,7 +6445,6 @@ dependencies = [
  "servo_malloc_size_of",
  "servo_url",
  "stylo",
- "stylo_traits",
  "webrender_api",
 ]
 
@@ -6487,7 +6472,6 @@ dependencies = [
  "devtools_traits",
  "embedder_traits",
  "euclid",
- "http 1.3.1",
  "ipc-channel",
  "keyboard-types",
  "malloc_size_of_derive",
@@ -6934,19 +6918,15 @@ dependencies = [
  "euclid",
  "getopts",
  "gilrs",
- "gleam",
  "glow",
  "headers 0.4.0",
  "hilog",
  "hitrace",
- "http 1.3.1",
- "icu_locid",
  "image",
  "ipc-channel",
  "jni",
  "keyboard-types",
  "libc",
- "libloading",
  "libservo",
  "log",
  "mime_guess",
@@ -6963,9 +6943,7 @@ dependencies = [
  "raw-window-handle",
  "rustls",
  "serde_json",
- "servo-tracing",
  "servo_allocator",
- "shellwords",
  "sig",
  "surfman",
  "tokio",
@@ -7008,16 +6986,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f40ca3c46823713e0d4209592e8d6e826aa57e928f09752619fc696c499637f6"
 dependencies = [
  "lazy_static",
-]
-
-[[package]]
-name = "shellwords"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "89e515aa4699a88148ed5ef96413ceef0048ce95b43fbc955a33bde0a70fcae6"
-dependencies = [
- "lazy_static",
- "regex",
 ]
 
 [[package]]
@@ -8582,9 +8550,7 @@ dependencies = [
  "ipc-channel",
  "keyboard-types",
  "log",
- "net_traits",
  "pixels",
- "script_traits",
  "serde",
  "serde_json",
  "servo_config",
@@ -8631,7 +8597,6 @@ dependencies = [
  "log",
  "serde",
  "servo_config",
- "servo_malloc_size_of",
  "snapshot",
  "webgpu_traits",
  "webrender",
@@ -8734,7 +8699,6 @@ name = "webxr"
 version = "0.0.1"
 dependencies = [
  "crossbeam-channel",
- "embedder_traits",
  "euclid",
  "glow",
  "log",

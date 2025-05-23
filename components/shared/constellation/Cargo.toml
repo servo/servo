@@ -17,7 +17,6 @@ webgpu = ["wgpu-core"]
 
 [dependencies]
 base = { workspace = true }
-bitflags = { workspace = true }
 canvas_traits = { workspace = true }
 devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
