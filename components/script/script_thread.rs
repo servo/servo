@@ -1911,20 +1911,19 @@ impl ScriptThread {
         }
     }
 
-    fn fire_network_events(&self, is_online: bool, can_gc: CanGc) {
-        for (_, document) in self.documents.borrow().iter() {
-            let window = document.window();
+fn fire_network_events(&self, is_online: bool, can_gc: CanGc) {
+    let event_name = if is_online {
+        Atom::from("online")
+    } else {
+        Atom::from("offline")
+    };
 
-            let event_name = if is_online {
-                Atom::from("online")
-            } else {
-                Atom::from("offline")
-            };
-
-            let event_target = window.upcast::<EventTarget>();
-            event_target.fire_event(event_name, can_gc);
-        }
+    for document in self.documents.borrow().values() {
+        let window = document.window();
+        let event_target = window.upcast::<EventTarget>();
+        event_target.fire_event(event_name.clone(), can_gc);
     }
+}
 
     fn handle_set_scroll_states(&self, pipeline_id: PipelineId, scroll_states: Vec<ScrollState>) {
         let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
