@@ -13,7 +13,9 @@ use fonts_traits::ByteIndex;
 use html5ever::{local_name, ns};
 use pixels::{Image, ImageMetadata};
 use range::Range;
-use script_layout_interface::wrapper_traits::{LayoutDataTrait, LayoutNode, ThreadSafeLayoutNode};
+use script_layout_interface::wrapper_traits::{
+    LayoutDataTrait, LayoutNode, ThreadSafeLayoutNode, TreeIterator,
+};
 use script_layout_interface::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutNodeType, SVGSVGData, StyleData,
     TrustedNodeAddress,
@@ -222,6 +224,10 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
 
     fn layout_data(&self) -> Option<&'dom GenericLayoutData> {
         self.get_jsmanaged().layout_data()
+    }
+
+    fn traverse_preorder(self) -> TreeIterator<Self> {
+        TreeIterator::new(self)
     }
 }
 

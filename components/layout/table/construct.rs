@@ -121,7 +121,7 @@ impl Table {
         table.anonymous = true;
 
         let ifc = IndependentFormattingContext {
-            base: LayoutBoxBase::new((&table_info).into(), table_style),
+            base: LayoutBoxBase::new((&table_info).into(), table_style, propagated_data),
             contents: IndependentFormattingContextContents::NonReplaced(
                 IndependentNonReplacedContents::Table(table),
             ),
@@ -717,7 +717,11 @@ impl<'style, 'dom> TableBuilderTraversal<'style, 'dom> {
 
         let style = anonymous_info.style.clone();
         self.push_table_row(ArcRefCell::new(TableTrack {
-            base: LayoutBoxBase::new((&anonymous_info).into(), style.clone()),
+            base: LayoutBoxBase::new(
+                (&anonymous_info).into(),
+                style.clone(),
+                self.current_propagated_data,
+            ),
             group_index: self.current_row_group_index,
             is_anonymous: true,
             shared_background_style: SharedStyle::new(style),
@@ -759,7 +763,11 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
 
                     let next_row_index = self.builder.table.rows.len();
                     let row_group = ArcRefCell::new(TableTrackGroup {
-                        base: LayoutBoxBase::new(info.into(), info.style.clone()),
+                        base: LayoutBoxBase::new(
+                            info.into(),
+                            info.style.clone(),
+                            self.current_propagated_data,
+                        ),
                         group_type: internal.into(),
                         track_range: next_row_index..next_row_index,
                         shared_background_style: SharedStyle::new(info.style.clone()),
@@ -798,7 +806,11 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                     row_builder.finish();
 
                     let row = ArcRefCell::new(TableTrack {
-                        base: LayoutBoxBase::new(info.into(), info.style.clone()),
+                        base: LayoutBoxBase::new(
+                            info.into(),
+                            info.style.clone(),
+                            self.current_propagated_data,
+                        ),
                         group_index: self.current_row_group_index,
                         is_anonymous: false,
                         shared_background_style: SharedStyle::new(info.style.clone()),
@@ -812,6 +824,7 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                         info,
                         None,  /* group_index */
                         false, /* is_anonymous */
+                        self.current_propagated_data,
                     );
                     box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::Track(column)));
                 },
@@ -820,6 +833,7 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                     let mut column_group_builder = TableColumnGroupBuilder {
                         column_group_index,
                         columns: Vec::new(),
+                        propagated_data: self.current_propagated_data,
                     };
 
                     NonReplacedContents::try_from(contents).unwrap().traverse(
@@ -835,6 +849,7 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                             info,
                             Some(column_group_index),
                             true, /* is_anonymous */
+                            self.current_propagated_data,
                         );
                     } else {
                         self.builder
@@ -844,7 +859,11 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                     }
 
                     let column_group = ArcRefCell::new(TableTrackGroup {
-                        base: LayoutBoxBase::new(info.into(), info.style.clone()),
+                        base: LayoutBoxBase::new(
+                            info.into(),
+                            info.style.clone(),
+                            self.current_propagated_data,
+                        ),
                         group_type: internal.into(),
                         track_range: first_column..self.builder.table.columns.len(),
                         shared_background_style: SharedStyle::new(info.style.clone()),
@@ -872,7 +891,11 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
 
                     let caption = ArcRefCell::new(TableCaption {
                         context: IndependentFormattingContext {
-                            base: LayoutBoxBase::new(info.into(), info.style.clone()),
+                            base: LayoutBoxBase::new(
+                                info.into(),
+                                info.style.clone(),
+                                self.current_propagated_data,
+                            ),
                             contents: IndependentFormattingContextContents::NonReplaced(contents),
                         },
                     });
@@ -971,7 +994,11 @@ impl<'style, 'builder, 'dom, 'a> TableRowBuilder<'style, 'builder, 'dom, 'a> {
         self.table_traversal
             .builder
             .add_cell(ArcRefCell::new(TableSlotCell {
-                base: LayoutBoxBase::new(BaseFragmentInfo::anonymous(), anonymous_info.style),
+                base: LayoutBoxBase::new(
+                    BaseFragmentInfo::anonymous(),
+                    anonymous_info.style,
+                    propagated_data,
+                ),
                 contents: BlockFormattingContext::from_block_container(block_container),
                 colspan: 1,
                 rowspan: 1,
@@ -1034,7 +1061,7 @@ impl<'dom> TraversalHandler<'dom> for TableRowBuilder<'_, '_, 'dom, '_> {
                     self.finish_current_anonymous_cell_if_needed();
 
                     let cell = ArcRefCell::new(TableSlotCell {
-                        base: LayoutBoxBase::new(info.into(), info.style.clone()),
+                        base: LayoutBoxBase::new(info.into(), info.style.clone(), propagated_data),
                         contents,
                         colspan,
                         rowspan,
@@ -1069,6 +1096,7 @@ impl<'dom> TraversalHandler<'dom> for TableRowBuilder<'_, '_, 'dom, '_> {
 struct TableColumnGroupBuilder {
     column_group_index: usize,
     columns: Vec<ArcRefCell<TableTrack>>,
+    propagated_data: PropagatedBoxTreeData,
 }
 
 impl<'dom> TraversalHandler<'dom> for TableColumnGroupBuilder {
@@ -1094,6 +1122,7 @@ impl<'dom> TraversalHandler<'dom> for TableColumnGroupBuilder {
             info,
             Some(self.column_group_index),
             false, /* is_anonymous */
+            self.propagated_data,
         );
         box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::Track(column)));
     }
@@ -1116,6 +1145,7 @@ fn add_column(
     column_info: &NodeAndStyleInfo,
     group_index: Option<usize>,
     is_anonymous: bool,
+    propagated_data: PropagatedBoxTreeData,
 ) -> ArcRefCell<TableTrack> {
     let span = if column_info.pseudo_element_type.is_none() {
         column_info.node.to_threadsafe().get_span().unwrap_or(1)
@@ -1127,7 +1157,11 @@ fn add_column(
     assert!((1..=1000).contains(&span));
 
     let column = ArcRefCell::new(TableTrack {
-        base: LayoutBoxBase::new(column_info.into(), column_info.style.clone()),
+        base: LayoutBoxBase::new(
+            column_info.into(),
+            column_info.style.clone(),
+            propagated_data,
+        ),
         group_index,
         is_anonymous,
         shared_background_style: SharedStyle::new(column_info.style.clone()),

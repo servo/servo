@@ -18,10 +18,11 @@ use crate::cell::ArcRefCell;
 use crate::construct_modern::{ModernContainerBuilder, ModernItemKind};
 use crate::context::LayoutContext;
 use crate::dom::LayoutBox;
-use crate::dom_traversal::{NodeAndStyleInfo, NonReplacedContents};
+use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::Fragment;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
+use crate::style_ext::DisplayInside;
 
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct TaffyContainer {
@@ -164,6 +165,26 @@ impl TaffyItemBox {
                 .borrow_mut()
                 .context
                 .repair_style(context, node, new_style),
+        }
+    }
+
+    pub(crate) fn repair<'dom>(
+        &mut self,
+        context: &LayoutContext,
+        info: &NodeAndStyleInfo<'dom>,
+        contents: Contents,
+        display_inside: DisplayInside,
+    ) {
+        match &mut self.taffy_level_box {
+            TaffyItemBoxInner::InFlowBox(independent_formatting_context) => {
+                independent_formatting_context.repair(context, info, contents, display_inside);
+            },
+            TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(positioned_box) => {
+                positioned_box
+                    .borrow_mut()
+                    .context
+                    .repair(context, info, contents, display_inside);
+            },
         }
     }
 }

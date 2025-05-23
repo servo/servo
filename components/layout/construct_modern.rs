@@ -160,7 +160,11 @@ impl<'a, 'dom> ModernContainerBuilder<'a, 'dom> {
                     );
                     let info: &NodeAndStyleInfo = &anonymous_info;
                     let formatting_context = IndependentFormattingContext {
-                        base: LayoutBoxBase::new(info.into(), info.style.clone()),
+                        base: LayoutBoxBase::new(
+                            info.into(),
+                            info.style.clone(),
+                            self.propagated_data,
+                        ),
                         contents: IndependentFormattingContextContents::NonReplaced(
                             IndependentNonReplacedContents::Flow(block_formatting_context),
                         ),

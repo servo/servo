@@ -16,7 +16,7 @@ use crate::fragment_tree::{BaseFragmentInfo, CollapsedBlockMargins, Fragment, Sp
 use crate::geom::SizeConstraint;
 use crate::positioned::PositioningContext;
 use crate::sizing::{ComputeInlineContentSizes, InlineContentSizesResult};
-use crate::{ConstraintSpace, ContainingBlockSize};
+use crate::{ConstraintSpace, ContainingBlockSize, PropagatedBoxTreeData};
 
 /// A box tree node that handles containing information about style and the original DOM
 /// node or pseudo-element that it is based on. This also handles caching of layout values
@@ -28,6 +28,7 @@ use crate::{ConstraintSpace, ContainingBlockSize};
 pub(crate) struct LayoutBoxBase {
     pub base_fragment_info: BaseFragmentInfo,
     pub style: Arc<ComputedValues>,
+    pub propagated_data: PropagatedBoxTreeData,
     pub cached_inline_content_size:
         AtomicRefCell<Option<Box<(SizeConstraint, InlineContentSizesResult)>>>,
     pub cached_layout_result: AtomicRefCell<Option<Box<CacheableLayoutResultAndInputs>>>,
@@ -35,10 +36,15 @@ pub(crate) struct LayoutBoxBase {
 }
 
 impl LayoutBoxBase {
-    pub(crate) fn new(base_fragment_info: BaseFragmentInfo, style: Arc<ComputedValues>) -> Self {
+    pub(crate) fn new(
+        base_fragment_info: BaseFragmentInfo,
+        style: Arc<ComputedValues>,
+        propagated_data: PropagatedBoxTreeData,
+    ) -> Self {
         Self {
             base_fragment_info,
             style,
+            propagated_data,
             cached_inline_content_size: AtomicRefCell::default(),
             cached_layout_result: AtomicRefCell::default(),
             fragments: AtomicRefCell::default(),

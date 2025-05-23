@@ -85,7 +85,6 @@ use style::selector_parser::PseudoElement;
 use style_traits::dom::OpaqueNode;
 
 use super::flow::BlockFormattingContext;
-use crate::SharedStyle;
 use crate::cell::ArcRefCell;
 use crate::flow::BlockContainer;
 use crate::formatting_contexts::IndependentFormattingContext;
@@ -94,6 +93,7 @@ use crate::geom::PhysicalVec;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::BorderStyleColor;
 use crate::table::layout::TableLayout;
+use crate::{PropagatedBoxTreeData, SharedStyle};
 
 pub type TableSize = Size2D<usize, UnknownUnit>;
 
@@ -234,6 +234,7 @@ impl TableSlotCell {
             base: LayoutBoxBase::new(
                 BaseFragmentInfo::new_for_node(OpaqueNode(id)),
                 ComputedValues::initial_values_with_font_override(Font::initial_values()).to_arc(),
+                PropagatedBoxTreeData::default(),
             ),
             contents: BlockFormattingContext {
                 contents: BlockContainer::BlockLevelBoxes(Vec::new()),

@@ -99,6 +99,16 @@ pub(crate) fn compute_damage_and_repair_style(
     compute_damage_and_repair_style_inner(context, node, RestyleDamage::empty())
 }
 
+fn need_repair_style(damage: RestyleDamage) -> bool {
+    // Repair the style at the node's layout objects only when itself has
+    // restyle damage but it's boxes will be kept unchanged.
+    if damage.is_empty() || damage.will_change_box_subtree() {
+        return false;
+    }
+
+    return true;
+}
+
 pub(crate) fn compute_damage_and_repair_style_inner(
     context: &SharedStyleContext,
     node: ServoLayoutNode<'_>,
@@ -106,7 +116,6 @@ pub(crate) fn compute_damage_and_repair_style_inner(
 ) -> RestyleDamage {
     let original_damage;
     let damage;
-
     {
         let mut element_data = node
             .style_data()
@@ -114,25 +123,41 @@ pub(crate) fn compute_damage_and_repair_style_inner(
             .element_data
             .borrow_mut();
 
-        original_damage = std::mem::take(&mut element_data.damage);
+        original_damage = element_data.damage;
+        // TODO: The `REPAINT` only is used to ensure whether the reflow is repaint-only
+        // incremental reflow, and the `REFLOW` is inactive currently. Thus, both of them
+        // are unused and cleaned to avoid to trigger the next reflow. The other kind of
+        // damage will be cleaned after incremeental box tree update.
+        element_data
+            .damage
+            .remove(RestyleDamage::REPAINT | RestyleDamage::REFLOW);
+
         damage = original_damage | parent_restyle_damage;
 
         if let Some(ref style) = element_data.styles.primary {
             if style.get_box().display == Display::None {
-                return damage;
+                return damage.propagate_up_damage();
             }
         }
-    }
+    };
 
-    let mut propagated_damage = damage;
+    let mut propagated_damage = damage.propagate_up_damage();
+    let propagated_down_damage = damage.propagate_down_damage();
+
     for child in iter_child_nodes(node) {
         if child.is_element() {
-            propagated_damage |= compute_damage_and_repair_style_inner(context, child, damage);
+            propagated_damage |=
+                compute_damage_and_repair_style_inner(context, child, propagated_down_damage);
         }
     }
 
-    if propagated_damage == RestyleDamage::REPAINT && original_damage == RestyleDamage::REPAINT {
+    if need_repair_style(propagated_damage) && need_repair_style(original_damage) {
         node.repair_style(context);
+    }
+
+    if propagated_damage.contains(RestyleDamage::REPAIR) {
+        let mut element_data = node.style_data().unwrap().element_data.borrow_mut();
+        element_data.damage |= RestyleDamage::REPAIR;
     }
 
     propagated_damage
