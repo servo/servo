@@ -3454,7 +3454,7 @@ impl GlobalScope {
     }
 
     pub(crate) fn is_online(&self) -> Arc<Mutex<bool>> {
-        Arc::clone(&self.is_online)
+        self.is_online.clone()
     }
 
     /// <https://www.w3.org/TR/CSP/#report-violation>

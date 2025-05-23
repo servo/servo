@@ -1911,19 +1911,19 @@ impl ScriptThread {
         }
     }
 
-fn fire_network_events(&self, is_online: bool, can_gc: CanGc) {
-    let event_name = if is_online {
-        Atom::from("online")
-    } else {
-        Atom::from("offline")
-    };
+    fn fire_network_events(&self, is_online: bool, can_gc: CanGc) {
+        let event_name = if is_online {
+            Atom::from("online")
+        } else {
+            Atom::from("offline")
+        };
 
-    for document in self.documents.borrow().values() {
-        let window = document.window();
-        let event_target = window.upcast::<EventTarget>();
-        event_target.fire_event(event_name.clone(), can_gc);
+        for (_, document) in self.documents.borrow().iter() {
+            let window = document.window();
+            let event_target = window.upcast::<EventTarget>();
+            event_target.fire_event(event_name.clone(), can_gc);
+        }
     }
-}
 
     fn handle_set_scroll_states(&self, pipeline_id: PipelineId, scroll_states: Vec<ScrollState>) {
         let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
@@ -3841,15 +3841,15 @@ fn fire_network_events(&self, is_online: bool, can_gc: CanGc) {
         };
     }
 
-    fn handle_network_state(&self, is_online: bool, can_gc: CanGc) -> bool {
-        let previous = *self.is_online.lock().unwrap();
-        *self.is_online.lock().unwrap() = is_online;
+    fn handle_network_state(&self, is_online: bool, can_gc: CanGc) {
+        let mut online_lock = self.is_online.lock().unwrap();
+        let previous = *online_lock;
+        *online_lock = is_online;
+        drop(online_lock);
 
         if previous != is_online {
             self.fire_network_events(is_online, can_gc);
         }
-
-        false
     }
 
     pub(crate) fn enqueue_microtask(job: Microtask) {
