@@ -1,0 +1,12 @@
+diff --git a/third_party/WebIDL/WebIDL.py b/third_party/WebIDL/WebIDL.py
+index 40e118e3781..bad5cbe54ca 100644
+--- a/third_party/WebIDL/WebIDL.py
++++ b/third_party/WebIDL/WebIDL.py
+@@ -2106,6 +2106,7 @@ class IDLInterface(IDLInterfaceOrNamespace):
+                 or identifier == "Serializable"
+                 or identifier == "Abstract"
+                 or identifier == "Inline"
++                or identifier == "Transferable"
+             ):
+                 # Known extended attributes that do not take values
+                 if not attr.noArguments():
