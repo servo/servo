@@ -74,6 +74,12 @@ impl LayoutBoxBase {
         let _ = self.cached_layout_result.borrow_mut().take();
     }
 
+    pub(crate) fn invalidate_all_caches(&self) {
+        let _ = self.cached_inline_content_size.borrow_mut().take();
+        self.invalidate_cached_fragment();
+        self.clear_fragments();
+    }
+
     pub(crate) fn fragments(&self) -> Vec<Fragment> {
         self.fragments.borrow().clone()
     }

@@ -4,12 +4,16 @@
 
 use std::borrow::Cow;
 use std::convert::TryFrom;
+use std::mem;
 
+use atomic_refcell::AtomicRef;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use script::layout_dom::ServoLayoutNode;
+use script_layout_interface::wrapper_traits::LayoutNode;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
 use style::properties::longhands::list_style_position::computed_value::T as ListStylePosition;
-use style::selector_parser::PseudoElement;
+use style::selector_parser::{PseudoElement, RestyleDamage};
 use style::str::char_is_whitespace;
 
 use super::OutsideMarker;
@@ -56,9 +60,36 @@ impl BlockFormattingContext {
             contains_floats,
         }
     }
+
+    pub(crate) fn repair(
+        &mut self,
+        context: &LayoutContext,
+        info: &NodeAndStyleInfo<'_>,
+        contents: NonReplacedContents,
+        propagated_data: PropagatedBoxTreeData,
+        is_list_item: bool,
+    ) {
+        self.contents
+            .repair(context, info, contents, propagated_data, is_list_item);
+        self.contains_floats = self.contents.contains_floats();
+    }
 }
 
-struct BlockLevelJob<'dom> {
+enum BlockLevelJob<'dom> {
+    Copy(ArcRefCell<BlockLevelBox>),
+    Repair(BlockLevelRepairJob<'dom>),
+    Create(BlockLevelCreateJob<'dom>),
+}
+
+struct BlockLevelRepairJob<'dom> {
+    info: NodeAndStyleInfo<'dom>,
+    repaired_box: ArcRefCell<BlockLevelBox>,
+    propagated_data: PropagatedBoxTreeData,
+    display_inside: DisplayInside,
+    contents: Contents,
+}
+
+struct BlockLevelCreateJob<'dom> {
     info: NodeAndStyleInfo<'dom>,
     box_slot: BoxSlot<'dom>,
     propagated_data: PropagatedBoxTreeData,
@@ -104,6 +135,20 @@ enum IntermediateBlockContainer {
     },
 }
 
+/// Some childern node of a given DOM node do not have `REBUILD_BOX` restyle damage.
+/// Thus, their boxes do not need to be rebuilt and can be retrieved from the
+/// previously built children boxes of the given DOM node's repaired block container.
+///
+/// This helper struct used to try to find the matched boxes in previously built
+/// children boxes for a given children node. For block level node, this helper
+/// is not very useful. It is more useful to find the inline formatting context
+/// that the inline level node participates in, and the anonymous box that wraps
+/// the inline formatting context.
+struct PreviouslyBuiltChildernMatcher {
+    block_level_boxes: Vec<ArcRefCell<BlockLevelBox>>,
+    block_level_boxes_cursor: usize,
+}
+
 /// A builder for a block container.
 ///
 /// This builder starts from the first child of a given DOM node
@@ -115,7 +160,9 @@ pub(crate) struct BlockContainerBuilder<'dom, 'style> {
     /// content designator, and the block container style.
     info: &'style NodeAndStyleInfo<'dom>,
 
-    /// The list of block-level boxes to be built for the final block container.
+    /// The list of block-level boxes to be repaired or copied from previous
+    /// block container building result, or newly built, for the final block
+    /// container.
     ///
     /// Contains all the block-level jobs we found traversing the tree
     /// so far, if this is empty at the end of the traversal and the ongoing
@@ -156,6 +203,10 @@ pub(crate) struct BlockContainerBuilder<'dom, 'style> {
     /// ancestors that have been processed. This `Vec` allows passing those into new
     /// [`InlineFormattingContext`]s that we create.
     display_contents_shared_styles: Vec<SharedInlineStyles>,
+
+    /// The [`PreviouslyBuiltChildrenMatcher`] if we need to repair the current block
+    /// container, otherwise None.
+    previously_built_children_matcher: Option<PreviouslyBuiltChildernMatcher>,
 }
 
 impl BlockContainer {
@@ -166,26 +217,74 @@ impl BlockContainer {
         propagated_data: PropagatedBoxTreeData,
         is_list_item: bool,
     ) -> BlockContainer {
-        let mut builder = BlockContainerBuilder::new(context, info, propagated_data);
+        let builder = BlockContainerBuilder::new(context, info, propagated_data);
+        builder.build(contents, is_list_item)
+    }
 
-        if is_list_item {
-            if let Some((marker_info, marker_contents)) = crate::lists::make_marker(context, info) {
-                match marker_info.style.clone_list_style_position() {
-                    ListStylePosition::Inside => {
-                        builder.handle_list_item_marker_inside(&marker_info, info, marker_contents)
-                    },
-                    ListStylePosition::Outside => builder.handle_list_item_marker_outside(
-                        &marker_info,
-                        info,
-                        marker_contents,
-                        info.style.clone(),
-                    ),
-                }
-            }
+    pub fn repair(
+        &mut self,
+        context: &LayoutContext,
+        info: &NodeAndStyleInfo<'_>,
+        contents: NonReplacedContents,
+        propagated_data: PropagatedBoxTreeData,
+        is_list_item: bool,
+    ) {
+        let builder = BlockContainerBuilder::new_for_repair(context, info, propagated_data, self);
+        let _ = mem::replace(self, builder.build(contents, is_list_item));
+    }
+}
+
+impl PreviouslyBuiltChildernMatcher {
+    fn new(block_container: &mut BlockContainer) -> Self {
+        let previously_built_block_level_boxes = match block_container {
+            BlockContainer::BlockLevelBoxes(boxes) => mem::take(boxes),
+            BlockContainer::InlineFormattingContext(_) => vec![],
+        };
+
+        Self {
+            block_level_boxes: previously_built_block_level_boxes,
+            block_level_boxes_cursor: 0,
+        }
+    }
+
+    fn match_and_advance(
+        &mut self,
+        info: &NodeAndStyleInfo<'_>,
+    ) -> Option<ArcRefCell<BlockLevelBox>> {
+        if info.is_anonymous() {
+            return self.find_first_anonymous_box_and_advance();
         }
 
-        contents.traverse(context, info, &mut builder);
-        builder.finish()
+        let data = info.node.layout_data_mut();
+        let layout_box = data.for_pseudo(info.pseudo_element_type);
+
+        let previously_bound_box = match &*AtomicRef::filter_map(layout_box, Option::as_ref)? {
+            LayoutBox::BlockLevel(block_level_box) => block_level_box.clone(),
+            _ => return None,
+        };
+
+        // Skip the mismatch boxes, which were produced by the removed node or
+        // the node has `REBUILD_BOX` restyle damage, to find the box produced by
+        // current given node.
+        loop {
+            let curr = self.next()?;
+            if ArcRefCell::ptr_eq(&curr, &previously_bound_box) {
+                return Some(curr);
+            }
+        }
+    }
+
+    fn find_first_anonymous_box_and_advance(&mut self) -> Option<ArcRefCell<BlockLevelBox>> {
+        unreachable!("Unexpected situations, and unimplemented");
+    }
+
+    fn next(&mut self) -> Option<ArcRefCell<BlockLevelBox>> {
+        if self.block_level_boxes_cursor < self.block_level_boxes.len() {
+            self.block_level_boxes_cursor += 1;
+            return Some(self.block_level_boxes[self.block_level_boxes_cursor - 1].clone());
+        }
+
+        None
     }
 }
 
@@ -205,7 +304,46 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
             anonymous_table_content: Vec::new(),
             inline_formatting_context_builder: None,
             display_contents_shared_styles: Vec::new(),
+            previously_built_children_matcher: None,
         }
+    }
+
+    fn new_for_repair(
+        context: &'style LayoutContext,
+        info: &'style NodeAndStyleInfo<'dom>,
+        propagated_data: PropagatedBoxTreeData,
+        repaired_block_container: &mut BlockContainer,
+    ) -> Self {
+        let mut builder = Self::new(context, info, propagated_data);
+        builder.previously_built_children_matcher = Some(PreviouslyBuiltChildernMatcher::new(
+            repaired_block_container,
+        ));
+        builder
+    }
+
+    fn build(mut self, contents: NonReplacedContents, is_list_item: bool) -> BlockContainer {
+        if is_list_item {
+            if let Some((marker_info, marker_contents)) =
+                crate::lists::make_marker(self.context, self.info)
+            {
+                match marker_info.style.clone_list_style_position() {
+                    ListStylePosition::Inside => self.handle_list_item_marker_inside(
+                        &marker_info,
+                        self.info,
+                        marker_contents,
+                    ),
+                    ListStylePosition::Outside => self.handle_list_item_marker_outside(
+                        &marker_info,
+                        self.info,
+                        marker_contents,
+                        self.info.style.clone(),
+                    ),
+                }
+            }
+        }
+
+        contents.traverse(self.context, self.info, &mut self);
+        self.finish()
     }
 
     fn currently_processing_inline_box(&self) -> bool {
@@ -300,12 +438,13 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
                 self.push_block_level_job_for_inline_formatting_context(inline_formatting_context);
             }
 
-            self.block_level_boxes.push(BlockLevelJob {
-                info: table_info,
-                box_slot: BoxSlot::dummy(),
-                kind: BlockLevelCreator::AnonymousTable { table_block },
-                propagated_data: self.propagated_data,
-            });
+            self.block_level_boxes
+                .push(BlockLevelJob::Create(BlockLevelCreateJob {
+                    info: table_info,
+                    box_slot: BoxSlot::dummy(),
+                    kind: BlockLevelCreator::AnonymousTable { table_block },
+                    propagated_data: self.propagated_data,
+                }));
         }
 
         // If the last element in the anonymous table content is whitespace, that
@@ -400,9 +539,34 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
             builder.leave_display_contents();
         }
     }
+
+    fn need_clear_pseudo_element_box(&self, node: &ServoLayoutNode<'dom>) -> bool {
+        let damage = node.style_data().unwrap().element_data.borrow().damage;
+        if damage.contains(RestyleDamage::REBUILD_BOX) {
+            return true;
+        }
+
+        false
+    }
 }
 
 impl<'dom> BlockContainerBuilder<'dom, '_> {
+    fn try_reuse_block_level_box(
+        &mut self,
+        info: &NodeAndStyleInfo<'dom>,
+    ) -> Option<ArcRefCell<BlockLevelBox>> {
+        let previously_built_children_matcher = self.previously_built_children_matcher.as_mut()?;
+
+        if info
+            .get_restyle_damage()
+            .contains(RestyleDamage::REBUILD_BOX)
+        {
+            return None;
+        }
+
+        previously_built_children_matcher.match_and_advance(info)
+    }
+
     fn handle_list_item_marker_inside(
         &mut self,
         marker_info: &NodeAndStyleInfo<'dom>,
@@ -438,6 +602,57 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
     ) {
         // TODO: We do not currently support saving box slots for ::marker pseudo-elements
         // that are part nested in ::before and ::after pseudo elements. For now, just
+        // always create new box for it.
+        if container_info.pseudo_element_type.is_some() {
+            self.create_list_item_marker_outside(
+                marker_info,
+                container_info,
+                contents,
+                list_item_style,
+            );
+            return;
+        }
+
+        let Some(reused_block_level_box) = self.try_reuse_block_level_box(marker_info) else {
+            self.create_list_item_marker_outside(
+                marker_info,
+                container_info,
+                contents,
+                list_item_style,
+            );
+            return;
+        };
+
+        if marker_info
+            .get_restyle_damage()
+            .contains(RestyleDamage::REPAIR_BOX)
+        {
+            self.block_level_boxes
+                .push(BlockLevelJob::Repair(BlockLevelRepairJob {
+                    info: marker_info.clone(),
+                    repaired_box: reused_block_level_box,
+                    propagated_data: self.propagated_data,
+                    contents: NonReplacedContents::OfPseudoElement(contents).into(),
+                    display_inside: DisplayInside::Flow {
+                        is_list_item: false,
+                    },
+                }));
+            return;
+        }
+
+        self.block_level_boxes
+            .push(BlockLevelJob::Copy(reused_block_level_box));
+    }
+
+    fn create_list_item_marker_outside(
+        &mut self,
+        marker_info: &NodeAndStyleInfo<'dom>,
+        container_info: &NodeAndStyleInfo<'dom>,
+        contents: Vec<crate::dom_traversal::PseudoElementContentItem>,
+        list_item_style: Arc<ComputedValues>,
+    ) {
+        // TODO: We do not currently support saving box slots for ::marker pseudo-elements
+        // that are part nested in ::before and ::after pseudo elements. For now, just
         // forget about them once they are built.
         let box_slot = match container_info.pseudo_element_type {
             Some(_) => BoxSlot::dummy(),
@@ -446,15 +661,16 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
                 .pseudo_element_box_slot(PseudoElement::Marker),
         };
 
-        self.block_level_boxes.push(BlockLevelJob {
-            info: marker_info.clone(),
-            box_slot,
-            kind: BlockLevelCreator::OutsideMarker {
-                contents,
-                list_item_style,
-            },
-            propagated_data: self.propagated_data,
-        });
+        self.block_level_boxes
+            .push(BlockLevelJob::Create(BlockLevelCreateJob {
+                info: marker_info.clone(),
+                box_slot,
+                kind: BlockLevelCreator::OutsideMarker {
+                    contents,
+                    list_item_style,
+                },
+                propagated_data: self.propagated_data,
+            }));
     }
 
     fn handle_inline_level_element(
@@ -464,12 +680,12 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         contents: Contents,
         box_slot: BoxSlot<'dom>,
     ) {
+        let propagated_data = self.propagated_data;
         let (DisplayInside::Flow { is_list_item }, false) =
             (display_inside, contents.is_replaced())
         else {
             // If this inline element is an atomic, handle it and return.
             let context = self.context;
-            let propagated_data = self.propagated_data;
             let atomic = self.ensure_inline_formatting_context_builder().push_atomic(
                 IndependentFormattingContext::construct(
                     context,
@@ -546,6 +762,39 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
             self.push_block_level_job_for_inline_formatting_context(inline_formatting_context);
         }
 
+        if let Some(reused_block_level_box) = self.try_reuse_block_level_box(info) {
+            if info
+                .get_restyle_damage()
+                .contains(RestyleDamage::REPAIR_BOX)
+            {
+                self.block_level_boxes
+                    .push(BlockLevelJob::Repair(BlockLevelRepairJob {
+                        info: info.clone(),
+                        repaired_box: reused_block_level_box,
+                        propagated_data: self.propagated_data,
+                        contents,
+                        display_inside,
+                    }));
+            } else {
+                self.block_level_boxes
+                    .push(BlockLevelJob::Copy(reused_block_level_box));
+            }
+        } else {
+            self.create_block_level_box(info, display_inside, contents, box_slot);
+        }
+
+        // Any block also counts as the first line for the purposes of text indent. Even if
+        // they don't actually indent.
+        self.have_already_seen_first_line_for_text_indent = true;
+    }
+
+    fn create_block_level_box(
+        &mut self,
+        info: &NodeAndStyleInfo<'dom>,
+        display_inside: DisplayInside,
+        contents: Contents,
+        box_slot: BoxSlot<'dom>,
+    ) {
         let propagated_data = self.propagated_data;
         let kind = match contents {
             Contents::NonReplaced(contents) => match display_inside {
@@ -577,16 +826,13 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
                 }
             },
         };
-        self.block_level_boxes.push(BlockLevelJob {
-            info: info.clone(),
-            box_slot,
-            kind,
-            propagated_data,
-        });
-
-        // Any block also counts as the first line for the purposes of text indent. Even if
-        // they don't actually indent.
-        self.have_already_seen_first_line_for_text_indent = true;
+        self.block_level_boxes
+            .push(BlockLevelJob::Create(BlockLevelCreateJob {
+                info: info.clone(),
+                box_slot,
+                kind,
+                propagated_data,
+            }));
     }
 
     fn handle_absolutely_positioned_element(
@@ -610,16 +856,37 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
             }
         }
 
+        if let Some(reused_block_level_box) = self.try_reuse_block_level_box(info) {
+            if info
+                .get_restyle_damage()
+                .contains(RestyleDamage::REPAIR_BOX)
+            {
+                self.block_level_boxes
+                    .push(BlockLevelJob::Repair(BlockLevelRepairJob {
+                        info: info.clone(),
+                        repaired_box: reused_block_level_box,
+                        propagated_data: self.propagated_data,
+                        contents,
+                        display_inside,
+                    }));
+            } else {
+                self.block_level_boxes
+                    .push(BlockLevelJob::Copy(reused_block_level_box));
+            }
+            return;
+        }
+
         let kind = BlockLevelCreator::OutOfFlowAbsolutelyPositionedBox {
             contents,
             display_inside,
         };
-        self.block_level_boxes.push(BlockLevelJob {
-            info: info.clone(),
-            box_slot,
-            kind,
-            propagated_data: self.propagated_data,
-        });
+        self.block_level_boxes
+            .push(BlockLevelJob::Create(BlockLevelCreateJob {
+                info: info.clone(),
+                box_slot,
+                kind,
+                propagated_data: self.propagated_data,
+            }));
     }
 
     fn handle_float_element(
@@ -643,16 +910,37 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
             }
         }
 
+        if let Some(reused_block_level_box) = self.try_reuse_block_level_box(info) {
+            if info
+                .get_restyle_damage()
+                .contains(RestyleDamage::REPAIR_BOX)
+            {
+                self.block_level_boxes
+                    .push(BlockLevelJob::Repair(BlockLevelRepairJob {
+                        info: info.clone(),
+                        repaired_box: reused_block_level_box,
+                        propagated_data: self.propagated_data,
+                        contents,
+                        display_inside,
+                    }));
+            } else {
+                self.block_level_boxes
+                    .push(BlockLevelJob::Copy(reused_block_level_box));
+            }
+            return;
+        }
+
         let kind = BlockLevelCreator::OutOfFlowFloatBox {
             contents,
             display_inside,
         };
-        self.block_level_boxes.push(BlockLevelJob {
-            info: info.clone(),
-            box_slot,
-            kind,
-            propagated_data: self.propagated_data,
-        });
+        self.block_level_boxes
+            .push(BlockLevelJob::Create(BlockLevelCreateJob {
+                info: info.clone(),
+                box_slot,
+                kind,
+                propagated_data: self.propagated_data,
+            }));
     }
 
     fn push_block_level_job_for_inline_formatting_context(
@@ -669,23 +957,118 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
             })
             .clone();
 
-        self.block_level_boxes.push(BlockLevelJob {
-            info,
-            // FIXME(nox): We should be storing this somewhere.
-            box_slot: BoxSlot::dummy(),
-            kind: BlockLevelCreator::SameFormattingContextBlock(
-                IntermediateBlockContainer::InlineFormattingContext(
-                    BlockContainer::InlineFormattingContext(inline_formatting_context),
+        self.block_level_boxes
+            .push(BlockLevelJob::Create(BlockLevelCreateJob {
+                info,
+                // FIXME(nox): We should be storing this somewhere.
+                box_slot: BoxSlot::dummy(),
+                kind: BlockLevelCreator::SameFormattingContextBlock(
+                    IntermediateBlockContainer::InlineFormattingContext(
+                        BlockContainer::InlineFormattingContext(inline_formatting_context),
+                    ),
                 ),
-            ),
-            propagated_data: self.propagated_data,
-        });
+                propagated_data: self.propagated_data,
+            }));
 
         self.have_already_seen_first_line_for_text_indent = true;
     }
 }
 
-impl BlockLevelJob<'_> {
+impl BlockLevelBox {
+    pub(crate) fn repair(
+        &mut self,
+        context: &LayoutContext,
+        info: &NodeAndStyleInfo<'_>,
+        repaired_contents: Contents,
+        display_inside: DisplayInside,
+        propagated_data: PropagatedBoxTreeData,
+    ) {
+        match self {
+            BlockLevelBox::SameFormattingContextBlock {
+                base,
+                contents,
+                contains_floats,
+            } => match display_inside {
+                DisplayInside::Flow { is_list_item } | DisplayInside::FlowRoot { is_list_item } => {
+                    contents.repair(
+                        context,
+                        info,
+                        repaired_contents
+                            .try_into()
+                            .expect("Expect NonReplacedContents, but got ReplacedContents!"),
+                        propagated_data,
+                        is_list_item,
+                    );
+                    // Currently, the incremental layout is not fully ready. When a box is preserved
+                    // during incremental box tree update, its cached layout result is also preserved.
+                    // So, we have to invalidate all caches here to ensure that the layout is recomputed
+                    // correctly.
+                    base.invalidate_all_caches();
+                    base.repair_style(&info.style);
+                    *contains_floats = contents.contains_floats();
+                },
+                _ => unreachable!("Expect flow display inside"),
+            },
+            BlockLevelBox::Independent(independent_formatting_context) => {
+                independent_formatting_context.repair(
+                    context,
+                    info,
+                    repaired_contents,
+                    display_inside,
+                    propagated_data,
+                )
+            },
+            BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(positioned_box) => {
+                positioned_box.borrow_mut().context.repair(
+                    context,
+                    info,
+                    repaired_contents,
+                    display_inside,
+                    PropagatedBoxTreeData::default(),
+                )
+            },
+            BlockLevelBox::OutOfFlowFloatBox(float_box) => float_box.contents.repair(
+                context,
+                info,
+                repaired_contents,
+                display_inside,
+                propagated_data,
+            ),
+            BlockLevelBox::OutsideMarker(marker) => {
+                marker.block_formatting_context.repair(
+                    context,
+                    info,
+                    repaired_contents
+                        .try_into()
+                        .expect("Expect NonReplacedContents, but got ReplacedContents!"),
+                    propagated_data,
+                    false,
+                );
+                marker.repair_style(context.shared_context(), &info.node, &info.style);
+                // Currently, the incremental layout is not fully ready. When a box is preserved
+                // during incremental box tree update, its cached layout result is also preserved.
+                // So, we have to invalidate all caches here to ensure that the layout is recomputed
+                // correctly.
+                marker.invalidate_all_caches();
+            },
+        };
+    }
+}
+
+impl BlockLevelRepairJob<'_> {
+    fn finish(self, context: &LayoutContext) -> ArcRefCell<BlockLevelBox> {
+        self.repaired_box.borrow_mut().repair(
+            context,
+            &self.info,
+            self.contents,
+            self.display_inside,
+            self.propagated_data,
+        );
+        self.repaired_box
+    }
+}
+
+impl BlockLevelCreateJob<'_> {
     fn finish(self, context: &LayoutContext) -> ArcRefCell<BlockLevelBox> {
         let info = &self.info;
         let block_level_box = match self.kind {
@@ -760,6 +1143,19 @@ impl BlockLevelJob<'_> {
         self.box_slot
             .set(LayoutBox::BlockLevel(block_level_box.clone()));
         block_level_box
+    }
+}
+
+impl BlockLevelJob<'_> {
+    fn finish(self, context: &LayoutContext) -> ArcRefCell<BlockLevelBox> {
+        match self {
+            BlockLevelJob::Copy(copied_box) => {
+                copied_box.borrow().invalidate_subtree_caches();
+                copied_box
+            },
+            BlockLevelJob::Repair(repair_job) => repair_job.finish(context),
+            BlockLevelJob::Create(create_job) => create_job.finish(context),
+        }
     }
 }
 

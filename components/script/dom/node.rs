@@ -3910,9 +3910,17 @@ impl VirtualMethods for Node {
 
 /// A summary of the changes that happened to a node.
 #[derive(Clone, Copy, MallocSizeOf, PartialEq)]
+// FIXME(joedow): The enum-variant-name-threshold's default is 3, so add the
+// `NodeContentOrHeritageDamaged` variant leads to the lint being triggered, reference:
+// https://rust-lang.github.io/rust-clippy/master/index.html#enum_variant_names
+//
+// Allow this lint temperarily, and its fix will be done in a follow-up PR.
+#[allow(clippy::enum_variant_names)]
 pub(crate) enum NodeDamage {
     /// The node's `style` attribute changed.
     NodeStyleDamaged,
+    /// The node's content or heritage changed: children removed or added, text content changed.
+    NodeContentOrHeritageDamaged,
     /// Other parts of a node changed; attributes, text content, etc.
     OtherNodeDamage,
 }

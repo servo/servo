@@ -87,6 +87,19 @@ impl BlockContainer {
             },
         }
     }
+
+    pub(crate) fn invalidate_subtree_caches(&self) {
+        match self {
+            BlockContainer::BlockLevelBoxes(block_level_boxes) => {
+                for block_level_box in block_level_boxes {
+                    block_level_box.borrow().invalidate_subtree_caches();
+                }
+            },
+            BlockContainer::InlineFormattingContext(inline_formating_context) => {
+                inline_formating_context.invalidate_subtree_caches();
+            },
+        }
+    }
 }
 
 #[derive(Debug, MallocSizeOf)]
@@ -136,6 +149,25 @@ impl BlockLevelBox {
 
     pub(crate) fn invalidate_cached_fragment(&self) {
         self.with_base(LayoutBoxBase::invalidate_cached_fragment);
+    }
+
+    pub(crate) fn invalidate_subtree_caches(&self) {
+        match self {
+            BlockLevelBox::Independent(independent_formatting_context) => {
+                independent_formatting_context.invalidate_subtree_caches()
+            },
+            BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(positioned_box) => {
+                positioned_box.borrow().context.invalidate_subtree_caches()
+            },
+            BlockLevelBox::OutOfFlowFloatBox(float_box) => {
+                float_box.contents.invalidate_subtree_caches()
+            },
+            BlockLevelBox::OutsideMarker(outside_marker) => outside_marker.invalidate_all_caches(),
+            BlockLevelBox::SameFormattingContextBlock { base, contents, .. } => {
+                base.invalidate_all_caches();
+                contents.invalidate_subtree_caches();
+            },
+        }
     }
 
     pub(crate) fn fragments(&self) -> Vec<Fragment> {
@@ -421,6 +453,10 @@ impl OutsideMarker {
     ) {
         self.list_item_style = node.style(context);
         self.base.repair_style(new_style);
+    }
+
+    fn invalidate_all_caches(&self) {
+        self.base.invalidate_all_caches();
     }
 }
 
