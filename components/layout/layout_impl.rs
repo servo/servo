@@ -16,7 +16,7 @@ use base::id::{PipelineId, WebViewId};
 use compositing_traits::CrossProcessCompositorApi;
 use constellation_traits::ScrollState;
 use embedder_traits::{UntrustedNodeAddress, ViewportDetails};
-use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
+use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Scale, Size2D, Vector2D};
 use fnv::FnvHashMap;
 use fonts::{FontContext, FontContextWebFontMethods};
@@ -149,10 +149,6 @@ pub struct LayoutThread {
 
     /// A counter for epoch messages
     epoch: Cell<Epoch>,
-
-    /// The size of the viewport. This may be different from the size of the screen due to viewport
-    /// constraints.
-    viewport_size: UntypedSize2D<Au>,
 
     /// Scroll offsets of nodes that scroll.
     scroll_offsets: RefCell<HashMap<ExternalScrollId, Vector2D<f32, LayoutPixel>>>,
@@ -527,10 +523,6 @@ impl LayoutThread {
             stacking_context_tree: Default::default(),
             // Epoch starts at 1 because of the initial display list for epoch 0 that we send to WR
             epoch: Cell::new(Epoch(1)),
-            viewport_size: Size2D::new(
-                Au::from_f32_px(config.viewport_details.size.width),
-                Au::from_f32_px(config.viewport_details.size.height),
-            ),
             compositor_api: config.compositor_api,
             scroll_offsets: Default::default(),
             stylist: Stylist::new(device, QuirksMode::NoQuirks),
@@ -611,7 +603,8 @@ impl LayoutThread {
             ua_or_user: &ua_or_user_guard,
         };
 
-        if self.update_device_if_necessary(&reflow_request, &guards) {
+        let viewport_changed = self.viewport_did_change(reflow_request.viewport_details);
+        if self.update_device_if_necessary(&reflow_request, viewport_changed, &guards) {
             if let Some(mut data) = root_element.mutate_data() {
                 data.hint.insert(RestyleHint::recascade_subtree());
             }
@@ -658,6 +651,7 @@ impl LayoutThread {
             root_element,
             rayon_pool,
             &mut layout_context,
+            viewport_changed,
         );
 
         self.build_stacking_context_tree(&reflow_request, did_reflow);
@@ -683,12 +677,12 @@ impl LayoutThread {
     fn update_device_if_necessary(
         &mut self,
         reflow_request: &ReflowRequest,
+        viewport_changed: bool,
         guards: &StylesheetGuards,
     ) -> bool {
         let had_used_viewport_units = self.stylist.device().used_viewport_units();
-        let viewport_size_changed = self.viewport_did_change(reflow_request.viewport_details);
         let theme_changed = self.theme_did_change(reflow_request.theme);
-        if !viewport_size_changed && !theme_changed {
+        if !viewport_changed && !theme_changed {
             return false;
         }
         self.update_device(
@@ -696,7 +690,7 @@ impl LayoutThread {
             reflow_request.theme,
             guards,
         );
-        (viewport_size_changed && had_used_viewport_units) || theme_changed
+        (viewport_changed && had_used_viewport_units) || theme_changed
     }
 
     fn prepare_stylist_for_reflow<'dom>(
@@ -749,6 +743,7 @@ impl LayoutThread {
         root_element: ServoLayoutElement<'_>,
         rayon_pool: Option<&ThreadPool>,
         layout_context: &mut LayoutContext<'_>,
+        viewport_changed: bool,
     ) -> bool {
         let dirty_root = unsafe {
             ServoLayoutNode::new(&reflow_request.dirty_root.unwrap())
@@ -773,7 +768,7 @@ impl LayoutThread {
 
         let root_node = root_element.as_node();
         let damage = compute_damage_and_repair_style(layout_context.shared_context(), root_node);
-        if damage.is_empty() || damage == RestyleDamage::REPAINT {
+        if !viewport_changed && (damage.is_empty() || damage == RestyleDamage::REPAINT) {
             layout_context.style_context.stylist.rule_tree().maybe_gc();
             return false;
         }
@@ -794,10 +789,7 @@ impl LayoutThread {
             build_box_tree()
         };
 
-        let viewport_size = Size2D::new(
-            self.viewport_size.width.to_f32_px(),
-            self.viewport_size.height.to_f32_px(),
-        );
+        let viewport_size = self.stylist.device().au_viewport_size();
         let run_layout = || {
             box_tree
                 .as_ref()
@@ -852,10 +844,11 @@ impl LayoutThread {
             return;
         }
 
-        let viewport_size = LayoutSize::from_untyped(Size2D::new(
-            self.viewport_size.width.to_f32_px(),
-            self.viewport_size.height.to_f32_px(),
-        ));
+        let viewport_size = self.stylist.device().au_viewport_size();
+        let viewport_size = LayoutSize::new(
+            viewport_size.width.to_f32_px(),
+            viewport_size.height.to_f32_px(),
+        );
 
         // Build the StackingContextTree. This turns the `FragmentTree` into a
         // tree of fragments in CSS painting order and also creates all
@@ -948,9 +941,6 @@ impl LayoutThread {
             Au::from_f32_px(viewport_details.size.width),
             Au::from_f32_px(viewport_details.size.height),
         );
-
-        // TODO: eliminate self.viewport_size in favour of using self.device.au_viewport_size()
-        self.viewport_size = new_viewport_size;
 
         let device = self.stylist.device();
         let size_did_change = device.au_viewport_size() != new_viewport_size;
