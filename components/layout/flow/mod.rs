@@ -425,6 +425,11 @@ impl OutsideMarker {
         new_style: &Arc<ComputedValues>,
     ) {
         self.list_item_style = node.style(context);
+        // Currently, the incremental layout is not fully ready. When a box is preserved
+        // during incremental box tree update, its cached layout result is also preserved.
+        // So, we have to invalidate all caches here to ensure that the layout is recomputed
+        // correctly.
+        self.base.invalidate_all_caches();
         self.base.repair_style(new_style);
     }
 }

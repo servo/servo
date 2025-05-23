@@ -17,7 +17,7 @@ use selectors::Element as SelectorsElement;
 use servo_arc::Arc as ServoArc;
 use style::dom::{NodeInfo, TElement, TNode, TShadowRoot};
 use style::properties::ComputedValues;
-use style::selector_parser::PseudoElement;
+use style::selector_parser::{PseudoElement, RestyleDamage};
 use style::values::generics::counters::{Content, ContentItem};
 use style::values::specified::Quotes;
 
@@ -88,6 +88,24 @@ impl<'dom> NodeAndStyleInfo<'dom> {
     pub(crate) fn get_selection_range(&self) -> Option<Range<ByteIndex>> {
         self.node.to_threadsafe().selection()
     }
+
+    pub(crate) fn get_restyle_damage(&self) -> RestyleDamage {
+        self.node.style_data().unwrap().element_data.borrow().damage
+    }
+
+    pub(crate) fn is_anonymous(&self) -> bool {
+        if matches!(
+            self.pseudo_element_type,
+            Some(PseudoElement::ServoAnonymousBox) |
+                Some(PseudoElement::ServoAnonymousTable) |
+                Some(PseudoElement::ServoAnonymousTableCell) |
+                Some(PseudoElement::ServoAnonymousTableRow)
+        ) {
+            return true;
+        }
+
+        false
+    }
 }
 
 impl<'dom> From<&NodeAndStyleInfo<'dom>> for BaseFragmentInfo {
@@ -102,13 +120,7 @@ impl<'dom> From<&NodeAndStyleInfo<'dom>> for BaseFragmentInfo {
         // TODO(mrobinson): It seems that anonymous boxes should take part in hit testing in some
         // cases, but currently this means that the order of hit test results isn't as expected for
         // some WPT tests. This needs more investigation.
-        if matches!(
-            pseudo,
-            Some(PseudoElement::ServoAnonymousBox) |
-                Some(PseudoElement::ServoAnonymousTable) |
-                Some(PseudoElement::ServoAnonymousTableCell) |
-                Some(PseudoElement::ServoAnonymousTableRow)
-        ) {
+        if info.is_anonymous() {
             return Self::anonymous();
         }
 
@@ -192,6 +204,12 @@ pub(super) trait TraversalHandler<'dom> {
 
     /// Notify the handler that we have finished a `display: contents` element.
     fn leave_display_contents(&mut self) {}
+
+    /// Returns whether the pseudo element box should be cleared before traversed
+    /// by this handler.
+    fn need_clear_pseudo_element_box(&self, _node: &ServoLayoutNode<'dom>) -> bool {
+        true
+    }
 }
 
 fn traverse_children_of<'dom>(
@@ -240,7 +258,9 @@ fn traverse_element<'dom>(
 ) {
     // Clear any existing pseudo-element box slot, because markers are not handled like
     // `::before`` and `::after`. They are processed during box tree creation.
-    element.unset_pseudo_element_box(PseudoElement::Marker);
+    if handler.need_clear_pseudo_element_box(&element) {
+        element.unset_pseudo_element_box(PseudoElement::Marker);
+    }
 
     let replaced = ReplacedContents::for_element(element, context);
     let style = element.style(context.shared_context());
@@ -282,6 +302,14 @@ fn traverse_element<'dom>(
             handler.handle_element(&info, display, contents, box_slot);
         },
     }
+
+    // Currently, we do not support storing the restyle damage caused by their
+    // styles changes for pseudo-element and list-marker seperately, which is
+    // stored at the originating element's style data. Clearing restyle damage
+    // for the originating element at here for keeping consistent with current
+    // restyle damage detecting strategy: when the originating element's box can
+    // be kept unchanged, the pseudo-element and list-marker will be kept unchanged.
+    element.clear_restyle_damage();
 }
 
 fn traverse_eager_pseudo_element<'dom>(
@@ -293,7 +321,9 @@ fn traverse_eager_pseudo_element<'dom>(
     assert!(pseudo_element_type.is_eager());
 
     // First clear any old contents from the node.
-    node.unset_pseudo_element_box(pseudo_element_type);
+    if handler.need_clear_pseudo_element_box(&node) {
+        node.unset_pseudo_element_box(pseudo_element_type);
+    }
 
     let Some(element) = node.to_threadsafe().as_element() else {
         return;
