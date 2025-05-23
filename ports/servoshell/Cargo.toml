@@ -59,7 +59,6 @@ dpi = { workspace = true }
 euclid = { workspace = true }
 getopts = { workspace = true }
 hitrace = { workspace = true, optional = true }
-icu_locid = "1.5.0"
 image = { workspace = true }
 keyboard-types = { workspace = true }
 libc = { workspace = true }
@@ -68,7 +67,6 @@ log = { workspace = true }
 mime_guess = { workspace = true }
 raw-window-handle = { workspace = true }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
-servo-tracing = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true, optional = true }
 tracing-perfetto = { workspace = true, optional = true }
@@ -79,7 +77,6 @@ url = { workspace = true }
 android_logger = "0.15"
 ipc-channel = { workspace = true }
 jni = "0.21.1"
-libloading = "0.8"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 backtrace = { workspace = true }
@@ -110,16 +107,13 @@ egui-file-dialog = "0.9.0"
 egui-winit = { version = "0.31.1", default-features = false, features = ["clipboard", "wayland"] }
 egui_glow = { version = "0.31.1", features = ["winit"] }
 gilrs = "0.11.0"
-gleam = { workspace = true }
 glow = "0.16.0"
 headers = { workspace = true }
-http = { workspace = true }
 net = { path = "../../components/net" }
 net_traits = { workspace = true }
 serde_json = { workspace = true }
 # For optional feature servo_allocator/use-system-allocator
 servo_allocator = { path = "../../components/allocator" }
-shellwords = "1.0.0"
 surfman = { workspace = true, features = ["sm-raw-window-handle-06", "sm-x11"] }
 winit = "0.30.11"
 

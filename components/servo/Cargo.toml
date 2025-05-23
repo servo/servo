@@ -72,7 +72,6 @@ bluetooth_traits = { workspace = true, optional = true }
 canvas = { path = "../canvas" }
 webgl = { path = "../webgl", default-features = false }
 canvas_traits = { workspace = true }
-cfg-if = { workspace = true }
 compositing = { path = "../compositing" }
 compositing_traits = { workspace = true }
 constellation = { path = "../constellation" }

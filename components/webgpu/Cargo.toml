@@ -18,7 +18,6 @@ compositing_traits = { workspace = true }
 euclid = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
-malloc_size_of = { workspace = true }
 serde = { workspace = true, features = ["serde_derive"] }
 servo_config = { path = "../config" }
 webgpu_traits = { workspace = true }
