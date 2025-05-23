@@ -5,6 +5,8 @@
 use app_units::Au;
 use atomic_refcell::AtomicRef;
 use compositing_traits::display_list::AxesScrollSensitivity;
+use euclid::Rect;
+use euclid::default::Size2D as UntypedSize2D;
 use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::ServoLayoutNode;
 use script_layout_interface::wrapper_traits::{
@@ -27,7 +29,7 @@ use crate::flow::inline::InlineItem;
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::FragmentTree;
-use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize};
+use crate::geom::{LogicalVec2, PhysicalRect, PhysicalSize};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::replaced::ReplacedContents;
 use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside};
@@ -348,7 +350,7 @@ impl BoxTree {
     pub fn layout(
         &self,
         layout_context: &LayoutContext,
-        viewport: euclid::Size2D<f32, CSSPixel>,
+        viewport: UntypedSize2D<Au>,
     ) -> FragmentTree {
         let style = layout_context
             .style_context
@@ -358,13 +360,8 @@ impl BoxTree {
 
         // FIXME: use the document’s mode:
         // https://drafts.csswg.org/css-writing-modes/#principal-flow
-        let physical_containing_block = PhysicalRect::new(
-            PhysicalPoint::zero(),
-            PhysicalSize::new(
-                Au::from_f32_px(viewport.width),
-                Au::from_f32_px(viewport.height),
-            ),
-        );
+        let physical_containing_block: Rect<Au, CSSPixel> =
+            PhysicalSize::from_untyped(viewport).into();
         let initial_containing_block = DefiniteContainingBlock {
             size: LogicalVec2 {
                 inline: physical_containing_block.size.width,
