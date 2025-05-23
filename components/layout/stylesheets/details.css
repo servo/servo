@@ -8,11 +8,11 @@ slot[id="internal-contents-slot"] {
   display: block;
 }
 
-summary[id="internal-fallback-summary"] {
+:host summary:first-of-type {
   display: list-item;
   counter-increment: list-item 0;
   list-style: disclosure-closed inside;
 }
-:host([open]) summary[id="internal-fallback-summary"] {
+:host([open]) summary:first-of-type {
   list-style-type: disclosure-open;
 }
