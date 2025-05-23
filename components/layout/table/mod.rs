@@ -207,6 +207,35 @@ impl Table {
             new_style,
         );
     }
+
+    pub(crate) fn invalidate_subtree_caches(&self) {
+        for caption in &self.captions {
+            caption.borrow().context.invalidate_subtree_caches();
+        }
+        for column_group in &self.column_groups {
+            column_group.borrow().base.invalidate_all_caches();
+        }
+        for row_group in &self.row_groups {
+            row_group.borrow().base.invalidate_all_caches();
+        }
+        for column in &self.columns {
+            column.borrow().base.invalidate_all_caches();
+        }
+        for row in &self.rows {
+            row.borrow().base.invalidate_all_caches();
+        }
+        for slot_cell_row in &self.slots {
+            for slot in slot_cell_row {
+                match slot {
+                    TableSlot::Cell(cell) => {
+                        cell.borrow().base.invalidate_all_caches();
+                        cell.borrow().contents.contents.invalidate_subtree_caches();
+                    },
+                    TableSlot::Spanned(..) | TableSlot::Empty => {},
+                }
+            }
+        }
+    }
 }
 
 type TableSlotCoordinates = Point2D<usize, UnknownUnit>;

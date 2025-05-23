@@ -778,7 +778,7 @@ impl LayoutThread {
             compute_damage_and_repair_style(layout_context.shared_context(), root_node);
         if viewport_changed {
             damage = RestyleDamage::REBUILD_BOX;
-        } else if !damage.contains(RestyleDamage::REBUILD_BOX) {
+        } else if !damage.will_change_box_subtree() {
             layout_context.style_context.stylist.rule_tree().maybe_gc();
             return damage;
         }

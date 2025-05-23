@@ -99,6 +99,17 @@ pub(crate) fn compute_damage_and_repair_style(
     compute_damage_and_repair_style_inner(context, node, RestyleDamage::empty())
 }
 
+fn need_repair_style_before_box_tree_update(damage: RestyleDamage) -> bool {
+    // Repair the style at the node's layout objects only when itself has
+    // restyle damage but it's boxes will be kept unchanged, otherwise,
+    // the style will be repaired during box tree update.
+    if damage.is_empty() || damage.will_change_box_subtree() {
+        return false;
+    }
+
+    true
+}
+
 pub(crate) fn compute_damage_and_repair_style_inner(
     context: &SharedStyleContext,
     node: ServoLayoutNode<'_>,
@@ -106,7 +117,6 @@ pub(crate) fn compute_damage_and_repair_style_inner(
 ) -> RestyleDamage {
     let original_damage;
     let damage;
-
     {
         let mut element_data = node
             .style_data()
@@ -114,27 +124,41 @@ pub(crate) fn compute_damage_and_repair_style_inner(
             .element_data
             .borrow_mut();
 
-        original_damage = std::mem::take(&mut element_data.damage);
+        original_damage = element_data.damage;
+        // The damage that can cause the box subtree to change will be cleaned
+        // after incremental box tree update.
+        if !element_data.damage.will_change_box_subtree() {
+            let _ = std::mem::take(&mut element_data.damage);
+        };
+
         damage = original_damage | parent_restyle_damage;
 
         if let Some(ref style) = element_data.styles.primary {
             if style.get_box().display == Display::None {
-                return damage;
+                return damage.propagate_up_damage();
             }
         }
-    }
+    };
 
-    let mut propagated_damage = damage;
+    let mut propagated_damage = damage.propagate_up_damage();
+    let propagated_down_damage = damage.propagate_down_damage();
+
     for child in iter_child_nodes(node) {
         if child.is_element() {
-            propagated_damage |= compute_damage_and_repair_style_inner(context, child, damage);
+            propagated_damage |=
+                compute_damage_and_repair_style_inner(context, child, propagated_down_damage);
         }
     }
 
-    if !propagated_damage.contains(RestyleDamage::REBUILD_BOX) &&
-        !original_damage.contains(RestyleDamage::REBUILD_BOX)
+    if need_repair_style_before_box_tree_update(propagated_damage) &&
+        need_repair_style_before_box_tree_update(original_damage)
     {
         node.repair_style(context);
+    }
+
+    if propagated_damage.contains(RestyleDamage::REPAIR_BOX) {
+        let mut element_data = node.style_data().unwrap().element_data.borrow_mut();
+        element_data.damage |= RestyleDamage::REPAIR_BOX;
     }
 
     propagated_damage
