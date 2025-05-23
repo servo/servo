@@ -207,6 +207,7 @@ impl Area {
 
             Area::Polygon { ref points } => {
                 // Ray-casting algorithm to determine if point is inside polygon
+                // https://en.wikipedia.org/wiki/Point_in_polygon#Ray_casting_algorithm
                 let mut inside = false;
 
                 debug_assert!(points.len() % 2 == 0);

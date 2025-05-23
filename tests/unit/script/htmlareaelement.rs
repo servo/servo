@@ -196,4 +196,10 @@ fn test_hit_test_polygon() {
     assert!(!poly3.hit_test(&Point2D::new(6.0, 0.0)));
     assert!(!poly3.hit_test(&Point2D::new(0.0, 6.0)));
     assert!(!poly3.hit_test(&Point2D::new(6.0, 6.0)));
+    // Concave polygon test
+    let poly4 = Area::Polygon {
+        points: vec![0.0, 0.0, 1.0, 1.0, 2.0, 0.0, 2.0, 2.0, 0.0, 2.0],
+    };
+    assert!(poly4.hit_test(&Point2D::new(1.5, 1.5)));
+    assert!(!poly4.hit_test(&Point2D::new(1.0, 0.0)));
 }
