@@ -233,7 +233,7 @@ bitflags! {
 
         /// Whether this node has a serve as the text container for editable content of
         /// <input> or <textarea> element.
-        const IS_TEXT_CONTROL_INNER_EDITOR = 1 << 13;
+        const IS_TEXT_CONTROL_INNER_EDITOR = 1 << 12;
     }
 }
 

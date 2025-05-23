@@ -116,7 +116,7 @@ const DEFAULT_FILE_INPUT_VALUE: &str = "No file chosen";
 /// </input>
 /// ```
 // TODO(stevennovaryo): We are trying to use CSS to mimic Chrome and Firefox's layout for the <input> element.
-//                      But this does have some discrepencies. For example, they would try to vertically align
+//                      But this does have some discrepancies. For example, they would try to vertically align
 //                      <input> text baseline with the baseline of other TextNode within an inline flow.
 struct InputTypeTextShadowTree {
     text_container: Dom<HTMLDivElement>,
@@ -135,7 +135,7 @@ struct InputTypeColorShadowTree {
 
 // FIXME: These styles should be inside UA stylesheet, but it is not possible without internal pseudo element support.
 const TEXT_TREE_STYLE: &str = "
-#input-editor::selection, #input-placeholder::selection {
+#input-editor::selection {
     background: rgba(176, 214, 255, 1.0);
     color: black;
 }
@@ -144,14 +144,14 @@ const TEXT_TREE_STYLE: &str = "
     visibility: hidden !important
 }
 
-#input-container {
-    position: relative !important;
-    height: 100% !important;
-    pointer-events: none !important;
+#input-editor {
+    pointer-events: auto;
 }
 
-#input-editor {
-    pointer-events: auto !important;
+#input-container {
+    position: relative;
+    height: 100%;
+    pointer-events: none;
 }
 
 #input-editor, #input-placeholder {
@@ -1131,7 +1131,7 @@ impl HTMLInputElement {
                     ShadowRootMode::Closed,
                     false,
                     false,
-                    false,
+                    true,
                     SlotAssignmentMode::Manual,
                     can_gc,
                 )
@@ -1309,11 +1309,6 @@ impl HTMLInputElement {
                     true => "\u{200B}".into(),
                 };
 
-                // TODO(stevennovaryo): Introduce caching to prevent costly update.
-                text_shadow_tree
-                    .placeholder_container
-                    .upcast::<Node>()
-                    .SetTextContent(Some(self.placeholder.to_owned().take()), can_gc);
                 text_shadow_tree
                     .text_container
                     .upcast::<Node>()
@@ -2909,10 +2904,20 @@ impl VirtualMethods for HTMLInputElement {
             local_name!("placeholder") => {
                 {
                     let mut placeholder = self.placeholder.borrow_mut();
+                    let old_placeholder = placeholder.clone();
                     placeholder.clear();
                     if let AttributeMutation::Set(_) = mutation {
                         placeholder
                             .extend(attr.value().chars().filter(|&c| c != '\n' && c != '\r'));
+                    }
+
+                    // If old placeholder is not the same as the new one,
+                    // we need to update the shadow tree.
+                    if old_placeholder != *placeholder {
+                        self.text_shadow_tree(can_gc)
+                            .placeholder_container
+                            .upcast::<Node>()
+                            .SetTextContent(Some(placeholder.clone()), can_gc);
                     }
                 }
                 self.update_placeholder_shown_state();
