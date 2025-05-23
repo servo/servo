@@ -509,29 +509,29 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-getkey
-    fn GetKey(&self, _cx: SafeJSContext, _query: HandleValue) -> DomRoot<IDBRequest> {
-        unimplemented!();
-    }
+    // fn GetKey(&self, _cx: SafeJSContext, _query: HandleValue) -> DomRoot<IDBRequest> {
+    //     unimplemented!();
+    // }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-getall
-    fn GetAll(
-        &self,
-        _cx: SafeJSContext,
-        _query: HandleValue,
-        _count: Option<u32>,
-    ) -> DomRoot<IDBRequest> {
-        unimplemented!();
-    }
+    // fn GetAll(
+    //     &self,
+    //     _cx: SafeJSContext,
+    //     _query: HandleValue,
+    //     _count: Option<u32>,
+    // ) -> DomRoot<IDBRequest> {
+    //     unimplemented!();
+    // }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-getallkeys
-    fn GetAllKeys(
-        &self,
-        _cx: SafeJSContext,
-        _query: HandleValue,
-        _count: Option<u32>,
-    ) -> DomRoot<IDBRequest> {
-        unimplemented!();
-    }
+    // fn GetAllKeys(
+    //     &self,
+    //     _cx: SafeJSContext,
+    //     _query: HandleValue,
+    //     _count: Option<u32>,
+    // ) -> DomRoot<IDBRequest> {
+    //     unimplemented!();
+    // }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-count
     fn Count(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
@@ -571,19 +571,19 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-keypath
-    fn KeyPath(&self, _cx: SafeJSContext, _val: MutableHandleValue) {
-        unimplemented!();
-    }
+    // fn KeyPath(&self, _cx: SafeJSContext, _val: MutableHandleValue) {
+    //     unimplemented!();
+    // }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-indexnames
-    fn IndexNames(&self) -> DomRoot<DOMStringList> {
-        unimplemented!();
-    }
+    // fn IndexNames(&self) -> DomRoot<DOMStringList> {
+    //     unimplemented!();
+    // }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-transaction
-    fn Transaction(&self) -> DomRoot<IDBTransaction> {
-        unimplemented!();
-    }
+    // fn Transaction(&self) -> DomRoot<IDBTransaction> {
+    //     unimplemented!();
+    // }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-autoincrement
     fn AutoIncrement(&self) -> bool {
