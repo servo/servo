@@ -41,4 +41,5 @@ servo_arc = { workspace = true }
 servo_url = { path = "../../url" }
 stylo = { workspace = true }
 stylo_traits = { workspace = true }
+url = { workspace = true }
 webrender_api = { workspace = true }
