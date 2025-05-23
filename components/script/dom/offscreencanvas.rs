@@ -92,7 +92,10 @@ impl OffscreenCanvas {
             Some(context) => context.get_image_data(),
             None => {
                 let size = self.get_size();
-                if size.width == 0 || size.height == 0 {
+                if size.is_empty() ||
+                    pixels::rgba8_bytes_length(size.width as usize, size.height as usize)
+                        .is_none()
+                {
                     None
                 } else {
                     Some(Snapshot::cleared(size))
@@ -115,10 +118,6 @@ impl OffscreenCanvas {
             &*context,
         )));
         Some(context)
-    }
-
-    pub(crate) fn is_valid(&self) -> bool {
-        self.Width() != 0 && self.Height() != 0
     }
 
     pub(crate) fn placeholder(&self) -> Option<&HTMLCanvasElement> {

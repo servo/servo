@@ -7116,8 +7116,10 @@ version = "0.0.1"
 dependencies = [
  "euclid",
  "ipc-channel",
+ "malloc_size_of_derive",
  "pixels",
  "serde",
+ "servo_malloc_size_of",
 ]
 
 [[package]]

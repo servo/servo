@@ -3,9 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::vec::Vec;
 
 use dom_struct::dom_struct;
+use euclid::default::Size2D;
+use snapshot::Snapshot;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::ImageBitmapMethods;
@@ -24,17 +25,18 @@ pub(crate) struct ImageBitmap {
     ///
     /// If this is `None`, then the bitmap data has been released by calling
     /// [`close`](https://html.spec.whatwg.org/multipage/#dom-imagebitmap-close)
-    bitmap_data: DomRefCell<Option<Vec<u8>>>,
+    #[no_trace]
+    bitmap_data: DomRefCell<Option<Snapshot>>,
     origin_clean: Cell<bool>,
 }
 
 impl ImageBitmap {
-    fn new_inherited(width_arg: u32, height_arg: u32) -> ImageBitmap {
+    fn new_inherited(width: u32, height: u32) -> ImageBitmap {
         ImageBitmap {
             reflector_: Reflector::new(),
-            width: width_arg,
-            height: height_arg,
-            bitmap_data: DomRefCell::new(Some(vec![])),
+            width,
+            height,
+            bitmap_data: DomRefCell::new(Some(Snapshot::cleared(Size2D::new(width, width).cast()))),
             origin_clean: Cell::new(true),
         }
     }
@@ -52,8 +54,16 @@ impl ImageBitmap {
         Ok(reflect_dom_object(imagebitmap, global, can_gc))
     }
 
-    pub(crate) fn set_bitmap_data(&self, data: Vec<u8>) {
+    pub(crate) fn bitmap_data(&self) -> Option<Snapshot> {
+        self.bitmap_data.borrow().clone()
+    }
+
+    pub(crate) fn set_bitmap_data(&self, data: Snapshot) {
         *self.bitmap_data.borrow_mut() = Some(data);
+    }
+
+    pub(crate) fn origin_is_clean(&self) -> bool {
+        self.origin_clean.get()
     }
 
     pub(crate) fn set_origin_clean(&self, origin_is_clean: bool) {
@@ -62,7 +72,7 @@ impl ImageBitmap {
 
     /// Return the value of the [`[[Detached]]`](https://html.spec.whatwg.org/multipage/#detached)
     /// internal slot
-    fn is_detached(&self) -> bool {
+    pub(crate) fn is_detached(&self) -> bool {
         self.bitmap_data.borrow().is_none()
     }
 }
