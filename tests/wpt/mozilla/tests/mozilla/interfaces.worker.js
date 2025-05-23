@@ -7,8 +7,6 @@ importScripts("interfaces.js");
 
 // IMPORTANT: Do not change the list below without review from a DOM peer!
 test_interfaces([
-  "AbortController",
-  "AbortSignal",
   "Blob",
   "BroadcastChannel",
   "ByteLengthQueuingStrategy",
