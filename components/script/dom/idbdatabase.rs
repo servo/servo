@@ -213,7 +213,8 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
             .iter()
             .any(|store_name| store_name.to_string() == name.to_string())
         {
-            return Err(Error::Constraint);
+            // TODO: Add constraint as an dom exception and throw that instead
+            return Err(Error::InvalidState);
         }
 
         // Step 7
@@ -324,6 +325,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         {
             warn!("Object store deletion failed in idb thread");
         };
+        Ok(())
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-name
