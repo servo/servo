@@ -85,7 +85,7 @@ imsz = "0.2"
 indexmap = { version = "2.9.0", features = ["std"] }
 ipc-channel = "0.19"
 itertools = "0.14"
-js = { package = "mozjs", git = "https://github.com/servo/mozjs" }
+js = { package = "mozjs", git = "https://github.com/jschwe/mozjs", branch = "jschwender/hilog_domain" }
 keyboard-types = "0.7"
 libc = "0.2"
 log = "0.4"
