@@ -21,7 +21,7 @@ use script_layout_interface::{
 use servo_arc::Arc as ServoArc;
 use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
-use style::selector_parser::PseudoElement;
+use style::selector_parser::{PseudoElement, RestyleDamage};
 
 use crate::cell::ArcRefCell;
 use crate::flexbox::FlexLevelBox;
@@ -161,7 +161,6 @@ pub struct BoxSlot<'dom> {
 /// A mutable reference to a `LayoutBox` stored in a DOM element.
 impl BoxSlot<'_> {
     pub(crate) fn new(slot: ArcRefCell<Option<LayoutBox>>) -> Self {
-        *slot.borrow_mut() = None;
         let slot = Some(slot);
         Self {
             slot,
@@ -217,6 +216,7 @@ pub(crate) trait NodeExt<'dom> {
     fn invalidate_cached_fragment(&self);
 
     fn repair_style(&self, context: &SharedStyleContext);
+    fn clear_restyle_damage(&self);
 }
 
 impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
@@ -401,5 +401,10 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
                 layout_object.repair_style(context, self, &node.style(context));
             }
         }
+    }
+
+    fn clear_restyle_damage(&self) {
+        self.style_data()
+            .map(|data| data.element_data.borrow_mut().damage = RestyleDamage::empty());
     }
 }

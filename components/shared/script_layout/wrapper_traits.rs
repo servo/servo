@@ -106,7 +106,7 @@ impl<'dom, ConcreteNode> TreeIterator<ConcreteNode>
 where
     ConcreteNode: LayoutNode<'dom>,
 {
-    fn new(root: ConcreteNode) -> TreeIterator<ConcreteNode> {
+    pub fn new(root: ConcreteNode) -> TreeIterator<ConcreteNode> {
         let stack = vec![root];
         TreeIterator { stack }
     }

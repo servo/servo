@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::mem;
+
 use app_units::Au;
 use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::{ServoLayoutElement, ServoLayoutNode};
@@ -11,7 +13,7 @@ use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 
 use crate::context::LayoutContext;
-use crate::dom_traversal::{Contents, NodeAndStyleInfo};
+use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents};
 use crate::flexbox::FlexContainer;
 use crate::flow::BlockFormattingContext;
 use crate::fragment_tree::{BaseFragmentInfo, FragmentFlags};
@@ -129,18 +131,53 @@ impl IndependentFormattingContext {
                     },
                 };
                 Self {
-                    base: LayoutBoxBase::new(base_fragment_info, node_and_style_info.style.clone()),
+                    base: LayoutBoxBase::new(
+                        base_fragment_info,
+                        node_and_style_info.style.clone(),
+                        propagated_data,
+                    ),
                     contents: IndependentFormattingContextContents::NonReplaced(contents),
                 }
             },
             Contents::Replaced(contents) => {
                 base_fragment_info.flags.insert(FragmentFlags::IS_REPLACED);
                 Self {
-                    base: LayoutBoxBase::new(base_fragment_info, node_and_style_info.style.clone()),
+                    base: LayoutBoxBase::new(
+                        base_fragment_info,
+                        node_and_style_info.style.clone(),
+                        propagated_data,
+                    ),
                     contents: IndependentFormattingContextContents::Replaced(contents),
                 }
             },
         }
+    }
+
+    pub fn repair(
+        &mut self,
+        context: &LayoutContext,
+        node_and_style_info: &NodeAndStyleInfo,
+        contents: Contents,
+        display_inside: DisplayInside,
+    ) {
+        match &mut self.contents {
+            IndependentFormattingContextContents::NonReplaced(
+                independent_non_replaced_contents,
+            ) => {
+                independent_non_replaced_contents.repair(
+                    context,
+                    node_and_style_info,
+                    contents
+                        .try_into()
+                        .expect("Expect NonReplacedContents, but got ReplacedContents!"),
+                    display_inside,
+                    self.base.propagated_data,
+                );
+            },
+            IndependentFormattingContextContents::Replaced(..) => {},
+        }
+
+        self.base.repair_style(&node_and_style_info.style);
     }
 
     pub fn is_replaced(&self) -> bool {
@@ -374,6 +411,69 @@ impl IndependentNonReplacedContents {
                 taffy_container.repair_style(new_style)
             },
             IndependentNonReplacedContents::Table(table) => table.repair_style(context, new_style),
+        }
+    }
+
+    fn repair(
+        &mut self,
+        context: &LayoutContext,
+        node_and_style_info: &NodeAndStyleInfo,
+        non_replaced_contents: NonReplacedContents,
+        display_inside: DisplayInside,
+        propagated_data: PropagatedBoxTreeData,
+    ) {
+        match self {
+            IndependentNonReplacedContents::Flow(block_formatting_context) => {
+                match display_inside {
+                    DisplayInside::Flow { is_list_item } |
+                    DisplayInside::FlowRoot { is_list_item } => {
+                        block_formatting_context.repair(
+                            context,
+                            node_and_style_info,
+                            non_replaced_contents,
+                            propagated_data,
+                            is_list_item,
+                        );
+                    },
+                    _ => unreachable!("Expect flow display inside mode"),
+                }
+            },
+            IndependentNonReplacedContents::Flex(old_flex_container) => {
+                let new_flex_container = FlexContainer::construct(
+                    context,
+                    node_and_style_info,
+                    non_replaced_contents,
+                    propagated_data,
+                );
+                let _ = mem::replace(old_flex_container, new_flex_container);
+            },
+            IndependentNonReplacedContents::Grid(old_taffy_container) => {
+                let new_taffy_container = TaffyContainer::construct(
+                    context,
+                    node_and_style_info,
+                    non_replaced_contents,
+                    propagated_data,
+                );
+                let _ = mem::replace(old_taffy_container, new_taffy_container);
+            },
+            IndependentNonReplacedContents::Table(old_table) => {
+                let table_grid_style = context
+                    .shared_context()
+                    .stylist
+                    .style_for_anonymous::<ServoLayoutElement>(
+                        &context.shared_context().guards,
+                        &PseudoElement::ServoTableGrid,
+                        &node_and_style_info.style,
+                    );
+                let new_table = Table::construct(
+                    context,
+                    node_and_style_info,
+                    table_grid_style,
+                    non_replaced_contents,
+                    propagated_data,
+                );
+                let _ = mem::replace(old_table, new_table);
+            },
         }
     }
 }

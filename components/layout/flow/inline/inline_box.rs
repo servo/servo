@@ -16,13 +16,13 @@ use super::{
     InlineContainerState, InlineContainerStateFlags, SharedInlineStyles,
     inline_container_needs_strut,
 };
-use crate::ContainingBlock;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom_traversal::NodeAndStyleInfo;
 use crate::fragment_tree::BaseFragmentInfo;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::{LayoutStyle, PaddingBorderMargin};
+use crate::{ContainingBlock, PropagatedBoxTreeData};
 
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct InlineBox {
@@ -44,9 +44,9 @@ pub(crate) struct InlineBox {
 }
 
 impl InlineBox {
-    pub(crate) fn new(info: &NodeAndStyleInfo) -> Self {
+    pub(crate) fn new(info: &NodeAndStyleInfo, propagated_data: PropagatedBoxTreeData) -> Self {
         Self {
-            base: LayoutBoxBase::new(info.into(), info.style.clone()),
+            base: LayoutBoxBase::new(info.into(), info.style.clone(), propagated_data),
             shared_inline_styles: info.into(),
             // This will be assigned later, when the box is actually added to the IFC.
             identifier: InlineBoxIdentifier::default(),
@@ -58,7 +58,11 @@ impl InlineBox {
 
     pub(crate) fn split_around_block(&self) -> Self {
         Self {
-            base: LayoutBoxBase::new(self.base.base_fragment_info, self.base.style.clone()),
+            base: LayoutBoxBase::new(
+                self.base.base_fragment_info,
+                self.base.style.clone(),
+                self.base.propagated_data,
+            ),
             shared_inline_styles: self.shared_inline_styles.clone(),
             is_first_split: false,
             is_last_split: false,

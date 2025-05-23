@@ -3870,6 +3870,8 @@ impl VirtualMethods for Node {
 pub(crate) enum NodeDamage {
     /// The node's `style` attribute changed.
     NodeStyleDamaged,
+    /// The node's content or heritage changed: children removed or added, text content changed.
+    NodeContentOrHeritageDamaged,
     /// Other parts of a node changed; attributes, text content, etc.
     OtherNodeDamage,
 }
