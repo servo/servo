@@ -627,3 +627,6 @@ dictionary NotUsedAnyWhereElse {};
 dictionary RecordFieldWithUnionInside {
     record<USVString, (USVString or NotUsedAnyWhereElse)> recordWithUnionField;
 };
+
+// https://github.com/servo/servo/issues/28679
+typedef (USVString or undefined) UnionWithUndefinedVariant;
