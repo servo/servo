@@ -12,7 +12,6 @@ use dom_struct::dom_struct;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::ImageBitmapMethods;
-use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
@@ -45,17 +44,16 @@ impl ImageBitmap {
         }
     }
 
-    #[allow(dead_code)]
     pub(crate) fn new(
         global: &GlobalScope,
         width: u32,
         height: u32,
         can_gc: CanGc,
-    ) -> Fallible<DomRoot<ImageBitmap>> {
+    ) -> DomRoot<ImageBitmap> {
         //assigning to a variable the return object of new_inherited
         let imagebitmap = Box::new(ImageBitmap::new_inherited(width, height));
 
-        Ok(reflect_dom_object(imagebitmap, global, can_gc))
+        reflect_dom_object(imagebitmap, global, can_gc)
     }
 
     pub(crate) fn set_bitmap_data(&self, data: Vec<u8>) {
@@ -110,8 +108,7 @@ impl Serializable for ImageBitmap {
         serialized: Self::Data,
         can_gc: CanGc,
     ) -> Result<DomRoot<Self>, ()> {
-        let image_bitmap =
-            ImageBitmap::new(owner, serialized.width, serialized.height, can_gc).unwrap();
+        let image_bitmap = ImageBitmap::new(owner, serialized.width, serialized.height, can_gc);
 
         // Step 1. Set value's bitmap data to serialized.[[BitmapData]].
         image_bitmap.set_bitmap_data(serialized.bitmap_data);
@@ -171,7 +168,7 @@ impl Transferable for ImageBitmap {
         serialized: SerializableImageBitmap,
     ) -> Result<DomRoot<Self>, ()> {
         let image_bitmap =
-            ImageBitmap::new(owner, serialized.width, serialized.height, CanGc::note()).unwrap();
+            ImageBitmap::new(owner, serialized.width, serialized.height, CanGc::note());
 
         // Step 1. Set value's bitmap data to serialized.[[BitmapData]].
         image_bitmap.set_bitmap_data(serialized.bitmap_data);
