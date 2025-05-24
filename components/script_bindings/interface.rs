@@ -18,9 +18,9 @@ use js::jsapi::{
     JS_AtomizeAndPinString, JS_GetFunctionObject, JS_GetProperty, JS_IterateCompartments,
     JS_NewFunction, JS_NewGlobalObject, JS_NewObject, JS_NewPlainObject, JS_NewStringCopyN,
     JS_SetReservedSlot, JS_WrapObject, JSAutoRealm, JSClass, JSClassOps, JSContext,
-    JSFUN_CONSTRUCTOR, JSFunctionSpec, JSObject, JSPROP_PERMANENT, JSPROP_READONLY,
-    JSPROP_RESOLVING, JSPropertySpec, JSString, JSTracer, ObjectOps, OnNewGlobalHookOption,
-    SymbolCode, TrueHandleValue, Value, jsid,
+    JSFUN_CONSTRUCTOR, JSFunctionSpec, JSObject, JSPROP_ENUMERATE, JSPROP_PERMANENT,
+    JSPROP_READONLY, JSPROP_RESOLVING, JSPropertySpec, JSString, JSTracer, ObjectOps,
+    OnNewGlobalHookOption, SymbolCode, TrueHandleValue, Value, jsid,
 };
 use js::jsval::{JSVal, NullValue, PrivateValue};
 use js::rust::wrappers::{
@@ -481,7 +481,7 @@ fn create_unscopable_object(cx: SafeJSContext, names: &[&CStr], mut rval: Mutabl
                 rval.handle(),
                 name.as_ptr(),
                 HandleValue::from_raw(TrueHandleValue),
-                JSPROP_READONLY as u32,
+                JSPROP_ENUMERATE as u32,
             ));
         }
     }
