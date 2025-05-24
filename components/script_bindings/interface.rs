@@ -16,11 +16,11 @@ use js::jsapi::{
     GetFunctionRealm, GetNonCCWObjectGlobal, GetRealmGlobalOrNull, GetWellKnownSymbol,
     HandleObject as RawHandleObject, IsSharableCompartment, IsSystemCompartment,
     JS_AtomizeAndPinString, JS_GetFunctionObject, JS_GetProperty, JS_IterateCompartments,
-    JS_NewFunction, JS_NewGlobalObject, JS_NewObject, JS_NewPlainObject, JS_NewStringCopyN,
-    JS_SetReservedSlot, JS_WrapObject, JSAutoRealm, JSClass, JSClassOps, JSContext,
-    JSFUN_CONSTRUCTOR, JSFunctionSpec, JSObject, JSPROP_ENUMERATE, JSPROP_PERMANENT,
-    JSPROP_READONLY, JSPROP_RESOLVING, JSPropertySpec, JSString, JSTracer, ObjectOps,
-    OnNewGlobalHookOption, SymbolCode, TrueHandleValue, Value, jsid,
+    JS_NewFunction, JS_NewGlobalObject, JS_NewObject, JS_NewStringCopyN, JS_SetReservedSlot,
+    JS_WrapObject, JSAutoRealm, JSClass, JSClassOps, JSContext, JSFUN_CONSTRUCTOR, JSFunctionSpec,
+    JSObject, JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY, JSPROP_RESOLVING,
+    JSPropertySpec, JSString, JSTracer, ObjectOps, OnNewGlobalHookOption, SymbolCode,
+    TrueHandleValue, Value, jsid,
 };
 use js::jsval::{JSVal, NullValue, PrivateValue};
 use js::rust::wrappers::{
@@ -473,7 +473,11 @@ fn create_unscopable_object(cx: SafeJSContext, names: &[&CStr], mut rval: Mutabl
     assert!(!names.is_empty());
     assert!(rval.is_null());
     unsafe {
-        rval.set(JS_NewPlainObject(*cx));
+        rval.set(JS_NewObjectWithGivenProto(
+            *cx,
+            ptr::null(),
+            HandleObject::null(),
+        ));
         assert!(!rval.is_null());
         for &name in names {
             assert!(JS_DefineProperty(
