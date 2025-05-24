@@ -217,6 +217,8 @@ pub struct Servo {
     _js_engine_setup: Option<JSEngineSetup>,
     /// Whether or not any WebView in this instance is animating or WebXR is enabled.
     animating: Cell<bool>,
+    /// Have received any refresh tick either from RequestRedraw/Vsync
+    recevied_refresh_tick: Cell<bool>,
 }
 
 #[derive(Clone)]
@@ -507,6 +509,7 @@ impl Servo {
             servo_errors: ServoErrorChannel::default(),
             _js_engine_setup: js_engine_setup,
             animating: Cell::new(false),
+            recevied_refresh_tick: Cell::new(false),
         }
     }
 
@@ -516,6 +519,10 @@ impl Servo {
 
     pub fn set_delegate(&self, delegate: Rc<dyn ServoDelegate>) {
         *self.delegate.borrow_mut() = delegate;
+    }
+
+    pub fn set_refresh_tick(&self) {
+        self.recevied_refresh_tick.set(true);
     }
 
     /// Whether or not any [`WebView`] of this Servo instance has animating content, such as a CSS
@@ -563,6 +570,10 @@ impl Servo {
         }
 
         self.compositor.borrow_mut().perform_updates();
+        if self.recevied_refresh_tick.get() {
+            self.compositor.borrow_mut().handle_refresh_tick();
+            self.recevied_refresh_tick.set(false);
+        }
         self.send_new_frame_ready_messages();
         self.send_animating_changed_messages();
         self.handle_delegate_errors();
