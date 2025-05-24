@@ -1521,42 +1521,42 @@ impl HTMLMediaElement {
                 self.earliest_possible_position(),
                 /* approximate_for_speed*/ false,
             );
-        } else {
-            // Step 2.
-            // The **ended playback** condition is implemented inside of
-            // the HTMLMediaElementMethods::Ended method
-
-            // Step 3.
-            let this = Trusted::new(self);
-
-            self.owner_global()
-                .task_manager()
-                .media_element_task_source()
-                .queue(task!(reaches_the_end_steps: move || {
-                    let this = this.root();
-                    // Step 3.1.
-                    this.upcast::<EventTarget>().fire_event(atom!("timeupdate"), CanGc::note());
-
-                    // Step 3.2.
-                    if this.Ended() && !this.Paused() {
-                        // Step 3.2.1.
-                        this.paused.set(true);
-
-                        // Step 3.2.2.
-                        this.upcast::<EventTarget>().fire_event(atom!("pause"), CanGc::note());
-
-                        // Step 3.2.3.
-                        this.take_pending_play_promises(Err(Error::Abort));
-                        this.fulfill_in_flight_play_promises(|| ());
-                    }
-
-                    // Step 3.3.
-                    this.upcast::<EventTarget>().fire_event(atom!("ended"), CanGc::note());
-                }));
-
-            // https://html.spec.whatwg.org/multipage/#dom-media-have_current_data
-            self.change_ready_state(ReadyState::HaveCurrentData);
+            return;
         }
+        // Step 2.
+        // The **ended playback** condition is implemented inside of
+        // the HTMLMediaElementMethods::Ended method
+
+        // Step 3.
+        let this = Trusted::new(self);
+
+        self.owner_global()
+            .task_manager()
+            .media_element_task_source()
+            .queue(task!(reaches_the_end_steps: move || {
+                let this = this.root();
+                // Step 3.1.
+                this.upcast::<EventTarget>().fire_event(atom!("timeupdate"), CanGc::note());
+
+                // Step 3.2.
+                if this.Ended() && !this.Paused() {
+                    // Step 3.2.1.
+                    this.paused.set(true);
+
+                    // Step 3.2.2.
+                    this.upcast::<EventTarget>().fire_event(atom!("pause"), CanGc::note());
+
+                    // Step 3.2.3.
+                    this.take_pending_play_promises(Err(Error::Abort));
+                    this.fulfill_in_flight_play_promises(|| ());
+                }
+
+                // Step 3.3.
+                this.upcast::<EventTarget>().fire_event(atom!("ended"), CanGc::note());
+            }));
+
+        // https://html.spec.whatwg.org/multipage/#dom-media-have_current_data
+        self.change_ready_state(ReadyState::HaveCurrentData);
     }
 
     fn playback_end(&self) {
@@ -1565,20 +1565,21 @@ impl HTMLMediaElement {
         //    an unsupported format, or can otherwise not be rendered at all"
         if self.ready_state.get() < ReadyState::HaveMetadata {
             self.queue_dedicated_media_source_failure_steps();
-        } else {
-            // https://html.spec.whatwg.org/multipage/#reaches-the-end
-            match self.direction_of_playback() {
-                PlaybackDirection::Forwards => self.end_of_playback_in_forwards_direction(),
+            return;
+        }
 
-                PlaybackDirection::Backwards => {
-                    if self.playback_position.get() <= self.earliest_possible_position() {
-                        self.owner_global()
-                            .task_manager()
-                            .media_element_task_source()
-                            .queue_simple_event(self.upcast(), atom!("ended"));
-                    }
-                },
-            }
+        // https://html.spec.whatwg.org/multipage/#reaches-the-end
+        match self.direction_of_playback() {
+            PlaybackDirection::Forwards => self.end_of_playback_in_forwards_direction(),
+
+            PlaybackDirection::Backwards => {
+                if self.playback_position.get() <= self.earliest_possible_position() {
+                    self.owner_global()
+                        .task_manager()
+                        .media_element_task_source()
+                        .queue_simple_event(self.upcast(), atom!("ended"));
+                }
+            },
         }
     }
 
