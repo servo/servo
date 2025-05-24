@@ -103,6 +103,28 @@ const DEFAULT_FILE_INPUT_VALUE: &str = "No file chosen";
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+/// Contains reference to text control inner editor and placeholder container element in the UA
+/// shadow tree for `<input type=text>`. The following is the structure of the shadow tree.
+///
+/// ```
+/// <input type="text">
+///     #shadow-root
+///         <div id="inner-container">
+///             <div id="input-editor"></div>
+///             <div id="input-placeholder"></div>
+///         </div>
+/// </input>
+/// ```
+// TODO(stevennovaryo): We are trying to use CSS to mimic Chrome and Firefox's layout for the <input> element.
+//                      But this does have some discrepancies. For example, they would try to vertically align
+//                      <input> text baseline with the baseline of other TextNode within an inline flow.
+struct InputTypeTextShadowTree {
+    text_container: Dom<HTMLDivElement>,
+    placeholder_container: Dom<HTMLDivElement>,
+}
+
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 /// Contains references to the elements in the shadow tree for `<input type=range>`.
 ///
 /// The shadow tree consists of a single div with the currently selected color as
@@ -111,10 +133,48 @@ struct InputTypeColorShadowTree {
     color_value: Dom<HTMLDivElement>,
 }
 
+// FIXME: These styles should be inside UA stylesheet, but it is not possible without internal pseudo element support.
+const TEXT_TREE_STYLE: &str = "
+#input-editor::selection {
+    background: rgba(176, 214, 255, 1.0);
+    color: black;
+}
+
+:host:not(:placeholder-shown) #input-placeholder {
+    visibility: hidden !important
+}
+
+#input-editor {
+    pointer-events: auto;
+}
+
+#input-container {
+    position: relative;
+    height: 100%;
+    pointer-events: none;
+}
+
+#input-editor, #input-placeholder {
+    position: absolute !important;
+    overflow-wrap: normal;
+    white-space: pre;
+    margin-block: auto;
+    inset-block: 0;
+    block-size: fit-content;
+}
+
+#input-placeholder {
+    color: grey;
+    overflow: hidden !important;
+    pointer-events: none !important;
+}
+";
+
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[non_exhaustive]
 enum ShadowTree {
+    Text(InputTypeTextShadowTree),
     Color(InputTypeColorShadowTree),
     // TODO: Add shadow trees for other input types (range etc) here
 }
@@ -1071,12 +1131,98 @@ impl HTMLInputElement {
                     ShadowRootMode::Closed,
                     false,
                     false,
-                    false,
+                    true,
                     SlotAssignmentMode::Manual,
                     can_gc,
                 )
                 .expect("Attaching UA shadow root failed")
         })
+    }
+
+    fn create_text_shadow_tree(&self, can_gc: CanGc) {
+        let document = self.owner_document();
+        let shadow_root = self.shadow_root(can_gc);
+        Node::replace_all(None, shadow_root.upcast::<Node>(), can_gc);
+
+        let inner_container =
+            HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
+        inner_container
+            .upcast::<Element>()
+            .SetId(DOMString::from("input-container"), can_gc);
+        shadow_root
+            .upcast::<Node>()
+            .AppendChild(inner_container.upcast::<Node>(), can_gc)
+            .unwrap();
+
+        let placeholder_container =
+            HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
+        placeholder_container
+            .upcast::<Element>()
+            .SetId(DOMString::from("input-placeholder"), can_gc);
+        inner_container
+            .upcast::<Node>()
+            .AppendChild(placeholder_container.upcast::<Node>(), can_gc)
+            .unwrap();
+
+        let text_container = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
+        text_container
+            .upcast::<Element>()
+            .SetId(DOMString::from("input-editor"), can_gc);
+        text_container
+            .upcast::<Node>()
+            .set_text_control_inner_editor();
+        inner_container
+            .upcast::<Node>()
+            .AppendChild(text_container.upcast::<Node>(), can_gc)
+            .unwrap();
+
+        let style = HTMLStyleElement::new(
+            local_name!("style"),
+            None,
+            &document,
+            None,
+            ElementCreator::ScriptCreated,
+            can_gc,
+        );
+        // TODO(stevennovaryo): Either use UA stylesheet with internal pseudo element or preemptively parse the stylesheet
+        //                      to reduce the costly operation and avoid CSP related error.
+        style
+            .upcast::<Node>()
+            .SetTextContent(Some(DOMString::from(TEXT_TREE_STYLE)), can_gc);
+        shadow_root
+            .upcast::<Node>()
+            .AppendChild(style.upcast::<Node>(), can_gc)
+            .unwrap();
+
+        let _ = self
+            .shadow_tree
+            .borrow_mut()
+            .insert(ShadowTree::Text(InputTypeTextShadowTree {
+                text_container: text_container.as_traced(),
+                placeholder_container: placeholder_container.as_traced(),
+            }));
+    }
+
+    fn text_shadow_tree(&self, can_gc: CanGc) -> Ref<InputTypeTextShadowTree> {
+        let has_text_shadow_tree = self
+            .shadow_tree
+            .borrow()
+            .as_ref()
+            .is_some_and(|shadow_tree| matches!(shadow_tree, ShadowTree::Text(_)));
+        if !has_text_shadow_tree {
+            self.create_text_shadow_tree(can_gc);
+        }
+
+        let shadow_tree = self.shadow_tree.borrow();
+        Ref::filter_map(shadow_tree, |shadow_tree| {
+            let shadow_tree = shadow_tree.as_ref()?;
+            match shadow_tree {
+                ShadowTree::Text(text_tree) => Some(text_tree),
+                _ => None,
+            }
+        })
+        .ok()
+        .expect("UA shadow tree was not created")
     }
 
     fn create_color_shadow_tree(&self, can_gc: CanGc) {
@@ -1136,27 +1282,53 @@ impl HTMLInputElement {
         let shadow_tree = self.shadow_tree.borrow();
         Ref::filter_map(shadow_tree, |shadow_tree| {
             let shadow_tree = shadow_tree.as_ref()?;
-            let ShadowTree::Color(color_tree) = shadow_tree;
-            Some(color_tree)
+            match shadow_tree {
+                ShadowTree::Color(color_tree) => Some(color_tree),
+                _ => None,
+            }
         })
         .ok()
         .expect("UA shadow tree was not created")
     }
 
     fn update_shadow_tree_if_needed(&self, can_gc: CanGc) {
-        if self.input_type() == InputType::Color {
-            let color_shadow_tree = self.color_shadow_tree(can_gc);
-            let mut value = self.Value();
-            if value.str().is_valid_simple_color_string() {
-                value.make_ascii_lowercase();
-            } else {
-                value = DOMString::from("#000000");
-            }
-            let style = format!("background-color: {value}");
-            color_shadow_tree
-                .color_value
-                .upcast::<Element>()
-                .set_string_attribute(&local_name!("style"), style.into(), can_gc);
+        match self.input_type() {
+            InputType::Text => {
+                let text_shadow_tree = self.text_shadow_tree(can_gc);
+                let value = self.Value();
+
+                // The addition of zero-width space here forces the text input to have an inline formatting
+                // context that might otherwise be trimmed if there's no text. This is important to ensure
+                // that the input element is at least as tall as the line gap of the caret:
+                // <https://drafts.csswg.org/css-ui/#element-with-default-preferred-size>.
+                //
+                // This is also used to ensure that the caret will still be rendered when the input is empty.
+                // TODO: Is there a less hacky way to do this?
+                let value_text = match value.is_empty() {
+                    false => value,
+                    true => "\u{200B}".into(),
+                };
+
+                text_shadow_tree
+                    .text_container
+                    .upcast::<Node>()
+                    .SetTextContent(Some(value_text), can_gc);
+            },
+            InputType::Color => {
+                let color_shadow_tree = self.color_shadow_tree(can_gc);
+                let mut value = self.Value();
+                if value.str().is_valid_simple_color_string() {
+                    value.make_ascii_lowercase();
+                } else {
+                    value = DOMString::from("#000000");
+                }
+                let style = format!("background-color: {value}");
+                color_shadow_tree
+                    .color_value
+                    .upcast::<Element>()
+                    .set_string_attribute(&local_name!("style"), style.into(), can_gc);
+            },
+            _ => {},
         }
     }
 }
@@ -2732,10 +2904,20 @@ impl VirtualMethods for HTMLInputElement {
             local_name!("placeholder") => {
                 {
                     let mut placeholder = self.placeholder.borrow_mut();
+                    let old_placeholder = placeholder.clone();
                     placeholder.clear();
                     if let AttributeMutation::Set(_) = mutation {
                         placeholder
                             .extend(attr.value().chars().filter(|&c| c != '\n' && c != '\r'));
+                    }
+
+                    // If old placeholder is not the same as the new one,
+                    // we need to update the shadow tree.
+                    if old_placeholder != *placeholder {
+                        self.text_shadow_tree(can_gc)
+                            .placeholder_container
+                            .upcast::<Node>()
+                            .SetTextContent(Some(placeholder.clone()), can_gc);
                     }
                 }
                 self.update_placeholder_shown_state();

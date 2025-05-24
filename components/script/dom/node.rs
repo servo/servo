@@ -230,6 +230,10 @@ bitflags! {
         /// Whether this node has a weird parser insertion mode. i.e whether setting innerHTML
         /// needs extra work or not
         const HAS_WEIRD_PARSER_INSERTION_MODE = 1 << 11;
+
+        /// Whether this node has a serve as the text container for editable content of
+        /// <input> or <textarea> element.
+        const IS_TEXT_CONTROL_INNER_EDITOR = 1 << 12;
     }
 }
 
@@ -695,6 +699,16 @@ impl Node {
     /// <https://dom.spec.whatwg.org/#connected>
     pub(crate) fn is_connected(&self) -> bool {
         self.flags.get().contains(NodeFlags::IS_CONNECTED)
+    }
+
+    pub(crate) fn set_text_control_inner_editor(&self) {
+        self.set_flag(NodeFlags::IS_TEXT_CONTROL_INNER_EDITOR, true)
+    }
+
+    pub(crate) fn is_text_control_inner_editor(&self) -> bool {
+        self.flags
+            .get()
+            .contains(NodeFlags::IS_TEXT_CONTROL_INNER_EDITOR)
     }
 
     /// Returns the type ID of this node.
@@ -1614,6 +1628,9 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
 
     /// Whether this element is a `<input>` rendered as text or a `<textarea>`.
     fn is_text_input(&self) -> bool;
+
+    /// Whether this element serve as a container of editable text for a text input.
+    fn is_text_control_inner_editor(&self) -> bool;
     fn text_content(self) -> Cow<'dom, str>;
     fn selection(self) -> Option<Range<usize>>;
     fn image_url(self) -> Option<ServoUrl>;
@@ -1787,14 +1804,18 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
         {
             let input = self.unsafe_get().downcast::<HTMLInputElement>().unwrap();
 
-            // FIXME: All the non-color input types currently render as text
-            input.input_type() != InputType::Color
+            // FIXME: All the non-color and non-text input types currently render as text
+            !matches!(input.input_type(), InputType::Color | InputType::Text)
         } else {
             type_id ==
                 NodeTypeId::Element(ElementTypeId::HTMLElement(
                     HTMLElementTypeId::HTMLTextAreaElement,
                 ))
         }
+    }
+
+    fn is_text_control_inner_editor(&self) -> bool {
+        self.unsafe_get().is_text_control_inner_editor()
     }
 
     fn text_content(self) -> Cow<'dom, str> {
@@ -1814,6 +1835,23 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     }
 
     fn selection(self) -> Option<Range<usize>> {
+        // This container is a text control inner editor of a <input> or <textarea> element.
+        // So we should find those corresponding element, and get its selection.
+        if self.is_text_control_inner_editor() {
+            let shadow_root = self.containing_shadow_root_for_layout();
+            if let Some(containing_shadow_host) = shadow_root.map(|root| root.get_host_for_layout())
+            {
+                if let Some(area) = containing_shadow_host.downcast::<HTMLTextAreaElement>() {
+                    return area.selection_for_layout();
+                }
+
+                if let Some(input) = containing_shadow_host.downcast::<HTMLInputElement>() {
+                    return input.selection_for_layout();
+                }
+            }
+            panic!("Text input element not found");
+        }
+
         if let Some(area) = self.downcast::<HTMLTextAreaElement>() {
             return area.selection_for_layout();
         }

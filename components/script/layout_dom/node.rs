@@ -100,6 +100,10 @@ impl<'dom> ServoLayoutNode<'dom> {
     pub fn is_text_input(&self) -> bool {
         self.node.is_text_input()
     }
+
+    pub fn is_text_control_inner_editor(&self) -> bool {
+        self.node.is_text_control_inner_editor()
+    }
 }
 
 impl style::dom::NodeInfo for ServoLayoutNode<'_> {
