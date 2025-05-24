@@ -77,6 +77,18 @@ def format_toml_files_with_taplo(check_only: bool = True) -> int:
         return call([taplo, "fmt", *TOML_GLOBS], env={'RUST_LOG': 'error'})
 
 
+def format_python_files_with_ruff(check_only: bool = True) -> int:
+    ruff = shutil.which("ruff")
+    if ruff is None:
+        print("Could not find `ruff`. Run `./mach bootstrap`")
+        return 1
+
+    if check_only:
+        return call([ruff, "format", "--check", "--quiet"])
+    else:
+        return call([ruff, "format", "--quiet"])
+
+
 def format_with_rustfmt(check_only: bool = True) -> int:
     maybe_check_only = ["--check"] if check_only else []
     result = call(["cargo", "fmt", "--", *UNSTABLE_RUSTFMT_ARGUMENTS, *maybe_check_only])
@@ -250,18 +262,23 @@ class MachCommands(CommandBase):
 
         print("\r ➤  Checking formatting of Rust files...")
         rustfmt_failed = format_with_rustfmt(check_only=True)
-        if rustfmt_failed:
-            print("Run `./mach fmt` to fix the formatting")
+
+        print("\r ➤  Checking formatting of python files...")
+        ruff_format_failed = format_python_files_with_ruff()
 
         print("\r ➤  Checking formatting of toml files...")
         taplo_failed = format_toml_files_with_taplo()
 
-        tidy_failed = tidy_failed or rustfmt_failed or taplo_failed
+        format_failed = rustfmt_failed or ruff_format_failed or taplo_failed
+        tidy_failed = format_failed or tidy_failed
         print()
         if tidy_failed:
             print("\r ❌ test-tidy reported errors.")
         else:
             print("\r ✅ test-tidy reported no errors.")
+
+        if format_failed:
+            print("Run `./mach fmt` to fix the formatting")
 
         return tidy_failed
 
@@ -382,9 +399,13 @@ class MachCommands(CommandBase):
         return wpt.manifestupdate.update(check_clean=False)
 
     @Command('fmt',
-             description='Format Rust and TOML files',
+             description='Format Rust, Python, and TOML files',
              category='testing')
     def format_code(self):
+        result = format_python_files_with_ruff(check_only=False)
+        if result != 0:
+            return result
+
         result = format_toml_files_with_taplo(check_only=False)
         if result != 0:
             return result
