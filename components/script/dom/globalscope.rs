@@ -2992,8 +2992,7 @@ impl GlobalScope {
 
                 if let Some(snapshot) = canvas.get_image_data() {
                     let size = snapshot.size().cast();
-                    let image_bitmap =
-                        ImageBitmap::new(self, size.width, size.height, can_gc).unwrap();
+                    let image_bitmap = ImageBitmap::new(self, size.width, size.height, can_gc);
                     image_bitmap.set_bitmap_data(snapshot.to_vec());
                     image_bitmap.set_origin_clean(canvas.origin_is_clean());
                     p.resolve_native(&(image_bitmap), can_gc);
@@ -3009,8 +3008,7 @@ impl GlobalScope {
 
                 if let Some(snapshot) = canvas.get_image_data() {
                     let size = snapshot.size().cast();
-                    let image_bitmap =
-                        ImageBitmap::new(self, size.width, size.height, can_gc).unwrap();
+                    let image_bitmap = ImageBitmap::new(self, size.width, size.height, can_gc);
                     image_bitmap.set_bitmap_data(snapshot.to_vec());
                     image_bitmap.set_origin_clean(canvas.origin_is_clean());
                     p.resolve_native(&(image_bitmap), can_gc);
