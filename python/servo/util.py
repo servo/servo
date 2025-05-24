@@ -49,12 +49,12 @@ def download(description: str, url: str, writer: BufferedIOBase, start_byte: int
     try:
         req = urllib.request.Request(url)
         if start_byte:
-            req = urllib.request.Request(url, headers={'Range': 'bytes={}-'.format(start_byte)})
+            req = urllib.request.Request(url, headers={"Range": "bytes={}-".format(start_byte)})
         resp = urllib.request.urlopen(req)
 
         fsize = None
-        if resp.info().get('Content-Length'):
-            fsize = int(resp.info().get('Content-Length').strip()) + start_byte
+        if resp.info().get("Content-Length"):
+            fsize = int(resp.info().get("Content-Length").strip()) + start_byte
 
         recved = start_byte
         chunk_size = 64 * 1024
@@ -72,7 +72,7 @@ def download(description: str, url: str, writer: BufferedIOBase, start_byte: int
                     progress_line = "\rDownloading %s: %5.1f%%" % (description, pct)
                     now = time.time()
                     duration = now - previous_progress_line_time
-                    if progress_line != previous_progress_line and duration > .1:
+                    if progress_line != previous_progress_line and duration > 0.1:
                         print(progress_line, end="")
                         previous_progress_line = progress_line
                         previous_progress_line_time = now
@@ -85,8 +85,10 @@ def download(description: str, url: str, writer: BufferedIOBase, start_byte: int
     except urllib.error.HTTPError as e:
         print("Download failed ({}): {} - {}".format(e.code, e.reason, url))
         if e.code == 403:
-            print("No Rust compiler binary available for this platform. "
-                  "Please see https://github.com/servo/servo/#prerequisites")
+            print(
+                "No Rust compiler binary available for this platform. "
+                "Please see https://github.com/servo/servo/#prerequisites"
+            )
         sys.exit(1)
     except urllib.error.URLError as e:
         print("Error downloading {}: {}. The failing URL was: {}".format(description, e.reason, url))
@@ -109,10 +111,10 @@ def download_file(description: str, url: str, destination_path: str):
     tmp_path = destination_path + ".part"
     try:
         start_byte = os.path.getsize(tmp_path)
-        with open(tmp_path, 'ab') as fd:
+        with open(tmp_path, "ab") as fd:
             download(description, url, fd, start_byte=start_byte)
     except os.error:
-        with open(tmp_path, 'wb') as fd:
+        with open(tmp_path, "wb") as fd:
             download(description, url, fd)
     os.rename(tmp_path, destination_path)
 
@@ -129,7 +131,7 @@ class ZipFileWithUnixPermissions(zipfile.ZipFile):
 
         extracted = self._extract_member(member, path, pwd)
         mode = os.stat(extracted).st_mode
-        mode |= (member.external_attr >> 16)
+        mode |= member.external_attr >> 16
         os.chmod(extracted, mode)
         return extracted
 

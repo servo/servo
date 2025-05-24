@@ -64,11 +64,14 @@ def get():
         __platform__ = Windows(triple)
     elif "linux-gnu" in triple:
         from .linux import Linux
+
         __platform__ = Linux(triple)
     elif "apple-darwin" in triple:
         from .macos import MacOS
+
         __platform__ = MacOS(triple)
     else:
         from .base import Base
+
         __platform__ = Base(triple)
     return __platform__

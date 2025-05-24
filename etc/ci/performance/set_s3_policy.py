@@ -10,13 +10,14 @@ import boto3
 
 def main():
     parser = argparse.ArgumentParser(
-        description=("Set the policy of the servo-perf bucket. "
-                     "Remember to set your S3 credentials "
-                     "https://github.com/boto/boto3"))
+        description=(
+            "Set the policy of the servo-perf bucket. Remember to set your S3 credentials https://github.com/boto/boto3"
+        )
+    )
     parser.parse_args()
 
-    s3 = boto3.resource('s3')
-    BUCKET = 'servo-perf'
+    s3 = boto3.resource("s3")
+    BUCKET = "servo-perf"
     POLICY = """{
   "Version":"2012-10-17",
   "Statement":[

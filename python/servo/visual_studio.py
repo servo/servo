@@ -38,7 +38,7 @@ def find_vswhere():
     for path in [PROGRAM_FILES, PROGRAM_FILES_X86]:
         if not path:
             continue
-        vswhere = os.path.join(path, 'Microsoft Visual Studio', 'Installer', 'vswhere.exe')
+        vswhere = os.path.join(path, "Microsoft Visual Studio", "Installer", "vswhere.exe")
         if os.path.exists(vswhere):
             return vswhere
     return None
@@ -52,24 +52,30 @@ def find_compatible_msvc_with_vswhere() -> Generator[VisualStudioInstallation, N
     if not vswhere:
         return
 
-    output = subprocess.check_output([
-        vswhere,
-        '-format', 'json',
-        '-products', '*',
-        '-requires', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64',
-        '-requires', 'Microsoft.VisualStudio.Component.Windows10SDK',
-        '-utf8'
-    ]).decode(errors='ignore')
+    output = subprocess.check_output(
+        [
+            vswhere,
+            "-format",
+            "json",
+            "-products",
+            "*",
+            "-requires",
+            "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
+            "-requires",
+            "Microsoft.VisualStudio.Component.Windows10SDK",
+            "-utf8",
+        ]
+    ).decode(errors="ignore")
 
     for install in json.loads(output):
         installed_version = f"{install['installationVersion'].split('.')[0]}.0"
         if installed_version not in COMPATIBLE_MSVC_VERSIONS.values():
             continue
-        installation_path = install['installationPath']
+        installation_path = install["installationPath"]
         yield VisualStudioInstallation(
             version_number=installed_version,
             installation_path=installation_path,
-            vc_install_path=os.path.join(installation_path, "VC")
+            vc_install_path=os.path.join(installation_path, "VC"),
         )
 
 
@@ -77,20 +83,20 @@ def find_compatible_msvc_with_path() -> Generator[VisualStudioInstallation, None
     for program_files in [PROGRAM_FILES, PROGRAM_FILES_X86]:
         if not program_files:
             continue
-        for (version, version_number) in COMPATIBLE_MSVC_VERSIONS.items():
+        for version, version_number in COMPATIBLE_MSVC_VERSIONS.items():
             for edition in ["Enterprise", "Professional", "Community", "BuildTools"]:
                 installation_path = os.path.join(program_files, "Microsoft Visual Studio", version, edition)
                 if os.path.exists(installation_path):
                     yield VisualStudioInstallation(
                         version_number=version_number,
                         installation_path=installation_path,
-                        vc_install_path=os.path.join(installation_path, "VC")
+                        vc_install_path=os.path.join(installation_path, "VC"),
                     )
 
 
 def find_compatible_msvc_with_environment_variables() -> Optional[VisualStudioInstallation]:
-    installation_path = os.environ.get('VSINSTALLDIR')
-    version_number = os.environ.get('VisualStudioVersion')
+    installation_path = os.environ.get("VSINSTALLDIR")
+    version_number = os.environ.get("VisualStudioVersion")
     if not installation_path or not version_number:
         return None
     vc_install_path = os.environ.get("VCINSTALLDIR", os.path.join(installation_path, "VC"))
@@ -116,8 +122,10 @@ def find_msvc_installations() -> List[VisualStudioInstallation]:
     if installation:
         return [installation]
 
-    raise Exception("Can't find a Visual Studio installation. "
-                    "Please set the VSINSTALLDIR and VisualStudioVersion environment variables")
+    raise Exception(
+        "Can't find a Visual Studio installation. "
+        "Please set the VSINSTALLDIR and VisualStudioVersion environment variables"
+    )
 
 
 def find_msvc_redist_dirs(vs_platform: str) -> Generator[str, None, None]:
@@ -160,7 +168,7 @@ def find_windows_sdk_installation_path() -> str:
 
     # This is based on the advice from
     # https://stackoverflow.com/questions/35119223/how-to-programmatically-detect-and-locate-the-windows-10-sdk
-    key_path = r'SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\v10.0'
+    key_path = r"SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\v10.0"
     try:
         with winreg.OpenKeyEx(winreg.HKEY_LOCAL_MACHINE, key_path) as key:
             return str(winreg.QueryValueEx(key, "InstallationFolder")[0])

@@ -23,14 +23,13 @@ SYSTEM = platform.system()
 
 
 def load_manifest(filename):
-    with open(filename, 'r') as f:
+    with open(filename, "r") as f:
         text = f.read()
     return list(parse_manifest(text))
 
 
 def parse_manifest(text):
-    lines = filter(lambda x: x != "" and not x.startswith("#"),
-                   map(lambda x: x.strip(), text.splitlines()))
+    lines = filter(lambda x: x != "" and not x.startswith("#"), map(lambda x: x.strip(), text.splitlines()))
     output = []
     for line in lines:
         if line.split(" ")[0] == "async":
@@ -46,21 +45,18 @@ def testcase_url(base, testcase):
     # the server on port 80. To allow non-root users to run the test
     # case, we take the URL to be relative to a base URL.
     (scheme, netloc, path, query, fragment) = urlsplit(testcase)
-    relative_url = urlunsplit(('', '', '.' + path, query, fragment))
+    relative_url = urlunsplit(("", "", "." + path, query, fragment))
     absolute_url = urljoin(base, relative_url)
     return absolute_url
 
 
 def execute_test(url, command, timeout):
     try:
-        return subprocess.check_output(
-            command, stderr=subprocess.STDOUT, timeout=timeout
-        )
+        return subprocess.check_output(command, stderr=subprocess.STDOUT, timeout=timeout)
     except subprocess.CalledProcessError as e:
         print("Unexpected Fail:")
         print(e)
-        print("You may want to re-run the test manually:\n{}"
-              .format(' '.join(command)))
+        print("You may want to re-run the test manually:\n{}".format(" ".join(command)))
     except subprocess.TimeoutExpired:
         print("Test FAILED due to timeout: {}".format(url))
     return ""
@@ -74,22 +70,21 @@ def run_servo_test(testcase, url, date, timeout, is_async):
 
     ua_script_path = "{}/user-agent-js".format(os.getcwd())
     command = [
-        "../../../target/release/servo", url,
+        "../../../target/release/servo",
+        url,
         "--userscripts=" + ua_script_path,
         "--headless",
-        "-x", "-o", "output.png"
+        "-x",
+        "-o",
+        "output.png",
     ]
     log = ""
     try:
-        log = subprocess.check_output(
-            command, stderr=subprocess.STDOUT, timeout=timeout
-        )
+        log = subprocess.check_output(command, stderr=subprocess.STDOUT, timeout=timeout)
     except subprocess.CalledProcessError as e:
         print("Unexpected Fail:")
         print(e)
-        print("You may want to re-run the test manually:\n{}".format(
-            ' '.join(command)
-        ))
+        print("You may want to re-run the test manually:\n{}".format(" ".join(command)))
     except subprocess.TimeoutExpired:
         print("Test FAILED due to timeout: {}".format(testcase))
     return parse_log(log, testcase, url, date)
@@ -100,7 +95,7 @@ def parse_log(log, testcase, url, date):
     block = []
     copy = False
     for line_bytes in log.splitlines():
-        line = line_bytes.decode('utf-8')
+        line = line_bytes.decode("utf-8")
 
         if line.strip() == ("[PERF] perf block start"):
             copy = True
@@ -119,10 +114,10 @@ def parse_log(log, testcase, url, date):
             except ValueError:
                 print("[DEBUG] failed to parse the following line:")
                 print(line)
-                print('[DEBUG] log:')
-                print('-----')
+                print("[DEBUG] log:")
+                print("-----")
                 print(log)
-                print('-----')
+                print("-----")
                 return None
 
             if key == "testcase" or key == "title":
@@ -133,10 +128,12 @@ def parse_log(log, testcase, url, date):
         return timing
 
     def valid_timing(timing, url=None):
-        if (timing is None
-                or testcase is None
-                or timing.get('title') == 'Error loading page'
-                or timing.get('testcase') != url):
+        if (
+            timing is None
+            or testcase is None
+            or timing.get("title") == "Error loading page"
+            or timing.get("testcase") != url
+        ):
             return False
         else:
             return True
@@ -178,10 +175,10 @@ def parse_log(log, testcase, url, date):
     # Set the testcase field to contain the original testcase name,
     # rather than the url.
     def set_testcase(timing, testcase=None, date=None):
-        timing['testcase'] = testcase
-        timing['system'] = SYSTEM
-        timing['machine'] = MACHINE
-        timing['date'] = date
+        timing["testcase"] = testcase
+        timing["system"] = SYSTEM
+        timing["machine"] = MACHINE
+        timing["date"] = date
         return timing
 
     valid_timing_for_case = partial(valid_timing, url=url)
@@ -190,10 +187,10 @@ def parse_log(log, testcase, url, date):
 
     if len(timings) == 0:
         print("Didn't find any perf data in the log, test timeout?")
-        print('[DEBUG] log:')
-        print('-----')
+        print("[DEBUG] log:")
+        print("-----")
         print(log)
-        print('-----')
+        print("-----")
 
         return [create_placeholder(testcase)]
     else:
@@ -204,22 +201,25 @@ def filter_result_by_manifest(result_json, manifest, base):
     filtered = []
     for name, is_async in manifest:
         url = testcase_url(base, name)
-        match = [tc for tc in result_json if tc['testcase'] == url]
+        match = [tc for tc in result_json if tc["testcase"] == url]
         if len(match) == 0:
-            raise Exception(("Missing test result: {}. This will cause a "
-                             "discontinuity in the treeherder graph, "
-                             "so we won't submit this data.").format(name))
+            raise Exception(
+                (
+                    "Missing test result: {}. This will cause a "
+                    "discontinuity in the treeherder graph, "
+                    "so we won't submit this data."
+                ).format(name)
+            )
         filtered += match
     return filtered
 
 
 def take_result_median(result_json, expected_runs):
     median_results = []
-    for k, g in itertools.groupby(result_json, lambda x: x['testcase']):
+    for k, g in itertools.groupby(result_json, lambda x: x["testcase"]):
         group = list(g)
         if len(group) != expected_runs:
-            print(("Warning: Not enough test data for {},"
-                  " maybe some runs failed?").format(k))
+            print(("Warning: Not enough test data for {}, maybe some runs failed?").format(k))
 
         median_result = {}
         for k, _ in group[0].items():
@@ -227,8 +227,7 @@ def take_result_median(result_json, expected_runs):
                 median_result[k] = group[0][k]
             else:
                 try:
-                    median_result[k] = median([x[k] for x in group
-                                               if x[k] is not None])
+                    median_result[k] = median([x[k] for x in group if x[k] is not None])
                 except StatisticsError:
                     median_result[k] = -1
         median_results.append(median_result)
@@ -236,72 +235,65 @@ def take_result_median(result_json, expected_runs):
 
 
 def save_result_json(results, filename, manifest, expected_runs, base):
-
     results = filter_result_by_manifest(results, manifest, base)
     results = take_result_median(results, expected_runs)
 
     if len(results) == 0:
-        with open(filename, 'w') as f:
-            json.dump("No test result found in the log. All tests timeout?",
-                      f, indent=2)
+        with open(filename, "w") as f:
+            json.dump("No test result found in the log. All tests timeout?", f, indent=2)
     else:
-        with open(filename, 'w') as f:
+        with open(filename, "w") as f:
             json.dump(results, f, indent=2)
     print("Result saved to {}".format(filename))
 
 
 def save_result_csv(results, filename, manifest, expected_runs, base):
-
     fieldnames = [
-        'system',
-        'machine',
-        'date',
-        'testcase',
-        'title',
-        'connectEnd',
-        'connectStart',
-        'domComplete',
-        'domContentLoadedEventEnd',
-        'domContentLoadedEventStart',
-        'domInteractive',
-        'domLoading',
-        'domainLookupEnd',
-        'domainLookupStart',
-        'fetchStart',
-        'loadEventEnd',
-        'loadEventStart',
-        'navigationStart',
-        'redirectEnd',
-        'redirectStart',
-        'requestStart',
-        'responseEnd',
-        'responseStart',
-        'secureConnectionStart',
-        'unloadEventEnd',
-        'unloadEventStart',
+        "system",
+        "machine",
+        "date",
+        "testcase",
+        "title",
+        "connectEnd",
+        "connectStart",
+        "domComplete",
+        "domContentLoadedEventEnd",
+        "domContentLoadedEventStart",
+        "domInteractive",
+        "domLoading",
+        "domainLookupEnd",
+        "domainLookupStart",
+        "fetchStart",
+        "loadEventEnd",
+        "loadEventStart",
+        "navigationStart",
+        "redirectEnd",
+        "redirectStart",
+        "requestStart",
+        "responseEnd",
+        "responseStart",
+        "secureConnectionStart",
+        "unloadEventEnd",
+        "unloadEventStart",
     ]
 
-    successes = [r for r in results if r['domComplete'] != -1]
+    successes = [r for r in results if r["domComplete"] != -1]
 
-    with open(filename, 'w', encoding='utf-8') as csvfile:
+    with open(filename, "w", encoding="utf-8") as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames)
         writer.writeheader()
         writer.writerows(successes)
 
 
 def format_result_summary(results):
-    failures = list(filter(lambda x: x['domComplete'] == -1, results))
+    failures = list(filter(lambda x: x["domComplete"] == -1, results))
     result_log = """
 ========================================
 Total {total} tests; {suc} succeeded, {fail} failed.
 
 Failure summary:
-""".format(
-        total=len(results),
-        suc=len(list(filter(lambda x: x['domComplete'] != -1, results))),
-        fail=len(failures)
-    )
-    uniq_failures = list(set(map(lambda x: x['testcase'], failures)))
+""".format(total=len(results), suc=len(list(filter(lambda x: x["domComplete"] != -1, results))), fail=len(failures))
+    uniq_failures = list(set(map(lambda x: x["testcase"], failures)))
     for failure in uniq_failures:
         result_log += " - {}\n".format(failure)
 
@@ -311,40 +303,40 @@ Failure summary:
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Run page load test on servo"
+    parser = argparse.ArgumentParser(description="Run page load test on servo")
+    parser.add_argument("tp5_manifest", help="the test manifest in tp5 format")
+    parser.add_argument("output_file", help="filename for the output json")
+    parser.add_argument(
+        "--base",
+        type=str,
+        default="http://localhost:8000/",
+        help="the base URL for tests. Default: http://localhost:8000/",
     )
-    parser.add_argument("tp5_manifest",
-                        help="the test manifest in tp5 format")
-    parser.add_argument("output_file",
-                        help="filename for the output json")
-    parser.add_argument("--base",
-                        type=str,
-                        default='http://localhost:8000/',
-                        help="the base URL for tests. Default: http://localhost:8000/")
-    parser.add_argument("--runs",
-                        type=int,
-                        default=20,
-                        help="number of runs for each test case. Defult: 20")
-    parser.add_argument("--timeout",
-                        type=int,
-                        default=300,  # 5 min
-                        help=("kill the test if not finished in time (sec)."
-                              " Default: 5 min"))
-    parser.add_argument("--date",
-                        type=str,
-                        default=None,  # 5 min
-                        help=("the date to use in the CSV file."))
-    parser.add_argument("--engine",
-                        type=str,
-                        default='servo',
-                        help=("The engine to run the tests on. Currently only"
-                              " servo and gecko are supported."))
+    parser.add_argument("--runs", type=int, default=20, help="number of runs for each test case. Defult: 20")
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=300,  # 5 min
+        help=("kill the test if not finished in time (sec). Default: 5 min"),
+    )
+    parser.add_argument(
+        "--date",
+        type=str,
+        default=None,  # 5 min
+        help=("the date to use in the CSV file."),
+    )
+    parser.add_argument(
+        "--engine",
+        type=str,
+        default="servo",
+        help=("The engine to run the tests on. Currently only servo and gecko are supported."),
+    )
     args = parser.parse_args()
-    if args.engine == 'servo':
+    if args.engine == "servo":
         run_test = run_servo_test
-    elif args.engine == 'gecko':
+    elif args.engine == "gecko":
         import gecko_driver  # Load this only when we need gecko test
+
         run_test = gecko_driver.run_gecko_test
     date = args.date or DATE
     try:
@@ -354,9 +346,7 @@ def main():
         for testcase, is_async in testcases:
             url = testcase_url(args.base, testcase)
             for run in range(args.runs):
-                print("Running test {}/{} on {}".format(run + 1,
-                                                        args.runs,
-                                                        url))
+                print("Running test {}/{} on {}".format(run + 1, args.runs, url))
                 # results will be a mixure of timings dict and testcase strings
                 # testcase string indicates a failed test
                 results += run_test(testcase, url, date, args.timeout, is_async)
@@ -364,7 +354,7 @@ def main():
                 # TODO: Record and analyze other performance.timing properties
 
         print(format_result_summary(results))
-        if args.output_file.endswith('.csv'):
+        if args.output_file.endswith(".csv"):
             save_result_csv(results, args.output_file, testcases, args.runs, args.base)
         else:
             save_result_json(results, args.output_file, testcases, args.runs, args.base)

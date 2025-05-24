@@ -33,9 +33,7 @@ class Base:
         raise NotImplementedError("Bootstrap installation detection not yet available.")
 
     def _platform_bootstrap_gstreamer(self, _target: BuildTarget, _force: bool) -> bool:
-        raise NotImplementedError(
-            "GStreamer bootstrap support is not yet available for your OS."
-        )
+        raise NotImplementedError("GStreamer bootstrap support is not yet available for your OS.")
 
     def is_gstreamer_installed(self, target: BuildTarget) -> bool:
         gstreamer_root = self.gstreamer_root(target)
@@ -92,8 +90,7 @@ class Base:
             if force or not shutil.which("cargo-deny"):
                 return False
             # Tidy needs at least version 0.18.1 installed.
-            result = subprocess.run(["cargo-deny", "--version"],
-                                    encoding='utf-8', capture_output=True)
+            result = subprocess.run(["cargo-deny", "--version"], encoding="utf-8", capture_output=True)
             (major, minor, micro) = result.stdout.strip().split(" ")[1].split(".", 2)
             return (int(major), int(minor), int(micro)) >= (0, 18, 1)
 
@@ -114,8 +111,8 @@ class Base:
 
     def passive_bootstrap(self) -> bool:
         """A bootstrap method that is called without explicitly invoking `./mach bootstrap`
-           but that is executed in the process of other `./mach` commands. This should be
-           as fast as possible."""
+        but that is executed in the process of other `./mach` commands. This should be
+        as fast as possible."""
         return False
 
     def bootstrap_gstreamer(self, force: bool):

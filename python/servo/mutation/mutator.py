@@ -39,7 +39,7 @@ class Strategy:
     def mutate(self, file_name):
         line_numbers = []
         for line in fileinput.input(file_name):
-            if not is_comment(line) and re.search(self._replace_strategy['regex'], line):
+            if not is_comment(line) and re.search(self._replace_strategy["regex"], line):
                 line_numbers.append(fileinput.lineno())
         if len(line_numbers) == 0:
             return -1
@@ -47,7 +47,7 @@ class Strategy:
             mutation_line_number = line_numbers[random.randint(0, len(line_numbers) - 1)]
             for line in fileinput.input(file_name, inplace=True):
                 if fileinput.lineno() == mutation_line_number:
-                    line = re.sub(self._replace_strategy['regex'], self._replace_strategy['replaceString'], line)
+                    line = re.sub(self._replace_strategy["regex"], self._replace_strategy["replaceString"], line)
                 print(line.rstrip())
             return mutation_line_number
 
@@ -56,30 +56,21 @@ class AndOr(Strategy):
     def __init__(self):
         Strategy.__init__(self)
         logical_and = r"(?<=\s)&&(?=\s)"
-        self._replace_strategy = {
-            'regex': logical_and,
-            'replaceString': '||'
-        }
+        self._replace_strategy = {"regex": logical_and, "replaceString": "||"}
 
 
 class IfTrue(Strategy):
     def __init__(self):
         Strategy.__init__(self)
         if_condition = r"(?<=if\s)\s*(?!let\s)(.*)(?=\s\{)"
-        self._replace_strategy = {
-            'regex': if_condition,
-            'replaceString': 'true'
-        }
+        self._replace_strategy = {"regex": if_condition, "replaceString": "true"}
 
 
 class IfFalse(Strategy):
     def __init__(self):
         Strategy.__init__(self)
         if_condition = r"(?<=if\s)\s*(?!let\s)(.*)(?=\s\{)"
-        self._replace_strategy = {
-            'regex': if_condition,
-            'replaceString': 'false'
-        }
+        self._replace_strategy = {"regex": if_condition, "replaceString": "false"}
 
 
 class ModifyComparision(Strategy):
@@ -87,10 +78,7 @@ class ModifyComparision(Strategy):
         Strategy.__init__(self)
         less_than_equals = r"(?<=\s)(\<)\=(?=\s)"
         greater_than_equals = r"(?<=\s)(\<)\=(?=\s)"
-        self._replace_strategy = {
-            'regex': (less_than_equals + '|' + greater_than_equals),
-            'replaceString': r"\1"
-        }
+        self._replace_strategy = {"regex": (less_than_equals + "|" + greater_than_equals), "replaceString": r"\1"}
 
 
 class MinusToPlus(Strategy):
@@ -98,10 +86,7 @@ class MinusToPlus(Strategy):
         Strategy.__init__(self)
         arithmetic_minus = r"(?<=\s)\-(?=\s.+)"
         minus_in_shorthand = r"(?<=\s)\-(?=\=)"
-        self._replace_strategy = {
-            'regex': (arithmetic_minus + '|' + minus_in_shorthand),
-            'replaceString': '+'
-        }
+        self._replace_strategy = {"regex": (arithmetic_minus + "|" + minus_in_shorthand), "replaceString": "+"}
 
 
 class PlusToMinus(Strategy):
@@ -109,20 +94,14 @@ class PlusToMinus(Strategy):
         Strategy.__init__(self)
         arithmetic_plus = r"(?<=[^\"]\s)\+(?=\s[^A-Z\'?\":\{]+)"
         plus_in_shorthand = r"(?<=\s)\+(?=\=)"
-        self._replace_strategy = {
-            'regex': (arithmetic_plus + '|' + plus_in_shorthand),
-            'replaceString': '-'
-        }
+        self._replace_strategy = {"regex": (arithmetic_plus + "|" + plus_in_shorthand), "replaceString": "-"}
 
 
 class AtomicString(Strategy):
     def __init__(self):
         Strategy.__init__(self)
         string_literal = r"(?<=\").+(?=\")"
-        self._replace_strategy = {
-            'regex': string_literal,
-            'replaceString': ' '
-        }
+        self._replace_strategy = {"regex": string_literal, "replaceString": " "}
 
 
 class DuplicateLine(Strategy):
@@ -136,9 +115,20 @@ class DuplicateLine(Strategy):
         plus_equals_statement = r".+?\s\+\=\s.*"
         minus_equals_statement = r".+?\s\-\=\s.*"
         self._replace_strategy = {
-            'regex': (append_statement + '|' + remove_statement + '|' + push_statement
-                      + '|' + pop_statement + '|' + plus_equals_statement + '|' + minus_equals_statement),
-            'replaceString': r"\g<0>\n\g<0>",
+            "regex": (
+                append_statement
+                + "|"
+                + remove_statement
+                + "|"
+                + push_statement
+                + "|"
+                + pop_statement
+                + "|"
+                + plus_equals_statement
+                + "|"
+                + minus_equals_statement
+            ),
+            "replaceString": r"\g<0>\n\g<0>",
         }
 
 
@@ -161,14 +151,17 @@ class DeleteIfBlock(Strategy):
         while line_to_mutate <= len(code_lines):
             current_line = code_lines[line_to_mutate - 1]
             next_line = code_lines[line_to_mutate]
-            if re.search(self.else_block, current_line) is not None \
-                    or re.search(self.else_block, next_line) is not None:
+            if (
+                re.search(self.else_block, current_line) is not None
+                or re.search(self.else_block, next_line) is not None
+            ):
                 if_blocks.pop(random_index)
                 if len(if_blocks) == 0:
                     return -1
                 else:
-                    random_index, start_counter, end_counter, lines_to_delete, line_to_mutate = \
-                        init_variables(if_blocks)
+                    random_index, start_counter, end_counter, lines_to_delete, line_to_mutate = init_variables(
+                        if_blocks
+                    )
                     continue
             lines_to_delete.append(line_to_mutate)
             for ch in current_line:
@@ -183,8 +176,17 @@ class DeleteIfBlock(Strategy):
 
 
 def get_strategies():
-    return AndOr, IfTrue, IfFalse, ModifyComparision, PlusToMinus, MinusToPlus, \
-        AtomicString, DuplicateLine, DeleteIfBlock
+    return (
+        AndOr,
+        IfTrue,
+        IfFalse,
+        ModifyComparision,
+        PlusToMinus,
+        MinusToPlus,
+        AtomicString,
+        DuplicateLine,
+        DeleteIfBlock,
+    )
 
 
 class Mutator:

@@ -68,7 +68,7 @@ class TrustedNodeAddressPrinter:
     def children(self):
         node_type = gdb.lookup_type("struct script::dom::node::Node").pointer()
         value = self.val.cast(node_type)
-        return [('Node', value)]
+        return [("Node", value)]
 
     def to_string(self):
         return self.val.address
@@ -83,7 +83,7 @@ class NodeTypeIdPrinter:
         u8_ptr_type = gdb.lookup_type("u8").pointer()
         enum_0 = self.val.address.cast(u8_ptr_type).dereference()
         enum_type = self.val.type.fields()[int(enum_0)].type
-        return str(enum_type).lstrip('struct ')
+        return str(enum_type).lstrip("struct ")
 
 
 # Printer for std::Option<>
@@ -113,8 +113,8 @@ class OptionPrinter:
             value_type = option_type.fields()[1].type.fields()[1].type
             v_size = value_type.sizeof
             data_ptr = (ptr + t_size - v_size).cast(value_type.pointer()).dereference()
-            return [('Some', data_ptr)]
-        return [('None', None)]
+            return [("Some", data_ptr)]
+        return [("None", None)]
 
     def to_string(self):
         return None
@@ -130,19 +130,19 @@ class TestPrinter:
 
 
 type_map = [
-    ('struct Au', AuPrinter),
-    ('FlowFlags', BitFieldU8Printer),
-    ('IntrinsicWidths', ChildPrinter),
-    ('PlacementInfo', ChildPrinter),
-    ('TrustedNodeAddress', TrustedNodeAddressPrinter),
-    ('NodeTypeId', NodeTypeIdPrinter),
-    ('Option', OptionPrinter),
+    ("struct Au", AuPrinter),
+    ("FlowFlags", BitFieldU8Printer),
+    ("IntrinsicWidths", ChildPrinter),
+    ("PlacementInfo", ChildPrinter),
+    ("TrustedNodeAddress", TrustedNodeAddressPrinter),
+    ("NodeTypeId", NodeTypeIdPrinter),
+    ("Option", OptionPrinter),
 ]
 
 
 def lookup_servo_type(val):
     val_type = str(val.type)
-    for (type_name, printer) in type_map:
+    for type_name, printer in type_map:
         if val_type == type_name or val_type.endswith("::" + type_name):
             return printer(val)
     return None

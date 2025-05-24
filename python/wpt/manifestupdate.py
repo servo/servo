@@ -22,10 +22,10 @@ from wptrunner import wptlogging
 
 def create_parser():
     p = argparse.ArgumentParser()
-    p.add_argument("--check-clean", action="store_true",
-                   help="Check that updating the manifest doesn't lead to any changes")
-    p.add_argument("--rebuild", action="store_true",
-                   help="Rebuild the manifest from scratch")
+    p.add_argument(
+        "--check-clean", action="store_true", help="Check that updating the manifest doesn't lead to any changes"
+    )
+    p.add_argument("--rebuild", action="store_true", help="Rebuild the manifest from scratch")
     commandline.add_logging_group(p)
 
     return p
@@ -34,11 +34,13 @@ def create_parser():
 def update(check_clean=True, rebuild=False, logger=None, **kwargs):
     if not logger:
         logger = wptlogging.setup(kwargs, {"mach": sys.stdout})
-    kwargs = {"config": os.path.join(WPT_PATH, "config.ini"),
-              "product": "servo",
-              "manifest_path": os.path.join(WPT_PATH, "meta"),
-              "tests_root": None,
-              "metadata_root": None}
+    kwargs = {
+        "config": os.path.join(WPT_PATH, "config.ini"),
+        "product": "servo",
+        "manifest_path": os.path.join(WPT_PATH, "meta"),
+        "tests_root": None,
+        "metadata_root": None,
+    }
 
     set_from_config(kwargs)
     config = kwargs["config"]
@@ -53,15 +55,15 @@ def update(check_clean=True, rebuild=False, logger=None, **kwargs):
 def _update(logger, test_paths, rebuild):
     for url_base, paths in iteritems(test_paths):
         manifest_path = os.path.join(paths.metadata_path, "MANIFEST.json")
-        cache_subdir = os.path.relpath(os.path.dirname(manifest_path),
-                                       os.path.dirname(__file__))
-        wptmanifest.manifest.load_and_update(paths.tests_path,
-                                             manifest_path,
-                                             url_base,
-                                             working_copy=True,
-                                             rebuild=rebuild,
-                                             cache_root=os.path.join(SERVO_ROOT, ".wpt",
-                                                                     cache_subdir))
+        cache_subdir = os.path.relpath(os.path.dirname(manifest_path), os.path.dirname(__file__))
+        wptmanifest.manifest.load_and_update(
+            paths.tests_path,
+            manifest_path,
+            url_base,
+            working_copy=True,
+            rebuild=rebuild,
+            cache_root=os.path.join(SERVO_ROOT, ".wpt", cache_subdir),
+        )
     return 0
 
 
@@ -72,26 +74,25 @@ def _check_clean(logger, test_paths):
         tests_path = paths.tests_path
         manifest_path = os.path.join(paths.metadata_path, "MANIFEST.json")
 
-        old_manifest = wptmanifest.manifest.load_and_update(tests_path,
-                                                            manifest_path,
-                                                            url_base,
-                                                            working_copy=False,
-                                                            update=False,
-                                                            write_manifest=False)
+        old_manifest = wptmanifest.manifest.load_and_update(
+            tests_path, manifest_path, url_base, working_copy=False, update=False, write_manifest=False
+        )
 
         # Even if no cache is specified, one will be used automatically by the
         # VCS integration. Create a brand new cache every time to ensure that
         # the VCS integration always thinks that any file modifications in the
         # working directory are new and interesting.
         cache_root = tempfile.mkdtemp()
-        new_manifest = wptmanifest.manifest.load_and_update(tests_path,
-                                                            manifest_path,
-                                                            url_base,
-                                                            working_copy=True,
-                                                            update=True,
-                                                            cache_root=cache_root,
-                                                            write_manifest=False,
-                                                            allow_cached=False)
+        new_manifest = wptmanifest.manifest.load_and_update(
+            tests_path,
+            manifest_path,
+            url_base,
+            working_copy=True,
+            update=True,
+            cache_root=cache_root,
+            write_manifest=False,
+            allow_cached=False,
+        )
 
         manifests_by_path[manifest_path] = (old_manifest, new_manifest)
 
@@ -116,8 +117,7 @@ def diff_manifests(logger, manifest_path, old_manifest, new_manifest):
     """
     logger.info("Diffing old and new manifests %s" % manifest_path)
     old_items, new_items = defaultdict(set), defaultdict(set)
-    for manifest, items in [(old_manifest, old_items),
-                            (new_manifest, new_items)]:
+    for manifest, items in [(old_manifest, old_items), (new_manifest, new_items)]:
         for test_type, path, tests in manifest:
             for test in tests:
                 test_id = [test.id]
@@ -158,8 +158,8 @@ def diff_manifests(logger, manifest_path, old_manifest, new_manifest):
     if clean:
         # Manifest currently has some list vs tuple inconsistencies that break
         # a simple equality comparison.
-        old_paths = old_manifest.to_json()['items']
-        new_paths = new_manifest.to_json()['items']
+        old_paths = old_manifest.to_json()["items"]
+        new_paths = new_manifest.to_json()["items"]
         if old_paths != new_paths:
             logger.warning("Manifest %s contains correct tests but file hashes changed." % manifest_path)  # noqa
             clean = False
@@ -168,8 +168,4 @@ def diff_manifests(logger, manifest_path, old_manifest, new_manifest):
 
 
 def log_error(logger, manifest_path, msg):
-    logger.lint_error(path=manifest_path,
-                      message=msg,
-                      lineno=0,
-                      source="",
-                      linter="wpt-manifest")
+    logger.lint_error(path=manifest_path, message=msg, lineno=0, source="", linter="wpt-manifest")

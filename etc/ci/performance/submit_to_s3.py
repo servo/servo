@@ -10,17 +10,16 @@ import boto3
 
 def main():
     parser = argparse.ArgumentParser(
-        description=("Submit Servo performance data to S3. "
-                     "Remember to set your S3 credentials "
-                     "https://github.com/boto/boto3"))
-    parser.add_argument("perf_file",
-                        help="the output CSV file from runner")
-    parser.add_argument("perf_key",
-                        help="the S3 key to upload to")
+        description=(
+            "Submit Servo performance data to S3. Remember to set your S3 credentials https://github.com/boto/boto3"
+        )
+    )
+    parser.add_argument("perf_file", help="the output CSV file from runner")
+    parser.add_argument("perf_key", help="the S3 key to upload to")
     args = parser.parse_args()
 
-    s3 = boto3.client('s3')
-    BUCKET = 'servo-perf'
+    s3 = boto3.client("s3")
+    BUCKET = "servo-perf"
     s3.upload_file(args.perf_file, BUCKET, args.perf_key)
 
     print("Done!")

@@ -29,12 +29,12 @@ class BuildTarget(object):
         self.target_triple = target_triple
 
     @staticmethod
-    def from_triple(target_triple: Optional[str]) -> 'BuildTarget':
+    def from_triple(target_triple: Optional[str]) -> "BuildTarget":
         host_triple = servo.platform.host_triple()
         if target_triple:
-            if 'android' in target_triple:
+            if "android" in target_triple:
                 return AndroidTarget(target_triple)
-            elif 'ohos' in target_triple:
+            elif "ohos" in target_triple:
                 return OpenHarmonyTarget(target_triple)
             elif target_triple != host_triple:
                 raise Exception(f"Unknown build target {target_triple}")
@@ -129,16 +129,16 @@ class AndroidTarget(CrossBuildTarget):
         android_toolchain_name = ndk_configuration["toolchain_name"]
         android_lib = ndk_configuration["lib"]
 
-        android_api = android_platform.replace('android-', '')
+        android_api = android_platform.replace("android-", "")
 
         # Check if the NDK version is 26
-        if not os.path.isfile(path.join(env["ANDROID_NDK_ROOT"], 'source.properties')):
+        if not os.path.isfile(path.join(env["ANDROID_NDK_ROOT"], "source.properties")):
             print("ANDROID_NDK should have file `source.properties`.")
             print("The environment variable ANDROID_NDK_ROOT may be set at a wrong path.")
             sys.exit(1)
-        with open(path.join(env["ANDROID_NDK_ROOT"], 'source.properties'), encoding="utf8") as ndk_properties:
+        with open(path.join(env["ANDROID_NDK_ROOT"], "source.properties"), encoding="utf8") as ndk_properties:
             lines = ndk_properties.readlines()
-            if lines[1].split(' = ')[1].split('.')[0] != '26':
+            if lines[1].split(" = ")[1].split(".")[0] != "26":
                 print("Servo currently only supports NDK r26c.")
                 sys.exit(1)
 
@@ -149,7 +149,7 @@ class AndroidTarget(CrossBuildTarget):
         if os_type not in ["linux", "darwin"]:
             raise Exception("Android cross builds are only supported on Linux and macOS.")
 
-        llvm_prebuilt = path.join(env['ANDROID_NDK_ROOT'], "toolchains", "llvm", "prebuilt")
+        llvm_prebuilt = path.join(env["ANDROID_NDK_ROOT"], "toolchains", "llvm", "prebuilt")
 
         cpu_type = platform.machine().lower()
         host_suffix = "unknown"
@@ -172,11 +172,11 @@ class AndroidTarget(CrossBuildTarget):
                 raise Exception("Can't determine LLVM prebuilt directory.")
         host = os_type + "-" + host_suffix
 
-        host_cc = env.get('HOST_CC') or shutil.which("clang")
-        host_cxx = env.get('HOST_CXX') or shutil.which("clang++")
+        host_cc = env.get("HOST_CC") or shutil.which("clang")
+        host_cxx = env.get("HOST_CXX") or shutil.which("clang++")
 
         llvm_toolchain = path.join(llvm_prebuilt, host)
-        env['PATH'] = (env['PATH'] + ':' + path.join(llvm_toolchain, "bin"))
+        env["PATH"] = env["PATH"] + ":" + path.join(llvm_toolchain, "bin")
 
         def to_ndk_bin(prog):
             return path.join(llvm_toolchain, "bin", prog)
@@ -189,26 +189,26 @@ class AndroidTarget(CrossBuildTarget):
                 [to_ndk_bin(f"x86_64-linux-android{android_api}-clang"), "--print-libgcc-file-name"],
                 check=True,
                 capture_output=True,
-                encoding="utf8"
+                encoding="utf8",
             ).stdout
-            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "")
+            env["RUSTFLAGS"] = env.get("RUSTFLAGS", "")
             env["RUSTFLAGS"] += f"-C link-arg={libclangrt_filename}"
 
         env["RUST_TARGET"] = self.triple()
-        env['HOST_CC'] = host_cc
-        env['HOST_CXX'] = host_cxx
-        env['HOST_CFLAGS'] = ''
-        env['HOST_CXXFLAGS'] = ''
-        env['TARGET_CC'] = to_ndk_bin("clang")
-        env['TARGET_CPP'] = to_ndk_bin("clang") + " -E"
-        env['TARGET_CXX'] = to_ndk_bin("clang++")
+        env["HOST_CC"] = host_cc
+        env["HOST_CXX"] = host_cxx
+        env["HOST_CFLAGS"] = ""
+        env["HOST_CXXFLAGS"] = ""
+        env["TARGET_CC"] = to_ndk_bin("clang")
+        env["TARGET_CPP"] = to_ndk_bin("clang") + " -E"
+        env["TARGET_CXX"] = to_ndk_bin("clang++")
 
-        env['TARGET_AR'] = to_ndk_bin("llvm-ar")
-        env['TARGET_RANLIB'] = to_ndk_bin("llvm-ranlib")
-        env['TARGET_OBJCOPY'] = to_ndk_bin("llvm-objcopy")
-        env['TARGET_YASM'] = to_ndk_bin("yasm")
-        env['TARGET_STRIP'] = to_ndk_bin("llvm-strip")
-        env['RUST_FONTCONFIG_DLOPEN'] = "on"
+        env["TARGET_AR"] = to_ndk_bin("llvm-ar")
+        env["TARGET_RANLIB"] = to_ndk_bin("llvm-ranlib")
+        env["TARGET_OBJCOPY"] = to_ndk_bin("llvm-objcopy")
+        env["TARGET_YASM"] = to_ndk_bin("yasm")
+        env["TARGET_STRIP"] = to_ndk_bin("llvm-strip")
+        env["RUST_FONTCONFIG_DLOPEN"] = "on"
 
         env["LIBCLANG_PATH"] = path.join(llvm_toolchain, "lib")
         env["CLANG_PATH"] = to_ndk_bin("clang")
@@ -224,11 +224,11 @@ class AndroidTarget(CrossBuildTarget):
         #
         # Also worth remembering: autoconf uses C for its configuration,
         # even for C++ builds, so the C flags need to line up with the C++ flags.
-        env['TARGET_CFLAGS'] = "--target=" + android_toolchain_name
-        env['TARGET_CXXFLAGS'] = "--target=" + android_toolchain_name
+        env["TARGET_CFLAGS"] = "--target=" + android_toolchain_name
+        env["TARGET_CXXFLAGS"] = "--target=" + android_toolchain_name
 
         # These two variables are needed for the mozjs compilation.
-        env['ANDROID_API_LEVEL'] = android_api
+        env["ANDROID_API_LEVEL"] = android_api
         env["ANDROID_NDK_HOME"] = env["ANDROID_NDK_ROOT"]
 
         # The two variables set below are passed by our custom
@@ -236,15 +236,16 @@ class AndroidTarget(CrossBuildTarget):
         env["ANDROID_ABI"] = android_lib
         env["ANDROID_PLATFORM"] = android_platform
         env["NDK_CMAKE_TOOLCHAIN_FILE"] = path.join(
-            env['ANDROID_NDK_ROOT'], "build", "cmake", "android.toolchain.cmake")
+            env["ANDROID_NDK_ROOT"], "build", "cmake", "android.toolchain.cmake"
+        )
         env["CMAKE_TOOLCHAIN_FILE"] = path.join(topdir, "support", "android", "toolchain.cmake")
 
         # Set output dir for gradle aar files
         env["AAR_OUT_DIR"] = path.join(topdir, "target", "android", "aar")
-        if not os.path.exists(env['AAR_OUT_DIR']):
-            os.makedirs(env['AAR_OUT_DIR'])
+        if not os.path.exists(env["AAR_OUT_DIR"]):
+            os.makedirs(env["AAR_OUT_DIR"])
 
-        env['TARGET_PKG_CONFIG_SYSROOT_DIR'] = path.join(llvm_toolchain, 'sysroot')
+        env["TARGET_PKG_CONFIG_SYSROOT_DIR"] = path.join(llvm_toolchain, "sysroot")
 
     def binary_name(self) -> str:
         return "libservoshell.so"
@@ -273,8 +274,10 @@ class OpenHarmonyTarget(CrossBuildTarget):
             env["OHOS_SDK_NATIVE"] = config["ohos"]["ndk"]
 
         if "OHOS_SDK_NATIVE" not in env:
-            print("Please set the OHOS_SDK_NATIVE environment variable to the location of the `native` directory "
-                  "in the OpenHarmony SDK.")
+            print(
+                "Please set the OHOS_SDK_NATIVE environment variable to the location of the `native` directory "
+                "in the OpenHarmony SDK."
+            )
             sys.exit(1)
 
         ndk_root = pathlib.Path(env["OHOS_SDK_NATIVE"])
@@ -288,9 +291,9 @@ class OpenHarmonyTarget(CrossBuildTarget):
         try:
             with open(package_info) as meta_file:
                 meta = json.load(meta_file)
-            ohos_api_version = int(meta['apiVersion'])
-            ohos_sdk_version = parse_version(meta['version'])
-            if ohos_sdk_version < parse_version('5.0') or ohos_api_version < 12:
+            ohos_api_version = int(meta["apiVersion"])
+            ohos_sdk_version = parse_version(meta["version"])
+            if ohos_sdk_version < parse_version("5.0") or ohos_api_version < 12:
                 raise RuntimeError("Building servo for OpenHarmony requires SDK version 5.0 (API-12) or newer.")
             print(f"Info: The OpenHarmony SDK {ohos_sdk_version} is targeting API-level {ohos_api_version}")
         except (OSError, json.JSONDecodeError) as e:
@@ -318,72 +321,79 @@ class OpenHarmonyTarget(CrossBuildTarget):
         # Instead, we ensure that all the necessary flags for the c-compiler are set
         # via environment variables such as `TARGET_CFLAGS`.
         def to_sdk_llvm_bin(prog: str):
-            if sys.platform == 'win32':
-                prog = prog + '.exe'
+            if sys.platform == "win32":
+                prog = prog + ".exe"
             llvm_prog = llvm_bin.joinpath(prog)
             if not llvm_prog.is_file():
                 raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), llvm_prog)
             return llvm_bin.joinpath(prog).as_posix()
 
         # CC and CXX should already be set to appropriate host compilers by `build_env()`
-        env['HOST_CC'] = env['CC']
-        env['HOST_CXX'] = env['CXX']
-        env['TARGET_AR'] = to_sdk_llvm_bin("llvm-ar")
-        env['TARGET_RANLIB'] = to_sdk_llvm_bin("llvm-ranlib")
-        env['TARGET_READELF'] = to_sdk_llvm_bin("llvm-readelf")
-        env['TARGET_OBJCOPY'] = to_sdk_llvm_bin("llvm-objcopy")
-        env['TARGET_STRIP'] = to_sdk_llvm_bin("llvm-strip")
+        env["HOST_CC"] = env["CC"]
+        env["HOST_CXX"] = env["CXX"]
+        env["TARGET_AR"] = to_sdk_llvm_bin("llvm-ar")
+        env["TARGET_RANLIB"] = to_sdk_llvm_bin("llvm-ranlib")
+        env["TARGET_READELF"] = to_sdk_llvm_bin("llvm-readelf")
+        env["TARGET_OBJCOPY"] = to_sdk_llvm_bin("llvm-objcopy")
+        env["TARGET_STRIP"] = to_sdk_llvm_bin("llvm-strip")
 
         target_triple = self.triple()
-        rust_target_triple = str(target_triple).replace('-', '_')
+        rust_target_triple = str(target_triple).replace("-", "_")
         ndk_clang = to_sdk_llvm_bin("clang")
         ndk_clangxx = to_sdk_llvm_bin("clang++")
-        env[f'CC_{rust_target_triple}'] = ndk_clang
-        env[f'CXX_{rust_target_triple}'] = ndk_clangxx
+        env[f"CC_{rust_target_triple}"] = ndk_clang
+        env[f"CXX_{rust_target_triple}"] = ndk_clangxx
         # The clang target name is different from the LLVM target name
-        clang_target_triple = str(target_triple).replace('-unknown-', '-')
-        clang_target_triple_underscore = clang_target_triple.replace('-', '_')
-        env[f'CC_{clang_target_triple_underscore}'] = ndk_clang
-        env[f'CXX_{clang_target_triple_underscore}'] = ndk_clangxx
+        clang_target_triple = str(target_triple).replace("-unknown-", "-")
+        clang_target_triple_underscore = clang_target_triple.replace("-", "_")
+        env[f"CC_{clang_target_triple_underscore}"] = ndk_clang
+        env[f"CXX_{clang_target_triple_underscore}"] = ndk_clangxx
         # rustc linker
-        env[f'CARGO_TARGET_{rust_target_triple.upper()}_LINKER'] = ndk_clang
+        env[f"CARGO_TARGET_{rust_target_triple.upper()}_LINKER"] = ndk_clang
         # We could also use a cross-compile wrapper
-        env["RUSTFLAGS"] += f' -Clink-arg=--target={clang_target_triple}'
-        env["RUSTFLAGS"] += f' -Clink-arg=--sysroot={ohos_sysroot_posix}'
+        env["RUSTFLAGS"] += f" -Clink-arg=--target={clang_target_triple}"
+        env["RUSTFLAGS"] += f" -Clink-arg=--sysroot={ohos_sysroot_posix}"
 
-        env['HOST_CFLAGS'] = ''
-        env['HOST_CXXFLAGS'] = ''
-        ohos_cflags = ['-D__MUSL__', f' --target={clang_target_triple}', f' --sysroot={ohos_sysroot_posix}',
-                       "-Wno-error=unused-command-line-argument"]
-        if clang_target_triple.startswith('armv7-'):
-            ohos_cflags.extend(['-march=armv7-a', '-mfloat-abi=softfp', '-mtune=generic-armv7-a', '-mthumb'])
+        env["HOST_CFLAGS"] = ""
+        env["HOST_CXXFLAGS"] = ""
+        ohos_cflags = [
+            "-D__MUSL__",
+            f" --target={clang_target_triple}",
+            f" --sysroot={ohos_sysroot_posix}",
+            "-Wno-error=unused-command-line-argument",
+        ]
+        if clang_target_triple.startswith("armv7-"):
+            ohos_cflags.extend(["-march=armv7-a", "-mfloat-abi=softfp", "-mtune=generic-armv7-a", "-mthumb"])
         ohos_cflags_str = " ".join(ohos_cflags)
-        env['TARGET_CFLAGS'] = ohos_cflags_str
-        env['TARGET_CPPFLAGS'] = '-D__MUSL__'
-        env['TARGET_CXXFLAGS'] = ohos_cflags_str
+        env["TARGET_CFLAGS"] = ohos_cflags_str
+        env["TARGET_CPPFLAGS"] = "-D__MUSL__"
+        env["TARGET_CXXFLAGS"] = ohos_cflags_str
 
         # CMake related flags
-        env['CMAKE'] = ndk_root.joinpath("build-tools", "cmake", "bin", "cmake").as_posix()
+        env["CMAKE"] = ndk_root.joinpath("build-tools", "cmake", "bin", "cmake").as_posix()
         cmake_toolchain_file = ndk_root.joinpath("build", "cmake", "ohos.toolchain.cmake")
         if cmake_toolchain_file.is_file():
-            env[f'CMAKE_TOOLCHAIN_FILE_{rust_target_triple}'] = cmake_toolchain_file.as_posix()
+            env[f"CMAKE_TOOLCHAIN_FILE_{rust_target_triple}"] = cmake_toolchain_file.as_posix()
         else:
             print(
-                f"Warning: Failed to find the OpenHarmony CMake Toolchain file - Expected it at {cmake_toolchain_file}")
-        env[f'CMAKE_C_COMPILER_{rust_target_triple}'] = ndk_clang
-        env[f'CMAKE_CXX_COMPILER_{rust_target_triple}'] = ndk_clangxx
+                f"Warning: Failed to find the OpenHarmony CMake Toolchain file - Expected it at {cmake_toolchain_file}"
+            )
+        env[f"CMAKE_C_COMPILER_{rust_target_triple}"] = ndk_clang
+        env[f"CMAKE_CXX_COMPILER_{rust_target_triple}"] = ndk_clangxx
 
         # pkg-config
-        pkg_config_path = '{}:{}'.format(ohos_sysroot.joinpath("usr", "lib", "pkgconfig").as_posix(),
-                                         ohos_sysroot.joinpath("usr", "share", "pkgconfig").as_posix())
-        env[f'PKG_CONFIG_SYSROOT_DIR_{rust_target_triple}'] = ohos_sysroot_posix
-        env[f'PKG_CONFIG_PATH_{rust_target_triple}'] = pkg_config_path
+        pkg_config_path = "{}:{}".format(
+            ohos_sysroot.joinpath("usr", "lib", "pkgconfig").as_posix(),
+            ohos_sysroot.joinpath("usr", "share", "pkgconfig").as_posix(),
+        )
+        env[f"PKG_CONFIG_SYSROOT_DIR_{rust_target_triple}"] = ohos_sysroot_posix
+        env[f"PKG_CONFIG_PATH_{rust_target_triple}"] = pkg_config_path
 
         # bindgen / libclang-sys
         env["LIBCLANG_PATH"] = path.join(llvm_toolchain, "lib")
         env["CLANG_PATH"] = ndk_clangxx
-        env[f'CXXSTDLIB_{clang_target_triple_underscore}'] = "c++"
-        bindgen_extra_clangs_args_var = f'BINDGEN_EXTRA_CLANG_ARGS_{rust_target_triple}'
+        env[f"CXXSTDLIB_{clang_target_triple_underscore}"] = "c++"
+        bindgen_extra_clangs_args_var = f"BINDGEN_EXTRA_CLANG_ARGS_{rust_target_triple}"
         bindgen_extra_clangs_args = env.get(bindgen_extra_clangs_args_var, "")
         bindgen_extra_clangs_args = bindgen_extra_clangs_args + " " + ohos_cflags_str
         env[bindgen_extra_clangs_args_var] = bindgen_extra_clangs_args
@@ -404,8 +414,5 @@ class OpenHarmonyTarget(CrossBuildTarget):
         return path.join(base_path, build_type_directory, build_output_path, hap_name)
 
     def abi_string(self) -> str:
-        abi_map = {
-            "aarch64-unknown-linux-ohos": "arm64-v8a",
-            "x86_64-unknown-linux-ohos": "x86_64"
-        }
+        abi_map = {"aarch64-unknown-linux-ohos": "arm64-v8a", "x86_64-unknown-linux-ohos": "x86_64"}
         return abi_map[self.triple()]

@@ -16,43 +16,47 @@ SCRIPT_PATH = os.path.split(__file__)[0]
 
 
 def main():
-    default_output_dir = os.path.join(SCRIPT_PATH, 'output')
-    default_cache_dir = os.path.join(SCRIPT_PATH, '.cache')
+    default_output_dir = os.path.join(SCRIPT_PATH, "output")
+    default_cache_dir = os.path.join(SCRIPT_PATH, ".cache")
 
-    parser = argparse.ArgumentParser(
-        description="Download buildbot metadata"
+    parser = argparse.ArgumentParser(description="Download buildbot metadata")
+    parser.add_argument(
+        "--index-url",
+        type=str,
+        default="https://build.servo.org/json",
+        help="the URL to get the JSON index data index from. Default: https://build.servo.org/json",
     )
-    parser.add_argument("--index-url",
-                        type=str,
-                        default='https://build.servo.org/json',
-                        help="the URL to get the JSON index data index from. "
-                        "Default: https://build.servo.org/json")
-    parser.add_argument("--build-url",
-                        type=str,
-                        default='https://build.servo.org/json/builders/{}/builds/{}',
-                        help="the URL to get the JSON build data from. "
-                        "Default: https://build.servo.org/json/builders/{}/builds/{}")
-    parser.add_argument("--cache-dir",
-                        type=str,
-                        default=default_cache_dir,
-                        help="the directory to cache JSON files in. Default: " + default_cache_dir)
-    parser.add_argument("--cache-name",
-                        type=str,
-                        default='build-{}-{}.json',
-                        help="the filename to cache JSON data in. "
-                        "Default: build-{}-{}.json")
-    parser.add_argument("--output-dir",
-                        type=str,
-                        default=default_output_dir,
-                        help="the directory to save the CSV data to. Default: " + default_output_dir)
-    parser.add_argument("--output-name",
-                        type=str,
-                        default='builds-{}-{}.csv',
-                        help="the filename to save the CSV data to. "
-                        "Default: builds-{}-{}.csv")
-    parser.add_argument("--verbose", "-v",
-                        action='store_true',
-                        help="print every HTTP request")
+    parser.add_argument(
+        "--build-url",
+        type=str,
+        default="https://build.servo.org/json/builders/{}/builds/{}",
+        help="the URL to get the JSON build data from. Default: https://build.servo.org/json/builders/{}/builds/{}",
+    )
+    parser.add_argument(
+        "--cache-dir",
+        type=str,
+        default=default_cache_dir,
+        help="the directory to cache JSON files in. Default: " + default_cache_dir,
+    )
+    parser.add_argument(
+        "--cache-name",
+        type=str,
+        default="build-{}-{}.json",
+        help="the filename to cache JSON data in. Default: build-{}-{}.json",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=default_output_dir,
+        help="the directory to save the CSV data to. Default: " + default_output_dir,
+    )
+    parser.add_argument(
+        "--output-name",
+        type=str,
+        default="builds-{}-{}.csv",
+        help="the filename to save the CSV data to. Default: builds-{}-{}.csv",
+    )
+    parser.add_argument("--verbose", "-v", action="store_true", help="print every HTTP request")
     args = parser.parse_args()
 
     os.makedirs(args.cache_dir, exist_ok=True)
@@ -63,7 +67,7 @@ def main():
     if args.verbose:
         print("Downloading index {}.".format(args.index_url))
     with urlopen(args.index_url) as response:
-        index = json.loads(response.read().decode('utf-8'))
+        index = json.loads(response.read().decode("utf-8"))
 
     builds = []
 
@@ -75,12 +79,11 @@ def main():
         if args.verbose:
             print("Downloading recent build {}.".format(recent_build_url))
         with urlopen(recent_build_url) as response:
-            recent_build = json.loads(response.read().decode('utf-8'))
+            recent_build = json.loads(response.read().decode("utf-8"))
             recent_build_number = recent_build["number"]
 
         # Download each build, and convert to CSV
         for build_number in range(0, recent_build_number):
-
             # Rather annoyingly, we can't just use the Python http cache,
             # because it doesn't cache 404 responses. So we roll our own.
             cache_json_name = args.cache_name.format(builder, build_number)
@@ -96,7 +99,7 @@ def main():
                     print("Downloading build {}.".format(build_url))
                 try:
                     with urlopen(build_url) as response:
-                        build = json.loads(response.read().decode('utf-8'))
+                        build = json.loads(response.read().decode("utf-8"))
                 except HTTPError as e:
                     if e.code == 404:
                         build = {}
@@ -104,46 +107,46 @@ def main():
                         raise
 
                 # Don't cache current builds.
-                if build.get('currentStep'):
+                if build.get("currentStep"):
                     continue
 
-                with open(cache_json, 'w+') as f:
+                with open(cache_json, "w+") as f:
                     json.dump(build, f)
 
-            if 'times' in build:
+            if "times" in build:
                 builds.append(build)
 
     years = {}
     for build in builds:
-        build_date = date.fromtimestamp(build['times'][0])
+        build_date = date.fromtimestamp(build["times"][0])
         years.setdefault(build_date.year, {}).setdefault(build_date.month, []).append(build)
 
     for year, months in years.items():
         for month, builds in months.items():
-
             output_name = args.output_name.format(year, month)
             output = os.path.join(args.output_dir, output_name)
 
             # Create the CSV file.
             if args.verbose:
-                print('Creating file {}.'.format(output))
-            with open(output, 'w+') as output_file:
+                print("Creating file {}.".format(output))
+            with open(output, "w+") as output_file:
                 output_csv = csv.writer(output_file)
 
                 # The CSV column names
-                output_csv.writerow([
-                    'builder',
-                    'buildNumber',
-                    'buildTimestamp',
-                    'stepName',
-                    'stepText',
-                    'stepNumber',
-                    'stepStart',
-                    'stepFinish'
-                ])
+                output_csv.writerow(
+                    [
+                        "builder",
+                        "buildNumber",
+                        "buildTimestamp",
+                        "stepName",
+                        "stepText",
+                        "stepNumber",
+                        "stepStart",
+                        "stepFinish",
+                    ]
+                )
 
                 for build in builds:
-
                     builder = build["builderName"]
                     build_number = build["number"]
                     build_timestamp = datetime.fromtimestamp(build["times"][0]).replace(microsecond=0)
@@ -152,20 +155,22 @@ def main():
                     for step in build["steps"]:
                         if step["isFinished"]:
                             step_name = step["name"]
-                            step_text = ' '.join(step["text"])
+                            step_text = " ".join(step["text"])
                             step_number = step["step_number"]
                             step_start = floor(step["times"][0])
                             step_finish = floor(step["times"][1])
-                            output_csv.writerow([
-                                builder,
-                                build_number,
-                                build_timestamp,
-                                step_name,
-                                step_text,
-                                step_number,
-                                step_start,
-                                step_finish
-                            ])
+                            output_csv.writerow(
+                                [
+                                    builder,
+                                    build_number,
+                                    build_timestamp,
+                                    step_name,
+                                    step_text,
+                                    step_number,
+                                    step_start,
+                                    step_finish,
+                                ]
+                            )
 
 
 if __name__ == "__main__":

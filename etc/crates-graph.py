@@ -35,6 +35,7 @@ def main(crate=None):
                 for dependency in graph.get(name, []):
                     filtered.setdefault(name, []).append(dependency)
                     traverse(dependency)
+
         traverse(crate)
     else:
         filtered = graph
