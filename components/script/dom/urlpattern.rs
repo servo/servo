@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_bindings::codegen::GenericBindings::URLPatternBinding::URLPatternResult;
 use script_bindings::codegen::GenericUnionTypes::USVStringOrURLPatternInit;
 use script_bindings::error::{Error, Fallible};
 use script_bindings::reflector::Reflector;
@@ -46,7 +47,7 @@ impl URLPattern {
     ) -> Fallible<DomRoot<URLPattern>> {
         // The section below converts from servos types to the types used in the urlpattern crate
         let base_url = base_url.map(|usv_string| usv_string.0);
-        let input = bindings_to_third_party::map_urlpattern_input(input, base_url.clone());
+        let input = bindings_to_third_party::map_urlpattern_input(input);
         let options = urlpattern::UrlPatternOptions {
             ignore_case: options.ignoreCase,
         };
@@ -92,6 +93,50 @@ impl URLPatternMethods<crate::DomTypeHolder> for URLPattern {
     ) -> Fallible<DomRoot<URLPattern>> {
         // Step 1. Run initialize given this, input, null, and options.
         URLPattern::initialize(global, proto, input, None, options, can_gc)
+    }
+
+    /// <https://urlpattern.spec.whatwg.org/#dom-urlpattern-test>
+    fn Test(
+        &self,
+        input: USVStringOrURLPatternInit,
+        base_url: Option<USVString>,
+    ) -> Fallible<bool> {
+        let input = bindings_to_third_party::map_urlpattern_input(input);
+        let inputs = urlpattern::quirks::process_match_input(input, base_url.as_deref())
+            .map_err(|error| Error::Type(format!("{error}")))?;
+        let Some((match_input, _)) = inputs else {
+            return Ok(false);
+        };
+
+        self.associated_url_pattern
+            .test(match_input)
+            .map_err(|error| Error::Type(format!("{error}")))
+    }
+
+    /// <https://urlpattern.spec.whatwg.org/#dom-urlpattern-exec>
+    fn Exec(
+        &self,
+        input: USVStringOrURLPatternInit,
+        base_url: Option<USVString>,
+    ) -> Fallible<Option<URLPatternResult>> {
+        let input = bindings_to_third_party::map_urlpattern_input(input);
+        let inputs = urlpattern::quirks::process_match_input(input, base_url.as_deref())
+            .map_err(|error| Error::Type(format!("{error}")))?;
+        let Some((match_input, inputs)) = inputs else {
+            return Ok(None);
+        };
+
+        let result = self
+            .associated_url_pattern
+            .exec(match_input)
+            .map_err(|error| Error::Type(format!("{error}")))?;
+        let Some(result) = result else {
+            return Ok(None);
+        };
+
+        Ok(Some(third_party_to_bindings::map_urlpattern_result(
+            result, inputs,
+        )))
     }
 
     /// <https://urlpattern.spec.whatwg.org/#dom-urlpattern-protocol>
@@ -151,54 +196,115 @@ impl URLPatternMethods<crate::DomTypeHolder> for URLPattern {
 }
 
 mod bindings_to_third_party {
+    use script_bindings::codegen::GenericBindings::URLPatternBinding::URLPatternInit;
+
     use crate::dom::urlpattern::USVStringOrURLPatternInit;
+
+    fn map_urlpatterninit(pattern_init: URLPatternInit) -> urlpattern::quirks::UrlPatternInit {
+        urlpattern::quirks::UrlPatternInit {
+            protocol: pattern_init.protocol.map(|protocol| protocol.0),
+            username: pattern_init.username.map(|username| username.0),
+            password: pattern_init.password.map(|password| password.0),
+            hostname: pattern_init.hostname.map(|hostname| hostname.0),
+            port: pattern_init.port.map(|hash| hash.0),
+            pathname: pattern_init
+                .pathname
+                .as_ref()
+                .map(|usv_string| usv_string.to_string()),
+            search: pattern_init.search.map(|search| search.0),
+            hash: pattern_init.hash.map(|hash| hash.0),
+            base_url: pattern_init.baseURL.map(|base_url| base_url.0),
+        }
+    }
 
     pub(super) fn map_urlpattern_input(
         input: USVStringOrURLPatternInit,
-        base_url: Option<String>,
     ) -> urlpattern::quirks::StringOrInit {
         match input {
             USVStringOrURLPatternInit::USVString(usv_string) => {
                 urlpattern::quirks::StringOrInit::String(usv_string.0)
             },
             USVStringOrURLPatternInit::URLPatternInit(pattern_init) => {
-                let pattern_init = urlpattern::quirks::UrlPatternInit {
-                    protocol: pattern_init
-                        .protocol
-                        .as_ref()
-                        .map(|usv_string| usv_string.to_string()),
-                    username: pattern_init
-                        .username
-                        .as_ref()
-                        .map(|usv_string| usv_string.to_string()),
-                    password: pattern_init
-                        .password
-                        .as_ref()
-                        .map(|usv_string| usv_string.to_string()),
-                    hostname: pattern_init
-                        .hostname
-                        .as_ref()
-                        .map(|usv_string| usv_string.to_string()),
-                    port: pattern_init
-                        .port
-                        .as_ref()
-                        .map(|usv_string| usv_string.to_string()),
-                    pathname: pattern_init
-                        .pathname
-                        .as_ref()
-                        .map(|usv_string| usv_string.to_string()),
-                    search: pattern_init
-                        .search
-                        .as_ref()
-                        .map(|usv_string| usv_string.to_string()),
-                    hash: pattern_init
-                        .hash
-                        .as_ref()
-                        .map(|usv_string| usv_string.to_string()),
-                    base_url,
-                };
-                urlpattern::quirks::StringOrInit::Init(pattern_init)
+                urlpattern::quirks::StringOrInit::Init(map_urlpatterninit(pattern_init))
             },
+        }
+    }
+}
+
+mod third_party_to_bindings {
+    use script_bindings::codegen::GenericBindings::URLPatternBinding::{
+        URLPatternComponentResult, URLPatternInit, URLPatternResult,
+    };
+    use script_bindings::codegen::GenericUnionTypes::USVStringOrUndefined;
+    use script_bindings::record::Record;
+    use script_bindings::str::USVString;
+
+    use crate::dom::bindings::codegen::UnionTypes::USVStringOrURLPatternInit;
+
+    // FIXME: For some reason codegen puts a lot of options into these types that don't make sense
+
+    fn map_component_result(
+        component_result: urlpattern::UrlPatternComponentResult,
+    ) -> URLPatternComponentResult {
+        let mut groups = Record::new();
+        for (key, value) in component_result.groups.iter() {
+            let value = match value {
+                Some(value) => USVStringOrUndefined::USVString(USVString(value.to_owned())),
+                None => USVStringOrUndefined::Undefined(()),
+            };
+
+            groups.insert(USVString(key.to_owned()), value);
+        }
+
+        URLPatternComponentResult {
+            input: Some(component_result.input.into()),
+            groups: Some(groups),
+        }
+    }
+
+    fn map_urlpatterninit(pattern_init: urlpattern::quirks::UrlPatternInit) -> URLPatternInit {
+        URLPatternInit {
+            baseURL: pattern_init.base_url.map(USVString),
+            protocol: pattern_init.protocol.map(USVString),
+            username: pattern_init.username.map(USVString),
+            password: pattern_init.password.map(USVString),
+            hostname: pattern_init.hostname.map(USVString),
+            port: pattern_init.port.map(USVString),
+            pathname: pattern_init.pathname.map(USVString),
+            search: pattern_init.search.map(USVString),
+            hash: pattern_init.hash.map(USVString),
+        }
+    }
+
+    pub(super) fn map_urlpattern_result(
+        result: urlpattern::UrlPatternResult,
+        (string_or_init, base_url): urlpattern::quirks::Inputs,
+    ) -> URLPatternResult {
+        let string_or_init = match string_or_init {
+            urlpattern::quirks::StringOrInit::String(string) => {
+                USVStringOrURLPatternInit::USVString(USVString(string))
+            },
+            urlpattern::quirks::StringOrInit::Init(pattern_init) => {
+                USVStringOrURLPatternInit::URLPatternInit(map_urlpatterninit(pattern_init))
+            },
+        };
+
+        let mut inputs = vec![string_or_init];
+
+        if let Some(base_url) = base_url {
+            inputs.push(USVStringOrURLPatternInit::USVString(USVString(base_url)));
+        }
+
+        URLPatternResult {
+            inputs: Some(inputs),
+            protocol: Some(map_component_result(result.protocol)),
+            username: Some(map_component_result(result.username)),
+            password: Some(map_component_result(result.password)),
+            hostname: Some(map_component_result(result.hostname)),
+            port: Some(map_component_result(result.port)),
+            pathname: Some(map_component_result(result.pathname)),
+            search: Some(map_component_result(result.search)),
+            hash: Some(map_component_result(result.hash)),
         }
     }
 }
