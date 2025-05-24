@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
+use style::attr::AttrValue;
 use style::str::HTML_SPACE_CHARACTERS;
 
 use crate::dom::attr::Attr;
@@ -108,7 +109,15 @@ impl HTMLMetaElement {
             .get_attribute(&ns!(), &local_name!("content"));
         if let Some(attr) = content {
             let attr = attr.value();
-            let attr_val = attr.trim();
+            let attr_val = match &*attr {
+                AttrValue::TokenList(_, list) => {
+                    let Some(last_atom) = list.last() else {
+                        return;
+                    };
+                    last_atom.trim()
+                },
+                val => val.trim(),
+            };
             if !attr_val.is_empty() {
                 doc.set_referrer_policy(determine_policy_for_token(attr_val));
             }
