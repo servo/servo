@@ -821,15 +821,7 @@ impl ParserContext {
         let Some(parser) = self.parser.as_ref().map(|p| p.root()) else {
             return;
         };
-        let new_csp_list = match parser.document.get_csp_list() {
-            None => parent_csp_list.clone(),
-            Some(original_csp_list) => {
-                let mut appended_csp_list = original_csp_list.clone();
-                appended_csp_list.append(parent_csp_list.clone());
-                appended_csp_list.to_owned()
-            },
-        };
-        parser.document.set_csp_list(Some(new_csp_list));
+        parser.document.set_csp_list(Some(parent_csp_list.clone()));
     }
 }
 

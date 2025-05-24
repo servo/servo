@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta http-equiv="Content-Security-Policy" content="script-src 'nonce-abc'">
+<meta http-equiv="Content-Security-Policy" content="img-src 'none'">
+<script nonce="abc" src="/resources/testharness.js"></script>
+<script nonce="abc" src="/resources/testharnessreport.js"></script>
+
+<body>
+  <script nonce="abc">
+    promise_test(t => {
+      return new Promise((resolve, reject) => {
+        const img = document.createElement("img");
+        img.src = "/content-security-policy/support/fail.png";
+
+        img.onload = () => reject("Image loaded unexpectedly");
+        img.onerror = (e) => resolve()
+
+        document.body.appendChild(img);
+      });
+    }, "dynamic img-src is blocked by meta CSP");
+
+    promise_test(t => {
+      return new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = "../resources/ran.js";
+
+        script.onload = () => reject("Script executed unexpectedly");
+        script.onerror = () => resolve();
+
+        document.body.appendChild(script);
+      });
+    }, "script without `abc` nonce is blocked by meta CSP");
+  </script>
+</body>
