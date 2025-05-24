@@ -23,8 +23,8 @@ use std::default::Default;
 use std::option::Option;
 use std::rc::Rc;
 use std::result::Result;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime};
 
@@ -128,6 +128,7 @@ use crate::dom::document::{
     Document, DocumentSource, FocusInitiator, HasBrowsingContext, IsHTMLDocument, TouchEventResult,
 };
 use crate::dom::element::Element;
+use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
@@ -336,6 +337,10 @@ pub struct ScriptThread {
     /// The screen coordinates where the primary mouse button was pressed.
     #[no_trace]
     relative_mouse_down_point: Cell<Point2D<f32, DevicePixel>>,
+
+    /// Switch offline and online events
+    #[no_trace]
+    is_online: Arc<Mutex<bool>>,
 }
 
 struct BHMExitSignal {
@@ -957,6 +962,7 @@ impl ScriptThread {
             inherited_secure_context: state.inherited_secure_context,
             layout_factory,
             relative_mouse_down_point: Cell::new(Point2D::zero()),
+            is_online: Arc::new(Mutex::new(true)),
         }
     }
 
@@ -1903,6 +1909,23 @@ impl ScriptThread {
             ScriptThreadMessage::EvaluateJavaScript(pipeline_id, evaluation_id, script) => {
                 self.handle_evaluate_javascript(pipeline_id, evaluation_id, script, can_gc);
             },
+            ScriptThreadMessage::SetNetWorkState(is_online) => {
+                self.handle_network_state(is_online, can_gc);
+            },
+        }
+    }
+
+    fn fire_network_events(&self, is_online: bool, can_gc: CanGc) {
+        let event_name = if is_online {
+            Atom::from("online")
+        } else {
+            Atom::from("offline")
+        };
+
+        for (_, document) in self.documents.borrow().iter() {
+            let window = document.window();
+            let event_target = window.upcast::<EventTarget>();
+            event_target.fire_event(event_name.clone(), can_gc);
         }
     }
 
@@ -3228,6 +3251,7 @@ impl ScriptThread {
             #[cfg(feature = "webgpu")]
             self.gpu_id_hub.clone(),
             incomplete.load_data.inherited_secure_context,
+            self.is_online.clone(),
         );
 
         let _realm = enter_realm(&*window);
@@ -3819,6 +3843,17 @@ impl ScriptThread {
         } else {
             warn!("No MediaSession for this pipeline ID");
         };
+    }
+
+    fn handle_network_state(&self, is_online: bool, can_gc: CanGc) {
+        let mut online_lock = self.is_online.lock().unwrap();
+        let previous = *online_lock;
+        *online_lock = is_online;
+        drop(online_lock);
+
+        if previous != is_online {
+            self.fire_network_events(is_online, can_gc);
+        }
     }
 
     pub(crate) fn enqueue_microtask(job: Microtask) {

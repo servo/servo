@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use base::id::PipelineId;
 use constellation_traits::{ScriptToConstellationChan, ScriptToConstellationMessage};
@@ -110,6 +110,7 @@ impl WorkletGlobalScope {
                 init.gpu_id_hub.clone(),
                 init.inherited_secure_context,
                 false,
+                Arc::new(Mutex::new(true)),
             ),
             base_url,
             to_script_thread_sender: init.to_script_thread_sender.clone(),
