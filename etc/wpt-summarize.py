@@ -21,7 +21,7 @@
 import sys
 import json
 
-full_search = len(sys.argv) > 3 and sys.argv[3] == '--full'
+full_search = len(sys.argv) > 3 and sys.argv[3] == "--full"
 
 with open(sys.argv[1]) as f:
     data = f.readlines()
@@ -34,13 +34,9 @@ with open(sys.argv[1]) as f:
                 if "action" in entry and entry["action"] == "test_end":
                     thread = None
         else:
-            if ("action" in entry
-                    and entry["action"] == "test_start"
-                    and entry["test"] == sys.argv[2]):
+            if "action" in entry and entry["action"] == "test_start" and entry["test"] == sys.argv[2]:
                 thread = entry["thread"]
                 print(json.dumps(entry))
-            elif (full_search
-                  and "command" in entry
-                  and sys.argv[2] in entry["command"]):
+            elif full_search and "command" in entry and sys.argv[2] in entry["command"]:
                 thread = entry["thread"]
                 print(json.dumps(entry))

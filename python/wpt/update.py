@@ -15,11 +15,8 @@ from wptrunner import wptcommandline  # noqa: F401
 from . import WPT_PATH
 from . import manifestupdate
 
-TEST_ROOT = os.path.join(WPT_PATH, 'tests')
-META_ROOTS = [
-    os.path.join(WPT_PATH, 'meta'),
-    os.path.join(WPT_PATH, 'meta-legacy')
-]
+TEST_ROOT = os.path.join(WPT_PATH, "tests")
+META_ROOTS = [os.path.join(WPT_PATH, "meta"), os.path.join(WPT_PATH, "meta-legacy")]
 
 
 def do_sync(**kwargs) -> int:
@@ -28,8 +25,8 @@ def do_sync(**kwargs) -> int:
     # Commits should always be authored by the GitHub Actions bot.
     os.environ["GIT_AUTHOR_NAME"] = "Servo WPT Sync"
     os.environ["GIT_AUTHOR_EMAIL"] = "ghbot+wpt-sync@servo.org"
-    os.environ["GIT_COMMITTER_NAME"] = os.environ['GIT_AUTHOR_NAME']
-    os.environ["GIT_COMMITTER_EMAIL"] = os.environ['GIT_AUTHOR_EMAIL']
+    os.environ["GIT_COMMITTER_NAME"] = os.environ["GIT_AUTHOR_NAME"]
+    os.environ["GIT_COMMITTER_EMAIL"] = os.environ["GIT_AUTHOR_EMAIL"]
 
     print("Updating WPT from upstream...")
     run_update(**kwargs)
@@ -67,7 +64,7 @@ def remove_unused_metadata():
                 dir_path = os.path.join(base_dir, dir_name)
 
                 # Skip any known directories that are meta-metadata.
-                if dir_name == '.cache':
+                if dir_name == ".cache":
                     unused_dirs.append(dir_path)
                     continue
 
@@ -78,12 +75,11 @@ def remove_unused_metadata():
 
             for fname in files:
                 # Skip any known files that are meta-metadata.
-                if not fname.endswith(".ini") or fname == '__dir__.ini':
+                if not fname.endswith(".ini") or fname == "__dir__.ini":
                     continue
 
                 # Turn tests/wpt/meta/foo/bar.html.ini into tests/wpt/tests/foo/bar.html.
-                test_file = os.path.join(
-                    TEST_ROOT, os.path.relpath(base_dir, meta_root), fname[:-4])
+                test_file = os.path.join(TEST_ROOT, os.path.relpath(base_dir, meta_root), fname[:-4])
 
                 if not os.path.exists(test_file):
                     unused_files.append(os.path.join(base_dir, fname))
@@ -106,10 +102,10 @@ def update_tests(**kwargs) -> int:
     kwargs["store_state"] = False
 
     wptcommandline.set_from_config(kwargs)
-    if hasattr(wptcommandline, 'check_paths'):
+    if hasattr(wptcommandline, "check_paths"):
         wptcommandline.check_paths(kwargs["test_paths"])
 
-    if kwargs.get('sync', False):
+    if kwargs.get("sync", False):
         return do_sync(**kwargs)
 
     return 0 if run_update(**kwargs) else 1
