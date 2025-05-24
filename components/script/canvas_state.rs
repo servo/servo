@@ -328,7 +328,15 @@ impl CanvasState {
         cors_setting: Option<CorsSettings>,
     ) -> Option<snapshot::Snapshot> {
         let img = match self.request_image_from_cache(url, cors_setting) {
-            ImageResponse::Loaded(img, _) => img,
+            ImageResponse::Loaded(image, _) => {
+                if let Some(image) = image.as_raster_image() {
+                    image
+                } else {
+                    // TODO: https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
+                    warn!("Vector images are not supported as image source in canvas2d");
+                    return None;
+                }
+            },
             ImageResponse::PlaceholderLoaded(_, _) |
             ImageResponse::None |
             ImageResponse::MetadataLoaded(_) => {
@@ -336,7 +344,7 @@ impl CanvasState {
             },
         };
 
-        let size = Size2D::new(img.width, img.height);
+        let size = Size2D::new(img.metadata.width, img.metadata.height);
         let format = match img.format {
             PixelFormat::BGRA8 => snapshot::PixelFormat::BGRA,
             PixelFormat::RGBA8 => snapshot::PixelFormat::RGBA,

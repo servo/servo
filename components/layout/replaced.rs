@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::LazyCell;
-use std::sync::Arc;
 
 use app_units::Au;
 use base::id::{BrowsingContextId, PipelineId};
@@ -11,8 +10,7 @@ use data_url::DataUrl;
 use embedder_traits::ViewportDetails;
 use euclid::{Scale, Size2D};
 use malloc_size_of_derive::MallocSizeOf;
-use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
-use pixels::Image;
+use net_traits::image_cache::{Image, ImageOrMetadataAvailable, UsePlaceholder};
 use script::layout_dom::ServoLayoutNode;
 use script_layout_interface::IFrameSize;
 use servo_arc::Arc as ServoArc;
@@ -28,7 +26,7 @@ use url::Url;
 use webrender_api::ImageKey;
 
 use crate::cell::ArcRefCell;
-use crate::context::LayoutContext;
+use crate::context::{LayoutContext, LayoutImageCacheResult};
 use crate::dom::NodeExt;
 use crate::fragment_tree::{BaseFragmentInfo, Fragment, IFrameFragment, ImageFragment};
 use crate::geom::{
@@ -115,7 +113,7 @@ pub(crate) struct VideoInfo {
 
 #[derive(Debug, MallocSizeOf)]
 pub(crate) enum ReplacedContentKind {
-    Image(#[conditional_malloc_size_of] Option<Arc<Image>>),
+    Image(Option<Image>),
     IFrame(IFrameInfo),
     Canvas(CanvasInfo),
     Video(Option<VideoInfo>),
@@ -162,7 +160,7 @@ impl ReplacedContents {
             }
         };
 
-        if let ReplacedContentKind::Image(Some(ref image)) = kind {
+        if let ReplacedContentKind::Image(Some(Image::Raster(ref image))) = kind {
             context.handle_animated_image(element.opaque(), image.clone());
         }
 
@@ -197,13 +195,20 @@ impl ReplacedContents {
                 image_url.clone().into(),
                 UsePlaceholder::No,
             ) {
-                Ok(ImageOrMetadataAvailable::ImageAvailable { image, .. }) => {
-                    (Some(image.clone()), image.width as f32, image.height as f32)
+                LayoutImageCacheResult::DataAvailable(img_or_meta) => match img_or_meta {
+                    ImageOrMetadataAvailable::ImageAvailable { image, .. } => {
+                        let metadata = image.metadata();
+                        (
+                            Some(image.clone()),
+                            metadata.width as f32,
+                            metadata.height as f32,
+                        )
+                    },
+                    ImageOrMetadataAvailable::MetadataAvailable(metadata, _id) => {
+                        (None, metadata.width as f32, metadata.height as f32)
+                    },
                 },
-                Ok(ImageOrMetadataAvailable::MetadataAvailable(metadata, _id)) => {
-                    (None, metadata.width as f32, metadata.height as f32)
-                },
-                Err(_) => return None,
+                LayoutImageCacheResult::Pending | LayoutImageCacheResult::LoadError => return None,
             };
 
             return Some(Self {
@@ -315,7 +320,19 @@ impl ReplacedContents {
         match &self.kind {
             ReplacedContentKind::Image(image) => image
                 .as_ref()
-                .and_then(|image| image.id)
+                .and_then(|image| match image {
+                    Image::Raster(raster_image) => raster_image.id,
+                    Image::Vector(vector_image) => {
+                        let scale = layout_context.shared_context().device_pixel_ratio();
+                        let width = object_fit_size.width.scale_by(scale.0).to_px();
+                        let height = object_fit_size.height.scale_by(scale.0).to_px();
+                        let size = Size2D::new(width, height);
+                        let tag = self.base_fragment_info.tag?;
+                        layout_context
+                            .rasterize_vector_image(vector_image.id, size, tag.node)
+                            .and_then(|i| i.id)
+                    },
+                })
                 .map(|image_key| {
                     Fragment::Image(ArcRefCell::new(ImageFragment {
                         base: self.base_fragment_info.into(),

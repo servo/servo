@@ -611,13 +611,23 @@ impl WebGLRenderingContext {
 
                 let img =
                     match canvas_utils::request_image_from_cache(&window, img_url, cors_setting) {
-                        ImageResponse::Loaded(img, _) => img,
+                        ImageResponse::Loaded(image, _) => {
+                            if let Some(image) = image.as_raster_image() {
+                                image
+                            } else {
+                                // Related https://github.com/KhronosGroup/WebGL/issues/1503?
+                                warn!(
+                                    "Vector images as are not yet supported as WebGL texture source"
+                                );
+                                return Ok(None);
+                            }
+                        },
                         ImageResponse::PlaceholderLoaded(_, _) |
                         ImageResponse::None |
                         ImageResponse::MetadataLoaded(_) => return Ok(None),
                     };
 
-                let size = Size2D::new(img.width, img.height);
+                let size = Size2D::new(img.metadata.width, img.metadata.height);
 
                 let data = IpcSharedMemory::from_bytes(img.first_frame().bytes);
                 TexPixels::new(data, size, img.format, false)
