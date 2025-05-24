@@ -1059,6 +1059,8 @@ fn create_constellation(
     let bluetooth_thread: IpcSender<BluetoothRequest> =
         BluetoothThreadFactory::new(embedder_proxy.clone());
 
+    let protocols = Arc::new(protocols);
+
     let (public_resource_threads, private_resource_threads) = new_resource_threads(
         devtools_sender.clone(),
         time_profiler_chan.clone(),
@@ -1067,7 +1069,7 @@ fn create_constellation(
         config_dir,
         opts.certificate_path.clone(),
         opts.ignore_certificate_errors,
-        Arc::new(protocols),
+        protocols.clone(),
     );
 
     let system_font_service = Arc::new(
@@ -1106,6 +1108,7 @@ fn create_constellation(
         #[cfg(feature = "webgpu")]
         wgpu_image_map,
         user_content_manager,
+        protocols,
     };
 
     let layout_factory = Arc::new(LayoutFactoryImpl());

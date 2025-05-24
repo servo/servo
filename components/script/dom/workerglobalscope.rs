@@ -86,6 +86,7 @@ pub(crate) fn prepare_workerscope_init(
         origin: global.origin().immutable().clone(),
         creation_url: global.creation_url().clone(),
         inherited_secure_context: Some(global.is_secure_context()),
+        protocols: global.registered_protocols().clone(),
     };
 
     init
@@ -158,6 +159,7 @@ impl WorkerGlobalScope {
             Some(..) => Some(devtools_receiver),
             None => None,
         };
+        let protocols = init.protocols;
 
         Self {
             globalscope: GlobalScope::new_inherited(
@@ -174,6 +176,7 @@ impl WorkerGlobalScope {
                 gpu_id_hub,
                 init.inherited_secure_context,
                 false,
+                protocols,
             ),
             worker_id: init.worker_id,
             worker_name,

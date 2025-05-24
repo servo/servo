@@ -6,6 +6,7 @@
 
 use std::collections::HashMap;
 use std::fmt;
+use std::sync::Arc;
 
 use base::Epoch;
 use base::id::{
@@ -26,7 +27,7 @@ use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{Destination, InsecureRequestsPolicy, Referrer, RequestBody};
 use net_traits::storage_thread::StorageType;
-use net_traits::{CoreResourceMsg, ReferrerPolicy, ResourceThreads};
+use net_traits::{CoreResourceMsg, Protocols, ReferrerPolicy, ResourceThreads};
 use profile_traits::mem::MemoryReportResult;
 use profile_traits::{mem, time as profile_time};
 use serde::{Deserialize, Serialize};
@@ -444,6 +445,8 @@ pub struct WorkerGlobalScopeInit {
     pub creation_url: Option<ServoUrl>,
     /// True if secure context
     pub inherited_secure_context: Option<bool>,
+    /// Registered custom protocols
+    pub protocols: Arc<Protocols>,
 }
 
 /// Common entities representing a network load origin

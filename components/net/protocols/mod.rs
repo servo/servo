@@ -110,6 +110,10 @@ impl ProtocolRegistry {
         self.handlers.get(scheme).map(|e| e.as_ref())
     }
 
+    pub fn iter(&self) -> std::collections::hash_map::Iter<'_, String, Box<dyn ProtocolHandler>> {
+        self.handlers.iter()
+    }
+
     pub fn merge(&mut self, mut other: ProtocolRegistry) {
         for (scheme, handler) in other.handlers.drain() {
             if FORBIDDEN_SCHEMES.contains(&scheme.as_str()) {

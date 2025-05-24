@@ -53,11 +53,11 @@ use js::rust::{
 };
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
-use net_traits::ResourceThreads;
 use net_traits::image_cache::{
     ImageCache, ImageResponder, ImageResponse, PendingImageId, PendingImageResponse,
 };
 use net_traits::storage_thread::StorageType;
+use net_traits::{Protocols, ResourceThreads};
 use num_traits::ToPrimitive;
 use profile_traits::ipc as ProfiledIpc;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
@@ -3033,6 +3033,7 @@ impl Window {
         player_context: WindowGLContext,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
+        protocols: Arc<Protocols>,
     ) -> DomRoot<Self> {
         let error_reporter = CSSErrorReporter {
             pipelineid: pipeline_id,
@@ -3060,6 +3061,7 @@ impl Window {
                 gpu_id_hub,
                 inherited_secure_context,
                 unminify_js,
+                protocols,
             ),
             script_chan,
             layout: RefCell::new(layout),

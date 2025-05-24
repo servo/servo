@@ -12,8 +12,8 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
-use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
+use net_traits::{Protocols, ResourceThreads};
 use profile_traits::{mem, time};
 use script_bindings::realms::InRealm;
 use script_traits::Painter;
@@ -110,6 +110,7 @@ impl WorkletGlobalScope {
                 init.gpu_id_hub.clone(),
                 init.inherited_secure_context,
                 false,
+                init.protocols.clone(),
             ),
             base_url,
             to_script_thread_sender: init.to_script_thread_sender.clone(),
@@ -200,6 +201,8 @@ pub(crate) struct WorkletGlobalScopeInit {
     pub(crate) gpu_id_hub: Arc<IdentityHub>,
     /// Is considered secure
     pub(crate) inherited_secure_context: Option<bool>,
+    /// Registered custom protocols
+    pub(crate) protocols: Arc<Protocols>,
 }
 
 /// <https://drafts.css-houdini.org/worklets/#worklet-global-scope-type>
