@@ -6,7 +6,7 @@
 
 typedef (USVString or URLPatternInit)    URLPatternInput;
 
-[Exposed=(Window,Worker), Pref="dom_urlpattern_enabled"]
+[Exposed=(Window,Worker)]
 interface URLPattern {
   [Throws] constructor(URLPatternInput input, USVString baseURL, optional URLPatternOptions options = {});
   [Throws] constructor(optional URLPatternInput input = {}, optional URLPatternOptions options = {});
