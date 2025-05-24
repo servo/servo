@@ -92,8 +92,7 @@ use crate::textinput::KeyReaction::{
 };
 use crate::textinput::Lines::Single;
 use crate::textinput::{
-    Direction, SelectionDirection, TextInput, UTF8Bytes, UTF16CodeUnits,
-    handle_text_clipboard_action,
+    ClipboardEventReaction, Direction, SelectionDirection, TextInput, UTF8Bytes, UTF16CodeUnits,
 };
 
 const DEFAULT_SUBMIT_VALUE: &str = "Submit";
@@ -2550,6 +2549,18 @@ impl HTMLInputElement {
             }
         }
     }
+
+    fn queue_input_event(&self) {
+        self.owner_global()
+            .task_manager()
+            .user_interaction_task_source()
+            .queue_event(
+                self.upcast(),
+                atom!("input"),
+                EventBubbles::Bubbles,
+                EventCancelable::NotCancelable,
+            );
+    }
 }
 
 impl VirtualMethods for HTMLInputElement {
@@ -2900,15 +2911,7 @@ impl VirtualMethods for HTMLInputElement {
             self.input_type().is_textual_or_password()
         {
             if event.IsTrusted() {
-                self.owner_global()
-                    .task_manager()
-                    .user_interaction_task_source()
-                    .queue_event(
-                        self.upcast(),
-                        atom!("input"),
-                        EventBubbles::Bubbles,
-                        EventCancelable::NotCancelable,
-                    );
+                self.queue_input_event();
             }
         } else if (event.type_() == atom!("compositionstart") ||
             event.type_() == atom!("compositionupdate") ||
@@ -2932,8 +2935,26 @@ impl VirtualMethods for HTMLInputElement {
                 event.mark_as_handled();
             }
         } else if let Some(clipboard_event) = event.downcast::<ClipboardEvent>() {
-            if !event.DefaultPrevented() {
-                handle_text_clipboard_action(self, &self.textinput, clipboard_event, can_gc);
+            let reaction = self
+                .textinput
+                .borrow_mut()
+                .handle_clipboard_event(clipboard_event);
+            if reaction.contains(ClipboardEventReaction::FireClipboardChangedEvent) {
+                self.owner_document().fire_clipboardchange_event(can_gc);
+            }
+            if reaction.contains(ClipboardEventReaction::QueueInputEvent) {
+                self.owner_global()
+                    .task_manager()
+                    .user_interaction_task_source()
+                    .queue_event(
+                        self.upcast(),
+                        atom!("input"),
+                        EventBubbles::Bubbles,
+                        EventCancelable::NotCancelable,
+                    );
+            }
+            if !reaction.is_empty() {
+                self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
             }
         }
 
