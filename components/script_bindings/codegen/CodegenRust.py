@@ -62,12 +62,64 @@ TRACE_HOOK_NAME = '_trace'
 CONSTRUCT_HOOK_NAME = '_constructor'
 HASINSTANCE_HOOK_NAME = '_hasInstance'
 
-RUST_KEYWORDS = {"abstract", "alignof", "as", "become", "box", "break", "const", "continue",
-                 "else", "enum", "extern", "false", "final", "fn", "for", "if", "impl", "in",
-                 "let", "loop", "macro", "match", "mod", "move", "mut", "offsetof", "override",
-                 "priv", "proc", "pub", "pure", "ref", "return", "static", "self", "sizeof",
-                 "struct", "super", "true", "trait", "type", "typeof", "unsafe", "unsized",
-                 "use", "virtual", "where", "while", "yield"}
+RUST_KEYWORDS = {
+    "abstract",
+    "alignof",
+    "as",
+    "async",
+    "await",
+    "become",
+    "box",
+    "break",
+    "const",
+    "continue",
+    "crate",
+    "do",
+    "dyn",
+    "else",
+    "enum",
+    "extern",
+    "false",
+    "final",
+    "fn",
+    "for",
+    "gen",
+    "if",
+    "impl",
+    "in",
+    "let",
+    "loop",
+    "macro",
+    "match",
+    "mod",
+    "move",
+    "mut",
+    "offsetof",
+    "override",
+    "priv",
+    "proc",
+    "pub",
+    "pure",
+    "ref",
+    "return",
+    "static",
+    "self",
+    "sizeof",
+    "struct",
+    "super",
+    "true",
+    "trait",
+    "try",
+    "type",
+    "typeof",
+    "unsafe",
+    "unsized",
+    "use",
+    "virtual",
+    "where",
+    "while",
+    "yield",
+}
 
 
 def genericsForType(t):
@@ -6709,10 +6761,9 @@ class CGInterfaceTrait(CGThing):
                     yield name, arguments, rettype, False
 
         def fmt(arguments, leadingComma=True):
-            keywords = {"async"}
             prefix = "" if not leadingComma else ", "
             return prefix + ", ".join(
-                f"{name if name not in keywords else f'r#{name}'}: {type_}"
+                f"r#{name}: {type_}"
                 for name, type_ in arguments
             )
 
