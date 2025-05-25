@@ -732,6 +732,13 @@ impl WindowPortsMethods for Window {
     fn hide_ime(&self) {
         self.winit_window.set_ime_allowed(false);
     }
+
+    fn theme(&self) -> servo::Theme {
+        match self.winit_window.theme() {
+            Some(winit::window::Theme::Dark) => servo::Theme::Dark,
+            Some(winit::window::Theme::Light) | None => servo::Theme::Light,
+        }
+    }
 }
 
 fn winit_phase_to_touch_event_type(phase: TouchPhase) -> TouchEventType {
