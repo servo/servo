@@ -6761,10 +6761,9 @@ class CGInterfaceTrait(CGThing):
                     yield name, arguments, rettype, False
 
         def fmt(arguments, leadingComma=True):
-            keywords = {"async"}
             prefix = "" if not leadingComma else ", "
             return prefix + ", ".join(
-                f"{name if name not in keywords else f'r#{name}'}: {type_}"
+                f"r#{name}: {type_}"
                 for name, type_ in arguments
             )
 
