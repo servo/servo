@@ -8,6 +8,7 @@ patch < like-as-iterable.patch
 patch < builtin-array.patch
 patch < array-type.patch
 patch < transferable.patch
+patch < dom-stubs.patch
 
 wget https://hg.mozilla.org/mozilla-central/archive/tip.zip/dom/bindings/parser/tests/ -O tests.zip
 rm -r tests
