@@ -24,7 +24,7 @@
                 generate_tests(ParsingUtils.testInlineStyle, ParsingUtils.generateInsetRoundCases(unit, 'inline'));
            });
            ParsingUtils.setupFonts();
-           document.fonts.ready.then(()=> {
+           document.fonts.load("10px Ahem").then(()=> {
                 ParsingUtils.validUnits.forEach(function(unit) {
                     generate_tests(ParsingUtils.testComputedStyle, ParsingUtils.generateInsetRoundCases(unit, 'computed'));
                 });

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-type" />
+<title>Page scroll snapping</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
+<meta name="flags" content="should">
+<meta name="assert"
+      content="Test passes if page operation doesn't skip content">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<script src="../support/common.js"></script>
+
+<style>
+html, body {
+  margin: 0;
+}
+.scroller {
+  height: 100vh;
+  overflow: auto;
+  position: relative;
+  scroll-snap-type: y mandatory;
+  counter-reset: --page;
+}
+
+.gap {
+  height: 100vh;
+}
+
+.page {
+  counter-increment: --page;
+  height: 90vh;
+  scroll-snap-align: center;
+  padding: 8px;
+  position: relative;
+  --page: counter(--page);
+}
+.short {
+  height: 25vh;
+}
+.page > div::before {
+  content: "Page " counter(--page);
+  font-size: 1.5em;
+}
+.page > div {
+  box-sizing: border-box;
+  border: 3px solid black;
+  border-radius: 5px;
+  overflow: clip; /* Make sure font size doesn't cause pages to be larger than expected. */
+  padding: 8px;
+  height: 100%;
+}
+</style>
+<div class="scroller" tabindex="0">
+  <div class="page">
+    <div>
+      <p>This tests what happens when you perform a paging scroll (e.g. space bar or page down key) with mandatory scroll snap.</p>
+      <p>When snapped to this page, pressing page down should not skip page 2.</p>
+    </div>
+  </div>
+  <div class="short page">
+    <div>
+      <p>This page should not be skipped by paging scroll operations.</p>
+    </div>
+  </div>
+  <div class="page">
+    <div>
+      <p>We must stop at this page before going to page 4.</p>
+    </div>
+  </div>
+  <div class="short page">
+    <div>
+      <p>Pages 4, 5, and 6 should be a single snap stop on page 5.</p>
+    </div>
+  </div>
+  <div class="short page">
+    <div>
+      <p>
+        This should be the snapped page when paging.
+        The next page operation should jump to page 7.
+      </p>
+    </div>
+  </div>
+  <div class="short page">
+    <div></div>
+  </div>
+  <div class="page">
+    <div>
+      <p>
+        The next page is further than a page away,
+        but there are no closer snap points
+        so it should be scrolled to next.
+      </p>
+    </div>
+  </div>
+  <div class="gap"></div>
+  <div class="page">
+    <div>
+      <p>
+        The last page
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+const scroller = document.querySelector(".scroller");
+
+scrollTop = () => scroller.scrollTop;
+
+async function snapTo(page) {
+  if (page == 1 && scroller.scrollTop == 0)
+    return;
+  let scrollEndPromise = waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
+  scroller.scrollTop = 0;
+  await scrollEndPromise;
+  if (page > 1) {
+    scrollEndPromise = waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
+    scroller.querySelector(`.page[data-page="${page}"]`).scrollIntoView({block: "center"});
+    await scrollEndPromise;
+  }
+}
+
+scroller.querySelectorAll('.page').forEach((div, index) => {
+  div.setAttribute("data-page", index + 1);
+});
+function visiblePages() {
+  return Array.prototype.slice.apply(
+    scroller.querySelectorAll('.page')).filter(
+        div => div.offsetTop >= scroller.scrollTop &&
+        div.offsetTop + div.offsetHeight <= scroller.scrollTop + scroller.clientHeight).map(
+            div => parseInt(div.getAttribute("data-page")));
+}
+
+async function pageDown() {
+  const scrollEndPromise = waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
+  await keyPress(scroller, "Space");
+  await scrollEndPromise;
+}
+
+promise_test(async t => {
+  await snapTo(1);
+  assert_array_equals(visiblePages(), [1]);
+  await pageDown();
+  assert_array_equals(visiblePages(), [2]);
+}, `Doesn't skip past small snappable content`);
+
+promise_test(async t => {
+  await snapTo(2);
+  assert_array_equals(visiblePages(), [2]);
+  await pageDown();
+  assert_array_equals(visiblePages(), [3]);
+}, `Doesn't skip past large snappable content`);
+
+promise_test(async t => {
+  await snapTo(3);
+  assert_array_equals(visiblePages(), [3]);
+  await pageDown();
+  assert_array_equals(visiblePages(), [4, 5, 6]);
+}, `Scrolls multiple smaller items into view`);
+
+promise_test(async t => {
+  await snapTo(5);
+  assert_array_equals(visiblePages(), [4, 5, 6]);
+  await pageDown();
+  assert_array_equals(visiblePages(), [7]);
+}, `Scrolls past items currently in view`);
+
+promise_test(async t => {
+  await snapTo(7);
+  assert_array_equals(visiblePages(), [7]);
+  await pageDown();
+  assert_array_equals(visiblePages(), [8]);
+}, `Scrolls more than a page if necessary`);
+
+</script>

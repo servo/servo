@@ -263,6 +263,7 @@ SET TIMEOUT: resource-timing/resources/nested-contexts.js
 SET TIMEOUT: reporting/resources/first-csp-report.https.sub.html
 SET TIMEOUT: reporting/resources/second-csp-report.https.sub.html
 SET TIMEOUT: scheduler/tentative/yield/yield-inherit-across-promises.any.js
+SET TIMEOUT: scheduler/tentative/yield/yield-scheduling-state-cleared.any.js
 SET TIMEOUT: scheduler/tentative/yield/yield-priority-timers.any.js
 SET TIMEOUT: secure-contexts/basic-popup-and-iframe-tests.https.js
 SET TIMEOUT: service-workers/cache-storage/cache-abort.https.any.js

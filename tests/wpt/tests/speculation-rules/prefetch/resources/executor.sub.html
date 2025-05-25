@@ -33,6 +33,8 @@ window.requestHeaders = {
   "referer": "{{header_or_default(Referer, NONEXISTENT)}}",
   "sec-fetch-dest": "{{header_or_default(Sec-Fetch-Dest, NONEXISTENT)}}",
   "sec-fetch-mode": "{{header_or_default(Sec-Fetch-Mode, NONEXISTENT)}}",
+  "service-worker-navigation-preload":
+      "{{header_or_default(Service-Worker-Navigation-Preload, NONEXISTENT)}}",
   // Convert to the raw string to avoid backslashes from being processed as
   // escape sequences.
   // TODO(crbug.com/404573971): Remove `header_or_default` to reflect

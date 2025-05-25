@@ -1,0 +1,22 @@
+<!doctype html>
+<title>Parsing of caret-shape</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui/#caret-shape">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<div id="target"></div>
+<script>
+  test_valid_value('caret-shape', 'initial');
+  test_valid_value('caret-shape', 'inherit');
+  test_valid_value('caret-shape', 'unset');
+  test_valid_value('caret-shape', 'revert');
+  test_valid_value('caret-shape', 'auto');
+  test_valid_value('caret-shape', 'bar');
+  test_valid_value('caret-shape', 'block');
+  test_valid_value('caret-shape', 'underscore');
+  test_invalid_value('caret-shape', 'none');
+  test_invalid_value('caret-shape', 'ba');
+  test_invalid_value('caret-shape', 'underline');
+  test_invalid_value('caret-shape', 'vertical');
+  test_invalid_value('caret-shape', 'rect');
+</script>

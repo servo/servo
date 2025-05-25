@@ -22,4 +22,4 @@ promise_test(async t => {
 
   // Now that it is available, we should no longer need user activation.
   await Summarizer.create();
-}, 'Summarizer.create() requires user activation when availability is "downloadable."');
+}, 'Summarizer.create() requires user activation when availability is "downloadable"');

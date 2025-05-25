@@ -8,6 +8,34 @@ const URL = 'foobar.html';
 const readValue = (value, defaultValue) => {
   return value !== undefined ? value : defaultValue;
 };
+
+const withTimeoutMessage =
+    async (t, promise, message, timeout = 1000) => {
+  return Promise.race([
+    promise,
+    new Promise((resolve, reject) => {
+      t.step_timeout(() => {
+        reject(new Error(message));
+      }, timeout);
+    }),
+  ]);
+}
+
+// Helper method for use with history.back(), when we want to be
+// sure that its asynchronous effect has completed.
+const waitForUrlToEndWith = async (url) => {
+  return new Promise((resolve) => {
+    window.addEventListener('popstate', () => {
+      if (location.href.endsWith(url)) {
+        resolve();
+      } else {
+        reject(
+            'Got ' + location.href + ' - expected URL ends with "' + url + '"');
+      }
+    }, {once: true});
+  });
+};
+
 const testSoftNavigation = options => {
   const addContent = options.addContent;
   const link = options.link;
@@ -21,8 +49,10 @@ const testSoftNavigation = options => {
   const interactionFunc = options.interactionFunc;
   const eventPrepWork = options.eventPrepWork;
   promise_test(async t => {
-    await waitInitialLCP();
-    const preClickLcp = await getLcpEntries();
+    await withTimeoutMessage(
+        t, waitInitialLCP(), 'Timed out waiting for initial LCP');
+    const preClickLcp = await withTimeoutMessage(
+        t, getLcpEntries(), 'Timed out waiting for LCP entries');
     setEvent(t, link, pushState, addContent, pushUrl, eventType, eventPrepWork);
     let first_navigation_id;
     for (let i = 0; i < clicks; ++i) {
@@ -32,21 +62,28 @@ const testSoftNavigation = options => {
       const soft_nav_promise = waitOnSoftNav();
       interact(link, interactionFunc);
 
-      const navigation_id = await soft_nav_promise;
+      const navigation_id = await withTimeoutMessage(
+          t, soft_nav_promise, 'Timed out waiting for soft navigation');
       if (!first_navigation_id) {
         first_navigation_id = navigation_id;
       }
       // Ensure paint timing entries are fired before moving on to the next
       // click.
-      await paint_entries_promise;
+      await withTimeoutMessage(
+          t, paint_entries_promise, 'Timed out waiting for paint entries');
     }
     assert_equals(
         document.softNavigations, clicks,
         'Soft Navigations detected are the same as the number of clicks');
-    await validateSoftNavigationEntry(clicks, extraValidations, pushUrl);
+    await withTimeoutMessage(
+        t, validateSoftNavigationEntry(clicks, extraValidations, pushUrl),
+        'Timed out waiting for soft navigation entry validation');
 
-    await runEntryValidations(
-        preClickLcp, first_navigation_id, clicks + 1, options.validate);
+    await withTimeoutMessage(
+        t,
+        runEntryValidations(
+            preClickLcp, first_navigation_id, clicks + 1, options.validate),
+        'Timed out waiting for entry validations');
   }, testName);
 };
 
@@ -159,11 +196,12 @@ const setEvent =
 
         const url = URL + '?' + counter;
         if (pushState) {
-          // Change the URL
+          // Change the URL; pushState may be asynchronous, e.g. to deal
+          // with history.back()'s asynchronous effect.
           if (pushUrl) {
-            pushState(url);
+            await pushState(url);
           } else {
-            pushState();
+            await pushState();
           }
         }
 

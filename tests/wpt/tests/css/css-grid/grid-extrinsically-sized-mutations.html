@@ -105,17 +105,21 @@ function mutateContent() {
 </div>
 </body>
 <script>
-document.body.offsetHeight;
-mutateContent();
-document.body.offsetHeight;
+setup({ explicit_done: true });
+document.fonts.ready.then(() => {
+  document.body.offsetHeight;
+  mutateContent();
+  document.body.offsetHeight;
 
-let tests = document.querySelectorAll(".test");
-tests.forEach((element) => {
-  test(function() {
-    let expectedHeight = element.getAttribute("data-expected-height");
-    assert_equals(element.offsetHeight, Number(expectedHeight), "height");
+  let tests = document.querySelectorAll(".test");
+  tests.forEach((element) => {
+    test(function() {
+      let expectedHeight = element.getAttribute("data-expected-height");
+      assert_equals(element.offsetHeight, Number(expectedHeight), "height");
+    });
   });
-});
+  done();
+})
 </script>
 </html>
 

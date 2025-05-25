@@ -306,5 +306,5 @@ x-br::before {
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/check-layout-th.js"></script>
 <script>
-checkLayout(".container > div");
+document.fonts.ready.then(() => checkLayout(".container > div"));
 </script>

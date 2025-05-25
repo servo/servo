@@ -44,6 +44,11 @@
   test(function() {
     assert_equals(window.getComputedStyle(document.getElementById('target1')).getPropertyValue('rule-style'), 'solid');
   }, "rule-style shorthand computed from longhand values");
+  test(function() {
+    assert_equals(window.getComputedStyle(document.getElementById('target1')).getPropertyValue('rule'), '10px solid rgb(0, 255, 0)');
+  }, "rule shorthand computed from longhand values");
+
+
 
   test(function() {
     assert_equals(window.getComputedStyle(document.getElementById('target2')).getPropertyValue('rule-color'), '');
@@ -54,6 +59,9 @@
   test(function() {
     assert_equals(window.getComputedStyle(document.getElementById('target2')).getPropertyValue('rule-style'), '');
   }, "rule-style shorthand cannot be computed from longhand values so expect an empty string");
+    test(function() {
+    assert_equals(window.getComputedStyle(document.getElementById('target2')).getPropertyValue('rule'), '');
+  }, "rule shorthand cannot be computed from longhand values so expect an empty string");
 </script>
 </body>
 </html>

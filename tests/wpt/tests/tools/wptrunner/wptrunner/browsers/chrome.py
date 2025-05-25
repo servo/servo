@@ -140,13 +140,14 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data, subsuite
     # require local CDP access.
     chrome_options["args"].append("--remote-debugging-pipe")
 
-    # Classify `http-private`, `http-public` and https variants in the
+    # Classify `http-local`, `http-public` and https variants in the
     # appropriate IP address spaces.
     # For more details, see: https://github.com/web-platform-tests/rfcs/blob/master/rfcs/address_space_overrides.md
+    # and https://github.com/explainers-by-googlers/local-network-access
     address_space_overrides_ports = [
-        ("http-private", "private"),
+        ("http-local", "local"),
         ("http-public", "public"),
-        ("https-private", "private"),
+        ("https-local", "local"),
         ("https-public", "public"),
     ]
     address_space_overrides_arg = ",".join(
@@ -174,16 +175,26 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data, subsuite
         # https://chromium.googlesource.com/chromium/src/+/HEAD/docs/gpu/swiftshader.md
         chrome_options["args"].extend(["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"])
 
-    if kwargs["enable_experimental"]:
-        chrome_options["args"].extend(["--enable-experimental-web-platform-features"])
-
     # Copy over any other flags that were passed in via `--binary-arg` or the
     # subsuite config.
     binary_args = kwargs.get("binary_args", []) + subsuite.config.get("binary_args", [])
     for arg in binary_args:
+        if arg == "--stable-release-mode":
+            continue
         if arg not in chrome_options["args"]:
             chrome_options["args"].append(arg)
 
+    # Enable experimental features based on stable release mode setting. It is
+    # unfortunately that we need to do this based on a content shell specific
+    # setting, we choose to do this because we can not dynamically set
+    # enable-experimental in run_wpt_tests.py.
+    if kwargs["enable_experimental"] is None and "--stable-release-mode" not in binary_args:
+        chrome_options["args"].extend(["--enable-experimental-web-platform-features",
+                                       "--enable-blink-test-features"])
+
+    # Upstream CI should always explicitly enable/disable experimental features.
+    if kwargs["enable_experimental"]:
+        chrome_options["args"].extend(["--enable-experimental-web-platform-features"])
 
     # Pass the --headless=new flag to Chrome if WPT's own --headless flag was
     # set. '--headless' should always mean the new headless mode, as the old
