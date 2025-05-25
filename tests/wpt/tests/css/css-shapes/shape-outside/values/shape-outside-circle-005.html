@@ -21,7 +21,7 @@
             setup({explicit_done: true});
             generate_tests(ParsingUtils.testInlineStyle, ParsingUtils.buildRadiiTests('circle', 'lengthUnit + inline', ParsingUtils.validUnits));
             ParsingUtils.setupFonts();
-            document.fonts.ready.then(()=> {
+            document.fonts.load("10px Ahem").then(()=> {
                 generate_tests(ParsingUtils.testComputedStyle, ParsingUtils.buildRadiiTests('circle', 'lengthUnit + computed', ParsingUtils.validUnits));
                 ParsingUtils.restoreFonts();
                 done();

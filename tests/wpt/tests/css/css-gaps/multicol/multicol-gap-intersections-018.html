@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: Multicolumn gap decorations that are added later are painted.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="multicol-gap-decorations-018-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+
+    .container {
+        border: 2px solid rgb(96 139 168);
+        width: 200px;
+        height: 130px;
+        column-count: 3;
+        column-width: 60px;
+        column-height: 60px;
+        column-gap: 10px;
+        row-gap: 10px;
+        column-wrap: wrap;
+    }
+
+    p {
+        background: rgb(96 139 168 / 0.2);
+        height: 60px;
+        margin: 0px;
+    }
+</style>
+<script>
+    function setup() {
+        const button = document.getElementById('btn');
+        button.click();
+    }
+
+    function setDecorations() {
+        const container = document.querySelector('.container');
+        if (container) {
+            container.style.columnRuleStyle = 'solid';
+            container.style.columnRuleWidth = '10px';
+            container.style.columnRuleColor = 'blue';
+            container.style.rowRuleStyle = 'solid';
+            container.style.rowRuleWidth = '10px';
+            container.style.rowRuleColor = 'gold';
+        }
+    }
+</script>
+
+<body onload="setup()">
+    <div class="container">
+        <p></p>
+        <p></p>
+        <p></p>
+        <p></p>
+        <p></p>
+        <p></p>
+    </div>
+    <button onclick="setDecorations()" id="btn">Set decorations</button>
+</body>

@@ -16,11 +16,8 @@
 //                 falseValue);
 
 
-const getWherePrecisionTolerance = (graphResources) => {
-  const toleranceValueDict = {float32: 0, float16: 0};
-  const expectedDataType =
-      getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
-  return {metricType: 'ULP', value: toleranceValueDict[expectedDataType]};
+const getWherePrecisionTolerance = () => {
+  return {metricType: 'ULP', value: 0};
 };
 
 const whereTests = [
@@ -1006,6 +1003,834 @@ const whereTests = [
             -82.74693298339844, -18.61202621459961, -75.77534484863281
           ],
           'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
+        }
+      }
+    }
+  },
+
+  // float16 tests
+  {
+    'name': 'where float16 0D scalars',
+    'graph': {
+      'inputs': {
+        'inputCondition':
+            {'data': [247], 'descriptor': {shape: [], dataType: 'uint8'}},
+        'inputTrueValue': {
+          'data': [-22.84375],
+          'descriptor': {shape: [], dataType: 'float16'}
+        },
+        'inputFalseValue': {
+          'data': [-50.03125],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'where',
+        'arguments': [
+          {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
+          {'falseValue': 'inputFalseValue'}
+        ],
+        'outputs': 'whereOutput'
+      }],
+      'expectedOutputs': {
+        'whereOutput': {
+          'data': [-22.84375],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'where float16 1D constant tensors',
+    'graph': {
+      'inputs': {
+        'inputCondition': {
+          'data': [
+            241, 0,   85,  0,   227, 51, 202, 0,  104, 227, 129, 129,
+            175, 134, 130, 140, 103, 46, 158, 17, 0,   41,  94,  0
+          ],
+          'descriptor': {shape: [24], dataType: 'uint8'},
+          'constant': true
+        },
+        'inputTrueValue': {
+          'data': [
+            70.25,      90,         -1.53515625, -83.75,     29.59375,
+            -37.09375,  -6.6640625, -83.125,     -90.5,      -45.46875,
+            50.375,     46.5,       47.5,        -21.953125, 42.90625,
+            -76.8125,   67,         40.09375,    -29.078125, -12.1875,
+            -10.859375, -23.296875, 30.84375,    -58.8125
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'},
+          'constant': true
+        },
+        'inputFalseValue': {
+          'data': [
+            90.4375,   66.75,      -39.8125, -21.6875,   -67.375, -46.46875,
+            -55.90625, 65.5625,    35.15625, 11.9609375, 76.625,  60.75,
+            -93.9375,  -30.390625, 34.3125,  7.70703125, -82.25,  91.125,
+            22.9375,   75,         18.875,   62.3125,    48.875,  -75.4375
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'where',
+        'arguments': [
+          {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
+          {'falseValue': 'inputFalseValue'}
+        ],
+        'outputs': 'whereOutput'
+      }],
+      'expectedOutputs': {
+        'whereOutput': {
+          'data': [
+            70.25,     66.75,      -1.53515625, -21.6875,   29.59375,
+            -37.09375, -6.6640625, 65.5625,     -90.5,      -45.46875,
+            50.375,    46.5,       47.5,        -21.953125, 42.90625,
+            -76.8125,  67,         40.09375,    -29.078125, -12.1875,
+            18.875,    -23.296875, 30.84375,    -75.4375
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'where float16 1D tensors',
+    'graph': {
+      'inputs': {
+        'inputCondition': {
+          'data': [
+            241, 0,   85,  0,   227, 51, 202, 0,  104, 227, 129, 129,
+            175, 134, 130, 140, 103, 46, 158, 17, 0,   41,  94,  0
+          ],
+          'descriptor': {shape: [24], dataType: 'uint8'}
+        },
+        'inputTrueValue': {
+          'data': [
+            70.25,      90,         -1.53515625, -83.75,     29.59375,
+            -37.09375,  -6.6640625, -83.125,     -90.5,      -45.46875,
+            50.375,     46.5,       47.5,        -21.953125, 42.90625,
+            -76.8125,   67,         40.09375,    -29.078125, -12.1875,
+            -10.859375, -23.296875, 30.84375,    -58.8125
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        },
+        'inputFalseValue': {
+          'data': [
+            90.4375,   66.75,      -39.8125, -21.6875,   -67.375, -46.46875,
+            -55.90625, 65.5625,    35.15625, 11.9609375, 76.625,  60.75,
+            -93.9375,  -30.390625, 34.3125,  7.70703125, -82.25,  91.125,
+            22.9375,   75,         18.875,   62.3125,    48.875,  -75.4375
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'where',
+        'arguments': [
+          {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
+          {'falseValue': 'inputFalseValue'}
+        ],
+        'outputs': 'whereOutput'
+      }],
+      'expectedOutputs': {
+        'whereOutput': {
+          'data': [
+            70.25,     66.75,      -1.53515625, -21.6875,   29.59375,
+            -37.09375, -6.6640625, 65.5625,     -90.5,      -45.46875,
+            50.375,    46.5,       47.5,        -21.953125, 42.90625,
+            -76.8125,  67,         40.09375,    -29.078125, -12.1875,
+            18.875,    -23.296875, 30.84375,    -75.4375
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'where float16 2D tensors',
+    'graph': {
+      'inputs': {
+        'inputCondition': {
+          'data': [
+            241, 0,   85,  0,   227, 51, 202, 0,  104, 227, 129, 129,
+            175, 134, 130, 140, 103, 46, 158, 17, 0,   41,  94,  0
+          ],
+          'descriptor': {shape: [4, 6], dataType: 'uint8'}
+        },
+        'inputTrueValue': {
+          'data': [
+            70.25,      90,         -1.53515625, -83.75,     29.59375,
+            -37.09375,  -6.6640625, -83.125,     -90.5,      -45.46875,
+            50.375,     46.5,       47.5,        -21.953125, 42.90625,
+            -76.8125,   67,         40.09375,    -29.078125, -12.1875,
+            -10.859375, -23.296875, 30.84375,    -58.8125
+          ],
+          'descriptor': {shape: [4, 6], dataType: 'float16'}
+        },
+        'inputFalseValue': {
+          'data': [
+            90.4375,   66.75,      -39.8125, -21.6875,   -67.375, -46.46875,
+            -55.90625, 65.5625,    35.15625, 11.9609375, 76.625,  60.75,
+            -93.9375,  -30.390625, 34.3125,  7.70703125, -82.25,  91.125,
+            22.9375,   75,         18.875,   62.3125,    48.875,  -75.4375
+          ],
+          'descriptor': {shape: [4, 6], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'where',
+        'arguments': [
+          {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
+          {'falseValue': 'inputFalseValue'}
+        ],
+        'outputs': 'whereOutput'
+      }],
+      'expectedOutputs': {
+        'whereOutput': {
+          'data': [
+            70.25,     66.75,      -1.53515625, -21.6875,   29.59375,
+            -37.09375, -6.6640625, 65.5625,     -90.5,      -45.46875,
+            50.375,    46.5,       47.5,        -21.953125, 42.90625,
+            -76.8125,  67,         40.09375,    -29.078125, -12.1875,
+            18.875,    -23.296875, 30.84375,    -75.4375
+          ],
+          'descriptor': {shape: [4, 6], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'where float16 3D tensors',
+    'graph': {
+      'inputs': {
+        'inputCondition': {
+          'data': [
+            241, 0,   85,  0,   227, 51, 202, 0,  104, 227, 129, 129,
+            175, 134, 130, 140, 103, 46, 158, 17, 0,   41,  94,  0
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'uint8'}
+        },
+        'inputTrueValue': {
+          'data': [
+            70.25,      90,         -1.53515625, -83.75,     29.59375,
+            -37.09375,  -6.6640625, -83.125,     -90.5,      -45.46875,
+            50.375,     46.5,       47.5,        -21.953125, 42.90625,
+            -76.8125,   67,         40.09375,    -29.078125, -12.1875,
+            -10.859375, -23.296875, 30.84375,    -58.8125
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        },
+        'inputFalseValue': {
+          'data': [
+            90.4375,   66.75,      -39.8125, -21.6875,   -67.375, -46.46875,
+            -55.90625, 65.5625,    35.15625, 11.9609375, 76.625,  60.75,
+            -93.9375,  -30.390625, 34.3125,  7.70703125, -82.25,  91.125,
+            22.9375,   75,         18.875,   62.3125,    48.875,  -75.4375
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'where',
+        'arguments': [
+          {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
+          {'falseValue': 'inputFalseValue'}
+        ],
+        'outputs': 'whereOutput'
+      }],
+      'expectedOutputs': {
+        'whereOutput': {
+          'data': [
+            70.25,     66.75,      -1.53515625, -21.6875,   29.59375,
+            -37.09375, -6.6640625, 65.5625,     -90.5,      -45.46875,
+            50.375,    46.5,       47.5,        -21.953125, 42.90625,
+            -76.8125,  67,         40.09375,    -29.078125, -12.1875,
+            18.875,    -23.296875, 30.84375,    -75.4375
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'where float16 4D tensors',
+    'graph': {
+      'inputs': {
+        'inputCondition': {
+          'data': [
+            241, 0,   85,  0,   227, 51, 202, 0,  104, 227, 129, 129,
+            175, 134, 130, 140, 103, 46, 158, 17, 0,   41,  94,  0
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'uint8'}
+        },
+        'inputTrueValue': {
+          'data': [
+            70.25,      90,         -1.53515625, -83.75,     29.59375,
+            -37.09375,  -6.6640625, -83.125,     -90.5,      -45.46875,
+            50.375,     46.5,       47.5,        -21.953125, 42.90625,
+            -76.8125,   67,         40.09375,    -29.078125, -12.1875,
+            -10.859375, -23.296875, 30.84375,    -58.8125
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        },
+        'inputFalseValue': {
+          'data': [
+            90.4375,   66.75,      -39.8125, -21.6875,   -67.375, -46.46875,
+            -55.90625, 65.5625,    35.15625, 11.9609375, 76.625,  60.75,
+            -93.9375,  -30.390625, 34.3125,  7.70703125, -82.25,  91.125,
+            22.9375,   75,         18.875,   62.3125,    48.875,  -75.4375
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'where',
+        'arguments': [
+          {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
+          {'falseValue': 'inputFalseValue'}
+        ],
+        'outputs': 'whereOutput'
+      }],
+      'expectedOutputs': {
+        'whereOutput': {
+          'data': [
+            70.25,     66.75,      -1.53515625, -21.6875,   29.59375,
+            -37.09375, -6.6640625, 65.5625,     -90.5,      -45.46875,
+            50.375,    46.5,       47.5,        -21.953125, 42.90625,
+            -76.8125,  67,         40.09375,    -29.078125, -12.1875,
+            18.875,    -23.296875, 30.84375,    -75.4375
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'where float16 5D tensors',
+    'graph': {
+      'inputs': {
+        'inputCondition': {
+          'data': [
+            241, 0,   85,  0,   227, 51, 202, 0,  104, 227, 129, 129,
+            175, 134, 130, 140, 103, 46, 158, 17, 0,   41,  94,  0
+          ],
+          'descriptor': {shape: [2, 2, 1, 2, 3], dataType: 'uint8'}
+        },
+        'inputTrueValue': {
+          'data': [
+            70.25,      90,         -1.53515625, -83.75,     29.59375,
+            -37.09375,  -6.6640625, -83.125,     -90.5,      -45.46875,
+            50.375,     46.5,       47.5,        -21.953125, 42.90625,
+            -76.8125,   67,         40.09375,    -29.078125, -12.1875,
+            -10.859375, -23.296875, 30.84375,    -58.8125
+          ],
+          'descriptor': {shape: [2, 2, 1, 2, 3], dataType: 'float16'}
+        },
+        'inputFalseValue': {
+          'data': [
+            90.4375,   66.75,      -39.8125, -21.6875,   -67.375, -46.46875,
+            -55.90625, 65.5625,    35.15625, 11.9609375, 76.625,  60.75,
+            -93.9375,  -30.390625, 34.3125,  7.70703125, -82.25,  91.125,
+            22.9375,   75,         18.875,   62.3125,    48.875,  -75.4375
+          ],
+          'descriptor': {shape: [2, 2, 1, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'where',
+        'arguments': [
+          {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
+          {'falseValue': 'inputFalseValue'}
+        ],
+        'outputs': 'whereOutput'
+      }],
+      'expectedOutputs': {
+        'whereOutput': {
+          'data': [
+            70.25,     66.75,      -1.53515625, -21.6875,   29.59375,
+            -37.09375, -6.6640625, 65.5625,     -90.5,      -45.46875,
+            50.375,    46.5,       47.5,        -21.953125, 42.90625,
+            -76.8125,  67,         40.09375,    -29.078125, -12.1875,
+            18.875,    -23.296875, 30.84375,    -75.4375
+          ],
+          'descriptor': {shape: [2, 2, 1, 2, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'where float16 4D tensors only broadcast condition 0D to 4D',
+    'graph': {
+      'inputs': {
+        'inputCondition':
+            {'data': [247], 'descriptor': {shape: [], dataType: 'uint8'}},
+        'inputTrueValue': {
+          'data': [
+            70.25,      90,         -1.53515625, -83.75,     29.59375,
+            -37.09375,  -6.6640625, -83.125,     -90.5,      -45.46875,
+            50.375,     46.5,       47.5,        -21.953125, 42.90625,
+            -76.8125,   67,         40.09375,    -29.078125, -12.1875,
+            -10.859375, -23.296875, 30.84375,    -58.8125
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        },
+        'inputFalseValue': {
+          'data': [
+            90.4375,   66.75,      -39.8125, -21.6875,   -67.375, -46.46875,
+            -55.90625, 65.5625,    35.15625, 11.9609375, 76.625,  60.75,
+            -93.9375,  -30.390625, 34.3125,  7.70703125, -82.25,  91.125,
+            22.9375,   75,         18.875,   62.3125,    48.875,  -75.4375
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'where',
+        'arguments': [
+          {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
+          {'falseValue': 'inputFalseValue'}
+        ],
+        'outputs': 'whereOutput'
+      }],
+      'expectedOutputs': {
+        'whereOutput': {
+          'data': [
+            70.25,      90,         -1.53515625, -83.75,     29.59375,
+            -37.09375,  -6.6640625, -83.125,     -90.5,      -45.46875,
+            50.375,     46.5,       47.5,        -21.953125, 42.90625,
+            -76.8125,   67,         40.09375,    -29.078125, -12.1875,
+            -10.859375, -23.296875, 30.84375,    -58.8125
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'where float16 4D tensors only broadcast condition 1D to 4D',
+    'graph': {
+      'inputs': {
+        'inputCondition': {
+          'data': [253, 222, 0],
+          'descriptor': {shape: [3], dataType: 'uint8'}
+        },
+        'inputTrueValue': {
+          'data': [
+            70.25,      90,         -1.53515625, -83.75,     29.59375,
+            -37.09375,  -6.6640625, -83.125,     -90.5,      -45.46875,
+            50.375,     46.5,       47.5,        -21.953125, 42.90625,
+            -76.8125,   67,         40.09375,    -29.078125, -12.1875,
+            -10.859375, -23.296875, 30.84375,    -58.8125
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        },
+        'inputFalseValue': {
+          'data': [
+            90.4375,   66.75,      -39.8125, -21.6875,   -67.375, -46.46875,
+            -55.90625, 65.5625,    35.15625, 11.9609375, 76.625,  60.75,
+            -93.9375,  -30.390625, 34.3125,  7.70703125, -82.25,  91.125,
+            22.9375,   75,         18.875,   62.3125,    48.875,  -75.4375
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'where',
+        'arguments': [
+          {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
+          {'falseValue': 'inputFalseValue'}
+        ],
+        'outputs': 'whereOutput'
+      }],
+      'expectedOutputs': {
+        'whereOutput': {
+          'data': [
+            70.25,      90,         -39.8125, -83.75,     29.59375, -46.46875,
+            -6.6640625, -83.125,    35.15625, -45.46875,  50.375,   60.75,
+            47.5,       -21.953125, 34.3125,  -76.8125,   67,       91.125,
+            -29.078125, -12.1875,   18.875,   -23.296875, 30.84375, -75.4375
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'where float16 4D tensors only broadcast condition 2D to 4D',
+    'graph': {
+      'inputs': {
+        'inputCondition': {
+          'data': [103, 0],
+          'descriptor': {shape: [2, 1], dataType: 'uint8'}
+        },
+        'inputTrueValue': {
+          'data': [
+            70.25,      90,         -1.53515625, -83.75,     29.59375,
+            -37.09375,  -6.6640625, -83.125,     -90.5,      -45.46875,
+            50.375,     46.5,       47.5,        -21.953125, 42.90625,
+            -76.8125,   67,         40.09375,    -29.078125, -12.1875,
+            -10.859375, -23.296875, 30.84375,    -58.8125
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        },
+        'inputFalseValue': {
+          'data': [
+            90.4375,   66.75,      -39.8125, -21.6875,   -67.375, -46.46875,
+            -55.90625, 65.5625,    35.15625, 11.9609375, 76.625,  60.75,
+            -93.9375,  -30.390625, 34.3125,  7.70703125, -82.25,  91.125,
+            22.9375,   75,         18.875,   62.3125,    48.875,  -75.4375
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'where',
+        'arguments': [
+          {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
+          {'falseValue': 'inputFalseValue'}
+        ],
+        'outputs': 'whereOutput'
+      }],
+      'expectedOutputs': {
+        'whereOutput': {
+          'data': [
+            70.25,      90,         -1.53515625, -21.6875,   -67.375, -46.46875,
+            -6.6640625, -83.125,    -90.5,       11.9609375, 76.625,  60.75,
+            47.5,       -21.953125, 42.90625,    7.70703125, -82.25,  91.125,
+            -29.078125, -12.1875,   -10.859375,  62.3125,    48.875,  -75.4375
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'where float16 4D tensors only broadcast condition 3D to 4D',
+    'graph': {
+      'inputs': {
+        'inputCondition': {
+          'data': [235, 0, 93, 213, 0, 117],
+          'descriptor': {shape: [1, 2, 3], dataType: 'uint8'}
+        },
+        'inputTrueValue': {
+          'data': [
+            70.25,      90,         -1.53515625, -83.75,     29.59375,
+            -37.09375,  -6.6640625, -83.125,     -90.5,      -45.46875,
+            50.375,     46.5,       47.5,        -21.953125, 42.90625,
+            -76.8125,   67,         40.09375,    -29.078125, -12.1875,
+            -10.859375, -23.296875, 30.84375,    -58.8125
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        },
+        'inputFalseValue': {
+          'data': [
+            90.4375,   66.75,      -39.8125, -21.6875,   -67.375, -46.46875,
+            -55.90625, 65.5625,    35.15625, 11.9609375, 76.625,  60.75,
+            -93.9375,  -30.390625, 34.3125,  7.70703125, -82.25,  91.125,
+            22.9375,   75,         18.875,   62.3125,    48.875,  -75.4375
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'where',
+        'arguments': [
+          {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
+          {'falseValue': 'inputFalseValue'}
+        ],
+        'outputs': 'whereOutput'
+      }],
+      'expectedOutputs': {
+        'whereOutput': {
+          'data': [
+            70.25,      66.75,      -1.53515625, -83.75,     -67.375, -37.09375,
+            -6.6640625, 65.5625,    -90.5,       -45.46875,  76.625,  46.5,
+            47.5,       -30.390625, 42.90625,    -76.8125,   -82.25,  40.09375,
+            -29.078125, 75,         -10.859375,  -23.296875, 48.875,  -58.8125
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'where float16 4D tensors only broadcast condition 4D to 4D',
+    'graph': {
+      'inputs': {
+        'inputCondition': {
+          'data': [0, 165, 0, 90],
+          'descriptor': {shape: [1, 2, 2, 1], dataType: 'uint8'}
+        },
+        'inputTrueValue': {
+          'data': [
+            70.25,      90,         -1.53515625, -83.75,     29.59375,
+            -37.09375,  -6.6640625, -83.125,     -90.5,      -45.46875,
+            50.375,     46.5,       47.5,        -21.953125, 42.90625,
+            -76.8125,   67,         40.09375,    -29.078125, -12.1875,
+            -10.859375, -23.296875, 30.84375,    -58.8125
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        },
+        'inputFalseValue': {
+          'data': [
+            90.4375,   66.75,      -39.8125, -21.6875,   -67.375, -46.46875,
+            -55.90625, 65.5625,    35.15625, 11.9609375, 76.625,  60.75,
+            -93.9375,  -30.390625, 34.3125,  7.70703125, -82.25,  91.125,
+            22.9375,   75,         18.875,   62.3125,    48.875,  -75.4375
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'where',
+        'arguments': [
+          {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
+          {'falseValue': 'inputFalseValue'}
+        ],
+        'outputs': 'whereOutput'
+      }],
+      'expectedOutputs': {
+        'whereOutput': {
+          'data': [
+            90.4375,   66.75,      -39.8125, -83.75,     29.59375, -37.09375,
+            -55.90625, 65.5625,    35.15625, -45.46875,  50.375,   46.5,
+            -93.9375,  -30.390625, 34.3125,  -76.8125,   67,       40.09375,
+            22.9375,   75,         18.875,   -23.296875, 30.84375, -58.8125
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'where float16 4D tensors only broadcast trueValues 2D to 4D',
+    'graph': {
+      'inputs': {
+        'inputCondition': {
+          'data': [
+            241, 0,   85,  0,   227, 51, 202, 0,  104, 227, 129, 129,
+            175, 134, 130, 140, 103, 46, 158, 17, 0,   41,  94,  0
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'uint8'}
+        },
+        'inputTrueValue': {
+          'data':
+              [38.78125, 18.203125, -11.5390625, -82.75, -18.609375, -75.75],
+          'descriptor': {shape: [2, 3], dataType: 'float16'}
+        },
+        'inputFalseValue': {
+          'data': [
+            90.4375,   66.75,      -39.8125, -21.6875,   -67.375, -46.46875,
+            -55.90625, 65.5625,    35.15625, 11.9609375, 76.625,  60.75,
+            -93.9375,  -30.390625, 34.3125,  7.70703125, -82.25,  91.125,
+            22.9375,   75,         18.875,   62.3125,    48.875,  -75.4375
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'where',
+        'arguments': [
+          {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
+          {'falseValue': 'inputFalseValue'}
+        ],
+        'outputs': 'whereOutput'
+      }],
+      'expectedOutputs': {
+        'whereOutput': {
+          'data': [
+            38.78125, 66.75,     -11.5390625, -21.6875, -18.609375, -75.75,
+            38.78125, 65.5625,   -11.5390625, -82.75,   -18.609375, -75.75,
+            38.78125, 18.203125, -11.5390625, -82.75,   -18.609375, -75.75,
+            38.78125, 18.203125, 18.875,      -82.75,   -18.609375, -75.4375
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'where float16 4D tensors only broadcast trueValues 4D to 4D',
+    'graph': {
+      'inputs': {
+        'inputCondition': {
+          'data': [
+            241, 0,   85,  0,   227, 51, 202, 0,  104, 227, 129, 129,
+            175, 134, 130, 140, 103, 46, 158, 17, 0,   41,  94,  0
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'uint8'}
+        },
+        'inputTrueValue': {
+          'data': [-29.171875, 32.1875, -6.1484375, -24.828125],
+          'descriptor': {shape: [2, 2, 1, 1], dataType: 'float16'}
+        },
+        'inputFalseValue': {
+          'data': [
+            90.4375,   66.75,      -39.8125, -21.6875,   -67.375, -46.46875,
+            -55.90625, 65.5625,    35.15625, 11.9609375, 76.625,  60.75,
+            -93.9375,  -30.390625, 34.3125,  7.70703125, -82.25,  91.125,
+            22.9375,   75,         18.875,   62.3125,    48.875,  -75.4375
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'where',
+        'arguments': [
+          {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
+          {'falseValue': 'inputFalseValue'}
+        ],
+        'outputs': 'whereOutput'
+      }],
+      'expectedOutputs': {
+        'whereOutput': {
+          'data': [
+            -29.171875, 66.75,      -29.171875, -21.6875,   -29.171875,
+            -29.171875, 32.1875,    65.5625,    32.1875,    32.1875,
+            32.1875,    32.1875,    -6.1484375, -6.1484375, -6.1484375,
+            -6.1484375, -6.1484375, -6.1484375, -24.828125, -24.828125,
+            18.875,     -24.828125, -24.828125, -75.4375
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'where float16 4D tensors only broadcast falseValues 3D to 4D',
+    'graph': {
+      'inputs': {
+        'inputCondition': {
+          'data': [
+            241, 0,   85,  0,   227, 51, 202, 0,  104, 227, 129, 129,
+            175, 134, 130, 140, 103, 46, 158, 17, 0,   41,  94,  0
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'uint8'}
+        },
+        'inputTrueValue': {
+          'data': [
+            70.25,      90,         -1.53515625, -83.75,     29.59375,
+            -37.09375,  -6.6640625, -83.125,     -90.5,      -45.46875,
+            50.375,     46.5,       47.5,        -21.953125, 42.90625,
+            -76.8125,   67,         40.09375,    -29.078125, -12.1875,
+            -10.859375, -23.296875, 30.84375,    -58.8125
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        },
+        'inputFalseValue': {
+          'data': [-86.625, -67.75, -30.734375, -93.5],
+          'descriptor': {shape: [2, 2, 1], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'where',
+        'arguments': [
+          {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
+          {'falseValue': 'inputFalseValue'}
+        ],
+        'outputs': 'whereOutput'
+      }],
+      'expectedOutputs': {
+        'whereOutput': {
+          'data': [
+            70.25,      -86.625,    -1.53515625, -67.75,     29.59375,
+            -37.09375,  -6.6640625, -30.734375,  -90.5,      -45.46875,
+            50.375,     46.5,       47.5,        -21.953125, 42.90625,
+            -76.8125,   67,         40.09375,    -29.078125, -12.1875,
+            -30.734375, -23.296875, 30.84375,    -93.5
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'where float16 4D tensors only broadcast falseValues 4D to 4D',
+    'graph': {
+      'inputs': {
+        'inputCondition': {
+          'data': [
+            241, 0,   85,  0,   227, 51, 202, 0,  104, 227, 129, 129,
+            175, 134, 130, 140, 103, 46, 158, 17, 0,   41,  94,  0
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'uint8'}
+        },
+        'inputTrueValue': {
+          'data': [
+            70.25,      90,         -1.53515625, -83.75,     29.59375,
+            -37.09375,  -6.6640625, -83.125,     -90.5,      -45.46875,
+            50.375,     46.5,       47.5,        -21.953125, 42.90625,
+            -76.8125,   67,         40.09375,    -29.078125, -12.1875,
+            -10.859375, -23.296875, 30.84375,    -58.8125
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        },
+        'inputFalseValue': {
+          'data': [17.78125, -1.9892578125, -57.28125, -80, 66.875, -31.328125],
+          'descriptor': {shape: [1, 2, 1, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'where',
+        'arguments': [
+          {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
+          {'falseValue': 'inputFalseValue'}
+        ],
+        'outputs': 'whereOutput'
+      }],
+      'expectedOutputs': {
+        'whereOutput': {
+          'data': [
+            70.25,      -1.9892578125, -1.53515625, 17.78125,
+            29.59375,   -37.09375,     -6.6640625,  66.875,
+            -90.5,      -45.46875,     50.375,      46.5,
+            47.5,       -21.953125,    42.90625,    -76.8125,
+            67,         40.09375,      -29.078125,  -12.1875,
+            -31.328125, -23.296875,    30.84375,    -31.328125
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'where float16 4D tensors all broadcast 4D',
+    'graph': {
+      'inputs': {
+        'inputCondition': {
+          'data': [58, 217],
+          'descriptor': {shape: [2, 1, 1, 1], dataType: 'uint8'}
+        },
+        'inputTrueValue': {
+          'data':
+              [38.78125, 18.203125, -11.5390625, -82.75, -18.609375, -75.75],
+          'descriptor': {shape: [2, 3], dataType: 'float16'}
+        },
+        'inputFalseValue': {
+          'data': [-86.625, -67.75, -30.734375, -93.5],
+          'descriptor': {shape: [2, 2, 1], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'where',
+        'arguments': [
+          {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
+          {'falseValue': 'inputFalseValue'}
+        ],
+        'outputs': 'whereOutput'
+      }],
+      'expectedOutputs': {
+        'whereOutput': {
+          'data': [
+            38.78125, 18.203125, -11.5390625, -82.75, -18.609375, -75.75,
+            38.78125, 18.203125, -11.5390625, -82.75, -18.609375, -75.75,
+            38.78125, 18.203125, -11.5390625, -82.75, -18.609375, -75.75,
+            38.78125, 18.203125, -11.5390625, -82.75, -18.609375, -75.75
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
         }
       }
     }

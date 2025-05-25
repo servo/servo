@@ -12,8 +12,12 @@
 <meta name="variant" content="?origin=same-site&sw=fetch-handler-to-fallback">
 <meta name="variant" content="?origin=same-site&sw=fetch-handler-modify-url">
 <meta name="variant" content="?origin=same-site&sw=fetch-handler-modify-referrer">
+<meta name="variant" content="?origin=same-site&sw=fetch-handler-navigation-preload">
 <meta name="variant" content="?origin=same-site&sw=no-fetch-handler">
 <meta name="variant" content="?origin=same-site&sw=no-controller">
+<meta name="variant" content="?origin=same-site&sw=race-fetch-handler">
+<meta name="variant" content="?origin=same-site&sw=race-fetch-handler-to-fallback">
+<meta name="variant" content="?origin=same-site&sw=race-fetch-handler-modify-url">
 
 <meta name="variant" content="?origin=same-site&sw=fetch-handler&clientId">
 <meta name="variant" content="?origin=same-site&sw=fetch-handler-to-fallback&clientId">
@@ -38,15 +42,38 @@ setup(() => assertSpeculationRulesIsSupported());
 // TODO(https://crbug.com/404573972): Rename "same-site" tests to
 // "same-origin", and add same-site cross-origin tests.
 const originOption = new URL(location.href).searchParams.get('origin');
-const swOption = new URL(location.href).searchParams.get('sw');
+const originalSwOption = new URL(location.href).searchParams.get('sw');
+
+// Used when checking the resulting behavior.
+// In the following race-network cases, race network requests work in parallel
+// with fetch handlers and the checked observed behavior are the same with
+// non-race-network cases.
+let swOption = originalSwOption;
+if (originalSwOption === 'race-fetch-handler') {
+  swOption = 'fetch-handler';
+}
+if (originalSwOption === 'race-fetch-handler-to-fallback') {
+  swOption = 'fetch-handler-to-fallback';
+}
 
 promise_test(async t => {
   const hostname = originOption === 'cross-site' ? '{{hosts[alt][www]}}'
                                                  : undefined;
   const win = await spawnWindow(t, { protocol: 'https', hostname: hostname });
   const nextUrl = win.getExecutorURL({ executor: 'counting-executor.py', protocol: 'https', page: 2 });
+  if (swOption === 'race-fetch-handler-modify-url') {
+    // We set:
+    // - For the race network request: 1.5 sec delay (here).
+    // - For the network request from the fetch handler: 0.5 sec delay (in
+    //   `basic-service-worker.js`).
+    // So that:
+    // - The fetch handler wins and the modified request is used for serving.
+    // - The requests return responses after both of the requests reach the
+    //   server and are recorded in the server-side request counts.
+    nextUrl.searchParams.set('delay', '1500');
+  }
 
-  const swUrl = new URL('../../resources/basic-service-worker.js?sw=' + swOption, location.href).href;
+  const swUrl = new URL('../../resources/basic-service-worker.js?sw=' + originalSwOption, location.href).href;
 
   // Register a SW not controlling any pages below, just to confirm such
   // unrelated SWs in the same-origin doesn't affect the behavior.
@@ -120,8 +147,28 @@ promise_test(async t => {
       assert_intercept_prefetch(interceptedRequests[0], nextUrl);
     }
   } else if (originOption === 'same-site' &&
+      swOption === 'fetch-handler-navigation-preload') {
+    // Check the behavior of `FetchEvent.preloadResponse` for prefetching
+    // requests.
+    // Here we allow >1 intercepted requests to check `preloadResponse`
+    // behavior even if e.g. prefetched response isn't served and there is
+    // second intercepted request (=non-prefetch navigation request).
+    assert_greater_than_equal(interceptedRequests.length, 1);
+    // The first intercepted request is a prefetch request.
+    assert_intercept_prefetch(interceptedRequests[0], nextUrl);
+    assert_equals(interceptedRequests[0].preloadResponse, 'resolved',
+        'preloadResponse should be resolved');
+
+    assert_served_by_navigation_preload(headers);
+    assert_prefetched(headers, "Prefetched result should be served.");
+    assert_equals(requestCount.prefetch, 1,
+        'a prefetch request should be sent to the server.');
+    assert_equals(requestCount.nonPrefetch, 0,
+        'non-prefetch requests should not be sent to the server.');
+  } else if (originOption === 'same-site' &&
              (swOption === 'fetch-handler-modify-url' ||
-              swOption === 'fetch-handler-modify-referrer')) {
+              swOption === 'fetch-handler-modify-referrer' ||
+              swOption === 'race-fetch-handler-modify-url')) {
     // When the ServiceWorker modifies the prefetch request
     // (`fetch-handler-modify-*` cases below), still prefetch can work and be
     // served, but Sec-Purpose header is dropped
@@ -129,11 +176,17 @@ promise_test(async t => {
     assert_prefetched_without_sec_purpose(headers,
         "Prefetched result should be served without Sec-Purpose.");
     // `requestCount` checks the Sec-Purpose header so the prefetch request
-    // without Sec-Prefetch is counted as nonPrefetch here.
+    // without Sec-Purpose is counted as nonPrefetch here.
     assert_equals(requestCount.nonPrefetch, 1,
         'a prefetch request without Sec-Purpose should be sent to the server.');
-    assert_equals(requestCount.prefetch, 0,
-        'Other requests with Sec-Prefetch should not be sent to the server.');
+    if (swOption === 'race-fetch-handler-modify-url') {
+      // This racing network request is not used.
+      assert_equals(requestCount.prefetch, 1,
+        'Race network request should be sent to the server with Sec-Purpose.');
+    } else {
+      assert_equals(requestCount.prefetch, 0,
+        'Other requests with Sec-Purpose should not be sent to the server.');
+    }
 
     // Check the modified URL/referrer to check if the prefetched and
     // ServiceWorker-modified response is actually served.
@@ -167,5 +220,5 @@ promise_test(async t => {
     }
   }
 
-}, "Prefetch with ServiceWorker (" + swOption + ")");
+}, "Prefetch with ServiceWorker (" + originalSwOption + ")");
 </script>

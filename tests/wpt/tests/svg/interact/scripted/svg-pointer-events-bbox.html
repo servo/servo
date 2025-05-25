@@ -131,25 +131,31 @@ function hitTest(point, element, shouldContain, optionalLabel) {
   }, `${label} ${shouldContain ? 'contains' : 'does not contain'} point at (${point.x}, ${point.y})`);
 }
 
-pointsOnCircle1.forEach(point => hitTest(point, circle1, true));
-pointsNotOnCircle1.forEach(point => hitTest(point, circle1, false));
-pointsInsideBBoxOfCircle1.forEach(point => hitTest(point, group1, true, 'group1'));
+setup({ explicit_done: true });
 
-pointsOnCircle2.forEach(point => hitTest(point, circle2, true));
-pointsInsideBBoxOfCircle2.forEach(point => hitTest(point, circle2, true, 'bbox of circle2'));
+document.fonts.ready.then(() => {
+  pointsOnCircle1.forEach(point => hitTest(point, circle1, true));
+  pointsNotOnCircle1.forEach(point => hitTest(point, circle1, false));
+  pointsInsideBBoxOfCircle1.forEach(point => hitTest(point, group1, true, 'group1'));
 
-pointsOnText1.forEach(point => hitTest(point, text1, true));
-pointsOnTspan1.forEach(point => hitTest(point, tspan1, true));
-pointsNotOnText1.forEach(point => hitTest(point, text1, false));
-pointsInsideBBoxOfText1.forEach(point => hitTest(point, text1, true, 'bbox of text1'));
+  pointsOnCircle2.forEach(point => hitTest(point, circle2, true));
+  pointsInsideBBoxOfCircle2.forEach(point => hitTest(point, circle2, true, 'bbox of circle2'));
 
-pointsOnText2.forEach(point => hitTest(point, text2, true));
-pointsOnTspan2.forEach(point => hitTest(point, tspan2, true));
-pointsNotOnText2.forEach(point => hitTest(point, text2, false));
-pointsInsideBBoxOfText2.forEach(point => hitTest(point, text2, true, 'bbox of text2'));
+  pointsOnText1.forEach(point => hitTest(point, text1, true));
+  pointsOnTspan1.forEach(point => hitTest(point, tspan1, true));
+  pointsNotOnText1.forEach(point => hitTest(point, text1, false));
+  pointsInsideBBoxOfText1.forEach(point => hitTest(point, text1, true, 'bbox of text1'));
 
-pointsOnText3.forEach(point => hitTest(point, text3, true));
-pointsNotOnText3.forEach(point => hitTest(point, text3, false));
+  pointsOnText2.forEach(point => hitTest(point, text2, true));
+  pointsOnTspan2.forEach(point => hitTest(point, tspan2, true));
+  pointsNotOnText2.forEach(point => hitTest(point, text2, false));
+  pointsInsideBBoxOfText2.forEach(point => hitTest(point, text2, true, 'bbox of text2'));
 
-pointsOnImage1.forEach(point => hitTest(point, image1, true));
+  pointsOnText3.forEach(point => hitTest(point, text3, true));
+  pointsNotOnText3.forEach(point => hitTest(point, text3, false));
+
+  pointsOnImage1.forEach(point => hitTest(point, image1, true));
+
+  done();
+});
 </script>

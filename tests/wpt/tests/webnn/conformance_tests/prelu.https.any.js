@@ -1207,6 +1207,36 @@ const preluTests = [
         }
       }
     }
+  },
+
+  // int64 tests
+  {
+    'name': 'prelu int64 2D constant tensors',
+    'graph': {
+      'inputs': {
+        'preluInput': {
+          'data': [-4, -2, -1, 0, 0, 0, 1, 2, 4],
+          'descriptor': {shape: [3, 3], dataType: 'int64'},
+          'constant': true
+        },
+        'preluSlope': {
+          'data': [-5, 0, 5, -5, 0, 5, -5, 0, 5],
+          'descriptor': {shape: [3, 3], dataType: 'int64'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'prelu',
+        'arguments': [{'input': 'preluInput'}, {'slope': 'preluSlope'}],
+        'outputs': 'preluOutput'
+      }],
+      'expectedOutputs': {
+        'preluOutput': {
+          'data': [20, 0, -5, 0, 0, 0, 1, 2, 4],
+          'descriptor': {shape: [3, 3], dataType: 'int64'}
+        }
+      }
+    }
   }
 ];
 

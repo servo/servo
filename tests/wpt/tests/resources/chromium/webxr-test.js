@@ -355,6 +355,23 @@ class MockRuntime {
     "world-space": vrMojom.XRInteractionMode.kWorldSpace,
   };
 
+  static _depthTypeToMojoMap = {
+    "raw": xrSessionMojom.XRDepthType.kRawDepth,
+    "smooth": xrSessionMojom.XRDepthType.kSmoothDepth,
+  };
+
+  static _depthUsageToMojoMap = {
+    "cpu-optimized": xrSessionMojom.XRDepthUsage.kCPUOptimized,
+    "gpu-optimized": xrSessionMojom.XRDepthUsage.kGPUOptimized,
+  };
+
+  static _depthDataFormatToMojoMap = {
+    "luminance-alpha": xrSessionMojom.XRDepthDataFormat.kLuminanceAlpha,
+    "float32": xrSessionMojom.XRDepthDataFormat.kFloat32,
+    "unsigned-short": xrSessionMojom.XRDepthDataFormat.kUnsignedShort,
+  };
+
+
   constructor(fakeDeviceInit, service) {
     this.sessionClient_ = null;
     this.presentation_provider_ = new MockXRPresentationProvider();
@@ -438,6 +455,8 @@ class MockRuntime {
     this.setBoundsGeometry(fakeDeviceInit.boundsCoordinates);
 
     this.setViews(fakeDeviceInit.views, fakeDeviceInit.secondaryViews);
+
+    this._setDepthSupport(fakeDeviceInit.depthSupport || {});
 
     // Need to support webVR which doesn't have a notion of features
     this._setFeatures(fakeDeviceInit.supportedFeatures || []);
@@ -658,6 +677,32 @@ class MockRuntime {
   }
 
   // WebXR Test API depth Sensing Extensions
+  _setDepthSupport(depthSupport) {
+    this.depthSupport_ = {};
+
+    this.depthSupport_.depthTypes = [];
+    for (const type of (depthSupport.depthTypes || [])) {
+      this.depthSupport_.depthTypes.push(MockRuntime._depthTypeToMojoMap[type]);
+    }
+
+    this.depthSupport_.depthFormats = [];
+    for (const format of (depthSupport.depthFormats || [])) {
+      this.depthSupport_.depthFormats.push(MockRuntime._depthDataFormatToMojoMap[format]);
+    }
+
+    this.depthSupport_.depthUsages = [];
+    for (const usage of (depthSupport.depthUsages || [])) {
+      // Because chrome doesn't support gpu-optimized for any devices at present
+      // avoid "false positive" WPTs by indicating that we don't support
+      // gpu-optimized.
+      if (usage === "gpu-optimized") {
+        continue;
+      }
+
+      this.depthSupport_.depthUsages.push(MockRuntime._depthUsageToMojoMap[usage]);
+    }
+  }
+
   setDepthSensingData(depthSensingData) {
     for(const key of ["depthData", "normDepthBufferFromNormView", "rawValueToMeters", "width", "height"]) {
       if(!(key in depthSensingData)) {
@@ -789,6 +834,26 @@ class MockRuntime {
       }];
   }
 
+  _getFovFromProjectionMatrix(projectionMatrix) {
+    const m = projectionMatrix;
+
+    function toDegrees(tan) {
+      return Math.atan(tan) * 180 / Math.PI;
+    }
+
+    const leftTan = (1 - m[8]) / m[0];
+    const rightTan = (1 + m[8]) / m[0];
+    const upTan = (1 + m[9]) / m[5];
+    const downTan = (1 - m[9]) / m[5];
+
+    return {
+      upDegrees: toDegrees(upTan),
+      downDegrees: toDegrees(downTan),
+      leftDegrees: toDegrees(leftTan),
+      rightDegrees: toDegrees(rightTan)
+    };
+  }
+
   // This function converts between the matrix provided by the WebXR test API
   // and the internal data representation.
   _getView(fakeXRViewInit, xOffset) {
@@ -802,23 +867,7 @@ class MockRuntime {
         rightDegrees: fakeXRViewInit.fieldOfView.rightDegrees
       };
     } else {
-      const m = fakeXRViewInit.projectionMatrix;
-
-      function toDegrees(tan) {
-        return Math.atan(tan) * 180 / Math.PI;
-      }
-
-      const leftTan = (1 - m[8]) / m[0];
-      const rightTan = (1 + m[8]) / m[0];
-      const upTan = (1 + m[9]) / m[5];
-      const downTan = (1 - m[9]) / m[5];
-
-      fov = {
-        upDegrees: toDegrees(upTan),
-        downDegrees: toDegrees(downTan),
-        leftDegrees: toDegrees(leftTan),
-        rightDegrees: toDegrees(rightTan)
-      };
+      fov = this._getFovFromProjectionMatrix(fakeXRViewInit.projectionMatrix);
     }
 
     let viewEye = vrMojom.XREye.kNone;
@@ -841,7 +890,10 @@ class MockRuntime {
       eye: viewEye,
       geometry: {
         fieldOfView: fov,
-        mojoFromView: this._getMojoFromViewerWithOffset(composeGFXTransform(fakeXRViewInit.viewOffset))
+        mojoFromView: this._getMojoFromViewerWithOffset(composeGFXTransform(fakeXRViewInit.viewOffset)),
+        // Mojo will ignore extra members, we stash the raw projection matrix
+        // here for ease of use with the depth extensions.
+        projectionMatrix: fakeXRViewInit.projectionMatrix,
       },
       viewport: {
         x: xOffset,
@@ -1199,7 +1251,7 @@ class MockRuntime {
         const enabled_features = [];
         for (let i = 0; i < sessionOptions.requiredFeatures.length; i++) {
           const feature = sessionOptions.requiredFeatures[i];
-          if (this._runtimeSupportsFeature(feature, sessionOptions)) {
+          if (this._maybeEnableFeature(feature, sessionOptions)) {
             enabled_features.push(feature);
           } else {
             return Promise.resolve({session: null});
@@ -1208,17 +1260,12 @@ class MockRuntime {
 
         for (let i =0; i < sessionOptions.optionalFeatures.length; i++) {
           const feature = sessionOptions.optionalFeatures[i];
-          if (this._runtimeSupportsFeature(feature, sessionOptions)) {
+          if (this._maybeEnableFeature(feature, sessionOptions)) {
             enabled_features.push(feature);
           }
         }
 
         this.enabledFeatures_ = enabled_features;
-
-        let selectedDepthType;
-        if (sessionOptions.depthOptions && sessionOptions.depthOptions.depthTypeRequest.length != 0) {
-          selectedDepthType = sessionOptions.depthOptions.depthTypeRequest[0];
-        }
 
         return Promise.resolve({
           session: {
@@ -1229,17 +1276,8 @@ class MockRuntime {
             deviceConfig: {
               defaultFramebufferScale: this.defaultFramebufferScale_,
               supportsViewportScaling: true,
-              depthConfiguration: enabled_features.includes(
-                                      xrSessionMojom.XRSessionFeature.DEPTH) ?
-                  {
-                    // TODO(https://crbug.com/409806803): Update support via
-                    // a webxr-test-api method.
-                    depthUsage: xrSessionMojom.XRDepthUsage.kCPUOptimized,
-                    depthDataFormat:
-                        xrSessionMojom.XRDepthDataFormat.kLuminanceAlpha,
-                    depthType: selectedDepthType,
-                  } :
-                  null,
+              // If depth was not enabled above, this should be null.
+              depthConfiguration: this.depthConfiguration_,
               views: this._getDefaultViews(),
             },
             enviromentBlendMode: this.enviromentBlendMode_,
@@ -1259,22 +1297,67 @@ class MockRuntime {
     });
   }
 
-  _runtimeSupportsFeature(feature, options) {
+  _tryGetDepthConfig(options) {
+    if (!options.depthOptions) {
+      return null;
+    }
+
+    // At present, there are only two depth usages, and we only support CPU.
+    if (options.depthOptions.usagePreferences.length !== 0 &&
+        !options.depthOptions.usagePreferences.includes(
+          xrSessionMojom.XRDepthUsage.kCPUOptimized)) {
+      return null;
+    }
+    const selectedUsage = xrSessionMojom.XRDepthUsage.kCPUOptimized;
+
+    let selectedFormat = null;
+    if (options.depthOptions.dataFormatPreferences.length === 0) {
+      selectedFormat = this.depthSupport_.depthFormats.length === 0 ?
+        xrSessionMojom.XRDepthDataFormat.kLuminanceAlpha : this.depthSupport_.depthFormats[0];
+    } else {
+      for (const dataFormatRequest of options.depthOptions.dataFormatPreferences) {
+        if (this.depthSupport_.depthFormats.length === 0 ||
+            this.depthSupport_.depthFormats.includes(dataFormatRequest)) {
+          selectedFormat = dataFormatRequest;
+          break;
+        }
+      }
+    }
+
+    if (selectedFormat === null) {
+      return null;
+    }
+
+    // Default to our first supported depth type. If it's empty (meaning all),
+    // then just default to raw.
+    let selectedDepthType = this.depthSupport_.depthTypes.length === 0 ?
+    xrSessionMojom.XRDepthType.kRawDepth : this.depthSupport_.depthTypes[0];
+    // Try to set the depthType to the earliest requested one if it's supported.
+    for (const depthTypeRequest of options.depthOptions.depthTypeRequest) {
+      if (this.depthSupport_.depthTypes.length === 0 ||
+          this.depthSupport_.depthTypes.includes(depthTypeRequest)) {
+        selectedDepthType = depthTypeRequest;
+        break;
+      }
+    }
+
+    return {
+        depthUsage: selectedUsage,
+        depthDataFormat: selectedFormat,
+        depthType: selectedDepthType,
+      };
+  }
+
+  _maybeEnableFeature(feature, options) {
     if (this.supportedFeatures_.indexOf(feature) === -1) {
       return false;
     }
 
     switch (feature) {
       case xrSessionMojom.XRSessionFeature.DEPTH:
-        // This matches what Chrome can currently support.
-        // TODO(https://crbug.com/409806803): Add a webxr-test-api for this.
-        return options.depthOptions &&
-               (options.depthOptions.usagePreferences.length == 0 ||
-                options.depthOptions.usagePreferences.includes(
-                  xrSessionMojom.XRDepthUsage.kCPUOptimized)) &&
-               (options.depthOptions.dataFormatPreferences.length == 0 ||
-                options.depthOptions.dataFormatPreferences.includes(
-                 xrSessionMojom.XRDepthDataFormat.kLuminanceAlpha));
+        this.depthConfiguration_ = this._tryGetDepthConfig(options);
+        this.matchDepthView_ = options.depthOptions && options.depthOptions.matchDepthView;
+        return this.depthConfiguration_ != null;
       default:
         return true;
     }
@@ -1334,6 +1417,179 @@ class MockRuntime {
 
   // Private functions - depth sensing implementation:
 
+  /**
+   * Helper to get a TypedArray view for a given depth format.
+   * @param {ArrayBuffer} buffer The ArrayBuffer.
+   * @param {xrSessionMojom.XRDepthDataFormat} format The depth format.
+   * @return {Uint16Array|Float32Array} A typed array view.
+   */
+  static _getTypedArrayForFormat(buffer, format) {
+    if (format === xrSessionMojom.XRDepthDataFormat.kFloat32) {
+      return new Float32Array(buffer);
+    } else { // "luminance-alpha" or "unsigned-short"
+      return new Uint16Array(buffer);
+    }
+  }
+
+  /**
+   * Helper to get a TypedArray for the given depth format.
+   * @param {xrSessionMojom.XRDepthDataFormat} format - The Depth format
+   * @param {number} size - The size of the array to be created.
+   * @return {Uint16Array|Float32Array} A typed array view.
+   */
+  static _getEmptyTypedArrayForFormat(format, size) {
+    if (format === xrSessionMojom.XRDepthDataFormat.kFloat32) {
+        return new Float32Array(size).fill(0.0);
+    } else { // "luminance-alpha" or "unsigned-short" (Uint16)
+        return new Uint16Array(size).fill(0);
+    }
+  }
+
+  /**
+   * Reprojects depth data from a source view to a target view.
+   * The returned array will be the same width/height, but will be returned as a
+   * Uint8Array of the targetFormat (essentially a byte array that can be sent
+   * across mojo), so the overall returned size may be different.
+   *
+   * @param {ArrayBuffer} sourceDepthArrayBuffer - Raw depth data for the source.
+   * @param {number} width - Width of the depth data.
+   * @param {number} height - Height of the depth data.
+   * @param {xrSessionMojom.XRDepthDataFormat} sourceFormatEnum - Format of the source depth data.
+   * @param {Float32Array} sourceClipFromSourceView - Projection matrix for the source view.
+   * @param {Float32Array} mojoFromSourceView- Matrix of the transform for the source view.
+   * @param {xrSessionMojom.XRDepthDataFormat} targetFormatEnum - Format of the target depth data.
+   * @param {Float32Array} targetClipFromTargetView - Projection matrix for the target view.
+   * @param {Float32Array} mojoFromTargetView - Matrix of the transform for the target view.
+   * @return {Uint8Array | null} The reprojected depth data as an Uint8Array, or null on matrix error.
+   */
+  static copyDepthData(
+      sourceDepthArrayBuffer, width, height, sourceFormatEnum,
+      sourceClipFromSourceView, mojoFromSourceView,
+      targetFormatEnum,
+      targetClipFromTargetView, mojoFromTargetView) {
+
+      const targetViewFromTargetClip = XRMathHelper.inverse(targetClipFromTargetView);
+      const sourceViewFromMojo = XRMathHelper.inverse(mojoFromSourceView);
+
+      // Check if any matrices were not supplied or matrix inversions failed.
+      if (!targetViewFromTargetClip || !sourceViewFromMojo || !mojoFromTargetView) {
+          return null;
+      }
+
+      // Build the full transformation from Target Clip space to Source Clip space.
+      const mojoFromTargetClip = XRMathHelper.mul4x4(mojoFromTargetView, targetViewFromTargetClip);
+      if (!mojoFromTargetClip) return null;
+
+      const sourceViewFromTargetClip = XRMathHelper.mul4x4(sourceViewFromMojo, mojoFromTargetClip);
+      if (!sourceViewFromTargetClip) return null;
+
+      const sourceClipFromTargetClip = XRMathHelper.mul4x4(sourceClipFromSourceView, sourceViewFromTargetClip);
+      if (!sourceClipFromTargetClip) return null;
+
+      const sourceTypedArray = MockRuntime._getTypedArrayForFormat(sourceDepthArrayBuffer, sourceFormatEnum);
+      let internalTargetDepthTypedArray = MockRuntime._getEmptyTypedArrayForFormat(targetFormatEnum, width * height);
+
+      // Iterate over target pixels (Backward Mapping)
+      for (let ty = 0; ty < height; ++ty) {
+          for (let tx = 0; tx < width; ++tx) {
+              // Convert target pixel (tx, ty) to target NDC coordinates
+              const u_tgt_pixel = (tx + 0.5) / width;  // u in [0, 1], Y-down from top-left
+              const v_tgt_pixel = (ty + 0.5) / height; // v in [0, 1], Y-down from top-left
+
+              const ndc_x_tgt = u_tgt_pixel * 2.0 - 1.0;   // NDC X in [-1, 1]
+              const ndc_y_tgt = 1.0 - v_tgt_pixel * 2.0;   // NDC Y in [-1, 1], Y-up
+
+              // Define a point on the near plane in target clip space
+              const P_clip_tgt = { x: ndc_x_tgt, y: ndc_y_tgt, z: -1.0, w: 1.0 };
+
+              // Transform this point to source clip space
+              const P_clip_src = XRMathHelper.transform_by_matrix(sourceClipFromTargetClip, P_clip_tgt);
+
+              // Homogenize to get source NDC coordinates
+              if (Math.abs(P_clip_src.w) < XRMathHelper.EPSILON) {
+                  internalTargetDepthTypedArray[ty * width + tx] = 0; // Cannot project
+                  continue;
+              }
+              const ndc_x_src = P_clip_src.x / P_clip_src.w;
+              const ndc_y_src = P_clip_src.y / P_clip_src.w;
+
+              // Convert source NDC to source pixel coordinates
+              const u_src_pixel = (ndc_x_src + 1.0) / 2.0;
+              const v_src_pixel = (1.0 - ndc_y_src) / 2.0; // Convert source NDC Y-up to pixel Y-down
+
+              const sx = Math.floor(u_src_pixel * width);
+              const sy = Math.floor(v_src_pixel * height);
+
+              let target_raw_depth = 0; // Default to 0 (no data)
+
+              // Check if the calculated source pixel is within bounds
+              if (sx >= 0 && sx < width && sy >= 0 && sy < height) {
+                  const source_raw_value = sourceTypedArray[sy * width + sx];
+
+                  let isValidSourceDepth = false;
+                  if (sourceFormatEnum === xrSessionMojom.XRDepthDataFormat.kFloat32) {
+                      if (source_raw_value > 0 && isFinite(source_raw_value)) {
+                          isValidSourceDepth = true;
+                      }
+                  } else { // Uint16 source
+                      if (source_raw_value > 0) {
+                          isValidSourceDepth = true;
+                      }
+                  }
+
+                  if (isValidSourceDepth) {
+                      if (targetFormatEnum === xrSessionMojom.XRDepthDataFormat.kFloat32) {
+                          target_raw_depth = source_raw_value;
+                      } else {
+                          // Clamp to the valid range for Uint16
+                          target_raw_depth = Math.max(0, Math.min(0xFFFF, Math.round(source_raw_value)));
+                      }
+                  }
+              }
+
+              // If not in bounds or source depth invalid, target_raw_depth remains 0.
+              internalTargetDepthTypedArray[ty * width + tx] = target_raw_depth;
+          }
+      }
+
+      return new Uint8Array(internalTargetDepthTypedArray.buffer);
+  }
+
+  _getDepthPixelData(depthGeometry) {
+    if (!this.matchDepthView_ || !depthGeometry) {
+      return { bytes: this.depthSensingData_.depthData };
+    }
+
+    const sourceProjectionMatrix = depthGeometry.projectionMatrix;
+    const sourceViewOffset = depthGeometry.mojoFromView;
+    if (!sourceProjectionMatrix || !sourceViewOffset) {
+      return { bytes: this.depthSensingData_.depthData };
+    }
+
+    if (this.primaryViews_.length === 0) {
+      return { bytes: this.depthSensingData_.depthData };
+    }
+
+    const targetView = this.primaryViews_[0];
+    const targetProjectionMatrix = targetView.geometry.projectionMatrix;
+    const targetViewOffset = targetView.geometry.mojoFromView;
+    if (!targetProjectionMatrix || !targetViewOffset) {
+      return { bytes: this.depthSensingData_.depthData };
+    }
+
+    return { bytes: MockRuntime.copyDepthData(
+      this.depthSensingData_.depthData,
+      this.depthSensingData_.width,
+      this.depthSensingData_.height,
+      MockRuntime._depthDataFormatToMojoMap[this.depthSensingData_.depthFormat],
+      sourceProjectionMatrix,
+      sourceViewOffset.matrix,
+      this.depthConfiguration_.depthDataFormat,
+      targetProjectionMatrix,
+      targetViewOffset.matrix
+    )};
+  }
+
   // Modifies passed in frameData to add anchor information.
   _calculateDepthInformation(frameData) {
     if (!this.supportedModes_.includes(xrSessionMojom.XRSessionMode.kImmersiveAr)) {
@@ -1353,13 +1609,29 @@ class MockRuntime {
     } else if(!this.depthSensingDataDirty_) {
       newDepthData = { dataStillValid: {}};
     } else {
+      let viewGeometry = null;
+      const projectionMatrix = this.depthSensingData_.projectionMatrix;
+      const viewOffset = this.depthSensingData_.viewOffset;
+
+      if (projectionMatrix && viewOffset) {
+        const fov = this._getFovFromProjectionMatrix(projectionMatrix);
+
+        viewGeometry = {
+          fieldOfView: fov,
+          mojoFromView: this._getMojoFromViewerWithOffset(composeGFXTransform(viewOffset)),
+          // Convenience member for `_getDepthPixelData`
+          projectionMatrix: projectionMatrix
+        };
+      }
+
       newDepthData = {
         updatedDepthData: {
           timeDelta: frameData.timeDelta,
           normTextureFromNormView: this.depthSensingData_.normDepthBufferFromNormView,
           rawValueToMeters: this.depthSensingData_.rawValueToMeters,
           size: { width: this.depthSensingData_.width, height: this.depthSensingData_.height },
-          pixelData: { bytes: this.depthSensingData_.depthData }
+          pixelData: this._getDepthPixelData(viewGeometry),
+          viewGeometry: this.matchDepthView_ ? null : viewGeometry
         }
       };
     }

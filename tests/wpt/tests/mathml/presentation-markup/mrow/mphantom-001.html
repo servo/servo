@@ -24,17 +24,22 @@
     </math>
   </div>
   <script>
-    test(function () {
+    setup({ explicit_done: true });
+    document.fonts.ready.then(() => {
+      test(function () {
         var style = window.getComputedStyle(document.getElementById("mphantom"));
         assert_equals(style.visibility, "hidden");
-    }, "Default CSS properties on mphantom");
+      }, "Default CSS properties on mphantom");
 
-    test(function () {
+      test(function () {
         var mphantomBox = document.getElementById("mphantom").getBoundingClientRect();
         var referenceBox = document.getElementById("reference").getBoundingClientRect();
         assert_equals(mphantomBox.width, referenceBox.width);
         assert_equals(mphantomBox.height, referenceBox.height);
-    }, "Bounding box is the same as mrow");
+      }, "Bounding box is the same as mrow");
+
+      done();
+    });
 </script>
 </body>
 </html>

@@ -72,5 +72,5 @@
   test(_ => {
     assert_equals(window.getComputedStyle(document.querySelector("#notitalic")).fontStyle, "normal");
   }, "decoration does not propagate into table");
-  checkLayout("table");
+  document.fonts.ready.then(() => checkLayout("table"));
 </script>

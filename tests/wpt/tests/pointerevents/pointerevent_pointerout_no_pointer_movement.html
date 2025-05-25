@@ -24,6 +24,10 @@
     z-index: 1000;
     display: none;
   }
+
+  #log {
+    display: none; /* Required to run this test alone */
+  }
 </style>
 <div id="target"></div>
 <div id="overlay"></div>
@@ -44,19 +48,23 @@
   promise_test(async t => {
     await test_driver.click(target);
 
+    num_pointermoves = 0;
     let pointerout_promise = getEvent("pointerout", target);
     overlay.style.display = "block";
     await pointerout_promise;
+    assert_equals(num_pointermoves, 0, "no pointermove events are expected");
+  }, "Layout change under a stationary pointer (a new element appears) fires boundary events and no pointermove event");
 
+
+  promise_test(async t => {
+    await test_driver.click(overlay);
+
+    num_pointermoves = 0;
     let pointerover_promise = getEvent("pointerover", target);
     overlay.style.display = "none";
-    await waitForAnimationFrames(2);
-    // Why does Chrome time out at the next line w/o the redundant wait above?
-    // Does chrome require something to request a main frame in order to detect
-    // the new pointer target after the style update to generate the event?
-    // https://crbug.com/413595088
     await pointerover_promise;
-
     assert_equals(num_pointermoves, 0, "no pointermove events are expected");
-  }, "Layout change under a stationary pointer fires boundary events and no pointermove event");
+
+    document.querySelector("style").remove(); // Show the test log if running alone.
+  }, "Layout change under a stationary pointer (the element disappears) fires boundary events and no pointermove event");
 </script>

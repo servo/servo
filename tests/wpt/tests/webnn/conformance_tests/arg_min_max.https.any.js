@@ -767,6 +767,172 @@ const argMinMaxTests = [
     }
   },
 
+  {
+    'name': 'argMin int8 4D tensor, axis=0, all options',
+    'graph': {
+      'inputs': {
+        'argMinInput': {
+          'data': [
+            -128, -50, -5, -1, 0, 11, 50, 126, -127, -50, 0, 0, 1, 10, 50, 127
+          ],
+          'descriptor': {shape: [2, 2, 2, 2], dataType: 'int8'}
+        }
+      },
+      'operators': [{
+        'name': 'argMin',
+        'arguments': [
+          {'input': 'argMinInput'}, {'axis': 0},
+          {'options': {'keepDimensions': true, 'outputDataType': 'int64'}}
+        ],
+        'outputs': 'argMinOutput'
+      }],
+      'expectedOutputs': {
+        'argMinOutput': {
+          'data': [0n, 0n, 0n, 0n, 0n, 1n, 0n, 0n],
+          'descriptor': {shape: [1, 2, 2, 2], dataType: 'int64'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'argMin uint8 4D tensor, axis=1, all options',
+    'graph': {
+      'inputs': {
+        'argMinInput': {
+          'data': [
+            0, 0, 254, 10, 1, 255, 1, 11, 21, 50, 128, 254, 20, 50, 127, 255
+          ],
+          'descriptor': {shape: [2, 2, 2, 2], dataType: 'uint8'}
+        }
+      },
+      'operators': [{
+        'name': 'argMin',
+        'arguments': [
+          {'input': 'argMinInput'}, {'axis': 1},
+          {'options': {'keepDimensions': true, 'outputDataType': 'int32'}}
+        ],
+        'outputs': 'argMinOutput'
+      }],
+      'expectedOutputs': {
+        'argMinOutput': {
+          'data': [0, 0, 1, 0, 1, 0, 1, 0],
+          'descriptor': {shape: [2, 1, 2, 2], dataType: 'int32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'argMin int32 4D tensor, axis=0, all options',
+    'graph': {
+      'inputs': {
+        'argMinInput': {
+          'data': [
+            3,   -24, 5,   -48, 40, 60, -82, -96, 71, 38, -39, 31,
+            -82, -96, -25, -16, 66, 82, -82, -96, 39, 42, 82,  85
+          ],
+          'descriptor': {shape: [2, 1, 4, 3], dataType: 'int32'}
+        }
+      },
+      'operators': [{
+        'name': 'argMin',
+        'arguments': [
+          {'input': 'argMinInput'}, {'axis': 0},
+          {'options': {'keepDimensions': true, 'outputDataType': 'int64'}}
+        ],
+        'outputs': 'argMinOutput'
+      }],
+      'expectedOutputs': {
+        'argMinOutput': {
+          'data': [1n, 1n, 1n, 0n, 0n, 0n, 0n, 0n, 1n, 0n, 0n, 0n],
+          'descriptor': {shape: [1, 1, 4, 3], dataType: 'int64'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'argMin uint32 4D tensor, axis=1, all options',
+    'graph': {
+      'inputs': {
+        'argMinInput': {
+          'data': [
+            0, 0, 254, 10, 1, 512, 1, 11, 21, 50, 128, 254, 20, 50, 127, 512
+          ],
+          'descriptor': {shape: [2, 2, 2, 2], dataType: 'uint32'}
+        }
+      },
+      'operators': [{
+        'name': 'argMin',
+        'arguments': [
+          {'input': 'argMinInput'}, {'axis': 1},
+          {'options': {'keepDimensions': true, 'outputDataType': 'int32'}}
+        ],
+        'outputs': 'argMinOutput'
+      }],
+      'expectedOutputs': {
+        'argMinOutput': {
+          'data': [0, 0, 1, 0, 1, 0, 1, 0],
+          'descriptor': {shape: [2, 1, 2, 2], dataType: 'int32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'argMin int64 4D tensor, axis=0, all options',
+    'graph': {
+      'inputs': {
+        'argMinInput': {
+          'data': [
+            3n,   -24n, 5n,   -48n, 40n, 60n, -82n, 96n, 71n, 38n, -39n, 31n,
+            -82n, -96n, -25n, -16n, 66n, 82n, -82n, 96n, 39n, 42n, 82n,  85n
+          ],
+          'descriptor': {shape: [2, 1, 4, 3], dataType: 'int64'}
+        }
+      },
+      'operators': [{
+        'name': 'argMin',
+        'arguments': [
+          {'input': 'argMinInput'}, {'axis': 0},
+          {'options': {'keepDimensions': true, 'outputDataType': 'int64'}}
+        ],
+        'outputs': 'argMinOutput'
+      }],
+      'expectedOutputs': {
+        'argMinOutput': {
+          'data': [1n, 1n, 1n, 0n, 0n, 0n, 0n, 0n, 1n, 0n, 0n, 0n],
+          'descriptor': {shape: [1, 1, 4, 3], dataType: 'int64'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'argMin uint64 4D tensor, axis=1, all options',
+    'graph': {
+      'inputs': {
+        'argMinInput': {
+          'data': [
+            0n,  0n,  254n, 10n,  1n,  512n, 1n,   11n,
+            21n, 50n, 128n, 254n, 20n, 50n,  127n, 512n
+          ],
+          'descriptor': {shape: [2, 2, 2, 2], dataType: 'uint64'}
+        }
+      },
+      'operators': [{
+        'name': 'argMin',
+        'arguments': [
+          {'input': 'argMinInput'}, {'axis': 1},
+          {'options': {'keepDimensions': true, 'outputDataType': 'int32'}}
+        ],
+        'outputs': 'argMinOutput'
+      }],
+      'expectedOutputs': {
+        'argMinOutput': {
+          'data': [0, 0, 1, 0, 1, 0, 1, 0],
+          'descriptor': {shape: [2, 1, 2, 2], dataType: 'int32'}
+        }
+      }
+    }
+  },
+
   // argMax tests
   {
     'name': 'argMax float32 1D constant tensor, axis=0, default options',
@@ -1494,6 +1660,172 @@ const argMinMaxTests = [
       }
     }
   },
+
+  {
+    'name': 'argMax int8 4D tensor, axis=0, all options',
+    'graph': {
+      'inputs': {
+        'argMaxInput': {
+          'data': [
+            -128, -50, -5, -1, 0, 11, 50, 126, -127, -50, 0, 0, 1, 10, 50, 127
+          ],
+          'descriptor': {shape: [2, 2, 2, 2], dataType: 'int8'}
+        }
+      },
+      'operators': [{
+        'name': 'argMax',
+        'arguments': [
+          {'input': 'argMaxInput'}, {'axis': 0},
+          {'options': {'keepDimensions': true, 'outputDataType': 'int64'}}
+        ],
+        'outputs': 'argMaxOutput'
+      }],
+      'expectedOutputs': {
+        'argMaxOutput': {
+          'data': [1n, 0n, 1n, 1n, 1n, 0n, 0n, 1n],
+          'descriptor': {shape: [1, 2, 2, 2], dataType: 'int64'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'argMax uint8 4D tensor, axis=1, all options',
+    'graph': {
+      'inputs': {
+        'argMaxInput': {
+          'data': [
+            0, 0, 254, 10, 1, 255, 1, 11, 21, 50, 128, 254, 20, 50, 127, 255
+          ],
+          'descriptor': {shape: [2, 2, 2, 2], dataType: 'uint8'}
+        }
+      },
+      'operators': [{
+        'name': 'argMax',
+        'arguments': [
+          {'input': 'argMaxInput'}, {'axis': 1},
+          {'options': {'keepDimensions': true, 'outputDataType': 'int32'}}
+        ],
+        'outputs': 'argMaxOutput'
+      }],
+      'expectedOutputs': {
+        'argMaxOutput': {
+          'data': [1, 1, 0, 1, 0, 0, 0, 1],
+          'descriptor': {shape: [2, 1, 2, 2], dataType: 'int32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'argMax int32 4D tensor, axis=0, all options',
+    'graph': {
+      'inputs': {
+        'argMaxInput': {
+          'data': [
+            3,   -24, 5,   -48, 40, 60, -82, 96, 71, 38, -39, 31,
+            -82, -96, -25, -16, 66, 82, -82, 96, 39, 42, 82,  85
+          ],
+          'descriptor': {shape: [2, 1, 4, 3], dataType: 'int32'}
+        }
+      },
+      'operators': [{
+        'name': 'argMax',
+        'arguments': [
+          {'input': 'argMaxInput'}, {'axis': 0},
+          {'options': {'keepDimensions': true, 'outputDataType': 'int64'}}
+        ],
+        'outputs': 'argMaxOutput'
+      }],
+      'expectedOutputs': {
+        'argMaxOutput': {
+          'data': [0n, 0n, 0n, 1n, 1n, 1n, 0n, 0n, 0n, 1n, 1n, 1n],
+          'descriptor': {shape: [1, 1, 4, 3], dataType: 'int64'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'argMax uint32 4D tensor, axis=1, all options',
+    'graph': {
+      'inputs': {
+        'argMaxInput': {
+          'data': [
+            0, 0, 254, 10, 1, 512, 1, 11, 21, 50, 128, 254, 20, 50, 127, 512
+          ],
+          'descriptor': {shape: [2, 2, 2, 2], dataType: 'uint32'}
+        }
+      },
+      'operators': [{
+        'name': 'argMax',
+        'arguments': [
+          {'input': 'argMaxInput'}, {'axis': 1},
+          {'options': {'keepDimensions': true, 'outputDataType': 'int32'}}
+        ],
+        'outputs': 'argMaxOutput'
+      }],
+      'expectedOutputs': {
+        'argMaxOutput': {
+          'data': [1, 1, 0, 1, 0, 0, 0, 1],
+          'descriptor': {shape: [2, 1, 2, 2], dataType: 'int32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'argMax int64 4D tensor, axis=0, all options',
+    'graph': {
+      'inputs': {
+        'argMaxInput': {
+          'data': [
+            3n,   -24n, 5n,   -48n, 40n, 60n, -82n, 96n, 71n, 38n, -39n, 31n,
+            -82n, -96n, -25n, -16n, 66n, 82n, -82n, 96n, 39n, 42n, 82n,  85n
+          ],
+          'descriptor': {shape: [2, 1, 4, 3], dataType: 'int64'}
+        }
+      },
+      'operators': [{
+        'name': 'argMax',
+        'arguments': [
+          {'input': 'argMaxInput'}, {'axis': 0},
+          {'options': {'keepDimensions': true, 'outputDataType': 'int64'}}
+        ],
+        'outputs': 'argMaxOutput'
+      }],
+      'expectedOutputs': {
+        'argMaxOutput': {
+          'data': [0n, 0n, 0n, 1n, 1n, 1n, 0n, 0n, 0n, 1n, 1n, 1n],
+          'descriptor': {shape: [1, 1, 4, 3], dataType: 'int64'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'argMax uint64 4D tensor, axis=1, all options',
+    'graph': {
+      'inputs': {
+        'argMaxInput': {
+          'data': [
+            0n,  0n,  254n, 10n,  1n,  512n, 1n,   11n,
+            21n, 50n, 128n, 254n, 20n, 50n,  127n, 512n
+          ],
+          'descriptor': {shape: [2, 2, 2, 2], dataType: 'uint64'}
+        }
+      },
+      'operators': [{
+        'name': 'argMax',
+        'arguments': [
+          {'input': 'argMaxInput'}, {'axis': 1},
+          {'options': {'keepDimensions': true, 'outputDataType': 'int32'}}
+        ],
+        'outputs': 'argMaxOutput'
+      }],
+      'expectedOutputs': {
+        'argMaxOutput': {
+          'data': [1, 1, 0, 1, 0, 0, 0, 1],
+          'descriptor': {shape: [2, 1, 2, 2], dataType: 'int32'}
+        }
+      }
+    }
+  }
 ];
 
 if (navigator.ml) {
