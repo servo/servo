@@ -403,14 +403,20 @@ impl ScriptThreadFactory for ScriptThread {
                 WebViewId::install(state.webview_id);
                 let roots = RootCollection::new();
                 let _stack_roots = ThreadLocalStackRoots::new(&roots);
-                let id = state.id;
-                let browsing_context_id = state.browsing_context_id;
-                let webview_id = state.webview_id;
-                let parent_info = state.parent_info;
-                let opener = state.opener;
                 let memory_profiler_sender = state.memory_profiler_sender.clone();
-                let viewport_details = state.viewport_details;
 
+                let in_progress_load = InProgressLoad::new(
+                    state.id,
+                    state.browsing_context_id,
+                    state.webview_id,
+                    state.parent_info,
+                    state.opener,
+                    state.viewport_details,
+                    state.theme,
+                    MutableOrigin::new(load_data.url.origin()),
+                    load_data,
+                );
+                let reporter_name = format!("script-reporter-{:?}", state.id);
                 let script_thread = ScriptThread::new(state, layout_factory, system_font_service);
 
                 SCRIPT_THREAD_ROOT.with(|root| {
@@ -419,19 +425,8 @@ impl ScriptThreadFactory for ScriptThread {
 
                 let mut failsafe = ScriptMemoryFailsafe::new(&script_thread);
 
-                let origin = MutableOrigin::new(load_data.url.origin());
-                script_thread.pre_page_load(InProgressLoad::new(
-                    id,
-                    browsing_context_id,
-                    webview_id,
-                    parent_info,
-                    opener,
-                    viewport_details,
-                    origin,
-                    load_data,
-                ));
+                script_thread.pre_page_load(in_progress_load);
 
-                let reporter_name = format!("script-reporter-{:?}", id);
                 memory_profiler_sender.run_with_memory_reporting(
                     || {
                         script_thread.start(CanGc::note());
@@ -2435,6 +2430,7 @@ impl ScriptThread {
             opener,
             load_data,
             viewport_details,
+            theme,
         } = new_layout_info;
 
         // Kick off the fetch for the new resource.
@@ -2446,6 +2442,7 @@ impl ScriptThread {
             parent_info,
             opener,
             viewport_details,
+            theme,
             origin,
             load_data,
         );
@@ -3189,6 +3186,7 @@ impl ScriptThread {
             time_profiler_chan: self.senders.time_profiler_sender.clone(),
             compositor_api: self.compositor_api.clone(),
             viewport_details: incomplete.viewport_details,
+            theme: incomplete.theme,
         };
 
         // Create the window and document objects.
@@ -3228,6 +3226,7 @@ impl ScriptThread {
             #[cfg(feature = "webgpu")]
             self.gpu_id_hub.clone(),
             incomplete.load_data.inherited_secure_context,
+            incomplete.theme,
         );
 
         let _realm = enter_realm(&*window);

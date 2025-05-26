@@ -1925,6 +1925,7 @@ dependencies = [
  "servo_malloc_size_of",
  "servo_url",
  "strum_macros",
+ "stylo",
  "stylo_traits",
  "url",
  "webdriver",

@@ -68,6 +68,8 @@ pub struct NewLayoutInfo {
     pub load_data: LoadData,
     /// Initial [`ViewportDetails`] for this layout.
     pub viewport_details: ViewportDetails,
+    /// The [`Theme`] of the new layout.
+    pub theme: Theme,
 }
 
 /// When a pipeline is closed, should its browsing context be discarded too?
@@ -321,6 +323,8 @@ pub struct InitialScriptState {
     pub devtools_server_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     /// Initial [`ViewportDetails`] for the frame that is initiating this `ScriptThread`.
     pub viewport_details: ViewportDetails,
+    /// Initial [`Theme`] for the frame that is initiating this `ScriptThread`.
+    pub theme: Theme,
     /// The ID of the pipeline namespace for this script thread.
     pub pipeline_namespace_id: PipelineNamespaceId,
     /// A ping will be sent on this channel once the script thread shuts down.

@@ -80,7 +80,6 @@ use style::dom::OpaqueNode;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::properties::PropertyId;
 use style::properties::style_structs::Font;
-use style::queries::values::PrefersColorScheme;
 use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::UrlExtraData;
@@ -269,7 +268,7 @@ pub(crate) struct Window {
 
     /// Platform theme.
     #[no_trace]
-    theme: Cell<PrefersColorScheme>,
+    theme: Cell<Theme>,
 
     /// Parent id associated with this page, if any.
     #[no_trace]
@@ -2739,13 +2738,13 @@ impl Window {
         self.viewport_details.get()
     }
 
+    /// Get the theme of this [`Window`].
+    pub(crate) fn theme(&self) -> Theme {
+        self.theme.get()
+    }
+
     /// Handle a theme change request, triggering a reflow is any actual change occured.
     pub(crate) fn handle_theme_change(&self, new_theme: Theme) {
-        let new_theme = match new_theme {
-            Theme::Light => PrefersColorScheme::Light,
-            Theme::Dark => PrefersColorScheme::Dark,
-        };
-
         if self.theme.get() == new_theme {
             return;
         }
@@ -3033,6 +3032,7 @@ impl Window {
         player_context: WindowGLContext,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
+        theme: Theme,
     ) -> DomRoot<Self> {
         let error_reporter = CSSErrorReporter {
             pipelineid: pipeline_id,
@@ -3118,7 +3118,7 @@ impl Window {
             throttled: Cell::new(false),
             layout_marker: DomRefCell::new(Rc::new(Cell::new(true))),
             current_event: DomRefCell::new(None),
-            theme: Cell::new(PrefersColorScheme::Light),
+            theme: Cell::new(theme),
             trusted_types: Default::default(),
         });
 

@@ -20,7 +20,7 @@ use base::Epoch;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use compositing_traits::CrossProcessCompositorApi;
 use constellation_traits::{LoadData, ScrollState};
-use embedder_traits::{UntrustedNodeAddress, ViewportDetails};
+use embedder_traits::{Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::default::{Point2D, Rect};
 use fnv::FnvHashMap;
 use fonts::{FontContext, SystemFontServiceProxy};
@@ -46,7 +46,6 @@ use style::invalidation::element::restyle_hints::RestyleHint;
 use style::media_queries::Device;
 use style::properties::PropertyId;
 use style::properties::style_structs::Font;
-use style::queries::values::PrefersColorScheme;
 use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
 use style::stylesheets::Stylesheet;
 use webrender_api::ImageKey;
@@ -182,6 +181,7 @@ pub struct LayoutConfig {
     pub time_profiler_chan: time::ProfilerChan,
     pub compositor_api: CrossProcessCompositorApi,
     pub viewport_details: ViewportDetails,
+    pub theme: Theme,
 }
 
 pub trait LayoutFactory: Send + Sync {
@@ -428,7 +428,7 @@ pub struct ReflowRequest {
     /// The set of image animations.
     pub node_to_image_animation_map: FxHashMap<OpaqueNode, ImageAnimationState>,
     /// The theme for the window
-    pub theme: PrefersColorScheme,
+    pub theme: Theme,
     /// The node highlighted by the devtools, if any
     pub highlighted_dom_node: Option<OpaqueNode>,
 }

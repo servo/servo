@@ -17,12 +17,19 @@ use std::rc::Rc;
 use anyhow::ensure;
 use common::{ServoTest, run_api_tests};
 use servo::{
-    JSValue, JavaScriptEvaluationError, LoadStatus, WebView, WebViewBuilder, WebViewDelegate,
+    JSValue, JavaScriptEvaluationError, LoadStatus, Theme, WebView, WebViewBuilder, WebViewDelegate,
 };
+use url::Url;
 
 #[derive(Default)]
 struct WebViewDelegateImpl {
     url_changed: Cell<bool>,
+}
+
+impl WebViewDelegateImpl {
+    pub(crate) fn reset(&self) {
+        self.url_changed.set(false);
+    }
 }
 
 impl WebViewDelegate for WebViewDelegateImpl {
@@ -128,10 +135,40 @@ fn test_create_webview_and_immediately_drop_webview_before_shutdown(
     Ok(())
 }
 
+fn test_theme_change(servo_test: &ServoTest) -> Result<(), anyhow::Error> {
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo())
+        .delegate(delegate.clone())
+        .url(Url::parse("data:text/html,page one").unwrap())
+        .build();
+
+    let is_dark_theme_script = "window.matchMedia('(prefers-color-scheme: dark)').matches";
+
+    // The default theme is "light".
+    let result = evaluate_javascript(servo_test, webview.clone(), is_dark_theme_script);
+    ensure!(result == Ok(JSValue::Boolean(false)));
+
+    // Changing the theme updates the current page.
+    webview.notify_theme_change(Theme::Dark);
+    let result = evaluate_javascript(servo_test, webview.clone(), is_dark_theme_script);
+    ensure!(result == Ok(JSValue::Boolean(true)));
+
+    delegate.reset();
+    webview.load(Url::parse("data:text/html,page two").unwrap());
+    servo_test.spin(move || Ok(!delegate.url_changed.get()))?;
+
+    // The theme persists after a navigation.
+    let result = evaluate_javascript(servo_test, webview.clone(), is_dark_theme_script);
+    ensure!(result == Ok(JSValue::Boolean(true)));
+
+    Ok(())
+}
+
 fn main() {
     run_api_tests!(
         test_create_webview,
         test_evaluate_javascript_basic,
+        test_theme_change,
         // This test needs to be last, as it tests creating and dropping
         // a WebView right before shutdown.
         test_create_webview_and_immediately_drop_webview_before_shutdown
