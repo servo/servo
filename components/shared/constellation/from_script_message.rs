@@ -16,7 +16,7 @@ use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::{
     AnimationState, EmbedderMsg, FocusSequenceNumber, JSValue, JavaScriptEvaluationError,
-    JavaScriptEvaluationId, MediaSessionEvent, TouchEventResult, ViewportDetails,
+    JavaScriptEvaluationId, MediaSessionEvent, Theme, TouchEventResult, ViewportDetails,
     WebDriverMessageId,
 };
 use euclid::default::Size2D as UntypedSize2D;
@@ -417,6 +417,8 @@ pub struct IFrameLoadInfoWithData {
     pub sandbox: IFrameSandboxState,
     /// The initial viewport size for this iframe.
     pub viewport_details: ViewportDetails,
+    /// The [`Theme`] to use within this iframe.
+    pub theme: Theme,
 }
 
 /// Resources required by workerglobalscopes

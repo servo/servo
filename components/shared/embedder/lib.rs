@@ -34,6 +34,7 @@ use pixels::Image;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_url::ServoUrl;
 use strum_macros::IntoStaticStr;
+use style::queries::values::PrefersColorScheme;
 use style_traits::CSSPixel;
 use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
@@ -598,6 +599,16 @@ pub enum Theme {
     /// Dark theme.
     Dark,
 }
+
+impl From<Theme> for PrefersColorScheme {
+    fn from(value: Theme) -> Self {
+        match value {
+            Theme::Light => PrefersColorScheme::Light,
+            Theme::Dark => PrefersColorScheme::Dark,
+        }
+    }
+}
+
 // The type of MediaSession action.
 /// <https://w3c.github.io/mediasession/#enumdef-mediasessionaction>
 #[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]

@@ -15,7 +15,7 @@ use base::Epoch;
 use base::id::{PipelineId, WebViewId};
 use compositing_traits::CrossProcessCompositorApi;
 use constellation_traits::ScrollState;
-use embedder_traits::{UntrustedNodeAddress, ViewportDetails};
+use embedder_traits::{Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Scale, Size2D, Vector2D};
 use fnv::FnvHashMap;
@@ -503,8 +503,7 @@ impl LayoutThread {
             Scale::new(config.viewport_details.hidpi_scale_factor.get()),
             Box::new(LayoutFontMetricsProvider(config.font_context.clone())),
             ComputedValues::initial_values_with_font_override(font),
-            // TODO: obtain preferred color scheme from embedder
-            PrefersColorScheme::Light,
+            config.theme.into(),
         );
 
         LayoutThread {
@@ -951,7 +950,8 @@ impl LayoutThread {
         size_did_change || pixel_ratio_did_change
     }
 
-    fn theme_did_change(&self, theme: PrefersColorScheme) -> bool {
+    fn theme_did_change(&self, theme: Theme) -> bool {
+        let theme: PrefersColorScheme = theme.into();
         theme != self.device().color_scheme()
     }
 
@@ -959,7 +959,7 @@ impl LayoutThread {
     fn update_device(
         &mut self,
         viewport_details: ViewportDetails,
-        theme: PrefersColorScheme,
+        theme: Theme,
         guards: &StylesheetGuards,
     ) {
         let device = Device::new(
@@ -969,7 +969,7 @@ impl LayoutThread {
             Scale::new(viewport_details.hidpi_scale_factor.get()),
             Box::new(LayoutFontMetricsProvider(self.font_context.clone())),
             self.stylist.device().default_computed_values().to_arc(),
-            theme,
+            theme.into(),
         );
 
         // Preserve any previously computed root font size.

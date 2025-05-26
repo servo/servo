@@ -55,7 +55,7 @@ pub enum EmbedderToConstellationMessage {
     /// Inform the Constellation that a `WebView`'s [`ViewportDetails`] have changed.
     ChangeViewportDetails(WebViewId, ViewportDetails, WindowSizeType),
     /// Inform the constellation of a theme change.
-    ThemeChange(Theme),
+    ThemeChange(WebViewId, Theme),
     /// Requests that the constellation instruct script/layout to try to layout again and tick
     /// animations.
     TickAnimation(Vec<WebViewId>),
