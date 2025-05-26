@@ -459,8 +459,8 @@ pub(crate) struct ManagedMessagePort {
     /// Whether the port has been closed by script in this global,
     /// so it can be removed.
     explicitly_closed: bool,
-    /// Handler for a transfered transform stream.
-    /// A message port can be used to transfer either a readable or a writable stream.
+    /// The handler for `message` or `messageerror` used in the cross realm transform,
+    /// if any was setup with this port.
     cross_realm_transform: Option<CrossRealmTransform>,
 }
 
