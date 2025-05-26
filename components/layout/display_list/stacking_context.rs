@@ -834,16 +834,6 @@ impl Fragment {
                     _ => text_decorations,
                 };
 
-                // If this fragment has a transform applied that makes it take up no space
-                // then we don't need to create any stacking contexts for it.
-                let has_non_invertible_transform = fragment
-                    .has_non_invertible_transform_or_zero_scale(
-                        &containing_block.rect.to_untyped(),
-                    );
-                if has_non_invertible_transform {
-                    return;
-                }
-
                 fragment.build_stacking_context_tree(
                     fragment_clone,
                     stacking_context_tree,
@@ -990,6 +980,13 @@ impl BoxFragment {
                     );
                 },
             };
+
+        // <https://drafts.csswg.org/css-transforms/#transform-function-lists>
+        // > If a transform function causes the current transformation matrix of an object
+        // > to be non-invertible, the object and its content do not get displayed.
+        if !reference_frame_data.transform.is_invertible() {
+            return;
+        }
 
         let new_spatial_id = stacking_context_tree.push_reference_frame(
             reference_frame_data.origin.to_webrender(),
@@ -1622,15 +1619,6 @@ impl BoxFragment {
         })
     }
 
-    /// Returns true if the given style contains a transform that is not invertible.
-    fn has_non_invertible_transform_or_zero_scale(&self, containing_block: &Rect<Au>) -> bool {
-        let list = &self.style.get_box().transform;
-        match list.to_transform_3d_matrix(Some(&au_rect_to_length_rect(containing_block))) {
-            Ok(t) => !t.0.is_invertible() || t.0.m11 == 0. || t.0.m22 == 0.,
-            Err(_) => false,
-        }
-    }
-
     /// Returns the 4D matrix representing this fragment's transform.
     pub fn calculate_transform_matrix(&self, border_rect: &Rect<Au>) -> Option<LayoutTransform> {
         let list = &self.style.get_box().transform;
@@ -1660,11 +1648,6 @@ impl BoxFragment {
             .then_rotate(rotate.0, rotate.1, rotate.2, angle)
             .then_scale(scale.0, scale.1, scale.2)
             .then(&translation);
-        // WebRender will end up dividing by the scale value of this transform, so we
-        // want to ensure we don't feed it a divisor of 0.
-        if transform.m11 == 0. || transform.m22 == 0. {
-            return Some(LayoutTransform::identity());
-        }
 
         let transform_origin = &self.style.get_box().transform_origin;
         let transform_origin_x = transform_origin
