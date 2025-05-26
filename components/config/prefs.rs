@@ -453,11 +453,7 @@ impl UserAgentPlatform {
                 )
             },
             UserAgentPlatform::Desktop => {
-                #[cfg(target_arch = "x86_64")]
-                const ARCHITECTURE: &str = "x86_64";
-                // TODO: This is clearly wrong for other platforms.
-                #[cfg(not(target_arch = "x86_64"))]
-                const ARCHITECTURE: &str = "i686";
+                const ARCHITECTURE: &str = std::env::consts::ARCH;
 
                 format!(
                     "Mozilla/5.0 (X11; Linux {ARCHITECTURE}; rv:128.0) Servo/{SERVO_VERSION} Firefox/128.0"
