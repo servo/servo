@@ -16,6 +16,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use net_traits::filemanager_thread::RelativePos;
 use serde::{Deserialize, Serialize};
 use servo_url::ImmutableOrigin;
+use snapshot::Snapshot;
 use strum::EnumIter;
 use uuid::Uuid;
 
@@ -321,9 +322,7 @@ impl BroadcastClone for DomException {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 /// A serializable version of the ImageBitmap interface.
 pub struct SerializableImageBitmap {
-    pub width: u32,
-    pub height: u32,
-    pub bitmap_data: Vec<u8>,
+    pub bitmap_data: Snapshot,
 }
 
 impl BroadcastClone for SerializableImageBitmap {

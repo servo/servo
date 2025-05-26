@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
+use std::cell::{Cell, Ref};
 use std::collections::HashMap;
-use std::vec::Vec;
 
 use base::id::{ImageBitmapId, ImageBitmapIndex};
 use constellation_traits::SerializableImageBitmap;
 use dom_struct::dom_struct;
+use snapshot::Snapshot;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::ImageBitmapMethods;
@@ -23,41 +23,39 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct ImageBitmap {
     reflector_: Reflector,
-    width: u32,
-    height: u32,
     /// The actual pixel data of the bitmap
     ///
     /// If this is `None`, then the bitmap data has been released by calling
     /// [`close`](https://html.spec.whatwg.org/multipage/#dom-imagebitmap-close)
-    bitmap_data: DomRefCell<Option<Vec<u8>>>,
+    #[no_trace]
+    bitmap_data: DomRefCell<Option<Snapshot>>,
     origin_clean: Cell<bool>,
 }
 
 impl ImageBitmap {
-    fn new_inherited(width: u32, height: u32) -> ImageBitmap {
+    fn new_inherited(bitmap_data: Snapshot) -> ImageBitmap {
         ImageBitmap {
             reflector_: Reflector::new(),
-            width,
-            height,
-            bitmap_data: DomRefCell::new(Some(vec![])),
+            bitmap_data: DomRefCell::new(Some(bitmap_data)),
             origin_clean: Cell::new(true),
         }
     }
 
     pub(crate) fn new(
         global: &GlobalScope,
-        width: u32,
-        height: u32,
+        bitmap_data: Snapshot,
         can_gc: CanGc,
     ) -> DomRoot<ImageBitmap> {
-        //assigning to a variable the return object of new_inherited
-        let imagebitmap = Box::new(ImageBitmap::new_inherited(width, height));
-
-        reflect_dom_object(imagebitmap, global, can_gc)
+        reflect_dom_object(
+            Box::new(ImageBitmap::new_inherited(bitmap_data)),
+            global,
+            can_gc,
+        )
     }
 
-    pub(crate) fn set_bitmap_data(&self, data: Vec<u8>) {
-        *self.bitmap_data.borrow_mut() = Some(data);
+    #[allow(dead_code)]
+    pub(crate) fn bitmap_data(&self) -> Ref<Option<Snapshot>> {
+        self.bitmap_data.borrow()
     }
 
     pub(crate) fn origin_is_clean(&self) -> bool {
@@ -94,8 +92,6 @@ impl Serializable for ImageBitmap {
 
         // Step 2. Set serialized.[[BitmapData]] to a copy of value's bitmap data.
         let serialized = SerializableImageBitmap {
-            width: self.width,
-            height: self.height,
             bitmap_data: self.bitmap_data.borrow().clone().unwrap(),
         };
 
@@ -108,12 +104,8 @@ impl Serializable for ImageBitmap {
         serialized: Self::Data,
         can_gc: CanGc,
     ) -> Result<DomRoot<Self>, ()> {
-        let image_bitmap = ImageBitmap::new(owner, serialized.width, serialized.height, can_gc);
-
         // Step 1. Set value's bitmap data to serialized.[[BitmapData]].
-        image_bitmap.set_bitmap_data(serialized.bitmap_data);
-
-        Ok(image_bitmap)
+        Ok(ImageBitmap::new(owner, serialized.bitmap_data, can_gc))
     }
 
     fn serialized_storage<'a>(
@@ -153,8 +145,6 @@ impl Transferable for ImageBitmap {
         // Step 2. Set dataHolder.[[BitmapData]] to value's bitmap data.
         // Step 3. Unset value's bitmap data.
         let serialized = SerializableImageBitmap {
-            width: self.width,
-            height: self.height,
             bitmap_data: self.bitmap_data.borrow_mut().take().unwrap(),
         };
 
@@ -167,13 +157,12 @@ impl Transferable for ImageBitmap {
         _: ImageBitmapId,
         serialized: SerializableImageBitmap,
     ) -> Result<DomRoot<Self>, ()> {
-        let image_bitmap =
-            ImageBitmap::new(owner, serialized.width, serialized.height, CanGc::note());
-
         // Step 1. Set value's bitmap data to serialized.[[BitmapData]].
-        image_bitmap.set_bitmap_data(serialized.bitmap_data);
-
-        Ok(image_bitmap)
+        Ok(ImageBitmap::new(
+            owner,
+            serialized.bitmap_data,
+            CanGc::note(),
+        ))
     }
 
     fn serialized_storage<'a>(
@@ -195,7 +184,13 @@ impl ImageBitmapMethods<crate::DomTypeHolder> for ImageBitmap {
         }
 
         // Step 2. Return this's height, in CSS pixels.
-        self.height
+        self.bitmap_data
+            .borrow()
+            .as_ref()
+            .unwrap()
+            .size()
+            .cast()
+            .height
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-imagebitmap-width>
@@ -206,7 +201,13 @@ impl ImageBitmapMethods<crate::DomTypeHolder> for ImageBitmap {
         }
 
         // Step 2. Return this's width, in CSS pixels.
-        self.width
+        self.bitmap_data
+            .borrow()
+            .as_ref()
+            .unwrap()
+            .size()
+            .cast()
+            .width
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-imagebitmap-close>
