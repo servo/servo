@@ -156,6 +156,9 @@ struct PathBuilderRef<'a, B: Backend> {
 impl<B: Backend> PathBuilderRef<'_, B> {
     fn line_to(&mut self, pt: &Point2D<f32>) {
         let pt = self.transform.transform_point(*pt);
+        if self.builder.get_current_point().is_none() {
+            self.builder.move_to(pt);
+        }
         self.builder.line_to(pt);
     }
 
@@ -183,6 +186,9 @@ impl<B: Backend> PathBuilderRef<'_, B> {
     }
 
     fn quadratic_curve_to(&mut self, cp: &Point2D<f32>, endpoint: &Point2D<f32>) {
+        if self.builder.get_current_point().is_none() {
+            self.builder.move_to(*cp);
+        }
         self.builder.quadratic_curve_to(
             &self.transform.transform_point(*cp),
             &self.transform.transform_point(*endpoint),
@@ -211,6 +217,9 @@ impl<B: Backend> PathBuilderRef<'_, B> {
     }
 
     fn arc_to(&mut self, cp1: &Point2D<f32>, cp2: &Point2D<f32>, radius: f32) {
+        if self.builder.get_current_point().is_none() {
+            self.builder.move_to(*cp1);
+        }
         let cp0 = if let (Some(inverse), Some(point)) =
             (self.transform.inverse(), self.builder.get_current_point())
         {
@@ -1327,7 +1336,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
                     .to_vec()
             }
         } else {
-            self.drawtarget.bytes().as_ref().to_vec()
+            self.drawtarget.bytes().into_owned()
         };
 
         Snapshot::from_vec(
