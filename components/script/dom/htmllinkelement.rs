@@ -183,8 +183,8 @@ impl HTMLLinkElement {
                     &self.owner_window(),
                     Some(self.upcast::<Element>()),
                     "text/css".into(),
-                    None, // todo handle location
-                    None, // todo handle title
+                    get_attr(self.upcast(), &local_name!("href")).map(DOMString::from_string),
+                    get_attr(self.upcast(), &local_name!("title")).map(DOMString::from_string),
                     sheet,
                     false, // is_constructed
                     can_gc,
