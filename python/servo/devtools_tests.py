@@ -51,10 +51,21 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
     def test_sources_list(self):
         self.start_web_server(test_dir=os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
         self.run_servoshell()
-        self.assert_sources_list(2, set([
-            tuple([f"{self.base_url}/classic.js", f"{self.base_url}/test.html", "https://servo.org/js/load-table.js"]),
-            tuple([f"{self.base_url}/worker.js"]),
-        ]))
+        self.assert_sources_list(
+            2,
+            set(
+                [
+                    tuple(
+                        [
+                            f"{self.base_url}/classic.js",
+                            f"{self.base_url}/test.html",
+                            "https://servo.org/js/load-table.js",
+                        ]
+                    ),
+                    tuple([f"{self.base_url}/worker.js"]),
+                ]
+            ),
+        )
 
     def test_sources_list_with_data_no_scripts(self):
         self.run_servoshell(url="data:text/html,")
@@ -70,7 +81,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
 
     def test_sources_list_with_data_external_classic_script(self):
         self.start_web_server(test_dir=os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
-        self.run_servoshell(url=f"data:text/html,<script src=\"{self.base_url}/classic.js\"></script>")
+        self.run_servoshell(url=f'data:text/html,<script src="{self.base_url}/classic.js"></script>')
         self.assert_sources_list(1, set([tuple([f"{self.base_url}/classic.js"])]))
 
     def test_sources_list_with_data_empty_inline_module_script(self):
@@ -158,7 +169,9 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
                 done.set_result(e)
 
         client.add_event_listener(
-            watcher.actor_id, Events.Watcher.TARGET_AVAILABLE_FORM, on_target,
+            watcher.actor_id,
+            Events.Watcher.TARGET_AVAILABLE_FORM,
+            on_target,
         )
         watcher.watch_targets(WatcherActor.Targets.FRAME)
         watcher.watch_targets(WatcherActor.Targets.WORKER)

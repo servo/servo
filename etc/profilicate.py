@@ -53,17 +53,17 @@ stacks = {}
 thread_data = defaultdict(list)
 thread_order = {}
 for sample in samples:
-    if sample['name']:
-        name = sample['name']
+    if sample["name"]:
+        name = sample["name"]
     else:
-        name = "%s %d %d" % (sample['type'], sample['namespace'], sample['index'])
-    thread_data[name].append((sample['time'], sample['frames']))
+        name = "%s %d %d" % (sample["type"], sample["namespace"], sample["index"])
+    thread_data[name].append((sample["time"], sample["frames"]))
     if name not in thread_order:
-        thread_order[name] = (sample['namespace'], sample['index'])
+        thread_order[name] = (sample["namespace"], sample["index"])
 
 tid = 0
 threads = []
-for (name, raw_samples) in sorted(iter(thread_data.items()), key=lambda x: thread_order[x[0]]):
+for name, raw_samples in sorted(iter(thread_data.items()), key=lambda x: thread_order[x[0]]):
     string_table = StringTable()
     tid += 1
 
@@ -77,13 +77,13 @@ for (name, raw_samples) in sorted(iter(thread_data.items()), key=lambda x: threa
     for sample in raw_samples:
         prefix = None
         for frame in sample[1]:
-            if not frame['name']:
+            if not frame["name"]:
                 continue
-            if frame['name'] not in frameMap:
-                frameMap[frame['name']] = len(frames)
-                frame_index = string_table.get(frame['name'])
+            if frame["name"] not in frameMap:
+                frameMap[frame["name"]] = len(frames)
+                frame_index = string_table.get(frame["name"])
                 frames.append([frame_index])
-            frame = frameMap[frame['name']]
+            frame = frameMap[frame["name"]]
 
             stack_key = "%d,%d" % (frame, prefix) if prefix else str(frame)
             if stack_key not in stackMap:
@@ -93,61 +93,63 @@ for (name, raw_samples) in sorted(iter(thread_data.items()), key=lambda x: threa
             prefix = stack
         samples.append([stack, sample[0]])
 
-    threads.append({
-        'tid': tid,
-        'name': name,
-        'markers': {
-            'schema': {
-                'name': 0,
-                'time': 1,
-                'data': 2,
+    threads.append(
+        {
+            "tid": tid,
+            "name": name,
+            "markers": {
+                "schema": {
+                    "name": 0,
+                    "time": 1,
+                    "data": 2,
+                },
+                "data": [],
             },
-            'data': [],
-        },
-        'samples': {
-            'schema': {
-                'stack': 0,
-                'time': 1,
-                'responsiveness': 2,
-                'rss': 2,
-                'uss': 4,
-                'frameNumber': 5,
+            "samples": {
+                "schema": {
+                    "stack": 0,
+                    "time": 1,
+                    "responsiveness": 2,
+                    "rss": 2,
+                    "uss": 4,
+                    "frameNumber": 5,
+                },
+                "data": samples,
             },
-            'data': samples,
-        },
-        'frameTable': {
-            'schema': {
-                'location': 0,
-                'implementation': 1,
-                'optimizations': 2,
-                'line': 3,
-                'category': 4,
+            "frameTable": {
+                "schema": {
+                    "location": 0,
+                    "implementation": 1,
+                    "optimizations": 2,
+                    "line": 3,
+                    "category": 4,
+                },
+                "data": frames,
             },
-            'data': frames,
-        },
-        'stackTable': {
-            'schema': {
-                'frame': 0,
-                'prefix': 1,
+            "stackTable": {
+                "schema": {
+                    "frame": 0,
+                    "prefix": 1,
+                },
+                "data": stacks,
             },
-            'data': stacks,
-        },
-        'stringTable': string_table.contents(),
-    })
+            "stringTable": string_table.contents(),
+        }
+    )
 
 
 output = {
-    'meta': {
-        'interval': rate,
-        'processType': 0,
-        'product': 'Servo',
-        'stackwalk': 1,
-        'startTime': startTime,
-        'version': 4,
-        'presymbolicated': True,
+    "meta": {
+        "interval": rate,
+        "processType": 0,
+        "product": "Servo",
+        "stackwalk": 1,
+        "startTime": startTime,
+        "version": 4,
+        "presymbolicated": True,
     },
-    'libs': [],
-    'threads': threads,
+    "libs": [],
+    "threads": threads,
 }
 
 print(json.dumps(output))

@@ -14,7 +14,8 @@ import logging
 
 from mutator import Mutator, get_strategies
 from enum import Enum
-DEVNULL = open(os.devnull, 'wb')
+
+DEVNULL = open(os.devnull, "wb")
 
 logging.basicConfig(format="%(asctime)s %(levelname)s: %(message)s", level=logging.DEBUG)
 
@@ -28,7 +29,7 @@ class Status(Enum):
 
 def mutation_test(file_name, tests):
     status = Status.UNEXPECTED
-    local_changes_present = subprocess.call('git diff --quiet {0}'.format(file_name), shell=True)
+    local_changes_present = subprocess.call("git diff --quiet {0}".format(file_name), shell=True)
     if local_changes_present == 1:
         status = Status.SKIPPED
         logging.warning("{0} has local changes, please commit/remove changes before running the test".format(file_name))
@@ -46,24 +47,24 @@ def mutation_test(file_name, tests):
                 if subprocess.call(test_command, shell=True, stdout=DEVNULL):
                     logging.error("Compilation Failed: Unexpected error")
                     logging.error("Failed: while running `{0}`".format(test_command))
-                    subprocess.call('git --no-pager diff {0}'.format(file_name), shell=True)
+                    subprocess.call("git --no-pager diff {0}".format(file_name), shell=True)
                     status = Status.UNEXPECTED
                 else:
                     for test in tests:
-                        test_command = "python mach test-wpt {0} --release".format(test.encode('utf-8'))
+                        test_command = "python mach test-wpt {0} --release".format(test.encode("utf-8"))
                         logging.info("running `{0}` test for mutant {1}:{2}".format(test, file_name, mutated_line))
                         test_status = subprocess.call(test_command, shell=True, stdout=DEVNULL)
                         if test_status != 0:
                             logging.error("Failed: while running `{0}`".format(test_command))
                             logging.error("mutated file {0} diff".format(file_name))
-                            subprocess.call('git --no-pager diff {0}'.format(file_name), shell=True)
+                            subprocess.call("git --no-pager diff {0}".format(file_name), shell=True)
                             status = Status.SURVIVED
                         else:
-                            logging.info("Success: Mutation killed by {0}".format(test.encode('utf-8')))
+                            logging.info("Success: Mutation killed by {0}".format(test.encode("utf-8")))
                             status = Status.KILLED
                             break
                 logging.info("reverting mutant {0}:{1}\n".format(file_name, mutated_line))
-                subprocess.call('git checkout {0}'.format(file_name), shell=True)
+                subprocess.call("git checkout {0}".format(file_name), shell=True)
                 break
             elif not len(strategies):
                 # All strategies are tried

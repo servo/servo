@@ -42,11 +42,14 @@ import signal
 import sys
 from argparse import ArgumentParser
 from subprocess import Popen, PIPE
+
 try:
     from termcolor import colored
 except ImportError:
+
     def colored(text, *args, **kwargs):
         return text
+
 
 fields = ["frame.time", "tcp.srcport", "tcp.payload"]
 
@@ -57,10 +60,14 @@ def record_data(file, port):
     # Create tshark command
     cmd = [
         "tshark",
-        "-T", "fields",
-        "-i", "lo",
-        "-d", f"tcp.port=={port},http",
-        "-w", file,
+        "-T",
+        "fields",
+        "-i",
+        "lo",
+        "-d",
+        f"tcp.port=={port},http",
+        "-w",
+        file,
     ] + [e for f in fields for e in ("-e", f)]
     process = Popen(cmd, stdout=PIPE)
 
@@ -84,8 +91,10 @@ def read_data(file):
     # Create tshark command
     cmd = [
         "tshark",
-        "-T", "fields",
-        "-r", file,
+        "-T",
+        "fields",
+        "-r",
+        file,
     ] + [e for f in fields for e in ("-e", f)]
     process = Popen(cmd, stdout=PIPE)
 
@@ -182,7 +191,7 @@ def parse_message(msg, *, json_output=False):
     time, sender, i, data = msg
     from_servo = sender == "Servo"
 
-    colored_sender = colored(sender, 'black', 'on_yellow' if from_servo else 'on_magenta', attrs=['bold'])
+    colored_sender = colored(sender, "black", "on_yellow" if from_servo else "on_magenta", attrs=["bold"])
     if not json_output:
         print(f"\n{colored_sender} - {colored(i, 'blue')} - {colored(time, 'dark_grey')}")
 
@@ -199,7 +208,7 @@ def parse_message(msg, *, json_output=False):
                 assert False, "Message is neither a request nor a response"
         else:
             if from_servo and "from" in content:
-                print(colored(f"Actor: {content['from']}", 'yellow'))
+                print(colored(f"Actor: {content['from']}", "yellow"))
             print(json.dumps(content, sort_keys=True, indent=4))
     except json.JSONDecodeError:
         print(f"Warning: Couldn't decode json\n{data}")
@@ -236,7 +245,7 @@ if __name__ == "__main__":
     if args.range and len(args.range.split(":")) == 2:
         min, max = args.range.split(":")
 
-    for msg in data[int(min):int(max) + 1]:
+    for msg in data[int(min) : int(max) + 1]:
         # Filter the messages if specified
         if not args.filter or args.filter.lower() in msg[3].lower():
             parse_message(msg, json_output=args.json)
