@@ -2035,6 +2035,10 @@ impl TreeIterator {
         self.current = None;
         Some(current)
     }
+
+    pub(crate) fn peek(&self) -> Option<&DomRoot<Node>> {
+        self.current.as_ref()
+    }
 }
 
 impl Iterator for TreeIterator {
