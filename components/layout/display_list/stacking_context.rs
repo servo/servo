@@ -14,8 +14,8 @@ use compositing_traits::display_list::{
     AxesScrollSensitivity, CompositorDisplayListInfo, ReferenceFrameNodeInfo, ScrollableNodeInfo,
     SpatialTreeNodeInfo, StickyNodeInfo,
 };
-use euclid::SideOffsets2D;
 use euclid::default::{Point2D, Rect, Size2D};
+use euclid::{SideOffsets2D, Vector2D};
 use log::warn;
 use servo_config::opts::DebugOptions;
 use style::Zero;
@@ -33,8 +33,7 @@ use style::values::generics::transform::{self, GenericRotate, GenericScale, Gene
 use style::values::specified::box_::DisplayOutside;
 use webrender_api::units::{LayoutPoint, LayoutRect, LayoutTransform, LayoutVector2D};
 use webrender_api::{self as wr, BorderRadius};
-use wr::StickyOffsetBounds;
-use wr::units::{LayoutPixel, LayoutSize};
+use wr::units::LayoutSize;
 
 use super::ClipId;
 use super::clip::StackingContextTreeClipStore;
@@ -113,6 +112,10 @@ pub(crate) struct StackingContextTree {
     /// for things like `overflow`. More clips may be created later during WebRender
     /// display list construction, but they are never added here.
     pub clip_store: StackingContextTreeClipStore,
+
+    /// A vector of `Fragment`s that created spatial nodes in the Compositor's
+    /// `ScrollTree`. This is used to patch up spatial nodes during repaint-only layouts.
+    pub fragments_creating_spatial_nodes: Vec<Option<Fragment>>,
 }
 
 impl StackingContextTree {
@@ -168,6 +171,10 @@ impl StackingContextTree {
             root_stacking_context: StackingContext::create_root(root_scroll_node_id, debug),
             compositor_info,
             clip_store: Default::default(),
+            // We are adding two empty slots here, because the Compositor `ScrollTree`
+            // adds two nodes for the root. These should never be patched during repaint
+            // only layouts.
+            fragments_creating_spatial_nodes: vec![None, None],
         };
 
         let mut root_stacking_context = StackingContext::create_root(root_scroll_node_id, debug);
@@ -192,62 +199,35 @@ impl StackingContextTree {
         stacking_context_tree
     }
 
-    fn push_reference_frame(
-        &mut self,
-        origin: LayoutPoint,
-        parent_scroll_node_id: &ScrollTreeNodeId,
-        transform_style: wr::TransformStyle,
-        transform: LayoutTransform,
-        kind: wr::ReferenceFrameKind,
-    ) -> ScrollTreeNodeId {
-        self.compositor_info.scroll_tree.add_scroll_tree_node(
-            Some(parent_scroll_node_id),
-            SpatialTreeNodeInfo::ReferenceFrame(ReferenceFrameNodeInfo {
-                origin,
-                transform_style,
-                transform,
-                kind,
-            }),
-        )
-    }
+    pub(crate) fn repair_scroll_tree_for_repaint_only_layout(&mut self) {
+        for (fragment, node) in self
+            .fragments_creating_spatial_nodes
+            .iter()
+            .zip(self.compositor_info.scroll_tree.nodes.iter_mut())
+        {
+            let box_fragment = match fragment {
+                Some(Fragment::Box(box_fragment) | Fragment::Float(box_fragment)) => box_fragment,
+                _ => continue,
+            };
 
-    fn define_scroll_frame(
-        &mut self,
-        parent_scroll_node_id: &ScrollTreeNodeId,
-        external_id: wr::ExternalScrollId,
-        content_rect: LayoutRect,
-        clip_rect: LayoutRect,
-        scroll_sensitivity: AxesScrollSensitivity,
-    ) -> ScrollTreeNodeId {
-        self.compositor_info.scroll_tree.add_scroll_tree_node(
-            Some(parent_scroll_node_id),
-            SpatialTreeNodeInfo::Scroll(ScrollableNodeInfo {
-                external_id,
-                content_rect,
-                clip_rect,
-                scroll_sensitivity,
-                offset: LayoutVector2D::zero(),
-            }),
-        )
-    }
+            let SpatialTreeNodeInfo::ReferenceFrame(ref mut info) = node.info else {
+                continue;
+            };
 
-    fn define_sticky_frame(
-        &mut self,
-        parent_scroll_node_id: &ScrollTreeNodeId,
-        frame_rect: LayoutRect,
-        margins: SideOffsets2D<Option<f32>, LayoutPixel>,
-        vertical_offset_bounds: StickyOffsetBounds,
-        horizontal_offset_bounds: StickyOffsetBounds,
-    ) -> ScrollTreeNodeId {
-        self.compositor_info.scroll_tree.add_scroll_tree_node(
-            Some(parent_scroll_node_id),
-            SpatialTreeNodeInfo::Sticky(StickyNodeInfo {
-                frame_rect,
-                margins,
-                vertical_offset_bounds,
-                horizontal_offset_bounds,
-            }),
-        )
+            // The argument to `reference_frame_node_info_if_necessary` here is only used to calculate the
+            // reference frame origin. If the origin changes, we will not be doing a repaint only layout,
+            // and thus it's not necessary to pass a real value.
+            let box_fragment = box_fragment.borrow();
+            let Some(reference_frame_data) =
+                box_fragment.reference_frame_node_info_if_necessary(&PhysicalRect::zero())
+            else {
+                return;
+            };
+
+            info.kind = reference_frame_data.kind;
+            info.transform = reference_frame_data.transform;
+            info.transform_style = reference_frame_data.transform_style;
+        }
     }
 }
 
@@ -889,11 +869,6 @@ impl Fragment {
     }
 }
 
-struct ReferenceFrameData {
-    origin: crate::geom::PhysicalPoint<Au>,
-    transform: LayoutTransform,
-    kind: wr::ReferenceFrameKind,
-}
 struct ScrollFrameData {
     scroll_tree_node_id: ScrollTreeNodeId,
     scroll_frame_rect: LayoutRect,
@@ -966,8 +941,8 @@ impl BoxFragment {
         parent_stacking_context: &mut StackingContext,
         text_decorations: &Arc<Vec<FragmentTextDecoration>>,
     ) {
-        let reference_frame_data =
-            match self.reference_frame_data_if_necessary(&containing_block.rect) {
+        let reference_frame_node_info =
+            match self.reference_frame_node_info_if_necessary(&containing_block.rect) {
                 Some(reference_frame_data) => reference_frame_data,
                 None => {
                     return self.build_stacking_context_tree_maybe_creating_stacking_context(
@@ -984,17 +959,24 @@ impl BoxFragment {
         // <https://drafts.csswg.org/css-transforms/#transform-function-lists>
         // > If a transform function causes the current transformation matrix of an object
         // > to be non-invertible, the object and its content do not get displayed.
-        if !reference_frame_data.transform.is_invertible() {
+        if !reference_frame_node_info.transform.is_invertible() {
             return;
         }
 
-        let new_spatial_id = stacking_context_tree.push_reference_frame(
-            reference_frame_data.origin.to_webrender(),
-            &containing_block.scroll_node_id,
-            self.style.get_box().transform_style.to_webrender(),
-            reference_frame_data.transform,
-            reference_frame_data.kind,
+        let reference_frame_origin = Vector2D::new(
+            Au::from_f32_px(reference_frame_node_info.origin.x),
+            Au::from_f32_px(reference_frame_node_info.origin.y),
         );
+        let new_spatial_id = stacking_context_tree
+            .compositor_info
+            .scroll_tree
+            .add_scroll_tree_node(
+                Some(&containing_block.scroll_node_id),
+                SpatialTreeNodeInfo::ReferenceFrame(reference_frame_node_info),
+            );
+        stacking_context_tree
+            .fragments_creating_spatial_nodes
+            .push(Some(fragment.clone()));
 
         // WebRender reference frames establish a new coordinate system at their
         // origin (the border box of the fragment). We need to ensure that any
@@ -1009,10 +991,9 @@ impl BoxFragment {
             self.style
                 .establishes_containing_block_for_all_descendants(self.base.flags)
         );
+
         let adjusted_containing_block = ContainingBlock::new(
-            containing_block
-                .rect
-                .translate(-reference_frame_data.origin.to_vector()),
+            containing_block.rect.translate(-reference_frame_origin),
             new_spatial_id,
             None,
             containing_block.clip_id,
@@ -1137,6 +1118,7 @@ impl BoxFragment {
             .scroll_frame_size;
 
         if let Some(scroll_node_id) = self.build_sticky_frame_if_necessary(
+            &fragment,
             stacking_context_tree,
             &new_scroll_node_id,
             &containing_block.rect,
@@ -1209,6 +1191,7 @@ impl BoxFragment {
         // We want to build the scroll frame after the background and border, because
         // they shouldn't scroll with the rest of the box content.
         if let Some(overflow_frame_data) = self.build_overflow_frame_if_necessary(
+            &fragment,
             stacking_context_tree,
             &new_scroll_node_id,
             new_clip_id,
@@ -1371,6 +1354,7 @@ impl BoxFragment {
 
     fn build_overflow_frame_if_necessary(
         &self,
+        fragment: &Fragment,
         stacking_context_tree: &mut StackingContextTree,
         parent_scroll_node_id: &ScrollTreeNodeId,
         parent_clip_id: ClipId,
@@ -1463,20 +1447,28 @@ impl BoxFragment {
             stacking_context_tree.compositor_info.pipeline_id,
         );
 
-        let sensitivity = AxesScrollSensitivity {
+        let scroll_sensitivity = AxesScrollSensitivity {
             x: overflow.x.into(),
             y: overflow.y.into(),
         };
 
         let content_rect = self.reachable_scrollable_overflow_region().to_webrender();
-
-        let scroll_tree_node_id = stacking_context_tree.define_scroll_frame(
-            parent_scroll_node_id,
-            external_id,
-            content_rect,
-            scroll_frame_rect,
-            sensitivity,
-        );
+        let scroll_tree_node_id = stacking_context_tree
+            .compositor_info
+            .scroll_tree
+            .add_scroll_tree_node(
+                Some(parent_scroll_node_id),
+                SpatialTreeNodeInfo::Scroll(ScrollableNodeInfo {
+                    external_id,
+                    content_rect,
+                    clip_rect: scroll_frame_rect,
+                    scroll_sensitivity,
+                    offset: LayoutVector2D::zero(),
+                }),
+            );
+        stacking_context_tree
+            .fragments_creating_spatial_nodes
+            .push(Some(fragment.clone()));
 
         Some(OverflowFrameData {
             clip_id,
@@ -1489,6 +1481,7 @@ impl BoxFragment {
 
     fn build_sticky_frame_if_necessary(
         &self,
+        fragment: &Fragment,
         stacking_context_tree: &mut StackingContextTree,
         parent_scroll_node_id: &ScrollTreeNodeId,
         containing_block_rect: &PhysicalRect<Au>,
@@ -1559,22 +1552,30 @@ impl BoxFragment {
             offsets.left.non_auto().map(|v| v.to_f32_px()),
         );
 
-        let sticky_node_id = stacking_context_tree.define_sticky_frame(
-            parent_scroll_node_id,
-            frame_rect,
-            margins,
-            vertical_offset_bounds,
-            horizontal_offset_bounds,
-        );
+        let sticky_node_id = stacking_context_tree
+            .compositor_info
+            .scroll_tree
+            .add_scroll_tree_node(
+                Some(parent_scroll_node_id),
+                SpatialTreeNodeInfo::Sticky(StickyNodeInfo {
+                    frame_rect,
+                    margins,
+                    vertical_offset_bounds,
+                    horizontal_offset_bounds,
+                }),
+            );
+        stacking_context_tree
+            .fragments_creating_spatial_nodes
+            .push(Some(fragment.clone()));
 
         Some(sticky_node_id)
     }
 
     /// Optionally returns the data for building a reference frame, without yet building it.
-    fn reference_frame_data_if_necessary(
+    fn reference_frame_node_info_if_necessary(
         &self,
         containing_block_rect: &PhysicalRect<Au>,
-    ) -> Option<ReferenceFrameData> {
+    ) -> Option<ReferenceFrameNodeInfo> {
         if !self
             .style
             .has_effective_transform_or_perspective(self.base.flags)
@@ -1612,9 +1613,10 @@ impl BoxFragment {
             (None, None) => unreachable!(),
         };
 
-        Some(ReferenceFrameData {
-            origin: border_rect.origin,
+        Some(ReferenceFrameNodeInfo {
+            origin: border_rect.origin.to_webrender(),
             transform: reference_frame_transform,
+            transform_style: self.style.get_box().transform_style.to_webrender(),
             kind: reference_frame_kind,
         })
     }

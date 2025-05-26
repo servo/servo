@@ -846,10 +846,12 @@ impl LayoutThread {
         let Some(fragment_tree) = &*self.fragment_tree.borrow() else {
             return;
         };
-        if !damage.contains(RestyleDamage::REBUILD_STACKING_CONTEXT) &&
-            self.stacking_context_tree.borrow().is_some()
-        {
-            return;
+
+        if !damage.contains(RestyleDamage::REBUILD_STACKING_CONTEXT) {
+            if let Some(stacking_context_tree) = &mut *self.stacking_context_tree.borrow_mut() {
+                stacking_context_tree.repair_scroll_tree_for_repaint_only_layout();
+                return;
+            }
         }
 
         let viewport_size = self.stylist.device().au_viewport_size();
