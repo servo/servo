@@ -145,56 +145,53 @@ impl Handler {
         &self,
         tick_actions: &ActionSequence,
     ) -> Result<(), ErrorStatus> {
-        let actions_require_response = match &tick_actions.actions {
-            ActionsType::Null { .. } => false,
-            ActionsType::Key { actions }
-                if actions
+        let mut count_actions_in_tick = 0;
+        match &tick_actions.actions {
+            ActionsType::Null { .. } => {},
+            ActionsType::Key { actions } => {
+                count_actions_in_tick = actions
                     .iter()
-                    .all(|a| matches!(a, KeyActionItem::General(_))) =>
-            {
-                false
+                    .filter(|a| matches!(a, KeyActionItem::Key(_)))
+                    .count();
             },
-            ActionsType::Wheel { actions }
-                if actions
+            ActionsType::Wheel { actions } => {
+                count_actions_in_tick = actions
                     .iter()
-                    .all(|a| matches!(a, WheelActionItem::General(_))) =>
-            {
-                false
+                    .filter(|a| matches!(a, WheelActionItem::Wheel(_)))
+                    .count();
             },
-            ActionsType::Pointer { actions, .. }
-                if actions
+            ActionsType::Pointer { actions, .. } => {
+                count_actions_in_tick = actions
                     .iter()
-                    .all(|a| matches!(a, PointerActionItem::General(_))) =>
-            {
-                false
+                    .filter(|a| matches!(a, PointerActionItem::Pointer(_)))
+                    .count();
             },
-            _ => true,
         };
 
-        if !actions_require_response {
-            return Ok(());
-        }
-
-        // To ensure we wait for all events to be processed, only the last event in
-        // this tick action step holds the message id.
+        // To ensure we wait for all events to be processed, only the last event
+        // in each tick action step holds the message id.
         // Whenever a new event is generated, the message id is passed to it.
-        match self.constellation_receiver.recv() {
-            Ok(response) => {
-                let current_waiting_id = self
-                    .current_action_id
-                    .get()
-                    .expect("Current id should be set before dispat_actions_inner is called");
+        //
+        // Wait for count_actions_in_tick number of responses
+        for _ in 0..count_actions_in_tick {
+            match self.constellation_receiver.recv() {
+                Ok(response) => {
+                    let current_waiting_id = self
+                        .current_action_id
+                        .get()
+                        .expect("Current id should be set before dispat_actions_inner is called");
 
-                if current_waiting_id != response.id {
-                    dbg!("Dispatch actions completed with wrong id in response");
+                    if current_waiting_id != response.id {
+                        dbg!("Dispatch actions completed with wrong id in response");
+                        return Err(ErrorStatus::UnknownError);
+                    }
+                },
+                Err(error) => {
+                    dbg!("Dispatch actions completed with IPC error: {:?}", error);
                     return Err(ErrorStatus::UnknownError);
-                }
-            },
-            Err(error) => {
-                dbg!("Dispatch actions completed with IPC error: {:?}", error);
-                return Err(ErrorStatus::UnknownError);
-            },
-        };
+                },
+            };
+        }
 
         Ok(())
     }
