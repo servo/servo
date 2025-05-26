@@ -24,8 +24,8 @@ use js::jsapi::JSAutoRealm;
 use media::{GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
 use net_traits::request::{Destination, RequestId};
 use net_traits::{
-    FetchMetadata, FetchResponseListener, Metadata, NetworkError, ResourceFetchTiming,
-    ResourceTimingType,
+    FetchMetadata, FetchResponseListener, FilteredMetadata, Metadata, NetworkError,
+    ResourceFetchTiming, ResourceTimingType,
 };
 use pixels::RasterImage;
 use script_bindings::codegen::GenericBindings::TimeRangesBinding::TimeRangesMethods;
@@ -2069,6 +2069,28 @@ impl HTMLMediaElement {
             }
         }
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#concept-media-load-resource>
+    pub(crate) fn origin_is_clean(&self) -> bool {
+        // Step 5.local (media provider object).
+        if self.src_object.borrow().is_some() {
+            // The resource described by the current media resource, if any,
+            // contains the media data. It is CORS-same-origin.
+            return true;
+        }
+
+        // Step 5.remote (URL record).
+        if self.resource_url.borrow().is_some() {
+            // Update the media data with the contents
+            // of response's unsafe response obtained in this fashion.
+            // Response can be CORS-same-origin or CORS-cross-origin;
+            if let Some(ref current_fetch_context) = *self.current_fetch_context.borrow() {
+                return current_fetch_context.origin_is_clean();
+            }
+        }
+
+        true
+    }
 }
 
 // XXX Placeholder for [https://github.com/servo/servo/issues/22293]
@@ -2654,6 +2676,8 @@ pub(crate) struct HTMLMediaElementFetchContext {
     cancel_reason: Option<CancelReason>,
     /// Indicates whether the fetched stream is seekable.
     is_seekable: bool,
+    /// Indicates whether the fetched stream is origin clean.
+    origin_clean: bool,
     /// Fetch canceller. Allows cancelling the current fetch request by
     /// manually calling its .cancel() method or automatically on Drop.
     fetch_canceller: FetchCanceller,
@@ -2664,6 +2688,7 @@ impl HTMLMediaElementFetchContext {
         HTMLMediaElementFetchContext {
             cancel_reason: None,
             is_seekable: false,
+            origin_clean: true,
             fetch_canceller: FetchCanceller::new(request_id),
         }
     }
@@ -2674,6 +2699,14 @@ impl HTMLMediaElementFetchContext {
 
     fn set_seekable(&mut self, seekable: bool) {
         self.is_seekable = seekable;
+    }
+
+    pub(crate) fn origin_is_clean(&self) -> bool {
+        self.origin_clean
+    }
+
+    fn set_origin_unclean(&mut self) {
+        self.origin_clean = false;
     }
 
     fn cancel(&mut self, reason: CancelReason) {
@@ -2728,6 +2761,16 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         if elem.generation_id.get() != self.generation_id || elem.player.borrow().is_none() {
             // A new fetch request was triggered, so we ignore this response.
             return;
+        }
+
+        if let Ok(FetchMetadata::Filtered {
+            filtered: FilteredMetadata::Opaque | FilteredMetadata::OpaqueRedirect(_),
+            ..
+        }) = metadata
+        {
+            if let Some(ref mut current_fetch_context) = *elem.current_fetch_context.borrow_mut() {
+                current_fetch_context.set_origin_unclean();
+            }
         }
 
         self.metadata = metadata.ok().map(|m| match m {

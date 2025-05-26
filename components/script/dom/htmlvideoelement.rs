@@ -9,7 +9,6 @@ use content_security_policy as csp;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use html5ever::{LocalName, Prefix, local_name, ns};
-use ipc_channel::ipc;
 use js::rust::HandleObject;
 use net_traits::image_cache::{
     ImageCache, ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable, ImageResponse,
@@ -23,6 +22,7 @@ use net_traits::{
 use script_layout_interface::{HTMLMediaData, MediaMetadata};
 use servo_media::player::video::VideoFrame;
 use servo_url::ServoUrl;
+use snapshot::Snapshot;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
 use crate::document_loader::{LoadBlocker, LoadType};
@@ -133,9 +133,7 @@ impl HTMLVideoElement {
         sent_resize
     }
 
-    pub(crate) fn get_current_frame_data(
-        &self,
-    ) -> Option<(Option<ipc::IpcSharedMemory>, Size2D<u32>)> {
+    pub(crate) fn get_current_frame_data(&self) -> Option<Snapshot> {
         let frame = self.htmlmediaelement.get_current_frame();
         if frame.is_some() {
             *self.last_frame.borrow_mut() = frame;
@@ -145,11 +143,19 @@ impl HTMLVideoElement {
             Some(frame) => {
                 let size = Size2D::new(frame.get_width() as u32, frame.get_height() as u32);
                 if !frame.is_gl_texture() {
-                    let data = Some(ipc::IpcSharedMemory::from_bytes(&frame.get_data()));
-                    Some((data, size))
+                    let alpha_mode = snapshot::AlphaMode::Transparent {
+                        premultiplied: false,
+                    };
+
+                    Some(Snapshot::from_vec(
+                        size.cast(),
+                        snapshot::PixelFormat::BGRA,
+                        alpha_mode,
+                        frame.get_data().to_vec(),
+                    ))
                 } else {
                     // XXX(victor): here we only have the GL texture ID.
-                    Some((None, size))
+                    Some(Snapshot::cleared(size.cast()))
                 }
             },
             None => None,
@@ -275,6 +281,18 @@ impl HTMLVideoElement {
                 LoadBlocker::terminate(&self.load_blocker, can_gc);
             },
         }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+    pub(crate) fn is_usable(&self) -> bool {
+        !matches!(
+            self.htmlmediaelement.get_ready_state(),
+            ReadyState::HaveNothing | ReadyState::HaveMetadata
+        )
+    }
+
+    pub(crate) fn origin_is_clean(&self) -> bool {
+        self.htmlmediaelement.origin_is_clean()
     }
 }
 
