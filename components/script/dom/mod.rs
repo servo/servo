@@ -211,6 +211,7 @@ pub(crate) mod types {
 }
 
 pub(crate) mod abortcontroller;
+pub(crate) mod abortsignal;
 #[allow(dead_code)]
 pub(crate) mod abstractrange;
 pub(crate) mod abstractworker;
