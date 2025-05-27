@@ -76,8 +76,8 @@ use url::Url;
 use webrender_api::units::{DevicePixel, DevicePoint, LayoutPixel, LayoutPoint, LayoutSize};
 use webrender_api::{ExternalScrollId, HitTestFlags};
 
-use crate::context::LayoutContext;
-use crate::display_list::{DisplayListBuilder, StackingContextTree, WebRenderImageInfo};
+use crate::context::{CachedImageOrError, LayoutContext};
+use crate::display_list::{DisplayListBuilder, StackingContextTree};
 use crate::query::{
     get_the_text_steps, process_client_rect_request, process_content_box_request,
     process_content_boxes_request, process_node_scroll_area_request, process_offset_parent_query,
@@ -153,7 +153,10 @@ pub struct LayoutThread {
     /// Scroll offsets of nodes that scroll.
     scroll_offsets: RefCell<HashMap<ExternalScrollId, Vector2D<f32, LayoutPixel>>>,
 
-    webrender_image_cache: Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder), WebRenderImageInfo>>>,
+    // A cache that maps image resources specified in CSS (e.g as the `url()` value
+    // for `background-image` or `content` properties) to either the final resolved
+    // image data, or an error if the image cache failed to load/decode the image.
+    resolved_images_cache: Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder), CachedImageOrError>>>,
 
     /// The executors for paint worklets.
     registered_painters: RegisteredPaintersImpl,
@@ -525,7 +528,7 @@ impl LayoutThread {
             compositor_api: config.compositor_api,
             scroll_offsets: Default::default(),
             stylist: Stylist::new(device, QuirksMode::NoQuirks),
-            webrender_image_cache: Default::default(),
+            resolved_images_cache: Default::default(),
             debug: opts::get().debug.clone(),
         }
     }
@@ -635,8 +638,9 @@ impl LayoutThread {
             ),
             image_cache: self.image_cache.clone(),
             font_context: self.font_context.clone(),
-            webrender_image_cache: self.webrender_image_cache.clone(),
+            resolved_images_cache: self.resolved_images_cache.clone(),
             pending_images: Mutex::default(),
+            pending_rasterization_images: Mutex::default(),
             node_image_animation_map: Arc::new(RwLock::new(std::mem::take(
                 &mut reflow_request.node_to_image_animation_map,
             ))),
@@ -662,12 +666,15 @@ impl LayoutThread {
         }
 
         let pending_images = std::mem::take(&mut *layout_context.pending_images.lock());
+        let pending_rasterization_images =
+            std::mem::take(&mut *layout_context.pending_rasterization_images.lock());
         let iframe_sizes = std::mem::take(&mut *layout_context.iframe_sizes.lock());
         let node_to_image_animation_map =
             std::mem::take(&mut *layout_context.node_image_animation_map.write());
 
         Some(ReflowResult {
             pending_images,
+            pending_rasterization_images,
             iframe_sizes,
             node_to_image_animation_map,
         })

@@ -12,7 +12,7 @@ use html5ever::{LocalName, Prefix, local_name, ns};
 use ipc_channel::ipc;
 use js::rust::HandleObject;
 use net_traits::image_cache::{
-    ImageCache, ImageCacheResult, ImageOrMetadataAvailable, ImageResponder, ImageResponse,
+    ImageCache, ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable, ImageResponse,
     PendingImageId, UsePlaceholder,
 };
 use net_traits::request::{CredentialsMode, Destination, RequestBuilder, RequestId};
@@ -217,7 +217,7 @@ impl HTMLVideoElement {
             element.process_image_response(response.response, CanGc::note());
         });
 
-        image_cache.add_listener(ImageResponder::new(sender, window.pipeline_id(), id));
+        image_cache.add_listener(ImageLoadListener::new(sender, window.pipeline_id(), id));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
@@ -262,7 +262,10 @@ impl HTMLVideoElement {
         match response {
             ImageResponse::Loaded(image, url) => {
                 debug!("Loaded poster image for video element: {:?}", url);
-                self.htmlmediaelement.process_poster_image_loaded(image);
+                match image.as_raster_image() {
+                    Some(image) => self.htmlmediaelement.process_poster_image_loaded(image),
+                    None => warn!("Vector images are not yet supported in video poster"),
+                }
                 LoadBlocker::terminate(&self.load_blocker, can_gc);
             },
             ImageResponse::MetadataLoaded(..) => {},
