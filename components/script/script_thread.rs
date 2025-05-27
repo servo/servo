@@ -71,7 +71,7 @@ use js::jsval::UndefinedValue;
 use js::rust::ParentRuntime;
 use media::WindowGLContext;
 use metrics::MAX_TASK_NS;
-use net_traits::image_cache::{ImageCache, ImageCacheMessage};
+use net_traits::image_cache::{ImageCache, ImageCacheResponseMessage};
 use net_traits::request::{Referrer, RequestId};
 use net_traits::response::ResponseInit;
 use net_traits::storage_thread::StorageType;
@@ -2095,9 +2095,9 @@ impl ScriptThread {
         }
     }
 
-    fn handle_msg_from_image_cache(&self, response: ImageCacheMessage) {
+    fn handle_msg_from_image_cache(&self, response: ImageCacheResponseMessage) {
         match response {
-            ImageCacheMessage::NotifyPendingImageLoadStatus(pending_image_response) => {
+            ImageCacheResponseMessage::NotifyPendingImageLoadStatus(pending_image_response) => {
                 let window = self
                     .documents
                     .borrow()
@@ -2106,10 +2106,10 @@ impl ScriptThread {
                     window.pending_image_notification(pending_image_response);
                 }
             },
-            ImageCacheMessage::VectorImageRasterizationCompleted(pipeline_id, image_id, size) => {
-                let window = self.documents.borrow().find_window(pipeline_id);
+            ImageCacheResponseMessage::VectorImageRasterizationComplete(response) => {
+                let window = self.documents.borrow().find_window(response.pipeline_id);
                 if let Some(ref window) = window {
-                    window.handle_image_rasterization_complete_notification(image_id, size);
+                    window.handle_image_rasterization_complete_notification(response);
                 }
             },
         };

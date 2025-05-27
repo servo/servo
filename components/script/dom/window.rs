@@ -55,8 +55,8 @@ use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
 use net_traits::ResourceThreads;
 use net_traits::image_cache::{
-    ImageCache, ImageCacheMessage, ImageLoadListener, ImageResponse, PendingImageId,
-    PendingImageResponse,
+    ImageCache, ImageCacheResponseMessage, ImageLoadListener, ImageResponse, PendingImageId,
+    PendingImageResponse, RasterizationCompleteResponse,
 };
 use net_traits::storage_thread::StorageType;
 use num_traits::ToPrimitive;
@@ -243,7 +243,7 @@ pub(crate) struct Window {
     #[no_trace]
     image_cache: Arc<dyn ImageCache>,
     #[no_trace]
-    image_cache_sender: IpcSender<ImageCacheMessage>,
+    image_cache_sender: IpcSender<ImageCacheResponseMessage>,
     window_proxy: MutNullableDom<WindowProxy>,
     document: MutNullableDom<Document>,
     location: MutNullableDom<Location>,
@@ -346,13 +346,13 @@ pub(crate) struct Window {
     pending_image_callbacks: DomRefCell<HashMap<PendingImageId, Vec<PendingImageCallback>>>,
 
     /// All of the elements that have an outstanding image request that was
-    /// initiated by layout during a reflow. They are stored in the script thread
+    /// initiated by layout during a reflow. They are stored in the [`ScriptThread`]
     /// to ensure that the element can be marked dirty when the image data becomes
     /// available at some point in the future.
     pending_layout_images: DomRefCell<HashMapTracedValues<PendingImageId, Vec<Dom<Node>>>>,
 
     /// Vector images for which layout has intiated rasterization at a specific size
-    /// and whose results are not yet available. They are stored in the script thread
+    /// and whose results are not yet available. They are stored in the [`ScriptThread`]
     /// so that the element can be marked dirty once the rasterization is completed.
     pending_images_for_rasterization:
         DomRefCell<HashMapTracedValues<PendingImageRasterizationKey, Vec<Dom<Node>>>>,
@@ -577,7 +577,7 @@ impl Window {
         &self,
         id: PendingImageId,
         callback: impl Fn(PendingImageResponse) + 'static,
-    ) -> IpcSender<ImageCacheMessage> {
+    ) -> IpcSender<ImageCacheResponseMessage> {
         self.pending_image_callbacks
             .borrow_mut()
             .entry(id)
@@ -608,11 +608,10 @@ impl Window {
 
     pub(crate) fn handle_image_rasterization_complete_notification(
         &self,
-        image_id: PendingImageId,
-        size: DeviceIntSize,
+        response: RasterizationCompleteResponse,
     ) {
         let mut images = self.pending_images_for_rasterization.borrow_mut();
-        let nodes = images.entry((image_id, size));
+        let nodes = images.entry((response.image_id, response.requested_size));
         let nodes = match nodes {
             Entry::Occupied(nodes) => nodes,
             Entry::Vacant(_) => return,
@@ -3054,7 +3053,7 @@ impl Window {
         script_chan: Sender<MainThreadScriptMsg>,
         layout: Box<dyn Layout>,
         font_context: Arc<FontContext>,
-        image_cache_sender: IpcSender<ImageCacheMessage>,
+        image_cache_sender: IpcSender<ImageCacheResponseMessage>,
         image_cache: Arc<dyn ImageCache>,
         resource_threads: ResourceThreads,
         #[cfg(feature = "bluetooth")] bluetooth_thread: IpcSender<BluetoothRequest>,

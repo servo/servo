@@ -154,8 +154,9 @@ pub struct PendingImage {
     pub origin: ImmutableOrigin,
 }
 
-// A vector image that is fully loaded (i.e has a parsed SVG tree) but not yet
-// rasterized to the size needed by layout.
+/// A data structure to tarck vector image that are fully loaded (i.e has a parsed SVG
+/// tree) but not yet rasterized to the size needed by layout. The rasterization is
+/// happening in the image cache.
 #[derive(Debug)]
 pub struct PendingRasterizationImage {
     pub node: UntrustedNodeAddress,

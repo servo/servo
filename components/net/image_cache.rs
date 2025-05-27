@@ -16,8 +16,9 @@ use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
 use net_traits::image_cache::{
-    Image, ImageCache, ImageCacheMessage, ImageCacheResult, ImageLoadListener,
-    ImageOrMetadataAvailable, ImageResponse, PendingImageId, UsePlaceholder, VectorImage,
+    Image, ImageCache, ImageCacheResponseMessage, ImageCacheResult, ImageLoadListener,
+    ImageOrMetadataAvailable, ImageResponse, PendingImageId, RasterizationCompleteResponse,
+    UsePlaceholder, VectorImage,
 };
 use net_traits::request::CorsSettings;
 use net_traits::{FetchMetadata, FetchResponseMsg, FilteredMetadata, NetworkError};
@@ -397,41 +398,39 @@ impl PendingLoad {
     }
 }
 
-#[derive(MallocSizeOf)]
+#[derive(Default, MallocSizeOf)]
 struct RasterizationTask {
-    listeners: Vec<(PipelineId, IpcSender<ImageCacheMessage>)>,
+    listeners: Vec<(PipelineId, IpcSender<ImageCacheResponseMessage>)>,
     result: Option<RasterImage>,
 }
 
-// ======================================================================
-// Image cache implementation.
-// ======================================================================
+/// ## Image cache implementation.
 #[derive(MallocSizeOf)]
 struct ImageCacheStore {
-    // Images that are loading over network, or decoding.
+    /// Images that are loading over network, or decoding.
     pending_loads: AllPendingLoads,
 
-    // Images that have finished loading (successful or not)
+    /// Images that have finished loading (successful or not)
     completed_loads: HashMap<ImageKey, CompletedLoad>,
 
-    // Vector (e.g. SVG) images that have been sucessfully loaded and parsed
-    // but are yet to be rasterized. Since the same SVG data can be used for
-    // rasterizing at different sizes, we use this hasmap to share the data.
+    /// Vector (e.g. SVG) images that have been sucessfully loaded and parsed
+    /// but are yet to be rasterized. Since the same SVG data can be used for
+    /// rasterizing at different sizes, we use this hasmap to share the data.
     vector_images: HashMap<PendingImageId, VectorImageData>,
 
-    // Vector images for which rasterization at a particular size has started
-    // or completed. If completed, the `result` member of `RasterizationTask`
-    // contains the rasterized image.
+    /// Vector images for which rasterization at a particular size has started
+    /// or completed. If completed, the `result` member of `RasterizationTask`
+    /// contains the rasterized image.
     rasterized_vector_images: HashMap<(PendingImageId, DeviceIntSize), RasterizationTask>,
 
-    // The placeholder image used when an image fails to load
+    /// The placeholder image used when an image fails to load
     #[conditional_malloc_size_of]
     placeholder_image: Arc<RasterImage>,
 
-    // The URL used for the placeholder image
+    /// The URL used for the placeholder image
     placeholder_url: ServoUrl,
 
-    // Cross-process compositor API instance.
+    /// Cross-process compositor API instance.
     #[ignore_malloc_size_of = "Channel from another crate"]
     compositor_api: CrossProcessCompositorApi,
 }
@@ -683,39 +682,38 @@ impl ImageCache for ImageCacheImpl {
         &self,
         pipeline_id: PipelineId,
         image_id: PendingImageId,
-        size: DeviceIntSize,
-        sender: IpcSender<ImageCacheMessage>,
+        requested_size: DeviceIntSize,
+        sender: IpcSender<ImageCacheResponseMessage>,
     ) {
-        let key = (image_id, size);
         let completed = {
             let mut store = self.store.lock().unwrap();
+            let key = (image_id, requested_size);
             if !store.vector_images.contains_key(&image_id) {
                 warn!("Unknown image requested for rasterization for key {key:?}");
                 return;
             };
 
-            match store.rasterized_vector_images.entry(key) {
-                Occupied(mut entry) => {
-                    let task = entry.get_mut();
-                    if task.result.is_some() {
-                        true
-                    } else {
-                        task.listeners.push((pipeline_id, sender.clone()));
-                        false
-                    }
-                },
-                Vacant(_) => {
-                    warn!("Image rasterization task not found in the cache for key {key:?}");
-                    return;
+            let Some(task) = store.rasterized_vector_images.get_mut(&key) else {
+                warn!("Image rasterization task not found in the cache for key {key:?}");
+                return;
+            };
+
+            match task.result {
+                Some(_) => true,
+                None => {
+                    task.listeners.push((pipeline_id, sender.clone()));
+                    false
                 },
             }
         };
 
         if completed {
-            let _ = sender.send(ImageCacheMessage::VectorImageRasterizationCompleted(
-                pipeline_id,
-                image_id,
-                size,
+            let _ = sender.send(ImageCacheResponseMessage::VectorImageRasterizationComplete(
+                RasterizationCompleteResponse {
+                    pipeline_id,
+                    image_id,
+                    requested_size,
+                },
             ));
         }
     }
@@ -723,7 +721,7 @@ impl ImageCache for ImageCacheImpl {
     fn rasterize_vector_image(
         &self,
         image_id: PendingImageId,
-        size: DeviceIntSize,
+        requested_size: DeviceIntSize,
     ) -> Option<RasterImage> {
         let mut store = self.store.lock().unwrap();
         let Some(vector_image) = store.vector_images.get(&image_id).cloned() else {
@@ -731,44 +729,48 @@ impl ImageCache for ImageCacheImpl {
             return None;
         };
 
-        match store.rasterized_vector_images.entry((image_id, size)) {
-            Occupied(occupied_entry) => {
-                return occupied_entry.get().result.clone();
-            },
-            Vacant(entry) => entry.insert(RasterizationTask {
-                listeners: vec![],
-                result: None,
-            }),
-        };
+        // This early return relies on the fact that the result of image rasterization cannot
+        // ever be `None`. If that were the case we would need to check whether the entry
+        // in the `HashMap` was `Occupied` or not.
+        let entry = store
+            .rasterized_vector_images
+            .entry((image_id, requested_size))
+            .or_default();
+        if let Some(result) = entry.result.as_ref() {
+            return Some(result.clone());
+        }
 
         let store = self.store.clone();
         self.thread_pool.spawn(move || {
             let natural_size = vector_image.svg_tree.size().to_int_size();
-            let requested_size = {
-                let width = size.width.try_into().unwrap_or(0);
-                let height = size.height.try_into().unwrap_or(0);
+            let tinyskia_requested_size = {
+                let width = requested_size.width.try_into().unwrap_or(0);
+                let height = requested_size.height.try_into().unwrap_or(0);
                 tiny_skia::IntSize::from_wh(width, height).unwrap_or(natural_size)
             };
             let transform = tiny_skia::Transform::from_scale(
-                requested_size.width() as f32 / natural_size.width() as f32,
-                requested_size.height() as f32 / natural_size.height() as f32,
+                tinyskia_requested_size.width() as f32 / natural_size.width() as f32,
+                tinyskia_requested_size.height() as f32 / natural_size.height() as f32,
             );
-            let mut pixmap =
-                tiny_skia::Pixmap::new(requested_size.width(), requested_size.height()).unwrap();
+            let mut pixmap = tiny_skia::Pixmap::new(
+                tinyskia_requested_size.width(),
+                tinyskia_requested_size.height(),
+            )
+            .unwrap();
             resvg::render(&vector_image.svg_tree, transform, &mut pixmap.as_mut());
 
             let bytes = pixmap.take();
             let frame = ImageFrame {
                 delay: None,
                 byte_range: 0..bytes.len(),
-                width: requested_size.width(),
-                height: requested_size.height(),
+                width: tinyskia_requested_size.width(),
+                height: tinyskia_requested_size.height(),
             };
 
             let mut rasterized_image = RasterImage {
                 metadata: ImageMetadata {
-                    width: requested_size.width(),
-                    height: requested_size.height(),
+                    width: tinyskia_requested_size.width(),
+                    height: tinyskia_requested_size.height(),
                 },
                 format: PixelFormat::RGBA8,
                 frames: vec![frame],
@@ -780,19 +782,23 @@ impl ImageCache for ImageCacheImpl {
             let listeners = {
                 let mut store = store.lock().unwrap();
                 set_webrender_image_key(&store.compositor_api, &mut rasterized_image);
-                if let Some(task) = store.rasterized_vector_images.get_mut(&(image_id, size)) {
-                    task.result = Some(rasterized_image);
-                    std::mem::take(&mut task.listeners)
-                } else {
-                    Vec::new()
-                }
+                store
+                    .rasterized_vector_images
+                    .get_mut(&(image_id, requested_size))
+                    .map(|task| {
+                        task.result = Some(rasterized_image);
+                        std::mem::take(&mut task.listeners)
+                    })
+                    .unwrap_or_default()
             };
 
             for (pipeline_id, sender) in listeners {
-                let _ = sender.send(ImageCacheMessage::VectorImageRasterizationCompleted(
-                    pipeline_id,
-                    image_id,
-                    size,
+                let _ = sender.send(ImageCacheResponseMessage::VectorImageRasterizationComplete(
+                    RasterizationCompleteResponse {
+                        pipeline_id,
+                        image_id,
+                        requested_size,
+                    },
                 ));
             }
         });

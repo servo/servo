@@ -262,11 +262,10 @@ impl HTMLVideoElement {
         match response {
             ImageResponse::Loaded(image, url) => {
                 debug!("Loaded poster image for video element: {:?}", url);
-                if let Some(image) = image.as_raster_image() {
-                    self.htmlmediaelement.process_poster_image_loaded(image);
-                } else {
-                    warn!("Vector images are not yet supported in video poster");
-                };
+                match image.as_raster_image() {
+                    Some(image) => self.htmlmediaelement.process_poster_image_loaded(image),
+                    None => warn!("Vector images are not yet supported in video poster"),
+                }
                 LoadBlocker::terminate(&self.load_blocker, can_gc);
             },
             ImageResponse::MetadataLoaded(..) => {},

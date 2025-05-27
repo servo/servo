@@ -341,14 +341,12 @@ impl HTMLImageElement {
                 is_placeholder,
             }) => {
                 if is_placeholder {
-                    let image = image
-                        .as_raster_image()
-                        .expect("Only raster images are supported as placeholders currently");
-
-                    self.process_image_response(
-                        ImageResponse::PlaceholderLoaded(image, url),
-                        can_gc,
-                    )
+                    if let Some(raster_image) = image.as_raster_image() {
+                        self.process_image_response(
+                            ImageResponse::PlaceholderLoaded(raster_image, url),
+                            can_gc,
+                        )
+                    }
                 } else {
                     self.process_image_response(ImageResponse::Loaded(image, url), can_gc)
                 }

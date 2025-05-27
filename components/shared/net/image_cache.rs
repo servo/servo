@@ -24,9 +24,10 @@ use crate::request::CorsSettings;
 // ======================================================================
 
 pub type VectorImageId = PendingImageId;
+
 // Represents either a raster image for which the pixel data is available
 // or a vector image for which only the natural dimensions are available
-// and thus require an further rasterization step.
+// and thus requires a further rasterization step to render.
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum Image {
     Raster(#[conditional_malloc_size_of] Arc<RasterImage>),
@@ -82,12 +83,12 @@ pub enum ImageOrMetadataAvailable {
 pub struct ImageLoadListener {
     pipeline_id: PipelineId,
     pub id: PendingImageId,
-    sender: IpcSender<ImageCacheMessage>,
+    sender: IpcSender<ImageCacheResponseMessage>,
 }
 
 impl ImageLoadListener {
     pub fn new(
-        sender: IpcSender<ImageCacheMessage>,
+        sender: IpcSender<ImageCacheResponseMessage>,
         pipeline_id: PipelineId,
         id: PendingImageId,
     ) -> ImageLoadListener {
@@ -103,14 +104,15 @@ impl ImageLoadListener {
         // This send can fail if thread waiting for this notification has panicked.
         // That's not a case that's worth warning about.
         // TODO(#15501): are there cases in which we should perform cleanup?
-        let msg = PendingImageResponse {
-            pipeline_id: self.pipeline_id,
-            response,
-            id: self.id,
-        };
         let _ = self
             .sender
-            .send(ImageCacheMessage::NotifyPendingImageLoadStatus(msg));
+            .send(ImageCacheResponseMessage::NotifyPendingImageLoadStatus(
+                PendingImageResponse {
+                    pipeline_id: self.pipeline_id,
+                    response,
+                    id: self.id,
+                },
+            ));
     }
 }
 
@@ -139,9 +141,16 @@ pub struct PendingImageResponse {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum ImageCacheMessage {
+pub struct RasterizationCompleteResponse {
+    pub pipeline_id: PipelineId,
+    pub image_id: PendingImageId,
+    pub requested_size: DeviceIntSize,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum ImageCacheResponseMessage {
     NotifyPendingImageLoadStatus(PendingImageResponse),
-    VectorImageRasterizationCompleted(PipelineId, PendingImageId, DeviceIntSize),
+    VectorImageRasterizationComplete(RasterizationCompleteResponse),
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
@@ -184,26 +193,26 @@ pub trait ImageCache: Sync + Send {
         use_placeholder: UsePlaceholder,
     ) -> ImageCacheResult;
 
-    // Returns `Some` if the given `image_id` has already been rasterized at the given `size`.
-    // Otherwise, triggers a new job to perform the rasterization. If a notification
-    // is needed after rasterization is completed, the `add_rasterization_complete_listener`
-    // API below can be used to add a listener.
+    /// Returns `Some` if the given `image_id` has already been rasterized at the given `size`.
+    /// Otherwise, triggers a new job to perform the rasterization. If a notification
+    /// is needed after rasterization is completed, the `add_rasterization_complete_listener`
+    /// API below can be used to add a listener.
     fn rasterize_vector_image(
         &self,
         image_id: VectorImageId,
         size: DeviceIntSize,
     ) -> Option<RasterImage>;
 
-    // Adds a new listener to be notified once the given `image_id` has been rasterized at
-    // the given `size`. The listener will receive a `VectorImageRasterizationCompleted`
-    // message on the given `sender`, even if the listener is called after rasterization
-    // at has already completed.
+    /// Adds a new listener to be notified once the given `image_id` has been rasterized at
+    /// the given `size`. The listener will receive a `VectorImageRasterizationComplete`
+    /// message on the given `sender`, even if the listener is called after rasterization
+    /// at has already completed.
     fn add_rasterization_complete_listener(
         &self,
         pipeline_id: PipelineId,
         image_id: VectorImageId,
         size: DeviceIntSize,
-        sender: IpcSender<ImageCacheMessage>,
+        sender: IpcSender<ImageCacheResponseMessage>,
     );
 
     /// Add a new listener for the given pending image id. If the image is already present,

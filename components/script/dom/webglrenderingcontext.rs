@@ -609,23 +609,29 @@ impl WebGLRenderingContext {
                 };
                 let cors_setting = cors_setting_for_element(image.upcast());
 
-                let img =
-                    match canvas_utils::request_image_from_cache(&window, img_url, cors_setting) {
-                        ImageResponse::Loaded(image, _) => {
-                            if let Some(image) = image.as_raster_image() {
-                                image
-                            } else {
-                                // Related https://github.com/KhronosGroup/WebGL/issues/1503?
+                let img = match canvas_utils::request_image_from_cache(
+                    &window,
+                    img_url,
+                    cors_setting,
+                ) {
+                    ImageResponse::Loaded(image, _) => {
+                        match image.as_raster_image() {
+                            Some(image) => image,
+                            None => {
+                                // Vector images are not currently supported here and there are some open questions
+                                // in the specification about how to handle them:
+                                // See https://github.com/KhronosGroup/WebGL/issues/1503.
                                 warn!(
                                     "Vector images as are not yet supported as WebGL texture source"
                                 );
                                 return Ok(None);
-                            }
-                        },
-                        ImageResponse::PlaceholderLoaded(_, _) |
-                        ImageResponse::None |
-                        ImageResponse::MetadataLoaded(_) => return Ok(None),
-                    };
+                            },
+                        }
+                    },
+                    ImageResponse::PlaceholderLoaded(_, _) |
+                    ImageResponse::None |
+                    ImageResponse::MetadataLoaded(_) => return Ok(None),
+                };
 
                 let size = Size2D::new(img.metadata.width, img.metadata.height);
 

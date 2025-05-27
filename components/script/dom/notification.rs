@@ -21,8 +21,8 @@ use js::jsval::JSVal;
 use js::rust::{HandleObject, MutableHandleValue};
 use net_traits::http_status::HttpStatus;
 use net_traits::image_cache::{
-    ImageCache, ImageCacheMessage, ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable,
-    ImageResponse, PendingImageId, UsePlaceholder,
+    ImageCache, ImageCacheResponseMessage, ImageCacheResult, ImageLoadListener,
+    ImageOrMetadataAvailable, ImageResponse, PendingImageId, UsePlaceholder,
 };
 use net_traits::request::{RequestBuilder, RequestId};
 use net_traits::{
@@ -929,7 +929,7 @@ impl Notification {
         pending_image_id: PendingImageId,
         resource_type: ResourceType,
     ) {
-        let (sender, receiver) = ipc::channel::<ImageCacheMessage>().expect("ipc channel failure");
+        let (sender, receiver) = ipc::channel().expect("ipc channel failure");
 
         let global: &GlobalScope = &self.global();
 
@@ -945,7 +945,7 @@ impl Notification {
                 task_source.queue(task!(handle_response: move || {
                     let this = trusted_this.root();
                     if let Ok(response) = response {
-                        let ImageCacheMessage::NotifyPendingImageLoadStatus(status) = response else {
+                        let ImageCacheResponseMessage::NotifyPendingImageLoadStatus(status) = response else {
                             warn!("Received unexpected message from image cache: {response:?}");
                             return;
                         };
