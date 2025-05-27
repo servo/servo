@@ -148,6 +148,7 @@ use net_traits::pub_domains::reg_host;
 use net_traits::request::Referrer;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use net_traits::{self, IpcSend, ReferrerPolicy, ResourceThreads};
+use profile_traits::mem::ProfilerMsg;
 use profile_traits::{mem, time};
 use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
 use script_traits::{
@@ -1487,6 +1488,9 @@ where
                 script,
             ) => {
                 self.handle_evaluate_javascript(webview_id, evaluation_id, script);
+            },
+            EmbedderToConstellationMessage::CreateMemoryReport(sender) => {
+                self.mem_profiler_chan.send(ProfilerMsg::Report(sender));
             },
         }
     }

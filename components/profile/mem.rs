@@ -114,7 +114,6 @@ impl Profiler {
                 let _ = sender.send(MemoryReportResult { results });
                 true
             },
-
             ProfilerMsg::Exit => false,
         }
     }

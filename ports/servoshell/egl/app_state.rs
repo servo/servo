@@ -152,6 +152,24 @@ impl WebViewDelegate for RunningAppState {
         self.callbacks
             .host_callbacks
             .notify_load_status_changed(load_status);
+
+        #[cfg(feature = "tracing")]
+        if load_status == LoadStatus::Complete {
+            #[cfg(feature = "tracing-hitrace")]
+            let (snd, recv) = ipc_channel::ipc::channel().expect("Could not create channel");
+            self.servo.create_memory_report(snd);
+            std::thread::spawn(move || {
+                let result = recv.recv().expect("Could not get memory report");
+                let reports = result
+                    .results
+                    .first()
+                    .expect("We should have some memory report");
+                for report in &reports.reports {
+                    let path = String::from("servo_memory_profiling:") + &report.path.join("/");
+                    hitrace::trace_metric_str(&path, report.size as i64);
+                }
+            });
+        }
     }
 
     fn notify_closed(&self, webview: WebView) {

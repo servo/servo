@@ -26,6 +26,7 @@ use euclid::Vector2D;
 pub use from_script_message::*;
 use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
+use profile_traits::mem::MemoryReportResult;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
 pub use structured_data::*;
@@ -95,6 +96,8 @@ pub enum EmbedderToConstellationMessage {
     /// Evaluate a JavaScript string in the context of a `WebView`. When execution is complete or an
     /// error is encountered, a correpsonding message will be sent to the embedding layer.
     EvaluateJavaScript(WebViewId, JavaScriptEvaluationId, String),
+    /// Create a memory report and return it via the ipc sender
+    CreateMemoryReport(IpcSender<MemoryReportResult>),
 }
 
 /// A description of a paint metric that is sent from the Servo renderer to the
