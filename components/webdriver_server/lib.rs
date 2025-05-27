@@ -64,7 +64,10 @@ use webdriver::response::{
 };
 use webdriver::server::{self, Session, SessionTeardownKind, WebDriverHandler};
 
-use crate::actions::{InputSourceState, PointerInputState};
+use crate::actions::{
+    ActionItem, InputSourceState, PointerInputState, actions_by_tick_from_sequence,
+    extract_an_action_sequence,
+};
 
 #[derive(Default)]
 pub struct WebDriverMessageIdGenerator {
@@ -145,7 +148,9 @@ pub fn start_server(port: u16, constellation_chan: Sender<EmbedderToConstellatio
 /// Represents the current WebDriver session and holds relevant session state.
 pub struct WebDriverSession {
     id: Uuid,
+
     browsing_context_id: BrowsingContextId,
+
     webview_id: WebViewId,
 
     window_handles: HashMap<WebViewId, String>,
@@ -171,7 +176,7 @@ pub struct WebDriverSession {
     input_state_table: RefCell<HashMap<String, InputSourceState>>,
 
     /// <https://w3c.github.io/webdriver/#dfn-input-cancel-list>
-    input_cancel_list: RefCell<Vec<ActionSequence>>,
+    input_cancel_list: RefCell<Vec<ActionItem>>,
 }
 
 impl WebDriverSession {
@@ -1480,20 +1485,22 @@ impl Handler {
 
     fn handle_perform_actions(
         &mut self,
-        parameters: &ActionsParameters,
+        parameters: ActionsParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        match self.dispatch_actions(&parameters.actions) {
+        // Step 5. Let actions by tick be the result of trying to extract an action sequence
+        let actions_by_tick = extract_an_action_sequence(parameters);
+
+        // Step 6. Dispatch actions
+        match self.dispatch_actions(actions_by_tick) {
             Ok(_) => Ok(WebDriverResponse::Void),
             Err(error) => Err(WebDriverError::new(error, "")),
         }
     }
 
+    /// <https://w3c.github.io/webdriver/#dfn-release-actions>
     fn handle_release_actions(&mut self) -> WebDriverResult<WebDriverResponse> {
-        let input_cancel_list = self.session().unwrap().input_cancel_list.borrow();
-        if let Err(error) = self.dispatch_actions(&input_cancel_list) {
-            return Err(WebDriverError::new(error, ""));
-        }
-
+        // TODO: The previous implementation of this function was different from the spec.
+        // Need to re-implement this to match the spec.
         let session = self.session()?;
         session.input_state_table.borrow_mut().clear();
 
@@ -1702,7 +1709,9 @@ impl Handler {
                         },
                     };
 
-                    let _ = self.dispatch_actions(&[action_sequence]);
+                    let actions_by_tick = actions_by_tick_from_sequence(vec![action_sequence]);
+
+                    let _ = self.dispatch_actions(actions_by_tick);
 
                     // Step 8.17 Remove an input source with input state and input id.
                     self.session_mut()?
@@ -1936,7 +1945,9 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
                 self.handle_element_css(element, name)
             },
             WebDriverCommand::GetPageSource => self.handle_get_page_source(),
-            WebDriverCommand::PerformActions(ref x) => self.handle_perform_actions(x),
+            WebDriverCommand::PerformActions(actions_parameters) => {
+                self.handle_perform_actions(actions_parameters)
+            },
             WebDriverCommand::ReleaseActions => self.handle_release_actions(),
             WebDriverCommand::ExecuteScript(ref x) => self.handle_execute_script(x),
             WebDriverCommand::ExecuteAsyncScript(ref x) => self.handle_execute_async_script(x),
