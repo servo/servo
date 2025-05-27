@@ -1637,13 +1637,13 @@ impl Element {
             Some(DomRoot::from_ref(self))
         } else if self.upcast::<Node>().is_text_control_inner_editor() {
             let containing_shadow_host = self.containing_shadow_root().map(|root| root.Host());
-            if containing_shadow_host
-                .as_ref()
-                .is_some_and(|e| e.is_focusable_area())
-            {
-                return containing_shadow_host;
-            }
-            panic!("Containing shadow host is not focusable");
+            assert!(
+                containing_shadow_host
+                    .as_ref()
+                    .is_some_and(|e| e.is_focusable_area()),
+                "Containing shadow host is not focusable"
+            );
+            containing_shadow_host
         } else {
             None
         }

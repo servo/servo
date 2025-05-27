@@ -221,18 +221,6 @@ fn traverse_children_of<'dom>(
         } else {
             handler.handle_text(&info, node_text_content);
         }
-    } else if parent_element.is_text_control_inner_editor() {
-        // We are using parent's style for caret and selection color.
-        // FIXME: Once textarea and input element's shadow tree is supported, this would replace the if condition above.
-        let info = NodeAndStyleInfo::new(
-            parent_element,
-            parent_element.style(context.shared_context()),
-        );
-        for child in iter_child_nodes(parent_element) {
-            if child.is_text_node() {
-                handler.handle_text(&info, child.to_threadsafe().node_text_content());
-            }
-        }
     } else {
         for child in iter_child_nodes(parent_element) {
             if child.is_text_node() {

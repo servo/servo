@@ -28,7 +28,7 @@ use style::selector_parser::PseudoElement;
 use super::{
     ServoLayoutDocument, ServoLayoutElement, ServoShadowRoot, ServoThreadSafeLayoutElement,
 };
-use crate::dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId, TextTypeId};
+use crate::dom::bindings::inheritance::NodeTypeId;
 use crate::dom::bindings::root::LayoutDom;
 use crate::dom::element::{Element, LayoutElementHelpers};
 use crate::dom::node::{LayoutNodeHelpers, Node, NodeFlags, NodeTypeIdWrapper};
@@ -112,8 +112,7 @@ impl style::dom::NodeInfo for ServoLayoutNode<'_> {
     }
 
     fn is_text_node(&self) -> bool {
-        self.script_type_id() ==
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text))
+        self.node.is_text_node_for_layout()
     }
 }
 

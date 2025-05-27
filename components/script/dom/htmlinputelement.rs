@@ -1184,8 +1184,8 @@ impl HTMLInputElement {
             ElementCreator::ScriptCreated,
             can_gc,
         );
-        // TODO(stevennovaryo): Either use UA stylesheet with internal pseudo element or preemptively parse the stylesheet
-        //                      to reduce the costly operation and avoid CSP related error.
+        // TODO(stevennovaryo): Either use UA stylesheet with internal pseudo element or preemptively parse
+        //                      the stylesheet to reduce the costly operation and avoid CSP related error.
         style
             .upcast::<Node>()
             .SetTextContent(Some(DOMString::from(TEXT_TREE_STYLE)), can_gc);
@@ -2913,7 +2913,7 @@ impl VirtualMethods for HTMLInputElement {
 
                     // If old placeholder is not the same as the new one,
                     // we need to update the shadow tree.
-                    if old_placeholder != *placeholder {
+                    if old_placeholder != *placeholder && self.input_type() == InputType::Text {
                         self.text_shadow_tree(can_gc)
                             .placeholder_container
                             .upcast::<Node>()
