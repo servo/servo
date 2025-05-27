@@ -1684,20 +1684,25 @@ impl Handler {
                         ..Default::default()
                     };
 
-                    let _ = self.dispatch_actions(&[
-                        pointer_mouse_action_sequence_with(
-                            id.clone(),
-                            PointerAction::Move(pointer_move_action),
-                        ),
-                        pointer_mouse_action_sequence_with(
-                            id.clone(),
-                            PointerAction::Down(pointer_down_action),
-                        ),
-                        pointer_mouse_action_sequence_with(
-                            id.clone(),
-                            PointerAction::Up(pointer_up_action),
-                        ),
-                    ]);
+                    let action_sequence = ActionSequence {
+                        id: id.clone(),
+                        actions: ActionsType::Pointer {
+                            parameters: PointerActionParameters {
+                                pointer_type: PointerType::Mouse,
+                            },
+                            actions: vec![
+                                PointerActionItem::Pointer(PointerAction::Move(
+                                    pointer_move_action,
+                                )),
+                                PointerActionItem::Pointer(PointerAction::Down(
+                                    pointer_down_action,
+                                )),
+                                PointerActionItem::Pointer(PointerAction::Up(pointer_up_action)),
+                            ],
+                        },
+                    };
+
+                    let _ = self.dispatch_actions(&[action_sequence]);
 
                     // Step 8.17 Remove an input source with input state and input id.
                     self.session_mut()?
@@ -2020,16 +2025,4 @@ where
     receiver
         .recv()
         .map_err(|_| WebDriverError::new(ErrorStatus::NoSuchWindow, ""))
-}
-
-fn pointer_mouse_action_sequence_with(id: String, pointer_action: PointerAction) -> ActionSequence {
-    ActionSequence {
-        id,
-        actions: ActionsType::Pointer {
-            parameters: PointerActionParameters {
-                pointer_type: PointerType::Mouse,
-            },
-            actions: vec![PointerActionItem::Pointer(pointer_action)],
-        },
-    }
 }
