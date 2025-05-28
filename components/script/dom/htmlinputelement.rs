@@ -116,8 +116,9 @@ const DEFAULT_FILE_INPUT_VALUE: &str = "No file chosen";
 /// </input>
 /// ```
 // TODO(stevennovaryo): We are trying to use CSS to mimic Chrome and Firefox's layout for the <input> element.
-//                      But this does have some discrepancies. For example, they would try to vertically align
-//                      <input> text baseline with the baseline of other TextNode within an inline flow.
+//                      But, this could be slower in performance and does have some discrepancies. For example,
+//                      they would try to vertically align <input> text baseline with the baseline of other
+//                      TextNode within an inline flow. Another example is the horizontal scroll.
 struct InputTypeTextShadowTree {
     text_container: Dom<HTMLDivElement>,
     placeholder_container: Dom<HTMLDivElement>,
@@ -145,6 +146,7 @@ const TEXT_TREE_STYLE: &str = "
 }
 
 #input-editor {
+    overflow-wrap: normal;
     pointer-events: auto;
 }
 
@@ -152,20 +154,21 @@ const TEXT_TREE_STYLE: &str = "
     position: relative;
     height: 100%;
     pointer-events: none;
+    display: flex;
+    overflow: hidden;
 }
 
 #input-editor, #input-placeholder {
-    position: absolute !important;
-    overflow-wrap: normal;
     white-space: pre;
-    margin-block: auto;
-    inset-block: 0;
-    block-size: fit-content;
+    margin-block: auto !important;
+    inset-block: 0 !important;
+    block-size: fit-content !important;
 }
 
 #input-placeholder {
-    color: grey;
     overflow: hidden !important;
+    position: absolute !important;
+    color: grey;
     pointer-events: none !important;
 }
 ";

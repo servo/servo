@@ -91,6 +91,21 @@
    }
   },
   "reftest": {
+   "appearance": {
+    "input-text-definite-width.html": [
+     "9107c617b7dc9a27b24a2b04b787f5a40524d2f2",
+     [
+      "appearance/input-text-definite-width.html",
+      [
+       [
+        "/_mozilla/appearance/input-text-definite-width-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ]
+   },
    "css": {
     "abs-overflow-stackingcontext.html": [
      "264df01aa64e0abe9ea3a75e57452c27d53a904f",
@@ -8075,6 +8090,12 @@
     "b485d435a63ada28eabe976b49a8a580725e7508",
     []
    ],
+   "appearance": {
+    "input-text-definite-width-ref.html": [
+     "5f17faa22a5ecdcd3939ee5e57ddf56033347b6a",
+     []
+    ]
+   },
    "bluetooth": {
     "bluetooth-helpers.js": [
      "16a280cca298bcaa5796b36b48d331bfd15baae8",
