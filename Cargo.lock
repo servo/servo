@@ -1070,7 +1070,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "117725a109d387c937a1533ce01b450cbde6b88abceea8473c4d7a85853cda3c"
 dependencies = [
  "lazy_static",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -3247,9 +3247,9 @@ dependencies = [
 
 [[package]]
 name = "hitrace"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f92c0ae6f30b32eaeb811143fba3b56864f477b2e69458b13779a07b3aaf2f6e"
+checksum = "4e3037245d690359ac992d8e3bb96e15ace6ad0a00305b680f4b1fd4ede684d9"
 dependencies = [
  "hitrace-sys",
 ]
@@ -9074,7 +9074,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
