@@ -9,7 +9,7 @@
 typedef HTMLImageElement HTMLOrSVGImageElement;
 
 typedef (HTMLOrSVGImageElement or
-         /*HTMLVideoElement or*/
+         HTMLVideoElement or
          HTMLCanvasElement or
          /*ImageBitmap or*/
          OffscreenCanvas or

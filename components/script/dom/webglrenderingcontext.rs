@@ -658,14 +658,23 @@ impl WebGLRenderingContext {
                     return Ok(None);
                 }
             },
-            TexImageSource::HTMLVideoElement(video) => match video.get_current_frame_data() {
-                Some((data, size)) => {
-                    let data = data.unwrap_or_else(|| {
-                        IpcSharedMemory::from_bytes(&vec![0; size.area() as usize * 4])
-                    });
-                    TexPixels::new(data, size, PixelFormat::BGRA8, false)
-                },
-                None => return Ok(None),
+            TexImageSource::HTMLVideoElement(video) => {
+                if !video.origin_is_clean() {
+                    return Err(Error::Security);
+                }
+
+                let Some(snapshot) = video.get_current_frame_data() else {
+                    return Ok(None);
+                };
+
+                let snapshot = snapshot.as_ipc();
+                let size = snapshot.size().cast();
+                let format: PixelFormat = match snapshot.format() {
+                    snapshot::PixelFormat::RGBA => PixelFormat::RGBA8,
+                    snapshot::PixelFormat::BGRA => PixelFormat::BGRA8,
+                };
+                let premultiply = snapshot.alpha_mode().is_premultiplied();
+                TexPixels::new(snapshot.to_ipc_shared_memory(), size, format, premultiply)
             },
         }))
     }
