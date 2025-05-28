@@ -814,10 +814,13 @@ impl IOCompositor {
                 let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     return warn!("Could not find WebView for incoming display list");
                 };
+                webview_renderer.epoch_not_synchronized.set(true);
 
                 let pipeline_id = display_list_info.pipeline_id;
                 let details = webview_renderer.ensure_pipeline_details(pipeline_id.into());
+
                 details.most_recent_display_list_epoch = Some(display_list_info.epoch);
+
                 details.hit_test_items = display_list_info.hit_test_info;
                 details.install_new_scroll_tree(display_list_info.scroll_tree);
 
@@ -1662,6 +1665,7 @@ impl IOCompositor {
             // Process all pending events
             self.webview_renderers.iter().for_each(|webview| {
                 webview.dispatch_pending_input_events();
+                webview.epoch_not_synchronized.set(false);
             });
         }
 

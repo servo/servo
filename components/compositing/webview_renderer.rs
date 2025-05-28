@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::hash_map::Keys;
 use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;
@@ -100,6 +100,8 @@ pub(crate) struct WebViewRenderer {
     animating: bool,
     /// Pending input events queue. Priavte and only this thread pushes events to it.
     pending_input_events: RefCell<VecDeque<InputEvent>>,
+    /// Flag to indicate that the epoch has been not synchronized yet.
+    pub epoch_not_synchronized: Cell<bool>,
 }
 
 impl Drop for WebViewRenderer {
@@ -135,6 +137,7 @@ impl WebViewRenderer {
             hidpi_scale_factor: Scale::new(hidpi_scale_factor.0),
             animating: false,
             pending_input_events: Default::default(),
+            epoch_not_synchronized: Cell::default(),
         }
     }
 
@@ -319,7 +322,7 @@ impl WebViewRenderer {
             return;
         };
 
-        if self.pending_input_events.borrow().len() > 0 {
+        if self.epoch_not_synchronized.get() {
             self.pending_input_events.borrow_mut().push_back(event);
             return;
         }
