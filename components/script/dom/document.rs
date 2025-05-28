@@ -2374,6 +2374,9 @@ impl Document {
         let mut cancel_state = event.get_cancel_state();
 
         // https://w3c.github.io/uievents/#keys-cancelable-keys
+        // it MUST prevent the respective beforeinput and input
+        // (and keypress if supported) events from being generated
+        // TODO: keypress should be deprecated and superceded by beforeinput
         if keyboard_event.state == KeyState::Down &&
             is_character_value_key(&(keyboard_event.key)) &&
             !keyboard_event.is_composing &&

@@ -319,11 +319,18 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// Remove a character at the current editing point
-    pub fn delete_char(&mut self, dir: Direction) {
+    ///
+    /// Returns true if any character was deleted
+    pub fn delete_char(&mut self, dir: Direction) -> bool {
         if self.selection_origin.is_none() || self.selection_origin == Some(self.edit_point) {
             self.adjust_horizontal_by_one(dir, Selection::Selected);
         }
-        self.replace_selection(DOMString::new());
+        if self.selection_start() == self.selection_end() {
+            false
+        } else {
+            self.replace_selection(DOMString::new());
+            true
+        }
     }
 
     /// Insert a character at the current editing point
@@ -895,6 +902,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                 KeyReaction::RedrawSelection
             })
             .shortcut(CMD_OR_CONTROL, 'X', || {
+                // FIXME: this is unreachable because ClipboardEvent is fired instead of keydown
                 if let Some(text) = self.get_selection_text() {
                     self.clipboard_provider.set_text(text);
                     self.delete_char(Direction::Backward);
@@ -914,12 +922,18 @@ impl<T: ClipboardProvider> TextInput<T> {
                 KeyReaction::DispatchInput
             })
             .shortcut(Modifiers::empty(), Key::Delete, || {
-                self.delete_char(Direction::Forward);
-                KeyReaction::DispatchInput
+                if self.delete_char(Direction::Forward) {
+                    KeyReaction::DispatchInput
+                } else {
+                    KeyReaction::Nothing
+                }
             })
             .shortcut(Modifiers::empty(), Key::Backspace, || {
-                self.delete_char(Direction::Backward);
-                KeyReaction::DispatchInput
+                if self.delete_char(Direction::Backward) {
+                    KeyReaction::DispatchInput
+                } else {
+                    KeyReaction::Nothing
+                }
             })
             .optional_shortcut(macos, Modifiers::META, Key::ArrowLeft, || {
                 self.adjust_horizontal_to_line_end(Direction::Backward, maybe_select);
