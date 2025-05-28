@@ -153,6 +153,8 @@ pub fn init(
         ArgumentParsingResult::ChromeProcess(opts, preferences, servoshell_preferences) => {
             (opts, preferences, servoshell_preferences)
         },
+        ArgumentParsingResult::Exit => std::process::exit(0),
+        ArgumentParsingResult::ErrorParsing => std::process::exit(1),
     };
 
     if servoshell_preferences.log_to_file {
