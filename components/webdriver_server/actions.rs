@@ -26,6 +26,9 @@ static POINTERMOVE_INTERVAL: u64 = 17;
 static WHEELSCROLL_INTERVAL: u64 = 17;
 
 // A single action, corresponding to an `action object` in the spec.
+// In the spec, `action item` refers to a plain JSON object.
+// However, we use the name ActionItem here
+// to be consistent with type names from webdriver crate.
 pub(crate) enum ActionItem {
     Null(NullActionItem),
     Key(KeyActionItem),
@@ -36,71 +39,67 @@ pub(crate) enum ActionItem {
 // A set of actions with multiple sources executed within a single tick.
 // The order in which they are performed is not guaranteed.
 // The `id` is used to identify the source of the actions.
-pub(crate) struct TickActions {
-    pub actions: HashMap<String, ActionItem>,
-}
+pub(crate) type TickActions = HashMap<String, ActionItem>;
 
 // Consumed by the `dispatch_actions` method.
-pub(crate) struct ActionsByTick {
-    pub actions: Vec<TickActions>,
-}
+pub(crate) type ActionsByTick = Vec<TickActions>;
 
 /// <https://w3c.github.io/webdriver/#dfn-extract-an-action-sequence>
 pub(crate) fn extract_an_action_sequence(params: ActionsParameters) -> ActionsByTick {
     // Step 1. Let actions be the result of getting a property named "actions" from parameters.
+    // Step 2 (ignored). If actions is not a list, return an error with status InvalidArgument.
     let actions = params.actions;
 
     actions_by_tick_from_sequence(actions)
 }
 
 pub(crate) fn actions_by_tick_from_sequence(actions: Vec<ActionSequence>) -> ActionsByTick {
-    let mut actions_by_tick: ActionsByTick = ActionsByTick {
-        actions: Vec::new(),
-    };
+    // Step 3. Let actions by tick be an empty list.
+    let mut actions_by_tick: ActionsByTick = Vec::new();
 
     // Step 4. For each value action sequence corresponding to an indexed property in actions
     for action_sequence in actions {
-        let mut source_actions: Vec<ActionItem> = Vec::new();
+        // Store id before moving action_sequence
+        let id = action_sequence.id.clone();
+        // Step 4.1. Let source actions be the result of trying to process an input source action sequence
+        let source_actions = process_an_input_source_action_sequence(action_sequence);
 
-        match action_sequence.actions {
-            ActionsType::Null {
-                actions: null_actions,
-            } => {
-                source_actions.extend(null_actions.into_iter().map(ActionItem::Null));
-            },
-            ActionsType::Key {
-                actions: key_actions,
-            } => {
-                source_actions.extend(key_actions.into_iter().map(ActionItem::Key));
-            },
-            ActionsType::Pointer {
-                parameters: _,
-                actions: pointer_actions,
-            } => {
-                source_actions.extend(pointer_actions.into_iter().map(ActionItem::Pointer));
-            },
-            ActionsType::Wheel {
-                actions: wheel_actions,
-            } => {
-                source_actions.extend(wheel_actions.into_iter().map(ActionItem::Wheel));
-            },
+        // Step 4.2.2. Ensure we have enough ticks to hold all actions
+        while actions_by_tick.len() < source_actions.len() {
+            actions_by_tick.push(HashMap::new());
         }
 
-        // Ensure we have enough ticks to hold all actions
-        while actions_by_tick.actions.len() < source_actions.len() {
-            actions_by_tick.actions.push(TickActions {
-                actions: HashMap::new(),
-            });
-        }
-
+        // Step 4.2.3.
         for (tick_index, action_item) in source_actions.into_iter().enumerate() {
-            actions_by_tick.actions[tick_index]
-                .actions
-                .insert(action_sequence.id.clone(), action_item);
+            actions_by_tick[tick_index].insert(id.clone(), action_item);
         }
     }
 
     actions_by_tick
+}
+
+/// <https://w3c.github.io/webdriver/#dfn-process-an-input-source-action-sequence>
+pub(crate) fn process_an_input_source_action_sequence(
+    action_sequence: ActionSequence,
+) -> Vec<ActionItem> {
+    match action_sequence.actions {
+        ActionsType::Null {
+            actions: null_actions,
+        } => null_actions.into_iter().map(ActionItem::Null).collect(),
+        ActionsType::Key {
+            actions: key_actions,
+        } => key_actions.into_iter().map(ActionItem::Key).collect(),
+        ActionsType::Pointer {
+            parameters: _,
+            actions: pointer_actions,
+        } => pointer_actions
+            .into_iter()
+            .map(ActionItem::Pointer)
+            .collect(),
+        ActionsType::Wheel {
+            actions: wheel_actions,
+        } => wheel_actions.into_iter().map(ActionItem::Wheel).collect(),
+    }
 }
 
 // https://w3c.github.io/webdriver/#dfn-input-source-state
@@ -145,7 +144,7 @@ fn compute_tick_duration(tick_actions: &TickActions) -> u64 {
     let mut max_duration = 0;
 
     // Step 2. For each action in tick actions:
-    tick_actions.actions.iter().for_each(|(_, action_item)| {
+    tick_actions.iter().for_each(|(_, action_item)| {
         // If action object has subtype property set to "pause" or
         // action object has type property set to "pointer" and subtype property set to "pointerMove",
         // or action object has type property set to "wheel" and subtype property set to "scroll",
@@ -196,7 +195,7 @@ impl Handler {
     // https://w3c.github.io/webdriver/#dfn-dispatch-actions-inner
     fn dispatch_actions_inner(&self, actions_by_tick: ActionsByTick) -> Result<(), ErrorStatus> {
         // Step 1. For each item tick actions in actions by tick
-        for tick_actions in actions_by_tick.actions.iter() {
+        for tick_actions in actions_by_tick.iter() {
             // Step 1.2. Let tick duration be the result of
             // computing the tick duration with argument tick actions.
             let tick_duration = compute_tick_duration(tick_actions);
@@ -243,7 +242,7 @@ impl Handler {
     ) -> Result<(), ErrorStatus> {
         // Step 1. For each action object in tick actions:
         // Step 1.1. Let input_id be the value of the id property of action object.
-        for (input_id, action) in tick_actions.actions.iter() {
+        for (input_id, action) in tick_actions.iter() {
             // Step 6. Let subtype be action object's subtype.
             // Steps 7, 8. Try to run specific algorithm based on the action type.
             match action {
