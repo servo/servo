@@ -331,9 +331,8 @@ impl WebViewRenderer {
             .borrow()
             .hit_test_at_point(point, get_pipeline_details)
         {
-            Ok(Some(hit_test_results)) => hit_test_results,
+            Ok(hit_test_results) => hit_test_results,
             Err(HitTestError::EpochMismatch) => {
-                dbg!("A hit test failed with epoch mismatch. Retrying");
                 self.pending_input_events.borrow_mut().push_back(event);
                 return;
             },
@@ -361,15 +360,16 @@ impl WebViewRenderer {
 
             // If we can't find a pipeline to send this event to, we cannot continue.
             let get_pipeline_details = |pipeline_id| self.pipelines.get(&pipeline_id);
-            let Ok(Some(result)) = self
+            let Ok(result) = self
                 .global
                 .borrow()
                 .hit_test_at_point(point, get_pipeline_details)
             else {
-                continue;
+                // Don't need to process pending input events in this frame any more.
+                // TODO: Add multiple retry later if needed.
+                return;
             };
 
-            dbg!("Hit test for pending event succeeded");
             self.global.borrow_mut().update_cursor(point, &result);
 
             if let Err(error) = self.global.borrow().constellation_sender.send(
@@ -451,7 +451,7 @@ impl WebViewRenderer {
 
     fn send_touch_event(&self, mut event: TouchEvent) -> bool {
         let get_pipeline_details = |pipeline_id| self.pipelines.get(&pipeline_id);
-        let Ok(Some(result)) = self
+        let Ok(result) = self
             .global
             .borrow()
             .hit_test_at_point(event.point, get_pipeline_details)

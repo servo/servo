@@ -283,8 +283,7 @@ impl PipelineDetails {
 
 pub enum HitTestError {
     EpochMismatch,
-    #[allow(dead_code)]
-    Other,
+    Others,
 }
 
 impl ServoRenderer {
@@ -296,14 +295,17 @@ impl ServoRenderer {
         &self,
         point: DevicePoint,
         details_for_pipeline: impl Fn(PipelineId) -> Option<&'a PipelineDetails>,
-    ) -> Result<Option<CompositorHitTestResult>, HitTestError> {
+    ) -> Result<CompositorHitTestResult, HitTestError> {
         match self.hit_test_at_point_with_flags_and_pipeline(
             point,
             HitTestFlags::empty(),
             None,
             details_for_pipeline,
         ) {
-            Ok(hit_test_results) => Ok(hit_test_results.first().cloned()),
+            Ok(hit_test_results) => hit_test_results
+                .first()
+                .cloned()
+                .ok_or(HitTestError::Others),
             Err(error) => Err(error),
         }
     }
@@ -639,7 +641,7 @@ impl IOCompositor {
                         .global
                         .borrow()
                         .hit_test_at_point(point, details_for_pipeline);
-                    if let Ok(Some(result)) = result {
+                    if let Ok(result) = result {
                         self.global.borrow_mut().update_cursor(point, &result);
                     }
                 }
