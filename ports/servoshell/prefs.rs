@@ -2,17 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use core::panic;
 use std::collections::HashMap;
-use std::fs::{File, read_to_string};
+use std::fs::{self, File, read_to_string};
 use std::io::Read;
 use std::path::{Path, PathBuf};
 #[cfg(any(target_os = "android", target_env = "ohos"))]
 use std::sync::OnceLock;
-use std::{env, fs, process};
+use std::{env, process};
 
+use bpaf::*;
 use euclid::Size2D;
-use getopts::{Matches, Options};
-use log::{error, warn};
+use log::warn;
 use serde_json::Value;
 use servo::config::opts::{DebugOptions, Opts, OutputOptions};
 use servo::config::prefs::{PrefValue, Preferences};
@@ -127,7 +128,7 @@ pub fn default_config_dir() -> Option<PathBuf> {
 /// Get a Servo [`Preferences`] to use when initializing Servo by first reading the user
 /// preferences file and then overriding these preferences with the ones from the `--prefs-file`
 /// command-line argument, if given.
-fn get_preferences(opts_matches: &Matches, config_dir: &Option<PathBuf>) -> Preferences {
+fn get_preferences(prefs_files: &[String], config_dir: &Option<PathBuf>) -> Preferences {
     // Do not read any preferences files from the disk when testing as we do not want it
     // to throw off test results.
     if cfg!(test) {
@@ -149,7 +150,7 @@ fn get_preferences(opts_matches: &Matches, config_dir: &Option<PathBuf>) -> Pref
 
     let mut preferences = Preferences::default();
     apply_preferences(&mut preferences, user_prefs_hash);
-    for pref_file_path in opts_matches.opt_strs("prefs-file").iter() {
+    for pref_file_path in prefs_files.iter() {
         apply_preferences(&mut preferences, read_prefs_file(pref_file_path))
     }
 
@@ -181,393 +182,228 @@ pub fn read_prefs_map(txt: &str) -> HashMap<String, PrefValue> {
 pub(crate) enum ArgumentParsingResult {
     ChromeProcess(Opts, Preferences, ServoShellPreferences),
     ContentProcess(String),
+    Exit,
 }
 
-pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsingResult {
-    let (app_name, args) = args.split_first().unwrap();
-
-    let mut opts = Options::new();
-    opts.optopt(
-        "o",
-        "output",
-        "Path to an output image. The format of the image is determined by the extension. \
-         Supports all formats that `rust-image` does.",
-        "output.png",
-    );
-    opts.optopt("s", "size", "Size of tiles", "512");
-    opts.optflagopt(
-        "p",
-        "profile",
-        "Time profiler flag and either a TSV output filename \
-         OR an interval for output to Stdout (blank for Stdout with interval of 5s)",
-        "10 \
-         OR time.tsv",
-    );
-    opts.optflagopt(
-        "",
-        "profiler-trace-path",
-        "Path to dump a self-contained HTML timeline of profiler traces",
-        "",
-    );
-    opts.optflag(
-        "x",
-        "exit",
-        "Exit after Servo has loaded the page and detected a stable output image",
-    );
-    opts.optopt(
-        "y",
-        "layout-threads",
-        "Number of threads to use for layout",
-        "1",
-    );
-    opts.optflag(
-        "i",
-        "nonincremental-layout",
-        "Enable to turn off incremental layout.",
-    );
-    opts.optflagopt(
-        "",
-        "userscripts",
-        "Uses userscripts in resources/user-agent-js, or a specified full path",
-        "",
-    );
-    opts.optmulti(
-        "",
-        "user-stylesheet",
-        "A user stylesheet to be added to every document",
-        "file.css",
-    );
-    opts.optopt(
-        "",
-        "shaders",
-        "Shaders will be loaded from the specified directory instead of using the builtin ones.",
-        "",
-    );
-    opts.optflag("z", "headless", "Headless mode");
-    opts.optflag(
-        "f",
-        "hard-fail",
-        "Exit on thread failure instead of displaying about:failure",
-    );
-    opts.optflag(
-        "F",
-        "soft-fail",
-        "Display about:failure on thread failure instead of exiting",
-    );
-    opts.optflagopt("", "devtools", "Start remote devtools server on port", "0");
-    opts.optflagopt(
-        "",
-        "webdriver",
-        "Start remote WebDriver server on port",
-        "7000",
-    );
-    opts.optopt(
-        "",
-        "window-size",
-        "Set the initial window size in logical (device independenrt) pixels",
-        "1024x740",
-    );
-    opts.optopt(
-        "",
-        "screen-size",
-        "Override the screen resolution in logical (device independent) pixels",
-        "1024x768",
-    );
-    opts.optflag("M", "multiprocess", "Run in multiprocess mode");
-    opts.optflag("B", "bhm", "Background Hang Monitor enabled");
-    opts.optflag("S", "sandbox", "Run in a sandbox if multiprocess");
-    opts.optopt(
-        "",
-        "random-pipeline-closure-probability",
-        "Probability of randomly closing a pipeline (for testing constellation hardening).",
-        "0.0",
-    );
-    opts.optopt(
-        "",
-        "random-pipeline-closure-seed",
-        "A fixed seed for repeatbility of random pipeline closure.",
-        "",
-    );
-    opts.optmulti(
-        "Z",
-        "debug",
-        "A comma-separated string of debug options. Pass help to show available options.",
-        "",
-    );
-    opts.optflag("h", "help", "Print this message");
-    opts.optopt(
-        "",
-        "resources-path",
-        "Path to find static resources",
-        "/home/servo/resources",
-    );
-    opts.optopt(
-        "",
-        "certificate-path",
-        "Path to find SSL certificates",
-        "/home/servo/resources/certs",
-    );
-    opts.optflag(
-        "",
-        "ignore-certificate-errors",
-        "Whether or not to completely ignore certificate errors",
-    );
-    opts.optopt(
-        "",
-        "content-process",
-        "Run as a content process and connect to the given pipe",
-        "servo-ipc-channel.abcdefg",
-    );
-    opts.optopt(
-        "",
-        "config-dir",
-        "config directory following xdg spec on linux platform",
-        "",
-    );
-    opts.optflag("v", "version", "Display servo version information");
-    opts.optflag("", "unminify-js", "Unminify Javascript");
-    opts.optflag("", "print-pwm", "Print Progressive Web Metrics");
-    opts.optopt(
-        "",
-        "local-script-source",
-        "Directory root with unminified scripts",
-        "",
-    );
-    opts.optflag("", "unminify-css", "Unminify Css");
-
-    opts.optflag(
-        "",
-        "clean-shutdown",
-        "Do not shutdown until all threads have finished (macos only)",
-    );
-    opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
-    opts.optopt("", "device-pixel-ratio", "Device pixels per px", "");
-    opts.optopt(
-        "u",
-        "user-agent",
-        "Set custom user agent string (or ios / android / desktop for platform default)",
-        "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)",
-    );
-    opts.optmulti(
-        "",
-        "tracing-filter",
-        "Define a custom filter for traces. Overrides `SERVO_TRACING` if set.",
-        "FILTER",
-    );
-
-    #[cfg(target_env = "ohos")]
-    opts.optmulti(
-        "",
-        "log-filter",
-        "Define a custom filter for logging.",
-        "FILTER",
-    );
-
-    opts.optflag(
-        "",
-        "enable-experimental-web-platform-features",
-        "Whether or not to enable experimental web platform features.",
-    );
-    opts.optmulti(
-        "",
-        "pref",
-        "A preference to set to enable",
-        "dom_bluetooth_enabled",
-    );
-    opts.optmulti(
-        "",
-        "pref",
-        "A preference to set to disable",
-        "dom_webgpu_enabled=false",
-    );
-    opts.optmulti(
-        "",
-        "prefs-file",
-        "Load in additional prefs from a file.",
-        "/path/to/prefs.json",
-    );
-
-    let opt_match = match opts.parse(args) {
-        Ok(m) => m,
-        Err(f) => args_fail(&f.to_string()),
-    };
-
-    if opt_match.opt_present("v") || opt_match.opt_present("version") {
-        println!("{}", crate::servo_version());
-        process::exit(0);
-    }
-
-    if opt_match.opt_present("h") || opt_match.opt_present("help") {
-        print_usage(app_name, &opts);
-        process::exit(0);
-    };
-
-    let config_dir = opt_match
-        .opt_str("config-dir")
-        .map(Into::into)
-        .or_else(default_config_dir)
-        .inspect(|path| {
-            if !path.exists() {
-                fs::create_dir_all(path).unwrap_or_else(|e| {
-                    error!("Failed to create config directory at {:?}: {:?}", path, e)
-                })
-            }
-        });
-
-    let mut preferences = get_preferences(&opt_match, &config_dir);
-
-    // If this is the content process, we'll receive the real options over IPC. So just fill in
-    // some dummy options for now.
-    if let Some(content_process) = opt_match.opt_str("content-process") {
-        return ArgumentParsingResult::ContentProcess(content_process);
-    }
-    // Env-Filter directives are comma seperated.
-    let filters = opt_match.opt_strs("tracing-filter").join(",");
-    let tracing_filter = (!filters.is_empty()).then_some(filters);
-
-    #[cfg(target_env = "ohos")]
-    let log_filter = {
-        let filters = opt_match.opt_strs("log-filter").join(",");
-        let log_filter = (!filters.is_empty()).then_some(filters).or_else(|| {
-            (!preferences.log_filter.is_empty()).then_some(preferences.log_filter.clone())
-        });
-        log::debug!("Set log_filter to: {:?}", log_filter);
-        log_filter
-    };
-
-    let mut debug_options = DebugOptions::default();
-    for debug_string in opt_match.opt_strs("Z") {
-        if let Err(e) = debug_options.extend(debug_string) {
-            args_fail(&format!("error: unrecognized debug option: {}", e));
-        }
-    }
-
-    if debug_options.help {
-        print_debug_options_usage(app_name);
-    }
-
-    // If only the flag is present, default to a 5 second period for both profilers
-    let time_profiling = if opt_match.opt_present("p") {
-        match opt_match.opt_str("p") {
-            Some(argument) => match argument.parse::<f64>() {
-                Ok(interval) => Some(OutputOptions::Stdout(interval)),
-                Err(_) => match ServoUrl::parse(&argument) {
-                    Ok(_) => panic!("influxDB isn't supported anymore"),
-                    Err(_) => Some(OutputOptions::FileName(argument)),
-                },
-            },
-            None => Some(OutputOptions::Stdout(5.0)),
-        }
+/// Parse a resolution string into a Size2D
+fn parse_resolution_string(
+    string: String,
+) -> Result<Option<Size2D<u32, DeviceIndependentPixel>>, std::num::ParseIntError> {
+    if string.is_empty() {
+        Ok(None)
     } else {
-        // if the p option doesn't exist:
-        None
-    };
-
-    if let Some(ref time_profiler_trace_path) = opt_match.opt_str("profiler-trace-path") {
-        let mut path = PathBuf::from(time_profiler_trace_path);
-        path.pop();
-        if let Err(why) = fs::create_dir_all(&path) {
-            error!(
-                "Couldn't create/open {:?}: {:?}",
-                Path::new(time_profiler_trace_path).to_string_lossy(),
-                why
-            );
-        }
-    }
-
-    let layout_threads: Option<usize> = opt_match.opt_str("y").map(|layout_threads_str| {
-        layout_threads_str
-            .parse()
-            .unwrap_or_else(|err| args_fail(&format!("Error parsing option: -y ({})", err)))
-    });
-
-    let nonincremental_layout = opt_match.opt_present("i");
-
-    let random_pipeline_closure_probability = opt_match
-        .opt_str("random-pipeline-closure-probability")
-        .map(|prob| {
-            prob.parse().unwrap_or_else(|err| {
-                args_fail(&format!(
-                    "Error parsing option: --random-pipeline-closure-probability ({})",
-                    err
-                ))
-            })
-        });
-
-    let random_pipeline_closure_seed =
-        opt_match
-            .opt_str("random-pipeline-closure-seed")
-            .map(|seed| {
-                seed.parse().unwrap_or_else(|err| {
-                    args_fail(&format!(
-                        "Error parsing option: --random-pipeline-closure-seed ({})",
-                        err
-                    ))
-                })
-            });
-
-    if opt_match.opt_present("devtools") {
-        let port = opt_match
-            .opt_str("devtools")
-            .map(|port| {
-                port.parse().unwrap_or_else(|err| {
-                    args_fail(&format!("Error parsing option: --devtools ({})", err))
-                })
-            })
-            .unwrap_or(preferences.devtools_server_port);
-        preferences.devtools_server_enabled = true;
-        preferences.devtools_server_port = port;
-    }
-
-    let webdriver_port = opt_match.opt_default("webdriver", "7000").map(|port| {
-        port.parse().unwrap_or_else(|err| {
-            args_fail(&format!("Error parsing option: --webdriver ({})", err))
-        })
-    });
-
-    let parse_resolution_string = |string: String| {
-        let components: Vec<u32> = string
+        let components = string
             .split('x')
-            .map(|component| {
-                component.parse().unwrap_or_else(|error| {
-                    args_fail(&format!("Error parsing resolution '{string}': {error}"));
-                })
-            })
-            .collect();
-        Size2D::new(components[0], components[1])
-    };
+            .map(|component| component.parse::<u32>())
+            .collect::<Result<Vec<_>, std::num::ParseIntError>>()?;
+        Ok(Some(Size2D::new(components[0], components[1])))
+    }
+}
 
-    let screen_size_override = opt_match
-        .opt_str("screen-size")
-        .map(parse_resolution_string);
-
-    // Make sure the default window size is not larger than any provided screen size.
-    let default_window_size = Size2D::new(1024, 740);
-    let default_window_size = screen_size_override
-        .map_or(default_window_size, |screen_size_override| {
-            default_window_size.min(screen_size_override)
-        });
-    let initial_window_size = opt_match
-        .opt_str("window-size")
-        .map_or(default_window_size, parse_resolution_string);
-
-    let user_stylesheets = opt_match
-        .opt_strs("user-stylesheet")
-        .iter()
+/// Parse stylesheets into the byte stream.
+fn parse_user_stylesheets(string: String) -> Result<Vec<(Vec<u8>, ServoUrl)>, std::io::Error> {
+    Ok(string
+        .split_whitespace()
         .map(|filename| {
             let cwd = env::current_dir().unwrap();
             let path = cwd.join(filename);
             let url = ServoUrl::from_url(Url::from_file_path(&path).unwrap());
             let mut contents = Vec::new();
             File::open(path)
-                .unwrap_or_else(|err| args_fail(&format!("Couldn't open {}: {}", filename, err)))
+                .unwrap()
                 .read_to_end(&mut contents)
-                .unwrap_or_else(|err| args_fail(&format!("Couldn't read {}: {}", filename, err)));
+                .unwrap();
             (contents, url)
         })
-        .collect();
+        .collect())
+}
 
-    if opt_match.opt_present("enable-experimental-web-platform-features") {
+/// parses the profiling string
+fn parse_profiling(arg: String) -> Result<Option<OutputOptions>, std::io::Error> {
+    if arg.is_empty() {
+        Ok(Some(OutputOptions::Stdout(5.0)))
+    } else {
+        match arg.parse::<f64>() {
+            Ok(interval) => Ok(Some(OutputOptions::Stdout(interval))),
+            Err(_) => match ServoUrl::parse(&arg) {
+                Ok(_) => panic!("influxDB isn't supported anymore"),
+                Err(_) => Ok(Some(OutputOptions::FileName(arg))),
+            },
+        }
+    }
+}
+
+#[derive(Bpaf, Clone, Debug)]
+#[bpaf(options)]
+struct CmdArgs {
+    /// Background Hang Monitor enabled
+    #[bpaf(long("bhm"), fallback(false))]
+    background_hang_monitor: bool,
+
+    /// Path to find SSL certificates
+    #[bpaf(argument("/home/servo/resources/certs"))]
+    certificate_path: Option<String>,
+
+    /// Do not shutdown until all threads have finished (macos only)
+    #[bpaf(long, fallback(false))]
+    clean_shutdown: bool,
+
+    /// config directory following xdg spec on linux platform
+    config_dir: Option<PathBuf>,
+
+    /// Run as a content process and connect to the given pipe
+    #[bpaf(argument("servo-ipc-channel.abcdefg"))]
+    content_process: Option<String>,
+
+    /// A comma-separated string of debug options. Pass help to show available options.
+    #[bpaf(short('Z'), long, fallback(vec![]), help("d"))]
+    debug: Vec<String>,
+
+    #[bpaf(argument("1.0"))]
+    device_pixel_ratio_override: Option<f32>,
+
+    /// Start remote devtools using server on port
+    #[bpaf(argument("0"))]
+    devtools: Option<i64>,
+
+    /// Wether or not to enable experimental web platform features.
+    #[bpaf(long, fallback(false))]
+    enable_experimental_web_platform_features: bool,
+
+    // Exit after Servo has loaded the page and detected stable output image
+    #[bpaf(short('x'), long, fallback(false))]
+    exit: bool,
+
+    /// Exit on thread failure instead of displaying about:failure
+    #[bpaf(short('f'), long, fallback(false))]
+    hard_fail: bool,
+
+    /// Headless mode
+    #[bpaf(short('z'), long, fallback(false))]
+    headless: bool,
+
+    /// Wether or not to completely ignore certificate errors
+    #[bpaf(long, fallback(false))]
+    ignore_certificate_errors: bool,
+
+    /// Number of threads to use for layout
+    #[bpaf(short('y'), argument("1"))]
+    layout_threads: Option<i64>,
+
+    /// Directory root with unminified scripts
+    local_script_source: Option<String>,
+
+    #[cfg(target_env = "ohos")]
+    /// Define a custom filter for logging
+    #[bpaf(argument("FILTER"))]
+    log_filter: Option<String>,
+
+    /// Run in multiprocess mode
+    #[bpaf(short('M'), long, fallback(true))]
+    multiprocess: bool,
+
+    /// Enable to turn off incremental layout
+    #[bpaf(short('i'), long, flag(false, true))]
+    nonincremental_layout: bool,
+
+    /// Path to an output image. The format of the image is determined
+    /// by the extension. Supports all formats that rust-image does.
+    #[bpaf(short('o'), long)]
+    output_image: Option<String>,
+
+    /// Time profiler flag and either a TSV output filename OR and interval
+    /// for output to Stdout (blank for Stdout with interval of 5s)
+    #[bpaf(short('p'), argument::<String>("10 OR time.tsv"), parse(parse_profiling), fallback(None))]
+    profile: Option<OutputOptions>,
+
+    /// Path to dump a self-contained HTML timeline of profiler traces
+    #[bpaf(long("profiler-trace-path"))]
+    time_profiler_trace_path: Option<String>,
+
+    /// A preference to set
+    #[bpaf(argument("dom_bluetooth_enabled"),fallback(vec![]))]
+    pref: Vec<String>,
+
+    /// Load an additional prefs from a file.
+    #[bpaf(long, argument("/path/to/prefs.json"), fallback(vec![]))]
+    prefs_files: Vec<String>,
+
+    print_pwm: bool,
+
+    /// Probability of randomly closing a pipeline (for testing constellation hardening)
+    #[bpaf(argument("0.25"))]
+    random_pipeline_closure_probability: Option<f32>,
+
+    /// A fixed seed for repeatability of random pipeline closure.
+    random_pipeline_closure_seed: Option<usize>,
+
+    /// Run in sandbox if multiprocess
+    #[bpaf(short('S'), long, fallback(true))]
+    sandbox: bool,
+
+    /// Shaders will be loaded from the specified directory instead of using the builtin ones.
+    shaders: Option<PathBuf>,
+
+    /// Override the screen resolution in logical (device independent) pixels
+    #[bpaf(short('x'), long("screen-size"), argument::<String>("1024x768"),
+        parse(parse_resolution_string), fallback(None))]
+    screen_size_override: Option<Size2D<u32, DeviceIndependentPixel>>,
+
+    /// Define a custom filter for traces. Overridees `SERVO_TRACING` if set.
+    #[bpaf(long("tracing-filter"), argument("FILTER"))]
+    tracing_filter: Option<String>,
+
+    #[bpaf(long, fallback(false))]
+    no_native_titlebar: bool,
+
+    /// Unminify Javascript
+    #[bpaf(long, fallback(false))]
+    unminify_js: bool,
+
+    /// Unminify Css
+    #[bpaf(long, fallback(false))]
+    unminify_css: bool,
+
+    /// Set custom user agent string (or ios/ android / desktop for platform default)""
+    #[bpaf(argument::<String>("NCSA mosaic/1.0 (X11;SunOS 4.1.4 sun4m"))]
+    user_agent: Option<String>,
+
+    /// Uses userscripts in resources/user-agent-js or a specified full path
+    #[bpaf(long, fallback(Some(PathBuf::from("resources/user-agent-js"))))]
+    userscripts_directory: Option<PathBuf>,
+
+    /// A user stylesheet ot be added to every document
+    #[bpaf(fallback(String::from("")), argument::<String>("path.css"), parse(parse_user_stylesheets))]
+    user_stylesheets: Vec<(Vec<u8>, ServoUrl)>,
+
+    /// Prints the version information
+    #[bpaf(short, long)]
+    version: bool,
+
+    /// Start remote WebDriver server on port
+    #[bpaf(argument("7000"))]
+    webdriver_port: Option<u16>,
+
+    /// Set the initial window size in logical (device independent) pixels"
+    #[bpaf(argument::<String>("1024x740"), parse(parse_resolution_string), fallback(None))]
+    window_size: Option<Size2D<u32, DeviceIndependentPixel>>,
+
+    /// The url we should load
+    #[bpaf(
+        positional("URL"),
+        fallback(Some(String::from("https://www.servo.org")))
+    )]
+    url: Option<String>,
+}
+
+/// In here we set preferences depending on args
+fn set_prefs_from_cfg(preferences: &mut Preferences, cmd_args: &CmdArgs) {
+    if let Some(port) = cmd_args.devtools {
+        preferences.devtools_server_enabled = true;
+        preferences.devtools_server_port = port;
+    }
+
+    if cmd_args.enable_experimental_web_platform_features {
         vec![
             "dom_async_clipboard_enabled",
             "dom_fontface_enabled",
@@ -591,37 +427,68 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         .for_each(|pref| preferences.set_value(pref, PrefValue::Bool(true)));
     }
 
-    // Handle all command-line preferences overrides.
-    for pref in opt_match.opt_strs("pref") {
+    for pref in cmd_args.pref.clone() {
         let split: Vec<&str> = pref.splitn(2, '=').collect();
         let pref_name = split[0];
         let pref_value = PrefValue::from_booleanish_str(split.get(1).copied().unwrap_or("true"));
         preferences.set_value(pref_name, pref_value);
     }
 
-    if let Some(layout_threads) = layout_threads {
-        preferences.layout_threads = layout_threads as i64;
+    if let Some(layout_threads) = cmd_args.layout_threads {
+        preferences.layout_threads = layout_threads;
     }
 
-    let no_native_titlebar = opt_match.opt_present("no-native-titlebar");
-    let mut device_pixel_ratio_override = opt_match.opt_str("device-pixel-ratio").map(|dppx_str| {
-        dppx_str.parse().unwrap_or_else(|err| {
-            error!("Error parsing option: --device-pixel-ratio ({})", err);
-            process::exit(1);
-        })
-    });
-
-    // If an output file is specified the device pixel ratio is always 1.
-    let output_image_path = opt_match.opt_str("o");
-    if output_image_path.is_some() {
-        device_pixel_ratio_override = Some(1.0);
+    if cmd_args.headless && preferences.media_glvideo_enabled {
+        warn!("GL video rendering is not supported on headless windows.");
+        preferences.media_glvideo_enabled = false;
     }
 
-    let url = if !opt_match.free.is_empty() {
-        Some(opt_match.free[0][..].into())
-    } else {
-        None
-    };
+    if let Some(user_agent) = cmd_args.user_agent.clone() {
+        preferences.user_agent = user_agent;
+    }
+}
+
+pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsingResult {
+    let cmd_args = cmd_args().run_inner(&*args);
+    if let Err(e) = cmd_args {
+        e.print_message(80);
+        return ArgumentParsingResult::Exit;
+    }
+
+    let cmd_args = cmd_args.unwrap();
+    if cmd_args.version {
+        println!("{}", crate::servo_version());
+        return ArgumentParsingResult::Exit;
+    }
+
+    if cmd_args.debug.iter().any(|d| d.contains("help")) {
+        print_debug_options_usage("servo");
+        return ArgumentParsingResult::Exit;
+    }
+
+    // If this is the content process, we'll receive the real options over IPC. So fill in some dummy options for now
+    if let Some(content_process) = cmd_args.content_process {
+        return ArgumentParsingResult::ContentProcess(content_process);
+    }
+
+    let config_dir = cmd_args
+        .config_dir
+        .clone()
+        .or_else(default_config_dir)
+        .inspect(|config_dir| {
+            if !config_dir.exists() {
+                fs::create_dir_all(config_dir).expect("Could not create config_dir");
+            }
+        });
+    if let Some(ref time_profiler_trace_path) = cmd_args.time_profiler_trace_path {
+        let mut path = PathBuf::from(time_profiler_trace_path);
+        path.pop();
+        fs::create_dir_all(&path).expect("Error in creating profiler trace path");
+    }
+
+    let mut preferences = get_preferences(&cmd_args.prefs_files, &config_dir);
+
+    set_prefs_from_cfg(&mut preferences, &cmd_args);
 
     // FIXME: enable JIT compilation on 32-bit Android after the startup crash issue (#31134) is fixed.
     if cfg!(target_os = "android") && cfg!(target_pointer_width = "32") {
@@ -630,74 +497,72 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         preferences.js_ion_enabled = false;
     }
 
-    let exit_after_load = opt_match.opt_present("x") || output_image_path.is_some();
-    let wait_for_stable_image = exit_after_load;
+    let device_pixel_ratio_override = if cmd_args.output_image.is_some() {
+        Some(1.0)
+    } else {
+        cmd_args.device_pixel_ratio_override
+    };
+
+    let default_window_size = Size2D::new(1024, 740);
+    let default_window_size = cmd_args
+        .screen_size_override
+        .map_or(default_window_size, |screen_size_override| {
+            default_window_size.min(screen_size_override)
+        });
+
     let servoshell_preferences = ServoShellPreferences {
-        url,
-        no_native_titlebar,
+        url: cmd_args.url,
+        no_native_titlebar: cmd_args.no_native_titlebar,
         device_pixel_ratio_override,
-        clean_shutdown: opt_match.opt_present("clean-shutdown"),
-        headless: opt_match.opt_present("z"),
-        tracing_filter,
-        initial_window_size,
-        screen_size_override,
-        output_image_path,
-        exit_after_stable_image: exit_after_load,
-        userscripts_directory: opt_match
-            .opt_default("userscripts", "resources/user-agent-js")
-            .map(PathBuf::from),
+        clean_shutdown: cmd_args.clean_shutdown,
+        headless: cmd_args.headless,
+        tracing_filter: cmd_args.tracing_filter,
+        initial_window_size: cmd_args.window_size.unwrap_or(default_window_size),
+        screen_size_override: cmd_args.screen_size_override,
+        output_image_path: cmd_args.output_image,
+        exit_after_stable_image: cmd_args.exit,
+        userscripts_directory: cmd_args.userscripts_directory,
         #[cfg(target_env = "ohos")]
-        log_filter,
+        log_filter: Some(
+            cmd_args
+                .log_filter
+                .unwrap_or(preferences.log_filter.clone()),
+        ),
         ..Default::default()
     };
 
-    if servoshell_preferences.headless && preferences.media_glvideo_enabled {
-        warn!("GL video rendering is not supported on headless windows.");
-        preferences.media_glvideo_enabled = false;
-    }
-
-    if let Some(user_agent) = opt_match.opt_str("user-agent") {
-        preferences.user_agent = user_agent;
+    let mut debug_options = DebugOptions::default();
+    for i in cmd_args.debug {
+        debug_options
+            .extend(i)
+            .expect("Could not extend with debug option");
     }
 
     let opts = Opts {
-        debug: debug_options.clone(),
-        wait_for_stable_image,
-        time_profiling,
-        time_profiler_trace_path: opt_match.opt_str("profiler-trace-path"),
-        nonincremental_layout,
-        user_stylesheets,
-        hard_fail: opt_match.opt_present("f") && !opt_match.opt_present("F"),
-        webdriver_port,
-        multiprocess: opt_match.opt_present("M"),
-        background_hang_monitor: opt_match.opt_present("B"),
-        sandbox: opt_match.opt_present("S"),
-        random_pipeline_closure_probability,
-        random_pipeline_closure_seed,
-        config_dir,
-        shaders_dir: opt_match.opt_str("shaders").map(Into::into),
-        certificate_path: opt_match.opt_str("certificate-path"),
-        ignore_certificate_errors: opt_match.opt_present("ignore-certificate-errors"),
-        unminify_js: opt_match.opt_present("unminify-js"),
-        local_script_source: opt_match.opt_str("local-script-source"),
-        unminify_css: opt_match.opt_present("unminify-css"),
-        print_pwm: opt_match.opt_present("print-pwm"),
+        debug: debug_options,
+        wait_for_stable_image: cmd_args.exit,
+        time_profiling: cmd_args.profile,
+        time_profiler_trace_path: cmd_args.time_profiler_trace_path,
+        nonincremental_layout: cmd_args.nonincremental_layout,
+        user_stylesheets: cmd_args.user_stylesheets,
+        hard_fail: cmd_args.hard_fail,
+        webdriver_port: cmd_args.webdriver_port,
+        multiprocess: cmd_args.multiprocess,
+        background_hang_monitor: cmd_args.background_hang_monitor,
+        sandbox: cmd_args.sandbox,
+        random_pipeline_closure_probability: cmd_args.random_pipeline_closure_probability,
+        random_pipeline_closure_seed: cmd_args.random_pipeline_closure_seed,
+        config_dir: config_dir.clone(),
+        shaders_dir: cmd_args.shaders,
+        certificate_path: cmd_args.certificate_path,
+        ignore_certificate_errors: cmd_args.ignore_certificate_errors,
+        unminify_js: cmd_args.unminify_js,
+        local_script_source: cmd_args.local_script_source,
+        unminify_css: cmd_args.unminify_css,
+        print_pwm: cmd_args.print_pwm,
     };
 
     ArgumentParsingResult::ChromeProcess(opts, preferences, servoshell_preferences)
-}
-
-fn args_fail(msg: &str) -> ! {
-    eprintln!("{}", msg);
-    process::exit(1)
-}
-
-fn print_usage(app: &str, opts: &Options) {
-    let message = format!(
-        "Usage: {} [ options ... ] [URL]\n\twhere options include",
-        app
-    );
-    println!("{}", opts.usage(&message));
 }
 
 fn print_debug_options_usage(app: &str) {
@@ -791,6 +656,7 @@ fn test_parse_pref(arg: &str) -> Preferences {
             unreachable!("No preferences for content process")
         },
         ArgumentParsingResult::ChromeProcess(_, preferences, _) => preferences,
+        ArgumentParsingResult::Exit => panic!("should not happen"),
     }
 }
 
