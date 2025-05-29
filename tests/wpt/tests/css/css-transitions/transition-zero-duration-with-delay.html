@@ -30,7 +30,6 @@ promise_test(async t => {
   div.style.transition = 'width 0s linear 0.3s';
 
   // Set width back to 0
-  const startTime = performance.now();
   div.style.width = '0px';
   // Immediate check - should NOT have changed yet
   const computedStart = getComputedStyle(div).width;
