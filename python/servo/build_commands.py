@@ -40,6 +40,7 @@ from servo.platform.build_target import BuildTarget
 SUPPORTED_ASAN_TARGETS = [
     "aarch64-apple-darwin",
     "aarch64-unknown-linux-gnu",
+    "aarch64-unknown-linux-ohos",
     "x86_64-apple-darwin",
     "x86_64-unknown-linux-gnu",
 ]
@@ -109,6 +110,8 @@ class MachCommands(CommandBase):
             opts += ["-v"]
         if very_verbose:
             opts += ["-vv"]
+        if with_asan:
+            self.config["build"]["with_asan"] = True
 
         env = self.build_env()
         self.ensure_bootstrapped()
@@ -136,6 +139,10 @@ class MachCommands(CommandBase):
             opts += ["-Zbuild-std"]
             kwargs["target_override"] = target_triple
 
+            # With asan we also want frame pointers
+            if "force-frame-pointers" not in env["RUSTFLAGS"]:
+                env["RUSTFLAGS"] += " -C force-frame-pointers=yes"
+
             # Note: We want to use the same clang/LLVM version as rustc.
             rustc_llvm_version = get_rustc_llvm_version()
             if rustc_llvm_version is None:
@@ -144,11 +151,14 @@ class MachCommands(CommandBase):
             target_clang = f"clang-{llvm_major}"
             target_cxx = f"clang++-{llvm_major}"
             if shutil.which(target_clang) is None or shutil.which(target_cxx) is None:
-                raise RuntimeError(f"--with-asan requires `{target_clang}` and `{target_cxx}` to be in PATH")
-            env.setdefault("TARGET_CC", target_clang)
-            env.setdefault("TARGET_CXX", target_cxx)
-            # TODO: We should also parse the LLVM version from the clang compiler we chose.
-            # It's unclear if the major version being the same is sufficient.
+                env.setdefault("TARGET_CC", target_clang)
+                env.setdefault("TARGET_CXX", target_cxx)
+            else:
+                # libasan can be compatible across multiple compiler versions and has a
+                # runtime check, which would fail if we used incompatible compilers, so
+                # we can try and fallback to the default clang.
+                env.setdefault("TARGET_CC", "clang")
+                env.setdefault("TARGET_CXX", "clang++")
 
             # We need to use `TARGET_CFLAGS`, since we don't want to compile host dependencies with ASAN,
             # since that causes issues when building build-scripts / proc macros.
@@ -156,7 +166,6 @@ class MachCommands(CommandBase):
             env.setdefault("TARGET_CXXFLAGS", "")
             env["TARGET_CFLAGS"] += " -fsanitize=address"
             env["TARGET_CXXFLAGS"] += " -fsanitize=address"
-            env["TARGET_LDFLAGS"] = "-static-libasan"
             # By default build mozjs from source to enable ASAN with mozjs.
             env.setdefault("MOZJS_FROM_SOURCE", "1")
 
@@ -190,7 +199,9 @@ class MachCommands(CommandBase):
             built_binary = self.get_binary_path(build_type, asan=with_asan)
 
             if not no_package and self.target.needs_packaging():
-                rv = Registrar.dispatch("package", context=self.context, build_type=build_type, flavor=flavor)
+                rv = Registrar.dispatch(
+                    "package", context=self.context, build_type=build_type, flavor=flavor, with_asan=with_asan
+                )
                 if rv:
                     return rv
 
