@@ -31,6 +31,20 @@ pub enum PixelFormat {
     BGRA8,
 }
 
+// Computes image byte length, returning None if overflow occurred or the total length exceeds
+// the maximum image allocation size.
+pub fn compute_rgba8_byte_length_if_within_limit(width: usize, height: usize) -> Option<usize> {
+    // Maximum allowed image allocation size (2^31-1 ~ 2GB).
+    const MAX_IMAGE_BYTE_LENGTH: usize = 2147483647;
+
+    // The color components of each pixel must be stored in four sequential
+    // elements in the order of red, green, blue, and then alpha.
+    4usize
+        .checked_mul(width)
+        .and_then(|v| v.checked_mul(height))
+        .filter(|v| *v <= MAX_IMAGE_BYTE_LENGTH)
+}
+
 pub fn rgba8_get_rect(pixels: &[u8], size: Size2D<u64>, rect: Rect<u64>) -> Cow<[u8]> {
     assert!(!rect.is_empty());
     assert!(Rect::from_size(size).contains_rect(&rect));
