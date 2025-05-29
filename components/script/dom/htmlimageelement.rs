@@ -34,9 +34,8 @@ use servo_url::ServoUrl;
 use servo_url::origin::MutableOrigin;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_integer, parse_length};
 use style::context::QuirksMode;
-use style::media_queries::MediaList;
 use style::parser::ParserContext;
-use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
+use style::stylesheets::{CssRuleType, Origin};
 use style::values::specified::AbsoluteLength;
 use style::values::specified::length::{Length, NoCalcLength};
 use style::values::specified::source_size_list::SourceSizeList;
@@ -678,7 +677,7 @@ impl HTMLImageElement {
 
             // Step 4.6
             if let Some(x) = element.get_attribute(&ns!(), &local_name!("media")) {
-                if !self.matches_environment(x.value().to_string()) {
+                if !elem.matches_environment(&x.value()) {
                     continue;
                 }
             }
@@ -719,33 +718,6 @@ impl HTMLImageElement {
         let document = self.owner_document();
         let quirks_mode = document.quirks_mode();
         let result = source_size_list.evaluate(document.window().layout().device(), quirks_mode);
-        result
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#matches-the-environment>
-    fn matches_environment(&self, media_query: String) -> bool {
-        let document = self.owner_document();
-        let quirks_mode = document.quirks_mode();
-        let document_url_data = UrlExtraData(document.url().get_arc());
-        // FIXME(emilio): This should do the same that we do for other media
-        // lists regarding the rule type and such, though it doesn't really
-        // matter right now...
-        //
-        // Also, ParsingMode::all() is wrong, and should be DEFAULT.
-        let context = ParserContext::new(
-            Origin::Author,
-            &document_url_data,
-            Some(CssRuleType::Style),
-            ParsingMode::all(),
-            quirks_mode,
-            /* namespaces = */ Default::default(),
-            None,
-            None,
-        );
-        let mut parserInput = ParserInput::new(&media_query);
-        let mut parser = Parser::new(&mut parserInput);
-        let media_list = MediaList::parse(&context, &mut parser);
-        let result = media_list.evaluate(document.window().layout().device(), quirks_mode);
         result
     }
 
