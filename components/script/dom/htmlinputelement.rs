@@ -155,7 +155,6 @@ const TEXT_TREE_STYLE: &str = "
     height: 100%;
     pointer-events: none;
     display: flex;
-    overflow: hidden;
 }
 
 #input-editor, #input-placeholder {
@@ -1640,22 +1639,29 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     fn SetValue(&self, mut value: DOMString, can_gc: CanGc) -> ErrorResult {
         match self.value_mode() {
             ValueMode::Value => {
-                // Step 3.
-                self.value_dirty.set(true);
+                {
+                    // Step 3.
+                    self.value_dirty.set(true);
 
-                // Step 4.
-                self.sanitize_value(&mut value);
+                    // Step 4.
+                    self.sanitize_value(&mut value);
 
-                let mut textinput = self.textinput.borrow_mut();
-
-                // Step 5.
-                if *textinput.single_line_content() != value {
-                    // Steps 1-2
-                    textinput.set_content(value);
+                    let mut textinput = self.textinput.borrow_mut();
 
                     // Step 5.
-                    textinput.clear_selection_to_limit(Direction::Forward);
+                    if *textinput.single_line_content() != value {
+                        // Steps 1-2
+                        textinput.set_content(value);
+
+                        // Step 5.
+                        textinput.clear_selection_to_limit(Direction::Forward);
+                    }
                 }
+
+                // Additionaly, update the placeholder shown state. This is
+                // normally being done in the attributed mutated. And, being
+                // done in another scope to prevent borrow checker issues.
+                self.update_placeholder_shown_state();
             },
             ValueMode::Default | ValueMode::DefaultOn => {
                 self.upcast::<Element>()
@@ -2236,6 +2242,19 @@ impl HTMLInputElement {
         let el = self.upcast::<Element>();
 
         el.set_placeholder_shown_state(has_placeholder && !has_value);
+    }
+
+    // Update the placeholder text in the text shadow tree.
+    // To increase the performance, we would only do this when it is necessary.
+    fn update_text_shadow_tree_placeholder(&self, can_gc: CanGc) {
+        if self.input_type() != InputType::Text {
+            return;
+        }
+
+        self.text_shadow_tree(can_gc)
+            .placeholder_container
+            .upcast::<Node>()
+            .SetTextContent(Some(self.placeholder.borrow().clone()), can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file)
@@ -2863,8 +2882,10 @@ impl VirtualMethods for HTMLInputElement {
                     },
                 }
 
+                self.update_text_shadow_tree_placeholder(can_gc);
                 self.update_placeholder_shown_state();
             },
+            // FIXME: This section of attribute mutated
             local_name!("value") if !self.value_dirty.get() => {
                 let value = mutation.new_value(attr).map(|value| (**value).to_owned());
                 let mut value = value.map_or(DOMString::new(), DOMString::from);
@@ -2907,22 +2928,13 @@ impl VirtualMethods for HTMLInputElement {
             local_name!("placeholder") => {
                 {
                     let mut placeholder = self.placeholder.borrow_mut();
-                    let old_placeholder = placeholder.clone();
                     placeholder.clear();
                     if let AttributeMutation::Set(_) = mutation {
                         placeholder
                             .extend(attr.value().chars().filter(|&c| c != '\n' && c != '\r'));
                     }
-
-                    // If old placeholder is not the same as the new one,
-                    // we need to update the shadow tree.
-                    if old_placeholder != *placeholder && self.input_type() == InputType::Text {
-                        self.text_shadow_tree(can_gc)
-                            .placeholder_container
-                            .upcast::<Node>()
-                            .SetTextContent(Some(placeholder.clone()), can_gc);
-                    }
                 }
+                self.update_text_shadow_tree_placeholder(can_gc);
                 self.update_placeholder_shown_state();
             },
             local_name!("readonly") => {
