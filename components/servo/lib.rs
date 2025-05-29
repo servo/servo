@@ -417,7 +417,7 @@ impl Servo {
         // Create the WebXR main thread
         #[cfg(feature = "webxr")]
         let mut webxr_main_thread =
-            webxr::MainThreadRegistry::new(event_loop_waker, webxr_layer_grand_manager)
+            webxr::MainThreadRegistry::new(event_loop_waker.clone(), webxr_layer_grand_manager)
                 .expect("Failed to create WebXR device registry");
         #[cfg(feature = "webxr")]
         if pref!(dom_webxr_enabled) {
@@ -489,6 +489,7 @@ impl Servo {
                 #[cfg(feature = "webxr")]
                 webxr_main_thread,
                 shutdown_state: shutdown_state.clone(),
+                event_loop_waker,
             },
             opts.debug.convert_mouse_to_touch,
         );

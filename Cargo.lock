@@ -1109,6 +1109,7 @@ dependencies = [
  "servo_geometry",
  "stylo_traits",
  "surfman",
+ "timers",
  "tracing",
  "webrender",
  "webrender_api",
