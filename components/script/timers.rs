@@ -9,12 +9,14 @@ use std::default::Default;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 
+use base::id::PipelineId;
 use deny_public_fields::DenyPublicFields;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleValue;
+use serde::{Deserialize, Serialize};
 use servo_config::pref;
-use timers::{BoxedTimerCallback, TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
+use timers::{BoxedTimerCallback, TimerEventRequest};
 
 use crate::dom::bindings::callback::ExceptionHandling::Report;
 use crate::dom::bindings::cell::DomRefCell;
@@ -24,9 +26,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::Dom;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::document::{
-    FakeRequestAnimationFrameCallback, ImageAnimationUpdateCallback, RefreshRedirectDue,
-};
+use crate::dom::document::{ImageAnimationUpdateCallback, RefreshRedirectDue};
 use crate::dom::eventsource::EventSourceTimeoutCallback;
 use crate::dom::globalscope::GlobalScope;
 #[cfg(feature = "testbinding")]
@@ -83,7 +83,6 @@ pub(crate) enum OneshotTimerCallback {
     JsTimer(JsTimerTask),
     #[cfg(feature = "testbinding")]
     TestBindingCallback(TestBindingCallback),
-    FakeRequestAnimationFrame(FakeRequestAnimationFrameCallback),
     RefreshRedirectDue(RefreshRedirectDue),
     ImageAnimationUpdate(ImageAnimationUpdateCallback),
 }
@@ -96,7 +95,6 @@ impl OneshotTimerCallback {
             OneshotTimerCallback::JsTimer(task) => task.invoke(this, js_timers, can_gc),
             #[cfg(feature = "testbinding")]
             OneshotTimerCallback::TestBindingCallback(callback) => callback.invoke(),
-            OneshotTimerCallback::FakeRequestAnimationFrame(callback) => callback.invoke(can_gc),
             OneshotTimerCallback::RefreshRedirectDue(callback) => callback.invoke(can_gc),
             OneshotTimerCallback::ImageAnimationUpdate(callback) => callback.invoke(can_gc),
         }
@@ -290,6 +288,7 @@ impl OneshotTimers {
             return;
         };
 
+        let expected_event_id = self.invalidate_expected_event_id();
         let callback = TimerListener {
             context: Trusted::new(&*self.global_scope),
             task_source: self
@@ -297,14 +296,13 @@ impl OneshotTimers {
                 .task_manager()
                 .timer_task_source()
                 .to_sendable(),
+            source: timer.source,
+            id: expected_event_id,
         }
         .into_callback();
 
-        let expected_event_id = self.invalidate_expected_event_id();
         let event_request = TimerEventRequest {
             callback,
-            source: timer.source,
-            id: expected_event_id,
             duration: timer.scheduled_for - Instant::now(),
         };
 
@@ -591,11 +589,32 @@ impl JsTimerTask {
     }
 }
 
+/// Describes the source that requested the [`TimerEvent`].
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub enum TimerSource {
+    /// The event was requested from a window (`ScriptThread`).
+    FromWindow(PipelineId),
+    /// The event was requested from a worker (`DedicatedGlobalWorkerScope`).
+    FromWorker,
+}
+
+/// The id to be used for a [`TimerEvent`] is defined by the corresponding [`TimerEventRequest`].
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+pub struct TimerEventId(pub u32);
+
+/// A notification that a timer has fired. [`TimerSource`] must be `FromWindow` when
+/// dispatched to `ScriptThread` and must be `FromWorker` when dispatched to a
+/// `DedicatedGlobalWorkerScope`
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub struct TimerEvent(pub TimerSource, pub TimerEventId);
+
 /// A wrapper between timer events coming in over IPC, and the event-loop.
 #[derive(Clone)]
 struct TimerListener {
     task_source: SendableTaskSource,
     context: Trusted<GlobalScope>,
+    source: TimerSource,
+    id: TimerEventId,
 }
 
 impl TimerListener {
@@ -624,6 +643,7 @@ impl TimerListener {
     }
 
     fn into_callback(self) -> BoxedTimerCallback {
-        Box::new(move |timer_event| self.handle(timer_event))
+        let timer_event = TimerEvent(self.source, self.id);
+        Box::new(move || self.handle(timer_event))
     }
 }

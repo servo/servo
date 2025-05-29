@@ -136,8 +136,17 @@ pub struct LayoutThread {
     /// A FontContext to be used during layout.
     font_context: Arc<FontContext>,
 
+    /// Whether or not user agent stylesheets have been added to the Stylist or not.
+    have_added_user_agent_stylesheets: bool,
+
     /// Is this the first reflow in this LayoutThread?
-    first_reflow: Cell<bool>,
+    have_ever_generated_display_list: Cell<bool>,
+
+    /// Whether a new display list is necessary due to changes to layout or stacking
+    /// contexts. There are cases where it's possible to skip new display list generation
+    /// if nothing in layout changes. We cannot skip the display list generation if previous
+    /// non-display-list generating layouts (such as for queries) have updated layout trees.
+    need_new_display_list: Cell<bool>,
 
     /// The box tree.
     box_tree: RefCell<Option<Arc<BoxTree>>>,
@@ -520,7 +529,9 @@ impl LayoutThread {
             registered_painters: RegisteredPaintersImpl(Default::default()),
             image_cache: config.image_cache,
             font_context: config.font_context,
-            first_reflow: Cell::new(true),
+            have_added_user_agent_stylesheets: false,
+            have_ever_generated_display_list: Cell::new(false),
+            need_new_display_list: Cell::new(false),
             box_tree: Default::default(),
             fragment_tree: Default::default(),
             stacking_context_tree: Default::default(),
@@ -659,9 +670,9 @@ impl LayoutThread {
         );
         self.calculate_overflow(damage);
         self.build_stacking_context_tree(&reflow_request, damage);
-        self.build_display_list(&reflow_request, &mut layout_context);
+        let built_display_list =
+            self.build_display_list(&reflow_request, damage, &mut layout_context);
 
-        self.first_reflow.set(false);
         if let ReflowGoal::UpdateScrollNode(scroll_state) = reflow_request.reflow_goal {
             self.update_scroll_node_state(&scroll_state);
         }
@@ -674,6 +685,7 @@ impl LayoutThread {
             std::mem::take(&mut *layout_context.node_image_animation_map.write());
 
         Some(ReflowResult {
+            built_display_list,
             pending_images,
             pending_rasterization_images,
             iframe_sizes,
@@ -709,7 +721,7 @@ impl LayoutThread {
         ua_stylesheets: &UserAgentStylesheets,
         snapshot_map: &SnapshotMap,
     ) {
-        if self.first_reflow.get() {
+        if !self.have_added_user_agent_stylesheets {
             for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
                 self.stylist
                     .append_stylesheet(stylesheet.clone(), guards.ua_or_user);
@@ -726,6 +738,7 @@ impl LayoutThread {
                     guards.ua_or_user,
                 );
             }
+            self.have_added_user_agent_stylesheets = true;
         }
 
         if reflow_request.stylesheets_changed {
@@ -818,6 +831,9 @@ impl LayoutThread {
         // had is now out of date and should be rebuilt.
         *self.stacking_context_tree.borrow_mut() = None;
 
+        // Force display list generation as layout has changed.
+        self.need_new_display_list.set(true);
+
         if self.debug.dump_style_tree {
             println!(
                 "{:?}",
@@ -887,27 +903,40 @@ impl LayoutThread {
             scrollable_overflow,
             self.id.into(),
             fragment_tree.viewport_scroll_sensitivity,
-            self.first_reflow.get(),
+            !self.have_ever_generated_display_list.get(),
             &self.debug,
         ));
+
+        // Force display list generation as layout has changed.
+        self.need_new_display_list.set(true);
     }
 
+    /// Build the display list for the current layout and send it to the renderer. If no display
+    /// list is built, returns false.
     fn build_display_list(
         &self,
         reflow_request: &ReflowRequest,
+        damage: RestyleDamage,
         layout_context: &mut LayoutContext<'_>,
-    ) {
+    ) -> bool {
         if !reflow_request.reflow_goal.needs_display() {
-            return;
+            return false;
         }
         let Some(fragment_tree) = &*self.fragment_tree.borrow() else {
-            return;
+            return false;
         };
-
         let mut stacking_context_tree = self.stacking_context_tree.borrow_mut();
         let Some(stacking_context_tree) = stacking_context_tree.as_mut() else {
-            return;
+            return false;
         };
+
+        // It's not enough to simply check `damage` here as not all reflow requests
+        // require display lists. If a non-display-list-generating reflow updated layout
+        // in a previous refow, we cannot skip display list generation here the next time
+        // a display list is requested.
+        if !self.need_new_display_list.get() && !damage.contains(RestyleDamage::REPAINT) {
+            return false;
+        }
 
         let mut epoch = self.epoch.get();
         epoch.next();
@@ -930,7 +959,11 @@ impl LayoutThread {
             .font_context
             .collect_unused_webrender_resources(false /* all */);
         self.compositor_api
-            .remove_unused_font_resources(keys, instance_keys)
+            .remove_unused_font_resources(keys, instance_keys);
+
+        self.have_ever_generated_display_list.set(true);
+        self.need_new_display_list.set(false);
+        true
     }
 
     fn update_scroll_node_state(&self, state: &ScrollState) {
@@ -955,10 +988,10 @@ impl LayoutThread {
             } else {
                 TimerMetadataFrameType::RootWindow
             },
-            incremental: if self.first_reflow.get() {
-                TimerMetadataReflowType::FirstReflow
-            } else {
+            incremental: if self.have_ever_generated_display_list.get() {
                 TimerMetadataReflowType::Incremental
+            } else {
+                TimerMetadataReflowType::FirstReflow
             },
         })
     }
