@@ -11,47 +11,24 @@ use std::cmp::{self, Ord};
 use std::collections::BinaryHeap;
 use std::time::{Duration, Instant};
 
-use base::id::PipelineId;
 use crossbeam_channel::{Receiver, after, never};
 use malloc_size_of_derive::MallocSizeOf;
-use serde::{Deserialize, Serialize};
-
-/// Describes the source that requested the [`TimerEvent`].
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
-pub enum TimerSource {
-    /// The event was requested from a window (`ScriptThread`).
-    FromWindow(PipelineId),
-    /// The event was requested from a worker (`DedicatedGlobalWorkerScope`).
-    FromWorker,
-}
-
-/// The id to be used for a [`TimerEvent`] is defined by the corresponding [`TimerEventRequest`].
-#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
-pub struct TimerEventId(pub u32);
-
-/// A notification that a timer has fired. [`TimerSource`] must be `FromWindow` when
-/// dispatched to `ScriptThread` and must be `FromWorker` when dispatched to a
-/// `DedicatedGlobalWorkerScope`
-#[derive(Debug, Deserialize, Serialize)]
-pub struct TimerEvent(pub TimerSource, pub TimerEventId);
 
 /// A callback to pass to the [`TimerScheduler`] to be called when the timer is
 /// dispatched.
-pub type BoxedTimerCallback = Box<dyn Fn(TimerEvent) + Send + 'static>;
+pub type BoxedTimerCallback = Box<dyn Fn() + Send + 'static>;
 
 /// Requests a TimerEvent-Message be sent after the given duration.
 #[derive(MallocSizeOf)]
 pub struct TimerEventRequest {
     #[ignore_malloc_size_of = "Size of a boxed function"]
     pub callback: BoxedTimerCallback,
-    pub source: TimerSource,
-    pub id: TimerEventId,
     pub duration: Duration,
 }
 
 impl TimerEventRequest {
     fn dispatch(self) {
-        (self.callback)(TimerEvent(self.source, self.id))
+        (self.callback)()
     }
 }
 

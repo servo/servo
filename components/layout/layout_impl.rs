@@ -657,6 +657,12 @@ impl LayoutThread {
             viewport_changed,
         );
 
+        // If there is no damage from our restyle, we do not need to continue with reflow
+        // nor generate any new display list.
+        if damage.is_empty() {
+            return None;
+        }
+
         self.build_stacking_context_tree(&reflow_request, damage);
         self.build_display_list(&reflow_request, &mut layout_context);
 
@@ -773,8 +779,14 @@ impl LayoutThread {
             driver::traverse_dom(&recalc_style_traversal, token, rayon_pool).as_node();
 
         let root_node = root_element.as_node();
-        let damage = compute_damage_and_repair_style(layout_context.shared_context(), root_node);
-        if !viewport_changed && !damage.contains(RestyleDamage::REBUILD_BOX) {
+
+        let mut damage =
+            compute_damage_and_repair_style(layout_context.shared_context(), root_node);
+        if viewport_changed {
+            damage |= RestyleDamage::REBUILD_BOX;
+        }
+
+        if !damage.contains(RestyleDamage::REBUILD_BOX) {
             layout_context.style_context.stylist.rule_tree().maybe_gc();
             return damage;
         }

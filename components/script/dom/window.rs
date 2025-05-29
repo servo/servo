@@ -2304,6 +2304,11 @@ impl Window {
     /// should happen as part of the HTML event loop via *update the rendering*. Currerntly, the
     /// only exceptions are script queries and scroll requests.
     pub(crate) fn reflow(&self, reflow_goal: ReflowGoal, can_gc: CanGc) -> bool {
+        // Never reflow inactive Documents.
+        if !self.Document().is_fully_active() {
+            return false;
+        }
+
         // Count the pending web fonts before layout, in case a font loads during the layout.
         let waiting_for_web_fonts_to_load = self.font_context.web_fonts_still_loading() != 0;
 

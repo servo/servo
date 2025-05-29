@@ -62,7 +62,7 @@ use net_traits::{
 use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
 use script_bindings::interfaces::GlobalScopeHelpers;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
-use timers::{TimerEventId, TimerEventRequest, TimerSource};
+use timers::TimerEventRequest;
 use url::Origin;
 use uuid::Uuid;
 #[cfg(feature = "webgpu")]
@@ -147,6 +147,7 @@ use crate::task_manager::TaskManager;
 use crate::task_source::SendableTaskSource;
 use crate::timers::{
     IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback,
+    TimerEventId, TimerSource,
 };
 use crate::unminify::unminified_path;
 
