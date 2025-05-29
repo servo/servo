@@ -132,7 +132,7 @@ use embedder_traits::{
     FocusSequenceNumber, ImeEvent, InputEvent, JSValue, JavaScriptEvaluationError,
     JavaScriptEvaluationId, MediaSessionActionType, MediaSessionEvent, MediaSessionPlaybackState,
     MouseButton, MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverCommandMsg,
-    WebDriverLoadStatus,
+    WebDriverCommandResponse, WebDriverLoadStatus,
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
@@ -172,6 +172,7 @@ use crate::browsingcontext::{
     AllBrowsingContextsIterator, BrowsingContext, FullyActiveBrowsingContextsIterator,
     NewBrowsingContextInfo,
 };
+use crate::constellation_webview::ConstellationWebView;
 use crate::event_loop::EventLoop;
 use crate::pipeline::{InitialPipelineState, Pipeline};
 use crate::process_manager::ProcessManager;
@@ -227,18 +228,6 @@ struct WebrenderWGPU {
 
     /// WebGPU data that supplied to Webrender for rendering
     wgpu_image_map: WGPUImageMap,
-}
-
-/// Servo supports multiple top-level browsing contexts or “webviews”, so `Constellation` needs to
-/// store webview-specific data for bookkeeping.
-struct WebView {
-    /// The currently focused browsing context in this webview for key events.
-    /// The focused pipeline is the current entry of the focused browsing
-    /// context.
-    focused_browsing_context_id: BrowsingContextId,
-
-    /// The joint session history for this webview.
-    session_history: JointSessionHistory,
 }
 
 /// A browsing context group.
@@ -324,7 +313,7 @@ pub struct Constellation<STF, SWF> {
     compositor_proxy: CompositorProxy,
 
     /// Bookkeeping data for all webviews in the constellation.
-    webviews: WebViewManager<WebView>,
+    webviews: WebViewManager<ConstellationWebView>,
 
     /// Channels for the constellation to send messages to the public
     /// resource-related threads. There are two groups of resource threads: one
@@ -532,6 +521,8 @@ pub struct InitialConstellationState {
 struct WebDriverData {
     load_channel: Option<(PipelineId, IpcSender<WebDriverLoadStatus>)>,
     resize_channel: Option<IpcSender<Size2D<f32, CSSPixel>>>,
+    // Forward responses from the script thread to the webdriver server.
+    input_command_response_sender: Option<IpcSender<WebDriverCommandResponse>>,
 }
 
 impl WebDriverData {
@@ -539,6 +530,7 @@ impl WebDriverData {
         WebDriverData {
             load_channel: None,
             resize_channel: None,
+            input_command_response_sender: None,
         }
     }
 }
@@ -892,6 +884,16 @@ where
         if self.shutting_down {
             return;
         }
+
+        let Some(theme) = self
+            .webviews
+            .get(webview_id)
+            .map(ConstellationWebView::theme)
+        else {
+            warn!("Tried to create Pipeline for uknown WebViewId: {webview_id:?}");
+            return;
+        };
+
         debug!(
             "{}: Creating new pipeline in {}",
             pipeline_id, browsing_context_id
@@ -970,6 +972,7 @@ where
             time_profiler_chan: self.time_profiler_chan.clone(),
             mem_profiler_chan: self.mem_profiler_chan.clone(),
             viewport_details: initial_viewport_details,
+            theme,
             event_loop,
             load_data,
             prev_throttled: throttled,
@@ -1433,8 +1436,8 @@ where
                     size_type,
                 );
             },
-            EmbedderToConstellationMessage::ThemeChange(theme) => {
-                self.handle_theme_change(theme);
+            EmbedderToConstellationMessage::ThemeChange(webview_id, theme) => {
+                self.handle_theme_change(webview_id, theme);
             },
             EmbedderToConstellationMessage::TickAnimation(webview_ids) => {
                 self.handle_tick_animation(webview_ids)
@@ -1866,6 +1869,18 @@ where
             },
             ScriptToConstellationMessage::FinishJavaScriptEvaluation(evaluation_id, result) => {
                 self.handle_finish_javascript_evaluation(evaluation_id, result)
+            },
+            ScriptToConstellationMessage::WebDriverInputComplete(msg_id) => {
+                if let Some(ref reply_sender) = self.webdriver.input_command_response_sender {
+                    reply_sender
+                        .send(WebDriverCommandResponse { id: msg_id })
+                        .unwrap_or_else(|_| {
+                            warn!("Failed to send WebDriverInputComplete {:?}", msg_id);
+                            self.webdriver.input_command_response_sender = None;
+                        });
+                } else {
+                    warn!("No WebDriver input_command_response_sender");
+                }
             },
         }
     }
@@ -3127,13 +3142,8 @@ where
 
         // Register this new top-level browsing context id as a webview and set
         // its focused browsing context to be itself.
-        self.webviews.add(
-            webview_id,
-            WebView {
-                focused_browsing_context_id: browsing_context_id,
-                session_history: JointSessionHistory::new(),
-            },
-        );
+        self.webviews
+            .add(webview_id, ConstellationWebView::new(browsing_context_id));
 
         // https://html.spec.whatwg.org/multipage/#creating-a-new-browsing-context-group
         let mut new_bc_group: BrowsingContextGroup = Default::default();
@@ -3539,10 +3549,7 @@ where
         self.pipelines.insert(new_pipeline_id, pipeline);
         self.webviews.add(
             new_webview_id,
-            WebView {
-                focused_browsing_context_id: new_browsing_context_id,
-                session_history: JointSessionHistory::new(),
-            },
+            ConstellationWebView::new(new_browsing_context_id),
         );
 
         // https://html.spec.whatwg.org/multipage/#bcg-append
@@ -4836,7 +4843,11 @@ where
                 mouse_button,
                 x,
                 y,
+                msg_id,
+                response_sender,
             ) => {
+                self.webdriver.input_command_response_sender = Some(response_sender);
+
                 self.compositor_proxy
                     .send(CompositorMsg::WebDriverMouseButtonEvent(
                         webview_id,
@@ -4844,11 +4855,16 @@ where
                         mouse_button,
                         x,
                         y,
+                        msg_id,
                     ));
             },
-            WebDriverCommandMsg::MouseMoveAction(webview_id, x, y) => {
+            WebDriverCommandMsg::MouseMoveAction(webview_id, x, y, msg_id, response_sender) => {
+                self.webdriver.input_command_response_sender = Some(response_sender);
+
                 self.compositor_proxy
-                    .send(CompositorMsg::WebDriverMouseMoveEvent(webview_id, x, y));
+                    .send(CompositorMsg::WebDriverMouseMoveEvent(
+                        webview_id, x, y, msg_id,
+                    ));
             },
             WebDriverCommandMsg::WheelScrollAction(webview, x, y, delta_x, delta_y) => {
                 self.compositor_proxy
@@ -5599,18 +5615,31 @@ where
         }
     }
 
-    /// Handle theme change events from the embedder and forward them to the script thread
+    /// Handle theme change events from the embedder and forward them to all appropriate `ScriptThread`s.
     #[cfg_attr(
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    fn handle_theme_change(&mut self, theme: Theme) {
+    fn handle_theme_change(&mut self, webview_id: WebViewId, theme: Theme) {
+        let Some(webview) = self.webviews.get_mut(webview_id) else {
+            warn!("Received theme change request for uknown WebViewId: {webview_id:?}");
+            return;
+        };
+        if !webview.set_theme(theme) {
+            return;
+        }
+
         for pipeline in self.pipelines.values() {
-            let msg = ScriptThreadMessage::ThemeChange(pipeline.id, theme);
-            if let Err(err) = pipeline.event_loop.send(msg) {
+            if pipeline.webview_id != webview_id {
+                continue;
+            }
+            if let Err(error) = pipeline
+                .event_loop
+                .send(ScriptThreadMessage::ThemeChange(pipeline.id, theme))
+            {
                 warn!(
-                    "{}: Failed to send theme change event to pipeline ({:?}).",
-                    pipeline.id, err
+                    "{}: Failed to send theme change event to pipeline ({error:?}).",
+                    pipeline.id,
                 );
             }
         }

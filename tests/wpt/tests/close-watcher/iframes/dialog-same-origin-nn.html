@@ -1,0 +1,48 @@
+<!doctype html>
+<meta name="timeout" content="long">
+<link rel="author" href="mailto:wpt@keithcirkel.co.uk" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/helpers.js"></script>
+
+<body>
+  <iframe id="iframe1" src="resources/dialog-prevents-close.html"></iframe>
+  <iframe id="iframe2" src="resources/dialog-prevents-close.html"></iframe>
+
+  <script>
+    function awaitEvent(el, type, signal) {
+      return new Promise((resolve) =>
+        el.addEventListener(type, resolve, { once: true, signal }),
+      );
+    }
+
+    async function iframeDialogIsOpen(iframe, signal) {
+      const reply = awaitEvent(window, "message", signal);
+      iframe.contentWindow.postMessage("dialog_open", "*");
+      const {data} = (await reply);
+      if (data.error) throw new Error(data.error);
+      return data.open;
+    }
+
+    promise_test(async (t) => {
+      await awaitEvent(iframe1, "load", t.get_signal());
+      await awaitEvent(iframe2, "load", t.get_signal());
+
+      assert_true(await iframeDialogIsOpen(iframe1, t.get_signal()), "Dialog 1 is open");
+      assert_true(await iframeDialogIsOpen(iframe2, t.get_signal()), "Dialog 2 is open");
+
+      await test_driver.send_keys(iframe1, "\uE00C");
+
+      assert_false(await iframeDialogIsOpen(iframe1, t.get_signal()), "Dialog 1 is now closed");
+      assert_true(await iframeDialogIsOpen(iframe2, t.get_signal()), "Dialog 2 is still open");
+
+      await test_driver.send_keys(iframe2, "\uE00C");
+
+      assert_false(await iframeDialogIsOpen(iframe1, t.get_signal()), "Dialog 1 is still closed");
+      assert_false(await iframeDialogIsOpen(iframe2, t.get_signal()), "Dialog 2 is now closed");
+    });
+  </script>
+</body>

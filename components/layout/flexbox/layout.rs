@@ -32,7 +32,7 @@ use crate::formatting_contexts::{Baselines, IndependentFormattingContextContents
 use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags, SpecificLayoutInfo,
 };
-use crate::geom::{AuOrAuto, LogicalRect, LogicalSides, LogicalVec2, Size, Sizes};
+use crate::geom::{AuOrAuto, LazySize, LogicalRect, LogicalSides, LogicalVec2, Size, Sizes};
 use crate::layout_box_base::CacheableLayoutResult;
 use crate::positioned::{
     AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, relative_adjustement,
@@ -417,9 +417,8 @@ struct DesiredFlexFractionAndGrowOrShrinkFactor {
 #[derive(Default)]
 struct FlexItemBoxInlineContentSizesInfo {
     outer_flex_base_size: Au,
-    content_min_main_size: Au,
-    content_max_main_size: Option<Au>,
-    pbm_auto_is_zero: FlexRelativeVec2<Au>,
+    outer_min_main_size: Au,
+    outer_max_main_size: Option<Au>,
     min_flex_factors: DesiredFlexFractionAndGrowOrShrinkFactor,
     max_flex_factors: DesiredFlexFractionAndGrowOrShrinkFactor,
     min_content_main_size_for_multiline_container: Au,
@@ -583,9 +582,8 @@ impl FlexContainer {
 
         for FlexItemBoxInlineContentSizesInfo {
             outer_flex_base_size,
-            content_min_main_size,
-            content_max_main_size,
-            pbm_auto_is_zero,
+            outer_min_main_size,
+            outer_max_main_size,
             min_flex_factors,
             max_flex_factors,
             min_content_main_size_for_multiline_container,
@@ -595,16 +593,13 @@ impl FlexContainer {
             // > 4. Add each item’s flex base size to the product of its flex grow factor (scaled flex shrink
             // > factor, if shrinking) and the chosen flex fraction, then clamp that result by the max main size
             // > floored by the min main size.
-            let outer_min_main_size = *content_min_main_size + pbm_auto_is_zero.main;
-            let outer_max_main_size = content_max_main_size.map(|v| v + pbm_auto_is_zero.main);
-
             // > 5. The flex container’s max-content size is the largest sum (among all the lines) of the
             // > afore-calculated sizes of all items within a single line.
             container_max_content_size += (*outer_flex_base_size +
                 Au::from_f32_px(
                     max_flex_factors.flex_grow_or_shrink_factor * chosen_max_flex_fraction,
                 ))
-            .clamp_between_extremums(outer_min_main_size, outer_max_main_size);
+            .clamp_between_extremums(*outer_min_main_size, *outer_max_main_size);
 
             // > The min-content main size of a single-line flex container is calculated
             // > identically to the max-content main size, except that the flex items’
@@ -621,7 +616,7 @@ impl FlexContainer {
                     Au::from_f32_px(
                         min_flex_factors.flex_grow_or_shrink_factor * chosen_min_flex_fraction,
                     ))
-                .clamp_between_extremums(outer_min_main_size, outer_max_main_size);
+                .clamp_between_extremums(*outer_min_main_size, *outer_max_main_size);
             } else {
                 container_min_content_size
                     .max_assign(*min_content_main_size_for_multiline_container);
@@ -655,6 +650,7 @@ impl FlexContainer {
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
         depends_on_block_constraints: bool,
+        lazy_block_size: &LazySize,
     ) -> CacheableLayoutResult {
         let depends_on_block_constraints =
             depends_on_block_constraints || self.config.flex_direction == FlexDirection::Column;
@@ -676,14 +672,13 @@ impl FlexContainer {
         // https://drafts.csswg.org/css-flexbox/#algo-main-container
         let container_main_size = match self.config.flex_axis {
             FlexAxis::Row => containing_block.size.inline,
-            FlexAxis::Column => match containing_block.size.block {
-                SizeConstraint::Definite(size) => size,
-                SizeConstraint::MinMax(min, max) => self
-                    .main_content_sizes(layout_context, &containing_block.into(), || &flex_context)
+            FlexAxis::Column => lazy_block_size.resolve(|| {
+                let mut containing_block = IndefiniteContainingBlock::from(containing_block);
+                containing_block.size.block = None;
+                self.main_content_sizes(layout_context, &containing_block, || &flex_context)
                     .sizes
                     .max_content
-                    .clamp_between_extremums(min, max),
-            },
+            }),
         };
 
         // Actual length may be less, but we guess that usually not by a lot
@@ -766,30 +761,23 @@ impl FlexContainer {
             .map(|layout| layout.line_size.cross)
             .sum::<Au>() +
             cross_gap * (line_count as i32 - 1);
+        let content_block_size = match self.config.flex_axis {
+            FlexAxis::Row => content_cross_size,
+            FlexAxis::Column => container_main_size,
+        };
 
         // https://drafts.csswg.org/css-flexbox/#algo-cross-container
-        let container_cross_size = match flex_context.container_inner_size_constraint.cross {
-            SizeConstraint::Definite(cross_size) => cross_size,
-            SizeConstraint::MinMax(min, max) => {
-                content_cross_size.clamp_between_extremums(min, max)
-            },
+        let container_cross_size = match self.config.flex_axis {
+            FlexAxis::Row => lazy_block_size.resolve(|| content_cross_size),
+            FlexAxis::Column => containing_block.size.inline,
         };
 
         let container_size = FlexRelativeVec2 {
             main: container_main_size,
             cross: container_cross_size,
         };
-        let content_block_size = flex_context
-            .config
-            .flex_axis
-            .vec2_to_flow_relative(container_size)
-            .block;
 
-        let mut remaining_free_cross_space =
-            match flex_context.container_inner_size_constraint.cross {
-                SizeConstraint::Definite(cross_size) => cross_size - content_cross_size,
-                _ => Au::zero(),
-            };
+        let mut remaining_free_cross_space = container_cross_size - content_cross_size;
 
         // Implement fallback alignment.
         //
@@ -1936,6 +1924,29 @@ impl FlexItem<'_> {
                     }
                 }
 
+                let lazy_block_size = if !cross_axis_is_item_block_axis {
+                    used_main_size.into()
+                } else if let Some(cross_size) = used_cross_size_override {
+                    cross_size.into()
+                } else {
+                    // This means that an auto size with stretch alignment will behave different than
+                    // a stretch size. That's not what the spec says, but matches other browsers.
+                    // To be discussed in https://github.com/w3c/csswg-drafts/issues/11784.
+                    let stretch_size = containing_block
+                        .size
+                        .block
+                        .to_definite()
+                        .map(|size| Au::zero().max(size - self.pbm_auto_is_zero.cross));
+                    LazySize::new(
+                        &self.content_cross_sizes,
+                        Direction::Block,
+                        Size::FitContent,
+                        Au::zero,
+                        stretch_size,
+                        self.is_table(),
+                    )
+                };
+
                 let layout = non_replaced.layout(
                     flex_context.layout_context,
                     &mut positioning_context,
@@ -1945,6 +1956,7 @@ impl FlexItem<'_> {
                     flex_axis == FlexAxis::Column ||
                         self.cross_size_stretches_to_line ||
                         self.depends_on_block_constraints,
+                    &lazy_block_size,
                 );
                 let CacheableLayoutResult {
                     fragments,
@@ -1962,22 +1974,7 @@ impl FlexItem<'_> {
                 });
 
                 let hypothetical_cross_size = if cross_axis_is_item_block_axis {
-                    // This means that an auto size with stretch alignment will behave different than
-                    // a stretch size. That's not what the spec says, but matches other browsers.
-                    // To be discussed in https://github.com/w3c/csswg-drafts/issues/11784.
-                    let stretch_size = containing_block
-                        .size
-                        .block
-                        .to_definite()
-                        .map(|size| Au::zero().max(size - self.pbm_auto_is_zero.cross));
-                    self.content_cross_sizes.resolve(
-                        Direction::Block,
-                        Size::FitContent,
-                        Au::zero,
-                        stretch_size,
-                        || content_block_size.into(),
-                        self.is_table(),
-                    )
+                    lazy_block_size.resolve(|| content_block_size)
                 } else {
                     inline_size
                 };
@@ -2456,6 +2453,8 @@ impl FlexItemBox {
         };
 
         let outer_flex_base_size = flex_base_size + pbm_auto_is_zero.main;
+        let outer_min_main_size = content_min_main_size + pbm_auto_is_zero.main;
+        let outer_max_main_size = content_max_main_size.map(|v| v + pbm_auto_is_zero.main);
         let max_flex_factors = self.desired_flex_factors_for_preferred_width(
             content_contribution_sizes.max_content,
             flex_base_size,
@@ -2481,20 +2480,19 @@ impl FlexItemBox {
             content_contribution_sizes.min_content;
         let style_position = &self.style().get_position();
         if style_position.flex_grow.is_zero() {
-            min_content_main_size_for_multiline_container.min_assign(flex_base_size);
+            min_content_main_size_for_multiline_container.min_assign(outer_flex_base_size);
         }
         if style_position.flex_shrink.is_zero() {
-            min_content_main_size_for_multiline_container.max_assign(flex_base_size);
+            min_content_main_size_for_multiline_container.max_assign(outer_flex_base_size);
         }
         min_content_main_size_for_multiline_container =
             min_content_main_size_for_multiline_container
-                .clamp_between_extremums(content_min_main_size, content_max_main_size);
+                .clamp_between_extremums(outer_min_main_size, outer_max_main_size);
 
         FlexItemBoxInlineContentSizesInfo {
             outer_flex_base_size,
-            content_min_main_size,
-            content_max_main_size,
-            pbm_auto_is_zero,
+            outer_min_main_size,
+            outer_max_main_size,
             min_flex_factors,
             max_flex_factors,
             min_content_main_size_for_multiline_container,
@@ -2687,6 +2685,7 @@ impl FlexItemBox {
                             flex_context.containing_block,
                             &self.independent_formatting_context.base,
                             false, /* depends_on_block_constraints */
+                            &LazySize::intrinsic(),
                         )
                         .content_block_size
                 };

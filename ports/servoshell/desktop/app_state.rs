@@ -113,6 +113,7 @@ impl RunningAppState {
             .delegate(self.clone())
             .build();
 
+        webview.notify_theme_change(self.inner().window.theme());
         webview.focus();
         webview.raise_to_top(true);
 
@@ -475,6 +476,7 @@ impl WebViewDelegate for RunningAppState {
             .delegate(parent_webview.delegate())
             .build();
 
+        webview.notify_theme_change(self.inner().window.theme());
         webview.focus();
         webview.raise_to_top(true);
 
@@ -608,6 +610,15 @@ impl WebViewDelegate for RunningAppState {
                 // But if the toolbar height changes while the dialog is open then the position won't be updated
                 let offset = self.inner().window.toolbar_height();
                 self.add_dialog(webview, Dialog::new_select_element_dialog(prompt, offset));
+            },
+            FormControl::ColorPicker(color_picker) => {
+                // FIXME: Reading the toolbar height is needed here to properly position the select dialog.
+                // But if the toolbar height changes while the dialog is open then the position won't be updated
+                let offset = self.inner().window.toolbar_height();
+                self.add_dialog(
+                    webview,
+                    Dialog::new_color_picker_dialog(color_picker, offset),
+                );
             },
         }
     }

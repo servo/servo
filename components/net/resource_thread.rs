@@ -23,6 +23,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use log::{debug, trace, warn};
 use net_traits::blob_url_store::parse_blob_url;
 use net_traits::filemanager_thread::FileTokenCheck;
+use net_traits::pub_domains::public_suffix_list_size_of;
 use net_traits::request::{Destination, RequestBuilder, RequestId};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
@@ -32,8 +33,10 @@ use net_traits::{
     WebSocketDomAction, WebSocketNetworkEvent,
 };
 use profile_traits::mem::{
-    ProcessReports, ProfilerChan as MemProfilerChan, ReportsChan, perform_memory_report,
+    ProcessReports, ProfilerChan as MemProfilerChan, Report, ReportKind, ReportsChan,
+    perform_memory_report,
 };
+use profile_traits::path;
 use profile_traits::time::ProfilerChan;
 use rustls::RootCertStore;
 use serde::{Deserialize, Serialize};
@@ -50,7 +53,7 @@ use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::fetch_params::FetchParams;
 use crate::fetch::methods::{CancellationListener, FetchContext, fetch};
 use crate::filemanager_thread::FileManager;
-use crate::hsts::HstsList;
+use crate::hsts::{self, HstsList};
 use crate::http_cache::HttpCache;
 use crate::http_loader::{HttpState, http_redirect_fetch};
 use crate::protocols::ProtocolRegistry;
@@ -94,14 +97,15 @@ pub fn new_resource_threads(
     let (public_core, private_core) = new_core_resource_thread(
         devtools_sender,
         time_profiler_chan,
-        mem_profiler_chan,
+        mem_profiler_chan.clone(),
         embedder_proxy,
         config_dir.clone(),
         ca_certificates,
         ignore_certificate_errors,
         protocols,
     );
-    let storage: IpcSender<StorageThreadMsg> = StorageThreadFactory::new(config_dir);
+    let storage: IpcSender<StorageThreadMsg> =
+        StorageThreadFactory::new(config_dir, mem_profiler_chan);
     (
         ResourceThreads::new(public_core, storage.clone()),
         ResourceThreads::new(private_core, storage),
@@ -176,7 +180,7 @@ fn create_http_states(
     ignore_certificate_errors: bool,
     embedder_proxy: EmbedderProxy,
 ) -> (Arc<HttpState>, Arc<HttpState>) {
-    let mut hsts_list = HstsList::from_servo_preload();
+    let mut hsts_list = HstsList::default();
     let mut auth_cache = AuthCache::default();
     let http_cache = HttpCache::default();
     let mut cookie_jar = CookieStorage::new(150);
@@ -205,7 +209,7 @@ fn create_http_states(
 
     let override_manager = CertificateErrorOverrideManager::new();
     let private_http_state = HttpState {
-        hsts_list: RwLock::new(HstsList::from_servo_preload()),
+        hsts_list: RwLock::new(HstsList::default()),
         cookie_jar: RwLock::new(CookieStorage::new(150)),
         auth_cache: RwLock::new(AuthCache::default()),
         history_states: RwLock::new(HashMap::new()),
@@ -284,6 +288,18 @@ impl ResourceChannelManager {
         perform_memory_report(|ops| {
             let mut reports = public_http_state.memory_reports("public", ops);
             reports.extend(private_http_state.memory_reports("private", ops));
+            reports.extend(vec![
+                Report {
+                    path: path!["hsts-preload-list"],
+                    kind: ReportKind::ExplicitJemallocHeapSize,
+                    size: hsts::hsts_preload_size_of(ops),
+                },
+                Report {
+                    path: path!["public-suffix-list"],
+                    kind: ReportKind::ExplicitJemallocHeapSize,
+                    size: public_suffix_list_size_of(ops),
+                },
+            ]);
             msg.send(ProcessReports::new(reports));
         })
     }
@@ -436,9 +452,6 @@ impl ResourceChannelManager {
                 for history_state in states_to_remove {
                     history_states.remove(&history_state);
                 }
-            },
-            CoreResourceMsg::Synchronize(sender) => {
-                let _ = sender.send(());
             },
             CoreResourceMsg::ClearCache => {
                 http_state.http_cache.write().unwrap().clear();

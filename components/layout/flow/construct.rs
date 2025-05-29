@@ -199,7 +199,7 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
             context,
             info,
             block_level_boxes: Vec::new(),
-            propagated_data: propagated_data.union(&info.style),
+            propagated_data,
             have_already_seen_first_line_for_text_indent: false,
             anonymous_box_info: None,
             anonymous_table_content: Vec::new(),
@@ -228,7 +228,6 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
     fn finish_ongoing_inline_formatting_context(&mut self) -> Option<InlineFormattingContext> {
         self.inline_formatting_context_builder.take()?.finish(
             self.context,
-            self.propagated_data,
             !self.have_already_seen_first_line_for_text_indent,
             self.info.is_single_line_text_input(),
             self.info.style.writing_mode.to_bidi_level(),
@@ -280,16 +279,6 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
         // creation of an inline table. It requires the parent to be an inline box.
         let inline_table = self.currently_processing_inline_box();
 
-        // Text decorations are not propagated to atomic inline-level descendants.
-        // From https://drafts.csswg.org/css2/#lining-striking-props:
-        // >  Note that text decorations are not propagated to floating and absolutely
-        // > positioned descendants, nor to the contents of atomic inline-level descendants
-        // > such as inline blocks and inline tables.
-        let propagated_data = match inline_table {
-            true => self.propagated_data.without_text_decorations(),
-            false => self.propagated_data,
-        };
-
         let contents: Vec<AnonymousTableContent<'dom>> =
             self.anonymous_table_content.drain(..).collect();
         let last_text = match contents.last() {
@@ -298,7 +287,7 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
         };
 
         let (table_info, ifc) =
-            Table::construct_anonymous(self.context, self.info, contents, propagated_data);
+            Table::construct_anonymous(self.context, self.info, contents, self.propagated_data);
 
         if inline_table {
             self.ensure_inline_formatting_context_builder()
@@ -315,7 +304,7 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
                 info: table_info,
                 box_slot: BoxSlot::dummy(),
                 kind: BlockLevelCreator::AnonymousTable { table_block },
-                propagated_data,
+                propagated_data: self.propagated_data,
             });
         }
 
@@ -464,7 +453,7 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
                 contents,
                 list_item_style,
             },
-            propagated_data: self.propagated_data.without_text_decorations(),
+            propagated_data: self.propagated_data,
         });
     }
 
@@ -480,15 +469,14 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         else {
             // If this inline element is an atomic, handle it and return.
             let context = self.context;
-            let propagaged_data = self.propagated_data.without_text_decorations();
+            let propagated_data = self.propagated_data;
             let atomic = self.ensure_inline_formatting_context_builder().push_atomic(
                 IndependentFormattingContext::construct(
                     context,
                     info,
                     display_inside,
                     contents,
-                    // Text decorations are not propagated to atomic inline-level descendants.
-                    propagaged_data,
+                    propagated_data,
                 ),
             );
             box_slot.set(LayoutBox::InlineLevel(vec![atomic]));
@@ -550,7 +538,6 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
             .and_then(|builder| {
                 builder.split_around_block_and_finish(
                     self.context,
-                    self.propagated_data,
                     !self.have_already_seen_first_line_for_text_indent,
                     self.info.style.writing_mode.to_bidi_level(),
                 )
@@ -631,7 +618,7 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
             info: info.clone(),
             box_slot,
             kind,
-            propagated_data: self.propagated_data.without_text_decorations(),
+            propagated_data: self.propagated_data,
         });
     }
 
@@ -664,7 +651,7 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
             info: info.clone(),
             box_slot,
             kind,
-            propagated_data: self.propagated_data.without_text_decorations(),
+            propagated_data: self.propagated_data,
         });
     }
 
@@ -754,7 +741,7 @@ impl BlockLevelJob<'_> {
                     context,
                     info,
                     contents,
-                    self.propagated_data.without_text_decorations(),
+                    self.propagated_data,
                     false, /* is_list_item */
                 );
                 ArcRefCell::new(BlockLevelBox::OutsideMarker(OutsideMarker {

@@ -591,6 +591,34 @@ const absTests = [
         }
       }
     }
+  },
+
+  // int64 tests
+  {
+    'name': 'abs int64 4D tensor',
+    'graph': {
+      'inputs': {
+        'absInput': {
+          'data': [
+            // int64 range: [/* -(2**63) */ –9223372036854775808,
+            //               /* 2**63 - 1 */ 92233720368547758087]
+            BigInt(-(2**63)) + 1n, -100n, 0n, 100n, BigInt(2**63) - 1n
+          ],
+          'descriptor': {shape: [1, 1, 1, 5], dataType: 'int64'}
+        }
+      },
+      'operators': [{
+        'name': 'abs',
+        'arguments': [{'input': 'absInput'}],
+        'outputs': 'absOutput'
+      }],
+      'expectedOutputs': {
+        'absOutput': {
+          'data': [BigInt(2**63) - 1n, 100n, 0n, 100n, BigInt(2**63) - 1n],
+          'descriptor': {shape: [1, 1, 1, 5], dataType: 'int64'}
+        }
+      }
+    }
   }
 ];
 

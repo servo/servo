@@ -1,5 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg">
-  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
+  <metadata>
+    <h:link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  </metadata>
   <style>
     text {
       font-size: 50px;

@@ -91,6 +91,7 @@ use line_breaker::LineBreaker;
 use malloc_size_of_derive::MallocSizeOf;
 use range::Range;
 use script::layout_dom::ServoLayoutNode;
+use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use servo_arc::Arc;
 use style::Zero;
 use style::computed_values::text_wrap_mode::T as TextWrapMode;
@@ -102,7 +103,7 @@ use style::properties::style_structs::InheritedText;
 use style::values::generics::box_::VerticalAlignKeyword;
 use style::values::generics::font::LineHeight;
 use style::values::specified::box_::BaselineSource;
-use style::values::specified::text::{TextAlignKeyword, TextDecorationLine};
+use style::values::specified::text::TextAlignKeyword;
 use style::values::specified::{TextAlignLast, TextJustify};
 use text_run::{
     TextRun, XI_LINE_BREAKING_CLASS_GL, XI_LINE_BREAKING_CLASS_WJ, XI_LINE_BREAKING_CLASS_ZWJ,
@@ -133,7 +134,7 @@ use crate::geom::{LogicalRect, LogicalVec2, ToLogical};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
-use crate::{ConstraintSpace, ContainingBlock, PropagatedBoxTreeData, SharedStyle};
+use crate::{ConstraintSpace, ContainingBlock, SharedStyle};
 
 // From gfxFontConstants.h in Firefox.
 static FONT_SUBSCRIPT_OFFSET_RATIO: f32 = 0.20;
@@ -158,7 +159,9 @@ pub(crate) struct InlineFormattingContext {
     /// context in order to avoid duplicating this information.
     pub font_metrics: Vec<FontKeyAndMetrics>,
 
-    pub(super) text_decoration_line: TextDecorationLine,
+    /// The [`SharedInlineStyles`] for the root of this [`InlineFormattingContext`] that are used to
+    /// share styles with all [`TextRun`] children.
+    pub(super) shared_inline_styles: SharedInlineStyles,
 
     /// Whether this IFC contains the 1st formatted line of an element:
     /// <https://www.w3.org/TR/css-pseudo-4/#first-formatted-line>.
@@ -237,12 +240,14 @@ impl InlineItem {
             InlineItem::OutOfFlowAbsolutelyPositionedBox(positioned_box, ..) => positioned_box
                 .borrow_mut()
                 .context
-                .repair_style(context, new_style),
+                .repair_style(context, node, new_style),
             InlineItem::OutOfFlowFloatBox(float_box) => float_box
                 .borrow_mut()
                 .contents
-                .repair_style(context, new_style),
-            InlineItem::Atomic(atomic, ..) => atomic.borrow_mut().repair_style(context, new_style),
+                .repair_style(context, node, new_style),
+            InlineItem::Atomic(atomic, ..) => {
+                atomic.borrow_mut().repair_style(context, node, new_style)
+            },
         }
     }
 
@@ -620,12 +625,6 @@ pub(super) struct InlineContainerState {
     /// Whether or not we have processed any content (an atomic element or text) for
     /// this inline box on the current line OR any previous line.
     has_content: RefCell<bool>,
-
-    /// Indicates whether this nesting level have text decorations in effect.
-    /// From <https://drafts.csswg.org/css-text-decor/#line-decoration>
-    // "When specified on or propagated to a block container that establishes
-    //  an IFC..."
-    text_decoration_line: TextDecorationLine,
 
     /// The block size contribution of this container's default font ie the size of the
     /// "strut." Whether this is integrated into the [`Self::nested_strut_block_sizes`]
@@ -1454,7 +1453,6 @@ impl InlineFormattingContextLayout<'_> {
                 inline_styles: text_run.inline_styles.clone(),
                 font_metrics,
                 font_key: ifc_font_info.key,
-                text_decoration_line: self.current_inline_container_state().text_decoration_line,
                 bidi_level,
                 selection_range,
             },
@@ -1648,7 +1646,6 @@ impl InlineFormattingContext {
     pub(super) fn new_with_builder(
         builder: InlineFormattingContextBuilder,
         layout_context: &LayoutContext,
-        propagated_data: PropagatedBoxTreeData,
         has_first_formatted_line: bool,
         is_single_line_text_input: bool,
         starting_bidi_level: Level,
@@ -1699,12 +1696,21 @@ impl InlineFormattingContext {
             inline_items: builder.inline_items,
             inline_boxes: builder.inline_boxes,
             font_metrics,
-            text_decoration_line: propagated_data.text_decoration,
+            shared_inline_styles: builder
+                .shared_inline_styles_stack
+                .last()
+                .expect("Should have at least one SharedInlineStyle for the root of an IFC")
+                .clone(),
             has_first_formatted_line,
             contains_floats: builder.contains_floats,
             is_single_line_text_input,
             has_right_to_left_content,
         }
+    }
+
+    pub(crate) fn repair_style(&self, node: &ServoLayoutNode, new_style: &Arc<ComputedValues>) {
+        *self.shared_inline_styles.style.borrow_mut() = new_style.clone();
+        *self.shared_inline_styles.selected.borrow_mut() = node.to_threadsafe().selected_style();
     }
 
     pub(super) fn layout(
@@ -1764,7 +1770,6 @@ impl InlineFormattingContext {
                 style.to_arc(),
                 inline_container_state_flags,
                 None, /* parent_container */
-                self.text_decoration_line,
                 default_font_metrics.as_ref(),
             ),
             inline_box_state_stack: Vec::new(),
@@ -1862,10 +1867,8 @@ impl InlineContainerState {
         style: Arc<ComputedValues>,
         flags: InlineContainerStateFlags,
         parent_container: Option<&InlineContainerState>,
-        parent_text_decoration_line: TextDecorationLine,
         font_metrics: Option<&FontMetrics>,
     ) -> Self {
-        let text_decoration_line = parent_text_decoration_line | style.clone_text_decoration_line();
         let font_metrics = font_metrics.cloned().unwrap_or_else(FontMetrics::empty);
         let line_height = line_height(
             &style,
@@ -1902,7 +1905,6 @@ impl InlineContainerState {
             style,
             flags,
             has_content: RefCell::new(false),
-            text_decoration_line,
             nested_strut_block_sizes: nested_block_sizes,
             strut_block_sizes,
             baseline_offset,

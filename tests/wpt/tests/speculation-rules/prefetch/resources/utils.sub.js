@@ -227,6 +227,18 @@ function assert_intercept_prefetch(interceptedRequest, expectedUrl) {
 
   assert_prefetched(interceptedRequest.request.headers,
       "Prefetch request should be intercepted.");
+
+  if (new URL(location.href).searchParams.has('clientId')) {
+    // https://github.com/WICG/nav-speculation/issues/346
+    // https://crbug.com/404294123
+    assert_equals(interceptedRequest.resultingClientId, "",
+        "resultingClientId shouldn't be exposed.");
+
+    // https://crbug.com/404286918
+    // `assert_not_equals()` isn't used for now to create stable failure diffs.
+    assert_false(interceptedRequest.clientId === "",
+        "clientId should be initiator.");
+  }
 }
 
 // The ServiceWorker fetch handler intercepted a non-prefetching request.
@@ -236,6 +248,23 @@ function assert_intercept_non_prefetch(interceptedRequest, expectedUrl) {
 
   assert_not_prefetched(interceptedRequest.request.headers,
       "Non-prefetch request should be intercepted.");
+
+  if (new URL(location.href).searchParams.has('clientId')) {
+    // Because this is an ordinal non-prefetch request, `resultingClientId`
+    // can be set as normal.
+    assert_not_equals(interceptedRequest.resultingClientId, "",
+        "resultingClientId can be exposed.");
+
+    assert_not_equals(interceptedRequest.clientId, "",
+        "clientId should be initiator.");
+  }
+}
+
+function assert_served_by_navigation_preload(requestHeaders) {
+  assert_equals(
+    requestHeaders['service-worker-navigation-preload'],
+    'true',
+    'Service-Worker-Navigation-Preload');
 }
 
 // Use nvs_header query parameter to ask the wpt server

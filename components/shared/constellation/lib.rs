@@ -55,7 +55,7 @@ pub enum EmbedderToConstellationMessage {
     /// Inform the Constellation that a `WebView`'s [`ViewportDetails`] have changed.
     ChangeViewportDetails(WebViewId, ViewportDetails, WindowSizeType),
     /// Inform the constellation of a theme change.
-    ThemeChange(Theme),
+    ThemeChange(WebViewId, Theme),
     /// Requests that the constellation instruct script/layout to try to layout again and tick
     /// animations.
     TickAnimation(Vec<WebViewId>),
@@ -152,7 +152,7 @@ pub enum TraversalDirection {
 }
 
 /// A task on the <https://html.spec.whatwg.org/multipage/#port-message-queue>
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct PortMessageTask {
     /// The origin of this task.
     pub origin: ImmutableOrigin,

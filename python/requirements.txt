@@ -5,13 +5,11 @@ blessed == 1.20.0
 distro == 1.4
 mozinfo == 1.2.3
 mozlog == 8.0.0
-setuptools == 70.0.0
+setuptools == 78.1.1
 toml == 0.9.2
 
-# For Python linting
-flake8 == 7.0.0
-pep8 == 1.5.7
-pyflakes == 3.2.0
+# For Python linting and formatting
+ruff == 0.11.10
 
 # For test-webidl
 ply == 3.8

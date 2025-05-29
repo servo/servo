@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://www.w3.org/TR/css-contain-2/#containment-size">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#auto-repeat">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<style>
+.container {
+  width: 100px;
+}
+.grid {
+  display: grid;
+  height: 100px;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  contain: inline-size;
+}
+.grid-item {
+  background-color: green;
+}
+</style>
+</head>
+<body>
+<p>Test passes if there is a filled green square.</p>
+<div class="container">
+  <div class="grid">
+    <div class="grid-item">
+    </div>
+  </div>
+</div>
+</body>
+</html>

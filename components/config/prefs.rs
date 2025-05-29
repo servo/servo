@@ -99,7 +99,6 @@ pub struct Preferences {
     pub dom_serviceworker_timeout_seconds: i64,
     pub dom_servo_helpers_enabled: bool,
     pub dom_servoparser_async_html_tokenizer_enabled: bool,
-    pub dom_shadowdom_enabled: bool,
     pub dom_svg_enabled: bool,
     pub dom_testable_crash_enabled: bool,
     pub dom_testbinding_enabled: bool,
@@ -117,10 +116,6 @@ pub struct Preferences {
     // https://testutils.spec.whatwg.org#availability
     pub dom_testutils_enabled: bool,
     pub dom_trusted_types_enabled: bool,
-    /// Enable the [URLPattern] API.
-    ///
-    /// [URLPattern]: https://developer.mozilla.org/en-US/docs/Web/API/URLPattern
-    pub dom_urlpattern_enabled: bool,
     pub dom_xpath_enabled: bool,
     /// Enable WebGL2 APIs.
     pub dom_webgl2_enabled: bool,
@@ -277,7 +272,6 @@ impl Preferences {
             dom_serviceworker_timeout_seconds: 60,
             dom_servo_helpers_enabled: false,
             dom_servoparser_async_html_tokenizer_enabled: false,
-            dom_shadowdom_enabled: true,
             dom_svg_enabled: false,
             dom_testable_crash_enabled: false,
             dom_testbinding_enabled: false,
@@ -294,7 +288,6 @@ impl Preferences {
             dom_testperf_enabled: false,
             dom_testutils_enabled: false,
             dom_trusted_types_enabled: false,
-            dom_urlpattern_enabled: false,
             dom_webgl2_enabled: false,
             dom_webgpu_enabled: false,
             dom_webgpu_wgpu_backend: String::new(),

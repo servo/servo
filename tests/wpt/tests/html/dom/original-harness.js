@@ -131,6 +131,26 @@ ReflectionHarness.assertEquals = function(expected, actual, description) {
 }
 
 /**
+ * If answer.includes(question), output a success, else report a failure with the
+ * given description.  Currently success and failure both increment counters,
+ * and failures output a message to a <ul>.  Which <ul> is decided by the type
+ * parameter -- different attribute types are separated for readability.
+ *
+ * @public
+ */
+ReflectionHarness.assertInArray = function(expected, actual, description) {
+  if (actual.includes(expected)) {
+    this.increment(this.passed);
+  } else {
+    this.increment(this.failed);
+    this.reportFailure(this.currentTestDescription +
+        (description ? " followed by " + description : "") +
+        ' (expected one of ' + this.stringRep(actual) + ', got ' +
+        this.stringRep(expected) + ')');
+  }
+}
+
+/**
  * If calling fn causes a DOMException of the type given by the string
  * exceptionName (e.g., "IndexSizeError"), output a success.  Otherwise, report
  * a failure.

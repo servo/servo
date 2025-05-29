@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1964745">
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#relational">
+<style>
+.square {
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+
+.item:not(:has(~ .item > :nth-child(2))) {
+  background: green;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id=container>
+  <div class="item square">
+    <div></div>
+    <div></div>
+  </div>
+  <div id=td class=item>
+    <div></div>
+    <div></div>
+  </div>
+</div>
+<script>
+window.onload = () => {
+  td.remove();
+};
+</script>

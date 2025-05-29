@@ -7,7 +7,6 @@ use std::collections::HashMap;
 use std::env;
 use std::fs::create_dir_all;
 use std::iter::once;
-use std::mem::take;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -33,7 +32,7 @@ use fnv::FnvHashMap;
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use libc::c_void;
 use log::{debug, info, trace, warn};
-use pixels::{CorsStatus, Image, ImageFrame, PixelFormat};
+use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage};
 use profile_traits::mem::{ProcessReports, ProfilerRegistration, Report, ReportKind};
 use profile_traits::time::{self as profile_time, ProfilerCategory};
 use profile_traits::{path, time_profile};
@@ -55,7 +54,7 @@ use webrender_api::{
 
 use crate::InitialCompositorState;
 use crate::webview_manager::WebViewManager;
-use crate::webview_renderer::{UnknownWebView, WebViewRenderer};
+use crate::webview_renderer::{PinchZoomResult, UnknownWebView, WebViewRenderer};
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -621,29 +620,37 @@ impl IOCompositor {
                 }
             },
 
-            CompositorMsg::WebDriverMouseButtonEvent(webview_id, action, button, x, y) => {
+            CompositorMsg::WebDriverMouseButtonEvent(
+                webview_id,
+                action,
+                button,
+                x,
+                y,
+                message_id,
+            ) => {
                 let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     warn!("Handling input event for unknown webview: {webview_id}");
                     return;
                 };
                 let dppx = webview_renderer.device_pixels_per_page_pixel();
                 let point = dppx.transform_point(Point2D::new(x, y));
-                webview_renderer.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent {
-                    point,
-                    action,
-                    button,
-                }));
+                webview_renderer.dispatch_input_event(
+                    InputEvent::MouseButton(MouseButtonEvent::new(action, button, point))
+                        .with_webdriver_message_id(Some(message_id)),
+                );
             },
 
-            CompositorMsg::WebDriverMouseMoveEvent(webview_id, x, y) => {
+            CompositorMsg::WebDriverMouseMoveEvent(webview_id, x, y, message_id) => {
                 let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     warn!("Handling input event for unknown webview: {webview_id}");
                     return;
                 };
                 let dppx = webview_renderer.device_pixels_per_page_pixel();
                 let point = dppx.transform_point(Point2D::new(x, y));
-                webview_renderer
-                    .dispatch_input_event(InputEvent::MouseMove(MouseMoveEvent { point }));
+                webview_renderer.dispatch_input_event(
+                    InputEvent::MouseMove(MouseMoveEvent::new(point))
+                        .with_webdriver_message_id(Some(message_id)),
+                );
             },
 
             CompositorMsg::WebDriverWheelScrollEvent(webview_id, x, y, delta_x, delta_y) => {
@@ -1424,7 +1431,7 @@ impl IOCompositor {
         &mut self,
         webview_id: WebViewId,
         page_rect: Option<Rect<f32, CSSPixel>>,
-    ) -> Result<Option<Image>, UnableToComposite> {
+    ) -> Result<Option<RasterImage>, UnableToComposite> {
         self.render_inner()?;
 
         let size = self.rendering_context.size2d().to_i32();
@@ -1451,16 +1458,19 @@ impl IOCompositor {
         Ok(self
             .rendering_context
             .read_to_image(rect)
-            .map(|image| Image {
-                width: image.width(),
-                height: image.height(),
+            .map(|image| RasterImage {
+                metadata: ImageMetadata {
+                    width: image.width(),
+                    height: image.height(),
+                },
                 format: PixelFormat::RGBA8,
                 frames: vec![ImageFrame {
                     delay: None,
-                    bytes: ipc::IpcSharedMemory::from_bytes(&image),
+                    byte_range: 0..image.len(),
                     width: image.width(),
                     height: image.height(),
                 }],
+                bytes: ipc::IpcSharedMemory::from_bytes(&image),
                 id: None,
                 cors_status: CorsStatus::Safe,
             }))
@@ -1668,11 +1678,39 @@ impl IOCompositor {
         if let Err(err) = self.rendering_context.make_current() {
             warn!("Failed to make the rendering context current: {:?}", err);
         }
-        let mut webview_renderers = take(&mut self.webview_renderers);
-        for webview_renderer in webview_renderers.iter_mut() {
-            webview_renderer.process_pending_scroll_events(self);
+
+        let mut need_zoom = false;
+        let scroll_offset_updates: Vec<_> = self
+            .webview_renderers
+            .iter_mut()
+            .filter_map(|webview_renderer| {
+                let (zoom, scroll_result) =
+                    webview_renderer.process_pending_scroll_and_pinch_zoom_events();
+                need_zoom = need_zoom || (zoom == PinchZoomResult::DidPinchZoom);
+                scroll_result
+            })
+            .collect();
+
+        if need_zoom || !scroll_offset_updates.is_empty() {
+            let mut transaction = Transaction::new();
+            if need_zoom {
+                self.send_root_pipeline_display_list_in_transaction(&mut transaction);
+            }
+            for update in scroll_offset_updates {
+                let offset = LayoutVector2D::new(-update.offset.x, -update.offset.y);
+                transaction.set_scroll_offsets(
+                    update.external_scroll_id,
+                    vec![SampledScrollOffset {
+                        offset,
+                        generation: 0,
+                    }],
+                );
+            }
+
+            self.generate_frame(&mut transaction, RenderReasons::APZ);
+            self.global.borrow_mut().send_transaction(transaction);
         }
-        self.webview_renderers = webview_renderers;
+
         self.global.borrow().shutdown_state() != ShutdownState::FinishedShuttingDown
     }
 

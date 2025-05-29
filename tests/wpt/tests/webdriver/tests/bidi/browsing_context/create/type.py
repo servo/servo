@@ -8,7 +8,8 @@ pytestmark = pytest.mark.asyncio
 
 
 @pytest.mark.parametrize("type_hint", ["tab", "window"])
-async def test_type(bidi_session, top_context, type_hint):
+async def test_type(bidi_session, wait_for_event, wait_for_future_safe, subscribe_events, top_context, type_hint):
+    await subscribe_events(["browsingContext.contextCreated"])
     is_window = type_hint == "window"
 
     contexts = await bidi_session.browsing_context.get_tree(max_depth=0)
@@ -16,7 +17,9 @@ async def test_type(bidi_session, top_context, type_hint):
 
     await assert_document_status(bidi_session, top_context, visible=True, focused=True)
 
+    on_entry = wait_for_event("browsingContext.contextCreated")
     new_context = await bidi_session.browsing_context.create(type_hint=type_hint)
+    context_info = await wait_for_future_safe(on_entry)
     assert contexts[0]["context"] != new_context["context"]
 
     await assert_document_status(bidi_session, new_context, visible=True, focused=True)
@@ -38,6 +41,7 @@ async def test_type(bidi_session, top_context, type_hint):
         parent_expected=True,
         parent=None,
         url="about:blank",
+        client_window=context_info["clientWindow"],
     )
 
     opener_protocol_value = await bidi_session.script.evaluate(

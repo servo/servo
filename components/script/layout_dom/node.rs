@@ -6,12 +6,12 @@
 
 use std::borrow::Cow;
 use std::fmt;
-use std::sync::Arc as StdArc;
 
 use base::id::{BrowsingContextId, PipelineId};
 use fonts_traits::ByteIndex;
 use html5ever::{local_name, ns};
-use pixels::{Image, ImageMetadata};
+use net_traits::image_cache::Image;
+use pixels::ImageMetadata;
 use range::Range;
 use script_layout_interface::wrapper_traits::{LayoutDataTrait, LayoutNode, ThreadSafeLayoutNode};
 use script_layout_interface::{
@@ -95,6 +95,10 @@ impl<'dom> ServoLayoutNode<'dom> {
             .as_ref()
             .map(LayoutDom::upcast)
             .map(ServoLayoutElement::from_layout_js)
+    }
+
+    pub fn is_text_input(&self) -> bool {
+        self.node.is_text_input()
     }
 }
 
@@ -367,7 +371,7 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
         this.image_density()
     }
 
-    fn image_data(&self) -> Option<(Option<StdArc<Image>>, Option<ImageMetadata>)> {
+    fn image_data(&self) -> Option<(Option<Image>, Option<ImageMetadata>)> {
         let this = unsafe { self.get_jsmanaged() };
         this.image_data()
     }

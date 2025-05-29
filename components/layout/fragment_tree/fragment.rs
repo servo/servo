@@ -14,7 +14,6 @@ use range::Range as ServoRange;
 use servo_arc::Arc as ServoArc;
 use style::Zero;
 use style::properties::ComputedValues;
-use style::values::specified::text::TextDecorationLine;
 use webrender_api::{FontInstanceKey, ImageKey};
 
 use super::{
@@ -71,9 +70,6 @@ pub(crate) struct TextFragment {
     pub font_key: FontInstanceKey,
     #[conditional_malloc_size_of]
     pub glyphs: Vec<Arc<GlyphStore>>,
-
-    /// A flag that represents the _used_ value of the text-decoration property.
-    pub text_decoration_line: TextDecorationLine,
 
     /// Extra space to add for each justification opportunity.
     pub justification_adjustment: Au,

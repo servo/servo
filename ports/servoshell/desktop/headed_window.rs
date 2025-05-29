@@ -262,11 +262,11 @@ impl Window {
             ElementState::Released => MouseButtonAction::Up,
         };
 
-        webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent {
+        webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
             action,
-            button: mouse_button,
+            mouse_button,
             point,
-        }));
+        )));
     }
 
     /// Handle key events before sending them to Servo.
@@ -563,7 +563,7 @@ impl WindowPortsMethods for Window {
                 point.y -= (self.toolbar_height() * self.hidpi_scale_factor()).0;
 
                 self.webview_relative_mouse_point.set(point);
-                webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent { point }));
+                webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
             },
             WindowEvent::MouseWheel { delta, phase, .. } => {
                 let (mut dx, mut dy, mode) = match delta {
@@ -731,6 +731,13 @@ impl WindowPortsMethods for Window {
 
     fn hide_ime(&self) {
         self.winit_window.set_ime_allowed(false);
+    }
+
+    fn theme(&self) -> servo::Theme {
+        match self.winit_window.theme() {
+            Some(winit::window::Theme::Dark) => servo::Theme::Dark,
+            Some(winit::window::Theme::Light) | None => servo::Theme::Light,
+        }
     }
 }
 

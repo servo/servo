@@ -40,12 +40,12 @@
   </style>
 </template>
 
-<template data-name="Local with self-cycle in fallback">
+<template data-name="Local with self-cycle in unused fallback">
   <style>
     @function --f() {
-      --y: FAIL;
+      --y: PASS;
       --x: var(--y, var(--x));
-      result: var(--x, PASS);
+      result: var(--x, FAIL);
     }
     #target {
       --actual: --f();

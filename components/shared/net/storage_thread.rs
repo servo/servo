@@ -4,6 +4,7 @@
 
 use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
+use profile_traits::mem::ReportsChan;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 
@@ -45,4 +46,7 @@ pub enum StorageThreadMsg {
 
     /// send a reply when done cleaning up thread resources and then shut it down
     Exit(IpcSender<()>),
+
+    /// Measure memory used by this thread and send the report over the provided channel.
+    CollectMemoryReport(ReportsChan),
 }

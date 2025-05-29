@@ -52,3 +52,15 @@ promise_test(async () => {
   assert_array_equals(detector.expectedInputLanguages, expectedInputLanguages);
   assert_true(Object.isFrozen(detector.expectedInputLanguages));
 }, 'Creating LanguageDetector with expectedInputLanguages');
+
+
+promise_test(async () => {
+  const detector = await createLanguageDetector();
+
+  const results = await detector.detect('');
+  assert_equals(results.length, 1);
+
+  const [result] = results;
+  assert_equals(result.detectedLanguage, 'und');
+  assert_equals(result.confidence, 1);
+}, 'LanguageDetector.detect() detects empty string');

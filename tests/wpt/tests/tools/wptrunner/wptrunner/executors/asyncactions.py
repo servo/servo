@@ -1,5 +1,4 @@
 # mypy: allow-untyped-defs
-from webdriver.bidi.undefined import UNDEFINED
 
 webdriver = None
 
@@ -102,7 +101,7 @@ class BidiEmulationSetGeolocationOverrideAction:
         # If `error` is present, do not pass `coordinates` (coordinates: UNDEFINED).
         # Otherwise, remove emulation (coordinates: None).
         coordinates = payload['coordinates'] if 'coordinates' in payload else (
-            None if error is None else UNDEFINED)
+            None if error is None else webdriver.bidi.undefined.UNDEFINED)
 
         if "contexts" not in payload:
             raise ValueError("Missing required parameter: contexts")

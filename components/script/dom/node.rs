@@ -10,7 +10,6 @@ use std::default::Default;
 use std::f64::consts::PI;
 use std::ops::Range;
 use std::slice::from_ref;
-use std::sync::Arc as StdArc;
 use std::{cmp, fmt, iter};
 
 use app_units::Au;
@@ -26,7 +25,8 @@ use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use pixels::{Image, ImageMetadata};
+use net_traits::image_cache::Image;
+use pixels::ImageMetadata;
 use script_bindings::codegen::InheritTypes::DocumentFragmentTypeId;
 use script_layout_interface::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType, QueryMsg,
@@ -50,7 +50,6 @@ use style::stylesheets::{Stylesheet, UrlExtraData};
 use uuid::Uuid;
 use xml5ever::serialize as xml_serialize;
 
-use super::globalscope::GlobalScope;
 use crate::conversions::Convert;
 use crate::document_loader::DocumentLoader;
 use crate::dom::attr::Attr;
@@ -92,13 +91,14 @@ use crate::dom::documenttype::DocumentType;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator, SelectorWrapper};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlbodyelement::HTMLBodyElement;
 use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutHTMLCanvasElementHelpers};
 use crate::dom::htmlcollection::HTMLCollection;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMethods};
 use crate::dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
-use crate::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
+use crate::dom::htmlinputelement::{HTMLInputElement, InputType, LayoutHTMLInputElementHelpers};
 use crate::dom::htmllinkelement::HTMLLinkElement;
 use crate::dom::htmlslotelement::{HTMLSlotElement, Slottable};
 use crate::dom::htmlstyleelement::HTMLStyleElement;
@@ -1612,11 +1612,13 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
     /// attempting to read or modify the opaque layout data of this node.
     unsafe fn clear_style_and_layout_data(self);
 
+    /// Whether this element is a `<input>` rendered as text or a `<textarea>`.
+    fn is_text_input(&self) -> bool;
     fn text_content(self) -> Cow<'dom, str>;
     fn selection(self) -> Option<Range<usize>>;
     fn image_url(self) -> Option<ServoUrl>;
     fn image_density(self) -> Option<f64>;
-    fn image_data(self) -> Option<(Option<StdArc<Image>>, Option<ImageMetadata>)>;
+    fn image_data(self) -> Option<(Option<Image>, Option<ImageMetadata>)>;
     fn canvas_data(self) -> Option<HTMLCanvasData>;
     fn media_data(self) -> Option<HTMLMediaData>;
     fn svg_data(self) -> Option<SVGSVGData>;
@@ -1776,6 +1778,25 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
         self.unsafe_get().layout_data.borrow_mut_for_layout().take();
     }
 
+    fn is_text_input(&self) -> bool {
+        let type_id = self.type_id_for_layout();
+        if type_id ==
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLInputElement,
+            ))
+        {
+            let input = self.unsafe_get().downcast::<HTMLInputElement>().unwrap();
+
+            // FIXME: All the non-color input types currently render as text
+            input.input_type() != InputType::Color
+        } else {
+            type_id ==
+                NodeTypeId::Element(ElementTypeId::HTMLElement(
+                    HTMLElementTypeId::HTMLTextAreaElement,
+                ))
+        }
+    }
+
     fn text_content(self) -> Cow<'dom, str> {
         if let Some(text) = self.downcast::<Text>() {
             return text.upcast().data_for_layout().into();
@@ -1810,7 +1831,7 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
             .image_url()
     }
 
-    fn image_data(self) -> Option<(Option<StdArc<Image>>, Option<ImageMetadata>)> {
+    fn image_data(self) -> Option<(Option<Image>, Option<ImageMetadata>)> {
         self.downcast::<HTMLImageElement>().map(|e| e.image_data())
     }
 
@@ -2013,6 +2034,10 @@ impl TreeIterator {
         debug_assert_eq!(self.depth, 0);
         self.current = None;
         Some(current)
+    }
+
+    pub(crate) fn peek(&self) -> Option<&DomRoot<Node>> {
+        self.current.as_ref()
     }
 }
 

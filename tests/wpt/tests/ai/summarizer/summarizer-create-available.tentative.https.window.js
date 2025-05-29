@@ -1,11 +1,12 @@
 // META: title=Summarizer Create Available
+// META: script=/resources/testdriver.js
 // META: script=../resources/util.js
 // META: timeout=long
 
 'use strict';
 
 promise_test(async () => {
-  const summarizer = await Summarizer.create();
+  const summarizer = await createSummarizer();
   assert_equals(typeof summarizer, 'object');
 
   assert_equals(typeof summarizer.summarize, 'function');
@@ -29,54 +30,58 @@ promise_test(async () => {
 }, 'Summarizer.create() returns a valid object with default options');
 
 promise_test(async () => {
-  const summarizer = await testMonitor(Summarizer.create);
+  const summarizer = await testMonitor(createSummarizer);
   assert_equals(typeof summarizer, 'object');
 }, 'Summarizer.create() notifies its monitor on downloadprogress');
 
+promise_test(async t => {
+  await testCreateMonitorWithAbort(t, Summarizer.create);
+}, 'Progress events are not emitted after aborted');
+
 promise_test(async () => {
   const sharedContext = 'This is a shared context string';
-  const summarizer = await Summarizer.create({sharedContext: sharedContext});
+  const summarizer = await createSummarizer({sharedContext: sharedContext});
   assert_equals(summarizer.sharedContext, sharedContext);
 }, 'Summarizer.sharedContext');
 
 promise_test(async () => {
-  const summarizer = await Summarizer.create({type: 'headline'});
+  const summarizer = await createSummarizer({type: 'headline'});
   assert_equals(summarizer.type, 'headline');
 }, 'Summarizer.type');
 
 promise_test(async () => {
-  const summarizer = await Summarizer.create({format: 'plain-text'});
+  const summarizer = await createSummarizer({format: 'plain-text'});
   assert_equals(summarizer.format, 'plain-text');
 }, 'Summarizer.format');
 
 promise_test(async () => {
-  const summarizer = await Summarizer.create({length: 'medium'});
+  const summarizer = await createSummarizer({length: 'medium'});
   assert_equals(summarizer.length, 'medium');
 }, 'Summarizer.length');
 
 promise_test(async () => {
-  const summarizer = await Summarizer.create({
-    expectedInputLanguages: ['en']
-  });
+  const summarizer = await createSummarizer({expectedInputLanguages: ['en']});
   assert_array_equals(summarizer.expectedInputLanguages, ['en']);
 }, 'Summarizer.expectedInputLanguages');
 
 promise_test(async () => {
-  const summarizer = await Summarizer.create({
-    expectedContextLanguages: ['en']
-  });
+  const summarizer = await createSummarizer({expectedContextLanguages: ['en']});
   assert_array_equals(summarizer.expectedContextLanguages, ['en']);
 }, 'Summarizer.expectedContextLanguages');
 
 promise_test(async () => {
-  const summarizer = await Summarizer.create({
-    outputLanguage: 'en'
-  });
+  const summarizer = await createSummarizer({outputLanguage: 'en'});
   assert_equals(summarizer.outputLanguage, 'en');
 }, 'Summarizer.outputLanguage');
 
+promise_test(async (t) => {
+  promise_rejects_js(
+    t, RangeError,
+    createSummarizer({ expectedInputLanguages: ['en-abc-invalid'] }));
+}, 'Creating Summarizer with malformed language string');
+
 promise_test(async () => {
-  const summarizer = await Summarizer.create();
+  const summarizer = await createSummarizer();
   assert_equals(summarizer.expectedInputLanguages, null);
   assert_equals(summarizer.expectedContextLanguages, null);
   assert_equals(summarizer.outputLanguage, null);

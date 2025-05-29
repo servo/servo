@@ -55,7 +55,8 @@ use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
 use net_traits::ResourceThreads;
 use net_traits::image_cache::{
-    ImageCache, ImageResponder, ImageResponse, PendingImageId, PendingImageResponse,
+    ImageCache, ImageCacheResponseMessage, ImageLoadListener, ImageResponse, PendingImageId,
+    PendingImageResponse, RasterizationCompleteResponse,
 };
 use net_traits::storage_thread::StorageType;
 use num_traits::ToPrimitive;
@@ -80,7 +81,6 @@ use style::dom::OpaqueNode;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::properties::PropertyId;
 use style::properties::style_structs::Font;
-use style::queries::values::PrefersColorScheme;
 use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::UrlExtraData;
@@ -88,7 +88,7 @@ use style_traits::CSSPixel;
 use stylo_atoms::Atom;
 use url::Position;
 use webrender_api::ExternalScrollId;
-use webrender_api::units::{DevicePixel, LayoutPixel};
+use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel};
 
 use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use super::bindings::trace::HashMapTracedValues;
@@ -219,6 +219,8 @@ impl LayoutBlocker {
     }
 }
 
+type PendingImageRasterizationKey = (PendingImageId, DeviceIntSize);
+
 #[dom_struct]
 pub(crate) struct Window {
     globalscope: GlobalScope,
@@ -241,7 +243,7 @@ pub(crate) struct Window {
     #[no_trace]
     image_cache: Arc<dyn ImageCache>,
     #[no_trace]
-    image_cache_sender: IpcSender<PendingImageResponse>,
+    image_cache_sender: IpcSender<ImageCacheResponseMessage>,
     window_proxy: MutNullableDom<WindowProxy>,
     document: MutNullableDom<Document>,
     location: MutNullableDom<Location>,
@@ -269,7 +271,7 @@ pub(crate) struct Window {
 
     /// Platform theme.
     #[no_trace]
-    theme: Cell<PrefersColorScheme>,
+    theme: Cell<Theme>,
 
     /// Parent id associated with this page, if any.
     #[no_trace]
@@ -344,10 +346,16 @@ pub(crate) struct Window {
     pending_image_callbacks: DomRefCell<HashMap<PendingImageId, Vec<PendingImageCallback>>>,
 
     /// All of the elements that have an outstanding image request that was
-    /// initiated by layout during a reflow. They are stored in the script thread
+    /// initiated by layout during a reflow. They are stored in the [`ScriptThread`]
     /// to ensure that the element can be marked dirty when the image data becomes
     /// available at some point in the future.
     pending_layout_images: DomRefCell<HashMapTracedValues<PendingImageId, Vec<Dom<Node>>>>,
+
+    /// Vector images for which layout has intiated rasterization at a specific size
+    /// and whose results are not yet available. They are stored in the [`ScriptThread`]
+    /// so that the element can be marked dirty once the rasterization is completed.
+    pending_images_for_rasterization:
+        DomRefCell<HashMapTracedValues<PendingImageRasterizationKey, Vec<Dom<Node>>>>,
 
     /// Directory to store unminified css for this window if unminify-css
     /// opt is enabled.
@@ -569,7 +577,7 @@ impl Window {
         &self,
         id: PendingImageId,
         callback: impl Fn(PendingImageResponse) + 'static,
-    ) -> IpcSender<PendingImageResponse> {
+    ) -> IpcSender<ImageCacheResponseMessage> {
         self.pending_image_callbacks
             .borrow_mut()
             .entry(id)
@@ -596,6 +604,22 @@ impl Window {
                 nodes.remove();
             },
         }
+    }
+
+    pub(crate) fn handle_image_rasterization_complete_notification(
+        &self,
+        response: RasterizationCompleteResponse,
+    ) {
+        let mut images = self.pending_images_for_rasterization.borrow_mut();
+        let nodes = images.entry((response.image_id, response.requested_size));
+        let nodes = match nodes {
+            Entry::Occupied(nodes) => nodes,
+            Entry::Vacant(_) => return,
+        };
+        for node in nodes.get() {
+            node.dirty(NodeDamage::OtherNodeDamage);
+        }
+        nodes.remove();
     }
 
     pub(crate) fn pending_image_notification(&self, response: PendingImageResponse) {
@@ -2225,11 +2249,33 @@ impl Window {
                         .pending_layout_image_notification(response);
                 });
 
-                self.image_cache
-                    .add_listener(ImageResponder::new(sender, self.pipeline_id(), id));
+                self.image_cache.add_listener(ImageLoadListener::new(
+                    sender,
+                    self.pipeline_id(),
+                    id,
+                ));
             }
 
             let nodes = images.entry(id).or_default();
+            if !nodes.iter().any(|n| std::ptr::eq(&**n, &*node)) {
+                nodes.push(Dom::from_ref(&*node));
+            }
+        }
+
+        for image in results.pending_rasterization_images {
+            let node = unsafe { from_untrusted_node_address(image.node) };
+
+            let mut images = self.pending_images_for_rasterization.borrow_mut();
+            if !images.contains_key(&(image.id, image.size)) {
+                self.image_cache.add_rasterization_complete_listener(
+                    pipeline_id,
+                    image.id,
+                    image.size,
+                    self.image_cache_sender.clone(),
+                );
+            }
+
+            let nodes = images.entry((image.id, image.size)).or_default();
             if !nodes.iter().any(|n| std::ptr::eq(&**n, &*node)) {
                 nodes.push(Dom::from_ref(&*node));
             }
@@ -2326,12 +2372,13 @@ impl Window {
             });
 
             let has_sent_idle_message = self.has_sent_idle_message.get();
-            let pending_images = !self.pending_layout_images.borrow().is_empty();
+            let no_pending_images = self.pending_layout_images.borrow().is_empty() &&
+                self.pending_images_for_rasterization.borrow().is_empty();
 
             if !has_sent_idle_message &&
                 is_ready_state_complete &&
                 !reftest_wait &&
-                !pending_images &&
+                no_pending_images &&
                 !waiting_for_web_fonts_to_load
             {
                 debug!(
@@ -2739,13 +2786,13 @@ impl Window {
         self.viewport_details.get()
     }
 
+    /// Get the theme of this [`Window`].
+    pub(crate) fn theme(&self) -> Theme {
+        self.theme.get()
+    }
+
     /// Handle a theme change request, triggering a reflow is any actual change occured.
     pub(crate) fn handle_theme_change(&self, new_theme: Theme) {
-        let new_theme = match new_theme {
-            Theme::Light => PrefersColorScheme::Light,
-            Theme::Dark => PrefersColorScheme::Dark,
-        };
-
         if self.theme.get() == new_theme {
             return;
         }
@@ -3006,7 +3053,7 @@ impl Window {
         script_chan: Sender<MainThreadScriptMsg>,
         layout: Box<dyn Layout>,
         font_context: Arc<FontContext>,
-        image_cache_sender: IpcSender<PendingImageResponse>,
+        image_cache_sender: IpcSender<ImageCacheResponseMessage>,
         image_cache: Arc<dyn ImageCache>,
         resource_threads: ResourceThreads,
         #[cfg(feature = "bluetooth")] bluetooth_thread: IpcSender<BluetoothRequest>,
@@ -3033,6 +3080,7 @@ impl Window {
         player_context: WindowGLContext,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
+        theme: Theme,
     ) -> DomRoot<Self> {
         let error_reporter = CSSErrorReporter {
             pipelineid: pipeline_id,
@@ -3104,6 +3152,7 @@ impl Window {
             webxr_registry,
             pending_image_callbacks: Default::default(),
             pending_layout_images: Default::default(),
+            pending_images_for_rasterization: Default::default(),
             unminified_css_dir: Default::default(),
             local_script_source,
             test_worklet: Default::default(),
@@ -3118,7 +3167,7 @@ impl Window {
             throttled: Cell::new(false),
             layout_marker: DomRefCell::new(Rc::new(Cell::new(true))),
             current_event: DomRefCell::new(None),
-            theme: Cell::new(PrefersColorScheme::Light),
+            theme: Cell::new(theme),
             trusted_types: Default::default(),
         });
 

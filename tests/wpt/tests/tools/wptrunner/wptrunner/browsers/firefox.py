@@ -107,11 +107,8 @@ def check_args(**kwargs):
 def browser_kwargs(logger, test_type, run_info_data, config, subsuite, **kwargs):
     browser_kwargs = {"binary": kwargs["binary"],
                       "package_name": None,
-                      "webdriver_binary": kwargs["webdriver_binary"],
-                      "webdriver_args": kwargs["webdriver_args"].copy(),
                       "prefs_root": kwargs["prefs_root"],
                       "extra_prefs": kwargs["extra_prefs"].copy(),
-                      "test_type": test_type,
                       "debug_info": kwargs["debug_info"],
                       "symbols_path": kwargs["symbols_path"],
                       "stackwalk_binary": kwargs["stackwalk_binary"],
@@ -120,22 +117,35 @@ def browser_kwargs(logger, test_type, run_info_data, config, subsuite, **kwargs)
                       "e10s": kwargs["gecko_e10s"],
                       "disable_fission": kwargs["disable_fission"],
                       "stackfix_dir": kwargs["stackfix_dir"],
-                      "binary_args": kwargs["binary_args"].copy(),
-                      "timeout_multiplier": get_timeout_multiplier(test_type, run_info_data, **kwargs),
                       "leak_check": run_info_data["debug"] and (kwargs["leak_check"] is not False),
                       "asan": run_info_data.get("asan"),
                       "chaos_mode_flags": kwargs["chaos_mode_flags"],
                       "config": config,
                       "browser_channel": kwargs["browser_channel"],
                       "headless": kwargs["headless"],
-                      "preload_browser": kwargs["preload_browser"] and not kwargs["pause_after_test"] and not kwargs["num_test_groups"] == 1,
-                      "specialpowers_path": kwargs["specialpowers_path"],
                       "allow_list_paths": kwargs["allow_list_paths"],
                       "gmp_path": kwargs["gmp_path"] if "gmp_path" in kwargs else None,
                       "debug_test": kwargs["debug_test"]}
-    if test_type == "wdspec" and kwargs["binary"]:
-        browser_kwargs["webdriver_args"].extend(["--binary", kwargs["binary"]])
-    browser_kwargs["binary_args"].extend(subsuite.config.get("binary_args", []))
+
+    if test_type == "wdspec":
+        browser_kwargs["webdriver_binary"] = kwargs["webdriver_binary"]
+        browser_kwargs["webdriver_args"] = kwargs["webdriver_args"].copy()
+
+        if kwargs["binary"]:
+            browser_kwargs["webdriver_args"].extend(["--binary", kwargs["binary"]])
+
+    else:
+        browser_kwargs["binary_args"] = kwargs["binary_args"].copy()
+        browser_kwargs["binary_args"].extend(subsuite.config.get("binary_args", []))
+        browser_kwargs["preload_browser"] = (
+            kwargs["preload_browser"] and
+            not kwargs["pause_after_test"] and
+            not kwargs["num_test_groups"] == 1
+        )
+        browser_kwargs["specialpowers_path"] = kwargs["specialpowers_path"]
+        browser_kwargs["test_type"] = test_type
+        browser_kwargs["timeout_multiplier"] = get_timeout_multiplier(test_type, run_info_data, **kwargs)
+
     browser_kwargs["extra_prefs"].extend(subsuite.config.get("prefs", []))
     return browser_kwargs
 
@@ -823,9 +833,7 @@ class FirefoxBrowser(Browser):
                  browser_channel="nightly", headless=None, preload_browser=False,
                  specialpowers_path=None, debug_test=False, allow_list_paths=None,
                  gmp_path=None, **kwargs):
-        Browser.__init__(self, logger)
-
-        self.logger = logger
+        super().__init__(logger, **kwargs)
 
         if timeout_multiplier:
             self.init_timeout = self.init_timeout * timeout_multiplier
@@ -931,7 +939,7 @@ class FirefoxWdSpecBrowser(WebDriverBrowser):
                  headless=None, debug_test=False, profile_creator_cls=ProfileCreator,
                  allow_list_paths=None, gmp_path=None, **kwargs):
 
-        super().__init__(logger, binary, webdriver_binary, webdriver_args)
+        super().__init__(logger, binary, webdriver_binary, webdriver_args, **kwargs)
         self.binary = binary
         self.package_name = package_name
         self.webdriver_binary = webdriver_binary

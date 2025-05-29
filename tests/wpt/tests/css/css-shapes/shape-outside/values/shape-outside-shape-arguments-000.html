@@ -60,7 +60,7 @@
             generate_tests( ParsingUtils.testInlineStyle,
                             ParsingUtils.buildTestCases(basic_shape_args_tests, "inline") );
             ParsingUtils.setupFonts();
-            document.fonts.ready.then(()=> {
+            document.fonts.load("10px Ahem").then(()=> {
                 generate_tests( ParsingUtils.testComputedStyle,
                                 ParsingUtils.buildTestCases(basic_shape_args_tests, "computed") );
                 ParsingUtils.restoreFonts();

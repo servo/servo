@@ -1542,28 +1542,6 @@ interface TextMetrics {
   readonly attribute double ideographicBaseline;
 };
 
-typedef (Uint8ClampedArray or Float16Array) ImageDataArray;
-
-enum ImageDataPixelFormat { "rgba-unorm8", "rgba-float16" };
-
-dictionary ImageDataSettings {
-  PredefinedColorSpace colorSpace;
-  ImageDataPixelFormat pixelFormat = "rgba-unorm8";
-};
-
-[Exposed=(Window,Worker),
- Serializable]
-interface ImageData {
-  constructor(unsigned long sw, unsigned long sh, optional ImageDataSettings settings = {});
-  constructor(ImageDataArray data, unsigned long sw, optional unsigned long sh, optional ImageDataSettings settings = {});
-
-  readonly attribute unsigned long width;
-  readonly attribute unsigned long height;
-  readonly attribute ImageDataArray data;
-  readonly attribute ImageDataPixelFormat pixelFormat;
-  readonly attribute PredefinedColorSpace colorSpace;
-};
-
 [Exposed=(Window,Worker)]
 interface Path2D {
   constructor(optional (Path2D or DOMString) path);
@@ -2474,6 +2452,28 @@ interface MimeType {
   readonly attribute DOMString description;
   readonly attribute DOMString suffixes;
   readonly attribute Plugin enabledPlugin;
+};
+
+typedef (Uint8ClampedArray or Float16Array) ImageDataArray;
+
+enum ImageDataPixelFormat { "rgba-unorm8", "rgba-float16" };
+
+dictionary ImageDataSettings {
+  PredefinedColorSpace colorSpace;
+  ImageDataPixelFormat pixelFormat = "rgba-unorm8";
+};
+
+[Exposed=(Window,Worker),
+ Serializable]
+interface ImageData {
+  constructor(unsigned long sw, unsigned long sh, optional ImageDataSettings settings = {});
+  constructor(ImageDataArray data, unsigned long sw, optional unsigned long sh, optional ImageDataSettings settings = {});
+
+  readonly attribute unsigned long width;
+  readonly attribute unsigned long height;
+  readonly attribute ImageDataArray data;
+  readonly attribute ImageDataPixelFormat pixelFormat;
+  readonly attribute PredefinedColorSpace colorSpace;
 };
 
 [Exposed=(Window,Worker), Serializable, Transferable]

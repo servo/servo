@@ -9,7 +9,7 @@ use constellation_traits::EmbedderToConstellationMessage;
 use embedder_traits::{
     AllowOrDeny, AuthenticationResponse, ContextMenuResult, Cursor, FilterPattern,
     GamepadHapticEffectType, InputMethodType, LoadStatus, MediaSessionEvent, Notification,
-    PermissionFeature, ScreenGeometry, SelectElementOptionOrOptgroup, SimpleDialog,
+    PermissionFeature, RgbColor, ScreenGeometry, SelectElementOptionOrOptgroup, SimpleDialog,
     WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
 };
 use ipc_channel::ipc::IpcSender;
@@ -300,6 +300,8 @@ impl Drop for InterceptedWebResourceLoad {
 pub enum FormControl {
     /// The picker of a `<select>` element.
     SelectElement(SelectElement),
+    /// The picker of a `<input type=color>` element.
+    ColorPicker(ColorPicker),
 }
 
 /// Represents a dialog triggered by clicking a `<select>` element.
@@ -353,6 +355,48 @@ impl SelectElement {
     /// Resolve the prompt with the options that have been selected by calling [select] previously.
     pub fn submit(mut self) {
         let _ = self.responder.send(self.selected_option);
+    }
+}
+
+/// Represents a dialog triggered by clicking a `<input type=color>` element.
+pub struct ColorPicker {
+    pub(crate) current_color: RgbColor,
+    pub(crate) position: DeviceIntRect,
+    pub(crate) responder: IpcResponder<Option<RgbColor>>,
+    pub(crate) error_sender: ServoErrorSender,
+}
+
+impl ColorPicker {
+    pub(crate) fn new(
+        current_color: RgbColor,
+        position: DeviceIntRect,
+        ipc_sender: IpcSender<Option<RgbColor>>,
+        error_sender: ServoErrorSender,
+    ) -> Self {
+        Self {
+            current_color,
+            position,
+            responder: IpcResponder::new(ipc_sender, None),
+            error_sender,
+        }
+    }
+
+    /// Get the area occupied by the `<input>` element that triggered the prompt.
+    ///
+    /// The embedder should use this value to position the prompt that is shown to the user.
+    pub fn position(&self) -> DeviceIntRect {
+        self.position
+    }
+
+    /// Get the color that was selected before the prompt was opened.
+    pub fn current_color(&self) -> RgbColor {
+        self.current_color
+    }
+
+    pub fn select(&mut self, color: Option<RgbColor>) {
+        if let Err(error) = self.responder.send(color) {
+            self.error_sender.raise_response_send_error(error);
+        }
     }
 }
 

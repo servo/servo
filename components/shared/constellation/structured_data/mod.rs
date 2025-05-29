@@ -10,7 +10,7 @@ mod transferable;
 
 use std::collections::HashMap;
 
-use base::id::{BlobId, DomExceptionId, DomPointId, MessagePortId};
+use base::id::{BlobId, DomExceptionId, DomPointId, ImageBitmapId, MessagePortId};
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
@@ -20,7 +20,7 @@ pub use transferable::*;
 
 /// A data-holder for serialized data and transferred objects.
 /// <https://html.spec.whatwg.org/multipage/#structuredserializewithtransfer>
-#[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Debug, Default, Deserialize, MallocSizeOf, Serialize)]
 pub struct StructuredSerializedData {
     /// Data serialized by SpiderMonkey.
     pub serialized: Vec<u8>,
@@ -32,6 +32,12 @@ pub struct StructuredSerializedData {
     pub exceptions: Option<HashMap<DomExceptionId, DomException>>,
     /// Transferred objects.
     pub ports: Option<HashMap<MessagePortId, MessagePortImpl>>,
+    /// Transform streams transferred objects.
+    pub transform_streams: Option<HashMap<MessagePortId, TransformStreamData>>,
+    /// Serialized image bitmap objects.
+    pub image_bitmaps: Option<HashMap<ImageBitmapId, SerializableImageBitmap>>,
+    /// Transferred image bitmap objects.
+    pub transferred_image_bitmaps: Option<HashMap<ImageBitmapId, SerializableImageBitmap>>,
 }
 
 impl StructuredSerializedData {
@@ -40,6 +46,7 @@ impl StructuredSerializedData {
             field.as_ref().is_some_and(|h| h.is_empty())
         }
         match val {
+            Transferrable::ImageBitmap => is_field_empty(&self.transferred_image_bitmaps),
             Transferrable::MessagePort => is_field_empty(&self.ports),
             Transferrable::ReadableStream => is_field_empty(&self.ports),
             Transferrable::WritableStream => is_field_empty(&self.ports),

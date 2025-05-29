@@ -24,10 +24,10 @@ use js::jsapi::JSAutoRealm;
 use media::{GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
 use net_traits::request::{Destination, RequestId};
 use net_traits::{
-    FetchMetadata, FetchResponseListener, Metadata, NetworkError, ResourceFetchTiming,
-    ResourceTimingType,
+    FetchMetadata, FetchResponseListener, FilteredMetadata, Metadata, NetworkError,
+    ResourceFetchTiming, ResourceTimingType,
 };
-use pixels::Image;
+use pixels::RasterImage;
 use script_bindings::codegen::GenericBindings::TimeRangesBinding::TimeRangesMethods;
 use script_bindings::codegen::InheritTypes::{
     ElementTypeId, HTMLElementTypeId, HTMLMediaElementTypeId, NodeTypeId,
@@ -186,12 +186,12 @@ impl MediaFrameRenderer {
         }
     }
 
-    fn render_poster_frame(&mut self, image: Arc<Image>) {
+    fn render_poster_frame(&mut self, image: Arc<RasterImage>) {
         if let Some(image_key) = image.id {
             self.current_frame = Some(MediaFrame {
                 image_key,
-                width: image.width as i32,
-                height: image.height as i32,
+                width: image.metadata.width as i32,
+                height: image.metadata.height as i32,
             });
             self.show_poster = true;
         }
@@ -1358,18 +1358,17 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
-    pub(crate) fn process_poster_image_loaded(&self, image: Arc<Image>) {
+    pub(crate) fn process_poster_image_loaded(&self, image: Arc<RasterImage>) {
         if !self.show_poster.get() {
             return;
         }
 
         // Step 6.
-        self.handle_resize(Some(image.width), Some(image.height));
+        self.handle_resize(Some(image.metadata.width), Some(image.metadata.height));
         self.video_renderer
             .lock()
             .unwrap()
             .render_poster_frame(image);
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
 
         if pref!(media_testing_enabled) {
             self.owner_global()
@@ -1618,7 +1617,6 @@ impl HTMLMediaElement {
                 // TODO: 6. Abort the overall resource selection algorithm.
             },
             PlayerEvent::VideoFrameUpdated => {
-                self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                 // Check if the frame was resized
                 if let Some(frame) = self.video_renderer.lock().unwrap().current_frame {
                     self.handle_resize(Some(frame.width as u32), Some(frame.height as u32));
@@ -2017,12 +2015,12 @@ impl HTMLMediaElement {
     pub(crate) fn clear_current_frame_data(&self) {
         self.handle_resize(None, None);
         self.video_renderer.lock().unwrap().current_frame = None;
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
     fn handle_resize(&self, width: Option<u32>, height: Option<u32>) {
         if let Some(video_elem) = self.downcast::<HTMLVideoElement>() {
             video_elem.resize(width, height);
+            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
         }
     }
 
@@ -2070,6 +2068,28 @@ impl HTMLMediaElement {
                 eprintln!("Could not stop player {:?}", e);
             }
         }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#concept-media-load-resource>
+    pub(crate) fn origin_is_clean(&self) -> bool {
+        // Step 5.local (media provider object).
+        if self.src_object.borrow().is_some() {
+            // The resource described by the current media resource, if any,
+            // contains the media data. It is CORS-same-origin.
+            return true;
+        }
+
+        // Step 5.remote (URL record).
+        if self.resource_url.borrow().is_some() {
+            // Update the media data with the contents
+            // of response's unsafe response obtained in this fashion.
+            // Response can be CORS-same-origin or CORS-cross-origin;
+            if let Some(ref current_fetch_context) = *self.current_fetch_context.borrow() {
+                return current_fetch_context.origin_is_clean();
+            }
+        }
+
+        true
     }
 }
 
@@ -2656,6 +2676,8 @@ pub(crate) struct HTMLMediaElementFetchContext {
     cancel_reason: Option<CancelReason>,
     /// Indicates whether the fetched stream is seekable.
     is_seekable: bool,
+    /// Indicates whether the fetched stream is origin clean.
+    origin_clean: bool,
     /// Fetch canceller. Allows cancelling the current fetch request by
     /// manually calling its .cancel() method or automatically on Drop.
     fetch_canceller: FetchCanceller,
@@ -2666,6 +2688,7 @@ impl HTMLMediaElementFetchContext {
         HTMLMediaElementFetchContext {
             cancel_reason: None,
             is_seekable: false,
+            origin_clean: true,
             fetch_canceller: FetchCanceller::new(request_id),
         }
     }
@@ -2676,6 +2699,14 @@ impl HTMLMediaElementFetchContext {
 
     fn set_seekable(&mut self, seekable: bool) {
         self.is_seekable = seekable;
+    }
+
+    pub(crate) fn origin_is_clean(&self) -> bool {
+        self.origin_clean
+    }
+
+    fn set_origin_unclean(&mut self) {
+        self.origin_clean = false;
     }
 
     fn cancel(&mut self, reason: CancelReason) {
@@ -2730,6 +2761,16 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         if elem.generation_id.get() != self.generation_id || elem.player.borrow().is_none() {
             // A new fetch request was triggered, so we ignore this response.
             return;
+        }
+
+        if let Ok(FetchMetadata::Filtered {
+            filtered: FilteredMetadata::Opaque | FilteredMetadata::OpaqueRedirect(_),
+            ..
+        }) = metadata
+        {
+            if let Some(ref mut current_fetch_context) = *elem.current_fetch_context.borrow_mut() {
+                current_fetch_context.set_origin_unclean();
+            }
         }
 
         self.metadata = metadata.ok().map(|m| match m {

@@ -12,11 +12,10 @@ use dom_struct::dom_struct;
 use encoding_rs::UTF_8;
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
-use js::typedarray::Uint8;
+use js::typedarray::{ArrayBufferU8, Uint8};
 use net_traits::filemanager_thread::RelativePos;
 use uuid::Uuid;
 
-use crate::body::{FetchedData, run_array_buffer_data_algorithm};
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::BlobBinding;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
@@ -226,7 +225,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
         Blob::new(&global, blob_impl, can_gc)
     }
 
-    // https://w3c.github.io/FileAPI/#text-method-algo
+    /// <https://w3c.github.io/FileAPI/#text-method-algo>
     fn Text(&self, can_gc: CanGc) -> Rc<Promise> {
         let global = self.global();
         let in_realm_proof = AlreadyInRealm::assert::<crate::DomTypeHolder>();
@@ -250,35 +249,51 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
     }
 
     // https://w3c.github.io/FileAPI/#arraybuffer-method-algo
-    fn ArrayBuffer(&self, can_gc: CanGc) -> Rc<Promise> {
-        let global = self.global();
-        let in_realm_proof = AlreadyInRealm::assert::<crate::DomTypeHolder>();
-        let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
+    fn ArrayBuffer(&self, in_realm: InRealm, can_gc: CanGc) -> Rc<Promise> {
+        let cx = GlobalScope::get_cx();
+        let global = GlobalScope::from_safe_context(cx, in_realm);
+        let promise = Promise::new_in_current_realm(in_realm, can_gc);
 
-        let id = self.get_blob_url_id();
+        // 1. Let stream be the result of calling get stream on this.
+        let stream = self.get_stream(can_gc);
 
-        global.read_file_async(
-            id,
-            p.clone(),
-            Box::new(|promise, bytes| {
-                match bytes {
-                    Ok(b) => {
-                        let cx = GlobalScope::get_cx();
-                        let result = run_array_buffer_data_algorithm(cx, b, CanGc::note());
+        // 2. Let reader be the result of getting a reader from stream.
+        //    If that threw an exception, return a new promise rejected with that exception.
+        let reader = match stream.and_then(|s| s.acquire_default_reader(can_gc)) {
+            Ok(reader) => reader,
+            Err(error) => {
+                promise.reject_error(error, can_gc);
+                return promise;
+            },
+        };
 
-                        match result {
-                            Ok(FetchedData::ArrayBuffer(a)) => {
-                                promise.resolve_native(&a, CanGc::note())
-                            },
-                            Err(e) => promise.reject_error(e, CanGc::note()),
-                            _ => panic!("Unexpected result from run_array_buffer_data_algorithm"),
-                        }
-                    },
-                    Err(e) => promise.reject_error(e, CanGc::note()),
-                };
+        // 3. Let promise be the result of reading all bytes from stream with reader.
+        let success_promise = promise.clone();
+        let failure_promise = promise.clone();
+        reader.read_all_bytes(
+            cx,
+            &global,
+            Rc::new(move |bytes| {
+                rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
+                // 4. Return the result of transforming promise by a fulfillment handler that returns a new
+                //    [ArrayBuffer]
+                let array_buffer = create_buffer_source::<ArrayBufferU8>(
+                    cx,
+                    bytes,
+                    js_object.handle_mut(),
+                    can_gc,
+                )
+                .expect("Converting input to ArrayBufferU8 should never fail");
+                success_promise.resolve_native(&array_buffer, can_gc);
             }),
+            Rc::new(move |cx, value| {
+                failure_promise.reject(cx, value, can_gc);
+            }),
+            in_realm,
+            can_gc,
         );
-        p
+
+        promise
     }
 
     /// <https://w3c.github.io/FileAPI/#dom-blob-bytes>

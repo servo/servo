@@ -59,16 +59,14 @@ dpi = { workspace = true }
 euclid = { workspace = true }
 getopts = { workspace = true }
 hitrace = { workspace = true, optional = true }
-icu_locid = "1.5.0"
 image = { workspace = true }
 keyboard-types = { workspace = true }
 libc = { workspace = true }
-libservo = { path = "../../components/servo", features = ["background_hang_monitor", "bluetooth"] }
+libservo = { path = "../../components/servo", features = ["background_hang_monitor", "bluetooth", "testbinding"] }
 log = { workspace = true }
 mime_guess = { workspace = true }
 raw-window-handle = { workspace = true }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
-servo-tracing = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true, optional = true }
 tracing-perfetto = { workspace = true, optional = true }
@@ -79,7 +77,6 @@ url = { workspace = true }
 android_logger = "0.15"
 ipc-channel = { workspace = true }
 jni = "0.21.1"
-libloading = "0.8"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 backtrace = { workspace = true }
@@ -93,7 +90,7 @@ hilog = "0.2.0"
 ipc-channel = { workspace = true, features = ["force-inprocess"] }
 napi-derive-ohos = "1.0.4"
 napi-ohos = "1.0.4"
-ohos-ime = "0.2"
+ohos-ime = "0.3.0"
 ohos-ime-sys = "0.1.4"
 ohos-vsync = "0.1.3"
 xcomponent-sys = { version = "0.3.1", features = ["api-12", "keyboard-types"] }
@@ -104,24 +101,21 @@ serde_json = { workspace = true }
 surfman = { workspace = true, features = ["sm-angle-default"] }
 
 [target.'cfg(not(any(target_os = "android", target_env = "ohos")))'.dependencies]
-dirs = "5.0"
+dirs = "6.0"
 egui = "0.31.1"
 egui-file-dialog = "0.9.0"
 egui-winit = { version = "0.31.1", default-features = false, features = ["clipboard", "wayland"] }
 egui_glow = { version = "0.31.1", features = ["winit"] }
 gilrs = "0.11.0"
-gleam = { workspace = true }
 glow = "0.16.0"
 headers = { workspace = true }
-http = { workspace = true }
 net = { path = "../../components/net" }
 net_traits = { workspace = true }
 serde_json = { workspace = true }
 # For optional feature servo_allocator/use-system-allocator
 servo_allocator = { path = "../../components/allocator" }
-shellwords = "1.0.0"
 surfman = { workspace = true, features = ["sm-raw-window-handle-06", "sm-x11"] }
-winit = "0.30.10"
+winit = "0.30.11"
 
 [target.'cfg(any(all(target_os = "linux", not(target_env = "ohos")), target_os = "macos"))'.dependencies]
 sig = "1.0"

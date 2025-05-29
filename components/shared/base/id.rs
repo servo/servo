@@ -17,7 +17,7 @@ use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
-use webrender_api::{ExternalScrollId, PipelineId as WebRenderPipelineId, SpatialId};
+use webrender_api::{ExternalScrollId, PipelineId as WebRenderPipelineId};
 
 /// Asserts the size of a type at compile time.
 macro_rules! size_of_test {
@@ -371,6 +371,8 @@ namespace_id! {DomExceptionId, DomExceptionIndex, "DomException"}
 
 namespace_id! {HistoryStateId, HistoryStateIndex, "HistoryState"}
 
+namespace_id! {ImageBitmapId, ImageBitmapIndex, "ImageBitmap"}
+
 // We provide ids just for unit testing.
 pub const TEST_NAMESPACE: PipelineNamespaceId = PipelineNamespaceId(1234);
 #[allow(unsafe_code)]
@@ -397,7 +399,4 @@ pub const TEST_WEBVIEW_ID: WebViewId = WebViewId(TEST_BROWSING_CONTEXT_ID);
 pub struct ScrollTreeNodeId {
     /// The index of this scroll tree node in the tree's array of nodes.
     pub index: usize,
-
-    /// The WebRender spatial id of this scroll tree node.
-    pub spatial_id: SpatialId,
 }

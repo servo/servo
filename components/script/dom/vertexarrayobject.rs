@@ -8,7 +8,7 @@ use canvas_traits::webgl::{
     ActiveAttribInfo, WebGLCommand, WebGLError, WebGLResult, WebGLVersion, WebGLVertexArrayId,
 };
 
-use crate::dom::bindings::cell::{DomRefCell, Ref, ref_filter_map};
+use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants2;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use crate::dom::bindings::root::{Dom, MutNullableDom};
@@ -83,9 +83,10 @@ impl VertexArrayObject {
     }
 
     pub(crate) fn get_vertex_attrib(&self, index: u32) -> Option<Ref<VertexAttribData>> {
-        ref_filter_map(self.vertex_attribs.borrow(), |attribs| {
+        Ref::filter_map(self.vertex_attribs.borrow(), |attribs| {
             attribs.get(index as usize)
         })
+        .ok()
     }
 
     pub(crate) fn set_vertex_attrib_type(&self, index: u32, type_: u32) {

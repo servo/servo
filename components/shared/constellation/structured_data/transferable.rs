@@ -15,9 +15,17 @@ use strum::EnumIter;
 
 use crate::PortMessageTask;
 
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct TransformStreamData {
+    pub readable: (MessagePortId, MessagePortImpl),
+    pub writable: (MessagePortId, MessagePortImpl),
+}
+
 /// All the DOM interfaces that can be transferred.
 #[derive(Clone, Copy, Debug, EnumIter)]
 pub enum Transferrable {
+    /// The `ImageBitmap` interface.
+    ImageBitmap,
     /// The `MessagePort` interface.
     MessagePort,
     /// The `ReadableStream` interface.
@@ -28,7 +36,7 @@ pub enum Transferrable {
     TransformStream,
 }
 
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 enum MessagePortState {
     /// <https://html.spec.whatwg.org/multipage/#detached>
     Detached,
@@ -42,7 +50,7 @@ enum MessagePortState {
     Disabled(bool),
 }
 
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 /// The data and logic backing the DOM managed MessagePort.
 pub struct MessagePortImpl {
     /// The current state of the port.

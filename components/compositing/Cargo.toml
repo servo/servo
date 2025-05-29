@@ -34,7 +34,6 @@ log = { workspace = true }
 net = { path = "../net" }
 pixels = { path = "../pixels" }
 profile_traits = { workspace = true }
-script_traits = { workspace = true }
 servo_allocator = { path = "../allocator" }
 servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }

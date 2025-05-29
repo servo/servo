@@ -83,6 +83,16 @@
     symbols: linear-gradient(red calc(20px * sibling-count()), pink);
   }
 </style>
+<style id="font_features_sheet">
+  @font-feature-values foo {
+    @swash { pretty: 1; }
+    @swash { pretty: calc(max(sibling-index(), 2)); }
+  }
+  @font-feature-values bar {
+    @swash { pretty: 1; }
+    @swash { pretty: calc(max(sibling-count(), 2)); }
+  }
+</style>
 <script>
   const page_rules = page_sheet.sheet.cssRules;
 
@@ -139,5 +149,18 @@
     assert_equals(counter_style_rules[1].pad, "1 --pass");
     assert_equals(counter_style_rules[1].symbols, "--pass");
   }, "sibling-count() should not be allowed in @counter-style descriptors");
+
+
+  const font_features_rules = font_features_sheet.sheet.cssRules;
+
+  test(() => {
+    const swash = font_features_rules[0].swash;
+    assert_equals(swash.get("pretty")[0], 1);
+  }, "sibling-index() should not be allowed in @font-feature-values descriptors");
+
+  test(() => {
+    const swash = font_features_rules[1].swash;
+    assert_equals(swash.get("pretty")[0], 1);
+  }, "sibling-count() should not be allowed in @font-feature-values descriptors");
 
 </script>

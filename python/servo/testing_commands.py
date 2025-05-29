@@ -46,10 +46,14 @@ SERVO_TESTS_PATH = os.path.join("tests", "wpt", "mozilla", "tests")
 # Servo depends on several `rustfmt` options that are unstable. These are still
 # supported by stable `rustfmt` if they are passed as these command-line arguments.
 UNSTABLE_RUSTFMT_ARGUMENTS = [
-    "--config", "unstable_features=true",
-    "--config", "binop_separator=Back",
-    "--config", "imports_granularity=Module",
-    "--config", "group_imports=StdExternalCrate",
+    "--config",
+    "unstable_features=true",
+    "--config",
+    "binop_separator=Back",
+    "--config",
+    "imports_granularity=Module",
+    "--config",
+    "group_imports=StdExternalCrate",
 ]
 
 # Listing these globs manually is a work-around for very slow `taplo` invocation
@@ -72,9 +76,21 @@ def format_toml_files_with_taplo(check_only: bool = True) -> int:
         return 1
 
     if check_only:
-        return call([taplo, "fmt", "--check", *TOML_GLOBS], env={'RUST_LOG': 'error'})
+        return call([taplo, "fmt", "--check", *TOML_GLOBS], env={"RUST_LOG": "error"})
     else:
-        return call([taplo, "fmt", *TOML_GLOBS], env={'RUST_LOG': 'error'})
+        return call([taplo, "fmt", *TOML_GLOBS], env={"RUST_LOG": "error"})
+
+
+def format_python_files_with_ruff(check_only: bool = True) -> int:
+    ruff = shutil.which("ruff")
+    if ruff is None:
+        print("Could not find `ruff`. Run `./mach bootstrap`")
+        return 1
+
+    if check_only:
+        return call([ruff, "format", "--check", "--quiet"])
+    else:
+        return call([ruff, "format", "--quiet"])
 
 
 def format_with_rustfmt(check_only: bool = True) -> int:
@@ -83,8 +99,17 @@ def format_with_rustfmt(check_only: bool = True) -> int:
     if result != 0:
         return result
 
-    return call(["cargo", "fmt", "--manifest-path", "support/crown/Cargo.toml",
-                 "--", *UNSTABLE_RUSTFMT_ARGUMENTS, *maybe_check_only])
+    return call(
+        [
+            "cargo",
+            "fmt",
+            "--manifest-path",
+            "support/crown/Cargo.toml",
+            "--",
+            *UNSTABLE_RUSTFMT_ARGUMENTS,
+            *maybe_check_only,
+        ]
+    )
 
 
 @CommandProvider
@@ -97,15 +122,10 @@ class MachCommands(CommandBase):
         if not hasattr(self.context, "built_tests"):
             self.context.built_tests = False
 
-    @Command('test-perf',
-             description='Run the page load performance test',
-             category='testing')
-    @CommandArgument('--base', default=None,
-                     help="the base URL for testcases")
-    @CommandArgument('--date', default=None,
-                     help="the datestamp for the data")
-    @CommandArgument('--submit', '-a', default=False, action="store_true",
-                     help="submit the data to perfherder")
+    @Command("test-perf", description="Run the page load performance test", category="testing")
+    @CommandArgument("--base", default=None, help="the base URL for testcases")
+    @CommandArgument("--date", default=None, help="the datestamp for the data")
+    @CommandArgument("--submit", "-a", default=False, action="store_true", help="submit the data to perfherder")
     def test_perf(self, base=None, date=None, submit=False):
         env = self.build_env()
         cmd = ["bash", "test_perf.sh"]
@@ -115,20 +135,15 @@ class MachCommands(CommandBase):
             cmd += ["--date", date]
         if submit:
             cmd += ["--submit"]
-        return call(cmd,
-                    env=env,
-                    cwd=path.join("etc", "ci", "performance"))
+        return call(cmd, env=env, cwd=path.join("etc", "ci", "performance"))
 
-    @Command('test-unit',
-             description='Run unit tests',
-             category='testing')
-    @CommandArgument('test_name', nargs=argparse.REMAINDER,
-                     help="Only run tests that match this pattern or file path")
-    @CommandArgument('--package', '-p', default=None, help="Specific package to test")
-    @CommandArgument('--bench', default=False, action="store_true",
-                     help="Run in bench mode")
-    @CommandArgument('--nocapture', default=False, action="store_true",
-                     help="Run tests with nocapture ( show test stdout )")
+    @Command("test-unit", description="Run unit tests", category="testing")
+    @CommandArgument("test_name", nargs=argparse.REMAINDER, help="Only run tests that match this pattern or file path")
+    @CommandArgument("--package", "-p", default=None, help="Specific package to test")
+    @CommandArgument("--bench", default=False, action="store_true", help="Run in bench mode")
+    @CommandArgument(
+        "--nocapture", default=False, action="store_true", help="Run tests with nocapture ( show test stdout )"
+    )
     @CommandBase.common_command_arguments(build_configuration=True, build_type=True)
     def test_unit(self, build_type: BuildType, test_name=None, package=None, bench=False, nocapture=False, **kwargs):
         if test_name is None:
@@ -175,6 +190,7 @@ class MachCommands(CommandBase):
             "net",
             "net_traits",
             "pixels",
+            "script_layout_interface",
             "script_traits",
             "selectors",
             "servo_config",
@@ -182,7 +198,7 @@ class MachCommands(CommandBase):
             "stylo_config",
         ]
         if not packages:
-            packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit"))) - set(['.DS_Store'])
+            packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit"))) - set([".DS_Store"])
             packages |= set(self_contained_tests)
 
         in_crate_packages = []
@@ -193,7 +209,7 @@ class MachCommands(CommandBase):
             except KeyError:
                 pass
 
-        packages.discard('stylo')
+        packages.discard("stylo")
 
         # Return if there is nothing to do.
         if len(packages) == 0 and len(in_crate_packages) == 0:
@@ -222,59 +238,56 @@ class MachCommands(CommandBase):
         result = call(["cargo", "bench" if bench else "test"], cwd="support/crown")
         if result != 0:
             return result
-        return self.run_cargo_build_like_command(
-            "bench" if bench else "test",
-            args,
-            env=env,
-            **kwargs)
+        return self.run_cargo_build_like_command("bench" if bench else "test", args, env=env, **kwargs)
 
-    @Command('test-content',
-             description='Run the content tests',
-             category='testing')
+    @Command("test-content", description="Run the content tests", category="testing")
     def test_content(self):
-        print("Content tests have been replaced by web-platform-tests under "
-              "tests/wpt/mozilla/.")
+        print("Content tests have been replaced by web-platform-tests under tests/wpt/mozilla/.")
         return 0
 
-    @Command('test-tidy',
-             description='Run the source code tidiness check',
-             category='testing')
-    @CommandArgument('--all', default=False, action="store_true", dest="all_files",
-                     help="Check all files, and run the WPT lint in tidy, "
-                          "even if unchanged")
-    @CommandArgument('--no-progress', default=False, action="store_true",
-                     help="Don't show progress for tidy")
+    @Command("test-tidy", description="Run the source code tidiness check", category="testing")
+    @CommandArgument(
+        "--all",
+        default=False,
+        action="store_true",
+        dest="all_files",
+        help="Check all files, and run the WPT lint in tidy, even if unchanged",
+    )
+    @CommandArgument("--no-progress", default=False, action="store_true", help="Don't show progress for tidy")
     def test_tidy(self, all_files, no_progress):
         tidy_failed = tidy.scan(not all_files, not no_progress)
 
         print("\r ➤  Checking formatting of Rust files...")
         rustfmt_failed = format_with_rustfmt(check_only=True)
-        if rustfmt_failed:
-            print("Run `./mach fmt` to fix the formatting")
+
+        print("\r ➤  Checking formatting of python files...")
+        ruff_format_failed = format_python_files_with_ruff()
 
         print("\r ➤  Checking formatting of toml files...")
         taplo_failed = format_toml_files_with_taplo()
 
-        tidy_failed = tidy_failed or rustfmt_failed or taplo_failed
+        format_failed = rustfmt_failed or ruff_format_failed or taplo_failed
+        tidy_failed = format_failed or tidy_failed
         print()
         if tidy_failed:
             print("\r ❌ test-tidy reported errors.")
         else:
             print("\r ✅ test-tidy reported no errors.")
 
+        if format_failed:
+            print("Run `./mach fmt` to fix the formatting")
+
         return tidy_failed
 
-    @Command('test-scripts',
-             description='Run tests for all build and support scripts.',
-             category='testing')
-    @CommandArgument('--verbose', '-v', default=False, action="store_true",
-                     help="Enable verbose output")
-    @CommandArgument('--very-verbose', '-vv', default=False, action="store_true",
-                     help="Enable very verbose output")
-    @CommandArgument('--all', '-a', default=False, action="store_true",
-                     help="Run all script tests, even the slow ones.")
-    @CommandArgument('tests', default=None, nargs="...",
-                     help="Specific WebIDL tests to run, relative to the tests directory")
+    @Command("test-scripts", description="Run tests for all build and support scripts.", category="testing")
+    @CommandArgument("--verbose", "-v", default=False, action="store_true", help="Enable verbose output")
+    @CommandArgument("--very-verbose", "-vv", default=False, action="store_true", help="Enable very verbose output")
+    @CommandArgument(
+        "--all", "-a", default=False, action="store_true", help="Run all script tests, even the slow ones."
+    )
+    @CommandArgument(
+        "tests", default=None, nargs="...", help="Specific WebIDL tests to run, relative to the tests directory"
+    )
     def test_scripts(self, verbose, very_verbose, all, tests):
         if very_verbose:
             logging.getLogger().level = logging.DEBUG
@@ -289,6 +302,7 @@ class MachCommands(CommandBase):
         passed = tidy.run_tests() and passed
 
         import python.servo.try_parser as try_parser
+
         print("Running try_parser tests...")
         passed = try_parser.run_tests() and passed
 
@@ -301,7 +315,9 @@ class MachCommands(CommandBase):
             try:
                 result = subprocess.run(
                     ["etc/devtools_parser.py", "--json", "--use", "etc/devtools_parser_test.pcap"],
-                    check=True, capture_output=True)
+                    check=True,
+                    capture_output=True,
+                )
                 expected = open("etc/devtools_parser_test.json", "rb").read()
                 actual = result.stdout
                 assert actual == expected, f"Incorrect output!\nExpected: {repr(expected)}\nActual:   {repr(actual)}"
@@ -322,41 +338,42 @@ class MachCommands(CommandBase):
             sys.path.insert(0, test_file_dir)
             run_file = path.abspath(path.join(test_file_dir, "runtests.py"))
             run_globals = {"__file__": run_file}
-            exec(compile(open(run_file).read(), run_file, 'exec'), run_globals)
+            exec(compile(open(run_file).read(), run_file, "exec"), run_globals)
             passed = run_globals["run_tests"](tests, verbose or very_verbose) and passed
 
         return 0 if passed else 1
 
-    @Command('test-devtools',
-             description='Run tests for devtools.',
-             category='testing')
+    @Command("test-devtools", description="Run tests for devtools.", category="testing")
     def test_devtools(self):
         print("Running devtools tests...")
         passed = servo.devtools_tests.run_tests(SCRIPT_PATH)
         return 0 if passed else 1
 
-    @Command('test-wpt-failure',
-             description='Run the tests harness that verifies that the test failures are reported correctly',
-             category='testing',
-             parser=wpt.create_parser)
+    @Command(
+        "test-wpt-failure",
+        description="Run the tests harness that verifies that the test failures are reported correctly",
+        category="testing",
+        parser=wpt.create_parser,
+    )
     @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
     def test_wpt_failure(self, build_type: BuildType, **kwargs):
         kwargs["pause_after_test"] = False
         kwargs["include"] = ["infrastructure/failing-test.html"]
         return not self._test_wpt(build_type=build_type, **kwargs)
 
-    @Command('test-wpt',
-             description='Run the regular web platform test suite',
-             category='testing',
-             parser=wpt.create_parser)
+    @Command(
+        "test-wpt", description="Run the regular web platform test suite", category="testing", parser=wpt.create_parser
+    )
     @CommandBase.common_command_arguments(binary_selection=True)
     def test_wpt(self, servo_binary: str, **kwargs):
         return self._test_wpt(servo_binary, **kwargs)
 
-    @Command('test-wpt-android',
-             description='Run the web platform test suite in an Android emulator',
-             category='testing',
-             parser=wpt.create_parser)
+    @Command(
+        "test-wpt-android",
+        description="Run the web platform test suite in an Android emulator",
+        category="testing",
+        parser=wpt.create_parser,
+    )
     @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
     def test_wpt_android(self, build_type: BuildType, binary_args=None, **kwargs):
         kwargs.update(
@@ -373,27 +390,30 @@ class MachCommands(CommandBase):
         return_value = wpt.run.run_tests(servo_binary, **kwargs)
         return return_value if not kwargs["always_succeed"] else 0
 
-    @Command('update-manifest',
-             description='Run test-wpt --manifest-update SKIP_TESTS to regenerate MANIFEST.json',
-             category='testing',
-             parser=wpt.manifestupdate.create_parser)
+    @Command(
+        "update-manifest",
+        description="Run test-wpt --manifest-update SKIP_TESTS to regenerate MANIFEST.json",
+        category="testing",
+        parser=wpt.manifestupdate.create_parser,
+    )
     def update_manifest(self, **kwargs):
         return wpt.manifestupdate.update(check_clean=False)
 
-    @Command('fmt',
-             description='Format Rust and TOML files',
-             category='testing')
+    @Command("fmt", description="Format Rust, Python, and TOML files", category="testing")
     def format_code(self):
+        result = format_python_files_with_ruff(check_only=False)
+        if result != 0:
+            return result
+
         result = format_toml_files_with_taplo(check_only=False)
         if result != 0:
             return result
 
         return format_with_rustfmt(check_only=False)
 
-    @Command('update-wpt',
-             description='Update the web platform tests',
-             category='testing',
-             parser=wpt.update.create_parser)
+    @Command(
+        "update-wpt", description="Update the web platform tests", category="testing", parser=wpt.update.create_parser
+    )
     def update_wpt(self, **kwargs):
         patch = kwargs.get("patch", False)
         if not patch and kwargs["sync"]:
@@ -401,9 +421,7 @@ class MachCommands(CommandBase):
             return 1
         return wpt.update.update_tests(**kwargs)
 
-    @Command('test-android-startup',
-             description='Extremely minimal testing of Servo for Android',
-             category='testing')
+    @Command("test-android-startup", description="Extremely minimal testing of Servo for Android", category="testing")
     @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
     def test_android_startup(self, build_type: BuildType):
         html = """
@@ -440,50 +458,49 @@ class MachCommands(CommandBase):
         py = path.join(self.context.topdir, "etc", "run_in_headless_android_emulator.py")
         return [py, avd, apk]
 
-    @Command('test-jquery', description='Run the jQuery test suite', category='testing')
+    @Command("test-jquery", description="Run the jQuery test suite", category="testing")
     @CommandBase.common_command_arguments(binary_selection=True)
     def test_jquery(self, servo_binary: str):
         return self.jquery_test_runner("test", servo_binary)
 
-    @Command('test-dromaeo', description='Run the Dromaeo test suite', category='testing')
-    @CommandArgument('tests', default=["recommended"], nargs="...", help="Specific tests to run")
-    @CommandArgument('--bmf-output', default=None, help="Specify BMF JSON output file")
+    @Command("test-dromaeo", description="Run the Dromaeo test suite", category="testing")
+    @CommandArgument("tests", default=["recommended"], nargs="...", help="Specific tests to run")
+    @CommandArgument("--bmf-output", default=None, help="Specify BMF JSON output file")
     @CommandBase.common_command_arguments(binary_selection=True)
     def test_dromaeo(self, tests, servo_binary: str, bmf_output: str | None = None):
         return self.dromaeo_test_runner(tests, servo_binary, bmf_output)
 
-    @Command('test-speedometer', description="Run servo's speedometer", category='testing')
-    @CommandArgument('--bmf-output', default=None, help="Specify BMF JSON output file")
+    @Command("test-speedometer", description="Run servo's speedometer", category="testing")
+    @CommandArgument("--bmf-output", default=None, help="Specify BMF JSON output file")
     @CommandBase.common_command_arguments(binary_selection=True)
     def test_speedometer(self, servo_binary: str, bmf_output: str | None = None):
         return self.speedometer_runner(servo_binary, bmf_output)
 
-    @Command('update-jquery',
-             description='Update the jQuery test suite expected results',
-             category='testing')
+    @Command("update-jquery", description="Update the jQuery test suite expected results", category="testing")
     @CommandBase.common_command_arguments(binary_selection=True)
     def update_jquery(self, servo_binary: str):
         return self.jquery_test_runner("update", servo_binary)
 
-    @Command('compare_dromaeo',
-             description='Compare outputs of two runs of ./mach test-dromaeo command',
-             category='testing')
-    @CommandArgument('params', default=None, nargs="...",
-                     help=" filepaths of output files of two runs of dromaeo test ")
+    @Command(
+        "compare_dromaeo", description="Compare outputs of two runs of ./mach test-dromaeo command", category="testing"
+    )
+    @CommandArgument(
+        "params", default=None, nargs="...", help=" filepaths of output files of two runs of dromaeo test "
+    )
     def compare_dromaeo(self, params):
         prev_op_filename = params[0]
         cur_op_filename = params[1]
-        result = {'Test': [], 'Prev_Time': [], 'Cur_Time': [], 'Difference(%)': []}
-        with open(prev_op_filename, 'r') as prev_op, open(cur_op_filename, 'r') as cur_op:
+        result = {"Test": [], "Prev_Time": [], "Cur_Time": [], "Difference(%)": []}
+        with open(prev_op_filename, "r") as prev_op, open(cur_op_filename, "r") as cur_op:
             l1 = prev_op.readline()
             l2 = cur_op.readline()
 
-            while ((l1.find('[dromaeo] Saving...') and l2.find('[dromaeo] Saving...'))):
+            while l1.find("[dromaeo] Saving...") and l2.find("[dromaeo] Saving..."):
                 l1 = prev_op.readline()
                 l2 = cur_op.readline()
 
             reach = 3
-            while (reach > 0):
+            while reach > 0:
                 l1 = prev_op.readline()
                 l2 = cur_op.readline()
                 reach -= 1
@@ -493,33 +510,62 @@ class MachCommands(CommandBase):
                 l2 = cur_op.readline()
                 if not l1:
                     break
-                result['Test'].append(str(l1).split('|')[0].strip())
-                result['Prev_Time'].append(float(str(l1).split('|')[1].strip()))
-                result['Cur_Time'].append(float(str(l2).split('|')[1].strip()))
-                a = float(str(l1).split('|')[1].strip())
-                b = float(str(l2).split('|')[1].strip())
-                result['Difference(%)'].append(((b - a) / a) * 100)
+                result["Test"].append(str(l1).split("|")[0].strip())
+                result["Prev_Time"].append(float(str(l1).split("|")[1].strip()))
+                result["Cur_Time"].append(float(str(l2).split("|")[1].strip()))
+                a = float(str(l1).split("|")[1].strip())
+                b = float(str(l2).split("|")[1].strip())
+                result["Difference(%)"].append(((b - a) / a) * 100)
 
-            width_col1 = max([len(x) for x in result['Test']])
-            width_col2 = max([len(str(x)) for x in result['Prev_Time']])
-            width_col3 = max([len(str(x)) for x in result['Cur_Time']])
-            width_col4 = max([len(str(x)) for x in result['Difference(%)']])
+            width_col1 = max([len(x) for x in result["Test"]])
+            width_col2 = max([len(str(x)) for x in result["Prev_Time"]])
+            width_col3 = max([len(str(x)) for x in result["Cur_Time"]])
+            width_col4 = max([len(str(x)) for x in result["Difference(%)"]])
 
-            for p, q, r, s in zip(['Test'], ['First Run'], ['Second Run'], ['Difference(%)']):
-                print("\033[1m" + "{}|{}|{}|{}".format(p.ljust(width_col1), q.ljust(width_col2), r.ljust(width_col3),
-                      s.ljust(width_col4)) + "\033[0m" + "\n" + "--------------------------------------------------"
-                      + "-------------------------------------------------------------------------")
+            for p, q, r, s in zip(["Test"], ["First Run"], ["Second Run"], ["Difference(%)"]):
+                print(
+                    "\033[1m"
+                    + "{}|{}|{}|{}".format(
+                        p.ljust(width_col1), q.ljust(width_col2), r.ljust(width_col3), s.ljust(width_col4)
+                    )
+                    + "\033[0m"
+                    + "\n"
+                    + "--------------------------------------------------"
+                    + "-------------------------------------------------------------------------"
+                )
 
-            for a1, b1, c1, d1 in zip(result['Test'], result['Prev_Time'], result['Cur_Time'], result['Difference(%)']):
+            for a1, b1, c1, d1 in zip(result["Test"], result["Prev_Time"], result["Cur_Time"], result["Difference(%)"]):
                 if d1 > 0:
-                    print("\033[91m" + "{}|{}|{}|{}".format(a1.ljust(width_col1),
-                          str(b1).ljust(width_col2), str(c1).ljust(width_col3), str(d1).ljust(width_col4)) + "\033[0m")
+                    print(
+                        "\033[91m"
+                        + "{}|{}|{}|{}".format(
+                            a1.ljust(width_col1),
+                            str(b1).ljust(width_col2),
+                            str(c1).ljust(width_col3),
+                            str(d1).ljust(width_col4),
+                        )
+                        + "\033[0m"
+                    )
                 elif d1 < 0:
-                    print("\033[92m" + "{}|{}|{}|{}".format(a1.ljust(width_col1),
-                          str(b1).ljust(width_col2), str(c1).ljust(width_col3), str(d1).ljust(width_col4)) + "\033[0m")
+                    print(
+                        "\033[92m"
+                        + "{}|{}|{}|{}".format(
+                            a1.ljust(width_col1),
+                            str(b1).ljust(width_col2),
+                            str(c1).ljust(width_col3),
+                            str(d1).ljust(width_col4),
+                        )
+                        + "\033[0m"
+                    )
                 else:
-                    print("{}|{}|{}|{}".format(a1.ljust(width_col1), str(b1).ljust(width_col2),
-                          str(c1).ljust(width_col3), str(d1).ljust(width_col4)))
+                    print(
+                        "{}|{}|{}|{}".format(
+                            a1.ljust(width_col1),
+                            str(b1).ljust(width_col2),
+                            str(c1).ljust(width_col3),
+                            str(d1).ljust(width_col4),
+                        )
+                    )
 
     def jquery_test_runner(self, cmd, binary: str):
         base_dir = path.abspath(path.join("tests", "jquery"))
@@ -528,12 +574,10 @@ class MachCommands(CommandBase):
 
         # Clone the jQuery repository if it doesn't exist
         if not os.path.isdir(jquery_dir):
-            check_call(
-                ["git", "clone", "-b", "servo", "--depth", "1", "https://github.com/servo/jquery", jquery_dir])
+            check_call(["git", "clone", "-b", "servo", "--depth", "1", "https://github.com/servo/jquery", jquery_dir])
 
         # Run pull in case the jQuery repo was updated since last test run
-        check_call(
-            ["git", "-C", jquery_dir, "pull"])
+        check_call(["git", "-C", jquery_dir, "pull"])
 
         # Check that a release servo build exists
         bin_path = path.abspath(binary)
@@ -552,29 +596,34 @@ class MachCommands(CommandBase):
         # Clone the Dromaeo repository if it doesn't exist
         if not os.path.isdir(dromaeo_dir):
             check_call(
-                ["git", "clone", "-b", "servo", "--depth", "1", "https://github.com/notriddle/dromaeo", dromaeo_dir])
+                ["git", "clone", "-b", "servo", "--depth", "1", "https://github.com/notriddle/dromaeo", dromaeo_dir]
+            )
 
         # Run pull in case the Dromaeo repo was updated since last test run
-        check_call(
-            ["git", "-C", dromaeo_dir, "pull"])
+        check_call(["git", "-C", dromaeo_dir, "pull"])
 
         # Compile test suite
-        check_call(
-            ["make", "-C", dromaeo_dir, "web"])
+        check_call(["make", "-C", dromaeo_dir, "web"])
 
         # Check that a release servo build exists
         bin_path = path.abspath(binary)
 
-        return check_call(
-            [run_file, "|".join(tests), bin_path, base_dir, bmf_output])
+        return check_call([run_file, "|".join(tests), bin_path, base_dir, bmf_output])
 
     def speedometer_runner(self, binary: str, bmf_output: str | None):
-        speedometer = json.loads(subprocess.check_output([
-            binary,
-            "https://servospeedometer.netlify.app?headless=1",
-            "--pref", "dom_allow_scripts_to_close_windows",
-            "--window-size=1100x900",
-            "--headless"], timeout=120).decode())
+        speedometer = json.loads(
+            subprocess.check_output(
+                [
+                    binary,
+                    "https://servospeedometer.netlify.app?headless=1",
+                    "--pref",
+                    "dom_allow_scripts_to_close_windows",
+                    "--window-size=1100x900",
+                    "--headless",
+                ],
+                timeout=120,
+            ).decode()
+        )
 
         print(f"Score: {speedometer['Score']['mean']} ± {speedometer['Score']['delta']}")
 
@@ -582,53 +631,53 @@ class MachCommands(CommandBase):
             output = dict()
 
             def parse_speedometer_result(result):
-                if result['unit'] == "ms":
+                if result["unit"] == "ms":
                     output[f"Speedometer/{result['name']}"] = {
-                        'latency': {  # speedometer has ms we need to convert to ns
-                            'value': float(result['mean']) * 1000.0,
-                            'lower_value': float(result['min']) * 1000.0,
-                            'upper_value': float(result['max']) * 1000.0,
+                        "latency": {  # speedometer has ms we need to convert to ns
+                            "value": float(result["mean"]) * 1000.0,
+                            "lower_value": float(result["min"]) * 1000.0,
+                            "upper_value": float(result["max"]) * 1000.0,
                         }
                     }
-                elif result['unit'] == "score":
+                elif result["unit"] == "score":
                     output[f"Speedometer/{result['name']}"] = {
-                        'score': {
-                            'value': float(result['mean']),
-                            'lower_value': float(result['min']),
-                            'upper_value': float(result['max']),
+                        "score": {
+                            "value": float(result["mean"]),
+                            "lower_value": float(result["min"]),
+                            "upper_value": float(result["max"]),
                         }
                     }
                 else:
                     raise "Unknown unit!"
 
-                for child in result['children']:
+                for child in result["children"]:
                     parse_speedometer_result(child)
 
             for v in speedometer.values():
                 parse_speedometer_result(v)
-            with open(bmf_output, 'w', encoding='utf-8') as f:
+            with open(bmf_output, "w", encoding="utf-8") as f:
                 json.dump(output, f, indent=4)
 
-    @Command('update-net-cookies',
-             description='Update the net unit tests with cookie tests from http-state',
-             category='testing')
+    @Command(
+        "update-net-cookies",
+        description="Update the net unit tests with cookie tests from http-state",
+        category="testing",
+    )
     def update_net_cookies(self):
         cache_dir = path.join(self.config["tools"]["cache-dir"], "tests")
-        run_file = path.abspath(path.join(PROJECT_TOPLEVEL_PATH,
-                                          "components", "net", "tests",
-                                          "cookie_http_state_utils.py"))
+        run_file = path.abspath(
+            path.join(PROJECT_TOPLEVEL_PATH, "components", "net", "tests", "cookie_http_state_utils.py")
+        )
         run_globals = {"__file__": run_file}
-        exec(compile(open(run_file).read(), run_file, 'exec'), run_globals)
+        exec(compile(open(run_file).read(), run_file, "exec"), run_globals)
         return run_globals["update_test_file"](cache_dir)
 
-    @Command('update-webgl',
-             description='Update the WebGL conformance suite tests from Khronos repo',
-             category='testing')
-    @CommandArgument('--version', default='2.0.0',
-                     help='WebGL conformance suite version')
+    @Command(
+        "update-webgl", description="Update the WebGL conformance suite tests from Khronos repo", category="testing"
+    )
+    @CommandArgument("--version", default="2.0.0", help="WebGL conformance suite version")
     def update_webgl(self, version=None):
-        base_dir = path.abspath(path.join(PROJECT_TOPLEVEL_PATH,
-                                "tests", "wpt", "mozilla", "tests", "webgl"))
+        base_dir = path.abspath(path.join(PROJECT_TOPLEVEL_PATH, "tests", "wpt", "mozilla", "tests", "webgl"))
         run_file = path.join(base_dir, "tools", "import-conformance-tests.py")
         dest_folder = path.join(base_dir, "conformance-%s" % version)
         patches_dir = path.join(base_dir, "tools")
@@ -637,18 +686,12 @@ class MachCommands(CommandBase):
             shutil.rmtree(dest_folder)
 
         run_globals = {"__file__": run_file}
-        exec(compile(open(run_file).read(), run_file, 'exec'), run_globals)
+        exec(compile(open(run_file).read(), run_file, "exec"), run_globals)
         return run_globals["update_conformance"](version, dest_folder, None, patches_dir)
 
-    @Command('update-webgpu',
-             description='Update the WebGPU conformance test suite',
-             category='testing')
-    @CommandArgument(
-        '--repo', '-r', default="https://github.com/gpuweb/cts",
-        help='Repo to vendor cts from')
-    @CommandArgument(
-        '--checkout', '-c', default="main",
-        help='Branch or commit of repo')
+    @Command("update-webgpu", description="Update the WebGPU conformance test suite", category="testing")
+    @CommandArgument("--repo", "-r", default="https://github.com/gpuweb/cts", help="Repo to vendor cts from")
+    @CommandArgument("--checkout", "-c", default="main", help="Branch or commit of repo")
     def cts(self, repo="https://github.com/gpuweb/cts", checkout="main"):
         tdir = path.join(self.context.topdir, "tests/wpt/webgpu/tests")
         clone_dir = path.join(tdir, "cts_clone")
@@ -671,52 +714,52 @@ class MachCommands(CommandBase):
         delete(path.join(clone_dir, "out-wpt", "cts-chunked2sec.https.html"))
         cts_html = path.join(clone_dir, "out-wpt", "cts.https.html")
         # patch
-        with open(cts_html, 'r') as file:
+        with open(cts_html, "r") as file:
             filedata = file.read()
         # files are mounted differently
-        filedata = filedata.replace('src=/webgpu/common/runtime/wpt.js', 'src=../webgpu/common/runtime/wpt.js')
+        filedata = filedata.replace("src=/webgpu/common/runtime/wpt.js", "src=../webgpu/common/runtime/wpt.js")
         # Mark all webgpu tests as long to increase their timeouts. This is needed due to wgpu's slowness.
         # TODO: replace this with more fine grained solution: https://github.com/servo/servo/issues/30999
-        filedata = filedata.replace('<meta charset=utf-8>',
-                                    '<meta charset=utf-8>\n<meta name="timeout" content="long">')
+        filedata = filedata.replace(
+            "<meta charset=utf-8>", '<meta charset=utf-8>\n<meta name="timeout" content="long">'
+        )
         # Write the file out again
-        with open(cts_html, 'w') as file:
+        with open(cts_html, "w") as file:
             file.write(filedata)
         logger = path.join(clone_dir, "out-wpt", "common/internal/logging/test_case_recorder.js")
-        with open(logger, 'r') as file:
+        with open(logger, "r") as file:
             filedata = file.read()
         filedata.replace("info(ex) {", "info(ex) {return;")
-        with open(logger, 'w') as file:
+        with open(logger, "w") as file:
             file.write(filedata)
         # copy
         delete(path.join(tdir, "webgpu"))
         shutil.copytree(path.join(clone_dir, "out-wpt"), path.join(tdir, "webgpu"))
         # update commit
         commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=clone_dir).decode()
-        with open(path.join(tdir, "checkout_commit.txt"), 'w') as file:
+        with open(path.join(tdir, "checkout_commit.txt"), "w") as file:
             file.write(commit)
         # clean up
         delete(clone_dir)
         print("Updating manifest.")
         return self.context.commands.dispatch("update-manifest", self.context)
 
-    @Command('smoketest',
-             description='Load a simple page in Servo and ensure that it closes properly',
-             category='testing')
-    @CommandArgument('params', nargs='...',
-                     help="Command-line arguments to be passed through to Servo")
+    @Command(
+        "smoketest", description="Load a simple page in Servo and ensure that it closes properly", category="testing"
+    )
+    @CommandArgument("params", nargs="...", help="Command-line arguments to be passed through to Servo")
     @CommandBase.common_command_arguments(binary_selection=True)
     def smoketest(self, servo_binary: str, params, **kwargs):
         # We pass `-f` here so that any thread panic will cause Servo to exit,
         # preventing a panic from hanging execution. This means that these kind
         # of panics won't cause timeouts on CI.
-        return PostBuildCommands(self.context)._run(servo_binary,
-                                                    params + ['-f', 'tests/html/close-on-load.html'])
+        return PostBuildCommands(self.context)._run(servo_binary, params + ["-f", "tests/html/close-on-load.html"])
 
-    @Command('try', description='Runs try jobs by force pushing to try branch', category='testing')
-    @CommandArgument('--remote', '-r', default="origin", help='A git remote to run the try job on')
-    @CommandArgument('try_strings', default=["full"], nargs='...',
-                     help="A list of try strings specifying what kind of job to run.")
+    @Command("try", description="Runs try jobs by force pushing to try branch", category="testing")
+    @CommandArgument("--remote", "-r", default="origin", help="A git remote to run the try job on")
+    @CommandArgument(
+        "try_strings", default=["full"], nargs="...", help="A list of try strings specifying what kind of job to run."
+    )
     def try_command(self, remote: str, try_strings: list[str]):
         if subprocess.check_output(["git", "diff", "--cached", "--name-only"]).strip():
             print("Cannot run `try` with staged and uncommited changes. ")
@@ -754,7 +797,7 @@ class MachCommands(CommandBase):
             # tool and get the real URL.
             actions_url = remote_url.replace(".git", "/actions")
             if not actions_url.startswith("https"):
-                actions_url = actions_url.replace(':', '/')
+                actions_url = actions_url.replace(":", "/")
                 actions_url = actions_url.replace("git@", "")
                 actions_url = f"https://{actions_url}"
             print(f"Actions available at: {actions_url}")
@@ -769,25 +812,27 @@ class MachCommands(CommandBase):
 
 def create_parser_create():
     import argparse
+
     p = argparse.ArgumentParser()
-    p.add_argument("--no-editor", action="store_true",
-                   help="Don't try to open the test in an editor")
+    p.add_argument("--no-editor", action="store_true", help="Don't try to open the test in an editor")
     p.add_argument("-e", "--editor", action="store", help="Editor to use")
-    p.add_argument("--no-run", action="store_true",
-                   help="Don't try to update the wpt manifest or open the test in a browser")
-    p.add_argument('--release', action="store_true",
-                   help="Run with a release build of servo")
-    p.add_argument("--long-timeout", action="store_true",
-                   help="Test should be given a long timeout (typically 60s rather than 10s,"
-                   "but varies depending on environment)")
-    p.add_argument("--overwrite", action="store_true",
-                   help="Allow overwriting an existing test file")
-    p.add_argument("-r", "--reftest", action="store_true",
-                   help="Create a reftest rather than a testharness (js) test"),
+    p.add_argument(
+        "--no-run", action="store_true", help="Don't try to update the wpt manifest or open the test in a browser"
+    )
+    p.add_argument("--release", action="store_true", help="Run with a release build of servo")
+    p.add_argument(
+        "--long-timeout",
+        action="store_true",
+        help="Test should be given a long timeout (typically 60s rather than 10s,but varies depending on environment)",
+    )
+    p.add_argument("--overwrite", action="store_true", help="Allow overwriting an existing test file")
+    (
+        p.add_argument(
+            "-r", "--reftest", action="store_true", help="Create a reftest rather than a testharness (js) test"
+        ),
+    )
     p.add_argument("-ref", "--reference", dest="ref", help="Path to the reference file")
-    p.add_argument("--mismatch", action="store_true",
-                   help="Create a mismatch reftest")
-    p.add_argument("--wait", action="store_true",
-                   help="Create a reftest that waits until takeScreenshot() is called")
+    p.add_argument("--mismatch", action="store_true", help="Create a mismatch reftest")
+    p.add_argument("--wait", action="store_true", help="Create a reftest that waits until takeScreenshot() is called")
     p.add_argument("path", action="store", help="Path to the test file")
     return p

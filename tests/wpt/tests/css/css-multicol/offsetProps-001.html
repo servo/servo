@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<title>offsetWidth and offsetHeight of fragmented inline</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div style="columns:3; column-fill:auto; column-gap:10px; width:320px; height:50px; font:8px/16px Ahem; orphans:1; widows:1; background:lightgray;">
+  p<br>
+  ppp
+  <span id="outer" style="background:cyan;">
+    <span id="middle" style="background:yellow;">
+      <span id="inner1" style="color:blue;">
+        pppp pppp
+      </span>
+      <span id="inner2" style="color:green;">
+        pppp pppp
+      </span>
+    </span>
+    pppp pppp pppp pppp pppp pppp pppp pppp
+    </span>
+  </span>
+</div>
+<script>
+setup({ explicit_done: true });
+document.fonts.ready.then(() => {
+  test(() => {
+    assert_equals(outer.offsetWidth, 292);
+    assert_equals(outer.offsetHeight, 40);
+  }, "outer");
+
+  test(() => {
+    assert_equals(middle.offsetWidth, 150);
+    assert_equals(middle.offsetHeight, 40);
+  }, "middle");
+
+  test(() => {
+    assert_equals(inner1.offsetWidth, 64);
+    assert_equals(inner1.offsetHeight, 24);
+  }, "inner1");
+
+  test(() => {
+    assert_equals(inner2.offsetWidth, 110);
+    assert_equals(inner2.offsetHeight, 40);
+  }, "inner2");
+
+  done();
+});
+</script>

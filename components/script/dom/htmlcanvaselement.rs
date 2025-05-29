@@ -27,11 +27,12 @@ use servo_media::streams::registry::MediaStreamId;
 use snapshot::Snapshot;
 use style::attr::AttrValue;
 
+use super::node::NodeDamage;
 pub(crate) use crate::canvas_context::*;
 use crate::conversions::Convert;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::callback::ExceptionHandling;
-use crate::dom::bindings::cell::{DomRefCell, Ref, ref_filter_map};
+use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{
     BlobCallback, HTMLCanvasElementMethods, RenderingContext as RootedRenderingContext,
 };
@@ -225,7 +226,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
 
 impl HTMLCanvasElement {
     pub(crate) fn context(&self) -> Option<Ref<RenderingContext>> {
-        ref_filter_map(self.context_mode.borrow(), |ctx| ctx.as_ref())
+        Ref::filter_map(self.context_mode.borrow(), |ctx| ctx.as_ref()).ok()
     }
 
     fn get_or_init_2d_context(&self, can_gc: CanGc) -> Option<DomRoot<CanvasRenderingContext2D>> {
@@ -687,8 +688,11 @@ impl VirtualMethods for HTMLCanvasElement {
             .unwrap()
             .attribute_mutated(attr, mutation, can_gc);
         match attr.local_name() {
-            &local_name!("width") | &local_name!("height") => self.recreate_contexts_after_resize(),
-            _ => (),
+            &local_name!("width") | &local_name!("height") => {
+                self.recreate_contexts_after_resize();
+                self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+            },
+            _ => {},
         };
     }
 

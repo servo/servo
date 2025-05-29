@@ -513,6 +513,9 @@ class Chrome(BrowserSetup):
             if kwargs["enable_webtransport_h3"] is None:
                 # To start the WebTransport over HTTP/3 test server.
                 kwargs["enable_webtransport_h3"] = True
+        elif browser_channel is not None:
+            # browser_channel is not set when running WPT in chromium
+            kwargs["enable_experimental"] = False
         if os.getenv("TASKCLUSTER_ROOT_URL"):
             # We are on Taskcluster, where our Docker container does not have
             # enough capabilities to run Chrome with sandboxing. (gh-20133)

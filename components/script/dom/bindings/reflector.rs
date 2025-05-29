@@ -11,7 +11,7 @@ use crate::DomTypes;
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
-use crate::realms::InRealm;
+use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::CanGc;
 
 /// Create the reflector for a new DOM object and yield ownership to the
@@ -42,7 +42,16 @@ where
 }
 
 pub(crate) trait DomGlobal {
+    /// Returns the [relevant global] in whatever realm is currently active.
+    ///
+    /// [relevant global]: https://html.spec.whatwg.org/multipage/#concept-relevant-global
     fn global_(&self, realm: InRealm) -> DomRoot<GlobalScope>;
+
+    /// Returns the [relevant global] in the same realm as the callee object.
+    /// If you know the callee's realm is already the current realm, it is
+    /// more efficient to call [DomGlobal::global_] instead.
+    ///
+    /// [relevant global]: https://html.spec.whatwg.org/multipage/#concept-relevant-global
     fn global(&self) -> DomRoot<GlobalScope>;
 }
 
@@ -51,7 +60,8 @@ impl<T: DomGlobalGeneric<crate::DomTypeHolder>> DomGlobal for T {
         <Self as DomGlobalGeneric<crate::DomTypeHolder>>::global_(self, realm)
     }
     fn global(&self) -> DomRoot<GlobalScope> {
-        <Self as DomGlobalGeneric<crate::DomTypeHolder>>::global(self)
+        let realm = enter_realm(self);
+        <Self as DomGlobalGeneric<crate::DomTypeHolder>>::global_(self, InRealm::entered(&realm))
     }
 }
 

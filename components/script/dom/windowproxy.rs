@@ -328,6 +328,9 @@ impl WindowProxy {
             opener: Some(self.browsing_context_id),
             load_data,
             viewport_details: window.viewport_details(),
+            // Use the current `WebView`'s theme initially, but the embedder may
+            // change this later.
+            theme: window.theme(),
         };
         ScriptThread::process_attach_layout(new_layout_info, document.origin().clone());
         // TODO: if noopener is false, copy the sessionStorage storage area of the creator origin.

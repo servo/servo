@@ -150,7 +150,6 @@ impl<'a, 'dom> ModernContainerBuilder<'a, 'dom> {
 
                     let inline_formatting_context = inline_formatting_context_builder.finish(
                         self.context,
-                        self.propagated_data,
                         true,  /* has_first_formatted_line */
                         false, /* is_single_line_text_box */
                         self.info.style.writing_mode.to_bidi_level(),

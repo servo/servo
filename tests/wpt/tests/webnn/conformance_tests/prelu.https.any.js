@@ -22,8 +22,7 @@ const preluTests = [
       'inputs': {
         'preluInput': {
           'data': [-4.794857501983643],
-          'descriptor': {shape: [], dataType: 'float32'},
-          'constant': true
+          'descriptor': {shape: [], dataType: 'float32'}
         },
         'preluSlope': {
           'data': [1.1202747821807861],
@@ -114,8 +113,7 @@ const preluTests = [
             8.47507381439209,   4.551425457000732,   -9.267870903015137,
             -0.262177437543869, 1.3258955478668213,  -7.41831111907959
           ],
-          'descriptor': {shape: [24], dataType: 'float32'},
-          'constant': true
+          'descriptor': {shape: [24], dataType: 'float32'}
         },
         'preluSlope': {
           'data': [
@@ -155,6 +153,59 @@ const preluTests = [
     }
   },
   {
+    'name': 'prelu float32 1D non-constant slope',
+    'graph': {
+      'inputs': {
+        'preluInput': {
+          'data': [
+            -2.549168109893799, -4.794857501983643,  8.413617134094238,
+            6.108623504638672,  -8.492292404174805,  3.3143365383148193,
+            1.1687211990356445, -0.141762837767601,  -6.714652061462402,
+            5.787421703338623,  -3.755627393722534,  -4.89828634262085,
+            7.3295159339904785, -3.9542298316955566, 7.067296981811523,
+            9.439736366271973,  -2.558180093765259,  -8.658834457397461,
+            8.47507381439209,   4.551425457000732,   -9.267870903015137,
+            -0.262177437543869, 1.3258955478668213,  -7.41831111907959
+          ],
+          'descriptor': {shape: [24], dataType: 'float32'}
+        },
+        'preluSlope': {
+          'data': [
+            9.343092918395996,  0.2800687253475189,  -4.617084980010986,
+            1.1202747821807861, -1.4334710836410522, -3.157594919204712,
+            -6.28995418548584,  -5.0107879638671875, -6.899077415466309,
+            3.5725347995758057, 6.861966609954834,   -1.961531400680542,
+            4.5832037925720215, 2.6643502712249756,  9.192955017089844,
+            -9.554699897766113, -5.505102157592773,  -2.3927369117736816,
+            3.58212947845459,   -2.3224003314971924, -1.9816573858261108,
+            4.155889987945557,  -1.799522042274475,  9.295849800109863
+          ],
+          'descriptor': {shape: [24], dataType: 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'prelu',
+        'arguments': [{'input': 'preluInput'}, {'slope': 'preluSlope'}],
+        'outputs': 'preluOutput'
+      }],
+      'expectedOutputs': {
+        'preluOutput': {
+          'data': [
+            -23.817113876342773, -1.342889666557312,  8.413617134094238,
+            6.108623504638672,   12.173455238342285,  3.3143365383148193,
+            1.1687211990356445,  0.7103435397148132,  46.32490539550781,
+            5.787421703338623,   -25.7709903717041,   9.608142852783203,
+            7.3295159339904785,  -10.535453796386719, 7.067296981811523,
+            9.439736366271973,   14.083043098449707,  20.718313217163086,
+            8.47507381439209,    4.551425457000732,   18.365745544433594,
+            -1.0895805358886719, 1.3258955478668213,  -68.95950317382812
+          ],
+          'descriptor': {shape: [24], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
     'name': 'prelu float32 2D tensors',
     'graph': {
       'inputs': {
@@ -169,8 +220,7 @@ const preluTests = [
             8.47507381439209,   4.551425457000732,   -9.267870903015137,
             -0.262177437543869, 1.3258955478668213,  -7.41831111907959
           ],
-          'descriptor': {shape: [4, 6], dataType: 'float32'},
-          'constant': true
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         },
         'preluSlope': {
           'data': [
@@ -224,8 +274,7 @@ const preluTests = [
             8.47507381439209,   4.551425457000732,   -9.267870903015137,
             -0.262177437543869, 1.3258955478668213,  -7.41831111907959
           ],
-          'descriptor': {shape: [2, 3, 4], dataType: 'float32'},
-          'constant': true
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         },
         'preluSlope': {
           'data': [
@@ -279,8 +328,7 @@ const preluTests = [
             8.47507381439209,   4.551425457000732,   -9.267870903015137,
             -0.262177437543869, 1.3258955478668213,  -7.41831111907959
           ],
-          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'},
-          'constant': true
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         },
         'preluSlope': {
           'data': [
@@ -334,8 +382,7 @@ const preluTests = [
             8.47507381439209,   4.551425457000732,   -9.267870903015137,
             -0.262177437543869, 1.3258955478668213,  -7.41831111907959
           ],
-          'descriptor': {shape: [2, 2, 1, 2, 3], dataType: 'float32'},
-          'constant': true
+          'descriptor': {shape: [2, 2, 1, 2, 3], dataType: 'float32'}
         },
         'preluSlope': {
           'data': [
@@ -389,8 +436,7 @@ const preluTests = [
             8.47507381439209,   4.551425457000732,   -9.267870903015137,
             -0.262177437543869, 1.3258955478668213,  -7.41831111907959
           ],
-          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'},
-          'constant': true
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         },
         'preluSlope': {
           'data': [5.073923110961914, 0.480774462223053, -7.091750144958496],
@@ -435,8 +481,7 @@ const preluTests = [
             8.47507381439209,   4.551425457000732,   -9.267870903015137,
             -0.262177437543869, 1.3258955478668213,  -7.41831111907959
           ],
-          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'},
-          'constant': true
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         },
         'preluSlope': {
           'data': [5.0114545822143555],
@@ -481,8 +526,7 @@ const preluTests = [
             8.47507381439209,   4.551425457000732,   -9.267870903015137,
             -0.262177437543869, 1.3258955478668213,  -7.41831111907959
           ],
-          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'},
-          'constant': true
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         },
         'preluSlope': {
           'data': [
@@ -530,8 +574,7 @@ const preluTests = [
             8.47507381439209,   4.551425457000732,   -9.267870903015137,
             -0.262177437543869, 1.3258955478668213,  -7.41831111907959
           ],
-          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'},
-          'constant': true
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         },
         'preluSlope': {
           'data': [5.073923110961914, 0.480774462223053, -7.091750144958496],
@@ -576,8 +619,7 @@ const preluTests = [
             8.47507381439209,   4.551425457000732,   -9.267870903015137,
             -0.262177437543869, 1.3258955478668213,  -7.41831111907959
           ],
-          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'},
-          'constant': true
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         },
         'preluSlope': {
           'data': [5.0114545822143555, 5.0114545822143555],
@@ -615,8 +657,7 @@ const preluTests = [
       'inputs': {
         'preluInput': {
           'data': [-4.79296875],
-          'descriptor': {shape: [], dataType: 'float16'},
-          'constant': true
+          'descriptor': {shape: [], dataType: 'float16'}
         },
         'preluSlope': {
           'data': [1.1201171875],
@@ -650,8 +691,7 @@ const preluTests = [
             -2.55859375,  -8.65625,       8.4765625,    4.55078125,
             -9.265625,    -0.26220703125, 1.326171875,  -7.41796875
           ],
-          'descriptor': {shape: [24], dataType: 'float16'},
-          'constant': true
+          'descriptor': {shape: [24], dataType: 'float16'}
         },
         'preluSlope': {
           'data': [
@@ -698,8 +738,7 @@ const preluTests = [
             -2.55859375,  -8.65625,       8.4765625,    4.55078125,
             -9.265625,    -0.26220703125, 1.326171875,  -7.41796875
           ],
-          'descriptor': {shape: [24], dataType: 'float16'},
-          'constant': true
+          'descriptor': {shape: [24], dataType: 'float16'}
         },
         'preluSlope': {
           'data': [
@@ -734,6 +773,52 @@ const preluTests = [
     }
   },
   {
+    'name': 'prelu float16 1D non-constant slope',
+    'graph': {
+      'inputs': {
+        'preluInput': {
+          'data': [
+            -2.548828125, -4.79296875,    8.4140625,    6.109375,
+            -8.4921875,   3.314453125,    1.1689453125, -0.1417236328125,
+            -6.71484375,  5.7890625,      -3.755859375, -4.8984375,
+            7.328125,     -3.955078125,   7.06640625,   9.4375,
+            -2.55859375,  -8.65625,       8.4765625,    4.55078125,
+            -9.265625,    -0.26220703125, 1.326171875,  -7.41796875
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        },
+        'preluSlope': {
+          'data': [
+            9.34375,       0.280029296875, -4.6171875,    1.1201171875,
+            -1.43359375,   -3.158203125,   -6.2890625,    -5.01171875,
+            -6.8984375,    3.572265625,    6.86328125,    -1.9619140625,
+            4.58203125,    2.6640625,      9.1953125,     -9.5546875,
+            -5.50390625,   -2.392578125,   3.58203125,    -2.322265625,
+            -1.9814453125, 4.15625,        -1.7998046875, 9.296875
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'prelu',
+        'arguments': [{'input': 'preluInput'}, {'slope': 'preluSlope'}],
+        'outputs': 'preluOutput'
+      }],
+      'expectedOutputs': {
+        'preluOutput': {
+          'data': [
+            -23.8125,    -1.341796875, 8.4140625,     6.109375,    12.171875,
+            3.314453125, 1.1689453125, 0.71044921875, 46.3125,     5.7890625,
+            -25.78125,   9.609375,     7.328125,      -10.5390625, 7.06640625,
+            9.4375,      14.0859375,   20.703125,     8.4765625,   4.55078125,
+            18.359375,   -1.08984375,  1.326171875,   -68.9375
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
     'name': 'prelu float16 2D tensors',
     'graph': {
       'inputs': {
@@ -746,8 +831,7 @@ const preluTests = [
             -2.55859375,  -8.65625,       8.4765625,    4.55078125,
             -9.265625,    -0.26220703125, 1.326171875,  -7.41796875
           ],
-          'descriptor': {shape: [4, 6], dataType: 'float16'},
-          'constant': true
+          'descriptor': {shape: [4, 6], dataType: 'float16'}
         },
         'preluSlope': {
           'data': [
@@ -794,8 +878,7 @@ const preluTests = [
             -2.55859375,  -8.65625,       8.4765625,    4.55078125,
             -9.265625,    -0.26220703125, 1.326171875,  -7.41796875
           ],
-          'descriptor': {shape: [2, 3, 4], dataType: 'float16'},
-          'constant': true
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
         },
         'preluSlope': {
           'data': [
@@ -842,8 +925,7 @@ const preluTests = [
             -2.55859375,  -8.65625,       8.4765625,    4.55078125,
             -9.265625,    -0.26220703125, 1.326171875,  -7.41796875
           ],
-          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'},
-          'constant': true
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
         },
         'preluSlope': {
           'data': [
@@ -890,8 +972,7 @@ const preluTests = [
             -2.55859375,  -8.65625,       8.4765625,    4.55078125,
             -9.265625,    -0.26220703125, 1.326171875,  -7.41796875
           ],
-          'descriptor': {shape: [2, 2, 1, 2, 3], dataType: 'float16'},
-          'constant': true
+          'descriptor': {shape: [2, 2, 1, 2, 3], dataType: 'float16'}
         },
         'preluSlope': {
           'data': [
@@ -938,8 +1019,7 @@ const preluTests = [
             -2.55859375,  -8.65625,       8.4765625,    4.55078125,
             -9.265625,    -0.26220703125, 1.326171875,  -7.41796875
           ],
-          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'},
-          'constant': true
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
         },
         'preluSlope': {
           'data': [5.07421875, 0.480712890625, -7.08984375],
@@ -980,8 +1060,7 @@ const preluTests = [
             -2.55859375,  -8.65625,       8.4765625,    4.55078125,
             -9.265625,    -0.26220703125, 1.326171875,  -7.41796875
           ],
-          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'},
-          'constant': true
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
         },
         'preluSlope': {
           'data': [5.01171875],
@@ -1021,8 +1100,7 @@ const preluTests = [
             -2.55859375,  -8.65625,       8.4765625,    4.55078125,
             -9.265625,    -0.26220703125, 1.326171875,  -7.41796875
           ],
-          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'},
-          'constant': true
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
         },
         'preluSlope': {
           'data': [4.875, -8.5, 1.181640625, -9.984375, -4.42578125, -6.65625],
@@ -1062,8 +1140,7 @@ const preluTests = [
             -2.55859375,  -8.65625,       8.4765625,    4.55078125,
             -9.265625,    -0.26220703125, 1.326171875,  -7.41796875
           ],
-          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'},
-          'constant': true
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
         },
         'preluSlope': {
           'data': [5.07421875, 0.480712890625, -7.08984375],
@@ -1104,8 +1181,7 @@ const preluTests = [
             -2.55859375,  -8.65625,       8.4765625,    4.55078125,
             -9.265625,    -0.26220703125, 1.326171875,  -7.41796875
           ],
-          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'},
-          'constant': true
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
         },
         'preluSlope': {
           'data': [5.01171875],
@@ -1128,6 +1204,36 @@ const preluTests = [
             -46.4375,    -1.314453125, 1.326171875,    -37.1875
           ],
           'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+
+  // int64 tests
+  {
+    'name': 'prelu int64 2D constant tensors',
+    'graph': {
+      'inputs': {
+        'preluInput': {
+          'data': [-4, -2, -1, 0, 0, 0, 1, 2, 4],
+          'descriptor': {shape: [3, 3], dataType: 'int64'},
+          'constant': true
+        },
+        'preluSlope': {
+          'data': [-5, 0, 5, -5, 0, 5, -5, 0, 5],
+          'descriptor': {shape: [3, 3], dataType: 'int64'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'prelu',
+        'arguments': [{'input': 'preluInput'}, {'slope': 'preluSlope'}],
+        'outputs': 'preluOutput'
+      }],
+      'expectedOutputs': {
+        'preluOutput': {
+          'data': [20, 0, -5, 0, 0, 0, 1, 2, 4],
+          'descriptor': {shape: [3, 3], dataType: 'int64'}
         }
       }
     }
