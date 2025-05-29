@@ -1515,7 +1515,8 @@ impl HTMLMediaElement {
     }
 
     fn end_of_playback_in_forwards_direction(&self) {
-        // Step 1.
+        // Step 1. If the media element has a loop attribute specified, then seek to the earliest
+        // posible position of the media resource and return.
         if self.Loop() {
             self.seek(
                 self.earliest_possible_position(),
@@ -1523,11 +1524,12 @@ impl HTMLMediaElement {
             );
             return;
         }
-        // Step 2.
+        // Step 2. The ended IDL attribute starts returning true once the event loop returns to
+        // step 1.
         // The **ended playback** condition is implemented inside of
         // the HTMLMediaElementMethods::Ended method
 
-        // Step 3.
+        // Step 3. Queue a media element task given the media element and the following steps:
         let this = Trusted::new(self);
 
         self.owner_global()
@@ -1535,23 +1537,25 @@ impl HTMLMediaElement {
             .media_element_task_source()
             .queue(task!(reaches_the_end_steps: move || {
                 let this = this.root();
-                // Step 3.1.
+                // Step 3.1. Fire an event named timeupdate at the media element
                 this.upcast::<EventTarget>().fire_event(atom!("timeupdate"), CanGc::note());
 
-                // Step 3.2.
+                // Step 3.2. If the media element has ended playback, the direction of playback is
+                // forwards, and paused is false, then:
                 if this.Ended() && !this.Paused() {
-                    // Step 3.2.1.
+                    // Step 3.2.1. Set the paused attribute to true
                     this.paused.set(true);
 
-                    // Step 3.2.2.
+                    // Step 3.2.2. Fire an event named pause at the media element
                     this.upcast::<EventTarget>().fire_event(atom!("pause"), CanGc::note());
 
-                    // Step 3.2.3.
+                    // Step 3.2.3. Take pending play promises and reject pending play promises with
+                    // the result and an "AbortError" DOMException
                     this.take_pending_play_promises(Err(Error::Abort));
                     this.fulfill_in_flight_play_promises(|| ());
                 }
 
-                // Step 3.3.
+                // Step 3.3. Fire an event named ended at the media element.
                 this.upcast::<EventTarget>().fire_event(atom!("ended"), CanGc::note());
             }));
 
