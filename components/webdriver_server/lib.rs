@@ -227,6 +227,8 @@ struct Handler {
     current_action_id: Cell<Option<WebDriverMessageId>>,
 
     resize_timeout: u32,
+    next_pointer_id_below_2: Cell<u32>,
+    next_pointer_id_above_2: Cell<u32>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -459,6 +461,8 @@ impl Handler {
             id_generator: WebDriverMessageIdGenerator::new(),
             current_action_id: Cell::new(None),
             resize_timeout: 500,
+            next_pointer_id_above_2: Cell::new(2),
+            next_pointer_id_below_2: Cell::new(0),
         }
     }
 
@@ -1652,11 +1656,16 @@ impl Handler {
                 Some(element_id) => {
                     let id = Uuid::new_v4().to_string();
 
+                    let new_input_source = InputSourceState::Pointer(PointerInputState::new(
+                        &PointerType::Mouse,
+                        &self.next_pointer_id_below_2,
+                        &self.next_pointer_id_above_2,
+                    ));
                     // Step 8.1
-                    self.session_mut()?.input_state_table.borrow_mut().insert(
-                        id.clone(),
-                        InputSourceState::Pointer(PointerInputState::new(&PointerType::Mouse)),
-                    );
+                    self.session()?
+                        .input_state_table
+                        .borrow_mut()
+                        .insert(id.clone(), new_input_source);
 
                     // Step 8.7. Construct a pointer move action.
                     // Step 8.8. Set a property x to 0 on pointer move action.
@@ -1705,10 +1714,7 @@ impl Handler {
                     let _ = self.dispatch_actions(&[action_sequence]);
 
                     // Step 8.17 Remove an input source with input state and input id.
-                    self.session_mut()?
-                        .input_state_table
-                        .borrow_mut()
-                        .remove(&id);
+                    self.session()?.input_state_table.borrow_mut().remove(&id);
 
                     // Step 13
                     Ok(WebDriverResponse::Void)
