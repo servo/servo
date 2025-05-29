@@ -95,7 +95,7 @@ use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::dom::OpaqueNode;
 use style::thread_state::{self, ThreadState};
 use stylo_atoms::Atom;
-use timers::{TimerEventRequest, TimerScheduler};
+use timers::{TimerEventRequest, TimerId, TimerScheduler};
 use url::Position;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPUDevice, WebGPUMsg};
@@ -339,6 +339,18 @@ pub struct ScriptThread {
     /// The screen coordinates where the primary mouse button was pressed.
     #[no_trace]
     relative_mouse_down_point: Cell<Point2D<f32, DevicePixel>>,
+
+    /// The [`TimerId`] of the scheduled ScriptThread-only animation tick timer, if any.
+    /// This may be non-`None` when rAF callbacks do not trigger display list creation. In
+    /// that case the compositor will never trigger a new animation tick because it's
+    /// dependent on the rendering of a new WebRender frame.
+    #[no_trace]
+    scheduled_script_thread_animation_timer: RefCell<Option<TimerId>>,
+
+    /// A flag that lets the [`ScriptThread`]'s main loop know that the
+    /// [`Self::scheduled_script_thread_animation_timer`] timer fired and it should
+    /// trigger an animation tick "update the rendering" call.
+    should_trigger_script_thread_animation_tick: Arc<AtomicBool>,
 }
 
 struct BHMExitSignal {
@@ -554,8 +566,8 @@ impl ScriptThread {
     }
 
     /// Schedule a [`TimerEventRequest`] on this [`ScriptThread`]'s [`TimerScheduler`].
-    pub(crate) fn schedule_timer(&self, request: TimerEventRequest) {
-        self.timer_scheduler.borrow_mut().schedule_timer(request);
+    pub(crate) fn schedule_timer(&self, request: TimerEventRequest) -> TimerId {
+        self.timer_scheduler.borrow_mut().schedule_timer(request)
     }
 
     // https://html.spec.whatwg.org/multipage/#await-a-stable-state
@@ -966,6 +978,8 @@ impl ScriptThread {
             inherited_secure_context: state.inherited_secure_context,
             layout_factory,
             relative_mouse_down_point: Cell::new(Point2D::zero()),
+            scheduled_script_thread_animation_timer: Default::default(),
+            should_trigger_script_thread_animation_tick: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -1174,8 +1188,33 @@ impl ScriptThread {
     ///
     /// Attempt to update the rendering and then do a microtask checkpoint if rendering was actually
     /// updated.
-    pub(crate) fn update_the_rendering(&self, requested_by_compositor: bool, can_gc: CanGc) {
+    pub(crate) fn update_the_rendering(&self, requested_by_renderer: bool, can_gc: CanGc) {
         *self.last_render_opportunity_time.borrow_mut() = Some(Instant::now());
+
+        // If the ScriptThread animation timer fired, this is an animation tick.
+        let mut is_animation_tick = requested_by_renderer;
+        if self
+            .should_trigger_script_thread_animation_tick
+            .load(Ordering::Relaxed)
+        {
+            self.should_trigger_script_thread_animation_tick
+                .store(false, Ordering::Relaxed);
+            *self.scheduled_script_thread_animation_timer.borrow_mut() = None;
+            is_animation_tick = true;
+        }
+
+        // If this is an animation tick, cancel any upcoming ScriptThread-based animation timer.
+        // This tick serves the purpose and we to limit animation ticks if some are coming from
+        // the renderer.
+        if requested_by_renderer {
+            if let Some(timer_id) = self
+                .scheduled_script_thread_animation_timer
+                .borrow_mut()
+                .take()
+            {
+                self.timer_scheduler.borrow_mut().cancel_timer(timer_id);
+            }
+        }
 
         if !self.can_continue_running_inner() {
             return;
@@ -1196,7 +1235,7 @@ impl ScriptThread {
         // If we aren't explicitly running rAFs, this update wasn't requested by the compositor,
         // and we are running animations, then wait until the compositor tells us it is time to
         // update the rendering via a TickAllAnimations message.
-        if !requested_by_compositor && any_animations_running {
+        if !is_animation_tick && any_animations_running {
             return;
         }
 
@@ -1220,6 +1259,7 @@ impl ScriptThread {
         // steps per doc in docs. Currently `<iframe>` resizing depends on a parent being able to
         // queue resize events on a child and have those run in the same call to this method, so
         // that needs to be sorted out to fix this.
+        let mut saw_any_reflows = false;
         for pipeline_id in documents_in_order.iter() {
             let document = self
                 .documents
@@ -1268,7 +1308,7 @@ impl ScriptThread {
             // > 14. For each doc of docs, run the animation frame callbacks for doc, passing
             // > in the relative high resolution time given frameTimestamp and doc's
             // > relevant global object as the timestamp.
-            if requested_by_compositor {
+            if is_animation_tick {
                 document.run_the_animation_frame_callbacks(can_gc);
             }
 
@@ -1307,10 +1347,10 @@ impl ScriptThread {
 
             // > Step 22: For each doc of docs, update the rendering or user interface of
             // > doc and its node navigable to reflect the current state.
-            let window = document.window();
-            if document.is_fully_active() {
-                window.reflow(ReflowGoal::UpdateTheRendering, can_gc);
-            }
+            saw_any_reflows = document
+                .window()
+                .reflow(ReflowGoal::UpdateTheRendering, can_gc) ||
+                saw_any_reflows;
 
             // TODO: Process top layer removals according to
             // https://drafts.csswg.org/css-position-4/#process-top-layer-removals.
@@ -1324,6 +1364,13 @@ impl ScriptThread {
         // the microtask checkpoint above and we should spin the event loop one more
         // time to resolve them.
         self.schedule_rendering_opportunity_if_necessary();
+
+        // If this was a animation update request, then potentially schedule a new
+        // animation update in the case that the compositor might not do it due to
+        // not receiving any display lists.
+        if is_animation_tick {
+            self.schedule_script_thread_animation_tick_if_necessary(saw_any_reflows);
+        }
     }
 
     // If there are any pending reflows and we are not having rendering opportunities
@@ -1366,6 +1413,54 @@ impl ScriptThread {
             .task_manager()
             .rendering_task_source()
             .queue_unconditionally(task!(update_the_rendering: move || { }));
+    }
+
+    /// The renderer triggers animation ticks based on the arrival and painting of new
+    /// display lists. In the case that a `WebView` is animating or has a
+    /// requestAnimationFrame callback, it may be that an animation tick reflow does
+    /// not change anything and thus does not send a new display list to the renderer.
+    /// If that's the case, we need to schedule a ScriptThread-based animation update
+    /// (to avoid waking the renderer up).
+    fn schedule_script_thread_animation_tick_if_necessary(&self, saw_any_reflows: bool) {
+        if saw_any_reflows {
+            return;
+        }
+
+        // Always schedule a ScriptThread-based animation tick, unless none of the
+        // documents are active and have animations running and/or rAF callbacks.
+        if !self.documents.borrow().iter().any(|(_, document)| {
+            document.is_fully_active() &&
+                !document.window().throttled() &&
+                (document.animations().running_animation_count() != 0 ||
+                    document.has_active_request_animation_frame_callbacks())
+        }) {
+            return;
+        }
+
+        /// The amount of time between ScriptThread animation ticks when nothing is
+        /// changing. In order to be more efficient, only tick at around 30 frames a
+        /// second, which also gives time for any renderer ticks to come in and cancel
+        /// this tick. A renderer tick might happen for a variety of reasons, such as a
+        /// Pipeline in another ScriptThread producing a display list.
+        const SCRIPT_THREAD_ANIMATION_TICK_DELAY: u64 = 30;
+
+        debug!("Scheduling ScriptThread animation frame.");
+        let trigger_script_thread_animation =
+            self.should_trigger_script_thread_animation_tick.clone();
+        let timer_id = self.schedule_timer(TimerEventRequest {
+            callback: Box::new(move || {
+                trigger_script_thread_animation.store(true, Ordering::Relaxed);
+            }),
+            duration: Duration::from_millis(SCRIPT_THREAD_ANIMATION_TICK_DELAY),
+        });
+
+        let mut scheduled_script_thread_animation_timer =
+            self.scheduled_script_thread_animation_timer.borrow_mut();
+        assert!(
+            scheduled_script_thread_animation_timer.is_none(),
+            "Should never schedule a new timer when one is already scheduled."
+        );
+        *scheduled_script_thread_animation_timer = Some(timer_id);
     }
 
     /// Handle incoming messages from other tasks and the task queue.
