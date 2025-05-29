@@ -11,52 +11,30 @@ use std::cmp::{self, Ord};
 use std::collections::BinaryHeap;
 use std::time::{Duration, Instant};
 
-use base::id::PipelineId;
 use crossbeam_channel::{Receiver, after, never};
 use malloc_size_of_derive::MallocSizeOf;
-use serde::{Deserialize, Serialize};
-
-/// Describes the source that requested the [`TimerEvent`].
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
-pub enum TimerSource {
-    /// The event was requested from a window (`ScriptThread`).
-    FromWindow(PipelineId),
-    /// The event was requested from a worker (`DedicatedGlobalWorkerScope`).
-    FromWorker,
-}
-
-/// The id to be used for a [`TimerEvent`] is defined by the corresponding [`TimerEventRequest`].
-#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
-pub struct TimerEventId(pub u32);
-
-/// A notification that a timer has fired. [`TimerSource`] must be `FromWindow` when
-/// dispatched to `ScriptThread` and must be `FromWorker` when dispatched to a
-/// `DedicatedGlobalWorkerScope`
-#[derive(Debug, Deserialize, Serialize)]
-pub struct TimerEvent(pub TimerSource, pub TimerEventId);
 
 /// A callback to pass to the [`TimerScheduler`] to be called when the timer is
 /// dispatched.
-pub type BoxedTimerCallback = Box<dyn Fn(TimerEvent) + Send + 'static>;
+pub type BoxedTimerCallback = Box<dyn Fn() + Send + 'static>;
 
 /// Requests a TimerEvent-Message be sent after the given duration.
 #[derive(MallocSizeOf)]
 pub struct TimerEventRequest {
     #[ignore_malloc_size_of = "Size of a boxed function"]
     pub callback: BoxedTimerCallback,
-    pub source: TimerSource,
-    pub id: TimerEventId,
     pub duration: Duration,
 }
 
 impl TimerEventRequest {
     fn dispatch(self) {
-        (self.callback)(TimerEvent(self.source, self.id))
+        (self.callback)()
     }
 }
 
 #[derive(MallocSizeOf)]
 struct ScheduledEvent {
+    id: TimerId,
     request: TimerEventRequest,
     for_time: Instant,
 }
@@ -80,18 +58,39 @@ impl PartialEq for ScheduledEvent {
     }
 }
 
+#[derive(Clone, Copy, MallocSizeOf, PartialEq)]
+pub struct TimerId(usize);
+
 /// A queue of [`TimerEventRequest`]s that are stored in order of next-to-fire.
 #[derive(Default, MallocSizeOf)]
 pub struct TimerScheduler {
     /// A priority queue of future events, sorted by due time.
     queue: BinaryHeap<ScheduledEvent>,
+
+    /// The current timer id, used to generate new ones.
+    current_id: usize,
 }
 
 impl TimerScheduler {
     /// Schedule a new timer for on this [`TimerScheduler`].
-    pub fn schedule_timer(&mut self, request: TimerEventRequest) {
+    pub fn schedule_timer(&mut self, request: TimerEventRequest) -> TimerId {
         let for_time = Instant::now() + request.duration;
-        self.queue.push(ScheduledEvent { request, for_time });
+
+        let id = TimerId(self.current_id);
+        self.current_id += 1;
+
+        self.queue.push(ScheduledEvent {
+            id,
+            request,
+            for_time,
+        });
+        id
+    }
+
+    /// Cancel a timer with the given [`TimerId`]. If a timer with that id is not
+    /// currently waiting to fire, do nothing.
+    pub fn cancel_timer(&mut self, id: TimerId) {
+        self.queue.retain(|event| event.id != id);
     }
 
     /// Get a [`Receiver<Instant>`] that receives a message after waiting for the next timer
