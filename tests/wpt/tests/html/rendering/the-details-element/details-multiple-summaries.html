@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Details Element Should not Discard the Additional Summary Element</title>
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#the-details-and-summary-elements">
+  <link rel="match" href="details-multiple-summaries-ref.html">
+  <link rel="author" title="Jo Steven Novaryo" href="mailto:steven.novaryo@gmail.com">
+</head>
+
+<details open>
+  <summary>This is the main summary</summary>
+  <summary id="second-summary">This is the additional summary</summary>
+  This is the content
+</details>

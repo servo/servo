@@ -1,10 +1,10 @@
 /* We should use `content-visibility` but it is yet to be implemented.
  * These rule would not comply with ::details-content and should be removed
  * with it's implementation */
-slot[id="internal-contents-slot"] {
+slot#internal-contents-slot {
   display: none;
 }
-:host([open]) slot[id="internal-contents-slot"] {
+:host([open]) slot#internal-contents-slot {
   display: block;
 }
 

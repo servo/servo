@@ -104,7 +104,7 @@ impl HTMLDetailsElement {
             .expect("UA shadow tree was not created")
     }
 
-    /// <https://html.spec.whatwg.org/multipage/rendering.html#the-details-and-summary-elements>
+    /// <https://html.spec.whatwg.org/multipage/#the-details-and-summary-elements>
     fn create_shadow_tree(&self, can_gc: CanGc) {
         let document = self.owner_document();
         let root = self
@@ -163,7 +163,8 @@ impl HTMLDetailsElement {
             .AppendChild(descendants_slot.upcast::<Node>(), can_gc)
             .unwrap();
 
-        // > 3. The third child element is either a link or style element with the following styles for the default summary:
+        // > 3. The third child element is either a link or style element with the following
+        // >    styles for the default summary:
         let link_element = HTMLLinkElement::new(
             local_name!("link"),
             None,
@@ -190,7 +191,6 @@ impl HTMLDetailsElement {
                 .style_shared_lock(),
         );
         link_element.set_stylesheet(details_stylesheet.unwrap());
-
 
         let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {
             summary_slot: summary_slot.as_traced(),
@@ -220,7 +220,9 @@ impl HTMLDetailsElement {
         for child in self.upcast::<Node>().children() {
             if let Some(element) = child.downcast::<Element>() {
                 // Assign the first summary element to the summary slot.
-                if element.local_name() == &local_name!("summary") && !discovered_first_summary_element {
+                if element.local_name() == &local_name!("summary") &&
+                    !discovered_first_summary_element
+                {
                     shadow_tree
                         .summary_slot
                         .Assign(vec![ElementOrText::Element(DomRoot::from_ref(element))]);
@@ -242,7 +244,7 @@ impl HTMLDetailsElement {
             shadow_tree
                 .summary_slot
                 .Assign(vec![ElementOrText::Element(DomRoot::upcast(
-                    shadow_tree.fallback_summary.as_rooted()
+                    shadow_tree.fallback_summary.as_rooted(),
                 ))]);
         }
     }
