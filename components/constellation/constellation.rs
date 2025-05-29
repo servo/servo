@@ -2758,7 +2758,11 @@ where
         }
 
         debug!("Exiting Canvas Paint thread.");
-        if let Err(e) = self.canvas_sender.send(ConstellationCanvasMsg::Exit) {
+        let (canvas_exit_sender, canvas_exit_receiver) = unbounded();
+        if let Err(e) = self
+            .canvas_sender
+            .send(ConstellationCanvasMsg::Exit(canvas_exit_sender))
+        {
             warn!("Exit Canvas Paint thread failed ({})", e);
         }
 
@@ -2799,6 +2803,10 @@ where
 
         debug!("Exiting GLPlayer thread.");
         WindowGLContext::get().exit();
+
+        // Wait for the canvas thread to exit before shutting down the font service, as
+        // canvas might still be using the system font service before shutting down.
+        let _ = canvas_exit_receiver.recv();
 
         debug!("Exiting the system font service thread.");
         self.system_font_service.exit();
