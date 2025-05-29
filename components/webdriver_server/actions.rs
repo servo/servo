@@ -44,64 +44,6 @@ pub(crate) type TickActions = HashMap<String, ActionItem>;
 // Consumed by the `dispatch_actions` method.
 pub(crate) type ActionsByTick = Vec<TickActions>;
 
-/// <https://w3c.github.io/webdriver/#dfn-extract-an-action-sequence>
-pub(crate) fn extract_an_action_sequence(params: ActionsParameters) -> ActionsByTick {
-    // Step 1. Let actions be the result of getting a property named "actions" from parameters.
-    // Step 2 (ignored). If actions is not a list, return an error with status InvalidArgument.
-    let actions = params.actions;
-
-    actions_by_tick_from_sequence(actions)
-}
-
-pub(crate) fn actions_by_tick_from_sequence(actions: Vec<ActionSequence>) -> ActionsByTick {
-    // Step 3. Let actions by tick be an empty list.
-    let mut actions_by_tick: ActionsByTick = Vec::new();
-
-    // Step 4. For each value action sequence corresponding to an indexed property in actions
-    for action_sequence in actions {
-        // Store id before moving action_sequence
-        let id = action_sequence.id.clone();
-        // Step 4.1. Let source actions be the result of trying to process an input source action sequence
-        let source_actions = process_an_input_source_action_sequence(action_sequence);
-
-        // Step 4.2.2. Ensure we have enough ticks to hold all actions
-        while actions_by_tick.len() < source_actions.len() {
-            actions_by_tick.push(HashMap::new());
-        }
-
-        // Step 4.2.3.
-        for (tick_index, action_item) in source_actions.into_iter().enumerate() {
-            actions_by_tick[tick_index].insert(id.clone(), action_item);
-        }
-    }
-
-    actions_by_tick
-}
-
-/// <https://w3c.github.io/webdriver/#dfn-process-an-input-source-action-sequence>
-pub(crate) fn process_an_input_source_action_sequence(
-    action_sequence: ActionSequence,
-) -> Vec<ActionItem> {
-    match action_sequence.actions {
-        ActionsType::Null {
-            actions: null_actions,
-        } => null_actions.into_iter().map(ActionItem::Null).collect(),
-        ActionsType::Key {
-            actions: key_actions,
-        } => key_actions.into_iter().map(ActionItem::Key).collect(),
-        ActionsType::Pointer {
-            parameters: _,
-            actions: pointer_actions,
-        } => pointer_actions
-            .into_iter()
-            .map(ActionItem::Pointer)
-            .collect(),
-        ActionsType::Wheel {
-            actions: wheel_actions,
-        } => wheel_actions.into_iter().map(ActionItem::Wheel).collect(),
-    }
-}
-
 // https://w3c.github.io/webdriver/#dfn-input-source-state
 pub(crate) enum InputSourceState {
     Null,
@@ -124,13 +66,9 @@ pub(crate) struct PointerInputState {
 }
 
 impl PointerInputState {
-    pub fn new(subtype: &PointerType) -> PointerInputState {
+    pub fn new(subtype: PointerType) -> PointerInputState {
         PointerInputState {
-            subtype: match subtype {
-                PointerType::Mouse => PointerType::Mouse,
-                PointerType::Pen => PointerType::Pen,
-                PointerType::Touch => PointerType::Touch,
-            },
+            subtype,
             pressed: HashSet::new(),
             x: 0.0,
             y: 0.0,
@@ -744,6 +682,95 @@ impl Handler {
         match response? {
             Some(point) => Ok(point),
             None => Err(ErrorStatus::UnknownError),
+        }
+    }
+
+    /// <https://w3c.github.io/webdriver/#dfn-extract-an-action-sequence>
+    pub(crate) fn extract_an_action_sequence(&self, params: ActionsParameters) -> ActionsByTick {
+        // Step 1. Let actions be the result of getting a property named "actions" from parameters.
+        // Step 2 (ignored). If actions is not a list, return an error with status InvalidArgument.
+        let actions = params.actions;
+
+        self.actions_by_tick_from_sequence(actions)
+    }
+
+    pub(crate) fn actions_by_tick_from_sequence(
+        &self,
+        actions: Vec<ActionSequence>,
+    ) -> ActionsByTick {
+        // Step 3. Let actions by tick be an empty list.
+        let mut actions_by_tick: ActionsByTick = Vec::new();
+
+        // Step 4. For each value action sequence corresponding to an indexed property in actions
+        for action_sequence in actions {
+            // Store id before moving action_sequence
+            let id = action_sequence.id.clone();
+            // Step 4.1. Let source actions be the result of trying to process an input source action sequence
+            let source_actions = self.process_an_input_source_action_sequence(action_sequence);
+
+            // Step 4.2.2. Ensure we have enough ticks to hold all actions
+            while actions_by_tick.len() < source_actions.len() {
+                actions_by_tick.push(HashMap::new());
+            }
+
+            // Step 4.2.3.
+            for (tick_index, action_item) in source_actions.into_iter().enumerate() {
+                actions_by_tick[tick_index].insert(id.clone(), action_item);
+            }
+        }
+
+        actions_by_tick
+    }
+
+    /// <https://w3c.github.io/webdriver/#dfn-process-an-input-source-action-sequence>
+    pub(crate) fn process_an_input_source_action_sequence(
+        &self,
+        action_sequence: ActionSequence,
+    ) -> Vec<ActionItem> {
+        // Step 2. Let id be the value of the id property of action sequence.
+        let id = action_sequence.id.clone();
+
+        let mut input_state_table = self.session().unwrap().input_state_table.borrow_mut();
+
+        match action_sequence.actions {
+            ActionsType::Null {
+                actions: null_actions,
+            } => {
+                input_state_table
+                    .entry(id)
+                    .or_insert(InputSourceState::Null);
+                null_actions.into_iter().map(ActionItem::Null).collect()
+            },
+            ActionsType::Key {
+                actions: key_actions,
+            } => {
+                input_state_table
+                    .entry(id)
+                    .or_insert(InputSourceState::Key(KeyInputState::new()));
+                key_actions.into_iter().map(ActionItem::Key).collect()
+            },
+            ActionsType::Pointer {
+                parameters: _,
+                actions: pointer_actions,
+            } => {
+                input_state_table
+                    .entry(id)
+                    .or_insert(InputSourceState::Pointer(PointerInputState::new(
+                        PointerType::Mouse,
+                    )));
+                pointer_actions
+                    .into_iter()
+                    .map(ActionItem::Pointer)
+                    .collect()
+            },
+            ActionsType::Wheel {
+                actions: wheel_actions,
+            } => {
+                input_state_table
+                    .entry(id)
+                    .or_insert(InputSourceState::Wheel);
+                wheel_actions.into_iter().map(ActionItem::Wheel).collect()
+            },
         }
     }
 }

@@ -64,10 +64,7 @@ use webdriver::response::{
 };
 use webdriver::server::{self, Session, SessionTeardownKind, WebDriverHandler};
 
-use crate::actions::{
-    ActionItem, InputSourceState, PointerInputState, actions_by_tick_from_sequence,
-    extract_an_action_sequence,
-};
+use crate::actions::{ActionItem, InputSourceState, PointerInputState};
 
 #[derive(Default)]
 pub struct WebDriverMessageIdGenerator {
@@ -1488,7 +1485,7 @@ impl Handler {
         parameters: ActionsParameters,
     ) -> WebDriverResult<WebDriverResponse> {
         // Step 5. Let actions by tick be the result of trying to extract an action sequence
-        let actions_by_tick = extract_an_action_sequence(parameters);
+        let actions_by_tick = self.extract_an_action_sequence(parameters);
 
         // Step 6. Dispatch actions
         match self.dispatch_actions(actions_by_tick) {
@@ -1662,7 +1659,7 @@ impl Handler {
                     // Step 8.1
                     self.session_mut()?.input_state_table.borrow_mut().insert(
                         id.clone(),
-                        InputSourceState::Pointer(PointerInputState::new(&PointerType::Mouse)),
+                        InputSourceState::Pointer(PointerInputState::new(PointerType::Mouse)),
                     );
 
                     // Step 8.7. Construct a pointer move action.
@@ -1709,7 +1706,7 @@ impl Handler {
                         },
                     };
 
-                    let actions_by_tick = actions_by_tick_from_sequence(vec![action_sequence]);
+                    let actions_by_tick = self.actions_by_tick_from_sequence(vec![action_sequence]);
 
                     let _ = self.dispatch_actions(actions_by_tick);
 
