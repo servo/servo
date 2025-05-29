@@ -16,7 +16,7 @@ use html5ever::{LocalName, Prefix, local_name, ns};
 use image::codecs::jpeg::JpegEncoder;
 use image::codecs::png::PngEncoder;
 use image::codecs::webp::WebPEncoder;
-use image::{ColorType, ImageEncoder};
+use image::{ColorType, ImageEncoder, ImageError};
 #[cfg(feature = "webgpu")]
 use ipc_channel::ipc::{self as ipcchan};
 use js::error::throw_type_error;
@@ -391,7 +391,7 @@ impl HTMLCanvasElement {
         quality: Option<f64>,
         snapshot: &Snapshot,
         encoder: &mut W,
-    ) {
+    ) -> Result<(), ImageError> {
         // We can't use self.Width() or self.Height() here, since the size of the canvas
         // may have changed since the snapshot was created. Truncating the dimensions to a
         // u32 can't panic, since the data comes from a canvas which is always smaller than
@@ -404,9 +404,7 @@ impl HTMLCanvasElement {
             EncodedImageType::Png => {
                 // FIXME(nox): https://github.com/image-rs/image-png/issues/86
                 // FIXME(nox): https://github.com/image-rs/image-png/issues/87
-                PngEncoder::new(encoder)
-                    .write_image(canvas_data, width, height, ColorType::Rgba8)
-                    .unwrap();
+                PngEncoder::new(encoder).write_image(canvas_data, width, height, ColorType::Rgba8)
             },
             EncodedImageType::Jpeg => {
                 let jpeg_encoder = if let Some(quality) = quality {
@@ -424,16 +422,16 @@ impl HTMLCanvasElement {
                     JpegEncoder::new(encoder)
                 };
 
-                jpeg_encoder
-                    .write_image(canvas_data, width, height, ColorType::Rgba8)
-                    .unwrap();
+                jpeg_encoder.write_image(canvas_data, width, height, ColorType::Rgba8)
             },
-
             EncodedImageType::Webp => {
                 // No quality support because of https://github.com/image-rs/image/issues/1984
-                WebPEncoder::new_lossless(encoder)
-                    .write_image(canvas_data, width, height, ColorType::Rgba8)
-                    .unwrap();
+                WebPEncoder::new_lossless(encoder).write_image(
+                    canvas_data,
+                    width,
+                    height,
+                    ColorType::Rgba8,
+                )
             },
         }
     }
@@ -522,17 +520,22 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         mime_type: DOMString,
         quality: HandleValue,
     ) -> Fallible<USVString> {
-        // Step 1.
+        // Step 1: If this canvas element's bitmap's origin-clean flag is set to false,
+        // then throw a "SecurityError" DOMException.
         if !self.origin_is_clean() {
             return Err(Error::Security);
         }
 
-        // Step 2.
+        // Step 2: If this canvas element's bitmap has no pixels (i.e. either its
+        // horizontal dimension or its vertical dimension is zero), then return the string
+        // "data:,". (This is the shortest data: URL; it represents the empty string in a
+        // text/plain resource.)
         if self.Width() == 0 || self.Height() == 0 {
             return Ok(USVString("data:,".into()));
         }
 
-        // Step 3.
+        // Step 3: Let file be a serialization of this canvas element's bitmap as a file,
+        // passing type and quality if given.
         let Some(mut snapshot) = self.get_image_data() else {
             return Ok(USVString("data:,".into()));
         };
@@ -557,12 +560,20 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             &base64::engine::general_purpose::STANDARD,
         );
 
-        self.encode_for_mime_type(
-            &image_type,
-            Self::maybe_quality(quality),
-            &snapshot,
-            &mut encoder,
-        );
+        if self
+            .encode_for_mime_type(
+                &image_type,
+                Self::maybe_quality(quality),
+                &snapshot,
+                &mut encoder,
+            )
+            .is_err()
+        {
+            // Step 4. If file is null, then return "data:,".
+            return Ok(USVString("data:,".into()));
+        }
+
+        // Step 5. Return a data: URL representing file. [RFC2397]
         encoder.into_inner();
         Ok(USVString(url))
     }
@@ -610,26 +621,37 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
                     return error!("Expected blob callback, but found none!");
                 };
 
-                if let Some(mut snapshot) = result {
-                    snapshot.transform(
-                        snapshot::AlphaMode::Transparent{ premultiplied: false },
-                        snapshot::PixelFormat::RGBA
-                    );
-                    // Step 4.1
-                    // If result is non-null, then set result to a serialization of result as a file with
-                    // type and quality if given.
-                    let mut encoded: Vec<u8> = vec![];
-
-                    this.encode_for_mime_type(&image_type, quality, &snapshot, &mut encoded);
-                    let blob_impl = BlobImpl::new_from_bytes(encoded, image_type.as_mime_type());
-                    // Step 4.2.1  Set result to a new Blob object, created in the relevant realm of this canvas element
-                    let blob = Blob::new(&this.global(), blob_impl, CanGc::note());
-
-                    // Step 4.2.2 Invoke callback with « result » and "report".
-                    let _ = callback.Call__(Some(&blob), ExceptionHandling::Report, CanGc::note());
-                } else {
+                let Some(mut snapshot) = result else {
                     let _ = callback.Call__(None, ExceptionHandling::Report, CanGc::note());
-                }
+                    return;
+                };
+
+                snapshot.transform(
+                    snapshot::AlphaMode::Transparent{ premultiplied: false },
+                    snapshot::PixelFormat::RGBA
+                );
+
+                // Step 4.1: If result is non-null, then set result to a serialization of
+                // result as a file with type and quality if given.
+                // Step 4.2: Queue an element task on the canvas blob serialization task
+                // source given the canvas element to run these steps:
+                let mut encoded: Vec<u8> = vec![];
+                let blob_impl;
+                let blob;
+                let result = match this.encode_for_mime_type(&image_type, quality, &snapshot, &mut encoded) {
+                   Ok(..) => {
+                       // Step 4.2.1: If result is non-null, then set result to a new Blob
+                       // object, created in the relevant realm of this canvas element,
+                       // representing result. [FILEAPI]
+                       blob_impl = BlobImpl::new_from_bytes(encoded, image_type.as_mime_type());
+                       blob = Blob::new(&this.global(), blob_impl, CanGc::note());
+                       Some(&*blob)
+                   }
+                   Err(..) => None,
+                };
+
+                // Step 4.2.2: Invoke callback with « result » and "report".
+                let _ = callback.Call__(result, ExceptionHandling::Report, CanGc::note());
             }));
 
         Ok(())
