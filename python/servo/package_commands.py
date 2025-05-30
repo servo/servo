@@ -186,8 +186,10 @@ class PackageCommands(CommandBase):
                 "-p",
                 f"buildMode={build_mode}",
             ]
-            if sanitizer == SanitizerKind.ASAN:
+            if sanitizer.is_asan():
                 hvigor_command.extend(["-p", "ohos-debug-asan=true"])
+            elif sanitizer.is_tsan():
+                hvigor_command.extend(["-p", "ohos-enable-tsan=true"])
 
             # Detect if PATH already has hvigor, or else fallback to npm installation
             # provided via HVIGOR_PATH
