@@ -8,11 +8,8 @@
 
 <script>
     test(() => {
-        let host = document.createElement("div");
-        document.body.appendChild(host);
-        var root = host.attachShadow({mode: "open"});
-        root.append(document.createElement("slot"));
-        let slot = root.querySelector("slot");
+        let host = document.body.appendChild(document.createElement("div"));
+        let slot = host.attachShadow({ mode: "open" }).appendChild(document.createElement("slot"));
         let cs = getComputedStyle(slot);
         assert_equals(cs.getPropertyValue("display"), "contents", "slot default display is not contents");
         document.body.removeChild(host);
