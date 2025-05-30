@@ -54,6 +54,7 @@ use profile_traits::ipc as profile_ipc;
 use profile_traits::time::TimerMetadataFrameType;
 use regex::bytes::Regex;
 use script_bindings::interfaces::DocumentHelpers;
+use script_bindings::root::Root;
 use script_layout_interface::{PendingRestyle, TrustedNodeAddress};
 use script_traits::{ConstellationInputEvent, DocumentActivity, ProgressiveWebMetricType};
 use servo_arc::Arc;
@@ -202,7 +203,7 @@ use crate::fetch::FetchCanceller;
 use crate::iframe_collection::IFrameCollection;
 use crate::image_animation::ImageAnimationManager;
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
-use crate::mime::{APPLICATION, CHARSET, MimeExt};
+use crate::mime::{APPLICATION, CHARSET, MimeExt, XML};
 use crate::network_listener::{NetworkListener, PreInvoke};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, ScriptThreadEventCategory};
@@ -565,6 +566,8 @@ pub(crate) struct Document {
     /// The active keyboard modifiers for the WebView. This is updated when receiving any input event.
     #[no_trace]
     active_keyboard_modifiers: Cell<Modifiers>,
+    /// The current title element for this document.
+    current_title_element: MutNullableDom<HTMLTitleElement>,
     /// The node that is currently highlighted by the devtools
     highlighted_dom_node: MutNullableDom<Node>,
 }
@@ -1465,40 +1468,12 @@ impl Document {
         }
     }
 
-    /// Determine the title of the [`Document`] according to the specification at:
-    /// <https://html.spec.whatwg.org/multipage/#document.title>. The difference
-    /// here is that when the title isn't specified `None` is returned.
-    fn title(&self) -> Option<DOMString> {
-        let title = self.GetDocumentElement().and_then(|root| {
-            if root.namespace() == &ns!(svg) && root.local_name() == &local_name!("svg") {
-                // Step 1.
-                root.upcast::<Node>()
-                    .child_elements()
-                    .find(|node| {
-                        node.namespace() == &ns!(svg) && node.local_name() == &local_name!("title")
-                    })
-                    .map(DomRoot::upcast::<Node>)
-            } else {
-                // Step 2.
-                root.upcast::<Node>()
-                    .traverse_preorder(ShadowIncluding::No)
-                    .find(|node| node.is::<HTMLTitleElement>())
-            }
-        });
-
-        title.map(|title| {
-            // Steps 3-4.
-            let value = title.child_text_content();
-            DOMString::from(str_join(split_html_space_chars(&value), " "))
-        })
-    }
-
     /// Sends this document's title to the constellation.
     pub(crate) fn send_title_to_embedder(&self) {
         let window = self.window();
         if window.is_top_level() {
-            let title = self.title().map(String::from);
-            self.send_to_embedder(EmbedderMsg::ChangePageTitle(self.webview_id(), title));
+            let title = String::from(self.Title());
+            self.send_to_embedder(EmbedderMsg::ChangePageTitle(self.webview_id(), Some(title)));
         }
     }
 
@@ -3830,6 +3805,31 @@ impl Document {
             .queue_entry(entry.upcast::<PerformanceEntry>(), can_gc);
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#document.title>
+    /// Find and cache the first title element in the document.
+    pub(crate) fn update_title_element(&self) {
+        let title = self.GetDocumentElement().and_then(|root| {
+            // Should not be able to set document title in XML document
+            if self.owner_document().content_type.matches(APPLICATION, XML) {
+                return None;
+            }
+            if root.namespace() == &ns!(svg) && root.local_name() == &local_name!("svg") {
+                return None;
+            }
+            // Step 2.
+            root.upcast::<Node>()
+                .traverse_preorder(ShadowIncluding::No)
+                .find(|node| node.is::<HTMLTitleElement>())
+        });
+
+        if let Some(t) = title {
+            let downcasted = t.downcast::<HTMLTitleElement>().unwrap();
+            self.current_title_element.set(Some(downcasted));
+        } else {
+            self.current_title_element.set(None);
+        }
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#document-write-steps>
     fn write(
         &self,
@@ -4230,6 +4230,7 @@ impl Document {
             intersection_observer_task_queued: Cell::new(false),
             intersection_observers: Default::default(),
             active_keyboard_modifiers: Cell::new(Modifiers::empty()),
+            current_title_element: Default::default(),
             highlighted_dom_node: Default::default(),
         }
     }
@@ -5839,73 +5840,116 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         TreeWalker::new(self, root, what_to_show, filter)
     }
 
-    // https://html.spec.whatwg.org/multipage/#document.title
+    /// Determine the title of the [`Document`] according to the specification at:
+    /// <https://html.spec.whatwg.org/multipage/#document.title>. The difference
+    /// here is that we are caching the title using the same steps as the spec.
     fn Title(&self) -> DOMString {
-        self.title().unwrap_or_else(|| DOMString::from(""))
+        let current_title = self.current_title_element.get();
+        let title = if current_title.is_none() {
+            // SVG elements which do not derive from HTMLElement will not
+            // be effectively cached, thus we must search for the title
+            // element again in that case.
+            self.GetDocumentElement().and_then(|root| {
+                if root.namespace() == &ns!(svg) && root.local_name() == &local_name!("svg") {
+                    root.upcast::<Node>()
+                        .child_elements()
+                        .find(|node| {
+                            node.namespace() == &ns!(svg) &&
+                                node.local_name() == &local_name!("title")
+                        })
+                        .map(DomRoot::upcast::<Node>)
+                } else {
+                    None
+                }
+            })
+        } else {
+            current_title.map(Root::upcast)
+        };
+        match title {
+            None => DOMString::new(),
+            Some(ref title) => {
+                let value = Node::collect_text_contents(title.children());
+                DOMString::from(str_join(split_html_space_chars(&value), " "))
+            },
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#document.title
     fn SetTitle(&self, title: DOMString, can_gc: CanGc) {
-        let root = match self.GetDocumentElement() {
-            Some(root) => root,
-            None => return,
-        };
-
-        let elem = if root.namespace() == &ns!(svg) && root.local_name() == &local_name!("svg") {
-            let elem = root.upcast::<Node>().child_elements().find(|node| {
-                node.namespace() == &ns!(svg) && node.local_name() == &local_name!("title")
-            });
-            match elem {
-                Some(elem) => DomRoot::upcast::<Node>(elem),
-                None => {
-                    let name = QualName::new(None, ns!(svg), local_name!("title"));
-                    let elem = Element::create(
-                        name,
-                        None,
-                        self,
-                        ElementCreator::ScriptCreated,
-                        CustomElementCreationMode::Synchronous,
-                        None,
-                        can_gc,
-                    );
-                    let parent = root.upcast::<Node>();
-                    let child = elem.upcast::<Node>();
-                    parent
-                        .InsertBefore(child, parent.GetFirstChild().as_deref(), can_gc)
-                        .unwrap()
-                },
-            }
-        } else if root.namespace() == &ns!(html) {
-            let elem = root
-                .upcast::<Node>()
-                .traverse_preorder(ShadowIncluding::No)
-                .find(|node| node.is::<HTMLTitleElement>());
-            match elem {
-                Some(elem) => elem,
-                None => match self.GetHead() {
-                    Some(head) => {
-                        let name = QualName::new(None, ns!(html), local_name!("title"));
-                        let elem = Element::create(
-                            name,
-                            None,
-                            self,
-                            ElementCreator::ScriptCreated,
-                            CustomElementCreationMode::Synchronous,
-                            None,
-                            can_gc,
-                        );
-                        head.upcast::<Node>()
-                            .AppendChild(elem.upcast(), can_gc)
-                            .unwrap()
-                    },
+        match self.current_title_element.get().as_deref() {
+            Some(title_element) => {
+                title_element
+                    .upcast::<Node>()
+                    .SetTextContent(Some(title), can_gc);
+                self.title_changed();
+            },
+            None => {
+                let root = match self.GetDocumentElement() {
+                    Some(root) => root,
                     None => return,
-                },
-            }
-        } else {
-            return;
-        };
+                };
 
-        elem.SetTextContent(Some(title), can_gc);
+                let elem = if root.namespace() == &ns!(svg) &&
+                    root.local_name() == &local_name!("svg")
+                {
+                    let elem = root.upcast::<Node>().child_elements().find(|node| {
+                        node.namespace() == &ns!(svg) && node.local_name() == &local_name!("title")
+                    });
+                    match elem {
+                        Some(elem) => DomRoot::upcast::<Node>(elem),
+                        None => {
+                            let name = QualName::new(None, ns!(svg), local_name!("title"));
+                            let elem = Element::create(
+                                name,
+                                None,
+                                self,
+                                ElementCreator::ScriptCreated,
+                                CustomElementCreationMode::Synchronous,
+                                None,
+                                can_gc,
+                            );
+                            let parent = root.upcast::<Node>();
+                            let child = elem.upcast::<Node>();
+                            parent
+                                .InsertBefore(child, parent.GetFirstChild().as_deref(), can_gc)
+                                .unwrap()
+                        },
+                    }
+                } else if root.namespace() == &ns!(html) {
+                    let elem = root
+                        .upcast::<Node>()
+                        .traverse_preorder(ShadowIncluding::No)
+                        .find(|node| node.is::<HTMLTitleElement>());
+                    match elem {
+                        Some(elem) => elem,
+                        None => match self.GetHead() {
+                            Some(head) => {
+                                let name = QualName::new(None, ns!(html), local_name!("title"));
+                                let elem = Element::create(
+                                    name,
+                                    None,
+                                    self,
+                                    ElementCreator::ScriptCreated,
+                                    CustomElementCreationMode::Synchronous,
+                                    None,
+                                    can_gc,
+                                );
+                                head.upcast::<Node>()
+                                    .AppendChild(elem.upcast(), can_gc)
+                                    .unwrap()
+                            },
+                            None => return,
+                        },
+                    }
+                } else {
+                    return;
+                };
+
+                elem.SetTextContent(Some(title), can_gc);
+                self.update_title_element();
+                self.title_changed();
+            },
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-head
