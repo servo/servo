@@ -633,7 +633,6 @@ impl Servo {
         log::set_max_level(filter);
     }
 
-    /// Creates a memory report and returns it. This is a blocking function
     pub fn create_memory_report(&self, snd: IpcSender<MemoryReportResult>) {
         self.constellation_proxy
             .send(EmbedderToConstellationMessage::CreateMemoryReport(snd));
