@@ -998,6 +998,9 @@ impl<T: ClipboardProvider> TextInput<T> {
                     self.insert_string(c.as_str());
                     return KeyReaction::DispatchInput;
                 }
+                if matches!(key, Key::Process) {
+                    return KeyReaction::DispatchInput;
+                }
                 KeyReaction::Nothing
             })
             .unwrap()

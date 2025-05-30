@@ -620,11 +620,27 @@ impl RunningAppState {
     }
 
     pub fn ime_insert_text(&self, text: String) {
-        self.active_webview()
-            .notify_input_event(InputEvent::Ime(ImeEvent::Composition(CompositionEvent {
+        // In OHOS, we get empty text after the intended text.
+        if text.is_empty() {
+            return;
+        }
+        let active_webview = self.active_webview();
+        active_webview.notify_input_event(InputEvent::Keyboard(KeyboardEvent {
+            state: KeyState::Down,
+            key: Key::Process,
+            ..KeyboardEvent::default()
+        }));
+        active_webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
+            CompositionEvent {
                 state: CompositionState::End,
                 data: text,
-            })));
+            },
+        )));
+        active_webview.notify_input_event(InputEvent::Keyboard(KeyboardEvent {
+            state: KeyState::Up,
+            key: Key::Process,
+            ..KeyboardEvent::default()
+        }));
         self.perform_updates();
     }
 
