@@ -145,9 +145,7 @@ pub fn start_server(port: u16, constellation_chan: Sender<EmbedderToConstellatio
 /// Represents the current WebDriver session and holds relevant session state.
 pub struct WebDriverSession {
     id: Uuid,
-
     browsing_context_id: BrowsingContextId,
-
     webview_id: WebViewId,
 
     window_handles: HashMap<WebViewId, String>,
@@ -1708,7 +1706,9 @@ impl Handler {
 
                     let actions_by_tick = self.actions_by_tick_from_sequence(vec![action_sequence]);
 
-                    let _ = self.dispatch_actions(actions_by_tick);
+                    if let Err(e) = self.dispatch_actions(actions_by_tick) {
+                        log::error!("handle_element_click: dispatch_actions failed: {:?}", e);
+                    }
 
                     // Step 8.17 Remove an input source with input state and input id.
                     self.session_mut()?

@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::{HashMap, HashSet};
+use std::thread;
 use std::time::{Duration, Instant};
-use std::{cmp, thread};
 
 use constellation_traits::EmbedderToConstellationMessage;
 use embedder_traits::{MouseButtonAction, WebDriverCommandMsg, WebDriverScriptCommand};
@@ -44,7 +44,7 @@ pub(crate) type TickActions = HashMap<String, ActionItem>;
 // Consumed by the `dispatch_actions` method.
 pub(crate) type ActionsByTick = Vec<TickActions>;
 
-// https://w3c.github.io/webdriver/#dfn-input-source-state
+/// <https://w3c.github.io/webdriver/#dfn-input-source-state>
 pub(crate) enum InputSourceState {
     Null,
     #[allow(dead_code)]
@@ -76,41 +76,41 @@ impl PointerInputState {
     }
 }
 
-// https://w3c.github.io/webdriver/#dfn-computing-the-tick-duration
+/// <https://w3c.github.io/webdriver/#dfn-computing-the-tick-duration>
 fn compute_tick_duration(tick_actions: &TickActions) -> u64 {
     // Step 1. Let max duration be 0.
-    let mut max_duration = 0;
-
     // Step 2. For each action in tick actions:
-    tick_actions.iter().for_each(|(_, action_item)| {
-        // If action object has subtype property set to "pause" or
-        // action object has type property set to "pointer" and subtype property set to "pointerMove",
-        // or action object has type property set to "wheel" and subtype property set to "scroll",
-        // let duration be equal to the duration property of action object.
-        let action_duration = match action_item {
-            ActionItem::Null(NullActionItem::General(GeneralAction::Pause(pause_action))) |
-            ActionItem::Key(KeyActionItem::General(GeneralAction::Pause(pause_action))) |
-            ActionItem::Pointer(PointerActionItem::General(GeneralAction::Pause(pause_action))) |
-            ActionItem::Wheel(WheelActionItem::General(GeneralAction::Pause(pause_action))) => {
-                pause_action.duration.unwrap_or(0)
-            },
-            ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Move(action))) => {
-                action.duration.unwrap_or(0)
-            },
-            ActionItem::Wheel(WheelActionItem::Wheel(WheelAction::Scroll(action))) => {
-                action.duration.unwrap_or(0)
-            },
-            _ => 0,
-        };
-        max_duration = cmp::max(max_duration, action_duration);
-    });
-
-    // Step 3. Return max duration.
-    max_duration
+    tick_actions
+        .iter()
+        .filter_map(|(_, action_item)| {
+            // If action object has subtype property set to "pause" or
+            // action object has type property set to "pointer" and subtype property set to "pointerMove",
+            // or action object has type property set to "wheel" and subtype property set to "scroll",
+            // let duration be equal to the duration property of action object.
+            match action_item {
+                ActionItem::Null(NullActionItem::General(GeneralAction::Pause(pause_action))) |
+                ActionItem::Key(KeyActionItem::General(GeneralAction::Pause(pause_action))) |
+                ActionItem::Pointer(PointerActionItem::General(GeneralAction::Pause(
+                    pause_action,
+                ))) |
+                ActionItem::Wheel(WheelActionItem::General(GeneralAction::Pause(pause_action))) => {
+                    pause_action.duration
+                },
+                ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Move(action))) => {
+                    action.duration
+                },
+                ActionItem::Wheel(WheelActionItem::Wheel(WheelAction::Scroll(action))) => {
+                    action.duration
+                },
+                _ => None,
+            }
+        })
+        .max()
+        .unwrap_or(0)
 }
 
 impl Handler {
-    // https://w3c.github.io/webdriver/#dfn-dispatch-actions
+    /// <https://w3c.github.io/webdriver/#dfn-dispatch-actions>
     pub(crate) fn dispatch_actions(
         &self,
         actions_by_tick: ActionsByTick,
@@ -130,7 +130,7 @@ impl Handler {
         res
     }
 
-    // https://w3c.github.io/webdriver/#dfn-dispatch-actions-inner
+    /// <https://w3c.github.io/webdriver/#dfn-dispatch-actions-inner>
     fn dispatch_actions_inner(&self, actions_by_tick: ActionsByTick) -> Result<(), ErrorStatus> {
         // Step 1. For each item tick actions in actions by tick
         for tick_actions in actions_by_tick.iter() {
@@ -172,7 +172,7 @@ impl Handler {
         Ok(())
     }
 
-    // https://w3c.github.io/webdriver/#dfn-dispatch-tick-actions
+    /// <https://w3c.github.io/webdriver/#dfn-dispatch-tick-actions>
     fn dispatch_tick_actions(
         &self,
         tick_actions: &TickActions,
@@ -263,7 +263,7 @@ impl Handler {
         // Nothing to be done
     }
 
-    // https://w3c.github.io/webdriver/#dfn-dispatch-a-keydown-action
+    /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-keydown-action>
     fn dispatch_keydown_action(&self, source_id: &str, action: &KeyDownAction) {
         let session = self.session().unwrap();
 
@@ -286,7 +286,7 @@ impl Handler {
             .unwrap();
     }
 
-    // https://w3c.github.io/webdriver/#dfn-dispatch-a-keyup-action
+    /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-keyup-action>
     fn dispatch_keyup_action(&self, source_id: &str, action: &KeyUpAction) {
         let session = self.session().unwrap();
 
@@ -339,7 +339,7 @@ impl Handler {
             .unwrap();
     }
 
-    // https://w3c.github.io/webdriver/#dfn-dispatch-a-pointerup-action
+    /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pointerup-action>
     pub(crate) fn dispatch_pointerup_action(&self, source_id: &str, action: &PointerUpAction) {
         let session = self.session().unwrap();
 
@@ -369,7 +369,7 @@ impl Handler {
             .unwrap();
     }
 
-    // https://w3c.github.io/webdriver/#dfn-dispatch-a-pointermove-action
+    /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pointermove-action>
     pub(crate) fn dispatch_pointermove_action(
         &self,
         source_id: &str,
@@ -688,7 +688,8 @@ impl Handler {
     /// <https://w3c.github.io/webdriver/#dfn-extract-an-action-sequence>
     pub(crate) fn extract_an_action_sequence(&self, params: ActionsParameters) -> ActionsByTick {
         // Step 1. Let actions be the result of getting a property named "actions" from parameters.
-        // Step 2 (ignored). If actions is not a list, return an error with status InvalidArgument.
+        // Step 2 (ignored because params is already validated earlier). If actions is not a list,
+        // return an error with status InvalidArgument.
         let actions = params.actions;
 
         self.actions_by_tick_from_sequence(actions)
