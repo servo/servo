@@ -1382,10 +1382,6 @@ impl ScriptThread {
     /// a new display list, doesn't occur after an update. If that's the case, we need to
     /// schedule ScriptThread-based animation update (to avoid waking the Compositor up).
     fn schedule_script_thread_animation_tick_if_necessary(&self, saw_any_reflows: bool) {
-        if self.have_scheduled_script_thread_animation_tick.get() {
-            return;
-        }
-
         if saw_any_reflows {
             return;
         }
