@@ -99,7 +99,7 @@ pub(crate) struct WebViewRenderer {
     /// active animations or animation frame callbacks.
     animating: bool,
     /// Pending input events queue. Priavte and only this thread pushes events to it.
-    pending_input_events: RefCell<VecDeque<InputEvent>>,
+    pending_point_input_events: RefCell<VecDeque<InputEvent>>,
     /// Flag to indicate that the epoch has been not synchronized yet.
     pub epoch_not_synchronized: Cell<bool>,
 }
@@ -136,7 +136,7 @@ impl WebViewRenderer {
             max_viewport_zoom: None,
             hidpi_scale_factor: Scale::new(hidpi_scale_factor.0),
             animating: false,
-            pending_input_events: Default::default(),
+            pending_point_input_events: Default::default(),
             epoch_not_synchronized: Cell::default(),
         }
     }
@@ -323,7 +323,9 @@ impl WebViewRenderer {
         };
 
         if self.epoch_not_synchronized.get() {
-            self.pending_input_events.borrow_mut().push_back(event);
+            self.pending_point_input_events
+                .borrow_mut()
+                .push_back(event);
             return;
         }
 
@@ -336,7 +338,9 @@ impl WebViewRenderer {
         {
             Ok(hit_test_results) => hit_test_results,
             Err(HitTestError::EpochMismatch) => {
-                self.pending_input_events.borrow_mut().push_back(event);
+                self.pending_point_input_events
+                    .borrow_mut()
+                    .push_back(event);
                 return;
             },
             _ => {
@@ -353,8 +357,8 @@ impl WebViewRenderer {
         }
     }
 
-    pub(crate) fn dispatch_pending_input_events(&self) {
-        while let Some(event) = self.pending_input_events.borrow_mut().pop_front() {
+    pub(crate) fn dispatch_pending_point_input_events(&self) {
+        while let Some(event) = self.pending_point_input_events.borrow_mut().pop_front() {
             // Events that do not need to do hit testing are sent directly to the
             // constellation to filter down.
             let Some(point) = event.point() else {
@@ -453,13 +457,33 @@ impl WebViewRenderer {
     }
 
     fn send_touch_event(&self, mut event: TouchEvent) -> bool {
+        if self.epoch_not_synchronized.get() {
+            // If the epoch is not synchronized, we cannot send the event.
+            // We will try again later.
+            self.pending_point_input_events
+                .borrow_mut()
+                .push_back(InputEvent::Touch(event));
+            return false;
+        }
+
         let get_pipeline_details = |pipeline_id| self.pipelines.get(&pipeline_id);
-        let Ok(result) = self
+        let result = match self
             .global
             .borrow()
             .hit_test_at_point(event.point, get_pipeline_details)
-        else {
-            return false;
+        {
+            Ok(hit_test_results) => hit_test_results,
+            Err(HitTestError::EpochMismatch) => {
+                // If the epoch is not synchronized, we cannot send the event.
+                // We will try again later.
+                self.pending_point_input_events
+                    .borrow_mut()
+                    .push_back(InputEvent::Touch(event));
+                return false;
+            },
+            _ => {
+                return false;
+            },
         };
 
         event.init_sequence_id(self.touch_handler.current_sequence_id);
