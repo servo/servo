@@ -307,7 +307,7 @@ class CommandBase(object):
         self.config["build"].setdefault("incremental", None)
         self.config["build"].setdefault("webgl-backtrace", False)
         self.config["build"].setdefault("dom-backtrace", False)
-        self.config["build"].setdefault("sanitizer", None)
+        self.config["build"].setdefault("sanitizer", SanitizerKind.NONE)
 
         self.config.setdefault("android", {})
         self.config["android"].setdefault("sdk", "")
@@ -547,6 +547,14 @@ class CommandBase(object):
                     action="store_const",
                     const=SanitizerKind.ASAN,
                     help="Build with AddressSanitizer",
+                ),
+                CommandArgument(
+                    "--with-tsan",
+                    group="Sanitizer",
+                    dest="sanitizer",
+                    action="store_const",
+                    const=SanitizerKind.TSAN,
+                    help="Build with ThreadSanitizer",
                 ),
             ]
 

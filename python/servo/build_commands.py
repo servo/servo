@@ -93,7 +93,7 @@ class MachCommands(CommandBase):
         no_package=False,
         verbose=False,
         very_verbose=False,
-        sanitizer: Optional[SanitizerKind] = None,
+        sanitizer: SanitizerKind = SanitizerKind.NONE,
         flavor=None,
         **kwargs,
     ):
@@ -113,6 +113,7 @@ class MachCommands(CommandBase):
         if very_verbose:
             opts += ["-vv"]
         self.config["build"]["sanitizer"] = sanitizer
+        assert sanitizer.is_tsan()
 
         env = self.build_env()
         self.ensure_bootstrapped()
@@ -234,18 +235,25 @@ class MachCommands(CommandBase):
         target_clang = f"clang-{llvm_major}"
         target_cxx = f"clang++-{llvm_major}"
         if shutil.which(target_clang) is None or shutil.which(target_cxx) is None:
-            env.setdefault("TARGET_CC", target_clang)
-            env.setdefault("TARGET_CXX", target_cxx)
+            env.setdefault("TARGET_CC", 'clang')
+            env.setdefault("TARGET_CXX", 'clang++')
         else:
             # libasan can be compatible across multiple compiler versions and has a
             # runtime check, which would fail if we used incompatible compilers, so
             # we can try and fallback to the default clang.
-            env.setdefault("TARGET_CC", "clang")
-            env.setdefault("TARGET_CXX", "clang++")
+            env.setdefault("TARGET_CC", target_clang)
+            env.setdefault("TARGET_CXX", target_cxx)
         # By default, build mozjs from source to enable Sanitizers in mozjs.
         env.setdefault("MOZJS_FROM_SOURCE", "1")
 
-        if sanitizer == sanitizer.ASAN:
+        # We need to use `TARGET_CFLAGS`, since we don't want to compile host dependencies with ASAN,
+        # since that causes issues when building build-scripts / proc macros.
+        # The actual flags will be appended below depending on the sanitizer kind.
+        env.setdefault("TARGET_CFLAGS", "")
+        env.setdefault("TARGET_CXXFLAGS", "")
+        env.setdefault("RUSTFLAGS", "")
+
+        if sanitizer is sanitizer.ASAN:
             if target_triple not in SUPPORTED_ASAN_TARGETS:
                 print(
                     "AddressSanitizer is currently not supported on this platform\n",
@@ -254,18 +262,18 @@ class MachCommands(CommandBase):
                 sys.exit(1)
 
             # Enable asan
-            env["RUSTFLAGS"] = env.get("RUSTFLAGS", "") + " -Zsanitizer=address"
-
-            # We need to use `TARGET_CFLAGS`, since we don't want to compile host dependencies with ASAN,
-            # since that causes issues when building build-scripts / proc macros.
-            env.setdefault("TARGET_CFLAGS", "")
-            env.setdefault("TARGET_CXXFLAGS", "")
+            env["RUSTFLAGS"] += " -Zsanitizer=address"
             env["TARGET_CFLAGS"] += " -fsanitize=address"
             env["TARGET_CXXFLAGS"] += " -fsanitize=address"
 
             # asan replaces system allocator with asan allocator
             # we need to make sure that we do not replace it with jemalloc
             self.features.append("servo_allocator/use-system-allocator")
+        elif sanitizer is SanitizerKind.TSAN:
+            env["RUSTFLAGS"] += " -Zsanitizer=thread"
+            env["TARGET_CFLAGS"] += " -fsanitize=thread"
+            env["TARGET_CXXFLAGS"] += " -fsanitize=thread"
+
         return None
 
     def notify(self, title: str, message: str):
