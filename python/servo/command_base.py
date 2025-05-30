@@ -43,6 +43,8 @@ from servo.util import download_file, get_default_cache_dir
 import servo.platform
 import servo.util as util
 
+from python.servo.platform.build_target import SanitizerKind
+
 NIGHTLY_REPOSITORY_URL = "https://servo-builds2.s3.amazonaws.com/"
 ASAN_LEAK_SUPPRESSION_FILE = "support/suppressed_leaks_for_asan.txt"
 
@@ -305,7 +307,7 @@ class CommandBase(object):
         self.config["build"].setdefault("incremental", None)
         self.config["build"].setdefault("webgl-backtrace", False)
         self.config["build"].setdefault("dom-backtrace", False)
-        self.config["build"].setdefault("with_asan", False)
+        self.config["build"].setdefault("sanitizer", None)
 
         self.config.setdefault("android", {})
         self.config["android"].setdefault("sdk", "")
@@ -328,9 +330,9 @@ class CommandBase(object):
     def get_top_dir(self):
         return self.context.topdir
 
-    def get_binary_path(self, build_type: BuildType, asan: bool = False):
+    def get_binary_path(self, build_type: BuildType, sanitizer=None):
         base_path = util.get_target_dir()
-        if asan or self.target.is_cross_build():
+        if sanitizer is not None or self.target.is_cross_build():
             base_path = path.join(base_path, self.target.triple())
         binary_name = self.target.binary_name()
         binary_path = path.join(base_path, build_type.directory_name(), binary_name)
@@ -537,7 +539,15 @@ class CommandBase(object):
                     help="Build in release mode without debug assertions",
                 ),
                 CommandArgument("--profile", group="Build Type", help="Build with custom Cargo profile"),
-                CommandArgument("--with-asan", action="store_true", help="Build with AddressSanitizer"),
+                CommandArgumentGroup("Sanitizer"),
+                CommandArgument(
+                    "--with-asan",
+                    group="Sanitizer",
+                    dest="sanitizer",
+                    action="store_const",
+                    const=SanitizerKind.ASAN,
+                    help="Build with AddressSanitizer",
+                ),
             ]
 
         if build_configuration:
@@ -649,13 +659,13 @@ class CommandBase(object):
                         kwargs["servo_binary"] = (
                             kwargs.get("bin")
                             or self.get_nightly_binary_path(kwargs.get("nightly"))
-                            or self.get_binary_path(kwargs.get("build_type"), asan=kwargs.get("with_asan"))
+                            or self.get_binary_path(kwargs.get("build_type"), sanitizer=kwargs.get("sanitizer"))
                         )
                     kwargs.pop("bin")
                     kwargs.pop("nightly")
                     if not build_type:
                         kwargs.pop("build_type")
-                        kwargs.pop("with_asan")
+                        kwargs.pop("sanitizer")
 
                 return original_function(self, *args, **kwargs)
 
