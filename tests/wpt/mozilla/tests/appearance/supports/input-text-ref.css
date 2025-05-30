@@ -13,10 +13,10 @@
     white-space: nowrap;
 }
 
-/* We ae using definite width for most of the test to reduce the effect if calculating inline
- * size of the input element. Which, will depends on the font size.
+/* We are using definite width for most of the test to reduce the effect if calculating inline
+ * size of the input element. Which, will depends on the average character width of a font.
  *
- * <https://html.spec.whatwg.org/#the-input-element-as-a-text-entry-widget>
+ * <https://html.spec.whatwg.org/#converting-a-character-width-to-pixels>
  */
 .definite-width {
     width: 100px;
