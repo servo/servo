@@ -10,7 +10,7 @@
 from datetime import datetime
 import random
 import time
-from typing import List, Optional
+from typing import List
 from github import Github
 
 import hashlib
@@ -110,7 +110,7 @@ class PackageCommands(CommandBase):
     @CommandArgument("--target", "-t", default=None, help="Package for given target platform")
     @CommandBase.common_command_arguments(build_configuration=False, build_type=True, package_configuration=True)
     @CommandBase.allow_target_configuration
-    def package(self, build_type: BuildType, flavor=None, sanitizer: Optional[SanitizerKind] = None):
+    def package(self, build_type: BuildType, flavor=None, sanitizer: SanitizerKind = SanitizerKind.NONE):
         env = self.build_env()
         binary_path = self.get_binary_path(build_type, sanitizer=sanitizer)
         dir_to_root = self.get_top_dir()
@@ -186,8 +186,10 @@ class PackageCommands(CommandBase):
                 "-p",
                 f"buildMode={build_mode}",
             ]
-            if sanitizer == SanitizerKind.ASAN:
+            if sanitizer.is_asan():
                 hvigor_command.extend(["-p", "ohos-debug-asan=true"])
+            elif sanitizer.is_tsan():
+                hvigor_command.extend(["-p", "ohos-enable-tsan=true"])
 
             # Detect if PATH already has hvigor, or else fallback to npm installation
             # provided via HVIGOR_PATH
@@ -394,7 +396,12 @@ class PackageCommands(CommandBase):
     @CommandBase.common_command_arguments(build_configuration=False, build_type=True, package_configuration=True)
     @CommandBase.allow_target_configuration
     def install(
-        self, build_type: BuildType, emulator=False, usb=False, sanitizer: Optional[SanitizerKind] = None, flavor=None
+        self,
+        build_type: BuildType,
+        emulator=False,
+        usb=False,
+        sanitizer: SanitizerKind = SanitizerKind.NONE,
+        flavor=None,
     ):
         env = self.build_env()
         try:

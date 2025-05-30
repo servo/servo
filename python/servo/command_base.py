@@ -307,7 +307,7 @@ class CommandBase(object):
         self.config["build"].setdefault("incremental", None)
         self.config["build"].setdefault("webgl-backtrace", False)
         self.config["build"].setdefault("dom-backtrace", False)
-        self.config["build"].setdefault("sanitizer", None)
+        self.config["build"].setdefault("sanitizer", SanitizerKind.NONE)
 
         self.config.setdefault("android", {})
         self.config["android"].setdefault("sdk", "")
@@ -330,9 +330,9 @@ class CommandBase(object):
     def get_top_dir(self):
         return self.context.topdir
 
-    def get_binary_path(self, build_type: BuildType, sanitizer=None):
+    def get_binary_path(self, build_type: BuildType, sanitizer: SanitizerKind = None):
         base_path = util.get_target_dir()
-        if sanitizer is not None or self.target.is_cross_build():
+        if sanitizer.is_some() or self.target.is_cross_build():
             base_path = path.join(base_path, self.target.triple())
         binary_name = self.target.binary_name()
         binary_path = path.join(base_path, build_type.directory_name(), binary_name)
@@ -546,7 +546,16 @@ class CommandBase(object):
                     dest="sanitizer",
                     action="store_const",
                     const=SanitizerKind.ASAN,
+                    default=SanitizerKind.NONE,
                     help="Build with AddressSanitizer",
+                ),
+                CommandArgument(
+                    "--with-tsan",
+                    group="Sanitizer",
+                    dest="sanitizer",
+                    action="store_const",
+                    const=SanitizerKind.TSAN,
+                    help="Build with ThreadSanitizer",
                 ),
             ]
 
