@@ -1457,12 +1457,8 @@ impl Node {
     }
 
     pub(crate) fn style(&self, can_gc: CanGc) -> Option<Arc<ComputedValues>> {
-        if !self
-            .owner_window()
-            .layout_reflow(QueryMsg::StyleQuery, can_gc)
-        {
-            return None;
-        }
+        self.owner_window()
+            .layout_reflow(QueryMsg::StyleQuery, can_gc);
         self.style_data
             .borrow()
             .as_ref()
