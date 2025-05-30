@@ -237,7 +237,7 @@ def find_non_system_dependencies_with_otool(binary_path: str) -> Set[str]:
 
         # No need to do any processing for system libraries. They should be
         # present on all macOS systems.
-        if not is_macos_system_library(dependency):
+        if not (is_macos_system_library(dependency) or 'librustc-stable_rt' in dependency):
             output.add(dependency)
     return output
 
