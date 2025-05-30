@@ -145,9 +145,7 @@ pub fn start_server(port: u16, constellation_chan: Sender<EmbedderToConstellatio
 /// Represents the current WebDriver session and holds relevant session state.
 pub struct WebDriverSession {
     id: Uuid,
-
     browsing_context_id: BrowsingContextId,
-
     webview_id: WebViewId,
 
     window_handles: HashMap<WebViewId, String>,
