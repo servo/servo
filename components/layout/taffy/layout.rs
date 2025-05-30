@@ -320,6 +320,7 @@ impl taffy::LayoutGridContainer for TaffyContainerContext<'_> {
     ) -> Self::GridItemStyle<'_> {
         let id = usize::from(child_node_id);
         let child = (*self.source_child_nodes[id]).borrow();
+        // TODO: account for non-replaced elements that are "compressible replaced"
         let is_replaced = child.is_in_flow_replaced();
         let stylo_style = AtomicRef::map(child, |c| &*c.style);
         TaffyStyloStyle::new(stylo_style, is_replaced)
