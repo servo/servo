@@ -618,7 +618,7 @@ impl StackingContext {
         // If it’s larger, we also want to paint areas reachable after scrolling.
         let painting_area = fragment_tree
             .initial_containing_block
-            .union(&fragment_tree.scrollable_overflow)
+            .union(&fragment_tree.scrollable_overflow())
             .to_webrender();
 
         let background_color =
@@ -1346,7 +1346,7 @@ impl BoxFragment {
         let position = self.style.get_box().position;
         // https://drafts.csswg.org/css2/#clipping
         // The clip property applies only to absolutely positioned elements
-        if position != ComputedPosition::Absolute && position != ComputedPosition::Fixed {
+        if !position.is_absolutely_positioned() {
             return None;
         }
 

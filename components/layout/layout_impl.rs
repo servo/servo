@@ -8,6 +8,7 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::process;
+use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
 
 use app_units::Au;
@@ -142,7 +143,7 @@ pub struct LayoutThread {
     box_tree: RefCell<Option<Arc<BoxTree>>>,
 
     /// The fragment tree.
-    fragment_tree: RefCell<Option<Arc<FragmentTree>>>,
+    fragment_tree: RefCell<Option<Rc<FragmentTree>>>,
 
     /// The [`StackingContextTree`] cached from previous layouts.
     stacking_context_tree: RefCell<Option<StackingContextTree>>,
@@ -656,7 +657,7 @@ impl LayoutThread {
             &mut layout_context,
             viewport_changed,
         );
-
+        self.calculate_overflow(damage);
         self.build_stacking_context_tree(&reflow_request, damage);
         self.build_display_list(&reflow_request, &mut layout_context);
 
@@ -773,8 +774,11 @@ impl LayoutThread {
             driver::traverse_dom(&recalc_style_traversal, token, rayon_pool).as_node();
 
         let root_node = root_element.as_node();
-        let damage = compute_damage_and_repair_style(layout_context.shared_context(), root_node);
-        if !viewport_changed && !damage.contains(RestyleDamage::REBUILD_BOX) {
+        let mut damage =
+            compute_damage_and_repair_style(layout_context.shared_context(), root_node);
+        if viewport_changed {
+            damage = RestyleDamage::REBUILD_BOX;
+        } else if !damage.contains(RestyleDamage::REBUILD_BOX) {
             layout_context.style_context.stylist.rule_tree().maybe_gc();
             return damage;
         }
@@ -802,15 +806,12 @@ impl LayoutThread {
                 .unwrap()
                 .layout(recalc_style_traversal.context(), viewport_size)
         };
-        let fragment_tree = Arc::new(if let Some(pool) = rayon_pool {
+        let fragment_tree = Rc::new(if let Some(pool) = rayon_pool {
             pool.install(run_layout)
         } else {
             run_layout()
         });
 
-        if self.debug.dump_flow_tree {
-            fragment_tree.print();
-        }
         *self.fragment_tree.borrow_mut() = Some(fragment_tree);
 
         // The FragmentTree has been updated, so any existing StackingContext tree that layout
@@ -837,6 +838,19 @@ impl LayoutThread {
         damage
     }
 
+    fn calculate_overflow(&self, damage: RestyleDamage) {
+        if !damage.contains(RestyleDamage::RECALCULATE_OVERFLOW) {
+            return;
+        }
+
+        if let Some(fragment_tree) = &*self.fragment_tree.borrow() {
+            fragment_tree.calculate_scrollable_overflow();
+            if self.debug.dump_flow_tree {
+                fragment_tree.print();
+            }
+        }
+    }
+
     fn build_stacking_context_tree(&self, reflow_request: &ReflowRequest, damage: RestyleDamage) {
         if !reflow_request.reflow_goal.needs_display_list() &&
             !reflow_request.reflow_goal.needs_display()
@@ -858,13 +872,19 @@ impl LayoutThread {
             viewport_size.height.to_f32_px(),
         );
 
+        let scrollable_overflow = fragment_tree.scrollable_overflow();
+        let scrollable_overflow = LayoutSize::from_untyped(Size2D::new(
+            scrollable_overflow.size.width.to_f32_px(),
+            scrollable_overflow.size.height.to_f32_px(),
+        ));
+
         // Build the StackingContextTree. This turns the `FragmentTree` into a
         // tree of fragments in CSS painting order and also creates all
         // applicable spatial and clip nodes.
         *self.stacking_context_tree.borrow_mut() = Some(StackingContextTree::new(
             fragment_tree,
             viewport_size,
-            fragment_tree.scrollable_overflow(),
+            scrollable_overflow,
             self.id.into(),
             fragment_tree.viewport_scroll_sensitivity,
             self.first_reflow.get(),

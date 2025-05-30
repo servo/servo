@@ -183,16 +183,33 @@ impl Fragment {
         }
     }
 
-    pub fn scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
+    pub(crate) fn scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                fragment.borrow().scrollable_overflow_for_parent()
+                return fragment.borrow().scrollable_overflow_for_parent();
             },
             Fragment::AbsoluteOrFixedPositioned(_) => PhysicalRect::zero(),
-            Fragment::Positioning(fragment) => fragment.borrow().scrollable_overflow,
+            Fragment::Positioning(fragment) => fragment.borrow().scrollable_overflow_for_parent(),
             Fragment::Text(fragment) => fragment.borrow().rect,
             Fragment::Image(fragment) => fragment.borrow().rect,
             Fragment::IFrame(fragment) => fragment.borrow().rect,
+        }
+    }
+
+    pub(crate) fn calculate_scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
+        self.calculate_scrollable_overflow();
+        self.scrollable_overflow_for_parent()
+    }
+
+    pub(crate) fn calculate_scrollable_overflow(&self) {
+        match self {
+            Fragment::Box(fragment) | Fragment::Float(fragment) => {
+                fragment.borrow_mut().calculate_scrollable_overflow()
+            },
+            Fragment::Positioning(fragment) => {
+                fragment.borrow_mut().calculate_scrollable_overflow()
+            },
+            _ => {},
         }
     }
 
