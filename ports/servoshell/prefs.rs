@@ -183,6 +183,7 @@ pub(crate) enum ArgumentParsingResult {
     ChromeProcess(Opts, Preferences, ServoShellPreferences),
     ContentProcess(String),
     Exit,
+    ErrorParsing,
 }
 
 /// Parse a resolution string into a Size2D
@@ -287,7 +288,7 @@ struct CmdArgs {
     ignore_certificate_errors: bool,
 
     /// Number of threads to use for layout
-    #[bpaf(short('y'), argument("1"))]
+    #[bpaf(short('y'), long, argument("1"))]
     layout_threads: Option<i64>,
 
     /// Directory root with unminified scripts
@@ -312,8 +313,8 @@ struct CmdArgs {
     output_image: Option<String>,
 
     /// Time profiler flag and either a TSV output filename OR and interval
-    /// for output to Stdout (blank for Stdout with interval of 5s)
-    #[bpaf(short('p'), argument::<String>("10 OR time.tsv"), parse(parse_profiling), fallback(None))]
+    /// for output to Stdout
+    #[bpaf(short('p'), long, argument::<String>("10 OR time.tsv"), parse(parse_profiling), fallback(None))]
     profile: Option<OutputOptions>,
 
     /// Path to dump a self-contained HTML timeline of profiler traces
@@ -389,15 +390,14 @@ struct CmdArgs {
     window_size: Option<Size2D<u32, DeviceIndependentPixel>>,
 
     /// The url we should load
-    #[bpaf(
-        positional("URL"),
-        fallback(Some(String::from("https://www.servo.org")))
-    )]
-    url: Option<String>,
+    #[bpaf(positional("URL"))]
+    url: String,
 }
 
-/// In here we set preferences depending on args
-fn set_prefs_from_cfg(preferences: &mut Preferences, cmd_args: &CmdArgs) {
+fn update_preferences_from_command_line_arguemnts(
+    preferences: &mut Preferences,
+    cmd_args: &CmdArgs,
+) {
     if let Some(port) = cmd_args.devtools {
         preferences.devtools_server_enabled = true;
         preferences.devtools_server_port = port;
@@ -427,7 +427,7 @@ fn set_prefs_from_cfg(preferences: &mut Preferences, cmd_args: &CmdArgs) {
         .for_each(|pref| preferences.set_value(pref, PrefValue::Bool(true)));
     }
 
-    for pref in cmd_args.pref.clone() {
+    for pref in &cmd_args.pref {
         let split: Vec<&str> = pref.splitn(2, '=').collect();
         let pref_name = split[0];
         let pref_value = PrefValue::from_booleanish_str(split.get(1).copied().unwrap_or("true"));
@@ -450,9 +450,9 @@ fn set_prefs_from_cfg(preferences: &mut Preferences, cmd_args: &CmdArgs) {
 
 pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsingResult {
     let cmd_args = cmd_args().run_inner(&*args);
-    if let Err(e) = cmd_args {
-        e.print_message(80);
-        return ArgumentParsingResult::Exit;
+    if let Err(error) = cmd_args {
+        error.print_message(80);
+        return ArgumentParsingResult::ErrorParsing;
     }
 
     let cmd_args = cmd_args.unwrap();
@@ -461,7 +461,11 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         return ArgumentParsingResult::Exit;
     }
 
-    if cmd_args.debug.iter().any(|d| d.contains("help")) {
+    if cmd_args
+        .debug
+        .iter()
+        .any(|debug_option| debug_option.contains("help"))
+    {
         print_debug_options_usage("servo");
         return ArgumentParsingResult::Exit;
     }
@@ -488,7 +492,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
 
     let mut preferences = get_preferences(&cmd_args.prefs_files, &config_dir);
 
-    set_prefs_from_cfg(&mut preferences, &cmd_args);
+    update_preferences_from_command_line_arguemnts(&mut preferences, &cmd_args);
 
     // FIXME: enable JIT compilation on 32-bit Android after the startup crash issue (#31134) is fixed.
     if cfg!(target_os = "android") && cfg!(target_pointer_width = "32") {
@@ -503,6 +507,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         cmd_args.device_pixel_ratio_override
     };
 
+    // Make sure the default window size is not larger than any provided screen size.
     let default_window_size = Size2D::new(1024, 740);
     let default_window_size = cmd_args
         .screen_size_override
@@ -511,7 +516,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         });
 
     let servoshell_preferences = ServoShellPreferences {
-        url: cmd_args.url,
+        url: Some(cmd_args.url),
         no_native_titlebar: cmd_args.no_native_titlebar,
         device_pixel_ratio_override,
         clean_shutdown: cmd_args.clean_shutdown,
@@ -532,10 +537,12 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
     };
 
     let mut debug_options = DebugOptions::default();
-    for i in cmd_args.debug {
-        debug_options
-            .extend(i)
-            .expect("Could not extend with debug option");
+    for debug_string in cmd_args.debug {
+        let result = debug_options.extend(debug_string);
+        if let Err(error) = result {
+            println!("error: urnecognized debug option: {}", error);
+            return ArgumentParsingResult::ErrorParsing;
+        }
     }
 
     let opts = Opts {
@@ -656,7 +663,12 @@ fn test_parse_pref(arg: &str) -> Preferences {
             unreachable!("No preferences for content process")
         },
         ArgumentParsingResult::ChromeProcess(_, preferences, _) => preferences,
-        ArgumentParsingResult::Exit => panic!("should not happen"),
+        ArgumentParsingResult::Exit => {
+            panic!("we supplied a --pref argument above which should be parsed")
+        },
+        ArgumentParsingResult::ErrorParsing => {
+            unreachable!("we supplied a --pref argument above which should be parsed")
+        },
     }
 }
 
@@ -716,7 +728,9 @@ fn test_parse(arg: &str) -> (Opts, Preferences, ServoShellPreferences) {
         ArgumentParsingResult::ChromeProcess(opts, preferences, servoshell_preferences) => {
             (opts, preferences, servoshell_preferences)
         },
-        ArgumentParsingResult::Exit => panic!("should not happen"),
+        ArgumentParsingResult::Exit | ArgumentParsingResult::ErrorParsing => {
+            unreachable!("We always valid preference in our test cases")
+        },
     }
 }
 
@@ -728,8 +742,8 @@ fn test_profiling_args() {
     );
 
     assert_eq!(
-        test_parse("-p").0.time_profiling.unwrap(),
-        OutputOptions::Stdout(5_f64)
+        test_parse("-p 10.0").0.time_profiling.unwrap(),
+        OutputOptions::Stdout(10_f64)
     );
 
     assert_eq!(
