@@ -12,12 +12,15 @@ use super::convert;
 /// implements Taffy's layout traits and can used with Taffy's layout algorithms.
 pub struct TaffyStyloStyle<T: Deref<Target = ComputedValues>> {
     pub style: T,
-    pub is_replaced: bool,
+    pub is_compressible_replaced: bool,
 }
 
 impl<T: Deref<Target = ComputedValues>> TaffyStyloStyle<T> {
-    pub fn new(style: T, is_replaced: bool) -> Self {
-        Self { style, is_replaced }
+    pub fn new(style: T, is_compressible_replaced: bool) -> Self {
+        Self {
+            style,
+            is_compressible_replaced,
+        }
     }
 }
 
@@ -34,7 +37,7 @@ impl<T: Deref<Target = ComputedValues>> taffy::CoreStyle for TaffyStyloStyle<T> 
 
     #[inline]
     fn is_compressible_replaced(&self) -> bool {
-        self.is_replaced
+        self.is_compressible_replaced
     }
 
     #[inline]
