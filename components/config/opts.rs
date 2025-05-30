@@ -172,7 +172,7 @@ impl DebugOptions {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub enum OutputOptions {
     /// Database connection config (hostname, name, user, pass)
     FileName(String),

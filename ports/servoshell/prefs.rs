@@ -705,3 +705,59 @@ fn test_create_prefs_map() {
     }";
     assert_eq!(read_prefs_map(json_str).len(), 3);
 }
+
+#[cfg(test)]
+fn test_parse(arg: &str) -> (Opts, Preferences, ServoShellPreferences) {
+    let args = vec!["servo".to_string(), arg.to_string()];
+    match parse_command_line_arguments(args) {
+        ArgumentParsingResult::ContentProcess(..) => {
+            unreachable!("No preferences for content process")
+        },
+        ArgumentParsingResult::ChromeProcess(opts, preferences, servoshell_preferences) => {
+            (opts, preferences, servoshell_preferences)
+        },
+        ArgumentParsingResult::Exit => panic!("should not happen"),
+    }
+}
+
+#[test]
+fn test_profiling_args() {
+    assert_eq!(
+        test_parse("-p 10").0.time_profiling.unwrap(),
+        OutputOptions::Stdout(10_f64)
+    );
+
+    assert_eq!(
+        test_parse("-p").0.time_profiling.unwrap(),
+        OutputOptions::Stdout(5_f64)
+    );
+
+    assert_eq!(
+        test_parse("-p foo.txt").0.time_profiling.unwrap(),
+        OutputOptions::FileName(String::from("foo.txt"))
+    );
+}
+
+#[test]
+fn test_servoshell_cmd() {
+    assert_eq!(
+        test_parse("-o foo.png").2.device_pixel_ratio_override,
+        Some(1.0)
+    );
+
+    assert_eq!(
+        test_parse("--screen-size=1000x1000")
+            .2
+            .screen_size_override
+            .unwrap(),
+        Size2D::new(1000, 1000)
+    );
+
+    assert_eq!(
+        test_parse("--certificate-path=/tmp/test")
+            .0
+            .certificate_path
+            .unwrap(),
+        String::from("/tmp/test")
+    );
+}
