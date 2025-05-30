@@ -17,7 +17,7 @@ import subprocess
 import sys
 
 from time import time
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 import notifypy
 
@@ -122,58 +122,7 @@ class MachCommands(CommandBase):
         target_triple = self.target.triple()
 
         if sanitizer is not None:
-            # do not use crown (clashes with different rust version)
-            env["RUSTC"] = "rustc"
-            # Enable usage of unstable rust flags
-            env["RUSTC_BOOTSTRAP"] = "1"
-            # std library should also be instrumented
-            opts += ["-Zbuild-std"]
-            # We need to always set the target triple, even when building for host.
-            kwargs["target_override"] = target_triple
-            # When sanitizers are used we also want framepointers to help with backtraces.
-            if "force-frame-pointers" not in env["RUSTFLAGS"]:
-                env["RUSTFLAGS"] += " -C force-frame-pointers=yes"
-
-            # Note: We want to use the same clang/LLVM version as rustc.
-            rustc_llvm_version = get_rustc_llvm_version()
-            if rustc_llvm_version is None:
-                raise RuntimeError("Unable to determine necessary clang version for Sanitizer support")
-            llvm_major: int = rustc_llvm_version[0]
-            target_clang = f"clang-{llvm_major}"
-            target_cxx = f"clang++-{llvm_major}"
-            if shutil.which(target_clang) is None or shutil.which(target_cxx) is None:
-                env.setdefault("TARGET_CC", target_clang)
-                env.setdefault("TARGET_CXX", target_cxx)
-            else:
-                # libasan can be compatible across multiple compiler versions and has a
-                # runtime check, which would fail if we used incompatible compilers, so
-                # we can try and fallback to the default clang.
-                env.setdefault("TARGET_CC", "clang")
-                env.setdefault("TARGET_CXX", "clang++")
-            # By default, build mozjs from source to enable Sanitizers in mozjs.
-            env.setdefault("MOZJS_FROM_SOURCE", "1")
-
-        if sanitizer == sanitizer.ASAN:
-            if target_triple not in SUPPORTED_ASAN_TARGETS:
-                print(
-                    "AddressSanitizer is currently not supported on this platform\n",
-                    "See https://doc.rust-lang.org/beta/unstable-book/compiler-flags/sanitizer.html",
-                )
-                sys.exit(1)
-
-            # Enable asan
-            env["RUSTFLAGS"] = env.get("RUSTFLAGS", "") + " -Zsanitizer=address"
-
-            # We need to use `TARGET_CFLAGS`, since we don't want to compile host dependencies with ASAN,
-            # since that causes issues when building build-scripts / proc macros.
-            env.setdefault("TARGET_CFLAGS", "")
-            env.setdefault("TARGET_CXXFLAGS", "")
-            env["TARGET_CFLAGS"] += " -fsanitize=address"
-            env["TARGET_CXXFLAGS"] += " -fsanitize=address"
-
-            # asan replaces system allocator with asan allocator
-            # we need to make sure that we do not replace it with jemalloc
-            self.features.append("servo_allocator/use-system-allocator")
+            self.build_sanitizer_env(env, opts, kwargs, target_triple, sanitizer)
 
         build_start = time()
 
@@ -259,6 +208,65 @@ class MachCommands(CommandBase):
             opts += ["-v"]
         opts += params
         return check_call(["cargo", "clean"] + opts, env=self.build_env(), verbose=verbose)
+
+    def build_sanitizer_env(
+        self, env: Dict, opts: List[str], kwargs, target_triple, sanitizer: Optional[SanitizerKind] = None
+    ):
+        if sanitizer is None:
+            return None
+        # do not use crown (clashes with different rust version)
+        env["RUSTC"] = "rustc"
+        # Enable usage of unstable rust flags
+        env["RUSTC_BOOTSTRAP"] = "1"
+        # std library should also be instrumented
+        opts += ["-Zbuild-std"]
+        # We need to always set the target triple, even when building for host.
+        kwargs["target_override"] = target_triple
+        # When sanitizers are used we also want framepointers to help with backtraces.
+        if "force-frame-pointers" not in env["RUSTFLAGS"]:
+            env["RUSTFLAGS"] += " -C force-frame-pointers=yes"
+
+        # Note: We want to use the same clang/LLVM version as rustc.
+        rustc_llvm_version = get_rustc_llvm_version()
+        if rustc_llvm_version is None:
+            raise RuntimeError("Unable to determine necessary clang version for Sanitizer support")
+        llvm_major: int = rustc_llvm_version[0]
+        target_clang = f"clang-{llvm_major}"
+        target_cxx = f"clang++-{llvm_major}"
+        if shutil.which(target_clang) is None or shutil.which(target_cxx) is None:
+            env.setdefault("TARGET_CC", target_clang)
+            env.setdefault("TARGET_CXX", target_cxx)
+        else:
+            # libasan can be compatible across multiple compiler versions and has a
+            # runtime check, which would fail if we used incompatible compilers, so
+            # we can try and fallback to the default clang.
+            env.setdefault("TARGET_CC", "clang")
+            env.setdefault("TARGET_CXX", "clang++")
+        # By default, build mozjs from source to enable Sanitizers in mozjs.
+        env.setdefault("MOZJS_FROM_SOURCE", "1")
+
+        if sanitizer == sanitizer.ASAN:
+            if target_triple not in SUPPORTED_ASAN_TARGETS:
+                print(
+                    "AddressSanitizer is currently not supported on this platform\n",
+                    "See https://doc.rust-lang.org/beta/unstable-book/compiler-flags/sanitizer.html",
+                )
+                sys.exit(1)
+
+            # Enable asan
+            env["RUSTFLAGS"] = env.get("RUSTFLAGS", "") + " -Zsanitizer=address"
+
+            # We need to use `TARGET_CFLAGS`, since we don't want to compile host dependencies with ASAN,
+            # since that causes issues when building build-scripts / proc macros.
+            env.setdefault("TARGET_CFLAGS", "")
+            env.setdefault("TARGET_CXXFLAGS", "")
+            env["TARGET_CFLAGS"] += " -fsanitize=address"
+            env["TARGET_CXXFLAGS"] += " -fsanitize=address"
+
+            # asan replaces system allocator with asan allocator
+            # we need to make sure that we do not replace it with jemalloc
+            self.features.append("servo_allocator/use-system-allocator")
+        return None
 
     def notify(self, title: str, message: str):
         """Generate desktop notification when build is complete and the
