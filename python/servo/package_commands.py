@@ -10,7 +10,7 @@
 from datetime import datetime
 import random
 import time
-from typing import List
+from typing import List, Optional
 from github import Github
 
 import hashlib
@@ -40,6 +40,8 @@ from servo.command_base import (
     is_windows,
 )
 from servo.util import delete, get_target_dir
+
+from python.servo.platform.build_target import SanitizerKind
 
 PACKAGES = {
     "android": [
@@ -108,9 +110,9 @@ class PackageCommands(CommandBase):
     @CommandArgument("--target", "-t", default=None, help="Package for given target platform")
     @CommandBase.common_command_arguments(build_configuration=False, build_type=True, package_configuration=True)
     @CommandBase.allow_target_configuration
-    def package(self, build_type: BuildType, flavor=None, with_asan=False):
+    def package(self, build_type: BuildType, flavor=None, sanitizer: Optional[SanitizerKind] = None):
         env = self.build_env()
-        binary_path = self.get_binary_path(build_type, asan=with_asan)
+        binary_path = self.get_binary_path(build_type, sanitizer=sanitizer)
         dir_to_root = self.get_top_dir()
         target_dir = path.dirname(binary_path)
         if self.is_android():
@@ -184,7 +186,7 @@ class PackageCommands(CommandBase):
                 "-p",
                 f"buildMode={build_mode}",
             ]
-            if with_asan:
+            if sanitizer == SanitizerKind.ASAN:
                 hvigor_command.extend(["-p", "ohos-debug-asan=true"])
 
             # Detect if PATH already has hvigor, or else fallback to npm installation
@@ -391,17 +393,19 @@ class PackageCommands(CommandBase):
     @CommandArgument("--target", "-t", default=None, help="Install the given target platform")
     @CommandBase.common_command_arguments(build_configuration=False, build_type=True, package_configuration=True)
     @CommandBase.allow_target_configuration
-    def install(self, build_type: BuildType, emulator=False, usb=False, with_asan=False, flavor=None):
+    def install(
+        self, build_type: BuildType, emulator=False, usb=False, sanitizer: Optional[SanitizerKind] = None, flavor=None
+    ):
         env = self.build_env()
         try:
-            binary_path = self.get_binary_path(build_type, asan=with_asan)
+            binary_path = self.get_binary_path(build_type, sanitizer=sanitizer)
         except BuildNotFound:
             print("Servo build not found. Building servo...")
             result = Registrar.dispatch("build", context=self.context, build_type=build_type, flavor=flavor)
             if result:
                 return result
             try:
-                binary_path = self.get_binary_path(build_type, asan=with_asan)
+                binary_path = self.get_binary_path(build_type, sanitizer=sanitizer)
             except BuildNotFound:
                 print("Rebuilding Servo did not solve the missing build problem.")
                 return 1
