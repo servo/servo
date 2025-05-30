@@ -92,6 +92,7 @@ use media::{GlApi, NativeDisplay, WindowGLContext};
 use net::protocols::ProtocolRegistry;
 use net::resource_thread::new_resource_threads;
 use profile::{mem as profile_mem, time as profile_time};
+use profile_traits::mem::MemoryReportResult;
 use profile_traits::{mem, time};
 use script::{JSEngineSetup, ServiceWorkerManager};
 use servo_config::opts::Opts;
@@ -631,6 +632,11 @@ impl Servo {
 
         log::set_boxed_logger(Box::new(logger)).expect("Failed to set logger.");
         log::set_max_level(filter);
+    }
+
+    pub fn create_memory_report(&self, snd: IpcSender<MemoryReportResult>) {
+        self.constellation_proxy
+            .send(EmbedderToConstellationMessage::CreateMemoryReport(snd));
     }
 
     pub fn start_shutting_down(&self) {
