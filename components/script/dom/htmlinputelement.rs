@@ -2885,7 +2885,8 @@ impl VirtualMethods for HTMLInputElement {
                 self.update_text_shadow_tree_placeholder(can_gc);
                 self.update_placeholder_shown_state();
             },
-            // FIXME: This section of attribute mutated
+            // FIXME(stevennovaryo): This is only reachable by Default and DefaultOn value mode. While others
+            //                       are being handled in [Self::SetValue]. Should we merge this two together?
             local_name!("value") if !self.value_dirty.get() => {
                 let value = mutation.new_value(attr).map(|value| (**value).to_owned());
                 let mut value = value.map_or(DOMString::new(), DOMString::from);

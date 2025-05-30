@@ -62,6 +62,8 @@ impl<'dom> NodeAndStyleInfo<'dom> {
     /// Whether this is a container for the editable text within a single-line text input.
     /// This is used to solve the special case of line height for a text editor.
     /// <https://html.spec.whatwg.org/multipage/#the-input-element-as-a-text-entry-widget>
+    // FIXME(stevennovaryo): Now, this would also refer to HTMLInputElement, to handle input
+    //                       elements without shadow DOM.
     pub(crate) fn is_single_line_text_input(&self) -> bool {
         self.node.type_id() == LayoutNodeType::Element(LayoutElementType::HTMLInputElement) ||
             self.node.is_text_control_inner_editor()

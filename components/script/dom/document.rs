@@ -1561,7 +1561,7 @@ impl Document {
             let target_el = el.find_focusable_shadow_host_if_necessary();
 
             self.begin_focus_transaction();
-            // Try to focus `el`. If it's not focusable, focus the document
+            // Try to focus `el`. If it's not focusable, focus the document instead.
             self.request_focus(None, FocusInitiator::Local, can_gc);
             self.request_focus(target_el.as_deref(), FocusInitiator::Local, can_gc);
         }
