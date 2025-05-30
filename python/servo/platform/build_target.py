@@ -15,6 +15,7 @@ import platform
 import shutil
 import subprocess
 import sys
+from enum import Enum
 
 from os import path
 from packaging.version import parse as parse_version
@@ -22,6 +23,11 @@ from typing import Any, Dict, Optional
 
 import servo.platform
 import servo.util as util
+
+
+class SanitizerKind(Enum):
+    UNKNOWN = 0
+    ASAN = 1
 
 
 class BuildTarget(object):
@@ -398,7 +404,7 @@ class OpenHarmonyTarget(CrossBuildTarget):
         env[bindgen_extra_clangs_args_var] = bindgen_extra_clangs_args
 
         # On OpenHarmony we add some additional flags when asan is enabled
-        if config["build"]["with_asan"]:
+        if config["build"]["sanitizer"] == SanitizerKind.ASAN:
             # Lookup `<sdk>/native/llvm/lib/clang/15.0.4/lib/aarch64-linux-ohos/libclang_rt.asan.so`
             lib_clang = llvm_toolchain.joinpath("lib", "clang")
             children = [f.path for f in os.scandir(lib_clang) if f.is_dir()]
