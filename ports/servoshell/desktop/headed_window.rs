@@ -72,6 +72,9 @@ pub struct Window {
     /// The `RenderingContext` of Servo itself. This is used to render Servo results
     /// temporarily until they can be blitted into the egui scene.
     rendering_context: Rc<OffscreenRenderingContext>,
+
+    /// Mark if Composition is active
+    composition_active: Cell<bool>,
 }
 
 impl Window {
@@ -155,6 +158,7 @@ impl Window {
             toolbar_height: Cell::new(Default::default()),
             window_rendering_context,
             rendering_context,
+            composition_active: Cell::new(Default::default()),
         }
     }
 
@@ -632,21 +636,32 @@ impl WindowPortsMethods for Window {
                 });
             },
             WindowEvent::Ime(ime) => match ime {
-                Ime::Enabled => {
-                    webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
-                        servo::CompositionEvent {
-                            state: servo::CompositionState::Start,
-                            data: String::new(),
-                        },
-                    )));
-                },
                 Ime::Preedit(text, _) => {
-                    webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
-                        servo::CompositionEvent {
-                            state: servo::CompositionState::Update,
-                            data: text,
-                        },
-                    )));
+                    if !self.composition_active.get() && !text.is_empty() {
+                        webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
+                            servo::CompositionEvent {
+                                state: servo::CompositionState::Start,
+                                data: String::new(),
+                            },
+                        )));
+                        self.composition_active.set(true);
+                    }
+                    if self.composition_active.get() && text.is_empty() {
+                        webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
+                            servo::CompositionEvent {
+                                state: servo::CompositionState::End,
+                                data: text,
+                            },
+                        )));
+                        self.composition_active.set(false);
+                    } else if self.composition_active.get() {
+                        webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
+                            servo::CompositionEvent {
+                                state: servo::CompositionState::Update,
+                                data: text,
+                            },
+                        )));
+                    }
                 },
                 Ime::Commit(text) => {
                     webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
@@ -655,9 +670,22 @@ impl WindowPortsMethods for Window {
                             data: text,
                         },
                     )));
+                    self.composition_active.set(false);
                 },
                 Ime::Disabled => {
+                    if self.composition_active.get() {
+                        webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
+                            servo::CompositionEvent {
+                                state: servo::CompositionState::End,
+                                data: String::new(),
+                            },
+                        )));
+                        self.composition_active.set(false);
+                    }
                     webview.notify_input_event(InputEvent::Ime(ImeEvent::Dismissed));
+                },
+                Ime::Enabled => {
+                    // Do nothing
                 },
             },
             _ => {},
