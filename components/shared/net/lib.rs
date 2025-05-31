@@ -5,7 +5,7 @@
 #![deny(unsafe_code)]
 
 use std::collections::HashMap;
-use std::fmt::Display;
+use std::fmt::{self, Debug, Display};
 use std::sync::{LazyLock, OnceLock};
 use std::thread;
 
@@ -923,7 +923,7 @@ pub enum CookieSource {
 }
 
 /// Network errors that have to be exported out of the loaders
-#[derive(Clone, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum NetworkError {
     /// Could be any of the internal errors, like unsupported scheme, connection errors, etc.
     Internal(String),
@@ -932,6 +932,63 @@ pub enum NetworkError {
     SslValidation(String, Vec<u8>),
     /// Crash error, to be converted to Resource::Crash in the HTML parser.
     Crash(String),
+    UnsupportedScheme,
+    CorsGeneral,
+    CrossOriginResponse,
+    CorsCredentials,
+    CorsAllowMethods,
+    CorsAllowHeaders,
+    CorsMethod,
+    CorsAuthorization,
+    CorsHeaders,
+    ConnectionFailure,
+    RedirectError,
+    TooManyRedirects,
+    InvalidMethod,
+    ResourceError,
+    ContentSecurityPolicy,
+    Nosniff,
+    MimeType,
+    SubresourceIntegrity,
+    MixedContent,
+    CacheError,
+    InvalidPort,
+    LocalDirectoryError,
+}
+
+impl fmt::Debug for NetworkError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            NetworkError::Internal(s) => write!(f, "{}", s),
+            NetworkError::UnsupportedScheme => write!(f, "Unsupported scheme"),
+            NetworkError::CorsGeneral => write!(f, "CORS check failed"),
+            NetworkError::CrossOriginResponse => write!(f, "Cross-origin response"),
+            NetworkError::CorsCredentials => write!(f, "Cross-origin credentials check failed"),
+            NetworkError::CorsAllowMethods => write!(f, "CORS ACAM check failed"),
+            NetworkError::CorsAllowHeaders => write!(f, "CORS ACAH check failed"),
+            NetworkError::CorsMethod => write!(f, "CORS method check failed"),
+            NetworkError::CorsAuthorization => write!(f, "CORS authorization check failed"),
+            NetworkError::CorsHeaders => write!(f, "CORS headers check failed"),
+            NetworkError::ConnectionFailure => write!(f, "Request failed"),
+            NetworkError::RedirectError => write!(f, "Redirect failed"),
+            NetworkError::TooManyRedirects => write!(f, "Too many redirects"),
+            NetworkError::InvalidMethod => write!(f, "Unexpected method"),
+            NetworkError::ResourceError => write!(f, "Resource access failed"),
+            NetworkError::ContentSecurityPolicy => write!(f, "Blocked by Content-Security-Policy"),
+            NetworkError::Nosniff => write!(f, "Blocked by nosniff"),
+            NetworkError::MimeType => write!(f, "Blocked by mime type"),
+            NetworkError::SubresourceIntegrity => {
+                write!(f, "Subresource integrity validation failed")
+            },
+            NetworkError::MixedContent => write!(f, "Blocked as mixed content"),
+            NetworkError::CacheError => write!(f, "Couldn't find response in cache"),
+            NetworkError::InvalidPort => write!(f, "Request attempted on bad port"),
+            NetworkError::LocalDirectoryError => write!(f, "Local directory access failed"),
+            NetworkError::LoadCancelled => write!(f, "Load cancelled"),
+            NetworkError::SslValidation(s, _) => write!(f, "SSL validation error: {}", s),
+            NetworkError::Crash(s) => write!(f, "Crash: {}", s),
+        }
+    }
 }
 
 impl NetworkError {
