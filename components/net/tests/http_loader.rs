@@ -31,8 +31,6 @@ use http::{HeaderName, Method, StatusCode};
 use http_body_util::combinators::BoxBody;
 use hyper::body::{Body, Bytes, Incoming};
 use hyper::{Request as HyperRequest, Response as HyperResponse};
-use ipc_channel::ipc::{self, IpcSharedMemory};
-use ipc_channel::router::ROUTER;
 use net::cookie::ServoCookie;
 use net::cookie_storage::CookieStorage;
 use net::fetch::methods::{self};
@@ -41,8 +39,8 @@ use net::resource_thread::AuthCacheEntry;
 use net::test::{DECODER_BUFFER_SIZE, replace_host_table};
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{
-    BodyChunkRequest, BodyChunkResponse, BodySource, CredentialsMode, Destination, Referrer,
-    Request, RequestBody, RequestBuilder, RequestMode,
+    CredentialsMode, Destination, Referrer, Request, RequestBuilder, RequestMode,
+    create_request_body_with_content,
 };
 use net_traits::response::{Response, ResponseBody};
 use net_traits::{CookieSource, FetchTaskTarget, NetworkError, ReferrerPolicy};
@@ -98,24 +96,6 @@ pub fn expect_devtools_http_response(
         },
         _ => panic!("No HttpResponse Received"),
     }
-}
-
-fn create_request_body_with_content(content: IpcSharedMemory) -> RequestBody {
-    let content_len = content.len();
-
-    let (chunk_request_sender, chunk_request_receiver) = ipc::channel().unwrap();
-    ROUTER.add_typed_route(
-        chunk_request_receiver,
-        Box::new(move |message| {
-            let request = message.unwrap();
-            if let BodyChunkRequest::Connect(sender) = request {
-                let _ = sender.send(BodyChunkResponse::Chunk(content.clone()));
-                let _ = sender.send(BodyChunkResponse::Done);
-            }
-        }),
-    );
-
-    RequestBody::new(chunk_request_sender, BodySource::Object, Some(content_len))
 }
 
 #[test]
@@ -591,8 +571,8 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
         };
     let (pre_server, pre_url) = make_server(pre_handler);
 
-    let content = b"Body on POST!";
-    let request_body = create_request_body_with_content(IpcSharedMemory::from_bytes(content));
+    let content = "Body on POST!";
+    let request_body = create_request_body_with_content(content);
 
     let request = RequestBuilder::new(None, pre_url.clone(), Referrer::NoReferrer)
         .body(Some(request_body))
@@ -891,20 +871,21 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
 
 #[test]
 fn test_load_sets_content_length_to_length_of_request_body() {
-    let content = b"This is a request body";
+    let content = "This is a request body";
+    let content_bytes = content.as_bytes();
     let handler =
         move |request: HyperRequest<Incoming>,
               response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
-            let content_length = ContentLength(content.len() as u64);
+            let content_length = ContentLength(content_bytes.len() as u64);
             assert_eq!(
                 request.headers().typed_get::<ContentLength>(),
                 Some(content_length)
             );
-            *response.body_mut() = make_body(content.to_vec());
+            *response.body_mut() = make_body(content_bytes.to_vec());
         };
     let (server, url) = make_server(handler);
 
-    let request_body = create_request_body_with_content(IpcSharedMemory::from_bytes(content));
+    let request_body = create_request_body_with_content(content);
 
     let request = RequestBuilder::new(None, url.clone(), Referrer::NoReferrer)
         .method(Method::POST)
