@@ -170,8 +170,12 @@ pub async fn fetch_with_cors_cache(
     // TODO: We don't implement fetchParams as defined in the spec
 }
 
-fn convert_request_to_csp_request(request: &Request, origin: &ImmutableOrigin) -> csp::Request {
-    csp::Request {
+pub(crate) fn convert_request_to_csp_request(request: &Request) -> Option<csp::Request> {
+    let origin = match &request.origin {
+        Origin::Client => return None,
+        Origin::Origin(origin) => origin,
+    };
+    let csp_request = csp::Request {
         url: request.url().into_url(),
         origin: origin.clone().into_url_origin(),
         redirect_count: request.redirect_count,
@@ -190,43 +194,56 @@ fn convert_request_to_csp_request(request: &Request, origin: &ImmutableOrigin) -
             ParserMetadata::NotParserInserted => csp::ParserMetadata::NotParserInserted,
             ParserMetadata::Default => csp::ParserMetadata::None,
         },
-    }
+    };
+    Some(csp_request)
 }
 
 /// <https://www.w3.org/TR/CSP/#should-block-request>
 pub fn should_request_be_blocked_by_csp(
-    request: &Request,
+    csp_request: &csp::Request,
     policy_container: &PolicyContainer,
 ) -> (csp::CheckResult, Vec<csp::Violation>) {
-    let origin = match &request.origin {
-        Origin::Client => return (csp::CheckResult::Allowed, Vec::new()),
-        Origin::Origin(origin) => origin,
-    };
-    let csp_request = convert_request_to_csp_request(request, origin);
-
     policy_container
         .csp_list
         .as_ref()
-        .map(|c| c.should_request_be_blocked(&csp_request))
+        .map(|c| c.should_request_be_blocked(csp_request))
         .unwrap_or((csp::CheckResult::Allowed, Vec::new()))
 }
 
 /// <https://www.w3.org/TR/CSP/#report-for-request>
 pub fn report_violations_for_request_by_csp(
-    request: &Request,
+    csp_request: &csp::Request,
     policy_container: &PolicyContainer,
 ) -> Vec<csp::Violation> {
-    let origin = match &request.origin {
-        Origin::Client => return Vec::new(),
-        Origin::Origin(origin) => origin,
-    };
-    let csp_request = convert_request_to_csp_request(request, origin);
-
     policy_container
         .csp_list
         .as_ref()
-        .map(|c| c.report_violations_for_request(&csp_request))
+        .map(|c| c.report_violations_for_request(csp_request))
         .unwrap_or_default()
+}
+
+fn should_response_be_blocked_by_csp(
+    csp_request: &csp::Request,
+    response: &Response,
+    policy_container: &PolicyContainer,
+) -> (csp::CheckResult, Vec<csp::Violation>) {
+    if response.is_network_error() {
+        return (csp::CheckResult::Allowed, Vec::new());
+    }
+    let csp_response = csp::Response {
+        url: response
+            .actual_response()
+            .url()
+            .cloned()
+            .expect("response must have a url")
+            .into_url(),
+        redirect_count: csp_request.redirect_count,
+    };
+    policy_container
+        .csp_list
+        .as_ref()
+        .map(|c| c.should_response_to_request_be_blocked(csp_request, &csp_response))
+        .unwrap_or((csp::CheckResult::Allowed, Vec::new()))
 }
 
 /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)
@@ -270,13 +287,15 @@ pub async fn main_fetch(
         RequestPolicyContainer::Client => PolicyContainer::default(),
         RequestPolicyContainer::PolicyContainer(container) => container.to_owned(),
     };
+    let csp_request = convert_request_to_csp_request(request);
+    if let Some(csp_request) = csp_request.as_ref() {
+        // Step 2.2.
+        let violations = report_violations_for_request_by_csp(csp_request, &policy_container);
 
-    // Step 2.2.
-    let violations = report_violations_for_request_by_csp(request, &policy_container);
-
-    if !violations.is_empty() {
-        target.process_csp_violations(request, violations);
-    }
+        if !violations.is_empty() {
+            target.process_csp_violations(request, violations);
+        }
+    };
 
     // Step 3.
     // TODO: handle request abort.
@@ -309,22 +328,24 @@ pub async fn main_fetch(
             request.insecure_requests_policy
         );
     }
+    if let Some(csp_request) = csp_request.as_ref() {
+        // Step 7. If should request be blocked due to a bad port, should fetching request be blocked
+        // as mixed content, or should request be blocked by Content Security Policy returns blocked,
+        // then set response to a network error.
+        let (check_result, violations) =
+            should_request_be_blocked_by_csp(csp_request, &policy_container);
 
-    // Step 7. If should request be blocked due to a bad port, should fetching request be blocked
-    // as mixed content, or should request be blocked by Content Security Policy returns blocked,
-    // then set response to a network error.
-    let (check_result, violations) = should_request_be_blocked_by_csp(request, &policy_container);
+        if !violations.is_empty() {
+            target.process_csp_violations(request, violations);
+        }
 
-    if !violations.is_empty() {
-        target.process_csp_violations(request, violations);
-    }
-
-    if check_result == csp::CheckResult::Blocked {
-        warn!("Request blocked by CSP");
-        response = Some(Response::network_error(NetworkError::Internal(
-            "Blocked by Content-Security-Policy".into(),
-        )))
-    }
+        if check_result == csp::CheckResult::Blocked {
+            warn!("Request blocked by CSP");
+            response = Some(Response::network_error(NetworkError::Internal(
+                "Blocked by Content-Security-Policy".into(),
+            )))
+        }
+    };
     if should_request_be_blocked_due_to_a_bad_port(&request.current_url()) {
         response = Some(Response::network_error(NetworkError::Internal(
             "Request attempted on bad port".into(),
@@ -530,6 +551,14 @@ pub async fn main_fetch(
             should_be_blocked_due_to_mime_type(request.destination, &response.headers);
         let should_replace_with_mixed_content = !response_is_network_error &&
             should_response_be_blocked_as_mixed_content(request, &response, &context.protocols);
+        let should_replace_with_csp_error = csp_request.is_some_and(|csp_request| {
+            let (check_result, violations) =
+                should_response_be_blocked_by_csp(&csp_request, &response, &policy_container);
+            if !violations.is_empty() {
+                target.process_csp_violations(request, violations);
+            }
+            check_result == csp::CheckResult::Blocked
+        });
 
         // Step 15.
         let mut network_error_response = response
@@ -553,7 +582,7 @@ pub async fn main_fetch(
 
         // Step 19. If response is not a network error and any of the following returns blocked
         // * should internalResponse to request be blocked as mixed content
-        // TODO: * should internalResponse to request be blocked by Content Security Policy
+        // * should internalResponse to request be blocked by Content Security Policy
         // * should internalResponse to request be blocked due to its MIME type
         // * should internalResponse to request be blocked due to nosniff
         let mut blocked_error_response;
@@ -571,6 +600,10 @@ pub async fn main_fetch(
         } else if should_replace_with_mixed_content {
             blocked_error_response =
                 Response::network_error(NetworkError::Internal("Blocked as mixed content".into()));
+            &blocked_error_response
+        } else if should_replace_with_csp_error {
+            blocked_error_response =
+                Response::network_error(NetworkError::Internal("Blocked due to CSP".into()));
             &blocked_error_response
         } else {
             internal_response

@@ -43,7 +43,8 @@ use crate::async_runtime::HANDLE;
 use crate::connector::{CACertificates, TlsConfig, create_tls_config};
 use crate::cookie::ServoCookie;
 use crate::fetch::methods::{
-    should_request_be_blocked_by_csp, should_request_be_blocked_due_to_a_bad_port,
+    convert_request_to_csp_request, should_request_be_blocked_by_csp,
+    should_request_be_blocked_due_to_a_bad_port,
 };
 use crate::hosts::replace_host;
 use crate::http_loader::HttpState;
@@ -390,14 +391,18 @@ fn connect(
         RequestPolicyContainer::PolicyContainer(container) => container.to_owned(),
     };
 
-    let (check_result, violations) = should_request_be_blocked_by_csp(&request, &policy_container);
+    if let Some(csp_request) = convert_request_to_csp_request(&request) {
+        let (check_result, violations) =
+            should_request_be_blocked_by_csp(&csp_request, &policy_container);
 
-    if !violations.is_empty() {
-        let _ = resource_event_sender.send(WebSocketNetworkEvent::ReportCSPViolations(violations));
-    }
+        if !violations.is_empty() {
+            let _ =
+                resource_event_sender.send(WebSocketNetworkEvent::ReportCSPViolations(violations));
+        }
 
-    if check_result == csp::CheckResult::Blocked {
-        return Err("Blocked by Content-Security-Policy".to_string());
+        if check_result == csp::CheckResult::Blocked {
+            return Err("Blocked by Content-Security-Policy".to_string());
+        }
     }
 
     let client = match create_request(
