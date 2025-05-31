@@ -822,12 +822,15 @@ impl RemoteWebFontDownloader {
 
         let document_context = &state.document_context;
 
+        let document_origin = document_context.document_url.origin();
+
         let request = RequestBuilder::new(
             state.webview_id,
             url.clone().into(),
             Referrer::ReferrerUrl(document_context.document_url.clone()),
         )
         .destination(Destination::Font)
+        .origin(document_origin)
         .mode(RequestMode::CorsMode)
         .credentials_mode(CredentialsMode::CredentialsSameOrigin)
         .service_workers_mode(ServiceWorkersMode::All)
