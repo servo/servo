@@ -897,8 +897,7 @@ impl FloatBox {
                 info,
                 display_inside,
                 contents,
-                // Text decorations are not propagated to any out-of-flow descendants
-                propagated_data.without_text_decorations(),
+                propagated_data,
             ),
         }
     }

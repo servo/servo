@@ -42,9 +42,7 @@ class MacOS(Base):
         installed_something = False
         try:
             brewfile = os.path.join(util.SERVO_ROOT, "support", "macos", "Brewfile")
-            output = subprocess.check_output(
-                ['brew', 'bundle', 'install', "--file", brewfile]
-            ).decode("utf-8")
+            output = subprocess.check_output(["brew", "bundle", "install", "--file", brewfile]).decode("utf-8")
             print(output)
             installed_something = "Installing" in output
         except subprocess.CalledProcessError as e:
@@ -60,14 +58,10 @@ class MacOS(Base):
 
         with tempfile.TemporaryDirectory() as temp_dir:
             libs_pkg = os.path.join(temp_dir, GSTREAMER_URL.rsplit("/", maxsplit=1)[-1])
-            devel_pkg = os.path.join(
-                temp_dir, GSTREAMER_DEVEL_URL.rsplit("/", maxsplit=1)[-1]
-            )
+            devel_pkg = os.path.join(temp_dir, GSTREAMER_DEVEL_URL.rsplit("/", maxsplit=1)[-1])
 
             util.download_file("GStreamer libraries", GSTREAMER_URL, libs_pkg)
-            util.download_file(
-                "GStreamer development support", GSTREAMER_DEVEL_URL, devel_pkg
-            )
+            util.download_file("GStreamer development support", GSTREAMER_DEVEL_URL, devel_pkg)
 
             print("Installing GStreamer packages...")
             subprocess.check_call(
@@ -75,8 +69,7 @@ class MacOS(Base):
                     "sudo",
                     "sh",
                     "-c",
-                    f"installer -pkg '{libs_pkg}' -target / &&"
-                    f"installer -pkg '{devel_pkg}' -target /",
+                    f"installer -pkg '{libs_pkg}' -target / &&installer -pkg '{devel_pkg}' -target /",
                 ]
             )
 

@@ -17,7 +17,7 @@ impl ResourceReaderMethods for ResourceReaderInstance {
     fn read(&self, res: Resource) -> Vec<u8> {
         Vec::from(match res {
             Resource::HstsPreloadList => {
-                &include_bytes!("../../../../resources/hsts_preload.json")[..]
+                &include_bytes!("../../../../resources/hsts_preload.fstmap")[..]
             },
             Resource::BadCertHTML => &include_bytes!("../../../../resources/badcert.html")[..],
             Resource::NetErrorHTML => &include_bytes!("../../../../resources/neterror.html")[..],

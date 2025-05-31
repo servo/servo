@@ -104,16 +104,16 @@ test(t => {
   // scroll (and snap) to top left of other target.
   scroller.scrollTo(other_target.offsetTop,
                     other_target.offsetLeft);
-  assert_equals(scroller.scrollTop, other_target.offsetTop,);
+  assert_equals(scroller.scrollTop, other_target.offsetTop);
   assert_equals(scroller.scrollLeft, other_target.offsetLeft);
 
   other_target.style.setProperty("scroll-snap-align", "end");
   // should be scrolled so as to align scroller's bottom-right with
   // other_target's bottom-right.
-  assert_equals(scroller.scrollTop,
-    other_target.offsetTop + other_target.offsetHeight - scroller.clientHeight);
-  assert_equals(scroller.scrollLeft,
-     other_target.offsetLeft + other_target.offsetWidth - scroller.clientWidth);
+  assert_approx_equals(scroller.scrollTop,
+    other_target.offsetTop + other_target.offsetHeight - scroller.clientHeight, 1.0);
+  assert_approx_equals(scroller.scrollLeft,
+     other_target.offsetLeft + other_target.offsetWidth - scroller.clientWidth, 1.0);
 }, "Changing the current (non-covering) target's snap alignment should make " +
    "the scroller snap according to the new alignment.");
 </script>

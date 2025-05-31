@@ -2,19 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+
 use app_units::Au;
 use base::print_tree::PrintTree;
 use compositing_traits::display_list::AxesScrollSensitivity;
-use euclid::default::Size2D;
 use fxhash::FxHashSet;
 use malloc_size_of_derive::MallocSizeOf;
 use style::animation::AnimationSetKey;
-use webrender_api::units;
 
 use super::{BoxFragment, ContainingBlockManager, Fragment};
 use crate::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::display_list::StackingContext;
 use crate::geom::PhysicalRect;
 
 #[derive(MallocSizeOf)]
@@ -31,7 +30,7 @@ pub struct FragmentTree {
 
     /// The scrollable overflow rectangle for the entire tree
     /// <https://drafts.csswg.org/css-overflow/#scrollable>
-    pub(crate) scrollable_overflow: PhysicalRect<Au>,
+    scrollable_overflow: Cell<Option<PhysicalRect<Au>>>,
 
     /// The containing block used in the layout of this fragment tree.
     pub(crate) initial_containing_block: PhysicalRect<Au>,
@@ -44,13 +43,12 @@ impl FragmentTree {
     pub(crate) fn new(
         layout_context: &LayoutContext,
         root_fragments: Vec<Fragment>,
-        scrollable_overflow: PhysicalRect<Au>,
         initial_containing_block: PhysicalRect<Au>,
         viewport_scroll_sensitivity: AxesScrollSensitivity,
     ) -> Self {
         let fragment_tree = Self {
             root_fragments,
-            scrollable_overflow,
+            scrollable_overflow: Cell::default(),
             initial_containing_block,
             viewport_scroll_sensitivity,
         };
@@ -91,16 +89,6 @@ impl FragmentTree {
         fragment_tree
     }
 
-    pub(crate) fn build_display_list(
-        &self,
-        builder: &mut crate::display_list::DisplayListBuilder,
-        root_stacking_context: &StackingContext,
-    ) {
-        // Paint the canvas’ background (if any) before/under everything else
-        root_stacking_context.build_canvas_background_display_list(builder, self);
-        root_stacking_context.build_display_list(builder);
-    }
-
     pub fn print(&self) {
         let mut print_tree = PrintTree::new("Fragment Tree".to_string());
         for fragment in &self.root_fragments {
@@ -108,11 +96,35 @@ impl FragmentTree {
         }
     }
 
-    pub fn scrollable_overflow(&self) -> units::LayoutSize {
-        units::LayoutSize::from_untyped(Size2D::new(
-            self.scrollable_overflow.size.width.to_f32_px(),
-            self.scrollable_overflow.size.height.to_f32_px(),
-        ))
+    pub(crate) fn scrollable_overflow(&self) -> PhysicalRect<Au> {
+        self.scrollable_overflow
+            .get()
+            .expect("Should only call `scrollable_overflow()` after calculating overflow")
+    }
+
+    pub(crate) fn calculate_scrollable_overflow(&self) {
+        self.scrollable_overflow
+            .set(Some(self.root_fragments.iter().fold(
+                PhysicalRect::zero(),
+                |acc, child| {
+                    let child_overflow = child.calculate_scrollable_overflow_for_parent();
+
+                    // https://drafts.csswg.org/css-overflow/#scrolling-direction
+                    // We want to clip scrollable overflow on box-start and inline-start
+                    // sides of the scroll container.
+                    //
+                    // FIXME(mrobinson, bug 25564): This should take into account writing
+                    // mode.
+                    let child_overflow = PhysicalRect::new(
+                        euclid::Point2D::zero(),
+                        euclid::Size2D::new(
+                            child_overflow.size.width + child_overflow.origin.x,
+                            child_overflow.size.height + child_overflow.origin.y,
+                        ),
+                    );
+                    acc.union(&child_overflow)
+                },
+            )));
     }
 
     pub(crate) fn find<T>(

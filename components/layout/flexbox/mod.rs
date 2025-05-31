@@ -4,6 +4,7 @@
 
 use geom::{FlexAxis, MainStartCrossStart};
 use malloc_size_of_derive::MallocSizeOf;
+use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
 use style::context::SharedStyleContext;
 use style::logical_geometry::WritingMode;
@@ -104,8 +105,7 @@ impl FlexContainer {
         contents: NonReplacedContents,
         propagated_data: PropagatedBoxTreeData,
     ) -> Self {
-        let mut builder =
-            ModernContainerBuilder::new(context, info, propagated_data.union(&info.style));
+        let mut builder = ModernContainerBuilder::new(context, info, propagated_data);
         contents.traverse(context, info, &mut builder);
         let items = builder.finish();
 
@@ -154,16 +154,17 @@ impl FlexLevelBox {
     pub(crate) fn repair_style(
         &mut self,
         context: &SharedStyleContext,
+        node: &ServoLayoutNode,
         new_style: &ServoArc<ComputedValues>,
     ) {
         match self {
             FlexLevelBox::FlexItem(flex_item_box) => flex_item_box
                 .independent_formatting_context
-                .repair_style(context, new_style),
+                .repair_style(context, node, new_style),
             FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(positioned_box) => positioned_box
                 .borrow_mut()
                 .context
-                .repair_style(context, new_style),
+                .repair_style(context, node, new_style),
         }
     }
 

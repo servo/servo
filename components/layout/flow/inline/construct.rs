@@ -16,7 +16,6 @@ use super::{
     InlineBox, InlineBoxIdentifier, InlineBoxes, InlineFormattingContext, InlineItem,
     SharedInlineStyles,
 };
-use crate::PropagatedBoxTreeData;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom_traversal::NodeAndStyleInfo;
@@ -31,7 +30,7 @@ pub(crate) struct InlineFormattingContextBuilder {
     /// inline box stack, and importantly, one for every `display: contents` element that we are
     /// currently processing. Normally `display: contents` elements don't affect the structure of
     /// the [`InlineFormattingContext`], but the styles they provide do style their children.
-    shared_inline_styles_stack: Vec<SharedInlineStyles>,
+    pub shared_inline_styles_stack: Vec<SharedInlineStyles>,
 
     /// The collection of text strings that make up this [`InlineFormattingContext`] under
     /// construction.
@@ -344,7 +343,6 @@ impl InlineFormattingContextBuilder {
     pub(crate) fn split_around_block_and_finish(
         &mut self,
         layout_context: &LayoutContext,
-        propagated_data: PropagatedBoxTreeData,
         has_first_formatted_line: bool,
         default_bidi_level: Level,
     ) -> Option<InlineFormattingContext> {
@@ -386,7 +384,6 @@ impl InlineFormattingContextBuilder {
 
         inline_builder_from_before_split.finish(
             layout_context,
-            propagated_data,
             has_first_formatted_line,
             /* is_single_line_text_input = */ false,
             default_bidi_level,
@@ -397,7 +394,6 @@ impl InlineFormattingContextBuilder {
     pub(crate) fn finish(
         self,
         layout_context: &LayoutContext,
-        propagated_data: PropagatedBoxTreeData,
         has_first_formatted_line: bool,
         is_single_line_text_input: bool,
         default_bidi_level: Level,
@@ -410,7 +406,6 @@ impl InlineFormattingContextBuilder {
         Some(InlineFormattingContext::new_with_builder(
             self,
             layout_context,
-            propagated_data,
             has_first_formatted_line,
             is_single_line_text_input,
             default_bidi_level,

@@ -395,7 +395,10 @@ impl WebView {
     pub fn notify_theme_change(&self, theme: Theme) {
         self.inner()
             .constellation_proxy
-            .send(EmbedderToConstellationMessage::ThemeChange(theme))
+            .send(EmbedderToConstellationMessage::ThemeChange(
+                self.id(),
+                theme,
+            ))
     }
 
     pub fn load(&self, url: Url) {

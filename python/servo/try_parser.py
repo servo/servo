@@ -44,11 +44,11 @@ class JobConfig(object):
     number_of_wpt_chunks: int = 20
     # These are the fields that must match in between two JobConfigs for them to be able to be
     # merged. If you modify any of the fields above, make sure to update this line as well.
-    merge_compatibility_fields: ClassVar[List[str]] = ['workflow', 'profile', 'wpt_args', 'build_args']
+    merge_compatibility_fields: ClassVar[List[str]] = ["workflow", "profile", "wpt_args", "build_args"]
 
     def merge(self, other: JobConfig) -> bool:
         """Try to merge another job with this job. Returns True if merging is successful
-           or False if not. If merging is successful this job will be modified."""
+        or False if not. If merging is successful this job will be modified."""
         for field in self.merge_compatibility_fields:
             if getattr(self, field) != getattr(other, field):
                 return False
@@ -101,11 +101,14 @@ def handle_preset(s: str) -> Optional[JobConfig]:
     elif any(word in s for word in ["ohos", "openharmony"]):
         return JobConfig("OpenHarmony", Workflow.OHOS)
     elif any(word in s for word in ["webgpu"]):
-        return JobConfig("WebGPU CTS", Workflow.LINUX,
-                         wpt=True,  # reftests are mode for new layout
-                         wpt_args="_webgpu",  # run only webgpu cts
-                         profile="production",  # WebGPU works to slow with debug assert
-                         unit_tests=False)  # production profile does not work with unit-tests
+        return JobConfig(
+            "WebGPU CTS",
+            Workflow.LINUX,
+            wpt=True,  # reftests are mode for new layout
+            wpt_args="_webgpu",  # run only webgpu cts
+            profile="production",  # WebGPU works to slow with debug assert
+            unit_tests=False,
+        )  # production profile does not work with unit-tests
     elif any(word in s for word in ["lint", "tidy"]):
         return JobConfig("Lint", Workflow.LINT)
     else:
@@ -199,115 +202,130 @@ if __name__ == "__main__":
 
 class TestParser(unittest.TestCase):
     def test_string(self):
-        self.assertDictEqual(json.loads(Config("linux-unit-tests fail-fast").to_json()),
-                             {'fail_fast': True,
-                              'matrix': [{
-                                  'bencher': False,
-                                  'name': 'Linux (Unit Tests)',
-                                  'number_of_wpt_chunks': 20,
-                                  'profile': 'release',
-                                  'unit_tests': True,
-                                  'build_libservo': False,
-                                  'workflow': 'linux',
-                                  'wpt': False,
-                                  'wpt_args': '',
-                                  'build_args': ''
-                              }]
-                              })
+        self.assertDictEqual(
+            json.loads(Config("linux-unit-tests fail-fast").to_json()),
+            {
+                "fail_fast": True,
+                "matrix": [
+                    {
+                        "bencher": False,
+                        "name": "Linux (Unit Tests)",
+                        "number_of_wpt_chunks": 20,
+                        "profile": "release",
+                        "unit_tests": True,
+                        "build_libservo": False,
+                        "workflow": "linux",
+                        "wpt": False,
+                        "wpt_args": "",
+                        "build_args": "",
+                    }
+                ],
+            },
+        )
 
     def test_empty(self):
-        self.assertDictEqual(json.loads(Config("").to_json()),
-                             {"fail_fast": False, "matrix": [
-                              {
-                                  "name": "Linux (Unit Tests, WPT, Bencher)",
-                                  'number_of_wpt_chunks': 20,
-                                  "workflow": "linux",
-                                  "wpt": True,
-                                  "profile": "release",
-                                  "unit_tests": True,
-                                  'build_libservo': False,
-                                  'bencher': True,
-                                  "wpt_args": "",
-                                  'build_args': ''
-                              },
-                              {
-                                  "name": "MacOS (Unit Tests)",
-                                  'number_of_wpt_chunks': 20,
-                                  "workflow": "macos",
-                                  "wpt": False,
-                                  "profile": "release",
-                                  "unit_tests": True,
-                                  'build_libservo': False,
-                                  'bencher': False,
-                                  "wpt_args": "",
-                                  'build_args': ''
-                              },
-                              {
-                                  "name": "Windows (Unit Tests)",
-                                  'number_of_wpt_chunks': 20,
-                                  "workflow": "windows",
-                                  "wpt": False,
-                                  "profile": "release",
-                                  "unit_tests": True,
-                                  'build_libservo': False,
-                                  'bencher': False,
-                                  "wpt_args": "",
-                                  'build_args': ''
-                              },
-                              {
-                                  "name": "Android",
-                                  'number_of_wpt_chunks': 20,
-                                  "workflow": "android",
-                                  "wpt": False,
-                                  "profile": "release",
-                                  "unit_tests": False,
-                                  'build_libservo': False,
-                                  'bencher': False,
-                                  "wpt_args": "",
-                                  'build_args': ''
-                              },
-                              {
-                                  "name": "OpenHarmony",
-                                  'number_of_wpt_chunks': 20,
-                                  "workflow": "ohos",
-                                  "wpt": False,
-                                  "profile": "release",
-                                  "unit_tests": False,
-                                  'build_libservo': False,
-                                  'bencher': False,
-                                  "wpt_args": "",
-                                  'build_args': ''
-                              },
-                              {
-                                  "name": "Lint",
-                                  'number_of_wpt_chunks': 20,
-                                  "workflow": "lint",
-                                  "wpt": False,
-                                  "profile": "release",
-                                  "unit_tests": False,
-                                  'build_libservo': False,
-                                  'bencher': False,
-                                  "wpt_args": "",
-                                  'build_args': ''
-                              }
-                              ]})
+        self.assertDictEqual(
+            json.loads(Config("").to_json()),
+            {
+                "fail_fast": False,
+                "matrix": [
+                    {
+                        "name": "Linux (Unit Tests, WPT, Bencher)",
+                        "number_of_wpt_chunks": 20,
+                        "workflow": "linux",
+                        "wpt": True,
+                        "profile": "release",
+                        "unit_tests": True,
+                        "build_libservo": False,
+                        "bencher": True,
+                        "wpt_args": "",
+                        "build_args": "",
+                    },
+                    {
+                        "name": "MacOS (Unit Tests)",
+                        "number_of_wpt_chunks": 20,
+                        "workflow": "macos",
+                        "wpt": False,
+                        "profile": "release",
+                        "unit_tests": True,
+                        "build_libservo": False,
+                        "bencher": False,
+                        "wpt_args": "",
+                        "build_args": "",
+                    },
+                    {
+                        "name": "Windows (Unit Tests)",
+                        "number_of_wpt_chunks": 20,
+                        "workflow": "windows",
+                        "wpt": False,
+                        "profile": "release",
+                        "unit_tests": True,
+                        "build_libservo": False,
+                        "bencher": False,
+                        "wpt_args": "",
+                        "build_args": "",
+                    },
+                    {
+                        "name": "Android",
+                        "number_of_wpt_chunks": 20,
+                        "workflow": "android",
+                        "wpt": False,
+                        "profile": "release",
+                        "unit_tests": False,
+                        "build_libservo": False,
+                        "bencher": False,
+                        "wpt_args": "",
+                        "build_args": "",
+                    },
+                    {
+                        "name": "OpenHarmony",
+                        "number_of_wpt_chunks": 20,
+                        "workflow": "ohos",
+                        "wpt": False,
+                        "profile": "release",
+                        "unit_tests": False,
+                        "build_libservo": False,
+                        "bencher": False,
+                        "wpt_args": "",
+                        "build_args": "",
+                    },
+                    {
+                        "name": "Lint",
+                        "number_of_wpt_chunks": 20,
+                        "workflow": "lint",
+                        "wpt": False,
+                        "profile": "release",
+                        "unit_tests": False,
+                        "build_libservo": False,
+                        "bencher": False,
+                        "wpt_args": "",
+                        "build_args": "",
+                    },
+                ],
+            },
+        )
 
     def test_job_merging(self):
-        self.assertDictEqual(json.loads(Config("linux-wpt").to_json()),
-                             {'fail_fast': False,
-                              'matrix': [{
-                                  'bencher': False,
-                                  'name': 'Linux (WPT)',
-                                  'number_of_wpt_chunks': 20,
-                                  'profile': 'release',
-                                  'unit_tests': False,
-                                  'build_libservo': False,
-                                  'workflow': 'linux',
-                                  'wpt': True,
-                                  'wpt_args': '',
-                                  'build_args': ''
-                              }]
-                              })
+        self.assertDictEqual(
+            json.loads(Config("linux-wpt").to_json()),
+            {
+                "fail_fast": False,
+                "matrix": [
+                    {
+                        "bencher": False,
+                        "name": "Linux (WPT)",
+                        "number_of_wpt_chunks": 20,
+                        "profile": "release",
+                        "unit_tests": False,
+                        "build_libservo": False,
+                        "workflow": "linux",
+                        "wpt": True,
+                        "wpt_args": "",
+                        "build_args": "",
+                    }
+                ],
+            },
+        )
 
         a = JobConfig("Linux (Unit Tests)", Workflow.LINUX, unit_tests=True)
         b = JobConfig("Linux", Workflow.LINUX, unit_tests=False)
@@ -319,8 +337,7 @@ class TestParser(unittest.TestCase):
         b = handle_preset("linux-wpt")
         b = handle_modifier(b, "linux-wpt")
         self.assertTrue(a.merge(b), "Should merge jobs that have different unit test configurations.")
-        self.assertEqual(a, JobConfig("Linux (Unit Tests, WPT)", Workflow.LINUX,
-                                      unit_tests=True, wpt=True))
+        self.assertEqual(a, JobConfig("Linux (Unit Tests, WPT)", Workflow.LINUX, unit_tests=True, wpt=True))
 
         a = JobConfig("Linux (Unit Tests)", Workflow.LINUX, unit_tests=True)
         b = JobConfig("Mac", Workflow.MACOS, unit_tests=True)
@@ -343,12 +360,10 @@ class TestParser(unittest.TestCase):
         self.assertEqual(a, JobConfig("Linux (Unit Tests)", Workflow.LINUX, unit_tests=True))
 
     def test_full(self):
-        self.assertDictEqual(json.loads(Config("full").to_json()),
-                             json.loads(Config("").to_json()))
+        self.assertDictEqual(json.loads(Config("full").to_json()), json.loads(Config("").to_json()))
 
     def test_wpt_alias(self):
-        self.assertDictEqual(json.loads(Config("wpt").to_json()),
-                             json.loads(Config("linux-wpt").to_json()))
+        self.assertDictEqual(json.loads(Config("wpt").to_json()), json.loads(Config("linux-wpt").to_json()))
 
 
 def run_tests():

@@ -84,7 +84,7 @@ interface Element : Node {
   [CEReactions, Throws]
   undefined insertAdjacentHTML(DOMString position, (TrustedHTML or DOMString) string);
 
-  [Throws, Pref="dom_shadowdom_enabled"] ShadowRoot attachShadow(ShadowRootInit init);
+  [Throws] ShadowRoot attachShadow(ShadowRootInit init);
   readonly attribute ShadowRoot? shadowRoot;
 };
 

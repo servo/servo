@@ -78,6 +78,7 @@ mod from_compositor {
                 Self::SetScrollStates(..) => target!("SetScrollStates"),
                 Self::PaintMetric(..) => target!("PaintMetric"),
                 Self::EvaluateJavaScript(..) => target!("EvaluateJavaScript"),
+                Self::CreateMemoryReport(..) => target!("CreateMemoryReport"),
             }
         }
     }
@@ -177,6 +178,7 @@ mod from_script {
                 Self::TitleChanged(..) => target!("TitleChanged"),
                 Self::IFrameSizes(..) => target!("IFrameSizes"),
                 Self::ReportMemory(..) => target!("ReportMemory"),
+                Self::WebDriverInputComplete(..) => target!("WebDriverInputComplete"),
                 Self::FinishJavaScriptEvaluation(..) => target!("FinishJavaScriptEvaluation"),
             }
         }
@@ -239,7 +241,7 @@ mod from_script {
                 Self::StopGamepadHapticEffect(..) => target_variant!("StopGamepadHapticEffect"),
                 Self::ShutdownComplete => target_variant!("ShutdownComplete"),
                 Self::ShowNotification(..) => target_variant!("ShowNotification"),
-                Self::ShowSelectElementMenu(..) => target_variant!("ShowSelectElementMenu"),
+                Self::ShowFormControl(..) => target_variant!("ShowFormControl"),
                 Self::FinishJavaScriptEvaluation(..) => {
                     target_variant!("FinishJavaScriptEvaluation")
                 },

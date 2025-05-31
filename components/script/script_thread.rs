@@ -71,7 +71,7 @@ use js::jsval::UndefinedValue;
 use js::rust::ParentRuntime;
 use media::WindowGLContext;
 use metrics::MAX_TASK_NS;
-use net_traits::image_cache::{ImageCache, PendingImageResponse};
+use net_traits::image_cache::{ImageCache, ImageCacheResponseMessage};
 use net_traits::request::{Referrer, RequestId};
 use net_traits::response::ResponseInit;
 use net_traits::storage_thread::StorageType;
@@ -403,14 +403,20 @@ impl ScriptThreadFactory for ScriptThread {
                 WebViewId::install(state.webview_id);
                 let roots = RootCollection::new();
                 let _stack_roots = ThreadLocalStackRoots::new(&roots);
-                let id = state.id;
-                let browsing_context_id = state.browsing_context_id;
-                let webview_id = state.webview_id;
-                let parent_info = state.parent_info;
-                let opener = state.opener;
                 let memory_profiler_sender = state.memory_profiler_sender.clone();
-                let viewport_details = state.viewport_details;
 
+                let in_progress_load = InProgressLoad::new(
+                    state.id,
+                    state.browsing_context_id,
+                    state.webview_id,
+                    state.parent_info,
+                    state.opener,
+                    state.viewport_details,
+                    state.theme,
+                    MutableOrigin::new(load_data.url.origin()),
+                    load_data,
+                );
+                let reporter_name = format!("script-reporter-{:?}", state.id);
                 let script_thread = ScriptThread::new(state, layout_factory, system_font_service);
 
                 SCRIPT_THREAD_ROOT.with(|root| {
@@ -419,19 +425,8 @@ impl ScriptThreadFactory for ScriptThread {
 
                 let mut failsafe = ScriptMemoryFailsafe::new(&script_thread);
 
-                let origin = MutableOrigin::new(load_data.url.origin());
-                script_thread.pre_page_load(InProgressLoad::new(
-                    id,
-                    browsing_context_id,
-                    webview_id,
-                    parent_info,
-                    opener,
-                    viewport_details,
-                    origin,
-                    load_data,
-                ));
+                script_thread.pre_page_load(in_progress_load);
 
-                let reporter_name = format!("script-reporter-{:?}", id);
                 memory_profiler_sender.run_with_memory_reporting(
                     || {
                         script_thread.start(CanGc::note());
@@ -1081,6 +1076,10 @@ impl ScriptThread {
         for event in document.take_pending_input_events().into_iter() {
             document.update_active_keyboard_modifiers(event.active_keyboard_modifiers);
 
+            // We do this now, because the event is consumed below, but the order doesn't really
+            // matter as the event will be handled before any new ScriptThread messages are processed.
+            self.notify_webdriver_input_event_completed(pipeline_id, &event.event);
+
             match event.event {
                 InputEvent::MouseButton(mouse_button_event) => {
                     document.handle_mouse_button_event(
@@ -1142,6 +1141,19 @@ impl ScriptThread {
             }
         }
         ScriptThread::set_user_interacting(false);
+    }
+
+    fn notify_webdriver_input_event_completed(&self, pipeline_id: PipelineId, event: &InputEvent) {
+        let Some(id) = event.webdriver_message_id() else {
+            return;
+        };
+
+        if let Err(error) = self.senders.pipeline_to_constellation_sender.send((
+            pipeline_id,
+            ScriptToConstellationMessage::WebDriverInputComplete(id),
+        )) {
+            warn!("ScriptThread failed to send WebDriverInputComplete {id:?}: {error:?}",);
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#update-the-rendering>
@@ -1271,6 +1283,10 @@ impl ScriptThread {
             document.update_intersection_observer_steps(CrossProcessInstant::now(), can_gc);
 
             // TODO: Mark paint timing from https://w3c.github.io/paint-timing.
+
+            // Update the rendering of those does not require a reflow.
+            // e.g. animated images.
+            document.update_animating_images();
 
             #[cfg(feature = "webgpu")]
             document.update_rendering_of_webgpu_canvases();
@@ -2079,11 +2095,24 @@ impl ScriptThread {
         }
     }
 
-    fn handle_msg_from_image_cache(&self, response: PendingImageResponse) {
-        let window = self.documents.borrow().find_window(response.pipeline_id);
-        if let Some(ref window) = window {
-            window.pending_image_notification(response);
-        }
+    fn handle_msg_from_image_cache(&self, response: ImageCacheResponseMessage) {
+        match response {
+            ImageCacheResponseMessage::NotifyPendingImageLoadStatus(pending_image_response) => {
+                let window = self
+                    .documents
+                    .borrow()
+                    .find_window(pending_image_response.pipeline_id);
+                if let Some(ref window) = window {
+                    window.pending_image_notification(pending_image_response);
+                }
+            },
+            ImageCacheResponseMessage::VectorImageRasterizationComplete(response) => {
+                let window = self.documents.borrow().find_window(response.pipeline_id);
+                if let Some(ref window) = window {
+                    window.handle_image_rasterization_complete_notification(response);
+                }
+            },
+        };
     }
 
     fn handle_webdriver_msg(
@@ -2414,6 +2443,7 @@ impl ScriptThread {
             opener,
             load_data,
             viewport_details,
+            theme,
         } = new_layout_info;
 
         // Kick off the fetch for the new resource.
@@ -2425,6 +2455,7 @@ impl ScriptThread {
             parent_info,
             opener,
             viewport_details,
+            theme,
             origin,
             load_data,
         );
@@ -3168,6 +3199,7 @@ impl ScriptThread {
             time_profiler_chan: self.senders.time_profiler_sender.clone(),
             compositor_api: self.compositor_api.clone(),
             viewport_details: incomplete.viewport_details,
+            theme: incomplete.theme,
         };
 
         // Create the window and document objects.
@@ -3207,6 +3239,7 @@ impl ScriptThread {
             #[cfg(feature = "webgpu")]
             self.gpu_id_hub.clone(),
             incomplete.load_data.inherited_secure_context,
+            incomplete.theme,
         );
 
         let _realm = enter_realm(&*window);
@@ -3420,7 +3453,7 @@ impl ScriptThread {
         // the pointer, when the user presses down and releases the primary pointer button"
 
         // Servo-specific: Trigger if within 10px of the down point
-        if let InputEvent::MouseButton(mouse_button_event) = event.event {
+        if let InputEvent::MouseButton(mouse_button_event) = &event.event {
             if let MouseButton::Left = mouse_button_event.button {
                 match mouse_button_event.action {
                     MouseButtonAction::Up => {
@@ -3429,16 +3462,23 @@ impl ScriptThread {
                         let pixel_dist =
                             (pixel_dist.x * pixel_dist.x + pixel_dist.y * pixel_dist.y).sqrt();
                         if pixel_dist < 10.0 * document.window().device_pixel_ratio().get() {
-                            document.note_pending_input_event(event.clone());
+                            // Pass webdriver_id to the newly generated click event
+                            document.note_pending_input_event(ConstellationInputEvent {
+                                hit_test_result: event.hit_test_result.clone(),
+                                pressed_mouse_buttons: event.pressed_mouse_buttons,
+                                active_keyboard_modifiers: event.active_keyboard_modifiers,
+                                event: event.event.clone().with_webdriver_message_id(None),
+                            });
                             document.note_pending_input_event(ConstellationInputEvent {
                                 hit_test_result: event.hit_test_result,
                                 pressed_mouse_buttons: event.pressed_mouse_buttons,
                                 active_keyboard_modifiers: event.active_keyboard_modifiers,
-                                event: InputEvent::MouseButton(MouseButtonEvent {
-                                    action: MouseButtonAction::Click,
-                                    button: mouse_button_event.button,
-                                    point: mouse_button_event.point,
-                                }),
+                                event: InputEvent::MouseButton(MouseButtonEvent::new(
+                                    MouseButtonAction::Click,
+                                    mouse_button_event.button,
+                                    mouse_button_event.point,
+                                ))
+                                .with_webdriver_message_id(event.event.webdriver_message_id()),
                             });
                             return;
                         }

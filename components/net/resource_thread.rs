@@ -21,9 +21,9 @@ use embedder_traits::EmbedderProxy;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use log::{debug, trace, warn};
-use malloc_size_of::MallocSizeOf;
 use net_traits::blob_url_store::parse_blob_url;
 use net_traits::filemanager_thread::FileTokenCheck;
+use net_traits::pub_domains::public_suffix_list_size_of;
 use net_traits::request::{Destination, RequestBuilder, RequestId};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
@@ -97,14 +97,15 @@ pub fn new_resource_threads(
     let (public_core, private_core) = new_core_resource_thread(
         devtools_sender,
         time_profiler_chan,
-        mem_profiler_chan,
+        mem_profiler_chan.clone(),
         embedder_proxy,
         config_dir.clone(),
         ca_certificates,
         ignore_certificate_errors,
         protocols,
     );
-    let storage: IpcSender<StorageThreadMsg> = StorageThreadFactory::new(config_dir);
+    let storage: IpcSender<StorageThreadMsg> =
+        StorageThreadFactory::new(config_dir, mem_profiler_chan);
     (
         ResourceThreads::new(public_core, storage.clone()),
         ResourceThreads::new(private_core, storage),
@@ -287,11 +288,18 @@ impl ResourceChannelManager {
         perform_memory_report(|ops| {
             let mut reports = public_http_state.memory_reports("public", ops);
             reports.extend(private_http_state.memory_reports("private", ops));
-            reports.push(Report {
-                path: path!["hsts-preload-list"],
-                kind: ReportKind::ExplicitJemallocHeapSize,
-                size: hsts::PRELOAD_LIST_ENTRIES.size_of(ops),
-            });
+            reports.extend(vec![
+                Report {
+                    path: path!["hsts-preload-list"],
+                    kind: ReportKind::ExplicitJemallocHeapSize,
+                    size: hsts::hsts_preload_size_of(ops),
+                },
+                Report {
+                    path: path!["public-suffix-list"],
+                    kind: ReportKind::ExplicitJemallocHeapSize,
+                    size: public_suffix_list_size_of(ops),
+                },
+            ]);
             msg.send(ProcessReports::new(reports));
         })
     }
@@ -444,9 +452,6 @@ impl ResourceChannelManager {
                 for history_state in states_to_remove {
                     history_states.remove(&history_state);
                 }
-            },
-            CoreResourceMsg::Synchronize(sender) => {
-                let _ = sender.send(());
             },
             CoreResourceMsg::ClearCache => {
                 http_state.http_cache.write().unwrap().clear();

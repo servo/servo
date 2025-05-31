@@ -66,6 +66,7 @@ use constellation::{
 };
 use constellation_traits::{EmbedderToConstellationMessage, ScriptToConstellationChan};
 use crossbeam_channel::{Receiver, Sender, unbounded};
+use embedder_traits::FormControl as EmbedderFormControl;
 use embedder_traits::user_content_manager::UserContentManager;
 pub use embedder_traits::*;
 use env_logger::Builder as EnvLoggerBuilder;
@@ -91,6 +92,7 @@ use media::{GlApi, NativeDisplay, WindowGLContext};
 use net::protocols::ProtocolRegistry;
 use net::resource_thread::new_resource_threads;
 use profile::{mem as profile_mem, time as profile_time};
+use profile_traits::mem::MemoryReportResult;
 use profile_traits::{mem, time};
 use script::{JSEngineSetup, ServiceWorkerManager};
 use servo_config::opts::Opts;
@@ -125,8 +127,8 @@ pub use crate::servo_delegate::{ServoDelegate, ServoError};
 use crate::webrender_api::FrameReadyParams;
 pub use crate::webview::{WebView, WebViewBuilder};
 pub use crate::webview_delegate::{
-    AllowOrDenyRequest, AuthenticationRequest, FormControl, NavigationRequest, PermissionRequest,
-    SelectElement, WebResourceLoad, WebViewDelegate,
+    AllowOrDenyRequest, AuthenticationRequest, ColorPicker, FormControl, NavigationRequest,
+    PermissionRequest, SelectElement, WebResourceLoad, WebViewDelegate,
 };
 
 #[cfg(feature = "webdriver")]
@@ -416,7 +418,7 @@ impl Servo {
         // Create the WebXR main thread
         #[cfg(feature = "webxr")]
         let mut webxr_main_thread =
-            webxr::MainThreadRegistry::new(event_loop_waker, webxr_layer_grand_manager)
+            webxr::MainThreadRegistry::new(event_loop_waker.clone(), webxr_layer_grand_manager)
                 .expect("Failed to create WebXR device registry");
         #[cfg(feature = "webxr")]
         if pref!(dom_webxr_enabled) {
@@ -488,6 +490,7 @@ impl Servo {
                 #[cfg(feature = "webxr")]
                 webxr_main_thread,
                 shutdown_state: shutdown_state.clone(),
+                event_loop_waker,
             },
             opts.debug.convert_mouse_to_touch,
         );
@@ -629,6 +632,11 @@ impl Servo {
 
         log::set_boxed_logger(Box::new(logger)).expect("Failed to set logger.");
         log::set_max_level(filter);
+    }
+
+    pub fn create_memory_report(&self, snd: IpcSender<MemoryReportResult>) {
+        self.constellation_proxy
+            .send(EmbedderToConstellationMessage::CreateMemoryReport(snd));
     }
 
     pub fn start_shutting_down(&self) {
@@ -965,18 +973,30 @@ impl Servo {
                     None => self.delegate().show_notification(notification),
                 }
             },
-            EmbedderMsg::ShowSelectElementMenu(
-                webview_id,
-                options,
-                selected_option,
-                position,
-                ipc_sender,
-            ) => {
+            EmbedderMsg::ShowFormControl(webview_id, position, form_control) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
-                    let prompt = SelectElement::new(options, selected_option, position, ipc_sender);
-                    webview
-                        .delegate()
-                        .show_form_control(webview, FormControl::SelectElement(prompt));
+                    let form_control = match form_control {
+                        EmbedderFormControl::SelectElement(
+                            options,
+                            selected_option,
+                            ipc_sender,
+                        ) => FormControl::SelectElement(SelectElement::new(
+                            options,
+                            selected_option,
+                            position,
+                            ipc_sender,
+                        )),
+                        EmbedderFormControl::ColorPicker(current_color, ipc_sender) => {
+                            FormControl::ColorPicker(ColorPicker::new(
+                                current_color,
+                                position,
+                                ipc_sender,
+                                self.servo_errors.sender(),
+                            ))
+                        },
+                    };
+
+                    webview.delegate().show_form_control(webview, form_control);
                 }
             },
         }

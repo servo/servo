@@ -40,6 +40,7 @@ pub mod blob_url_store;
 pub mod filemanager_thread;
 pub mod http_status;
 pub mod image_cache;
+pub mod mime_classifier;
 pub mod policy_container;
 pub mod pub_domains;
 pub mod quality;
@@ -517,8 +518,6 @@ pub enum CoreResourceMsg {
     SetHistoryState(HistoryStateId, Vec<u8>),
     /// Removes history states for the given ids
     RemoveHistoryStates(Vec<HistoryStateId>),
-    /// Synchronization message solely for knowing the state of the ResourceChannelManager loop
-    Synchronize(IpcSender<()>),
     /// Clear the network cache.
     ClearCache,
     /// Send the service worker network mediator for an origin to CoreResourceThread

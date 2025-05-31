@@ -7,10 +7,9 @@ use std::collections::HashMap;
 use std::env;
 use std::fs::create_dir_all;
 use std::iter::once;
-use std::mem::take;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{PipelineId, WebViewId};
@@ -33,7 +32,7 @@ use fnv::FnvHashMap;
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use libc::c_void;
 use log::{debug, info, trace, warn};
-use pixels::{CorsStatus, Image, ImageFrame, PixelFormat};
+use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage};
 use profile_traits::mem::{ProcessReports, ProfilerRegistration, Report, ReportKind};
 use profile_traits::time::{self as profile_time, ProfilerCategory};
 use profile_traits::{path, time_profile};
@@ -54,8 +53,9 @@ use webrender_api::{
 };
 
 use crate::InitialCompositorState;
+use crate::refresh_driver::RefreshDriver;
 use crate::webview_manager::WebViewManager;
-use crate::webview_renderer::{UnknownWebView, WebViewRenderer};
+use crate::webview_renderer::{PinchZoomResult, UnknownWebView, WebViewRenderer};
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -87,6 +87,9 @@ pub enum WebRenderDebugOption {
 }
 /// Data that is shared by all WebView renderers.
 pub struct ServoRenderer {
+    /// The [`RefreshDriver`] which manages the rythym of painting.
+    refresh_driver: RefreshDriver,
+
     /// This is a temporary map between [`PipelineId`]s and their associated [`WebViewId`]. Once
     /// all renderer operations become per-`WebView` this map can be removed, but we still sometimes
     /// need to work backwards to figure out what `WebView` is associated with a `Pipeline`.
@@ -152,18 +155,14 @@ pub struct IOCompositor {
     /// The number of frames pending to receive from WebRender.
     pending_frames: usize,
 
-    /// The [`Instant`] of the last animation tick, used to avoid flooding the Constellation and
-    /// ScriptThread with a deluge of animation ticks.
-    last_animation_tick: Instant,
-
     /// A handle to the memory profiler which will automatically unregister
     /// when it's dropped.
     _mem_profiler_registration: ProfilerRegistration,
 }
 
 /// Why we need to be repainted. This is used for debugging.
-#[derive(Clone, Copy, Default)]
-struct RepaintReason(u8);
+#[derive(Clone, Copy, Default, PartialEq)]
+pub(crate) struct RepaintReason(u8);
 
 bitflags! {
     impl RepaintReason: u8 {
@@ -387,6 +386,10 @@ impl IOCompositor {
         );
         let compositor = IOCompositor {
             global: Rc::new(RefCell::new(ServoRenderer {
+                refresh_driver: RefreshDriver::new(
+                    state.constellation_chan.clone(),
+                    state.event_loop_waker,
+                ),
                 shutdown_state: state.shutdown_state,
                 pipeline_to_webview_map: Default::default(),
                 compositor_receiver: state.receiver,
@@ -407,7 +410,6 @@ impl IOCompositor {
             webrender: Some(state.webrender),
             rendering_context: state.rendering_context,
             pending_frames: 0,
-            last_animation_tick: Instant::now(),
             _mem_profiler_registration: registration,
         };
 
@@ -451,7 +453,16 @@ impl IOCompositor {
     }
 
     pub fn needs_repaint(&self) -> bool {
-        !self.needs_repaint.get().is_empty()
+        let repaint_reason = self.needs_repaint.get();
+        if repaint_reason.is_empty() {
+            return false;
+        }
+
+        !self
+            .global
+            .borrow()
+            .refresh_driver
+            .wait_to_paint(repaint_reason)
     }
 
     pub fn finish_shutting_down(&mut self) {
@@ -520,15 +531,17 @@ impl IOCompositor {
                 pipeline_id,
                 animation_state,
             ) => {
-                if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
-                    if webview_renderer
-                        .change_pipeline_running_animations_state(pipeline_id, animation_state) &&
-                        webview_renderer.animating()
-                    {
-                        // These operations should eventually happen per-WebView, but they are
-                        // global now as rendering is still global to all WebViews.
-                        self.process_animations(true);
-                    }
+                let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
+                    return;
+                };
+
+                if webview_renderer
+                    .change_pipeline_running_animations_state(pipeline_id, animation_state)
+                {
+                    self.global
+                        .borrow()
+                        .refresh_driver
+                        .notify_animation_state_changed(webview_renderer);
                 }
             },
 
@@ -573,14 +586,15 @@ impl IOCompositor {
             },
 
             CompositorMsg::SetThrottled(webview_id, pipeline_id, throttled) => {
-                if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
-                    if webview_renderer.set_throttled(pipeline_id, throttled) &&
-                        webview_renderer.animating()
-                    {
-                        // These operations should eventually happen per-WebView, but they are
-                        // global now as rendering is still global to all WebViews.
-                        self.process_animations(true);
-                    }
+                let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
+                    return;
+                };
+
+                if webview_renderer.set_throttled(pipeline_id, throttled) {
+                    self.global
+                        .borrow()
+                        .refresh_driver
+                        .notify_animation_state_changed(webview_renderer);
                 }
             },
 
@@ -621,29 +635,37 @@ impl IOCompositor {
                 }
             },
 
-            CompositorMsg::WebDriverMouseButtonEvent(webview_id, action, button, x, y) => {
+            CompositorMsg::WebDriverMouseButtonEvent(
+                webview_id,
+                action,
+                button,
+                x,
+                y,
+                message_id,
+            ) => {
                 let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     warn!("Handling input event for unknown webview: {webview_id}");
                     return;
                 };
                 let dppx = webview_renderer.device_pixels_per_page_pixel();
                 let point = dppx.transform_point(Point2D::new(x, y));
-                webview_renderer.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent {
-                    point,
-                    action,
-                    button,
-                }));
+                webview_renderer.dispatch_input_event(
+                    InputEvent::MouseButton(MouseButtonEvent::new(action, button, point))
+                        .with_webdriver_message_id(Some(message_id)),
+                );
             },
 
-            CompositorMsg::WebDriverMouseMoveEvent(webview_id, x, y) => {
+            CompositorMsg::WebDriverMouseMoveEvent(webview_id, x, y, message_id) => {
                 let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     warn!("Handling input event for unknown webview: {webview_id}");
                     return;
                 };
                 let dppx = webview_renderer.device_pixels_per_page_pixel();
                 let point = dppx.transform_point(Point2D::new(x, y));
-                webview_renderer
-                    .dispatch_input_event(InputEvent::MouseMove(MouseMoveEvent { point }));
+                webview_renderer.dispatch_input_event(
+                    InputEvent::MouseMove(MouseMoveEvent::new(point))
+                        .with_webdriver_message_id(Some(message_id)),
+                );
             },
 
             CompositorMsg::WebDriverWheelScrollEvent(webview_id, x, y, delta_x, delta_y) => {
@@ -1264,39 +1286,6 @@ impl IOCompositor {
         self.set_needs_repaint(RepaintReason::Resize);
     }
 
-    /// If there are any animations running, dispatches appropriate messages to the constellation.
-    fn process_animations(&mut self, force: bool) {
-        // When running animations in order to dump a screenshot (not after a full composite), don't send
-        // animation ticks faster than about 60Hz.
-        //
-        // TODO: This should be based on the refresh rate of the screen and also apply to all
-        // animation ticks, not just ones sent while waiting to dump screenshots. This requires
-        // something like a refresh driver concept though.
-        if !force && (Instant::now() - self.last_animation_tick) < Duration::from_millis(16) {
-            return;
-        }
-        self.last_animation_tick = Instant::now();
-
-        let animating_webviews: Vec<_> = self
-            .webview_renderers
-            .iter()
-            .filter_map(|webview_renderer| {
-                if webview_renderer.animating() {
-                    Some(webview_renderer.id)
-                } else {
-                    None
-                }
-            })
-            .collect();
-        if !animating_webviews.is_empty() {
-            if let Err(error) = self.global.borrow().constellation_sender.send(
-                EmbedderToConstellationMessage::TickAnimation(animating_webviews),
-            ) {
-                warn!("Sending tick to constellation failed ({error:?}).");
-            }
-        }
-    }
-
     pub fn on_zoom_reset_window_event(&mut self, webview_id: WebViewId) {
         if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
             return;
@@ -1403,6 +1392,11 @@ impl IOCompositor {
     /// Render the WebRender scene to the active `RenderingContext`. If successful, trigger
     /// the next round of animations.
     pub fn render(&mut self) -> bool {
+        self.global
+            .borrow()
+            .refresh_driver
+            .notify_will_paint(self.webview_renderers.iter());
+
         if let Err(error) = self.render_inner() {
             warn!("Unable to render: {error:?}");
             return false;
@@ -1411,9 +1405,6 @@ impl IOCompositor {
         // We've painted the default target, which means that from the embedder's perspective,
         // the scene no longer needs to be repainted.
         self.needs_repaint.set(RepaintReason::empty());
-
-        // Queue up any subsequent paints for animations.
-        self.process_animations(true);
 
         true
     }
@@ -1424,7 +1415,7 @@ impl IOCompositor {
         &mut self,
         webview_id: WebViewId,
         page_rect: Option<Rect<f32, CSSPixel>>,
-    ) -> Result<Option<Image>, UnableToComposite> {
+    ) -> Result<Option<RasterImage>, UnableToComposite> {
         self.render_inner()?;
 
         let size = self.rendering_context.size2d().to_i32();
@@ -1451,16 +1442,19 @@ impl IOCompositor {
         Ok(self
             .rendering_context
             .read_to_image(rect)
-            .map(|image| Image {
-                width: image.width(),
-                height: image.height(),
+            .map(|image| RasterImage {
+                metadata: ImageMetadata {
+                    width: image.width(),
+                    height: image.height(),
+                },
                 format: PixelFormat::RGBA8,
                 frames: vec![ImageFrame {
                     delay: None,
-                    bytes: ipc::IpcSharedMemory::from_bytes(&image),
+                    byte_range: 0..image.len(),
                     width: image.width(),
                     height: image.height(),
                 }],
+                bytes: ipc::IpcSharedMemory::from_bytes(&image),
                 id: None,
                 cors_status: CorsStatus::Safe,
             }))
@@ -1482,10 +1476,8 @@ impl IOCompositor {
 
         if opts::get().wait_for_stable_image {
             // The current image may be ready to output. However, if there are animations active,
-            // tick those instead and continue waiting for the image output to be stable AND
-            // all active animations to complete.
+            // continue waiting for the image output to be stable AND all active animations to complete.
             if self.animations_or_animation_callbacks_running() {
-                self.process_animations(false);
                 return Err(UnableToComposite::NotReadyToPaintImage(
                     NotReadyToPaint::AnimationsActive,
                 ));
@@ -1668,11 +1660,39 @@ impl IOCompositor {
         if let Err(err) = self.rendering_context.make_current() {
             warn!("Failed to make the rendering context current: {:?}", err);
         }
-        let mut webview_renderers = take(&mut self.webview_renderers);
-        for webview_renderer in webview_renderers.iter_mut() {
-            webview_renderer.process_pending_scroll_events(self);
+
+        let mut need_zoom = false;
+        let scroll_offset_updates: Vec<_> = self
+            .webview_renderers
+            .iter_mut()
+            .filter_map(|webview_renderer| {
+                let (zoom, scroll_result) =
+                    webview_renderer.process_pending_scroll_and_pinch_zoom_events();
+                need_zoom = need_zoom || (zoom == PinchZoomResult::DidPinchZoom);
+                scroll_result
+            })
+            .collect();
+
+        if need_zoom || !scroll_offset_updates.is_empty() {
+            let mut transaction = Transaction::new();
+            if need_zoom {
+                self.send_root_pipeline_display_list_in_transaction(&mut transaction);
+            }
+            for update in scroll_offset_updates {
+                let offset = LayoutVector2D::new(-update.offset.x, -update.offset.y);
+                transaction.set_scroll_offsets(
+                    update.external_scroll_id,
+                    vec![SampledScrollOffset {
+                        offset,
+                        generation: 0,
+                    }],
+                );
+            }
+
+            self.generate_frame(&mut transaction, RenderReasons::APZ);
+            self.global.borrow_mut().send_transaction(transaction);
         }
-        self.webview_renderers = webview_renderers;
+
         self.global.borrow().shutdown_state() != ShutdownState::FinishedShuttingDown
     }
 

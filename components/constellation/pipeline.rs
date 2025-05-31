@@ -25,7 +25,7 @@ use constellation_traits::{LoadData, SWManagerMsg, ScriptToConstellationChan};
 use crossbeam_channel::{Sender, unbounded};
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
 use embedder_traits::user_content_manager::UserContentManager;
-use embedder_traits::{AnimationState, FocusSequenceNumber, ViewportDetails};
+use embedder_traits::{AnimationState, FocusSequenceNumber, Theme, ViewportDetails};
 use fonts::{SystemFontServiceProxy, SystemFontServiceProxySender};
 use ipc_channel::Error;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -61,7 +61,7 @@ pub struct Pipeline {
     /// The ID of the browsing context that contains this Pipeline.
     pub browsing_context_id: BrowsingContextId,
 
-    /// The ID of the top-level browsing context that contains this Pipeline.
+    /// The [`WebViewId`] of the `WebView` that contains this Pipeline.
     pub webview_id: WebViewId,
 
     pub opener: Option<BrowsingContextId>,
@@ -170,6 +170,9 @@ pub struct InitialPipelineState {
     /// The initial [`ViewportDetails`] to use when starting this new [`Pipeline`].
     pub viewport_details: ViewportDetails,
 
+    /// The initial [`Theme`] to use when starting this new [`Pipeline`].
+    pub theme: Theme,
+
     /// The ID of the pipeline namespace for this script thread.
     pub pipeline_namespace_id: PipelineNamespaceId,
 
@@ -224,6 +227,7 @@ impl Pipeline {
                     opener: state.opener,
                     load_data: state.load_data.clone(),
                     viewport_details: state.viewport_details,
+                    theme: state.theme,
                 };
 
                 if let Err(e) = script_chan.send(ScriptThreadMessage::AttachLayout(new_layout_info))
@@ -280,6 +284,7 @@ impl Pipeline {
                     time_profiler_chan: state.time_profiler_chan,
                     mem_profiler_chan: state.mem_profiler_chan,
                     viewport_details: state.viewport_details,
+                    theme: state.theme,
                     script_chan: script_chan.clone(),
                     load_data: state.load_data.clone(),
                     script_port,
@@ -494,6 +499,7 @@ pub struct UnprivilegedPipelineContent {
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: profile_mem::ProfilerChan,
     viewport_details: ViewportDetails,
+    theme: Theme,
     script_chan: IpcSender<ScriptThreadMessage>,
     load_data: LoadData,
     script_port: IpcReceiver<ScriptThreadMessage>,
@@ -544,6 +550,7 @@ impl UnprivilegedPipelineContent {
                 memory_profiler_sender: self.mem_profiler_chan.clone(),
                 devtools_server_sender: self.devtools_ipc_sender,
                 viewport_details: self.viewport_details,
+                theme: self.theme,
                 pipeline_namespace_id: self.pipeline_namespace_id,
                 content_process_shutdown_sender: content_process_shutdown_chan,
                 webgl_chan: self.webgl_chan,

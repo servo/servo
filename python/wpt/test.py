@@ -49,13 +49,13 @@ PORT = 9000
 
 
 @dataclasses.dataclass
-class MockPullRequest():
+class MockPullRequest:
     head: str
     number: int
     state: str = "open"
 
 
-class MockGitHubAPIServer():
+class MockGitHubAPIServer:
     def __init__(self, port: int):
         self.port = port
         self.disable_logging()
@@ -65,18 +65,19 @@ class MockGitHubAPIServer():
         class NoLoggingHandler(WSGIRequestHandler):
             def log_message(self, *args):
                 pass
+
         if logging.getLogger().level == logging.DEBUG:
             handler = WSGIRequestHandler
         else:
             handler = NoLoggingHandler
 
-        self.server = make_server('localhost', self.port, self.app, handler_class=handler)
+        self.server = make_server("localhost", self.port, self.app, handler_class=handler)
         self.start_server_thread()
 
     def disable_logging(self):
         flask.cli.show_server_banner = lambda *args: None
         logging.getLogger("werkzeug").disabled = True
-        logging.getLogger('werkzeug').setLevel(logging.CRITICAL)
+        logging.getLogger("werkzeug").setLevel(logging.CRITICAL)
 
     def start(self):
         self.thread.start()
@@ -84,21 +85,21 @@ class MockGitHubAPIServer():
         # Wait for the server to be started.
         while True:
             try:
-                response = requests.get(f'http://localhost:{self.port}/ping', timeout=1)
+                response = requests.get(f"http://localhost:{self.port}/ping", timeout=1)
                 assert response.status_code == 200
-                assert response.text == 'pong'
+                assert response.text == "pong"
                 break
             except Exception:
                 time.sleep(0.1)
 
     def reset_server_state_with_pull_requests(self, pulls: list[MockPullRequest]):
         response = requests.get(
-            f'http://localhost:{self.port}/reset-mock-github',
+            f"http://localhost:{self.port}/reset-mock-github",
             json=[dataclasses.asdict(pull_request) for pull_request in pulls],
-            timeout=1
+            timeout=1,
         )
         assert response.status_code == 200
-        assert response.text == '👍'
+        assert response.text == "👍"
 
     def shutdown(self):
         self.server.shutdown()
@@ -111,26 +112,25 @@ class MockGitHubAPIServer():
 
         @self.app.route("/ping")
         def ping():
-            return ('pong', 200)
+            return ("pong", 200)
 
         @self.app.route("/reset-mock-github")
         def reset_server():
             self.pulls = [
-                MockPullRequest(pull_request['head'],
-                                pull_request['number'],
-                                pull_request['state'])
-                for pull_request in flask.request.json]
-            return ('👍', 200)
+                MockPullRequest(pull_request["head"], pull_request["number"], pull_request["state"])
+                for pull_request in flask.request.json
+            ]
+            return ("👍", 200)
 
-        @self.app.route("/repos/<org>/<repo>/pulls/<int:number>/merge", methods=['PUT'])
+        @self.app.route("/repos/<org>/<repo>/pulls/<int:number>/merge", methods=["PUT"])
         def merge_pull_request(org, repo, number):
             for pull_request in self.pulls:
                 if pull_request.number == number:
-                    pull_request.state = 'closed'
-                    return ('', 204)
-            return ('', 404)
+                    pull_request.state = "closed"
+                    return ("", 204)
+            return ("", 404)
 
-        @self.app.route("/search/issues", methods=['GET'])
+        @self.app.route("/search/issues", methods=["GET"])
         def search():
             params = {}
             param_strings = flask.request.args.get("q", "").split(" ")
@@ -145,38 +145,29 @@ class MockGitHubAPIServer():
 
             for pull_request in self.pulls:
                 if pull_request.head.endswith(head_ref):
-                    return json.dumps({
-                        "total_count": 1,
-                        "items": [{
-                            "number": pull_request.number
-                        }]
-                    })
+                    return json.dumps({"total_count": 1, "items": [{"number": pull_request.number}]})
             return json.dumps({"total_count": 0, "items": []})
 
-        @self.app.route("/repos/<org>/<repo>/pulls", methods=['POST'])
+        @self.app.route("/repos/<org>/<repo>/pulls", methods=["POST"])
         def create_pull_request(org, repo):
             new_pr_number = len(self.pulls) + 1
-            self.pulls.append(MockPullRequest(
-                flask.request.json["head"],
-                new_pr_number,
-                "open"
-            ))
+            self.pulls.append(MockPullRequest(flask.request.json["head"], new_pr_number, "open"))
             return {"number": new_pr_number}
 
-        @self.app.route("/repos/<org>/<repo>/pulls/<int:number>", methods=['PATCH'])
+        @self.app.route("/repos/<org>/<repo>/pulls/<int:number>", methods=["PATCH"])
         def update_pull_request(org, repo, number):
             for pull_request in self.pulls:
                 if pull_request.number == number:
-                    if 'state' in flask.request.json:
-                        pull_request.state = flask.request.json['state']
-                    return ('', 204)
-            return ('', 404)
+                    if "state" in flask.request.json:
+                        pull_request.state = flask.request.json["state"]
+                    return ("", 204)
+            return ("", 404)
 
-        @self.app.route("/repos/<org>/<repo>/issues/<number>/labels", methods=['GET', 'POST'])
-        @self.app.route("/repos/<org>/<repo>/issues/<number>/labels/<label>", methods=['DELETE'])
-        @self.app.route("/repos/<org>/<repo>/issues/<issue>/comments", methods=['GET', 'POST'])
+        @self.app.route("/repos/<org>/<repo>/issues/<number>/labels", methods=["GET", "POST"])
+        @self.app.route("/repos/<org>/<repo>/issues/<number>/labels/<label>", methods=["DELETE"])
+        @self.app.route("/repos/<org>/<repo>/issues/<issue>/comments", methods=["GET", "POST"])
         def other_requests(*args, **kwargs):
-            return ('', 204)
+            return ("", 204)
 
 
 class TestCleanUpBodyText(unittest.TestCase):
@@ -196,28 +187,22 @@ class TestCleanUpBodyText(unittest.TestCase):
         )
         self.assertEqual(
             "Subject\n\nBody text #<!-- nolink -->1",
-            SyncRun.clean_up_body_text(
-                "Subject\n\nBody text #1\n---<!-- Thank you for contributing"
-            ),
+            SyncRun.clean_up_body_text("Subject\n\nBody text #1\n---<!-- Thank you for contributing"),
         )
         self.assertEqual(
             "Subject\n\nNo dashes",
-            SyncRun.clean_up_body_text(
-                "Subject\n\nNo dashes<!-- Thank you for contributing"
-            ),
+            SyncRun.clean_up_body_text("Subject\n\nNo dashes<!-- Thank you for contributing"),
         )
         self.assertEqual(
             "Subject\n\nNo --- comment",
-            SyncRun.clean_up_body_text(
-                "Subject\n\nNo --- comment\n---Other stuff that"
-            ),
+            SyncRun.clean_up_body_text("Subject\n\nNo --- comment\n---Other stuff that"),
         )
         self.assertEqual(
             "Subject\n\n#<!-- nolink -->3 servo#<!-- nolink -->3 servo/servo#3",
             SyncRun.clean_up_body_text(
                 "Subject\n\n#3 servo#3 servo/servo#3",
             ),
-            "Only relative and bare issue reference links should be escaped."
+            "Only relative and bare issue reference links should be escaped.",
         )
 
 
@@ -236,9 +221,7 @@ class TestApplyCommitsToWPT(unittest.TestCase):
         pull_request = SYNC.servo.get_pull_request(pr_number)
         step = CreateOrUpdateBranchForPRStep({"number": pr_number}, pull_request)
 
-        def get_applied_commits(
-            num_commits: int, applied_commits: list[Tuple[str, str]]
-        ):
+        def get_applied_commits(num_commits: int, applied_commits: list[Tuple[str, str]]):
             assert SYNC is not None
             repo = SYNC.local_wpt_repo
             log = ["log", "--oneline", f"-{num_commits}"]
@@ -252,17 +235,13 @@ class TestApplyCommitsToWPT(unittest.TestCase):
 
         applied_commits: list[Any] = []
         callback = partial(get_applied_commits, len(commits), applied_commits)
-        step._create_or_update_branch_for_pr(
-            SyncRun(SYNC, pull_request, None, None), commits, callback
-        )
+        step._create_or_update_branch_for_pr(SyncRun(SYNC, pull_request, None, None), commits, callback)
 
         expected_commits = [(commit["author"], commit["message"]) for commit in commits]
         self.assertListEqual(applied_commits, expected_commits)
 
     def test_simple_commit(self):
-        self.run_test(
-            45, [["test author <test@author>", "test commit message", "18746.diff"]]
-        )
+        self.run_test(45, [["test author <test@author>", "test commit message", "18746.diff"]])
 
     def test_two_commits(self):
         self.run_test(
@@ -299,9 +278,7 @@ class TestFullSyncRun(unittest.TestCase):
         assert SYNC is not None
 
         # Clean up any old files.
-        first_commit_hash = SYNC.local_servo_repo.run("rev-list", "HEAD").splitlines()[
-            -1
-        ]
+        first_commit_hash = SYNC.local_servo_repo.run("rev-list", "HEAD").splitlines()[-1]
         SYNC.local_servo_repo.run("reset", "--hard", first_commit_hash)
         SYNC.local_servo_repo.run("clean", "-fxd")
 
@@ -339,9 +316,7 @@ class TestFullSyncRun(unittest.TestCase):
         SYNC.local_servo_repo.run("reset", "--hard", orig_sha)
         return last_commit_sha
 
-    def run_test(
-        self, payload_file: str, diffs: list, existing_prs: list[MockPullRequest] = []
-    ):
+    def run_test(self, payload_file: str, diffs: list, existing_prs: list[MockPullRequest] = []):
         with open(os.path.join(TESTS_DIR, payload_file), encoding="utf-8") as file:
             payload = json.loads(file.read())
 
@@ -413,12 +388,8 @@ class TestFullSyncRun(unittest.TestCase):
         )
 
     def test_opened_new_mr_with_no_sync_signal(self):
-        self.assertListEqual(
-            self.run_test("opened-with-no-sync-signal.json", ["18746.diff"]), []
-        )
-        self.assertListEqual(
-            self.run_test("opened-with-no-sync-signal.json", ["non-wpt.diff"]), []
-        )
+        self.assertListEqual(self.run_test("opened-with-no-sync-signal.json", ["18746.diff"]), [])
+        self.assertListEqual(self.run_test("opened-with-no-sync-signal.json", ["non-wpt.diff"]), [])
 
     def test_opened_upstreamable_pr_not_applying_cleanly_to_upstream(self):
         self.assertListEqual(
@@ -459,7 +430,7 @@ class TestFullSyncRun(unittest.TestCase):
                 "RemoveBranchForPRStep:servo/wpt/servo_export_18746",
                 "CommentStep:servo/servo#18746:🤖 This change no longer contains upstreamable changes "
                 "to WPT; closed existing upstream pull request (wpt/wpt#1).",
-            ]
+            ],
         )
 
     def test_opened_upstreamable_pr_with_non_utf8_file_contents(self):
@@ -502,10 +473,7 @@ class TestFullSyncRun(unittest.TestCase):
                 ["18746.diff"],
                 [MockPullRequest("servo:servo_export_18746", 10)],
             ),
-            [
-                "ChangePRStep:wpt/wpt#10:closed",
-                "RemoveBranchForPRStep:servo/wpt/servo_export_18746"
-            ]
+            ["ChangePRStep:wpt/wpt#10:closed", "RemoveBranchForPRStep:servo/wpt/servo_export_18746"],
         )
 
     def test_synchronize_move_new_changes_to_preexisting_upstream_pr(self):
@@ -520,7 +488,7 @@ class TestFullSyncRun(unittest.TestCase):
                 "CreateOrUpdateBranchForPRStep:1:servo/wpt/servo_export_19612",
                 "CommentStep:servo/servo#19612:📝 Transplanted new upstreamable changes to existing "
                 "upstream WPT pull request (wpt/wpt#10).",
-            ]
+            ],
         )
 
     def test_synchronize_close_upstream_pr_after_new_changes_do_not_include_wpt(self):
@@ -537,7 +505,7 @@ class TestFullSyncRun(unittest.TestCase):
                 "RemoveBranchForPRStep:servo/wpt/servo_export_19612",
                 "CommentStep:servo/servo#19612:🤖 This change no longer contains upstreamable changes to WPT; "
                 "closed existing upstream pull request (wpt/wpt#11).",
-            ]
+            ],
         )
 
     def test_synchronize_open_upstream_pr_after_new_changes_include_wpt(self):
@@ -548,7 +516,7 @@ class TestFullSyncRun(unittest.TestCase):
                 "OpenPRStep:servo/wpt/servo_export_19612→wpt/wpt#1",
                 "CommentStep:servo/servo#19612:🤖 Opened new upstream WPT pull request "
                 "(wpt/wpt#1) with upstreamable changes.",
-            ]
+            ],
         )
 
     def test_synchronize_fail_to_update_preexisting_pr_after_new_changes_do_not_apply(
@@ -567,20 +535,17 @@ class TestFullSyncRun(unittest.TestCase):
                 "latest upstream WPT. Servo's copy of the Web Platform Tests may be out of sync.",
                 "CommentStep:wpt/wpt#11:🛠 Changes from the source pull request (servo/servo#19612) can "
                 "no longer be cleanly applied. Waiting for a new version of these changes downstream.",
-            ]
+            ],
         )
 
     def test_edited_with_upstream_pr(self):
         self.assertListEqual(
-            self.run_test(
-                "edited.json", ["wpt.diff"],
-                [MockPullRequest("servo:servo_export_19620", 10)]
-            ),
+            self.run_test("edited.json", ["wpt.diff"], [MockPullRequest("servo:servo_export_19620", 10)]),
             [
                 "ChangePRStep:wpt/wpt#10:open:A cool new title:Reference #<!--...[136]",
                 "CommentStep:servo/servo#19620:✍ Updated existing upstream WPT pull "
-                "request (wpt/wpt#10) title and body."
-            ]
+                "request (wpt/wpt#10) title and body.",
+            ],
         )
 
     def test_edited_with_no_upstream_pr(self):
@@ -590,15 +555,13 @@ class TestFullSyncRun(unittest.TestCase):
         self,
     ):
         self.assertListEqual(
-            self.run_test(
-                "synchronize-multiple.json", ["18746.diff", "non-wpt.diff", "wpt.diff"]
-            ),
+            self.run_test("synchronize-multiple.json", ["18746.diff", "non-wpt.diff", "wpt.diff"]),
             [
                 "CreateOrUpdateBranchForPRStep:2:servo/wpt/servo_export_19612",
                 "OpenPRStep:servo/wpt/servo_export_19612→wpt/wpt#1",
                 "CommentStep:servo/servo#19612:"
                 "🤖 Opened new upstream WPT pull request (wpt/wpt#1) with upstreamable changes.",
-            ]
+            ],
         )
 
     def test_synchronize_with_non_upstreamable_changes(self):
@@ -606,15 +569,8 @@ class TestFullSyncRun(unittest.TestCase):
 
     def test_merge_upstream_pr_after_merge(self):
         self.assertListEqual(
-            self.run_test(
-                "merged.json",
-                ["18746.diff"],
-                [MockPullRequest("servo:servo_export_19620", 100)]
-            ),
-            [
-                "MergePRStep:wpt/wpt#100",
-                "RemoveBranchForPRStep:servo/wpt/servo_export_19620"
-            ]
+            self.run_test("merged.json", ["18746.diff"], [MockPullRequest("servo:servo_export_19620", 100)]),
+            ["MergePRStep:wpt/wpt#100", "RemoveBranchForPRStep:servo/wpt/servo_export_19620"],
         )
 
     def test_pr_merged_no_upstream_pr(self):
@@ -644,8 +600,7 @@ def setUpModule():
     )
 
     def setup_mock_repo(repo_name, local_repo, default_branch: str):
-        subprocess.check_output(
-            ["cp", "-R", "-p", os.path.join(TESTS_DIR, repo_name), local_repo.path])
+        subprocess.check_output(["cp", "-R", "-p", os.path.join(TESTS_DIR, repo_name), local_repo.path])
         local_repo.run("init", "-b", default_branch)
         local_repo.run("add", ".")
         local_repo.run("commit", "-a", "-m", "Initial commit")
@@ -666,12 +621,16 @@ def run_tests():
     verbosity = 1 if logging.getLogger().level >= logging.WARN else 2
 
     def run_suite(test_case: Type[unittest.TestCase]):
-        return unittest.TextTestRunner(verbosity=verbosity).run(
-            unittest.TestLoader().loadTestsFromTestCase(test_case)
-        ).wasSuccessful()
+        return (
+            unittest.TextTestRunner(verbosity=verbosity)
+            .run(unittest.TestLoader().loadTestsFromTestCase(test_case))
+            .wasSuccessful()
+        )
 
-    return all([
-        run_suite(TestApplyCommitsToWPT),
-        run_suite(TestCleanUpBodyText),
-        run_suite(TestFullSyncRun),
-    ])
+    return all(
+        [
+            run_suite(TestApplyCommitsToWPT),
+            run_suite(TestCleanUpBodyText),
+            run_suite(TestFullSyncRun),
+        ]
+    )

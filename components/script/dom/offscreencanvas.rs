@@ -10,7 +10,7 @@ use js::rust::{HandleObject, HandleValue};
 use snapshot::Snapshot;
 
 use crate::canvas_context::{CanvasContext, OffscreenRenderingContext};
-use crate::dom::bindings::cell::{DomRefCell, Ref, ref_filter_map};
+use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::OffscreenCanvasBinding::{
     OffscreenCanvasMethods, OffscreenRenderingContext as RootedOffscreenRenderingContext,
 };
@@ -84,7 +84,7 @@ impl OffscreenCanvas {
     }
 
     pub(crate) fn context(&self) -> Option<Ref<OffscreenRenderingContext>> {
-        ref_filter_map(self.context.borrow(), |ctx| ctx.as_ref())
+        Ref::filter_map(self.context.borrow(), |ctx| ctx.as_ref()).ok()
     }
 
     pub(crate) fn get_image_data(&self) -> Option<Snapshot> {
@@ -92,7 +92,13 @@ impl OffscreenCanvas {
             Some(context) => context.get_image_data(),
             None => {
                 let size = self.get_size();
-                if size.width == 0 || size.height == 0 {
+                if size.is_empty() ||
+                    pixels::compute_rgba8_byte_length_if_within_limit(
+                        size.width as usize,
+                        size.height as usize,
+                    )
+                    .is_none()
+                {
                     None
                 } else {
                     Some(Snapshot::cleared(size))

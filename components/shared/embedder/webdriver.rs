@@ -14,7 +14,7 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::KeyboardEvent;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;
-use pixels::Image;
+use pixels::RasterImage;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
@@ -23,6 +23,9 @@ use webdriver::error::ErrorStatus;
 use webrender_api::units::DeviceIntSize;
 
 use crate::{MouseButton, MouseButtonAction};
+
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub struct WebDriverMessageId(pub usize);
 
 /// Messages to the constellation originating from the WebDriver server.
 #[derive(Debug, Deserialize, Serialize)]
@@ -41,9 +44,23 @@ pub enum WebDriverCommandMsg {
     /// Act as if keys were pressed or release in the browsing context with the given ID.
     KeyboardAction(BrowsingContextId, KeyboardEvent),
     /// Act as if the mouse was clicked in the browsing context with the given ID.
-    MouseButtonAction(WebViewId, MouseButtonAction, MouseButton, f32, f32),
+    MouseButtonAction(
+        WebViewId,
+        MouseButtonAction,
+        MouseButton,
+        f32,
+        f32,
+        WebDriverMessageId,
+        IpcSender<WebDriverCommandResponse>,
+    ),
     /// Act as if the mouse was moved in the browsing context with the given ID.
-    MouseMoveAction(WebViewId, f32, f32),
+    MouseMoveAction(
+        WebViewId,
+        f32,
+        f32,
+        WebDriverMessageId,
+        IpcSender<WebDriverCommandResponse>,
+    ),
     /// Act as if the mouse wheel is scrolled in the browsing context given the given ID.
     WheelScrollAction(WebViewId, f32, f32, f64, f64),
     /// Set the window size.
@@ -52,7 +69,7 @@ pub enum WebDriverCommandMsg {
     TakeScreenshot(
         WebViewId,
         Option<Rect<f32, CSSPixel>>,
-        IpcSender<Option<Image>>,
+        IpcSender<Option<RasterImage>>,
     ),
     /// Create a new webview that loads about:blank. The constellation will use
     /// the provided channels to return the top level browsing context id
@@ -186,6 +203,11 @@ pub enum WebDriverFrameId {
     Short(u16),
     Element(String),
     Parent,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct WebDriverCommandResponse {
+    pub id: WebDriverMessageId,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

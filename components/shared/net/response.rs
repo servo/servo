@@ -7,7 +7,6 @@
 use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
 
-use headers::{ContentType, HeaderMapExt};
 use http::HeaderMap;
 use hyper_serde::Serde;
 use malloc_size_of_derive::MallocSizeOf;
@@ -15,6 +14,7 @@ use serde::{Deserialize, Serialize};
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 
+use crate::fetch::headers::extract_mime_type_as_mime;
 use crate::http_status::HttpStatus;
 use crate::{
     FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming,
@@ -300,13 +300,7 @@ impl Response {
     pub fn metadata(&self) -> Result<FetchMetadata, NetworkError> {
         fn init_metadata(response: &Response, url: &ServoUrl) -> Metadata {
             let mut metadata = Metadata::default(url.clone());
-            metadata.set_content_type(
-                response
-                    .headers
-                    .typed_get::<ContentType>()
-                    .map(|v| v.into())
-                    .as_ref(),
-            );
+            metadata.set_content_type(extract_mime_type_as_mime(&response.headers).as_ref());
             metadata.location_url.clone_from(&response.location_url);
             metadata.headers = Some(Serde(response.headers.clone()));
             metadata.status.clone_from(&response.status);

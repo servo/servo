@@ -7,7 +7,7 @@
 use std::cmp::Eq;
 use std::hash::Hash;
 use std::marker::Sized;
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 
 use indexmap::IndexMap;
 use js::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
@@ -94,8 +94,14 @@ impl<K: RecordKey, V> Record<K, V> {
 impl<K: RecordKey, V> Deref for Record<K, V> {
     type Target = IndexMap<K, V>;
 
-    fn deref(&self) -> &IndexMap<K, V> {
+    fn deref(&self) -> &Self::Target {
         &self.map
+    }
+}
+
+impl<K: RecordKey, V> DerefMut for Record<K, V> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.map
     }
 }
 

@@ -41,7 +41,6 @@ use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
-use style::values::computed::TextDecorationLine;
 
 use crate::geom::{LogicalVec2, SizeConstraint};
 use crate::style_ext::AspectRatio;
@@ -163,39 +162,20 @@ impl<'a> From<&'_ DefiniteContainingBlock<'a>> for ContainingBlock<'a> {
 /// propoagation, but only during `BoxTree` construction.
 #[derive(Clone, Copy, Debug)]
 struct PropagatedBoxTreeData {
-    text_decoration: TextDecorationLine,
     allow_percentage_column_in_tables: bool,
 }
 
 impl Default for PropagatedBoxTreeData {
     fn default() -> Self {
         Self {
-            text_decoration: Default::default(),
             allow_percentage_column_in_tables: true,
         }
     }
 }
 
 impl PropagatedBoxTreeData {
-    pub(crate) fn union(&self, style: &ComputedValues) -> Self {
-        Self {
-            // FIXME(#31736): This is only taking into account the line style and not the decoration
-            // color. This should collect information about both so that they can be rendered properly.
-            text_decoration: self.text_decoration | style.clone_text_decoration_line(),
-            allow_percentage_column_in_tables: self.allow_percentage_column_in_tables,
-        }
-    }
-
-    pub(crate) fn without_text_decorations(&self) -> Self {
-        Self {
-            text_decoration: TextDecorationLine::NONE,
-            allow_percentage_column_in_tables: self.allow_percentage_column_in_tables,
-        }
-    }
-
     fn disallowing_percentage_table_columns(&self) -> PropagatedBoxTreeData {
         Self {
-            text_decoration: self.text_decoration,
             allow_percentage_column_in_tables: false,
         }
     }

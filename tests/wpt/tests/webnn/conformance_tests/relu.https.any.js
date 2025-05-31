@@ -636,6 +636,34 @@ const reluTests = [
       }
     }
   },
+
+  // int64 tests
+  {
+    'name': 'relu int64 4D tensor',
+    'graph': {
+      'inputs': {
+        'reluInput': {
+          'data': [
+            // int64 range: [/* -(2**63) */ –9223372036854775808,
+            //               /* 2**63 - 1 */ 92233720368547758087]
+            BigInt(-(2**63)) + 1n, -100n, 0n, 100n, BigInt(2**63) - 1n
+          ],
+          'descriptor': {shape: [1, 1, 1, 5], dataType: 'int64'}
+        }
+      },
+      'operators': [{
+        'name': 'relu',
+        'arguments': [{'input': 'reluInput'}],
+        'outputs': 'reluOutput'
+      }],
+      'expectedOutputs': {
+        'reluOutput': {
+          'data': [0n, 0n, 0n, 100n, BigInt(2**63) - 1n],
+          'descriptor': {shape: [1, 1, 1, 5], dataType: 'int64'}
+        }
+      }
+    }
+  }
 ];
 
 if (navigator.ml) {

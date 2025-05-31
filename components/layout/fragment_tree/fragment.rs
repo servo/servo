@@ -14,7 +14,6 @@ use range::Range as ServoRange;
 use servo_arc::Arc as ServoArc;
 use style::Zero;
 use style::properties::ComputedValues;
-use style::values::specified::text::TextDecorationLine;
 use webrender_api::{FontInstanceKey, ImageKey};
 
 use super::{
@@ -71,9 +70,6 @@ pub(crate) struct TextFragment {
     pub font_key: FontInstanceKey,
     #[conditional_malloc_size_of]
     pub glyphs: Vec<Arc<GlyphStore>>,
-
-    /// A flag that represents the _used_ value of the text-decoration property.
-    pub text_decoration_line: TextDecorationLine,
 
     /// Extra space to add for each justification opportunity.
     pub justification_adjustment: Au,
@@ -187,16 +183,33 @@ impl Fragment {
         }
     }
 
-    pub fn scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
+    pub(crate) fn scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                fragment.borrow().scrollable_overflow_for_parent()
+                return fragment.borrow().scrollable_overflow_for_parent();
             },
             Fragment::AbsoluteOrFixedPositioned(_) => PhysicalRect::zero(),
-            Fragment::Positioning(fragment) => fragment.borrow().scrollable_overflow,
+            Fragment::Positioning(fragment) => fragment.borrow().scrollable_overflow_for_parent(),
             Fragment::Text(fragment) => fragment.borrow().rect,
             Fragment::Image(fragment) => fragment.borrow().rect,
             Fragment::IFrame(fragment) => fragment.borrow().rect,
+        }
+    }
+
+    pub(crate) fn calculate_scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
+        self.calculate_scrollable_overflow();
+        self.scrollable_overflow_for_parent()
+    }
+
+    pub(crate) fn calculate_scrollable_overflow(&self) {
+        match self {
+            Fragment::Box(fragment) | Fragment::Float(fragment) => {
+                fragment.borrow_mut().calculate_scrollable_overflow()
+            },
+            Fragment::Positioning(fragment) => {
+                fragment.borrow_mut().calculate_scrollable_overflow()
+            },
+            _ => {},
         }
     }
 

@@ -4,6 +4,7 @@
 <link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
 <link rel="author" href="mailto:khushalsagar@chromium.org">
 
+<script src="/dom/events/scrolling/scroll_support.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
@@ -26,6 +27,7 @@ div {
 <script>
 promise_test(async t => {
   assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  await waitForCompositorReady();
   return new Promise(async (resolve, reject) => {
     let transition = document.startViewTransition();
     await transition.ready;

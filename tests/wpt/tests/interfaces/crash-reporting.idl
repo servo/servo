@@ -8,4 +8,6 @@ interface CrashReportBody : ReportBody {
   [Default] object toJSON();
   readonly attribute DOMString? reason;
   readonly attribute DOMString? stack;
+  readonly attribute DOMString? is_top_level;
+  readonly attribute DocumentVisibilityState? page_visibility;
 };

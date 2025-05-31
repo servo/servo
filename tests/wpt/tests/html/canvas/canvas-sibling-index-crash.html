@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel="help" href="http://crbug.com/416454066">
+<canvas id="canvas"></canvas>
+<script>
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = "lch(from blue calc(l + sibling-index()) c h)";
+  ctx.fillRect(10, 10, 100, 100);
+</script>

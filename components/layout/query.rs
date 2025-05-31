@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Utilities for querying the layout, as needed by layout.
-use std::sync::Arc;
+use std::rc::Rc;
 
 use app_units::Au;
 use euclid::default::{Point2D, Rect};
@@ -80,7 +80,7 @@ pub fn process_client_rect_request(node: ServoLayoutNode<'_>) -> Rect<i32> {
 /// <https://drafts.csswg.org/cssom-view/#scrolling-area>
 pub fn process_node_scroll_area_request(
     requested_node: Option<ServoLayoutNode<'_>>,
-    fragment_tree: Option<Arc<FragmentTree>>,
+    fragment_tree: Option<Rc<FragmentTree>>,
 ) -> Rect<i32> {
     let Some(tree) = fragment_tree else {
         return Rect::zero();

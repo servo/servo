@@ -13,7 +13,7 @@ use std::str::FromStr;
 use std::{fmt, mem};
 
 use content_security_policy as csp;
-use cssparser::match_ignore_ascii_case;
+use cssparser::{Parser as CssParser, ParserInput as CssParserInput, match_ignore_ascii_case};
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
 use embedder_traits::InputMethodType;
@@ -36,6 +36,8 @@ use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::QuirksMode;
 use style::invalidation::element::restyle_hints::RestyleHint;
+use style::media_queries::MediaList;
+use style::parser::ParserContext as CssParserContext;
 use style::properties::longhands::{
     self, background_image, border_spacing, font_family, font_size,
 };
@@ -50,13 +52,14 @@ use style::selector_parser::{
 };
 use style::shared_lock::{Locked, SharedRwLock};
 use style::stylesheets::layer_rule::LayerOrder;
-use style::stylesheets::{CssRuleType, UrlExtraData};
+use style::stylesheets::{CssRuleType, Origin as CssOrigin, UrlExtraData};
 use style::values::computed::Overflow;
 use style::values::generics::NonNegative;
 use style::values::generics::position::PreferredRatio;
 use style::values::generics::ratio::Ratio;
 use style::values::{AtomIdent, AtomString, CSSFloat, computed, specified};
 use style::{ArcSlice, CaseSensitivityExt, dom_apis, thread_state};
+use style_traits::ParsingMode as CssParsingMode;
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
 use xml5ever::serialize::TraversalScope::{
@@ -66,7 +69,7 @@ use xml5ever::serialize::TraversalScope::{
 use crate::conversions::Convert;
 use crate::dom::activation::Activatable;
 use crate::dom::attr::{Attr, AttrHelpersForLayout, is_relevant_attribute};
-use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut, ref_filter_map};
+use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut};
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::{
@@ -781,6 +784,33 @@ impl Element {
             .registered_intersection_observers
             .retain(|reg_obs| *reg_obs.observer != *observer)
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#matches-the-environment>
+    pub(crate) fn matches_environment(&self, media_query: &str) -> bool {
+        let document = self.owner_document();
+        let quirks_mode = document.quirks_mode();
+        let document_url_data = UrlExtraData(document.url().get_arc());
+        // FIXME(emilio): This should do the same that we do for other media
+        // lists regarding the rule type and such, though it doesn't really
+        // matter right now...
+        //
+        // Also, ParsingMode::all() is wrong, and should be DEFAULT.
+        let context = CssParserContext::new(
+            CssOrigin::Author,
+            &document_url_data,
+            Some(CssRuleType::Style),
+            CssParsingMode::all(),
+            quirks_mode,
+            /* namespaces = */ Default::default(),
+            None,
+            None,
+        );
+        let mut parser_input = CssParserInput::new(media_query);
+        let mut parser = CssParser::new(&mut parser_input);
+        let media_list = MediaList::parse(&context, &mut parser);
+        let result = media_list.evaluate(document.window().layout().device(), quirks_mode);
+        result
+    }
 }
 
 /// <https://dom.spec.whatwg.org/#valid-shadow-host-name>
@@ -1480,7 +1510,7 @@ impl Element {
             // is "xmlns", and local name is prefix, or if prefix is null and it has an attribute
             // whose namespace is the XMLNS namespace, namespace prefix is null, and local name is
             // "xmlns", then return its value if it is not the empty string, and null otherwise."
-            let attr = ref_filter_map(self.attrs(), |attrs| {
+            let attr = Ref::filter_map(self.attrs(), |attrs| {
                 attrs.iter().find(|attr| {
                     if attr.namespace() != &ns!(xmlns) {
                         return false;
@@ -1493,7 +1523,8 @@ impl Element {
                         _ => false,
                     }
                 })
-            });
+            })
+            .ok();
 
             if let Some(attr) = attr {
                 return (**attr.value()).into();
@@ -1629,6 +1660,27 @@ impl Element {
                 HTMLElementTypeId::HTMLTextAreaElement,
             ))
         )
+    }
+
+    /// Returns the focusable shadow host if this is a text control inner editor.
+    /// This is a workaround for the focus delegation of shadow DOM and should be
+    /// used only to delegate focusable inner editor of [HTMLInputElement] and
+    /// [HTMLTextAreaElement].
+    pub(crate) fn find_focusable_shadow_host_if_necessary(&self) -> Option<DomRoot<Element>> {
+        if self.is_focusable_area() {
+            Some(DomRoot::from_ref(self))
+        } else if self.upcast::<Node>().is_text_control_inner_editor() {
+            let containing_shadow_host = self.containing_shadow_root().map(|root| root.Host());
+            assert!(
+                containing_shadow_host
+                    .as_ref()
+                    .is_some_and(|e| e.is_focusable_area()),
+                "Containing shadow host is not focusable"
+            );
+            containing_shadow_host
+        } else {
+            None
+        }
     }
 
     pub(crate) fn is_actually_disabled(&self) -> bool {

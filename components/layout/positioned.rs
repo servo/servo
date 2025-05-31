@@ -305,10 +305,7 @@ impl PositioningContext {
     }
 
     pub(crate) fn push(&mut self, hoisted_box: HoistedAbsolutelyPositionedBox) {
-        debug_assert!(matches!(
-            hoisted_box.position(),
-            Position::Absolute | Position::Fixed
-        ));
+        debug_assert!(hoisted_box.position().is_absolutely_positioned());
         self.absolutes.push(hoisted_box);
     }
 
@@ -380,7 +377,7 @@ impl HoistedAbsolutelyPositionedBox {
             .context
             .style()
             .clone_position();
-        assert!(position == Position::Fixed || position == Position::Absolute);
+        assert!(position.is_absolutely_positioned());
         position
     }
 

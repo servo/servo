@@ -1557,11 +1557,14 @@ impl Document {
                 return;
             }
 
+            // For a node within a text input UA shadow DOM, delegate the focus target into its shadow host.
+            // TODO: This focus delegation should be done with shadow DOM delegateFocus attribute.
+            let target_el = el.find_focusable_shadow_host_if_necessary();
+
             self.begin_focus_transaction();
-            // Try to focus `el`. If it's not focusable, focus the document
-            // instead.
+            // Try to focus `el`. If it's not focusable, focus the document instead.
             self.request_focus(None, FocusInitiator::Local, can_gc);
-            self.request_focus(Some(&*el), FocusInitiator::Local, can_gc);
+            self.request_focus(target_el.as_deref(), FocusInitiator::Local, can_gc);
         }
 
         let dom_event = DomRoot::upcast::<Event>(MouseEvent::for_platform_mouse_event(
@@ -2375,6 +2378,9 @@ impl Document {
         let mut cancel_state = event.get_cancel_state();
 
         // https://w3c.github.io/uievents/#keys-cancelable-keys
+        // it MUST prevent the respective beforeinput and input
+        // (and keypress if supported) events from being generated
+        // TODO: keypress should be deprecated and superceded by beforeinput
         if keyboard_event.state == KeyState::Down &&
             is_character_value_key(&(keyboard_event.key)) &&
             !keyboard_event.is_composing &&
@@ -5060,6 +5066,35 @@ impl Document {
         self.image_animation_manager.borrow_mut()
     }
 
+    pub(crate) fn update_animating_images(&self) {
+        let mut image_animation_manager = self.image_animation_manager.borrow_mut();
+        if !image_animation_manager.image_animations_present() {
+            return;
+        }
+        image_animation_manager
+            .update_active_frames(&self.window, self.current_animation_timeline_value());
+
+        if !self.animations().animations_present() {
+            let next_scheduled_time =
+                image_animation_manager.next_schedule_time(self.current_animation_timeline_value());
+            // TODO: Once we have refresh signal from the compositor,
+            // we should get rid of timer for animated image update.
+            if let Some(next_scheduled_time) = next_scheduled_time {
+                self.schedule_image_animation_update(next_scheduled_time);
+            }
+        }
+    }
+
+    fn schedule_image_animation_update(&self, next_scheduled_time: f64) {
+        let callback = ImageAnimationUpdateCallback {
+            document: Trusted::new(self),
+        };
+        self.global().schedule_callback(
+            OneshotTimerCallback::ImageAnimationUpdate(callback),
+            Duration::from_secs_f64(next_scheduled_time),
+        );
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps>
     pub(crate) fn shared_declarative_refresh_steps(&self, content: &[u8]) {
         // 1. If document's will declaratively refresh is true, then return.
@@ -6752,6 +6787,21 @@ impl FakeRequestAnimationFrameCallback {
     pub(crate) fn invoke(self, can_gc: CanGc) {
         // TODO: Once there is a more generic mechanism to trigger `update_the_rendering` when
         // not driven by the compositor, it should be used here.
+        with_script_thread(|script_thread| script_thread.update_the_rendering(true, can_gc))
+    }
+}
+
+/// This is a temporary workaround to update animated images,
+/// we should get rid of this after we have refresh driver #3406
+#[derive(JSTraceable, MallocSizeOf)]
+pub(crate) struct ImageAnimationUpdateCallback {
+    /// The document.
+    #[ignore_malloc_size_of = "non-owning"]
+    document: Trusted<Document>,
+}
+
+impl ImageAnimationUpdateCallback {
+    pub(crate) fn invoke(self, can_gc: CanGc) {
         with_script_thread(|script_thread| script_thread.update_the_rendering(true, can_gc))
     }
 }

@@ -41,14 +41,11 @@ impl ImageData {
         mut data: Option<Vec<u8>>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
-        // The color components of each pixel must be stored in four sequential
-        // elements in the order of red, green, blue, and then alpha.
-        let len = 4u32
-            .checked_mul(width)
-            .and_then(|v| v.checked_mul(height))
-            .ok_or(Error::Range(
-                "The requested image size exceeds the supported range".to_owned(),
-            ))?;
+        let len =
+            pixels::compute_rgba8_byte_length_if_within_limit(width as usize, height as usize)
+                .ok_or(Error::Range(
+                    "The requested image size exceeds the supported range".to_owned(),
+                ))?;
 
         unsafe {
             let cx = GlobalScope::get_cx();
@@ -129,18 +126,16 @@ impl ImageData {
             return Err(Error::IndexSize);
         }
 
-        // The color components of each pixel must be stored in four sequential
-        // elements in the order of red, green, blue, and then alpha.
-        // Please note when a too-large ImageData is created using a constructor
-        // historically throwns an IndexSizeError, instead of RangeError.
-        let len = 4u32
-            .checked_mul(width)
-            .and_then(|v| v.checked_mul(height))
-            .ok_or(Error::IndexSize)?;
+        // When a constructor is called for an ImageData that is too large, other browsers throw
+        // IndexSizeError rather than RangeError here, so we do the same.
+        let len =
+            pixels::compute_rgba8_byte_length_if_within_limit(width as usize, height as usize)
+                .ok_or(Error::IndexSize)?;
 
         let cx = GlobalScope::get_cx();
 
-        let heap_typed_array = create_heap_buffer_source_with_length::<ClampedU8>(cx, len, can_gc)?;
+        let heap_typed_array =
+            create_heap_buffer_source_with_length::<ClampedU8>(cx, len as u32, can_gc)?;
 
         let imagedata = Box::new(ImageData {
             reflector_: Reflector::new(),

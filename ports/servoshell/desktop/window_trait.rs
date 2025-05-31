@@ -48,6 +48,8 @@ pub trait WindowPortsMethods {
         _position: servo::webrender_api::units::DeviceIntRect,
     ) {
     }
-
     fn hide_ime(&self) {}
+    fn theme(&self) -> servo::Theme {
+        servo::Theme::Light
+    }
 }

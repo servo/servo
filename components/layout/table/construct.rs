@@ -81,12 +81,7 @@ impl Table {
         contents: NonReplacedContents,
         propagated_data: PropagatedBoxTreeData,
     ) -> Self {
-        let mut traversal = TableBuilderTraversal::new(
-            context,
-            info,
-            grid_style,
-            propagated_data.union(&info.style),
-        );
+        let mut traversal = TableBuilderTraversal::new(context, info, grid_style, propagated_data);
         contents.traverse(context, info, &mut traversal);
         traversal.finish()
     }
@@ -771,9 +766,6 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                     });
                     self.builder.table.row_groups.push(row_group.clone());
 
-                    let previous_propagated_data = self.current_propagated_data;
-                    self.current_propagated_data = self.current_propagated_data.union(&info.style);
-
                     let new_row_group_index = self.builder.table.row_groups.len() - 1;
                     self.current_row_group_index = Some(new_row_group_index);
 
@@ -785,7 +777,6 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                     self.finish_anonymous_row_if_needed();
 
                     self.current_row_group_index = None;
-                    self.current_propagated_data = previous_propagated_data;
                     self.builder.incoming_rowspans.clear();
 
                     box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::TrackGroup(
@@ -936,7 +927,7 @@ impl<'style, 'builder, 'dom, 'a> TableRowBuilder<'style, 'builder, 'dom, 'a> {
             table_traversal,
             info,
             current_anonymous_cell_content: Vec::new(),
-            propagated_data: propagated_data.union(&info.style),
+            propagated_data,
         }
     }
 

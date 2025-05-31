@@ -11,9 +11,8 @@ use std::cell::Cell;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use constellation_traits::LoadData;
-use content_security_policy::Destination;
 use crossbeam_channel::Sender;
-use embedder_traits::ViewportDetails;
+use embedder_traits::{Theme, ViewportDetails};
 use http::header;
 use net_traits::request::{
     CredentialsMode, InsecureRequestsPolicy, RedirectMode, RequestBuilder, RequestMode,
@@ -160,6 +159,9 @@ pub(crate) struct InProgressLoad {
     /// this load.
     #[no_trace]
     pub(crate) url_list: Vec<ServoUrl>,
+    /// The [`Theme`] to use for this page, once it loads.
+    #[no_trace]
+    pub(crate) theme: Theme,
 }
 
 impl InProgressLoad {
@@ -172,6 +174,7 @@ impl InProgressLoad {
         parent_info: Option<PipelineId>,
         opener: Option<BrowsingContextId>,
         viewport_details: ViewportDetails,
+        theme: Theme,
         origin: MutableOrigin,
         load_data: LoadData,
     ) -> InProgressLoad {
@@ -190,6 +193,7 @@ impl InProgressLoad {
             canceller: Default::default(),
             load_data,
             url_list: vec![url],
+            theme,
         }
     }
 
@@ -202,12 +206,13 @@ impl InProgressLoad {
             self.load_data.referrer.clone(),
         )
         .method(self.load_data.method.clone())
-        .destination(Destination::Document)
+        .destination(self.load_data.destination)
         .mode(RequestMode::Navigate)
         .credentials_mode(CredentialsMode::Include)
         .use_url_credentials(true)
         .pipeline_id(Some(id))
         .referrer_policy(self.load_data.referrer_policy)
+        .policy_container(self.load_data.policy_container.clone().unwrap_or_default())
         .insecure_requests_policy(
             self.load_data
                 .inherited_insecure_requests_policy

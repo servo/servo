@@ -17,7 +17,6 @@ webgpu = ["wgpu-core"]
 
 [dependencies]
 base = { workspace = true }
-bitflags = { workspace = true }
 canvas_traits = { workspace = true }
 devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
@@ -32,6 +31,7 @@ net_traits = { workspace = true }
 profile_traits = { workspace = true }
 serde = { workspace = true }
 servo_url = { path = "../../url" }
+snapshot = { workspace = true }
 strum = { workspace = true }
 strum_macros = { workspace = true }
 uuid = { workspace = true }

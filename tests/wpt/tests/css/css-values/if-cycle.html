@@ -182,7 +182,7 @@
   test_if(`if(style(--x: attr(data-foo, var(--y))): true_value;
           else: false_value)`,
         [['--x', '"30px"'], ['--y', 'var(--y)']],
-        'false_value');
+        'true_value');
 
   // self cycle in unused condition
   test_if(`if(style(--x: 0): value1; style(--prop): value2)`,

@@ -17,7 +17,7 @@
 //     MLOperatorOptions options = {});
 
 
-const getTilePrecisionTolerance = (graphResources) => {
+const getTilePrecisionTolerance = () => {
   return {metricType: 'ULP', value: 0};
 };
 
@@ -41,6 +41,55 @@ const tileTests = [
         'tileOutput': {
           'data': [1, 2, 3, 4, 1, 2, 3, 4],
           'descriptor': {shape: [8], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'tile float16 1D constant tensor',
+    'graph': {
+      'inputs': {
+        'tileInput': {
+          'data': [1, 2, 3, 4],
+          'descriptor': {shape: [4], dataType: 'float16'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'tile',
+        'arguments': [{'input': 'tileInput'}, {'repetitions': [2]}],
+        'outputs': 'tileOutput'
+      }],
+      'expectedOutputs': {
+        'tileOutput': {
+          'data': [1, 2, 3, 4, 1, 2, 3, 4],
+          'descriptor': {shape: [8], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'tile float16 2D tensor',
+    'graph': {
+      'inputs': {
+        'tileInput': {
+          'data': [1, 2, 3, 4],
+          'descriptor': {shape: [2, 2], dataType: 'float16'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'tile',
+        'arguments': [{'input': 'tileInput'}, {'repetitions': [2, 3]}],
+        'outputs': 'tileOutput'
+      }],
+      'expectedOutputs': {
+        'tileOutput': {
+          'data': [
+            1, 2, 1, 2, 1, 2, 3, 4, 3, 4, 3, 4,
+            1, 2, 1, 2, 1, 2, 3, 4, 3, 4, 3, 4
+          ],
+          'descriptor': {shape: [4, 6], dataType: 'float16'}
         }
       }
     }

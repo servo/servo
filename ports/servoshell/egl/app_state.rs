@@ -152,6 +152,24 @@ impl WebViewDelegate for RunningAppState {
         self.callbacks
             .host_callbacks
             .notify_load_status_changed(load_status);
+
+        #[cfg(feature = "tracing")]
+        if load_status == LoadStatus::Complete {
+            #[cfg(feature = "tracing-hitrace")]
+            let (snd, recv) = ipc_channel::ipc::channel().expect("Could not create channel");
+            self.servo.create_memory_report(snd);
+            std::thread::spawn(move || {
+                let result = recv.recv().expect("Could not get memory report");
+                let reports = result
+                    .results
+                    .first()
+                    .expect("We should have some memory report");
+                for report in &reports.reports {
+                    let path = String::from("servo_memory_profiling:") + &report.path.join("/");
+                    hitrace::trace_metric_str(&path, report.size as i64);
+                }
+            });
+        }
     }
 
     fn notify_closed(&self, webview: WebView) {
@@ -537,31 +555,31 @@ impl RunningAppState {
     /// Register a mouse movement.
     pub fn mouse_move(&self, x: f32, y: f32) {
         self.active_webview()
-            .notify_input_event(InputEvent::MouseMove(MouseMoveEvent {
-                point: Point2D::new(x, y),
-            }));
+            .notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(Point2D::new(
+                x, y,
+            ))));
         self.perform_updates();
     }
 
     /// Register a mouse button press.
     pub fn mouse_down(&self, x: f32, y: f32, button: MouseButton) {
         self.active_webview()
-            .notify_input_event(InputEvent::MouseButton(MouseButtonEvent {
-                action: MouseButtonAction::Down,
+            .notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
+                MouseButtonAction::Down,
                 button,
-                point: Point2D::new(x, y),
-            }));
+                Point2D::new(x, y),
+            )));
         self.perform_updates();
     }
 
     /// Register a mouse button release.
     pub fn mouse_up(&self, x: f32, y: f32, button: MouseButton) {
         self.active_webview()
-            .notify_input_event(InputEvent::MouseButton(MouseButtonEvent {
-                action: MouseButtonAction::Up,
+            .notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
+                MouseButtonAction::Up,
                 button,
-                point: Point2D::new(x, y),
-            }));
+                Point2D::new(x, y),
+            )));
         self.perform_updates();
     }
 
@@ -589,11 +607,11 @@ impl RunningAppState {
     /// Perform a click.
     pub fn click(&self, x: f32, y: f32) {
         self.active_webview()
-            .notify_input_event(InputEvent::MouseButton(MouseButtonEvent {
-                action: MouseButtonAction::Click,
-                button: MouseButton::Left,
-                point: Point2D::new(x, y),
-            }));
+            .notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
+                MouseButtonAction::Click,
+                MouseButton::Left,
+                Point2D::new(x, y),
+            )));
         self.perform_updates();
     }
 
@@ -620,11 +638,27 @@ impl RunningAppState {
     }
 
     pub fn ime_insert_text(&self, text: String) {
-        self.active_webview()
-            .notify_input_event(InputEvent::Ime(ImeEvent::Composition(CompositionEvent {
+        // In OHOS, we get empty text after the intended text.
+        if text.is_empty() {
+            return;
+        }
+        let active_webview = self.active_webview();
+        active_webview.notify_input_event(InputEvent::Keyboard(KeyboardEvent {
+            state: KeyState::Down,
+            key: Key::Process,
+            ..KeyboardEvent::default()
+        }));
+        active_webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
+            CompositionEvent {
                 state: CompositionState::End,
                 data: text,
-            })));
+            },
+        )));
+        active_webview.notify_input_event(InputEvent::Keyboard(KeyboardEvent {
+            state: KeyState::Up,
+            key: Key::Process,
+            ..KeyboardEvent::default()
+        }));
         self.perform_updates();
     }
 

@@ -26,6 +26,7 @@ use crate::dom::bindings::trace::CustomTraceable;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::paintworkletglobalscope::{PaintWorkletGlobalScope, PaintWorkletTask};
+#[cfg(feature = "testbinding")]
 use crate::dom::testworkletglobalscope::{TestWorkletGlobalScope, TestWorkletTask};
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
@@ -60,6 +61,7 @@ impl WorkletGlobalScope {
         init: &WorkletGlobalScopeInit,
     ) -> DomRoot<WorkletGlobalScope> {
         let scope: DomRoot<WorkletGlobalScope> = match scope_type {
+            #[cfg(feature = "testbinding")]
             WorkletGlobalScopeType::Test => DomRoot::upcast(TestWorkletGlobalScope::new(
                 runtime,
                 pipeline_id,
@@ -163,6 +165,7 @@ impl WorkletGlobalScope {
     /// Perform a worklet task
     pub(crate) fn perform_a_worklet_task(&self, task: WorkletTask) {
         match task {
+            #[cfg(feature = "testbinding")]
             WorkletTask::Test(task) => match self.downcast::<TestWorkletGlobalScope>() {
                 Some(global) => global.perform_a_worklet_task(task),
                 None => warn!("This is not a test worklet."),
@@ -203,6 +206,7 @@ pub(crate) struct WorkletGlobalScopeInit {
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf)]
 pub(crate) enum WorkletGlobalScopeType {
     /// A servo-specific testing worklet
+    #[cfg(feature = "testbinding")]
     Test,
     /// A paint worklet
     Paint,
@@ -210,6 +214,7 @@ pub(crate) enum WorkletGlobalScopeType {
 
 /// A task which can be performed in the context of a worklet global.
 pub(crate) enum WorkletTask {
+    #[cfg(feature = "testbinding")]
     Test(TestWorkletTask),
     Paint(PaintWorkletTask),
 }

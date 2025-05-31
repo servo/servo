@@ -1,0 +1,153 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Soft Navigation Detection: LCP.</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+    <script>
+      // The click handler is triggered by user interaction; it modifies
+      // the DOM by adding an image to the page; this triggers both
+      // a soft navigation and a soft navigation LCP entry.
+      function clickHandler() {
+        const img = new Image();
+        img.src = "/images/lcp-256x256.png";
+        img.id = "lcp-img";
+        document.body.appendChild(img);
+        history.pushState({}, "", "/show-image");
+      }
+    </script>
+  </head>
+  <body>
+    <div id="click-target" onclick="clickHandler()">Click here!</div>
+
+    <script>
+      promise_test(async (t) => {
+        const helper = new SoftNavigationTestHelper(t);
+
+        // Wait for the initial LCP entry, prior to clicking, so that
+        // we may later observe the soft navigation LCP entry in addition.
+        const initial_lcp = await helper.getBufferedPerformanceEntriesWithTimeout(
+          /*type=*/ "largest-contentful-paint",
+          /*include_soft_navigation_observations=*/ false,
+          /*min_num_entries=*/ 1,
+        );
+
+        assert_equals(initial_lcp.length, 1, "There's one initial LCP entry.");
+        assert_equals(
+          initial_lcp[0].id,
+          "click-target",
+          "The initial LCP entry is the div for the click target.",
+        );
+
+        if (test_driver) {
+          test_driver.click(document.getElementById("click-target"));
+        }
+
+        // Now that we've clicked, we expect to see a soft navigation,
+        // and a soft navigation LCP entry; and since there was already
+        // an LCP entry, we expect two LCP entries.
+        const results = await Promise.allSettled([
+          helper.getBufferedPerformanceEntriesWithTimeout(
+            /*type=*/ "soft-navigation",
+            /*include_soft_navigation_observations=*/ true,
+            /*min_num_entries=*/ 1,
+          ),
+          helper.getBufferedPerformanceEntriesWithTimeout(
+            /*type=*/ "largest-contentful-paint",
+            /*include_soft_navigation_observations=*/ true,
+            /*min_num_entries=*/ 2,
+          ),
+        ]);
+
+        // If either or both of soft nav entry or soft nav LCP are missing,
+        // fail the test.
+        const errors = results.filter((r) => r.status === "rejected").map((r) => r.reason.message);
+        if (errors.length > 0) {
+          throw new AssertionError("PerformanceObservers failed: " + format_value(errors));
+        }
+
+        // Examine the soft navigation entries.
+        const soft_navs = results[0].value;
+        assert_equals(soft_navs.length, 1, "Expecting one soft navigation entry.");
+        assert_equals(
+          soft_navs[0].name.replace(/.*\//, ""),
+          "show-image",
+          "Expecting soft navigation to 'greeting'",
+        );
+
+        // Examine the soft navigation LCP entries.
+        const lcp_including_soft_nav = results[1].value;
+        assert_equals(
+          lcp_including_soft_nav.length,
+          2,
+          "Expecting 2 entries: initial LCP and soft nav LCP.",
+        );
+
+        // Now observe the hard navs again. There should only be one entry.
+        // See also crbug.com/40073849: We really don't want to emit hard nav
+        // LCP entries for soft navigations unintentionally.
+        const observer = new PerformanceObserver(assert_unreached);
+        observer.observe({
+          type: "largest-contentful-paint",
+          buffered: true,
+        });
+        const hard_nav_lcp = observer.takeRecords();
+        observer.disconnect();
+
+        assert_equals(hard_nav_lcp.length, 1, "Expecting one entry for the hard nav LCP.");
+
+        // Compare the first soft nav LCP entry with the hard nav LCP entry.
+        assert_equals(
+          hard_nav_lcp[0].id,
+          "click-target",
+          "Hard nav LCP entry is (still) for the click target.",
+        );
+        assert_equals(
+          lcp_including_soft_nav[0].id,
+          "click-target",
+          "First soft nav LCP entry is for the click target.",
+        );
+        assert_equals(
+          lcp_including_soft_nav[1].id,
+          "lcp-img",
+          "Second soft nav LCP entry is for the image.",
+        );
+
+        assert_equals(
+          hard_nav_lcp[0],
+          lcp_including_soft_nav[0],
+          "Hard nav and first soft nav LCP entries are the same entry.",
+        );
+        // Since we don't rust assert_equals fully, we also compare
+        // render time and navigation ID. :-)
+        assert_equals(
+          hard_nav_lcp[0].renderTime,
+          lcp_including_soft_nav[0].renderTime,
+          "Hard nav and first soft nav LCP entries have the same render time.",
+        );
+        assert_equals(
+          hard_nav_lcp[0].navigationId,
+          lcp_including_soft_nav[0].navigationId,
+          "Hard nav and first soft nav LCP entries have the same navigation ID.",
+        );
+
+        // Compare the two soft nav LCP entries, and show that the navigation ID
+        // changes for the second one to be that of the soft navigation entry.
+        assert_not_equals(
+          lcp_including_soft_nav[0].navigationId,
+          lcp_including_soft_nav[1].navigationId,
+          "Soft nav LCP entries have have different navigation IDs.",
+        );
+        assert_equals(
+          lcp_including_soft_nav[1].navigationID,
+          soft_navs[0].navigationID,
+          "Second soft nav LCP entry has the same navigation ID as the soft nav entry.",
+        );
+      }, "Detect soft navigation and LCP after a click.");
+    </script>
+  </body>
+</html>

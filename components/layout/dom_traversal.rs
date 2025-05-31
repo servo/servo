@@ -59,8 +59,14 @@ impl<'dom> NodeAndStyleInfo<'dom> {
         }
     }
 
+    /// Whether this is a container for the editable text within a single-line text input.
+    /// This is used to solve the special case of line height for a text editor.
+    /// <https://html.spec.whatwg.org/multipage/#the-input-element-as-a-text-entry-widget>
+    // FIXME(stevennovaryo): Now, this would also refer to HTMLInputElement, to handle input
+    //                       elements without shadow DOM.
     pub(crate) fn is_single_line_text_input(&self) -> bool {
-        self.node.type_id() == LayoutNodeType::Element(LayoutElementType::HTMLInputElement)
+        self.node.type_id() == LayoutNodeType::Element(LayoutElementType::HTMLInputElement) ||
+            self.node.is_text_control_inner_editor()
     }
 
     pub(crate) fn pseudo(
@@ -201,17 +207,7 @@ fn traverse_children_of<'dom>(
 ) {
     traverse_eager_pseudo_element(PseudoElement::Before, parent_element, context, handler);
 
-    let is_text_input_element = matches!(
-        parent_element.type_id(),
-        LayoutNodeType::Element(LayoutElementType::HTMLInputElement)
-    );
-
-    let is_textarea_element = matches!(
-        parent_element.type_id(),
-        LayoutNodeType::Element(LayoutElementType::HTMLTextAreaElement)
-    );
-
-    if is_text_input_element || is_textarea_element {
+    if parent_element.is_text_input() {
         let info = NodeAndStyleInfo::new(
             parent_element,
             parent_element.style(context.shared_context()),
@@ -229,9 +225,7 @@ fn traverse_children_of<'dom>(
         } else {
             handler.handle_text(&info, node_text_content);
         }
-    }
-
-    if !is_text_input_element && !is_textarea_element {
+    } else {
         for child in iter_child_nodes(parent_element) {
             if child.is_text_node() {
                 let info = NodeAndStyleInfo::new(child, child.style(context.shared_context()));

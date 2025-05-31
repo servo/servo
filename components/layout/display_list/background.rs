@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use euclid::{Point2D, Size2D, Vector2D};
+use euclid::{Size2D, Vector2D};
 use style::computed_values::background_attachment::SingleComputedValue as BackgroundAttachment;
 use style::computed_values::background_clip::single_value::T as Clip;
 use style::computed_values::background_origin::single_value::T as Origin;
@@ -15,7 +15,6 @@ use style::values::specified::background::{
 };
 use webrender_api::{self as wr, units};
 use wr::ClipChainId;
-use wr::units::LayoutSize;
 
 use crate::replaced::NaturalSizes;
 
@@ -66,8 +65,7 @@ impl<'a> BackgroundPainter<'a> {
         if &BackgroundAttachment::Fixed ==
             get_cyclic(&background.background_attachment.0, layer_index)
         {
-            let viewport_size = builder.display_list.compositor_info.viewport_size;
-            return units::LayoutRect::from_origin_and_size(Point2D::origin(), viewport_size);
+            return builder.compositor_info.viewport_size.into();
         }
 
         match get_cyclic(&background.background_clip.0, layer_index) {
@@ -121,7 +119,7 @@ impl<'a> BackgroundPainter<'a> {
         if &BackgroundAttachment::Fixed ==
             get_cyclic(&style.get_background().background_attachment.0, layer_index)
         {
-            common.spatial_id = builder.current_reference_frame_scroll_node_id.spatial_id;
+            common.spatial_id = builder.spatial_id(builder.current_reference_frame_scroll_node_id);
         }
         common
     }
@@ -132,6 +130,7 @@ impl<'a> BackgroundPainter<'a> {
     pub(super) fn positioning_area(
         &self,
         fragment_builder: &'a super::BuilderForBoxFragment,
+        builder: &mut super::DisplayListBuilder,
         layer_index: usize,
     ) -> units::LayoutRect {
         if let Some(positioning_area_override) = self.positioning_area_override {
@@ -150,14 +149,7 @@ impl<'a> BackgroundPainter<'a> {
                 Origin::PaddingBox => *fragment_builder.padding_rect(),
                 Origin::BorderBox => fragment_builder.border_rect,
             },
-            BackgroundAttachment::Fixed => {
-                // This isn't the viewport size because that rects larger than the viewport might be
-                // transformed down into areas smaller than the viewport.
-                units::LayoutRect::from_origin_and_size(
-                    Point2D::origin(),
-                    LayoutSize::new(f32::MAX, f32::MAX),
-                )
-            },
+            BackgroundAttachment::Fixed => builder.compositor_info.viewport_size.into(),
         }
     }
 }
@@ -170,7 +162,7 @@ pub(super) fn layout_layer(
     natural_sizes: NaturalSizes,
 ) -> Option<BackgroundLayer> {
     let painting_area = painter.painting_area(fragment_builder, builder, layer_index);
-    let positioning_area = painter.positioning_area(fragment_builder, layer_index);
+    let positioning_area = painter.positioning_area(fragment_builder, builder, layer_index);
     let common = painter.common_properties(fragment_builder, builder, layer_index, painting_area);
 
     // https://drafts.csswg.org/css-backgrounds/#background-size

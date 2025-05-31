@@ -15,7 +15,6 @@ use style::values::generics::box_::{GenericVerticalAlign, VerticalAlignKeyword};
 use style::values::generics::font::LineHeight;
 use style::values::specified::align::AlignFlags;
 use style::values::specified::box_::DisplayOutside;
-use style::values::specified::text::TextDecorationLine;
 use unicode_bidi::{BidiInfo, Level};
 use webrender_api::FontInstanceKey;
 
@@ -572,7 +571,6 @@ impl LineItemLayout<'_, '_> {
                 font_metrics: text_item.font_metrics,
                 font_key: text_item.font_key,
                 glyphs: text_item.text,
-                text_decoration_line: text_item.text_decoration_line,
                 justification_adjustment: self.justification_adjustment,
                 selection_range: text_item.selection_range,
             })),
@@ -765,7 +763,6 @@ pub(super) struct TextRunLineItem {
     pub text: Vec<std::sync::Arc<GlyphStore>>,
     pub font_metrics: FontMetrics,
     pub font_key: FontInstanceKey,
-    pub text_decoration_line: TextDecorationLine,
     /// The BiDi level of this [`TextRunLineItem`] to enable reordering.
     pub bidi_level: Level,
     pub selection_range: Option<Range<ByteIndex>>,

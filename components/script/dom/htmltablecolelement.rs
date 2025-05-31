@@ -7,8 +7,10 @@ use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
+use super::attr::Attr;
 use super::bindings::root::LayoutDom;
-use super::element::Element;
+use super::element::{AttributeMutation, Element};
+use super::node::NodeDamage;
 use crate::dom::bindings::codegen::Bindings::HTMLTableColElementBinding::HTMLTableColElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
@@ -91,6 +93,16 @@ impl<'dom> HTMLTableColElementLayoutHelpers<'dom> for LayoutDom<'dom, HTMLTableC
 impl VirtualMethods for HTMLTableColElement {
     fn super_type(&self) -> Option<&dyn VirtualMethods> {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    }
+
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        if let Some(super_type) = self.super_type() {
+            super_type.attribute_mutated(attr, mutation, can_gc);
+        }
+
+        if matches!(*attr.local_name(), local_name!("span")) {
+            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        }
     }
 
     fn parse_plain_attribute(&self, local_name: &LocalName, value: DOMString) -> AttrValue {

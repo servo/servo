@@ -4,13 +4,12 @@
 
 use std::any::Any;
 use std::marker::PhantomData;
-use std::sync::Arc;
 
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use base::id::{BrowsingContextId, PipelineId};
 use html5ever::{local_name, ns};
 use malloc_size_of_derive::MallocSizeOf;
-use pixels::Image;
+use net_traits::image_cache::Image;
 use script::layout_dom::ServoLayoutNode;
 use script_layout_interface::wrapper_traits::{
     LayoutDataTrait, LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
@@ -126,15 +125,15 @@ impl LayoutBox {
                         .repair_style(context, node, new_style);
                 }
             },
-            LayoutBox::FlexLevel(flex_level_box) => {
-                flex_level_box.borrow_mut().repair_style(context, new_style)
-            },
+            LayoutBox::FlexLevel(flex_level_box) => flex_level_box
+                .borrow_mut()
+                .repair_style(context, node, new_style),
             LayoutBox::TableLevelBox(table_level_box) => {
-                table_level_box.repair_style(context, new_style)
+                table_level_box.repair_style(context, node, new_style)
             },
-            LayoutBox::TaffyItemBox(taffy_item_box) => {
-                taffy_item_box.borrow_mut().repair_style(context, new_style)
-            },
+            LayoutBox::TaffyItemBox(taffy_item_box) => taffy_item_box
+                .borrow_mut()
+                .repair_style(context, node, new_style),
         }
     }
 }
@@ -197,7 +196,7 @@ impl Drop for BoxSlot<'_> {
 pub(crate) trait NodeExt<'dom> {
     /// Returns the image if it’s loaded, and its size in image pixels
     /// adjusted for `image_density`.
-    fn as_image(&self) -> Option<(Option<Arc<Image>>, PhysicalSize<f64>)>;
+    fn as_image(&self) -> Option<(Option<Image>, PhysicalSize<f64>)>;
     fn as_canvas(&self) -> Option<(CanvasInfo, PhysicalSize<f64>)>;
     fn as_iframe(&self) -> Option<(PipelineId, BrowsingContextId)>;
     fn as_video(&self) -> Option<(Option<webrender_api::ImageKey>, Option<PhysicalSize<f64>>)>;
@@ -220,12 +219,15 @@ pub(crate) trait NodeExt<'dom> {
 }
 
 impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
-    fn as_image(&self) -> Option<(Option<Arc<Image>>, PhysicalSize<f64>)> {
+    fn as_image(&self) -> Option<(Option<Image>, PhysicalSize<f64>)> {
         let node = self.to_threadsafe();
         let (resource, metadata) = node.image_data()?;
         let (width, height) = resource
             .as_ref()
-            .map(|image| (image.width, image.height))
+            .map(|image| {
+                let image_metadata = image.metadata();
+                (image_metadata.width, image_metadata.height)
+            })
             .or_else(|| metadata.map(|metadata| (metadata.width, metadata.height)))
             .unwrap_or((0, 0));
         let (mut width, mut height) = (width as f64, height as f64);

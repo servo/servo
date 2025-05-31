@@ -97,7 +97,10 @@ impl<'a> CanvasPaintThread<'a> {
                                     let canvas_data = canvas_paint_thread.create_canvas(size);
                                     creator.send(canvas_data).unwrap();
                                 },
-                                Ok(ConstellationCanvasMsg::Exit) => break,
+                                Ok(ConstellationCanvasMsg::Exit(exit_sender)) => {
+                                    let _ = exit_sender.send(());
+                                    break;
+                                },
                                 Err(e) => {
                                     warn!("Error on CanvasPaintThread receive ({})", e);
                                     break;

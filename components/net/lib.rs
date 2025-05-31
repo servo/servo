@@ -16,7 +16,6 @@ pub mod http_cache;
 pub mod http_loader;
 pub mod image_cache;
 pub mod local_directory_listing;
-pub mod mime_classifier;
 pub mod protocols;
 pub mod request_interceptor;
 pub mod resource_thread;

@@ -16,7 +16,7 @@ const fakeDeviceInitParams = {
 };
 
 xr_session_promise_test("Ensures appropriate depth methods and attributes throw when not run in an active frame, `cpu-optimized`",
-  inactiveFrameTestFunctionGenerator(/*isCpuOptimized=*/true),
+  inactiveFrameTestFunction,
   fakeDeviceInitParams,
   'immersive-ar', {
     requiredFeatures: ['depth-sensing'],

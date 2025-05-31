@@ -417,9 +417,8 @@ struct DesiredFlexFractionAndGrowOrShrinkFactor {
 #[derive(Default)]
 struct FlexItemBoxInlineContentSizesInfo {
     outer_flex_base_size: Au,
-    content_min_main_size: Au,
-    content_max_main_size: Option<Au>,
-    pbm_auto_is_zero: FlexRelativeVec2<Au>,
+    outer_min_main_size: Au,
+    outer_max_main_size: Option<Au>,
     min_flex_factors: DesiredFlexFractionAndGrowOrShrinkFactor,
     max_flex_factors: DesiredFlexFractionAndGrowOrShrinkFactor,
     min_content_main_size_for_multiline_container: Au,
@@ -583,9 +582,8 @@ impl FlexContainer {
 
         for FlexItemBoxInlineContentSizesInfo {
             outer_flex_base_size,
-            content_min_main_size,
-            content_max_main_size,
-            pbm_auto_is_zero,
+            outer_min_main_size,
+            outer_max_main_size,
             min_flex_factors,
             max_flex_factors,
             min_content_main_size_for_multiline_container,
@@ -595,16 +593,13 @@ impl FlexContainer {
             // > 4. Add each item’s flex base size to the product of its flex grow factor (scaled flex shrink
             // > factor, if shrinking) and the chosen flex fraction, then clamp that result by the max main size
             // > floored by the min main size.
-            let outer_min_main_size = *content_min_main_size + pbm_auto_is_zero.main;
-            let outer_max_main_size = content_max_main_size.map(|v| v + pbm_auto_is_zero.main);
-
             // > 5. The flex container’s max-content size is the largest sum (among all the lines) of the
             // > afore-calculated sizes of all items within a single line.
             container_max_content_size += (*outer_flex_base_size +
                 Au::from_f32_px(
                     max_flex_factors.flex_grow_or_shrink_factor * chosen_max_flex_fraction,
                 ))
-            .clamp_between_extremums(outer_min_main_size, outer_max_main_size);
+            .clamp_between_extremums(*outer_min_main_size, *outer_max_main_size);
 
             // > The min-content main size of a single-line flex container is calculated
             // > identically to the max-content main size, except that the flex items’
@@ -621,7 +616,7 @@ impl FlexContainer {
                     Au::from_f32_px(
                         min_flex_factors.flex_grow_or_shrink_factor * chosen_min_flex_fraction,
                     ))
-                .clamp_between_extremums(outer_min_main_size, outer_max_main_size);
+                .clamp_between_extremums(*outer_min_main_size, *outer_max_main_size);
             } else {
                 container_min_content_size
                     .max_assign(*min_content_main_size_for_multiline_container);
@@ -1929,7 +1924,11 @@ impl FlexItem<'_> {
                     }
                 }
 
-                let lazy_block_size = if cross_axis_is_item_block_axis {
+                let lazy_block_size = if !cross_axis_is_item_block_axis {
+                    used_main_size.into()
+                } else if let Some(cross_size) = used_cross_size_override {
+                    cross_size.into()
+                } else {
                     // This means that an auto size with stretch alignment will behave different than
                     // a stretch size. That's not what the spec says, but matches other browsers.
                     // To be discussed in https://github.com/w3c/csswg-drafts/issues/11784.
@@ -1946,8 +1945,6 @@ impl FlexItem<'_> {
                         stretch_size,
                         self.is_table(),
                     )
-                } else {
-                    used_main_size.into()
                 };
 
                 let layout = non_replaced.layout(
@@ -2456,6 +2453,8 @@ impl FlexItemBox {
         };
 
         let outer_flex_base_size = flex_base_size + pbm_auto_is_zero.main;
+        let outer_min_main_size = content_min_main_size + pbm_auto_is_zero.main;
+        let outer_max_main_size = content_max_main_size.map(|v| v + pbm_auto_is_zero.main);
         let max_flex_factors = self.desired_flex_factors_for_preferred_width(
             content_contribution_sizes.max_content,
             flex_base_size,
@@ -2481,20 +2480,19 @@ impl FlexItemBox {
             content_contribution_sizes.min_content;
         let style_position = &self.style().get_position();
         if style_position.flex_grow.is_zero() {
-            min_content_main_size_for_multiline_container.min_assign(flex_base_size);
+            min_content_main_size_for_multiline_container.min_assign(outer_flex_base_size);
         }
         if style_position.flex_shrink.is_zero() {
-            min_content_main_size_for_multiline_container.max_assign(flex_base_size);
+            min_content_main_size_for_multiline_container.max_assign(outer_flex_base_size);
         }
         min_content_main_size_for_multiline_container =
             min_content_main_size_for_multiline_container
-                .clamp_between_extremums(content_min_main_size, content_max_main_size);
+                .clamp_between_extremums(outer_min_main_size, outer_max_main_size);
 
         FlexItemBoxInlineContentSizesInfo {
             outer_flex_base_size,
-            content_min_main_size,
-            content_max_main_size,
-            pbm_auto_is_zero,
+            outer_min_main_size,
+            outer_max_main_size,
             min_flex_factors,
             max_flex_factors,
             min_content_main_size_for_multiline_container,

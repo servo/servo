@@ -121,18 +121,15 @@ class LogcatRunner:
 class ChromeAndroidBrowserBase(WebDriverBrowser):
     def __init__(self,
                  logger,
-                 webdriver_binary="chromedriver",
+                 *,
                  adb_binary=None,
                  device_serial=None,
-                 webdriver_args=None,
                  stackwalk_binary=None,
-                 symbols_path=None):
-        super().__init__(logger,
-                         binary=None,
-                         webdriver_binary=webdriver_binary,
-                         webdriver_args=webdriver_args,)
+                 symbols_path=None,
+                 **kwargs):
+        super().__init__(logger, **kwargs)
         self.adb_binary = adb_binary or "adb"
-        self.device_serial = device_serial
+        self.device_serial = device_serial[self.manager_number]
         self.stackwalk_binary = stackwalk_binary
         self.symbols_path = symbols_path
         self.logcat_runner = LogcatRunner(self.logger, self)
@@ -210,16 +207,7 @@ class ChromeAndroidBrowser(ChromeAndroidBrowserBase):
     ``wptrunner.webdriver.ChromeDriverServer``.
     """
 
-    def __init__(self, logger, package_name,
-                 webdriver_binary="chromedriver",
-                 adb_binary=None,
-                 device_serial=None,
-                 webdriver_args=None,
-                 stackwalk_binary=None,
-                 symbols_path=None):
-        super().__init__(logger,
-                         webdriver_binary, adb_binary,
-                         device_serial, webdriver_args, stackwalk_binary,
-                         symbols_path)
+    def __init__(self, logger, *, package_name, **kwargs):
+        super().__init__(logger, **kwargs)
         self.package_name = package_name
         self.wptserver_ports = _wptserve_ports
