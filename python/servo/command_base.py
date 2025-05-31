@@ -305,6 +305,7 @@ class CommandBase(object):
         self.config["build"].setdefault("incremental", None)
         self.config["build"].setdefault("webgl-backtrace", False)
         self.config["build"].setdefault("dom-backtrace", False)
+        self.config["build"].setdefault("with_asan", False)
 
         self.config.setdefault("android", {})
         self.config["android"].setdefault("sdk", "")
@@ -803,15 +804,16 @@ class CommandBase(object):
                 "--manifest-path",
                 path.join(self.context.topdir, "ports", "servoshell", "Cargo.toml"),
             ]
-        if target_override:
-            args += ["--target", target_override]
-        elif self.target.is_cross_build():
+
+        if self.target.is_cross_build():
             args += ["--target", self.target.triple()]
             if type(self.target) in [AndroidTarget, OpenHarmonyTarget]:
                 # Note: in practice `cargo rustc` should just be used unconditionally.
                 assert command != "build", "For Android / OpenHarmony `cargo rustc` must be used instead of cargo build"
                 if command == "rustc":
                     args += ["--lib", "--crate-type=cdylib"]
+        elif target_override:
+            args += ["--target", target_override]
 
         features = []
 
