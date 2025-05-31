@@ -1,0 +1,18 @@
+/* We should use `content-visibility` but it is yet to be implemented.
+ * These rule would not comply with ::details-content and should be removed
+ * with it's implementation */
+slot#internal-contents-slot {
+  display: none;
+}
+:host([open]) slot#internal-contents-slot {
+  display: block;
+}
+
+:host summary:first-of-type {
+  display: list-item;
+  counter-increment: list-item 0;
+  list-style: disclosure-closed inside;
+}
+:host([open]) summary:first-of-type {
+  list-style-type: disclosure-open;
+}
