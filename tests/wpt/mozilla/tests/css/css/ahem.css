@@ -1,3 +1,7 @@
+@font-face {
+    font-family: Ahem;
+    src: url('/fonts/Ahem.ttf'); 
+}
 body {
     font-family: 'ahem';
     font-size: 100px;

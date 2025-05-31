@@ -540,6 +540,9 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
         )
         .expect("Parsing shouldn't fail as descriptors are valid by construction");
 
+        // Construct a WebFontDocumentContext object for the current document.
+        let document_context = global.as_window().new_document_context();
+
         // Step 4. Using the value of font face’s [[Urls]] slot, attempt to load a font as defined
         // in [CSS-FONTS-3], as if it was the value of a @font-face rule’s src descriptor.
         // TODO: FontFaceSet is not supported on Workers yet. The `as_window` call below should be
@@ -549,6 +552,7 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
             sources,
             (&parsed_font_face_rule).into(),
             finished_callback,
+            &document_context,
         );
 
         // Step 3. Set font face’s status attribute to "loading", return font face’s

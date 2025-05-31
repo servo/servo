@@ -38,7 +38,7 @@ use embedder_traits::{
 };
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
-use fonts::FontContext;
+use fonts::{FontContext, WebFontDocumentContext};
 use ipc_channel::ipc::{self, IpcSender};
 use js::conversions::ToJSValConvertible;
 use js::glue::DumpJSStack;
@@ -792,6 +792,15 @@ impl Window {
                     }
                 })
             );
+    }
+
+    pub fn new_document_context(&self) -> WebFontDocumentContext {
+        WebFontDocumentContext {
+            policy_container: self.global().policy_container(),
+            document_url: self.global().api_base_url(),
+            has_trustworthy_ancestor_origin: self.global().has_trustworthy_ancestor_origin(),
+            insecure_requests_policy: self.global().insecure_requests_policy(),
+        }
     }
 }
 
@@ -2194,6 +2203,9 @@ impl Window {
 
         let highlighted_dom_node = document.highlighted_dom_node().map(|node| node.to_opaque());
 
+        //Construct a new document context for the reflow.
+        let document_context = self.new_document_context();
+
         // Send new document and relevant styles to layout.
         let reflow = ReflowRequest {
             reflow_info: Reflow {
@@ -2214,6 +2226,7 @@ impl Window {
                 .take_image_animate_set(),
             theme: self.theme.get(),
             highlighted_dom_node,
+            document_context,
         };
 
         let Some(results) = self.layout.borrow_mut().reflow(reflow) else {
