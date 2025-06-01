@@ -225,9 +225,9 @@ impl FetchResponseListener for FetchContext {
         let _ac = enter_realm(&*promise);
         match fetch_metadata {
             // Step 4.1
-            Err(_) => {
+            Err(error) => {
                 promise.reject_error(
-                    Error::Type("Network error occurred".to_string()),
+                    Error::Type(format!("Network error: {:?}", error)),
                     CanGc::note(),
                 );
                 self.fetch_promise = Some(TrustedPromise::new(promise));
