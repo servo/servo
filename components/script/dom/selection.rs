@@ -5,7 +5,9 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use style::properties::generated::longhands;
 
+use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
 use crate::dom::bindings::codegen::Bindings::SelectionBinding::SelectionMethods;
@@ -15,10 +17,14 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
+use crate::dom::element::Element;
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::htmlscriptelement::HTMLScriptElement;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::range::Range;
+use crate::dom::text::Text;
 use crate::script_runtime::CanGc;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
@@ -35,6 +41,19 @@ pub(crate) struct Selection {
     range: MutNullableDom<Range>,
     direction: Cell<Direction>,
     task_queued: Cell<bool>,
+}
+
+// this should be changed once content-visibility gets implemented to check for content-visibility == visible too
+fn text_node_is_selectable(text_node: &Text) -> bool {
+    text_node
+        .upcast::<Node>()
+        .GetParentElement()
+        .and_then(|p| p.style(CanGc::note()))
+        .is_some_and(|s| {
+            !s.get_box().display.is_none()
+                && s.get_inherited_box().visibility
+                    == longhands::visibility::computed_value::T::Visible
+        })
 }
 
 impl Selection {
@@ -515,12 +534,63 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
 
     // https://w3c.github.io/selection-api/#dom-selection-stringifier
     fn Stringifier(&self) -> DOMString {
-        // The spec as of Jan 31 2020 just says
-        // "See W3C bug 10583." for this method.
-        // Stringifying the range seems at least approximately right
-        // and passes the non-style-dependent case in the WPT tests.
         if let Some(range) = self.range.get() {
-            range.Stringifier()
+            let start_node = range.start_container();
+            let end_node = range.end_container();
+
+            // Step 1.
+            let mut s = DOMString::new();
+
+            if let Some(text_node) = start_node.downcast::<Text>() {
+                if text_node_is_selectable(text_node) {
+                    let char_data = text_node.upcast::<CharacterData>();
+
+                    // Step 2.
+                    if start_node == end_node {
+                        let r = char_data
+                            .SubstringData(
+                                range.start_offset(),
+                                range.end_offset() - range.start_offset(),
+                            )
+                            .unwrap();
+
+                        return r;
+                    }
+
+                    // Step 3.
+                    s.push_str(
+                        &char_data
+                            .SubstringData(
+                                range.start_offset(),
+                                char_data.Length() - range.start_offset(),
+                            )
+                            .unwrap(),
+                    );
+                } else if start_node == end_node {
+                    return s;
+                }
+            }
+
+            // Step 4.
+            let ancestor = range.CommonAncestorContainer();
+            for child in start_node
+                .following_nodes(&ancestor)
+                .filter_map(DomRoot::downcast::<Text>)
+                .filter(|t| text_node_is_selectable(t) && range.contains(t.upcast()))
+            {
+                s.push_str(&child.upcast::<CharacterData>().Data());
+            }
+
+            // Step 5.
+            if let Some(text_node) = end_node.downcast::<Text>() {
+                if text_node_is_selectable(text_node) {
+                    let char_data = text_node.upcast::<CharacterData>();
+                    s.push_str(&char_data.SubstringData(0, range.end_offset()).unwrap());
+                }
+            }
+
+            // Step 6.
+            s
         } else {
             DOMString::from("")
         }
