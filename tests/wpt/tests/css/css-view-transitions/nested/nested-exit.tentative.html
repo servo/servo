@@ -15,6 +15,10 @@
             animation-play-state: paused;
         }
 
+        ::view-transition-group-children(*) {
+          background: inherit;
+        }
+
         ::view-transition-group(parent) {
             background: green;
             visibility: hidden;

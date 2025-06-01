@@ -3,6 +3,7 @@
 from .base import require_arg
 from .base import get_timeout_multiplier   # noqa: F401
 from .chrome import ChromeBrowser  # noqa: F401
+from .chrome import browser_kwargs as browser_kwargs  # noqa: F401
 from .chrome import executor_kwargs as chrome_executor_kwargs
 from ..executors.base import WdspecExecutor  # noqa: F401
 from ..executors.executorchrome import (  # noqa: F401
@@ -33,13 +34,6 @@ __wptrunner__ = {"product": "headless_shell",
 
 def check_args(**kwargs):
     require_arg(kwargs, "webdriver_binary")
-
-
-def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
-    return {"binary": kwargs["binary"],
-            "webdriver_binary": kwargs["webdriver_binary"],
-            "webdriver_args": kwargs.get("webdriver_args"),
-            "debug_info": kwargs["debug_info"]}
 
 
 def executor_kwargs(logger, test_type, test_environment, run_info_data, subsuite,

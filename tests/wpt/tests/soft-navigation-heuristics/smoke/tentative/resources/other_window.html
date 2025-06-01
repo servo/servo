@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<h1>This is some text</h1>
+
+<script>
+  function navigate() {
+    history.pushState({}, "", "/different-url");
+  }
+
+  async function getNextSoftNavEntry() {
+    return new Promise(resolve => {
+      new PerformanceObserver((list, observer) => {
+        observer.disconnect();
+        resolve(list.getEntries()[0]);
+      }).observe({ type: "soft-navigation" });
+    });
+  }
+</script>

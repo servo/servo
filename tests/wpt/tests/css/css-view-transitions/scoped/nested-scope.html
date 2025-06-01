@@ -36,11 +36,22 @@
 
 failIfNot(scopeA.startViewTransition, "Missing element.startViewTransition");
 
+// This test runs simultaneous transitions on two scopes, one inside the other.
+// It verifies that the inner and outer participants are both visible while both
+// transitions are in progress. (This entails rendering the inner transition
+// through the ::view-transition-new for the outer participant.)
 async function runTest() {
   await waitForCompositorReady();
   await scopeB.startViewTransition().ready;
+
+  // Untag partB to avoid a collision when the outer transition looks for its
+  // participants. (We can stop doing this once we have contain: view-transition
+  // or similar.)
   partB.classList.remove("tr");
-  await scopeA.startViewTransition().ready;
+
+  await scopeA.startViewTransition(() => {
+    scopeA.style.background = "#ccc";
+  }).ready;
   requestAnimationFrame(takeScreenshot);
 }
 onload = () => runTest();

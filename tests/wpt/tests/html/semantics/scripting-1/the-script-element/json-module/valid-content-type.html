@@ -19,6 +19,8 @@ const t3 = async_test("text/html+json");
 const t4 = async_test("image/svg+json");
 const t5 = async_test("text/json;boundary=something");
 const t6 = async_test("text/json;foo=bar");
+const t7 = async_test("text/json;+json");
+const t8 = async_test("text/html+xml+json");
 </script>
 <script type="module" onerror="t1.step(() => assert_unreached(event))">
 import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=text/json" with { type: "json"};
@@ -43,4 +45,12 @@ check(t5, v);
 <script type="module" onerror="t6.step(() => assert_unreached(event))">
 import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=text/json;foo=bar" with { type: "json"};
 check(t6, v);
+</script>
+<script type="module" onerror="t7.step(() => assert_unreached(event))">
+import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=text/json;%2Bjson" with { type: "json"};
+check(t7, v);
+</script>
+<script type="module" onerror="t8.step(() => assert_unreached(event))">
+import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=text/html%2Bxml%2Bjson" with { type: "json"};
+check(t8, v);
 </script>

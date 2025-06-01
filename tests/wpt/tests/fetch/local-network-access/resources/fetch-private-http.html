@@ -23,8 +23,7 @@ Promise.resolve().then(async () => {
   };
   const targetUrl = resolveTargetUrl(target);
 
-  // TODO(crbug.com/406991278): rename address space for LNA spec
-  fetch(targetUrl, {targetAddressSpace: 'private'})
+  fetch(targetUrl, {targetAddressSpace: 'local'})
       .then(async function(response) {
         const body = await response.text();
         const message = {
