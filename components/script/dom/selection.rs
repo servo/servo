@@ -42,15 +42,15 @@ pub(crate) struct Selection {
 }
 
 // this should be changed once content-visibility gets implemented to check for content-visibility == visible too
-fn text_node_is_selectable(text_node: &Text) -> bool {
+fn text_node_should_be_stringified(text_node: &Text, can_gc: CanGc) -> bool {
     text_node
         .upcast::<Node>()
         .GetParentElement()
-        .and_then(|p| p.style(CanGc::note()))
-        .is_some_and(|s| {
-            !s.get_box().display.is_none()
-                && s.get_inherited_box().visibility
-                    == longhands::visibility::computed_value::T::Visible
+        .and_then(|parent| parent.style(can_gc))
+        .is_some_and(|style| {
+            !style.get_box().display.is_none() &&
+                style.get_inherited_box().visibility ==
+                    longhands::visibility::computed_value::T::Visible
         })
 }
 
@@ -532,65 +532,60 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
 
     // https://w3c.github.io/selection-api/#dom-selection-stringifier
     fn Stringifier(&self) -> DOMString {
-        if let Some(range) = self.range.get() {
-            let start_node = range.start_container();
-            let end_node = range.end_container();
+        let Some(range) = self.range.get() else {
+            return DOMString::from("");
+        };
 
-            // Step 1.
-            let mut s = DOMString::new();
+        let start_node = range.start_container();
+        let end_node = range.end_container();
 
-            if let Some(text_node) = start_node.downcast::<Text>() {
-                if text_node_is_selectable(text_node) {
-                    let char_data = text_node.upcast::<CharacterData>();
+        let mut selection_text = DOMString::new();
 
-                    // Step 2.
-                    if start_node == end_node {
-                        let r = char_data
-                            .SubstringData(
-                                range.start_offset(),
-                                range.end_offset() - range.start_offset(),
-                            )
-                            .unwrap();
+        if let Some(text_node) = start_node.downcast::<Text>() {
+            if text_node_should_be_stringified(text_node, CanGc::note()) {
+                let char_data = text_node.upcast::<CharacterData>();
 
-                        return r;
-                    }
-
-                    // Step 3.
-                    s.push_str(
-                        &char_data
-                            .SubstringData(
-                                range.start_offset(),
-                                char_data.Length() - range.start_offset(),
-                            )
-                            .unwrap(),
-                    );
-                } else if start_node == end_node {
-                    return s;
+                if start_node == end_node {
+                    return char_data
+                        .SubstringData(
+                            range.start_offset(),
+                            range.end_offset() - range.start_offset(),
+                        )
+                        .unwrap();
                 }
-            }
 
-            // Step 4.
-            let ancestor = range.CommonAncestorContainer();
-            for child in start_node
-                .following_nodes(&ancestor)
-                .filter_map(DomRoot::downcast::<Text>)
-                .filter(|t| text_node_is_selectable(t) && range.contains(t.upcast()))
-            {
-                s.push_str(&child.upcast::<CharacterData>().Data());
+                selection_text.push_str(
+                    &char_data
+                        .SubstringData(
+                            range.start_offset(),
+                            char_data.Length() - range.start_offset(),
+                        )
+                        .unwrap(),
+                );
+            } else if start_node == end_node {
+                return selection_text;
             }
-
-            // Step 5.
-            if let Some(text_node) = end_node.downcast::<Text>() {
-                if text_node_is_selectable(text_node) {
-                    let char_data = text_node.upcast::<CharacterData>();
-                    s.push_str(&char_data.SubstringData(0, range.end_offset()).unwrap());
-                }
-            }
-
-            // Step 6.
-            s
-        } else {
-            DOMString::from("")
         }
+
+        let ancestor = range.CommonAncestorContainer();
+        for child in start_node
+            .following_nodes(&ancestor)
+            .filter_map(DomRoot::downcast::<Text>)
+            .filter(|text_node| {
+                text_node_should_be_stringified(text_node, CanGc::note()) &&
+                    range.contains(text_node.upcast())
+            })
+        {
+            selection_text.push_str(&child.upcast::<CharacterData>().Data());
+        }
+
+        if let Some(text_node) = end_node.downcast::<Text>() {
+            if text_node_should_be_stringified(text_node, CanGc::note()) {
+                let char_data = text_node.upcast::<CharacterData>();
+                selection_text.push_str(&char_data.SubstringData(0, range.end_offset()).unwrap());
+            }
+        }
+
+        selection_text
     }
 }
