@@ -39,6 +39,7 @@ from .protocol import (BaseProtocolPart,
                        VirtualSensorProtocolPart,
                        BidiBluetoothProtocolPart,
                        BidiBrowsingContextProtocolPart,
+                       BidiEmulationProtocolPart,
                        BidiEventsProtocolPart,
                        BidiPermissionsProtocolPart,
                        BidiScriptProtocolPart,
@@ -46,6 +47,7 @@ from .protocol import (BaseProtocolPart,
                        StorageProtocolPart,
                        VirtualPressureSourceProtocolPart,
                        ProtectedAudienceProtocolPart,
+                       DisplayFeaturesProtocolPart,
                        merge_dicts)
 
 from typing import Any, List, Optional, Tuple
@@ -262,6 +264,19 @@ class WebDriverBidiScriptProtocolPart(BidiScriptProtocolPart):
             await_promise=True)
 
 
+class WebDriverBidiEmulationProtocolPart(BidiEmulationProtocolPart):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.webdriver = None
+
+    def setup(self):
+        self.webdriver = self.parent.webdriver
+
+    async def set_geolocation_override(self, coordinates, error, contexts):
+        return await self.webdriver.bidi_session.emulation.set_geolocation_override(
+            coordinates=coordinates, error=error, contexts=contexts)
+
+
 class WebDriverBidiPermissionsProtocolPart(BidiPermissionsProtocolPart):
     def __init__(self, parent):
         super().__init__(parent)
@@ -390,7 +405,7 @@ class WebDriverClickProtocolPart(ClickProtocolPart):
         self.webdriver = self.parent.webdriver
 
     def element(self, element):
-        self.logger.info("click " + repr(element))
+        self.logger.debug("click " + repr(element))
         return element.click()
 
 
@@ -399,15 +414,15 @@ class WebDriverCookiesProtocolPart(CookiesProtocolPart):
         self.webdriver = self.parent.webdriver
 
     def delete_all_cookies(self):
-        self.logger.info("Deleting all cookies")
+        self.logger.debug("Deleting all cookies")
         return self.webdriver.send_session_command("DELETE", "cookie")
 
     def get_all_cookies(self):
-        self.logger.info("Getting all cookies")
+        self.logger.debug("Getting all cookies")
         return self.webdriver.send_session_command("GET", "cookie")
 
     def get_named_cookie(self, name):
-        self.logger.info("Getting cookie named %s" % name)
+        self.logger.debug("Getting cookie named %s" % name)
         try:
             return self.webdriver.send_session_command("GET", "cookie/%s" % name)
         except webdriver_error.NoSuchCookieException:
@@ -419,15 +434,15 @@ class WebDriverWindowProtocolPart(WindowProtocolPart):
         self.webdriver = self.parent.webdriver
 
     def minimize(self):
-        self.logger.info("Minimizing")
+        self.logger.debug("Minimizing")
         return self.webdriver.window.minimize()
 
     def set_rect(self, rect):
-        self.logger.info("Restoring")
+        self.logger.debug("Restoring")
         self.webdriver.window.rect = rect
 
     def get_rect(self):
-        self.logger.info("Getting rect")
+        self.logger.debug("Getting rect")
         return self.webdriver.window.rect
 
 
@@ -700,6 +715,17 @@ class WebDriverProtectedAudienceProtocolPart(ProtectedAudienceProtocolPart):
         body = {"owner": owner, "name": name, "hashes": hashes}
         return self.webdriver.send_session_command("POST", "protected_audience/set_k_anonymity", body)
 
+class WebDriverDisplayFeaturesProtocolPart(DisplayFeaturesProtocolPart):
+    def setup(self):
+        self.webdriver = self.parent.webdriver
+
+    def set_display_features(self, features):
+        body = {"features": features}
+        return self.webdriver.send_session_command("POST", "displayfeatures", body)
+
+    def clear_display_features(self):
+        return self.webdriver.send_session_command("DELETE", "displayfeatures")
+
 class WebDriverProtocol(Protocol):
     enable_bidi = False
     implements = [WebDriverBaseProtocolPart,
@@ -724,7 +750,8 @@ class WebDriverProtocol(Protocol):
                   WebDriverDevicePostureProtocolPart,
                   WebDriverStorageProtocolPart,
                   WebDriverVirtualPressureSourceProtocolPart,
-                  WebDriverProtectedAudienceProtocolPart]
+                  WebDriverProtectedAudienceProtocolPart,
+                  WebDriverDisplayFeaturesProtocolPart]
 
     def __init__(self, executor, browser, capabilities, **kwargs):
         super().__init__(executor, browser)
@@ -797,6 +824,7 @@ class WebDriverBidiProtocol(WebDriverProtocol):
     enable_bidi = True
     implements = [WebDriverBidiBluetoothProtocolPart,
                   WebDriverBidiBrowsingContextProtocolPart,
+                  WebDriverBidiEmulationProtocolPart,
                   WebDriverBidiEventsProtocolPart,
                   WebDriverBidiPermissionsProtocolPart,
                   WebDriverBidiScriptProtocolPart,

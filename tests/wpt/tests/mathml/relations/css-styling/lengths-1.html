@@ -7,12 +7,13 @@
 <link rel="help" href="https://w3c.github.io/mathml-core/#types-for-mathml-attribute-values">
 <link rel="help" href="https://w3c.github.io/mathml-core/#legacy-mathml-style-attributes">
 <link rel="help" href="https://w3c.github.io/mathml-core/#space-mspace">
+<link rel="help" href="https://www.w3.org/TR/css-values-4/#relative-lengths">
 <link rel="match" href="lengths-1-ref.html"/>
 <meta name="assert" content="Verify whether the different units are accepted for MathML lengths.">
 <style>
   @font-face {
     font-family: TestFont;
-    src: url("/fonts/math/xheight500.woff");
+    src: url("/fonts/math/css-units.woff");
   }
   span, math {
     font-family: TestFont;
@@ -29,12 +30,18 @@
   #green > span {
     background: green;
   }
+  /* For lh and rlh. */
+  html {
+    line-height: 17px;
+  }
 </style>
 </head>
 <body>
   <p>Test passes if there is a green square and no red.</p>
+
+  <!-- Omitted units: vw, vh, vi, vb, vmin, vmax -->
   <div>
-    <div id="red" style="position: absolute; width: 200px; height: 200px; background: green;">
+    <div id="red" style="position: absolute; width: 340px; height: 340px; background: green;">
       <!-- px -->
       <span style="top: 0px"><math><mspace width="200px"/></math></span>
       <span style="top: 10px; width: 200px"></span>
@@ -71,12 +78,40 @@
       <span style="top: 160px"><math><mstyle mathsize="2000%"><mspace width="1em"/></mstyle></math></span>
       <span style="top: 170px; width: 200px"></span>
 
+      <!-- q -->
+      <span style="top: 180px"><math><mspace width="203.2q"/></math></span>
+      <span style="top: 190px; width: 192px"></span>
+
+      <!-- ch -->
+      <span style="top: 200px"><math><mspace width="20ch"/></math></span>
+      <span style="top: 210px; width: 20ch"></span>
+
+      <!-- cap -->
+      <span style="top: 220px"><math><mspace width="30cap"/></math></span>
+      <span style="top: 230px; width: 30cap"></span>
+
+      <!-- ic -->
+      <span style="top: 240px"><math><mspace width="20ic"/></math></span>
+      <span style="top: 250px; width: 200px"></span>
+
+      <!-- rem -->
+      <span style="top: 260px"><math><mspace width="10rem"/></math></span>
+      <span style="top: 270px; width: 160px"></span>
+
+      <!-- lh -->
+      <span style="top: 280px"><math><mspace width="13lh" style="line-height: 15px;"/></math></span>
+      <span style="top: 290px; width: 195px"></span>
+
+      <!-- rlh -->
+      <span style="top: 300px"><math><mspace width="11rlh"/></math></span>
+      <span style="top: 310px; width: 187px"></span>
+
       <!-- unitless nonzero values should be ignored -->
-      <span style="top: 180px"><math><mstyle mathsize="20.0"><mspace width="1em"/></mstyle></math></span>
-      <span style="top: 190px; width: 10px"></span>
+      <span style="top: 320px"><math><mstyle mathsize="20.0"><mspace width="1em"/></mstyle></math></span>
+      <span style="top: 330px; width: 10px"></span>
     </div>
 
-    <div id="green" style="position: absolute; width: 200px; height: 200px;">
+    <div id="green" style="position: absolute; width: 340px; height: 340px;">
       <!-- px -->
       <span style="top: 10px"><math><mspace width="200px"/></math></span>
       <span style="top: 0px; width: 200px"></span>
@@ -113,9 +148,37 @@
       <span style="top: 170px"><math><mstyle mathsize="2000%"><mspace width="1em"/></mstyle></math></span>
       <span style="top: 160px; width: 200px"></span>
 
+      <!-- q -->
+      <span style="top: 190px"><math><mspace width="203.2q"/></math></span>
+      <span style="top: 180px; width: 192px"></span>
+
+      <!-- ch -->
+      <span style="top: 210px"><math><mspace width="20ch"/></math></span>
+      <span style="top: 200px; width: 20ch"></span>
+
+      <!-- cap -->
+      <span style="top: 230px"><math><mspace width="30cap"/></math></span>
+      <span style="top: 220px; width: 30cap"></span>
+
+      <!-- ic -->
+      <span style="top: 250px"><math><mspace width="20ic"/></math></span>
+      <span style="top: 240px; width: 200px"></span>
+
+      <!-- rem -->
+      <span style="top: 270px"><math><mspace width="10rem"/></math></span>
+      <span style="top: 260px; width: 160px"></span>
+
+      <!-- lh -->
+      <span style="top: 290px"><math><mspace width="13lh" style="line-height: 15px;"/></math></span>
+      <span style="top: 280px; width: 195px"></span>
+
+      <!-- rlh -->
+      <span style="top: 310px"><math><mspace width="11rlh"/></math></span>
+      <span style="top: 300px; width: 187px"></span>
+
       <!-- unitless nonzero values should be ignored -->
-      <span style="top: 190px"><math><mstyle mathsize="20.0"><mspace width="1em"/></mstyle></math></span>
-      <span style="top: 180px; width: 10px"></span>
+      <span style="top: 330px"><math><mstyle mathsize="20.0"><mspace width="1em"/></mstyle></math></span>
+      <span style="top: 320px; width: 10px"></span>
     </div>
   </div>
 </body>

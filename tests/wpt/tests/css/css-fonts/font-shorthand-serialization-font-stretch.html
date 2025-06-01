@@ -94,7 +94,7 @@ test(function() {
     assert_equals(div.style.font, "ultra-condensed medium serif");
 
     div.style.fontStretch = "calc(50% + 25% * sign(100em - 1px))";
-    assert_equals(div.style.fontStretch, "calc(50% + 25% * sign(100em - 1px))");
+    assert_equals(div.style.fontStretch, "calc(50% + (25% * sign(100em - 1px)))");
     assert_equals(div.style.font, "");
 }, "calc() transformation into keywords");
 

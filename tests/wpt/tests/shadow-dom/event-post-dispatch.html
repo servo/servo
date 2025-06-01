@@ -138,7 +138,7 @@ document.body.removeChild(n4.test4);
 let n5 = createTestTree(test5);
 document.body.appendChild(n5.test5);
 test(() => {
-  let log = dispatchEventWithEventLog(n5, n5.target, new MouseEvent('my-event', {bubbles: true, compoesed: true, relatedTarget: n5.relatedTarget}));
+  let log = dispatchEventWithEventLog(n5, n5.target, new MouseEvent('my-event', {bubbles: true, composed: true, relatedTarget: n5.relatedTarget}));
   assert_equals(log.event.target, null);
   assert_equals(log.event.relatedTarget, null);
   assert_equals(log.event.eventPhase, 0);
@@ -147,7 +147,7 @@ test(() => {
 }, 'Event properties post dispatch with relatedTarget in the same shadow tree. (composed: true)');
 
 test(() => {
-  let log = dispatchEventWithEventLog(n5, n5.target, new MouseEvent('my-event', {bubbles: true, compoesed: false, relatedTarget: n5.relatedTarget}));
+  let log = dispatchEventWithEventLog(n5, n5.target, new MouseEvent('my-event', {bubbles: true, composed: false, relatedTarget: n5.relatedTarget}));
   assert_equals(log.event.target, null);
   assert_equals(log.event.relatedTarget, null);
   assert_equals(log.event.eventPhase, 0);
@@ -278,5 +278,5 @@ test(t => {
   assert_equals(event.eventPhase, 0);
   assert_equals(event.currentTarget, null);
   assert_equals(event.composedPath().length, 0);
-}, 'Event properties post dispatch when target get moved into the the shadow tree by event listener');
+}, 'Event properties post dispatch when target get moved into the shadow tree by event listener');
 </script>

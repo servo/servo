@@ -3,7 +3,7 @@
 // (https://github.com/w3c/webref)
 // Source: Web Speech API (https://webaudio.github.io/web-speech-api/)
 
-[Exposed=Window]
+[SecureContext, Exposed=Window]
 interface SpeechRecognition : EventTarget {
     constructor();
 
@@ -13,13 +13,14 @@ interface SpeechRecognition : EventTarget {
     attribute boolean interimResults;
     attribute unsigned long maxAlternatives;
     attribute SpeechRecognitionMode mode;
+    attribute SpeechRecognitionPhraseList phrases;
 
     // methods to drive the speech interaction
     undefined start();
     undefined start(MediaStreamTrack audioTrack);
     undefined stop();
     undefined abort();
-    static Promise<boolean> availableOnDevice(DOMString lang);
+    static Promise<AvailabilityStatus> availableOnDevice(DOMString lang);
     static Promise<boolean> installOnDevice(DOMString lang);
 
     // event methods
@@ -43,7 +44,8 @@ enum SpeechRecognitionErrorCode {
     "network",
     "not-allowed",
     "service-not-allowed",
-    "language-not-supported"
+    "language-not-supported",
+    "phrases-not-supported"
 };
 
 enum SpeechRecognitionMode {
@@ -52,7 +54,14 @@ enum SpeechRecognitionMode {
     "cloud-only", // Cloud speech recognition only.
 };
 
-[Exposed=Window]
+enum AvailabilityStatus {
+    "unavailable",
+    "downloadable",
+    "downloading",
+    "available"
+};
+
+[SecureContext, Exposed=Window]
 interface SpeechRecognitionErrorEvent : Event {
     constructor(DOMString type, SpeechRecognitionErrorEventInit eventInitDict);
     readonly attribute SpeechRecognitionErrorCode error;
@@ -65,14 +74,14 @@ dictionary SpeechRecognitionErrorEventInit : EventInit {
 };
 
 // Item in N-best list
-[Exposed=Window]
+[SecureContext, Exposed=Window]
 interface SpeechRecognitionAlternative {
     readonly attribute DOMString transcript;
     readonly attribute float confidence;
 };
 
 // A complete one-shot simple response
-[Exposed=Window]
+[SecureContext, Exposed=Window]
 interface SpeechRecognitionResult {
     readonly attribute unsigned long length;
     getter SpeechRecognitionAlternative item(unsigned long index);
@@ -80,14 +89,14 @@ interface SpeechRecognitionResult {
 };
 
 // A collection of responses (used in continuous mode)
-[Exposed=Window]
+[SecureContext, Exposed=Window]
 interface SpeechRecognitionResultList {
     readonly attribute unsigned long length;
     getter SpeechRecognitionResult item(unsigned long index);
 };
 
 // A full response, which could be interim or final, part of a continuous response or not
-[Exposed=Window]
+[SecureContext, Exposed=Window]
 interface SpeechRecognitionEvent : Event {
     constructor(DOMString type, SpeechRecognitionEventInit eventInitDict);
     readonly attribute unsigned long resultIndex;
@@ -97,6 +106,24 @@ interface SpeechRecognitionEvent : Event {
 dictionary SpeechRecognitionEventInit : EventInit {
     unsigned long resultIndex = 0;
     required SpeechRecognitionResultList results;
+};
+
+// The object representing a phrase for contextual biasing.
+[SecureContext, Exposed=Window]
+interface SpeechRecognitionPhrase {
+    constructor(DOMString phrase, optional float boost = 1.0);
+    readonly attribute DOMString phrase;
+    readonly attribute float boost;
+};
+
+// The object representing a list of phrases for contextual biasing.
+[SecureContext, Exposed=Window]
+interface SpeechRecognitionPhraseList {
+    constructor(sequence<SpeechRecognitionPhrase> phrases);
+    readonly attribute unsigned long length;
+    SpeechRecognitionPhrase item(unsigned long index);
+    undefined addItem(SpeechRecognitionPhrase item);
+    undefined removeItem(unsigned long index);
 };
 
 [Exposed=Window]

@@ -7,8 +7,8 @@ use std::sync::atomic::Ordering;
 use std::{fmt, slice};
 
 use atomic_refcell::{AtomicRef, AtomicRefMut};
-use constellation_traits::UntrustedNodeAddress;
-use html5ever::{LocalName, Namespace, local_name, namespace_url, ns};
+use embedder_traits::UntrustedNodeAddress;
+use html5ever::{LocalName, Namespace, local_name, ns};
 use js::jsapi::JSObject;
 use script_layout_interface::wrapper_traits::{
     LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Flex Container Max-Content Sizes</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#intrinsic-main-sizes"
+      title="9.9.1. Flex Container Intrinsic Main Sizes">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#intrinsic-cross-sizes"
+      title="9.9.2. Flex Container Intrinsic Cross Sizes">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12123">
+
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+.flex {
+  display: inline-flex;
+  vertical-align: top;
+  border: 5px solid magenta;
+  width: max-content;
+  height: max-content;
+}
+.flex.min {
+  width: 0;
+  height: 0;
+  min-width: max-content;
+  min-height: max-content;
+}
+.flex.max {
+  width: 200px;
+  height: 200px;
+  max-width: max-content;
+  max-height: max-content;
+}
+.flex > div {
+  font: 25px/1 Ahem;
+  border: 5px solid cyan;
+}
+</style>
+
+<!-- Single-line row flex container -->
+<div class="flex" style="flex-flow: row nowrap"
+     data-expected-width="45" data-expected-height="45">
+  <div style="width: 25px; height: 25px">X</div>
+</div>
+<div class="flex min" style="flex-flow: row nowrap"
+     data-expected-width="45" data-expected-height="45">
+  <div style="width: 25px; height: 25px">X</div>
+</div>
+<div class="flex max" style="flex-flow: row nowrap"
+     data-expected-width="45" data-expected-height="45">
+  <div style="width: 25px; height: 25px">X</div>
+</div>
+
+<div class="flex" style="flex-flow: row nowrap"
+     data-expected-width="180" data-expected-height="45">
+  <div data-expected-width="85" data-expected-height="35">X X</div>
+  <div data-expected-width="85" data-expected-height="35">X X</div>
+</div>
+<div class="flex min" style="flex-flow: row nowrap"
+     data-expected-width="180" data-expected-height="45">
+  <div data-expected-width="85" data-expected-height="35">X X</div>
+  <div data-expected-width="85" data-expected-height="35">X X</div>
+</div>
+<div class="flex max" style="flex-flow: row nowrap"
+     data-expected-width="180" data-expected-height="45">
+  <div data-expected-width="85" data-expected-height="35">X X</div>
+  <div data-expected-width="85" data-expected-height="35">X X</div>
+</div>
+
+<hr>
+
+<!-- Single-line column flex container -->
+<div class="flex" style="flex-flow: column nowrap"
+     data-expected-width="45" data-expected-height="45">
+  <div style="width: 25px; height: 25px">X</div>
+</div>
+<div class="flex min" style="flex-flow: column nowrap"
+     data-expected-width="45" data-expected-height="45">
+  <div style="width: 25px; height: 25px">X</div>
+</div>
+<div class="flex max" style="flex-flow: column nowrap"
+     data-expected-width="45" data-expected-height="45">
+  <div style="width: 25px; height: 25px">X</div>
+</div>
+
+<div class="flex" style="flex-flow: column nowrap"
+     data-expected-width="95" data-expected-height="80">
+  <div data-expected-width="85" data-expected-height="35">X X</div>
+  <div data-expected-width="85" data-expected-height="35">X X</div>
+</div>
+<div class="flex min" style="flex-flow: column nowrap"
+     data-expected-width="95" data-expected-height="80">
+  <div data-expected-width="85" data-expected-height="35">X X</div>
+  <div data-expected-width="85" data-expected-height="35">X X</div>
+</div>
+<div class="flex max" style="flex-flow: column nowrap"
+     data-expected-width="95" data-expected-height="80">
+  <div data-expected-width="85" data-expected-height="35">X X</div>
+  <div data-expected-width="85" data-expected-height="35">X X</div>
+</div>
+
+<hr>
+
+<!-- Multi-line row flex container -->
+<div class="flex" style="flex-flow: row wrap"
+     data-expected-width="45" data-expected-height="45">
+  <div style="width: 25px; height: 25px">X</div>
+</div>
+<div class="flex min" style="flex-flow: row wrap"
+     data-expected-width="45" data-expected-height="45">
+  <div style="width: 25px; height: 25px">X</div>
+</div>
+<div class="flex max" style="flex-flow: row wrap"
+     data-expected-width="45" data-expected-height="45">
+  <div style="width: 25px; height: 25px">X</div>
+</div>
+
+<div class="flex" style="flex-flow: row wrap"
+     data-expected-width="180" data-expected-height="45">
+  <div data-expected-width="85" data-expected-height="35">X X</div>
+  <div data-expected-width="85" data-expected-height="35">X X</div>
+</div>
+<div class="flex min" style="flex-flow: row wrap"
+     data-expected-width="180" data-expected-height="45">
+  <div data-expected-width="85" data-expected-height="35">X X</div>
+  <div data-expected-width="85" data-expected-height="35">X X</div>
+</div>
+<div class="flex max" style="flex-flow: row wrap"
+     data-expected-width="180" data-expected-height="45">
+  <div data-expected-width="85" data-expected-height="35">X X</div>
+  <div data-expected-width="85" data-expected-height="35">X X</div>
+</div>
+
+<hr>
+
+<!-- Multi-line column flex container -->
+<div class="flex" style="flex-flow: column wrap"
+     data-expected-width="45" data-expected-height="45">
+  <div style="width: 25px; height: 25px">X</div>
+</div>
+<div class="flex min" style="flex-flow: column wrap"
+     data-expected-width="45" data-expected-height="45">
+  <div style="width: 25px; height: 25px">X</div>
+</div>
+<div class="flex max" style="flex-flow: column wrap"
+     data-expected-width="45" data-expected-height="45">
+  <div style="width: 25px; height: 25px">X</div>
+</div>
+
+<div class="flex" style="flex-flow: column wrap"
+     data-expected-width="95" data-expected-height="80">
+  <div data-expected-width="85" data-expected-height="35">X X</div>
+  <div data-expected-width="85" data-expected-height="35">X X</div>
+</div>
+<div class="flex min" style="flex-flow: column wrap"
+     data-expected-width="95" data-expected-height="80">
+  <div data-expected-width="85" data-expected-height="35">X X</div>
+  <div data-expected-width="85" data-expected-height="35">X X</div>
+</div>
+<div class="flex max" style="flex-flow: column wrap"
+     data-expected-width="95" data-expected-height="80">
+  <div data-expected-width="85" data-expected-height="35">X X</div>
+  <div data-expected-width="85" data-expected-height="35">X X</div>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+document.fonts.ready.then(() => { checkLayout(".flex") })
+</script>

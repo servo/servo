@@ -10,6 +10,10 @@ on:
         default: "release"
         type: choice
         options: ["release", "debug", "production"]
+      build-args:
+        default: ""
+        required: false
+        type: string
       wpt-args:
         default: ""
         required: false
@@ -79,6 +83,7 @@ jobs:
               // WPT-related overrides only affect Linux currently, as tests don't run by default on other platforms.
               configuration.matrix[0].wpt = Boolean(${{ inputs.wpt }});
               configuration.matrix[0].wpt_args = "${{ inputs.wpt-args }}" || "";
+              configuration.matrix[0].build_args = "${{ inputs.build-args }}" || "";
 
               let unit_tests = Boolean(${{ inputs.unit-tests }});
               let profile = '${{ inputs.profile }}';
@@ -107,7 +112,9 @@ jobs:
       profile: ${{ matrix.profile }}
       unit-tests: ${{ matrix.unit_tests }}
       build-libservo: ${{ matrix.build_libservo }}
+      build-args: ${{ matrix.build_args }}
       wpt-args: ${{ matrix.wpt_args }}
+      number-of-wpt-chunks: ${{ matrix.number_of_wpt_chunks }}
       bencher: ${{ matrix.bencher }}
 
   build-result:

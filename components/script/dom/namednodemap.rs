@@ -67,7 +67,7 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-setnameditem
     fn SetNamedItem(&self, attr: &Attr) -> Fallible<Option<DomRoot<Attr>>> {
-        self.owner.SetAttributeNode(attr)
+        self.owner.SetAttributeNode(attr, CanGc::note())
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-setnameditemns

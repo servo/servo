@@ -6,44 +6,33 @@
 //! (<https://html.spec.whatwg.org/multipage/#transferable-objects>).
 
 use std::collections::HashMap;
-use std::num::NonZeroU32;
+use std::hash::Hash;
 
-use base::id::PipelineNamespaceId;
+use base::id::NamespaceIndex;
 
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::structuredclone::{StructuredData, StructuredDataReader};
+use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::globalscope::GlobalScope;
-
-pub(crate) trait IdFromComponents
-where
-    Self: Sized,
-{
-    fn from(namespace_id: PipelineNamespaceId, index: NonZeroU32) -> Self;
-}
-
-pub(crate) trait ExtractComponents {
-    fn components(&self) -> (PipelineNamespaceId, NonZeroU32);
-}
-
 pub(crate) trait Transferable: DomObject
 where
     Self: Sized,
 {
-    type Id: Eq + std::hash::Hash + Copy + IdFromComponents + ExtractComponents;
+    type Index: Copy + Eq + Hash;
     type Data;
 
     fn can_transfer(&self) -> bool {
         true
     }
 
-    fn transfer(&self) -> Result<(Self::Id, Self::Data), ()>;
+    fn transfer(&self) -> Result<(NamespaceIndex<Self::Index>, Self::Data), ()>;
     fn transfer_receive(
         owner: &GlobalScope,
-        id: Self::Id,
+        id: NamespaceIndex<Self::Index>,
         serialized: Self::Data,
     ) -> Result<DomRoot<Self>, ()>;
 
-    fn serialized_storage(data: StructuredData<'_>) -> &mut Option<HashMap<Self::Id, Self::Data>>;
-    fn deserialized_storage(reader: &mut StructuredDataReader) -> &mut Option<Vec<DomRoot<Self>>>;
+    fn serialized_storage<'a>(
+        data: StructuredData<'a, '_>,
+    ) -> &'a mut Option<HashMap<NamespaceIndex<Self::Index>, Self::Data>>;
 }

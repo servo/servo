@@ -9,12 +9,13 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use std::{f64, mem};
 
+use compositing_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
+use content_security_policy as csp;
 use dom_struct::dom_struct;
-use embedder_traits::resources::{self, Resource as EmbedderResource};
 use embedder_traits::{MediaPositionState, MediaSessionEvent, MediaSessionPlaybackState};
 use euclid::default::Size2D;
 use headers::{ContentLength, ContentRange, HeaderMapExt};
-use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
+use html5ever::{LocalName, Prefix, local_name, ns};
 use http::StatusCode;
 use http::header::{self, HeaderMap, HeaderValue};
 use ipc_channel::ipc::{self, IpcSharedMemory, channel};
@@ -23,10 +24,11 @@ use js::jsapi::JSAutoRealm;
 use media::{GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
 use net_traits::request::{Destination, RequestId};
 use net_traits::{
-    FetchMetadata, FetchResponseListener, Metadata, NetworkError, ResourceFetchTiming,
-    ResourceTimingType,
+    FetchMetadata, FetchResponseListener, FilteredMetadata, Metadata, NetworkError,
+    ResourceFetchTiming, ResourceTimingType,
 };
-use pixels::Image;
+use pixels::RasterImage;
+use script_bindings::codegen::GenericBindings::TimeRangesBinding::TimeRangesMethods;
 use script_bindings::codegen::InheritTypes::{
     ElementTypeId, HTMLElementTypeId, HTMLMediaElementTypeId, NodeTypeId,
 };
@@ -41,7 +43,6 @@ use webrender_api::{
     ExternalImageData, ExternalImageId, ExternalImageType, ImageBufferKind, ImageDescriptor,
     ImageDescriptorFlags, ImageFormat, ImageKey,
 };
-use webrender_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
 
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::attr::Attr;
@@ -52,7 +53,6 @@ use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::{
     CanPlayTypeResult, HTMLMediaElementConstants, HTMLMediaElementMethods,
 };
-use crate::dom::bindings::codegen::Bindings::HTMLSourceElementBinding::HTMLSourceElementMethods;
 use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorConstants::*;
 use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethods;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::Navigator_Binding::NavigatorMethods;
@@ -108,6 +108,12 @@ use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
+
+/// A CSS file to style the media controls.
+static MEDIA_CONTROL_CSS: &str = include_str!("../resources/media-controls.css");
+
+/// A JS file to control the media controls.
+static MEDIA_CONTROL_JS: &str = include_str!("../resources/media-controls.js");
 
 #[derive(PartialEq)]
 enum FrameStatus {
@@ -180,12 +186,12 @@ impl MediaFrameRenderer {
         }
     }
 
-    fn render_poster_frame(&mut self, image: Arc<Image>) {
+    fn render_poster_frame(&mut self, image: Arc<RasterImage>) {
         if let Some(image_key) = image.id {
             self.current_frame = Some(MediaFrame {
                 image_key,
-                width: image.width as i32,
-                height: image.height as i32,
+                width: image.metadata.width as i32,
+                height: image.metadata.height as i32,
             });
             self.show_poster = true;
         }
@@ -836,15 +842,20 @@ impl HTMLMediaElement {
             Mode::Children(source) => {
                 // This is only a partial implementation
                 // FIXME: https://github.com/servo/servo/issues/21481
-                let src = source.Src();
+                let src = source
+                    .upcast::<Element>()
+                    .get_attribute(&ns!(), &local_name!("src"));
                 // Step 9.attr.2.
-                if src.is_empty() {
-                    source
-                        .upcast::<EventTarget>()
-                        .fire_event(atom!("error"), can_gc);
-                    self.queue_dedicated_media_source_failure_steps();
-                    return;
-                }
+                let src: String = match src {
+                    Some(src) if !src.Value().is_empty() => src.Value().into(),
+                    _ => {
+                        source
+                            .upcast::<EventTarget>()
+                            .fire_event(atom!("error"), can_gc);
+                        self.queue_dedicated_media_source_failure_steps();
+                        return;
+                    },
+                };
                 // Step 9.attr.3.
                 let url_record = match base_url.join(&src) {
                     Ok(url) => url,
@@ -856,6 +867,8 @@ impl HTMLMediaElement {
                         return;
                     },
                 };
+                // Step 9.attr.7
+                *self.current_src.borrow_mut() = url_record.as_str().into();
                 // Step 9.attr.8.
                 self.resource_fetch_algorithm(Resource::Url(url_record));
             },
@@ -886,15 +899,17 @@ impl HTMLMediaElement {
         };
 
         let cors_setting = cors_setting_for_element(self.upcast());
+        let global = self.global();
         let request = create_a_potential_cors_request(
             Some(document.webview_id()),
             url.clone(),
             destination,
             cors_setting,
             None,
-            self.global().get_referrer(),
+            global.get_referrer(),
             document.insecure_requests_policy(),
             document.has_trustworthy_ancestor_or_current_origin(),
+            global.policy_container(),
         )
         .headers(headers)
         .origin(document.origin().immutable().clone())
@@ -1268,15 +1283,40 @@ impl HTMLMediaElement {
         let time = f64::max(time, 0.);
 
         // Step 8.
-        // XXX(ferjm) seekable attribute: we need to get the information about
-        //            what's been decoded and buffered so far from servo-media
-        //            and add the seekable attribute as a TimeRange.
-        if let Some(ref current_fetch_context) = *self.current_fetch_context.borrow() {
-            if !current_fetch_context.is_seekable() {
-                self.seeking.set(false);
-                return;
+        let seekable = self.Seekable();
+        if seekable.Length() == 0 {
+            self.seeking.set(false);
+            return;
+        }
+        let mut nearest_seekable_position = 0.0;
+        let mut in_seekable_range = false;
+        let mut nearest_seekable_distance = f64::MAX;
+        for i in 0..seekable.Length() {
+            let start = seekable.Start(i).unwrap().abs();
+            let end = seekable.End(i).unwrap().abs();
+            if time >= start && time <= end {
+                nearest_seekable_position = time;
+                in_seekable_range = true;
+                break;
+            } else if time < start {
+                let distance = start - time;
+                if distance < nearest_seekable_distance {
+                    nearest_seekable_distance = distance;
+                    nearest_seekable_position = start;
+                }
+            } else {
+                let distance = time - end;
+                if distance < nearest_seekable_distance {
+                    nearest_seekable_distance = distance;
+                    nearest_seekable_position = end;
+                }
             }
         }
+        let time = if in_seekable_range {
+            time
+        } else {
+            nearest_seekable_position
+        };
 
         // Step 9.
         // servo-media with gstreamer does not support inaccurate seeking for now.
@@ -1318,18 +1358,17 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
-    pub(crate) fn process_poster_image_loaded(&self, image: Arc<Image>) {
+    pub(crate) fn process_poster_image_loaded(&self, image: Arc<RasterImage>) {
         if !self.show_poster.get() {
             return;
         }
 
         // Step 6.
-        self.handle_resize(Some(image.width), Some(image.height));
+        self.handle_resize(Some(image.metadata.width), Some(image.metadata.height));
         self.video_renderer
             .lock()
             .unwrap()
             .render_poster_frame(image);
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
 
         if pref!(media_testing_enabled) {
             self.owner_global()
@@ -1578,7 +1617,6 @@ impl HTMLMediaElement {
                 // TODO: 6. Abort the overall resource selection algorithm.
             },
             PlayerEvent::VideoFrameUpdated => {
-                self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                 // Check if the frame was resized
                 if let Some(frame) = self.video_renderer.lock().unwrap().current_frame {
                     self.handle_resize(Some(frame.width as u32), Some(frame.height as u32));
@@ -1914,27 +1952,25 @@ impl HTMLMediaElement {
             ElementCreator::ScriptCreated,
             can_gc,
         );
-        let mut media_controls_script = resources::read_string(EmbedderResource::MediaControlsJS);
         // This is our hacky way to temporarily workaround the lack of a privileged
         // JS context.
         // The media controls UI accesses the document.servoGetMediaControls(id) API
         // to get an instance to the media controls ShadowRoot.
         // `id` needs to match the internally generated UUID assigned to a media element.
         let id = document.register_media_controls(&shadow_root);
-        let media_controls_script = media_controls_script.as_mut_str().replace("@@@id@@@", &id);
+        let media_controls_script = MEDIA_CONTROL_JS.replace("@@@id@@@", &id);
         *self.media_controls_id.borrow_mut() = Some(id);
         script
             .upcast::<Node>()
             .SetTextContent(Some(DOMString::from(media_controls_script)), can_gc);
         if let Err(e) = shadow_root
             .upcast::<Node>()
-            .AppendChild(script.upcast::<Node>())
+            .AppendChild(script.upcast::<Node>(), can_gc)
         {
             warn!("Could not render media controls {:?}", e);
             return;
         }
 
-        let media_controls_style = resources::read_string(EmbedderResource::MediaControlsCSS);
         let style = HTMLStyleElement::new(
             local_name!("script"),
             None,
@@ -1945,11 +1981,11 @@ impl HTMLMediaElement {
         );
         style
             .upcast::<Node>()
-            .SetTextContent(Some(DOMString::from(media_controls_style)), can_gc);
+            .SetTextContent(Some(DOMString::from(MEDIA_CONTROL_CSS)), can_gc);
 
         if let Err(e) = shadow_root
             .upcast::<Node>()
-            .AppendChild(style.upcast::<Node>())
+            .AppendChild(style.upcast::<Node>(), can_gc)
         {
             warn!("Could not render media controls {:?}", e);
         }
@@ -1979,12 +2015,12 @@ impl HTMLMediaElement {
     pub(crate) fn clear_current_frame_data(&self) {
         self.handle_resize(None, None);
         self.video_renderer.lock().unwrap().current_frame = None;
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
     fn handle_resize(&self, width: Option<u32>, height: Option<u32>) {
         if let Some(video_elem) = self.downcast::<HTMLVideoElement>() {
             video_elem.resize(width, height);
+            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
         }
     }
 
@@ -2032,6 +2068,28 @@ impl HTMLMediaElement {
                 eprintln!("Could not stop player {:?}", e);
             }
         }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#concept-media-load-resource>
+    pub(crate) fn origin_is_clean(&self) -> bool {
+        // Step 5.local (media provider object).
+        if self.src_object.borrow().is_some() {
+            // The resource described by the current media resource, if any,
+            // contains the media data. It is CORS-same-origin.
+            return true;
+        }
+
+        // Step 5.remote (URL record).
+        if self.resource_url.borrow().is_some() {
+            // Update the media data with the contents
+            // of response's unsafe response obtained in this fashion.
+            // Response can be CORS-same-origin or CORS-cross-origin;
+            if let Some(ref current_fetch_context) = *self.current_fetch_context.borrow() {
+                return current_fetch_context.origin_is_clean();
+            }
+        }
+
+        true
     }
 }
 
@@ -2393,6 +2451,19 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         )
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-media-seekable
+    fn Seekable(&self) -> DomRoot<TimeRanges> {
+        let mut seekable = TimeRangesContainer::default();
+        if let Some(ref player) = *self.player.borrow() {
+            if let Ok(ranges) = player.lock().unwrap().seekable() {
+                for range in ranges {
+                    let _ = seekable.add(range.start, range.end);
+                }
+            }
+        }
+        TimeRanges::new(self.global().as_window(), seekable, CanGc::note())
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-media-buffered
     fn Buffered(&self) -> DomRoot<TimeRanges> {
         let mut buffered = TimeRangesContainer::default();
@@ -2605,6 +2676,8 @@ pub(crate) struct HTMLMediaElementFetchContext {
     cancel_reason: Option<CancelReason>,
     /// Indicates whether the fetched stream is seekable.
     is_seekable: bool,
+    /// Indicates whether the fetched stream is origin clean.
+    origin_clean: bool,
     /// Fetch canceller. Allows cancelling the current fetch request by
     /// manually calling its .cancel() method or automatically on Drop.
     fetch_canceller: FetchCanceller,
@@ -2615,6 +2688,7 @@ impl HTMLMediaElementFetchContext {
         HTMLMediaElementFetchContext {
             cancel_reason: None,
             is_seekable: false,
+            origin_clean: true,
             fetch_canceller: FetchCanceller::new(request_id),
         }
     }
@@ -2625,6 +2699,14 @@ impl HTMLMediaElementFetchContext {
 
     fn set_seekable(&mut self, seekable: bool) {
         self.is_seekable = seekable;
+    }
+
+    pub(crate) fn origin_is_clean(&self) -> bool {
+        self.origin_clean
+    }
+
+    fn set_origin_unclean(&mut self) {
+        self.origin_clean = false;
     }
 
     fn cancel(&mut self, reason: CancelReason) {
@@ -2679,6 +2761,16 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         if elem.generation_id.get() != self.generation_id || elem.player.borrow().is_none() {
             // A new fetch request was triggered, so we ignore this response.
             return;
+        }
+
+        if let Ok(FetchMetadata::Filtered {
+            filtered: FilteredMetadata::Opaque | FilteredMetadata::OpaqueRedirect(_),
+            ..
+        }) = metadata
+        {
+            if let Some(ref mut current_fetch_context) = *elem.current_fetch_context.borrow_mut() {
+                current_fetch_context.set_origin_unclean();
+            }
         }
 
         self.metadata = metadata.ok().map(|m| match m {
@@ -2896,6 +2988,11 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
 
     fn submit_resource_timing(&mut self) {
         network_listener::submit_timing(self, CanGc::note())
+    }
+
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+        let global = &self.resource_timing_global();
+        global.report_csp_violations(violations, None);
     }
 }
 

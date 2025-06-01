@@ -74,7 +74,7 @@ def update_properties():
 class ServoBrowser(NullBrowser):
     def __init__(self, logger, binary, debug_info=None, binary_args=None,
                  user_stylesheets=None, ca_certificate_path=None, **kwargs):
-        NullBrowser.__init__(self, logger)
+        NullBrowser.__init__(self, logger, **kwargs)
         self.binary = binary
         self.debug_info = debug_info
         self.binary_args = binary_args or []

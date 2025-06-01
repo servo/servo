@@ -66,8 +66,8 @@
       'animation-trigger-timeline': 'view()',
       'animation-trigger-range-start': 'contain',
       'animation-trigger-range-end': 'contain',
-      'animation-trigger-exit-range-start': 'normal',
-      'animation-trigger-exit-range-end': 'normal',
+      'animation-trigger-exit-range-start': 'auto',
+      'animation-trigger-exit-range-end': 'auto',
     });
   test_shorthand_value('animation-trigger',
     'view() alternate contain 20% contain 80%',
@@ -76,8 +76,8 @@
       'animation-trigger-timeline': 'view()',
       'animation-trigger-range-start': 'contain 20%',
       'animation-trigger-range-end': 'contain 80%',
-      'animation-trigger-exit-range-start': 'normal',
-      'animation-trigger-exit-range-end': 'normal',
+      'animation-trigger-exit-range-start': 'auto',
+      'animation-trigger-exit-range-end': 'auto',
     });
   test_shorthand_value('animation-trigger',
     'view() alternate contain 0%',
@@ -86,8 +86,8 @@
       'animation-trigger-timeline': 'view()',
       'animation-trigger-range-start': 'contain',
       'animation-trigger-range-end': 'contain',
-      'animation-trigger-exit-range-start': 'normal',
-      'animation-trigger-exit-range-end': 'normal',
+      'animation-trigger-exit-range-start': 'auto',
+      'animation-trigger-exit-range-end': 'auto',
     });
   test_shorthand_value('animation-trigger',
     'view() alternate contain 10%',
@@ -96,8 +96,8 @@
       'animation-trigger-timeline': 'view()',
       'animation-trigger-range-start': 'contain 10%',
       'animation-trigger-range-end': 'contain',
-      'animation-trigger-exit-range-start': 'normal',
-      'animation-trigger-exit-range-end': 'normal',
+      'animation-trigger-exit-range-start': 'auto',
+      'animation-trigger-exit-range-end': 'auto',
     });
   test_shorthand_value('animation-trigger',
     'view() alternate contain',
@@ -106,8 +106,8 @@
       'animation-trigger-timeline': 'view()',
       'animation-trigger-range-start': 'contain',
       'animation-trigger-range-end': 'contain',
-      'animation-trigger-exit-range-start': 'normal',
-      'animation-trigger-exit-range-end': 'normal',
+      'animation-trigger-exit-range-start': 'auto',
+      'animation-trigger-exit-range-end': 'auto',
     });
   test_shorthand_value('animation-trigger', 'view() alternate',
     {
@@ -115,8 +115,8 @@
       'animation-trigger-timeline': 'view()',
       'animation-trigger-range-start': 'normal',
       'animation-trigger-range-end': 'normal',
-      'animation-trigger-exit-range-start': 'normal',
-      'animation-trigger-exit-range-end': 'normal',
+      'animation-trigger-exit-range-start': 'auto',
+      'animation-trigger-exit-range-end': 'auto',
     });
   test_shorthand_value('animation-trigger', 'repeat',
     {
@@ -124,8 +124,8 @@
       'animation-trigger-timeline': 'auto',
       'animation-trigger-range-start': 'normal',
       'animation-trigger-range-end': 'normal',
-      'animation-trigger-exit-range-start': 'normal',
-      'animation-trigger-exit-range-end': 'normal',
+      'animation-trigger-exit-range-start': 'auto',
+      'animation-trigger-exit-range-end': 'auto',
     });
   test_computed_value('animation-trigger',
     'view() once contain 0% contain 100% cover 0% cover 100%',
@@ -140,8 +140,8 @@
     'view() once contain 20% contain 80% cover 10% cover');
   test_computed_value('animation-trigger',
       'view() once contain 0% contain 100%',
-      'view() once contain contain normal normal');
+      'view() once contain contain auto auto');
   test_computed_value('animation-trigger',
       'view() once',
-      'view() once normal normal normal normal');
+      'view() once normal normal auto auto');
 </script>

@@ -5,6 +5,7 @@
 use std::sync::Arc;
 
 use base::id::PipelineId;
+use constellation_traits::{ScriptToConstellationChan, ScriptToConstellationMessage};
 use crossbeam_channel::Sender;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
@@ -14,20 +15,24 @@ use js::rust::Runtime;
 use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
 use profile_traits::{mem, time};
-use script_traits::{Painter, ScriptToConstellationChan, ScriptToConstellationMessage};
+use script_bindings::realms::InRealm;
+use script_traits::Painter;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::CustomTraceable;
+use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::paintworkletglobalscope::{PaintWorkletGlobalScope, PaintWorkletTask};
+#[cfg(feature = "testbinding")]
 use crate::dom::testworkletglobalscope::{TestWorkletGlobalScope, TestWorkletTask};
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worklet::WorkletExecutor;
 use crate::messaging::MainThreadScriptMsg;
+use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, JSContext};
 
@@ -55,7 +60,8 @@ impl WorkletGlobalScope {
         executor: WorkletExecutor,
         init: &WorkletGlobalScopeInit,
     ) -> DomRoot<WorkletGlobalScope> {
-        match scope_type {
+        let scope: DomRoot<WorkletGlobalScope> = match scope_type {
+            #[cfg(feature = "testbinding")]
             WorkletGlobalScopeType::Test => DomRoot::upcast(TestWorkletGlobalScope::new(
                 runtime,
                 pipeline_id,
@@ -70,7 +76,12 @@ impl WorkletGlobalScope {
                 executor,
                 init,
             )),
-        }
+        };
+
+        let realm = enter_realm(&*scope);
+        define_all_exposed_interfaces(scope.upcast(), InRealm::entered(&realm), CanGc::note());
+
+        scope
     }
 
     /// Create a new stack-allocated `WorkletGlobalScope`.
@@ -154,6 +165,7 @@ impl WorkletGlobalScope {
     /// Perform a worklet task
     pub(crate) fn perform_a_worklet_task(&self, task: WorkletTask) {
         match task {
+            #[cfg(feature = "testbinding")]
             WorkletTask::Test(task) => match self.downcast::<TestWorkletGlobalScope>() {
                 Some(global) => global.perform_a_worklet_task(task),
                 None => warn!("This is not a test worklet."),
@@ -194,6 +206,7 @@ pub(crate) struct WorkletGlobalScopeInit {
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf)]
 pub(crate) enum WorkletGlobalScopeType {
     /// A servo-specific testing worklet
+    #[cfg(feature = "testbinding")]
     Test,
     /// A paint worklet
     Paint,
@@ -201,6 +214,7 @@ pub(crate) enum WorkletGlobalScopeType {
 
 /// A task which can be performed in the context of a worklet global.
 pub(crate) enum WorkletTask {
+    #[cfg(feature = "testbinding")]
     Test(TestWorkletTask),
     Paint(PaintWorkletTask),
 }

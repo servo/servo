@@ -19,16 +19,18 @@ use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+use actors::source::SourceData;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, ConsoleMessage, ConsoleMessageBuilder, DevtoolScriptControlMsg,
     DevtoolsControlMsg, DevtoolsPageInfo, LogLevel, NavigationState, NetworkEvent, PageError,
-    ScriptToDevtoolsControlMsg, WorkerId,
+    ScriptToDevtoolsControlMsg, SourceInfo, WorkerId,
 };
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
 use ipc_channel::ipc::{self, IpcSender};
 use log::trace;
+use resource::ResourceAvailable;
 use serde::Serialize;
 use servo_rand::RngCore;
 
@@ -51,6 +53,7 @@ use crate::protocol::JsonPacketStream;
 mod actor;
 /// <https://searchfox.org/mozilla-central/source/devtools/server/actors>
 mod actors {
+    pub mod breakpoint;
     pub mod browsing_context;
     pub mod console;
     pub mod device;
@@ -64,6 +67,7 @@ mod actors {
     pub mod process;
     pub mod reflow;
     pub mod root;
+    pub mod source;
     pub mod stylesheets;
     pub mod tab;
     pub mod thread;
@@ -74,6 +78,7 @@ mod actors {
 mod id;
 mod network_handler;
 mod protocol;
+mod resource;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 enum UniqueId {
@@ -247,6 +252,10 @@ impl DevtoolsInstance {
                     console_message,
                     worker_id,
                 )) => self.handle_console_message(pipeline_id, worker_id, console_message),
+                DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ScriptSourceLoaded(
+                    pipeline_id,
+                    source_info,
+                )) => self.handle_script_source_info(pipeline_id, source_info),
                 DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ReportPageError(
                     pipeline_id,
                     page_error,
@@ -329,7 +338,7 @@ impl DevtoolsInstance {
             assert!(self.pipelines.contains_key(&pipeline_id));
             assert!(self.browsing_contexts.contains_key(&browsing_context_id));
 
-            let thread = ThreadActor::new(actors.new_name("context"));
+            let thread = ThreadActor::new(actors.new_name("thread"));
             let thread_name = thread.name();
             actors.register(Box::new(thread));
 
@@ -406,7 +415,7 @@ impl DevtoolsInstance {
     }
 
     fn handle_page_error(
-        &self,
+        &mut self,
         pipeline_id: PipelineId,
         worker_id: Option<WorkerId>,
         page_error: PageError,
@@ -418,11 +427,13 @@ impl DevtoolsInstance {
         let actors = self.actors.lock().unwrap();
         let console_actor = actors.find::<ConsoleActor>(&console_actor_name);
         let id = worker_id.map_or(UniqueId::Pipeline(pipeline_id), UniqueId::Worker);
-        console_actor.handle_page_error(page_error, id, &actors);
+        for stream in self.connections.values_mut() {
+            console_actor.handle_page_error(page_error.clone(), id.clone(), &actors, stream);
+        }
     }
 
     fn handle_console_message(
-        &self,
+        &mut self,
         pipeline_id: PipelineId,
         worker_id: Option<WorkerId>,
         console_message: ConsoleMessage,
@@ -434,7 +445,9 @@ impl DevtoolsInstance {
         let actors = self.actors.lock().unwrap();
         let console_actor = actors.find::<ConsoleActor>(&console_actor_name);
         let id = worker_id.map_or(UniqueId::Pipeline(pipeline_id), UniqueId::Worker);
-        console_actor.handle_console_api(console_message, id, &actors);
+        for stream in self.connections.values_mut() {
+            console_actor.handle_console_api(console_message.clone(), id.clone(), &actors, stream);
+        }
     }
 
     fn find_console_actor(
@@ -496,6 +509,65 @@ impl DevtoolsInstance {
                 actors.register(Box::new(actor));
                 actor_name
             },
+        }
+    }
+
+    fn handle_script_source_info(&mut self, pipeline_id: PipelineId, source_info: SourceInfo) {
+        let mut actors = self.actors.lock().unwrap();
+
+        if let Some(worker_id) = source_info.worker_id {
+            let Some(worker_actor_name) = self.actor_workers.get(&worker_id) else {
+                return;
+            };
+
+            let thread_actor_name = actors.find::<WorkerActor>(worker_actor_name).thread.clone();
+
+            let thread_actor = actors.find_mut::<ThreadActor>(&thread_actor_name);
+            thread_actor
+                .source_manager
+                .add_source(source_info.url.clone());
+
+            let source = SourceData {
+                actor: thread_actor_name.clone(),
+                url: source_info.url.to_string(),
+                is_black_boxed: false,
+            };
+
+            let worker_actor = actors.find::<WorkerActor>(worker_actor_name);
+
+            for stream in self.connections.values_mut() {
+                worker_actor.resource_available(&source, "source".into(), stream);
+            }
+        } else {
+            let Some(browsing_context_id) = self.pipelines.get(&pipeline_id) else {
+                return;
+            };
+            let Some(actor_name) = self.browsing_contexts.get(browsing_context_id) else {
+                return;
+            };
+
+            let thread_actor_name = actors
+                .find::<BrowsingContextActor>(actor_name)
+                .thread
+                .clone();
+
+            let thread_actor = actors.find_mut::<ThreadActor>(&thread_actor_name);
+            thread_actor
+                .source_manager
+                .add_source(source_info.url.clone());
+
+            let source = SourceData {
+                actor: thread_actor_name.clone(),
+                url: source_info.url.to_string(),
+                is_black_boxed: false,
+            };
+
+            // Notify browsing context about the new source
+            let browsing_context = actors.find::<BrowsingContextActor>(actor_name);
+
+            for stream in self.connections.values_mut() {
+                browsing_context.resource_available(&source, "source".into(), stream);
+            }
         }
     }
 }

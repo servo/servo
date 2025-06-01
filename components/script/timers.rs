@@ -24,10 +24,12 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::Dom;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::document::FakeRequestAnimationFrameCallback;
+use crate::dom::document::{
+    FakeRequestAnimationFrameCallback, ImageAnimationUpdateCallback, RefreshRedirectDue,
+};
 use crate::dom::eventsource::EventSourceTimeoutCallback;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlmetaelement::RefreshRedirectDue;
+#[cfg(feature = "testbinding")]
 use crate::dom::testbinding::TestBindingCallback;
 use crate::dom::types::{Window, WorkerGlobalScope};
 use crate::dom::xmlhttprequest::XHRTimeoutCallback;
@@ -79,9 +81,11 @@ pub(crate) enum OneshotTimerCallback {
     XhrTimeout(XHRTimeoutCallback),
     EventSourceTimeout(EventSourceTimeoutCallback),
     JsTimer(JsTimerTask),
+    #[cfg(feature = "testbinding")]
     TestBindingCallback(TestBindingCallback),
     FakeRequestAnimationFrame(FakeRequestAnimationFrameCallback),
     RefreshRedirectDue(RefreshRedirectDue),
+    ImageAnimationUpdate(ImageAnimationUpdateCallback),
 }
 
 impl OneshotTimerCallback {
@@ -90,9 +94,11 @@ impl OneshotTimerCallback {
             OneshotTimerCallback::XhrTimeout(callback) => callback.invoke(can_gc),
             OneshotTimerCallback::EventSourceTimeout(callback) => callback.invoke(),
             OneshotTimerCallback::JsTimer(task) => task.invoke(this, js_timers, can_gc),
+            #[cfg(feature = "testbinding")]
             OneshotTimerCallback::TestBindingCallback(callback) => callback.invoke(),
             OneshotTimerCallback::FakeRequestAnimationFrame(callback) => callback.invoke(can_gc),
             OneshotTimerCallback::RefreshRedirectDue(callback) => callback.invoke(can_gc),
+            OneshotTimerCallback::ImageAnimationUpdate(callback) => callback.invoke(can_gc),
         }
     }
 }
@@ -422,8 +428,7 @@ impl JsTimers {
     ) -> i32 {
         let callback = match callback {
             TimerCallback::StringTimerCallback(code_str) => {
-                let cx = GlobalScope::get_cx();
-                if global.is_js_evaluation_allowed(cx) {
+                if global.is_js_evaluation_allowed(code_str.as_ref()) {
                     InternalTimerCallback::StringTimerCallback(code_str)
                 } else {
                     return 0;

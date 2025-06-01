@@ -1,85 +1,70 @@
 <!doctype html>
-<html>
-<head>
-<title>The pointerout event should not be fired if the pointer doesn't move</title>
+<title>
+  Layout change under a stationary pointer fires boundary events and no pointermove event
+</title>
 <meta name="viewport" content="width=device-width">
-<link rel="help" href="https://github.com/w3c/pointerevents/issues/457">
+<link rel="help"
+  href="https://w3c.github.io/pointerevents/#boundary-events-caused-by-layout-changes">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="pointerevent_support.js"></script>
 <style>
-#target{
-  width:100px;
-  height:100px;
-  background-color:red;
-}
+  div {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 50px;
+    height: 50px;
+  }
 
-#overlay{
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background-color: rgba(0,0,0,0.2);
-  z-index: 1000;
-  text-align: center;
-  display:none;
-}
+  #overlay {
+    z-index: 1000;
+    display: none;
+  }
+
+  #log {
+    display: none; /* Required to run this test alone */
+  }
 </style>
-</head>
-<body>
-<h1>The pointerout event should not be fired if the pointer doesn't move</h1>
-<h4>
-  Test Description: This test checks if the pointerout event dispatched unexpectedly.
-  <ol>
-    <li>Click on the black rectangle.
-    <li>Don't move mouse after clicking.
-  </ol>
-</h4>
-<p>
 <div id="target"></div>
 <div id="overlay"></div>
-<div id="log"></div>
 <script>
-function waitForAnimationFrame() {
-  return new Promise(resolve => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(resolve);
-    });
-  });
-}
+  "use strict";
 
-promise_test(async () => {
   const target = document.getElementById("target");
+  const overlay = document.getElementById("overlay");
 
-  let out_event_count = 0;
-  target.addEventListener("pointerout", function() {
-    out_event_count++;
+  let logging_active = false;
+  let num_pointermoves = 0;
+
+  target.addEventListener("click", () => logging_active = true);
+  target.addEventListener("pointermove", () => {
+    if (logging_active) num_pointermoves++;
   });
 
-  // Wait for the click event on target element and update display style on
-  // overlay element.
-  const promise = new Promise(resolve => {
-    target.addEventListener("click", async function() {
-      const overlay = document.getElementById("overlay");
-      overlay.style.display= 'block';
-      await waitForAnimationFrame();
+  promise_test(async t => {
+    await test_driver.click(target);
 
-      overlay.style.display= 'none'
-      await waitForAnimationFrame();
+    num_pointermoves = 0;
+    let pointerout_promise = getEvent("pointerout", target);
+    overlay.style.display = "block";
+    await pointerout_promise;
+    assert_equals(num_pointermoves, 0, "no pointermove events are expected");
+  }, "Layout change under a stationary pointer (a new element appears) fires boundary events and no pointermove event");
 
-      resolve();
-    }, { once: true });
-  });
 
-  // Click target.
-  test_driver.click(target);
-  await promise;
+  promise_test(async t => {
+    await test_driver.click(overlay);
 
-  assert_equals(out_event_count, 0, "The pointerout event should not be fired");
-}, "The pointerout event should not be fired if the pointer doesn't move");
+    num_pointermoves = 0;
+    let pointerover_promise = getEvent("pointerover", target);
+    overlay.style.display = "none";
+    await pointerover_promise;
+    assert_equals(num_pointermoves, 0, "no pointermove events are expected");
+
+    document.querySelector("style").remove(); // Show the test log if running alone.
+  }, "Layout change under a stationary pointer (the element disappears) fires boundary events and no pointermove event");
 </script>
-</body>
-</html>

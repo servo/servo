@@ -141,8 +141,9 @@ impl HTMLCollection {
         window: &Window,
         root: &Node,
         filter: Box<dyn CollectionFilter + 'static>,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        Self::new(window, root, filter, CanGc::note())
+        Self::new(window, root, filter, can_gc)
     }
 
     fn validate_cache(&self) {
@@ -177,7 +178,7 @@ impl HTMLCollection {
         window: &Window,
         root: &Node,
         qualified_name: LocalName,
-        _can_gc: CanGc,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLCollection> {
         // case 1
         if qualified_name == local_name!("*") {
@@ -188,7 +189,7 @@ impl HTMLCollection {
                     true
                 }
             }
-            return HTMLCollection::create(window, root, Box::new(AllFilter));
+            return HTMLCollection::create(window, root, Box::new(AllFilter), can_gc);
         }
 
         #[derive(JSTraceable, MallocSizeOf)]
@@ -214,7 +215,7 @@ impl HTMLCollection {
             ascii_lower_qualified_name: qualified_name.to_ascii_lowercase(),
             qualified_name,
         };
-        HTMLCollection::create(window, root, Box::new(filter))
+        HTMLCollection::create(window, root, Box::new(filter), can_gc)
     }
 
     fn match_element(elem: &Element, qualified_name: &LocalName) -> bool {
@@ -245,7 +246,7 @@ impl HTMLCollection {
         window: &Window,
         root: &Node,
         qname: QualName,
-        _can_gc: CanGc,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLCollection> {
         #[derive(JSTraceable, MallocSizeOf)]
         struct TagNameNSFilter {
@@ -260,7 +261,7 @@ impl HTMLCollection {
             }
         }
         let filter = TagNameNSFilter { qname };
-        HTMLCollection::create(window, root, Box::new(filter))
+        HTMLCollection::create(window, root, Box::new(filter), can_gc)
     }
 
     pub(crate) fn by_class_name(
@@ -302,7 +303,7 @@ impl HTMLCollection {
         }
 
         let filter = ClassNameFilter { classes };
-        HTMLCollection::create(window, root, Box::new(filter))
+        HTMLCollection::create(window, root, Box::new(filter), can_gc)
     }
 
     pub(crate) fn children(window: &Window, root: &Node, can_gc: CanGc) -> DomRoot<HTMLCollection> {

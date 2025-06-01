@@ -29,16 +29,16 @@ import getopt
 
 
 def print_help():
-
-    print('\nPlease enter the command as shown below: \n')
-    print('python3 ./etc/servo_automation_screenshot.py -p <port>'
-          + ' -i /path/to/folder/containing/files -r <resolution>'
-          + ' -n num_of_files\n')
+    print("\nPlease enter the command as shown below: \n")
+    print(
+        "python3 ./etc/servo_automation_screenshot.py -p <port>"
+        + " -i /path/to/folder/containing/files -r <resolution>"
+        + " -n num_of_files\n"
+    )
 
 
 def servo_ready_to_accept(url, payload, headers):
-    while (True):
-
+    while True:
         try:
             # Before sending an additional request, we wait for one second each time
             time.sleep(1)
@@ -48,45 +48,46 @@ def servo_ready_to_accept(url, payload, headers):
             break
         except Exception as e:
             time.sleep(5)
-            print('Exception: ', e)
+            print("Exception: ", e)
     return json_string
 
 
 def ensure_screenshots_directory_exists():
-    if not os.path.exists('screenshots'):
-        os.makedirs('screenshots')
+    if not os.path.exists("screenshots"):
+        os.makedirs("screenshots")
 
 
 def render_html_files(num_of_files, url, file_url, json_string, headers, cwd):
     for x in range(num_of_files):
-
         json_data = {}
-        json_data['url'] = 'file://{0}file{1}.html'.format(file_url, str(x))
-        print(json_data['url'])
+        json_data["url"] = "file://{0}file{1}.html".format(file_url, str(x))
+        print(json_data["url"])
         json_data = json.dumps(json_data)
-        requests.post('{0}/{1}/url'.format(url, json_string['value']['sessionId']), data=json_data, headers=headers)
-        screenshot_request = requests.get('{0}/{1}/screenshot'.format(url, json_string['value']['sessionId']))
-        image_data_encoded = screenshot_request.json()['value']
+        requests.post("{0}/{1}/url".format(url, json_string["value"]["sessionId"]), data=json_data, headers=headers)
+        screenshot_request = requests.get("{0}/{1}/screenshot".format(url, json_string["value"]["sessionId"]))
+        image_data_encoded = screenshot_request.json()["value"]
         with open("screenshots/output_image_{0}.png".format(str(x)), "wb") as image_file:
-            image_file.write(base64.decodebytes(image_data_encoded.encode('utf-8')))
+            image_file.write(base64.decodebytes(image_data_encoded.encode("utf-8")))
         print("################################")
-        print("The screenshot is stored in the location: {0}/screenshots/"
-              " with filename: output_image_{1}.png".format(cwd, str(x)))
+        print(
+            "The screenshot is stored in the location: {0}/screenshots/ with filename: output_image_{1}.png".format(
+                cwd, str(x)
+            )
+        )
         print("################################")
 
 
 def main(argv):  # take inputs from command line by considering the options parameter i.e -h, -p etc.
-
     # Local Variables
-    port = ''
-    resolution = ''
-    file_url = ''
-    num_of_files = ''
+    port = ""
+    resolution = ""
+    file_url = ""
+    num_of_files = ""
     cwd = os.getcwd()
-    url = ''
+    url = ""
     payload = "{}"
-    headers = {'content-type': 'application/json', 'Accept-Charset': 'UTF-8'}
-    json_string = ''
+    headers = {"content-type": "application/json", "Accept-Charset": "UTF-8"}
+    json_string = ""
     try:
         # input options defined here.
         opts, args = getopt.getopt(argv, "p:i:r:n:", ["port=", "ifile=", "resolution=", "num-files="])
@@ -96,7 +97,7 @@ def main(argv):  # take inputs from command line by considering the options para
         print_help()
         sys.exit(2)
     for opt, arg in opts:
-        if opt == '-h':  # -h means help. Displays how to input command line arguments
+        if opt == "-h":  # -h means help. Displays how to input command line arguments
             print_help()
             sys.exit()
         elif opt in ("-p", "--port"):  # store the value provided with the option -p in port variable.
@@ -108,7 +109,7 @@ def main(argv):  # take inputs from command line by considering the options para
         elif opt in ("-n", "--num-files"):  # store the value provided with the option -n in num_of_files variable.
             num_of_files = arg
 
-    url = 'http://localhost:{0}/session'.format(port)
+    url = "http://localhost:{0}/session".format(port)
     num_of_files = int(num_of_files)
 
     # Starting servo on specified port

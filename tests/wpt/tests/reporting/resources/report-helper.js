@@ -40,7 +40,9 @@ function checkReportExists(reports, type, url) {
 function getReport(reports, type, document_url, subresource_url) {
   for (const report of reports) {
     if (report.type !== type) continue;
-    if (report.body.documentURL === document_url && report.body.subresourceURL == subresource_url) return report;
+    if (report.body.documentURL === document_url
+        && (report.body.subresourceURL == subresource_url
+           || report.body.blockedURL == subresource_url)) return report;
   }
   return null;
 }

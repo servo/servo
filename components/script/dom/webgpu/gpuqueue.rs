@@ -200,7 +200,9 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     fn OnSubmittedWorkDone(&self, can_gc: CanGc) -> Rc<Promise> {
         let global = self.global();
         let promise = Promise::new(&global, can_gc);
-        let sender = route_promise(&promise, self);
+        let task_source = global.task_manager().dom_manipulation_task_source();
+        let sender = route_promise(&promise, self, task_source);
+
         if let Err(e) = self
             .channel
             .0

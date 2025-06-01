@@ -5,9 +5,9 @@
 use std::default::Default;
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
+use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
-use pixels::Image;
+use pixels::RasterImage;
 use servo_arc::Arc;
 
 use crate::dom::attr::Attr;
@@ -31,7 +31,7 @@ pub(crate) struct HTMLObjectElement {
     htmlelement: HTMLElement,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
-    image: DomRefCell<Option<Arc<Image>>>,
+    image: DomRefCell<Option<Arc<RasterImage>>>,
     form_owner: MutNullableDom<HTMLFormElement>,
     validity_state: MutNullableDom<ValidityState>,
 }

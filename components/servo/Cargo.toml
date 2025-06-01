@@ -17,6 +17,7 @@ bluetooth = [
     "bluetooth_traits",
     "dep:bluetooth",
     "constellation/bluetooth",
+    "constellation_traits/bluetooth",
     "script/bluetooth",
     "script_traits/bluetooth",
 ]
@@ -28,30 +29,38 @@ background_hang_monitor = ["background_hang_monitor/sampler"]
 jitspew = ["script/jitspew"]
 js_backtrace = ["script/js_backtrace"]
 media-gstreamer = ["servo-media-gstreamer", "gstreamer"]
-multiview = ["compositing/multiview", "constellation/multiview"]
 native-bluetooth = ["bluetooth/native-bluetooth"]
-no-wgl = ["mozangle/egl", "mozangle/build_dlls", "surfman/sm-angle-default", "webrender_traits/no-wgl"]
+no-wgl = ["mozangle/egl", "mozangle/build_dlls", "surfman/sm-angle-default", "compositing_traits/no-wgl"]
 dynamic_freetype = ["webrender/dynamic_freetype"]
 profilemozjs = ["script/profilemozjs"]
 refcell_backtrace = ["script/refcell_backtrace"]
-tracing = ["dep:tracing", "compositing/tracing", "constellation/tracing", "fonts/tracing", "layout_thread_2020/tracing", "profile_traits/tracing", "script/tracing"]
+testbinding = ["script/testbinding"]
+tracing = [
+    "dep:tracing",
+    "compositing/tracing",
+    "constellation/tracing",
+    "fonts/tracing",
+    "layout/tracing",
+    "profile_traits/tracing",
+    "script/tracing",
+]
 webdriver = ["webdriver_server"]
 webgl_backtrace = [
     "script/webgl_backtrace",
-    "canvas/webgl_backtrace",
+    "webgl/webgl_backtrace",
     "canvas_traits/webgl_backtrace",
 ]
 webxr = [
     "dep:webxr",
     "dep:webxr-api",
     "compositing/webxr",
-    "embedder_traits/webxr",
-    "canvas/webxr",
+    "webgl/webxr",
     "script/webxr",
 ]
 webgpu = [
     "script/webgpu",
     "constellation/webgpu",
+    "constellation_traits/webgpu",
 ]
 
 [dependencies]
@@ -60,9 +69,9 @@ base = { workspace = true }
 bincode = { workspace = true }
 bluetooth = { path = "../bluetooth", optional = true }
 bluetooth_traits = { workspace = true, optional = true }
-canvas = { path = "../canvas", default-features = false }
+canvas = { path = "../canvas" }
+webgl = { path = "../webgl", default-features = false }
 canvas_traits = { workspace = true }
-cfg-if = { workspace = true }
 compositing = { path = "../compositing" }
 compositing_traits = { workspace = true }
 constellation = { path = "../constellation" }
@@ -79,7 +88,7 @@ gleam = { workspace = true }
 gstreamer = { workspace = true, optional = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
-layout_thread_2020 = { path = "../layout_thread_2020" }
+layout = { path = "../layout" }
 log = { workspace = true }
 media = { path = "../media" }
 mozangle = { workspace = true }
@@ -96,6 +105,8 @@ serde = { workspace = true }
 servo-media = { workspace = true }
 servo-media-dummy = { workspace = true }
 servo-media-gstreamer = { workspace = true, optional = true }
+servo-tracing = { workspace = true }
+servo_allocator = { path = "../allocator" }
 servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
@@ -108,7 +119,6 @@ webdriver_server = { path = "../webdriver_server", optional = true }
 webgpu = { path = "../webgpu" }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
-webrender_traits = { workspace = true }
 webxr-api = { workspace = true, optional = true }
 
 [target.'cfg(any(target_os = "android", target_env = "ohos"))'.dependencies]
@@ -125,8 +135,18 @@ gaol = "0.2.1"
 webxr = { path = "../webxr", features = ["ipc", "glwindow", "headless", "openxr-api"] }
 
 [dev-dependencies]
+anyhow = "1.0.97"
 http = { workspace = true }
 libservo = { path = ".", features = ["tracing"] }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs"] }
 tracing = { workspace = true }
 winit = "0.30.8"
+
+
+[[test]]
+name = "webview"
+harness = false
+
+[[test]]
+name = "servo"
+harness = false

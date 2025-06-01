@@ -234,6 +234,7 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
         flags: &ValidityStateFlags,
         message: Option<DOMString>,
         anchor: Option<&HTMLElement>,
+        can_gc: CanGc,
     ) -> ErrorResult {
         // Steps 1-2: Check form-associated custom element
         if !self.is_target_form_associated() {
@@ -253,7 +254,7 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
         // Step 4: For each entry `flag` → `value` of `flags`, set element's validity flag with the name
         // `flag` to `value`.
         self.validity_state().update_invalid_flags(bits);
-        self.validity_state().update_pseudo_classes(CanGc::note());
+        self.validity_state().update_pseudo_classes(can_gc);
 
         // Step 5: Set element's validation message to the empty string if message is not given
         // or all of element's validity flags are false, or to message otherwise.
@@ -309,7 +310,7 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-labels>
-    fn GetLabels(&self) -> Fallible<DomRoot<NodeList>> {
+    fn GetLabels(&self, can_gc: CanGc) -> Fallible<DomRoot<NodeList>> {
         if !self.is_target_form_associated() {
             return Err(Error::NotSupported);
         }
@@ -317,7 +318,7 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
             NodeList::new_labels_list(
                 self.target_element.upcast::<Node>().owner_doc().window(),
                 &self.target_element,
-                CanGc::note(),
+                can_gc,
             )
         }))
     }

@@ -16,16 +16,11 @@
     height: 50%;
     background: cyan;
   }
-  #container.thicker > .pos {
-    border-width: thick;
-  }
 </style>
 <div id="scrollable" style="position:relative; overflow:scroll; scrollbar-width:none; width:500px; height:500px; background:yellow;">
-  <div style="width:2000px; height:2000px;">
-    <div id="container">
-      <div style="anchor-name:--anchor; margin:200px; width:50px; height:1000px; background:gray;"></div>
-      <div id="anchored" style="position-area:top left;"></div>
-    </div>
+  <div style="display: flow-root; width:2000px; height:2000px;">
+    <div style="anchor-name:--anchor; margin:200px; width:50px; height:1000px; background:gray;"></div>
+    <div id="anchored" style="position-area:top left;"></div>
   </div>
 </div>
 <script>

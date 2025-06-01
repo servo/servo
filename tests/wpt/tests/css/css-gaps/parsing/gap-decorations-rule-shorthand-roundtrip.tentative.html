@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Gap Decorations: *rule properties round trips properly</title>
+  <link rel="help" href="https://drafts.csswg.org/css-multicol/#propdef-column-rule">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+  <div id="target"></div>
+<script>
+const rule_properties = ['column-rule', 'row-rule', 'rule']
+for(let rule_property of rule_properties) {
+  let div = document.querySelector('#target');
+  const computed_rule_serialization = window.getComputedStyle(div)[rule_property];
+  div.style[rule_property] = computed_rule_serialization;
+
+  test(() => {
+    assert_equals(computed_rule_serialization, div.style[rule_property]);
+    }, `${rule_property} round trips properly.`);
+}
+</script>

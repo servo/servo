@@ -6,13 +6,13 @@
 
 use std::borrow::Cow;
 use std::fmt::Debug;
-use std::sync::Arc as StdArc;
 
 use atomic_refcell::AtomicRef;
 use base::id::{BrowsingContextId, PipelineId};
 use fonts_traits::ByteIndex;
 use html5ever::{LocalName, Namespace};
-use pixels::{Image, ImageMetadata};
+use net_traits::image_cache::Image;
+use pixels::ImageMetadata;
 use range::Range;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
@@ -25,11 +25,11 @@ use style::selector_parser::{PseudoElement, PseudoElementCascadeType, SelectorIm
 use style::stylist::RuleInclusion;
 
 use crate::{
-    FragmentType, GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutNodeType, SVGSVGData,
-    StyleData,
+    FragmentType, GenericLayoutData, GenericLayoutDataTrait, HTMLCanvasData, HTMLMediaData,
+    LayoutNodeType, SVGSVGData, StyleData,
 };
 
-pub trait LayoutDataTrait: Default + Send + Sync + 'static {}
+pub trait LayoutDataTrait: GenericLayoutDataTrait + Default + Send + Sync + 'static {}
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
 /// only ever see these and must never see instances of `LayoutDom`.
@@ -212,7 +212,7 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
 
     fn node_text_content(self) -> Cow<'dom, str>;
 
-    /// If the insertion point is within this node, returns it. Otherwise, returns `None`.
+    /// If selection intersects this node, return it. Otherwise, returns `None`.
     fn selection(&self) -> Option<Range<ByteIndex>>;
 
     /// If this is an image element, returns its URL. If this is not an image element, fails.
@@ -222,7 +222,7 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
     fn image_density(&self) -> Option<f64>;
 
     /// If this is an image element, returns its image data. Otherwise, returns `None`.
-    fn image_data(&self) -> Option<(Option<StdArc<Image>>, Option<ImageMetadata>)>;
+    fn image_data(&self) -> Option<(Option<Image>, Option<ImageMetadata>)>;
 
     fn canvas_data(&self) -> Option<HTMLCanvasData>;
 
@@ -361,22 +361,6 @@ pub trait ThreadSafeLayoutElement<'dom>:
             .get(&PseudoElement::Selection)
             .unwrap_or(data.styles.primary())
             .clone()
-    }
-
-    /// Returns the already resolved style of the node.
-    ///
-    /// This differs from `style(ctx)` in that if the pseudo-element has not yet
-    /// been computed it would panic.
-    ///
-    /// This should be used just for querying layout, or when we know the
-    /// element style is precomputed, not from general layout itself.
-    #[inline]
-    fn resolved_style(&self) -> Arc<ComputedValues> {
-        let data = self.style_data();
-        match self.pseudo_element() {
-            None => data.styles.primary().clone(),
-            Some(pseudo_element) => data.styles.pseudos.get(&pseudo_element).unwrap().clone(),
-        }
     }
 
     fn is_shadow_host(&self) -> bool;

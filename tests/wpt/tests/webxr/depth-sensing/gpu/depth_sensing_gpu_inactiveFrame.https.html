@@ -15,8 +15,8 @@ const fakeDeviceInitParams = {
   supportedFeatures: ALL_FEATURES,
 };
 
-xr_session_promise_test("Ensures getDepthInformation() throws when not run in an active frame, `gpu-optimized`",
-  testFunctionGenerator(/*isCpuOptimized=*/false),
+xr_session_promise_test("Ensures appropriate depth methods and attributes throw when not run in an active frame, `gpu-optimized`",
+  inactiveFrameTestFunction,
   fakeDeviceInitParams,
   'immersive-ar', {
     requiredFeatures: ['depth-sensing'],

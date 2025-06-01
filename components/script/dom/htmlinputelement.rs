@@ -12,9 +12,13 @@ use std::str::FromStr;
 use std::{f64, ptr};
 
 use dom_struct::dom_struct;
-use embedder_traits::{FilterPattern, InputMethodType};
+use embedder_traits::{
+    EmbedderMsg, FilterPattern, FormControl as EmbedderFormControl, InputMethodType, RgbColor,
+};
 use encoding_rs::Encoding;
-use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
+use euclid::{Point2D, Rect, Size2D};
+use html5ever::{LocalName, Prefix, local_name, ns};
+use ipc_channel::ipc;
 use js::jsapi::{
     ClippedTime, DateGetMsecSinceEpoch, Handle, JS_ClearPendingException, JSObject, NewDateObject,
     NewUCRegExpObject, ObjectIsDate, RegExpFlag_UnicodeSets, RegExpFlags,
@@ -25,7 +29,9 @@ use js::rust::{HandleObject, MutableHandleObject};
 use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
 use net_traits::{CoreResourceMsg, IpcSend};
-use profile_traits::ipc;
+use script_bindings::codegen::GenericBindings::ShadowRootBinding::{
+    ShadowRootMode, SlotAssignmentMode,
+};
 use style::attr::AttrValue;
 use style::str::{split_commas, str_join};
 use stylo_atoms::Atom;
@@ -33,12 +39,12 @@ use stylo_dom::ElementState;
 use time::{Month, OffsetDateTime, Time};
 use unicode_bidi::{BidiClass, bidi_class};
 use url::Url;
+use webrender_api::units::DeviceIntRect;
 
-use super::bindings::str::{FromInputValueString, ToInputValueString};
 use crate::clipboard_provider::EmbedderClipboardProvider;
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
-use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::FileListBinding::FileListMethods;
@@ -48,30 +54,33 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, N
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
+use crate::dom::bindings::str::{DOMString, FromInputValueString, ToInputValueString, USVString};
 use crate::dom::clipboardevent::ClipboardEvent;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
+use crate::dom::element::{AttributeMutation, Element, ElementCreator, LayoutElementHelpers};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::filelist::{FileList, LayoutFileListHelpers};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmldatalistelement::HTMLDataListElement;
+use crate::dom::htmldivelement::HTMLDivElement;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::htmlformelement::{
     FormControl, FormDatum, FormDatumValue, FormSubmitterElement, HTMLFormElement, ResetFrom,
     SubmittedFrom,
 };
+use crate::dom::htmlstyleelement::HTMLStyleElement;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::{
     BindContext, CloneChildrenFlag, Node, NodeDamage, NodeTraits, ShadowIncluding, UnbindContext,
 };
 use crate::dom::nodelist::NodeList;
+use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
 use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
@@ -91,6 +100,96 @@ const DEFAULT_SUBMIT_VALUE: &str = "Submit";
 const DEFAULT_RESET_VALUE: &str = "Reset";
 const PASSWORD_REPLACEMENT_CHAR: char = '●';
 const DEFAULT_FILE_INPUT_VALUE: &str = "No file chosen";
+
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+/// Contains reference to text control inner editor and placeholder container element in the UA
+/// shadow tree for `<input type=text>`. The following is the structure of the shadow tree.
+///
+/// ```
+/// <input type="text">
+///     #shadow-root
+///         <div id="inner-container">
+///             <div id="input-editor"></div>
+///             <div id="input-placeholder"></div>
+///         </div>
+/// </input>
+/// ```
+// TODO(stevennovaryo): We are trying to use CSS to mimic Chrome and Firefox's layout for the <input> element.
+//                      But, this could be slower in performance and does have some discrepancies. For example,
+//                      they would try to vertically align <input> text baseline with the baseline of other
+//                      TextNode within an inline flow. Another example is the horizontal scroll.
+struct InputTypeTextShadowTree {
+    text_container: Dom<HTMLDivElement>,
+    placeholder_container: Dom<HTMLDivElement>,
+}
+
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+/// Contains references to the elements in the shadow tree for `<input type=range>`.
+///
+/// The shadow tree consists of a single div with the currently selected color as
+/// the background.
+struct InputTypeColorShadowTree {
+    color_value: Dom<HTMLDivElement>,
+}
+
+// FIXME: These styles should be inside UA stylesheet, but it is not possible without internal pseudo element support.
+const TEXT_TREE_STYLE: &str = "
+#input-editor::selection {
+    background: rgba(176, 214, 255, 1.0);
+    color: black;
+}
+
+:host:not(:placeholder-shown) #input-placeholder {
+    visibility: hidden !important
+}
+
+#input-editor {
+    overflow-wrap: normal;
+    pointer-events: auto;
+}
+
+#input-container {
+    position: relative;
+    height: 100%;
+    pointer-events: none;
+    display: flex;
+}
+
+#input-editor, #input-placeholder {
+    white-space: pre;
+    margin-block: auto !important;
+    inset-block: 0 !important;
+    block-size: fit-content !important;
+}
+
+#input-placeholder {
+    overflow: hidden !important;
+    position: absolute !important;
+    color: grey;
+    pointer-events: none !important;
+}
+";
+
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+#[non_exhaustive]
+enum ShadowTree {
+    Text(InputTypeTextShadowTree),
+    Color(InputTypeColorShadowTree),
+    // TODO: Add shadow trees for other input types (range etc) here
+}
+
+const COLOR_TREE_STYLE: &str = "
+#color-value {
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    border: 1px solid gray;
+    border-radius: 2px;
+}
+";
 
 /// <https://html.spec.whatwg.org/multipage/#attr-input-type>
 #[derive(Clone, Copy, Default, JSTraceable, PartialEq)]
@@ -172,8 +271,7 @@ impl InputType {
     fn is_textual(&self) -> bool {
         matches!(
             *self,
-            InputType::Color |
-                InputType::Date |
+            InputType::Date |
                 InputType::DatetimeLocal |
                 InputType::Email |
                 InputType::Hidden |
@@ -277,9 +375,16 @@ impl From<&Atom> for InputType {
 
 #[derive(Debug, PartialEq)]
 enum ValueMode {
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-value-value>
     Value,
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-value-default>
     Default,
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-value-default-on>
     DefaultOn,
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-value-filename>
     Filename,
 }
 
@@ -314,6 +419,7 @@ pub(crate) struct HTMLInputElement {
     form_owner: MutNullableDom<HTMLFormElement>,
     labels_node_list: MutNullableDom<NodeList>,
     validity_state: MutNullableDom<ValidityState>,
+    shadow_tree: DomRefCell<Option<ShadowTree>>,
 }
 
 #[derive(JSTraceable)]
@@ -372,6 +478,7 @@ impl HTMLInputElement {
             form_owner: Default::default(),
             labels_node_list: MutNullableDom::new(None),
             validity_state: Default::default(),
+            shadow_tree: Default::default(),
         }
     }
 
@@ -475,6 +582,7 @@ impl HTMLInputElement {
         let mut value = textinput.single_line_content().clone();
         self.sanitize_value(&mut value);
         textinput.set_content(value);
+        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
     fn does_minmaxlength_apply(&self) -> bool {
@@ -803,7 +911,7 @@ impl HTMLInputElement {
             .map(DomRoot::from_ref)
     }
 
-    // https://html.spec.whatwg.org/multipage/#suffering-from-being-missing
+    /// <https://html.spec.whatwg.org/multipage/#suffering-from-being-missing>
     fn suffers_from_being_missing(&self, value: &DOMString) -> bool {
         match self.input_type() {
             // https://html.spec.whatwg.org/multipage/#checkbox-state-(type%3Dcheckbox)%3Asuffering-from-being-missing
@@ -815,7 +923,16 @@ impl HTMLInputElement {
                 }
                 let mut is_required = self.Required();
                 let mut is_checked = self.Checked();
-                for other in radio_group_iter(self, self.radio_group_name().as_ref()) {
+                let root = self
+                    .upcast::<Node>()
+                    .GetRootNode(&GetRootNodeOptions::empty());
+                let form = self.form_owner();
+                for other in radio_group_iter(
+                    self,
+                    self.radio_group_name().as_ref(),
+                    form.as_deref(),
+                    &root,
+                ) {
                     is_required = is_required || other.Required();
                     is_checked = is_checked || other.Checked();
                 }
@@ -949,9 +1066,9 @@ impl HTMLInputElement {
         failed_flags
     }
 
-    // https://html.spec.whatwg.org/multipage/#suffering-from-an-underflow
-    // https://html.spec.whatwg.org/multipage/#suffering-from-an-overflow
-    // https://html.spec.whatwg.org/multipage/#suffering-from-a-step-mismatch
+    /// * <https://html.spec.whatwg.org/multipage/#suffering-from-an-underflow>
+    /// * <https://html.spec.whatwg.org/multipage/#suffering-from-an-overflow>
+    /// * <https://html.spec.whatwg.org/multipage/#suffering-from-a-step-mismatch>
     fn suffers_from_range_issues(&self, value: &DOMString) -> ValidationFlags {
         if value.is_empty() || !self.does_value_as_number_apply() {
             return ValidationFlags::empty();
@@ -1005,9 +1122,221 @@ impl HTMLInputElement {
 
         failed_flags
     }
+
+    /// Return a reference to the ShadowRoot that this element is a host of,
+    /// or create one if none exists.
+    fn shadow_root(&self, can_gc: CanGc) -> DomRoot<ShadowRoot> {
+        self.upcast::<Element>().shadow_root().unwrap_or_else(|| {
+            self.upcast::<Element>()
+                .attach_shadow(
+                    IsUserAgentWidget::Yes,
+                    ShadowRootMode::Closed,
+                    false,
+                    false,
+                    true,
+                    SlotAssignmentMode::Manual,
+                    can_gc,
+                )
+                .expect("Attaching UA shadow root failed")
+        })
+    }
+
+    fn create_text_shadow_tree(&self, can_gc: CanGc) {
+        let document = self.owner_document();
+        let shadow_root = self.shadow_root(can_gc);
+        Node::replace_all(None, shadow_root.upcast::<Node>(), can_gc);
+
+        let inner_container =
+            HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
+        inner_container
+            .upcast::<Element>()
+            .SetId(DOMString::from("input-container"), can_gc);
+        shadow_root
+            .upcast::<Node>()
+            .AppendChild(inner_container.upcast::<Node>(), can_gc)
+            .unwrap();
+
+        let placeholder_container =
+            HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
+        placeholder_container
+            .upcast::<Element>()
+            .SetId(DOMString::from("input-placeholder"), can_gc);
+        inner_container
+            .upcast::<Node>()
+            .AppendChild(placeholder_container.upcast::<Node>(), can_gc)
+            .unwrap();
+
+        let text_container = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
+        text_container
+            .upcast::<Element>()
+            .SetId(DOMString::from("input-editor"), can_gc);
+        text_container
+            .upcast::<Node>()
+            .set_text_control_inner_editor();
+        inner_container
+            .upcast::<Node>()
+            .AppendChild(text_container.upcast::<Node>(), can_gc)
+            .unwrap();
+
+        let style = HTMLStyleElement::new(
+            local_name!("style"),
+            None,
+            &document,
+            None,
+            ElementCreator::ScriptCreated,
+            can_gc,
+        );
+        // TODO(stevennovaryo): Either use UA stylesheet with internal pseudo element or preemptively parse
+        //                      the stylesheet to reduce the costly operation and avoid CSP related error.
+        style
+            .upcast::<Node>()
+            .SetTextContent(Some(DOMString::from(TEXT_TREE_STYLE)), can_gc);
+        shadow_root
+            .upcast::<Node>()
+            .AppendChild(style.upcast::<Node>(), can_gc)
+            .unwrap();
+
+        let _ = self
+            .shadow_tree
+            .borrow_mut()
+            .insert(ShadowTree::Text(InputTypeTextShadowTree {
+                text_container: text_container.as_traced(),
+                placeholder_container: placeholder_container.as_traced(),
+            }));
+    }
+
+    fn text_shadow_tree(&self, can_gc: CanGc) -> Ref<InputTypeTextShadowTree> {
+        let has_text_shadow_tree = self
+            .shadow_tree
+            .borrow()
+            .as_ref()
+            .is_some_and(|shadow_tree| matches!(shadow_tree, ShadowTree::Text(_)));
+        if !has_text_shadow_tree {
+            self.create_text_shadow_tree(can_gc);
+        }
+
+        let shadow_tree = self.shadow_tree.borrow();
+        Ref::filter_map(shadow_tree, |shadow_tree| {
+            let shadow_tree = shadow_tree.as_ref()?;
+            match shadow_tree {
+                ShadowTree::Text(text_tree) => Some(text_tree),
+                _ => None,
+            }
+        })
+        .ok()
+        .expect("UA shadow tree was not created")
+    }
+
+    fn create_color_shadow_tree(&self, can_gc: CanGc) {
+        let document = self.owner_document();
+        let shadow_root = self.shadow_root(can_gc);
+        Node::replace_all(None, shadow_root.upcast::<Node>(), can_gc);
+
+        let color_value = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
+        color_value
+            .upcast::<Element>()
+            .SetId(DOMString::from("color-value"), can_gc);
+        shadow_root
+            .upcast::<Node>()
+            .AppendChild(color_value.upcast::<Node>(), can_gc)
+            .unwrap();
+
+        let style = HTMLStyleElement::new(
+            local_name!("style"),
+            None,
+            &document,
+            None,
+            ElementCreator::ScriptCreated,
+            can_gc,
+        );
+        style
+            .upcast::<Node>()
+            .SetTextContent(Some(DOMString::from(COLOR_TREE_STYLE)), can_gc);
+        shadow_root
+            .upcast::<Node>()
+            .AppendChild(style.upcast::<Node>(), can_gc)
+            .unwrap();
+
+        let _ = self
+            .shadow_tree
+            .borrow_mut()
+            .insert(ShadowTree::Color(InputTypeColorShadowTree {
+                color_value: color_value.as_traced(),
+            }));
+    }
+
+    /// Get a handle to the shadow tree for this input, assuming it's [InputType] is `Color`.
+    ///
+    /// If the input is not currently a shadow host, a new shadow tree will be created.
+    ///
+    /// If the input is a shadow host for a different kind of shadow tree then the old
+    /// tree will be removed and a new one will be created.
+    fn color_shadow_tree(&self, can_gc: CanGc) -> Ref<InputTypeColorShadowTree> {
+        let has_color_shadow_tree = self
+            .shadow_tree
+            .borrow()
+            .as_ref()
+            .is_some_and(|shadow_tree| matches!(shadow_tree, ShadowTree::Color(_)));
+        if !has_color_shadow_tree {
+            self.create_color_shadow_tree(can_gc);
+        }
+
+        let shadow_tree = self.shadow_tree.borrow();
+        Ref::filter_map(shadow_tree, |shadow_tree| {
+            let shadow_tree = shadow_tree.as_ref()?;
+            match shadow_tree {
+                ShadowTree::Color(color_tree) => Some(color_tree),
+                _ => None,
+            }
+        })
+        .ok()
+        .expect("UA shadow tree was not created")
+    }
+
+    fn update_shadow_tree_if_needed(&self, can_gc: CanGc) {
+        match self.input_type() {
+            InputType::Text => {
+                let text_shadow_tree = self.text_shadow_tree(can_gc);
+                let value = self.Value();
+
+                // The addition of zero-width space here forces the text input to have an inline formatting
+                // context that might otherwise be trimmed if there's no text. This is important to ensure
+                // that the input element is at least as tall as the line gap of the caret:
+                // <https://drafts.csswg.org/css-ui/#element-with-default-preferred-size>.
+                //
+                // This is also used to ensure that the caret will still be rendered when the input is empty.
+                // TODO: Is there a less hacky way to do this?
+                let value_text = match value.is_empty() {
+                    false => value,
+                    true => "\u{200B}".into(),
+                };
+
+                text_shadow_tree
+                    .text_container
+                    .upcast::<Node>()
+                    .SetTextContent(Some(value_text), can_gc);
+            },
+            InputType::Color => {
+                let color_shadow_tree = self.color_shadow_tree(can_gc);
+                let mut value = self.Value();
+                if value.str().is_valid_simple_color_string() {
+                    value.make_ascii_lowercase();
+                } else {
+                    value = DOMString::from("#000000");
+                }
+                let style = format!("background-color: {value}");
+                color_shadow_tree
+                    .color_value
+                    .upcast::<Element>()
+                    .set_string_attribute(&local_name!("style"), style.into(), can_gc);
+            },
+            _ => {},
+        }
+    }
 }
 
 pub(crate) trait LayoutHTMLInputElementHelpers<'dom> {
+    /// Return a string that represents the contents of the element for layout.
     fn value_for_layout(self) -> Cow<'dom, str>;
     fn size_for_layout(self) -> u32;
     fn selection_for_layout(self) -> Option<Range<usize>>;
@@ -1066,16 +1395,15 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
                     Some(filelist) => {
                         let length = filelist.len();
                         if length == 0 {
-                            return DEFAULT_FILE_INPUT_VALUE.into();
-                        }
-                        if length == 1 {
+                            DEFAULT_FILE_INPUT_VALUE.into()
+                        } else if length == 1 {
                             match filelist.file_for_layout(0) {
-                                Some(file) => return file.name().to_string().into(),
-                                None => return DEFAULT_FILE_INPUT_VALUE.into(),
+                                Some(file) => file.name().to_string().into(),
+                                None => DEFAULT_FILE_INPUT_VALUE.into(),
                             }
+                        } else {
+                            format!("{} files", length).into()
                         }
-
-                        format!("{} files", length).into()
                     },
                     None => DEFAULT_FILE_INPUT_VALUE.into(),
                 }
@@ -1093,6 +1421,9 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
                 } else {
                     self.placeholder().into()
                 }
+            },
+            InputType::Color => {
+                unreachable!("Input type color is explicitly not rendered as text");
             },
             _ => {
                 let text = self.get_raw_textinput_value();
@@ -1169,11 +1500,11 @@ impl TextControlElement for HTMLInputElement {
             InputType::Week |
             InputType::Time |
             InputType::DatetimeLocal |
-            InputType::Number |
-            InputType::Color => true,
+            InputType::Number => true,
 
             InputType::Button |
             InputType::Checkbox |
+            InputType::Color |
             InputType::File |
             InputType::Hidden |
             InputType::Image |
@@ -1248,6 +1579,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-checked
     fn SetChecked(&self, checked: bool) {
         self.update_checked_state(checked, true);
+        self.value_changed(CanGc::note());
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-readonly
@@ -1307,22 +1639,29 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     fn SetValue(&self, mut value: DOMString, can_gc: CanGc) -> ErrorResult {
         match self.value_mode() {
             ValueMode::Value => {
-                // Step 3.
-                self.value_dirty.set(true);
+                {
+                    // Step 3.
+                    self.value_dirty.set(true);
 
-                // Step 4.
-                self.sanitize_value(&mut value);
+                    // Step 4.
+                    self.sanitize_value(&mut value);
 
-                let mut textinput = self.textinput.borrow_mut();
-
-                // Step 5.
-                if *textinput.single_line_content() != value {
-                    // Steps 1-2
-                    textinput.set_content(value);
+                    let mut textinput = self.textinput.borrow_mut();
 
                     // Step 5.
-                    textinput.clear_selection_to_limit(Direction::Forward);
+                    if *textinput.single_line_content() != value {
+                        // Steps 1-2
+                        textinput.set_content(value);
+
+                        // Step 5.
+                        textinput.clear_selection_to_limit(Direction::Forward);
+                    }
                 }
+
+                // Additionaly, update the placeholder shown state. This is
+                // normally being done in the attributed mutated. And, being
+                // done in another scope to prevent borrow checker issues.
+                self.update_placeholder_shown_state();
             },
             ValueMode::Default | ValueMode::DefaultOn => {
                 self.upcast::<Element>()
@@ -1339,8 +1678,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
             },
         }
 
-        self.validity_state()
-            .perform_validation_and_update(ValidationFlags::all(), can_gc);
+        self.value_changed(can_gc);
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
         Ok(())
     }
@@ -1558,7 +1896,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
     // Different from make_labels_getter because this one
     // conditionally returns null.
-    fn GetLabels(&self) -> Option<DomRoot<NodeList>> {
+    fn GetLabels(&self, can_gc: CanGc) -> Option<DomRoot<NodeList>> {
         if self.input_type() == InputType::Hidden {
             None
         } else {
@@ -1566,7 +1904,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                 NodeList::new_labels_list(
                     self.upcast::<Node>().owner_doc().window(),
                     self.upcast::<HTMLElement>(),
-                    CanGc::note(),
+                    can_gc,
                 )
             }))
         }
@@ -1684,23 +2022,34 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
 fn radio_group_iter<'a>(
     elem: &'a HTMLInputElement,
     group: Option<&'a Atom>,
+    form: Option<&'a HTMLFormElement>,
+    root: &'a Node,
 ) -> impl Iterator<Item = DomRoot<HTMLInputElement>> + 'a {
-    let owner = elem.form_owner();
-    let root = elem
-        .upcast::<Node>()
-        .GetRootNode(&GetRootNodeOptions::empty());
-
-    // If group is None, in_same_group always fails, but we need to always return elem.
     root.traverse_preorder(ShadowIncluding::No)
         .filter_map(DomRoot::downcast::<HTMLInputElement>)
-        .filter(move |r| &**r == elem || in_same_group(r, owner.as_deref(), group, None))
+        .filter(move |r| &**r == elem || in_same_group(r, form, group, Some(root)))
 }
 
 fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>) {
-    for r in radio_group_iter(broadcaster, group) {
+    let root = broadcaster
+        .upcast::<Node>()
+        .GetRootNode(&GetRootNodeOptions::empty());
+    let form = broadcaster.form_owner();
+    for r in radio_group_iter(broadcaster, group, form.as_deref(), &root) {
         if broadcaster != &*r && r.Checked() {
             r.SetChecked(false);
         }
+    }
+}
+
+fn perform_radio_group_validation(elem: &HTMLInputElement, group: Option<&Atom>, can_gc: CanGc) {
+    let root = elem
+        .upcast::<Node>()
+        .GetRootNode(&GetRootNodeOptions::empty());
+    let form = elem.form_owner();
+    for r in radio_group_iter(elem, group, form.as_deref(), &root) {
+        r.validity_state()
+            .perform_validation_and_update(ValidationFlags::all(), can_gc);
     }
 }
 
@@ -1868,11 +2217,12 @@ impl HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#the-input-element:concept-form-reset-control
-    pub(crate) fn reset(&self) {
+    pub(crate) fn reset(&self, can_gc: CanGc) {
         match self.input_type() {
             InputType::Radio | InputType::Checkbox => {
                 self.update_checked_state(self.DefaultChecked(), false);
                 self.checked_changed.set(false);
+                self.value_changed(can_gc);
             },
             InputType::Image => (),
             _ => (),
@@ -1892,6 +2242,19 @@ impl HTMLInputElement {
         let el = self.upcast::<Element>();
 
         el.set_placeholder_shown_state(has_placeholder && !has_value);
+    }
+
+    // Update the placeholder text in the text shadow tree.
+    // To increase the performance, we would only do this when it is necessary.
+    fn update_text_shadow_tree_placeholder(&self, can_gc: CanGc) {
+        if self.input_type() != InputType::Text {
+            return;
+        }
+
+        self.text_shadow_tree(can_gc)
+            .placeholder_container
+            .upcast::<Node>()
+            .SetTextContent(Some(self.placeholder.borrow().clone()), can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file)
@@ -1916,8 +2279,9 @@ impl HTMLInputElement {
                     .collect()
             });
 
-            let (chan, recv) = ipc::channel(self.global().time_profiler_chan().clone())
-                .expect("Error initializing channel");
+            let (chan, recv) =
+                profile_traits::ipc::channel(self.global().time_profiler_chan().clone())
+                    .expect("Error initializing channel");
             let msg =
                 FileManagerThreadMsg::SelectFiles(webview_id, filter, chan, origin, opt_test_paths);
             resource_threads
@@ -1944,8 +2308,9 @@ impl HTMLInputElement {
                 None => None,
             };
 
-            let (chan, recv) = ipc::channel(self.global().time_profiler_chan().clone())
-                .expect("Error initializing channel");
+            let (chan, recv) =
+                profile_traits::ipc::channel(self.global().time_profiler_chan().clone())
+                    .expect("Error initializing channel");
             let msg =
                 FileManagerThreadMsg::SelectFile(webview_id, filter, chan, origin, opt_test_path);
             resource_threads
@@ -2315,6 +2680,70 @@ impl HTMLInputElement {
             },
         })
     }
+
+    fn update_related_validity_states(&self, can_gc: CanGc) {
+        match self.input_type() {
+            InputType::Radio => {
+                perform_radio_group_validation(self, self.radio_group_name().as_ref(), can_gc)
+            },
+            _ => {
+                self.validity_state()
+                    .perform_validation_and_update(ValidationFlags::all(), can_gc);
+            },
+        }
+    }
+
+    fn value_changed(&self, can_gc: CanGc) {
+        self.update_related_validity_states(can_gc);
+        self.update_shadow_tree_if_needed(can_gc);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#show-the-picker,-if-applicable>
+    fn show_the_picker_if_applicable(&self, can_gc: CanGc) {
+        // FIXME: Implement most of this algorithm
+
+        // Step 2. If element is not mutable, then return.
+        if !self.is_mutable() {
+            return;
+        }
+
+        // Step 6. Otherwise, the user agent should show the relevant user interface for selecting a value for element,
+        // in the way it normally would when the user interacts with the control.
+        if self.input_type() == InputType::Color {
+            let (ipc_sender, ipc_receiver) =
+                ipc::channel::<Option<RgbColor>>().expect("Failed to create IPC channel!");
+            let document = self.owner_document();
+            let rect = self.upcast::<Node>().bounding_content_box_or_zero(can_gc);
+            let rect = Rect::new(
+                Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
+                Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),
+            );
+            let current_value = self.Value();
+            let current_color = RgbColor {
+                red: u8::from_str_radix(&current_value[1..3], 16).unwrap(),
+                green: u8::from_str_radix(&current_value[3..5], 16).unwrap(),
+                blue: u8::from_str_radix(&current_value[5..7], 16).unwrap(),
+            };
+            document.send_to_embedder(EmbedderMsg::ShowFormControl(
+                document.webview_id(),
+                DeviceIntRect::from_untyped(&rect.to_box2d()),
+                EmbedderFormControl::ColorPicker(current_color, ipc_sender),
+            ));
+
+            let Ok(response) = ipc_receiver.recv() else {
+                log::error!("Failed to receive response");
+                return;
+            };
+
+            if let Some(selected_color) = response {
+                let formatted_color = format!(
+                    "#{:0>2x}{:0>2x}{:0>2x}",
+                    selected_color.red, selected_color.green, selected_color.blue
+                );
+                let _ = self.SetValue(formatted_color.into(), can_gc);
+            }
+        }
+    }
 }
 
 impl VirtualMethods for HTMLInputElement {
@@ -2326,6 +2755,7 @@ impl VirtualMethods for HTMLInputElement {
         self.super_type()
             .unwrap()
             .attribute_mutated(attr, mutation, can_gc);
+
         match *attr.local_name() {
             local_name!("disabled") => {
                 let disabled_state = match mutation {
@@ -2346,7 +2776,7 @@ impl VirtualMethods for HTMLInputElement {
                     el.set_read_write_state(read_write);
                 }
 
-                el.update_sequentially_focusable_status(CanGc::note());
+                el.update_sequentially_focusable_status(can_gc);
             },
             local_name!("checked") if !self.checked_changed.get() => {
                 let checked_state = match mutation {
@@ -2384,7 +2814,7 @@ impl VirtualMethods for HTMLInputElement {
 
                         if new_type == InputType::File {
                             let window = self.owner_window();
-                            let filelist = FileList::new(&window, vec![], CanGc::note());
+                            let filelist = FileList::new(&window, vec![], can_gc);
                             self.filelist.set(Some(&filelist));
                         }
 
@@ -2393,7 +2823,7 @@ impl VirtualMethods for HTMLInputElement {
                             // Step 1
                             (&ValueMode::Value, false, ValueMode::Default) |
                             (&ValueMode::Value, false, ValueMode::DefaultOn) => {
-                                self.SetValue(old_idl_value, CanGc::note())
+                                self.SetValue(old_idl_value, can_gc)
                                     .expect("Failed to set input value on type change to a default ValueMode.");
                             },
 
@@ -2405,7 +2835,7 @@ impl VirtualMethods for HTMLInputElement {
                                         .map_or(DOMString::from(""), |a| {
                                             DOMString::from(a.summarize().value)
                                         }),
-                                    CanGc::note(),
+                                    can_gc,
                                 )
                                 .expect(
                                     "Failed to set input value on type change to ValueMode::Value.",
@@ -2417,7 +2847,7 @@ impl VirtualMethods for HTMLInputElement {
                             (_, _, ValueMode::Filename)
                                 if old_value_mode != ValueMode::Filename =>
                             {
-                                self.SetValue(DOMString::from(""), CanGc::note())
+                                self.SetValue(DOMString::from(""), can_gc)
                                     .expect("Failed to set input value on type change to ValueMode::Filename.");
                             },
                             _ => {},
@@ -2433,6 +2863,7 @@ impl VirtualMethods for HTMLInputElement {
                         let mut value = textinput.single_line_content().clone();
                         self.sanitize_value(&mut value);
                         textinput.set_content(value);
+                        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
 
                         // Steps 7-9
                         if !previously_selectable && self.selection_api_applies() {
@@ -2451,8 +2882,11 @@ impl VirtualMethods for HTMLInputElement {
                     },
                 }
 
+                self.update_text_shadow_tree_placeholder(can_gc);
                 self.update_placeholder_shown_state();
             },
+            // FIXME(stevennovaryo): This is only reachable by Default and DefaultOn value mode. While others
+            //                       are being handled in [Self::SetValue]. Should we merge this two together?
             local_name!("value") if !self.value_dirty.get() => {
                 let value = mutation.new_value(attr).map(|value| (**value).to_owned());
                 let mut value = value.map_or(DOMString::new(), DOMString::from);
@@ -2460,6 +2894,8 @@ impl VirtualMethods for HTMLInputElement {
                 self.sanitize_value(&mut value);
                 self.textinput.borrow_mut().set_content(value);
                 self.update_placeholder_shown_state();
+
+                self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
             },
             local_name!("name") if self.input_type() == InputType::Radio => {
                 self.radio_group_updated(
@@ -2499,6 +2935,7 @@ impl VirtualMethods for HTMLInputElement {
                             .extend(attr.value().chars().filter(|&c| c != '\n' && c != '\r'));
                     }
                 }
+                self.update_text_shadow_tree_placeholder(can_gc);
                 self.update_placeholder_shown_state();
             },
             local_name!("readonly") => {
@@ -2520,8 +2957,7 @@ impl VirtualMethods for HTMLInputElement {
             _ => {},
         }
 
-        self.validity_state()
-            .perform_validation_and_update(ValidationFlags::all(), can_gc);
+        self.value_changed(can_gc);
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
@@ -2549,13 +2985,16 @@ impl VirtualMethods for HTMLInputElement {
         self.upcast::<Element>()
             .check_ancestors_disabled_state_for_form_control();
 
-        for r in radio_group_iter(self, self.radio_group_name().as_ref()) {
-            r.validity_state()
-                .perform_validation_and_update(ValidationFlags::all(), can_gc);
+        if self.input_type() == InputType::Radio {
+            self.radio_group_updated(self.radio_group_name().as_ref());
         }
+
+        self.value_changed(can_gc);
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+        let form_owner = self.form_owner();
+
         self.super_type().unwrap().unbind_from_tree(context, can_gc);
 
         let node = self.upcast::<Node>();
@@ -2567,6 +3006,19 @@ impl VirtualMethods for HTMLInputElement {
             el.check_ancestors_disabled_state_for_form_control();
         } else {
             el.check_disabled_attribute();
+        }
+
+        if self.input_type() == InputType::Radio {
+            let root = context.parent.GetRootNode(&GetRootNodeOptions::empty());
+            for r in radio_group_iter(
+                self,
+                self.radio_group_name().as_ref(),
+                form_owner.as_deref(),
+                &root,
+            ) {
+                r.validity_state()
+                    .perform_validation_and_update(ValidationFlags::all(), can_gc);
+            }
         }
 
         self.validity_state()
@@ -2599,17 +3051,20 @@ impl VirtualMethods for HTMLInputElement {
                     // now.
                     if let Some(point_in_target) = mouse_event.point_in_target() {
                         let window = self.owner_window();
-                        let index = window.text_index_query(
-                            self.upcast::<Node>(),
-                            point_in_target,
-                            CanGc::note(),
-                        );
-                        if let Some(i) = index {
-                            self.textinput.borrow_mut().set_edit_point_index(i);
-                            // trigger redraw
-                            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-                            event.PreventDefault();
-                        }
+                        let index =
+                            window.text_index_query(self.upcast::<Node>(), point_in_target, can_gc);
+                        // Position the caret at the click position or at the end of the current
+                        // value.
+                        let edit_point_index = match index {
+                            Some(i) => i,
+                            None => self.textinput.borrow().char_count(),
+                        };
+                        self.textinput
+                            .borrow_mut()
+                            .set_edit_point_index(edit_point_index);
+                        // trigger redraw
+                        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                        event.PreventDefault();
                     }
                 }
             }
@@ -2623,9 +3078,20 @@ impl VirtualMethods for HTMLInputElement {
                 let action = self.textinput.borrow_mut().handle_keydown(keyevent);
                 match action {
                     TriggerDefaultAction => {
-                        self.implicit_submission(CanGc::note());
+                        self.implicit_submission(can_gc);
                     },
                     DispatchInput => {
+                        if event.IsTrusted() {
+                            self.owner_global()
+                                .task_manager()
+                                .user_interaction_task_source()
+                                .queue_event(
+                                    self.upcast(),
+                                    atom!("input"),
+                                    EventBubbles::Bubbles,
+                                    EventCancelable::NotCancelable,
+                                );
+                        }
                         self.value_dirty.set(true);
                         self.update_placeholder_shown_state();
                         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
@@ -2642,17 +3108,9 @@ impl VirtualMethods for HTMLInputElement {
             !event.DefaultPrevented() &&
             self.input_type().is_textual_or_password()
         {
-            if event.IsTrusted() {
-                self.owner_global()
-                    .task_manager()
-                    .user_interaction_task_source()
-                    .queue_event(
-                        self.upcast(),
-                        atom!("input"),
-                        EventBubbles::Bubbles,
-                        EventCancelable::NotCancelable,
-                    );
-            }
+            // keypress should be deprecated and replaced by beforeinput.
+            // keypress was supposed to fire "blur" and "focus" events
+            // but already done in `document.rs`
         } else if (event.type_() == atom!("compositionstart") ||
             event.type_() == atom!("compositionupdate") ||
             event.type_() == atom!("compositionend")) &&
@@ -2676,12 +3134,11 @@ impl VirtualMethods for HTMLInputElement {
             }
         } else if let Some(clipboard_event) = event.downcast::<ClipboardEvent>() {
             if !event.DefaultPrevented() {
-                handle_text_clipboard_action(self, &self.textinput, clipboard_event, CanGc::note());
+                handle_text_clipboard_action(self, &self.textinput, clipboard_event, can_gc);
             }
         }
 
-        self.validity_state()
-            .perform_validation_and_update(ValidationFlags::all(), can_gc);
+        self.value_changed(can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#the-input-element%3Aconcept-node-clone-ext
@@ -2703,8 +3160,7 @@ impl VirtualMethods for HTMLInputElement {
         elem.textinput
             .borrow_mut()
             .set_content(self.textinput.borrow().get_content());
-        elem.validity_state()
-            .perform_validation_and_update(ValidationFlags::all(), can_gc);
+        self.value_changed(can_gc);
     }
 }
 
@@ -2813,46 +3269,65 @@ impl Activatable for HTMLInputElement {
             },
             // https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):input-activation-behavior
             // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):input-activation-behavior
-            InputType::Checkbox | InputType::Radio => true,
+            // https://html.spec.whatwg.org/multipage/#color-state-(type=color):input-activation-behavior
+            InputType::Checkbox | InputType::Radio | InputType::Color => true,
             _ => false,
         }
     }
 
     // https://dom.spec.whatwg.org/#eventtarget-legacy-pre-activation-behavior
-    fn legacy_pre_activation_behavior(&self) -> Option<InputActivationState> {
+    fn legacy_pre_activation_behavior(&self, can_gc: CanGc) -> Option<InputActivationState> {
         let ty = self.input_type();
-        match ty {
+        let activation_state = match ty {
             InputType::Checkbox => {
                 let was_checked = self.Checked();
                 let was_indeterminate = self.Indeterminate();
                 self.SetIndeterminate(false);
                 self.SetChecked(!was_checked);
-                return Some(InputActivationState {
+                Some(InputActivationState {
                     checked: was_checked,
                     indeterminate: was_indeterminate,
                     checked_radio: None,
                     old_type: InputType::Checkbox,
-                });
+                })
             },
             InputType::Radio => {
-                let checked_member =
-                    radio_group_iter(self, self.radio_group_name().as_ref()).find(|r| r.Checked());
+                let root = self
+                    .upcast::<Node>()
+                    .GetRootNode(&GetRootNodeOptions::empty());
+                let form_owner = self.form_owner();
+                let checked_member = radio_group_iter(
+                    self,
+                    self.radio_group_name().as_ref(),
+                    form_owner.as_deref(),
+                    &root,
+                )
+                .find(|r| r.Checked());
                 let was_checked = self.Checked();
                 self.SetChecked(true);
-                return Some(InputActivationState {
+                Some(InputActivationState {
                     checked: was_checked,
                     indeterminate: false,
                     checked_radio: checked_member.as_deref().map(DomRoot::from_ref),
                     old_type: InputType::Radio,
-                });
+                })
             },
-            _ => (),
+            _ => None,
+        };
+
+        if activation_state.is_some() {
+            self.value_changed(can_gc);
         }
-        None
+
+        activation_state
     }
 
     // https://dom.spec.whatwg.org/#eventtarget-legacy-canceled-activation-behavior
-    fn legacy_canceled_activation_behavior(&self, cache: Option<InputActivationState>) {
+    fn legacy_canceled_activation_behavior(
+        &self,
+        cache: Option<InputActivationState>,
+        can_gc: CanGc,
+    ) {
         // Step 1
         let ty = self.input_type();
         let cache = match cache {
@@ -2899,6 +3374,8 @@ impl Activatable for HTMLInputElement {
             },
             _ => (),
         }
+
+        self.value_changed(can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#input-activation-behavior>
@@ -2921,7 +3398,7 @@ impl Activatable for HTMLInputElement {
                     form_owner.submit(
                         SubmittedFrom::NotFromForm,
                         FormSubmitterElement::Input(self),
-                        CanGc::note(),
+                        can_gc,
                     )
                 }
             },
@@ -2960,6 +3437,10 @@ impl Activatable for HTMLInputElement {
             },
             // https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file):input-activation-behavior
             InputType::File => self.select_files(None, can_gc),
+            // https://html.spec.whatwg.org/multipage/#color-state-(type=color):input-activation-behavior
+            InputType::Color => {
+                self.show_the_picker_if_applicable(can_gc);
+            },
             _ => (),
         }
     }

@@ -13,7 +13,7 @@ use crate::dom::bindings::codegen::Bindings::GamepadBinding::{GamepadHand, Gamep
 use crate::dom::bindings::codegen::Bindings::GamepadButtonListBinding::GamepadButtonListMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
@@ -23,6 +23,7 @@ use crate::dom::gamepadevent::{GamepadEvent, GamepadEventType};
 use crate::dom::gamepadhapticactuator::GamepadHapticActuator;
 use crate::dom::gamepadpose::GamepadPose;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::window::Window;
 use crate::script_runtime::{CanGc, JSContext};
 
 // This value is for determining when to consider a gamepad as having a user gesture
@@ -88,39 +89,14 @@ impl Gamepad {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
-        global: &GlobalScope,
-        gamepad_id: u32,
-        id: String,
-        mapping_type: String,
-        axis_bounds: (f64, f64),
-        button_bounds: (f64, f64),
-        supported_haptic_effects: GamepadSupportedHapticEffects,
-        xr: bool,
-        can_gc: CanGc,
-    ) -> DomRoot<Gamepad> {
-        Self::new_with_proto(
-            global,
-            gamepad_id,
-            id,
-            mapping_type,
-            axis_bounds,
-            button_bounds,
-            supported_haptic_effects,
-            xr,
-            can_gc,
-        )
-    }
-
     /// When we construct a new gamepad, we initialize the number of buttons and
     /// axes corresponding to the "standard" gamepad mapping.
     /// The spec says UAs *may* do this for fingerprint mitigation, and it also
     /// happens to simplify implementation
     /// <https://www.w3.org/TR/gamepad/#fingerprinting-mitigation>
     #[allow(clippy::too_many_arguments)]
-    fn new_with_proto(
-        global: &GlobalScope,
+    pub(crate) fn new(
+        window: &Window,
         gamepad_id: u32,
         id: String,
         mapping_type: String,
@@ -130,11 +106,11 @@ impl Gamepad {
         xr: bool,
         can_gc: CanGc,
     ) -> DomRoot<Gamepad> {
-        let button_list = GamepadButtonList::init_buttons(global, can_gc);
+        let button_list = GamepadButtonList::init_buttons(window, can_gc);
         let vibration_actuator =
-            GamepadHapticActuator::new(global, gamepad_id, supported_haptic_effects, can_gc);
+            GamepadHapticActuator::new(window, gamepad_id, supported_haptic_effects, can_gc);
         let index = if xr { -1 } else { 0 };
-        let gamepad = reflect_dom_object_with_proto(
+        let gamepad = reflect_dom_object(
             Box::new(Gamepad::new_inherited(
                 gamepad_id,
                 id,
@@ -149,8 +125,7 @@ impl Gamepad {
                 button_bounds,
                 &vibration_actuator,
             )),
-            global,
-            None,
+            window,
             can_gc,
         );
         gamepad.init_axes(can_gc);

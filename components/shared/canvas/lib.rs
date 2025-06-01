@@ -21,5 +21,5 @@ pub enum ConstellationCanvasMsg {
         sender: Sender<(CanvasId, ImageKey)>,
         size: Size2D<u64>,
     },
-    Exit,
+    Exit(Sender<()>),
 }

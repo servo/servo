@@ -11,14 +11,15 @@ use std::result::Result;
 use base::id::PipelineId;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
+use constellation_traits::ScriptToConstellationMessage;
 use crossbeam_channel::{Receiver, SendError, Sender, select};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg};
 use ipc_channel::ipc::IpcSender;
 use net_traits::FetchResponseMsg;
-use net_traits::image_cache::PendingImageResponse;
+use net_traits::image_cache::ImageCacheResponseMessage;
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time};
-use script_traits::{Painter, ScriptThreadMessage, ScriptToConstellationMessage};
+use script_traits::{Painter, ScriptThreadMessage};
 use stylo_atoms::Atom;
 use timers::TimerScheduler;
 #[cfg(feature = "webgpu")]
@@ -39,7 +40,7 @@ pub(crate) enum MixedMessage {
     FromConstellation(ScriptThreadMessage),
     FromScript(MainThreadScriptMsg),
     FromDevtools(DevtoolScriptControlMsg),
-    FromImageCache(PendingImageResponse),
+    FromImageCache(ImageCacheResponseMessage),
     #[cfg(feature = "webgpu")]
     FromWebGPUServer(WebGPUMsg),
     TimerFired,
@@ -71,8 +72,10 @@ impl MixedMessage {
                 ScriptThreadMessage::UpdateHistoryState(id, ..) => Some(*id),
                 ScriptThreadMessage::RemoveHistoryStates(id, ..) => Some(*id),
                 ScriptThreadMessage::FocusIFrame(id, ..) => Some(*id),
+                ScriptThreadMessage::FocusDocument(id, ..) => Some(*id),
+                ScriptThreadMessage::Unfocus(id, ..) => Some(*id),
                 ScriptThreadMessage::WebDriverScriptCommand(id, ..) => Some(*id),
-                ScriptThreadMessage::TickAllAnimations(id, ..) => Some(*id),
+                ScriptThreadMessage::TickAllAnimations(..) => None,
                 ScriptThreadMessage::WebFontLoaded(id, ..) => Some(*id),
                 ScriptThreadMessage::DispatchIFrameLoadEvent {
                     target: _,
@@ -88,6 +91,7 @@ impl MixedMessage {
                 #[cfg(feature = "webgpu")]
                 ScriptThreadMessage::SetWebGPUPort(..) => None,
                 ScriptThreadMessage::SetScrollStates(id, ..) => Some(*id),
+                ScriptThreadMessage::EvaluateJavaScript(id, _, _) => Some(*id),
             },
             MixedMessage::FromScript(inner_msg) => match inner_msg {
                 MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, _, pipeline_id, _)) => {
@@ -100,7 +104,14 @@ impl MixedMessage {
                 MainThreadScriptMsg::Inactive => None,
                 MainThreadScriptMsg::WakeUp => None,
             },
-            MixedMessage::FromImageCache(response) => Some(response.pipeline_id),
+            MixedMessage::FromImageCache(response) => match response {
+                ImageCacheResponseMessage::NotifyPendingImageLoadStatus(response) => {
+                    Some(response.pipeline_id)
+                },
+                ImageCacheResponseMessage::VectorImageRasterizationComplete(response) => {
+                    Some(response.pipeline_id)
+                },
+            },
             MixedMessage::FromDevtools(_) | MixedMessage::TimerFired => None,
             #[cfg(feature = "webgpu")]
             MixedMessage::FromWebGPUServer(..) => None,
@@ -322,7 +333,7 @@ pub(crate) struct ScriptThreadSenders {
     /// messages on this channel are routed to crossbeam [`Sender`] on the router thread, which
     /// in turn sends messages to [`ScriptThreadReceivers::image_cache_receiver`].
     #[no_trace]
-    pub(crate) image_cache_sender: IpcSender<PendingImageResponse>,
+    pub(crate) image_cache_sender: IpcSender<ImageCacheResponseMessage>,
 
     /// For providing contact with the time profiler.
     #[no_trace]
@@ -351,7 +362,7 @@ pub(crate) struct ScriptThreadReceivers {
 
     /// The [`Receiver`] which receives incoming messages from the `ImageCache`.
     #[no_trace]
-    pub(crate) image_cache_receiver: Receiver<PendingImageResponse>,
+    pub(crate) image_cache_receiver: Receiver<ImageCacheResponseMessage>,
 
     /// For receiving commands from an optional devtools server. Will be ignored if no such server
     /// exists. When devtools are not active this will be [`crossbeam_channel::never()`].

@@ -12,9 +12,9 @@ use log::warn;
 use servo::ipc_channel::ipc::IpcSender;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::{
-    AlertResponse, AuthenticationRequest, ConfirmResponse, FilterPattern, PermissionRequest,
-    PromptResponse, SelectElement, SelectElementOption, SelectElementOptionOrOptgroup,
-    SimpleDialog,
+    AlertResponse, AuthenticationRequest, ColorPicker, ConfirmResponse, FilterPattern,
+    PermissionRequest, PromptResponse, RgbColor, SelectElement, SelectElementOption,
+    SelectElementOptionOrOptgroup, SimpleDialog,
 };
 
 pub enum Dialog {
@@ -41,6 +41,11 @@ pub enum Dialog {
     },
     SelectElement {
         maybe_prompt: Option<SelectElement>,
+        toolbar_offset: Length<f32, DeviceIndependentPixel>,
+    },
+    ColorPicker {
+        current_color: egui::Color32,
+        maybe_prompt: Option<ColorPicker>,
         toolbar_offset: Length<f32, DeviceIndependentPixel>,
     },
 }
@@ -114,6 +119,22 @@ impl Dialog {
         toolbar_offset: Length<f32, DeviceIndependentPixel>,
     ) -> Self {
         Dialog::SelectElement {
+            maybe_prompt: Some(prompt),
+            toolbar_offset,
+        }
+    }
+
+    pub fn new_color_picker_dialog(
+        prompt: ColorPicker,
+        toolbar_offset: Length<f32, DeviceIndependentPixel>,
+    ) -> Self {
+        let current_color = egui::Color32::from_rgb(
+            prompt.current_color().red,
+            prompt.current_color().green,
+            prompt.current_color().blue,
+        );
+        Dialog::ColorPicker {
+            current_color,
             maybe_prompt: Some(prompt),
             toolbar_offset,
         }
@@ -449,32 +470,34 @@ impl Dialog {
 
                 let modal = Modal::new("select_element_picker".into()).area(area);
                 modal.show(ctx, |ui| {
-                    for option_or_optgroup in prompt.options() {
-                        match &option_or_optgroup {
-                            SelectElementOptionOrOptgroup::Option(option) => {
-                                display_option(
-                                    ui,
-                                    option,
-                                    &mut selected_option,
-                                    &mut is_open,
-                                    false,
-                                );
-                            },
-                            SelectElementOptionOrOptgroup::Optgroup { label, options } => {
-                                ui.label(egui::RichText::new(label).strong());
-
-                                for option in options {
+                    egui::ScrollArea::vertical().show(ui, |ui| {
+                        for option_or_optgroup in prompt.options() {
+                            match &option_or_optgroup {
+                                SelectElementOptionOrOptgroup::Option(option) => {
                                     display_option(
                                         ui,
                                         option,
                                         &mut selected_option,
                                         &mut is_open,
-                                        true,
+                                        false,
                                     );
-                                }
-                            },
+                                },
+                                SelectElementOptionOrOptgroup::Optgroup { label, options } => {
+                                    ui.label(egui::RichText::new(label).strong());
+
+                                    for option in options {
+                                        display_option(
+                                            ui,
+                                            option,
+                                            &mut selected_option,
+                                            &mut is_open,
+                                            true,
+                                        );
+                                    }
+                                },
+                            }
                         }
-                    }
+                    });
                 });
 
                 prompt.select(selected_option);
@@ -482,6 +505,50 @@ impl Dialog {
                 if !is_open {
                     maybe_prompt.take().unwrap().submit();
                 }
+
+                is_open
+            },
+            Dialog::ColorPicker {
+                current_color,
+                maybe_prompt,
+                toolbar_offset,
+            } => {
+                let Some(prompt) = maybe_prompt else {
+                    // Prompt was dismissed, so the dialog should be closed too.
+                    return false;
+                };
+                let mut is_open = true;
+
+                let mut position = prompt.position();
+                position.min.y += toolbar_offset.0 as i32;
+                position.max.y += toolbar_offset.0 as i32;
+                let area = egui::Area::new(egui::Id::new("select-window"))
+                    .fixed_pos(egui::pos2(position.min.x as f32, position.max.y as f32));
+
+                let modal = Modal::new("select_element_picker".into()).area(area);
+                modal.show(ctx, |ui| {
+                    egui::widgets::color_picker::color_picker_color32(
+                        ui,
+                        current_color,
+                        egui::widgets::color_picker::Alpha::Opaque,
+                    );
+
+                    ui.add_space(10.);
+
+                    if ui.button("Dismiss").clicked() {
+                        is_open = false;
+                        prompt.select(None);
+                    }
+                    if ui.button("Select").clicked() {
+                        is_open = false;
+                        let selected_color = RgbColor {
+                            red: current_color.r(),
+                            green: current_color.g(),
+                            blue: current_color.b(),
+                        };
+                        prompt.select(Some(selected_color));
+                    }
+                });
 
                 is_open
             },

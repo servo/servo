@@ -28,9 +28,12 @@ navigator.mediaDevices.getUserMedia({audio: true}).then(() => {
     async_test(t => testAudioSinkOptions(t),
                'Setting sinkId with an AudioSinkOptions at construction ' +
                'should succeed.');
-    async_test(t => testExceptions(t),
-               'Invalid sinkId arguments should throw an appropriate ' +
-               'exception.')
+    async_test(t => testOnErrorWrongType(t),
+               'Invalid sinkId argument with a wrong type should throw '+
+               'an appropriate exception.');
+    async_test(t => testOnErrorWrongId(t),
+               'Invalid sinkId argument with a wrong ID should dispatch ' +
+               'an onerror event.')
   });
 });
 
@@ -92,35 +95,38 @@ const testAudioSinkOptions = (t) => {
 // https://webaudio.github.io/web-audio-api/#validating-sink-identifier
 
 // Step 3. If document is not allowed to use the feature identified by
-// "speaker-selection", return a new DOMException whose name is
-// "NotAllowedError".
+// "speaker-selection", return false.
 // TODO(https://crbug.com/1380872): Due to the lack of "speaker-selection"
 // implementation, a test for such step does not exist yet.
 
-const testExceptions = (t) => {
+const testOnErrorWrongType = (t) => {
   t.step(() => {
-    // The wrong AudioSinkOption.type should cause a TypeError.
+    // The wrong AudioSinkOption.type should cause a TypeError. This exception
+    // is thrown at the IDL validation level.
     assert_throws_js(TypeError, () => {
       const audioContext = new AudioContext({sinkId: {type: 'something_else'}});
       audioContext.close();
     }, 'An invalid AudioSinkOptions.type value should throw a TypeError ' +
-       'exception.');
-  });
-
-  t.step(() => {
-    // Step 4. If sinkIdArg is a type of DOMString but it is not equal to the
-    // empty string or it does not match any audio output device identified by
-    // the result that would be provided by enumerateDevices(), return a new
-    // DOMException whose name is "NotFoundError".
-    // TODO(https://crbug.com/1439947): This does not throw in Chromium because
-    // the logic automatically fallbacks to the default device when a given ID
-    // is invalid.
-    assert_throws_dom('NotFoundError', () => {
-      const audioContext = new AudioContext({sinkId: 'some_random_device_id'});
-      audioContext.close();
-    }, 'An invalid device identifier should throw a NotFoundError exception.');
+     'exception.');
   });
   t.done();
+};
+
+// Step 4. If sinkIdArg is a type of DOMString but it is not equal to the
+// empty string or it does not match any audio output device identified by
+// the result that would be provided by enumerateDevices(), return false.
+//
+// When validation returns a false value, the context dispatches an onerror
+// event.
+const testOnErrorWrongId = (t) => {
+  // An invalid device ID should dispatch an onerror event.
+  const audioContext = new AudioContext({sinkId: 'some_random_device_id'});
+  audioContext.addEventListener('error', () => {
+    audioContext.close();
+    t.done();
+  }, {once: true});
+  t.step_timeout(t.unreached_func('onerror not fired on invalid device ID'),
+                 100);
 };
 </script>
 </html>

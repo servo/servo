@@ -1,0 +1,21 @@
+<!doctype html>
+<link rel="author" href="mailto:wpt@keithcirkel.co.uk" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+  <dialog id="d"></dialog>
+  <script>
+    d.showModal();
+    d.addEventListener("cancel", (e) => e.preventDefault());
+    window.addEventListener("message", async (e) => {
+      if (event.data == "dialog_open") {
+        window.parent.postMessage({ open: d.open }, "*");
+      } else {
+        window.parent.postMessage({ error: `invalid command: ${e.data}` }, "*");
+      }
+    });
+  </script>
+</body>

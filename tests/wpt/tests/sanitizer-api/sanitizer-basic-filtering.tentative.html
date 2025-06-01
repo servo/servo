@@ -142,21 +142,43 @@ a <!-- comment --> b
 <p data-x="1" data-y="2" data-z="3">
 #config
 {
-  "attributes": [ "data-x" ],
-  "removeAttributes": [ "data-y" ],
+  "attributes": [],
   "dataAttributes": true
 }
 #document
 | <p>
 |   data-x="1"
+|   data-y="2"
 |   data-z="3"
+
+
+#data
+<p data-x="1" data-y="2" data-z="3">
+#config
+{
+  "removeAttributes": ["data-z"],
+  "dataAttributes": true
+}
+#document
+| <p>
+|   data-x="1"
+|   data-y="2"
+
+#data
+<p data-x="1" data-y="2" data-z="3">
+#config
+{
+  "attributes": [],
+  "dataAttributes": false
+}
+#document
+| <p>
 
 #data
 <p data-x="1" data-y="2" data-z="3">
 #config
 {
   "attributes": [ "data-x" ],
-  "removeAttributes": [ "data-y" ],
   "dataAttributes": false
 }
 #document
@@ -193,8 +215,7 @@ a <!-- comment --> b
 #data
 <svg><rect>
 #config
-{ "elements": [{ "name": "svg", "namespace": "http://www.w3.org/2000/svg" }],
-  "removeElements": [{ "name": "rect", "namespace": "http://www.w3.org/2000/svg" }]}
+{ "removeElements": [{ "name": "rect", "namespace": "http://www.w3.org/2000/svg" }]}
 #document
 | <svg svg>
 
@@ -218,8 +239,7 @@ a <!-- comment --> b
 #data
 <math><mi>x
 #config
-{ "elements": [{ "name": "math", "namespace": "http://www.w3.org/1998/Math/MathML" }],
-  "removeElements": [{ "name": "mi", "namespace": "http://www.w3.org/1998/Math/MathML" }]}
+{ "removeElements": [{ "name": "mi", "namespace": "http://www.w3.org/1998/Math/MathML" }] }
 #document
 | <math math>
 
@@ -237,8 +257,7 @@ a <!-- comment --> b
 <svg xml:space="default" xlink:href="about:blank" xmlns:foo="barspace">
 #config
 { "elements": [{ "name": "svg", "namespace": "http://www.w3.org/2000/svg" }],
-  "attributes": [{"name": "space", "namespace": "http://www.w3.org/XML/1998/namespace" }],
-  "removeAttributes": [{"name": "href", "namespace": "http://www.w3.org/1999/xlink" }] }
+  "attributes": [{"name": "space", "namespace": "http://www.w3.org/XML/1998/namespace" }] }
 #document
 | <svg svg>
 |   xml space="default"
@@ -247,8 +266,7 @@ a <!-- comment --> b
 <svg xml:space="default" xlink:href="about:blank" xmlns:foo="barspace">
 #config
 { "elements": [{ "name": "svg", "namespace": "http://www.w3.org/2000/svg" }],
-  "attributes": [{"name": "href", "namespace": "http://www.w3.org/1999/xlink" }] ,
-  "removeAttributes": [{"name": "space", "namespace": "http://www.w3.org/XML/1998/namespace" }] }
+  "attributes": [{"name": "href", "namespace": "http://www.w3.org/1999/xlink" }] }
 #document
 | <svg svg>
 |   xlink href="about:blank"
@@ -259,9 +277,9 @@ for(const group of
     document.querySelectorAll("script[type='html5lib-testcases']")) {
   parse_html5lib_testcases(group.textContent).forEach((testcase, index) => {
     let config = undefined;
-    try {
+    if (testcase.config) {
       config = { sanitizer: JSON.parse(testcase.config) };
-    } catch { /* config remains undefined */ }
+    }
 
     test(_ => {
       const div = document.createElement("div");
@@ -273,7 +291,29 @@ for(const group of
       div.setHTMLUnsafe(testcase.data, config);
       assert_testcase(div, testcase);
     }, `setHTMLUnsafe testcase ${group.id}/${index}, "${testcase.data}"`);
+
     test(_ => {
+      const div = document.createElement("div");
+      const shadowRoot = div.attachShadow({ mode: "open" });
+      shadowRoot .setHTML(testcase.data, config);
+      assert_testcase(shadowRoot, testcase);
+    }, `ShadowRoot.setHTML testcase ${group.id}/${index}, "${testcase.data}"`);
+    test(_ => {
+      const div = document.createElement("div");
+      const shadowRoot = div.attachShadow({ mode: "open" });
+      shadowRoot .setHTMLUnsafe(testcase.data, config);
+      assert_testcase(shadowRoot, testcase);
+    }, `ShadowRoot.setHTMLUnsafe testcase ${group.id}/${index}, "${testcase.data}"`);
+
+   // parseHTML and parseHTMLUnsafe need to allow "html" and "body" for these
+   // tests to be useful. Update the config, if necessary.
+   if (config && config["sanitizer"] && config["sanitizer"]["elements"]) {
+     config["sanitizer"] = new Sanitizer(config["sanitizer"]);
+     config["sanitizer"].allowElement("body");
+     config["sanitizer"].allowElement("html");
+   }
+
+   test(_ => {
       assert_testcase(
         Document.parseHTML(testcase.data, config).body, testcase);
     }, `parseHTML testcase ${group.id}/${index}, "${testcase.data}"`);

@@ -9,7 +9,6 @@ use std::rc::Rc;
 
 use euclid::num::Zero;
 use euclid::{Length, Scale, Size2D};
-use servo::compositing::windowing::{AnimationState, WindowMethods};
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{DeviceIntSize, DevicePixel};
 use servo::{RenderingContext, ScreenGeometry, SoftwareRenderingContext};
@@ -20,7 +19,6 @@ use crate::desktop::window_trait::WindowPortsMethods;
 use crate::prefs::ServoShellPreferences;
 
 pub struct Window {
-    animation_state: Cell<AnimationState>,
     fullscreen: Cell<bool>,
     device_pixel_ratio_override: Option<Scale<f32, DeviceIndependentPixel, DevicePixel>>,
     inner_size: Cell<DeviceIntSize>,
@@ -50,7 +48,6 @@ impl Window {
             });
 
         let window = Window {
-            animation_state: Cell::new(AnimationState::Idle),
             fullscreen: Cell::new(false),
             device_pixel_ratio_override,
             inner_size: Cell::new(inner_size),
@@ -96,19 +93,18 @@ impl WindowPortsMethods for Window {
         Some(new_size)
     }
 
-    fn device_hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
+    fn device_hidpi_scale_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
         Scale::new(1.0)
     }
 
-    fn device_pixel_ratio_override(
-        &self,
-    ) -> Option<Scale<f32, DeviceIndependentPixel, DevicePixel>> {
+    fn hidpi_scale_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
         self.device_pixel_ratio_override
+            .unwrap_or_else(|| self.device_hidpi_scale_factor())
     }
 
     fn page_height(&self) -> f32 {
         let height = self.inner_size.get().height;
-        let dpr = self.hidpi_factor();
+        let dpr = self.hidpi_scale_factor();
         height as f32 * dpr.get()
     }
 
@@ -118,10 +114,6 @@ impl WindowPortsMethods for Window {
 
     fn get_fullscreen(&self) -> bool {
         self.fullscreen.get()
-    }
-
-    fn is_animating(&self) -> bool {
-        self.animation_state.get() == AnimationState::Animating
     }
 
     fn handle_winit_event(&self, _: Rc<RunningAppState>, _: winit::event::WindowEvent) {
@@ -149,16 +141,5 @@ impl WindowPortsMethods for Window {
 
     fn rendering_context(&self) -> Rc<dyn RenderingContext> {
         self.rendering_context.clone()
-    }
-}
-
-impl WindowMethods for Window {
-    fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-        self.device_pixel_ratio_override()
-            .unwrap_or_else(|| self.device_hidpi_factor())
-    }
-
-    fn set_animation_state(&self, state: AnimationState) {
-        self.animation_state.set(state);
     }
 }

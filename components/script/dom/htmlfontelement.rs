@@ -4,7 +4,7 @@
 
 use cssparser::match_ignore_ascii_case;
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
+use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
 use style::attr::AttrValue;
 use style::color::AbsoluteColor;

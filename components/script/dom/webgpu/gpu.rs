@@ -4,9 +4,9 @@
 
 use std::rc::Rc;
 
+use constellation_traits::ScriptToConstellationMessage;
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
-use script_traits::ScriptToConstellationMessage;
 use webgpu_traits::WebGPUAdapterResponse;
 use wgpu_types::PowerPreference;
 
@@ -56,7 +56,9 @@ impl GPUMethods<crate::DomTypeHolder> for GPU {
     ) -> Rc<Promise> {
         let global = &self.global();
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let sender = route_promise(&promise, self);
+        let task_source = global.task_manager().dom_manipulation_task_source();
+        let sender = route_promise(&promise, self, task_source);
+
         let power_preference = match options.powerPreference {
             Some(GPUPowerPreference::Low_power) => PowerPreference::LowPower,
             Some(GPUPowerPreference::High_performance) => PowerPreference::HighPerformance,
@@ -84,8 +86,12 @@ impl GPUMethods<crate::DomTypeHolder> for GPU {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpu-getpreferredcanvasformat>
     fn GetPreferredCanvasFormat(&self) -> GPUTextureFormat {
-        // TODO: real implementation
-        GPUTextureFormat::Rgba8unorm
+        // From https://github.com/mozilla-firefox/firefox/blob/24d49101ce17b78c3ba1217d00297fe2891be6b3/dom/webgpu/Instance.h#L68
+        if cfg!(target_os = "android") {
+            GPUTextureFormat::Rgba8unorm
+        } else {
+            GPUTextureFormat::Bgra8unorm
+        }
     }
 
     /// <https://www.w3.org/TR/webgpu/#dom-gpu-wgsllanguagefeatures>

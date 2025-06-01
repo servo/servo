@@ -1,0 +1,4 @@
+features:
+- name: canvas-createconicgradient
+  files:
+  - 2d.gradient.conic.*

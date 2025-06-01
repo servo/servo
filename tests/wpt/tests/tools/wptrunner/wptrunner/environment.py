@@ -188,10 +188,10 @@ class TestEnvironment:
 
         ports = {
             "http": [8000, 8001],
-            "http-private": [8002],
+            "http-local": [8002],
             "http-public": [8003],
             "https": [8443, 8444],
-            "https-private": [8445],
+            "https-local": [8445],
             "https-public": [8446],
             "ws": [8888],
             "wss": [8889],

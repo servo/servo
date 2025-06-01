@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<head>
+  <link rel="help" href="https://crbug.com/40934009">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div id="d" style="background:revert">Test passes if it does not crash.</div>
+  <script>
+    test(() => {
+      d.offsetTop;
+      d.style.background = "url(dummy.png)";
+      d.offsetLeft;
+    });
+  </script>
+</body>

@@ -19,6 +19,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::to_frozen_array;
 #[cfg(feature = "bluetooth")]
 use crate::dom::bluetooth::Bluetooth;
+use crate::dom::clipboard::Clipboard;
 use crate::dom::gamepad::Gamepad;
 use crate::dom::gamepadevent::GamepadEventType;
 use crate::dom::mediadevices::MediaDevices;
@@ -57,6 +58,7 @@ pub(crate) struct Navigator {
     gamepads: DomRefCell<Vec<MutNullableDom<Gamepad>>>,
     permissions: MutNullableDom<Permissions>,
     mediasession: MutNullableDom<MediaSession>,
+    clipboard: MutNullableDom<Clipboard>,
     #[cfg(feature = "webgpu")]
     gpu: MutNullableDom<GPU>,
     /// <https://www.w3.org/TR/gamepad/#dfn-hasgamepadgesture>
@@ -79,6 +81,7 @@ impl Navigator {
             gamepads: Default::default(),
             permissions: Default::default(),
             mediasession: Default::default(),
+            clipboard: Default::default(),
             #[cfg(feature = "webgpu")]
             gpu: Default::default(),
             has_gamepad_gesture: Cell::new(false),
@@ -219,6 +222,11 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
         to_frozen_array(&[self.Language()], cx, retval, can_gc)
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-online>
+    fn OnLine(&self) -> bool {
+        true
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-navigator-plugins
     fn Plugins(&self) -> DomRoot<PluginArray> {
         self.plugins
@@ -304,6 +312,12 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-hardwareconcurrency>
     fn HardwareConcurrency(&self) -> u64 {
         hardware_concurrency()
+    }
+
+    /// <https://w3c.github.io/clipboard-apis/#h-navigator-clipboard>
+    fn Clipboard(&self) -> DomRoot<Clipboard> {
+        self.clipboard
+            .or_init(|| Clipboard::new(&self.global(), CanGc::note()))
     }
 
     /// <https://servo.org/internal-no-spec>

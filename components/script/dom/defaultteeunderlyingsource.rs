@@ -19,7 +19,7 @@ use crate::dom::defaultteereadrequest::DefaultTeeReadRequest;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablestreamdefaultreader::ReadRequest;
-use crate::script_runtime::CanGc;
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) enum TeeCancelAlgorithm {
@@ -156,6 +156,8 @@ impl DefaultTeeUnderlyingSource {
     #[allow(unsafe_code)]
     pub(crate) fn cancel_algorithm(
         &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
         reason: SafeHandleValue,
         can_gc: CanGc,
     ) -> Option<Result<Rc<Promise>, Error>> {
@@ -169,7 +171,7 @@ impl DefaultTeeUnderlyingSource {
 
                 // If canceled_2 is true,
                 if self.canceled_2.get() {
-                    self.resolve_cancel_promise(can_gc);
+                    self.resolve_cancel_promise(cx, global, can_gc);
                 }
                 // Return cancelPromise.
                 Some(Ok(self.cancel_promise.clone()))
@@ -183,7 +185,7 @@ impl DefaultTeeUnderlyingSource {
 
                 // If canceled_1 is true,
                 if self.canceled_1.get() {
-                    self.resolve_cancel_promise(can_gc);
+                    self.resolve_cancel_promise(cx, global, can_gc);
                 }
                 // Return cancelPromise.
                 Some(Ok(self.cancel_promise.clone()))
@@ -192,9 +194,8 @@ impl DefaultTeeUnderlyingSource {
     }
 
     #[allow(unsafe_code)]
-    fn resolve_cancel_promise(&self, can_gc: CanGc) {
+    fn resolve_cancel_promise(&self, cx: SafeJSContext, global: &GlobalScope, can_gc: CanGc) {
         // Let compositeReason be ! CreateArrayFromList(« reason_1, reason_2 »).
-        let cx = GlobalScope::get_cx();
         rooted_vec!(let mut reasons_values);
         reasons_values.push(self.reason_1.get());
         reasons_values.push(self.reason_2.get());
@@ -204,7 +205,9 @@ impl DefaultTeeUnderlyingSource {
         rooted!(in(*cx) let reasons_value = ObjectValue(reasons.get()));
 
         // Let cancelResult be ! ReadableStreamCancel(stream, compositeReason).
-        let cancel_result = self.stream.cancel(reasons_value.handle(), can_gc);
+        let cancel_result = self
+            .stream
+            .cancel(cx, global, reasons_value.handle(), can_gc);
 
         // Resolve cancelPromise with cancelResult.
         self.cancel_promise.resolve_native(&cancel_result, can_gc);

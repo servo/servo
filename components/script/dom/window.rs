@@ -21,15 +21,20 @@ use base64::Engine;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLChan;
-use constellation_traits::{ScrollState, WindowSizeType};
+use compositing_traits::CrossProcessCompositorApi;
+use constellation_traits::{
+    DocumentState, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptToConstellationChan,
+    ScriptToConstellationMessage, ScrollState, StructuredSerializedData, WindowSizeType,
+};
 use crossbeam_channel::{Sender, unbounded};
-use cssparser::{Parser, ParserInput, SourceLocation};
+use cssparser::SourceLocation;
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
 use embedder_traits::user_content_manager::{UserContentManager, UserScript};
 use embedder_traits::{
-    AlertResponse, ConfirmResponse, EmbedderMsg, PromptResponse, SimpleDialog, Theme,
-    ViewportDetails, WebDriverJSError, WebDriverJSResult,
+    AlertResponse, ConfirmResponse, EmbedderMsg, GamepadEvent, GamepadSupportedHapticEffects,
+    GamepadUpdateType, PromptResponse, SimpleDialog, Theme, ViewportDetails, WebDriverJSError,
+    WebDriverJSResult,
 };
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
@@ -50,22 +55,23 @@ use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
 use net_traits::ResourceThreads;
 use net_traits::image_cache::{
-    ImageCache, ImageResponder, ImageResponse, PendingImageId, PendingImageResponse,
+    ImageCache, ImageCacheResponseMessage, ImageLoadListener, ImageResponse, PendingImageId,
+    PendingImageResponse, RasterizationCompleteResponse,
 };
 use net_traits::storage_thread::StorageType;
 use num_traits::ToPrimitive;
 use profile_traits::ipc as ProfiledIpc;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
+use script_bindings::codegen::GenericBindings::NavigatorBinding::NavigatorMethods;
+use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMethods;
 use script_bindings::interfaces::WindowHelpers;
+use script_bindings::root::Root;
 use script_layout_interface::{
     FragmentType, Layout, PendingImageState, QueryMsg, Reflow, ReflowGoal, ReflowRequest,
     TrustedNodeAddress, combine_id_with_fragment_type,
 };
-use script_traits::{
-    DocumentState, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptThreadMessage,
-    ScriptToConstellationChan, ScriptToConstellationMessage, StructuredSerializedData,
-};
+use script_traits::ScriptThreadMessage;
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
 use servo_config::{opts, pref};
@@ -73,20 +79,16 @@ use servo_geometry::{DeviceIndependentIntRect, MaxRect, f32_rect_to_au_rect};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::dom::OpaqueNode;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
-use style::media_queries;
-use style::parser::ParserContext as CssParserContext;
 use style::properties::PropertyId;
 use style::properties::style_structs::Font;
-use style::queries::values::PrefersColorScheme;
 use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
-use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
-use style_traits::{CSSPixel, ParsingMode};
+use style::stylesheets::UrlExtraData;
+use style_traits::CSSPixel;
 use stylo_atoms::Atom;
 use url::Position;
-use webrender_api::units::{DevicePixel, LayoutPixel};
-use webrender_api::{DocumentId, ExternalScrollId};
-use webrender_traits::CrossProcessCompositorApi;
+use webrender_api::ExternalScrollId;
+use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel};
 
 use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use super::bindings::trace::HashMapTracedValues;
@@ -127,12 +129,15 @@ use crate::dom::document::{AnimationFrameCallback, Document, ReflowTriggerCondit
 use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::gamepad::{Gamepad, contains_user_gesture};
+use crate::dom::gamepadevent::GamepadEventType;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::history::History;
 use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::location::Location;
+use crate::dom::medialist::MediaList;
 use crate::dom::mediaquerylist::{MediaQueryList, MediaQueryListMatchState};
 use crate::dom::mediaquerylistevent::MediaQueryListEvent;
 use crate::dom::messageevent::MessageEvent;
@@ -142,9 +147,11 @@ use crate::dom::performance::Performance;
 use crate::dom::promise::Promise;
 use crate::dom::screen::Screen;
 use crate::dom::selection::Selection;
+use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::storage::Storage;
 #[cfg(feature = "bluetooth")]
 use crate::dom::testrunner::TestRunner;
+use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::types::UIEvent;
 use crate::dom::webglrenderingcontext::WebGLCommandSender;
 #[cfg(feature = "webgpu")]
@@ -160,7 +167,7 @@ use crate::script_runtime::{CanGc, JSContext, Runtime};
 use crate::script_thread::ScriptThread;
 use crate::timers::{IsInterval, TimerCallback};
 use crate::unminify::unminified_path;
-use crate::webdriver_handlers::jsval_to_webdriver;
+use crate::webdriver_handlers::{find_node_by_unique_id_in_document, jsval_to_webdriver};
 use crate::{fetch, window_named_properties};
 
 /// A callback to call when a response comes back from the `ImageCache`.
@@ -212,6 +219,8 @@ impl LayoutBlocker {
     }
 }
 
+type PendingImageRasterizationKey = (PendingImageId, DeviceIntSize);
+
 #[dom_struct]
 pub(crate) struct Window {
     globalscope: GlobalScope,
@@ -234,7 +243,7 @@ pub(crate) struct Window {
     #[no_trace]
     image_cache: Arc<dyn ImageCache>,
     #[no_trace]
-    image_cache_sender: IpcSender<PendingImageResponse>,
+    image_cache_sender: IpcSender<ImageCacheResponseMessage>,
     window_proxy: MutNullableDom<WindowProxy>,
     document: MutNullableDom<Document>,
     location: MutNullableDom<Location>,
@@ -247,6 +256,7 @@ pub(crate) struct Window {
     session_storage: MutNullableDom<Storage>,
     local_storage: MutNullableDom<Storage>,
     status: DomRefCell<DOMString>,
+    trusted_types: MutNullableDom<TrustedTypePolicyFactory>,
 
     /// For sending timeline markers. Will be ignored if
     /// no devtools server
@@ -261,7 +271,7 @@ pub(crate) struct Window {
 
     /// Platform theme.
     #[no_trace]
-    theme: Cell<PrefersColorScheme>,
+    theme: Cell<Theme>,
 
     /// Parent id associated with this page, if any.
     #[no_trace]
@@ -336,10 +346,16 @@ pub(crate) struct Window {
     pending_image_callbacks: DomRefCell<HashMap<PendingImageId, Vec<PendingImageCallback>>>,
 
     /// All of the elements that have an outstanding image request that was
-    /// initiated by layout during a reflow. They are stored in the script thread
+    /// initiated by layout during a reflow. They are stored in the [`ScriptThread`]
     /// to ensure that the element can be marked dirty when the image data becomes
     /// available at some point in the future.
     pending_layout_images: DomRefCell<HashMapTracedValues<PendingImageId, Vec<Dom<Node>>>>,
+
+    /// Vector images for which layout has intiated rasterization at a specific size
+    /// and whose results are not yet available. They are stored in the [`ScriptThread`]
+    /// so that the element can be marked dirty once the rasterization is completed.
+    pending_images_for_rasterization:
+        DomRefCell<HashMapTracedValues<PendingImageRasterizationKey, Vec<Dom<Node>>>>,
 
     /// Directory to store unminified css for this window if unminify-css
     /// opt is enabled.
@@ -352,10 +368,6 @@ pub(crate) struct Window {
     test_worklet: MutNullableDom<Worklet>,
     /// <https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet>
     paint_worklet: MutNullableDom<Worklet>,
-    /// The Webrender Document id associated with this window.
-    #[ignore_malloc_size_of = "defined in webrender_api"]
-    #[no_trace]
-    webrender_document: DocumentId,
 
     /// Flag to identify whether mutation observers are present(true)/absent(false)
     exists_mut_observer: Cell<bool>,
@@ -565,7 +577,7 @@ impl Window {
         &self,
         id: PendingImageId,
         callback: impl Fn(PendingImageResponse) + 'static,
-    ) -> IpcSender<PendingImageResponse> {
+    ) -> IpcSender<ImageCacheResponseMessage> {
         self.pending_image_callbacks
             .borrow_mut()
             .entry(id)
@@ -592,6 +604,22 @@ impl Window {
                 nodes.remove();
             },
         }
+    }
+
+    pub(crate) fn handle_image_rasterization_complete_notification(
+        &self,
+        response: RasterizationCompleteResponse,
+    ) {
+        let mut images = self.pending_images_for_rasterization.borrow_mut();
+        let nodes = images.entry((response.image_id, response.requested_size));
+        let nodes = match nodes {
+            Entry::Occupied(nodes) => nodes,
+            Entry::Vacant(_) => return,
+        };
+        for node in nodes.get() {
+            node.dirty(NodeDamage::OtherNodeDamage);
+        }
+        nodes.remove();
     }
 
     pub(crate) fn pending_image_notification(&self, response: PendingImageResponse) {
@@ -644,6 +672,126 @@ impl Window {
 
     pub(crate) fn font_context(&self) -> &Arc<FontContext> {
         &self.font_context
+    }
+
+    pub(crate) fn handle_gamepad_event(&self, gamepad_event: GamepadEvent) {
+        match gamepad_event {
+            GamepadEvent::Connected(index, name, bounds, supported_haptic_effects) => {
+                self.handle_gamepad_connect(
+                    index.0,
+                    name,
+                    bounds.axis_bounds,
+                    bounds.button_bounds,
+                    supported_haptic_effects,
+                );
+            },
+            GamepadEvent::Disconnected(index) => {
+                self.handle_gamepad_disconnect(index.0);
+            },
+            GamepadEvent::Updated(index, update_type) => {
+                self.receive_new_gamepad_button_or_axis(index.0, update_type);
+            },
+        };
+    }
+
+    /// <https://www.w3.org/TR/gamepad/#dfn-gamepadconnected>
+    fn handle_gamepad_connect(
+        &self,
+        // As the spec actually defines how to set the gamepad index, the GilRs index
+        // is currently unused, though in practice it will almost always be the same.
+        // More infra is currently needed to track gamepads across windows.
+        _index: usize,
+        name: String,
+        axis_bounds: (f64, f64),
+        button_bounds: (f64, f64),
+        supported_haptic_effects: GamepadSupportedHapticEffects,
+    ) {
+        // TODO: 2. If document is not null and is not allowed to use the "gamepad" permission,
+        //          then abort these steps.
+        let this = Trusted::new(self);
+        self.upcast::<GlobalScope>()
+            .task_manager()
+            .gamepad_task_source()
+            .queue(task!(gamepad_connected: move || {
+                let window = this.root();
+
+                let navigator = window.Navigator();
+                let selected_index = navigator.select_gamepad_index();
+                let gamepad = Gamepad::new(
+                    &window,
+                    selected_index,
+                    name,
+                    "standard".into(),
+                    axis_bounds,
+                    button_bounds,
+                    supported_haptic_effects,
+                    false,
+                    CanGc::note(),
+                );
+                navigator.set_gamepad(selected_index as usize, &gamepad, CanGc::note());
+            }));
+    }
+
+    /// <https://www.w3.org/TR/gamepad/#dfn-gamepaddisconnected>
+    fn handle_gamepad_disconnect(&self, index: usize) {
+        let this = Trusted::new(self);
+        self.upcast::<GlobalScope>()
+            .task_manager()
+            .gamepad_task_source()
+            .queue(task!(gamepad_disconnected: move || {
+                let window = this.root();
+                let navigator = window.Navigator();
+                if let Some(gamepad) = navigator.get_gamepad(index) {
+                    if window.Document().is_fully_active() {
+                        gamepad.update_connected(false, gamepad.exposed(), CanGc::note());
+                        navigator.remove_gamepad(index);
+                    }
+                }
+            }));
+    }
+
+    /// <https://www.w3.org/TR/gamepad/#receiving-inputs>
+    fn receive_new_gamepad_button_or_axis(&self, index: usize, update_type: GamepadUpdateType) {
+        let this = Trusted::new(self);
+
+        // <https://w3c.github.io/gamepad/#dfn-update-gamepad-state>
+        self.upcast::<GlobalScope>().task_manager().gamepad_task_source().queue(
+                task!(update_gamepad_state: move || {
+                    let window = this.root();
+                    let navigator = window.Navigator();
+                    if let Some(gamepad) = navigator.get_gamepad(index) {
+                        let current_time = window.Performance().Now();
+                        gamepad.update_timestamp(*current_time);
+                        match update_type {
+                            GamepadUpdateType::Axis(index, value) => {
+                                gamepad.map_and_normalize_axes(index, value);
+                            },
+                            GamepadUpdateType::Button(index, value) => {
+                                gamepad.map_and_normalize_buttons(index, value);
+                            }
+                        };
+                        if !navigator.has_gamepad_gesture() && contains_user_gesture(update_type) {
+                            navigator.set_has_gamepad_gesture(true);
+                            navigator.GetGamepads()
+                                .iter()
+                                .filter_map(|g| g.as_ref())
+                                .for_each(|gamepad| {
+                                    gamepad.set_exposed(true);
+                                    gamepad.update_timestamp(*current_time);
+                                    let new_gamepad = Trusted::new(&**gamepad);
+                                    if window.Document().is_fully_active() {
+                                        window.upcast::<GlobalScope>().task_manager().gamepad_task_source().queue(
+                                            task!(update_gamepad_connect: move || {
+                                                let gamepad = new_gamepad.root();
+                                                gamepad.notify_event(GamepadEventType::Connected, CanGc::note());
+                                            })
+                                        );
+                                    }
+                                });
+                        }
+                    }
+                })
+            );
     }
 }
 
@@ -788,6 +936,32 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         // TODO: Cancel ongoing navigation.
         let doc = self.Document();
         doc.abort(can_gc);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-window-focus>
+    fn Focus(&self) {
+        // > 1. Let `current` be this `Window` object's browsing context.
+        // >
+        // > 2. If `current` is null, then return.
+        let current = match self.undiscarded_window_proxy() {
+            Some(proxy) => proxy,
+            None => return,
+        };
+
+        // > 3. Run the focusing steps with `current`.
+        current.focus();
+
+        // > 4. If current is a top-level browsing context, user agents are
+        // >    encouraged to trigger some sort of notification to indicate to
+        // >    the user that the page is attempting to gain focus.
+        //
+        // TODO: Step 4
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-window-blur
+    fn Blur(&self) {
+        // > User agents are encouraged to ignore calls to this `blur()` method
+        // > entirely.
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-open
@@ -952,7 +1126,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto
     fn Crypto(&self) -> DomRoot<Crypto> {
-        self.as_global_scope().crypto()
+        self.as_global_scope().crypto(CanGc::note())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-frameelement
@@ -1219,20 +1393,55 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         }
     }
 
-    #[allow(unsafe_code)]
-    fn WebdriverCallback(&self, cx: JSContext, val: HandleValue) {
-        let rv = unsafe { jsval_to_webdriver(*cx, &self.globalscope, val) };
+    fn WebdriverCallback(&self, cx: JSContext, val: HandleValue, realm: InRealm, can_gc: CanGc) {
+        let rv = jsval_to_webdriver(cx, &self.globalscope, val, realm, can_gc);
         let opt_chan = self.webdriver_script_chan.borrow_mut().take();
         if let Some(chan) = opt_chan {
-            chan.send(rv).unwrap();
+            let _ = chan.send(rv);
+        }
+    }
+
+    fn WebdriverException(&self, cx: JSContext, val: HandleValue, realm: InRealm, can_gc: CanGc) {
+        let rv = jsval_to_webdriver(cx, &self.globalscope, val, realm, can_gc);
+        let opt_chan = self.webdriver_script_chan.borrow_mut().take();
+        if let Some(chan) = opt_chan {
+            if let Ok(rv) = rv {
+                let _ = chan.send(Err(WebDriverJSError::JSException(rv)));
+            } else {
+                let _ = chan.send(rv);
+            }
         }
     }
 
     fn WebdriverTimeout(&self) {
         let opt_chan = self.webdriver_script_chan.borrow_mut().take();
         if let Some(chan) = opt_chan {
-            chan.send(Err(WebDriverJSError::Timeout)).unwrap();
+            let _ = chan.send(Err(WebDriverJSError::Timeout));
         }
+    }
+
+    fn WebdriverElement(&self, id: DOMString) -> Option<DomRoot<Element>> {
+        find_node_by_unique_id_in_document(&self.Document(), id.into())
+            .ok()
+            .and_then(Root::downcast)
+    }
+
+    fn WebdriverFrame(&self, id: DOMString) -> Option<DomRoot<Element>> {
+        find_node_by_unique_id_in_document(&self.Document(), id.into())
+            .ok()
+            .and_then(Root::downcast::<HTMLIFrameElement>)
+            .map(Root::upcast::<Element>)
+    }
+
+    fn WebdriverWindow(&self, _id: DOMString) -> Option<DomRoot<Window>> {
+        warn!("Window references are not supported in webdriver yet");
+        None
+    }
+
+    fn WebdriverShadowRoot(&self, id: DOMString) -> Option<DomRoot<ShadowRoot>> {
+        find_node_by_unique_id_in_document(&self.Document(), id.into())
+            .ok()
+            .and_then(Root::downcast)
     }
 
     // https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle
@@ -1260,6 +1469,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
                 Some(PseudoElement::After)
             },
             Some(ref pseudo) if pseudo == "::selection" => Some(PseudoElement::Selection),
+            Some(ref pseudo) if pseudo == "::marker" => Some(PseudoElement::Marker),
             Some(ref pseudo) if pseudo.starts_with(':') => {
                 // Step 3.2: If type is failure, or is a ::slotted() or ::part()
                 // pseudo-element, let obj be null.
@@ -1380,7 +1590,17 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     // https://drafts.csswg.org/cssom-view/#dom-window-resizeto
     fn ResizeTo(&self, width: i32, height: i32) {
         // Step 1
-        //TODO determine if this operation is allowed
+        let window_proxy = match self.window_proxy.get() {
+            Some(proxy) => proxy,
+            None => return,
+        };
+
+        // If target is not an auxiliary browsing context that was created by a script
+        // (as opposed to by an action of the user), then return.
+        if !window_proxy.is_auxiliary() {
+            return;
+        }
+
         let dpr = self.device_pixel_ratio();
         let size = Size2D::new(width, height).to_f32() * dpr;
         self.send_to_embedder(EmbedderMsg::ResizeTo(self.webview_id(), size.to_i32()));
@@ -1454,21 +1674,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://drafts.csswg.org/cssom-view/#dom-window-matchmedia
     fn MatchMedia(&self, query: DOMString) -> DomRoot<MediaQueryList> {
-        let mut input = ParserInput::new(&query);
-        let mut parser = Parser::new(&mut input);
-        let url_data = UrlExtraData(self.get_url().get_arc());
-        let quirks_mode = self.Document().quirks_mode();
-        let context = CssParserContext::new(
-            Origin::Author,
-            &url_data,
-            Some(CssRuleType::Media),
-            ParsingMode::DEFAULT,
-            quirks_mode,
-            /* namespaces = */ Default::default(),
-            self.css_error_reporter(),
-            None,
-        );
-        let media_query_list = media_queries::MediaList::parse(&context, &mut parser);
+        let media_query_list = MediaList::parse_media_list(&query, self);
         let document = self.Document();
         let mql = MediaQueryList::new(&document, media_query_list, CanGc::note());
         self.media_query_lists.track(&*mql);
@@ -1520,7 +1726,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://w3c.github.io/selection-api/#dom-window-getselection
     fn GetSelection(&self) -> Option<DomRoot<Selection>> {
-        self.document.get().and_then(|d| d.GetSelection())
+        self.document
+            .get()
+            .and_then(|d| d.GetSelection(CanGc::note()))
     }
 
     // https://dom.spec.whatwg.org/#dom-window-event
@@ -1621,6 +1829,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             self,
             document.upcast(),
             Box::new(WindowNamedGetter { name }),
+            CanGc::note(),
         );
         Some(NamedPropertyValue::HTMLCollection(collection))
     }
@@ -1695,6 +1904,11 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     ) -> Fallible<()> {
         self.as_global_scope()
             .structured_clone(cx, value, options, retval)
+    }
+
+    fn TrustedTypes(&self, can_gc: CanGc) -> DomRoot<TrustedTypePolicyFactory> {
+        self.trusted_types
+            .or_init(|| TrustedTypePolicyFactory::new(self.as_global_scope(), can_gc))
     }
 }
 
@@ -1888,10 +2102,7 @@ impl Window {
         let (sender, receiver) =
             ProfiledIpc::channel::<DeviceIndependentIntRect>(timer_profile_chan).unwrap();
         let _ = self.compositor_api.sender().send(
-            webrender_traits::CrossProcessCompositorMessage::GetClientWindowRect(
-                self.webview_id(),
-                sender,
-            ),
+            compositing_traits::CompositorMsg::GetClientWindowRect(self.webview_id(), sender),
         );
         let rect = receiver.recv().unwrap_or_default();
         (
@@ -1981,6 +2192,8 @@ impl Window {
             .or_else(|| document.GetDocumentElement())
             .map(|root| root.upcast::<Node>().to_trusted_node_address());
 
+        let highlighted_dom_node = document.highlighted_dom_node().map(|node| node.to_opaque());
+
         // Send new document and relevant styles to layout.
         let reflow = ReflowRequest {
             reflow_info: Reflow {
@@ -2000,6 +2213,7 @@ impl Window {
                 .image_animation_manager_mut()
                 .take_image_animate_set(),
             theme: self.theme.get(),
+            highlighted_dom_node,
         };
 
         let Some(results) = self.layout.borrow_mut().reflow(reflow) else {
@@ -2026,8 +2240,7 @@ impl Window {
             }
 
             let mut images = self.pending_layout_images.borrow_mut();
-            let nodes = images.entry(id).or_default();
-            if !nodes.iter().any(|n| std::ptr::eq(&**n, &*node)) {
+            if !images.contains_key(&id) {
                 let trusted_node = Trusted::new(&*node);
                 let sender = self.register_image_cache_listener(id, move |response| {
                     trusted_node
@@ -2036,8 +2249,34 @@ impl Window {
                         .pending_layout_image_notification(response);
                 });
 
-                self.image_cache
-                    .add_listener(ImageResponder::new(sender, self.pipeline_id(), id));
+                self.image_cache.add_listener(ImageLoadListener::new(
+                    sender,
+                    self.pipeline_id(),
+                    id,
+                ));
+            }
+
+            let nodes = images.entry(id).or_default();
+            if !nodes.iter().any(|n| std::ptr::eq(&**n, &*node)) {
+                nodes.push(Dom::from_ref(&*node));
+            }
+        }
+
+        for image in results.pending_rasterization_images {
+            let node = unsafe { from_untrusted_node_address(image.node) };
+
+            let mut images = self.pending_images_for_rasterization.borrow_mut();
+            if !images.contains_key(&(image.id, image.size)) {
+                self.image_cache.add_rasterization_complete_listener(
+                    pipeline_id,
+                    image.id,
+                    image.size,
+                    self.image_cache_sender.clone(),
+                );
+            }
+
+            let nodes = images.entry((image.id, image.size)).or_default();
+            if !nodes.iter().any(|n| std::ptr::eq(&**n, &*node)) {
                 nodes.push(Dom::from_ref(&*node));
             }
         }
@@ -2133,12 +2372,13 @@ impl Window {
             });
 
             let has_sent_idle_message = self.has_sent_idle_message.get();
-            let pending_images = !self.pending_layout_images.borrow().is_empty();
+            let no_pending_images = self.pending_layout_images.borrow().is_empty() &&
+                self.pending_images_for_rasterization.borrow().is_empty();
 
             if !has_sent_idle_message &&
                 is_ready_state_complete &&
                 !reftest_wait &&
-                !pending_images &&
+                no_pending_images &&
                 !waiting_for_web_fonts_to_load
             {
                 debug!(
@@ -2258,7 +2498,9 @@ impl Window {
 
     // Query content box without considering any reflow
     pub(crate) fn content_box_query_unchecked(&self, node: &Node) -> Option<UntypedRect<Au>> {
-        self.layout.borrow().query_content_box(node.to_opaque())
+        self.layout
+            .borrow()
+            .query_content_box(node.to_trusted_node_address())
     }
 
     pub(crate) fn content_box_query(&self, node: &Node, can_gc: CanGc) -> Option<UntypedRect<Au>> {
@@ -2272,14 +2514,18 @@ impl Window {
         if !self.layout_reflow(QueryMsg::ContentBoxes, can_gc) {
             return vec![];
         }
-        self.layout.borrow().query_content_boxes(node.to_opaque())
+        self.layout
+            .borrow()
+            .query_content_boxes(node.to_trusted_node_address())
     }
 
     pub(crate) fn client_rect_query(&self, node: &Node, can_gc: CanGc) -> UntypedRect<i32> {
         if !self.layout_reflow(QueryMsg::ClientRectQuery, can_gc) {
             return Rect::zero();
         }
-        self.layout.borrow().query_client_rect(node.to_opaque())
+        self.layout
+            .borrow()
+            .query_client_rect(node.to_trusted_node_address())
     }
 
     /// Find the scroll area of the given node, if it is not None. If the node
@@ -2289,11 +2535,12 @@ impl Window {
         node: Option<&Node>,
         can_gc: CanGc,
     ) -> UntypedRect<i32> {
-        let opaque = node.map(|node| node.to_opaque());
         if !self.layout_reflow(QueryMsg::ScrollingAreaQuery, can_gc) {
             return Rect::zero();
         }
-        self.layout.borrow().query_scrolling_area(opaque)
+        self.layout
+            .borrow()
+            .query_scrolling_area(node.map(Node::to_trusted_node_address))
     }
 
     pub(crate) fn scroll_offset_query(&self, node: &Node) -> Vector2D<f32, LayoutPixel> {
@@ -2382,7 +2629,10 @@ impl Window {
             return (None, Rect::zero());
         }
 
-        let response = self.layout.borrow().query_offset_parent(node.to_opaque());
+        let response = self
+            .layout
+            .borrow()
+            .query_offset_parent(node.to_trusted_node_address());
         let element = response.node_address.and_then(|parent_node_address| {
             let node = unsafe { from_untrusted_node_address(parent_node_address) };
             DomRoot::downcast(node)
@@ -2536,13 +2786,13 @@ impl Window {
         self.viewport_details.get()
     }
 
+    /// Get the theme of this [`Window`].
+    pub(crate) fn theme(&self) -> Theme {
+        self.theme.get()
+    }
+
     /// Handle a theme change request, triggering a reflow is any actual change occured.
     pub(crate) fn handle_theme_change(&self, new_theme: Theme) {
-        let new_theme = match new_theme {
-            Theme::Light => PrefersColorScheme::Light,
-            Theme::Dark => PrefersColorScheme::Dark,
-        };
-
         if self.theme.get() == new_theme {
             return;
         }
@@ -2779,10 +3029,6 @@ impl Window {
             .unwrap();
     }
 
-    pub(crate) fn webrender_document(&self) -> DocumentId {
-        self.webrender_document
-    }
-
     #[cfg(feature = "webxr")]
     pub(crate) fn in_immersive_xr_session(&self) -> bool {
         self.navigator
@@ -2807,7 +3053,7 @@ impl Window {
         script_chan: Sender<MainThreadScriptMsg>,
         layout: Box<dyn Layout>,
         font_context: Arc<FontContext>,
-        image_cache_sender: IpcSender<PendingImageResponse>,
+        image_cache_sender: IpcSender<ImageCacheResponseMessage>,
         image_cache: Arc<dyn ImageCache>,
         resource_threads: ResourceThreads,
         #[cfg(feature = "bluetooth")] bluetooth_thread: IpcSender<BluetoothRequest>,
@@ -2825,7 +3071,6 @@ impl Window {
         webgl_chan: Option<WebGLChan>,
         #[cfg(feature = "webxr")] webxr_registry: Option<webxr_api::Registry>,
         microtask_queue: Rc<MicrotaskQueue>,
-        webrender_document: DocumentId,
         compositor_api: CrossProcessCompositorApi,
         relayout_event: bool,
         unminify_js: bool,
@@ -2835,6 +3080,7 @@ impl Window {
         player_context: WindowGLContext,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
+        theme: Theme,
     ) -> DomRoot<Self> {
         let error_reporter = CSSErrorReporter {
             pipelineid: pipeline_id,
@@ -2906,11 +3152,11 @@ impl Window {
             webxr_registry,
             pending_image_callbacks: Default::default(),
             pending_layout_images: Default::default(),
+            pending_images_for_rasterization: Default::default(),
             unminified_css_dir: Default::default(),
             local_script_source,
             test_worklet: Default::default(),
             paint_worklet: Default::default(),
-            webrender_document,
             exists_mut_observer: Cell::new(false),
             compositor_api,
             has_sent_idle_message: Cell::new(false),
@@ -2921,7 +3167,8 @@ impl Window {
             throttled: Cell::new(false),
             layout_marker: DomRefCell::new(Rc::new(Cell::new(true))),
             current_event: DomRefCell::new(None),
-            theme: Cell::new(PrefersColorScheme::Light),
+            theme: Cell::new(theme),
+            trusted_types: Default::default(),
         });
 
         unsafe {

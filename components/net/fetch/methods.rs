@@ -18,13 +18,14 @@ use http::{HeaderValue, Method, StatusCode};
 use ipc_channel::ipc;
 use log::{debug, trace, warn};
 use mime::{self, Mime};
+use net_traits::fetch::headers::extract_mime_type_as_mime;
 use net_traits::filemanager_thread::{FileTokenCheck, RelativePos};
 use net_traits::http_status::HttpStatus;
 use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, CredentialsMode, Destination, Initiator,
-    InsecureRequestsPolicy, Origin, RedirectMode, Referrer, Request, RequestMode, ResponseTainting,
-    Window, is_cors_safelisted_method, is_cors_safelisted_request_header,
+    InsecureRequestsPolicy, Origin, ParserMetadata, RedirectMode, Referrer, Request, RequestMode,
+    ResponseTainting, Window, is_cors_safelisted_method, is_cors_safelisted_request_header,
 };
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use net_traits::{
@@ -42,7 +43,7 @@ use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::headers::determine_nosniff;
 use crate::filemanager_thread::FileManager;
 use crate::http_loader::{HttpState, determine_requests_referrer, http_fetch, set_default_accept};
-use crate::protocols::ProtocolRegistry;
+use crate::protocols::{ProtocolRegistry, is_url_potentially_trustworthy};
 use crate::request_interceptor::RequestInterceptor;
 use crate::subresource_integrity::is_response_integrity_valid;
 
@@ -169,33 +170,63 @@ pub async fn fetch_with_cors_cache(
     // TODO: We don't implement fetchParams as defined in the spec
 }
 
-/// <https://www.w3.org/TR/CSP/#should-block-request>
-pub fn should_request_be_blocked_by_csp(
-    request: &Request,
-    policy_container: &PolicyContainer,
-) -> csp::CheckResult {
-    let origin = match &request.origin {
-        Origin::Client => return csp::CheckResult::Allowed,
-        Origin::Origin(origin) => origin,
-    };
-
-    let csp_request = csp::Request {
+fn convert_request_to_csp_request(request: &Request, origin: &ImmutableOrigin) -> csp::Request {
+    csp::Request {
         url: request.url().into_url(),
         origin: origin.clone().into_url_origin(),
         redirect_count: request.redirect_count,
         destination: request.destination,
-        initiator: csp::Initiator::None,
+        initiator: match request.initiator {
+            Initiator::Download => csp::Initiator::Download,
+            Initiator::ImageSet => csp::Initiator::ImageSet,
+            Initiator::Manifest => csp::Initiator::Manifest,
+            Initiator::Prefetch => csp::Initiator::Prefetch,
+            _ => csp::Initiator::None,
+        },
         nonce: request.cryptographic_nonce_metadata.clone(),
         integrity_metadata: request.integrity_metadata.clone(),
-        parser_metadata: csp::ParserMetadata::None,
-    };
+        parser_metadata: match request.parser_metadata {
+            ParserMetadata::ParserInserted => csp::ParserMetadata::ParserInserted,
+            ParserMetadata::NotParserInserted => csp::ParserMetadata::NotParserInserted,
+            ParserMetadata::Default => csp::ParserMetadata::None,
+        },
+    }
+}
 
-    // TODO: Instead of ignoring violations, report them.
+/// <https://www.w3.org/TR/CSP/#should-block-request>
+pub fn should_request_be_blocked_by_csp(
+    request: &Request,
+    policy_container: &PolicyContainer,
+) -> (csp::CheckResult, Vec<csp::Violation>) {
+    let origin = match &request.origin {
+        Origin::Client => return (csp::CheckResult::Allowed, Vec::new()),
+        Origin::Origin(origin) => origin,
+    };
+    let csp_request = convert_request_to_csp_request(request, origin);
+
     policy_container
         .csp_list
         .as_ref()
-        .map(|c| c.should_request_be_blocked(&csp_request).0)
-        .unwrap_or(csp::CheckResult::Allowed)
+        .map(|c| c.should_request_be_blocked(&csp_request))
+        .unwrap_or((csp::CheckResult::Allowed, Vec::new()))
+}
+
+/// <https://www.w3.org/TR/CSP/#report-for-request>
+pub fn report_violations_for_request_by_csp(
+    request: &Request,
+    policy_container: &PolicyContainer,
+) -> Vec<csp::Violation> {
+    let origin = match &request.origin {
+        Origin::Client => return Vec::new(),
+        Origin::Origin(origin) => origin,
+    };
+    let csp_request = convert_request_to_csp_request(request, origin);
+
+    policy_container
+        .csp_list
+        .as_ref()
+        .map(|c| c.report_violations_for_request(&csp_request))
+        .unwrap_or_default()
 }
 
 /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)
@@ -233,9 +264,6 @@ pub async fn main_fetch(
         )));
     }
 
-    // Step 2.2.
-    // TODO: Report violations.
-
     // The request should have a valid policy_container associated with it.
     // TODO: This should not be `Client` here
     let policy_container = match &request.policy_container {
@@ -243,12 +271,19 @@ pub async fn main_fetch(
         RequestPolicyContainer::PolicyContainer(container) => container.to_owned(),
     };
 
+    // Step 2.2.
+    let violations = report_violations_for_request_by_csp(request, &policy_container);
+
+    if !violations.is_empty() {
+        target.process_csp_violations(request, violations);
+    }
+
     // Step 3.
     // TODO: handle request abort.
 
     // Step 4. Upgrade request to a potentially trustworthy URL, if appropriate.
     if should_upgrade_request_to_potentially_trustworty(request, context) ||
-        should_upgrade_mixed_content_request(request)
+        should_upgrade_mixed_content_request(request, &context.protocols)
     {
         trace!(
             "upgrading {} targeting {:?}",
@@ -278,7 +313,13 @@ pub async fn main_fetch(
     // Step 7. If should request be blocked due to a bad port, should fetching request be blocked
     // as mixed content, or should request be blocked by Content Security Policy returns blocked,
     // then set response to a network error.
-    if should_request_be_blocked_by_csp(request, &policy_container) == csp::CheckResult::Blocked {
+    let (check_result, violations) = should_request_be_blocked_by_csp(request, &policy_container);
+
+    if !violations.is_empty() {
+        target.process_csp_violations(request, violations);
+    }
+
+    if check_result == csp::CheckResult::Blocked {
         warn!("Request blocked by CSP");
         response = Some(Response::network_error(NetworkError::Internal(
             "Blocked by Content-Security-Policy".into(),
@@ -289,7 +330,7 @@ pub async fn main_fetch(
             "Request attempted on bad port".into(),
         )));
     }
-    if should_request_be_blocked_as_mixed_content(request) {
+    if should_request_be_blocked_as_mixed_content(request, &context.protocols) {
         response = Some(Response::network_error(NetworkError::Internal(
             "Blocked as mixed content".into(),
         )));
@@ -354,13 +395,16 @@ pub async fn main_fetch(
             if (same_origin && request.response_tainting == ResponseTainting::Basic) ||
                 // request's current URL's scheme is "data"
                 current_scheme == "data" ||
+                // Note: Although it is not part of the specification, we make an exception here
+                // for custom protocols that are explicitly marked as active for fetch.
+                context.protocols.is_fetchable(current_scheme) ||
                 // request's mode is "navigate" or "websocket"
                 matches!(
                     request.mode,
                     RequestMode::Navigate | RequestMode::WebSocket { .. }
                 )
             {
-                // Substep 1. Set request’s response tainting to "basic".
+                // Substep 1. Set request's response tainting to "basic".
                 request.response_tainting = ResponseTainting::Basic;
 
                 // Substep 2. Return the result of running scheme fetch given fetchParams.
@@ -368,13 +412,13 @@ pub async fn main_fetch(
             } else if request.mode == RequestMode::SameOrigin {
                 Response::network_error(NetworkError::Internal("Cross-origin response".into()))
             } else if request.mode == RequestMode::NoCors {
-                // Substep 1. If request’s redirect mode is not "follow", then return a network error.
+                // Substep 1. If request's redirect mode is not "follow", then return a network error.
                 if request.redirect_mode != RedirectMode::Follow {
                     Response::network_error(NetworkError::Internal(
                         "NoCors requests must follow redirects".into(),
                     ))
                 } else {
-                    // Substep 2. Set request’s response tainting to "opaque".
+                    // Substep 2. Set request's response tainting to "opaque".
                     request.response_tainting = ResponseTainting::Opaque;
 
                     // Substep 3. Return the result of running scheme fetch given fetchParams.
@@ -485,7 +529,7 @@ pub async fn main_fetch(
         let should_replace_with_mime_type_error = !response_is_network_error &&
             should_be_blocked_due_to_mime_type(request.destination, &response.headers);
         let should_replace_with_mixed_content = !response_is_network_error &&
-            should_response_be_blocked_as_mixed_content(request, &response);
+            should_response_be_blocked_as_mixed_content(request, &response, &context.protocols);
 
         // Step 15.
         let mut network_error_response = response
@@ -694,7 +738,7 @@ impl RangeRequestBounds {
             RangeRequestBounds::Final(pos) => {
                 if let Some(len) = len {
                     if pos.start <= len as i64 {
-                        return Ok(pos.clone());
+                        return Ok(*pos);
                     }
                 }
                 Err("Tried to process RangeRequestBounds::Final without len")
@@ -843,7 +887,7 @@ pub fn should_be_blocked_due_to_nosniff(
 
     // Step 2
     // Note: an invalid MIME type will produce a `None`.
-    let content_type_header = response_headers.typed_get::<ContentType>();
+    let mime_type = extract_mime_type_as_mime(response_headers);
 
     /// <https://html.spec.whatwg.org/multipage/#scriptingLanguages>
     #[inline]
@@ -872,16 +916,12 @@ pub fn should_be_blocked_due_to_nosniff(
             .any(|mime| mime.type_() == mime_type.type_() && mime.subtype() == mime_type.subtype())
     }
 
-    match content_type_header {
+    match mime_type {
         // Step 4
-        Some(ref ct) if destination.is_script_like() => {
-            !is_javascript_mime_type(&ct.clone().into())
-        },
-
+        Some(ref mime_type) if destination.is_script_like() => !is_javascript_mime_type(mime_type),
         // Step 5
-        Some(ref ct) if destination == Destination::Style => {
-            let m: mime::Mime = ct.clone().into();
-            m.type_() != mime::TEXT && m.subtype() != mime::CSS
+        Some(ref mime_type) if destination == Destination::Style => {
+            mime_type.type_() != mime::TEXT && mime_type.subtype() != mime::CSS
         },
 
         None if destination == Destination::Style || destination.is_script_like() => true,
@@ -895,18 +935,22 @@ fn should_be_blocked_due_to_mime_type(
     destination: Destination,
     response_headers: &HeaderMap,
 ) -> bool {
-    // Step 1
-    let mime_type: mime::Mime = match response_headers.typed_get::<ContentType>() {
-        Some(header) => header.into(),
+    // Step 1: Let mimeType be the result of extracting a MIME type from response’s header list.
+    let mime_type: mime::Mime = match extract_mime_type_as_mime(response_headers) {
+        Some(mime_type) => mime_type,
+        // Step 2: If mimeType is failure, then return allowed.
         None => return false,
     };
 
-    // Step 2-3
+    // Step 3: Let destination be request’s destination.
+    // Step 4: If destination is script-like and one of the following is true, then return blocked:
+    //    - mimeType’s essence starts with "audio/", "image/", or "video/".
+    //    - mimeType’s essence is "text/csv".
+    // Step 5: Return allowed.
     destination.is_script_like() &&
         match mime_type.type_() {
             mime::AUDIO | mime::VIDEO | mime::IMAGE => true,
             mime::TEXT if mime_type.subtype() == mime::CSV => true,
-            // Step 4
             _ => false,
         }
 }
@@ -928,7 +972,10 @@ pub fn should_request_be_blocked_due_to_a_bad_port(url: &ServoUrl) -> bool {
 }
 
 /// <https://w3c.github.io/webappsec-mixed-content/#should-block-fetch>
-pub fn should_request_be_blocked_as_mixed_content(request: &Request) -> bool {
+pub fn should_request_be_blocked_as_mixed_content(
+    request: &Request,
+    protocol_registry: &ProtocolRegistry,
+) -> bool {
     // Step 1. Return allowed if one or more of the following conditions are met:
     // 1.1. Does settings prohibit mixed security contexts?
     // returns "Does Not Restrict Mixed Security Contexts" when applied to request’s client.
@@ -939,7 +986,7 @@ pub fn should_request_be_blocked_as_mixed_content(request: &Request) -> bool {
     }
 
     // 1.2. request’s URL is a potentially trustworthy URL.
-    if request.url().is_potentially_trustworthy() {
+    if is_url_potentially_trustworthy(protocol_registry, &request.url()) {
         return false;
     }
 
@@ -956,7 +1003,11 @@ pub fn should_request_be_blocked_as_mixed_content(request: &Request) -> bool {
 }
 
 /// <https://w3c.github.io/webappsec-mixed-content/#should-block-response>
-pub fn should_response_be_blocked_as_mixed_content(request: &Request, response: &Response) -> bool {
+pub fn should_response_be_blocked_as_mixed_content(
+    request: &Request,
+    response: &Response,
+    protocol_registry: &ProtocolRegistry,
+) -> bool {
     // Step 1. Return allowed if one or more of the following conditions are met:
     // 1.1. Does settings prohibit mixed security contexts? returns Does Not Restrict Mixed Content
     // when applied to request’s client.
@@ -970,7 +1021,7 @@ pub fn should_response_be_blocked_as_mixed_content(request: &Request, response: 
     if response
         .actual_response()
         .url()
-        .is_some_and(|response_url| response_url.is_potentially_trustworthy())
+        .is_some_and(|response_url| is_url_potentially_trustworthy(protocol_registry, response_url))
     {
         return false;
     }
@@ -1036,7 +1087,7 @@ fn should_upgrade_request_to_potentially_trustworty(
         // request’s header list if any of the following criteria are met:
         // * request’s URL is not a potentially trustworthy URL
         // * request’s URL's host is not a preloadable HSTS host
-        if !request.current_url().is_potentially_trustworthy() ||
+        if !is_url_potentially_trustworthy(&context.protocols, &request.current_url()) ||
             !request.current_url().host_str().is_some_and(|host| {
                 !context.state.hsts_list.read().unwrap().is_host_secure(host)
             })
@@ -1089,10 +1140,13 @@ fn do_settings_prohibit_mixed_security_contexts(request: &Request) -> MixedSecur
 }
 
 /// <https://w3c.github.io/webappsec-mixed-content/#upgrade-algorithm>
-fn should_upgrade_mixed_content_request(request: &Request) -> bool {
+fn should_upgrade_mixed_content_request(
+    request: &Request,
+    protocol_registry: &ProtocolRegistry,
+) -> bool {
     let url = request.url();
     // Step 1.1 : request’s URL is a potentially trustworthy URL.
-    if url.is_potentially_trustworthy() {
+    if is_url_potentially_trustworthy(protocol_registry, &url) {
         return false;
     }
 

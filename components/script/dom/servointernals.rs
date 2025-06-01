@@ -4,12 +4,12 @@
 
 use std::rc::Rc;
 
+use constellation_traits::ScriptToConstellationMessage;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use profile_traits::mem::MemoryReportResult;
 use script_bindings::interfaces::ServoInternalsHelpers;
 use script_bindings::script_runtime::JSContext;
-use script_traits::ScriptToConstellationMessage;
 
 use crate::dom::bindings::codegen::Bindings::ServoInternalsBinding::ServoInternalsMethods;
 use crate::dom::bindings::error::Error;
@@ -43,7 +43,9 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
     fn ReportMemory(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
         let global = &self.global();
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let sender = route_promise(&promise, self);
+        let task_source = global.task_manager().dom_manipulation_task_source();
+        let sender = route_promise(&promise, self, task_source);
+
         let script_to_constellation_chan = global.script_to_constellation_chan();
         if script_to_constellation_chan
             .send(ScriptToConstellationMessage::ReportMemory(sender))
@@ -57,7 +59,9 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
 
 impl RoutedPromiseListener<MemoryReportResult> for ServoInternals {
     fn handle_response(&self, response: MemoryReportResult, promise: &Rc<Promise>, can_gc: CanGc) {
-        promise.resolve_native(&response.content, can_gc);
+        let stringified = serde_json::to_string(&response.results)
+            .unwrap_or_else(|_| "{ error: \"failed to create memory report\"}".to_owned());
+        promise.resolve_native(&stringified, can_gc);
     }
 }
 

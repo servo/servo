@@ -67,3 +67,33 @@ cookie_test(async t => {
     'cookie1=value1; cookie2=value2; cookie3=value3',
     'httpOnly is not an option for CookieStore.set()');
 }, 'HttpOnly cookies can not be set by CookieStore');
+
+cookie_test(async t => {
+  await setCookieStringHttp('HTTPONLY-cookie=value; path=/; httponly');
+  assert_equals(
+      await getCookieString(),
+      undefined,
+      'HttpOnly cookie we wrote using HTTP in cookie jar' +
+        ' is invisible to script');
+  assert_equals(
+      await getCookieStringHttp(),
+      'HTTPONLY-cookie=value',
+    'HttpOnly cookie we wrote using HTTP in HTTP cookie jar');
+
+  try {
+    await cookieStore.set('HTTPONLY-cookie', 'dummy');
+  } catch(e) {}
+
+  assert_equals(
+      await getCookieString(),
+      undefined,
+      'HttpOnly cookie is not overwritten');
+
+  try {
+    await cookieStore.delete('HTTPONLY-cookie');
+  } catch(e) {}
+
+  assert_equals(await getCookieString(), undefined, 'HttpOnly cookie is not overwritten');
+
+  assert_equals(await getCookieStringHttp(), 'HTTPONLY-cookie=value', 'HttpOnly cookie is not deleted');
+}, 'HttpOnly cookies are not deleted/overwritten');

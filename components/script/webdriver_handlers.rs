@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cmp;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
 use std::ptr::NonNull;
 
@@ -48,11 +48,12 @@ use crate::dom::bindings::conversions::{
     ConversionBehavior, ConversionResult, FromJSValConvertible, StringificationBehavior,
     get_property, get_property_jsval, jsid_to_string, jsstring_to_str, root_from_object,
 };
-use crate::dom::bindings::error::{Error, throw_dom_exception};
+use crate::dom::bindings::error::{Error, report_pending_exception, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -60,13 +61,14 @@ use crate::dom::htmldatalistelement::HTMLDataListElement;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::htmlinputelement::{HTMLInputElement, InputType};
+use crate::dom::htmloptgroupelement::HTMLOptGroupElement;
 use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::nodelist::NodeList;
 use crate::dom::window::Window;
 use crate::dom::xmlserializer::XMLSerializer;
-use crate::realms::enter_realm;
+use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::script_thread::ScriptThread;
@@ -76,12 +78,27 @@ fn find_node_by_unique_id(
     pipeline: PipelineId,
     node_id: String,
 ) -> Result<DomRoot<Node>, ErrorStatus> {
-    match documents.find_document(pipeline).and_then(|document| {
-        document
-            .upcast::<Node>()
-            .traverse_preorder(ShadowIncluding::Yes)
-            .find(|node| node.unique_id() == node_id)
-    }) {
+    match documents.find_document(pipeline) {
+        Some(doc) => find_node_by_unique_id_in_document(&doc, node_id),
+        None => {
+            if ScriptThread::has_node_id(&node_id) {
+                Err(ErrorStatus::StaleElementReference)
+            } else {
+                Err(ErrorStatus::NoSuchElement)
+            }
+        },
+    }
+}
+
+pub(crate) fn find_node_by_unique_id_in_document(
+    document: &Document,
+    node_id: String,
+) -> Result<DomRoot<Node>, ErrorStatus> {
+    match document
+        .upcast::<Node>()
+        .traverse_preorder(ShadowIncluding::Yes)
+        .find(|node| node.unique_id() == node_id)
+    {
         Some(node) => Ok(node),
         None => {
             if ScriptThread::has_node_id(&node_id) {
@@ -182,11 +199,38 @@ unsafe fn is_arguments_object(cx: *mut JSContext, value: HandleValue) -> bool {
     jsstring_to_str(cx, class_name) == "[object Arguments]"
 }
 
+#[derive(Clone, Eq, Hash, PartialEq)]
+struct HashableJSVal(u64);
+
+impl From<HandleValue<'_>> for HashableJSVal {
+    fn from(v: HandleValue<'_>) -> HashableJSVal {
+        HashableJSVal(v.get().asBits_)
+    }
+}
+
 #[allow(unsafe_code)]
-pub(crate) unsafe fn jsval_to_webdriver(
+/// <https://w3c.github.io/webdriver/#dfn-json-deserialize>
+pub(crate) fn jsval_to_webdriver(
+    cx: SafeJSContext,
+    global_scope: &GlobalScope,
+    val: HandleValue,
+    realm: InRealm,
+    can_gc: CanGc,
+) -> WebDriverJSResult {
+    let mut seen = HashSet::new();
+    let result = unsafe { jsval_to_webdriver_inner(*cx, global_scope, val, &mut seen) };
+    if result.is_err() {
+        report_pending_exception(cx, true, realm, can_gc);
+    }
+    result
+}
+
+#[allow(unsafe_code)]
+unsafe fn jsval_to_webdriver_inner(
     cx: *mut JSContext,
     global_scope: &GlobalScope,
     val: HandleValue,
+    seen: &mut HashSet<HashableJSVal>,
 ) -> WebDriverJSResult {
     let _ac = enter_realm(global_scope);
     if val.get().is_undefined() {
@@ -219,14 +263,26 @@ pub(crate) unsafe fn jsval_to_webdriver(
                 _ => unreachable!(),
             };
         Ok(WebDriverJSValue::String(String::from(string)))
-    } else if val.get().is_object() {
+    }
+    // https://w3c.github.io/webdriver/#dfn-clone-an-object
+    else if val.get().is_object() {
+        let hashable = val.into();
+        // Step 1. If value is in `seen`, return error with error code javascript error.
+        if seen.contains(&hashable) {
+            return Err(WebDriverJSError::JSError);
+        }
+        //Step 2. Append value to `seen`.
+        seen.insert(hashable.clone());
+
         rooted!(in(cx) let object = match FromJSValConvertible::from_jsval(cx, val, ()).unwrap() {
             ConversionResult::Success(object) => object,
             _ => unreachable!(),
         });
         let _ac = JSAutoRealm::new(cx, *object);
 
-        if is_array_like::<crate::DomTypeHolder>(cx, val) || is_arguments_object(cx, val) {
+        let return_val = if is_array_like::<crate::DomTypeHolder>(cx, val) ||
+            is_arguments_object(cx, val)
+        {
             let mut result: Vec<WebDriverJSValue> = Vec::new();
 
             let length = match get_property::<u32>(
@@ -249,13 +305,15 @@ pub(crate) unsafe fn jsval_to_webdriver(
                     return Err(WebDriverJSError::JSError);
                 },
             };
-
+            // Step 4. For each enumerable property in value, run the following substeps:
             for i in 0..length {
                 rooted!(in(cx) let mut item = UndefinedValue());
                 match get_property_jsval(cx, object.handle(), &i.to_string(), item.handle_mut()) {
-                    Ok(_) => match jsval_to_webdriver(cx, global_scope, item.handle()) {
-                        Ok(converted_item) => result.push(converted_item),
-                        err @ Err(_) => return err,
+                    Ok(_) => {
+                        match jsval_to_webdriver_inner(cx, global_scope, item.handle(), seen) {
+                            Ok(converted_item) => result.push(converted_item),
+                            err @ Err(_) => return err,
+                        }
                     },
                     Err(error) => {
                         throw_dom_exception(
@@ -268,7 +326,6 @@ pub(crate) unsafe fn jsval_to_webdriver(
                     },
                 }
             }
-
             Ok(WebDriverJSValue::ArrayLike(result))
         } else if let Ok(element) = root_from_object::<Element>(*object, cx) {
             Ok(WebDriverJSValue::Element(WebElement(
@@ -277,7 +334,7 @@ pub(crate) unsafe fn jsval_to_webdriver(
         } else if let Ok(window) = root_from_object::<Window>(*object, cx) {
             let window_proxy = window.window_proxy();
             if window_proxy.is_browsing_context_discarded() {
-                Err(WebDriverJSError::StaleElementReference)
+                return Err(WebDriverJSError::StaleElementReference);
             } else if window_proxy.browsing_context_id() == window_proxy.webview_id() {
                 Ok(WebDriverJSValue::Window(WebWindow(
                     window.Document().upcast::<Node>().unique_id(),
@@ -297,7 +354,12 @@ pub(crate) unsafe fn jsval_to_webdriver(
                 &HandleValueArray::empty(),
                 value.handle_mut(),
             ) {
-                jsval_to_webdriver(cx, global_scope, value.handle())
+                Ok(jsval_to_webdriver_inner(
+                    cx,
+                    global_scope,
+                    value.handle(),
+                    seen,
+                )?)
             } else {
                 throw_dom_exception(
                     SafeJSContext::from_ptr(cx),
@@ -305,7 +367,7 @@ pub(crate) unsafe fn jsval_to_webdriver(
                     Error::JSFailed,
                     CanGc::note(),
                 );
-                Err(WebDriverJSError::JSError)
+                return Err(WebDriverJSError::JSError);
             }
         } else {
             let mut result = HashMap::new();
@@ -348,16 +410,21 @@ pub(crate) unsafe fn jsval_to_webdriver(
                         return Err(WebDriverJSError::JSError);
                     };
 
-                    if let Ok(value) = jsval_to_webdriver(cx, global_scope, property.handle()) {
+                    if let Ok(value) =
+                        jsval_to_webdriver_inner(cx, global_scope, property.handle(), seen)
+                    {
                         result.insert(name.into(), value);
                     } else {
                         return Err(WebDriverJSError::JSError);
                     }
                 }
             }
-
             Ok(WebDriverJSValue::Object(result))
-        }
+        };
+        // Step 5. Remove the last element of `seen`.
+        seen.remove(&hashable);
+        // Step 6. Return success with data `result`.
+        return_val
     } else {
         Err(WebDriverJSError::UnknownType)
     }
@@ -372,18 +439,22 @@ pub(crate) fn handle_execute_script(
 ) {
     match window {
         Some(window) => {
-            let result = unsafe {
-                let cx = window.get_cx();
-                rooted!(in(*cx) let mut rval = UndefinedValue());
-                let global = window.as_global_scope();
-                global.evaluate_js_on_global_with_result(
-                    &eval,
-                    rval.handle_mut(),
-                    ScriptFetchOptions::default_classic_script(global),
-                    global.api_base_url(),
-                    can_gc,
-                );
-                jsval_to_webdriver(*cx, global, rval.handle())
+            let cx = window.get_cx();
+            let realm = AlreadyInRealm::assert_for_cx(cx);
+            let realm = InRealm::already(&realm);
+
+            rooted!(in(*cx) let mut rval = UndefinedValue());
+            let global = window.as_global_scope();
+            let result = if global.evaluate_js_on_global_with_result(
+                &eval,
+                rval.handle_mut(),
+                ScriptFetchOptions::default_classic_script(global),
+                global.api_base_url(),
+                can_gc,
+            ) {
+                jsval_to_webdriver(cx, global, rval.handle(), realm, can_gc)
+            } else {
+                Err(WebDriverJSError::JSError)
             };
 
             reply.send(result).unwrap();
@@ -405,17 +476,20 @@ pub(crate) fn handle_execute_async_script(
     match window {
         Some(window) => {
             let cx = window.get_cx();
+            let reply_sender = reply.clone();
             window.set_webdriver_script_chan(Some(reply));
             rooted!(in(*cx) let mut rval = UndefinedValue());
 
             let global_scope = window.as_global_scope();
-            global_scope.evaluate_js_on_global_with_result(
+            if !global_scope.evaluate_js_on_global_with_result(
                 &eval,
                 rval.handle_mut(),
                 ScriptFetchOptions::default_classic_script(global_scope),
                 global_scope.api_base_url(),
                 can_gc,
-            );
+            ) {
+                reply_sender.send(Err(WebDriverJSError::JSError)).unwrap();
+            }
         },
         None => {
             reply
@@ -553,7 +627,7 @@ pub(crate) fn handle_find_element_tag_name(
     pipeline: PipelineId,
     selector: String,
     reply: IpcSender<Result<Option<String>, ErrorStatus>>,
-    _can_gc: CanGc,
+    can_gc: CanGc,
 ) {
     reply
         .send(
@@ -562,7 +636,7 @@ pub(crate) fn handle_find_element_tag_name(
                 .ok_or(ErrorStatus::UnknownError)
                 .map(|document| {
                     document
-                        .GetElementsByTagName(DOMString::from(selector))
+                        .GetElementsByTagName(DOMString::from(selector), can_gc)
                         .elements_iter()
                         .next()
                 })
@@ -621,14 +695,14 @@ pub(crate) fn handle_find_elements_tag_name(
     pipeline: PipelineId,
     selector: String,
     reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
-    _can_gc: CanGc,
+    can_gc: CanGc,
 ) {
     reply
         .send(
             documents
                 .find_document(pipeline)
                 .ok_or(ErrorStatus::UnknownError)
-                .map(|document| document.GetElementsByTagName(DOMString::from(selector)))
+                .map(|document| document.GetElementsByTagName(DOMString::from(selector), can_gc))
                 .map(|nodes| {
                     nodes
                         .elements_iter()
@@ -679,7 +753,7 @@ pub(crate) fn handle_find_element_element_tag_name(
     element_id: String,
     selector: String,
     reply: IpcSender<Result<Option<String>, ErrorStatus>>,
-    _can_gc: CanGc,
+    can_gc: CanGc,
 ) {
     reply
         .send(
@@ -687,7 +761,7 @@ pub(crate) fn handle_find_element_element_tag_name(
                 .downcast::<Element>(
             ) {
                 Some(element) => Ok(element
-                    .GetElementsByTagName(DOMString::from(selector))
+                    .GetElementsByTagName(DOMString::from(selector), can_gc)
                     .elements_iter()
                     .next()
                     .map(|x| x.upcast::<Node>().unique_id())),
@@ -742,7 +816,7 @@ pub(crate) fn handle_find_element_elements_tag_name(
     element_id: String,
     selector: String,
     reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
-    _can_gc: CanGc,
+    can_gc: CanGc,
 ) {
     reply
         .send(
@@ -750,7 +824,7 @@ pub(crate) fn handle_find_element_elements_tag_name(
                 .downcast::<Element>(
             ) {
                 Some(element) => Ok(element
-                    .GetElementsByTagName(DOMString::from(selector))
+                    .GetElementsByTagName(DOMString::from(selector), can_gc)
                     .elements_iter()
                     .map(|x| x.upcast::<Node>().unique_id())
                     .collect::<Vec<String>>()),
@@ -798,6 +872,24 @@ pub(crate) fn handle_get_active_element(
         .unwrap();
 }
 
+pub(crate) fn handle_get_computed_role(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    node_id: String,
+    reply: IpcSender<Result<Option<String>, ErrorStatus>>,
+) {
+    reply
+        .send(
+            find_node_by_unique_id(documents, pipeline, node_id).and_then(|node| {
+                match node.downcast::<Element>() {
+                    Some(element) => Ok(element.GetRole().map(String::from)),
+                    None => Err(ErrorStatus::UnknownError),
+                }
+            }),
+        )
+        .unwrap();
+}
+
 pub(crate) fn handle_get_page_source(
     documents: &DocumentCollection,
     pipeline: PipelineId,
@@ -810,7 +902,7 @@ pub(crate) fn handle_get_page_source(
                 .find_document(pipeline)
                 .ok_or(ErrorStatus::UnknownError)
                 .and_then(|document| match document.GetDocumentElement() {
-                    Some(element) => match element.GetOuterHTML(can_gc) {
+                    Some(element) => match element.outer_html(can_gc) {
                         Ok(source) => Ok(source.to_string()),
                         Err(_) => {
                             match XMLSerializer::new(document.window(), None, can_gc)
@@ -1117,12 +1209,13 @@ pub(crate) fn handle_get_property(
     node_id: String,
     name: String,
     reply: IpcSender<Result<WebDriverJSValue, ErrorStatus>>,
+    can_gc: CanGc,
 ) {
     reply
         .send(
             find_node_by_unique_id(documents, pipeline, node_id).map(|node| {
                 let document = documents.find_document(pipeline).unwrap();
-                let _ac = enter_realm(&*document);
+                let realm = enter_realm(&*document);
                 let cx = document.window().get_cx();
 
                 rooted!(in(*cx) let mut property = UndefinedValue());
@@ -1135,14 +1228,19 @@ pub(crate) fn handle_get_property(
                     )
                 } {
                     Ok(_) => {
-                        match unsafe { jsval_to_webdriver(*cx, &node.global(), property.handle()) }
-                        {
+                        match jsval_to_webdriver(
+                            cx,
+                            &node.global(),
+                            property.handle(),
+                            InRealm::entered(&realm),
+                            can_gc,
+                        ) {
                             Ok(property) => property,
                             Err(_) => WebDriverJSValue::Undefined,
                         }
                     },
                     Err(error) => {
-                        throw_dom_exception(cx, &node.global(), error, CanGc::note());
+                        throw_dom_exception(cx, &node.global(), error, can_gc);
                         WebDriverJSValue::Undefined
                     },
                 }
@@ -1191,6 +1289,35 @@ pub(crate) fn handle_get_url(
         .unwrap();
 }
 
+fn get_option_parent(node: &Node) -> Option<DomRoot<Node>> {
+    // Get parent for `<option>` or `<optiongrp>` based on container spec:
+    // > 1. Let datalist parent be the first datalist element reached by traversing the tree
+    // >    in reverse order from element, or undefined if the root of the tree is reached.
+    // > 2. Let select parent be the first select element reached by traversing the tree in
+    // >    reverse order from element, or undefined if the root of the tree is reached.
+    // > 3. If datalist parent is undefined, the element context is select parent.
+    // >    Otherwise, the element context is datalist parent.
+    let root_node = node.GetRootNode(&GetRootNodeOptions::empty());
+    node.preceding_nodes(&root_node)
+        .find(|preceding| preceding.is::<HTMLDataListElement>())
+        .or_else(|| {
+            node.preceding_nodes(&root_node)
+                .find(|preceding| preceding.is::<HTMLSelectElement>())
+        })
+}
+
+// https://w3c.github.io/webdriver/#dfn-container
+fn get_container(node: &Node) -> Option<DomRoot<Node>> {
+    if node.is::<HTMLOptionElement>() {
+        return get_option_parent(node);
+    }
+    if node.is::<HTMLOptGroupElement>() {
+        let option_parent = get_option_parent(node);
+        return option_parent.or_else(|| Some(DomRoot::from_ref(node)));
+    }
+    Some(DomRoot::from_ref(node))
+}
+
 // https://w3c.github.io/webdriver/#element-click
 pub(crate) fn handle_element_click(
     documents: &DocumentCollection,
@@ -1210,6 +1337,10 @@ pub(crate) fn handle_element_click(
                     }
                 }
 
+                let Some(container) = get_container(&node) else {
+                    return Err(ErrorStatus::UnknownError);
+                };
+
                 // Step 5
                 // TODO: scroll into view
 
@@ -1222,32 +1353,14 @@ pub(crate) fn handle_element_click(
                 // Step 8
                 match node.downcast::<HTMLOptionElement>() {
                     Some(option_element) => {
-                        // https://w3c.github.io/webdriver/#dfn-container
-                        let root_node = node.GetRootNode(&GetRootNodeOptions::empty());
-                        let datalist_parent = node
-                            .preceding_nodes(&root_node)
-                            .find(|preceding| preceding.is::<HTMLDataListElement>());
-                        let select_parent = node
-                            .preceding_nodes(&root_node)
-                            .find(|preceding| preceding.is::<HTMLSelectElement>());
-
-                        // Step 8.1
-                        let parent_node = match datalist_parent {
-                            Some(datalist_parent) => datalist_parent,
-                            None => match select_parent {
-                                Some(select_parent) => select_parent,
-                                None => return Err(ErrorStatus::UnknownError),
-                            },
-                        };
-
                         // Steps 8.2 - 8.4
-                        let event_target = parent_node.upcast::<EventTarget>();
+                        let event_target = container.upcast::<EventTarget>();
                         event_target.fire_event(atom!("mouseover"), can_gc);
                         event_target.fire_event(atom!("mousemove"), can_gc);
                         event_target.fire_event(atom!("mousedown"), can_gc);
 
                         // Step 8.5
-                        match parent_node.downcast::<HTMLElement>() {
+                        match container.downcast::<HTMLElement>() {
                             Some(html_element) => html_element.Focus(can_gc),
                             None => return Err(ErrorStatus::UnknownError),
                         }
@@ -1261,7 +1374,7 @@ pub(crate) fn handle_element_click(
                             let previous_selectedness = option_element.Selected();
 
                             // Step 8.6.3
-                            match parent_node.downcast::<HTMLSelectElement>() {
+                            match container.downcast::<HTMLSelectElement>() {
                                 Some(select_element) => {
                                     if select_element.Multiple() {
                                         option_element.SetSelected(!option_element.Selected());

@@ -39,7 +39,7 @@ pub enum FileTokenCheck {
 /// Relative slice positions of a sequence,
 /// whose semantic should be consistent with (start, end) parameters in
 /// <https://w3c.github.io/FileAPI/#dfn-slice>
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct RelativePos {
     /// Relative to first byte if non-negative,
     /// relative to one past last byte if negative,

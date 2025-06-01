@@ -51,8 +51,10 @@
         <div id="log"></div>
 
         <script type="text/javascript">
-            setup({ explicit_done: true });
-
+            setup(() => {
+                assert_implements(CSS.supports('wrap-through', 'none'), "'wrap-through: none'");
+                assert_implements(CSS.supports('wrap-flow', 'both'), "'wrap-flow: both'");
+            }, {explicit_done: true});
             document.fonts.ready.then(() => {
                 /* Line 1 */
                 test(function() {assert_equals(checkLinePos("line1",0,"top"), true)}, "Verify top of the first line above the exclusion");

@@ -4,12 +4,13 @@
 
 use canvas_traits::canvas::{Canvas2dMsg, CanvasId, CanvasMsg, FromScriptMsg};
 use dom_struct::dom_struct;
-use euclid::default::{Point2D, Rect, Size2D};
-use ipc_channel::ipc::IpcSharedMemory;
+use euclid::default::Size2D;
+use ipc_channel::ipc::IpcSender;
 use profile_traits::ipc;
 use script_bindings::inheritance::Castable;
-use script_layout_interface::HTMLCanvasDataSource;
 use servo_url::ServoUrl;
+use snapshot::Snapshot;
+use webrender_api::ImageKey;
 
 use crate::canvas_context::{CanvasContext, CanvasHelpers, LayoutCanvasRenderingContextHelpers};
 use crate::canvas_state::CanvasState;
@@ -36,27 +37,50 @@ use crate::dom::path2d::Path2D;
 use crate::dom::textmetrics::TextMetrics;
 use crate::script_runtime::CanGc;
 
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableCanvasRenderingContext2D {
+    #[no_trace]
+    ipc_sender: IpcSender<CanvasMsg>,
+    #[no_trace]
+    canvas_id: CanvasId,
+}
+
+impl Drop for DroppableCanvasRenderingContext2D {
+    fn drop(&mut self) {
+        if let Err(err) = self.ipc_sender.send(CanvasMsg::Close(self.canvas_id)) {
+            warn!("Could not close canvas: {}", err)
+        }
+    }
+}
+
 // https://html.spec.whatwg.org/multipage/#canvasrenderingcontext2d
 #[dom_struct]
 pub(crate) struct CanvasRenderingContext2D {
     reflector_: Reflector,
     canvas: HTMLCanvasElementOrOffscreenCanvas,
     canvas_state: CanvasState,
+    droppable: DroppableCanvasRenderingContext2D,
 }
 
 impl CanvasRenderingContext2D {
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new_inherited(
         global: &GlobalScope,
         canvas: HTMLCanvasElementOrOffscreenCanvas,
         size: Size2D<u32>,
     ) -> CanvasRenderingContext2D {
+        let canvas_state =
+            CanvasState::new(global, Size2D::new(size.width as u64, size.height as u64));
+        let ipc_sender = canvas_state.get_ipc_renderer().clone();
+        let canvas_id = canvas_state.get_canvas_id();
         CanvasRenderingContext2D {
             reflector_: Reflector::new(),
             canvas,
-            canvas_state: CanvasState::new(
-                global,
-                Size2D::new(size.width as u64, size.height as u64),
-            ),
+            canvas_state,
+            droppable: DroppableCanvasRenderingContext2D {
+                ipc_sender,
+                canvas_id,
+            },
         }
     }
 
@@ -74,23 +98,12 @@ impl CanvasRenderingContext2D {
         reflect_dom_object(boxed, global, can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions
-    pub(crate) fn set_bitmap_dimensions(&self, size: Size2D<u32>) {
-        self.reset_to_initial_state();
-        self.canvas_state
-            .get_ipc_renderer()
-            .send(CanvasMsg::Recreate(
-                Some(size.to_u64()),
-                self.canvas_state.get_canvas_id(),
-            ))
-            .unwrap();
-    }
-
     // https://html.spec.whatwg.org/multipage/#reset-the-rendering-context-to-its-default-state
     fn reset_to_initial_state(&self) {
         self.canvas_state.reset_to_initial_state();
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions>
     pub(crate) fn set_canvas_bitmap_dimensions(&self, size: Size2D<u64>) {
         self.canvas_state.set_bitmap_dimensions(size);
     }
@@ -106,20 +119,17 @@ impl CanvasRenderingContext2D {
     pub(crate) fn send_canvas_2d_msg(&self, msg: Canvas2dMsg) {
         self.canvas_state.send_canvas_2d_msg(msg)
     }
-
-    pub(crate) fn get_rect(&self, rect: Rect<u32>) -> Vec<u8> {
-        let rect = Rect::new(
-            Point2D::new(rect.origin.x as u64, rect.origin.y as u64),
-            Size2D::new(rect.size.width as u64, rect.size.height as u64),
-        );
-        self.canvas_state.get_rect(self.canvas.size(), rect)
-    }
 }
 
 impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, CanvasRenderingContext2D> {
-    fn canvas_data_source(self) -> HTMLCanvasDataSource {
+    fn canvas_data_source(self) -> Option<ImageKey> {
         let canvas_state = &self.unsafe_get().canvas_state;
-        HTMLCanvasDataSource::Image(canvas_state.image_key())
+
+        if canvas_state.is_paintable() {
+            Some(canvas_state.image_key())
+        } else {
+            None
+        }
     }
 }
 
@@ -139,19 +149,19 @@ impl CanvasContext for CanvasRenderingContext2D {
     }
 
     fn resize(&self) {
-        self.set_bitmap_dimensions(self.size().cast())
+        self.set_canvas_bitmap_dimensions(self.size().cast())
     }
 
-    fn get_image_data_as_shared_memory(&self) -> Option<IpcSharedMemory> {
+    fn get_image_data(&self) -> Option<Snapshot> {
+        if !self.canvas_state.is_paintable() {
+            return None;
+        }
+
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         let msg = CanvasMsg::FromScript(FromScriptMsg::SendPixels(sender), self.get_canvas_id());
         self.canvas_state.get_ipc_renderer().send(msg).unwrap();
 
-        Some(receiver.recv().unwrap())
-    }
-
-    fn get_image_data(&self) -> Option<Vec<u8>> {
-        Some(self.get_rect(Rect::from_size(self.size().cast())))
+        Some(receiver.recv().unwrap().to_owned())
     }
 
     fn origin_is_clean(&self) -> bool {
@@ -701,17 +711,5 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
     fn SetShadowColor(&self, value: DOMString, can_gc: CanGc) {
         self.canvas_state
             .set_shadow_color(self.canvas.canvas(), value, can_gc)
-    }
-}
-
-impl Drop for CanvasRenderingContext2D {
-    fn drop(&mut self) {
-        if let Err(err) = self
-            .canvas_state
-            .get_ipc_renderer()
-            .send(CanvasMsg::Close(self.canvas_state.get_canvas_id()))
-        {
-            warn!("Could not close canvas: {}", err)
-        }
     }
 }

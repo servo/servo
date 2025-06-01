@@ -9,6 +9,9 @@
 
 test(() => {
   assert_true('segments' in viewport, "`segments` must be a property of viewport.");
-  assert_equals(viewport.segments, null, "For a viewport not segmented, no segments must be exposed.");
+  assert_equals(viewport.segments[0].innerWidth, viewport.innerWidth,
+    "For a viewport not segmented, there should only one segment with the viewport size.");
+    assert_equals(viewport.segments[0].innerHeight, viewport.innerHeight,
+    "For a viewport not segmented, there should only one segment with the viewport size.");
 });
 </script>

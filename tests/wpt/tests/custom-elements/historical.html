@@ -1,35 +1,22 @@
 <!doctype html>
-<title>Custom Elements v0 features</title>
+<title>Custom Elements historical features</title>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script>
 test(() => {
-  assert_false('registerElement' in document)
-}, 'document.registerElement should not exist')
+  assert_false('registerElement' in document);
+}, 'document.registerElement should not exist');
 
-// These tests should pass as long as v0 isn't supported:
-// v0: a 2nd string argument for createElement.
-// v1: a ElementCreationOptions (dictionary) argument.
 test(() => {
-  try {
-    const element = document.createElement('x', 'string')
-    // If neither v0/v1 are supported, then there should be no is attribute.
-    assert_false(element.hasAttribute('is'))
-  } catch (e) {
-    // If v1 is supported, then converting string to dictionary should throw.
-    assert_throws_js(TypeError, function() { throw e })
-  }
-}, 'document.createElement(localName, "string") should not work')
+  const dummy = document.createElement("div");
+  const shadowRoot = dummy.attachShadow({ mode: "closed" });
+  assert_equals(shadowRoot.importNode, undefined);
+  assert_equals(shadowRoot.createElement, undefined);
+  assert_equals(shadowRoot.createElementNS, undefined);
+}, "ShadowRoot doesn't have importNode or createElement[NS]");
 
-// createElementNS is analagous, but for the 3rd argument
 test(() => {
-  try {
-    const element = document.createElementNS(null, 'x', 'string')
-    // If neither v0/v1 are supported, then there should be no is attribute.
-    assert_false(element.hasAttribute('is'))
-  } catch (e) {
-    // If v1 is supported, then converting string to dictionary should throw.
-    assert_throws_js(TypeError, function() { throw e })
-  }
-}, 'document.createElementNS(namespace, qualifiedName, "string") should not work')
+  const dummy = document.createElement("div");
+  dummy.attachShadow({ mode: "closed", get registry() { throw "FAIL" } });
+}, "attachShadow() does not recognize a registry member");
 </script>

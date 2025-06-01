@@ -133,10 +133,19 @@ window.addEventListener("message", async (e) => {
         shared_worker.port.postMessage("Cross-origin handle access");
         break;
       }
+      case "BlobURLDedicatedWorker": {
+        break;
+      }
+      case "ThirdPartyBlobURL": {
+        break;
+      }
       case "unpartitioned": {
         const channel = handle.BroadcastChannel(id);
         channel.postMessage("Cross-origin handle access");
         channel.close();
+        break;
+      }
+      case "BlobURLSharedWorker": {
         break;
       }
       default: {

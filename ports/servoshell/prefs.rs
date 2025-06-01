@@ -57,6 +57,11 @@ pub(crate) struct ServoShellPreferences {
     /// Where to load userscripts from, if any.
     /// and if the option isn't passed userscripts won't be loaded.
     pub userscripts_directory: Option<PathBuf>,
+
+    /// Log filter given in the `log_filter` spec as a String, if any.
+    /// If a filter is passed, the logger should adjust accordingly.
+    #[cfg(target_env = "ohos")]
+    pub log_filter: Option<String>,
 }
 
 impl Default for ServoShellPreferences {
@@ -75,6 +80,8 @@ impl Default for ServoShellPreferences {
             output_image_path: None,
             exit_after_stable_image: false,
             userscripts_directory: None,
+            #[cfg(target_env = "ohos")]
+            log_filter: None,
         }
     }
 }
@@ -348,6 +355,14 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         "FILTER",
     );
 
+    #[cfg(target_env = "ohos")]
+    opts.optmulti(
+        "",
+        "log-filter",
+        "Define a custom filter for logging.",
+        "FILTER",
+    );
+
     opts.optflag(
         "",
         "enable-experimental-web-platform-features",
@@ -408,10 +423,16 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
     }
     // Env-Filter directives are comma seperated.
     let filters = opt_match.opt_strs("tracing-filter").join(",");
-    let tracing_filter = if filters.is_empty() {
-        None
-    } else {
-        Some(filters)
+    let tracing_filter = (!filters.is_empty()).then_some(filters);
+
+    #[cfg(target_env = "ohos")]
+    let log_filter = {
+        let filters = opt_match.opt_strs("log-filter").join(",");
+        let log_filter = (!filters.is_empty()).then_some(filters).or_else(|| {
+            (!preferences.log_filter.is_empty()).then_some(preferences.log_filter.clone())
+        });
+        log::debug!("Set log_filter to: {:?}", log_filter);
+        log_filter
     };
 
     let mut debug_options = DebugOptions::default();
@@ -548,6 +569,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
 
     if opt_match.opt_present("enable-experimental-web-platform-features") {
         vec![
+            "dom_async_clipboard_enabled",
             "dom_fontface_enabled",
             "dom_imagebitmap_enabled",
             "dom_intersection_observer_enabled",
@@ -556,8 +578,8 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
             "dom_offscreen_canvas_enabled",
             "dom_permissions_enabled",
             "dom_resize_observer_enabled",
-            "dom_serviceworker_enabled",
             "dom_svg_enabled",
+            "dom_trusted_types_enabled",
             "dom_webgl2_enabled",
             "dom_webgpu_enabled",
             "dom_xpath_enabled",
@@ -624,12 +646,18 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         userscripts_directory: opt_match
             .opt_default("userscripts", "resources/user-agent-js")
             .map(PathBuf::from),
+        #[cfg(target_env = "ohos")]
+        log_filter,
         ..Default::default()
     };
 
     if servoshell_preferences.headless && preferences.media_glvideo_enabled {
         warn!("GL video rendering is not supported on headless windows.");
         preferences.media_glvideo_enabled = false;
+    }
+
+    if let Some(user_agent) = opt_match.opt_str("user-agent") {
+        preferences.user_agent = user_agent;
     }
 
     let opts = Opts {
@@ -708,7 +736,7 @@ fn print_debug_options_usage(app: &str) {
     );
     print_option(
         "dump-flow-tree",
-        "Print the flow tree (Layout 2013) or fragment tree (Layout 2020) after each layout.",
+        "Print the fragment tree after each layout.",
     );
     print_option(
         "dump-rule-tree",

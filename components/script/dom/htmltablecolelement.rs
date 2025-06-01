@@ -3,12 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
+use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
+use super::attr::Attr;
 use super::bindings::root::LayoutDom;
-use super::element::Element;
+use super::element::{AttributeMutation, Element};
+use super::node::NodeDamage;
 use crate::dom::bindings::codegen::Bindings::HTMLTableColElementBinding::HTMLTableColElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
@@ -19,8 +21,6 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
-
-const DEFAULT_SPAN: u32 = 1;
 
 #[dom_struct]
 pub(crate) struct HTMLTableColElement {
@@ -62,9 +62,11 @@ impl HTMLTableColElement {
 
 impl HTMLTableColElementMethods<crate::DomTypeHolder> for HTMLTableColElement {
     // <https://html.spec.whatwg.org/multipage/#attr-col-span>
-    make_uint_getter!(Span, "span", DEFAULT_SPAN);
+    make_uint_getter!(Span, "span", 1);
     // <https://html.spec.whatwg.org/multipage/#attr-col-span>
-    make_uint_setter!(SetSpan, "span", DEFAULT_SPAN);
+    // > The span IDL attribute must reflect the content attribute of the same name. It is clamped
+    // > to the range [1, 1000], and its default value is 1.
+    make_clamped_uint_setter!(SetSpan, "span", 1, 1000, 1);
 }
 
 pub(crate) trait HTMLTableColElementLayoutHelpers<'dom> {
@@ -93,14 +95,25 @@ impl VirtualMethods for HTMLTableColElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        if let Some(super_type) = self.super_type() {
+            super_type.attribute_mutated(attr, mutation, can_gc);
+        }
+
+        if matches!(*attr.local_name(), local_name!("span")) {
+            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        }
+    }
+
     fn parse_plain_attribute(&self, local_name: &LocalName, value: DOMString) -> AttrValue {
         match *local_name {
             local_name!("span") => {
-                let mut attr = AttrValue::from_u32(value.into(), DEFAULT_SPAN);
+                let mut attr = AttrValue::from_u32(value.into(), 1);
                 if let AttrValue::UInt(_, ref mut val) = attr {
-                    if *val == 0 {
-                        *val = 1;
-                    }
+                    // From <https://html.spec.whatwg.org/multipage/#attr-col-span>:
+                    // > The span IDL attribute must reflect the content attribute of the same name.
+                    // > It is clamped to the range [1, 1000], and its default value is 1.
+                    *val = (*val).clamp(1, 1000);
                 }
                 attr
             },

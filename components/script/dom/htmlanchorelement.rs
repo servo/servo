@@ -145,7 +145,7 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rellist
-    fn RelList(&self) -> DomRoot<DOMTokenList> {
+    fn RelList(&self, can_gc: CanGc) -> DomRoot<DOMTokenList> {
         self.rel_list.or_init(|| {
             DOMTokenList::new(
                 self.upcast(),
@@ -155,7 +155,7 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
                     Atom::from("noreferrer"),
                     Atom::from("opener"),
                 ]),
-                CanGc::note(),
+                can_gc,
             )
         })
     }

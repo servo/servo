@@ -1,1 +1,4 @@
-export function pm(x) { postMessage(x); }
+export function pm(x) {
+  const message = {value: x, checks: pm.checks};
+  postMessage(message);
+}

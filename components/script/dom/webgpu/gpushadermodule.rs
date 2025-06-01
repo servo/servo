@@ -95,7 +95,14 @@ impl GPUShaderModule {
             promise.clone(),
             can_gc,
         );
-        let sender = route_promise(&promise, &*shader_module);
+        let sender = route_promise(
+            &promise,
+            &*shader_module,
+            device
+                .global()
+                .task_manager()
+                .dom_manipulation_task_source(),
+        );
         device
             .channel()
             .0

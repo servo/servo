@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<title>Align-self applies to OOF elements of block elements when statically positioned.</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#valdef-align-self-auto">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#valdef-justify-self-auto">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#abspos-alignment">
+<link rel="help" href="https://issues.chromium.org/issues/409806799">
+<link rel="match" href="align-self-static-position-008-ref.html">
+<style>
+.block {
+  display: block;
+  width: 75%;
+  height: 75%;
+  border: 5px dotted blue;
+}
+
+.container {
+  border: 1px solid;
+  position: relative;
+  display: inline-block;
+  width: 100px;
+  height: 100px;
+  margin-left: 50px;
+  margin-bottom: 50px;
+}
+
+.abs {
+  width: 50px;
+  height: 50px;
+  position: absolute;
+  background: purple;
+}
+</style>
+<!-- justify-self -->
+<div class="container"><div class="block">
+  <div class="abs" style="justify-self: auto;"></div>
+</div></div>
+<div class="container"><div class="block">
+  <div class="abs" style="justify-self: normal;"></div>
+</div></div>
+<div class="container"><div class="block">
+  <div class="abs" style="justify-self: right;"></div>
+</div></div>
+<div class="container"><div class="block">
+  <div class="abs" style="justify-self: left;"></div>
+</div></div>
+<div class="container"><div class="block">
+  <div class="abs" style="justify-self: flex-start;"></div>
+</div></div>
+<div class="container"><div class="block">
+  <div class="abs" style="justify-self: flex-end;"></div>
+</div></div>
+<br>
+<div class="container"><div class="block">
+  <div class="abs" style="justify-self: anchor-center;"></div>
+</div></div>
+<div class="container"><div class="block">
+  <div class="abs" style="justify-self: baseline;"></div>
+</div></div>
+<div class="container"><div class="block">
+  <div class="abs" style="justify-self: first baseline;"></div>
+</div></div>
+<div class="container"><div class="block">
+  <div class="abs" style="justify-self: last baseline;"></div>
+</div></div>
+<div class="container"><div class="block">
+  <div class="abs" style="justify-self: legacy;"></div>
+</div></div>
+<div class="container"><div class="block">
+  <div class="abs" style="justify-self: stretch;"></div>
+</div></div>
+<br>
+<!-- align-self -->
+<div class="container"><div class="block">
+  <div class="abs" style="align-self: auto;"></div>
+</div></div>
+<div class="container"><div class="block">
+  <div class="abs" style="align-self: normal;"></div>
+</div></div>
+<div class="container"><div class="block">
+  <div class="abs" style="align-self: right;"></div>
+</div></div>
+<div class="container"><div class="block">
+  <div class="abs" style="align-self: left;"></div>
+</div></div>
+<div class="container"><div class="block">
+  <div class="abs" style="align-self: flex-start;"></div>
+</div></div>
+<div class="container"><div class="block">
+  <div class="abs" style="align-self: flex-end;"></div>
+</div></div>
+<br>
+<div class="container"><div class="block">
+  <div class="abs" style="align-self: anchor-center;"></div>
+</div></div>
+<div class="container"><div class="block">
+  <div class="abs" style="align-self: baseline;"></div>
+</div></div>
+<div class="container"><div class="block">
+  <div class="abs" style="align-self: first baseline;"></div>
+</div></div>
+<div class="container"><div class="block">
+  <div class="abs" style="align-self: last baseline;"></div>
+</div></div>
+<div class="container"><div class="block">
+  <div class="abs" style="align-self: legacy;"></div>
+</div></div>
+<div class="container"><div class="block">
+  <div class="abs" style="align-self: stretch;"></div>
+</div></div>

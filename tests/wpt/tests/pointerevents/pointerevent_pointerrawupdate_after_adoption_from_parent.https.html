@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale:1">
+<title>`pointerrawupdate` events should be fired after the element is moved from a child doc to the parent doc</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  promise_test(async () => {
+    const iframe = document.querySelector("iframe");
+    const div = document.createElement("div");
+    div.style.width = "100px";
+    div.style.height = "100px";
+    document.body.appendChild(div);
+    let pointerrawupdateEvent;
+    div.addEventListener(
+      "pointerrawupdate",
+      event => pointerrawupdateEvent = event,
+      {once: true}
+    );
+    iframe.contentDocument.body.appendChild(div);
+    div.getBoundingClientRect();
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: div})
+      .pointerMove(1, 1, {origin: div})
+      .send();
+    assert_true(pointerrawupdateEvent !== undefined);
+  });
+}, {once: true});
+</script>
+</head>
+<body>
+  <iframe srcdoc=""></iframe>
+</body>
+</html>

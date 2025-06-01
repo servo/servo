@@ -8,6 +8,9 @@ use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
 use base::id::PipelineId;
+use constellation_traits::{
+    ScopeThings, ServiceWorkerMsg, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
+};
 use crossbeam_channel::{Receiver, Sender, after, unbounded};
 use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
@@ -19,7 +22,6 @@ use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, Referrer, RequestBuilder,
 };
 use net_traits::{CustomResponseMediator, IpcSend};
-use script_traits::{ScopeThings, ServiceWorkerMsg, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use servo_config::pref;
 use servo_rand::random;
 use servo_url::ServoUrl;
@@ -36,6 +38,7 @@ use crate::dom::bindings::root::{DomRoot, RootCollection, ThreadLocalStackRoots}
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::CustomTraceable;
+use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::dedicatedworkerglobalscope::AutoWorkerReset;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
@@ -377,6 +380,11 @@ impl ServiceWorkerGlobalScope {
                 {
                     // TODO: use AutoWorkerReset as in dedicated worker?
                     let realm = enter_realm(scope);
+                    define_all_exposed_interfaces(
+                        scope.upcast(),
+                        InRealm::entered(&realm),
+                        CanGc::note(),
+                    );
                     scope.execute_script(DOMString::from(source), CanGc::note());
                     global.dispatch_activate(CanGc::note(), InRealm::entered(&realm));
                 }

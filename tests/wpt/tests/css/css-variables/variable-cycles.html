@@ -377,6 +377,9 @@
     'Cycle with deeper secondary cycle');
 
 
+  // If we cared about cycles in unused fallbacks,
+  // then --a/--b/--c would be in a cycle in this case:
+  //
   //            ┌───┐
   //            │ x │
   //            └───┘
@@ -404,6 +407,9 @@
   //         │  ┌───┐  │
   //         └▶ │ y │ ◀┘
   //            └───┘
+  //
+  // However, as of https://github.com/w3c/csswg-drafts/issues/11500,
+  // we no longer care about such cycles.
   test_cycles(
     [
       '--x:var(--a, valid)',
@@ -412,8 +418,8 @@
       '--c:var(--y, var(--a, cycle))',
       '--y:valid'
     ],
-    ['--a', '--b', '--c'],
-    ['--x', '--y'],
-    'Cycle via fallback');
+    [], // Nothing is invalid.
+    ['--a', '--b', '--c', '--x', '--y'],
+    'Cycle in unused fallback');
 
 </script>

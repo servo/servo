@@ -18,19 +18,6 @@ function offset_for_curvature(curvature) {
   return [norm_a, -norm_b];
 }
 
-function compute_inner_curvature(curvature, outer_length, inner_length) {
-  if (curvature === 0)
-    return 0;
-  if (curvature < 1)
-    return 1 /
-        compute_inner_curvature(1 / curvature, outer_length, inner_length);
-  const target_length = (inner_length - outer_length) / Math.SQRT2;
-  return Math.log(0.5) /
-      Math.log(
-          (Math.pow(0.5, 1 / curvature) * outer_length + target_length) /
-          inner_length);
-}
-
 /**
  *
  * @param {number} curvature
@@ -107,8 +94,6 @@ function resolve_corner_params(style, width, height, outset = null) {
   return Object.fromEntries(
       Object.entries(params).map(([corner, {outer, inset}]) => {
         const outer_rect = outer;
-        if (outset !== null)
-          inset = [-outset, -outset];
         const shape = style[`corner-${corner}-shape`];
         const s1 = Math.sign(outer[2] - outer[0]);
         const s2 = Math.sign(outer[3] - outer[1]);
@@ -120,7 +105,7 @@ function resolve_corner_params(style, width, height, outset = null) {
           offset.reverse();
         }
 
-        const inner_rect = [
+        let inner_rect = [
           outer_rect[0] + inner_offset[0] * offset[0],
           outer_rect[1] + inner_offset[1] * offset[1],
           outer_rect[2] + inner_offset[2] * offset[1],
@@ -128,13 +113,20 @@ function resolve_corner_params(style, width, height, outset = null) {
         ];
 
         let inner_shape = shape;
-        if (shape > 2 || shape < 0.5) {
+        if (outset) {
+          const new_width = width + outset * 2;
+          const new_height = height + outset * 2;
+          inner_rect = [
+            (outer_rect[0] / width) * new_width - outset,
+            (outer_rect[1] / height) * new_height - outset,
+            (outer_rect[2] / width) * new_width - outset,
+            (outer_rect[3] / height) * new_height - outset
+          ]
+        } else if (shape > 2 || shape < 0.5) {
           const outer_length = Math.hypot(
             outer_rect[2] - outer_rect[0], outer_rect[3] - outer_rect[1]);
           const inner_length = Math.hypot(
             inner_rect[2] - inner_rect[0], inner_rect[3] - inner_rect[1])
-          inner_shape =
-            compute_inner_curvature(shape, outer_length, inner_length);
         }
 
         return [
@@ -146,7 +138,6 @@ function resolve_corner_params(style, width, height, outset = null) {
             inset,
             inner_rect,
             inner_offset,
-            inner_shape
           },
         ];
       }));

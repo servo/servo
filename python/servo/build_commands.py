@@ -13,10 +13,11 @@ import os.path as path
 import pathlib
 import shutil
 import stat
+import subprocess
 import sys
 
 from time import time
-from typing import Optional
+from typing import Optional, List
 
 import notifypy
 
@@ -36,30 +37,63 @@ from servo.command_base import BuildType, CommandBase, call, check_call
 from servo.gstreamer import windows_dlls, windows_plugins, package_gstreamer_dylibs
 from servo.platform.build_target import BuildTarget
 
-SUPPORTED_ASAN_TARGETS = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu",
-                          "x86_64-apple-darwin", "x86_64-unknown-linux-gnu"]
+SUPPORTED_ASAN_TARGETS = [
+    "aarch64-apple-darwin",
+    "aarch64-unknown-linux-gnu",
+    "x86_64-apple-darwin",
+    "x86_64-unknown-linux-gnu",
+]
+
+
+def get_rustc_llvm_version() -> Optional[List[int]]:
+    """Determine the LLVM version of `rustc` and return it as a List[major, minor, patch, ...]
+
+    In some cases we want to ensure that the LLVM version of rustc and clang match, e.g.
+    when using ASAN for both C/C++ and Rust code, we want to use the same ASAN implementation.
+    This function assumes that rustc points to the rust compiler we are interested in, which should
+    be valid in both rustup managed environment and on nix.
+    """
+    try:
+        result = subprocess.run(["rustc", "--version", "--verbose"], encoding="utf-8", capture_output=True)
+        result.check_returncode()
+        for line in result.stdout.splitlines():
+            line_lowercase = line.lower()
+            if line_lowercase.startswith("llvm version:"):
+                llvm_version = line_lowercase.strip("llvm version:")
+                llvm_version = llvm_version.strip()
+                version = llvm_version.split(".")
+                print(f"Info: rustc is using LLVM version {'.'.join(version)}")
+                return version
+        else:
+            print(f"Error: Couldn't find LLVM version in output of `rustc --version --verbose`: `{result.stdout}`")
+    except Exception as e:
+        print(f"Error: Failed to determine rustc version: {e}")
+    return None
 
 
 @CommandProvider
 class MachCommands(CommandBase):
-    @Command('build', description='Build Servo', category='build')
-    @CommandArgument('--jobs', '-j',
-                     default=None,
-                     help='Number of jobs to run in parallel')
-    @CommandArgument('--no-package',
-                     action='store_true',
-                     help='For Android, disable packaging into a .apk after building')
-    @CommandArgument('--verbose', '-v',
-                     action='store_true',
-                     help='Print verbose output')
-    @CommandArgument('--very-verbose', '-vv',
-                     action='store_true',
-                     help='Print very verbose output')
-    @CommandArgument('params', nargs='...',
-                     help="Command-line arguments to be passed through to Cargo")
+    @Command("build", description="Build Servo", category="build")
+    @CommandArgument("--jobs", "-j", default=None, help="Number of jobs to run in parallel")
+    @CommandArgument(
+        "--no-package", action="store_true", help="For Android, disable packaging into a .apk after building"
+    )
+    @CommandArgument("--verbose", "-v", action="store_true", help="Print verbose output")
+    @CommandArgument("--very-verbose", "-vv", action="store_true", help="Print very verbose output")
+    @CommandArgument("params", nargs="...", help="Command-line arguments to be passed through to Cargo")
     @CommandBase.common_command_arguments(build_configuration=True, build_type=True, package_configuration=True)
-    def build(self, build_type: BuildType, jobs=None, params=None, no_package=False,
-              verbose=False, very_verbose=False, with_asan=False, flavor=None, **kwargs):
+    def build(
+        self,
+        build_type: BuildType,
+        jobs=None,
+        params=None,
+        no_package=False,
+        verbose=False,
+        very_verbose=False,
+        with_asan=False,
+        flavor=None,
+        **kwargs,
+    ):
         opts = params or []
 
         if build_type.is_release():
@@ -85,8 +119,10 @@ class MachCommands(CommandBase):
 
         if with_asan:
             if target_triple not in SUPPORTED_ASAN_TARGETS:
-                print("AddressSanitizer is currently not supported on this platform\n",
-                      "See https://doc.rust-lang.org/beta/unstable-book/compiler-flags/sanitizer.html")
+                print(
+                    "AddressSanitizer is currently not supported on this platform\n",
+                    "See https://doc.rust-lang.org/beta/unstable-book/compiler-flags/sanitizer.html",
+                )
                 sys.exit(1)
 
             # do not use crown (clashes with different rust version)
@@ -99,11 +135,30 @@ class MachCommands(CommandBase):
             env["RUSTFLAGS"] = env.get("RUSTFLAGS", "") + " -Zsanitizer=address"
             opts += ["-Zbuild-std"]
             kwargs["target_override"] = target_triple
-            # TODO: Investigate sanitizers in C/C++ code:
-            # env.setdefault("CFLAGS", "")
-            # env.setdefault("CXXFLAGS", "")
-            # env["CFLAGS"] += " -fsanitize=address"
-            # env["CXXFLAGS"] += " -fsanitize=address"
+
+            # Note: We want to use the same clang/LLVM version as rustc.
+            rustc_llvm_version = get_rustc_llvm_version()
+            if rustc_llvm_version is None:
+                raise RuntimeError("Unable to determine necessary clang version for ASAN support")
+            llvm_major: int = rustc_llvm_version[0]
+            target_clang = f"clang-{llvm_major}"
+            target_cxx = f"clang++-{llvm_major}"
+            if shutil.which(target_clang) is None or shutil.which(target_cxx) is None:
+                raise RuntimeError(f"--with-asan requires `{target_clang}` and `{target_cxx}` to be in PATH")
+            env.setdefault("TARGET_CC", target_clang)
+            env.setdefault("TARGET_CXX", target_cxx)
+            # TODO: We should also parse the LLVM version from the clang compiler we chose.
+            # It's unclear if the major version being the same is sufficient.
+
+            # We need to use `TARGET_CFLAGS`, since we don't want to compile host dependencies with ASAN,
+            # since that causes issues when building build-scripts / proc macros.
+            env.setdefault("TARGET_CFLAGS", "")
+            env.setdefault("TARGET_CXXFLAGS", "")
+            env["TARGET_CFLAGS"] += " -fsanitize=address"
+            env["TARGET_CXXFLAGS"] += " -fsanitize=address"
+            env["TARGET_LDFLAGS"] = "-static-libasan"
+            # By default build mozjs from source to enable ASAN with mozjs.
+            env.setdefault("MOZJS_FROM_SOURCE", "1")
 
             # asan replaces system allocator with asan allocator
             # we need to make sure that we do not replace it with jemalloc
@@ -111,12 +166,14 @@ class MachCommands(CommandBase):
 
         build_start = time()
 
-        if host != target_triple and 'windows' in target_triple:
-            if os.environ.get('VisualStudioVersion') or os.environ.get('VCINSTALLDIR'):
-                print("Can't cross-compile for Windows inside of a Visual Studio shell.\n"
-                      "Please run `python mach build [arguments]` to bypass automatic "
-                      "Visual Studio shell, and make sure the VisualStudioVersion and "
-                      "VCINSTALLDIR environment variables are not set.")
+        if host != target_triple and "windows" in target_triple:
+            if os.environ.get("VisualStudioVersion") or os.environ.get("VCINSTALLDIR"):
+                print(
+                    "Can't cross-compile for Windows inside of a Visual Studio shell.\n"
+                    "Please run `python mach build [arguments]` to bypass automatic "
+                    "Visual Studio shell, and make sure the VisualStudioVersion and "
+                    "VCINSTALLDIR environment variables are not set."
+                )
                 sys.exit(1)
 
         # Gather Cargo build timings (https://doc.rust-lang.org/cargo/reference/timings.html).
@@ -127,8 +184,7 @@ class MachCommands(CommandBase):
             for key in env:
                 print((key, env[key]))
 
-        status = self.run_cargo_build_like_command(
-            "rustc", opts, env=env, verbose=verbose, **kwargs)
+        status = self.run_cargo_build_like_command("rustc", opts, env=env, verbose=verbose, **kwargs)
 
         if status == 0:
             built_binary = self.get_binary_path(build_type, asan=with_asan)
@@ -155,12 +211,11 @@ class MachCommands(CommandBase):
                 # like Instruments.app.
                 try:
                     import Cocoa
+
                     icon_path = path.join(self.get_top_dir(), "resources", "servo_1024.png")
                     icon = Cocoa.NSImage.alloc().initWithContentsOfFile_(icon_path)
                     if icon is not None:
-                        Cocoa.NSWorkspace.sharedWorkspace().setIcon_forFile_options_(icon,
-                                                                                     built_binary,
-                                                                                     0)
+                        Cocoa.NSWorkspace.sharedWorkspace().setIcon_forFile_options_(icon, built_binary, 0)
                 except ImportError:
                     pass
 
@@ -174,23 +229,16 @@ class MachCommands(CommandBase):
 
         return status
 
-    @Command('clean',
-             description='Clean the target/ and Python virtual environment directories',
-             category='build')
-    @CommandArgument('--manifest-path',
-                     default=None,
-                     help='Path to the manifest to the package to clean')
-    @CommandArgument('--verbose', '-v',
-                     action='store_true',
-                     help='Print verbose output')
-    @CommandArgument('params', nargs='...',
-                     help="Command-line arguments to be passed through to Cargo")
+    @Command("clean", description="Clean the target/ and Python virtual environment directories", category="build")
+    @CommandArgument("--manifest-path", default=None, help="Path to the manifest to the package to clean")
+    @CommandArgument("--verbose", "-v", action="store_true", help="Print verbose output")
+    @CommandArgument("params", nargs="...", help="Command-line arguments to be passed through to Cargo")
     def clean(self, manifest_path=None, params=[], verbose=False):
         self.ensure_bootstrapped()
 
-        virtualenv_path = path.join(self.get_top_dir(), '.venv')
+        virtualenv_path = path.join(self.get_top_dir(), ".venv")
         if path.exists(virtualenv_path):
-            print('Removing virtualenv directory: %s' % virtualenv_path)
+            print("Removing virtualenv directory: %s" % virtualenv_path)
             shutil.rmtree(virtualenv_path)
 
         opts = ["--manifest-path", manifest_path or path.join(self.context.topdir, "Cargo.toml")]
@@ -217,6 +265,7 @@ class MachCommands(CommandBase):
             def send_notification(self, **kwargs):
                 try:
                     import dbus
+
                     bus = dbus.SessionBus()
                     notify_obj = bus.get_object("org.freedesktop.Notifications", "/org/freedesktop/Notifications")
                     method = notify_obj.get_dbus_method("Notify", "org.freedesktop.Notifications")
@@ -228,17 +277,15 @@ class MachCommands(CommandBase):
                         kwargs.get("notification_subtitle"),
                         [],  # actions
                         {"transient": True},  # hints
-                        -1  # timeout
+                        -1,  # timeout
                     )
                 except Exception as exception:
-                    print(f"[Warning] Could not generate notification: {exception}",
-                          file=sys.stderr)
+                    print(f"[Warning] Could not generate notification: {exception}", file=sys.stderr)
                 return True
 
         if notify_command:
             if call([notify_command, title, message]) != 0:
-                print("[Warning] Could not generate notification: "
-                      f"Could not run '{notify_command}'.", file=sys.stderr)
+                print(f"[Warning] Could not generate notification: Could not run '{notify_command}'.", file=sys.stderr)
         else:
             try:
                 notifier = LinuxNotifier if sys.platform.startswith("linux") else None
@@ -338,11 +385,12 @@ def package_msvc_dlls(servo_exe_dir: str, target: BuildTarget):
         "x86_64": "x64",
         "i686": "x86",
         "aarch64": "arm64",
-    }[target.triple().split('-')[0]]
+    }[target.triple().split("-")[0]]
 
     for msvc_redist_dir in servo.visual_studio.find_msvc_redist_dirs(vs_platform):
-        if copy_file(os.path.join(msvc_redist_dir, "msvcp140.dll")) and \
-           copy_file(os.path.join(msvc_redist_dir, "vcruntime140.dll")):
+        if copy_file(os.path.join(msvc_redist_dir, "msvcp140.dll")) and copy_file(
+            os.path.join(msvc_redist_dir, "vcruntime140.dll")
+        ):
             break
 
     # Different SDKs install the file into different directory structures within the

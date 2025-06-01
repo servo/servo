@@ -263,6 +263,7 @@ SET TIMEOUT: resource-timing/resources/nested-contexts.js
 SET TIMEOUT: reporting/resources/first-csp-report.https.sub.html
 SET TIMEOUT: reporting/resources/second-csp-report.https.sub.html
 SET TIMEOUT: scheduler/tentative/yield/yield-inherit-across-promises.any.js
+SET TIMEOUT: scheduler/tentative/yield/yield-scheduling-state-cleared.any.js
 SET TIMEOUT: scheduler/tentative/yield/yield-priority-timers.any.js
 SET TIMEOUT: secure-contexts/basic-popup-and-iframe-tests.https.js
 SET TIMEOUT: service-workers/cache-storage/cache-abort.https.any.js
@@ -282,6 +283,7 @@ SET TIMEOUT: service-workers/service-worker/resources/opaque-response-being-prel
 SET TIMEOUT: service-workers/service-worker/resources/opaque-response-preloaded-xhr.html
 SET TIMEOUT: service-workers/service-worker/resources/performance-timeline-worker.js
 SET TIMEOUT: service-workers/service-worker/resources/resource-timing-worker.js
+SET TIMEOUT: soft-navigation-heuristics/smoke/tentative/task-attribution.html
 SET TIMEOUT: shadow-dom/Document-prototype-currentScript.html
 SET TIMEOUT: shadow-dom/scroll-to-the-fragment-in-shadow-tree.html
 SET TIMEOUT: shadow-dom/slotchange-event.html
@@ -393,6 +395,7 @@ SET TIMEOUT: css/css-fonts/font-display/font-display-preload.html
 SET TIMEOUT: css/css-view-transitions/no-painting-while-render-blocked.html
 SET TIMEOUT: document-policy/font-display/override-to-optional.tentative.html
 SET TIMEOUT: feature-policy/experimental-features/resources/focus-without-user-activation-iframe-tentative.html
+SET TIMEOUT: geolocation/watchposition-timeout.https.window.js
 SET TIMEOUT: permissions-policy/experimental-features/resources/focus-without-user-activation-iframe-tentative.html
 SET TIMEOUT: html/browsers/windows/auxiliary-browsing-contexts/resources/close-opener.html
 SET TIMEOUT: html/cross-origin-embedder-policy/resources/reporting-worker.js

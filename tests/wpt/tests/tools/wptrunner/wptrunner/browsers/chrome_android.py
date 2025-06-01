@@ -3,7 +3,7 @@
 import mozprocess
 import subprocess
 
-from .base import cmd_arg, require_arg
+from .base import OutputHandler, cmd_arg, require_arg
 from .base import get_timeout_multiplier   # noqa: F401
 from .base import WebDriverBrowser  # noqa: F401
 from .chrome import executor_kwargs as chrome_executor_kwargs
@@ -79,10 +79,9 @@ def env_options():
 
 
 class LogcatRunner:
-    def __init__(self, logger, browser, remote_queue):
+    def __init__(self, logger, browser):
         self.logger = logger
         self.browser = browser
-        self.remote_queue = remote_queue
 
     def start(self):
         try:
@@ -99,64 +98,45 @@ class LogcatRunner:
             self.logger.error("Failed to clear logcat buffer")
 
         self._cmd = self.browser.logcat_cmd()
+        self._output_handler = OutputHandler(self.logger, self._cmd)
         self._proc = mozprocess.ProcessHandler(
             self._cmd,
-            processOutputLine=self.on_output,
+            processOutputLine=self._output_handler,
             storeOutput=False)
         self._proc.run()
-
-    def _send_message(self, command, *args):
-        try:
-            self.remote_queue.put((command, args))
-        except AssertionError:
-            self.logger.warning("Error when send to remote queue")
+        self._output_handler.after_process_start(self._proc.pid)
+        self._output_handler.start()
 
     def stop(self, force=False):
         if self.is_alive():
             kill_result = self._proc.kill()
             if force and kill_result != 0:
                 self._proc.kill(9)
+        self._output_handler.after_process_stop()
 
     def is_alive(self):
         return hasattr(self._proc, "proc") and self._proc.poll() is None
-
-    def on_output(self, line):
-        data = {
-            "action": "process_output",
-            "process": "LOGCAT",
-            "command": "logcat",
-            "data": line
-        }
-        self._send_message("log", data)
 
 
 class ChromeAndroidBrowserBase(WebDriverBrowser):
     def __init__(self,
                  logger,
-                 webdriver_binary="chromedriver",
+                 *,
                  adb_binary=None,
-                 remote_queue=None,
                  device_serial=None,
-                 webdriver_args=None,
                  stackwalk_binary=None,
-                 symbols_path=None):
-        super().__init__(logger,
-                         binary=None,
-                         webdriver_binary=webdriver_binary,
-                         webdriver_args=webdriver_args,)
+                 symbols_path=None,
+                 **kwargs):
+        super().__init__(logger, **kwargs)
         self.adb_binary = adb_binary or "adb"
-        self.device_serial = device_serial
+        self.device_serial = device_serial[self.manager_number]
         self.stackwalk_binary = stackwalk_binary
         self.symbols_path = symbols_path
-        self.remote_queue = remote_queue
-
-        if self.remote_queue is not None:
-            self.logcat_runner = LogcatRunner(self.logger, self, self.remote_queue)
+        self.logcat_runner = LogcatRunner(self.logger, self)
 
     def setup(self):
         self.setup_adb_reverse()
-        if self.remote_queue is not None:
-            self.logcat_runner.start()
+        self.logcat_runner.start()
 
     def _adb_run(self, args):
         cmd = [self.adb_binary]
@@ -176,8 +156,7 @@ class ChromeAndroidBrowserBase(WebDriverBrowser):
         super().cleanup()
         self._adb_run(['forward', '--remove-all'])
         self._adb_run(['reverse', '--remove-all'])
-        if self.remote_queue is not None:
-            self.logcat_runner.stop(force=True)
+        self.logcat_runner.stop(force=True)
 
     def executor_browser(self):
         cls, kwargs = super().executor_browser()
@@ -228,17 +207,7 @@ class ChromeAndroidBrowser(ChromeAndroidBrowserBase):
     ``wptrunner.webdriver.ChromeDriverServer``.
     """
 
-    def __init__(self, logger, package_name,
-                 webdriver_binary="chromedriver",
-                 adb_binary=None,
-                 remote_queue = None,
-                 device_serial=None,
-                 webdriver_args=None,
-                 stackwalk_binary=None,
-                 symbols_path=None):
-        super().__init__(logger,
-                         webdriver_binary, adb_binary, remote_queue,
-                         device_serial, webdriver_args, stackwalk_binary,
-                         symbols_path)
+    def __init__(self, logger, *, package_name, **kwargs):
+        super().__init__(logger, **kwargs)
         self.package_name = package_name
         self.wptserver_ports = _wptserve_ports

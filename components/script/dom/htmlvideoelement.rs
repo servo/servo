@@ -5,13 +5,13 @@
 use std::cell::Cell;
 use std::sync::Arc;
 
+use content_security_policy as csp;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
-use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
-use ipc_channel::ipc;
+use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
 use net_traits::image_cache::{
-    ImageCache, ImageCacheResult, ImageOrMetadataAvailable, ImageResponder, ImageResponse,
+    ImageCache, ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable, ImageResponse,
     PendingImageId, UsePlaceholder,
 };
 use net_traits::request::{CredentialsMode, Destination, RequestBuilder, RequestId};
@@ -22,6 +22,7 @@ use net_traits::{
 use script_layout_interface::{HTMLMediaData, MediaMetadata};
 use servo_media::player::video::VideoFrame;
 use servo_url::ServoUrl;
+use snapshot::Snapshot;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
 use crate::document_loader::{LoadBlocker, LoadType};
@@ -132,9 +133,7 @@ impl HTMLVideoElement {
         sent_resize
     }
 
-    pub(crate) fn get_current_frame_data(
-        &self,
-    ) -> Option<(Option<ipc::IpcSharedMemory>, Size2D<u32>)> {
+    pub(crate) fn get_current_frame_data(&self) -> Option<Snapshot> {
         let frame = self.htmlmediaelement.get_current_frame();
         if frame.is_some() {
             *self.last_frame.borrow_mut() = frame;
@@ -144,11 +143,19 @@ impl HTMLVideoElement {
             Some(frame) => {
                 let size = Size2D::new(frame.get_width() as u32, frame.get_height() as u32);
                 if !frame.is_gl_texture() {
-                    let data = Some(ipc::IpcSharedMemory::from_bytes(&frame.get_data()));
-                    Some((data, size))
+                    let alpha_mode = snapshot::AlphaMode::Transparent {
+                        premultiplied: false,
+                    };
+
+                    Some(Snapshot::from_vec(
+                        size.cast(),
+                        snapshot::PixelFormat::BGRA,
+                        alpha_mode,
+                        frame.get_data().to_vec(),
+                    ))
                 } else {
                     // XXX(victor): here we only have the GL texture ID.
-                    Some((None, size))
+                    Some(Snapshot::cleared(size.cast()))
                 }
             },
             None => None,
@@ -216,7 +223,7 @@ impl HTMLVideoElement {
             element.process_image_response(response.response, CanGc::note());
         });
 
-        image_cache.add_listener(ImageResponder::new(sender, window.pipeline_id(), id));
+        image_cache.add_listener(ImageLoadListener::new(sender, window.pipeline_id(), id));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
@@ -232,8 +239,10 @@ impl HTMLVideoElement {
         .credentials_mode(CredentialsMode::Include)
         .use_url_credentials(true)
         .origin(document.origin().immutable().clone())
-        .pipeline_id(Some(document.global().pipeline_id()));
-
+        .pipeline_id(Some(document.global().pipeline_id()))
+        .insecure_requests_policy(document.insecure_requests_policy())
+        .has_trustworthy_ancestor_origin(document.has_trustworthy_ancestor_origin())
+        .policy_container(document.policy_container().to_owned());
         // Step 5.
         // This delay must be independent from the ones created by HTMLMediaElement during
         // its media load algorithm, otherwise a code like
@@ -259,7 +268,10 @@ impl HTMLVideoElement {
         match response {
             ImageResponse::Loaded(image, url) => {
                 debug!("Loaded poster image for video element: {:?}", url);
-                self.htmlmediaelement.process_poster_image_loaded(image);
+                match image.as_raster_image() {
+                    Some(image) => self.htmlmediaelement.process_poster_image_loaded(image),
+                    None => warn!("Vector images are not yet supported in video poster"),
+                }
                 LoadBlocker::terminate(&self.load_blocker, can_gc);
             },
             ImageResponse::MetadataLoaded(..) => {},
@@ -269,6 +281,18 @@ impl HTMLVideoElement {
                 LoadBlocker::terminate(&self.load_blocker, can_gc);
             },
         }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+    pub(crate) fn is_usable(&self) -> bool {
+        !matches!(
+            self.htmlmediaelement.get_ready_state(),
+            ReadyState::HaveNothing | ReadyState::HaveMetadata
+        )
+    }
+
+    pub(crate) fn origin_is_clean(&self) -> bool {
+        self.htmlmediaelement.origin_is_clean()
     }
 }
 
@@ -415,6 +439,11 @@ impl FetchResponseListener for PosterFrameFetchContext {
 
     fn submit_resource_timing(&mut self) {
         network_listener::submit_timing(self, CanGc::note())
+    }
+
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+        let global = &self.resource_timing_global();
+        global.report_csp_violations(violations, None);
     }
 }
 

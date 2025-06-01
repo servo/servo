@@ -29,6 +29,27 @@
   });
 
   promise_test(async (t) => {
+    const invalidData = [null, undefined, "", 123, true, false];
+    for (const data of invalidData) {
+      const options = {
+        digital: {
+          requests: [
+            {
+              data,
+              protocol: "openid4vp",
+            },
+          ],
+        },
+      };
+      await promise_rejects_js(
+        t,
+        TypeError,
+        navigator.credentials.get(options)
+      );
+    }
+  }, "Type conversion happens on the data member of the DigitalCredentialGetRequest object.");
+
+  promise_test(async (t) => {
     iframeSameOrigin.focus();
     for (const global of [window, iframeSameOrigin.contentWindow]) {
       await promise_rejects_dom(
@@ -83,13 +104,17 @@
         global.navigator.credentials.get({ signal, mediation: "required" })
       );
     }
-  }, "Calling navigator.credentials.get() without an digital member same origin.");
+  }, "Calling navigator.credentials.get() without a digital member same origin.");
 
   promise_test(async (t) => {
     for (const request of [undefined, []]) {
       const options = makeGetOptions(request);
       await test_driver.bless("user activation");
-      await promise_rejects_js(t, TypeError, navigator.credentials.get(options));
+      await promise_rejects_js(
+        t,
+        TypeError,
+        navigator.credentials.get(options)
+      );
     }
   }, "navigator.credentials.get() API rejects if there are no credential request.");
 
@@ -196,10 +221,14 @@
 
   promise_test(async (t) => {
     /** @type sequence<CredentialMediationRequirement> */
-    const disallowedMediations = [ "conditional", "optional", "silent"];
+    const disallowedMediations = ["conditional", "optional", "silent"];
     for (const mediation of disallowedMediations) {
       const options = makeGetOptions("default", mediation);
-      await promise_rejects_js(t, TypeError, navigator.credentials.get(options));
+      await promise_rejects_js(
+        t,
+        TypeError,
+        navigator.credentials.get(options)
+      );
     }
   }, "Mediation is required to get a DigitalCredential.");
 </script>

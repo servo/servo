@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use embedder_traits::EventLoopWaker;
 use log::warn;
 #[cfg(feature = "ipc")]
 use serde::{Deserialize, Serialize};
@@ -30,29 +31,18 @@ pub struct MainThreadRegistry<GL> {
     next_session_id: u32,
 }
 
-pub trait MainThreadWaker: 'static + Send {
-    fn clone_box(&self) -> Box<dyn MainThreadWaker>;
-    fn wake(&self);
-}
-
-impl Clone for Box<dyn MainThreadWaker> {
-    fn clone(&self) -> Self {
-        self.clone_box()
-    }
-}
-
 #[derive(Clone)]
 #[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
 struct MainThreadWakerImpl {
     #[cfg(feature = "ipc")]
     sender: WebXrSender<()>,
     #[cfg(not(feature = "ipc"))]
-    waker: Box<dyn MainThreadWaker>,
+    waker: Box<dyn EventLoopWaker>,
 }
 
 #[cfg(feature = "ipc")]
 impl MainThreadWakerImpl {
-    fn new(waker: Box<dyn MainThreadWaker>) -> Result<MainThreadWakerImpl, Error> {
+    fn new(waker: Box<dyn EventLoopWaker>) -> Result<MainThreadWakerImpl, Error> {
         let (sender, receiver) = crate::webxr_channel().or(Err(Error::CommunicationError))?;
         ipc_channel::router::ROUTER.add_typed_route(receiver, Box::new(move |_| waker.wake()));
         Ok(MainThreadWakerImpl { sender })
@@ -65,7 +55,7 @@ impl MainThreadWakerImpl {
 
 #[cfg(not(feature = "ipc"))]
 impl MainThreadWakerImpl {
-    fn new(waker: Box<dyn MainThreadWaker>) -> Result<MainThreadWakerImpl, Error> {
+    fn new(waker: Box<dyn EventLoopWaker>) -> Result<MainThreadWakerImpl, Error> {
         Ok(MainThreadWakerImpl { waker })
     }
 
@@ -110,7 +100,7 @@ impl Registry {
 
 impl<GL: 'static + GLTypes> MainThreadRegistry<GL> {
     pub fn new(
-        waker: Box<dyn MainThreadWaker>,
+        waker: Box<dyn EventLoopWaker>,
         grand_manager: LayerGrandManager<GL>,
     ) -> Result<Self, Error> {
         let (sender, receiver) = crate::webxr_channel().or(Err(Error::CommunicationError))?;

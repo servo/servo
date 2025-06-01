@@ -10,7 +10,7 @@ const operatorToleranceDict = {
   leakyRelu: {float32: 1, float16: 2},
   linear: {float32: 2, float16: 2},
   prelu: {float32: 1, float16: 1},
-  relu: {float32: 0, float16: 0},
+  relu: {float32: 0, float16: 0, int8: 0, int32: 0},
   reshape: {float32: 0, float16: 0},
   sigmoid: {float32: 34, float16: 10},
   softplus: {float32: 18, float16: 18},
@@ -56,6 +56,13 @@ const getPrecisionTolerance = (graphResources, intermediateOperands) => {
         break;
       case 'softmax':
         toleranceValue += getSoftmaxPrecisionTolerance(
+                              op, graphResources, intermediateOperands)
+                              .value;
+        break;
+      case 'averagePool2d':
+      case 'maxPool2d':
+      case 'l2Pool2d':
+        toleranceValue += getPoolingOperatorsPrecisionTolerance(
                               op, graphResources, intermediateOperands)
                               .value;
         break;
@@ -136,8 +143,8 @@ const contextOptions = kContextOptionsForVariant[variant];
 const assertDescriptorsEquals = (outputOperand, expected) => {
   const dataType =
       expected.castedType ? expected.castedType : expected.dataType;
-  assert_true(
-      outputOperand.dataType === dataType,
+  assert_equals(
+      outputOperand.dataType, dataType,
       'actual output dataType should be equal to expected output dataType');
   assert_array_equals(
       outputOperand.shape, expected.shape,
@@ -204,7 +211,7 @@ const getTypedArrayData = (type, size, data) => {
     for (let i = 0; i < data.length; i++) {
       outData[i] = toHalf(data[i]);
     }
-  } else if (type === 'int64') {
+  } else if (type === 'int64' || type === 'uint64') {
     if (typeof (data) === 'number' && size > 1) {
       return new TypedArrayDict[type](size).fill(BigInt(data));
     }
@@ -275,7 +282,7 @@ const getBitwise = (value, dataType) => {
  * @param {Array} actual - Array of test values.
  * @param {Array} expected - Array of values expected to be close to the values
  *     in ``actual``.
- * @param {Number} nulp - A BigInt value indicates acceptable ULP distance.
+ * @param {(Number|BigInt)} nulp - A value indicates acceptable ULP distance.
  * @param {String} dataType - A data type string, value: "float32",
  *     more types, please see:
  *     https://www.w3.org/TR/webnn/#enumdef-mloperanddatatype
@@ -285,31 +292,25 @@ const assert_array_approx_equals_ulp = (actual, expected, nulp, dataType, descri
   /*
     * Test if two primitive arrays are equal within acceptable ULP distance
     */
-  assert_true(
-      actual.length === expected.length,
-      `assert_array_approx_equals_ulp: ${description} lengths differ, ` +
-          `expected ${expected.length} but got ${actual.length}`);
-  let distance;
+  assert_equals(
+      actual.length, expected.length,
+      `assert_array_approx_equals_ulp: ${description} lengths differ`);
   for (let i = 0; i < actual.length; i++) {
     if (actual[i] === expected[i]) {
       continue;
     } else {
-      distance = ulpDistance(actual[i], expected[i], dataType);
+      let distance = ulpDistance(actual[i], expected[i], dataType);
 
-      // if true, invoke assert_true() in failure case
-      // if false, it's expected, not invoke assert_true() in success case to
-      // prevent spammy output
-      if (distance > nulp) {
-        assert_true(
-            false,
+      // TODO: See if callers can be updated to pass matching type.
+      nulp = typeof distance === 'bigint' ? BigInt(nulp) : Number(nulp);
+
+      assert_less_than_equal(distance, nulp,
             `assert_array_approx_equals_ulp: ${description} actual ` +
                 `${
                     dataType === 'float16' ?
                         float16AsUint16ToNumber(actual[i]) :
                         actual[i]} should be close enough to expected ` +
-                `${expected[i]} by the acceptable ${nulp} ULP distance, ` +
-                `but they have ${distance} ULP distance`);
-      }
+                `${expected[i]} by ULP distance:`);
     }
   }
 };
@@ -701,6 +702,10 @@ function validateContextSupportsGraph(context, graph) {
             assert(
                 typeof inputName === 'string',
                 `the inputs' item of ${operatorName} should be a string.`);
+            if (!graph.inputs[inputName]) {
+              // intermediate input
+              continue;
+            }
             validateInputOrConstantDataType(
                 inputName, operatorSupportLimits, 'inputs');
           }
@@ -786,7 +791,21 @@ const buildAndExecuteGraph = async (context, builder, graphResources) => {
     for (const argument of operator.arguments) {
       for (const argumentName in argument) {
         if (argumentName !== 'options') {
-          if (graphInputs.hasOwnProperty(argument[argumentName])) {
+          if (operator.name === 'concat' && argumentName === 'inputs') {
+            const concatInputs = [];
+            for (const inputName of argument[argumentName]) {
+              if (graphInputs.hasOwnProperty(inputName)) {
+                const operandName = inputName;
+                const operand = createOperand(
+                    context, builder, operandName, graphInputs[operandName]);
+                concatInputs.push(operand);
+              } else if (intermediateOperands.hasOwnProperty(inputName)) {
+                concatInputs.push(intermediateOperands[inputName]);
+              }
+              // concatInputs.push(intermediateOperands[inputName]);
+            }
+            argumentArray.push(concatInputs);
+          } else if (graphInputs.hasOwnProperty(argument[argumentName])) {
             const operandName = argument[argumentName];
             const operand = createOperand(
                 context, builder, operandName, graphInputs[operandName]);
@@ -984,6 +1003,53 @@ const getConv2dPrecisionTolerance =
   const expectedDataType =
       getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
   return {metricType: 'ULP', value: toleranceValueDict[expectedDataType]};
+};
+
+const getPoolingOperatorsPrecisionTolerance =
+    (op, graphResources, intermediateOperands) => {
+  const args = op.arguments;
+  const operatorName = op.name;
+  const {inputs} = graphResources;
+  let inputShape;
+  const inputIndex = args[0][Object.keys(args[0])[0]];
+  if (inputs[inputIndex]) {
+    inputShape = inputs[inputIndex].descriptor.shape;
+  } else {
+    inputShape = intermediateOperands[inputIndex].shape;
+  }
+  const options =
+      args.length === 2 ? {...args[1][Object.keys(args[1])[0]]} : {};
+  let height;
+  let width;
+
+  if (options.windowDimensions) {
+    height = options.windowDimensions[0];
+    width = options.windowDimensions[1];
+  } else {
+    // If not present, the window dimensions are assumed to be the height
+    // and width dimensions of the input shape
+    if (options.layout && options.layout === 'nhwc') {
+      height = inputShape[1];
+      width = inputShape[2];
+    } else {
+      // nhwc layout of input
+      height = inputShape[2];
+      width = inputShape[3];
+    }
+  }
+
+  const tolerance = height * width + 2;
+  const toleranceDict = {
+    averagePool2d: {float32: tolerance, float16: tolerance},
+    l2Pool2d: {float32: tolerance, float16: tolerance},
+    maxPool2d: {float32: 0, float16: 0},
+  };
+  const expectedDataType =
+      getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
+  return {
+    metricType: 'ULP',
+    value: toleranceDict[operatorName][expectedDataType]
+  };
 };
 
 const getInstanceNormPrecisionTolerance = (graphResources) => {

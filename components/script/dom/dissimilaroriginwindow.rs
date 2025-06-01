@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use base::id::PipelineId;
+use constellation_traits::{ScriptToConstellationMessage, StructuredSerializedData};
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue, MutableHandleValue};
-use script_traits::{ScriptToConstellationMessage, StructuredSerializedData};
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding;
@@ -181,18 +181,19 @@ impl DissimilarOriginWindowMethods<crate::DomTypeHolder> for DissimilarOriginWin
 
     // https://html.spec.whatwg.org/multipage/#dom-window-blur
     fn Blur(&self) {
-        // TODO: Implement x-origin blur
+        // > User agents are encouraged to ignore calls to this `blur()` method
+        // > entirely.
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-focus
+    // https://html.spec.whatwg.org/multipage/#dom-window-focus
     fn Focus(&self) {
-        // TODO: Implement x-origin focus
+        self.window_proxy().focus();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location
-    fn Location(&self) -> DomRoot<DissimilarOriginLocation> {
+    fn Location(&self, can_gc: CanGc) -> DomRoot<DissimilarOriginLocation> {
         self.location
-            .or_init(|| DissimilarOriginLocation::new(self, CanGc::note()))
+            .or_init(|| DissimilarOriginLocation::new(self, can_gc))
     }
 }
 

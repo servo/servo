@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>Escape "&lt;" and ">" in attribute values when serializing</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+
+<span id="test"><a b="<>"></a></span>
+
+<script>
+const test_el = document.getElementById("test");
+
+test(() => {
+  assert_equals(test_el.innerHTML, "<a b=\"&lt;&gt;\"></a>");
+}, "innerHTML");
+
+test(() => {
+  assert_equals(test_el.outerHTML, "<span id=\"test\"><a b=\"&lt;&gt;\"></a></span>");
+}, "outerHTML");
+</script>

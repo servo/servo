@@ -12,7 +12,7 @@ use std::rc::Rc;
 use js::jsapi::{
     AddRawValueRoot, EnterRealm, Heap, IsCallable, JSObject, LeaveRealm, Realm, RemoveRawValueRoot,
 };
-use js::jsval::{JSVal, ObjectValue, UndefinedValue};
+use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::rust::wrappers::{JS_GetProperty, JS_WrapObject};
 use js::rust::{HandleObject, MutableHandleValue, Runtime};
 
@@ -237,7 +237,11 @@ pub(crate) fn wrap_call_this_value<T: ThisReflector>(
     mut rval: MutableHandleValue,
 ) -> bool {
     rooted!(in(*cx) let mut obj = p.jsobject());
-    assert!(!obj.is_null());
+
+    if obj.is_null() {
+        rval.set(NullValue());
+        return true;
+    }
 
     unsafe {
         if !JS_WrapObject(*cx, obj.handle_mut()) {

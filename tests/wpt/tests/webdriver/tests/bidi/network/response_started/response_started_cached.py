@@ -258,7 +258,9 @@ async def test_page_with_cached_link_stylesheet(
     )
 
     # Reload the page.
-    await bidi_session.browsing_context.reload(context=top_context["context"])
+    await bidi_session.browsing_context.reload(
+        context=top_context["context"], wait="complete"
+    )
 
     # Expect two events after reload, for the document and the stylesheet.
     wait = AsyncPoll(bidi_session, timeout=2)
@@ -330,7 +332,9 @@ async def test_page_with_cached_import_stylesheet(
     )
 
     # Reload the page.
-    await bidi_session.browsing_context.reload(context=top_context["context"])
+    await bidi_session.browsing_context.reload(
+        context=top_context["context"], wait="complete"
+    )
 
     # Expect three events after reload, for the document and the 2 stylesheets.
     wait = AsyncPoll(bidi_session, timeout=2)
@@ -427,7 +431,9 @@ async def test_page_with_cached_duplicated_stylesheets(
     )
 
     # Reload the page.
-    await bidi_session.browsing_context.reload(context=top_context["context"])
+    await bidi_session.browsing_context.reload(
+        context=top_context["context"], wait="complete"
+    )
 
     # Expect three events after reload, for the document and the 2 stylesheets.
     wait = AsyncPoll(bidi_session, timeout=2)
@@ -506,7 +512,9 @@ async def test_page_with_cached_script_javascript(
     )
 
     # Reload the page.
-    await bidi_session.browsing_context.reload(context=top_context["context"])
+    await bidi_session.browsing_context.reload(
+        context=top_context["context"], wait="complete"
+    )
 
     # Expect two events, one for the document and one for the javascript file.
     wait = AsyncPoll(bidi_session, timeout=2)
@@ -568,6 +576,14 @@ async def test_page_with_cached_script_javascript(
         )
 
 
+@pytest.mark.parametrize(
+    "kind, module_template",
+    [
+        ("top-level", """<script type="module" src="{url}">"""),
+        ("statically-imported", """<script type="module">import foo from "{url}"; foo();</script>"""),
+        ("dynamically-imported", """<script type="module">const ns = await import("{url}"); ns.default();</script>"""),
+    ]
+)
 @pytest.mark.asyncio
 async def test_page_with_cached_javascript_module(
     bidi_session,
@@ -575,6 +591,8 @@ async def test_page_with_cached_javascript_module(
     inline,
     setup_network_test,
     top_context,
+    kind,
+    module_template,
 ):
     network_events = await setup_network_test(
         events=[
@@ -586,14 +604,12 @@ async def test_page_with_cached_javascript_module(
     cached_js_module_url = url(
         get_cached_url("text/javascript", SCRIPT_CONSOLE_LOG_IN_MODULE)
     )
+    module_script_tag = module_template.format(url=cached_js_module_url)
     page_with_cached_js_module = inline(
         f"""
         <body>
-            test page with cached js module
-            <script type="module">
-                import foo from "{cached_js_module_url}";
-                foo();
-            </script>
+            test page with cached {kind} js module
+            {module_script_tag}
         </body>
         """,
     )
@@ -621,7 +637,9 @@ async def test_page_with_cached_javascript_module(
     )
 
     # Reload the page.
-    await bidi_session.browsing_context.reload(context=top_context["context"])
+    await bidi_session.browsing_context.reload(
+        context=top_context["context"], wait="complete"
+    )
 
     # Expect two events, one for the document and one for the javascript module.
     wait = AsyncPoll(bidi_session, timeout=2)
@@ -642,15 +660,9 @@ async def test_page_with_cached_javascript_module(
     page_with_2_cached_js_modules = inline(
         f"""
         <body>
-            test page with 2 cached javascript modules
-            <script type="module">
-                import foo from "{cached_js_module_url}";
-                foo();
-            </script>
-            <script type="module">
-                import foo from "{cached_js_module_url}";
-                foo();
-            </script>
+            test page with 2 cached {kind} js modules
+            {module_script_tag}
+            {module_script_tag}
         </body>
         """,
     )
@@ -729,7 +741,9 @@ async def test_page_with_cached_image(
     )
 
     # Reload the page.
-    await bidi_session.browsing_context.reload(context=top_context["context"])
+    await bidi_session.browsing_context.reload(
+        context=top_context["context"], wait="complete"
+    )
 
     # Expect two events, one for the document and one for the image.
     wait = AsyncPoll(bidi_session, timeout=2)

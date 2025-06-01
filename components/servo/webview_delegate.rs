@@ -9,7 +9,7 @@ use constellation_traits::EmbedderToConstellationMessage;
 use embedder_traits::{
     AllowOrDeny, AuthenticationResponse, ContextMenuResult, Cursor, FilterPattern,
     GamepadHapticEffectType, InputMethodType, LoadStatus, MediaSessionEvent, Notification,
-    PermissionFeature, ScreenGeometry, SelectElementOptionOrOptgroup, SimpleDialog,
+    PermissionFeature, RgbColor, ScreenGeometry, SelectElementOptionOrOptgroup, SimpleDialog,
     WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
 };
 use ipc_channel::ipc::IpcSender;
@@ -300,6 +300,8 @@ impl Drop for InterceptedWebResourceLoad {
 pub enum FormControl {
     /// The picker of a `<select>` element.
     SelectElement(SelectElement),
+    /// The picker of a `<input type=color>` element.
+    ColorPicker(ColorPicker),
 }
 
 /// Represents a dialog triggered by clicking a `<select>` element.
@@ -356,6 +358,48 @@ impl SelectElement {
     }
 }
 
+/// Represents a dialog triggered by clicking a `<input type=color>` element.
+pub struct ColorPicker {
+    pub(crate) current_color: RgbColor,
+    pub(crate) position: DeviceIntRect,
+    pub(crate) responder: IpcResponder<Option<RgbColor>>,
+    pub(crate) error_sender: ServoErrorSender,
+}
+
+impl ColorPicker {
+    pub(crate) fn new(
+        current_color: RgbColor,
+        position: DeviceIntRect,
+        ipc_sender: IpcSender<Option<RgbColor>>,
+        error_sender: ServoErrorSender,
+    ) -> Self {
+        Self {
+            current_color,
+            position,
+            responder: IpcResponder::new(ipc_sender, None),
+            error_sender,
+        }
+    }
+
+    /// Get the area occupied by the `<input>` element that triggered the prompt.
+    ///
+    /// The embedder should use this value to position the prompt that is shown to the user.
+    pub fn position(&self) -> DeviceIntRect {
+        self.position
+    }
+
+    /// Get the color that was selected before the prompt was opened.
+    pub fn current_color(&self) -> RgbColor {
+        self.current_color
+    }
+
+    pub fn select(&mut self, color: Option<RgbColor>) {
+        if let Err(error) = self.responder.send(color) {
+            self.error_sender.raise_response_send_error(error);
+        }
+    }
+}
+
 pub trait WebViewDelegate {
     /// Get the [`ScreenGeometry`] for this [`WebView`]. If this is unimplemented or returns `None`
     /// the screen will have the size of the [`WebView`]'s `RenderingContext` and `WebView` will be
@@ -375,6 +419,11 @@ pub trait WebViewDelegate {
     /// This [`WebView`] has either become focused or lost focus. Whether or not the
     /// [`WebView`] is focused can be accessed via [`WebView::focused`].
     fn notify_focus_changed(&self, _webview: WebView, _focused: bool) {}
+    /// This [`WebView`] has either started to animate or stopped animating. When a
+    /// [`WebView`] is animating, it is up to the embedding application ensure that
+    /// `Servo::spin_event_loop` is called at regular intervals in order to update the
+    /// painted contents of the [`WebView`].
+    fn notify_animating_changed(&self, _webview: WebView, _animating: bool) {}
     /// The `LoadStatus` of the currently loading or loaded page in this [`WebView`] has changed. The new
     /// status can accessed via [`WebView::load_status`].
     fn notify_load_status_changed(&self, _webview: WebView, _status: LoadStatus) {}

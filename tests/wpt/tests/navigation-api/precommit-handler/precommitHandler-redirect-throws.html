@@ -61,6 +61,20 @@ promise_test(async t => {
 }, "redirect() to cross-origin url");
 
 promise_test(async t => {
+  // See https://github.com/whatwg/html/issues/5380 for why not `new SharedArrayBuffer()`
+  const buffer = new WebAssembly.Memory({ shared:true, initial:1, maximum:1 }).buffer;
+
+  navigation.onnavigate = t.step_func(e => {
+    e.intercept({ precommitHandler: t.step_func(controller => {
+      assert_throws_dom("DataCloneError", () => {
+        controller.redirect(location.href, { state: buffer });
+      });
+    })});
+  });
+  await navigation.navigate("#").finished;
+}, "redirect() with an unserializable state object");
+
+promise_test(async t => {
   navigation.onnavigate = t.step_func(e => {
     e.intercept({ precommitHandler: t.step_func(controller => {
       assert_throws_dom("InvalidStateError", () => controller.redirect("#"));

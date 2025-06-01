@@ -17,7 +17,7 @@ const fakeDeviceInitParams = {
 };
 
 xr_session_promise_test("Ensures depth data is not available when cleared in the controller, `cpu-optimized`",
-  dataUnavailableTestFunctionGenerator(/*isCpuOptimized=*/true),
+  dataUnavailableTestFunction,
   fakeDeviceInitParams,
   'immersive-ar', {
     requiredFeatures: ['depth-sensing'],

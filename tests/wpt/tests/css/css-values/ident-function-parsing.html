@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>CSS Values: The ident() Function (parsing)</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#ident">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  // Any property that accepts <custom-ident> will do.
+  let prop = 'view-transition-name';
+
+  test_invalid_value(prop, 'ident()');
+  test_invalid_value(prop, 'ident( )');
+  test_invalid_value(prop, 'ident(rgb(1, 2, 3))');
+  test_invalid_value(prop, 'ident(5px)');
+
+  test_valid_value(prop, 'ident(myident)');
+  test_valid_value(prop, 'ident( myident)', 'ident(myident)');
+  test_valid_value(prop, 'ident(myident )', 'ident(myident)');
+  test_valid_value(prop, 'ident("myident")');
+  test_valid_value(prop, 'ident("myident" 3)');
+  test_valid_value(prop, 'ident(3 "myident")');
+  test_valid_value(prop, 'ident("my" "ident")');
+  test_valid_value(prop, 'ident(my "ident")');
+  test_valid_value(prop, 'ident("my" ident)');
+  test_valid_value(prop, 'ident(my ident)');
+  test_valid_value(prop, 'ident(-- myident)');
+  test_valid_value(prop, 'ident(my 3 3 3 3 ident)')
+
+  // Check for support in specific properties (WIP):
+  let ident = 'ident("myident" 42)';
+
+  // https://drafts.csswg.org/css-view-transitions/#view-transition-name-prop
+  test_valid_value('view-transition-name', ident);
+</script>

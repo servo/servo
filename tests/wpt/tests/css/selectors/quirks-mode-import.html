@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Importing quirks mode element into standards mode document</title>
+    <link rel="help" href="https://crbug.com/416619318">
+    <style>
+       div { color: green; }
+       :not(.Foo) { color: red; }
+    </style>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <div id="elem1" class="Foo">This text should be green</div>
+  <div id="container"></div>
+  <script>
+    test(() => {
+      let doc = (new DOMParser()).parseFromString('<div><div id="elem2" class="Foo">This text should be green</div></div>', 'text/html');
+      let subdiv = doc.documentElement.firstChild.nextSibling.firstChild;
+      document.querySelector('#container').appendChild(document.importNode(subdiv, true));
+
+      assert_equals(getComputedStyle(document.querySelector('#elem1')).color, 'rgb(0, 128, 0)');
+      assert_equals(getComputedStyle(document.querySelector('#elem2')).color, 'rgb(0, 128, 0)');
+    });
+  </script>
+</html>

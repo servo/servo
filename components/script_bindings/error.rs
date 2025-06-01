@@ -44,7 +44,7 @@ pub enum Error {
     /// InvalidNodeTypeError DOMException
     InvalidNodeType,
     /// DataCloneError DOMException
-    DataClone,
+    DataClone(Option<String>),
     /// NoModificationAllowedError DOMException
     NoModificationAllowed,
     /// QuotaExceededError DOMException
@@ -59,6 +59,8 @@ pub enum Error {
     Data,
     /// OperationError DOMException
     Operation,
+    /// NotAllowedError DOMException
+    NotAllowed,
 
     /// TypeError JavaScript Error
     Type(String),

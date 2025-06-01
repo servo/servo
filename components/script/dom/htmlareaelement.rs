@@ -46,6 +46,8 @@ pub enum Area {
         bottom_right: (f32, f32),
     },
     Polygon {
+        /// Stored as a flat array of coordinates
+        /// e.g. [x1, y1, x2, y2, x3, y3] for a triangle
         points: Vec<f32>,
     },
 }
@@ -203,8 +205,28 @@ impl Area {
                     p.y >= top_left.1
             },
 
-            //TODO polygon hit_test
-            _ => false,
+            Area::Polygon { ref points } => {
+                // Ray-casting algorithm to determine if point is inside polygon
+                // https://en.wikipedia.org/wiki/Point_in_polygon#Ray_casting_algorithm
+                let mut inside = false;
+
+                debug_assert!(points.len() % 2 == 0);
+                let vertices = points.len() / 2;
+
+                for i in 0..vertices {
+                    let next_i = if i + 1 == vertices { 0 } else { i + 1 };
+
+                    let xi = points[2 * i];
+                    let yi = points[2 * i + 1];
+                    let xj = points[2 * next_i];
+                    let yj = points[2 * next_i + 1];
+
+                    if (yi > p.y) != (yj > p.y) && p.x < (xj - xi) * (p.y - yi) / (yj - yi) + xi {
+                        inside = !inside;
+                    }
+                }
+                inside
+            },
         }
     }
 
@@ -362,7 +384,7 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-area-rellist>
-    fn RelList(&self) -> DomRoot<DOMTokenList> {
+    fn RelList(&self, can_gc: CanGc) -> DomRoot<DOMTokenList> {
         self.rel_list.or_init(|| {
             DOMTokenList::new(
                 self.upcast(),
@@ -372,7 +394,7 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
                     Atom::from("noreferrer"),
                     Atom::from("opener"),
                 ]),
-                CanGc::note(),
+                can_gc,
             )
         })
     }

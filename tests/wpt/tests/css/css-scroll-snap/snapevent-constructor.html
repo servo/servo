@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel=help href="https://drafts.csswg.org/css-scroll-snap-2/#snapevent-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <script>
+    test(function() {
+      assert_throws_js(TypeError, function() {
+        new SnapEvent();
+      }, 'First argument (type) is required, so was expecting a TypeError.');
+    }, 'Missing type argument');
+
+    test(function() {
+      let event = new SnapEvent("");
+      assert_true(event instanceof window.SnapEvent);
+    }, "the event is an instance of SnapEvent");
+
+    test(function() {
+      let event = new SnapEvent("customsnapevent");
+      assert_equals(event.type, "customsnapevent",
+        "event constructor type is honored");
+      assert_equals(event.snapTargetBlock, null, "null snapTrgetBlock");
+      assert_equals(event.snapTargetInline, null, "null snapTargetInline");
+    }, "default init dict");
+
+    test(function() {
+      const div_element = document.createElement("div");
+      let event = new SnapEvent("scrollsnapchange", {
+        snapTargetBlock: document,
+        snapTargetInline: div_element
+      });
+      assert_equals(event.type, "scrollsnapchange");
+      assert_equals(event.snapTargetBlock, document);
+      assert_equals(event.snapTargetInline, div_element);
+    }, "event constructor type is honored");
+  </script>
+</body>
+</html>

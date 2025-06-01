@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-use std::cell::{Ref, RefCell, RefMut};
+use std::cell::{Cell, Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -11,18 +11,16 @@ use keyboard_types::{CompositionEvent, CompositionState};
 use log::{debug, error, info, warn};
 use raw_window_handle::{RawWindowHandle, WindowHandle};
 use servo::base::id::WebViewId;
-use servo::compositing::windowing::{AnimationState, EmbedderMethods, WindowMethods};
 use servo::euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::{
-    AllowOrDenyRequest, ContextMenuResult, EmbedderProxy, EventLoopWaker, ImeEvent, InputEvent,
-    InputMethodType, Key, KeyState, KeyboardEvent, LoadStatus, MediaSessionActionType,
-    MediaSessionEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
-    NavigationRequest, PermissionRequest, RenderingContext, Servo, ServoDelegate, ServoError,
-    SimpleDialog, TouchEvent, TouchEventType, TouchId, WebView, WebViewDelegate,
-    WindowRenderingContext,
+    AllowOrDenyRequest, ContextMenuResult, ImeEvent, InputEvent, InputMethodType, Key, KeyState,
+    KeyboardEvent, LoadStatus, MediaSessionActionType, MediaSessionEvent, MouseButton,
+    MouseButtonAction, MouseButtonEvent, MouseMoveEvent, NavigationRequest, PermissionRequest,
+    RenderingContext, ScreenGeometry, Servo, ServoDelegate, ServoError, SimpleDialog, TouchEvent,
+    TouchEventType, TouchId, WebView, WebViewBuilder, WebViewDelegate, WindowRenderingContext,
 };
 use url::Url;
 
@@ -40,24 +38,29 @@ impl Coordinates {
             viewport: Rect::new(Point2D::new(x, y), Size2D::new(width, height)),
         }
     }
+
+    pub fn origin(&self) -> Point2D<i32, DevicePixel> {
+        self.viewport.origin
+    }
+
+    pub fn size(&self) -> Size2D<i32, DevicePixel> {
+        self.viewport.size
+    }
 }
 
 pub(super) struct ServoWindowCallbacks {
     host_callbacks: Box<dyn HostTrait>,
     coordinates: RefCell<Coordinates>,
-    hidpi_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
 }
 
 impl ServoWindowCallbacks {
     pub(super) fn new(
         host_callbacks: Box<dyn HostTrait>,
         coordinates: RefCell<Coordinates>,
-        hidpi_factor: f32,
     ) -> Self {
         Self {
             host_callbacks,
             coordinates,
-            hidpi_factor: Scale::new(hidpi_factor),
         }
     }
 }
@@ -86,9 +89,19 @@ struct RunningAppStateInner {
     focused_webview_id: Option<WebViewId>,
 
     context_menu_sender: Option<IpcSender<ContextMenuResult>>,
+
+    /// Whether or not the animation state has changed. This is used to trigger
+    /// host callbacks indicating that animation state has changed.
+    animating_state_changed: Rc<Cell<bool>>,
+
+    /// The HiDPI scaling factor to use for the display of [`WebView`]s.
+    hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
 }
 
-struct ServoShellServoDelegate;
+struct ServoShellServoDelegate {
+    animating_state_changed: Rc<Cell<bool>>,
+}
+
 impl ServoDelegate for ServoShellServoDelegate {
     fn notify_devtools_server_started(&self, _servo: &Servo, port: u16, _token: String) {
         info!("Devtools Server running on port {port}");
@@ -101,9 +114,25 @@ impl ServoDelegate for ServoShellServoDelegate {
     fn notify_error(&self, _servo: &Servo, error: ServoError) {
         error!("Saw Servo error: {error:?}!");
     }
+
+    fn notify_animating_changed(&self, _animating: bool) {
+        self.animating_state_changed.set(true);
+    }
 }
 
 impl WebViewDelegate for RunningAppState {
+    fn screen_geometry(&self, _webview: WebView) -> Option<ScreenGeometry> {
+        let coord = self.callbacks.coordinates.borrow();
+        let offset = coord.origin();
+        let available_size = coord.size();
+        let screen_size = coord.size();
+        Some(ScreenGeometry {
+            size: screen_size,
+            available_size,
+            offset,
+        })
+    }
+
     fn notify_page_title_changed(&self, _webview: servo::WebView, title: Option<String>) {
         self.callbacks.host_callbacks.on_title_changed(title);
     }
@@ -123,6 +152,24 @@ impl WebViewDelegate for RunningAppState {
         self.callbacks
             .host_callbacks
             .notify_load_status_changed(load_status);
+
+        #[cfg(feature = "tracing")]
+        if load_status == LoadStatus::Complete {
+            #[cfg(feature = "tracing-hitrace")]
+            let (snd, recv) = ipc_channel::ipc::channel().expect("Could not create channel");
+            self.servo.create_memory_report(snd);
+            std::thread::spawn(move || {
+                let result = recv.recv().expect("Could not get memory report");
+                let reports = result
+                    .results
+                    .first()
+                    .expect("We should have some memory report");
+                for report in &reports.reports {
+                    let path = String::from("servo_memory_profiling:") + &report.path.join("/");
+                    hitrace::trace_metric_str(&path, report.size as i64);
+                }
+            });
+        }
     }
 
     fn notify_closed(&self, webview: WebView) {
@@ -190,10 +237,13 @@ impl WebViewDelegate for RunningAppState {
         }
     }
 
-    fn request_open_auxiliary_webview(&self, _parent_webview: WebView) -> Option<WebView> {
-        let new_webview = self.servo.new_auxiliary_webview();
-        self.add(new_webview.clone());
-        Some(new_webview)
+    fn request_open_auxiliary_webview(&self, parent_webview: WebView) -> Option<WebView> {
+        let webview = WebViewBuilder::new_auxiliary(&self.servo)
+            .delegate(parent_webview.delegate())
+            .hidpi_scale_factor(self.inner().hidpi_scale_factor)
+            .build();
+        self.add(webview.clone());
+        Some(webview)
     }
 
     fn request_permission(&self, webview: WebView, request: PermissionRequest) {
@@ -252,6 +302,7 @@ impl WebViewDelegate for RunningAppState {
 impl RunningAppState {
     pub(super) fn new(
         initial_url: Option<String>,
+        hidpi_scale_factor: f32,
         rendering_context: Rc<WindowRenderingContext>,
         servo: Servo,
         callbacks: Rc<ServoWindowCallbacks>,
@@ -263,7 +314,10 @@ impl RunningAppState {
             .or_else(|| Url::parse("about:blank").ok())
             .unwrap();
 
-        servo.set_delegate(Rc::new(ServoShellServoDelegate));
+        let animating_state_changed = Rc::new(Cell::new(false));
+        servo.set_delegate(Rc::new(ServoShellServoDelegate {
+            animating_state_changed: animating_state_changed.clone(),
+        }));
 
         let app_state = Rc::new(Self {
             rendering_context,
@@ -276,6 +330,8 @@ impl RunningAppState {
                 webviews: Default::default(),
                 creation_order: vec![],
                 focused_webview_id: None,
+                animating_state_changed,
+                hidpi_scale_factor: Scale::new(hidpi_scale_factor),
             }),
         });
 
@@ -284,8 +340,12 @@ impl RunningAppState {
     }
 
     pub(crate) fn new_toplevel_webview(self: &Rc<Self>, url: Url) {
-        let webview = self.servo.new_webview(url);
-        webview.set_delegate(self.clone());
+        let webview = WebViewBuilder::new(&self.servo)
+            .url(url)
+            .hidpi_scale_factor(self.inner().hidpi_scale_factor)
+            .delegate(self.clone())
+            .build();
+
         webview.focus();
         self.add(webview.clone());
     }
@@ -344,6 +404,12 @@ impl RunningAppState {
         let should_continue = self.servo.spin_event_loop();
         if !should_continue {
             self.callbacks.host_callbacks.on_shutdown_complete();
+        }
+        if self.inner().animating_state_changed.get() {
+            self.inner().animating_state_changed.set(false);
+            self.callbacks
+                .host_callbacks
+                .on_animating_changed(self.servo.animating());
         }
     }
 
@@ -489,31 +555,31 @@ impl RunningAppState {
     /// Register a mouse movement.
     pub fn mouse_move(&self, x: f32, y: f32) {
         self.active_webview()
-            .notify_input_event(InputEvent::MouseMove(MouseMoveEvent {
-                point: Point2D::new(x, y),
-            }));
+            .notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(Point2D::new(
+                x, y,
+            ))));
         self.perform_updates();
     }
 
     /// Register a mouse button press.
     pub fn mouse_down(&self, x: f32, y: f32, button: MouseButton) {
         self.active_webview()
-            .notify_input_event(InputEvent::MouseButton(MouseButtonEvent {
-                action: MouseButtonAction::Down,
+            .notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
+                MouseButtonAction::Down,
                 button,
-                point: Point2D::new(x, y),
-            }));
+                Point2D::new(x, y),
+            )));
         self.perform_updates();
     }
 
     /// Register a mouse button release.
     pub fn mouse_up(&self, x: f32, y: f32, button: MouseButton) {
         self.active_webview()
-            .notify_input_event(InputEvent::MouseButton(MouseButtonEvent {
-                action: MouseButtonAction::Up,
+            .notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
+                MouseButtonAction::Up,
                 button,
-                point: Point2D::new(x, y),
-            }));
+                Point2D::new(x, y),
+            )));
         self.perform_updates();
     }
 
@@ -541,11 +607,11 @@ impl RunningAppState {
     /// Perform a click.
     pub fn click(&self, x: f32, y: f32) {
         self.active_webview()
-            .notify_input_event(InputEvent::MouseButton(MouseButtonEvent {
-                action: MouseButtonAction::Click,
-                button: MouseButton::Left,
-                point: Point2D::new(x, y),
-            }));
+            .notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
+                MouseButtonAction::Click,
+                MouseButton::Left,
+                Point2D::new(x, y),
+            )));
         self.perform_updates();
     }
 
@@ -572,11 +638,27 @@ impl RunningAppState {
     }
 
     pub fn ime_insert_text(&self, text: String) {
-        self.active_webview()
-            .notify_input_event(InputEvent::Ime(ImeEvent::Composition(CompositionEvent {
+        // In OHOS, we get empty text after the intended text.
+        if text.is_empty() {
+            return;
+        }
+        let active_webview = self.active_webview();
+        active_webview.notify_input_event(InputEvent::Keyboard(KeyboardEvent {
+            state: KeyState::Down,
+            key: Key::Process,
+            ..KeyboardEvent::default()
+        }));
+        active_webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
+            CompositionEvent {
                 state: CompositionState::End,
                 data: text,
-            })));
+            },
+        )));
+        active_webview.notify_input_event(InputEvent::Keyboard(KeyboardEvent {
+            state: KeyState::Up,
+            key: Key::Process,
+            ..KeyboardEvent::default()
+        }));
         self.perform_updates();
     }
 
@@ -642,52 +724,26 @@ impl RunningAppState {
     }
 }
 
-pub(super) struct ServoEmbedderCallbacks {
-    waker: Box<dyn EventLoopWaker>,
-    #[cfg(feature = "webxr")]
-    xr_discovery: Option<servo::webxr::Discovery>,
+#[cfg(feature = "webxr")]
+pub(crate) struct XrDiscoveryWebXrRegistry {
+    xr_discovery: RefCell<Option<servo::webxr::Discovery>>,
 }
 
-impl ServoEmbedderCallbacks {
-    pub(super) fn new(
-        waker: Box<dyn EventLoopWaker>,
-        #[cfg(feature = "webxr")] xr_discovery: Option<servo::webxr::Discovery>,
-    ) -> Self {
+#[cfg(feature = "webxr")]
+impl XrDiscoveryWebXrRegistry {
+    pub(crate) fn new(xr_discovery: Option<servo::webxr::Discovery>) -> Self {
         Self {
-            waker,
-            #[cfg(feature = "webxr")]
-            xr_discovery,
+            xr_discovery: RefCell::new(xr_discovery),
         }
     }
 }
 
-impl EmbedderMethods for ServoEmbedderCallbacks {
-    fn create_event_loop_waker(&mut self) -> Box<dyn EventLoopWaker> {
-        debug!("EmbedderMethods::create_event_loop_waker");
-        self.waker.clone()
-    }
-
-    #[cfg(feature = "webxr")]
-    fn register_webxr(
-        &mut self,
-        registry: &mut servo::webxr::MainThreadRegistry,
-        _embedder_proxy: EmbedderProxy,
-    ) {
-        debug!("EmbedderMethods::register_xr");
+#[cfg(feature = "webxr")]
+impl servo::webxr::WebXrRegistry for XrDiscoveryWebXrRegistry {
+    fn register(&self, registry: &mut servo::webxr::MainThreadRegistry) {
+        debug!("XrDiscoveryWebXrRegistry::register");
         if let Some(discovery) = self.xr_discovery.take() {
             registry.register(discovery);
         }
-    }
-}
-
-impl WindowMethods for ServoWindowCallbacks {
-    fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-        self.hidpi_factor
-    }
-
-    fn set_animation_state(&self, state: AnimationState) {
-        debug!("WindowMethods::set_animation_state: {:?}", state);
-        self.host_callbacks
-            .on_animating_changed(state == AnimationState::Animating);
     }
 }

@@ -14,7 +14,7 @@ use style::attr::AttrValue;
 use stylo_dom::ElementState;
 use embedder_traits::{SelectElementOptionOrOptgroup, SelectElementOption};
 use euclid::{Size2D, Point2D, Rect};
-use embedder_traits::EmbedderMsg;
+use embedder_traits::{FormControl as EmbedderFormControl, EmbedderMsg};
 
 use crate::dom::bindings::codegen::GenericBindings::HTMLOptGroupElementBinding::HTMLOptGroupElement_Binding::HTMLOptGroupElementMethods;
 use crate::dom::activation::Activatable;
@@ -153,7 +153,7 @@ impl HTMLSelectElement {
         n
     }
 
-    // https://html.spec.whatwg.org/multipage/#concept-select-option-list
+    /// <https://html.spec.whatwg.org/multipage/#concept-select-option-list>
     pub(crate) fn list_of_options(
         &self,
     ) -> impl Iterator<Item = DomRoot<HTMLOptionElement>> + use<'_> {
@@ -286,7 +286,7 @@ impl HTMLSelectElement {
         );
         select_box
             .upcast::<Node>()
-            .AppendChild(text_container.upcast::<Node>())
+            .AppendChild(text_container.upcast::<Node>(), can_gc)
             .unwrap();
 
         let text = Text::new(DOMString::new(), &document, can_gc);
@@ -295,7 +295,7 @@ impl HTMLSelectElement {
         });
         text_container
             .upcast::<Node>()
-            .AppendChild(text.upcast::<Node>())
+            .AppendChild(text.upcast::<Node>(), can_gc)
             .unwrap();
 
         let chevron_container =
@@ -310,11 +310,11 @@ impl HTMLSelectElement {
             .SetTextContent(Some("▾".into()), can_gc);
         select_box
             .upcast::<Node>()
-            .AppendChild(chevron_container.upcast::<Node>())
+            .AppendChild(chevron_container.upcast::<Node>(), can_gc)
             .unwrap();
 
         root.upcast::<Node>()
-            .AppendChild(select_box.upcast::<Node>())
+            .AppendChild(select_box.upcast::<Node>(), can_gc)
             .unwrap();
     }
 
@@ -353,8 +353,10 @@ impl HTMLSelectElement {
             .fire_bubbling_event(atom!("change"), can_gc);
     }
 
-    fn selected_option(&self) -> Option<DomRoot<HTMLOptionElement>> {
-        self.list_of_options().find(|opt_elem| opt_elem.Selected())
+    pub(crate) fn selected_option(&self) -> Option<DomRoot<HTMLOptionElement>> {
+        self.list_of_options()
+            .find(|opt_elem| opt_elem.Selected())
+            .or_else(|| self.list_of_options().next())
     }
 
     pub(crate) fn show_menu(&self, can_gc: CanGc) -> Option<usize> {
@@ -404,12 +406,10 @@ impl HTMLSelectElement {
         let selected_index = self.list_of_options().position(|option| option.Selected());
 
         let document = self.owner_document();
-        document.send_to_embedder(EmbedderMsg::ShowSelectElementMenu(
+        document.send_to_embedder(EmbedderMsg::ShowFormControl(
             document.webview_id(),
-            options,
-            selected_index,
             DeviceIntRect::from_untyped(&rect.to_box2d()),
-            ipc_sender,
+            EmbedderFormControl::SelectElement(options, selected_index, ipc_sender),
         ));
 
         let Ok(response) = ipc_receiver.recv() else {
@@ -534,12 +534,13 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-remove>
     fn Remove(&self) {
-        self.upcast::<Element>().Remove()
+        self.upcast::<Element>().Remove(CanGc::note())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-value>
     fn Value(&self) -> DOMString {
-        self.selected_option()
+        self.list_of_options()
+            .find(|opt_elem| opt_elem.Selected())
             .map(|opt_elem| opt_elem.Value())
             .unwrap_or_default()
     }

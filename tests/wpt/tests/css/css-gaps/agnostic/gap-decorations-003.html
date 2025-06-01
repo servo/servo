@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+    <title>column-rule-color invalidates and paints correctly on multi-col</title>
+    <link rel="match" href="gap-decorations-003-ref.html">
+    <link rel="help" href="https://drafts.csswg.org/css-color-4/#resolving-other-colors">
+    <link rel="author" href="mailto:javiercon@microsoft.com">
+</head>
+<style>
+    body {
+        margin: 0px;
+    }
+    #current {
+        color: firebrick;
+        columns: 6;
+        column-gap: 2px;
+        column-rule-style: solid;
+        column-rule-width: 2px;
+        column-fill: auto;
+        height: 20px;
+        column-rule-color: gold;
+        width: 72px;
+        height: 20px;
+    }
+    .items {
+        background-color: lightgreen;
+        height: 20px
+    }
+</style>
+<body>
+    <div id="current">
+        <div class="items"></div>
+        <div class="items"></div>
+        <div class="items"></div>
+        <div class="items"></div>
+        <div class="items"></div>
+        <div class="items"></div>
+    </div>
+</body>
+<script>
+    // Use double requestAnimationFrame to remove need of setTimeout.
+    // Wait for the first frame to ensure that the style is computed.
+    requestAnimationFrame(() => {
+        // Wait for the second frame to ensure that the style is painted.
+        requestAnimationFrame(() => {
+            document.getElementById("current").style.columnRuleColor = "hotpink";
+            document.documentElement.classList.remove("reftest-wait");
+        });
+    });
+</script>
+</html>

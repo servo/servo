@@ -20,13 +20,13 @@ use futures::{TryFutureExt, TryStreamExt, future};
 use headers::authorization::Basic;
 use headers::{
     AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowMethods,
-    AccessControlAllowOrigin, AccessControlMaxAge, AccessControlRequestHeaders,
-    AccessControlRequestMethod, Authorization, CacheControl, ContentLength, HeaderMapExt,
-    IfModifiedSince, LastModified, Pragma, Referer, UserAgent,
+    AccessControlAllowOrigin, AccessControlMaxAge, AccessControlRequestMethod, Authorization,
+    CacheControl, ContentLength, HeaderMapExt, IfModifiedSince, LastModified, Pragma, Referer,
+    UserAgent,
 };
 use http::header::{
-    self, ACCEPT, AUTHORIZATION, CONTENT_ENCODING, CONTENT_LANGUAGE, CONTENT_LOCATION,
-    CONTENT_TYPE, HeaderValue, RANGE,
+    self, ACCEPT, ACCESS_CONTROL_REQUEST_HEADERS, AUTHORIZATION, CONTENT_ENCODING,
+    CONTENT_LANGUAGE, CONTENT_LOCATION, CONTENT_TYPE, HeaderValue, RANGE,
 };
 use http::{HeaderMap, Method, Request as HyperRequest, StatusCode};
 use http_body_util::combinators::BoxBody;
@@ -37,9 +37,10 @@ use hyper::ext::ReasonPhrase;
 use hyper::header::{HeaderName, TRANSFER_ENCODING};
 use hyper_serde::Serde;
 use hyper_util::client::legacy::Client;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
 use log::{debug, error, info, log_enabled, warn};
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::http_status::HttpStatus;
 use net_traits::pub_domains::reg_suffix;
 use net_traits::request::Origin::Origin as SpecificOrigin;
@@ -55,6 +56,8 @@ use net_traits::{
     CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, FetchMetadata, NetworkError, RedirectEndValue,
     RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
 };
+use profile_traits::mem::{Report, ReportKind};
+use profile_traits::path;
 use servo_arc::Arc;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use tokio::sync::mpsc::{
@@ -105,6 +108,21 @@ pub struct HttpState {
 }
 
 impl HttpState {
+    pub(crate) fn memory_reports(&self, suffix: &str, ops: &mut MallocSizeOfOps) -> Vec<Report> {
+        vec![
+            Report {
+                path: path!["memory-cache", suffix],
+                kind: ReportKind::ExplicitJemallocHeapSize,
+                size: self.http_cache.read().unwrap().size_of(ops),
+            },
+            Report {
+                path: path!["hsts-list", suffix],
+                kind: ReportKind::ExplicitJemallocHeapSize,
+                size: self.hsts_list.read().unwrap().size_of(ops),
+            },
+        ]
+    }
+
     fn request_authentication(
         &self,
         request: &Request,
@@ -444,7 +462,7 @@ fn auth_from_cache(
 /// used to fill the body with bytes coming-in over IPC.
 enum BodyChunk {
     /// A chunk of bytes.
-    Chunk(Vec<u8>),
+    Chunk(IpcSharedMemory),
     /// Body is done.
     Done,
 }
@@ -471,12 +489,14 @@ enum BodySink {
 }
 
 impl BodySink {
-    fn transmit_bytes(&self, bytes: Vec<u8>) {
+    fn transmit_bytes(&self, bytes: IpcSharedMemory) {
         match self {
             BodySink::Chunked(sender) => {
                 let sender = sender.clone();
-                HANDLE.lock().unwrap().as_mut().unwrap().spawn(async move {
-                    let _ = sender.send(Ok(Frame::data(bytes.into()))).await;
+                HANDLE.spawn(async move {
+                    let _ = sender
+                        .send(Ok(Frame::data(Bytes::copy_from_slice(&bytes))))
+                        .await;
                 });
             },
             BodySink::Buffered(sender) => {
@@ -559,7 +579,7 @@ async fn obtain_response(
                 body_port,
                 Box::new(move |message| {
                     info!("Received message");
-                    let bytes: Vec<u8> = match message.unwrap() {
+                    let bytes = match message.unwrap() {
                         BodyChunkResponse::Chunk(bytes) => bytes,
                         BodyChunkResponse::Done => {
                             // Step 3, abort these parallel steps.
@@ -604,8 +624,8 @@ async fn obtain_response(
                     let mut body = vec![];
                     loop {
                         match receiver.recv().await {
-                            Some(BodyChunk::Chunk(mut bytes)) => {
-                                body.append(&mut bytes);
+                            Some(BodyChunk::Chunk(bytes)) => {
+                                body.extend_from_slice(&bytes);
                             },
                             Some(BodyChunk::Done) => break,
                             None => warn!("Failed to read all chunks from request body."),
@@ -1998,7 +2018,7 @@ async fn http_network_fetch(
     let url1 = request.url();
     let url2 = url1.clone();
 
-    HANDLE.lock().unwrap().as_ref().unwrap().spawn(
+    HANDLE.spawn(
         res.into_body()
             .map_err(|e| {
                 warn!("Error streaming response body: {:?}", e);
@@ -2139,11 +2159,15 @@ async fn cors_preflight_fetch(
     // Step 4
     let headers = get_cors_unsafe_header_names(&request.headers);
 
-    // Step 5
+    // Step 5 If headers is not empty, then:
     if !headers.is_empty() {
-        preflight
-            .headers
-            .typed_insert(AccessControlRequestHeaders::from_iter(headers));
+        // 5.1 Let value be the items in headers separated from each other by `,`
+        // TODO(36451): replace this with typed_insert when headers fixes headers#207
+        preflight.headers.insert(
+            ACCESS_CONTROL_REQUEST_HEADERS,
+            HeaderValue::from_bytes(itertools::join(headers.iter(), ",").as_bytes())
+                .unwrap_or(HeaderValue::from_static("")),
+        );
     }
 
     // Step 6

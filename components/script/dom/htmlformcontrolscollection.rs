@@ -64,7 +64,7 @@ impl HTMLFormControlsCollectionMethods<crate::DomTypeHolder> for HTMLFormControl
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-htmlformcontrolscollection-nameditem
-    fn NamedItem(&self, name: DOMString) -> Option<RadioNodeListOrElement> {
+    fn NamedItem(&self, name: DOMString, can_gc: CanGc) -> Option<RadioNodeListOrElement> {
         // Step 1
         if name.is_empty() {
             return None;
@@ -96,10 +96,7 @@ impl HTMLFormControlsCollectionMethods<crate::DomTypeHolder> for HTMLFormControl
                 // and the collection filter excludes image inputs.
                 Some(RadioNodeListOrElement::RadioNodeList(
                     RadioNodeList::new_controls_except_image_inputs(
-                        window,
-                        &self.form,
-                        &name,
-                        CanGc::note(),
+                        window, &self.form, &name, can_gc,
                     ),
                 ))
             }
@@ -110,8 +107,8 @@ impl HTMLFormControlsCollectionMethods<crate::DomTypeHolder> for HTMLFormControl
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-htmlformcontrolscollection-nameditem
-    fn NamedGetter(&self, name: DOMString) -> Option<RadioNodeListOrElement> {
-        self.NamedItem(name)
+    fn NamedGetter(&self, name: DOMString, can_gc: CanGc) -> Option<RadioNodeListOrElement> {
+        self.NamedItem(name, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#the-htmlformcontrolscollection-interface:supported-property-names

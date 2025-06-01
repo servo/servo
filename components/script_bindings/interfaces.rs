@@ -3,10 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::RefCell;
-use std::rc::Rc;
 use std::thread::LocalKey;
 
-use js::conversions::ToJSValConvertible;
 use js::glue::JSPrincipalsCallbacks;
 use js::jsapi::{CallArgs, HandleObject as RawHandleObject, JSContext as RawJSContext, JSObject};
 use js::rust::{HandleObject, MutableHandleObject};
@@ -22,6 +20,17 @@ use crate::root::DomRoot;
 use crate::script_runtime::{CanGc, JSContext};
 use crate::settings_stack::StackEntry;
 use crate::utils::ProtoOrIfaceArray;
+
+/// Operations that can be invoked for a WebIDL interface against
+/// a global object.
+///
+/// <https://github.com/mozilla/gecko-dev/blob/3fd619f47/dom/bindings/WebIDLGlobalNameHash.h#L24>
+pub struct Interface {
+    /// Define the JS object for this interface on the given global.
+    pub define: fn(JSContext, HandleObject),
+    /// Returns true if this interface's conditions are met for the given global.
+    pub enabled: fn(JSContext, HandleObject) -> bool,
+}
 
 /// Operations that must be invoked from the generated bindings.
 pub trait DomHelpers<D: DomTypes> {
@@ -42,7 +51,7 @@ pub trait DomHelpers<D: DomTypes> {
 
     fn is_platform_object_same_origin(cx: JSContext, obj: RawHandleObject) -> bool;
 
-    fn interface_map() -> &'static phf::Map<&'static [u8], for<'a> fn(JSContext, HandleObject)>;
+    fn interface_map() -> &'static phf::Map<&'static [u8], Interface>;
 
     fn push_new_element_queue();
     fn pop_current_element_queue(can_gc: CanGc);
@@ -67,14 +76,6 @@ pub trait GlobalScopeHelpers<D: DomTypes> {
     unsafe fn from_object(obj: *mut JSObject) -> DomRoot<D::GlobalScope>;
     fn from_reflector(reflector: &impl DomObject, realm: InRealm) -> DomRoot<D::GlobalScope>;
 
-    /// # Safety
-    /// `obj` must point to a valid, non-null JSObject.
-    /// `cx` must point to a valid, non-null RawJSContext.
-    unsafe fn from_object_maybe_wrapped(
-        obj: *mut JSObject,
-        cx: *mut RawJSContext,
-    ) -> DomRoot<D::GlobalScope>;
-
     fn origin(&self) -> &MutableOrigin;
 
     fn incumbent() -> Option<DomRoot<D::GlobalScope>>;
@@ -88,15 +89,6 @@ pub trait GlobalScopeHelpers<D: DomTypes> {
 
 pub trait DocumentHelpers {
     fn ensure_safe_to_run_script_or_layout(&self);
-}
-
-/// Operations that must be invoked from the generated bindings.
-pub trait PromiseHelpers<D: crate::DomTypes> {
-    fn new_resolved(
-        global: &D::GlobalScope,
-        cx: JSContext,
-        value: impl ToJSValConvertible,
-    ) -> Rc<D::Promise>;
 }
 
 pub trait ServoInternalsHelpers {

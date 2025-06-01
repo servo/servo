@@ -6,7 +6,7 @@ use std::cell::Cell;
 use std::convert::TryInto;
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix, QualName, local_name, namespace_url, ns};
+use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::rust::HandleObject;
 use style::str::{split_html_space_chars, str_join};
 use stylo_dom::ElementState;
@@ -29,7 +29,7 @@ use crate::dom::htmlformelement::HTMLFormElement;
 use crate::dom::htmloptgroupelement::HTMLOptGroupElement;
 use crate::dom::htmlscriptelement::HTMLScriptElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
-use crate::dom::node::{BindContext, Node, ShadowIncluding, UnbindContext};
+use crate::dom::node::{BindContext, ChildrenMutation, Node, ShadowIncluding, UnbindContext};
 use crate::dom::text::Text;
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
@@ -152,25 +152,6 @@ impl HTMLOptionElement {
     }
 }
 
-// FIXME(ajeffrey): Provide a way of buffering DOMStrings other than using Strings
-fn collect_text(element: &Element, value: &mut String) {
-    let svg_script =
-        *element.namespace() == ns!(svg) && element.local_name() == &local_name!("script");
-    let html_script = element.is::<HTMLScriptElement>();
-    if svg_script || html_script {
-        return;
-    }
-
-    for child in element.upcast::<Node>().children() {
-        if child.is::<Text>() {
-            let characterdata = child.downcast::<CharacterData>().unwrap();
-            value.push_str(&characterdata.Data());
-        } else if let Some(element_child) = child.downcast() {
-            collect_text(element_child, value);
-        }
-    }
-}
-
 impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-option>
     fn Option(
@@ -216,8 +197,28 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-option-text>
     fn Text(&self) -> DOMString {
-        let mut content = String::new();
-        collect_text(self.upcast(), &mut content);
+        let mut content = DOMString::new();
+
+        let mut iterator = self.upcast::<Node>().traverse_preorder(ShadowIncluding::No);
+        while let Some(node) = iterator.peek() {
+            if let Some(element) = node.downcast::<Element>() {
+                let html_script = element.is::<HTMLScriptElement>();
+                let svg_script = *element.namespace() == ns!(svg) &&
+                    element.local_name() == &local_name!("script");
+                if html_script || svg_script {
+                    iterator.next_skipping_children();
+                    continue;
+                }
+            }
+
+            if node.is::<Text>() {
+                let characterdata = node.downcast::<CharacterData>().unwrap();
+                content.push_str(&characterdata.Data());
+            }
+
+            iterator.next();
+        }
+
         DOMString::from(str_join(split_html_space_chars(&content), " "))
     }
 
@@ -378,6 +379,28 @@ impl VirtualMethods for HTMLOptionElement {
             el.check_parent_disabled_state_for_option();
         } else {
             el.check_disabled_attribute();
+        }
+    }
+
+    fn children_changed(&self, mutation: &ChildrenMutation) {
+        if let Some(super_type) = self.super_type() {
+            super_type.children_changed(mutation);
+        }
+
+        // Changing the descendants of a selected option can change it's displayed label
+        // if it does not have a label attribute
+        if !self
+            .upcast::<Element>()
+            .has_attribute(&local_name!("label"))
+        {
+            if let Some(owner_select) = self.owner_select_element() {
+                if owner_select
+                    .selected_option()
+                    .is_some_and(|selected_option| self == &*selected_option)
+                {
+                    owner_select.update_shadow_tree(CanGc::note());
+                }
+            }
         }
     }
 }

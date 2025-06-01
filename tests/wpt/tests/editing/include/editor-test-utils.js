@@ -81,6 +81,26 @@ class EditorTestUtils {
     return this.sendKey(kArrowRight, modifier);
   }
 
+  sendMoveWordLeftKey(modifier) {
+    const kArrowLeft = "\uE012";
+    return this.sendKey(
+      kArrowLeft,
+      this.window.navigator.platform.includes("Mac")
+        ? this.kAlt
+        : this.kControl
+    );
+  }
+
+  sendMoveWordRightKey(modifier) {
+    const kArrowRight = "\uE014";
+    return this.sendKey(
+      kArrowRight,
+      this.window.navigator.platform.includes("Mac")
+        ? this.kAlt
+        : this.kControl
+    );
+  }
+
   sendHomeKey(modifier) {
     const kHome = "\uE011";
     return this.sendKey(kHome, modifier);
@@ -548,5 +568,8 @@ class EditorTestUtils {
         }) - (${EditorTestUtils.getNodeDescription(range.endContainer)}, ${range.endOffset})`;
   }
 
+  static waitForRender() {
+    return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  }
 
 }

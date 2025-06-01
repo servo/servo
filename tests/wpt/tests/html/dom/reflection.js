@@ -186,7 +186,8 @@ var maxUnsigned = 4294967295;
  *
  *   "jsType": What typeof idlObj[idlName] is supposed to be.
  *   "defaultVal": The default value to be returned if the attribute is not
- *       present and no default is specifically set for this attribute.
+ *       present and no default is specifically set for this attribute. If
+ *       it is an array then any value in the array is acceptable.
  *   "domTests": What values to test with setAttribute().
  *   "domExpected": What values to expect with IDL get after setAttribute().
  *       Defaults to the same as domTests.
@@ -761,7 +762,12 @@ ReflectionTests.reflects = function(data, idlName, idlObj, domName, domObj) {
     }
     if (!data.customGetter && (defaultVal !== null || data.isNullable)) {
         ReflectionHarness.test(function() {
+          // Tests can pass an array of acceptable values
+          if (Array.isArray(defaultVal)) {
+            ReflectionHarness.assertInArray(idlObj[idlName], defaultVal);
+          } else {
             ReflectionHarness.assertEquals(idlObj[idlName], defaultVal);
+          }
         }, "IDL get with DOM attribute unset");
     }
 
@@ -947,8 +953,14 @@ ReflectionTests.reflects = function(data, idlName, idlObj, domName, domObj) {
             domObj.setAttribute(domName, domTests[i]);
             ReflectionHarness.assertEquals(domObj.getAttribute(domName),
                 String(domTests[i]), "getAttribute()");
-            ReflectionHarness.assertEquals(idlObj[idlName], domExpected[i],
-                "IDL get");
+            // Tests can pass an array of acceptable values
+            if (Array.isArray(domExpected[i])) {
+              ReflectionHarness.assertInArray(idlObj[idlName], domExpected[i],
+                  "IDL get");
+            } else {
+              ReflectionHarness.assertEquals(idlObj[idlName], domExpected[i],
+                  "IDL get");
+            }
         }, "setAttribute() to " + ReflectionHarness.stringRep(domTests[i]));
     }
 
@@ -967,6 +979,7 @@ ReflectionTests.reflects = function(data, idlName, idlObj, domName, domObj) {
                                                "previous value", "getAttribute()");
                 ReflectionHarness.assertEquals(idlObj[idlName], previousIdl, "IDL get");
             } else {
+                var previousValue = domObj.getAttribute(domName);
                 idlObj[idlName] = idlTests[i];
                 if (data.type == "boolean") {
                     // Special case yay
@@ -976,11 +989,23 @@ ReflectionTests.reflects = function(data, idlName, idlObj, domName, domObj) {
                     var expected = idlDomExpected[i] + "";
                     if (data.isNullable && idlDomExpected[i] === null) {
                         expected = null;
+                    } else if (idlName == "nonce") {
+                        // nonce doesn't reflect the value, as per /content-security-policy/nonce-hiding/
+                        // tests that confirm that retrieving the nonce value post IDL change does not
+                        // reflect back to the attribute (for security reasons)
+                        expected = previousValue;
                     }
                     ReflectionHarness.assertEquals(domObj.getAttribute(domName), expected,
                                                    "getAttribute()");
                 }
-                if (idlIdlExpected[i] !== null || data.isNullable) {
+                // Ensure enumerated attributes never reflect in their non-canonical representations
+                if (data.type == "enum" && data.nonCanon[idlObj[idlName]]) {
+                  ReflectionHarness.assertEquals(idlObj[idlName], data.nonCanon[idlObj[idlName]], "IDL get canonical");
+                }
+                // Tests can pass an array of acceptable values
+                if (Array.isArray(idlIdlExpected[i])) {
+                    ReflectionHarness.assertInArray(idlObj[idlName], idlIdlExpected[i], "IDL get");
+                } else if (idlIdlExpected[i] !== null || data.isNullable) {
                     ReflectionHarness.assertEquals(idlObj[idlName], idlIdlExpected[i], "IDL get");
                 }
             }

@@ -3,7 +3,10 @@
 <meta name="assert" content="Body's background is fragmented correctly in vertical-rl writing mode.">
 <link rel="match" href="body-background-vrl-print-ref.html">
 <style>
-  html { writing-mode: vertical-rl; }
+  :root {
+    print-color-adjust: exact;
+    writing-mode: vertical-rl;
+  }
   body {
     margin: 0;
     background: linear-gradient(90deg, lightgray 0%, lightgray 50%, white 50%, white 100%)

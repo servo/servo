@@ -118,22 +118,22 @@ impl HTMLDetailsElement {
 
         let summary = HTMLSlotElement::new(local_name!("slot"), None, &document, None, can_gc);
         root.upcast::<Node>()
-            .AppendChild(summary.upcast::<Node>())
+            .AppendChild(summary.upcast::<Node>(), can_gc)
             .unwrap();
 
         let fallback_summary =
-            HTMLElement::new(local_name!("summary"), None, &document, None, CanGc::note());
+            HTMLElement::new(local_name!("summary"), None, &document, None, can_gc);
         fallback_summary
             .upcast::<Node>()
             .SetTextContent(Some(DEFAULT_SUMMARY.into()), can_gc);
         summary
             .upcast::<Node>()
-            .AppendChild(fallback_summary.upcast::<Node>())
+            .AppendChild(fallback_summary.upcast::<Node>(), can_gc)
             .unwrap();
 
         let descendants = HTMLSlotElement::new(local_name!("slot"), None, &document, None, can_gc);
         root.upcast::<Node>()
-            .AppendChild(descendants.upcast::<Node>())
+            .AppendChild(descendants.upcast::<Node>(), can_gc)
             .unwrap();
 
         let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {
@@ -178,8 +178,6 @@ impl HTMLDetailsElement {
             }
         }
         shadow_tree.descendants.Assign(slottable_children);
-
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
     fn update_shadow_tree_styles(&self, can_gc: CanGc) {
@@ -214,8 +212,6 @@ impl HTMLDetailsElement {
             .implicit_summary
             .upcast::<Element>()
             .set_string_attribute(&local_name!("style"), implicit_summary_style.into(), can_gc);
-
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 }
 
@@ -238,7 +234,7 @@ impl VirtualMethods for HTMLDetailsElement {
             .attribute_mutated(attr, mutation, can_gc);
 
         if attr.local_name() == &local_name!("open") {
-            self.update_shadow_tree_styles(CanGc::note());
+            self.update_shadow_tree_styles(can_gc);
 
             let counter = self.toggle_counter.get() + 1;
             self.toggle_counter.set(counter);

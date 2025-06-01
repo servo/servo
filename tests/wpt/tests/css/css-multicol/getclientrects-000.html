@@ -65,7 +65,10 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
-  test(()=> {
+  setup({ explicit_done: true });
+
+  document.fonts.ready.then(() => {
+    test(()=> {
       var span = document.querySelector("#horizontalTbLtr span");
       var rects = span.getClientRects();
       assert_equals(rects.length, 4);
@@ -77,9 +80,9 @@
       assert_equals(rects[2].top, 70);
       assert_equals(rects[3].left, 300);
       assert_equals(rects[3].top, 50);
-  }, "horizontal-tb ltr");
+    }, "horizontal-tb ltr");
 
-  test(()=> {
+    test(()=> {
       var span = document.querySelector("#verticalLrLtr span");
       var rects = span.getClientRects();
       assert_equals(rects.length, 4);
@@ -91,9 +94,9 @@
       assert_equals(rects[2].top, 150);
       assert_equals(rects[3].left, 100);
       assert_equals(rects[3].top, 250);
-  }, "vertical-lr ltr");
+    }, "vertical-lr ltr");
 
-  test(()=> {
+    test(()=> {
       var span = document.querySelector("#verticalRlLtr span");
       var rects = span.getClientRects();
       assert_equals(rects.length, 4);
@@ -105,8 +108,9 @@
       assert_equals(rects[2].top, 150);
       assert_equals(rects[3].left, 120);
       assert_equals(rects[3].top, 250);
-  }, "vertical-rl ltr");
-  test(()=> {
+    }, "vertical-rl ltr");
+
+    test(()=> {
       var span = document.querySelector("#horizontalTbRtl span");
       var rects = span.getClientRects();
       assert_equals(rects.length, 4);
@@ -118,8 +122,9 @@
       assert_equals(rects[2].top, 70);
       assert_equals(rects[3].left, 110);
       assert_equals(rects[3].top, 50);
-  }, "horizontal-tb rtl");
-  test(()=> {
+    }, "horizontal-tb rtl");
+
+    test(()=> {
       var span = document.querySelector("#verticalLrRtl span");
       var rects = span.getClientRects();
       assert_equals(rects.length, 4);
@@ -131,8 +136,9 @@
       assert_equals(rects[2].top, 160);
       assert_equals(rects[3].left, 100);
       assert_equals(rects[3].top, 60);
-  }, "vertical-lr rtl");
-  test(()=> {
+    }, "vertical-lr rtl");
+
+    test(()=> {
       var span = document.querySelector("#verticalRlRtl span");
       var rects = span.getClientRects();
       assert_equals(rects.length, 4);
@@ -144,5 +150,8 @@
       assert_equals(rects[2].top, 160);
       assert_equals(rects[3].left, 120);
       assert_equals(rects[3].top, 60);
-  }, "vertical-rl rtl");
+    }, "vertical-rl rtl");
+
+    done();
+  });
 </script>

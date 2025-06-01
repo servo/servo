@@ -5,6 +5,7 @@
 use std::io::{Read, Seek, Write};
 use std::sync::atomic::AtomicBool;
 
+use content_security_policy as csp;
 use cssparser::SourceLocation;
 use encoding_rs::UTF_8;
 use mime::{self, Mime};
@@ -15,6 +16,7 @@ use net_traits::{
 };
 use servo_arc::Arc;
 use servo_url::ServoUrl;
+use style::context::QuirksMode;
 use style::media_queries::MediaList;
 use style::parser::ParserContext;
 use style::shared_lock::{Locked, SharedRwLock};
@@ -161,10 +163,31 @@ impl FetchResponseListener for StylesheetContext {
                 Some(meta) => meta,
                 None => return,
             };
-            let is_css = metadata.content_type.is_some_and(|ct| {
+
+            let mut is_css = metadata.content_type.is_some_and(|ct| {
                 let mime: Mime = ct.into_inner().into();
                 mime.type_() == mime::TEXT && mime.subtype() == mime::CSS
-            });
+            }) || (
+                // Quirk: If the document has been set to quirks mode,
+                // has the same origin as the URL of the external resource,
+                // and the Content-Type metadata of the external resource
+                // is not a supported style sheet type, the user agent must
+                // instead assume it to be text/css.
+                // <https://html.spec.whatwg.org/multipage/#link-type-stylesheet>
+                document.quirks_mode() == QuirksMode::Quirks &&
+                    document.origin().immutable().clone() == metadata.final_url.origin()
+            );
+
+            // From <https://html.spec.whatwg.org/multipage/#link-type-stylesheet>:
+            // > Quirk: If the document has been set to quirks mode, has the same origin as
+            // > the URL of the external resource, and the Content-Type metadata of the
+            // > external resource is not a supported style sheet type, the user agent must
+            // > instead assume it to be text/css.
+            if document.quirks_mode() == QuirksMode::Quirks &&
+                document.url().origin() == self.url.origin()
+            {
+                is_css = true;
+            }
 
             let data = if is_css {
                 let data = std::mem::take(&mut self.data);
@@ -204,7 +227,7 @@ impl FetchResponseListener for StylesheetContext {
                             document.quirks_mode(),
                         ));
 
-                        if link.is_alternate() {
+                        if link.is_effectively_disabled() {
                             sheet.set_disabled(true);
                         }
 
@@ -271,6 +294,11 @@ impl FetchResponseListener for StylesheetContext {
 
     fn submit_resource_timing(&mut self) {
         network_listener::submit_timing(self, CanGc::note())
+    }
+
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+        let global = &self.resource_timing_global();
+        global.report_csp_violations(violations, None);
     }
 }
 
@@ -343,15 +371,17 @@ impl StylesheetLoader<'_> {
         }
 
         // https://html.spec.whatwg.org/multipage/#default-fetch-and-process-the-linked-resource
+        let global = self.elem.global();
         let request = create_a_potential_cors_request(
             Some(document.webview_id()),
             url.clone(),
             Destination::Style,
             cors_setting,
             None,
-            self.elem.global().get_referrer(),
+            global.get_referrer(),
             document.insecure_requests_policy(),
             document.has_trustworthy_ancestor_or_current_origin(),
+            global.policy_container(),
         )
         .origin(document.origin().immutable().clone())
         .pipeline_id(Some(self.elem.global().pipeline_id()))

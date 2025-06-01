@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: empty render surface capture</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="empty-render-target-capture-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<style>
+
+:root {
+  view-transition-name: none;
+}
+.container {
+  view-transition-name: container;
+  width: 0px;
+  height: 0px;
+}
+.child {
+  view-transition-name: child;
+  width: 100px;
+  height: 100px;
+  background: green;
+  will-change: opacity;
+}
+
+::view-transition-group(*),
+::view-transition-image-pair(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation-play-state: paused;
+}
+</style>
+
+<div class=container>
+  <div class=child></div>
+</div>
+
+<script>
+function runTest() {
+  document.startViewTransition().ready.then(takeScreenshot);
+}
+
+onload = async () => {
+  await waitForCompositorReady();
+  runTest();
+}
+
+</script>

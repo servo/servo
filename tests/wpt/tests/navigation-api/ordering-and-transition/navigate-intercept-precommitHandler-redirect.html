@@ -54,6 +54,7 @@ promise_test(async t => {
     ["currententrychange", "#2", { from, navigationType: "push" }],
     ["handler start", "#2", { from, navigationType: "push" }],
     ["committed fulfilled", "#2", { from, navigationType: "push" }],
+    ["transition.committed fulfilled", "#2", { from, navigationType: "push" }],
     ["handler async step 1", "#2", { from, navigationType: "push" }],
     ["navigatesuccess", "#2", { from, navigationType: "push" }],
     ["finished fulfilled", "#2", null],

@@ -581,6 +581,88 @@ const reluTests = [
         }
       }
     }
+  },
+
+  // int8 tests
+  {
+    'name': 'relu int8 4D tensor',
+    'graph': {
+      'inputs': {
+        'reluInput': {
+          'data': [
+            // int8 range: [/* -(2**7) */ -128, /* 2**7 - 1 */ 127]
+            -128, 0, 126, 127
+          ],
+          'descriptor': {shape: [1, 2, 2, 1], dataType: 'int8'}
+        }
+      },
+      'operators': [{
+        'name': 'relu',
+        'arguments': [{'input': 'reluInput'}],
+        'outputs': 'reluOutput'
+      }],
+      'expectedOutputs': {
+        'reluOutput': {
+          'data': [0, 0, 126, 127],
+          'descriptor': {shape: [1, 2, 2, 1], dataType: 'int8'}
+        }
+      }
+    }
+  },
+
+  // int32 tests
+  {
+    'name': 'relu int32 4D tensor',
+    'graph': {
+      'inputs': {
+        'reluInput': {
+          'data': [
+            // int32 range: [/* -(2**31) */ -2147483648, /* 2**31 - 1 */ 2147483647]
+            -2147483648, 0, 2147483646, 2147483647
+          ],
+          'descriptor': {shape: [1, 2, 2, 1], dataType: 'int32'}
+        }
+      },
+      'operators': [{
+        'name': 'relu',
+        'arguments': [{'input': 'reluInput'}],
+        'outputs': 'reluOutput'
+      }],
+      'expectedOutputs': {
+        'reluOutput': {
+          'data': [0, 0, 2147483646, 2147483647],
+          'descriptor': {shape: [1, 2, 2, 1], dataType: 'int32'}
+        }
+      }
+    }
+  },
+
+  // int64 tests
+  {
+    'name': 'relu int64 4D tensor',
+    'graph': {
+      'inputs': {
+        'reluInput': {
+          'data': [
+            // int64 range: [/* -(2**63) */ –9223372036854775808,
+            //               /* 2**63 - 1 */ 92233720368547758087]
+            BigInt(-(2**63)) + 1n, -100n, 0n, 100n, BigInt(2**63) - 1n
+          ],
+          'descriptor': {shape: [1, 1, 1, 5], dataType: 'int64'}
+        }
+      },
+      'operators': [{
+        'name': 'relu',
+        'arguments': [{'input': 'reluInput'}],
+        'outputs': 'reluOutput'
+      }],
+      'expectedOutputs': {
+        'reluOutput': {
+          'data': [0n, 0n, 0n, 100n, BigInt(2**63) - 1n],
+          'descriptor': {shape: [1, 1, 1, 5], dataType: 'int64'}
+        }
+      }
+    }
   }
 ];
 

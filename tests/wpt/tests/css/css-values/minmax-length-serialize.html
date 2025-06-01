@@ -70,6 +70,12 @@ test_serialization(
 	'calc(2px + max(1em + 100px, 106px))',
 	'118px');
 
+// https://crbug.com/411359798
+test_serialization(
+	'calc(2 * (.2 * min(1em, 1px)) + 1px)',
+	'calc(1px + (0.4 * min(1em, 1px)))',
+	'1.4px');
+
 // Can't test that min()/max() are preserved in computed values with just lengths;
 // see minmax-length-percentage-serialize for tests of that.
 </script>

@@ -69,6 +69,7 @@ pub struct Preferences {
     /// List of comma-separated backends to be used by wgpu.
     pub dom_webgpu_wgpu_backend: String,
     pub dom_abort_controller_enabled: bool,
+    pub dom_async_clipboard_enabled: bool,
     pub dom_bluetooth_enabled: bool,
     pub dom_bluetooth_testing_enabled: bool,
     pub dom_allow_scripts_to_close_windows: bool,
@@ -81,7 +82,6 @@ pub struct Preferences {
     pub dom_document_dblclick_timeout: i64,
     pub dom_document_dblclick_dist: i64,
     pub dom_fontface_enabled: bool,
-    pub dom_forcetouch_enabled: bool,
     pub dom_fullscreen_test: bool,
     pub dom_gamepad_enabled: bool,
     pub dom_imagebitmap_enabled: bool,
@@ -99,7 +99,6 @@ pub struct Preferences {
     pub dom_serviceworker_timeout_seconds: i64,
     pub dom_servo_helpers_enabled: bool,
     pub dom_servoparser_async_html_tokenizer_enabled: bool,
-    pub dom_shadowdom_enabled: bool,
     pub dom_svg_enabled: bool,
     pub dom_testable_crash_enabled: bool,
     pub dom_testbinding_enabled: bool,
@@ -116,10 +115,7 @@ pub struct Preferences {
     pub dom_testperf_enabled: bool,
     // https://testutils.spec.whatwg.org#availability
     pub dom_testutils_enabled: bool,
-    /// Enable the [URLPattern] API.
-    ///
-    /// [URLPattern]: https://developer.mozilla.org/en-US/docs/Web/API/URLPattern
-    pub dom_urlpattern_enabled: bool,
+    pub dom_trusted_types_enabled: bool,
     pub dom_xpath_enabled: bool,
     /// Enable WebGL2 APIs.
     pub dom_webgl2_enabled: bool,
@@ -235,6 +231,8 @@ pub struct Preferences {
     /// The user-agent to use for Servo. This can also be set via [`UserAgentPlatform`] in
     /// order to set the value to the default value for the given platform.
     pub user_agent: String,
+
+    pub log_filter: String,
 }
 
 impl Preferences {
@@ -245,6 +243,7 @@ impl Preferences {
             devtools_server_port: 0,
             dom_abort_controller_enabled: false,
             dom_allow_scripts_to_close_windows: false,
+            dom_async_clipboard_enabled: false,
             dom_bluetooth_enabled: false,
             dom_bluetooth_testing_enabled: false,
             dom_canvas_capture_enabled: false,
@@ -256,7 +255,6 @@ impl Preferences {
             dom_document_dblclick_dist: 1,
             dom_document_dblclick_timeout: 300,
             dom_fontface_enabled: false,
-            dom_forcetouch_enabled: false,
             dom_fullscreen_test: false,
             dom_gamepad_enabled: true,
             dom_imagebitmap_enabled: false,
@@ -274,7 +272,6 @@ impl Preferences {
             dom_serviceworker_timeout_seconds: 60,
             dom_servo_helpers_enabled: false,
             dom_servoparser_async_html_tokenizer_enabled: false,
-            dom_shadowdom_enabled: true,
             dom_svg_enabled: false,
             dom_testable_crash_enabled: false,
             dom_testbinding_enabled: false,
@@ -290,7 +287,7 @@ impl Preferences {
             dom_testing_html_input_element_select_files_enabled: false,
             dom_testperf_enabled: false,
             dom_testutils_enabled: false,
-            dom_urlpattern_enabled: false,
+            dom_trusted_types_enabled: false,
             dom_webgl2_enabled: false,
             dom_webgpu_enabled: false,
             dom_webgpu_wgpu_backend: String::new(),
@@ -396,6 +393,7 @@ impl Preferences {
             threadpools_webrender_workers_max: 4,
             webgl_testing_context_creation_error: false,
             user_agent: String::new(),
+            log_filter: String::new(),
         }
     }
 }

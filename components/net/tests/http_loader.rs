@@ -11,6 +11,7 @@ use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
 
 use base::id::{TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
+use content_security_policy as csp;
 use cookie::Cookie as CookiePair;
 use crossbeam_channel::{Receiver, unbounded};
 use devtools_traits::{
@@ -30,7 +31,7 @@ use http::{HeaderName, Method, StatusCode};
 use http_body_util::combinators::BoxBody;
 use hyper::body::{Body, Bytes, Incoming};
 use hyper::{Request as HyperRequest, Response as HyperResponse};
-use ipc_channel::ipc;
+use ipc_channel::ipc::{self, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
 use net::cookie::ServoCookie;
 use net::cookie_storage::CookieStorage;
@@ -99,7 +100,7 @@ pub fn expect_devtools_http_response(
     }
 }
 
-fn create_request_body_with_content(content: Vec<u8>) -> RequestBody {
+fn create_request_body_with_content(content: IpcSharedMemory) -> RequestBody {
     let content_len = content.len();
 
     let (chunk_request_sender, chunk_request_receiver) = ipc::channel().unwrap();
@@ -591,7 +592,7 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
     let (pre_server, pre_url) = make_server(pre_handler);
 
     let content = b"Body on POST!";
-    let request_body = create_request_body_with_content(content.to_vec());
+    let request_body = create_request_body_with_content(IpcSharedMemory::from_bytes(content));
 
     let request = RequestBuilder::new(None, pre_url.clone(), Referrer::NoReferrer)
         .body(Some(request_body))
@@ -903,7 +904,7 @@ fn test_load_sets_content_length_to_length_of_request_body() {
         };
     let (server, url) = make_server(handler);
 
-    let request_body = create_request_body_with_content(content.to_vec());
+    let request_body = create_request_body_with_content(IpcSharedMemory::from_bytes(content));
 
     let request = RequestBuilder::new(None, url.clone(), Referrer::NoReferrer)
         .method(Method::POST)
@@ -1537,6 +1538,7 @@ fn test_fetch_compressed_response_update_count() {
         fn process_response_eof(&mut self, _: &Request, _: &Response) {
             let _ = self.sender.take().unwrap().send(self.update_count);
         }
+        fn process_csp_violations(&mut self, _: &Request, _: Vec<csp::Violation>) {}
     }
 
     let (sender, receiver) = tokio::sync::oneshot::channel();

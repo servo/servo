@@ -104,7 +104,7 @@ pub struct DebugOptions {
     /// Dumps the rule tree.
     pub dump_rule_tree: bool,
 
-    /// Print the flow tree (Layout 2013) or fragment tree (Layout 2020) after each layout.
+    /// Print the fragment tree after each layout.
     pub dump_flow_tree: bool,
 
     /// Print the stacking context tree after each layout.

@@ -8,7 +8,7 @@ use malloc_size_of_derive::MallocSizeOf;
 
 use crate::interfaces::GlobalScopeHelpers;
 use crate::iterable::{Iterable, IterableIterator};
-use crate::realms::{AlreadyInRealm, InRealm};
+use crate::realms::InRealm;
 use crate::root::{Dom, DomRoot, Root};
 use crate::script_runtime::{CanGc, JSContext};
 use crate::{DomTypes, JSTraceable};
@@ -107,17 +107,6 @@ pub trait DomGlobalGeneric<D: DomTypes>: DomObject {
         Self: Sized,
     {
         D::GlobalScope::from_reflector(self, realm)
-    }
-
-    /// Returns the [`GlobalScope`] of the realm that the [`DomObject`] was created in.  If this
-    /// object is a `Node`, this will be different from it's owning `Document` if adopted by. For
-    /// `Node`s it's almost always better to use `NodeTraits::owning_global`.
-    fn global(&self) -> DomRoot<D::GlobalScope>
-    where
-        Self: Sized,
-    {
-        let realm = AlreadyInRealm::assert_for_cx(D::GlobalScope::get_cx());
-        D::GlobalScope::from_reflector(self, InRealm::already(&realm))
     }
 }
 

@@ -4,13 +4,13 @@
 
 use content_security_policy::{CspList, PolicyDisposition, PolicySource};
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
+use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
 
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::document::{Document, determine_policy_for_token};
+use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlmetaelement::HTMLMetaElement;
@@ -52,37 +52,6 @@ impl HTMLHeadElement {
 
         n.upcast::<Node>().set_weird_parser_insertion_mode();
         n
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#meta-referrer>
-    pub(crate) fn set_document_referrer(&self) {
-        let doc = self.owner_document();
-
-        if doc.GetHead().as_deref() != Some(self) {
-            return;
-        }
-
-        let node = self.upcast::<Node>();
-        let candidates = node
-            .traverse_preorder(ShadowIncluding::No)
-            .filter_map(DomRoot::downcast::<Element>)
-            .filter(|elem| elem.is::<HTMLMetaElement>())
-            .filter(|elem| elem.get_name() == Some(atom!("referrer")))
-            .filter(|elem| {
-                elem.get_attribute(&ns!(), &local_name!("content"))
-                    .is_some()
-            });
-
-        for meta in candidates {
-            if let Some(ref content) = meta.get_attribute(&ns!(), &local_name!("content")) {
-                let content = content.value();
-                let content_val = content.trim();
-                if !content_val.is_empty() {
-                    doc.set_referrer_policy(determine_policy_for_token(content_val));
-                    return;
-                }
-            }
-        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv-content-security-policy>

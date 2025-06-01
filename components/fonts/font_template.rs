@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::fmt::{Debug, Error, Formatter};
-use std::ops::RangeInclusive;
+use std::ops::{Deref, RangeInclusive};
 use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
@@ -20,7 +20,21 @@ use crate::system_font_service::{
 };
 
 /// A reference to a [`FontTemplate`] with shared ownership and mutability.
-pub type FontTemplateRef = Arc<AtomicRefCell<FontTemplate>>;
+#[derive(Clone, Debug, MallocSizeOf)]
+pub struct FontTemplateRef(#[conditional_malloc_size_of] Arc<AtomicRefCell<FontTemplate>>);
+
+impl FontTemplateRef {
+    pub fn new(template: FontTemplate) -> Self {
+        Self(Arc::new(AtomicRefCell::new(template)))
+    }
+}
+
+impl Deref for FontTemplateRef {
+    type Target = Arc<AtomicRefCell<FontTemplate>>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 /// Describes how to select a font from a given family. This is very basic at the moment and needs
 /// to be expanded or refactored when we support more of the font styling parameters.

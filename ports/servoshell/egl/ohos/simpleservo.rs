@@ -14,16 +14,10 @@ use raw_window_handle::{
     DisplayHandle, OhosDisplayHandle, OhosNdkWindowHandle, RawDisplayHandle, RawWindowHandle,
     WindowHandle,
 };
-/// The EventLoopWaker::wake function will be called from any thread.
-/// It will be called to notify embedder that some events are available,
-/// and that perform_updates need to be called
-pub use servo::EventLoopWaker;
-use servo::{self, Servo, WindowRenderingContext, resources};
+use servo::{self, EventLoopWaker, ServoBuilder, WindowRenderingContext, resources};
 use xcomponent_sys::OH_NativeXComponent;
 
-use crate::egl::app_state::{
-    Coordinates, RunningAppState, ServoEmbedderCallbacks, ServoWindowCallbacks,
-};
+use crate::egl::app_state::{Coordinates, RunningAppState, ServoWindowCallbacks};
 use crate::egl::host_trait::HostTrait;
 use crate::egl::ohos::InitOpts;
 use crate::egl::ohos::resources::ResourceReaderInstance;
@@ -66,6 +60,15 @@ pub fn init(
             );
         });
 
+    // Ensure cache dir exists before copy `prefs.json`
+    let _ = crate::prefs::default_config_dir().inspect(|path| {
+        if !path.exists() {
+            fs::create_dir_all(path).unwrap_or_else(|e| {
+                log::error!("Failed to create config directory at {:?}: {:?}", path, e)
+            })
+        }
+    });
+
     // Try copy `prefs.json` from {this.context.resource_prefsDir}/servo/
     // to `config_dir` if none exist
     let source_prefs = resource_dir.join("prefs.json");
@@ -88,11 +91,16 @@ pub fn init(
     };
 
     crate::init_tracing(servoshell_preferences.tracing_filter.as_deref());
+    #[cfg(target_env = "ohos")]
+    crate::egl::ohos::set_log_filter(servoshell_preferences.log_filter.as_deref());
 
     let Ok(window_size) = (unsafe { super::get_xcomponent_size(xcomponent, native_window) }) else {
         return Err("Failed to get xcomponent size");
     };
-    let coordinates = Coordinates::new(0, 0, window_size.width, window_size.height);
+    let Ok((x, y)) = (unsafe { super::get_xcomponent_offset(xcomponent, native_window) }) else {
+        return Err("Failed to get xcomponent offset");
+    };
+    let coordinates = Coordinates::new(x, y, window_size.width, window_size.height);
 
     let display_handle = RawDisplayHandle::Ohos(OhosDisplayHandle::new());
     let display_handle = unsafe { DisplayHandle::borrow_raw(display_handle) };
@@ -115,26 +123,17 @@ pub fn init(
     let window_callbacks = Rc::new(ServoWindowCallbacks::new(
         callbacks,
         RefCell::new(coordinates),
-        options.display_density as f32,
     ));
 
-    let embedder_callbacks = Box::new(ServoEmbedderCallbacks::new(
-        waker,
-        #[cfg(feature = "webxr")]
-        None,
-    ));
-
-    let servo = Servo::new(
-        opts,
-        preferences,
-        rendering_context.clone(),
-        embedder_callbacks,
-        window_callbacks.clone(),
-        Default::default(),
-    );
+    let servo = ServoBuilder::new(rendering_context.clone())
+        .opts(opts)
+        .preferences(preferences)
+        .event_loop_waker(waker)
+        .build();
 
     let app_state = RunningAppState::new(
         Some(options.url),
+        options.display_density as f32,
         rendering_context,
         servo,
         window_callbacks,

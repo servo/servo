@@ -13,7 +13,7 @@ use js::jsapi::{
     CallArgs, DOMCallbacks, HandleObject as RawHandleObject, JS_FreezeObject, JSContext, JSObject,
 };
 use js::rust::{HandleObject, MutableHandleValue, get_object_class, is_dom_class};
-use script_bindings::interfaces::DomHelpers;
+use script_bindings::interfaces::{DomHelpers, Interface};
 use script_bindings::settings_stack::StackEntry;
 
 use crate::DomTypes;
@@ -118,6 +118,19 @@ pub(crate) const DOM_CALLBACKS: DOMCallbacks = DOMCallbacks {
     instanceClassMatchesProto: Some(instance_class_has_proto_at_depth),
 };
 
+/// Eagerly define all relevant WebIDL interface constructors on the
+/// provided global object.
+pub(crate) fn define_all_exposed_interfaces(
+    global: &GlobalScope,
+    _in_realm: InRealm,
+    _can_gc: CanGc,
+) {
+    let cx = GlobalScope::get_cx();
+    for (_, interface) in &InterfaceObjectMap::MAP {
+        (interface.define)(cx, global.reflector().get_jsobject());
+    }
+}
+
 impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
     fn throw_dom_exception(
         cx: SafeJSContext,
@@ -153,8 +166,7 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
         unsafe { is_platform_object_same_origin(cx, obj) }
     }
 
-    fn interface_map() -> &'static phf::Map<&'static [u8], for<'a> fn(SafeJSContext, HandleObject)>
-    {
+    fn interface_map() -> &'static phf::Map<&'static [u8], Interface> {
         &InterfaceObjectMap::MAP
     }
 

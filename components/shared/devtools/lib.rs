@@ -103,6 +103,9 @@ pub enum ScriptToDevtoolsControlMsg {
 
     /// Report a page title change
     TitleChanged(PipelineId, String),
+
+    /// Get source information from script
+    ScriptSourceLoaded(PipelineId, SourceInfo),
 }
 
 /// Serialized JS return values
@@ -141,6 +144,15 @@ pub struct NodeInfo {
     pub shadow_root_mode: Option<ShadowRootMode>,
     pub is_shadow_host: bool,
     pub display: Option<String>,
+
+    /// The `DOCTYPE` name if this is a `DocumentType` node, `None` otherwise
+    pub doctype_name: Option<String>,
+
+    /// The `DOCTYPE` public identifier if this is a `DocumentType` node , `None` otherwise
+    pub doctype_public_identifier: Option<String>,
+
+    /// The `DOCTYPE` system identifier if this is a `DocumentType` node, `None` otherwise
+    pub doctype_system_identifier: Option<String>,
 }
 
 pub struct StartedTimelineMarker {
@@ -261,6 +273,8 @@ pub enum DevtoolScriptControlMsg {
     GetCssDatabase(IpcSender<HashMap<String, CssDatabaseProperty>>),
     /// Simulates a light or dark color scheme for the given pipeline
     SimulateColorScheme(PipelineId, Theme),
+    /// Highlight the given DOM node
+    HighlightDomNode(PipelineId, Option<String>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -542,4 +556,11 @@ impl fmt::Display for ShadowRootMode {
             Self::Closed => write!(f, "close"),
         }
     }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct SourceInfo {
+    pub url: ServoUrl,
+    pub external: bool,
+    pub worker_id: Option<WorkerId>,
 }

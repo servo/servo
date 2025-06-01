@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<head>
+<title>Testcases for parseHTML and parseHTMLUnsafe</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/html5lib-testcase-support.js"></script>
+<!--
+  This is a set of basic Sanitizer test cases using the parseHTML and
+  parseHTMLUnsafe methods.
+-->
+<script id="all" type="html5lib-testcases">
+#data
+text
+#document
+| <html>
+|   <head>
+|   <body>
+|     "text"
+
+#data
+<div>text
+#config
+{ "elements": ["html", "body", "div"] }
+#document
+| <html>
+|   <body>
+|     <div>
+|       "text"
+
+#data
+<div>text
+#config
+{ "elements": ["body", "div"] }
+#document
+
+#data
+<div>text
+#config
+{ "elements": ["html", "div"] }
+#document
+| <html>
+
+</script>
+<script id="safe" type="html5lib-testcases">
+#data
+<script>hello
+#document
+| <html>
+|   <head>
+|   <body>
+
+#data
+<html onload="2+2"><body onload="3+3"><div>hello
+#document
+| <html>
+|   <head>
+|   <body>
+|     <div>
+|       "hello"
+
+#data
+<div data-xyz="1" id="2" title="3">
+#config
+{ "attributes": ["id"] }
+#document
+| <html>
+|   <head>
+|   <body>
+|     <div>
+|       id="2"
+
+#data
+<div>a<!-- xx -->b
+#config
+{ }
+#document
+| <html>
+|   <head>
+|   <body>
+|     <div>
+|       "a"
+|       "b"
+
+</script>
+<script id="unsafe" type="html5lib-testcases">
+#data
+<script>hello
+#document
+| <html>
+|   <head>
+|     <script>
+|       "hello"
+|   <body>
+
+#data
+<html onload="2+2"><body onload="3+3"><div>hello
+#document
+| <html>
+|   onload="2+2"
+|   <head>
+|   <body>
+|     onload="3+3"
+|     <div>
+|       "hello"
+
+#data
+<div data-xyz="1" id="2" title="3">
+#config
+{ "attributes": ["id"] }
+#document
+| <html>
+|   <head>
+|   <body>
+|     <div>
+|       data-xyz="1"
+|       id="2"
+
+#data
+<div>a<!-- xx -->b
+#config
+{ }
+#document
+| <html>
+|   <head>
+|   <body>
+|     <div>
+|       "a"
+|       <!-- xx -->
+|       "b"
+</script>
+<script id="document" type="html5lib-testcases">
+#data
+<!DOCTYPE html>
+text
+#document
+| <!DOCTYPE html "" "">
+| <html>
+|   <head>
+|   <body>
+|     "text"
+
+</script>
+<script>
+function test_safe(testcase, index) {
+  let config = undefined;
+  if (testcase.config) {
+    config = { sanitizer: JSON.parse(testcase.config) };
+  }
+  test(_ => {
+    assert_testcase(Document.parseHTML(testcase.data, config), testcase);
+  }, `parseHTML testcase ${index}, "${testcase.data}"`);
+}
+function test_unsafe(testcase, index) {
+  let config = undefined;
+  if (testcase.config) {
+    config = { sanitizer: JSON.parse(testcase.config) };
+  }
+  test(_ => {
+    assert_testcase(Document.parseHTMLUnsafe(testcase.data, config), testcase);
+  }, `parseHTMLUnsafe testcase ${index}, "${testcase.data}"`);
+}
+
+const all = parse_html5lib_testcases(
+    document.getElementById("all").textContent);
+const safe = parse_html5lib_testcases(
+    document.getElementById("safe").textContent);
+const unsafe = parse_html5lib_testcases(
+    document.getElementById("unsafe").textContent);
+all.forEach(test_safe);
+all.forEach(test_unsafe);
+safe.forEach(test_safe);
+unsafe.forEach(test_unsafe);
+
+
+// DOM only supports Document Type Declarations as children of documents. This
+// trips up the assert_testcase implementation, so we'll handle that seperately.
+parse_html5lib_testcases(
+    document.getElementById("document").textContent).
+    forEach((testcase, index) => {
+  test(_ => {
+    const tree = build_node_tree(new Document(), testcase.document);
+    assert_subtree_equals(Document.parseHTMLUnsafe(testcase.data, {}), tree);
+  }, `parseHTMLUnsafe full document testcase ${index}, "${testcase.data}"`);
+  test(_ => {
+    const tree = build_node_tree(new Document(), testcase.document);
+    assert_subtree_equals(Document.parseHTML(testcase.data, {}), tree);
+  }, `parseHTML full document testcase ${index}, "${testcase.data}"`);
+});
+</script>
+</head>
+<body>
+</body>

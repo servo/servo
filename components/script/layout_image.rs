@@ -8,6 +8,7 @@
 
 use std::sync::Arc;
 
+use content_security_policy as csp;
 use net_traits::image_cache::{ImageCache, PendingImageId};
 use net_traits::request::{Destination, RequestBuilder as FetchRequestInit, RequestId};
 use net_traits::{
@@ -77,6 +78,11 @@ impl FetchResponseListener for LayoutImageContext {
     fn submit_resource_timing(&mut self) {
         network_listener::submit_timing(self, CanGc::note())
     }
+
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+        let global = &self.resource_timing_global();
+        global.report_csp_violations(violations, None);
+    }
 }
 
 impl ResourceTimingListener for LayoutImageContext {
@@ -113,7 +119,10 @@ pub(crate) fn fetch_image_for_layout(
     )
     .origin(document.origin().immutable().clone())
     .destination(Destination::Image)
-    .pipeline_id(Some(document.global().pipeline_id()));
+    .pipeline_id(Some(document.global().pipeline_id()))
+    .insecure_requests_policy(document.insecure_requests_policy())
+    .has_trustworthy_ancestor_origin(document.has_trustworthy_ancestor_origin())
+    .policy_container(document.policy_container().to_owned());
 
     // Layout image loads do not delay the document load event.
     document.fetch_background(request, context);

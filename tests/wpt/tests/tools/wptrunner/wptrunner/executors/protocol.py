@@ -5,7 +5,11 @@ import traceback
 from http.client import HTTPConnection
 
 from abc import ABCMeta, abstractmethod
-from typing import Any, Awaitable, Callable, ClassVar, List, Mapping, Optional, Tuple, Type
+from typing import Any, Awaitable, Callable, ClassVar, List, Mapping, Optional, \
+    Tuple, Type, TYPE_CHECKING, Union
+
+if TYPE_CHECKING:
+    from webdriver.bidi.undefined import Undefined
 
 
 def merge_dicts(target, source):
@@ -331,6 +335,21 @@ class AccessibilityProtocolPart(ProtocolPart):
         pass
 
 
+class WebExtensionsProtocolPart(ProtocolPart):
+    """Protocol part for managing WebExtensions"""
+    __metaclass__ = ABCMeta
+
+    name = "web_extensions"
+
+    @abstractmethod
+    def install_web_extension(self, extension):
+        pass
+
+    @abstractmethod
+    def uninstall_web_extension(self, extension_id):
+        pass
+
+
 class BidiBluetoothProtocolPart(ProtocolPart):
     """Protocol part for managing BiDi events"""
     __metaclass__ = ABCMeta
@@ -442,6 +461,19 @@ class BidiPermissionsProtocolPart(ProtocolPart):
 
     @abstractmethod
     async def set_permission(self, descriptor, state, origin):
+        pass
+
+
+class BidiEmulationProtocolPart(ProtocolPart):
+    """Protocol part for emulation"""
+    __metaclass__ = ABCMeta
+    name = "bidi_emulation"
+
+    @abstractmethod
+    async def set_geolocation_override(self,
+            coordinates: Optional[Union[Mapping[str, Any], "Undefined"]],
+            error: Optional[Mapping[str, Any]],
+            contexts: List[str]) -> None:
         pass
 
 
@@ -1024,4 +1056,18 @@ class ProtectedAudienceProtocolPart(ProtocolPart):
 
     @abstractmethod
     def set_k_anonymity(self, owner, name, hashes):
+        pass
+
+class DisplayFeaturesProtocolPart(ProtocolPart):
+    """Protocol part for Display Features/Viewport Segments"""
+    __metaclass__ = ABCMeta
+
+    name = "display_features"
+
+    @abstractmethod
+    def set_display_features(self, features):
+        pass
+
+    @abstractmethod
+    def clear_display_features(self):
         pass

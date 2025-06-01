@@ -7,11 +7,11 @@
 use std::cell::Cell;
 
 use base::id::PipelineId;
-use constellation_traits::UntrustedNodeAddress;
+use constellation_traits::ScriptToConstellationMessage;
 use cssparser::ToCss;
+use embedder_traits::{AnimationState as AnimationsPresentState, UntrustedNodeAddress};
 use fxhash::{FxHashMap, FxHashSet};
 use libc::c_void;
-use script_traits::{AnimationState as AnimationsPresentState, ScriptToConstellationMessage};
 use serde::{Deserialize, Serialize};
 use style::animation::{
     Animation, AnimationSetKey, AnimationState, DocumentAnimationSet, ElementAnimationSet,
@@ -74,6 +74,10 @@ impl Animations {
         self.sets.sets.write().clear();
         self.rooted_nodes.borrow_mut().clear();
         self.pending_events.borrow_mut().clear();
+    }
+
+    pub(crate) fn animations_present(&self) -> bool {
+        self.has_running_animations.get() || !self.pending_events.borrow().is_empty()
     }
 
     // Mark all animations dirty, if they haven't been marked dirty since the

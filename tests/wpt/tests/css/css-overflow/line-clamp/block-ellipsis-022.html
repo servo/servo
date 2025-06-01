@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp ellipsis</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="match" href="reference/block-ellipsis-022-ref.html">
+<style>
+.clamp {
+  line-clamp: 2;
+  width: 29.1ch;
+  border: 1px solid black;
+  font-family: monospace;
+}
+.atomic {
+  display: inline-block;
+}
+</style>
+<div class="clamp">
+  There should be an ellipsis
+  at the end of this text line
+  <span class="atomic">hidden</span>
+</div>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+
+    .outer {
+        border: 2px solid rgb(96 139 168);
+        width: 200px;
+        height: 200px;
+    }
+
+    .container1 {
+        position: absolute;
+        top: 2px;
+        column-gap: 10px;
+        display: flex;
+    }
+
+    .items1 {
+        background: rgb(96 139 168 / 0.2);
+        height: 40px;
+        margin: 0px;
+        width: 60px;
+    }
+
+    .container2 {
+        position: absolute;
+        top: 60px;
+        column-gap: 10px;
+        display: flex;
+    }
+
+    .items2 {
+        background: rgb(96 139 168 / 0.2);
+        height: 60px;
+        margin: 0px;
+        width: 60px;
+    }
+
+    .container3 {
+        position: absolute;
+        top: 130px;
+        column-gap: 10px;
+        display: flex;
+    }
+
+    .items3 {
+        background: rgb(96 139 168 / 0.2);
+        height: 60px;
+        margin: 0px;
+        width: 60px;
+    }
+
+    .row-gap {
+        position: absolute;
+        height: 10px;
+        width: 204px;
+        left: 4px;
+        top: 120px;
+        display: flex;
+        column-gap: 14px;
+    }
+
+    .row-gap-items {
+        width: 56px;
+        background: gold;
+    }
+
+    .column-gap1 {
+        position: absolute;
+        height: 36px;
+        width: 10px;
+        background: blue;
+        top: 4px;
+    }
+
+    .column-gap2 {
+        position: absolute;
+        height: 56px;
+        width: 10px;
+        background: blue;
+        top: 62px;
+    }
+
+    .spanner {
+        position: absolute;
+        background: cyan;
+        width: 200px;
+        height: 18px;
+        top: 42px;
+        left: 2px;
+        opacity: 0.5;
+    }
+
+    .column-gap3 {
+        position: absolute;
+        height: 68px;
+        width: 10px;
+        background: blue;
+        top: 132px;
+    }
+</style>
+
+<div class="outer">
+    <div class="container1">
+        <div class="items1"></div>
+        <div class="items1"></div>
+        <div class="items1"></div>
+    </div>
+    <div class="container2">
+        <div class="items2"></div>
+        <div class="items2"></div>
+        <div class="items2"></div>
+    </div>
+    <div class="container3">
+        <div class="items3"></div>
+        <div class="items3"></div>
+        <div class="items3"></div>
+    </div>
+    <div class="row-gap">
+        <div class="row-gap-items"></div>
+        <div class="row-gap-items"></div>
+        <div class="row-gap-items"></div>
+    </div>
+    <div class="column-gap1" style="left:62px;"></div>
+    <div class="column-gap1" style="left:132px;"></div>
+    <div class="column-gap2" style="left:62px;"></div>
+    <div class="column-gap2" style="left:132px;"></div>
+    <div class="spanner"></div>
+    <div class="column-gap3" style="left:62px;"></div>
+    <div class="column-gap3" style="left:132px;"></div>
+</div>

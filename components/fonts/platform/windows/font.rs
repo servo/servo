@@ -132,7 +132,9 @@ impl PlatformFontMethods for PlatformFont {
         pt_size: Option<Au>,
     ) -> Result<PlatformFont, &'static str> {
         let font_face = FontCollection::system()
-            .get_font_from_descriptor(&font_identifier.font_descriptor)
+            .font_from_descriptor(&font_identifier.font_descriptor)
+            .ok()
+            .flatten()
             .ok_or("Could not create Font from descriptor")?
             .create_font_face();
         Self::new(font_face, pt_size)

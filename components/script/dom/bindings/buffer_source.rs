@@ -34,9 +34,11 @@ use js::rust::{
     CustomAutoRooterGuard, Handle, MutableHandleObject,
     MutableHandleValue as SafeMutableHandleValue,
 };
+#[cfg(feature = "webgpu")]
+use js::typedarray::{ArrayBuffer, HeapArrayBuffer};
 use js::typedarray::{
-    ArrayBuffer, ArrayBufferU8, ArrayBufferView, ArrayBufferViewU8, CreateWith, HeapArrayBuffer,
-    TypedArray, TypedArrayElement, TypedArrayElementCreator,
+    ArrayBufferU8, ArrayBufferViewU8, CreateWith, TypedArray, TypedArrayElement,
+    TypedArrayElementCreator,
 };
 
 use crate::dom::bindings::error::{Error, Fallible};
@@ -61,36 +63,25 @@ pub(crate) enum BufferSource {
     ArrayBuffer(Box<Heap<*mut JSObject>>),
 }
 
-pub(crate) fn new_initialized_heap_buffer_source<T>(
-    init: HeapTypedArrayInit,
+pub(crate) fn create_heap_buffer_source_with_length<T>(
+    cx: JSContext,
+    len: u32,
     can_gc: CanGc,
-) -> Result<HeapBufferSource<T>, ()>
+) -> Fallible<HeapBufferSource<T>>
 where
     T: TypedArrayElement + TypedArrayElementCreator,
     T::Element: Clone + Copy,
 {
-    let heap_buffer_source = match init {
-        HeapTypedArrayInit::Buffer(buffer_source) => HeapBufferSource {
-            buffer_source,
-            phantom: PhantomData,
-        },
-        HeapTypedArrayInit::Info { len, cx } => {
-            rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-            let typed_array_result =
-                create_buffer_source_with_length::<T>(cx, len as usize, array.handle_mut(), can_gc);
-            if typed_array_result.is_err() {
-                return Err(());
-            }
+    rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
+    let typed_array_result =
+        create_buffer_source_with_length::<T>(cx, len as usize, array.handle_mut(), can_gc);
+    if typed_array_result.is_err() {
+        return Err(Error::JSFailed);
+    }
 
-            HeapBufferSource::<T>::new(BufferSource::ArrayBufferView(Heap::boxed(*array.handle())))
-        },
-    };
-    Ok(heap_buffer_source)
-}
-
-pub(crate) enum HeapTypedArrayInit {
-    Buffer(BufferSource),
-    Info { len: u32, cx: JSContext },
+    Ok(HeapBufferSource::<T>::new(BufferSource::ArrayBufferView(
+        Heap::boxed(*array.handle()),
+    )))
 }
 
 pub(crate) struct HeapBufferSource<T> {
@@ -129,11 +120,11 @@ where
     }
 
     pub(crate) fn from_view(
-        chunk: CustomAutoRooterGuard<ArrayBufferView>,
-    ) -> HeapBufferSource<ArrayBufferViewU8> {
-        HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::ArrayBufferView(Heap::boxed(
-            unsafe { *chunk.underlying_object() },
-        )))
+        chunk: CustomAutoRooterGuard<TypedArray<T, *mut JSObject>>,
+    ) -> HeapBufferSource<T> {
+        HeapBufferSource::<T>::new(BufferSource::ArrayBufferView(Heap::boxed(unsafe {
+            *chunk.underlying_object()
+        })))
     }
 
     pub(crate) fn default() -> Self {

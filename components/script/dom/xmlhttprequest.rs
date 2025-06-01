@@ -10,6 +10,9 @@ use std::str::{self, FromStr};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
+use constellation_traits::BlobImpl;
+use content_security_policy as csp;
+use data_url::mime::Mime;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
 use headers::{ContentLength, ContentType, HeaderMapExt};
@@ -23,15 +26,15 @@ use js::jsval::{JSVal, NullValue};
 use js::rust::wrappers::JS_ParseJSON;
 use js::rust::{HandleObject, MutableHandleValue};
 use js::typedarray::{ArrayBuffer, ArrayBufferU8};
-use mime::{self, Mime, Name};
+use net_traits::fetch::headers::extract_mime_type_as_dataurl_mime;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{CredentialsMode, Referrer, RequestBuilder, RequestId, RequestMode};
 use net_traits::{
     FetchMetadata, FetchResponseListener, FilteredMetadata, NetworkError, ReferrerPolicy,
     ResourceFetchTiming, ResourceTimingType, trim_http_whitespace,
 };
+use script_bindings::num::Finite;
 use script_traits::DocumentActivity;
-use script_traits::serializable::BlobImpl;
 use servo_url::ServoUrl;
 use stylo_atoms::Atom;
 use url::Position;
@@ -57,7 +60,7 @@ use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLD
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::headers::{extract_mime_type, is_forbidden_request_header};
+use crate::dom::headers::is_forbidden_request_header;
 use crate::dom::node::Node;
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::progressevent::ProgressEvent;
@@ -68,6 +71,7 @@ use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use crate::dom::xmlhttprequestupload::XMLHttpRequestUpload;
 use crate::fetch::FetchCanceller;
+use crate::mime::{APPLICATION, CHARSET, HTML, MimeExt, TEXT, XML};
 use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
 use crate::script_runtime::{CanGc, JSContext};
 use crate::task_source::{SendableTaskSource, TaskSourceName};
@@ -141,6 +145,11 @@ impl FetchResponseListener for XHRContext {
 
     fn submit_resource_timing(&mut self) {
         network_listener::submit_timing(self, CanGc::note())
+    }
+
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+        let global = &self.resource_timing_global();
+        global.report_csp_violations(violations, None);
     }
 }
 
@@ -670,8 +679,9 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
             None => None,
         };
 
+        let global = self.global();
         let mut request = RequestBuilder::new(
-            self.global().webview_id(),
+            global.webview_id(),
             self.request_url.borrow().clone().unwrap(),
             self.referrer.clone(),
         )
@@ -685,11 +695,12 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         .use_cors_preflight(self.upload_listener.get())
         .credentials_mode(credentials_mode)
         .use_url_credentials(use_url_credentials)
-        .origin(self.global().origin().immutable().clone())
+        .origin(global.origin().immutable().clone())
         .referrer_policy(self.referrer_policy)
-        .insecure_requests_policy(self.global().insecure_requests_policy())
-        .has_trustworthy_ancestor_origin(self.global().has_trustworthy_ancestor_or_current_origin())
-        .pipeline_id(Some(self.global().pipeline_id()));
+        .insecure_requests_policy(global.insecure_requests_policy())
+        .has_trustworthy_ancestor_origin(global.has_trustworthy_ancestor_or_current_origin())
+        .policy_container(global.policy_container())
+        .pipeline_id(Some(global.pipeline_id()));
 
         // step 4 (second half)
         if let Some(content_type) = content_type {
@@ -718,21 +729,19 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 let ct = request.headers.typed_get::<ContentType>();
                 if let Some(ct) = ct {
                     if let Some(encoding) = encoding {
-                        let mime: Mime = ct.into();
-                        for param in mime.params() {
-                            if param.0 == mime::CHARSET &&
-                                !param.1.as_ref().eq_ignore_ascii_case(encoding)
-                            {
-                                let new_params: Vec<(Name, Name)> = mime
-                                    .params()
-                                    .filter(|p| p.0 != mime::CHARSET)
-                                    .map(|p| (p.0, p.1))
+                        let mime: Mime = ct.to_string().parse().unwrap();
+                        for param in mime.parameters.iter() {
+                            if param.0 == CHARSET && !param.1.eq_ignore_ascii_case(encoding) {
+                                let params_iter = mime.parameters.iter();
+                                let new_params: Vec<(String, String)> = params_iter
+                                    .filter(|p| p.0 != CHARSET)
+                                    .map(|p| (p.0.clone(), p.1.clone()))
                                     .collect();
 
                                 let new_mime = format!(
                                     "{}/{}; charset={}{}{}",
-                                    mime.type_().as_ref(),
-                                    mime.subtype().as_ref(),
+                                    mime.type_,
+                                    mime.subtype,
                                     encoding,
                                     if new_params.is_empty() { "" } else { "; " },
                                     new_params
@@ -741,8 +750,9 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                                         .collect::<Vec<String>>()
                                         .join("; ")
                                 );
-                                let new_mime: Mime = new_mime.parse().unwrap();
-                                request.headers.typed_insert(ContentType::from(new_mime))
+                                request
+                                    .headers
+                                    .typed_insert(ContentType::from_str(&new_mime).unwrap())
                             }
                         }
                     }
@@ -1235,8 +1245,8 @@ impl XMLHttpRequest {
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
             length_computable,
-            loaded,
-            total_length,
+            Finite::wrap(loaded as f64),
+            Finite::wrap(total_length as f64),
             can_gc,
         );
         let target = if upload {
@@ -1315,11 +1325,7 @@ impl XMLHttpRequest {
             return response;
         }
         // Step 2
-        let mime = self
-            .final_mime_type()
-            .as_ref()
-            .map(|m| normalize_type_string(m.as_ref()))
-            .unwrap_or("".to_owned());
+        let mime = normalize_type_string(&self.final_mime_type().to_string());
 
         // Step 3, 4
         let bytes = self.response.borrow().to_vec();
@@ -1357,64 +1363,77 @@ impl XMLHttpRequest {
             return response;
         }
 
-        // Step 1
+        // Step 1: If xhr’s response’s body is null, then return.
         if self.response_status.get().is_err() {
             return None;
         }
 
-        // Step 2
-        let mime_type = self.final_mime_type();
-        // Step 5.3, 7
-        let charset = self.final_charset().unwrap_or(UTF_8);
-        let temp_doc: DomRoot<Document>;
-        match mime_type {
-            Some(ref mime) if mime.type_() == mime::TEXT && mime.subtype() == mime::HTML => {
-                // Step 4
-                if self.response_type.get() == XMLHttpRequestResponseType::_empty {
-                    return None;
-                } else {
-                    // TODO Step 5.2 "If charset is null, prescan the first 1024 bytes of xhr’s received bytes"
-                    // Step 5
-                    temp_doc = self.document_text_html(can_gc);
-                }
-            },
-            // Step 7
-            None => {
-                temp_doc = self.handle_xml(can_gc);
-                // Not sure it the parser should throw an error for this case
-                // The specification does not indicates this test,
-                // but for now we check the document has no child nodes
-                let has_no_child_nodes = temp_doc.upcast::<Node>().children().next().is_none();
-                if has_no_child_nodes {
-                    return None;
-                }
-            },
-            Some(ref mime)
-                if (mime.type_() == mime::TEXT && mime.subtype() == mime::XML) ||
-                    (mime.type_() == mime::APPLICATION && mime.subtype() == mime::XML) ||
-                    mime.suffix() == Some(mime::XML) =>
-            {
-                temp_doc = self.handle_xml(can_gc);
-                // Not sure it the parser should throw an error for this case
-                // The specification does not indicates this test,
-                // but for now we check the document has no child nodes
-                let has_no_child_nodes = temp_doc.upcast::<Node>().children().next().is_none();
-                if has_no_child_nodes {
-                    return None;
-                }
-            },
-            // Step 3
-            _ => {
-                return None;
-            },
+        // Step 2: Let finalMIME be the result of get a final MIME type for xhr.
+        let final_mime = self.final_mime_type();
+
+        // Step 3: If finalMIME is not an HTML MIME type or an XML MIME type, then return.
+        let is_xml_mime_type = final_mime.matches(TEXT, XML) ||
+            final_mime.matches(APPLICATION, XML) ||
+            final_mime.has_suffix(XML);
+        if !final_mime.matches(TEXT, HTML) && !is_xml_mime_type {
+            return None;
         }
-        // Step 8
+
+        // Step 4: If xhr’s response type is the empty string and finalMIME is an HTML MIME
+        //         type, then return.
+        let charset;
+        let temp_doc;
+        if final_mime.matches(TEXT, HTML) {
+            if self.response_type.get() == XMLHttpRequestResponseType::_empty {
+                return None;
+            }
+
+            // Step 5: If finalMIME is an HTML MIME type, then:
+            // Step 5.1: Let charset be the result of get a final encoding for xhr.
+            // Step 5.2: If charset is null, prescan the first 1024 bytes of xhr’s received bytes
+            // and if that does not terminate unsuccessfully then let charset be the return value.
+            // TODO: This isn't happening right now.
+            // Step 5.3. If charset is null, then set charset to UTF-8.
+            charset = Some(self.final_charset().unwrap_or(UTF_8));
+
+            // Step 5.4: Let document be a document that represents the result parsing xhr’s
+            // received bytes following the rules set forth in the HTML Standard for an HTML parser
+            // with scripting disabled and a known definite encoding charset. [HTML]
+            temp_doc = self.document_text_html(can_gc);
+        } else {
+            assert!(is_xml_mime_type);
+
+            // Step 6: Otherwise, let document be a document that represents the result of running
+            // the XML parser with XML scripting support disabled on xhr’s received bytes. If that
+            // fails (unsupported character encoding, namespace well-formedness error, etc.), then
+            // return null. [HTML]
+            //
+            // TODO: The spec seems to suggest the charset should come from the XML parser here.
+            temp_doc = self.handle_xml(can_gc);
+            charset = self.final_charset();
+
+            // Not sure it the parser should throw an error for this case
+            // The specification does not indicates this test,
+            // but for now we check the document has no child nodes
+            let has_no_child_nodes = temp_doc.upcast::<Node>().children().next().is_none();
+            if has_no_child_nodes {
+                return None;
+            }
+        }
+
+        // Step 7: If charset is null, then set charset to UTF-8.
+        let charset = charset.unwrap_or(UTF_8);
+
+        // Step 8: Set document’s encoding to charset.
         temp_doc.set_encoding(charset);
 
-        // Step 9 to 11
-        // Done by handle_text_html and handle_xml
+        // Step 9: Set document’s content type to finalMIME.
+        // Step 10: Set document’s URL to xhr’s response’s URL.
+        // Step 11: Set document’s origin to xhr’s relevant settings object’s origin.
+        //
+        // Done by `handle_text_html()` and `handle_xml()`.
 
-        // Step 12
+        // Step 12: Set xhr’s response object to document.
         self.response_xml.set(Some(&temp_doc));
         self.response_xml.get()
     }
@@ -1498,7 +1517,7 @@ impl XMLHttpRequest {
             Ok(parsed) => Some(parsed),
             Err(_) => None, // Step 7
         };
-        let content_type = self.final_mime_type();
+        let content_type = Some(self.final_mime_type());
         Document::new(
             win,
             HasBrowsingContext::No,
@@ -1589,14 +1608,16 @@ impl XMLHttpRequest {
         // 3. If responseMIME’s parameters["charset"] exists, then set label to it.
         let response_charset = self
             .response_mime_type()
-            .and_then(|mime| mime.get_param(mime::CHARSET).map(|c| c.to_string()));
+            .get_parameter(CHARSET)
+            .map(ToString::to_string);
 
         // 4. If xhr’s override MIME type’s parameters["charset"] exists, then set label to it.
         let override_charset = self
             .override_mime_type
             .borrow()
             .as_ref()
-            .and_then(|mime| mime.get_param(mime::CHARSET).map(|c| c.to_string()));
+            .and_then(|mime| mime.get_parameter(CHARSET))
+            .map(ToString::to_string);
 
         // 5. If label is null, then return null.
         // 6. Let encoding be the result of getting an encoding from label.
@@ -1608,24 +1629,22 @@ impl XMLHttpRequest {
     }
 
     /// <https://xhr.spec.whatwg.org/#response-mime-type>
-    fn response_mime_type(&self) -> Option<Mime> {
-        return extract_mime_type(&self.response_headers.borrow())
-            .and_then(|mime_as_bytes| {
-                String::from_utf8(mime_as_bytes)
-                    .unwrap_or_default()
-                    .parse()
-                    .ok()
-            })
-            .or(Some(mime::TEXT_XML));
+    fn response_mime_type(&self) -> Mime {
+        // 1. Let mimeType be the result of extracting a MIME type from xhr’s response’s
+        //    header list.
+        // 2. If mimeType is failure, then set mimeType to text/xml.
+        // 3. Return mimeType.
+        extract_mime_type_as_dataurl_mime(&self.response_headers.borrow())
+            .unwrap_or_else(|| Mime::new(TEXT, XML))
     }
 
     /// <https://xhr.spec.whatwg.org/#final-mime-type>
-    fn final_mime_type(&self) -> Option<Mime> {
-        if self.override_mime_type.borrow().is_some() {
-            self.override_mime_type.borrow().clone()
-        } else {
-            self.response_mime_type()
-        }
+    fn final_mime_type(&self) -> Mime {
+        self.override_mime_type
+            .borrow()
+            .as_ref()
+            .map(MimeExt::clone)
+            .unwrap_or_else(|| self.response_mime_type())
     }
 }
 

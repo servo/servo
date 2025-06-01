@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reference Case</title>
+<link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+<style>
+  div.img-mockup {
+    border: 1px solid black;
+    margin: 2px;
+    vertical-align: top;
+    display: inline-block;
+  }
+</style>
+<body>
+<script>
+  // This is the <rect> width and height in the testcase's data URI.
+  const RECT_SIZE = 6;
+  // This is the <rect> x/y position in the testcase's data URI.
+  const RECT_POS = 2;
+
+  // Determines the scale factor that we expect to apply to our SVG in a given
+  // axis, based on the specified size (width or height) of the SVG element and
+  // the img element in that axis, and based on whether we expect a viewBox to
+  // be synthesized at all.
+  function getExpectedScaleInAxis(svgSize, imgSize, shouldSynthesizeViewBox) {
+    if (shouldSynthesizeViewBox && svgSize == 10) {
+      // We'll be synthesizing a viewBox, and it'll be scaling our SVG content
+      // in this axis to fit the image size, so we need to scale up the size
+      // that we'll use for our mockup.
+      return imgSize / svgSize;
+    }
+    // Otherwise, we expect to render the SVG content at a 1.0 scale in this
+    // axis.
+    return 1.0;
+  }
+  function makeRectMockup(svgWidth, svgHeight,
+                          imgWidth, imgHeight) {
+    let fakeRect = document.createElement("div");
+    fakeRect.style.backgroundColor = "blue";
+
+    // Size/position the rect based on the scale that we expect the SVG
+    // content to be rendered at in each axis.  To inform that expectation,
+    // first decide whether we expect a synthesized viewBox: we expect
+    // the testcase's SVG-as-an-image document to synthesize a viewBox from
+    // the width and/or height *unless* that viewBox would be empty
+    // (zero-sized) in some axis.
+    let shouldSynthesizeViewBox = svgWidth != 0 && svgHeight != 0;
+
+    // Now compute the expected scale in each axis using a helper function:
+    let horizScale = getExpectedScaleInAxis(svgWidth, imgWidth,
+                                            shouldSynthesizeViewBox);
+    let vertScale = getExpectedScaleInAxis(svgHeight, imgHeight,
+                                           shouldSynthesizeViewBox);
+
+    fakeRect.style.width = `${RECT_SIZE * horizScale}px`;
+    fakeRect.style.height = `${RECT_SIZE * vertScale}px`;
+    fakeRect.style.marginLeft = `${RECT_POS * horizScale}px`;
+    fakeRect.style.marginTop = `${RECT_POS * vertScale}px`;
+    return fakeRect;
+  }
+
+  // To make the logic simpler, we just use 0 here for all of the testcase's
+  // sizes that we expect to behave like 0 (e.g. 0%, -5, -5%).
+  const SVG_SIZE_VALS_TO_TEST = [ null, 0, 0, 0, 0, 10 ];
+  const IMG_SIZE_VALS_TO_TEST = [ 20, 30 ];
+
+  function go() {
+    // We group our elements into rows with a particular number of items,
+    // to make sure things fit nicely/predictably into the WPT viewport:
+    const NUM_ELEMS_PER_ROW = 12;
+    let elemIdx = 0;
+    let container;
+
+    for (iw of IMG_SIZE_VALS_TO_TEST) {
+      for (ih of IMG_SIZE_VALS_TO_TEST) {
+        for (sw of SVG_SIZE_VALS_TO_TEST) {
+          for (sh of SVG_SIZE_VALS_TO_TEST) {
+            // Generate a new container element at the start and every N elems:
+            if (elemIdx % NUM_ELEMS_PER_ROW == 0) {
+              container = document.createElement("div");
+              document.body.appendChild(container);
+            }
+            elemIdx++;
+
+            // Mockup for the img element:
+            const fakeImg = document.createElement("div");
+            fakeImg.classList.add("img-mockup");
+            fakeImg.style.width = `${iw}px`;
+            fakeImg.style.height = `${ih}px`;
+
+            // Add the mockup for the blue rect inside of the img:
+            fakeImg.appendChild(makeRectMockup(sw, sh, iw, ih));
+
+            container.appendChild(fakeImg);
+          }
+        }
+      }
+    }
+  }
+  go();
+</script>
+</body>

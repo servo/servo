@@ -6,6 +6,7 @@
 
 from collections import defaultdict
 from itertools import groupby
+from typing import Generator, Tuple, Optional, List
 
 import operator
 import os
@@ -18,7 +19,9 @@ from WebIDL import (
     BuiltinTypes,
     IDLArgument,
     IDLBuiltinType,
+    IDLCallback,
     IDLDefaultDictionaryValue,
+    IDLDictionary,
     IDLEmptySequenceValue,
     IDLInterface,
     IDLInterfaceMember,
@@ -27,12 +30,16 @@ from WebIDL import (
     IDLObject,
     IDLPromiseType,
     IDLType,
+    IDLTypedef,
     IDLTypedefType,
     IDLUndefinedValue,
     IDLWrapperType,
 )
 
 from Configuration import (
+    Configuration,
+    Descriptor,
+    DescriptorProvider,
     MakeNativeName,
     MemberIsLegacyUnforgeable,
     getModuleFromObject,
@@ -55,12 +62,64 @@ TRACE_HOOK_NAME = '_trace'
 CONSTRUCT_HOOK_NAME = '_constructor'
 HASINSTANCE_HOOK_NAME = '_hasInstance'
 
-RUST_KEYWORDS = {"abstract", "alignof", "as", "become", "box", "break", "const", "continue",
-                 "else", "enum", "extern", "false", "final", "fn", "for", "if", "impl", "in",
-                 "let", "loop", "macro", "match", "mod", "move", "mut", "offsetof", "override",
-                 "priv", "proc", "pub", "pure", "ref", "return", "static", "self", "sizeof",
-                 "struct", "super", "true", "trait", "type", "typeof", "unsafe", "unsized",
-                 "use", "virtual", "where", "while", "yield"}
+RUST_KEYWORDS = {
+    "abstract",
+    "alignof",
+    "as",
+    "async",
+    "await",
+    "become",
+    "box",
+    "break",
+    "const",
+    "continue",
+    "crate",
+    "do",
+    "dyn",
+    "else",
+    "enum",
+    "extern",
+    "false",
+    "final",
+    "fn",
+    "for",
+    "gen",
+    "if",
+    "impl",
+    "in",
+    "let",
+    "loop",
+    "macro",
+    "match",
+    "mod",
+    "move",
+    "mut",
+    "offsetof",
+    "override",
+    "priv",
+    "proc",
+    "pub",
+    "pure",
+    "ref",
+    "return",
+    "static",
+    "self",
+    "sizeof",
+    "struct",
+    "super",
+    "true",
+    "trait",
+    "try",
+    "type",
+    "typeof",
+    "unsafe",
+    "unsized",
+    "use",
+    "virtual",
+    "where",
+    "while",
+    "yield",
+}
 
 
 def genericsForType(t):
@@ -611,16 +670,16 @@ class JSToNativeConversionInfo():
 
 
 def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
-                                isDefinitelyObject=False,
-                                isMember=False,
+                                isDefinitelyObject: bool = False,
+                                isMember: bool | str = False,
                                 isArgument=False,
                                 isAutoRooted=False,
                                 invalidEnumValueFatal=True,
                                 defaultValue=None,
                                 exceptionCode=None,
-                                allowTreatNonObjectAsNull=False,
+                                allowTreatNonObjectAsNull: bool = False,
                                 isCallbackReturnValue=False,
-                                sourceDescription="value"):
+                                sourceDescription="value") -> JSToNativeConversionInfo:
     """
     Get a template for converting a JS value to a native object based on the
     given type and descriptor.  If failureCode is given, then we're actually
@@ -742,6 +801,19 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                 "}")
         return templateBody
 
+    # A helper function for types that implement FromJSValConvertible trait
+    def fromJSValTemplate(config, errorHandler, exceptionCode):
+        return f"""match FromJSValConvertible::from_jsval(*cx, ${{val}}, {config}) {{
+    Ok(ConversionResult::Success(value)) => value,
+    Ok(ConversionResult::Failure(error)) => {{
+        {errorHandler}
+    }}
+    _ => {{
+        {exceptionCode}
+    }},
+}}
+"""
+
     assert not (isEnforceRange and isClamp)  # These are mutually exclusive
 
     if type.isSequence() or type.isRecord():
@@ -755,13 +827,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         if type.nullable():
             declType = CGWrapper(declType, pre="Option<", post=" >")
 
-        templateBody = (f"match FromJSValConvertible::from_jsval(*cx, ${{val}}, {config}) {{\n"
-                        "    Ok(ConversionResult::Success(value)) => value,\n"
-                        "    Ok(ConversionResult::Failure(error)) => {\n"
-                        f"{indent(failOrPropagate, 8)}\n"
-                        "    }\n"
-                        f"    _ => {{ {exceptionCode} }},\n"
-                        "}")
+        templateBody = fromJSValTemplate(config, failOrPropagate, exceptionCode)
 
         return handleOptional(templateBody, declType, handleDefault("None"))
 
@@ -770,13 +836,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         if type.nullable():
             declType = CGWrapper(declType, pre="Option<", post=" >")
 
-        templateBody = ("match FromJSValConvertible::from_jsval(*cx, ${val}, ()) {\n"
-                        "    Ok(ConversionResult::Success(value)) => value,\n"
-                        "    Ok(ConversionResult::Failure(error)) => {\n"
-                        f"{indent(failOrPropagate, 8)}\n"
-                        "    }\n"
-                        f"    _ => {{ {exceptionCode} }},\n"
-                        "}")
+        templateBody = fromJSValTemplate("()", failOrPropagate, exceptionCode)
 
         dictionaries = [
             memberType
@@ -836,21 +896,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         #    once again be providing a Promise to signal completion of an
         #    operation, which would then not be exposed to anyone other than
         #    our own implementation code.
-        templateBody = fill(
-            """
-            { // Scope for our JSAutoRealm.
-
-                rooted!(in(*cx) let globalObj = CurrentGlobalOrNull(*cx));
-                let promiseGlobal = D::GlobalScope::from_object_maybe_wrapped(globalObj.handle().get(), *cx);
-
-                rooted!(in(*cx) let mut valueToResolve = $${val}.get());
-                if !JS_WrapValue(*cx, valueToResolve.handle_mut()) {
-                $*{exceptionCode}
-                }
-                D::Promise::new_resolved(&promiseGlobal, cx, valueToResolve.handle())
-            }
-            """,
-            exceptionCode=exceptionCode)
+        templateBody = fromJSValTemplate("()", failOrPropagate, exceptionCode)
 
         if isArgument:
             declType = CGGeneric("&D::Promise")
@@ -960,14 +1006,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     if type.isDOMString():
         nullBehavior = getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs)
 
-        conversionCode = (
-            f"match FromJSValConvertible::from_jsval(*cx, ${{val}}, {nullBehavior}) {{\n"
-            "    Ok(ConversionResult::Success(strval)) => strval,\n"
-            "    Ok(ConversionResult::Failure(error)) => {\n"
-            f"{indent(failOrPropagate, 8)}\n"
-            "    }\n"
-            f"    _ => {{ {exceptionCode} }},\n"
-            "}")
+        conversionCode = fromJSValTemplate(nullBehavior, failOrPropagate, exceptionCode)
 
         if defaultValue is None:
             default = None
@@ -989,14 +1028,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     if type.isUSVString():
         assert not isEnforceRange and not isClamp
 
-        conversionCode = (
-            "match FromJSValConvertible::from_jsval(*cx, ${val}, ()) {\n"
-            "    Ok(ConversionResult::Success(strval)) => strval,\n"
-            "    Ok(ConversionResult::Failure(error)) => {\n"
-            f"{indent(failOrPropagate, 8)}\n"
-            "    }\n"
-            f"    _ => {{ {exceptionCode} }},\n"
-            "}")
+        conversionCode = fromJSValTemplate("()", failOrPropagate, exceptionCode)
 
         if defaultValue is None:
             default = None
@@ -1018,14 +1050,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     if type.isByteString():
         assert not isEnforceRange and not isClamp
 
-        conversionCode = (
-            "match FromJSValConvertible::from_jsval(*cx, ${val}, ()) {\n"
-            "    Ok(ConversionResult::Success(strval)) => strval,\n"
-            "    Ok(ConversionResult::Failure(error)) => {\n"
-            f"{indent(failOrPropagate, 8)}\n"
-            "    }\n"
-            f"    _ => {{ {exceptionCode} }},\n"
-            "}")
+        conversionCode = fromJSValTemplate("()", failOrPropagate, exceptionCode)
 
         if defaultValue is None:
             default = None
@@ -1056,12 +1081,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         else:
             handleInvalidEnumValueCode = "return true;"
 
-        template = (
-            "match FromJSValConvertible::from_jsval(*cx, ${val}, ()) {"
-            f"    Err(_) => {{ {exceptionCode} }},\n"
-            "    Ok(ConversionResult::Success(v)) => v,\n"
-            f"    Ok(ConversionResult::Failure(error)) => {{ {handleInvalidEnumValueCode} }},\n"
-            "}")
+        template = fromJSValTemplate("()", handleInvalidEnumValueCode, exceptionCode)
 
         if defaultValue is not None:
             assert defaultValue.type.tag() == IDLType.Tags.domstring
@@ -1192,14 +1212,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         if type_needs_tracing(type):
             declType = CGTemplatedType("RootedTraceableBox", declType)
 
-        template = (
-            "match FromJSValConvertible::from_jsval(*cx, ${val}, ()) {\n"
-            "    Ok(ConversionResult::Success(dictionary)) => dictionary,\n"
-            "    Ok(ConversionResult::Failure(error)) => {\n"
-            f"{indent(failOrPropagate, 8)}\n"
-            "    }\n"
-            f"    _ => {{ {exceptionCode} }},\n"
-            "}")
+        template = fromJSValTemplate("()", failOrPropagate, exceptionCode)
 
         return handleOptional(template, declType, handleDefault(empty))
 
@@ -1220,14 +1233,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     if type.nullable():
         declType = CGWrapper(declType, pre="Option<", post=">")
 
-    template = (
-        f"match FromJSValConvertible::from_jsval(*cx, ${{val}}, {conversionBehavior}) {{\n"
-        "    Ok(ConversionResult::Success(v)) => v,\n"
-        "    Ok(ConversionResult::Failure(error)) => {\n"
-        f"{indent(failOrPropagate, 8)}\n"
-        "    }\n"
-        f"    _ => {{ {exceptionCode} }}\n"
-        "}")
+    template = fromJSValTemplate(conversionBehavior, failOrPropagate, exceptionCode)
 
     if defaultValue is not None:
         if isinstance(defaultValue, IDLNullValue):
@@ -1745,13 +1751,16 @@ class MethodDefiner(PropertyDefiner):
                        and (MemberIsLegacyUnforgeable(m, descriptor) == unforgeable or crossorigin)]
         else:
             methods = []
-        self.regular = [{"name": m.identifier.name,
-                         "methodInfo": not m.isStatic(),
-                         "length": methodLength(m),
-                         "flags": "JSPROP_READONLY" if crossorigin else "JSPROP_ENUMERATE",
-                         "condition": PropertyDefiner.getControllingCondition(m, descriptor),
-                         "returnsPromise": m.returnsPromise()}
-                        for m in methods]
+        self.regular = []
+        for m in methods:
+            method = self.methodData(m, descriptor, crossorigin)
+
+            if m.isStatic():
+                method["nativeName"] = CGDictionary.makeMemberName(
+                    descriptor.binaryNameFor(m.identifier.name, True)
+                )
+
+            self.regular.append(method)
 
         # TODO: Once iterable is implemented, use tiebreak rules instead of
         # failing. Also, may be more tiebreak rules to implement once spec bug
@@ -1840,6 +1849,17 @@ class MethodDefiner(PropertyDefiner):
                 })
         self.unforgeable = unforgeable
         self.crossorigin = crossorigin
+
+    @staticmethod
+    def methodData(m, descriptor, crossorigin):
+        return {
+            "name": m.identifier.name,
+            "methodInfo": not m.isStatic(),
+            "length": methodLength(m),
+            "flags": "JSPROP_READONLY" if crossorigin else "JSPROP_ENUMERATE",
+            "condition": PropertyDefiner.getControllingCondition(m, descriptor),
+            "returnsPromise": m.returnsPromise()
+        }
 
     def generateArray(self, array, name):
         if len(array) == 0:
@@ -2391,15 +2411,22 @@ class CGDOMJSClass(CGThing):
             "flags": "JSCLASS_FOREGROUND_FINALIZE",
             "name": str_to_cstr_ptr(self.descriptor.interface.identifier.name),
             "resolveHook": "None",
+            "mayResolveHook": "None",
             "slots": "1",
             "traceHook": f"{TRACE_HOOK_NAME}::<D>",
         }
         if self.descriptor.isGlobal():
             assert not self.descriptor.weakReferenceable
-            args["enumerateHook"] = "Some(enumerate_global::<D>)"
             args["flags"] = "JSCLASS_IS_GLOBAL | JSCLASS_DOM_GLOBAL | JSCLASS_FOREGROUND_FINALIZE"
             args["slots"] = "JSCLASS_GLOBAL_SLOT_COUNT + 1"
-            args["resolveHook"] = "Some(resolve_global::<D>)"
+            if self.descriptor.interface.getExtendedAttribute("NeedResolve"):
+                args["enumerateHook"] = "Some(enumerate_window::<D>)"
+                args["resolveHook"] = "Some(resolve_window::<D>)"
+                args["mayResolveHook"] = "Some(may_resolve_window::<D>)"
+            else:
+                args["enumerateHook"] = "Some(enumerate_global)"
+                args["resolveHook"] = "Some(resolve_global)"
+                args["mayResolveHook"] = "Some(may_resolve_global)"
             args["traceHook"] = "js::jsapi::JS_GlobalObjectTraceHook"
         elif self.descriptor.weakReferenceable:
             args["slots"] = "2"
@@ -2413,7 +2440,7 @@ pub(crate) fn init_class_ops<D: DomTypes>() {{
         enumerate: None,
         newEnumerate: {args['enumerateHook']},
         resolve: {args['resolveHook']},
-        mayResolve: None,
+        mayResolve: {args['mayResolveHook']},
         finalize: Some({args['finalizeHook']}),
         call: None,
         construct: None,
@@ -2612,7 +2639,12 @@ class CGCallbackTempRoot(CGGeneric):
         CGGeneric.__init__(self, f"{name.replace('<D>', '::<D>')}::new(cx, ${{val}}.get().to_object())")
 
 
-def getAllTypes(descriptors, dictionaries, callbacks, typedefs):
+def getAllTypes(
+    descriptors: List[Descriptor],
+    dictionaries: List[IDLDictionary],
+    callbacks: List[IDLCallback],
+    typedefs: List[IDLTypedef]
+) -> Generator[Tuple[IDLType, Optional[Descriptor]], None, None]:
     """
     Generate all the types we're dealing with.  For each type, a tuple
     containing type, descriptor, dictionary is yielded.  The
@@ -2620,18 +2652,32 @@ def getAllTypes(descriptors, dictionaries, callbacks, typedefs):
     """
     for d in descriptors:
         for t in getTypesFromDescriptor(d):
+            if t.isRecord():
+                yield (t.inner, d)
             yield (t, d)
     for dictionary in dictionaries:
         for t in getTypesFromDictionary(dictionary):
+            if t.isRecord():
+                yield (t.inner, None)
             yield (t, None)
     for callback in callbacks:
         for t in getTypesFromCallback(callback):
+            if t.isRecord():
+                yield (t.inner, None)
             yield (t, None)
     for typedef in typedefs:
+        if typedef.innerType.isRecord():
+            yield (typedef.innerType.inner, None)
         yield (typedef.innerType, None)
 
 
-def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
+def UnionTypes(
+    descriptors: List[Descriptor],
+    dictionaries: List[IDLDictionary],
+    callbacks: List[IDLCallback],
+    typedefs: List[IDLTypedef],
+    config: Configuration
+):
     """
     Returns a CGList containing CGUnionStructs for every union.
     """
@@ -2958,7 +3004,8 @@ class CGConstructorEnabled(CGAbstractMethod):
                                   'ConstructorEnabled', 'bool',
                                   [Argument("SafeJSContext", "aCx"),
                                    Argument("HandleObject", "aObj")],
-                                  templateArgs=['D: DomTypes'])
+                                  templateArgs=['D: DomTypes'],
+                                  pub=True)
 
     def definition_body(self):
         conditions = []
@@ -4233,7 +4280,7 @@ class CGSpecializedMethod(CGAbstractExternMethod):
         if method.underlyingAttr:
             return CGSpecializedGetter.makeNativeName(descriptor, method.underlyingAttr)
         name = method.identifier.name
-        nativeName = descriptor.binaryNameFor(name)
+        nativeName = descriptor.binaryNameFor(name, method.isStatic())
         if nativeName == name:
             nativeName = descriptor.internalNameFor(name)
         return MakeNativeName(nativeName)
@@ -4357,7 +4404,7 @@ class CGStaticMethod(CGAbstractStaticBindingMethod):
     """
     def __init__(self, descriptor, method):
         self.method = method
-        name = method.identifier.name
+        name = descriptor.binaryNameFor(method.identifier.name, True)
         CGAbstractStaticBindingMethod.__init__(self, descriptor, name, templateArgs=["D: DomTypes"])
 
     def generate_code(self):
@@ -4395,7 +4442,7 @@ class CGSpecializedGetter(CGAbstractExternMethod):
     @staticmethod
     def makeNativeName(descriptor, attr):
         name = attr.identifier.name
-        nativeName = descriptor.binaryNameFor(name)
+        nativeName = descriptor.binaryNameFor(name, attr.isStatic())
         if nativeName == name:
             nativeName = descriptor.internalNameFor(name)
         nativeName = MakeNativeName(nativeName)
@@ -4452,7 +4499,7 @@ class CGSpecializedSetter(CGAbstractExternMethod):
     @staticmethod
     def makeNativeName(descriptor, attr):
         name = attr.identifier.name
-        nativeName = descriptor.binaryNameFor(name)
+        nativeName = descriptor.binaryNameFor(name, attr.isStatic())
         if nativeName == name:
             nativeName = descriptor.internalNameFor(name)
         return f"Set{MakeNativeName(nativeName)}"
@@ -5077,7 +5124,7 @@ class CGConstant(CGThing):
         return f"pub const {name}: {const_type} = {value};\n"
 
 
-def getUnionTypeTemplateVars(type, descriptorProvider):
+def getUnionTypeTemplateVars(type, descriptorProvider: DescriptorProvider):
     if type.isGeckoInterface():
         name = type.inner.identifier.name
         typeName = descriptorProvider.getDescriptor(name).returnType
@@ -5114,6 +5161,12 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
     elif type.isCallback():
         name = type.name
         typeName = f"{name}<D>"
+    elif type.isUndefined():
+        return {
+            "name": type.name,
+            "typeName": "()",
+            "jsConversion": CGGeneric("if value.is_undefined() { Ok(Some(())) } else { Ok(None) }")
+        }
     else:
         raise TypeError(f"Can't handle {type} in unions yet")
 
@@ -5179,7 +5232,7 @@ impl{self.generic} Clone for {self.type}{self.genericSuffix} {{
     def manualImpl(self, t, templateVars):
         if t == "Clone":
             return self.manualImplClone(templateVars)
-        raise f"Don't know how to impl {t} for union"
+        raise ValueError(f"Don't know how to impl {t} for union")
 
     def define(self):
         def getTypeWrapper(t):
@@ -5336,31 +5389,44 @@ class CGUnionConversionStruct(CGThing):
         stringTypes = [t for t in memberTypes if t.isString() or t.isEnum()]
         numericTypes = [t for t in memberTypes if t.isNumeric()]
         booleanTypes = [t for t in memberTypes if t.isBoolean()]
-        if stringTypes or numericTypes or booleanTypes:
+        numUndefinedVariants = [t.isUndefined() for t in memberTypes].count(True)
+        if stringTypes or numericTypes or booleanTypes or numUndefinedVariants != 0:
             assert len(stringTypes) <= 1
             assert len(numericTypes) <= 1
             assert len(booleanTypes) <= 1
+            assert numUndefinedVariants <= 1
 
             def getStringOrPrimitiveConversion(memberType):
                 typename = get_name(memberType)
                 return CGGeneric(get_match(typename))
+
             other = []
             stringConversion = list(map(getStringOrPrimitiveConversion, stringTypes))
             numericConversion = list(map(getStringOrPrimitiveConversion, numericTypes))
             booleanConversion = list(map(getStringOrPrimitiveConversion, booleanTypes))
+            undefinedConversion = CGGeneric("return Ok(ConversionResult::Success(Self::Undefined(())));")
+
             if stringConversion:
                 if booleanConversion:
                     other.append(CGIfWrapper("value.get().is_boolean()", booleanConversion[0]))
                 if numericConversion:
                     other.append(CGIfWrapper("value.get().is_number()", numericConversion[0]))
+                if numUndefinedVariants != 0:
+                    other.append(CGIfWrapper("value.get().is_undefined()", undefinedConversion))
                 other.append(stringConversion[0])
             elif numericConversion:
                 if booleanConversion:
                     other.append(CGIfWrapper("value.get().is_boolean()", booleanConversion[0]))
+                if numUndefinedVariants != 0:
+                    other.append(CGIfWrapper("value.get().is_undefined()", undefinedConversion))
                 other.append(numericConversion[0])
-            else:
-                assert booleanConversion
+            elif booleanConversion:
+                if numUndefinedVariants != 0:
+                    other.append(CGIfWrapper("value.get().is_undefined()", undefinedConversion))
                 other.append(booleanConversion[0])
+            else:
+                assert numUndefinedVariants != 0
+                other.append(undefinedConversion)
             conversions.append(CGList(other, "\n\n"))
         conversions.append(CGGeneric(
             f'Ok(ConversionResult::Failure("argument could not be converted to any of: {", ".join(names)}".into()))'
@@ -5382,6 +5448,10 @@ class CGUnionConversionStruct(CGThing):
             post="\n}")
 
     def try_method(self, t):
+        if t.isUndefined():
+            # undefined does not require a conversion method, so we don't generate one
+            return CGGeneric("")
+
         templateVars = getUnionTypeTemplateVars(t, self.descriptorProvider)
         actualType = templateVars["typeName"]
         if type_needs_tracing(t):
@@ -5745,7 +5815,7 @@ class CGProxySpecialOperation(CGPerSignatureCall):
     (don't use this directly, use the derived classes below).
     """
     def __init__(self, descriptor, operation):
-        nativeName = MakeNativeName(descriptor.binaryNameFor(operation))
+        nativeName = MakeNativeName(descriptor.binaryNameFor(operation, False))
         operation = descriptor.operations[operation]
         assert len(operation.signatures()) == 1
         signature = operation.signatures()[0]
@@ -6535,7 +6605,7 @@ let global = D::GlobalScope::from_object(JS_CALLEE(*cx, vp).to_object());
         else:
             ctorName = GetConstructorNameForReporting(self.descriptor, self.constructor)
             name = self.constructor.identifier.name
-            nativeName = MakeNativeName(self.descriptor.binaryNameFor(name))
+            nativeName = MakeNativeName(self.descriptor.binaryNameFor(name, True))
 
             if len(self.exposureSet) == 1:
                 args = [
@@ -6691,10 +6761,9 @@ class CGInterfaceTrait(CGThing):
                     yield name, arguments, rettype, False
 
         def fmt(arguments, leadingComma=True):
-            keywords = {"async"}
             prefix = "" if not leadingComma else ", "
             return prefix + ", ".join(
-                f"{name if name not in keywords else f'r#{name}'}: {type_}"
+                f"r#{name}: {type_}"
                 for name, type_ in arguments
             )
 
@@ -7157,7 +7226,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
     def manualImpl(self, t):
         if t == "Clone":
             return self.manualImplClone()
-        raise f"Don't know how to impl {t} for dicts."
+        raise ValueError(f"Don't know how to impl {t} for dicts.")
 
     def struct(self):
         d = self.dictionary
@@ -7988,11 +8057,11 @@ class CGCallback(CGClass):
 
 # We're always fallible
 def callbackGetterName(attr, descriptor):
-    return f"Get{MakeNativeName(descriptor.binaryNameFor(attr.identifier.name))}"
+    return f"Get{MakeNativeName(descriptor.binaryNameFor(attr.identifier.name, attr.isStatic()))}"
 
 
 def callbackSetterName(attr, descriptor):
-    return f"Set{MakeNativeName(descriptor.binaryNameFor(attr.identifier.name))}"
+    return f"Set{MakeNativeName(descriptor.binaryNameFor(attr.identifier.name, attr.isStatic()))}"
 
 
 class CGCallbackFunction(CGCallback):
@@ -8332,7 +8401,7 @@ class CallbackOperation(CallbackOperationBase):
         jsName = method.identifier.name
         CallbackOperationBase.__init__(self, signature,
                                        jsName,
-                                       MakeNativeName(descriptor.binaryNameFor(jsName)),
+                                       MakeNativeName(descriptor.binaryNameFor(jsName, False)),
                                        descriptor, descriptor.interface.isSingleOperationInterface())
 
 
@@ -8517,12 +8586,11 @@ class GlobalGenRoots():
     def InterfaceObjectMap(config):
         mods = [
             "crate::dom::bindings::codegen",
-            "crate::script_runtime::JSContext",
-            "js::rust::HandleObject",
+            "script_bindings::interfaces::Interface",
         ]
         imports = CGList([CGGeneric(f"use {mod};") for mod in mods], "\n")
 
-        phf = CGGeneric("include!(concat!(env!(\"BINDINGS_OUT_DIR\"), \"/InterfaceObjectMapPhf.rs\"));")
+        phf = CGGeneric("include!(concat!(env!(\"OUT_DIR\"), \"/InterfaceObjectMapPhf.rs\"));")
 
         return CGList([
             CGGeneric(AUTOGENERATED_WARNING_COMMENT),
@@ -8541,9 +8609,13 @@ class GlobalGenRoots():
             for ctor in d.interface.legacyFactoryFunctions:
                 pairs.append((ctor.identifier.name, binding_mod, binding_ns))
         pairs.sort(key=operator.itemgetter(0))
+
+        def bindingPath(pair):
+            return f'codegen::Bindings::{pair[1]}::{pair[2]}'
+
         mappings = [
-            CGGeneric(f'"{pair[0]}": "codegen::Bindings::{pair[1]}'
-                      f'::{pair[2]}::DefineDOMInterface::<crate::DomTypeHolder>"')
+            CGGeneric(f'"{pair[0]}": ["{bindingPath(pair)}::DefineDOMInterface::<crate::DomTypeHolder>", '
+                      f'"{bindingPath(pair)}::ConstructorEnabled::<crate::DomTypeHolder>"]')
             for pair in pairs
         ]
         return CGWrapper(

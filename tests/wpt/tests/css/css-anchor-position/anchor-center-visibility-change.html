@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>Tests 'anchor-center' value when target visibility changes (by changing 'display', 'visibility', or popover trigger)</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#valdef-justify-self-anchor-center">
+<link rel="author" href="mailto:plampe@igalia.com">
+<link rel="author" href="mailto:kiet.ho@apple.com">
+<link rel="match" href="anchor-center-visibility-change-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+.container {
+  width: 100px;
+  height: 100px;
+  border: solid 3px;
+  position: relative;
+  margin: 50px;
+}
+
+.anchor {
+  anchor-name: --anchor;
+  position: relative;
+  width: 50px;
+  height: 50px;
+  left: 40px;
+  top: 5px;
+  background: lime;
+}
+
+.target {
+  position-anchor: --anchor;
+  position: absolute;
+}
+
+.target-inner {
+  width: 30px;
+  height: 20px;
+}
+
+#target-1 {
+  justify-self: anchor-center;
+  background: cyan;
+  display: none;
+}
+
+#target-2 {
+  align-self: anchor-center;
+  background: blue;
+  visibility: hidden;
+}
+
+#target-3 {
+  align-self: anchor-center;
+  justify-self: anchor-center;
+  background: magenta;
+
+  /* Override default popover style */
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+</style>
+
+<div class="container">
+  <div class="anchor"></div>
+  <div id="target-1" class="target">
+    <div class="target-inner"></div>
+  </div>
+  <div id="target-2" class="target">
+    <div class="target-inner"></div>
+  </div>
+  <div id="target-3" class="target" popover>
+    <div class="target-inner"></div>
+  </div>
+</div>
+
+<script>
+  // Targets should be invisible initially.
+  waitForAtLeastOneFrame().then(() => {
+    // Change targets to be visible.
+    document.getElementById('target-1').style.display = 'flow';
+    document.getElementById('target-2').style.visibility = 'visible';
+    document.getElementById('target-3').showPopover();
+
+    waitForAtLeastOneFrame().then(() => {
+      // Targets should be visible now.
+      takeScreenshot();
+    });
+  });
+</script>

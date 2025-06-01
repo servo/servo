@@ -288,6 +288,7 @@ function createInterestGroupForOrigin(uuid, origin,
 async function joinInterestGroupWithoutDefaults(test, interestGroup,
                                                 durationSeconds = 60) {
   await navigator.joinAdInterestGroup(interestGroup, durationSeconds);
+  await makeInterestGroupKAnonymous(interestGroup);
   test.add_cleanup(
     async () => { await navigator.leaveAdInterestGroup(interestGroup); });
 }
@@ -694,6 +695,16 @@ async function joinCrossOriginInterestGroup(test, uuid, origin, interestGroupOve
                    `await joinInterestGroup(test_instance, "${uuid}", ${interestGroup})`);
 }
 
+// Leaves a cross-origin interest group, by running a leave in an iframe.
+async function leaveCrossOriginInterestGroup(test, uuid, origin, interestGroupOverrides = {}) {
+  let interestGroup = JSON.stringify(
+      createInterestGroupForOrigin(uuid, origin, interestGroupOverrides));
+
+  let iframe = await createIframe(test, origin, 'join-ad-interest-group');
+  await runInFrame(test, iframe,
+                   `await leaveInterestGroup(${interestGroup})`);
+}
+
 // Joins an interest group in a top-level window, which has the same origin
 // as the joined interest group.
 async function joinInterestGroupInTopLevelWindow(
@@ -1029,4 +1040,108 @@ async function setCookie(test) {
   await deleteAllCookies();
   document.cookie = 'cookie=cookie; path=/'
   test.add_cleanup(deleteAllCookies);
+}
+
+async function makeInterestGroupKAnonymous(passedInterestGroup) {
+  // Make a copy so we can sanitize fields without affecting the tests.
+  let interestGroup = structuredClone(passedInterestGroup);
+  const ownerURL = new URL(interestGroup.owner);
+  interestGroup.owner = ownerURL.origin;
+  interestGroup.name = String(interestGroup.name).toWellFormed();
+  interestGroup.biddingLogicURL =
+      (new URL(interestGroup.biddingLogicURL, BASE_URL)).toString();
+
+  function b64(array) {
+    return btoa(String.fromCharCode.apply(null, array));
+  }
+  let hashes = [];
+  if (Array.isArray(interestGroup.ads)) {
+    for (const ad of interestGroup.ads) {
+      hashes.push(b64(await computeKeyHashOfAd(interestGroup, ad)));
+      hashes.push(
+          b64(await computeKeyHashOfReportingId(interestGroup, ad, null)));
+      if (Array.isArray(ad.selectableBuyerAndSellerReportingIds)) {
+        for (const id of ad.selectableBuyerAndSellerReportingIds) {
+          hashes.push(
+              b64(await computeKeyHashOfReportingId(interestGroup, ad, id)));
+        }
+      }
+    }
+  }
+  if (Array.isArray(interestGroup.adComponents)) {
+    for (const ad of interestGroup.adComponents) {
+      hashes.push(b64(await computeKeyHashOfComponentAd(interestGroup, ad)));
+    }
+  }
+  await test_driver.set_protected_audience_k_anonymity(
+      interestGroup.owner, interestGroup.name, hashes);
+}
+
+async function computeKeyHashOfAd(ig, ad) {
+  const encoder = new TextEncoder();
+  const kAnonKey = encoder.encode(
+      `AdBid\n${ig.owner}/\n${ig.biddingLogicURL}\n${ad.renderURL}`);
+  return new Uint8Array(await window.crypto.subtle.digest('SHA-256', kAnonKey));
+}
+
+async function computeKeyHashOfReportingId(ig, ad, selectedReportingId = null) {
+  const encoder = new TextEncoder();
+  let kAnonKey = null;
+  if (!selectedReportingId) {
+    if (ad.buyerAndSellerReportingId) {
+      kAnonKey = encoder.encode(
+          `BuyerAndSellerReportId\n${ig.owner}/\n${ig.biddingLogicURL}\n${
+              ad.renderURL}\n${ad.buyerAndSellerReportingId}`);
+    } else if (ad.buyerReportingId) {
+      kAnonKey = encoder.encode(`BuyerReportId\n${ig.owner}/\n${
+          ig.biddingLogicURL}\n${ad.renderURL}\n${ad.buyerReportingId}`);
+    } else {
+      kAnonKey = encoder.encode(`NameReport\n${ig.owner}/\n${
+          ig.biddingLogicURL}\n${ad.renderURL}\n${ig.name}`);
+    }
+  } else {
+    function encodeKeyPartInto(part, array) {
+      array[0] = 0x0a;
+      if (!part) {
+        for (let i = 1; i < 6; i++) {
+          array[i] = 0x00;
+        }
+        return 6;
+      }
+      const len = part.length;
+      array[1] = 0x01;
+      array[2] = (len >> 24) % 256
+      array[3] = (len >> 16) % 256
+      array[4] = (len >> 8) % 256
+      array[5] = len % 256;
+      encoder.encodeInto(part, array.subarray(6));
+      return 1 + 5 + len;
+    }
+    const baseText = `SelectedBuyerAndSellerReportId\n${ig.owner}/\n${
+        ig.biddingLogicURL}\n${ad.renderURL}`;
+    const selectedReportingIdLen =
+        1 + 5 + (selectedReportingId ? selectedReportingId.length : 0);
+    const buyerAndSellerReportingIdLen = 1 + 5 +
+        (ad.buyerAndSellerReportingId ? ad.buyerAndSellerReportingId.length : 0)
+    const buyerReportingIdLen =
+        1 + 5 + (ad.buyerReportingId ? ad.buyerReportingId.length : 0)
+    const expectedLen = baseText.length + selectedReportingIdLen +
+        buyerAndSellerReportingIdLen + buyerReportingIdLen;
+    kAnonKey = new Uint8Array(expectedLen);
+    let actualLen = 0;
+    actualLen += encoder.encodeInto(baseText, kAnonKey).written;
+    actualLen +=
+        encodeKeyPartInto(selectedReportingId, kAnonKey.subarray(actualLen));
+    actualLen += encodeKeyPartInto(
+        ad.buyerAndSellerReportingId, kAnonKey.subarray(actualLen));
+    actualLen +=
+        encodeKeyPartInto(ad.buyerReportingId, kAnonKey.subarray(actualLen));
+  }
+  return new Uint8Array(await window.crypto.subtle.digest('SHA-256', kAnonKey));
+}
+
+async function computeKeyHashOfComponentAd(ig, ad) {
+  const encoder = new TextEncoder();
+  const kAnonKey = encoder.encode(`ComponentBid\n${ad.renderURL}`);
+  return new Uint8Array(await window.crypto.subtle.digest('SHA-256', kAnonKey));
 }

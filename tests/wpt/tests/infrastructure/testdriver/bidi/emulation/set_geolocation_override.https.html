@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<title>TestDriver bidi.emulation.set_geolocation_override method</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+    promise_setup(async () => {
+        // Ensure permission is granted before proceeding.
+        await test_driver.bidi.permissions.set_permission({
+            descriptor: {name: "geolocation"},
+            state: "granted",
+        });
+    });
+
+    /** Get the current geolocation or error */
+    function get_current_geolocation() {
+        return new Promise(
+            resolve => window.navigator.geolocation.getCurrentPosition(
+                position => resolve(position.coords.toJSON()),
+                error => resolve({code: error.code}),
+                // Fail fast if geolocation is not available.
+                {timeout: 500}
+            ))
+    }
+
+    /** Asserts that coordinate or error matches the expected value */
+    function assert_coordinates_match(actual, expected) {
+        for (const key in expected) {
+            assert_equals(actual[key], expected[key],
+                `"${key}" should match the expected value ${expected[key]}`);
+        }
+    }
+
+    const SOME_COORDINATES = {
+        latitude: 52.51,
+        longitude: 13.39,
+        accuracy: 0.5,
+        altitude: 34,
+        altitudeAccuracy: 0.75,
+        heading: 180,
+        speed: 2.77
+    };
+
+    promise_test(async (t) => {
+        t.add_cleanup(async () => {
+            await test_driver.bidi.emulation.set_geolocation_override(
+                {coordinates: null});
+        });
+
+        // Get the initial geolocation (might be error).
+        const initial_coords = await get_current_geolocation();
+
+        // Set the geolocation override
+        await test_driver.bidi.emulation.set_geolocation_override({
+            coordinates: SOME_COORDINATES
+        });
+
+        // Get the geolocation after setting the override.
+        const coords = await get_current_geolocation();
+        // Assert the coordinates match the override.
+        assert_coordinates_match(coords, SOME_COORDINATES);
+
+        // Clear the geolocation override.
+        await test_driver.bidi.emulation.set_geolocation_override(
+            {coordinates: null});
+        // Assert coordinates are set to the original value.
+        assert_coordinates_match(await get_current_geolocation(),
+            initial_coords);
+    }, "emulate geolocation and clear override");
+
+    promise_test(async (t) => {
+        // Emulate position unavailable.
+        await test_driver.bidi.emulation.set_geolocation_override({
+            error: {type: 'positionUnavailable'},
+        });
+
+        // Get the geolocation after setting the override.
+        const error = await get_current_geolocation();
+
+        assert_equals(error.code, 2,
+            `Geolocation should be unavailable with code POSITION_UNAVAILABLE = 2`);
+    }, "emulate geolocation position unavailable");
+
+    promise_test(async (t) => {
+        assert_throws_js(Error,
+            () => test_driver.bidi.emulation.set_geolocation_override({
+                error: {type: 'positionUnavailable'},
+                coordinates: SOME_COORDINATES
+            }), "Setting both `coordinates` and `error` should fail");
+    }, "cannot set `coordinates` and `error` simultaneously");
+</script>

@@ -7,6 +7,7 @@
 <link rel="help" href="https://w3c.github.io/mathml-core/#types-for-mathml-attribute-values">
 <link rel="help" href="https://w3c.github.io/mathml-core/#legacy-mathml-style-attributes">
 <link rel="help" href="https://w3c.github.io/mathml-core/#space-mspace">
+<link rel="help" href="https://www.w3.org/TR/css-values-4/#relative-lengths">
 <meta name="assert" content="Verify various cases of the MathML length syntax.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -15,14 +16,20 @@
 <style>
   @font-face {
     font-family: TestFont;
-    src: url("/fonts/math/xheight500.woff");
+    src: url("/fonts/math/css-units.woff");
   }
   math {
     font-family: TestFont;
     font-size: 10px;
   }
+  /* For rlh. */
+  html {
+    line-height: 17px;
+  }
 </style>
 <script>
+  // Omitted units: vi, vb
+
   var epsilon = .5;
 
   function getBox(aId) {
@@ -44,6 +51,17 @@
       assert_equals(getBox("unitPercentage").width, 60, "%");
       assert_equals(getBox("unitPt").width, 96, "pt");
       assert_equals(getBox("unitPx").width, 123, "px");
+      assert_equals(getBox("unitQ").width, 192, "q");
+      assert_equals(getBox("unitCh").width, 100, "ch");
+      assert_equals(getBox("unitCap").width, 140, "cap");
+      assert_equals(getBox("unitIc").width, 90, "ic");
+      assert_approx_equals(getBox("unitVw").width, window.innerWidth*0.35, epsilon, "vw");
+      assert_approx_equals(getBox("unitVh").width, window.innerHeight*0.54, epsilon, "vh");
+      assert_approx_equals(getBox("unitVmin").width, Math.min(window.innerWidth, window.innerHeight)*0.27, epsilon, "vmin");
+      assert_approx_equals(getBox("unitVmax").width, Math.max(window.innerWidth, window.innerHeight)*0.34, epsilon, "vmax");
+      assert_equals(getBox("unitRem").width, 128, "rem");
+      assert_equals(getBox("unitLh").width, 60, "lh");
+      assert_equals(getBox("unitRlh").width, 102, "rlh");
     }, "Units");
 
     test(function() {
@@ -57,6 +75,17 @@
       assert_equals(getBox("spacePercentage").width, 60, "%");
       assert_equals(getBox("spacePt").width, 96, "pt");
       assert_equals(getBox("spacePx").width, 123, "px");
+      assert_equals(getBox("spaceQ").width, 192, "q");
+      assert_equals(getBox("spaceCh").width, 100, "ch");
+      assert_equals(getBox("spaceCap").width, 140, "cap");
+      assert_equals(getBox("spaceIc").width, 90, "ic");
+      assert_approx_equals(getBox("spaceVw").width, window.innerWidth*0.35, epsilon, "vw");
+      assert_approx_equals(getBox("spaceVh").width, window.innerHeight*0.54, epsilon, "vh");
+      assert_approx_equals(getBox("spaceVmin").width, Math.min(window.innerWidth, window.innerHeight)*0.27, epsilon, "vmin");
+      assert_approx_equals(getBox("spaceVmax").width, Math.max(window.innerWidth, window.innerHeight)*0.34, epsilon, "vmax");
+      assert_equals(getBox("spaceRem").width, 128, "rem");
+      assert_equals(getBox("spaceLh").width, 60, "lh");
+      assert_equals(getBox("spaceRlh").width, 102, "rlh");
     }, "Trimming of space");
 
     test(function() {
@@ -139,6 +168,19 @@
       <mstyle mathsize="200%"><mspace id="unitPercentage" width="3em"/></mstyle>
       <mspace id="unitPt" width="72pt"/>
       <mspace id="unitPx" width="123px"/>
+      <mspace id="unitQ" width="203.2q"/>
+      <mspace id="unitCh" width="10ch"/>
+      <mspace id="unitCap" width="14ch"/>
+      <mspace id="unitIc" width="9ic"/>
+      <mspace id="unitVw" width="35vw"/>
+      <mspace id="unitVh" width="54vh"/>
+      <mspace id="unitVi" width="11vi"/>
+      <mspace id="unitVb" width="4vb"/>
+      <mspace id="unitVmin" width="27vmin"/>
+      <mspace id="unitVmax" width="34vmax"/>
+      <mspace id="unitRem" width="8rem" style="font-size: 3px;"/>
+      <mspace id="unitLh" width="5lh" style="line-height: 12px;"/>
+      <mspace id="unitRlh" width="6rlh" style="line-height: 12px;"/>
       <mstyle mathsize="5"><mspace id="unitNone" width="3em"/></mstyle>
     </math>
   </p>
@@ -153,6 +195,19 @@
       <mstyle mathsize="200%"><mspace id="spacePercentage" width="&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;3em&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;"/></mstyle>
       <mspace id="spacePt" width="&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;72pt&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;"/>
       <mspace id="spacePx" width="&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;123px&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;"/>
+      <mspace id="spaceQ" width="&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;203.2q&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;"/>
+      <mspace id="spaceCh" width="&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;10ch&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;"/>
+      <mspace id="spaceCap" width="&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;14ch&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;"/>
+      <mspace id="spaceIc" width="&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;9ic&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;"/>
+      <mspace id="spaceVw" width="&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;35vw&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;"/>
+      <mspace id="spaceVh" width="&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;54vh&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;"/>
+      <mspace id="spaceVi" width="&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;11vi&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;"/>
+      <mspace id="spaceVb" width="&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;4vb&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;"/>
+      <mspace id="spaceVmin" width="&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;27vmin&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;"/>
+      <mspace id="spaceVmax" width="&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;34vmax&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;"/>
+      <mspace id="spaceRem" width="&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;8rem&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;" style="font-size: 3px;"/>
+      <mspace id="spaceLh" width="&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;5lh&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;" style="line-height: 12px;"/>
+      <mspace id="spaceRlh" width="&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;6rlh&#x20;&#x9;&#xA;&#xD;&#x20;&#x9;&#xA;&#xD;" style="line-height: 12px;"/>
     </math>
   </p>
   <p>

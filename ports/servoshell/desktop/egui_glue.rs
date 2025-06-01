@@ -70,7 +70,7 @@ impl EguiGlow {
                 ViewportId::ROOT,
                 event_loop,
                 None,
-                None,
+                event_loop.system_theme(),
                 None,
             ),
             egui_ctx,

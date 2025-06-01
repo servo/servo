@@ -11,7 +11,7 @@ from typing import Mapping, Optional
 from . import config
 from . import products
 from . import wpttest
-from .formatters import chromium, wptreport, wptscreenshot
+from .formatters import wptreport, wptscreenshot
 
 
 def abs_path(path):
@@ -69,6 +69,10 @@ scheme host and port.""")
                         help="Number of simultaneous processes to use")
     parser.add_argument("--max-restarts", type=int, default=5,
                         help="Maximum number of browser restart retries")
+    parser.add_argument("--max-restart-backoff", type=int, default=0,
+                        help="Increase duration between restart retries exponentially "
+                        "until reaching this maximum number of seconds (zero will "
+                        "always restart immediately)")
 
     parser.add_argument("--no-capture-stdio", action="store_true",
                         help="Don't capture stdio and write to logging")
@@ -418,7 +422,6 @@ scheme host and port.""")
                                       "Cache API (default: %s)" % wptscreenshot.DEFAULT_API,
                                       {"wptscreenshot"}, "store")
 
-    commandline.log_formatters["chromium"] = (chromium.ChromiumFormatter, "Chromium Layout Tests format")
     commandline.log_formatters["wptreport"] = (wptreport.WptreportFormatter, "wptreport format")
     commandline.log_formatters["wptscreenshot"] = (wptscreenshot.WptscreenshotFormatter, "wpt.fyi screenshots")
 

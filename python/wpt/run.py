@@ -19,10 +19,7 @@ import mozlog
 import mozlog.formatters
 
 from . import SERVO_ROOT, WPT_PATH, WPT_TOOLS_PATH
-from .grouping_formatter import (
-    ServoFormatter, ServoHandler,
-    UnexpectedResult, UnexpectedSubtestResult
-)
+from .grouping_formatter import ServoFormatter, ServoHandler, UnexpectedResult, UnexpectedSubtestResult
 from wptrunner import wptcommandline
 from wptrunner import wptrunner
 
@@ -51,6 +48,11 @@ def run_tests(default_binary_path: str, **kwargs):
     os.environ["RUST_BACKTRACE"] = "1"
     os.environ["HOST_FILE"] = os.path.join(SERVO_ROOT, "tests", "wpt", "hosts")
 
+    # The pytest framework used in the webdriver conformance tests dumps the
+    # environment variables when unexpected results occur, and this variable
+    # makes CI logs unreadable.
+    github_context = os.environ.pop("GITHUB_CONTEXT", None)
+
     set_if_none(kwargs, "product", "servo")
     set_if_none(kwargs, "config", os.path.join(WPT_PATH, "config.ini"))
     set_if_none(kwargs, "include_manifest", os.path.join(WPT_PATH, "include.ini"))
@@ -58,12 +60,8 @@ def run_tests(default_binary_path: str, **kwargs):
     set_if_none(kwargs, "processes", multiprocessing.cpu_count())
 
     set_if_none(kwargs, "ca_cert_path", os.path.join(CERTS_PATH, "cacert.pem"))
-    set_if_none(
-        kwargs, "host_key_path", os.path.join(CERTS_PATH, "web-platform.test.key")
-    )
-    set_if_none(
-        kwargs, "host_cert_path", os.path.join(CERTS_PATH, "web-platform.test.pem")
-    )
+    set_if_none(kwargs, "host_key_path", os.path.join(CERTS_PATH, "web-platform.test.key"))
+    set_if_none(kwargs, "host_cert_path", os.path.join(CERTS_PATH, "web-platform.test.pem"))
     # Set `id_hash` as the default chunk, as this better distributes testing across different
     # chunks and leads to more consistent timing on GitHub Actions.
     set_if_none(kwargs, "chunk_type", "id_hash")
@@ -134,13 +132,15 @@ def run_tests(default_binary_path: str, **kwargs):
         handler.reset_state()
 
         print(80 * "=")
-        print(f"Rerunning {len(unexpected_results)} tests "
-              "with unexpected results to detect flaky tests.")
+        print(f"Rerunning {len(unexpected_results)} tests with unexpected results to detect flaky tests.")
         unexpected_results_tests = [result.path for result in unexpected_results]
         kwargs["test_list"] = unexpected_results_tests
         kwargs["include"] = unexpected_results_tests
         kwargs["pause_after_test"] = False
         wptrunner.run_tests(**kwargs)
+
+        if github_context:
+            os.environ["GITHUB_CONTEXT"] = github_context
 
         # Use the second run to mark tests from the first run as flaky, but
         # discard the results otherwise.
@@ -150,8 +150,7 @@ def run_tests(default_binary_path: str, **kwargs):
         for result in unexpected_results:
             result.flaky = result.path not in stable_tests
 
-        all_filtered = filter_intermittents(unexpected_results,
-                                            filter_intermittents_output)
+        all_filtered = filter_intermittents(unexpected_results, filter_intermittents_output)
         return_value = 0 if all_filtered else 1
 
     # Write the unexpected-only raw log if that was specified on the command-line.
@@ -160,9 +159,7 @@ def run_tests(default_binary_path: str, **kwargs):
             print("'--log-raw-unexpected' not written without '--log-raw'.")
         else:
             write_unexpected_only_raw_log(
-                handler.unexpected_results,
-                raw_log_outputs[0].name,
-                unexpected_raw_log_output_file
+                handler.unexpected_results, raw_log_outputs[0].name, unexpected_raw_log_output_file
             )
 
     return return_value
@@ -174,12 +171,10 @@ class GithubContextInformation(NamedTuple):
     branch_name: Optional[str]
 
 
-class TrackerDashboardFilter():
+class TrackerDashboardFilter:
     def __init__(self):
         base_url = os.environ.get(TRACKER_API_ENV_VAR, TRACKER_API)
-        self.headers = {
-            "Content-Type": "application/json"
-        }
+        self.headers = {"Content-Type": "application/json"}
         if TRACKER_DASHBOARD_SECRET_ENV_VAR in os.environ and os.environ[TRACKER_DASHBOARD_SECRET_ENV_VAR]:
             self.url = f"{base_url}/dashboard/attempts"
             secret = os.environ[TRACKER_DASHBOARD_SECRET_ENV_VAR]
@@ -193,10 +188,10 @@ class TrackerDashboardFilter():
         if not github_context:
             return GithubContextInformation(None, None, None)
 
-        repository = github_context['repository']
+        repository = github_context["repository"]
         repo_url = f"https://github.com/{repository}"
 
-        run_id = github_context['run_id']
+        run_id = github_context["run_id"]
         build_url = f"{repo_url}/actions/runs/{run_id}"
 
         commit_title = "<no title>"
@@ -206,32 +201,27 @@ class TrackerDashboardFilter():
             commit_title = github_context["event"]["head_commit"]["message"]
 
         pr_url = None
-        match = re.match(r"^Auto merge of #(\d+)", commit_title) or \
-            re.match(r"\(#(\d+)\)", commit_title)
+        match = re.match(r"^Auto merge of #(\d+)", commit_title) or re.match(r"\(#(\d+)\)", commit_title)
         if match:
             pr_url = f"{repo_url}/pull/{match.group(1)}" if match else None
 
-        return GithubContextInformation(
-            build_url,
-            pr_url,
-            github_context["ref_name"]
-        )
+        return GithubContextInformation(build_url, pr_url, github_context["ref_name"])
 
     def make_data_from_result(
         self,
         result: Union[UnexpectedResult, UnexpectedSubtestResult],
     ) -> dict:
         data = {
-            'path': result.path,
-            'subtest': None,
-            'expected': result.expected,
-            'actual': result.actual,
-            'time': result.time // 1000,
+            "path": result.path,
+            "subtest": None,
+            "expected": result.expected,
+            "actual": result.actual,
+            "time": result.time // 1000,
             # Truncate the message, to avoid issues with lots of output causing "HTTP
             # Error 413: Request Entity Too Large."
             # See https://github.com/servo/servo/issues/31845.
-            'message': result.message[0:TRACKER_DASHBOARD_MAXIMUM_OUTPUT_LENGTH],
-            'stack': result.stack,
+            "message": result.message[0:TRACKER_DASHBOARD_MAXIMUM_OUTPUT_LENGTH],
+            "stack": result.stack,
         }
         if isinstance(result, UnexpectedSubtestResult):
             data["subtest"] = result.subtest
@@ -248,20 +238,22 @@ class TrackerDashboardFilter():
         try:
             request = urllib.request.Request(
                 url=self.url,
-                method='POST',
-                data=json.dumps({
-                    'branch': context.branch_name,
-                    'build_url': context.build_url,
-                    'pull_url': context.pull_url,
-                    'attempts': attempts
-                }).encode('utf-8'),
-                headers=self.headers)
+                method="POST",
+                data=json.dumps(
+                    {
+                        "branch": context.branch_name,
+                        "build_url": context.build_url,
+                        "pull_url": context.pull_url,
+                        "attempts": attempts,
+                    }
+                ).encode("utf-8"),
+                headers=self.headers,
+            )
 
             known_intermittents = dict()
             with urllib.request.urlopen(request) as response:
                 for test in json.load(response)["known"]:
-                    known_intermittents[test["path"]] = \
-                        [issue["number"] for issue in test["issues"]]
+                    known_intermittents[test["path"]] = [issue["number"] for issue in test["issues"]]
 
         except urllib.error.HTTPError as e:
             print(e)
@@ -272,13 +264,9 @@ class TrackerDashboardFilter():
             result.issues = known_intermittents.get(result.path, [])
 
 
-def filter_intermittents(
-    unexpected_results: List[UnexpectedResult],
-    output_path: str
-) -> bool:
+def filter_intermittents(unexpected_results: List[UnexpectedResult], output_path: str) -> bool:
     dashboard = TrackerDashboardFilter()
-    print(f"Filtering {len(unexpected_results)} "
-          f"unexpected results for known intermittents via <{dashboard.url}>")
+    print(f"Filtering {len(unexpected_results)} unexpected results for known intermittents via <{dashboard.url}>")
     dashboard.report_failures(unexpected_results)
 
     def add_result(output, text, results: List[UnexpectedResult], filter_func) -> None:
@@ -290,12 +278,14 @@ def filter_intermittents(
         return not result.flaky and not result.issues
 
     output: List[str] = []
-    add_result(output, "Flaky unexpected results", unexpected_results,
-               lambda result: result.flaky)
-    add_result(output, "Stable unexpected results that are known-intermittent",
-               unexpected_results, lambda result: not result.flaky and result.issues)
-    add_result(output, "Stable unexpected results",
-               unexpected_results, is_stable_and_unexpected)
+    add_result(output, "Flaky unexpected results", unexpected_results, lambda result: result.flaky)
+    add_result(
+        output,
+        "Stable unexpected results that are known-intermittent",
+        unexpected_results,
+        lambda result: not result.flaky and result.issues,
+    )
+    add_result(output, "Stable unexpected results", unexpected_results, is_stable_and_unexpected)
     print("\n".join(output))
 
     with open(output_path, "w", encoding="utf-8") as file:
@@ -305,9 +295,7 @@ def filter_intermittents(
 
 
 def write_unexpected_only_raw_log(
-    unexpected_results: List[UnexpectedResult],
-    raw_log_file: str,
-    filtered_raw_log_file: str
+    unexpected_results: List[UnexpectedResult], raw_log_file: str, filtered_raw_log_file: str
 ):
     tests = [result.path for result in unexpected_results]
     print(f"Writing unexpected-only raw log to {filtered_raw_log_file}")
@@ -316,6 +304,5 @@ def write_unexpected_only_raw_log(
         with open(raw_log_file) as input:
             for line in input.readlines():
                 data = json.loads(line)
-                if data["action"] in ["suite_start", "suite_end"] or \
-                        ("test" in data and data["test"] in tests):
+                if data["action"] in ["suite_start", "suite_end"] or ("test" in data and data["test"] in tests):
                     output.write(line)

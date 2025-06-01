@@ -2,4 +2,5 @@ Content-Type: text/html
 Set-Login: logged-out
 Access-Control-Allow-Origin: https://{{host}}:{{ports[https][0]}}
 Access-Control-Allow-Credentials: true
+Clear-Site-Data: "cache"
 Supports-Loading-Mode: fenced-frame

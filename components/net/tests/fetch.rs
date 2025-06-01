@@ -12,6 +12,7 @@ use std::sync::{Arc, Mutex, Weak};
 use std::time::{Duration, SystemTime};
 
 use base::id::TEST_PIPELINE_ID;
+use content_security_policy as csp;
 use crossbeam_channel::{Sender, unbounded};
 use devtools_traits::{HttpRequest as DevtoolsHttpRequest, HttpResponse as DevtoolsHttpResponse};
 use headers::{
@@ -163,6 +164,7 @@ fn test_fetch_blob() {
             assert_eq!(self.buffer, self.expected);
             let _ = self.sender.send(response.clone());
         }
+        fn process_csp_violations(&mut self, _: &Request, _: Vec<csp::Violation>) {}
     }
 
     let context = new_fetch_context(None, None, None);
@@ -223,7 +225,7 @@ fn test_fetch_blob() {
 
 #[test]
 fn test_file() {
-    let path = Path::new("../../resources/servo.css")
+    let path = Path::new("../../resources/ahem.css")
         .canonicalize()
         .unwrap();
     let url = ServoUrl::from_file_path(path.clone()).unwrap();

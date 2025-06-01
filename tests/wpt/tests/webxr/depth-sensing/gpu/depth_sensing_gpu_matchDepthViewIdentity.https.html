@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../resources/webxr_util.js"></script>
+<script src="../../resources/webxr_math_utils.js"></script>
+<script src="../../resources/webxr_test_constants.js"></script>
+<script src="../../resources/webxr_test_asserts.js"></script>
+<script src="../../resources/webxr_test_constants_fake_depth.js"></script>
+<script src="../matchDepthViewValues.js"></script>
+
+<script>
+
+const fakeDeviceInitParams = {
+  supportedModes: ["immersive-ar"],
+  views: VALID_VIEWS,
+  supportedFeatures: ALL_FEATURES,
+  depthSensingData: OFFSET_DEPTH_SENSING_DATA,
+};
+
+xr_session_promise_test("Ensures XRViewGeometry values match XRView when matchDepthView is unset, `gpu-optimized`",
+  depthViewGeometryTestGenerator(/*matchDepthView=*/true),
+  fakeDeviceInitParams,
+  'immersive-ar', {
+    requiredFeatures: ['depth-sensing'],
+    depthSensing: {
+      usagePreference: ['gpu-optimized'],
+      dataFormatPreference: [],
+    },
+  });
+
+xr_session_promise_test("Ensures XRViewGeometry values match XRView when matchDepthView=true, `gpu-optimized`",
+  depthViewGeometryTestGenerator(/*matchDepthView=*/true),
+  fakeDeviceInitParams,
+  'immersive-ar', {
+    requiredFeatures: ['depth-sensing'],
+    depthSensing: {
+      usagePreference: ['gpu-optimized'],
+      dataFormatPreference: [],
+      matchDepthView: true,
+    },
+  });
+
+xr_session_promise_test("Ensures XRViewGeometry values do not match XRView when matchDepthView=false, `gpu-optimized`",
+  depthViewGeometryTestGenerator(/*matchDepthView=*/false),
+  fakeDeviceInitParams,
+  'immersive-ar', {
+    requiredFeatures: ['depth-sensing'],
+    depthSensing: {
+      usagePreference: ['gpu-optimized'],
+      dataFormatPreference: [],
+      matchDepthView: false,
+    },
+  });
+
+</script>

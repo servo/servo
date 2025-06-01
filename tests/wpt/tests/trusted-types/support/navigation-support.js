@@ -1,7 +1,5 @@
-const kNavigationAttempted = "navigationattempted=1";
-
 function navigateToJavascriptURL(reportOnly) {
-    let params = new URLSearchParams(location.search);
+    const params = new URLSearchParams(location.search);
 
     if (!!params.get("defaultpolicy")) {
         trustedTypes.createPolicy("default", {
@@ -26,19 +24,23 @@ function navigateToJavascriptURL(reportOnly) {
     // loaded frame to through DOMContentLoaded. In either case there should be
     // _some_ event that we can expect.
     document.addEventListener("DOMContentLoaded", bounceEventToOpener);
-    document.addEventListener("securitypolicyviolation", bounceEventToOpener);
-
-    let target_script;
-    if (reportOnly) {
-        // Navigate to the non-report-only version of the test. That has the same
-        // event listening setup as this, but is a different target URI.
-        target_script = `location.href='${location.href.replace("-report-only", "") +
-            (location.href.endsWith(".html") ? "?" : "&") + kNavigationAttempted + "&continue"}';`;
-    } else {
-        // We'll use a javascript:-url to navigate to ourselves, so that we can
-        // re-use the messageing mechanisms above.
-        target_script = `location.href='${location.href + "&" + kNavigationAttempted}&continue';`;
+    // Prevent loops.
+    if (params.has("navigationattempted")) {
+      return;
     }
+
+    let url = new URL(
+      reportOnly ?
+      // Navigate to the non-report-only version of the test. That has the same
+      // event listening setup as this, but is a different target URI.
+      location.href.replace("-report-only", "") :
+      // We'll use a javascript:-url to navigate to ourselves, so that we can
+      // re-use the messageing mechanisms above.
+      location.href
+    );
+    url.searchParams.set("navigationattempted", 1);
+    url.searchParams.set("continue", 1);
+    let target_script = `location.href='${url.toString()}';`;
 
     function getAndPreparareNavigationElement(javaScriptURL) {
         let target = "_self";
@@ -67,9 +69,12 @@ function navigateToJavascriptURL(reportOnly) {
     }
 
     const navigationElement = getAndPreparareNavigationElement(`javascript:${target_script}`);
-
-    // Prevent loops.
-    if (!location.search.includes(kNavigationAttempted)) {
-       document.addEventListener("DOMContentLoaded", _ => navigationElement.click());
-    }
+    document.addEventListener("DOMContentLoaded", async _ => {
+      let {violations, exception} =
+        await trusted_type_violations_and_exception_for(_ => navigationElement.click());
+      violations.forEach(violationEvent => bounceEventToOpener(violationEvent));
+      if (!params.get("defaultpolicy") && violations.length == 0) {
+        window.opener.postMessage("No securitypolicyviolation reported!", "*");
+      }
+    });
 }

@@ -245,6 +245,9 @@ pub unsafe fn get_dom_class(obj: *mut JSObject) -> Result<&'static DOMClass, ()>
     if is_dom_proxy(obj) {
         trace!("proxy dom object");
         let dom_class: *const DOMClass = GetProxyHandlerExtra(obj) as *const DOMClass;
+        if dom_class.is_null() {
+            return Err(());
+        }
         return Ok(&*dom_class);
     }
     trace!("not a dom object");
@@ -529,7 +532,7 @@ where
 
 /// Returns whether `value` is an array-like object (Array, FileList,
 /// HTMLCollection, HTMLFormControlsCollection, HTMLOptionsCollection,
-/// NodeList).
+/// NodeList, DOMTokenList).
 ///
 /// # Safety
 /// `cx` must point to a valid, non-null JSContext.
@@ -545,6 +548,10 @@ pub unsafe fn is_array_like<D: crate::DomTypes>(cx: *mut JSContext, value: Handl
         _ => return false,
     };
 
+    // TODO: HTMLAllCollection
+    if root_from_object::<D::DOMTokenList>(object, cx).is_ok() {
+        return true;
+    }
     if root_from_object::<D::FileList>(object, cx).is_ok() {
         return true;
     }

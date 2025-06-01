@@ -13,6 +13,7 @@ use std::sync::{Arc, Mutex};
 
 use base::id::{PipelineId, WebViewId};
 use content_security_policy as csp;
+use devtools_traits::{ScriptToDevtoolsControlMsg, SourceInfo};
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
@@ -20,6 +21,7 @@ use ipc_channel::ipc;
 use js::jsval::UndefinedValue;
 use js::rust::{CompileOptionsWrapper, HandleObject, Stencil, transform_str_to_source_text};
 use net_traits::http_status::HttpStatus;
+use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata,
     RequestBuilder, RequestId,
@@ -30,6 +32,7 @@ use net_traits::{
 };
 use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
+use style::attr::AttrValue;
 use style::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
 use stylo_atoms::Atom;
 use uuid::Uuid;
@@ -42,6 +45,10 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElement_Binding::HTMLElementMethods;
+use crate::dom::bindings::codegen::UnionTypes::{
+    TrustedScriptOrString, TrustedScriptURLOrUSVString,
+};
+use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
@@ -60,6 +67,8 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node, NodeTraits};
 use crate::dom::performanceresourcetiming::InitiatorType;
+use crate::dom::trustedscript::TrustedScript;
+use crate::dom::trustedscripturl::TrustedScriptURL;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::create_a_potential_cors_request;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
@@ -272,19 +281,18 @@ pub(crate) enum ScriptType {
 pub(crate) struct CompiledSourceCode {
     #[ignore_malloc_size_of = "SM handles JS values"]
     pub(crate) source_code: Stencil,
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[conditional_malloc_size_of = "Rc is hard"]
     pub(crate) original_text: Rc<DOMString>,
 }
 
-#[derive(JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub(crate) enum SourceCode {
-    Text(Rc<DOMString>),
+    Text(#[conditional_malloc_size_of] Rc<DOMString>),
     Compiled(CompiledSourceCode),
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct ScriptOrigin {
-    #[ignore_malloc_size_of = "Rc is hard"]
     code: SourceCode,
     #[no_trace]
     url: ServoUrl,
@@ -360,7 +368,7 @@ fn finish_fetching_a_classic_script(
         },
         ExternalScriptKind::Deferred => {
             document = elem.parser_document.as_rooted();
-            document.deferred_script_loaded(elem, load);
+            document.deferred_script_loaded(elem, load, can_gc);
         },
         ExternalScriptKind::ParsingBlocking => {
             document = elem.parser_document.as_rooted();
@@ -535,6 +543,12 @@ impl FetchResponseListener for ClassicContext {
     fn submit_resource_timing(&mut self) {
         network_listener::submit_timing(self, CanGc::note())
     }
+
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+        let global = &self.resource_timing_global();
+        let elem = self.elem.root();
+        global.report_csp_violations(violations, Some(elem.upcast::<Element>()));
+    }
 }
 
 impl ResourceTimingListener for ClassicContext {
@@ -568,6 +582,7 @@ pub(crate) fn script_fetch_request(
     options: ScriptFetchOptions,
     insecure_requests_policy: InsecureRequestsPolicy,
     has_trustworthy_ancestor_origin: bool,
+    policy_container: PolicyContainer,
 ) -> RequestBuilder {
     // We intentionally ignore options' credentials_mode member for classic scripts.
     // The mode is initialized by create_a_potential_cors_request.
@@ -580,6 +595,7 @@ pub(crate) fn script_fetch_request(
         options.referrer,
         insecure_requests_policy,
         has_trustworthy_ancestor_origin,
+        policy_container,
     )
     .origin(origin)
     .pipeline_id(Some(pipeline_id))
@@ -600,15 +616,17 @@ fn fetch_a_classic_script(
 ) {
     // Step 1, 2.
     let doc = script.owner_document();
+    let global = script.global();
     let request = script_fetch_request(
         doc.webview_id(),
         url.clone(),
         cors_setting,
         doc.origin().immutable().clone(),
-        script.global().pipeline_id(),
+        global.pipeline_id(),
         options.clone(),
         doc.insecure_requests_policy(),
         doc.has_trustworthy_ancestor_origin(),
+        global.policy_container(),
     );
     let request = doc.prepare_request(request);
 
@@ -654,7 +672,7 @@ impl HTMLScriptElement {
 
         // Step 5. Let source text be el's child text content.
         // Step 6. If el has no src attribute, and source text is the empty string, then return.
-        let text = self.Text();
+        let text = self.text();
         if text.is_empty() && !element.has_attribute(&local_name!("src")) {
             return;
         }
@@ -737,7 +755,10 @@ impl HTMLScriptElement {
             }
         }
 
-        // Step 21. Charset.
+        // Step 21. If el has a charset attribute, then let encoding be the result of getting
+        // an encoding from the value of the charset attribute.
+        // If el does not have a charset attribute, or if getting an encoding failed,
+        // then let encoding be el's node document's the encoding.
         let encoding = element
             .get_attribute(&ns!(), &local_name!("charset"))
             .and_then(|charset| Encoding::for_label(charset.value().as_bytes()))
@@ -759,9 +780,11 @@ impl HTMLScriptElement {
             ),
         };
 
-        // TODO: Step 24. Nonce.
+        // Step 24. Let cryptographic nonce be el's [[CryptographicNonce]] internal slot's value.
+        let cryptographic_nonce = self.upcast::<Element>().nonce_value();
 
-        // Step 25. Integrity metadata.
+        // Step 25. If el has an integrity attribute, then let integrity metadata be that attribute's value.
+        // Otherwise, let integrity metadata be the empty string.
         let im_attribute = element.get_attribute(&ns!(), &local_name!("integrity"));
         let integrity_val = im_attribute.as_ref().map(|a| a.value());
         let integrity_metadata = match integrity_val {
@@ -769,11 +792,13 @@ impl HTMLScriptElement {
             None => "",
         };
 
-        // TODO: Step 26. Referrer policy
+        // Step 26. Let referrer policy be the current state of el's referrerpolicy content attribute.
+        let referrer_policy = referrer_policy_for_element(self.upcast::<Element>());
 
         // TODO: Step 27. Fetch priority.
 
-        // Step 28. Parser metadata.
+        // Step 28. Let parser metadata be "parser-inserted" if el is parser-inserted,
+        // and "not-parser-inserted" otherwise.
         let parser_metadata = if self.parser_inserted.get() {
             ParserMetadata::ParserInserted
         } else {
@@ -782,11 +807,11 @@ impl HTMLScriptElement {
 
         // Step 29. Fetch options.
         let options = ScriptFetchOptions {
-            cryptographic_nonce: self.upcast::<HTMLElement>().Nonce().into(),
+            cryptographic_nonce,
             integrity_metadata: integrity_metadata.to_owned(),
             parser_metadata,
             referrer: self.global().get_referrer(),
-            referrer_policy: referrer_policy_for_element(self.upcast::<Element>()),
+            referrer_policy,
             credentials_mode: module_credentials_mode,
         };
 
@@ -987,6 +1012,19 @@ impl HTMLScriptElement {
 
             Ok(script) => script,
         };
+
+        if let Some(chan) = self.global().devtools_chan() {
+            let pipeline_id = self.global().pipeline_id();
+            let source_info = SourceInfo {
+                url: script.url.clone(),
+                external: script.external,
+                worker_id: None,
+            };
+            let _ = chan.send(ScriptToDevtoolsControlMsg::ScriptSourceLoaded(
+                pipeline_id,
+                source_info,
+            ));
+        }
 
         if script.type_ == ScriptType::Classic {
             unminify_js(&mut script);
@@ -1239,6 +1277,15 @@ impl HTMLScriptElement {
         let event = Event::new(window.upcast(), type_, bubbles, cancelable, can_gc);
         event.fire(self.upcast(), can_gc)
     }
+
+    fn text(&self) -> DOMString {
+        match self.Text() {
+            TrustedScriptOrString::String(value) => value,
+            TrustedScriptOrString::TrustedScript(trusted_script) => {
+                DOMString::from(trusted_script.to_string())
+            },
+        }
+    }
 }
 
 impl VirtualMethods for HTMLScriptElement {
@@ -1253,7 +1300,7 @@ impl VirtualMethods for HTMLScriptElement {
         if *attr.local_name() == local_name!("src") {
             if let AttributeMutation::Set(_) = mutation {
                 if !self.parser_inserted.get() && self.upcast::<Node>().is_connected() {
-                    self.prepare(CanGc::note());
+                    self.prepare(can_gc);
                 }
             }
         }
@@ -1311,10 +1358,25 @@ impl VirtualMethods for HTMLScriptElement {
 
 impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     // https://html.spec.whatwg.org/multipage/#dom-script-src
-    make_url_getter!(Src, "src");
+    fn Src(&self) -> TrustedScriptURLOrUSVString {
+        let element = self.upcast::<Element>();
+        element.get_trusted_type_url_attribute(&local_name!("src"))
+    }
 
-    // https://html.spec.whatwg.org/multipage/#dom-script-src
-    make_url_setter!(SetSrc, "src");
+    /// <https://w3c.github.io/trusted-types/dist/spec/#the-src-idl-attribute>
+    fn SetSrc(&self, value: TrustedScriptURLOrUSVString, can_gc: CanGc) -> Fallible<()> {
+        let element = self.upcast::<Element>();
+        let local_name = &local_name!("src");
+        let value = TrustedScriptURL::get_trusted_script_url_compliant_string(
+            &element.owner_global(),
+            value,
+            "HTMLScriptElement",
+            local_name,
+            can_gc,
+        )?;
+        element.set_attribute(local_name, AttrValue::String(value), can_gc);
+        Ok(())
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-type
     make_getter!(Type, "type");
@@ -1383,14 +1445,77 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     // https://html.spec.whatwg.org/multipage/#dom-script-referrerpolicy
     make_setter!(SetReferrerPolicy, "referrerpolicy");
 
-    // https://html.spec.whatwg.org/multipage/#dom-script-text
-    fn Text(&self) -> DOMString {
-        self.upcast::<Node>().child_text_content()
+    /// <https://w3c.github.io/trusted-types/dist/spec/#dom-htmlscriptelement-innertext>
+    fn InnerText(&self, can_gc: CanGc) -> TrustedScriptOrString {
+        // Step 1: Return the result of running get the text steps with this.
+        TrustedScriptOrString::String(self.upcast::<HTMLElement>().get_inner_outer_text(can_gc))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-script-text
-    fn SetText(&self, value: DOMString, can_gc: CanGc) {
-        self.upcast::<Node>().SetTextContent(Some(value), can_gc)
+    /// <https://w3c.github.io/trusted-types/dist/spec/#the-innerText-idl-attribute>
+    fn SetInnerText(&self, input: TrustedScriptOrString, can_gc: CanGc) -> Fallible<()> {
+        // Step 1: Let value be the result of calling Get Trusted Type compliant string with TrustedScript,
+        // this's relevant global object, the given value, HTMLScriptElement innerText, and script.
+        let value = TrustedScript::get_trusted_script_compliant_string(
+            &self.owner_global(),
+            input,
+            "HTMLScriptElement",
+            "innerText",
+            can_gc,
+        )?;
+        // Step 3: Run set the inner text steps with this and value.
+        self.upcast::<HTMLElement>()
+            .set_inner_text(DOMString::from(value), can_gc);
+        Ok(())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-script-text>
+    fn Text(&self) -> TrustedScriptOrString {
+        TrustedScriptOrString::String(self.upcast::<Node>().child_text_content())
+    }
+
+    /// <https://w3c.github.io/trusted-types/dist/spec/#the-text-idl-attribute>
+    fn SetText(&self, value: TrustedScriptOrString, can_gc: CanGc) -> Fallible<()> {
+        // Step 1: Let value be the result of calling Get Trusted Type compliant string with TrustedScript,
+        // this's relevant global object, the given value, HTMLScriptElement text, and script.
+        let value = TrustedScript::get_trusted_script_compliant_string(
+            &self.owner_global(),
+            value,
+            "HTMLScriptElement",
+            "text",
+            can_gc,
+        )?;
+        // Step 2: Set this's script text value to the given value.
+        // TODO: Implement for https://w3c.github.io/trusted-types/dist/spec/#prepare-script-text
+        // Step 3: String replace all with the given value within this.
+        Node::string_replace_all(DOMString::from(value), self.upcast::<Node>(), can_gc);
+        Ok(())
+    }
+
+    /// <https://w3c.github.io/trusted-types/dist/spec/#the-textContent-idl-attribute>
+    fn GetTextContent(&self) -> Option<TrustedScriptOrString> {
+        // Step 1: Return the result of running get text content with this.
+        Some(TrustedScriptOrString::String(
+            self.upcast::<Node>().GetTextContent()?,
+        ))
+    }
+
+    /// <https://w3c.github.io/trusted-types/dist/spec/#the-textContent-idl-attribute>
+    fn SetTextContent(&self, value: Option<TrustedScriptOrString>, can_gc: CanGc) -> Fallible<()> {
+        // Step 1: Let value be the result of calling Get Trusted Type compliant string with TrustedScript,
+        // this's relevant global object, the given value, HTMLScriptElement textContent, and script.
+        let value = TrustedScript::get_trusted_script_compliant_string(
+            &self.owner_global(),
+            value.unwrap_or(TrustedScriptOrString::String(DOMString::from(""))),
+            "HTMLScriptElement",
+            "textContent",
+            can_gc,
+        )?;
+        // Step 2: Set this's script text value to value.
+        // TODO: Implement for https://w3c.github.io/trusted-types/dist/spec/#prepare-script-text
+        // Step 3: Run set text content with this and value.
+        self.upcast::<Node>()
+            .SetTextContent(Some(DOMString::from(value)), can_gc);
+        Ok(())
     }
 }
 

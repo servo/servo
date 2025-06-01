@@ -22,13 +22,35 @@
         domain: '{{host}}',
       });
       event.source.postMessage('Cookie has been set', event.origin);
+    } else if (opname === 'set-cookie-without-domain-attr') {
+      const { name, value } = event.data
+      await cookieStore.set({
+        name,
+        value,
+      });
+      event.source.postMessage('Cookie has been set', event.origin);
     } else if (opname === 'get-cookie') {
       const { name, options } = event.data
       const frameCookie = await cookieStore.get(name, options);
       event.source.postMessage({frameCookie}, event.origin);
+    } else if (opname === 'delete-cookie-without-domain-attr') {
+      const { name } = event.data
+      await cookieStore.delete({name});
+      event.source.postMessage('Cookie has been deleted', event.origin);
     } else if (opname === 'push-state') {
       history.pushState("foo", null, "some/path");
       event.source.postMessage('pushState called');
+    } else if (opname === "set-host-cookie") {
+      const { name, value } = event.data
+      await cookieStore.set({
+        name,
+        value,
+      });
+      event.source.postMessage('Cookie has been set', event.origin);
+    } else if (opname === "delete-host-cookie") {
+      const { name} = event.data
+      await cookieStore.delete({ name: name});
+      event.source.postMessage('Cookie has been deleted', event.origin);
     }
   });
 </script>

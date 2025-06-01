@@ -18,6 +18,7 @@ crown = ['js/crown']
 debugmozjs = ['js/debugmozjs']
 jitspew = ['js/jitspew']
 profilemozjs = ['js/profilemozjs']
+testbinding = ["script_bindings/testbinding"]
 tracing = ["dep:tracing", "script_bindings/tracing"]
 webgl_backtrace = ["canvas_traits/webgl_backtrace"]
 js_backtrace = []
@@ -49,6 +50,7 @@ canvas_traits = { workspace = true }
 cbc = { workspace = true }
 chrono = { workspace = true }
 cipher = { workspace = true }
+compositing_traits = { workspace = true }
 constellation_traits = { workspace = true }
 content-security-policy = { workspace = true }
 cookie = { workspace = true }
@@ -83,6 +85,7 @@ libc = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
+markup5ever = { workspace = true }
 media = { path = "../media" }
 metrics = { path = "../metrics" }
 mime = { workspace = true }
@@ -91,13 +94,11 @@ net_traits = { workspace = true }
 nom = "7.1.3"
 num-traits = { workspace = true }
 num_cpus = { workspace = true }
-parking_lot = { workspace = true }
 percent-encoding = { workspace = true }
 phf = "0.11"
 pixels = { path = "../pixels" }
 profile_traits = { workspace = true }
 range = { path = "../range" }
-ref_filter_map = "1.0.1"
 regex = { workspace = true }
 script_bindings = { path = "../script_bindings" }
 script_layout_interface = { workspace = true }
@@ -112,6 +113,7 @@ servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }
 servo_rand = { path = "../rand" }
 servo_url = { path = "../url" }
+snapshot = { workspace = true }
 smallvec = { workspace = true, features = ["union"] }
 strum = { workspace = true }
 strum_macros = { workspace = true }
@@ -129,12 +131,12 @@ tracing = { workspace = true, optional = true }
 unicode-bidi = { workspace = true }
 unicode-segmentation = { workspace = true }
 url = { workspace = true }
+urlpattern = { workspace = true }
 utf-8 = "0.7"
 uuid = { workspace = true, features = ["serde"] }
 webdriver = { workspace = true }
 webgpu_traits = { workspace = true }
 webrender_api = { workspace = true }
-webrender_traits = { workspace = true }
 webxr-api = { workspace = true, features = ["ipc"], optional = true }
 wgpu-core = { workspace = true }
 wgpu-types = { workspace = true }

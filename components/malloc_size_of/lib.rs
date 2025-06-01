@@ -50,8 +50,11 @@ use std::cell::OnceCell;
 use std::collections::BinaryHeap;
 use std::hash::{BuildHasher, Hash};
 use std::ops::Range;
+use std::rc::Rc;
 use std::sync::Arc;
 
+use style::properties::ComputedValues;
+use style::values::generics::length::GenericLengthPercentageOrAuto;
 pub use stylo_malloc_size_of::MallocSizeOfOps;
 use uuid::Uuid;
 
@@ -216,6 +219,26 @@ where
 {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.0.size_of(ops) + self.1.size_of(ops) + self.2.size_of(ops) + self.3.size_of(ops)
+    }
+}
+
+impl<T: MallocConditionalSizeOf> MallocConditionalSizeOf for Option<T> {
+    fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        if let Some(val) = self.as_ref() {
+            val.conditional_size_of(ops)
+        } else {
+            0
+        }
+    }
+}
+
+impl<T: MallocConditionalSizeOf> MallocConditionalSizeOf for Vec<T> {
+    fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let mut n = self.shallow_size_of(ops);
+        for elem in self.iter() {
+            n += elem.conditional_size_of(ops);
+        }
+        n
     }
 }
 
@@ -556,6 +579,28 @@ impl<T: MallocSizeOf> MallocConditionalSizeOf for Arc<T> {
     }
 }
 
+impl<T> MallocUnconditionalShallowSizeOf for Rc<T> {
+    fn unconditional_shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        unsafe { ops.malloc_size_of(Rc::as_ptr(self)) }
+    }
+}
+
+impl<T: MallocSizeOf> MallocUnconditionalSizeOf for Rc<T> {
+    fn unconditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.unconditional_shallow_size_of(ops) + (**self).size_of(ops)
+    }
+}
+
+impl<T: MallocSizeOf> MallocConditionalSizeOf for Rc<T> {
+    fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        if ops.have_seen_ptr(Rc::as_ptr(self)) {
+            0
+        } else {
+            self.unconditional_size_of(ops)
+        }
+    }
+}
+
 /// If a mutex is stored directly as a member of a data type that is being measured,
 /// it is the unique owner of its contents and deserves to be measured.
 ///
@@ -688,9 +733,27 @@ impl<T> MallocSizeOf for ipc_channel::ipc::IpcSender<T> {
     }
 }
 
+impl<T> MallocSizeOf for ipc_channel::ipc::IpcReceiver<T> {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        0
+    }
+}
+
+impl MallocSizeOf for ipc_channel::ipc::IpcSharedMemory {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        self.len()
+    }
+}
+
 impl<T: MallocSizeOf> MallocSizeOf for accountable_refcell::RefCell<T> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.borrow().size_of(ops)
+    }
+}
+
+impl MallocSizeOf for servo_arc::Arc<ComputedValues> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.conditional_size_of(ops)
     }
 }
 
@@ -711,6 +774,7 @@ malloc_size_of_is_0!(content_security_policy::Destination);
 malloc_size_of_is_0!(http::StatusCode);
 malloc_size_of_is_0!(app_units::Au);
 malloc_size_of_is_0!(keyboard_types::Modifiers);
+malloc_size_of_is_0!(mime::Mime);
 malloc_size_of_is_0!(std::num::NonZeroU64);
 malloc_size_of_is_0!(std::num::NonZeroUsize);
 malloc_size_of_is_0!(std::sync::atomic::AtomicBool);
@@ -719,8 +783,18 @@ malloc_size_of_is_0!(std::sync::atomic::AtomicUsize);
 malloc_size_of_is_0!(std::time::Duration);
 malloc_size_of_is_0!(std::time::Instant);
 malloc_size_of_is_0!(std::time::SystemTime);
+malloc_size_of_is_0!(resvg::usvg::Tree);
+malloc_size_of_is_0!(style::data::ElementData);
 malloc_size_of_is_0!(style::font_face::SourceList);
+malloc_size_of_is_0!(style::properties::ComputedValues);
+malloc_size_of_is_0!(style::properties::declaration_block::PropertyDeclarationBlock);
 malloc_size_of_is_0!(style::queries::values::PrefersColorScheme);
+malloc_size_of_is_0!(style::stylesheets::Stylesheet);
+malloc_size_of_is_0!(style::values::specified::source_size_list::SourceSizeList);
+malloc_size_of_is_0!(taffy::Layout);
+malloc_size_of_is_0!(unicode_bidi::Level);
+malloc_size_of_is_0!(unicode_script::Script);
+malloc_size_of_is_0!(urlpattern::UrlPattern);
 
 macro_rules! malloc_size_of_is_webrender_malloc_size_of(
     ($($ty:ty),+) => (
@@ -740,6 +814,7 @@ malloc_size_of_is_webrender_malloc_size_of!(webrender_api::BorderStyle);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::BoxShadowClipMode);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::ColorF);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::ExtendMode);
+malloc_size_of_is_webrender_malloc_size_of!(webrender_api::FontKey);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::FontInstanceKey);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::GlyphInstance);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::GradientStop);
@@ -784,6 +859,20 @@ where
     }
 }
 
+impl<T> MallocSizeOf for style::shared_lock::Locked<T> {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        // TODO: fix this implementation when Locked derives MallocSizeOf.
+        0
+        //<style::shared_lock::Locked<T> as stylo_malloc_size_of::MallocSizeOf>::size_of(self, ops)
+    }
+}
+
+impl<T: MallocSizeOf> MallocSizeOf for atomic_refcell::AtomicRefCell<T> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.borrow().size_of(ops)
+    }
+}
+
 malloc_size_of_is_stylo_malloc_size_of!(style::animation::DocumentAnimationSet);
 malloc_size_of_is_stylo_malloc_size_of!(style::attr::AttrIdentifier);
 malloc_size_of_is_stylo_malloc_size_of!(style::attr::AttrValue);
@@ -791,7 +880,15 @@ malloc_size_of_is_stylo_malloc_size_of!(style::color::AbsoluteColor);
 malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::font_variant_caps::T);
 malloc_size_of_is_stylo_malloc_size_of!(style::dom::OpaqueNode);
 malloc_size_of_is_stylo_malloc_size_of!(style::invalidation::element::restyle_hints::RestyleHint);
+malloc_size_of_is_stylo_malloc_size_of!(style::logical_geometry::WritingMode);
 malloc_size_of_is_stylo_malloc_size_of!(style::media_queries::MediaList);
+malloc_size_of_is_stylo_malloc_size_of!(
+    style::properties::longhands::align_items::computed_value::T
+);
+malloc_size_of_is_stylo_malloc_size_of!(
+    style::properties::longhands::flex_direction::computed_value::T
+);
+malloc_size_of_is_stylo_malloc_size_of!(style::properties::longhands::flex_wrap::computed_value::T);
 malloc_size_of_is_stylo_malloc_size_of!(style::properties::style_structs::Font);
 malloc_size_of_is_stylo_malloc_size_of!(style::selector_parser::PseudoElement);
 malloc_size_of_is_stylo_malloc_size_of!(style::selector_parser::RestyleDamage);
@@ -799,8 +896,22 @@ malloc_size_of_is_stylo_malloc_size_of!(style::selector_parser::Snapshot);
 malloc_size_of_is_stylo_malloc_size_of!(style::shared_lock::SharedRwLock);
 malloc_size_of_is_stylo_malloc_size_of!(style::stylesheets::DocumentStyleSheet);
 malloc_size_of_is_stylo_malloc_size_of!(style::stylist::Stylist);
+malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::AlignContent);
+malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::BorderStyle);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontStretch);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontStyle);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontWeight);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::font::SingleFontFamily);
+malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::JustifyContent);
+malloc_size_of_is_stylo_malloc_size_of!(style::values::specified::align::AlignFlags);
+malloc_size_of_is_stylo_malloc_size_of!(style::values::specified::TextDecorationLine);
 malloc_size_of_is_stylo_malloc_size_of!(stylo_dom::ElementState);
+
+impl<T> MallocSizeOf for GenericLengthPercentageOrAuto<T>
+where
+    T: stylo_malloc_size_of::MallocSizeOf,
+{
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        <GenericLengthPercentageOrAuto<T> as stylo_malloc_size_of::MallocSizeOf>::size_of(self, ops)
+    }
+}

@@ -18,5 +18,6 @@ ipc-channel = { workspace = true }
 malloc_size_of = { workspace = true }
 serde = { workspace = true }
 webrender_api = { workspace = true }
-wgpu-core = { workspace = true }
+wgpu-core = { workspace = true, features = ["serde", "wgsl"] }
 wgpu-types = { workspace = true }
+snapshot = { workspace = true }

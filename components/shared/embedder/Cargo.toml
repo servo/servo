@@ -12,11 +12,12 @@ name = "embedder_traits"
 path = "lib.rs"
 
 [features]
-webxr = ["dep:webxr-api"]
+# bakes default resources into the library.
+# This feature is mainly intended for testing purposes.
+baked-default-resources = []
 
 [dependencies]
 base = { workspace = true }
-cfg-if = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
 euclid = { workspace = true }
@@ -34,7 +35,7 @@ serde = { workspace = true }
 servo_url = { path = "../../url" }
 strum_macros = { workspace = true }
 stylo_traits = { workspace = true }
+stylo = { workspace = true }
 url = { workspace = true }
 webdriver = { workspace = true }
 webrender_api = { workspace = true }
-webxr-api = { workspace = true, features = ["ipc"], optional = true }

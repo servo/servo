@@ -1,5 +1,14 @@
-class ReadOperation {
+class WriteOperation {
   async run() {
-    return await this.sharedStorage.get("prerender");
+    return this.sharedStorage.set("prerender", true);
   }
 }
+
+class SelectURLOperation {
+  async run() {
+    return 0;
+  }
+}
+
+register('test-prerender', WriteOperation);
+register('test-prerender-selection', SelectURLOperation);

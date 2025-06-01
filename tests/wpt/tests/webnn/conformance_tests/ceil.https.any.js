@@ -57,7 +57,8 @@ const ceilTests = [
             69.71428680419922,   5.0031023025512695,  84.36833953857422,
             -9.390542030334473,  -27.856616973876953, -34.895931243896484
           ],
-          'descriptor': {shape: [24], dataType: 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'},
+          'constant': true
         }
       },
       'operators': [{
@@ -278,7 +279,8 @@ const ceilTests = [
             -5.6171875, 61.53125,  -87.8125,   69.6875,   5.00390625,
             84.375,     -9.390625, -27.859375, -34.90625
           ],
-          'descriptor': {shape: [24], dataType: 'float16'}
+          'descriptor': {shape: [24], dataType: 'float16'},
+          'constant': true
         }
       },
       'operators': [{

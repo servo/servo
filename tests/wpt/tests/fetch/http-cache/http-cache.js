@@ -43,17 +43,25 @@ function makeTest (test) {
     var uuid = token()
     var requests = expandTemplates(test)
     var fetchFunctions = makeFetchFunctions(requests, uuid)
-    return runTest(fetchFunctions, requests, uuid)
+    return runTest(fetchFunctions, test, requests, uuid)
   }
 }
 
 function makeFetchFunctions(requests, uuid) {
     var fetchFunctions = []
     for (let i = 0; i < requests.length; ++i) {
+      var config = requests[i];
+      if (config.skip) {
+        // Skip request are ones that we expect the browser to make in
+        // response to a redirect. We don't fetch them again, but
+        // the server needs them in the config to be able to respond to
+        // them.
+        continue;
+      }
       fetchFunctions.push({
         code: function (idx) {
           var config = requests[idx]
-          var url = makeTestUrl(uuid, config)
+          var url = makeTestUrl(uuid, config);
           var init = fetchInit(requests, config)
           return fetch(url, init)
             .then(makeCheckResponse(idx, config))
@@ -71,7 +79,7 @@ function makeFetchFunctions(requests, uuid) {
     return fetchFunctions
 }
 
-function runTest(fetchFunctions, requests, uuid) {
+function runTest(fetchFunctions, test, requests, uuid) {
     var idx = 0
     function runNextStep () {
       if (fetchFunctions.length) {
@@ -93,7 +101,7 @@ function runTest(fetchFunctions, requests, uuid) {
       .then(function () {
         return getServerState(uuid)
       }).then(function (testState) {
-        checkRequests(requests, testState)
+        checkRequests(test, requests, testState)
         return Promise.resolve()
       })
 }
@@ -153,7 +161,7 @@ function makeCheckResponse (idx, config) {
     if ('expected_status' in config) {
       assert_equals(response.status, config.expected_status,
         `Response ${reqNum} status is ${response.status}, not ${config.expected_status}`)
-    } else if ('response_status' in config) {
+    } else if ('response_status' in config && config.response_status[0] != 301) {
       assert_equals(response.status, config.response_status[0],
         `Response ${reqNum} status is ${response.status}, not ${config.response_status[0]}`)
     } else {
@@ -197,7 +205,7 @@ function makeCheckResponseBody (config, uuid) {
   }
 }
 
-function checkRequests (requests, testState) {
+function checkRequests (test, requests, testState) {
   var testIdx = 0
   for (let i = 0; i < requests.length; ++i) {
     var expectedValidatingHeaders = []
@@ -225,6 +233,9 @@ function checkRequests (requests, testState) {
       })
     }
   }
+  if (test?.check_count && testState) {
+    assert_equals(requests.length, testState.length);
+  }
 }
 
 function pause () {
@@ -243,6 +254,9 @@ function makeTestUrl (uuid, config) {
   }
   if ('query_arg' in config) {
     arg = `&target=${config.query_arg}`
+  }
+  if ('url_params' in config) {
+    arg = `${arg}&${config.url_params}`
   }
   return `${base_url}resources/http-cache.py?dispatch=test&uuid=${uuid}${arg}`
 }

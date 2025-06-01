@@ -8,8 +8,7 @@
 #![allow(dead_code)]
 
 use core::ffi::c_char;
-use std::cell::{Cell, LazyCell, RefCell};
-use std::collections::HashSet;
+use std::cell::Cell;
 use std::ffi::CString;
 use std::io::{Write, stdout};
 use std::ops::Deref;
@@ -20,7 +19,7 @@ use std::time::{Duration, Instant};
 use std::{os, ptr, thread};
 
 use background_hang_monitor_api::ScriptHangAnnotation;
-use content_security_policy::{CheckResult, PolicyDisposition};
+use content_security_policy::CheckResult;
 use js::conversions::jsstr_to_string;
 use js::glue::{
     CollectServoSizes, CreateJobQueue, DeleteJobQueue, DispatchableRun, JobQueueTraps,
@@ -46,7 +45,7 @@ pub(crate) use js::rust::ThreadSafeJSContext;
 use js::rust::wrappers::{GetPromiseIsHandled, JS_GetPromiseResult};
 use js::rust::{
     Handle, HandleObject as RustHandleObject, IntoHandle, JSEngine, JSEngineHandle, ParentRuntime,
-    Runtime as RustRuntime, describe_scripted_caller,
+    Runtime as RustRuntime,
 };
 use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;
@@ -83,7 +82,6 @@ use crate::microtask::{EnqueuedPromiseCallback, Microtask, MicrotaskQueue};
 use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_module::EnsureModuleHooksInitialized;
 use crate::script_thread::trace_thread;
-use crate::security_manager::CSPViolationReporter;
 use crate::task_source::SendableTaskSource;
 
 static JOB_QUEUE_TRAPS: JobQueueTraps = JobQueueTraps {
@@ -374,10 +372,6 @@ unsafe extern "C" fn content_security_policy_allows(
     let cx = JSContext::from_ptr(cx);
     wrap_panic(&mut || {
         // SpiderMonkey provides null pointer when executing webassembly.
-        let sample = match sample {
-            sample if !sample.is_null() => Some(jsstr_to_string(*cx, *sample)),
-            _ => None,
-        };
         let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
         let global = GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
         let Some(csp_list) = global.get_csp_list() else {
@@ -385,36 +379,19 @@ unsafe extern "C" fn content_security_policy_allows(
             return;
         };
 
-        let is_js_evaluation_allowed = csp_list.is_js_evaluation_allowed() == CheckResult::Allowed;
-        let is_wasm_evaluation_allowed =
-            csp_list.is_wasm_evaluation_allowed() == CheckResult::Allowed;
-        let scripted_caller = describe_scripted_caller(*cx).unwrap_or_default();
-
-        allowed = match runtime_code {
-            RuntimeCode::JS if is_js_evaluation_allowed => true,
-            RuntimeCode::WASM if is_wasm_evaluation_allowed => true,
-            _ => false,
+        let (is_evaluation_allowed, violations) = match runtime_code {
+            RuntimeCode::JS => {
+                let source = match sample {
+                    sample if !sample.is_null() => &jsstr_to_string(*cx, *sample),
+                    _ => "",
+                };
+                csp_list.is_js_evaluation_allowed(source)
+            },
+            RuntimeCode::WASM => csp_list.is_wasm_evaluation_allowed(),
         };
 
-        if !allowed {
-            // FIXME: Don't fire event if `script-src` and `default-src`
-            // were not passed.
-            for policy in csp_list.0 {
-                let task = CSPViolationReporter::new(
-                    &global,
-                    sample.clone(),
-                    policy.disposition == PolicyDisposition::Report,
-                    runtime_code,
-                    scripted_caller.filename.clone(),
-                    scripted_caller.line,
-                    scripted_caller.col,
-                );
-                global
-                    .task_manager()
-                    .dom_manipulation_task_source()
-                    .queue(task);
-            }
-        }
+        global.report_csp_violations(violations, None);
+        allowed = is_evaluation_allowed == CheckResult::Allowed;
     });
     allowed
 }
@@ -811,9 +788,7 @@ fn in_range<T: PartialOrd + Copy>(val: T, min: T, max: T) -> Option<T> {
     }
 }
 
-thread_local!(static SEEN_POINTERS: LazyCell<RefCell<HashSet<*const c_void>>> = const {
-    LazyCell::new(|| RefCell::new(HashSet::new()))
-});
+thread_local!(static MALLOC_SIZE_OF_OPS: Cell<*mut MallocSizeOfOps> = const { Cell::new(ptr::null_mut()) });
 
 #[allow(unsafe_code)]
 unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
@@ -824,14 +799,8 @@ unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
             if dom_object.is_null() {
                 return 0;
             }
-            let seen_pointer =
-                move |ptr| SEEN_POINTERS.with(|pointers| !pointers.borrow_mut().insert(ptr));
-            let mut ops = MallocSizeOfOps::new(
-                servo_allocator::usable_size,
-                None,
-                Some(Box::new(seen_pointer)),
-            );
-            (v.malloc_size_of)(&mut ops, dom_object)
+            let ops = MALLOC_SIZE_OF_OPS.get();
+            (v.malloc_size_of)(&mut *ops, dom_object)
         },
         Err(_e) => 0,
     }
@@ -936,13 +905,13 @@ pub(crate) use script_bindings::script_runtime::JSContext;
 /// Extra methods for the JSContext type defined in script_bindings, when
 /// the methods are only called by code in the script crate.
 pub(crate) trait JSContextHelper {
-    fn get_reports(&self, path_seg: String) -> Vec<Report>;
+    fn get_reports(&self, path_seg: String, ops: &mut MallocSizeOfOps) -> Vec<Report>;
 }
 
 impl JSContextHelper for JSContext {
     #[allow(unsafe_code)]
-    fn get_reports(&self, path_seg: String) -> Vec<Report> {
-        SEEN_POINTERS.with(|pointers| pointers.borrow_mut().clear());
+    fn get_reports(&self, path_seg: String, ops: &mut MallocSizeOfOps) -> Vec<Report> {
+        MALLOC_SIZE_OF_OPS.with(|ops_tls| ops_tls.set(ops));
         let stats = unsafe {
             let mut stats = ::std::mem::zeroed();
             if !CollectServoSizes(**self, &mut stats, Some(get_size)) {
@@ -950,6 +919,7 @@ impl JSContextHelper for JSContext {
             }
             stats
         };
+        MALLOC_SIZE_OF_OPS.with(|ops| ops.set(ptr::null_mut()));
 
         let mut reports = vec![];
         let mut report = |mut path_suffix, kind, size| {

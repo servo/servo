@@ -207,10 +207,11 @@ pub(crate) mod macros;
 
 #[allow(unused_imports)]
 pub(crate) mod types {
-    include!(concat!(env!("BINDINGS_OUT_DIR"), "/InterfaceTypes.rs"));
+    include!(concat!(env!("OUT_DIR"), "/InterfaceTypes.rs"));
 }
 
 pub(crate) mod abortcontroller;
+pub(crate) mod abortsignal;
 #[allow(dead_code)]
 pub(crate) mod abstractrange;
 pub(crate) mod abstractworker;
@@ -250,7 +251,9 @@ pub(crate) mod channelmergernode;
 pub(crate) mod channelsplitternode;
 pub(crate) mod characterdata;
 pub(crate) mod client;
+pub(crate) mod clipboard;
 pub(crate) mod clipboardevent;
+pub(crate) mod clipboarditem;
 pub(crate) mod closeevent;
 pub(crate) mod comment;
 pub(crate) mod compositionevent;
@@ -545,18 +548,31 @@ pub(crate) mod submitevent;
 pub(crate) mod subtlecrypto;
 pub(crate) mod svgelement;
 pub(crate) mod svggraphicselement;
+pub(crate) mod svgimageelement;
 pub(crate) mod svgsvgelement;
+#[cfg(feature = "testbinding")]
 pub(crate) mod testbinding;
+#[cfg(feature = "testbinding")]
 pub(crate) mod testbindingiterable;
+#[cfg(feature = "testbinding")]
 pub(crate) mod testbindingmaplikewithinterface;
+#[cfg(feature = "testbinding")]
 pub(crate) mod testbindingmaplikewithprimitive;
+#[cfg(feature = "testbinding")]
 pub(crate) mod testbindingpairiterable;
+#[cfg(feature = "testbinding")]
 pub(crate) mod testbindingproxy;
+#[cfg(feature = "testbinding")]
 pub(crate) mod testbindingsetlikewithinterface;
+#[cfg(feature = "testbinding")]
 pub(crate) mod testbindingsetlikewithprimitive;
+#[cfg(feature = "testbinding")]
 pub(crate) mod testns;
+#[cfg(feature = "testbinding")]
 pub(crate) mod testutils;
+#[cfg(feature = "testbinding")]
 pub(crate) mod testworklet;
+#[cfg(feature = "testbinding")]
 pub(crate) mod testworkletglobalscope;
 pub(crate) mod text;
 pub(crate) mod textcontrol;
@@ -575,6 +591,11 @@ pub(crate) mod touchlist;
 pub(crate) mod trackevent;
 pub(crate) mod transitionevent;
 pub(crate) mod treewalker;
+pub(crate) mod trustedhtml;
+pub(crate) mod trustedscript;
+pub(crate) mod trustedscripturl;
+pub(crate) mod trustedtypepolicy;
+pub(crate) mod trustedtypepolicyfactory;
 pub(crate) mod uievent;
 pub(crate) mod underlyingsourcecontainer;
 pub(crate) mod url;
@@ -624,6 +645,8 @@ pub(crate) mod webgpu;
 pub(crate) use self::webgpu::*;
 #[cfg(not(feature = "webgpu"))]
 pub(crate) mod gpucanvascontext;
+pub(crate) mod transformstream;
+pub(crate) mod transformstreamdefaultcontroller;
 pub(crate) mod wheelevent;
 #[allow(dead_code)]
 pub(crate) mod window;

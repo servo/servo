@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_bindings::num::Finite;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -22,12 +23,16 @@ use crate::script_runtime::CanGc;
 pub(crate) struct ProgressEvent {
     event: Event,
     length_computable: bool,
-    loaded: u64,
-    total: u64,
+    loaded: Finite<f64>,
+    total: Finite<f64>,
 }
 
 impl ProgressEvent {
-    fn new_inherited(length_computable: bool, loaded: u64, total: u64) -> ProgressEvent {
+    fn new_inherited(
+        length_computable: bool,
+        loaded: Finite<f64>,
+        total: Finite<f64>,
+    ) -> ProgressEvent {
         ProgressEvent {
             event: Event::new_inherited(),
             length_computable,
@@ -43,8 +48,8 @@ impl ProgressEvent {
         can_bubble: EventBubbles,
         cancelable: EventCancelable,
         length_computable: bool,
-        loaded: u64,
-        total: u64,
+        loaded: Finite<f64>,
+        total: Finite<f64>,
         can_gc: CanGc,
     ) -> DomRoot<ProgressEvent> {
         Self::new_with_proto(
@@ -68,8 +73,8 @@ impl ProgressEvent {
         can_bubble: EventBubbles,
         cancelable: EventCancelable,
         length_computable: bool,
-        loaded: u64,
-        total: u64,
+        loaded: Finite<f64>,
+        total: Finite<f64>,
         can_gc: CanGc,
     ) -> DomRoot<ProgressEvent> {
         let ev = reflect_dom_object_with_proto(
@@ -121,12 +126,12 @@ impl ProgressEventMethods<crate::DomTypeHolder> for ProgressEvent {
     }
 
     // https://xhr.spec.whatwg.org/#dom-progressevent-loaded
-    fn Loaded(&self) -> u64 {
+    fn Loaded(&self) -> Finite<f64> {
         self.loaded
     }
 
     // https://xhr.spec.whatwg.org/#dom-progressevent-total
-    fn Total(&self) -> u64 {
+    fn Total(&self) -> Finite<f64> {
         self.total
     }
 

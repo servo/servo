@@ -14,7 +14,7 @@
 
 <script>
   const dialog = document.getElementById('dialog');
-  async function openDialog(openMethod) {
+  function openDialog(openMethod) {
     dialog.close();
     if (!dialog.open) {
       assert_false(dialog.matches(':open'),'Should be closed to start');
@@ -32,15 +32,21 @@
           assert_unreached('Invalid open method');
       }
     }
-    await waitForRender();
     assert_true(dialog.open,'Should be open now');
     assert_true(dialog.matches(':open'),'Should be open now (pseudo)');
+  }
+
+  function awaitClose(el, signal) {
+    const {promise, resolve} = Promise.withResolvers();
+    el.addEventListener('close', resolve, { signal });
+    return promise
   }
 
   const changeMethods = [
     {
       description: 'focusin removes and reinserts',
       setup: (openMethod,signal) => {
+        outside.focus();
         document.body.addEventListener('focusin',(e) => {
           if (!dialog.contains(e.target)) {
             const position = dialog.nextElementSibling;
@@ -48,21 +54,29 @@
             document.body.insertBefore(dialog,position);
           }
         }, {signal});
+
+        // Await for the close event before asserting.
+        return awaitClose(dialog, signal)
       }
     },
     {
       description: 'focusin closes dialog',
       setup: (openMethod,signal) => {
+        outside.focus();
         document.body.addEventListener('focusin',(e) => {
           if (!dialog.contains(e.target)) {
             dialog.close();
           }
         }, {signal});
+
+        // Await for the close event before asserting.
+        return awaitClose(dialog, signal)
       }
     },
     {
       description: 'focusin calls showModal',
       setup: (openMethod,signal) => {
+        outside.focus();
         document.body.addEventListener('focusin',(e) => {
           if (!dialog.contains(e.target)) {
             try {
@@ -70,6 +84,11 @@
             } catch {}
           }
         }, {signal});
+
+        // Await for the close event before asserting.
+        return awaitClose(dialog, signal)
+      },
+      respondsTo(openMethod) {
         // Since the closing steps will trigger another call to showModal
         // in this case, before we're done with closing, we should expect
         // that the ESC/light dismiss still results in a showing modal, if it
@@ -78,19 +97,16 @@
       }
     },
     {
-      description: 'requestIdleCallback calls showModal',
-      setup: (openMethod,signal) => {
-        requestIdleCallback(() => {
-          try {
-            dialog.showModal();
-          } catch {}
-        });
-      }
-    },
-    {
       description: 'beforetoggle closes dialog',
       setup: (openMethod,signal) => {
-        dialog.addEventListener('beforetoggle',() => dialog.close(), {signal});
+        dialog.addEventListener('beforetoggle', (e) => {
+          if (e.newState == "open") {
+            dialog.close()
+          }
+        }, {signal});
+
+        // Await for the close event before asserting.
+        return awaitClose(dialog, signal)
       }
     },
     {
@@ -105,44 +121,62 @@
             dialog.showModal();
           } catch {}
         }, {signal});
+
+        // Await for the close event before asserting.
+        return awaitClose(dialog, signal)
       }
     },
   ];
 
   function runTest(openMethod, changeMethod) {
-    promise_test(async (t) => {
+    function setup(t) {
       assert_false(dialog.open,'setup');
-      assert_false(dialog.matches(':open'));
+      assert_false(dialog.matches(':open'), 'Dialog should start the test closed');
+      assert_equals(dialog.closedBy, "any", 'Dialog should be closedby=any');
 
-      const controller = new AbortController();
-      t.add_cleanup(() => {
-        controller.abort();
-        dialog.close();
-      });
-      const expectResponds = changeMethod.setup(openMethod,controller.signal) ?? true;
+      const signal = t.get_signal();
+      t.add_cleanup(() => dialog.close());
+
+      const step = changeMethod.setup(openMethod, signal);
 
       // Open the dialog
-      await openDialog(openMethod);
+      openDialog(openMethod);
+
+      return step;
+    }
+
+    promise_test(async (t) => {
+      const step = setup(t);
 
       // Try hitting ESC
       const ESC = '\uE00C';
       await test_driver.send_keys(document.documentElement,ESC);
-      await waitForRender();
+
+      await step;
+
       const respondsToEsc = !dialog.open;
       assert_equals(!dialog.matches(':open'),respondsToEsc,':open should match dialog.open');
-      dialog.close();
+
+      const shouldRespond = changeMethod.respondsTo?.(openMethod) ?? true;
+
+      assert_equals(respondsToEsc, shouldRespond, 'Dialog should respond to ESC');
+    }, `Pressing escape, when ${changeMethod.description}, ${openMethod}`);
+
+    promise_test(async (t) => {
+      const step = setup(t);
 
       // Try clicking outside
-      await openDialog(openMethod);
       await clickOn(outside);
+
+      await step;
+
       const respondsToLightDismiss = !dialog.open;
       assert_equals(!dialog.matches(':open'),respondsToLightDismiss,':open should match dialog.open');
-      dialog.close();
 
-      // See if expectations match
-      assert_equals(respondsToEsc,expectResponds,`Dialog ${expectResponds ? "should" : "should NOT"} respond to ESC`);
-      assert_equals(respondsToLightDismiss,expectResponds,`Dialog ${expectResponds ? "should" : "should NOT"} respond to light dismiss`);
-    }, `${changeMethod.description}, ${openMethod}`);
+      const shouldRespond = changeMethod.respondsTo?.(openMethod) ?? true;
+
+      assert_true(respondsToLightDismiss, shouldRespond, 'Dialog respond to light dismiss');
+    }, `Clicking outside, when ${changeMethod.description}, ${openMethod}`);
   }
 
   // Run tests

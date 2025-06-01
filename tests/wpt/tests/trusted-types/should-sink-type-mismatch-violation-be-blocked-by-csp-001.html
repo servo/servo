@@ -100,20 +100,30 @@ header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',Tr
     assert_equals(violations[5].policy, "require-trusted-types-for 'script'")
   }, `Mixing enforce and report-only require-trusted-types-for directives.`);
 
-  promise_test(async t => {
-    let results = await trySendingPlainStringToTrustedTypeSink(
-      ["script"],
-      "header(Content-Security-Policy,require-trusted-types-for 'script'%09'script'%0A'script'%0C'script'%0D'script'%20'script',True)",
-    );
-    assert_equals(results.length, 1);
-    assert_true(results[0].exception instanceof TypeError);
-    assert_equals(results[0].violatedPolicies.length, 1);
-  }, `directive "require-trusted-types-for 'script'%09'script'%0A'script'%0C'script'%0D'script'%20'script'" (required-ascii-whitespace)`);
+  // trusted-types-sink-group-keyword can be separated by any ASCII whitespace
+  // per the spec's ABNF:
+  // https://www.w3.org/TR/trusted-types/#require-trusted-types-for-csp-directive
+  // https://w3c.github.io/webappsec-csp/#grammardef-required-ascii-whitespace
+  // U+00A LF breaks the header field value into two lines so make sure that
+  // "the continuation line begins with a space or horizontal tab" in accordance
+  // with https://www.rfc-editor.org/rfc/rfc2616
+  ["%09", "%0A%20", "%0C", "%0D", "%20"].forEach(whitespace => {
+    let directive = `require-trusted-types-for 'invalid'${whitespace}'script'`;
+    promise_test(async t => {
+      let results = await trySendingPlainStringToTrustedTypeSink(
+        ["script"],
+        `header(Content-Security-Policy,${directive},True)`,
+      );
+      assert_equals(results.length, 1);
+      assert_true(results[0].exception instanceof TypeError);
+      assert_equals(results[0].violatedPolicies.length, 1);
+    }, `directive "${directive}" (required-ascii-whitespace)`);
+  });
 
   promise_test(async t => {
     let results = await trySendingPlainStringToTrustedTypeSink(
       ["script"],
-      "header(Content-Security-Policy,require-trusted-types-for 'script''script' 'script',True)",
+      "header(Content-Security-Policy,require-trusted-types-for 'script''script',True)",
     );
     assert_equals(results.length, 1);
     assert_equals(results[0].exception, null);
@@ -150,4 +160,15 @@ header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',Tr
     assert_true(results[0].exception instanceof TypeError);
     assert_equals(results[0].violatedPolicies.length, 1);
   }, `directive "require-trusted-types-for 'invalid' 'script' 'also-invalid" (unknown sink group)`);
+
+  promise_test(async t => {
+    let results = await trySendingPlainStringToTrustedTypeSink(
+      ["script"],
+      "header(Content-Security-Policy,require-trusted-types-for unquoted-invalid 'script' also-unquoted-invalid,True)",
+    );
+    assert_equals(results.length, 1);
+    assert_true(results[0].exception instanceof TypeError);
+    assert_equals(results[0].violatedPolicies.length, 1);
+  }, `directive "require-trusted-types-for unquoted-invalid 'script' also-unquoted-invalid (unknown sink group)`);
+
 </script>

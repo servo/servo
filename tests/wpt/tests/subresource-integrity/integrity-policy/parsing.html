@@ -1,0 +1,119 @@
+<!doctype html>
+<head>
+  <meta name="timeout" content="long">
+  <meta name="variant" content="?type=enforce">
+  <meta name="variant" content="?type=report">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/dispatcher/dispatcher.js"></script>
+  <script src="/common/utils.js"></script>
+  <script src="/reporting/resources/report-helper.js"></script>
+</head>
+<body>
+<script>
+
+  const run_test = (test_case) => {
+    promise_test(async () => {
+      const REMOTE_EXECUTOR =
+        `/common/dispatcher/remote-executor.html?pipe=`;
+
+      let header_name = "Integrity-Policy";
+      const params = new URLSearchParams(location.search);
+      if (params.get('type') === "report") {
+        if (test_case.expected.blocked) {
+          return;
+        }
+        header_name += "-Report-Only";
+      }
+      const iframe_uuid = token();
+      const header =
+        `header(${header_name},${test_case.header_value})`;
+      const iframe_url =
+        `${REMOTE_EXECUTOR}${encodeURIComponent(header)}&uuid=${iframe_uuid}`;
+
+      const iframe = document.createElement('iframe');
+      iframe.src = iframe_url;
+      document.body.appendChild(iframe);
+
+      // Execute code directly from the iframe.
+      const ctx = new RemoteContext(iframe_uuid);
+      const result = await ctx.execute_script(async (test_case) => {
+        const resource_url = "/content-security-policy/resources/ran.js";
+        let report_observed_promise;
+
+        // Load a script with no integrity. If there's a policy in place, it
+        // would be blocked.
+        const loaded = await new Promise(resolve => {
+          const script = document.createElement('script');
+          script.onload = () => { resolve(true); };
+          script.onerror = () => { resolve(false); };
+          script.src = resource_url;
+          document.body.appendChild(script);
+        });
+        return { blocked: !loaded, ran: window.ran };
+      }, [test_case]);
+      assert_equals(!result.blocked, !!result.ran);
+      assert_equals(result.blocked, test_case.expected.blocked);
+    }, test_case.description);
+  };
+
+  const test_cases = [
+    {
+      description: "Ensure that test is working with a valid destination",
+      header_value: "blocked-destinations=\\(script\\)",
+      expected: {blocked: true},
+    },
+    {
+      description: "Ensure that test is working with a valid destination and source",
+      header_value: "blocked-destinations=\\(script\\)\\, sources=\\(inline\\)",
+      expected: {blocked: true},
+    },
+    {
+      description: "Ensure that an empty header does not block",
+      header_value: "",
+      expected: {blocked: false},
+    },
+    {
+      description: "Ensure that a destination header with a token value does not parse",
+      header_value: "blocked-destinations=script",
+      expected: {blocked: false},
+    },
+    {
+      description: "Ensure that a destination header with an inner list of strings does not parse",
+      header_value: 'blocked-destinations=\\("script"\\)',
+      expected: {blocked: false},
+    },
+    {
+      description: "Ensure that a destination header with an inner list of single-quote strings does not parse",
+      header_value: "blocked-destinations=\\('script'\\)",
+      expected: {blocked: false},
+    },
+    {
+      description: "Ensure that a destination header with an unclosed inner list does not parse",
+      header_value: "blocked-destinations=\\(script",
+      expected: {blocked: false},
+    },
+    {
+      description: "Ensure that a destination header with a malformed inner list does not parse",
+      header_value: "blocked-destinations=\\(script\\,style\\)",
+      expected: {blocked: false},
+    },
+    {
+      description: "Ensure that an unknown destination does not enforce a policy",
+      header_value: "blocked-destinations=\\(style\\)",
+      expected: {blocked: false},
+    },
+    {
+      description: "Ensure that an unknown source causes the policy to not be enforced",
+      header_value: "blocked-destinations=\\(script\\)\\, sources=\\(telepathy\\)",
+      expected: {blocked: false},
+    },
+    {
+      description: "Ensure that an invalid source causes the policy to not be enforced",
+      header_value: "blocked-destinations=\\(script\\)\\, sources=\\(invalid",
+      expected: {blocked: false},
+    },
+  ];
+  test_cases.map(run_test);
+</script>
+

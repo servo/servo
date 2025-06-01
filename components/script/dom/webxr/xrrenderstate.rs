@@ -14,7 +14,7 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::utils::to_frozen_array;
-use crate::dom::globalscope::GlobalScope;
+use crate::dom::window::Window;
 use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrwebgllayer::XRWebGLLayer;
 use crate::script_runtime::{CanGc, JSContext};
@@ -49,7 +49,7 @@ impl XRRenderState {
     }
 
     pub(crate) fn new(
-        global: &GlobalScope,
+        window: &Window,
         depth_near: f64,
         depth_far: f64,
         inline_vertical_fov: Option<f64>,
@@ -65,14 +65,14 @@ impl XRRenderState {
                 layer,
                 layers,
             )),
-            global,
+            window,
             can_gc,
         )
     }
 
     pub(crate) fn clone_object(&self) -> DomRoot<Self> {
         XRRenderState::new(
-            &self.global(),
+            self.global().as_window(),
             self.depth_near.get(),
             self.depth_far.get(),
             self.inline_vertical_fov.get(),

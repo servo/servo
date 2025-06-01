@@ -30,6 +30,7 @@ use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::object::ObjectActor;
 use crate::actors::worker::WorkerActor;
 use crate::protocol::JsonPacketStream;
+use crate::resource::ResourceAvailable;
 use crate::{StreamId, UniqueId};
 
 trait EncodableConsoleMessage {
@@ -251,6 +252,7 @@ impl ConsoleActor {
         page_error: PageError,
         id: UniqueId,
         registry: &ActorRegistry,
+        stream: &mut TcpStream,
     ) {
         self.cached_events
             .borrow_mut()
@@ -261,7 +263,11 @@ impl ConsoleActor {
             if let Root::BrowsingContext(bc) = &self.root {
                 registry
                     .find::<BrowsingContextActor>(bc)
-                    .resource_available(PageErrorWrapper { page_error }, "error-message".into())
+                    .resource_available(
+                        PageErrorWrapper { page_error },
+                        "error-message".into(),
+                        stream,
+                    )
             };
         }
     }
@@ -271,6 +277,7 @@ impl ConsoleActor {
         console_message: ConsoleMessage,
         id: UniqueId,
         registry: &ActorRegistry,
+        stream: &mut TcpStream,
     ) {
         let log_message: ConsoleLog = console_message.into();
         self.cached_events
@@ -282,7 +289,7 @@ impl ConsoleActor {
             if let Root::BrowsingContext(bc) = &self.root {
                 registry
                     .find::<BrowsingContextActor>(bc)
-                    .resource_available(log_message, "console-message".into())
+                    .resource_available(log_message, "console-message".into(), stream)
             };
         }
     }

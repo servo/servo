@@ -6,6 +6,10 @@ use std::cell::Cell;
 use std::ptr;
 
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
+use constellation_traits::{
+    AuxiliaryWebViewCreationRequest, LoadData, LoadOrigin, NavigationHistoryBehavior,
+    ScriptToConstellationMessage,
+};
 use dom_struct::dom_struct;
 use html5ever::local_name;
 use indexmap::map::IndexMap;
@@ -29,10 +33,7 @@ use js::rust::wrappers::{JS_TransplantObject, NewWindowProxy, SetWindowProxy};
 use js::rust::{Handle, MutableHandle, MutableHandleValue, get_object_class};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::request::Referrer;
-use script_traits::{
-    AuxiliaryWebViewCreationRequest, LoadData, LoadOrigin, NavigationHistoryBehavior,
-    NewLayoutInfo, ScriptToConstellationMessage,
-};
+use script_traits::NewLayoutInfo;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::attr::parse_integer;
@@ -328,6 +329,9 @@ impl WindowProxy {
             opener: Some(self.browsing_context_id),
             load_data,
             viewport_details: window.viewport_details(),
+            // Use the current `WebView`'s theme initially, but the embedder may
+            // change this later.
+            theme: window.theme(),
         };
         ScriptThread::process_attach_layout(new_layout_info, document.origin().clone());
         // TODO: if noopener is false, copy the sessionStorage storage area of the creator origin.
@@ -617,6 +621,23 @@ impl WindowProxy {
             result = parent;
         }
         result
+    }
+
+    /// Run [the focusing steps] with this browsing context.
+    ///
+    /// [the focusing steps]: https://html.spec.whatwg.org/multipage/#focusing-steps
+    pub fn focus(&self) {
+        debug!(
+            "Requesting the constellation to initiate a focus operation for \
+            browsing context {}",
+            self.browsing_context_id()
+        );
+        self.global()
+            .script_to_constellation_chan()
+            .send(ScriptToConstellationMessage::FocusRemoteDocument(
+                self.browsing_context_id(),
+            ))
+            .unwrap();
     }
 
     #[allow(unsafe_code)]

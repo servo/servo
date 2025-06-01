@@ -19,7 +19,7 @@ use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FormControl, GamepadHapticEffectType,
     LoadStatus, PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog, TouchEventType,
-    WebView, WebViewDelegate,
+    WebView, WebViewBuilder, WebViewDelegate,
 };
 use url::Url;
 
@@ -107,9 +107,13 @@ impl RunningAppState {
     }
 
     pub(crate) fn new_toplevel_webview(self: &Rc<Self>, url: Url) {
-        let webview = self.servo().new_webview(url);
-        webview.set_delegate(self.clone());
+        let webview = WebViewBuilder::new(self.servo())
+            .url(url)
+            .hidpi_scale_factor(self.inner().window.hidpi_scale_factor())
+            .delegate(self.clone())
+            .build();
 
+        webview.notify_theme_change(self.inner().window.theme());
         webview.focus();
         webview.raise_to_top(true);
 
@@ -126,6 +130,14 @@ impl RunningAppState {
 
     pub(crate) fn servo(&self) -> &Servo {
         &self.servo
+    }
+
+    pub(crate) fn hidpi_scale_factor_changed(&self) {
+        let inner = self.inner();
+        let new_scale_factor = inner.window.hidpi_scale_factor();
+        for webview in inner.webviews.values() {
+            webview.set_hidpi_scale_factor(new_scale_factor);
+        }
     }
 
     pub(crate) fn save_output_image_if_necessary(&self) {
@@ -459,9 +471,12 @@ impl WebViewDelegate for RunningAppState {
         &self,
         parent_webview: servo::WebView,
     ) -> Option<servo::WebView> {
-        let webview = self.servo.new_auxiliary_webview();
-        webview.set_delegate(parent_webview.delegate());
+        let webview = WebViewBuilder::new_auxiliary(&self.servo)
+            .hidpi_scale_factor(self.inner().window.hidpi_scale_factor())
+            .delegate(parent_webview.delegate())
+            .build();
 
+        webview.notify_theme_change(self.inner().window.theme());
         webview.focus();
         webview.raise_to_top(true);
 
@@ -595,6 +610,15 @@ impl WebViewDelegate for RunningAppState {
                 // But if the toolbar height changes while the dialog is open then the position won't be updated
                 let offset = self.inner().window.toolbar_height();
                 self.add_dialog(webview, Dialog::new_select_element_dialog(prompt, offset));
+            },
+            FormControl::ColorPicker(color_picker) => {
+                // FIXME: Reading the toolbar height is needed here to properly position the select dialog.
+                // But if the toolbar height changes while the dialog is open then the position won't be updated
+                let offset = self.inner().window.toolbar_height();
+                self.add_dialog(
+                    webview,
+                    Dialog::new_color_picker_dialog(color_picker, offset),
+                );
             },
         }
     }

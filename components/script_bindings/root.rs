@@ -412,7 +412,7 @@ impl RootCollection {
             .rposition(|r| std::ptr::addr_eq(*r as *const (), object as *const ()))
         {
             Some(idx) => {
-                roots.remove(idx);
+                roots.swap_remove(idx);
             },
             None => panic!("Can't remove a root that was never rooted!"),
         }

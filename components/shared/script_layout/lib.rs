@@ -18,20 +18,22 @@ use app_units::Au;
 use atomic_refcell::AtomicRefCell;
 use base::Epoch;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
-use constellation_traits::{ScrollState, UntrustedNodeAddress};
-use embedder_traits::ViewportDetails;
+use compositing_traits::CrossProcessCompositorApi;
+use constellation_traits::{LoadData, ScrollState};
+use embedder_traits::{Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::default::{Point2D, Rect};
 use fnv::FnvHashMap;
 use fonts::{FontContext, SystemFontServiceProxy};
 use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
+use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::{ImageCache, PendingImageId};
-use pixels::Image;
+use pixels::RasterImage;
 use profile_traits::mem::Report;
 use profile_traits::time;
-use script_traits::{InitialScriptState, LoadData, Painter, ScriptThreadMessage};
+use script_traits::{InitialScriptState, Painter, ScriptThreadMessage};
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -44,13 +46,16 @@ use style::invalidation::element::restyle_hints::RestyleHint;
 use style::media_queries::Device;
 use style::properties::PropertyId;
 use style::properties::style_structs::Font;
-use style::queries::values::PrefersColorScheme;
 use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
 use style::stylesheets::Stylesheet;
 use webrender_api::ImageKey;
-use webrender_traits::CrossProcessCompositorApi;
+use webrender_api::units::DeviceIntSize;
 
-pub type GenericLayoutData = dyn Any + Send + Sync;
+pub trait GenericLayoutDataTrait: Any + MallocSizeOfTrait {
+    fn as_any(&self) -> &dyn Any;
+}
+
+pub type GenericLayoutData = dyn GenericLayoutDataTrait + Send + Sync;
 
 #[derive(MallocSizeOf)]
 pub struct StyleData {
@@ -58,7 +63,6 @@ pub struct StyleData {
     /// style system is being used standalone, this is all that hangs
     /// off the node. This must be first to permit the various
     /// transmutations between ElementData and PersistentLayoutData.
-    #[ignore_malloc_size_of = "This probably should not be ignored"]
     pub element_data: AtomicRefCell<ElementData>,
 
     /// Information needed during parallel traversals.
@@ -110,19 +114,12 @@ pub enum LayoutElementType {
     HTMLTableRowElement,
     HTMLTableSectionElement,
     HTMLTextAreaElement,
+    SVGImageElement,
     SVGSVGElement,
 }
 
-pub enum HTMLCanvasDataSource {
-    WebGL(ImageKey),
-    Image(ImageKey),
-    WebGPU(ImageKey),
-    /// transparent black
-    Empty,
-}
-
 pub struct HTMLCanvasData {
-    pub source: HTMLCanvasDataSource,
+    pub source: Option<ImageKey>,
     pub width: u32,
     pub height: u32,
 }
@@ -157,6 +154,16 @@ pub struct PendingImage {
     pub origin: ImmutableOrigin,
 }
 
+/// A data structure to tarck vector image that are fully loaded (i.e has a parsed SVG
+/// tree) but not yet rasterized to the size needed by layout. The rasterization is
+/// happening in the image cache.
+#[derive(Debug)]
+pub struct PendingRasterizationImage {
+    pub node: UntrustedNodeAddress,
+    pub id: PendingImageId,
+    pub size: DeviceIntSize,
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct MediaFrame {
     pub image_key: webrender_api::ImageKey,
@@ -185,6 +192,7 @@ pub struct LayoutConfig {
     pub time_profiler_chan: time::ProfilerChan,
     pub compositor_api: CrossProcessCompositorApi,
     pub viewport_details: ViewportDetails,
+    pub theme: Theme,
 }
 
 pub trait LayoutFactory: Send + Sync {
@@ -217,7 +225,7 @@ pub trait Layout {
 
     /// Requests that layout measure its memory usage. The resulting reports are sent back
     /// via the supplied channel.
-    fn collect_reports(&self, reports: &mut Vec<Report>);
+    fn collect_reports(&self, reports: &mut Vec<Report>, ops: &mut MallocSizeOfOps);
 
     /// Sets quirks mode for the document, causing the quirks mode stylesheet to be used.
     fn set_quirks_mode(&mut self, quirks_mode: QuirksMode);
@@ -239,16 +247,16 @@ pub trait Layout {
     /// Set the scroll states of this layout after a compositor scroll.
     fn set_scroll_offsets(&mut self, scroll_states: &[ScrollState]);
 
-    fn query_content_box(&self, node: OpaqueNode) -> Option<Rect<Au>>;
-    fn query_content_boxes(&self, node: OpaqueNode) -> Vec<Rect<Au>>;
-    fn query_client_rect(&self, node: OpaqueNode) -> Rect<i32>;
+    fn query_content_box(&self, node: TrustedNodeAddress) -> Option<Rect<Au>>;
+    fn query_content_boxes(&self, node: TrustedNodeAddress) -> Vec<Rect<Au>>;
+    fn query_client_rect(&self, node: TrustedNodeAddress) -> Rect<i32>;
     fn query_element_inner_outer_text(&self, node: TrustedNodeAddress) -> String;
     fn query_nodes_from_point(
         &self,
         point: Point2D<f32>,
         query_type: NodesFromPointQueryType,
     ) -> Vec<UntrustedNodeAddress>;
-    fn query_offset_parent(&self, node: OpaqueNode) -> OffsetParentResponse;
+    fn query_offset_parent(&self, node: TrustedNodeAddress) -> OffsetParentResponse;
     fn query_resolved_style(
         &self,
         node: TrustedNodeAddress,
@@ -264,7 +272,7 @@ pub trait Layout {
         animations: DocumentAnimationSet,
         animation_timeline_value: f64,
     ) -> Option<ServoArc<Font>>;
-    fn query_scrolling_area(&self, node: Option<OpaqueNode>) -> Rect<i32>;
+    fn query_scrolling_area(&self, node: Option<TrustedNodeAddress>) -> Rect<i32>;
     fn query_text_indext(&self, node: OpaqueNode, point: Point2D<f32>) -> Option<usize>;
 }
 
@@ -395,6 +403,8 @@ pub type IFrameSizes = FnvHashMap<BrowsingContextId, IFrameSize>;
 pub struct ReflowResult {
     /// The list of images that were encountered that are in progress.
     pub pending_images: Vec<PendingImage>,
+    /// The list of vector images that were encountered that still need to be rasterized.
+    pub pending_rasterization_images: Vec<PendingRasterizationImage>,
     /// The list of iframes in this layout and their sizes, used in order
     /// to communicate them with the Constellation and also the `Window`
     /// element of their content pages.
@@ -431,7 +441,9 @@ pub struct ReflowRequest {
     /// The set of image animations.
     pub node_to_image_animation_map: FxHashMap<OpaqueNode, ImageAnimationState>,
     /// The theme for the window
-    pub theme: PrefersColorScheme,
+    pub theme: Theme,
+    /// The node highlighted by the devtools, if any
+    pub highlighted_dom_node: Option<OpaqueNode>,
 }
 
 /// A pending restyle.
@@ -508,21 +520,118 @@ pub fn node_id_from_scroll_id(id: usize) -> Option<usize> {
 #[derive(Clone, Debug, MallocSizeOf)]
 pub struct ImageAnimationState {
     #[ignore_malloc_size_of = "Arc is hard"]
-    image: Arc<Image>,
-    active_frame: usize,
+    pub image: Arc<RasterImage>,
+    pub active_frame: usize,
     last_update_time: f64,
 }
 
 impl ImageAnimationState {
-    pub fn new(image: Arc<Image>) -> Self {
+    pub fn new(image: Arc<RasterImage>, last_update_time: f64) -> Self {
         Self {
             image,
             active_frame: 0,
-            last_update_time: 0.,
+            last_update_time,
         }
     }
 
     pub fn image_key(&self) -> Option<ImageKey> {
         self.image.id
+    }
+
+    pub fn time_to_next_frame(&self, now: f64) -> f64 {
+        let frame_delay = self
+            .image
+            .frames
+            .get(self.active_frame)
+            .expect("Image frame should always be valid")
+            .delay
+            .map_or(0., |delay| delay.as_secs_f64());
+        (frame_delay - now + self.last_update_time).max(0.0)
+    }
+
+    /// check whether image active frame need to be updated given current time,
+    /// return true if there are image that need to be updated.
+    /// false otherwise.
+    pub fn update_frame_for_animation_timeline_value(&mut self, now: f64) -> bool {
+        if self.image.frames.len() <= 1 {
+            return false;
+        }
+        let image = &self.image;
+        let time_interval_since_last_update = now - self.last_update_time;
+        let mut remain_time_interval = time_interval_since_last_update -
+            image
+                .frames
+                .get(self.active_frame)
+                .unwrap()
+                .delay
+                .unwrap()
+                .as_secs_f64();
+        let mut next_active_frame_id = self.active_frame;
+        while remain_time_interval > 0.0 {
+            next_active_frame_id = (next_active_frame_id + 1) % image.frames.len();
+            remain_time_interval -= image
+                .frames
+                .get(next_active_frame_id)
+                .unwrap()
+                .delay
+                .unwrap()
+                .as_secs_f64();
+        }
+        if self.active_frame == next_active_frame_id {
+            return false;
+        }
+        self.active_frame = next_active_frame_id;
+        self.last_update_time = now;
+        true
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::sync::Arc;
+    use std::time::Duration;
+
+    use ipc_channel::ipc::IpcSharedMemory;
+    use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage};
+
+    use crate::ImageAnimationState;
+
+    #[test]
+    fn test() {
+        let image_frames: Vec<ImageFrame> = std::iter::repeat_with(|| ImageFrame {
+            delay: Some(Duration::from_millis(100)),
+            byte_range: 0..1,
+            width: 100,
+            height: 100,
+        })
+        .take(10)
+        .collect();
+        let image = RasterImage {
+            metadata: ImageMetadata {
+                width: 100,
+                height: 100,
+            },
+            format: PixelFormat::BGRA8,
+            id: None,
+            bytes: IpcSharedMemory::from_byte(1, 1),
+            frames: image_frames,
+            cors_status: CorsStatus::Unsafe,
+        };
+        let mut image_animation_state = ImageAnimationState::new(Arc::new(image), 0.0);
+
+        assert_eq!(image_animation_state.active_frame, 0);
+        assert_eq!(image_animation_state.last_update_time, 0.0);
+        assert_eq!(
+            image_animation_state.update_frame_for_animation_timeline_value(0.101),
+            true
+        );
+        assert_eq!(image_animation_state.active_frame, 1);
+        assert_eq!(image_animation_state.last_update_time, 0.101);
+        assert_eq!(
+            image_animation_state.update_frame_for_animation_timeline_value(0.116),
+            false
+        );
+        assert_eq!(image_animation_state.active_frame, 1);
+        assert_eq!(image_animation_state.last_update_time, 0.101);
     }
 }

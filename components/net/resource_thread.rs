@@ -21,9 +21,9 @@ use embedder_traits::EmbedderProxy;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use log::{debug, trace, warn};
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::blob_url_store::parse_blob_url;
 use net_traits::filemanager_thread::FileTokenCheck;
+use net_traits::pub_domains::public_suffix_list_size_of;
 use net_traits::request::{Destination, RequestBuilder, RequestId};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
@@ -34,6 +34,7 @@ use net_traits::{
 };
 use profile_traits::mem::{
     ProcessReports, ProfilerChan as MemProfilerChan, Report, ReportKind, ReportsChan,
+    perform_memory_report,
 };
 use profile_traits::path;
 use profile_traits::time::ProfilerChan;
@@ -52,7 +53,7 @@ use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::fetch_params::FetchParams;
 use crate::fetch::methods::{CancellationListener, FetchContext, fetch};
 use crate::filemanager_thread::FileManager;
-use crate::hsts::HstsList;
+use crate::hsts::{self, HstsList};
 use crate::http_cache::HttpCache;
 use crate::http_loader::{HttpState, http_redirect_fetch};
 use crate::protocols::ProtocolRegistry;
@@ -96,14 +97,15 @@ pub fn new_resource_threads(
     let (public_core, private_core) = new_core_resource_thread(
         devtools_sender,
         time_profiler_chan,
-        mem_profiler_chan,
+        mem_profiler_chan.clone(),
         embedder_proxy,
         config_dir.clone(),
         ca_certificates,
         ignore_certificate_errors,
         protocols,
     );
-    let storage: IpcSender<StorageThreadMsg> = StorageThreadFactory::new(config_dir);
+    let storage: IpcSender<StorageThreadMsg> =
+        StorageThreadFactory::new(config_dir, mem_profiler_chan);
     (
         ResourceThreads::new(public_core, storage.clone()),
         ResourceThreads::new(private_core, storage),
@@ -178,7 +180,7 @@ fn create_http_states(
     ignore_certificate_errors: bool,
     embedder_proxy: EmbedderProxy,
 ) -> (Arc<HttpState>, Arc<HttpState>) {
-    let mut hsts_list = HstsList::from_servo_preload();
+    let mut hsts_list = HstsList::default();
     let mut auth_cache = AuthCache::default();
     let http_cache = HttpCache::default();
     let mut cookie_jar = CookieStorage::new(150);
@@ -207,7 +209,7 @@ fn create_http_states(
 
     let override_manager = CertificateErrorOverrideManager::new();
     let private_http_state = HttpState {
-        hsts_list: RwLock::new(HstsList::from_servo_preload()),
+        hsts_list: RwLock::new(HstsList::default()),
         cookie_jar: RwLock::new(CookieStorage::new(150)),
         auth_cache: RwLock::new(AuthCache::default()),
         history_states: RwLock::new(HashMap::new()),
@@ -257,7 +259,7 @@ impl ResourceChannelManager {
                 // If message is memory report, get the size_of of public and private http caches
                 if id == reporter_id {
                     if let Ok(msg) = data.to() {
-                        self.process_report(msg, &private_http_state, &public_http_state);
+                        self.process_report(msg, &public_http_state, &private_http_state);
                         continue;
                     }
                 } else {
@@ -283,23 +285,23 @@ impl ResourceChannelManager {
         public_http_state: &Arc<HttpState>,
         private_http_state: &Arc<HttpState>,
     ) {
-        let mut ops = MallocSizeOfOps::new(servo_allocator::usable_size, None, None);
-        let public_cache = public_http_state.http_cache.read().unwrap();
-        let private_cache = private_http_state.http_cache.read().unwrap();
-
-        let public_report = Report {
-            path: path!["memory-cache", "public"],
-            kind: ReportKind::ExplicitJemallocHeapSize,
-            size: public_cache.size_of(&mut ops),
-        };
-
-        let private_report = Report {
-            path: path!["memory-cache", "private"],
-            kind: ReportKind::ExplicitJemallocHeapSize,
-            size: private_cache.size_of(&mut ops),
-        };
-
-        msg.send(ProcessReports::new(vec![public_report, private_report]));
+        perform_memory_report(|ops| {
+            let mut reports = public_http_state.memory_reports("public", ops);
+            reports.extend(private_http_state.memory_reports("private", ops));
+            reports.extend(vec![
+                Report {
+                    path: path!["hsts-preload-list"],
+                    kind: ReportKind::ExplicitJemallocHeapSize,
+                    size: hsts::hsts_preload_size_of(ops),
+                },
+                Report {
+                    path: path!["public-suffix-list"],
+                    kind: ReportKind::ExplicitJemallocHeapSize,
+                    size: public_suffix_list_size_of(ops),
+                },
+            ]);
+            msg.send(ProcessReports::new(reports));
+        })
     }
 
     fn cancellation_listener(&self, request_id: RequestId) -> Option<Arc<CancellationListener>> {
@@ -450,9 +452,6 @@ impl ResourceChannelManager {
                 for history_state in states_to_remove {
                     history_states.remove(&history_state);
                 }
-            },
-            CoreResourceMsg::Synchronize(sender) => {
-                let _ = sender.send(());
             },
             CoreResourceMsg::ClearCache => {
                 http_state.http_cache.write().unwrap().clear();
@@ -785,7 +784,7 @@ impl CoreResourceManager {
             _ => (FileTokenCheck::NotRequired, None),
         };
 
-        HANDLE.lock().unwrap().as_ref().unwrap().spawn(async move {
+        HANDLE.spawn(async move {
             // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
             // todo load context / mimesniff in fetch
             // todo referrer policy?

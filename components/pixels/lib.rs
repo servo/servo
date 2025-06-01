@@ -4,6 +4,7 @@
 
 use std::borrow::Cow;
 use std::io::Cursor;
+use std::ops::Range;
 use std::time::Duration;
 use std::{cmp, fmt, vec};
 
@@ -28,6 +29,20 @@ pub enum PixelFormat {
     RGBA8,
     /// BGR + alpha, 8 bits per channel
     BGRA8,
+}
+
+// Computes image byte length, returning None if overflow occurred or the total length exceeds
+// the maximum image allocation size.
+pub fn compute_rgba8_byte_length_if_within_limit(width: usize, height: usize) -> Option<usize> {
+    // Maximum allowed image allocation size (2^31-1 ~ 2GB).
+    const MAX_IMAGE_BYTE_LENGTH: usize = 2147483647;
+
+    // The color components of each pixel must be stored in four sequential
+    // elements in the order of red, green, blue, and then alpha.
+    4usize
+        .checked_mul(width)
+        .and_then(|v| v.checked_mul(height))
+        .filter(|v| *v <= MAX_IMAGE_BYTE_LENGTH)
 }
 
 pub fn rgba8_get_rect(pixels: &[u8], size: Size2D<u64>, rect: Rect<u64>) -> Cow<[u8]> {
@@ -84,6 +99,7 @@ pub fn rgba8_premultiply_inplace(pixels: &mut [u8]) -> bool {
     is_opaque
 }
 
+#[inline(always)]
 pub fn multiply_u8_color(a: u8, b: u8) -> u8 {
     (a as u32 * b as u32 / 255) as u8
 }
@@ -119,50 +135,65 @@ pub enum CorsStatus {
 }
 
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
-pub struct Image {
-    pub width: u32,
-    pub height: u32,
+pub struct RasterImage {
+    pub metadata: ImageMetadata,
     pub format: PixelFormat,
-    #[ignore_malloc_size_of = "Defined in webrender_api"]
     pub id: Option<ImageKey>,
     pub cors_status: CorsStatus,
+    pub bytes: IpcSharedMemory,
     pub frames: Vec<ImageFrame>,
 }
 
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct ImageFrame {
     pub delay: Option<Duration>,
-    #[ignore_malloc_size_of = "Defined in ipc-channel"]
-    pub bytes: IpcSharedMemory,
+    /// References a range of the `bytes` field from the image that this
+    /// frame belongs to.
+    pub byte_range: Range<usize>,
     pub width: u32,
     pub height: u32,
 }
 
-impl Image {
+/// A non-owning reference to the data of an [ImageFrame]
+pub struct ImageFrameView<'a> {
+    pub delay: Option<Duration>,
+    pub bytes: &'a [u8],
+    pub width: u32,
+    pub height: u32,
+}
+
+impl RasterImage {
     pub fn should_animate(&self) -> bool {
         self.frames.len() > 1
     }
 
-    pub fn bytes(&self) -> IpcSharedMemory {
-        self.frames
-            .first()
-            .expect("Should have at least one frame")
-            .bytes
-            .clone()
+    pub fn frames(&self) -> impl Iterator<Item = ImageFrameView> {
+        self.frames.iter().map(|frame| ImageFrameView {
+            delay: frame.delay,
+            bytes: self.bytes.get(frame.byte_range.clone()).unwrap(),
+            width: frame.width,
+            height: frame.height,
+        })
+    }
+
+    pub fn first_frame(&self) -> ImageFrameView {
+        self.frames()
+            .next()
+            .expect("All images should have at least one frame")
     }
 }
 
-impl fmt::Debug for Image {
+impl fmt::Debug for RasterImage {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
             "Image {{ width: {}, height: {}, format: {:?}, ..., id: {:?} }}",
-            self.width, self.height, self.format, self.id
+            self.metadata.width, self.metadata.height, self.format, self.id
         )
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub struct ImageMetadata {
     pub width: u32,
     pub height: u32,
@@ -171,7 +202,7 @@ pub struct ImageMetadata {
 // FIXME: Images must not be copied every frame. Instead we should atomically
 // reference count them.
 
-pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Image> {
+pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<RasterImage> {
     if buffer.is_empty() {
         return None;
     }
@@ -190,15 +221,18 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Image>
                     rgba8_byte_swap_colors_inplace(&mut rgba);
                     let frame = ImageFrame {
                         delay: None,
-                        bytes: IpcSharedMemory::from_bytes(&rgba),
+                        byte_range: 0..rgba.len(),
                         width: rgba.width(),
                         height: rgba.height(),
                     };
-                    Some(Image {
-                        width: rgba.width(),
-                        height: rgba.height(),
+                    Some(RasterImage {
+                        metadata: ImageMetadata {
+                            width: rgba.width(),
+                            height: rgba.height(),
+                        },
                         format: PixelFormat::BGRA8,
                         frames: vec![frame],
+                        bytes: IpcSharedMemory::from_bytes(&rgba),
                         id: None,
                         cors_status,
                     })
@@ -256,6 +290,70 @@ pub fn unmultiply_inplace<const SWAP_RB: bool>(pixels: &mut [u8]) {
     }
 }
 
+#[repr(u8)]
+pub enum Multiply {
+    None = 0,
+    PreMultiply = 1,
+    UnMultiply = 2,
+}
+
+pub fn transform_inplace(pixels: &mut [u8], multiply: Multiply, swap_rb: bool, clear_alpha: bool) {
+    match (multiply, swap_rb, clear_alpha) {
+        (Multiply::None, true, true) => generic_transform_inplace::<0, true, true>(pixels),
+        (Multiply::None, true, false) => generic_transform_inplace::<0, true, false>(pixels),
+        (Multiply::None, false, true) => generic_transform_inplace::<0, false, true>(pixels),
+        (Multiply::None, false, false) => generic_transform_inplace::<0, false, false>(pixels),
+        (Multiply::PreMultiply, true, true) => generic_transform_inplace::<1, true, true>(pixels),
+        (Multiply::PreMultiply, true, false) => generic_transform_inplace::<1, true, false>(pixels),
+        (Multiply::PreMultiply, false, true) => generic_transform_inplace::<1, false, true>(pixels),
+        (Multiply::PreMultiply, false, false) => {
+            generic_transform_inplace::<1, false, false>(pixels)
+        },
+        (Multiply::UnMultiply, true, true) => generic_transform_inplace::<2, true, true>(pixels),
+        (Multiply::UnMultiply, true, false) => generic_transform_inplace::<2, true, false>(pixels),
+        (Multiply::UnMultiply, false, true) => generic_transform_inplace::<2, false, true>(pixels),
+        (Multiply::UnMultiply, false, false) => {
+            generic_transform_inplace::<2, false, false>(pixels)
+        },
+    }
+}
+
+pub fn generic_transform_inplace<
+    const MULTIPLY: u8, // 1 premultiply, 2 unmultiply
+    const SWAP_RB: bool,
+    const CLEAR_ALPHA: bool,
+>(
+    pixels: &mut [u8],
+) {
+    for rgba in pixels.chunks_mut(4) {
+        match MULTIPLY {
+            1 => {
+                let a = rgba[3];
+
+                rgba[0] = multiply_u8_color(rgba[0], a);
+                rgba[1] = multiply_u8_color(rgba[1], a);
+                rgba[2] = multiply_u8_color(rgba[2], a);
+            },
+            2 => {
+                let a = rgba[3] as u32;
+
+                if a > 0 {
+                    rgba[0] = (rgba[0] as u32 * 255 / a) as u8;
+                    rgba[1] = (rgba[1] as u32 * 255 / a) as u8;
+                    rgba[2] = (rgba[2] as u32 * 255 / a) as u8;
+                }
+            },
+            _ => {},
+        }
+        if SWAP_RB {
+            rgba.swap(0, 2);
+        }
+        if CLEAR_ALPHA {
+            rgba[3] = u8::MAX;
+        }
+    }
+}
+
 fn is_gif(buffer: &[u8]) -> bool {
     buffer.starts_with(b"GIF87a") || buffer.starts_with(b"GIF89a")
 }
@@ -291,7 +389,7 @@ fn is_webp(buffer: &[u8]) -> bool {
     buffer[8..].len() >= len && &buffer[8..12] == b"WEBP"
 }
 
-fn decode_gif(buffer: &[u8], cors_status: CorsStatus) -> Option<Image> {
+fn decode_gif(buffer: &[u8], cors_status: CorsStatus) -> Option<RasterImage> {
     let Ok(decoded_gif) = GifDecoder::new(Cursor::new(buffer)) else {
         return None;
     };
@@ -301,45 +399,60 @@ fn decode_gif(buffer: &[u8], cors_status: CorsStatus) -> Option<Image> {
     // This uses `map_while`, because the first non-decodable frame seems to
     // send the frame iterator into an infinite loop. See
     // <https://github.com/image-rs/image/issues/2442>.
+    let mut frame_data = vec![];
+    let mut total_number_of_bytes = 0;
     let frames: Vec<ImageFrame> = decoded_gif
         .into_frames()
         .map_while(|decoded_frame| {
-            let mut frame = match decoded_frame {
+            let mut gif_frame = match decoded_frame {
                 Ok(decoded_frame) => decoded_frame,
                 Err(error) => {
                     debug!("decode GIF frame error: {error}");
                     return None;
                 },
             };
-            rgba8_byte_swap_colors_inplace(frame.buffer_mut());
-
-            let frame = ImageFrame {
-                bytes: IpcSharedMemory::from_bytes(frame.buffer()),
-                delay: Some(Duration::from(frame.delay())),
-                width: frame.buffer().width(),
-                height: frame.buffer().height(),
-            };
+            rgba8_byte_swap_colors_inplace(gif_frame.buffer_mut());
+            let frame_start = total_number_of_bytes;
+            total_number_of_bytes += gif_frame.buffer().len();
 
             // The image size should be at least as large as the largest frame.
-            width = cmp::max(width, frame.width);
-            height = cmp::max(height, frame.height);
+            let frame_width = gif_frame.buffer().width();
+            let frame_height = gif_frame.buffer().height();
+            width = cmp::max(width, frame_width);
+            height = cmp::max(height, frame_height);
+
+            let frame = ImageFrame {
+                byte_range: frame_start..total_number_of_bytes,
+                delay: Some(Duration::from(gif_frame.delay())),
+                width: frame_width,
+                height: frame_height,
+            };
+
+            frame_data.push(gif_frame);
+
             Some(frame)
         })
         .collect();
 
     if frames.is_empty() {
         debug!("Animated Image decoding error");
-        None
-    } else {
-        Some(Image {
-            width,
-            height,
-            cors_status,
-            frames,
-            id: None,
-            format: PixelFormat::BGRA8,
-        })
+        return None;
     }
+
+    // Coalesce the frame data into one single shared memory region.
+    let mut bytes = Vec::with_capacity(total_number_of_bytes);
+    for frame in frame_data {
+        bytes.extend_from_slice(frame.buffer());
+    }
+
+    Some(RasterImage {
+        metadata: ImageMetadata { width, height },
+        cors_status,
+        frames,
+        id: None,
+        format: PixelFormat::BGRA8,
+        bytes: IpcSharedMemory::from_bytes(&bytes),
+    })
 }
 
 #[cfg(test)]

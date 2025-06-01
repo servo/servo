@@ -11,37 +11,24 @@ rust-version.workspace = true
 name = "canvas"
 path = "lib.rs"
 
-[features]
-webgl_backtrace = ["canvas_traits/webgl_backtrace"]
-webxr = ["dep:webxr", "dep:webxr-api"]
-
 [dependencies]
 app_units = { workspace = true }
-bitflags = { workspace = true }
-byteorder = { workspace = true }
 canvas_traits = { workspace = true }
+compositing_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
 cssparser = { workspace = true }
 euclid = { workspace = true }
-fnv = { workspace = true }
 font-kit = "0.14"
 fonts = { path = "../fonts" }
-glow = { workspace = true }
-half = "2"
 ipc-channel = { workspace = true }
 log = { workspace = true }
 lyon_geom = "1.0.4"
 net_traits = { workspace = true }
-num-traits = { workspace = true }
 pixels = { path = "../pixels" }
 range = { path = "../range" }
 raqote = "0.8.5"
 servo_arc = { workspace = true }
+snapshot = { workspace = true }
 stylo = { workspace = true }
-surfman = { workspace = true }
 unicode-script = { workspace = true }
-webrender = { workspace = true }
 webrender_api = { workspace = true }
-webrender_traits = { workspace = true }
-webxr = { path = "../webxr", features = ["ipc"], optional = true }
-webxr-api = { workspace = true, features = ["ipc"], optional = true }

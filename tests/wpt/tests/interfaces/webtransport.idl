@@ -14,7 +14,6 @@ interface WebTransportDatagramDuplexStream {
   WebTransportDatagramsWritable createWritable(
       optional WebTransportSendOptions options = {});
   readonly attribute ReadableStream readable;
-  readonly attribute WebTransportDatagramsWritable writable;
 
   readonly attribute unsigned long maxDatagramSize;
   attribute unrestricted double? incomingMaxAge;
@@ -28,6 +27,7 @@ interface WebTransport {
   constructor(USVString url, optional WebTransportOptions options = {});
 
   Promise<WebTransportConnectionStats> getStats();
+  [NewObject] Promise<ArrayBuffer> exportKeyingMaterial(BufferSource label, optional BufferSource context);
   readonly attribute Promise<undefined> ready;
   readonly attribute WebTransportReliabilityMode reliability;
   readonly attribute WebTransportCongestionControl congestionControl;

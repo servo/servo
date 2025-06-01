@@ -8,7 +8,7 @@ use base::id::{PipelineId, WebViewId};
 use content_security_policy::{self as csp};
 use http::header::{AUTHORIZATION, HeaderName};
 use http::{HeaderMap, Method};
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender, IpcSharedMemory};
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
 use serde::{Deserialize, Serialize};
@@ -130,7 +130,7 @@ pub enum Window {
 }
 
 /// [CORS settings attribute](https://html.spec.whatwg.org/multipage/#attr-crossorigin-anonymous)
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum CorsSettings {
     Anonymous,
     UseCredentials,
@@ -156,7 +156,7 @@ pub enum BodySource {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum BodyChunkResponse {
     /// A chunk of bytes.
-    Chunk(Vec<u8>),
+    Chunk(IpcSharedMemory),
     /// The body is done.
     Done,
     /// There was an error streaming the body,

@@ -10,23 +10,23 @@ use std::default::Default;
 use std::f64::consts::PI;
 use std::ops::Range;
 use std::slice::from_ref;
-use std::sync::Arc as StdArc;
 use std::{cmp, fmt, iter};
 
 use app_units::Au;
 use base::id::{BrowsingContextId, PipelineId};
 use bitflags::bitflags;
-use constellation_traits::UntrustedNodeAddress;
 use devtools_traits::NodeInfo;
 use dom_struct::dom_struct;
+use embedder_traits::UntrustedNodeAddress;
 use euclid::default::{Rect, Size2D, Vector2D};
 use html5ever::serialize::HtmlSerializer;
-use html5ever::{Namespace, Prefix, QualName, namespace_url, ns, serialize as html_serialize};
+use html5ever::{Namespace, Prefix, QualName, ns, serialize as html_serialize};
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use pixels::{Image, ImageMetadata};
+use net_traits::image_cache::Image;
+use pixels::ImageMetadata;
 use script_bindings::codegen::InheritTypes::DocumentFragmentTypeId;
 use script_layout_interface::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType, QueryMsg,
@@ -50,7 +50,6 @@ use style::stylesheets::{Stylesheet, UrlExtraData};
 use uuid::Uuid;
 use xml5ever::{local_name, serialize as xml_serialize};
 
-use super::globalscope::GlobalScope;
 use crate::conversions::Convert;
 use crate::document_loader::DocumentLoader;
 use crate::dom::attr::Attr;
@@ -92,13 +91,14 @@ use crate::dom::documenttype::DocumentType;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator, SelectorWrapper};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlbodyelement::HTMLBodyElement;
 use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutHTMLCanvasElementHelpers};
 use crate::dom::htmlcollection::HTMLCollection;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMethods};
 use crate::dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
-use crate::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
+use crate::dom::htmlinputelement::{HTMLInputElement, InputType, LayoutHTMLInputElementHelpers};
 use crate::dom::htmllinkelement::HTMLLinkElement;
 use crate::dom::htmlslotelement::{HTMLSlotElement, Slottable};
 use crate::dom::htmlstyleelement::HTMLStyleElement;
@@ -110,7 +110,7 @@ use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::range::WeakRangeVec;
 use crate::dom::raredata::NodeRareData;
-use crate::dom::servoparser::serialize_html_fragment;
+use crate::dom::servoparser::{ServoParser, serialize_html_fragment};
 use crate::dom::shadowroot::{IsUserAgentWidget, LayoutShadowRootHelpers, ShadowRoot};
 use crate::dom::stylesheetlist::StyleSheetListOwner;
 use crate::dom::svgsvgelement::{LayoutSVGSVGElementHelpers, SVGSVGElement};
@@ -167,7 +167,6 @@ pub struct Node {
 
     /// Layout data for this node. This is populated during layout and can
     /// be used for incremental relayout and script queries.
-    #[ignore_malloc_size_of = "trait object"]
     #[no_trace]
     layout_data: DomRefCell<Option<Box<GenericLayoutData>>>,
 }
@@ -231,6 +230,10 @@ bitflags! {
         /// Whether this node has a weird parser insertion mode. i.e whether setting innerHTML
         /// needs extra work or not
         const HAS_WEIRD_PARSER_INSERTION_MODE = 1 << 11;
+
+        /// Whether this node serves as the text container for editable content of
+        /// <input> or <textarea> element.
+        const IS_TEXT_CONTROL_INNER_EDITOR = 1 << 12;
     }
 }
 
@@ -315,6 +318,34 @@ impl Node {
                 can_gc,
             );
         }
+    }
+
+    /// Implements the "unsafely set HTML" algorithm as specified in:
+    /// <https://html.spec.whatwg.org/multipage/#concept-unsafely-set-html>
+    pub fn unsafely_set_html(
+        target: &Node,
+        context_element: &Element,
+        html: DOMString,
+        can_gc: CanGc,
+    ) {
+        // Step 1. Let newChildren be the result of the HTML fragment parsing algorithm.
+        let new_children = ServoParser::parse_html_fragment(context_element, html, true, can_gc);
+
+        // Step 2. Let fragment be a new DocumentFragment whose node document is contextElement's node document.
+
+        let context_document = context_element.owner_document();
+        let fragment = DocumentFragment::new(&context_document, can_gc);
+
+        // Step 3. For each node in newChildren, append node to fragment.
+        for child in new_children {
+            fragment
+                .upcast::<Node>()
+                .AppendChild(&child, can_gc)
+                .unwrap();
+        }
+
+        // Step 4. Replace all with fragment within target.
+        Node::replace_all(Some(fragment.upcast()), target, can_gc);
     }
 
     pub(crate) fn clean_up_style_and_layout_data(&self) {
@@ -565,7 +596,17 @@ impl Iterator for QuerySelectorIterator {
 }
 
 impl Node {
-    impl_rare_data!(NodeRareData);
+    fn rare_data(&self) -> Ref<Option<Box<NodeRareData>>> {
+        self.rare_data.borrow()
+    }
+
+    fn ensure_rare_data(&self) -> RefMut<Box<NodeRareData>> {
+        let mut rare_data = self.rare_data.borrow_mut();
+        if rare_data.is_none() {
+            *rare_data = Some(Default::default());
+        }
+        RefMut::map(rare_data, |rare_data| rare_data.as_mut().unwrap())
+    }
 
     /// Returns true if this node is before `other` in the same connected DOM
     /// tree.
@@ -658,6 +699,16 @@ impl Node {
     /// <https://dom.spec.whatwg.org/#connected>
     pub(crate) fn is_connected(&self) -> bool {
         self.flags.get().contains(NodeFlags::IS_CONNECTED)
+    }
+
+    pub(crate) fn set_text_control_inner_editor(&self) {
+        self.set_flag(NodeFlags::IS_TEXT_CONTROL_INNER_EDITOR, true)
+    }
+
+    pub(crate) fn is_text_control_inner_editor(&self) -> bool {
+        self.flags
+            .get()
+            .contains(NodeFlags::IS_TEXT_CONTROL_INNER_EDITOR)
     }
 
     /// Returns the type ID of this node.
@@ -1008,24 +1059,25 @@ impl Node {
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-replacewith>
     pub(crate) fn replace_with(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
-        // Step 1.
-        let parent = if let Some(parent) = self.GetParentNode() {
-            parent
-        } else {
-            // Step 2.
+        // Step 1. Let parent be this’s parent.
+        let Some(parent) = self.GetParentNode() else {
+            // Step 2. If parent is null, then return.
             return Ok(());
         };
-        // Step 3.
+
+        // Step 3. Let viableNextSibling be this’s first following sibling not in nodes; otherwise null.
         let viable_next_sibling = first_node_not_in(self.following_siblings(), &nodes);
-        // Step 4.
+
+        // Step 4. Let node be the result of converting nodes into a node, given nodes and this’s node document.
         let node = self
             .owner_doc()
             .node_from_nodes_and_strings(nodes, can_gc)?;
+
         if self.parent_node == Some(&*parent) {
-            // Step 5.
-            parent.ReplaceChild(&node, self)?;
+            // Step 5. If this’s parent is parent, replace this with node within parent.
+            parent.ReplaceChild(&node, self, can_gc)?;
         } else {
-            // Step 6.
+            // Step 6. Otherwise, pre-insert node into parent before viableNextSibling.
             Node::pre_insert(&node, &parent, viable_next_sibling.as_deref(), can_gc)?;
         }
         Ok(())
@@ -1047,7 +1099,7 @@ impl Node {
         let doc = self.owner_doc();
         let node = doc.node_from_nodes_and_strings(nodes, can_gc)?;
         // Step 2.
-        self.AppendChild(&node).map(|_| ())
+        self.AppendChild(&node, can_gc).map(|_| ())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-replacechildren>
@@ -1226,7 +1278,7 @@ impl Node {
             .to_string()
     }
 
-    pub(crate) fn summarize(&self) -> NodeInfo {
+    pub(crate) fn summarize(&self, can_gc: CanGc) -> NodeInfo {
         let USVString(base_uri) = self.BaseURI();
         let node_type = self.NodeType();
 
@@ -1246,9 +1298,9 @@ impl Node {
 
         let num_children = if is_shadow_host {
             // Shadow roots count as children
-            self.ChildNodes().Length() as usize + 1
+            self.ChildNodes(can_gc).Length() as usize + 1
         } else {
-            self.ChildNodes().Length() as usize
+            self.ChildNodes(can_gc).Length() as usize
         };
 
         let window = self.owner_window();
@@ -1273,6 +1325,21 @@ impl Node {
             is_shadow_host,
             shadow_root_mode,
             display,
+            doctype_name: self
+                .downcast::<DocumentType>()
+                .map(DocumentType::name)
+                .cloned()
+                .map(String::from),
+            doctype_public_identifier: self
+                .downcast::<DocumentType>()
+                .map(DocumentType::public_id)
+                .cloned()
+                .map(String::from),
+            doctype_system_identifier: self
+                .downcast::<DocumentType>()
+                .map(DocumentType::system_id)
+                .cloned()
+                .map(String::from),
         }
     }
 
@@ -1282,7 +1349,7 @@ impl Node {
         index: i32,
         get_items: F,
         new_child: G,
-        _can_gc: CanGc,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<HTMLElement>>
     where
         F: Fn() -> DomRoot<HTMLCollection>,
@@ -1298,7 +1365,7 @@ impl Node {
         {
             let tr_node = tr.upcast::<Node>();
             if index == -1 {
-                self.InsertBefore(tr_node, None)?;
+                self.InsertBefore(tr_node, None, can_gc)?;
             } else {
                 let items = get_items();
                 let node = match items
@@ -1311,7 +1378,7 @@ impl Node {
                     None => return Err(Error::IndexSize),
                     Some(node) => node,
                 };
-                self.InsertBefore(tr_node, node.as_deref())?;
+                self.InsertBefore(tr_node, node.as_deref(), can_gc)?;
             }
         }
 
@@ -1367,7 +1434,7 @@ impl Node {
         if let Some(node) = self.downcast::<HTMLStyleElement>() {
             node.get_cssom_stylesheet()
         } else if let Some(node) = self.downcast::<HTMLLinkElement>() {
-            node.get_cssom_stylesheet()
+            node.get_cssom_stylesheet(CanGc::note())
         } else {
             None
         }
@@ -1541,6 +1608,7 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
     fn assigned_slot_for_layout(self) -> Option<LayoutDom<'dom, HTMLSlotElement>>;
 
     fn is_element_for_layout(&self) -> bool;
+    fn is_text_node_for_layout(&self) -> bool;
     unsafe fn get_flag(self, flag: NodeFlags) -> bool;
     unsafe fn set_flag(self, flag: NodeFlags, value: bool);
 
@@ -1574,11 +1642,16 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
     /// attempting to read or modify the opaque layout data of this node.
     unsafe fn clear_style_and_layout_data(self);
 
+    /// Whether this element is a `<input>` rendered as text or a `<textarea>`.
+    fn is_text_input(&self) -> bool;
+
+    /// Whether this element serve as a container of editable text for a text input.
+    fn is_text_control_inner_editor(&self) -> bool;
     fn text_content(self) -> Cow<'dom, str>;
     fn selection(self) -> Option<Range<usize>>;
     fn image_url(self) -> Option<ServoUrl>;
     fn image_density(self) -> Option<f64>;
-    fn image_data(self) -> Option<(Option<StdArc<Image>>, Option<ImageMetadata>)>;
+    fn image_data(self) -> Option<(Option<Image>, Option<ImageMetadata>)>;
     fn canvas_data(self) -> Option<HTMLCanvasData>;
     fn media_data(self) -> Option<HTMLMediaData>;
     fn svg_data(self) -> Option<SVGSVGData>;
@@ -1604,6 +1677,11 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     #[inline]
     fn is_element_for_layout(&self) -> bool {
         (*self).is::<Element>()
+    }
+
+    fn is_text_node_for_layout(&self) -> bool {
+        self.type_id_for_layout() ==
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text))
     }
 
     #[inline]
@@ -1738,6 +1816,29 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
         self.unsafe_get().layout_data.borrow_mut_for_layout().take();
     }
 
+    fn is_text_input(&self) -> bool {
+        let type_id = self.type_id_for_layout();
+        if type_id ==
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLInputElement,
+            ))
+        {
+            let input = self.unsafe_get().downcast::<HTMLInputElement>().unwrap();
+
+            // FIXME: All the non-color and non-text input types currently render as text
+            !matches!(input.input_type(), InputType::Color | InputType::Text)
+        } else {
+            type_id ==
+                NodeTypeId::Element(ElementTypeId::HTMLElement(
+                    HTMLElementTypeId::HTMLTextAreaElement,
+                ))
+        }
+    }
+
+    fn is_text_control_inner_editor(&self) -> bool {
+        self.unsafe_get().is_text_control_inner_editor()
+    }
+
     fn text_content(self) -> Cow<'dom, str> {
         if let Some(text) = self.downcast::<Text>() {
             return text.upcast().data_for_layout().into();
@@ -1755,6 +1856,25 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     }
 
     fn selection(self) -> Option<Range<usize>> {
+        // This node is a text node of a text control inner editor in a <input> or <textarea> element.
+        // So we should find those corresponding element, and get its selection.
+        if self.is_text_node_for_layout() &&
+            self.parent_node_ref()
+                .is_some_and(|parent| parent.is_text_control_inner_editor())
+        {
+            let shadow_root = self.containing_shadow_root_for_layout();
+            if let Some(containing_shadow_host) = shadow_root.map(|root| root.get_host_for_layout())
+            {
+                if let Some(area) = containing_shadow_host.downcast::<HTMLTextAreaElement>() {
+                    return area.selection_for_layout();
+                }
+
+                if let Some(input) = containing_shadow_host.downcast::<HTMLInputElement>() {
+                    return input.selection_for_layout();
+                }
+            }
+        }
+
         if let Some(area) = self.downcast::<HTMLTextAreaElement>() {
             return area.selection_for_layout();
         }
@@ -1772,7 +1892,7 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
             .image_url()
     }
 
-    fn image_data(self) -> Option<(Option<StdArc<Image>>, Option<ImageMetadata>)> {
+    fn image_data(self) -> Option<(Option<Image>, Option<ImageMetadata>)> {
         self.downcast::<HTMLImageElement>().map(|e| e.image_data())
     }
 
@@ -1975,6 +2095,10 @@ impl TreeIterator {
         debug_assert_eq!(self.depth, 0);
         self.current = None;
         Some(current)
+    }
+
+    pub(crate) fn peek(&self) -> Option<&DomRoot<Node>> {
+        self.current.as_ref()
     }
 }
 
@@ -2262,18 +2386,15 @@ impl Node {
         };
 
         // Step 4.
-        Node::adopt(node, &parent.owner_document(), can_gc);
-
-        // Step 5.
         Node::insert(
             node,
             parent,
             reference_child,
             SuppressObserver::Unsuppressed,
-            CanGc::note(),
+            can_gc,
         );
 
-        // Step 6.
+        // Step 5.
         Ok(DomRoot::from_ref(node))
     }
 
@@ -2285,49 +2406,64 @@ impl Node {
         suppress_observers: SuppressObserver,
         can_gc: CanGc,
     ) {
-        node.owner_doc().add_script_and_layout_blocker();
-        debug_assert!(*node.owner_doc() == *parent.owner_doc());
         debug_assert!(child.is_none_or(|child| Some(parent) == child.GetParentNode().as_deref()));
 
-        // Step 1.
-        let count = if node.is::<DocumentFragment>() {
-            node.children_count()
-        } else {
-            1
-        };
-        // Step 2.
-        if let Some(child) = child {
-            if !parent.ranges_is_empty() {
-                let index = child.index();
-                // Steps 2.1-2.
-                parent.ranges().increase_above(parent, index, count);
-            }
-        }
+        // Step 1. Let nodes be node’s children, if node is a DocumentFragment node; otherwise « node ».
         rooted_vec!(let mut new_nodes);
         let new_nodes = if let NodeTypeId::DocumentFragment(_) = node.type_id() {
-            // Step 3.
-            new_nodes.extend(node.children().map(|kid| Dom::from_ref(&*kid)));
-            // Step 4.
-            for kid in &*new_nodes {
+            new_nodes.extend(node.children().map(|node| Dom::from_ref(&*node)));
+            new_nodes.r()
+        } else {
+            from_ref(&node)
+        };
+
+        // Step 2. Let count be nodes’s size.
+        let count = new_nodes.len();
+
+        // Step 3. If count is 0, then return.
+        if count == 0 {
+            return;
+        }
+
+        // Script and layout blockers must be added after any early return.
+        // `node.owner_doc()` may change during the algorithm.
+        let parent_document = parent.owner_doc();
+        let from_document = node.owner_doc();
+        from_document.add_script_and_layout_blocker();
+        parent_document.add_script_and_layout_blocker();
+
+        // Step 4. If node is a DocumentFragment node:
+        if let NodeTypeId::DocumentFragment(_) = node.type_id() {
+            // Step 4.1. Remove its children with the suppress observers flag set.
+            for kid in new_nodes {
                 Node::remove(kid, node, SuppressObserver::Suppressed, can_gc);
             }
-            // Step 5.
-            vtable_for(node).children_changed(&ChildrenMutation::replace_all(new_nodes.r(), &[]));
+            vtable_for(node).children_changed(&ChildrenMutation::replace_all(new_nodes, &[]));
 
+            // Step 4.2. Queue a tree mutation record for node with « », nodes, null, and null.
             let mutation = LazyCell::new(|| Mutation::ChildList {
                 added: None,
-                removed: Some(new_nodes.r()),
+                removed: Some(new_nodes),
                 prev: None,
                 next: None,
             });
             MutationObserver::queue_a_mutation_record(node, mutation);
+        }
 
-            new_nodes.r()
-        } else {
-            // Step 3.
-            from_ref(&node)
-        };
-        // Step 6.
+        // Step 5. If child is non-null:
+        //     1. For each live range whose start node is parent and start offset is
+        //        greater than child’s index, increase its start offset by count.
+        //     2. For each live range whose end node is parent and end offset is
+        //        greater than child’s index, increase its end offset by count.
+        if let Some(child) = child {
+            if !parent.ranges_is_empty() {
+                parent
+                    .ranges()
+                    .increase_above(parent, child.index(), count.try_into().unwrap());
+            }
+        }
+
+        // Step 6. Let previousSibling be child’s previous sibling or parent’s last child if child is null.
         let previous_sibling = match suppress_observers {
             SuppressObserver::Unsuppressed => match child {
                 Some(child) => child.GetPreviousSibling(),
@@ -2335,9 +2471,14 @@ impl Node {
             },
             SuppressObserver::Suppressed => None,
         };
-        // Step 7.
+
+        // Step 7. For each node in nodes, in tree order:
         for kid in new_nodes {
-            // Step 7.1.
+            // Step 7.1. Adopt node into parent’s node document.
+            Node::adopt(kid, &parent.owner_document(), can_gc);
+
+            // Step 7.2. If child is null, then append node to parent’s children.
+            // Step 7.3. Otherwise, insert node into parent’s children before child’s index.
             parent.add_child(kid, child, can_gc);
 
             // Step 7.4 If parent is a shadow host whose shadow root’s slot assignment is "named"
@@ -2366,12 +2507,17 @@ impl Node {
             kid.GetRootNode(&GetRootNodeOptions::empty())
                 .assign_slottables_for_a_tree();
 
-            // Step 7.7.
+            // Step 7.7. For each shadow-including inclusive descendant inclusiveDescendant of node,
+            // in shadow-including tree order:
             for descendant in kid
                 .traverse_preorder(ShadowIncluding::Yes)
                 .filter_map(DomRoot::downcast::<Element>)
             {
+                // Step 7.7.1. Run the insertion steps with inclusiveDescendant.
+                // This is done in `parent.add_child()`.
+
                 // Step 7.7.2, whatwg/dom#833
+                // Enqueue connected reactions for custom elements or try upgrade.
                 if descendant.is_custom() {
                     if descendant.is_connected() {
                         ScriptThread::enqueue_callback_reaction(
@@ -2385,13 +2531,18 @@ impl Node {
                 }
             }
         }
+
         if let SuppressObserver::Unsuppressed = suppress_observers {
+            // Step 9. Run the children changed steps for parent.
+            // TODO(xiaochengh): If we follow the spec and move it out of the if block, some WPT fail. Investigate.
             vtable_for(parent).children_changed(&ChildrenMutation::insert(
                 previous_sibling.as_deref(),
                 new_nodes,
                 child,
             ));
 
+            // Step 8. If suppress observers flag is unset, then queue a tree mutation record for parent
+            // with nodes, « », previousSibling, and child.
             let mutation = LazyCell::new(|| Mutation::ChildList {
                 added: Some(new_nodes),
                 removed: None,
@@ -2424,7 +2575,7 @@ impl Node {
         // 2) post_connection_steps from Node::insert,
         // we use a delayed task that will run as soon as Node::insert removes its
         // script/layout blocker.
-        node.owner_doc().add_delayed_task(task!(PostConnectionSteps: move || {
+        parent_document.add_delayed_task(task!(PostConnectionSteps: move || {
             // Step 12. For each node of staticNodeList, if node is connected, then run the
             //          post-connection steps with node.
             for node in static_node_list.iter().map(Trusted::root).filter(|n| n.is_connected()) {
@@ -2432,7 +2583,8 @@ impl Node {
             }
         }));
 
-        node.owner_doc().remove_script_and_layout_blocker();
+        parent_document.remove_script_and_layout_blocker();
+        from_document.remove_script_and_layout_blocker();
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-replace-all>
@@ -3043,12 +3195,16 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-childnodes>
-    fn ChildNodes(&self) -> DomRoot<NodeList> {
-        self.ensure_rare_data().child_list.or_init(|| {
-            let doc = self.owner_doc();
-            let window = doc.window();
-            NodeList::new_child_list(window, self, CanGc::note())
-        })
+    fn ChildNodes(&self, can_gc: CanGc) -> DomRoot<NodeList> {
+        if let Some(list) = self.ensure_rare_data().child_list.get() {
+            return list;
+        }
+
+        let doc = self.owner_doc();
+        let window = doc.window();
+        let list = NodeList::new_child_list(window, self, can_gc);
+        self.ensure_rare_data().child_list.set(Some(&list));
+        list
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-firstchild>
@@ -3083,11 +3239,11 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-nodevalue>
-    fn SetNodeValue(&self, val: Option<DOMString>) {
+    fn SetNodeValue(&self, val: Option<DOMString>, can_gc: CanGc) {
         match self.type_id() {
             NodeTypeId::Attr => {
                 let attr = self.downcast::<Attr>().unwrap();
-                attr.SetValue(val.unwrap_or_default());
+                attr.SetValue(val.unwrap_or_default(), can_gc);
             },
             NodeTypeId::CharacterData(_) => {
                 let character_data = self.downcast::<CharacterData>().unwrap();
@@ -3133,7 +3289,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             },
             NodeTypeId::Attr => {
                 let attr = self.downcast::<Attr>().unwrap();
-                attr.SetValue(value);
+                attr.SetValue(value, can_gc);
             },
             NodeTypeId::CharacterData(..) => {
                 let characterdata = self.downcast::<CharacterData>().unwrap();
@@ -3144,35 +3300,45 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-insertbefore>
-    fn InsertBefore(&self, node: &Node, child: Option<&Node>) -> Fallible<DomRoot<Node>> {
-        Node::pre_insert(node, self, child, CanGc::note())
+    fn InsertBefore(
+        &self,
+        node: &Node,
+        child: Option<&Node>,
+        can_gc: CanGc,
+    ) -> Fallible<DomRoot<Node>> {
+        Node::pre_insert(node, self, child, can_gc)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-appendchild>
-    fn AppendChild(&self, node: &Node) -> Fallible<DomRoot<Node>> {
-        Node::pre_insert(node, self, None, CanGc::note())
+    fn AppendChild(&self, node: &Node, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
+        Node::pre_insert(node, self, None, can_gc)
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-replace>
-    fn ReplaceChild(&self, node: &Node, child: &Node) -> Fallible<DomRoot<Node>> {
-        // Step 1.
+    fn ReplaceChild(&self, node: &Node, child: &Node, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
+        // Step 1. If parent is not a Document, DocumentFragment, or Element node,
+        // then throw a "HierarchyRequestError" DOMException.
         match self.type_id() {
             NodeTypeId::Document(_) | NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => {
             },
             _ => return Err(Error::HierarchyRequest),
         }
 
-        // Step 2.
+        // Step 2. If node is a host-including inclusive ancestor of parent,
+        // then throw a "HierarchyRequestError" DOMException.
         if node.is_inclusive_ancestor_of(self) {
             return Err(Error::HierarchyRequest);
         }
 
-        // Step 3.
+        // Step 3. If child’s parent is not parent, then throw a "NotFoundError" DOMException.
         if !self.is_parent_of(child) {
             return Err(Error::NotFound);
         }
 
-        // Step 4-5.
+        // Step 4. If node is not a DocumentFragment, DocumentType, Element, or CharacterData node,
+        // then throw a "HierarchyRequestError" DOMException.
+        // Step 5. If either node is a Text node and parent is a document,
+        // or node is a doctype and parent is not a document, then throw a "HierarchyRequestError" DOMException.
         match node.type_id() {
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) if self.is::<Document>() => {
                 return Err(Error::HierarchyRequest);
@@ -3184,7 +3350,8 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             _ => (),
         }
 
-        // Step 6.
+        // Step 6. If parent is a document, and any of the statements below, switched on the interface node implements,
+        // are true, then throw a "HierarchyRequestError" DOMException.
         if self.is::<Document>() {
             match node.type_id() {
                 // Step 6.1
@@ -3238,7 +3405,8 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             }
         }
 
-        // Step 7-8.
+        // Step 7. Let referenceChild be child’s next sibling.
+        // Step 8. If referenceChild is node, then set referenceChild to node’s next sibling.
         let child_next_sibling = child.GetNextSibling();
         let node_next_sibling = node.GetNextSibling();
         let reference_child = if child_next_sibling.as_deref() == Some(node) {
@@ -3247,22 +3415,28 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             child_next_sibling.as_deref()
         };
 
-        // Step 9.
+        // Step 9. Let previousSibling be child’s previous sibling.
         let previous_sibling = child.GetPreviousSibling();
 
-        // Step 10.
+        // NOTE: All existing browsers assume that adoption is performed here, which does not follow the DOM spec.
+        // However, if we follow the spec and delay adoption to inside `Node::insert()`, then the mutation records will
+        // be different, and we will fail WPT dom/nodes/MutationObserver-childList.html.
         let document = self.owner_document();
-        Node::adopt(node, &document, CanGc::note());
+        Node::adopt(node, &document, can_gc);
 
+        // Step 10. Let removedNodes be the empty set.
+        // Step 11. If child’s parent is non-null:
+        //     1. Set removedNodes to « child ».
+        //     2. Remove child with the suppress observers flag set.
         let removed_child = if node != child {
             // Step 11.
-            Node::remove(child, self, SuppressObserver::Suppressed, CanGc::note());
+            Node::remove(child, self, SuppressObserver::Suppressed, can_gc);
             Some(child)
         } else {
             None
         };
 
-        // Step 12.
+        // Step 12. Let nodes be node’s children if node is a DocumentFragment node; otherwise « node ».
         rooted_vec!(let mut nodes);
         let nodes = if node.type_id() ==
             NodeTypeId::DocumentFragment(DocumentFragmentTypeId::DocumentFragment) ||
@@ -3274,22 +3448,24 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             from_ref(&node)
         };
 
-        // Step 13.
+        // Step 13. Insert node into parent before referenceChild with the suppress observers flag set.
         Node::insert(
             node,
             self,
             reference_child,
             SuppressObserver::Suppressed,
-            CanGc::note(),
+            can_gc,
         );
 
-        // Step 14.
         vtable_for(self).children_changed(&ChildrenMutation::replace(
             previous_sibling.as_deref(),
             &removed_child,
             nodes,
             reference_child,
         ));
+
+        // Step 14. Queue a tree mutation record for parent with nodes, removedNodes,
+        // previousSibling, and referenceChild.
         let removed = removed_child.map(|r| [r]);
         let mutation = LazyCell::new(|| Mutation::ChildList {
             added: Some(nodes),
@@ -3300,24 +3476,24 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
 
         MutationObserver::queue_a_mutation_record(self, mutation);
 
-        // Step 15.
+        // Step 15. Return child.
         Ok(DomRoot::from_ref(child))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-removechild>
-    fn RemoveChild(&self, node: &Node) -> Fallible<DomRoot<Node>> {
-        Node::pre_remove(node, self, CanGc::note())
+    fn RemoveChild(&self, node: &Node, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
+        Node::pre_remove(node, self, can_gc)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-normalize>
-    fn Normalize(&self) {
+    fn Normalize(&self, can_gc: CanGc) {
         let mut children = self.children().enumerate().peekable();
         while let Some((_, node)) = children.next() {
             if let Some(text) = node.downcast::<Text>() {
                 let cdata = text.upcast::<CharacterData>();
                 let mut length = cdata.Length();
                 if length == 0 {
-                    Node::remove(&node, self, SuppressObserver::Unsuppressed, CanGc::note());
+                    Node::remove(&node, self, SuppressObserver::Unsuppressed, can_gc);
                     continue;
                 }
                 while children
@@ -3333,15 +3509,10 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                     let sibling_cdata = sibling.downcast::<CharacterData>().unwrap();
                     length += sibling_cdata.Length();
                     cdata.append_data(&sibling_cdata.data());
-                    Node::remove(
-                        &sibling,
-                        self,
-                        SuppressObserver::Unsuppressed,
-                        CanGc::note(),
-                    );
+                    Node::remove(&sibling, self, SuppressObserver::Unsuppressed, can_gc);
                 }
             } else {
-                node.Normalize();
+                node.Normalize(can_gc);
             }
         }
     }
@@ -4121,6 +4292,9 @@ impl From<ElementTypeIdWrapper> for LayoutElementType {
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement) => {
                 LayoutElementType::HTMLTextAreaElement
             },
+            ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(
+                SVGGraphicsElementTypeId::SVGImageElement,
+            )) => LayoutElementType::SVGImageElement,
             ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(
                 SVGGraphicsElementTypeId::SVGSVGElement,
             )) => LayoutElementType::SVGSVGElement,

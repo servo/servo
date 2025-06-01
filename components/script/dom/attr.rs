@@ -8,7 +8,7 @@ use std::mem;
 
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Namespace, Prefix, namespace_url, ns};
+use html5ever::{LocalName, Namespace, Prefix, local_name, ns};
 use style::attr::{AttrIdentifier, AttrValue};
 use style::values::GenericAtomIdent;
 use stylo_atoms::Atom;
@@ -112,10 +112,10 @@ impl AttrMethods<crate::DomTypeHolder> for Attr {
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-value
-    fn SetValue(&self, value: DOMString) {
+    fn SetValue(&self, value: DOMString, can_gc: CanGc) {
         if let Some(owner) = self.owner() {
             let value = owner.parse_attribute(self.namespace(), self.local_name(), value);
-            self.set_value(value, &owner, CanGc::note());
+            self.set_value(value, &owner, can_gc);
         } else {
             *self.value.borrow_mut() = AttrValue::String(value.into());
         }
@@ -179,7 +179,7 @@ impl Attr {
         assert_eq!(Some(owner), self.owner().as_deref());
         owner.will_mutate_attr(self);
         self.swap_value(&mut value);
-        if *self.namespace() == ns!() {
+        if is_relevant_attribute(self.namespace(), self.local_name()) {
             vtable_for(owner.upcast()).attribute_mutated(
                 self,
                 AttributeMutation::Set(Some(&value)),
@@ -282,4 +282,10 @@ impl<'dom> AttrHelpersForLayout<'dom> for LayoutDom<'dom, Attr> {
     fn namespace(self) -> &'dom Namespace {
         &self.unsafe_get().identifier.namespace.0
     }
+}
+
+/// A helper function to check if attribute is relevant.
+pub(crate) fn is_relevant_attribute(namespace: &Namespace, local_name: &LocalName) -> bool {
+    // <https://svgwg.org/svg2-draft/linking.html#XLinkHrefAttribute>
+    namespace == &ns!() || (namespace == &ns!(xlink) && local_name == &local_name!("href"))
 }

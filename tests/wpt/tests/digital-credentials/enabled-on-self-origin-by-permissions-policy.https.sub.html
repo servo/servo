@@ -10,9 +10,13 @@
 <script type="module">
     import { makeGetOptions } from "./support/helper.js";
     const { HTTPS_REMOTE_ORIGIN } = get_host_info();
-    const same_origin_src =
+    const get_same_origin_src =
         "/permissions-policy/resources/digital-credentials-get.html";
-    const cross_origin_src = new URL(same_origin_src, HTTPS_REMOTE_ORIGIN).href;
+    const get_cross_origin_src = new URL(get_same_origin_src, HTTPS_REMOTE_ORIGIN).href;
+
+    const create_same_origin_src =
+        "/permissions-policy/resources/digital-credentials-create.html";
+    const create_cross_origin_src = new URL(create_same_origin_src, HTTPS_REMOTE_ORIGIN).href;
 
     promise_test(async (test) => {
         await test_driver.bless("user activation");
@@ -27,7 +31,7 @@
         await test_feature_availability({
             feature_description: "Digital Credential API",
             test,
-            src: same_origin_src,
+            src: get_same_origin_src,
             expect_feature_available: expect_feature_available_default,
             is_promise_test: true,
             needs_focus: true,
@@ -38,7 +42,7 @@
         await test_feature_availability({
             feature_description: "Digital Credential API",
             test,
-            src: cross_origin_src,
+            src: get_cross_origin_src,
             expect_feature_available: expect_feature_unavailable_default,
             is_promise_test: true,
             needs_focus: true,
@@ -49,11 +53,54 @@
         await test_feature_availability({
             feature_description: "Digital Credential API",
             test,
-            src: cross_origin_src,
+            src: get_cross_origin_src,
             expect_feature_available: expect_feature_unavailable_default,
             feature_name: "digital-credentials-get",
             is_promise_test: true,
             needs_focus: true,
         });
     }, "Permissions-Policy header explicitly set to digital-credentials-get=(self) cannot be overridden by allow attribute.");
+
+    promise_test(async (test) => {
+        await test_driver.bless("user activation");
+        await promise_rejects_js(
+            test,
+            TypeError,
+            navigator.credentials.create(makeCreateOptions([]))
+        );
+    }, "Permissions-Policy header digital-credentials-create=(self) allows the top-level document.");
+
+    promise_test(async (test) => {
+        await test_feature_availability({
+            feature_description: "Digital Credential API",
+            test,
+            src: create_same_origin_src,
+            expect_feature_available: expect_feature_available_default,
+            is_promise_test: true,
+            needs_focus: true,
+        });
+    }, "Permissions-Policy header digital-credentials-create=(self) allows same-origin iframes.");
+
+    promise_test(async (test) => {
+        await test_feature_availability({
+            feature_description: "Digital Credential API",
+            test,
+            src: create_cross_origin_src,
+            expect_feature_available: expect_feature_unavailable_default,
+            is_promise_test: true,
+            needs_focus: true,
+        });
+    }, "Permissions-Policy header digital-credentials-create=(self) disallows cross-origin iframes.");
+
+    promise_test(async (test) => {
+        await test_feature_availability({
+            feature_description: "Digital Credential API",
+            test,
+            src: create_cross_origin_src,
+            expect_feature_available: expect_feature_unavailable_default,
+            feature_name: "digital-credentials-create",
+            is_promise_test: true,
+            needs_focus: true,
+        });
+    }, "Permissions-Policy header explicitly set to digital-credentials-create=(self) cannot be overridden by allow attribute.");
 </script>

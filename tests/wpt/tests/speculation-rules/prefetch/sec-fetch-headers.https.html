@@ -23,7 +23,7 @@ promise_test(async t => {
 
   const headers = await agent.getRequestHeaders();
   assert_prefetched(headers, "must be prefetched");
-  assert_equals(headers.sec_fetch_dest, "document", "Sec-Fetch-Dest");
+  assert_equals(headers['sec-fetch-dest'], "document", "Sec-Fetch-Dest");
 }, 'Sec-Fetch-Dest');
 
 promise_test(async t => {
@@ -34,7 +34,7 @@ promise_test(async t => {
 
   const headers = await agent.getRequestHeaders();
   assert_prefetched(headers, "must be prefetched");
-  assert_equals(headers.sec_fetch_mode, "navigate", "Sec-Fetch-Mode");
+  assert_equals(headers['sec-fetch-mode'], "navigate", "Sec-Fetch-Mode");
 }, 'Sec-Fetch-Mode');
 
 promise_test(async t => {
@@ -47,7 +47,7 @@ promise_test(async t => {
 
   const headers = await agent.getRequestHeaders();
   assert_prefetched(headers, "must be prefetched");
-  assert_equals(headers.sec_fetch_dest, "document", "Sec-Fetch-Dest");
+  assert_equals(headers['sec-fetch-dest'], "document", "Sec-Fetch-Dest");
 }, 'Sec-Fetch-Dest with redirects');
 
 promise_test(async t => {
@@ -60,6 +60,6 @@ promise_test(async t => {
 
   const headers = await agent.getRequestHeaders();
   assert_prefetched(headers, "must be prefetched");
-  assert_equals(headers.sec_fetch_mode, "navigate", "Sec-Fetch-Mode");
+  assert_equals(headers['sec-fetch-mode'], "navigate", "Sec-Fetch-Mode");
 }, 'Sec-Fetch-Mode with redirects');
 </script>

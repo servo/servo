@@ -21,6 +21,9 @@ test_valid_value("margin-trim", "block-end");
 test_valid_value("margin-trim", "inline-start");
 test_valid_value("margin-trim", "inline-end");
 
+test_valid_value("margin-trim", "block inline");
+test_valid_value("margin-trim", "inline block");
+
 // Serialize values into either block or inline
 test_valid_value("margin-trim", "block-start block-end", "block");
 test_valid_value("margin-trim", "inline-start inline-end", "inline");
@@ -29,10 +32,15 @@ test_valid_value("margin-trim", "inline-end inline-start", "inline");
 test_valid_value("margin-trim", "inline-start block-start");
 
 test_valid_value("margin-trim", "inline-end block-start block-end");
-test_valid_value("margin-trim", "block-start inline-start block-end inline-end");
-test_valid_value("margin-trim", "inline-end block-end inline-start block-start");
 
-test_invalid_value("margin-trim", "block inline");
+// Serialize 4 values into "block inline"
+test_valid_value("margin-trim", "block-start inline-start block-end inline-end", "block inline");
+test_valid_value("margin-trim", "block-start block-end inline-end inline-start", "block inline");
+test_valid_value("margin-trim", "block-start block-end inline-start inline-end", "block inline");
+test_valid_value("margin-trim", "inline-start block-end block-start inline-end", "block inline");
+test_valid_value("margin-trim", "inline-start inline-end block-start block-end", "block inline");
+test_valid_value("margin-trim", "inline-end block-end inline-start block-start", "block inline");
+
 test_invalid_value("margin-trim", "block block");
 test_invalid_value("margin-trim", "inline inline");
 test_invalid_value("margin-trim", "block inline-start inline-end");

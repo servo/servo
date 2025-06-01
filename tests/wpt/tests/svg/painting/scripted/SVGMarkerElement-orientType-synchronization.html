@@ -26,4 +26,17 @@ test(function() {
   assert_equals(marker.getAttribute('orient'), '1');
   assert_equals(marker.orientType.baseVal, SVGMarkerElement.SVG_MARKER_ORIENT_ANGLE);
 }, `${document.title}, setting orientAngle using valueInSpecifiedUnits`);
+
+test(function() {
+  const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+  assert_false(marker.hasAttribute('orient'));
+
+  marker.setOrientToAuto();
+  assert_equals(marker.getAttribute('orient'), 'auto');
+
+  marker.orientAngle.baseVal.convertToSpecifiedUnits(SVGAngle.SVG_ANGLETYPE_UNSPECIFIED);
+  assert_true(marker.hasAttribute('orient'));
+  assert_equals(marker.getAttribute('orient'), '0');
+  assert_equals(marker.orientType.baseVal, SVGMarkerElement.SVG_MARKER_ORIENT_ANGLE);
+}, `${document.title}, setting orientAngle using convertToSpecifiedUnits`);
 </script>

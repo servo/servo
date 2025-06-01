@@ -507,7 +507,7 @@ impl Event {
                 // corresponding pre-activation behavior.
                 pre_activation_result = activation_target
                     .as_maybe_activatable()
-                    .and_then(|activatable| activatable.legacy_pre_activation_behavior());
+                    .and_then(|activatable| activatable.legacy_pre_activation_behavior(can_gc));
             }
 
             let timeline_window = DomRoot::downcast::<Window>(target.global())
@@ -623,7 +623,7 @@ impl Event {
                 // Step 11.2 Otherwise, if activationTarget has legacy-canceled-activation behavior, then run
                 // activationTarget’s legacy-canceled-activation behavior.
                 else {
-                    activatable.legacy_canceled_activation_behavior(pre_activation_result);
+                    activatable.legacy_canceled_activation_behavior(pre_activation_result, can_gc);
                 }
             }
         }
@@ -1040,10 +1040,35 @@ impl From<bool> for EventCancelable {
 }
 
 impl From<EventCancelable> for bool {
-    fn from(bubbles: EventCancelable) -> Self {
-        match bubbles {
+    fn from(cancelable: EventCancelable) -> Self {
+        match cancelable {
             EventCancelable::Cancelable => true,
             EventCancelable::NotCancelable => false,
+        }
+    }
+}
+
+#[derive(Clone, Copy, MallocSizeOf, PartialEq)]
+pub(crate) enum EventComposed {
+    Composed,
+    NotComposed,
+}
+
+impl From<bool> for EventComposed {
+    fn from(boolean: bool) -> Self {
+        if boolean {
+            EventComposed::Composed
+        } else {
+            EventComposed::NotComposed
+        }
+    }
+}
+
+impl From<EventComposed> for bool {
+    fn from(composed: EventComposed) -> Self {
+        match composed {
+            EventComposed::Composed => true,
+            EventComposed::NotComposed => false,
         }
     }
 }

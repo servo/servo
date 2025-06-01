@@ -1,0 +1,36 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: ::scroll-button() activation without scroller shouldn't crash</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+div::scroll-button(inline-start) {
+  content: "";
+  height: 100px;
+  width: 100px;
+}
+</style>
+<div></div>
+<script>
+  promise_test(async t => {
+    await new test_driver.Actions()
+      .pointerMove(50, 50)
+      .pointerDown()
+      .pointerUp()
+      .pointerDown()
+      .pointerUp()
+      .send();
+    const kTab = '\uE004';
+    const kEnter = '\uE007';
+    await new test_driver.Actions()
+      .keyDown(kTab)
+      .keyUp(kTab)
+      .keyDown(kEnter)
+      .keyUp(kEnter)
+      .send();
+  });
+</script>

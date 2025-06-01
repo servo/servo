@@ -31,9 +31,9 @@ use js::typedarray::{
 };
 use net_traits::image_cache::ImageResponse;
 use pixels::{self, PixelFormat};
-use script_layout_interface::HTMLCanvasDataSource;
 use serde::{Deserialize, Serialize};
 use servo_config::pref;
+use snapshot::Snapshot;
 use webrender_api::ImageKey;
 
 use crate::canvas_context::CanvasContext;
@@ -609,17 +609,34 @@ impl WebGLRenderingContext {
                 };
                 let cors_setting = cors_setting_for_element(image.upcast());
 
-                let img =
-                    match canvas_utils::request_image_from_cache(&window, img_url, cors_setting) {
-                        ImageResponse::Loaded(img, _) => img,
-                        ImageResponse::PlaceholderLoaded(_, _) |
-                        ImageResponse::None |
-                        ImageResponse::MetadataLoaded(_) => return Ok(None),
-                    };
+                let img = match canvas_utils::request_image_from_cache(
+                    &window,
+                    img_url,
+                    cors_setting,
+                ) {
+                    ImageResponse::Loaded(image, _) => {
+                        match image.as_raster_image() {
+                            Some(image) => image,
+                            None => {
+                                // Vector images are not currently supported here and there are some open questions
+                                // in the specification about how to handle them:
+                                // See https://github.com/KhronosGroup/WebGL/issues/1503.
+                                warn!(
+                                    "Vector images as are not yet supported as WebGL texture source"
+                                );
+                                return Ok(None);
+                            },
+                        }
+                    },
+                    ImageResponse::PlaceholderLoaded(_, _) |
+                    ImageResponse::None |
+                    ImageResponse::MetadataLoaded(_) => return Ok(None),
+                };
 
-                let size = Size2D::new(img.width, img.height);
+                let size = Size2D::new(img.metadata.width, img.metadata.height);
 
-                TexPixels::new(img.bytes(), size, img.format, false)
+                let data = IpcSharedMemory::from_bytes(img.first_frame().bytes);
+                TexPixels::new(data, size, img.format, false)
             },
             // TODO(emilio): Getting canvas data is implemented in CanvasRenderingContext2D,
             // but we need to refactor it moving it to `HTMLCanvasElement` and support
@@ -628,23 +645,36 @@ impl WebGLRenderingContext {
                 if !canvas.origin_is_clean() {
                     return Err(Error::Security);
                 }
-                if let Some((data, size)) = canvas.fetch_all_data() {
-                    let data = data.unwrap_or_else(|| {
-                        IpcSharedMemory::from_bytes(&vec![0; size.area() as usize * 4])
-                    });
-                    TexPixels::new(data, size, PixelFormat::BGRA8, true)
+                if let Some(snapshot) = canvas.get_image_data() {
+                    let snapshot = snapshot.as_ipc();
+                    let size = snapshot.size().cast();
+                    let format = match snapshot.format() {
+                        snapshot::PixelFormat::RGBA => PixelFormat::RGBA8,
+                        snapshot::PixelFormat::BGRA => PixelFormat::BGRA8,
+                    };
+                    let premultiply = snapshot.alpha_mode().is_premultiplied();
+                    TexPixels::new(snapshot.to_ipc_shared_memory(), size, format, premultiply)
                 } else {
                     return Ok(None);
                 }
             },
-            TexImageSource::HTMLVideoElement(video) => match video.get_current_frame_data() {
-                Some((data, size)) => {
-                    let data = data.unwrap_or_else(|| {
-                        IpcSharedMemory::from_bytes(&vec![0; size.area() as usize * 4])
-                    });
-                    TexPixels::new(data, size, PixelFormat::BGRA8, false)
-                },
-                None => return Ok(None),
+            TexImageSource::HTMLVideoElement(video) => {
+                if !video.origin_is_clean() {
+                    return Err(Error::Security);
+                }
+
+                let Some(snapshot) = video.get_current_frame_data() else {
+                    return Ok(None);
+                };
+
+                let snapshot = snapshot.as_ipc();
+                let size = snapshot.size().cast();
+                let format: PixelFormat = match snapshot.format() {
+                    snapshot::PixelFormat::RGBA => PixelFormat::RGBA8,
+                    snapshot::PixelFormat::BGRA => PixelFormat::BGRA8,
+                };
+                let premultiply = snapshot.alpha_mode().is_premultiplied();
+                TexPixels::new(snapshot.to_ipc_shared_memory(), size, format, premultiply)
             },
         }))
     }
@@ -870,9 +900,8 @@ impl WebGLRenderingContext {
         receiver.recv().unwrap()
     }
 
-    pub(crate) fn layout_handle(&self) -> HTMLCanvasDataSource {
-        let image_key = self.webrender_image;
-        HTMLCanvasDataSource::WebGL(image_key)
+    pub(crate) fn layout_handle(&self) -> Option<ImageKey> {
+        Some(self.webrender_image)
     }
 
     // https://www.khronos.org/registry/webgl/extensions/ANGLE_instanced_arrays/
@@ -1922,18 +1951,13 @@ impl CanvasContext for WebGLRenderingContext {
         }
     }
 
-    fn get_image_data_as_shared_memory(&self) -> Option<IpcSharedMemory> {
-        // TODO: add a method in WebGLRenderingContext to get the pixels.
-        None
-    }
-
     // Used by HTMLCanvasElement.toDataURL
     //
     // This emits errors quite liberally, but the spec says that this operation
     // can fail and that it is UB what happens in that case.
     //
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#2.2
-    fn get_image_data(&self) -> Option<Vec<u8>> {
+    fn get_image_data(&self) -> Option<Snapshot> {
         handle_potential_webgl_error!(self, self.validate_framebuffer(), return None);
         let mut size = self.size().cast();
 
@@ -1945,14 +1969,20 @@ impl CanvasContext for WebGLRenderingContext {
         size.width = cmp::min(size.width, fb_width as u32);
         size.height = cmp::min(size.height, fb_height as u32);
 
-        let (sender, receiver) = ipc::bytes_channel().unwrap();
+        let (sender, receiver) = ipc::channel().unwrap();
         self.send_command(WebGLCommand::ReadPixels(
             Rect::from_size(size),
             constants::RGBA,
             constants::UNSIGNED_BYTE,
             sender,
         ));
-        Some(receiver.recv().unwrap())
+        let (data, alpha_mode) = receiver.recv().unwrap();
+        Some(Snapshot::from_vec(
+            size.cast(),
+            snapshot::PixelFormat::RGBA,
+            alpha_mode,
+            data.to_vec(),
+        ))
     }
 
     fn mark_as_dirty(&self) {
@@ -3826,11 +3856,11 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             dest_offset += -y * row_len;
         }
 
-        let (sender, receiver) = ipc::bytes_channel().unwrap();
+        let (sender, receiver) = ipc::channel().unwrap();
         self.send_command(WebGLCommand::ReadPixels(
             src_rect, format, pixel_type, sender,
         ));
-        let src = receiver.recv().unwrap();
+        let (src, _) = receiver.recv().unwrap();
 
         let src_row_len = src_rect.size.width as usize * bytes_per_pixel as usize;
         for i in 0..src_rect.size.height {
@@ -4823,7 +4853,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 }
 
 impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, WebGLRenderingContext> {
-    fn canvas_data_source(self) -> HTMLCanvasDataSource {
+    fn canvas_data_source(self) -> Option<ImageKey> {
         (*self.unsafe_get()).layout_handle()
     }
 }

@@ -119,6 +119,19 @@ function test_resolution_units_parsing() {
     'image-set(url("example.png") calc(1 * 96dpi))',
     'image-set(url("example.png") calc(1dppx))'
   );
+  test_valid_value_variants(
+    'background-image',
+    'image-set(url("example.png") calc(1dppx * sibling-index()))',
+  );
+  test_valid_value_variants(
+    'background-image',
+    'image-set(url("example.png") calc(1dppx * sign(1em - 10px)))',
+  );
+  test_valid_value_variants(
+    'background-image',
+    'image-set(url("example.png") calc(1dppx * sign(10px)))',
+    'image-set(url("example.png") calc(1dppx))',
+  );
 
   test_invalid_value_variants(
     'background-image',

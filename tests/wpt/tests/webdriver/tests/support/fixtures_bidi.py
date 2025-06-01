@@ -207,6 +207,9 @@ def wait_for_future_safe(configuration):
                 timeout=timeout * configuration["timeout_multiplier"],
             )
         except asyncio.TimeoutError:
+            # Cancel the original future.
+            future.cancel()
+
             raise TimeoutException("Future did not resolve within the given timeout")
 
     return wait_for_future_safe
@@ -496,9 +499,11 @@ async def create_user_context(bidi_session):
 
     user_contexts = []
 
-    async def create_user_context():
+    async def create_user_context(accept_insecure_certs=None, proxy=None):
         nonlocal user_contexts
-        user_context = await bidi_session.browser.create_user_context()
+        user_context = await bidi_session.browser.create_user_context(
+            accept_insecure_certs=accept_insecure_certs, proxy=proxy
+        )
         user_contexts.append(user_context)
 
         return user_context

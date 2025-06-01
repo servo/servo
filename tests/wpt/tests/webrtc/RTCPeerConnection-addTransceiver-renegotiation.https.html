@@ -1,0 +1,75 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection: media flows to a second unidirectional transceiver added through renegotiation.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  async function doTest(t, kind, firstTransceiverDirection) {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+
+    exchangeIceCandidates(pc1, pc2);
+
+    // Add a transceiver that we won't use and negotiate.
+    pc1.addTransceiver(kind, {direction: "recvonly"});
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    const [sendTransceiver1] = pc2.getTransceivers();
+    sendTransceiver1.direction = firstTransceiverDirection;
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+
+    // Add another transceiver, that we will use, and renegotiate.
+    const stream = await getNoiseStream({[kind]: true});
+    const [track] = stream.getTracks();
+    t.add_cleanup(() => track.stop());
+
+    pc1.addTransceiver(kind, {direction: "recvonly"});
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    const [, sendTransceiver2] = pc2.getTransceivers();
+    sendTransceiver2.direction = "sendonly";
+    sendTransceiver2.sender.replaceTrack(track);
+
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+
+    const [, recvTransceiver] = pc1.getTransceivers();
+    const {receiver} = recvTransceiver;
+    const threshold = 10;
+    let inboundStats, timedout = false;
+    t.step_timeout(() => timedout = true, 2000);
+    while (!timedout) {
+      const stats = await receiver.getStats();
+      inboundStats = [...stats.values()].find(({type}) => type == "inbound-rtp");
+      if (inboundStats?.packetsReceived > threshold) break;
+      await new Promise(r => t.step_timeout(r, 50));
+    }
+    assert_greater_than(inboundStats?.packetsReceived,
+      threshold,
+      "packets received indicates media flow."
+    );
+  }
+
+  promise_test(async t => {
+    await doTest(t, "video", "sendonly");
+  }, "Video flows to RTCPeerConnection's second transceiver added through renegotiation, with first transceiver also sending");
+
+  promise_test(async t => {
+    await doTest(t, "audio", "sendonly");
+  }, "Audio flows to RTCPeerConnection's second transceiver added through renegotiation, with first transceiver also sending");
+
+  promise_test(async t => {
+    await doTest(t, "video", "inactive");
+  }, "Video flows to RTCPeerConnection's second transceiver added through renegotiation, with first transceiver inactive");
+
+  promise_test(async t => {
+    await doTest(t, "audio", "inactive");
+  }, "Audio flows to RTCPeerConnection's second transceiver added through renegotiation, with first transceiver inactive");
+
+</script>

@@ -1,0 +1,45 @@
+// This json file allows comments and is technically a hjson file.
+// Different {} correspond to completely different runs which can have
+// different filters and different arguments
+[
+    {
+        "args": {
+            "bencher": true, // output in bencher format
+            "url": "https://www.google.com", // the url to test
+            "tries": 5 // How many repeated tries we should have, we show the min,max,avg in the output
+            //"trace_buffer": 524288,   // trace_buffer size of hitrace
+            //"sleep": 10,  // how long should we wait for servo to load the page
+            //"bundle_name": "org.servo.servo", // the bundle name to start
+            //"commands": ["--ps=--tracing-filter", "info"] // arbitrary additional arguments
+        },
+        "filters": [
+            // Filters are currently given via the simple serialize of `filters::JsonValueFilter`.
+            // Filters have an arbitrary name that identifies them. This name will be used in bencher output
+            // where we format it with the E2E and the url.
+            // start_fn_partial matches a hitrace _start_ event where the given string is a substring of the function name.
+            // end_fn_partial matches a hitrace _start_ event where the given string is a substring of the function name.
+            // The filter will calculate the difference between these two start events.
+            // We currently do not support trace spans and only support exactly one match for start_fn_partial and end_fn_partial.
+            {
+                "name": "Load",
+                "start_fn_partial": "on_surface_created_cb",
+                "end_fn_partial": "PageLoadEndedPrompt"
+            }
+        ]
+    },
+    {
+        "args": {
+            "bencher": true,
+            "url": "https://www.servo.org",
+            "tries": 5
+        },
+        "filters": [
+            {
+                "name": "Load",
+                "start_fn_partial": "on_surface_created_cb",
+                "end_fn_partial": "PageLoadEndedPrompt"
+            }
+        ]
+    }
+]
+

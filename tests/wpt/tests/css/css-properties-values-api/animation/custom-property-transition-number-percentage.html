@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>CSS Properties and Values API Test: Transitions between percentages and numbers are discrete</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<div id="target"></div>
+<script>
+  transition_test({
+    syntax: "<number>|<percentage>",
+    from: "100",
+    to: "200%",
+    expected: "200%",
+    behavior: 'allow-discrete',
+  }, 'A custom property with <number>|<percentage> syntax should not transition between values of the different types');
+</script>

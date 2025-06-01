@@ -10,7 +10,7 @@
 <canvas id="canvas" width="400" height="150"></canvas>
 <script>
   setup({ explicit_done: true });
-  window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
+  window.addEventListener("load", () => { document.fonts.load("25px Ahem").then(runTests); });
   function runTests() {
     const measured_text = "|||||";
     const canvas = document.getElementById("canvas");
@@ -19,7 +19,7 @@
     let ahem_expected_width = ctx.measureText(measured_text).width;
 
     kGenericFontFamilyKeywords.forEach(keyword => {
-      test(() => {
+      promise_test(async function() {
          ctx.font = `25px ${keyword}`;
          let expected_width = ctx.measureText(measured_text).width;
 
@@ -38,10 +38,12 @@
 }
 </style>`);
 
+        await document.fonts.load(`25px ${keyword}`);
         ctx.font = `25px ${keyword}`;
         let unquoted_width = ctx.measureText(measured_text).width;
         assert_equals(unquoted_width, expected_width, `unquoted ${keyword} does not match @font-face rule`);
 
+        await document.fonts.load(`25px "${keyword}"`);
         ctx.font = `25px "${keyword}"`;
         let quoted_width = ctx.measureText(measured_text).width;
         assert_equals(quoted_width, ahem_expected_width, `quoted ${keyword} matches  @font-face rule`);

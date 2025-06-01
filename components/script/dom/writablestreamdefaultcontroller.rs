@@ -12,16 +12,18 @@ use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, IntoHandle};
 
 use super::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
+use super::types::TransformStream;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSinkBinding::{
-    UnderlyingSink, UnderlyingSinkAbortCallback, UnderlyingSinkCloseCallback,
-    UnderlyingSinkStartCallback, UnderlyingSinkWriteCallback,
+    UnderlyingSinkAbortCallback, UnderlyingSinkCloseCallback, UnderlyingSinkStartCallback,
+    UnderlyingSinkWriteCallback,
 };
 use crate::dom::bindings::codegen::Bindings::WritableStreamDefaultControllerBinding::WritableStreamDefaultControllerMethods;
-use crate::dom::bindings::error::{Error, ErrorToJsval};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::messageport::MessagePort;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestreamdefaultcontroller::{EnqueuedValue, QueueWithSizes, ValueWithSize};
@@ -135,6 +137,57 @@ impl Callback for StartAlgorithmRejectionHandler {
     }
 }
 
+impl js::gc::Rootable for TransferBackPressurePromiseReaction {}
+
+/// Reacting to backpressurePromise as part of the `writeAlgorithm` of
+/// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
+#[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+struct TransferBackPressurePromiseReaction {
+    /// The result of reacting to backpressurePromise.
+    #[ignore_malloc_size_of = "Rc is hard"]
+    result_promise: Rc<Promise>,
+
+    /// The backpressurePromise.
+    #[ignore_malloc_size_of = "Rc is hard"]
+    backpressure_promise: Rc<RefCell<Option<Rc<Promise>>>>,
+
+    /// The chunk received by the `writeAlgorithm`.
+    #[ignore_malloc_size_of = "mozjs"]
+    chunk: Box<Heap<JSVal>>,
+
+    /// The port used in the algorithm.
+    port: Dom<MessagePort>,
+}
+
+impl Callback for TransferBackPressurePromiseReaction {
+    /// Reacting to backpressurePromise with the following fulfillment steps:
+    fn callback(&self, cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+        let global = self.result_promise.global();
+        // Set backpressurePromise to a new promise.
+        *self.backpressure_promise.borrow_mut() = Some(Promise::new(&global, can_gc));
+
+        // Let result be PackAndPostMessageHandlingError(port, "chunk", chunk).
+        rooted!(in(*cx) let mut chunk = UndefinedValue());
+        chunk.set(self.chunk.get());
+        let result =
+            self.port
+                .pack_and_post_message_handling_error("chunk", chunk.handle(), can_gc);
+
+        // If result is an abrupt completion,
+        if let Err(error) = result {
+            // Disentangle port.
+            global.disentangle_port(&self.port, can_gc);
+
+            // Return a promise rejected with result.[[Value]].
+            self.result_promise.reject_error(error, can_gc);
+        } else {
+            // Otherwise, return a promise resolved with undefined.
+            self.result_promise.resolve_native(&(), can_gc);
+        }
+    }
+}
+
 impl js::gc::Rootable for WriteAlgorithmFulfillmentHandler {}
 
 /// The fulfillment handler for
@@ -214,22 +267,58 @@ impl Callback for WriteAlgorithmRejectionHandler {
     }
 }
 
+/// The type of sink algorithms we are using.
+#[derive(JSTraceable, PartialEq)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+pub enum UnderlyingSinkType {
+    /// Algorithms are provided by Js callbacks.
+    Js {
+        /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-abortalgorithm>
+        abort: RefCell<Option<Rc<UnderlyingSinkAbortCallback>>>,
+
+        start: RefCell<Option<Rc<UnderlyingSinkStartCallback>>>,
+
+        /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-closealgorithm>
+        close: RefCell<Option<Rc<UnderlyingSinkCloseCallback>>>,
+
+        /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-writealgorithm>
+        write: RefCell<Option<Rc<UnderlyingSinkWriteCallback>>>,
+    },
+    /// Algorithms supporting streams transfer are implemented in Rust.
+    /// The promise and port used in those algorithms are stored here.
+    Transfer {
+        backpressure_promise: Rc<RefCell<Option<Rc<Promise>>>>,
+        port: Dom<MessagePort>,
+    },
+    /// Algorithms supporting transform streams are implemented in Rust.
+    Transform(Dom<TransformStream>, Rc<Promise>),
+}
+
+impl UnderlyingSinkType {
+    pub(crate) fn new_js(
+        abort: Option<Rc<UnderlyingSinkAbortCallback>>,
+        start: Option<Rc<UnderlyingSinkStartCallback>>,
+        close: Option<Rc<UnderlyingSinkCloseCallback>>,
+        write: Option<Rc<UnderlyingSinkWriteCallback>>,
+    ) -> Self {
+        UnderlyingSinkType::Js {
+            abort: RefCell::new(abort),
+            start: RefCell::new(start),
+            close: RefCell::new(close),
+            write: RefCell::new(write),
+        }
+    }
+}
+
 /// <https://streams.spec.whatwg.org/#ws-default-controller-class>
 #[dom_struct]
 pub struct WritableStreamDefaultController {
     reflector_: Reflector,
 
-    /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-abortalgorithm>
-    #[ignore_malloc_size_of = "Rc is hard"]
-    abort: RefCell<Option<Rc<UnderlyingSinkAbortCallback>>>,
-
-    /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-closealgorithm>
-    #[ignore_malloc_size_of = "Rc is hard"]
-    close: RefCell<Option<Rc<UnderlyingSinkCloseCallback>>>,
-
-    /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-writealgorithm>
-    #[ignore_malloc_size_of = "Rc is hard"]
-    write: RefCell<Option<Rc<UnderlyingSinkWriteCallback>>>,
+    /// The type of underlying sink used. Besides the default JS one,
+    /// there will be others for stream transfer, and for transform stream.
+    #[ignore_malloc_size_of = "underlying_sink_type"]
+    underlying_sink_type: UnderlyingSinkType,
 
     /// The JS object used as `this` when invoking sink algorithms.
     #[ignore_malloc_size_of = "mozjs"]
@@ -256,17 +345,15 @@ impl WritableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller-from-underlying-sink>
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(
-        underlying_sink: &UnderlyingSink,
+        underlying_sink_type: UnderlyingSinkType,
         strategy_hwm: f64,
         strategy_size: Rc<QueuingStrategySize>,
     ) -> WritableStreamDefaultController {
         WritableStreamDefaultController {
             reflector_: Reflector::new(),
+            underlying_sink_type,
             queue: Default::default(),
             stream: Default::default(),
-            abort: RefCell::new(underlying_sink.abort.clone()),
-            close: RefCell::new(underlying_sink.close.clone()),
-            write: RefCell::new(underlying_sink.write.clone()),
             underlying_sink_obj: Default::default(),
             strategy_hwm,
             strategy_size: RefCell::new(Some(strategy_size)),
@@ -274,16 +361,17 @@ impl WritableStreamDefaultController {
         }
     }
 
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         global: &GlobalScope,
-        underlying_sink: &UnderlyingSink,
+        underlying_sink_type: UnderlyingSinkType,
         strategy_hwm: f64,
         strategy_size: Rc<QueuingStrategySize>,
         can_gc: CanGc,
     ) -> DomRoot<WritableStreamDefaultController> {
         reflect_dom_object(
             Box::new(WritableStreamDefaultController::new_inherited(
-                underlying_sink,
+                underlying_sink_type,
                 strategy_hwm,
                 strategy_size,
             )),
@@ -303,27 +391,43 @@ impl WritableStreamDefaultController {
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-clear-algorithms>
     fn clear_algorithms(&self) {
-        // Set controller.[[writeAlgorithm]] to undefined.
-        self.write.borrow_mut().take();
+        match &self.underlying_sink_type {
+            UnderlyingSinkType::Js {
+                abort,
+                start: _,
+                close,
+                write,
+            } => {
+                // Set controller.[[writeAlgorithm]] to undefined.
+                write.borrow_mut().take();
 
-        // Set controller.[[closeAlgorithm]] to undefined.
-        self.close.borrow_mut().take();
+                // Set controller.[[closeAlgorithm]] to undefined.
+                close.borrow_mut().take();
 
-        // Set controller.[[abortAlgorithm]] to undefined.
-        self.abort.borrow_mut().take();
+                // Set controller.[[abortAlgorithm]] to undefined.
+                abort.borrow_mut().take();
+            },
+            UnderlyingSinkType::Transfer {
+                backpressure_promise,
+                ..
+            } => {
+                backpressure_promise.borrow_mut().take();
+            },
+            UnderlyingSinkType::Transform(_, _) => {
+                return;
+            },
+        }
 
         // Set controller.[[strategySizeAlgorithm]] to undefined.
         self.strategy_size.borrow_mut().take();
     }
 
-    /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controllerr>
-    #[allow(unsafe_code)]
+    /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller>
     pub(crate) fn setup(
         &self,
         cx: SafeJSContext,
         global: &GlobalScope,
         stream: &WritableStream,
-        start: &Option<Rc<UnderlyingSinkStartCallback>>,
         can_gc: CanGc,
     ) -> Result<(), Error> {
         // Assert: stream implements WritableStream.
@@ -364,34 +468,7 @@ impl WritableStreamDefaultController {
 
         // Let startResult be the result of performing startAlgorithm. (This may throw an exception.)
         // Let startPromise be a promise resolved with startResult.
-        let start_promise = if let Some(start) = start {
-            rooted!(in(*cx) let mut result_object = ptr::null_mut::<JSObject>());
-            rooted!(in(*cx) let mut result: JSVal);
-            rooted!(in(*cx) let this_object = self.underlying_sink_obj.get());
-            start.Call_(
-                &this_object.handle(),
-                self,
-                result.handle_mut(),
-                ExceptionHandling::Rethrow,
-                can_gc,
-            )?;
-            let is_promise = unsafe {
-                if result.is_object() {
-                    result_object.set(result.to_object());
-                    IsPromiseObject(result_object.handle().into_handle())
-                } else {
-                    false
-                }
-            };
-            if is_promise {
-                let promise = Promise::new_with_js_promise(result_object.handle(), cx);
-                promise
-            } else {
-                Promise::new_resolved(global, cx, result.get(), can_gc)
-            }
-        } else {
-            Promise::new_resolved(global, cx, (), can_gc)
-        };
+        let start_promise = self.start_algorithm(cx, global, can_gc)?;
 
         let rooted_default_controller = DomRoot::from_ref(self);
 
@@ -431,6 +508,64 @@ impl WritableStreamDefaultController {
         self.advance_queue_if_needed(cx, global, can_gc);
     }
 
+    #[allow(unsafe_code)]
+    fn start_algorithm(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        can_gc: CanGc,
+    ) -> Fallible<Rc<Promise>> {
+        match &self.underlying_sink_type {
+            UnderlyingSinkType::Js {
+                start,
+                abort: _,
+                close: _,
+                write: _,
+            } => {
+                let algo = start.borrow().clone();
+                let start_promise = if let Some(start) = algo {
+                    rooted!(in(*cx) let mut result_object = ptr::null_mut::<JSObject>());
+                    rooted!(in(*cx) let mut result: JSVal);
+                    rooted!(in(*cx) let this_object = self.underlying_sink_obj.get());
+                    start.Call_(
+                        &this_object.handle(),
+                        self,
+                        result.handle_mut(),
+                        ExceptionHandling::Rethrow,
+                        can_gc,
+                    )?;
+                    let is_promise = unsafe {
+                        if result.is_object() {
+                            result_object.set(result.to_object());
+                            IsPromiseObject(result_object.handle().into_handle())
+                        } else {
+                            false
+                        }
+                    };
+                    if is_promise {
+                        let promise = Promise::new_with_js_promise(result_object.handle(), cx);
+                        promise
+                    } else {
+                        Promise::new_resolved(global, cx, result.get(), can_gc)
+                    }
+                } else {
+                    // Let startAlgorithm be an algorithm that returns undefined.
+                    Promise::new_resolved(global, cx, (), can_gc)
+                };
+
+                Ok(start_promise)
+            },
+            UnderlyingSinkType::Transfer { .. } => {
+                // Let startAlgorithm be an algorithm that returns undefined.
+                Ok(Promise::new_resolved(global, cx, (), can_gc))
+            },
+            UnderlyingSinkType::Transform(_, start_promise) => {
+                // Let startAlgorithm be an algorithm that returns startPromise.
+                Ok(start_promise.clone())
+            },
+        }
+    }
+
     /// <https://streams.spec.whatwg.org/#ref-for-abstract-opdef-writablestreamcontroller-abortsteps>
     pub(crate) fn abort_steps(
         &self,
@@ -439,71 +574,199 @@ impl WritableStreamDefaultController {
         reason: SafeHandleValue,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        rooted!(in(*cx) let this_object = self.underlying_sink_obj.get());
-        let algo = self.abort.borrow().clone();
-        let result = if let Some(algo) = algo {
-            algo.Call_(
-                &this_object.handle(),
-                Some(reason),
-                ExceptionHandling::Rethrow,
-                can_gc,
-            )
-        } else {
-            Ok(Promise::new_resolved(global, cx, (), can_gc))
+        let result = match &self.underlying_sink_type {
+            UnderlyingSinkType::Js {
+                abort,
+                start: _,
+                close: _,
+                write: _,
+            } => {
+                rooted!(in(*cx) let this_object = self.underlying_sink_obj.get());
+                let algo = abort.borrow().clone();
+                // Let result be the result of performing this.[[abortAlgorithm]], passing reason.
+                let result = if let Some(algo) = algo {
+                    algo.Call_(
+                        &this_object.handle(),
+                        Some(reason),
+                        ExceptionHandling::Rethrow,
+                        can_gc,
+                    )
+                } else {
+                    Ok(Promise::new_resolved(global, cx, (), can_gc))
+                };
+                result.unwrap_or_else(|e| {
+                    let promise = Promise::new(global, can_gc);
+                    promise.reject_error(e, can_gc);
+                    promise
+                })
+            },
+            UnderlyingSinkType::Transfer { port, .. } => {
+                // The steps from the `abortAlgorithm` at
+                // <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
+
+                // Let result be PackAndPostMessageHandlingError(port, "error", reason).
+                let result = port.pack_and_post_message_handling_error("error", reason, can_gc);
+
+                // Disentangle port.
+                global.disentangle_port(port, can_gc);
+
+                let promise = Promise::new(global, can_gc);
+
+                // If result is an abrupt completion, return a promise rejected with result.[[Value]]
+                if let Err(error) = result {
+                    promise.reject_error(error, can_gc);
+                } else {
+                    // Otherwise, return a promise resolved with undefined.
+                    promise.resolve_native(&(), can_gc);
+                }
+                promise
+            },
+            UnderlyingSinkType::Transform(stream, _) => {
+                // Return ! TransformStreamDefaultSinkAbortAlgorithm(stream, reason).
+                stream
+                    .transform_stream_default_sink_abort_algorithm(cx, global, reason, can_gc)
+                    .expect("Transform stream default sink abort algorithm should not fail.")
+            },
         };
-        result.unwrap_or_else(|e| {
-            let promise = Promise::new(global, can_gc);
-            promise.reject_error(e, can_gc);
-            promise
-        })
+
+        // Perform ! WritableStreamDefaultControllerClearAlgorithms(controller).
+        self.clear_algorithms();
+
+        result
     }
 
-    pub(crate) fn call_write_algorithm(
+    /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-writealgorithm>
+    fn call_write_algorithm(
         &self,
         cx: SafeJSContext,
         chunk: SafeHandleValue,
         global: &GlobalScope,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        rooted!(in(*cx) let this_object = self.underlying_sink_obj.get());
-        let algo = self.write.borrow().clone();
-        let result = if let Some(algo) = algo {
-            algo.Call_(
-                &this_object.handle(),
-                chunk,
-                self,
-                ExceptionHandling::Rethrow,
-                can_gc,
-            )
-        } else {
-            Ok(Promise::new_resolved(global, cx, (), can_gc))
-        };
-        result.unwrap_or_else(|e| {
-            let promise = Promise::new(global, can_gc);
-            promise.reject_error(e, can_gc);
-            promise
-        })
+        match &self.underlying_sink_type {
+            UnderlyingSinkType::Js {
+                abort: _,
+                start: _,
+                close: _,
+                write,
+            } => {
+                rooted!(in(*cx) let this_object = self.underlying_sink_obj.get());
+                let algo = write.borrow().clone();
+                let result = if let Some(algo) = algo {
+                    algo.Call_(
+                        &this_object.handle(),
+                        chunk,
+                        self,
+                        ExceptionHandling::Rethrow,
+                        can_gc,
+                    )
+                } else {
+                    Ok(Promise::new_resolved(global, cx, (), can_gc))
+                };
+                result.unwrap_or_else(|e| {
+                    let promise = Promise::new(global, can_gc);
+                    promise.reject_error(e, can_gc);
+                    promise
+                })
+            },
+            UnderlyingSinkType::Transfer {
+                backpressure_promise,
+                port,
+            } => {
+                // The steps from the `writeAlgorithm` at
+                // <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
+
+                {
+                    // If backpressurePromise is undefined,
+                    // set backpressurePromise to a promise resolved with undefined.
+                    let mut backpressure_promise = backpressure_promise.borrow_mut();
+                    if backpressure_promise.is_none() {
+                        *backpressure_promise = Some(Promise::new_resolved(global, cx, (), can_gc));
+                    }
+                }
+
+                // Return the result of reacting to backpressurePromise with the following fulfillment steps:
+                let result_promise = Promise::new(global, can_gc);
+                rooted!(in(*cx) let mut fulfillment_handler = Some(TransferBackPressurePromiseReaction {
+                    port: port.clone(),
+                    backpressure_promise: backpressure_promise.clone(),
+                    chunk: Heap::boxed(chunk.get()),
+                    result_promise: result_promise.clone(),
+                }));
+                let handler = PromiseNativeHandler::new(
+                    global,
+                    fulfillment_handler.take().map(|h| Box::new(h) as Box<_>),
+                    None,
+                    can_gc,
+                );
+                let realm = enter_realm(global);
+                let comp = InRealm::Entered(&realm);
+                backpressure_promise
+                    .borrow()
+                    .as_ref()
+                    .expect("Promise must be some by now.")
+                    .append_native_handler(&handler, comp, can_gc);
+                result_promise
+            },
+            UnderlyingSinkType::Transform(stream, _) => {
+                // Return ! TransformStreamDefaultSinkWriteAlgorithm(stream, chunk).
+                stream
+                    .transform_stream_default_sink_write_algorithm(cx, global, chunk, can_gc)
+                    .expect("Transform stream default sink write algorithm should not fail.")
+            },
+        }
     }
 
+    /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-closealgorithm>
     fn call_close_algorithm(
         &self,
         cx: SafeJSContext,
         global: &GlobalScope,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        rooted!(in(*cx) let mut this_object = ptr::null_mut::<JSObject>());
-        this_object.set(self.underlying_sink_obj.get());
-        let algo = self.close.borrow().clone();
-        let result = if let Some(algo) = algo {
-            algo.Call_(&this_object.handle(), ExceptionHandling::Rethrow, can_gc)
-        } else {
-            Ok(Promise::new_resolved(global, cx, (), can_gc))
-        };
-        result.unwrap_or_else(|e| {
-            let promise = Promise::new(global, can_gc);
-            promise.reject_error(e, can_gc);
-            promise
-        })
+        match &self.underlying_sink_type {
+            UnderlyingSinkType::Js {
+                abort: _,
+                start: _,
+                close,
+                write: _,
+            } => {
+                rooted!(in(*cx) let mut this_object = ptr::null_mut::<JSObject>());
+                this_object.set(self.underlying_sink_obj.get());
+                let algo = close.borrow().clone();
+                let result = if let Some(algo) = algo {
+                    algo.Call_(&this_object.handle(), ExceptionHandling::Rethrow, can_gc)
+                } else {
+                    Ok(Promise::new_resolved(global, cx, (), can_gc))
+                };
+                result.unwrap_or_else(|e| {
+                    let promise = Promise::new(global, can_gc);
+                    promise.reject_error(e, can_gc);
+                    promise
+                })
+            },
+            UnderlyingSinkType::Transfer { port, .. } => {
+                // The steps from the `closeAlgorithm` at
+                // <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
+
+                // Perform ! PackAndPostMessage(port, "close", undefined).
+                rooted!(in(*cx) let mut value = UndefinedValue());
+                port.pack_and_post_message("close", value.handle(), can_gc)
+                    .expect("Sending close should not fail.");
+
+                // Disentangle port.
+                global.disentangle_port(port, can_gc);
+
+                // Return a promise resolved with undefined.
+                Promise::new_resolved(global, cx, (), can_gc)
+            },
+            UnderlyingSinkType::Transform(stream, _) => {
+                // Return ! TransformStreamDefaultSinkCloseAlgorithm(stream).
+                stream
+                    .transform_stream_default_sink_close_algorithm(cx, global, can_gc)
+                    .expect("Transform stream default sink close algorithm should not fail.")
+            },
+        }
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-process-close>
@@ -677,13 +940,13 @@ impl WritableStreamDefaultController {
         chunk: SafeHandleValue,
         can_gc: CanGc,
     ) -> f64 {
-        // If controller.[[strategySizeAlgorithm]] is undefined,
+        // If controller.[[strategySizeAlgorithm]] is undefined, then:
         let Some(strategy_size) = self.strategy_size.borrow().clone() else {
-            // Assert: controller.[[stream]].[[state]] is "erroring" or "errored".
+            // Assert: controller.[[stream]].[[state]] is not "writable".
             let Some(stream) = self.stream.get() else {
                 unreachable!("Controller should have a stream");
             };
-            assert!(stream.is_erroring() || stream.is_errored());
+            assert!(!stream.is_writable());
 
             // Return 1.
             return 1.0;
@@ -780,7 +1043,7 @@ impl WritableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-error>
-    fn error(
+    pub(crate) fn error(
         &self,
         stream: &WritableStream,
         cx: SafeJSContext,

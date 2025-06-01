@@ -254,12 +254,63 @@
                 }
             },
             /**
-             * `log <https://w3c.github.io/webdriver-bidi/#module-log>`_ module.
+             * `emulation <https://www.w3.org/TR/webdriver-bidi/#module-emulation>`_ module.
+             */
+            emulation: {
+                /**
+                 * Overrides the geolocation coordinates for the specified
+                 * browsing contexts.
+                 * Matches the `emulation.setGeolocationOverride
+                 * <https://w3c.github.io/webdriver-bidi/#command-emulation-setGeolocationOverride>`_
+                 * WebDriver BiDi command.
+                 *
+                 * @example
+                 * await test_driver.bidi.emulation.set_geolocation_override({
+                 *     coordinates: {
+                 *         latitude: 52.51,
+                 *         longitude: 13.39,
+                 *         accuracy: 0.5,
+                 *         altitude: 34,
+                 *         altitudeAccuracy: 0.75,
+                 *         heading: 180,
+                 *         speed: 2.77
+                 *     }
+                 * });
+                 *
+                 * @param {object} params - Parameters for the command.
+                 * @param {null|object} params.coordinates - The optional
+                 * geolocation coordinates to set. Matches the
+                 * `emulation.GeolocationCoordinates <https://w3c.github.io/webdriver-bidi/#commands-emulationsetgeolocationoverride>`_
+                 * value. If null or omitted and the `params.error` is set, the
+                 * emulation will be removed. Mutually exclusive with
+                 * `params.error`.
+                 * @param {object} params.error - The optional
+                 * geolocation error to emulate. Matches the
+                 * `emulation.GeolocationPositionError <https://w3c.github.io/webdriver-bidi/#commands-emulationsetgeolocationoverride>`_
+                 * value. Mutually exclusive with `params.coordinates`.
+                 * @param {null|Array.<(Context)>} [params.contexts] The
+                 * optional contexts parameter specifies which browsing contexts
+                 * to set the geolocation override on. It should be either an
+                 * array of Context objects (window or browsing context id), or
+                 * null. If null or omitted, the override will be set on the
+                 * current browsing context.
+                 * @returns {Promise<void>} Resolves when the geolocation
+                 * override is successfully set.
+                 */
+                set_geolocation_override: function (params) {
+                    // Ensure the bidi feature is enabled before calling the internal method
+                    assertBidiIsEnabled();
+                    return window.test_driver_internal.bidi.emulation.set_geolocation_override(
+                        params);
+                },
+            },
+            /**
+             * `log <https://www.w3.org/TR/webdriver-bidi/#module-log>`_ module.
              */
             log: {
                 entry_added: {
                     /**
-                     * @typedef {object} LogEntryAdded `log.entryAdded <https://w3c.github.io/webdriver-bidi/#event-log-entryAdded>`_ event.
+                     * @typedef {object} LogEntryAdded `log.entryAdded <https://www.w3.org/TR/webdriver-bidi/#event-log-entryAdded>`_ event.
                      */
 
                     /**
@@ -629,7 +680,7 @@
         /**
          * Minimizes the browser window.
          *
-         * Matches the the behaviour of the `Minimize
+         * Matches the behaviour of the `Minimize
          * <https://www.w3.org/TR/webdriver/#minimize-window>`_
          * WebDriver command
          *
@@ -1497,6 +1548,48 @@
          */
         set_protected_audience_k_anonymity: function(owner, name, hashes, context = null) {
             return window.test_driver_internal.set_protected_audience_k_anonymity(owner, name, hashes, context);
+        },
+
+        /**
+         * Overrides the display features provided by the hardware so the viewport segments
+         * can be emulated.
+         *
+         * Matches the `Set display features
+         * <https://drafts.csswg.org/css-viewport/#set-display-features>`_
+         * WebDriver command.
+         *
+         * @param {Array} features - An array of `DisplayFeatureOverride
+         *                           <https://drafts.csswg.org/css-viewport/#display-feature-override>`.
+         * @param {WindowProxy} [context=null] - Browsing context in which to
+         *                                       run the call, or null for the
+         *                                       current browsing context.
+         *
+         * @returns {Promise} Fulfilled when the display features are set.
+         *                    Rejected in case the WebDriver command errors out
+         *                    (including if the array is malformed).
+         */
+        set_display_features: function(features, context=null) {
+            return window.test_driver_internal.set_display_features(features, context);
+        },
+
+        /**
+         * Removes display features override and returns the control
+         * back to hardware.
+         *
+         * Matches the `Clear display features
+         * <https://drafts.csswg.org/css-viewport/#clear-display-features>`_
+         * WebDriver command.
+         *
+         * @param {WindowProxy} [context=null] - Browsing context in which to
+         *                                       run the call, or null for the
+         *                                       current browsing context.
+         *
+         * @returns {Promise} Fulfilled after the display features override has
+         *                    been removed. Rejected in case the WebDriver
+         *                    command errors out.
+         */
+        clear_display_features: function(context=null) {
+            return window.test_driver_internal.clear_display_features(context);
         }
     };
 
@@ -1532,6 +1625,12 @@
                         throw new Error(
                             'bidi.bluetooth.request_device_prompt_updated.on is not implemented by testdriver-vendor.js');
                     }
+                }
+            },
+            emulation: {
+                set_geolocation_override: function (params) {
+                    throw new Error(
+                        "bidi.emulation.set_geolocation_override is not implemented by testdriver-vendor.js");
                 }
             },
             log: {
@@ -1758,6 +1857,14 @@
 
         async set_protected_audience_k_anonymity(owner, name, hashes, context=null) {
             throw new Error("set_protected_audience_k_anonymity() is not implemented by testdriver-vendor.js");
+        },
+
+        async set_display_features(features, context=null) {
+            throw new Error("set_display_features() is not implemented by testdriver-vendor.js");
+        },
+
+        async clear_display_features(context=null) {
+            throw new Error("clear_display_features() is not implemented by testdriver-vendor.js");
         }
     };
 })();

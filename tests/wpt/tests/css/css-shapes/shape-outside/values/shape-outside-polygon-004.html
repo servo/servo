@@ -35,7 +35,7 @@
             generate_tests( ParsingUtils.testInlineStyle,
                             ParsingUtils.buildPolygonTests(arg_length_units_tests, 'inline') );
             ParsingUtils.setupFonts();
-            document.fonts.ready.then(()=> {
+            document.fonts.load("10px Ahem").then(()=> {
                 generate_tests( ParsingUtils.testComputedStyle,
                                 ParsingUtils.buildPolygonTests(arg_length_units_tests, 'computed') );
                 ParsingUtils.restoreFonts();

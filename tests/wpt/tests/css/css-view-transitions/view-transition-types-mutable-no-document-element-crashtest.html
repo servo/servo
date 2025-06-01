@@ -3,16 +3,30 @@
 <link rel="help" href="https://www.w3.org/TR/css-transitions-2/">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+
+<style>
+::view-transition-group(*),
+::view-transition-image-pair(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation-play-state: paused;
+}
+</style>
 <script>
 
-  test(() => {
-    assert_implements(document.startViewTransition);
+promise_test(async () => {
+  assert_implements(document.startViewTransition);
 
-    const { types } = document.startViewTransition();
-    document.documentElement.remove();
-    types.add("a");
-    assert_array_equals([...types], ["a"]);
-  }, "ViewTransitionTypeSet should not crash when documentElement is null");
+  await new Promise((r) => requestAnimationFrame(() => {
+    waitForCompositorReady().then(r);
+  }));
+
+  const { types } = document.startViewTransition();
+  document.documentElement.remove();
+  types.add("a");
+  assert_array_equals([...types], ["a"]);
+}, "ViewTransitionTypeSet should not crash when documentElement is null");
 </script>
 
 </html>
