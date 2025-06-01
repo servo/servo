@@ -165,10 +165,13 @@ impl Evaluatable for CoreFunction {
                 let args = args_normalized.split(' ');
 
                 let document = context.context_node.owner_doc();
-                let result = args
-                    .flat_map(|arg| document.get_element_by_id(&Atom::from(arg)))
-                    .map(|e| DomRoot::from_ref(e.upcast::<Node>()));
-                Ok(Value::Nodeset(result.collect()))
+                let mut result = Vec::new();
+                for arg in args {
+                    for element in document.get_elements_with_id(&Atom::from(arg)).iter() {
+                        result.push(DomRoot::from_ref(element.upcast::<Node>()));
+                    }
+                }
+                Ok(Value::Nodeset(result))
             },
             CoreFunction::LocalName(expr_opt) => {
                 let node = match expr_opt {

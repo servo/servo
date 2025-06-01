@@ -54,7 +54,7 @@ impl TryFrom<u16> for XPathResultType {
     }
 }
 
-#[derive(JSTraceable, MallocSizeOf)]
+#[derive(JSTraceable, MallocSizeOf, Debug)]
 pub(crate) enum XPathResultValue {
     Boolean(bool),
     /// A IEEE-754 double-precision floating point number
