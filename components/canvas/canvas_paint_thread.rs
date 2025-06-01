@@ -187,7 +187,7 @@ impl<'a> CanvasPaintThread<'a> {
             Canvas2dMsg::DrawEmptyImage(image_size, dest_rect, source_rect) => {
                 self.canvas(canvas_id).draw_image(
                     &vec![0; image_size.area() as usize * 4],
-                    image_size.to_u32(),
+                    image_size,
                     dest_rect,
                     source_rect,
                     false,
@@ -203,7 +203,7 @@ impl<'a> CanvasPaintThread<'a> {
             ) => {
                 let image_data = self
                     .canvas(canvas_id)
-                    .read_pixels(Some(source_rect.to_u32()), Some(image_size.to_u32()));
+                    .read_pixels(Some(source_rect.to_u32()), Some(image_size));
                 self.canvas(other_canvas_id).draw_image(
                     image_data.data(),
                     source_rect.size.to_u32(),
