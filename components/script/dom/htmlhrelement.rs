@@ -92,7 +92,7 @@ impl HTMLHRElementMethods<crate::DomTypeHolder> for HTMLHRElement {
 
 /// The result of applying the the presentational hint for the `size` attribute.
 ///
-/// (This attribute can mean different things depending on it's value and other attributes)
+/// (This attribute can mean different things depending on its value and other attributes)
 #[allow(clippy::enum_variant_names)]
 pub(crate) enum SizePresentationalHint {
     SetHeightTo(Size),
@@ -123,7 +123,7 @@ impl HTMLHRLayoutHelpers for LayoutDom<'_, HTMLHRElement> {
     }
 
     fn get_size_info(self) -> Option<SizePresentationalHint> {
-        // https://html.spec.whatwg.org/multipage/rendering.html#the-hr-element-2
+        // https://html.spec.whatwg.org/multipage/#the-hr-element-2
         let element = self.upcast::<Element>();
         let size_value = element
             .get_attr_val_for_layout(&ns!(), &local_name!("size"))

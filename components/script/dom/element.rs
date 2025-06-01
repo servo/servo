@@ -1307,7 +1307,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
             ));
         }
 
-        // https://html.spec.whatwg.org/multipage/rendering.html#the-hr-element-2
+        // https://html.spec.whatwg.org/multipage/#the-hr-element-2
         if let Some(size_info) = self
             .downcast::<HTMLHRElement>()
             .and_then(|hr_element| hr_element.get_size_info())
