@@ -115,13 +115,19 @@ impl AbortSignal {
         self.upcast::<EventTarget>()
             .fire_event(atom!("abort"), can_gc);
     }
+
+    /// <https://dom.spec.whatwg.org/#abortsignal-aborted>
+    fn aborted(&self) -> bool {
+        // An AbortSignal object is aborted when its abort reason is not undefined.
+        !self.abort_reason.get().is_undefined()
+    }
 }
 
 impl AbortSignalMethods<crate::DomTypeHolder> for AbortSignal {
     /// <https://dom.spec.whatwg.org/#dom-abortsignal-aborted>
     fn Aborted(&self) -> bool {
-        // TODO
-        false
+        // The aborted getter steps are to return true if this is aborted; otherwise false.
+        self.aborted()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-abortsignal-reason>
