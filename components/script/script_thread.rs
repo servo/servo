@@ -827,7 +827,7 @@ impl ScriptThread {
                 .pipeline_to_node_ids
                 .borrow_mut()
                 .entry(pipeline)
-                .or_insert_with(HashSet::new)
+                .or_default()
                 .insert(node_id);
         })
     }
