@@ -25,6 +25,28 @@
                 "start_fn_partial": "on_surface_created_cb",
                 "end_fn_partial": "PageLoadEndedPrompt"
             }
+        ],
+        "point_filters": [
+            {
+                "name": "Explicit",
+                "match_str": "explicit"
+            },
+            {
+                "name": "Resident",
+                "match_str": "resident"
+            },
+            {
+                "name": "LayoutThread",
+                "match_str": "layout-thread"
+            },
+            {
+                "name": "image-cache",
+                "match_str": "image-cache"
+            },
+            {
+                "name": "JS",
+                "match_str": "js"
+            }
         ]
     },
     {
@@ -39,7 +61,28 @@
                 "start_fn_partial": "on_surface_created_cb",
                 "end_fn_partial": "PageLoadEndedPrompt"
             }
+        ],
+        "point_filters": [
+            {
+                "name": "Explicit",
+                "match_str": "explicit"
+            },
+            {
+                "name": "Resident",
+                "match_str": "resident"
+            },
+            {
+                "name": "LayoutThread",
+                "match_str": "layout-thread"
+            },
+            {
+                "name": "image-cache",
+                "match_str": "image-cache"
+            },
+            {
+                "name": "JS",
+                "match_str": "js"
+            }
         ]
     }
 ]
-
