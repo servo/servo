@@ -878,6 +878,9 @@ impl HTMLMediaElement {
     fn fetch_request(&self, offset: Option<u64>, seek_lock: Option<SeekLock>) {
         if self.resource_url.borrow().is_none() && self.blob_url.borrow().is_none() {
             eprintln!("Missing request url");
+            if let Some(seek_lock) = seek_lock {
+                seek_lock.unlock(/* successful seek */ false);
+            }
             self.queue_dedicated_media_source_failure_steps();
             return;
         }
@@ -923,9 +926,17 @@ impl HTMLMediaElement {
 
         *current_fetch_context = Some(HTMLMediaElementFetchContext::new(request.id));
         let listener =
-            HTMLMediaElementFetchListener::new(self, url.clone(), offset.unwrap_or(0), seek_lock);
+            HTMLMediaElementFetchListener::new(self, request.id, url.clone(), offset.unwrap_or(0));
 
         self.owner_document().fetch_background(request, listener);
+
+        // Since we cancelled the previous fetch, from now on the media element
+        // will only receive response data from the new fetch that's been
+        // initiated. This means the player can resume operation, since all subsequent data
+        // pushes will originate from the new seek offset.
+        if let Some(seek_lock) = seek_lock {
+            seek_lock.unlock(/* successful seek */ true);
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-media-load-resource
@@ -1414,6 +1425,7 @@ impl HTMLMediaElement {
             audio_renderer,
             Box::new(window.get_player_context()),
         );
+        let player_id = player.lock().unwrap().get_id();
 
         *self.player.borrow_mut() = Some(player);
 
@@ -1430,7 +1442,7 @@ impl HTMLMediaElement {
                 trace!("Player event {:?}", event);
                 let this = trusted_node.clone();
                 task_source.queue(task!(handle_player_event: move || {
-                    this.root().handle_player_event(&event, CanGc::note());
+                    this.root().handle_player_event(player_id, &event, CanGc::note());
                 }));
             }),
         );
@@ -1838,16 +1850,32 @@ impl HTMLMediaElement {
         // cancelled because we got an EnoughData event, we restart
         // fetching where we left.
         if let Some(ref current_fetch_context) = *self.current_fetch_context.borrow() {
-            match current_fetch_context.cancel_reason() {
-                Some(reason) if *reason == CancelReason::Backoff => {
-                    // XXX(ferjm) Ideally we should just create a fetch request from
-                    // where we left. But keeping track of the exact next byte that the
-                    // media backend expects is not the easiest task, so I'm simply
-                    // seeking to the current playback position for now which will create
-                    // a new fetch request for the last rendered frame.
-                    self.seek(self.playback_position.get(), false)
-                },
-                _ => (),
+            if let Some(reason) = current_fetch_context.cancel_reason() {
+                // XXX(ferjm) Ideally we should just create a fetch request from
+                // where we left. But keeping track of the exact next byte that the
+                // media backend expects is not the easiest task, so I'm simply
+                // seeking to the current playback position for now which will create
+                // a new fetch request for the last rendered frame.
+                if *reason == CancelReason::Backoff {
+                    self.seek(self.playback_position.get(), false);
+                }
+                return;
+            }
+        }
+
+        if let Some(ref mut current_fetch_context) = *self.current_fetch_context.borrow_mut() {
+            if let Err(e) = {
+                let mut data_source = current_fetch_context.data_source().borrow_mut();
+                data_source.set_locked(false);
+                data_source.process_into_player_from_queue(self.player.borrow().as_ref().unwrap())
+            } {
+                // If we are pushing too much data and we know that we can
+                // restart the download later from where we left, we cancel
+                // the current request. Otherwise, we continue the request
+                // assuming that we may drop some frames.
+                if e == PlayerError::EnoughData {
+                    current_fetch_context.cancel(CancelReason::Backoff);
+                }
             }
         }
     }
@@ -1924,7 +1952,17 @@ impl HTMLMediaElement {
         ));
     }
 
-    fn handle_player_event(&self, event: &PlayerEvent, can_gc: CanGc) {
+    fn handle_player_event(&self, player_id: usize, event: &PlayerEvent, can_gc: CanGc) {
+        // Ignore the asynchronous event from previous player.
+        if self
+            .player
+            .borrow()
+            .as_ref()
+            .is_none_or(|player| player.lock().unwrap().get_id() != player_id)
+        {
+            return;
+        }
+
         match *event {
             PlayerEvent::EndOfStream => self.playback_end(),
             PlayerEvent::Error(ref error) => self.playback_error(error, can_gc),
@@ -1936,7 +1974,7 @@ impl HTMLMediaElement {
             PlayerEvent::EnoughData => self.playback_enough_data(),
             PlayerEvent::PositionChanged(position) => self.playback_position_changed(position),
             PlayerEvent::SeekData(p, ref seek_lock) => {
-                self.fetch_request(Some(p), Some(seek_lock.clone()));
+                self.fetch_request(Some(p), Some(seek_lock.clone()))
             },
             PlayerEvent::SeekDone(_) => self.playback_seek_done(),
             PlayerEvent::StateChanged(ref state) => self.playback_state_changed(state),
@@ -2685,6 +2723,80 @@ enum Resource {
     Url(ServoUrl),
 }
 
+#[derive(Debug, MallocSizeOf, PartialEq)]
+enum DataBuffer {
+    Payload(Vec<u8>),
+    EndOfStream,
+}
+
+#[derive(MallocSizeOf)]
+struct BufferedDataSource {
+    /// During initial setup and seeking (including clearing the buffer queue
+    /// and resetting the end-of-stream state), the data source should be locked and
+    /// any request for processing should be ignored until the media player informs us
+    /// via the NeedData event that it is ready to accept incoming data.
+    locked: Cell<bool>,
+    /// Temporary storage for incoming data.
+    buffers: VecDeque<DataBuffer>,
+}
+
+impl BufferedDataSource {
+    fn new() -> BufferedDataSource {
+        BufferedDataSource {
+            locked: Cell::new(true),
+            buffers: VecDeque::default(),
+        }
+    }
+
+    fn set_locked(&self, locked: bool) {
+        self.locked.set(locked)
+    }
+
+    fn add_buffer_to_queue(&mut self, buffer: DataBuffer) {
+        debug_assert_ne!(
+            self.buffers.back(),
+            Some(&DataBuffer::EndOfStream),
+            "The media backend not expects any further data after end of stream"
+        );
+
+        self.buffers.push_back(buffer);
+    }
+
+    fn process_into_player_from_queue(
+        &mut self,
+        player: &Arc<Mutex<dyn Player>>,
+    ) -> Result<(), PlayerError> {
+        // Early out if any request for processing should be ignored.
+        if self.locked.get() {
+            return Ok(());
+        }
+
+        while let Some(buffer) = self.buffers.pop_front() {
+            match buffer {
+                DataBuffer::Payload(payload) => {
+                    if let Err(e) = player.lock().unwrap().push_data(payload) {
+                        warn!("Could not push input data to player {:?}", e);
+                        return Err(e);
+                    }
+                },
+                DataBuffer::EndOfStream => {
+                    if let Err(e) = player.lock().unwrap().end_of_stream() {
+                        warn!("Could not signal EOS to player {:?}", e);
+                        return Err(e);
+                    }
+                },
+            }
+        }
+
+        Ok(())
+    }
+
+    fn reset(&mut self) {
+        self.locked.set(true);
+        self.buffers.clear();
+    }
+}
+
 /// Indicates the reason why a fetch request was cancelled.
 #[derive(Debug, MallocSizeOf, PartialEq)]
 enum CancelReason {
@@ -2698,12 +2810,16 @@ enum CancelReason {
 
 #[derive(MallocSizeOf)]
 pub(crate) struct HTMLMediaElementFetchContext {
+    /// The fetch request id.
+    request_id: RequestId,
     /// Some if the request has been cancelled.
     cancel_reason: Option<CancelReason>,
     /// Indicates whether the fetched stream is seekable.
     is_seekable: bool,
     /// Indicates whether the fetched stream is origin clean.
     origin_clean: bool,
+    /// The buffered data source which to be processed by media backend.
+    data_source: DomRefCell<BufferedDataSource>,
     /// Fetch canceller. Allows cancelling the current fetch request by
     /// manually calling its .cancel() method or automatically on Drop.
     fetch_canceller: FetchCanceller,
@@ -2712,11 +2828,17 @@ pub(crate) struct HTMLMediaElementFetchContext {
 impl HTMLMediaElementFetchContext {
     fn new(request_id: RequestId) -> HTMLMediaElementFetchContext {
         HTMLMediaElementFetchContext {
+            request_id,
             cancel_reason: None,
             is_seekable: false,
             origin_clean: true,
+            data_source: DomRefCell::new(BufferedDataSource::new()),
             fetch_canceller: FetchCanceller::new(request_id),
         }
+    }
+
+    fn request_id(&self) -> RequestId {
+        self.request_id
     }
 
     fn is_seekable(&self) -> bool {
@@ -2735,11 +2857,16 @@ impl HTMLMediaElementFetchContext {
         self.origin_clean = false;
     }
 
+    fn data_source(&self) -> &DomRefCell<BufferedDataSource> {
+        &self.data_source
+    }
+
     fn cancel(&mut self, reason: CancelReason) {
         if self.cancel_reason.is_some() {
             return;
         }
         self.cancel_reason = Some(reason);
+        self.data_source.borrow_mut().reset();
         self.fetch_canceller.cancel();
     }
 
@@ -2755,6 +2882,8 @@ struct HTMLMediaElementFetchListener {
     metadata: Option<Metadata>,
     /// The generation of the media element when this fetch started.
     generation_id: u32,
+    /// The fetch request id.
+    request_id: RequestId,
     /// Time of last progress notification.
     next_progress_event: Instant,
     /// Timing data for this resource.
@@ -2769,10 +2898,6 @@ struct HTMLMediaElementFetchListener {
     /// EnoughData event uses this value to restart the download from
     /// the last fetched position.
     latest_fetched_content: u64,
-    /// The media player discards all data pushes until the seek block
-    /// is released right before pushing the data from the offset requested
-    /// by a seek request.
-    seek_lock: Option<SeekLock>,
 }
 
 // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
@@ -2783,11 +2908,6 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
 
     fn process_response(&mut self, _: RequestId, metadata: Result<FetchMetadata, NetworkError>) {
         let elem = self.elem.root();
-
-        if elem.generation_id.get() != self.generation_id || elem.player.borrow().is_none() {
-            // A new fetch request was triggered, so we ignore this response.
-            return;
-        }
 
         if let Ok(FetchMetadata::Filtered {
             filtered: FilteredMetadata::Opaque | FilteredMetadata::OpaqueRedirect(_),
@@ -2820,22 +2940,23 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
                 // We only set the expected input size if it changes.
                 if content_length != self.expected_content_length {
                     if let Some(content_length) = content_length {
-                        if let Err(e) = elem
-                            .player
-                            .borrow()
-                            .as_ref()
-                            .unwrap()
-                            .lock()
-                            .unwrap()
-                            .set_input_size(content_length)
-                        {
-                            warn!("Could not set player input size {:?}", e);
-                        } else {
-                            self.expected_content_length = Some(content_length);
-                        }
+                        self.expected_content_length = Some(content_length);
                     }
                 }
             }
+        }
+
+        // Explicit media player initialization with live/seekable source.
+        if let Err(e) = elem
+            .player
+            .borrow()
+            .as_ref()
+            .unwrap()
+            .lock()
+            .unwrap()
+            .set_input_size(self.expected_content_length.unwrap_or_default())
+        {
+            warn!("Could not set player input size {:?}", e);
         }
 
         let (status_is_ok, is_seekable) = self.metadata.as_ref().map_or((true, false), |s| {
@@ -2867,46 +2988,29 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
 
     fn process_response_chunk(&mut self, _: RequestId, payload: Vec<u8>) {
         let elem = self.elem.root();
-        // If an error was received previously or if we triggered a new fetch request,
-        // we skip processing the payload.
-        if elem.generation_id.get() != self.generation_id || elem.player.borrow().is_none() {
-            return;
-        }
-        if let Some(ref current_fetch_context) = *elem.current_fetch_context.borrow() {
-            if current_fetch_context.cancel_reason().is_some() {
-                return;
-            }
-        }
 
         let payload_len = payload.len() as u64;
 
-        if let Some(seek_lock) = self.seek_lock.take() {
-            seek_lock.unlock(/* successful seek */ true);
-        }
+        // If an error was received previously, we skip processing the payload.
+        if let Some(ref mut current_fetch_context) = *elem.current_fetch_context.borrow_mut() {
+            if current_fetch_context.cancel_reason().is_some() {
+                return;
+            }
 
-        // Push input data into the player.
-        if let Err(e) = elem
-            .player
-            .borrow()
-            .as_ref()
-            .unwrap()
-            .lock()
-            .unwrap()
-            .push_data(payload)
-        {
-            // If we are pushing too much data and we know that we can
-            // restart the download later from where we left, we cancel
-            // the current request. Otherwise, we continue the request
-            // assuming that we may drop some frames.
-            if e == PlayerError::EnoughData {
-                if let Some(ref mut current_fetch_context) =
-                    *elem.current_fetch_context.borrow_mut()
-                {
+            if let Err(e) = {
+                let mut data_source = current_fetch_context.data_source().borrow_mut();
+                data_source.add_buffer_to_queue(DataBuffer::Payload(payload));
+                data_source.process_into_player_from_queue(elem.player.borrow().as_ref().unwrap())
+            } {
+                // If we are pushing too much data and we know that we can
+                // restart the download later from where we left, we cancel
+                // the current request. Otherwise, we continue the request
+                // assuming that we may drop some frames.
+                if e == PlayerError::EnoughData {
                     current_fetch_context.cancel(CancelReason::Backoff);
                 }
+                return;
             }
-            warn!("Could not push input data to player {:?}", e);
-            return;
         }
 
         self.latest_fetched_content += payload_len;
@@ -2929,32 +3033,19 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         status: Result<ResourceFetchTiming, NetworkError>,
     ) {
         trace!("process response eof");
-        if let Some(seek_lock) = self.seek_lock.take() {
-            seek_lock.unlock(/* successful seek */ false);
-        }
 
         let elem = self.elem.root();
 
-        if elem.generation_id.get() != self.generation_id || elem.player.borrow().is_none() {
-            return;
-        }
-
         // There are no more chunks of the response body forthcoming, so we can
         // go ahead and notify the media backend not to expect any further data.
-        if let Err(e) = elem
-            .player
-            .borrow()
-            .as_ref()
-            .unwrap()
-            .lock()
-            .unwrap()
-            .end_of_stream()
-        {
-            warn!("Could not signal EOS to player {:?}", e);
-        }
+        if let Some(ref mut current_fetch_context) = *elem.current_fetch_context.borrow_mut() {
+            let mut data_source = current_fetch_context.data_source().borrow_mut();
 
-        // If an error was previously received we skip processing the payload.
-        if let Some(ref current_fetch_context) = *elem.current_fetch_context.borrow() {
+            data_source.add_buffer_to_queue(DataBuffer::EndOfStream);
+            let _ =
+                data_source.process_into_player_from_queue(elem.player.borrow().as_ref().unwrap());
+
+            // If an error was previously received we skip processing the payload.
             if let Some(CancelReason::Error) = current_fetch_context.cancel_reason() {
                 return;
             }
@@ -3041,28 +3132,32 @@ impl ResourceTimingListener for HTMLMediaElementFetchListener {
 
 impl PreInvoke for HTMLMediaElementFetchListener {
     fn should_invoke(&self) -> bool {
-        //TODO: finish_load needs to run at some point if the generation changes.
-        self.elem.root().generation_id.get() == self.generation_id
+        let elem = self.elem.root();
+
+        if elem.generation_id.get() != self.generation_id || elem.player.borrow().is_none() {
+            return false;
+        }
+
+        // A new fetch request was triggered, so we skip processing previous request.
+        elem.current_fetch_context
+            .borrow()
+            .as_ref()
+            .is_some_and(|context| context.request_id() == self.request_id)
     }
 }
 
 impl HTMLMediaElementFetchListener {
-    fn new(
-        elem: &HTMLMediaElement,
-        url: ServoUrl,
-        offset: u64,
-        seek_lock: Option<SeekLock>,
-    ) -> Self {
+    fn new(elem: &HTMLMediaElement, request_id: RequestId, url: ServoUrl, offset: u64) -> Self {
         Self {
             elem: Trusted::new(elem),
             metadata: None,
             generation_id: elem.generation_id.get(),
+            request_id,
             next_progress_event: Instant::now() + Duration::from_millis(350),
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
             url,
             expected_content_length: None,
             latest_fetched_content: offset,
-            seek_lock,
         }
     }
 }
