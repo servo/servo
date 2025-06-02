@@ -95,10 +95,7 @@ where
     }
 
     fn is_primitive(&self) -> bool {
-        match self {
-            Some(expr) => expr.is_primitive(),
-            None => false,
-        }
+        self.as_ref().is_some_and(|t| T::is_primitive(t))
     }
 }
 
