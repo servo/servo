@@ -21,6 +21,8 @@ use servo::servo_geometry::DeviceIndependentPixel;
 use servo::servo_url::ServoUrl;
 use url::Url;
 
+use crate::VERSION;
+
 #[cfg_attr(any(target_os = "android", target_env = "ohos"), allow(dead_code))]
 #[derive(Clone)]
 pub(crate) struct ServoShellPreferences {
@@ -128,7 +130,7 @@ pub fn default_config_dir() -> Option<PathBuf> {
 /// Get a Servo [`Preferences`] to use when initializing Servo by first reading the user
 /// preferences file and then overriding these preferences with the ones from the `--prefs-file`
 /// command-line argument, if given.
-fn get_preferences(prefs_files: &[String], config_dir: &Option<PathBuf>) -> Preferences {
+fn get_preferences(prefs_files: &[PathBuf], config_dir: &Option<PathBuf>) -> Preferences {
     // Do not read any preferences files from the disk when testing as we do not want it
     // to throw off test results.
     if cfg!(test) {
@@ -219,37 +221,55 @@ fn parse_user_stylesheets(string: String) -> Result<Vec<(Vec<u8>, ServoUrl)>, st
         .collect())
 }
 
-/// parses the profiling string
-fn parse_profiling(arg: String) -> Result<Option<OutputOptions>, std::io::Error> {
-    if arg.is_empty() {
-        Ok(Some(OutputOptions::Stdout(5.0)))
-    } else {
-        match arg.parse::<f64>() {
-            Ok(interval) => Ok(Some(OutputOptions::Stdout(interval))),
-            Err(_) => match ServoUrl::parse(&arg) {
-                Ok(_) => panic!("influxDB isn't supported anymore"),
-                Err(_) => Ok(Some(OutputOptions::FileName(arg))),
-            },
-        }
-    }
+/// parses the profiling string and returns the correct value
+fn profile() -> impl Parser<Option<OutputOptions>> {
+    let profile_flag = short('p')
+        .long("profile")
+        .help("uses 5.0 output as standard if no argument supplied")
+        .req_flag(None);
+    let profile_arg = short('p')
+        .long("profile")
+        .argument::<String>("10 or time.tsv")
+        .map(Some);
+    let profile = construct!([profile_arg, profile_flag]);
+
+    // This implements Parser<Option<Option<String>>
+    let opt_opt_string_parser = profile.optional();
+
+    opt_opt_string_parser.map(|val| match val {
+        Some(Some(parsed_string)) => {
+            if let Ok(float) = parsed_string.parse::<f64>() {
+                Some(OutputOptions::Stdout(float))
+            } else {
+                Some(OutputOptions::FileName(parsed_string))
+            }
+        },
+        Some(None) => Some(OutputOptions::Stdout(5.0)),
+        _ => None,
+    })
+}
+
+fn map_debug_options(arg: String) -> Vec<String> {
+    arg.split(',').map(|s| s.to_owned()).collect()
 }
 
 #[derive(Bpaf, Clone, Debug)]
-#[bpaf(options)]
+#[bpaf(options, version(VERSION))]
 struct CmdArgs {
     /// Background Hang Monitor enabled
-    #[bpaf(long("bhm"), fallback(false))]
+    #[bpaf(long("bhm"))]
     background_hang_monitor: bool,
 
     /// Path to find SSL certificates
     #[bpaf(argument("/home/servo/resources/certs"))]
-    certificate_path: Option<String>,
+    certificate_path: Option<PathBuf>,
 
     /// Do not shutdown until all threads have finished (macos only)
-    #[bpaf(long, fallback(false))]
+    #[bpaf(long)]
     clean_shutdown: bool,
 
     /// config directory following xdg spec on linux platform
+    #[bpaf(argument("~/.config/servo"))]
     config_dir: Option<PathBuf>,
 
     /// Run as a content process and connect to the given pipe
@@ -257,7 +277,13 @@ struct CmdArgs {
     content_process: Option<String>,
 
     /// A comma-separated string of debug options. Pass help to show available options.
-    #[bpaf(short('Z'), long, fallback(vec![]), help("d"))]
+    #[bpaf(
+        short('Z'),
+        argument("layout_grid_enabled=true,dom_async_clipboard_enabled"),
+        long,
+        map(map_debug_options),
+        fallback(vec![])
+    )]
     debug: Vec<String>,
 
     #[bpaf(argument("1.0"))]
@@ -265,26 +291,26 @@ struct CmdArgs {
 
     /// Start remote devtools using server on port
     #[bpaf(argument("0"))]
-    devtools: Option<i64>,
+    devtools: Option<u16>,
 
     /// Wether or not to enable experimental web platform features.
-    #[bpaf(long, fallback(false))]
+    #[bpaf(long)]
     enable_experimental_web_platform_features: bool,
 
     // Exit after Servo has loaded the page and detected stable output image
-    #[bpaf(short('x'), long, fallback(false))]
+    #[bpaf(short('x'), long)]
     exit: bool,
 
     /// Exit on thread failure instead of displaying about:failure
-    #[bpaf(short('f'), long, fallback(false))]
+    #[bpaf(short('f'), long)]
     hard_fail: bool,
 
     /// Headless mode
-    #[bpaf(short('z'), long, fallback(false))]
+    #[bpaf(short('z'), long)]
     headless: bool,
 
     /// Wether or not to completely ignore certificate errors
-    #[bpaf(long, fallback(false))]
+    #[bpaf(long)]
     ignore_certificate_errors: bool,
 
     /// Number of threads to use for layout
@@ -292,7 +318,8 @@ struct CmdArgs {
     layout_threads: Option<i64>,
 
     /// Directory root with unminified scripts
-    local_script_source: Option<String>,
+    #[bpaf(argument("~/.local/share/servo"))]
+    local_script_source: Option<PathBuf>,
 
     #[cfg(target_env = "ohos")]
     /// Define a custom filter for logging
@@ -300,7 +327,7 @@ struct CmdArgs {
     log_filter: Option<String>,
 
     /// Run in multiprocess mode
-    #[bpaf(short('M'), long, fallback(true))]
+    #[bpaf(short('M'), long, flag(true, false))]
     multiprocess: bool,
 
     /// Enable to turn off incremental layout
@@ -309,25 +336,25 @@ struct CmdArgs {
 
     /// Path to an output image. The format of the image is determined
     /// by the extension. Supports all formats that rust-image does.
-    #[bpaf(short('o'), long)]
-    output_image: Option<String>,
+    #[bpaf(short('o'), argument("test.png"), long)]
+    output_image: Option<PathBuf>,
 
     /// Time profiler flag and either a TSV output filename OR and interval
     /// for output to Stdout
-    #[bpaf(short('p'), long, argument::<String>("10 OR time.tsv"), parse(parse_profiling), fallback(None))]
+    #[bpaf(external)]
     profile: Option<OutputOptions>,
 
     /// Path to dump a self-contained HTML timeline of profiler traces
-    #[bpaf(long("profiler-trace-path"))]
-    time_profiler_trace_path: Option<String>,
+    #[bpaf(argument("trace.html"), long("profiler-trace-path"))]
+    time_profiler_trace_path: Option<PathBuf>,
 
     /// A preference to set
-    #[bpaf(argument("dom_bluetooth_enabled"),fallback(vec![]))]
+    #[bpaf(argument("dom_bluetooth_enabled"), many)]
     pref: Vec<String>,
 
     /// Load an additional prefs from a file.
-    #[bpaf(long, argument("/path/to/prefs.json"), fallback(vec![]))]
-    prefs_files: Vec<String>,
+    #[bpaf(long, argument("/path/to/prefs.json"), many)]
+    prefs_files: Vec<PathBuf>,
 
     print_pwm: bool,
 
@@ -339,7 +366,7 @@ struct CmdArgs {
     random_pipeline_closure_seed: Option<usize>,
 
     /// Run in sandbox if multiprocess
-    #[bpaf(short('S'), long, fallback(true))]
+    #[bpaf(short('S'), long, flag(true, false))]
     sandbox: bool,
 
     /// Shaders will be loaded from the specified directory instead of using the builtin ones.
@@ -354,15 +381,15 @@ struct CmdArgs {
     #[bpaf(long("tracing-filter"), argument("FILTER"))]
     tracing_filter: Option<String>,
 
-    #[bpaf(long, fallback(false))]
+    #[bpaf(long)]
     no_native_titlebar: bool,
 
     /// Unminify Javascript
-    #[bpaf(long, fallback(false))]
+    #[bpaf(long)]
     unminify_js: bool,
 
     /// Unminify Css
-    #[bpaf(long, fallback(false))]
+    #[bpaf(long)]
     unminify_css: bool,
 
     /// Set custom user agent string (or ios/ android / desktop for platform default)""
@@ -370,16 +397,16 @@ struct CmdArgs {
     user_agent: Option<String>,
 
     /// Uses userscripts in resources/user-agent-js or a specified full path
-    #[bpaf(long, fallback(Some(PathBuf::from("resources/user-agent-js"))))]
-    userscripts_directory: Option<PathBuf>,
+    #[bpaf(
+        long,
+        argument("resources/user-agent-js"),
+        fallback(PathBuf::from("resources/user-agent-js"))
+    )]
+    userscripts_directory: PathBuf,
 
     /// A user stylesheet ot be added to every document
-    #[bpaf(fallback(String::from("")), argument::<String>("path.css"), parse(parse_user_stylesheets))]
+    #[bpaf(argument::<String>("path.css"), parse(parse_user_stylesheets), fallback(vec![]))]
     user_stylesheets: Vec<(Vec<u8>, ServoUrl)>,
-
-    /// Prints the version information
-    #[bpaf(short, long)]
-    version: bool,
 
     /// Start remote WebDriver server on port
     #[bpaf(argument("7000"))]
@@ -390,7 +417,7 @@ struct CmdArgs {
     window_size: Option<Size2D<u32, DeviceIndependentPixel>>,
 
     /// The url we should load
-    #[bpaf(positional("URL"))]
+    #[bpaf(positional("URL"), fallback(String::from("https://www.servo.org")))]
     url: String,
 }
 
@@ -400,7 +427,7 @@ fn update_preferences_from_command_line_arguemnts(
 ) {
     if let Some(port) = cmd_args.devtools {
         preferences.devtools_server_enabled = true;
-        preferences.devtools_server_port = port;
+        preferences.devtools_server_port = port as i64;
     }
 
     if cmd_args.enable_experimental_web_platform_features {
@@ -449,17 +476,18 @@ fn update_preferences_from_command_line_arguemnts(
 }
 
 pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsingResult {
-    let cmd_args = cmd_args().run_inner(&*args);
+    // we do not want the binary name in the arguments
+    let args_without_binary = args
+        .split_first()
+        .expect("Expectd executable name and and arguments")
+        .1;
+    let cmd_args = cmd_args().run_inner(Args::from(args_without_binary));
     if let Err(error) = cmd_args {
         error.print_message(80);
         return ArgumentParsingResult::ErrorParsing;
     }
 
     let cmd_args = cmd_args.unwrap();
-    if cmd_args.version {
-        println!("{}", crate::servo_version());
-        return ArgumentParsingResult::Exit;
-    }
 
     if cmd_args
         .debug
@@ -524,9 +552,11 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         tracing_filter: cmd_args.tracing_filter,
         initial_window_size: cmd_args.window_size.unwrap_or(default_window_size),
         screen_size_override: cmd_args.screen_size_override,
-        output_image_path: cmd_args.output_image,
+        output_image_path: cmd_args
+            .output_image
+            .map(|p| p.to_string_lossy().into_owned()),
         exit_after_stable_image: cmd_args.exit,
-        userscripts_directory: cmd_args.userscripts_directory,
+        userscripts_directory: Some(cmd_args.userscripts_directory),
         #[cfg(target_env = "ohos")]
         log_filter: Some(
             cmd_args
@@ -549,7 +579,9 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         debug: debug_options,
         wait_for_stable_image: cmd_args.exit,
         time_profiling: cmd_args.profile,
-        time_profiler_trace_path: cmd_args.time_profiler_trace_path,
+        time_profiler_trace_path: cmd_args
+            .time_profiler_trace_path
+            .map(|p| p.to_string_lossy().into_owned()),
         nonincremental_layout: cmd_args.nonincremental_layout,
         user_stylesheets: cmd_args.user_stylesheets,
         hard_fail: cmd_args.hard_fail,
@@ -561,10 +593,14 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         random_pipeline_closure_seed: cmd_args.random_pipeline_closure_seed,
         config_dir: config_dir.clone(),
         shaders_dir: cmd_args.shaders,
-        certificate_path: cmd_args.certificate_path,
+        certificate_path: cmd_args
+            .certificate_path
+            .map(|p| p.to_string_lossy().into_owned()),
         ignore_certificate_errors: cmd_args.ignore_certificate_errors,
         unminify_js: cmd_args.unminify_js,
-        local_script_source: cmd_args.local_script_source,
+        local_script_source: cmd_args
+            .local_script_source
+            .map(|p| p.to_string_lossy().into_owned()),
         unminify_css: cmd_args.unminify_css,
         print_pwm: cmd_args.print_pwm,
     };
@@ -720,7 +756,10 @@ fn test_create_prefs_map() {
 
 #[cfg(test)]
 fn test_parse(arg: &str) -> (Opts, Preferences, ServoShellPreferences) {
-    let args = vec!["servo".to_string(), arg.to_string()];
+    let mut args = vec!["servo".to_string()];
+    // bpaf requires the arguments that are separated by whitespace to be different elements of the vector.
+    let mut args_split = arg.split_whitespace().map(|s| s.to_owned()).collect();
+    args.append(&mut args_split);
     match parse_command_line_arguments(args) {
         ArgumentParsingResult::ContentProcess(..) => {
             unreachable!("No preferences for content process")
@@ -729,13 +768,18 @@ fn test_parse(arg: &str) -> (Opts, Preferences, ServoShellPreferences) {
             (opts, preferences, servoshell_preferences)
         },
         ArgumentParsingResult::Exit | ArgumentParsingResult::ErrorParsing => {
-            unreachable!("We always valid preference in our test cases")
+            unreachable!("We always have valid preference in our test cases")
         },
     }
 }
 
 #[test]
 fn test_profiling_args() {
+    assert_eq!(
+        test_parse("-p").0.time_profiling.unwrap(),
+        OutputOptions::Stdout(5_f64)
+    );
+
     assert_eq!(
         test_parse("-p 10").0.time_profiling.unwrap(),
         OutputOptions::Stdout(10_f64)
