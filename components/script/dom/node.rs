@@ -1261,13 +1261,13 @@ impl Node {
         }
     }
 
-    pub(crate) fn unique_id(&self) -> String {
+    pub(crate) fn unique_id(&self, pipeline: PipelineId) -> String {
         let mut rare_data = self.ensure_rare_data();
 
         if rare_data.unique_id.is_none() {
-            let id = UniqueId::new();
-            ScriptThread::save_node_id(id.borrow().simple().to_string());
-            rare_data.unique_id = Some(id);
+            let node_id = UniqueId::new();
+            ScriptThread::save_node_id(pipeline, node_id.borrow().simple().to_string());
+            rare_data.unique_id = Some(node_id);
         }
         rare_data
             .unique_id
@@ -1281,6 +1281,7 @@ impl Node {
     pub(crate) fn summarize(&self, can_gc: CanGc) -> NodeInfo {
         let USVString(base_uri) = self.BaseURI();
         let node_type = self.NodeType();
+        let pipeline = self.owner_document().window().pipeline_id();
 
         let maybe_shadow_root = self.downcast::<ShadowRoot>();
         let shadow_root_mode = maybe_shadow_root
@@ -1288,7 +1289,7 @@ impl Node {
             .map(ShadowRootMode::convert);
         let host = maybe_shadow_root
             .map(ShadowRoot::Host)
-            .map(|host| host.upcast::<Node>().unique_id());
+            .map(|host| host.upcast::<Node>().unique_id(pipeline));
         let is_shadow_host = self.downcast::<Element>().is_some_and(|potential_host| {
             let Some(root) = potential_host.shadow_root() else {
                 return false;
@@ -1310,12 +1311,12 @@ impl Node {
             .map(|style| style.Display().into());
 
         NodeInfo {
-            unique_id: self.unique_id(),
+            unique_id: self.unique_id(pipeline),
             host,
             base_uri,
             parent: self
                 .GetParentNode()
-                .map_or("".to_owned(), |node| node.unique_id()),
+                .map_or("".to_owned(), |node| node.unique_id(pipeline)),
             node_type,
             is_top_level_document: node_type == NodeConstants::DOCUMENT_NODE,
             node_name: String::from(self.NodeName()),
