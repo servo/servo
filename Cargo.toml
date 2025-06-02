@@ -100,7 +100,7 @@ mozangle = "0.5.3"
 net_traits = { path = "components/shared/net" }
 nix = "0.29"
 num-traits = "0.2"
-num_cpus = "1.1.0"
+num_cpus = "1.17.0"
 openxr = "0.19"
 parking_lot = "0.12"
 percent-encoding = "2.3"
