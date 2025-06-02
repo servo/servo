@@ -69,4 +69,10 @@ impl AbortControllerMethods<crate::DomTypeHolder> for AbortController {
         // to signal abort on this with reason if it is given.
         self.signal_abort(cx, reason, can_gc);
     }
+
+    /// <https://dom.spec.whatwg.org/#dom-abortcontroller-signal>
+    fn Signal(&self) -> DomRoot<AbortSignal> {
+        // The signal getter steps are to return this’s signal.
+        self.signal.as_rooted()
+    }
 }
