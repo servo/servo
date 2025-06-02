@@ -194,6 +194,8 @@ pub(crate) struct IncompleteParserContexts(RefCell<Vec<(PipelineId, ParserContex
 
 unsafe_no_jsmanaged_fields!(TaskQueue<MainThreadScriptMsg>);
 
+type NodeIdSet = HashSet<String>;
+
 #[derive(JSTraceable)]
 // ScriptThread instances are rooted on creation, so this is okay
 #[cfg_attr(crown, allow(crown::unrooted_must_root))]
@@ -315,8 +317,9 @@ pub struct ScriptThread {
     #[no_trace]
     player_context: WindowGLContext,
 
-    /// A set of all nodes ever created in this script thread
-    node_ids: DomRefCell<HashSet<String>>,
+    /// A map from pipelines to all owned nodes ever created in this script thread
+    #[no_trace]
+    pipeline_to_node_ids: DomRefCell<HashMap<PipelineId, NodeIdSet>>,
 
     /// Code is running as a consequence of a user interaction
     is_user_interacting: Cell<bool>,
@@ -818,14 +821,25 @@ impl ScriptThread {
         })
     }
 
-    pub(crate) fn save_node_id(node_id: String) {
+    pub(crate) fn save_node_id(pipeline: PipelineId, node_id: String) {
         with_script_thread(|script_thread| {
-            script_thread.node_ids.borrow_mut().insert(node_id);
+            script_thread
+                .pipeline_to_node_ids
+                .borrow_mut()
+                .entry(pipeline)
+                .or_insert_with(HashSet::new)
+                .insert(node_id);
         })
     }
 
-    pub(crate) fn has_node_id(node_id: &str) -> bool {
-        with_script_thread(|script_thread| script_thread.node_ids.borrow().contains(node_id))
+    pub(crate) fn has_node_id(pipeline: PipelineId, node_id: &str) -> bool {
+        with_script_thread(|script_thread| {
+            script_thread
+                .pipeline_to_node_ids
+                .borrow()
+                .get(&pipeline)
+                .is_some_and(|node_ids| node_ids.contains(node_id))
+        })
     }
 
     /// Creates a new script thread.
@@ -945,7 +959,7 @@ impl ScriptThread {
             unminify_css: opts.unminify_css,
             user_content_manager: state.user_content_manager,
             player_context: state.player_context,
-            node_ids: Default::default(),
+            pipeline_to_node_ids: Default::default(),
             is_user_interacting: Cell::new(false),
             #[cfg(feature = "webgpu")]
             gpu_id_hub: Arc::new(IdentityHub::default()),

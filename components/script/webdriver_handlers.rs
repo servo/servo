@@ -81,7 +81,7 @@ fn find_node_by_unique_id(
     match documents.find_document(pipeline) {
         Some(doc) => find_node_by_unique_id_in_document(&doc, node_id),
         None => {
-            if ScriptThread::has_node_id(&node_id) {
+            if ScriptThread::has_node_id(pipeline, &node_id) {
                 Err(ErrorStatus::StaleElementReference)
             } else {
                 Err(ErrorStatus::NoSuchElement)
@@ -94,14 +94,15 @@ pub(crate) fn find_node_by_unique_id_in_document(
     document: &Document,
     node_id: String,
 ) -> Result<DomRoot<Node>, ErrorStatus> {
+    let pipeline = document.window().pipeline_id();
     match document
         .upcast::<Node>()
         .traverse_preorder(ShadowIncluding::Yes)
-        .find(|node| node.unique_id() == node_id)
+        .find(|node| node.unique_id(pipeline) == node_id)
     {
         Some(node) => Ok(node),
         None => {
-            if ScriptThread::has_node_id(&node_id) {
+            if ScriptThread::has_node_id(pipeline, &node_id) {
                 Err(ErrorStatus::StaleElementReference)
             } else {
                 Err(ErrorStatus::NoSuchElement)
@@ -129,7 +130,10 @@ fn matching_links(
                 content == link_text
             }
         })
-        .map(|node| node.upcast::<Node>().unique_id())
+        .map(|node| {
+            node.upcast::<Node>()
+                .unique_id(node.owner_doc().window().pipeline_id())
+        })
 }
 
 fn all_matching_links(
@@ -329,20 +333,25 @@ unsafe fn jsval_to_webdriver_inner(
             Ok(WebDriverJSValue::ArrayLike(result))
         } else if let Ok(element) = root_from_object::<Element>(*object, cx) {
             Ok(WebDriverJSValue::Element(WebElement(
-                element.upcast::<Node>().unique_id(),
+                element
+                    .upcast::<Node>()
+                    .unique_id(element.owner_document().window().pipeline_id()),
             )))
         } else if let Ok(window) = root_from_object::<Window>(*object, cx) {
             let window_proxy = window.window_proxy();
             if window_proxy.is_browsing_context_discarded() {
                 return Err(WebDriverJSError::StaleElementReference);
-            } else if window_proxy.browsing_context_id() == window_proxy.webview_id() {
-                Ok(WebDriverJSValue::Window(WebWindow(
-                    window.Document().upcast::<Node>().unique_id(),
-                )))
             } else {
-                Ok(WebDriverJSValue::Frame(WebFrame(
-                    window.Document().upcast::<Node>().unique_id(),
-                )))
+                let pipeline = window.pipeline_id();
+                if window_proxy.browsing_context_id() == window_proxy.webview_id() {
+                    Ok(WebDriverJSValue::Window(WebWindow(
+                        window.Document().upcast::<Node>().unique_id(pipeline),
+                    )))
+                } else {
+                    Ok(WebDriverJSValue::Frame(WebFrame(
+                        window.Document().upcast::<Node>().unique_id(pipeline),
+                    )))
+                }
             }
         } else if object_has_to_json_property(cx, global_scope, object.handle()) {
             let name = CString::new("toJSON").unwrap();
@@ -598,7 +607,7 @@ pub(crate) fn handle_find_element_css(
                         .QuerySelector(DOMString::from(selector))
                         .map_err(|_| ErrorStatus::InvalidSelector)
                 })
-                .map(|node| node.map(|x| x.upcast::<Node>().unique_id())),
+                .map(|node| node.map(|x| x.upcast::<Node>().unique_id(pipeline))),
         )
         .unwrap();
 }
@@ -640,7 +649,7 @@ pub(crate) fn handle_find_element_tag_name(
                         .elements_iter()
                         .next()
                 })
-                .map(|node| node.map(|x| x.upcast::<Node>().unique_id())),
+                .map(|node| node.map(|x| x.upcast::<Node>().unique_id(pipeline))),
         )
         .unwrap();
 }
@@ -664,7 +673,7 @@ pub(crate) fn handle_find_elements_css(
                 .map(|nodes| {
                     nodes
                         .iter()
-                        .map(|x| x.upcast::<Node>().unique_id())
+                        .map(|x| x.upcast::<Node>().unique_id(pipeline))
                         .collect()
                 }),
         )
@@ -706,7 +715,7 @@ pub(crate) fn handle_find_elements_tag_name(
                 .map(|nodes| {
                     nodes
                         .elements_iter()
-                        .map(|x| x.upcast::<Node>().unique_id())
+                        .map(|x| x.upcast::<Node>().unique_id(pipeline))
                         .collect::<Vec<String>>()
                 }),
         )
@@ -725,7 +734,7 @@ pub(crate) fn handle_find_element_element_css(
             find_node_by_unique_id(documents, pipeline, element_id).and_then(|node| {
                 node.query_selector(DOMString::from(selector))
                     .map_err(|_| ErrorStatus::InvalidSelector)
-                    .map(|node| node.map(|x| x.upcast::<Node>().unique_id()))
+                    .map(|node| node.map(|x| x.upcast::<Node>().unique_id(pipeline)))
             }),
         )
         .unwrap();
@@ -764,7 +773,7 @@ pub(crate) fn handle_find_element_element_tag_name(
                     .GetElementsByTagName(DOMString::from(selector), can_gc)
                     .elements_iter()
                     .next()
-                    .map(|x| x.upcast::<Node>().unique_id())),
+                    .map(|x| x.upcast::<Node>().unique_id(pipeline))),
                 None => Err(ErrorStatus::UnknownError),
             }),
         )
@@ -786,7 +795,7 @@ pub(crate) fn handle_find_element_elements_css(
                     .map(|nodes| {
                         nodes
                             .iter()
-                            .map(|x| x.upcast::<Node>().unique_id())
+                            .map(|x| x.upcast::<Node>().unique_id(pipeline))
                             .collect()
                     })
             }),
@@ -826,7 +835,7 @@ pub(crate) fn handle_find_element_elements_tag_name(
                 Some(element) => Ok(element
                     .GetElementsByTagName(DOMString::from(selector), can_gc)
                     .elements_iter()
-                    .map(|x| x.upcast::<Node>().unique_id())
+                    .map(|x| x.upcast::<Node>().unique_id(pipeline))
                     .collect::<Vec<String>>()),
                 None => Err(ErrorStatus::UnknownError),
             }),
@@ -867,7 +876,7 @@ pub(crate) fn handle_get_active_element(
             documents
                 .find_document(pipeline)
                 .and_then(|document| document.GetActiveElement())
-                .map(|element| element.upcast::<Node>().unique_id()),
+                .map(|element| element.upcast::<Node>().unique_id(pipeline)),
         )
         .unwrap();
 }
@@ -1395,7 +1404,7 @@ pub(crate) fn handle_element_click(
 
                         Ok(None)
                     },
-                    None => Ok(Some(node.unique_id())),
+                    None => Ok(Some(node.unique_id(pipeline))),
                 }
             }),
         )
