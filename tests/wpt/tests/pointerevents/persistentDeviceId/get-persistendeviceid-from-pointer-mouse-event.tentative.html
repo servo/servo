@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+  div {
+    user-select: none; // Prevents text selection on drag.
+  }
+</style>
+<div id="logger" draggable="false"></div>
+<div id="console"></div>
+<!-- This test documents the current behavior in Chrome for some
+     pointerType == "mouse" events -->
+<script>
+    function CheckDeviceIdOne(event) {
+        assert_equals(event.persistentDeviceId, 1, event.type + " deviceId is 1");
+    }
+
+    function CheckDeviceIdZero(event) {
+        assert_equals(event.persistentDeviceId, 0, event.type + " deviceId is 0");
+    }
+
+    window.addEventListener("pointerdown", CheckDeviceIdOne, false);
+    window.addEventListener("pointermove", CheckDeviceIdOne, false);
+    window.addEventListener("pointerover", CheckDeviceIdOne, false);
+    window.addEventListener("pointerup", CheckDeviceIdOne, false);
+    window.addEventListener("click", CheckDeviceIdZero, false);
+
+    promise_test(async () => {
+        let actions = new test_driver.Actions()
+          .addPointer("TestPointer", "mouse")
+          .pointerDown()
+          .pointerMove(100, 100)
+          .pointerUp();
+
+        await actions.send();
+
+    }, 'PointerEvent.persistentDeviceId');
+</script>

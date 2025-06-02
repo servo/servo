@@ -49,12 +49,12 @@
     container.appendChild(s);
 
     // Try to insertAdjacentText into the <script>, starting from the <p>
-    await checkMessage(_ =>
+    await checkMessage(t, _ =>
       p.insertAdjacentText("beforebegin",
                            "postMessage('beforebegin should be blocked', '*');")
     );
     assert_true(s.textContent.includes("postMessage"));
-    await checkMessage(_ =>
+    await checkMessage(t, _ =>
       p.insertAdjacentText("afterend",
                            "postMessage('afterend should be blocked', '*');")
     );
@@ -69,7 +69,7 @@
     let text = document.createTextNode("postMessage('appendChild with a " +
                                        "text node should be blocked', '*');");
     s.appendChild(text);
-    await checkMessage(_ => container.appendChild(s));
+    await checkMessage(t, _ => container.appendChild(s));
   }, "Regression test: Bypass via appendChild into off-document script element. svg:script");
 
   // Variant: Create a <script> element and insert it into the document. Then
@@ -81,7 +81,7 @@
     container.appendChild(s);
     let text = document.createTextNode("postMessage('appendChild with a live " +
                                        "text node should be blocked', '*');");
-    await checkMessage(_ => s.appendChild(text));
+    await checkMessage(t, _ => s.appendChild(text));
   }, "Regression test: Bypass via appendChild into live script element. svg:script");
 
   promise_test(async t => {
@@ -125,7 +125,7 @@
     let text = document.createTextNode("postMessage('default', '*');");
     s.appendChild(text);
     await no_trusted_type_violation_for(async _ =>
-      await checkMessage(_ => container.appendChild(s), 1)
+      await checkMessage(t, _ => container.appendChild(s), 1)
     );
     assert_array_equals(seenSinks, ["SVGScriptElement text"]);
   }, "Test that default policy applies. svg:script");
@@ -133,10 +133,22 @@
   promise_test(async t => {
     t.add_cleanup(clearSeenSinks);
     let s = createScriptElement();
+    s.setAttribute("type", "module");
+    let text = document.createTextNode("postMessage('default', '*');");
+    s.appendChild(text);
+    await no_trusted_type_violation_for(async _ =>
+      await checkMessage(t, _ => container.appendChild(s), 1)
+    );
+    assert_array_equals(seenSinks, ["SVGScriptElement text"]);
+  }, "Test that default policy applies with module script. svg:script");
+
+  promise_test(async t => {
+    t.add_cleanup(clearSeenSinks);
+    let s = createScriptElement();
     let text = document.createTextNode("fail");
     s.appendChild(text);
     await trusted_type_violation_without_exception_for(async _ =>
-      await checkMessage(_ => container.appendChild(s), 0)
+      await checkMessage(t, _ => container.appendChild(s), 0)
     );
     assert_array_equals(seenSinks, ["SVGScriptElement text"]);
   }, "Test a failing default policy. svg:script");

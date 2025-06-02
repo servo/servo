@@ -26,7 +26,7 @@ body {
 
     test(() => {
         assert_equals(CSS.highlights.highlightsFromPoint(-1,-1).length, 0);
-    }, 'CSS.highlights.highlightsFromPoint() should return an empty vector when called with a point outside the document.');
+    }, 'CSS.highlights.highlightsFromPoint() should return an empty array when called with a point outside the document.');
 
     test(() => {
         // Set two Highlights in this way: 01[234[56789]]
@@ -49,35 +49,38 @@ body {
         // No Highlights outside of text contents.
         let x = rect.left - 1;
         let y = rect.top - 1;
-        let highlights = CSS.highlights.highlightsFromPoint(x, y);
-        assert_equals(highlights.length, 0, 'CSS.highlights.highlightsFromPoint() returns no Highlights when the coordinates provided are outside of the text contents');
+        let highlight_hit_results = CSS.highlights.highlightsFromPoint(x, y);
+        assert_equals(highlight_hit_results.length, 0, 'CSS.highlights.highlightsFromPoint() returns an empty array when the coordinates provided are outside of the text contents');
 
         // Get x and y coordinates between '0' and '1'.
         x = rect.left + characterWidth;
         y = rect.top + rect.height / 2;
         highlights = CSS.highlights.highlightsFromPoint(x, y);
-        assert_equals(highlights.length, 0, 'CSS.highlights.highlightsFromPoint() returns no Highlights when the coordinates provided point at no Highlights');
+        assert_equals(highlight_hit_results.length, 0, 'CSS.highlights.highlightsFromPoint() returns an empty array when the coordinates provided point at no Highlights');
 
         // Get x and y coordinates between '2' and '3'.
         x = rect.left + 3 * characterWidth;
-        highlights = CSS.highlights.highlightsFromPoint(x, y);
-        assert_equals(highlights.length, 1, 'CSS.highlights.highlightsFromPoint() returns exactly one Highlight when the coordinates provided point at one Highlight');
-        assert_equals(highlights[0], highlight1, 'CSS.highlights.highlightsFromPoint() returns the Highlight present at the coordinates provided');
+        highlight_hit_results = CSS.highlights.highlightsFromPoint(x, y);
+        assert_equals(highlight_hit_results.length, 1, 'CSS.highlights.highlightsFromPoint() returns exactly one HighlightHitResult when the coordinates provided point at one Highlight');
+        assert_equals(highlight_hit_results[0].highlight, highlight1, 'CSS.highlights.highlightsFromPoint() returns a HighlightHitResult with the Highlight present at the coordinates provided');
+        assert_array_equals(highlight_hit_results[0].ranges, [range1], 'CSS.highlights.highlightsFromPoint() returns a HighlightHitResult with the ranges of the Highlight present at the coordinates provided');
 
         // Get x and y coordinates between '6' and '7'.
         // Same priority for the Highlights, break tie by order of registration.
         x = rect.left + 7 * characterWidth;
-        highlights = CSS.highlights.highlightsFromPoint(x, y);
-        assert_equals(highlights.length, 2, 'CSS.highlights.highlightsFromPoint() returns exactly two Highlights when the coordinates provided point at two overlapping Highlights');
-        assert_equals(highlights[0], highlight2, 'CSS.highlights.highlightsFromPoint() returns first the Highlight registered last when both Highlights present at the point provided have the same priority');
-        assert_equals(highlights[1], highlight1, 'CSS.highlights.highlightsFromPoint() returns last the Highlight registered first when both Highlights present at the point provided have the same priority');
+        highlight_hit_results = CSS.highlights.highlightsFromPoint(x, y);
+        assert_equals(highlight_hit_results.length, 2, 'CSS.highlights.highlightsFromPoint() returns exactly two HighlightHitResults when the coordinates provided point at two overlapping Highlights');
+        assert_equals(highlight_hit_results[0].highlight, highlight2, 'CSS.highlights.highlightsFromPoint() returns first a HighlightHitResult with the Highlight registered last when both Highlights present at the point provided have the same priority');
+        assert_equals(highlight_hit_results[1].highlight, highlight1, 'CSS.highlights.highlightsFromPoint() returns last  a HighlightHitResult with the Highlight registered first when both Highlights present at the point provided have the same priority');
+        assert_array_equals(highlight_hit_results[0].ranges, [range2], 'CSS.highlights.highlightsFromPoint() returns first a HighlightHitResult with the ranges of the Highlight present on top at the coordinates provided');
+        assert_array_equals(highlight_hit_results[1].ranges, [range1], 'CSS.highlights.highlightsFromPoint() returns last a HighlightHitResult with the ranges of the Highlight present at the bottom at the coordinates provided');
 
         // Now highlight1 should be first because it's got higher priority.
         highlight1.priority = 2;
         highlight2.priority = 1;
-        highlights = CSS.highlights.highlightsFromPoint(x, y);
-        assert_equals(highlights.length, 2, 'CSS.highlights.highlightsFromPoint() returns exactly two Highlights when the coordinates provided point at two overlapping Highlights');
-        assert_equals(highlights[0], highlight1, 'CSS.highlights.highlightsFromPoint() returns first the Highlight with higher priority when there are two Highlights present at the point provided');
-        assert_equals(highlights[1], highlight2, 'CSS.highlights.highlightsFromPoint() returns last the Highlight with lower priority when there are two Highlights present at the point provided');
-    }, 'CSS.highlights.highlightsFromPoint() returns Highlights present at the given point in the right order.');
+        highlight_hit_results = CSS.highlights.highlightsFromPoint(x, y);
+        assert_equals(highlight_hit_results.length, 2, 'CSS.highlights.highlightsFromPoint() returns exactly two HighlightHitResults when the coordinates provided point at two overlapping Highlights');
+        assert_equals(highlight_hit_results[0].highlight, highlight1, 'CSS.highlights.highlightsFromPoint() returns first a HighlightHitResult with the Highlight with higher priority when there are two Highlights present at the point provided');
+        assert_equals(highlight_hit_results[1].highlight, highlight2, 'CSS.highlights.highlightsFromPoint() returns last a HighlightHitResult with the Highlight with lower priority when there are two Highlights present at the point provided');
+    }, 'CSS.highlights.highlightsFromPoint() returns the Highlights with their corresponding ranges present at the given point in the right order.');
 </script>

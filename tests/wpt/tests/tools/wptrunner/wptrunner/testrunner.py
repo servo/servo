@@ -313,7 +313,7 @@ class TestSource:
         if not self.current_group.group or len(self.current_group.group) == 0:
             try:
                 self.current_group = self.test_queue.get()
-                self.logger.debug(f"Got new test group subsuite:{self.current_group[1]} "
+                self.logger.debug(f"Got new test group subsuite:{self.current_group[1]!r} "
                                   f"test_type:{self.current_group[2]}")
             except Empty:
                 return testloader.TestGroup(None, None, None, None)
@@ -473,11 +473,11 @@ class TestRunnerManager(threading.Thread):
 
             if skipped_tests:
                 self.logger.critical(
-                    f"Tests left in the queue: {subsuite}:{skipped_tests[0].id!r} "
+                    f"Tests left in the queue: {subsuite!r}:{skipped_tests[0].id!r} "
                     f"and {len(skipped_tests) - 1} others"
                 )
                 for test in skipped_tests[1:]:
-                    self.logger.debug(f"Test left in the queue: {subsuite}:{test.id!r}")
+                    self.logger.debug(f"Test left in the queue: {subsuite!r}:{test.id!r}")
 
             force_stop = (not isinstance(self.state, RunnerManagerState.stop) or
                           self.state.force_stop)
@@ -900,7 +900,7 @@ class TestRunnerManager(threading.Thread):
             if test is None:
                 return RunnerManagerState.stop(force_stop)
             if subsuite != self.state.subsuite:
-                self.logger.info(f"Restarting browser for new subsuite:{subsuite}")
+                self.logger.info(f"Restarting browser for new subsuite:{subsuite!r}")
                 restart = True
             elif self.restart_on_new_group and test_group is not self.state.test_group:
                 self.logger.info("Restarting browser for new test group")

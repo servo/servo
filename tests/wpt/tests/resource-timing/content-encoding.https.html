@@ -33,10 +33,10 @@
     run_same_origin_test("/resource-timing/resources/foo.text.zst", "zstd");
     run_same_origin_test("/resource-timing/resources/compressed-js.py?content_encoding=deflate", "deflate");
     run_same_origin_test("/resource-timing/resources/compressed-js.py?content_encoding=gzip", "gzip");
-    // Unrecognized content encoding value should be transformed to "unknown".
-    run_same_origin_test("/resource-timing/resources/compressed-js.py?content_encoding=unrecognizedname", "unknown");
-    // "identity" is not allowed in response header and should be transformed to "unknown".
-    run_same_origin_test("/resource-timing/resources/compressed-js.py?content_encoding=identity", "unknown");
+    // Unrecognized content encoding value should be transformed to "@unknown".
+    run_same_origin_test("/resource-timing/resources/compressed-js.py?content_encoding=unrecognizedname", "@unknown");
+    // "identity" is not allowed in response header and should be transformed to "@unknown".
+    run_same_origin_test("/resource-timing/resources/compressed-js.py?content_encoding=identity", "@unknown");
     // Mult-encodinging and formatting tests.
     run_same_origin_test("/resource-timing/resources/content-encoding-headers.py?content_encoding=gzip, deflate,Apple", "multiple");
     run_same_origin_test("/resource-timing/resources/content-encoding-headers.py?content_encoding=gzip, ", "multiple");

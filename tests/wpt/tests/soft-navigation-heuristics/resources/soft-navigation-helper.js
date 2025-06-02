@@ -48,7 +48,11 @@ const testSoftNavigation = options => {
   const eventType = readValue(options.eventType, 'click');
   const interactionFunc = options.interactionFunc;
   const eventPrepWork = options.eventPrepWork;
+  const preTestWork = options.preTestWork;
   promise_test(async t => {
+    if (preTestWork) {
+      await preTestWork();
+    }
     await withTimeoutMessage(
         t, waitInitialLCP(), 'Timed out waiting for initial LCP');
     const preClickLcp = await withTimeoutMessage(

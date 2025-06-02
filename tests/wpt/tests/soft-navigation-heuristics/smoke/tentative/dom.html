@@ -61,6 +61,20 @@
         document.body.appendChild(cloned);
         history.pushState({}, "", "/template-element");
       }
+
+      // Uses Element.innerText to add to the DOM, without overriding existing text.
+      // https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/innerText
+      function elementInnerTextInitial() {
+        document.getElementById("element-inner-text-initial-dest").innerText = "Hello, World.";
+        history.pushState({}, "", "/element-inner-text-initial");
+      }
+
+      // Uses Element.innerText to add to the DOM, overriding existing text.
+      // https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/innerText
+      function elementInnerTextOverride() {
+        document.getElementById("element-inner-text-override-dest").innerText = "Hello, World.";
+        history.pushState({}, "", "/element-inner-text-override");
+      }
     </script>
   </head>
   <body>
@@ -70,6 +84,14 @@
     <div id="document-import-node" onclick="documentImportNode()">Click here!</div>
     <div id="document-adopt-node" onclick="documentAdoptNode()">Click here!</div>
     <div id="template-element" onclick="templateElement()">Click here!</div>
+    <div id="element-inner-text-initial" onclick="elementInnerTextInitial()">
+      Click here!
+      <div id="element-inner-text-initial-dest"></div>
+    </div>
+    <div id="element-inner-text-override" onclick="elementInnerTextOverride()">
+      Click here!
+      <div id="element-inner-text-override-dest">Some text already there.</div>
+    </div>
 
     <iframe id="iframe-example" srcdoc="&lt;div id='import-this'>Hello, World.&lt;/div>"></iframe>
 
@@ -111,6 +133,14 @@
         "Soft Navigation Detection supports Document.adoptNode.",
       );
       test_template("template-element", "Soft Navigation Detection supports template elements.");
+      test_template(
+        "element-inner-text-initial",
+        "Soft Navigation Detection supports Element.innerText when it does not override existing text.",
+      );
+      test_template(
+        "element-inner-text-override",
+        "Soft Navigation Detection supports Element.innerText when it overrides existing text.",
+      );
     </script>
   </body>
 </html>

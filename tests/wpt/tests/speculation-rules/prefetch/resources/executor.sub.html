@@ -82,6 +82,13 @@ async function start_non_eager_prefetch_on_pointerdown(id) {
   await new test_driver.Actions().addPointer("mouse").pointerMove(0, 0, {origin: target}).pointerDown().pointerMove(0, 0).pointerUp().send();
 }
 
+async function navigate_by_form_generated_post(url) {
+  let form = document.createElement('form');
+  form.method = 'POST';
+  form.action = url;
+  document.body.appendChild(form);
+  form.submit();
+}
 
 // The fetch request's URL sent to the server.
 window.requestUrl = reverse_html_escape(

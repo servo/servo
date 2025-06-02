@@ -34,6 +34,12 @@ main.switch #item1 {
   left: 100px;
 }
 
+/* Make test fail if ID matches */
+::view-transition-group(item1),
+::view-transition-group(item2) {
+  border: 2px solid red;
+}
+
 html::view-transition {
   background: rebeccapurple;
 }

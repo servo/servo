@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html >
-<title>View transitions: generated names should not be visible from script</title>
+<title>View transitions: generated names should be prefixed with -ua- in script</title>
 <link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -57,12 +57,20 @@ main.switch .item1 {
     }).ready;
     const animations = document.documentElement.getAnimations({subtree: true});
     const pseudos = Array.from(new Set(animations.map(a => a.effect.pseudoElement)));
+    const item1GeneratedName = pseudos[0].replace("::view-transition-group(", "").slice(0, -1);
+    const item2GeneratedName = pseudos[3].replace("::view-transition-group(", "").slice(0, -1);
+    assert_true(item1GeneratedName.startsWith("-ua-"), "Item 1 generated name starts with -ua-");
+    assert_true(item2GeneratedName.startsWith("-ua-"), "Item 2 generated name starts with -ua-");
     assert_array_equals(pseudos,
       [
-        "::view-transition-group(match-element)",
-        "::view-transition-new(match-element)",
-        "::view-transition-old(match-element)"]);
-  }, "Generated view-transition-names should not be reflected in script");
+        `::view-transition-group(${item1GeneratedName})`,
+        `::view-transition-old(${item1GeneratedName})`,
+        `::view-transition-new(${item1GeneratedName})`,
+        `::view-transition-group(${item2GeneratedName})`,
+        `::view-transition-old(${item2GeneratedName})`,
+        `::view-transition-new(${item2GeneratedName})`
+      ], "Generated names should start with -ua- and pseudo-elements should be in tree order");
+  }, "Generated view-transition-names should be prefixed with -ua- in script");
 </script>
 
 </body>

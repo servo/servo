@@ -17,7 +17,10 @@
   view-transition-class: cls;
 }
 
-:root::view-transition-group(*) {
+:root::view-transition-group(*),
+:root::view-transition-image-pair(*),
+:root::view-transition-new(*),
+:root::view-transition-old(*) {
   animation-play-state: paused;
 }
 
