@@ -48,7 +48,7 @@ use style::properties::ComputedValues;
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::stylesheets::{Stylesheet, UrlExtraData};
 use uuid::Uuid;
-use xml5ever::serialize as xml_serialize;
+use xml5ever::{local_name, serialize as xml_serialize};
 
 use crate::conversions::Convert;
 use crate::document_loader::DocumentLoader;
@@ -1468,6 +1468,21 @@ impl Node {
             .borrow()
             .as_ref()
             .map(|data| data.element_data.borrow().styles.primary().clone())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#language>
+    pub(crate) fn get_lang(&self) -> Option<String> {
+        self.inclusive_ancestors(ShadowIncluding::Yes)
+            .filter_map(|node| {
+                node.downcast::<Element>().and_then(|el| {
+                    el.get_attribute(&ns!(xml), &local_name!("lang"))
+                        .or_else(|| el.get_attribute(&ns!(), &local_name!("lang")))
+                        .map(|attr| String::from(attr.Value()))
+                })
+                // TODO: Check meta tags for a pragma-set default language
+                // TODO: Check HTTP Content-Language header
+            })
+            .next()
     }
 
     /// <https://dom.spec.whatwg.org/#assign-slotables-for-a-tree>
