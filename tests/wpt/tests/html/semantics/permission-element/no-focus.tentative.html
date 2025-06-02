@@ -18,35 +18,34 @@
 
 <script>
   promise_test(async() => {
-    valid_permission_element.focus();
-    assert_equals(document.activeElement, document.body,
-      "Permission element should not be focused. Instead the parent element gets focus.");
+    invalid_permission_element.focus();
+    assert_equals(document.activeElement, invalid_permission_element,
+      "Invalid permission element should be focusable");
 
+    focusable_span.focus();
+    valid_permission_element.focus();
+    assert_equals(document.activeElement, focusable_span,
+      "Permission element should not be focused.");
+
+    focusable_span.focus();
+    await test_driver.bless('Focus with user activation', () => {
+      valid_permission_element.focus();
+    });
+    assert_equals(document.activeElement, valid_permission_element,
+      "Focus is allowed with user activation");
+
+    focusable_span.focus();
     actions = new test_driver.Actions()
        .pointerMove(1, 1, {origin: valid_permission_element})
        .pointerDown()
        .addTick();
     await actions.send();
-
     assert_equals(document.activeElement, valid_permission_element,
-      "Users can still focus the element");
+      "Users can focus the element");
 
     focusable_span.focus();
     assert_equals(document.activeElement, focusable_span,
-      "Other element should be focused");
-
-    invalid_permission_element.focus();
-    assert_equals(document.activeElement, focusable_span,
-      "Invalid permission element should not be focused");
-
-    actions = new test_driver.Actions()
-       .pointerMove(1, 1, {origin: invalid_permission_element})
-       .pointerDown()
-       .addTick();
-    await actions.send();
-
-    assert_equals(document.activeElement, invalid_permission_element,
-      "Permission elements with an invalid-type can be focused like any other HTML element");
-}, "Permission element is not focusable by script");
+        "Other element should be focused");
+}, "Permission element is not focusable by script without user activation");
 </script>
 </body>

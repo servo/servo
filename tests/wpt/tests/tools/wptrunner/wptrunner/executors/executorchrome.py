@@ -304,6 +304,10 @@ class ChromeDriverTestharnessExecutor(WebDriverTestharnessExecutor):
                 test_window = self.protocol.testharness.persistent_test_window = None
         if not test_window:
             test_window = super().get_or_create_test_window(protocol)
+            if self.reuse_window:
+                self.logger.info(f"Created new test window {test_window}")
+            # Without `--reuse-window`, each testharness test always creates a
+            # new window, so tracing that event is not interesting.
         if self.reuse_window:
             self.protocol.testharness.persistent_test_window = test_window
         return test_window

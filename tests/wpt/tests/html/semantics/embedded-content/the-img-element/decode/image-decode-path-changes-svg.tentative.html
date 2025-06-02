@@ -13,25 +13,25 @@
 // -------------------
 promise_test(function(t) {
   var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-  img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', "/images/green.png");
+  img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', "/images/green.png?image-decode-path-changes-1");
   var promise = img.decode();
-  img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', "/images/green.svg");
+  img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', "/images/green.svg?image-decode-path-changes-1");
   return promise_rejects_dom(t, "EncodingError", promise);
 }, document.title + " xlink:href changes fail decode.");
 
 promise_test(function(t) {
   var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-  img.setAttribute('href', "/images/green.png");
+  img.setAttribute('href', "/images/green.png?image-decode-path-changes-2");
   var promise = img.decode();
-  img.setAttribute('href', "/images/green.svg");
+  img.setAttribute('href', "/images/green.svg?image-decode-path-changes-2");
   return promise_rejects_dom(t, "EncodingError", promise);
 }, document.title + " href changes fail decode.");
 
 promise_test(function(t) {
   var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-  img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', "/images/green.png");
+  img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', "/images/green.png?image-decode-path-changes-3");
   var first_promise = img.decode();
-  img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', "/images/green.svg");
+  img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', "/images/green.svg?image-decode-path-changes-3");
   var second_promise = img.decode();
   assert_not_equals(first_promise, second_promise);
   return Promise.all([
@@ -42,9 +42,9 @@ promise_test(function(t) {
 
 promise_test(function(t) {
   var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-  img.setAttribute('href', "/images/green.png");
+  img.setAttribute('href', "/images/green.png?image-decode-path-changes-4");
   var first_promise = img.decode();
-  img.setAttribute('href', "/images/green.svg");
+  img.setAttribute('href', "/images/green.svg?image-decode-path-changes-4");
   var second_promise = img.decode();
   assert_not_equals(first_promise, second_promise);
   return Promise.all([
@@ -55,9 +55,9 @@ promise_test(function(t) {
 
 promise_test(function(t) {
   var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-  img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', "/images/green.png");
+  img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', "/images/green.png?image-decode-path-changes-5");
   var first_promise = img.decode();
-  img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', "/non/existent/path.png");
+  img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', "/non/existent/path.png?image-decode-path-changes-5");
   var second_promise = img.decode();
   assert_not_equals(first_promise, second_promise);
   return Promise.all([
@@ -68,9 +68,9 @@ promise_test(function(t) {
 
 promise_test(function(t) {
   var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-  img.setAttribute('href', "/images/green.png");
+  img.setAttribute('href', "/images/green.png?image-decode-path-changes-6");
   var first_promise = img.decode();
-  img.setAttribute('href', "/non/existent/path.png");
+  img.setAttribute('href', "/non/existent/path.png?image-decode-path-changes-6");
   var second_promise = img.decode();
   assert_not_equals(first_promise, second_promise);
   return Promise.all([

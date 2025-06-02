@@ -9,6 +9,7 @@ promise_test((test) => {
 [
   "arrayBuffer",
   "blob",
+  "bytes",
   "formData",
   "json",
   "text"

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-autospace-property">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<link rel="match" href="text-autospace-edit-001-ref.html">
+<style>
+#container {
+  font-family: Ahem;
+  font-size: 40px;
+}
+</style>
+<div id="container">
+  <div data-append="10">1国国国国国国国国国国</div>
+  <div data-append="11">1国国国国国国国国国国国国</div>
+</div>
+<script>
+for (const reference of document.querySelectorAll("[data-append]")) {
+  // Split the `textContent` at the `data-append` offset.
+  const text = reference.textContent;
+  const offset = parseInt(reference.dataset.append);
+  const initiaL_text = text.substring(0, offset);
+  const append_text = text.substring(offset);
+
+  // Create a `<div>` with the `initial_text`, then append `append_text`
+  // one character at a time, with a forced layout.
+  const element = document.createElement("div");
+  const text_node = document.createTextNode(initiaL_text);
+  element.appendChild(text_node);
+  reference.after(element);
+  for (const ch of append_text) {
+    element.offsetTop;
+    text_node.appendData(ch);
+  }
+}
+</script>

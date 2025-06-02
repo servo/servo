@@ -26,13 +26,14 @@ const getCumulativeSumPrecisionTolerance = (graphResources) => {
   const axis = args[1][Object.keys(args[1])[0]];
   let tolerance = inputShape[axis] - 1;
 
-  const toleranceValueDict = {float32: tolerance, int32: 0};
+  const toleranceValueDict = {float32: tolerance, float16: tolerance, int32: 0};
   const expectedDataType =
       getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
   return {metricType: 'ULP', value: toleranceValueDict[expectedDataType]};
 };
 
 const cumulativeSumTests = [
+  // float32 tests
   {
     'name': 'cumulativeSum with float32 input and default options.',
     'graph': {
@@ -51,7 +52,7 @@ const cumulativeSumTests = [
         'name': 'cumulativeSum',
         'arguments': [
           {'input': 'cumulativeSumInput'},
-          {'axis': 3},
+          {'axis': 3}
         ],
         'outputs': 'cumulativeSumOutput'
       }],
@@ -63,31 +64,6 @@ const cumulativeSumTests = [
             63.7977295, 60.5223611
           ],
           'descriptor': {shape: [1, 1, 3, 4], dataType: 'float32'}
-        }
-      }
-    }
-  },
-  {
-    'name': 'cumulativeSum with int32 input and axis = 2.',
-    'graph': {
-      'inputs': {
-        'cumulativeSumInput': {
-          'data': [2, 1, 3, 5, 3, 8, 7, 3, 9, 6, 2, 4],
-          'descriptor': {shape: [1, 1, 3, 4], dataType: 'int32'}
-        }
-      },
-      'operators': [{
-        'name': 'cumulativeSum',
-        'arguments': [
-          {'input': 'cumulativeSumInput'},
-          {'axis': 2},
-        ],
-        'outputs': 'cumulativeSumOutput'
-      }],
-      'expectedOutputs': {
-        'cumulativeSumOutput': {
-          'data': [2, 1, 3, 5, 5, 9, 10, 8, 14, 15, 12, 12],
-          'descriptor': {shape: [1, 1, 3, 4], dataType: 'int32'}
         }
       }
     }
@@ -111,7 +87,7 @@ const cumulativeSumTests = [
         'arguments': [
           {'input': 'cumulativeSumInput'},
           {'axis': 3},
-          {'options': {'exclusive': true}},
+          {'options': {'exclusive': true}}
         ],
         'outputs': 'cumulativeSumOutput'
       }],
@@ -145,7 +121,7 @@ const cumulativeSumTests = [
         'arguments': [
           {'input': 'cumulativeSumInput'},
           {'axis': 3},
-          {'options': {'reversed': true}},
+          {'options': {'reversed': true}}
         ],
         'outputs': 'cumulativeSumOutput'
       }],
@@ -161,6 +137,125 @@ const cumulativeSumTests = [
       }
     }
   },
+
+  // float16 tests
+  {
+    'name': 'cumulativeSum with float16 input and default options.',
+    'graph': {
+      'inputs': {
+        'cumulativeSumInput': {
+          'data': [
+            60.4375, -86.9375, -19.5, -15.1484375, 13.453125, 45.4375, 61.09375,
+            70.75, -31.28125, 56.09375, 39, -3.275390625
+          ],
+          'descriptor': {shape: [1, 1, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'cumulativeSum',
+        'arguments': [{'input': 'cumulativeSumInput'}, {'axis': 3}],
+        'outputs': 'cumulativeSumOutput'
+      }],
+      'expectedOutputs': {
+        'cumulativeSumOutput': {
+          'data': [
+            60.4375, -26.5, -46, -61.15625, 13.453125, 58.875, 120, 190.75,
+            -31.28125, 24.8125, 63.8125, 60.53125
+          ],
+          'descriptor': {shape: [1, 1, 3, 4], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'cumulativeSum with float16 input and set exclusive to true.',
+    'graph': {
+      'inputs': {
+        'cumulativeSumInput': {
+          'data': [
+            60.4375, -86.9375, -19.5, -15.1484375, 13.453125, 45.4375, 61.09375,
+            70.75, -31.28125, 56.09375, 39, -3.275390625
+          ],
+          'descriptor': {shape: [1, 1, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'cumulativeSum',
+        'arguments': [
+          {'input': 'cumulativeSumInput'}, {'axis': 3},
+          {'options': {'exclusive': true}}
+        ],
+        'outputs': 'cumulativeSumOutput'
+      }],
+      'expectedOutputs': {
+        'cumulativeSumOutput': {
+          'data': [
+            0, 60.4375, -26.5, -46, 0, 13.453125, 58.875, 120, 0, -31.28125,
+            24.8125, 63.8125
+          ],
+          'descriptor': {shape: [1, 1, 3, 4], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'cumulativeSum with float16 input and set reversed to true.',
+    'graph': {
+      'inputs': {
+        'cumulativeSumInput': {
+          'data': [
+            60.4375, -86.9375, -19.5, -15.1484375, 13.453125, 45.4375, 61.09375,
+            70.75, -31.28125, 56.09375, 39, -3.275390625
+          ],
+          'descriptor': {shape: [1, 1, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'cumulativeSum',
+        'arguments': [
+          {'input': 'cumulativeSumInput'}, {'axis': 3},
+          {'options': {'reversed': true}}
+        ],
+        'outputs': 'cumulativeSumOutput'
+      }],
+      'expectedOutputs': {
+        'cumulativeSumOutput': {
+          'data': [
+            -61.15625, -121.5625, -34.65625, -15.1484375, 190.75, 177.25,
+            131.875, 70.75, 60.53125, 91.8125, 35.71875, -3.275390625
+          ],
+          'descriptor': {shape: [1, 1, 3, 4], dataType: 'float16'}
+        }
+      }
+    }
+  },
+
+  // int32 tests
+  {
+    'name': 'cumulativeSum with int32 input and axis = 2.',
+    'graph': {
+      'inputs': {
+        'cumulativeSumInput': {
+          'data': [2, 1, 3, 5, 3, 8, 7, 3, 9, 6, 2, 4],
+          'descriptor': {shape: [1, 1, 3, 4], dataType: 'int32'}
+        }
+      },
+      'operators': [{
+        'name': 'cumulativeSum',
+        'arguments': [
+          {'input': 'cumulativeSumInput'},
+          {'axis': 2}
+        ],
+        'outputs': 'cumulativeSumOutput'
+      }],
+      'expectedOutputs': {
+        'cumulativeSumOutput': {
+          'data': [2, 1, 3, 5, 5, 9, 10, 8, 14, 15, 12, 12],
+          'descriptor': {shape: [1, 1, 3, 4], dataType: 'int32'}
+        }
+      }
+    }
+  }
 ];
 
 if (navigator.ml) {
