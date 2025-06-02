@@ -1595,7 +1595,7 @@ dependencies = [
  "crossbeam-channel",
  "devtools_traits",
  "embedder_traits",
- "headers 0.4.0",
+ "headers 0.4.1",
  "http 1.3.1",
  "ipc-channel",
  "log",
@@ -3158,11 +3158,11 @@ dependencies = [
 
 [[package]]
 name = "headers"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "322106e6bd0cba2d5ead589ddb8150a13d7c4217cf80d7c4f682ca994ccc6aa9"
+checksum = "b3314d5adb5d94bcdf56771f2e50dbbc80bb4bdf88967526706205ac9eff24eb"
 dependencies = [
- "base64 0.21.7",
+ "base64 0.22.1",
  "bytes",
  "headers-core 0.3.0",
  "http 1.3.1",
@@ -3434,7 +3434,7 @@ name = "hyper_serde"
 version = "0.13.2"
 dependencies = [
  "cookie 0.18.1",
- "headers 0.4.0",
+ "headers 0.4.1",
  "http 1.3.1",
  "hyper 1.6.0",
  "mime",
@@ -4859,7 +4859,7 @@ dependencies = [
  "futures-core",
  "futures-util",
  "generic-array",
- "headers 0.4.0",
+ "headers 0.4.1",
  "http 1.3.1",
  "http-body-util",
  "hyper 1.6.0",
@@ -4912,7 +4912,7 @@ dependencies = [
  "crossbeam-channel",
  "data-url",
  "embedder_traits",
- "headers 0.4.0",
+ "headers 0.4.1",
  "http 1.3.1",
  "hyper-util",
  "hyper_serde",
@@ -6404,7 +6404,7 @@ dependencies = [
  "fonts_traits",
  "fxhash",
  "glow",
- "headers 0.4.0",
+ "headers 0.4.1",
  "html5ever",
  "http 1.3.1",
  "hyper_serde",
@@ -7021,7 +7021,7 @@ dependencies = [
  "getopts",
  "gilrs",
  "glow",
- "headers 0.4.0",
+ "headers 0.4.1",
  "hilog",
  "hitrace",
  "image",
