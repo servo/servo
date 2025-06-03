@@ -9,7 +9,7 @@ static ALLOC: Allocator = Allocator;
 
 pub use crate::platform::*;
 
-#[cfg(not(any(windows, feature = "use-system-allocator", target_env = "ohos")))]
+#[cfg(not(any(windows, feature = "use-system-allocator", feature = "use-mimalloc", target_env = "ohos")))]
 mod platform {
     use std::os::raw::c_void;
 
@@ -32,6 +32,7 @@ mod platform {
 
 #[cfg(all(
     not(windows),
+    not(feature = "use-mimalloc"),
     any(feature = "use-system-allocator", target_env = "ohos")
 ))]
 mod platform {
@@ -60,7 +61,7 @@ mod platform {
     }
 }
 
-#[cfg(windows)]
+#[cfg(all(windows, not(feature = "use-mimalloc")))]
 mod platform {
     pub use std::alloc::System as Allocator;
     use std::os::raw::c_void;
@@ -83,5 +84,26 @@ mod platform {
 
             HeapSize(heap, 0, ptr) as usize
         }
+    }
+}
+
+#[cfg(feature = "use-mimalloc")]
+mod platform {
+    use std::os::raw::c_void;
+
+    pub use mimalloc::MiMalloc as Allocator;
+
+    /// Get the size of a heap block.
+    ///
+    /// # Safety
+    ///
+    /// Passing a non-heap allocated pointer to this function results in undefined behavior.
+    pub unsafe extern "C" fn usable_size(ptr: *const c_void) -> usize {
+        unsafe { Allocator.usable_size(ptr as _) }
+    }
+
+    /// Memory allocation APIs compatible with libc
+    pub mod libc_compat {
+        pub use libmimalloc_sys::{ mi_free as free, mi_malloc as malloc, mi_realloc as realloc };
     }
 }

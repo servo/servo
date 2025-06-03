@@ -12,6 +12,7 @@ path = "lib.rs"
 
 [features]
 use-system-allocator = ["libc"]
+use-mimalloc = ["mimalloc", "libmimalloc-sys"]
 
 [target.'cfg(not(any(windows, target_env = "ohos")))'.dependencies]
 libc = { workspace = true, optional = true }
@@ -23,3 +24,7 @@ windows-sys = { workspace = true, features = ["Win32_System_Memory"] }
 
 [target.'cfg(target_env = "ohos")'.dependencies]
 libc = { workspace = true }
+
+[dependencies]
+mimalloc = { version = "0.1", features = ["extended"], optional = true }
+libmimalloc-sys = { version = "0.1", optional = true }
