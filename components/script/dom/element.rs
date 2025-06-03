@@ -121,7 +121,7 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::htmlfontelement::{HTMLFontElement, HTMLFontElementLayoutHelpers};
 use crate::dom::htmlformelement::FormControlElementHelpers;
-use crate::dom::htmlhrelement::{HTMLHRElement, HTMLHRLayoutHelpers};
+use crate::dom::htmlhrelement::{HTMLHRElement, HTMLHRLayoutHelpers, SizePresentationalHint};
 use crate::dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMethods};
 use crate::dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
 use crate::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
@@ -1305,6 +1305,47 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
                 shared_lock,
                 PropertyDeclaration::PaddingRight(cellpadding),
             ));
+        }
+
+        // https://html.spec.whatwg.org/multipage/#the-hr-element-2
+        if let Some(size_info) = self
+            .downcast::<HTMLHRElement>()
+            .and_then(|hr_element| hr_element.get_size_info())
+        {
+            match size_info {
+                SizePresentationalHint::SetHeightTo(height) => {
+                    hints.push(from_declaration(
+                        shared_lock,
+                        PropertyDeclaration::Height(height),
+                    ));
+                },
+                SizePresentationalHint::SetAllBorderWidthValuesTo(border_width) => {
+                    hints.push(from_declaration(
+                        shared_lock,
+                        PropertyDeclaration::BorderLeftWidth(border_width.clone()),
+                    ));
+                    hints.push(from_declaration(
+                        shared_lock,
+                        PropertyDeclaration::BorderRightWidth(border_width.clone()),
+                    ));
+                    hints.push(from_declaration(
+                        shared_lock,
+                        PropertyDeclaration::BorderTopWidth(border_width.clone()),
+                    ));
+                    hints.push(from_declaration(
+                        shared_lock,
+                        PropertyDeclaration::BorderBottomWidth(border_width),
+                    ));
+                },
+                SizePresentationalHint::SetBottomBorderWidthToZero => {
+                    hints.push(from_declaration(
+                        shared_lock,
+                        PropertyDeclaration::BorderBottomWidth(
+                            specified::border::BorderSideWidth::from_px(0.),
+                        ),
+                    ));
+                },
+            }
         }
     }
 
