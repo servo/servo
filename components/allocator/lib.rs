@@ -9,7 +9,12 @@ static ALLOC: Allocator = Allocator;
 
 pub use crate::platform::*;
 
-#[cfg(not(any(windows, feature = "use-system-allocator", feature = "use-mimalloc", target_env = "ohos")))]
+#[cfg(not(any(
+    windows,
+    feature = "use-system-allocator",
+    feature = "use-mimalloc",
+    target_env = "ohos"
+)))]
 mod platform {
     use std::os::raw::c_void;
 
@@ -104,6 +109,6 @@ mod platform {
 
     /// Memory allocation APIs compatible with libc
     pub mod libc_compat {
-        pub use libmimalloc_sys::{ mi_free as free, mi_malloc as malloc, mi_realloc as realloc };
+        pub use libmimalloc_sys::{mi_free as free, mi_malloc as malloc, mi_realloc as realloc};
     }
 }
