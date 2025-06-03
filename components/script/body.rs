@@ -249,7 +249,7 @@ impl TransmitBodyConnectHandler {
 
                 let rejection_handler = Box::new(TransmitBodyPromiseRejectionHandler {
                     bytes_sender,
-                    stream: rooted_stream,
+                    stream: Dom::from_ref(&rooted_stream.clone()),
                     control_sender,
                 });
 
@@ -321,11 +321,12 @@ impl Callback for TransmitBodyPromiseHandler {
 /// The handler of read promises rejection of body streams used in
 /// <https://fetch.spec.whatwg.org/#concept-request-transmit-body>.
 #[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct TransmitBodyPromiseRejectionHandler {
     #[ignore_malloc_size_of = "Channels are hard"]
     #[no_trace]
     bytes_sender: IpcSender<BodyChunkResponse>,
-    stream: DomRoot<ReadableStream>,
+    stream: Dom<ReadableStream>,
     #[ignore_malloc_size_of = "Channels are hard"]
     #[no_trace]
     control_sender: IpcSender<BodyChunkRequest>,
