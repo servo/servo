@@ -131,8 +131,9 @@ impl AbortSignalMethods<crate::DomTypeHolder> for AbortSignal {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-abortsignal-reason>
-    fn Reason(&self, _: JSContext, _rval: MutableHandleValue) {
-        // TODO
+    fn Reason(&self, _cx: JSContext, mut rval: MutableHandleValue) {
+        // The reason getter steps are to return this’s abort reason.
+        rval.set(self.abort_reason.get());
     }
 
     /// <https://dom.spec.whatwg.org/#dom-abortsignal-throwifaborted>
