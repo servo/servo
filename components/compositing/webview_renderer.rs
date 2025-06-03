@@ -100,7 +100,7 @@ pub(crate) struct WebViewRenderer {
     animating: bool,
     /// Pending input events queue. Priavte and only this thread pushes events to it.
     pending_point_input_events: RefCell<VecDeque<InputEvent>>,
-    /// Flag to indicate that the epoch has been not synchronized yet.
+    /// WebRender is not ready between `SendDisplayList` and `WebRenderFrameReady` messages.
     pub webrender_frame_ready: Cell<bool>,
 }
 
@@ -315,11 +315,11 @@ impl WebViewRenderer {
         }
     }
 
-    pub(crate) fn dispatch_point_input_event(&mut self, event: InputEvent) {
+    pub(crate) fn dispatch_point_input_event(&mut self, mut event: InputEvent) -> bool {
         // Events that do not need to do hit testing are sent directly to the
         // constellation to filter down.
         let Some(point) = event.point() else {
-            return;
+            return false;
         };
 
         // Delay the event if the epoch is not synchronized yet (new frame is not ready),
@@ -329,7 +329,7 @@ impl WebViewRenderer {
             self.pending_point_input_events
                 .borrow_mut()
                 .push_back(event);
-            return;
+            return false;
         }
 
         // If we can't find a pipeline to send this event to, we cannot continue.
@@ -344,19 +344,30 @@ impl WebViewRenderer {
                 self.pending_point_input_events
                     .borrow_mut()
                     .push_back(event);
-                return;
+                return false;
             },
             _ => {
-                return;
+                return false;
             },
         };
 
-        self.global.borrow_mut().update_cursor(point, &result);
+        match event {
+            InputEvent::Touch(ref mut touch_event) => {
+                touch_event.init_sequence_id(self.touch_handler.current_sequence_id);
+            },
+            InputEvent::MouseButton(_) | InputEvent::MouseMove(_) | InputEvent::Wheel(_) => {
+                self.global.borrow_mut().update_cursor(point, &result);
+            },
+            _ => unreachable!("Unexpected input event type: {event:?}"),
+        }
 
         if let Err(error) = self.global.borrow().constellation_sender.send(
             EmbedderToConstellationMessage::ForwardInputEvent(self.id, event, Some(result)),
         ) {
             warn!("Sending event to constellation failed ({error:?}).");
+            false
+        } else {
+            true
         }
     }
 
@@ -459,47 +470,8 @@ impl WebViewRenderer {
         self.dispatch_point_input_event(event);
     }
 
-    fn send_touch_event(&self, mut event: TouchEvent) -> bool {
-        // Delay the event if the epoch is not synchronized yet (new frame is not ready),
-        // or hit test result would fail and the event is rejected anyway.
-        if !self.webrender_frame_ready.get() || !self.pending_point_input_events.borrow().is_empty()
-        {
-            self.pending_point_input_events
-                .borrow_mut()
-                .push_back(InputEvent::Touch(event));
-            return false;
-        }
-
-        let get_pipeline_details = |pipeline_id| self.pipelines.get(&pipeline_id);
-        let result = match self
-            .global
-            .borrow()
-            .hit_test_at_point(event.point, get_pipeline_details)
-        {
-            Ok(hit_test_results) => hit_test_results,
-            Err(HitTestError::EpochMismatch) => {
-                // If the epoch is not synchronized, we cannot send the event.
-                // We will try again later.
-                self.pending_point_input_events
-                    .borrow_mut()
-                    .push_back(InputEvent::Touch(event));
-                return false;
-            },
-            _ => {
-                return false;
-            },
-        };
-
-        event.init_sequence_id(self.touch_handler.current_sequence_id);
-        let event = InputEvent::Touch(event);
-        if let Err(e) = self.global.borrow().constellation_sender.send(
-            EmbedderToConstellationMessage::ForwardInputEvent(self.id, event, Some(result)),
-        ) {
-            warn!("Sending event to constellation failed ({:?}).", e);
-            false
-        } else {
-            true
-        }
+    fn send_touch_event(&mut self, event: TouchEvent) -> bool {
+        self.dispatch_point_input_event(InputEvent::Touch(event))
     }
 
     pub(crate) fn on_touch_event(&mut self, event: TouchEvent) {

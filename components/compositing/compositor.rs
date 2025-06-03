@@ -814,7 +814,7 @@ impl IOCompositor {
                 let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     return warn!("Could not find WebView for incoming display list");
                 };
-                // epoch is outdated until we receive "NewWebRenderFrameReady" message.
+                // WebRender is not ready until we receive "NewWebRenderFrameReady"
                 webview_renderer.webrender_frame_ready.set(false);
 
                 let pipeline_id = display_list_info.pipeline_id;
