@@ -671,7 +671,7 @@ impl IOCompositor {
                 };
                 let dppx = webview_renderer.device_pixels_per_page_pixel();
                 let point = dppx.transform_point(Point2D::new(x, y));
-                webview_renderer.dispatch_input_event(
+                webview_renderer.dispatch_point_input_event(
                     InputEvent::MouseButton(MouseButtonEvent::new(action, button, point))
                         .with_webdriver_message_id(Some(message_id)),
                 );
@@ -684,7 +684,7 @@ impl IOCompositor {
                 };
                 let dppx = webview_renderer.device_pixels_per_page_pixel();
                 let point = dppx.transform_point(Point2D::new(x, y));
-                webview_renderer.dispatch_input_event(
+                webview_renderer.dispatch_point_input_event(
                     InputEvent::MouseMove(MouseMoveEvent::new(point))
                         .with_webdriver_message_id(Some(message_id)),
                 );
@@ -706,7 +706,7 @@ impl IOCompositor {
                 let scroll_delta =
                     dppx.transform_vector(Vector2D::new(delta_x as f32, delta_y as f32));
                 webview_renderer
-                    .dispatch_input_event(InputEvent::Wheel(WheelEvent { delta, point }));
+                    .dispatch_point_input_event(InputEvent::Wheel(WheelEvent { delta, point }));
                 webview_renderer.on_webdriver_wheel_action(scroll_delta, point);
             },
 
@@ -815,7 +815,7 @@ impl IOCompositor {
                     return warn!("Could not find WebView for incoming display list");
                 };
                 // epoch is outdated until we receive "NewWebRenderFrameReady" message.
-                webview_renderer.epoch_not_synchronized.set(true);
+                webview_renderer.webrender_frame_ready.set(false);
 
                 let pipeline_id = display_list_info.pipeline_id;
                 let details = webview_renderer.ensure_pipeline_details(pipeline_id.into());
@@ -1664,7 +1664,7 @@ impl IOCompositor {
             // Process all pending events
             self.webview_renderers.iter().for_each(|webview| {
                 webview.dispatch_pending_point_input_events();
-                webview.epoch_not_synchronized.set(false);
+                webview.webrender_frame_ready.set(true);
             });
         }
 

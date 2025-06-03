@@ -101,7 +101,7 @@ pub(crate) struct WebViewRenderer {
     /// Pending input events queue. Priavte and only this thread pushes events to it.
     pending_point_input_events: RefCell<VecDeque<InputEvent>>,
     /// Flag to indicate that the epoch has been not synchronized yet.
-    pub epoch_not_synchronized: Cell<bool>,
+    pub webrender_frame_ready: Cell<bool>,
 }
 
 impl Drop for WebViewRenderer {
@@ -137,7 +137,7 @@ impl WebViewRenderer {
             hidpi_scale_factor: Scale::new(hidpi_scale_factor.0),
             animating: false,
             pending_point_input_events: Default::default(),
-            epoch_not_synchronized: Cell::default(),
+            webrender_frame_ready: Cell::default(),
         }
     }
 
@@ -315,14 +315,17 @@ impl WebViewRenderer {
         }
     }
 
-    pub(crate) fn dispatch_input_event(&mut self, event: InputEvent) {
+    pub(crate) fn dispatch_point_input_event(&mut self, event: InputEvent) {
         // Events that do not need to do hit testing are sent directly to the
         // constellation to filter down.
         let Some(point) = event.point() else {
             return;
         };
 
-        if self.epoch_not_synchronized.get() {
+        // Delay the event if the epoch is not synchronized yet (new frame is not ready),
+        // or hit test result would fail and the event is rejected anyway.
+        if !self.webrender_frame_ready.get() || !self.pending_point_input_events.borrow().is_empty()
+        {
             self.pending_point_input_events
                 .borrow_mut()
                 .push_back(event);
@@ -453,13 +456,14 @@ impl WebViewRenderer {
             }
         }
 
-        self.dispatch_input_event(event);
+        self.dispatch_point_input_event(event);
     }
 
     fn send_touch_event(&self, mut event: TouchEvent) -> bool {
-        if self.epoch_not_synchronized.get() {
-            // If the epoch is not synchronized, we cannot send the event.
-            // We will try again later.
+        // Delay the event if the epoch is not synchronized yet (new frame is not ready),
+        // or hit test result would fail and the event is rejected anyway.
+        if !self.webrender_frame_ready.get() || !self.pending_point_input_events.borrow().is_empty()
+        {
             self.pending_point_input_events
                 .borrow_mut()
                 .push_back(InputEvent::Touch(event));
@@ -759,13 +763,13 @@ impl WebViewRenderer {
     /// <http://w3c.github.io/touch-events/#mouse-events>
     fn simulate_mouse_click(&mut self, point: DevicePoint) {
         let button = MouseButton::Left;
-        self.dispatch_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
-        self.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
+        self.dispatch_point_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
+        self.dispatch_point_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
             MouseButtonAction::Down,
             button,
             point,
         )));
-        self.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
+        self.dispatch_point_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
             MouseButtonAction::Up,
             button,
             point,
