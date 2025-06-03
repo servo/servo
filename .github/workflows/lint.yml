@@ -47,14 +47,15 @@ jobs:
       - name: Give permission to script
         run: |
           chmod +x ./etc/ci/clippy-annotation.sh
-      - name: Clippy
-        run: |
-          ./mach clippy --message-format=json --use-crown --locked -- -- --deny warnings | ./etc/ci/clippy-annotation.sh > temp/clippy-output.json 
-      - name: Save PR number
+      - name: Save PR number & Create temp directory
         if: ${{ !cancelled() }}
         run: |
           mkdir -p ./pr
-          echo ${{ github.event.number }} > ./pr/number
+          mkdir -p ./temp
+          echo ${{ github.event.number }} > ./pr/number 
+      - name: Clippy
+        run: |
+          ./mach clippy --message-format=json --use-crown --locked -- -- --deny warnings | ./etc/ci/clippy-annotation.sh > temp/clippy-output.json 
       - name: Clippy linter result
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4.6.1
