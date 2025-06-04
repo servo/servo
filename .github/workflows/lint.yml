@@ -47,12 +47,12 @@ jobs:
       - name: Give permission to script
         run: |
           chmod +x ./etc/ci/clippy-annotation.sh
-      - name: Save PR number & Create temp directory
+      - name: Save Head Sha & Create temp directory
         if: ${{ !cancelled() }}
         run: |
           mkdir -p ./pr
           mkdir -p ./temp
-          echo ${{ github.event.number }} > ./pr/number 
+          echo ${{ github.event.pull_request.head.sha }} > ./pr/head_sha
       - name: Clippy
         run: |
           ./mach clippy --message-format=json --use-crown --locked -- -- --deny warnings | ./etc/ci/clippy-annotation.sh > temp/clippy-output.json 
@@ -63,7 +63,7 @@ jobs:
           name: clippy-lint-result
           path: |
             temp/clippy-output.json
-            pr/number
+            pr/head_sha
           retention-days: 14
       - name: Tidy
         run: ./mach test-tidy --no-progress --all

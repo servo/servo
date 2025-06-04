@@ -1,0 +1,56 @@
+name: Lint Annotation On PR
+
+on:
+  workflow_run:
+    workflows: [Main]
+    types:
+      - completed
+
+jobs:
+  pr-annotation:
+    name: Create PR annotation
+    runs-on: ubuntu-22.04
+    outputs:
+      configuration: ${{ steps.configuration.outputs.result }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: clippy-lint-result
+      - name: Retrieve Head Sha
+        run: |
+          echo "HEAD_SHA=$(cat ./pr/head_sha)" >> $GITHUB_OUTPUT
+        id: head_sha
+      - name: Comment on PR with E2E results
+        if: ${{ !cancelled() }}
+        uses: actions/github-script@v7.0.1
+        with:
+          script: |
+            const fs = require('fs')
+            const headSha = fs.readFileSync('./pr/head_sha', 'utf8').trim()
+            const data = fs.readFileSync('./temp/clippy-output.json', 'utf8')
+            const annotations = JSON.parse(data)
+
+            if (!Array.isArray(annotations) || annotations.length === 0) {
+              console.log("✅ No annotations to report.");
+              return;
+            }
+
+            if (annotations.length > 10) {
+              console.warn("⚠️ GitHub only allows 10 annotations per check run. Truncated.");
+            }
+
+            const limitedAnnotations = annotations.slice(0, 10); // GitHub limit
+
+            await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: "Rust Clippy Lint Report",
+              head_sha: headSha,
+              status: "completed",
+              conclusion: "neutral",
+              output: {
+                title: "Rust Clippy Code Annotations",
+                summary: `${limitedAnnotations.length} issue(s) reported`,
+                annotations: limitedAnnotations
+              }
+            });
