@@ -18,7 +18,7 @@ output=$(jq -c '
           $in.message.level
           | if . == "help" or . == "note" then "notice"
             elif . == "warning" then "warning"
-            else "error"
+            else "failure"
             end
         ),
         title: $in.message.message,
