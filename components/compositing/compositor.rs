@@ -281,6 +281,11 @@ impl PipelineDetails {
     }
 }
 
+pub enum HitTestError {
+    EpochMismatch,
+    Others,
+}
+
 impl ServoRenderer {
     pub fn shutdown_state(&self) -> ShutdownState {
         self.shutdown_state.get()
@@ -290,15 +295,19 @@ impl ServoRenderer {
         &self,
         point: DevicePoint,
         details_for_pipeline: impl Fn(PipelineId) -> Option<&'a PipelineDetails>,
-    ) -> Option<CompositorHitTestResult> {
-        self.hit_test_at_point_with_flags_and_pipeline(
+    ) -> Result<CompositorHitTestResult, HitTestError> {
+        match self.hit_test_at_point_with_flags_and_pipeline(
             point,
             HitTestFlags::empty(),
             None,
             details_for_pipeline,
-        )
-        .first()
-        .cloned()
+        ) {
+            Ok(hit_test_results) => hit_test_results
+                .first()
+                .cloned()
+                .ok_or(HitTestError::Others),
+            Err(error) => Err(error),
+        }
     }
 
     // TODO: split this into first half (global) and second half (one for whole compositor, one for webview)
@@ -308,14 +317,15 @@ impl ServoRenderer {
         flags: HitTestFlags,
         pipeline_id: Option<WebRenderPipelineId>,
         details_for_pipeline: impl Fn(PipelineId) -> Option<&'a PipelineDetails>,
-    ) -> Vec<CompositorHitTestResult> {
+    ) -> Result<Vec<CompositorHitTestResult>, HitTestError> {
         // DevicePoint and WorldPoint are the same for us.
         let world_point = WorldPoint::from_untyped(point.to_untyped());
         let results =
             self.webrender_api
                 .hit_test(self.webrender_document, pipeline_id, world_point, flags);
 
-        results
+        let mut epoch_mismatch = false;
+        let results = results
             .items
             .iter()
             .filter_map(|item| {
@@ -323,10 +333,16 @@ impl ServoRenderer {
                 let details = details_for_pipeline(pipeline_id)?;
 
                 // If the epoch in the tag does not match the current epoch of the pipeline,
-                // then the hit test is against an old version of the display list and we
-                // should ignore this hit test for now.
+                // then the hit test is against an old version of the display list.
                 match details.most_recent_display_list_epoch {
-                    Some(epoch) if epoch.as_u16() == item.tag.1 => {},
+                    Some(epoch) => {
+                        if epoch.as_u16() != item.tag.1 {
+                            // It's too early to hit test for now.
+                            // New scene building is in progress.
+                            epoch_mismatch = true;
+                            return None;
+                        }
+                    },
                     _ => return None,
                 }
 
@@ -340,7 +356,13 @@ impl ServoRenderer {
                     scroll_tree_node: info.scroll_tree_node,
                 })
             })
-            .collect()
+            .collect();
+
+        if epoch_mismatch {
+            return Err(HitTestError::EpochMismatch);
+        }
+
+        Ok(results)
     }
 
     pub(crate) fn send_transaction(&mut self, transaction: Transaction) {
@@ -619,7 +641,7 @@ impl IOCompositor {
                         .global
                         .borrow()
                         .hit_test_at_point(point, details_for_pipeline);
-                    if let Some(result) = result {
+                    if let Ok(result) = result {
                         self.global.borrow_mut().update_cursor(point, &result);
                     }
                 }
@@ -649,7 +671,7 @@ impl IOCompositor {
                 };
                 let dppx = webview_renderer.device_pixels_per_page_pixel();
                 let point = dppx.transform_point(Point2D::new(x, y));
-                webview_renderer.dispatch_input_event(
+                webview_renderer.dispatch_point_input_event(
                     InputEvent::MouseButton(MouseButtonEvent::new(action, button, point))
                         .with_webdriver_message_id(Some(message_id)),
                 );
@@ -662,7 +684,7 @@ impl IOCompositor {
                 };
                 let dppx = webview_renderer.device_pixels_per_page_pixel();
                 let point = dppx.transform_point(Point2D::new(x, y));
-                webview_renderer.dispatch_input_event(
+                webview_renderer.dispatch_point_input_event(
                     InputEvent::MouseMove(MouseMoveEvent::new(point))
                         .with_webdriver_message_id(Some(message_id)),
                 );
@@ -684,7 +706,7 @@ impl IOCompositor {
                 let scroll_delta =
                     dppx.transform_vector(Vector2D::new(delta_x as f32, delta_y as f32));
                 webview_renderer
-                    .dispatch_input_event(InputEvent::Wheel(WheelEvent { delta, point }));
+                    .dispatch_point_input_event(InputEvent::Wheel(WheelEvent { delta, point }));
                 webview_renderer.on_webdriver_wheel_action(scroll_delta, point);
             },
 
@@ -792,6 +814,8 @@ impl IOCompositor {
                 let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     return warn!("Could not find WebView for incoming display list");
                 };
+                // WebRender is not ready until we receive "NewWebRenderFrameReady"
+                webview_renderer.webrender_frame_ready.set(false);
 
                 let pipeline_id = display_list_info.pipeline_id;
                 let details = webview_renderer.ensure_pipeline_details(pipeline_id.into());
@@ -841,7 +865,8 @@ impl IOCompositor {
                         flags,
                         pipeline,
                         details_for_pipeline,
-                    );
+                    )
+                    .unwrap_or_default();
                 let _ = sender.send(result);
             },
 
@@ -1629,11 +1654,20 @@ impl IOCompositor {
                 },
                 CompositorMsg::NewWebRenderFrameReady(..) => {
                     found_recomposite_msg = true;
-                    compositor_messages.push(msg)
+                    compositor_messages.push(msg);
                 },
                 _ => compositor_messages.push(msg),
             }
         }
+
+        if found_recomposite_msg {
+            // Process all pending events
+            self.webview_renderers.iter().for_each(|webview| {
+                webview.dispatch_pending_point_input_events();
+                webview.webrender_frame_ready.set(true);
+            });
+        }
+
         for msg in compositor_messages {
             self.handle_browser_message(msg);
 
