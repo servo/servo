@@ -6,7 +6,7 @@ use std::cell::RefCell;
 use std::mem;
 
 use dom_struct::dom_struct;
-use js::jsapi::Heap;
+use js::jsapi::{ExceptionStackBehavior, Heap, JS_SetPendingException};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use script_bindings::inheritance::Castable;
@@ -139,7 +139,17 @@ impl AbortSignalMethods<crate::DomTypeHolder> for AbortSignal {
     /// <https://dom.spec.whatwg.org/#dom-abortsignal-throwifaborted>
     #[allow(unsafe_code)]
     fn ThrowIfAborted(&self) {
-        // TODO
+        // The throwIfAborted() method steps are to throw this’s abort reason, if this is aborted.
+        if self.aborted() {
+            let cx = GlobalScope::get_cx();
+            unsafe {
+                JS_SetPendingException(
+                    *cx,
+                    self.abort_reason.handle(),
+                    ExceptionStackBehavior::Capture,
+                )
+            };
+        }
     }
 
     // <https://dom.spec.whatwg.org/#dom-abortsignal-onabort>
