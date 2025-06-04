@@ -22,6 +22,7 @@ jobs:
         with:
           name: clippy-lint-result
           github-token: ${{ secrets.GH_ACCESS_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
       - name: Retrieve Head Sha
         run: |
           echo "HEAD_SHA=$(cat ./pr/head_sha)" >> $GITHUB_OUTPUT
