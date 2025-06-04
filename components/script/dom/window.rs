@@ -2547,13 +2547,12 @@ impl Window {
         // webrender has a chance to update the offsets.
         let x = x_.to_f32().unwrap_or(0.0f32);
         let y = y_.to_f32().unwrap_or(0.0f32);
-        self.layout()
-            .process_scroll_an_element_position(node.to_opaque(), Vector2D::new(x, y));
-
         let scroll_id = ExternalScrollId(
             combine_id_with_fragment_type(node.to_opaque().id(), FragmentType::FragmentBody),
             self.pipeline_id().into(),
         );
+        self.layout()
+            .update_scroll_offset(scroll_id, Vector2D::new(x, y));
 
         // Step 6
         // > Perform a scroll of box to position, element as the associated

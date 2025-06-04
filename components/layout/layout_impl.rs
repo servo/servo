@@ -412,27 +412,6 @@ impl Layout for LayoutThread {
             .unwrap_or_default()
     }
 
-    /// Step 1-4 of <https://drafts.csswg.org/cssom-view/#element-scrolling-members>
-    /// Additionally, we are updating the scroll states to be processed by
-    fn process_scroll_an_element_position(
-        &self,
-        node: OpaqueNode,
-        scroll_offset: LayoutVector2D,
-    ) -> LayoutVector2D {
-        // TODO(stevennovaryo): handle step 1-4 properly here
-        let scroll_id = ExternalScrollId(
-            combine_id_with_fragment_type(node.id(), FragmentType::FragmentBody),
-            self.id.into(),
-        );
-        let scroll_state = ScrollState {
-            scroll_id,
-            scroll_offset,
-        };
-        self.update_scroll_node_state(&scroll_state);
-
-        scroll_offset
-    }
-
     #[cfg_attr(
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
@@ -526,6 +505,14 @@ impl Layout for LayoutThread {
             {
                 tree.set_scroll_offsets_for_node_with_external_scroll_id(scroll_id, *scroll_offset);
             }
+        }
+    }
+
+    //
+    fn update_scroll_offset(&self, scroll_id: ExternalScrollId, scroll_offset: LayoutVector2D) {
+        if let Some(mut scroll_tree) = self.cached_scroll_tree_mut() {
+            scroll_tree
+                .set_scroll_offsets_for_node_with_external_scroll_id(&scroll_id, scroll_offset);
         }
     }
 }

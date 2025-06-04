@@ -157,6 +157,7 @@ impl ScrollTreeNode {
 
     /// Set the offset for this node, returns false if this was a
     /// non-scrolling node for which you cannot set the offset.
+    // MYNOTES: should i make this &mut so it will modify the new_offset
     pub fn set_offset(&mut self, new_offset: LayoutVector2D) -> bool {
         match self.info {
             SpatialTreeNodeInfo::Scroll(ref mut info) => {
@@ -359,15 +360,7 @@ impl ScrollTree {
         offset: LayoutVector2D,
     ) -> bool {
         if let Some(node) = self.get_node_by_external_scroll_id_mut(external_scroll_id) {
-            match node.info {
-                SpatialTreeNodeInfo::Scroll(ref mut scroll_info)
-                    if &scroll_info.external_id == external_scroll_id =>
-                {
-                    scroll_info.offset = offset;
-                    return true;
-                },
-                _ => {},
-            }
+            node.set_offset(offset);
         }
         false
     }

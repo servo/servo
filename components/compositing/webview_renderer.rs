@@ -220,6 +220,20 @@ impl WebViewRenderer {
         );
     }
 
+    pub(crate) fn send_scroll_result_to_layout(&self, scroll_result: ScrollResult) {
+        let scroll_state = ScrollState {
+            scroll_id: scroll_result.external_scroll_id,
+            scroll_offset: scroll_result.offset,
+        };
+
+        let _ = self.global.borrow().constellation_sender.send(
+            EmbedderToConstellationMessage::UpdateScrollState(
+                scroll_result.pipeline_id,
+                scroll_state,
+            ),
+        );
+    }
+
     pub(crate) fn set_frame_tree_on_pipeline_details(
         &mut self,
         frame_tree: &SendableFrameTree,
@@ -862,10 +876,9 @@ impl WebViewRenderer {
                 combined_event.scroll_location,
             )
         });
-        // MYNOTES: change this to single update
-        // if let Some(scroll_result) = scroll_result {
-        //     self.send_scroll_positions_to_layout_for_pipeline(scroll_result.pipeline_id);
-        // }
+        if let Some(scroll_result) = scroll_result {
+            self.send_scroll_result_to_layout(scroll_result);
+        }
 
         let pinch_zoom_result = match self
             .set_pinch_zoom_level(self.pinch_zoom_level().get() * combined_magnification)

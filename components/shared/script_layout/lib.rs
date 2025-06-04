@@ -48,7 +48,7 @@ use style::properties::PropertyId;
 use style::properties::style_structs::Font;
 use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
 use style::stylesheets::Stylesheet;
-use webrender_api::ImageKey;
+use webrender_api::{ExternalScrollId, ImageKey};
 use webrender_api::units::{DeviceIntSize, LayoutVector2D};
 
 pub trait GenericLayoutDataTrait: Any + MallocSizeOfTrait {
@@ -250,13 +250,7 @@ pub trait Layout {
     /// Query scroll offset for any scroll offset query through the layout.
     fn query_scroll_offset(&self, node: OpaqueNode) -> LayoutVector2D;
 
-    /// Process the step 1-4 of scroll an element algorithm.
-    /// <https://drafts.csswg.org/cssom-view/#scroll-an-element>
-    fn process_scroll_an_element_position(
-        &self,
-        node: OpaqueNode,
-        scroll_offset: LayoutVector2D,
-    ) -> LayoutVector2D;
+    fn update_scroll_offset(&self, scroll_id: ExternalScrollId, scroll_offset: LayoutVector2D);
 
     fn query_content_box(&self, node: TrustedNodeAddress) -> Option<Rect<Au>>;
     fn query_content_boxes(&self, node: TrustedNodeAddress) -> Vec<Rect<Au>>;

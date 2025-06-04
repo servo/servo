@@ -76,6 +76,7 @@ mod from_compositor {
                 Self::MediaSessionAction(_) => target!("MediaSessionAction"),
                 Self::SetWebViewThrottled(_, _) => target!("SetWebViewThrottled"),
                 Self::SetScrollStates(..) => target!("SetScrollStates"),
+                Self::UpdateScrollState(..) => target!("UpdateScrollState"),
                 Self::PaintMetric(..) => target!("PaintMetric"),
                 Self::EvaluateJavaScript(..) => target!("EvaluateJavaScript"),
                 Self::CreateMemoryReport(..) => target!("CreateMemoryReport"),

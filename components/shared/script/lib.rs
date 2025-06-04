@@ -247,6 +247,9 @@ pub enum ScriptThreadMessage {
     /// The compositor scrolled and is updating the scroll states of the nodes in the given
     /// pipeline via the Constellation.
     SetScrollStates(PipelineId, Vec<ScrollState>),
+    /// The compositor scrolled and is updating the scroll state of a node in the given
+    /// pipeline via the Constellation.
+    UpdateScrollState(PipelineId, ScrollState),
     /// Evaluate the given JavaScript and return a result via a corresponding message
     /// to the Constellation.
     EvaluateJavaScript(PipelineId, JavaScriptEvaluationId, String),

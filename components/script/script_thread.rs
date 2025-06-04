@@ -1909,6 +1909,9 @@ impl ScriptThread {
             ScriptThreadMessage::SetScrollStates(pipeline_id, scroll_states) => {
                 self.handle_set_scroll_states(pipeline_id, scroll_states)
             },
+            ScriptThreadMessage::UpdateScrollState(pipeline_id, scroll_state) => {
+                self.handle_update_scroll_state(pipeline_id, scroll_state)
+            },
             ScriptThreadMessage::EvaluateJavaScript(pipeline_id, evaluation_id, script) => {
                 self.handle_evaluate_javascript(pipeline_id, evaluation_id, script, can_gc);
             },
@@ -1938,6 +1941,15 @@ impl ScriptThread {
                 }
             },
         )
+    }
+
+    fn handle_update_scroll_state(&self, pipeline_id: PipelineId, scroll_state: ScrollState) {
+        let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
+            warn!("Received scroll states for closed pipeline {pipeline_id}");
+            return;
+        };
+
+        window.layout_mut().update_scroll_offset(scroll_state.scroll_id, scroll_state.scroll_offset);
     }
 
     #[cfg(feature = "webgpu")]
