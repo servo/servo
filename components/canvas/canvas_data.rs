@@ -1327,7 +1327,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
                     .to_vec()
             }
         } else {
-            self.drawtarget.bytes().as_ref().to_vec()
+            self.drawtarget.bytes().into_owned()
         };
 
         Snapshot::from_vec(
