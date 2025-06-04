@@ -56,9 +56,9 @@ jobs:
       - name: Clippy
         run: |
           ./mach clippy --message-format=json --use-crown --locked -- -- --deny warnings | ./etc/ci/clippy-annotation.sh > temp/clippy-output.json 
-      - name: Clippy linter result
+      - name: Clippy Linter Result Upload
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4.6.1
+        uses: actions/upload-artifact@v4
         with:
           name: clippy-lint-result
           path: |

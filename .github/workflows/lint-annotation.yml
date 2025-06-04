@@ -14,14 +14,12 @@ jobs:
   pr-annotation:
     name: Create PR annotation
     runs-on: ubuntu-22.04
-    outputs:
-      configuration: ${{ steps.configuration.outputs.result }}
     steps:
       - name: Download Artifact Clippy Result and Head Sha
         uses: actions/download-artifact@v4
         with:
           name: clippy-lint-result
-          github-token: ${{ secrets.GH_ACCESS_TOKEN }}
+          github-token: ${{ secrets.GH_PAT }}
           run-id: ${{ github.event.workflow_run.id }}
       - name: Retrieve Head Sha
         run: |
