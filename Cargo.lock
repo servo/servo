@@ -9794,9 +9794,9 @@ dependencies = [
 
 [[package]]
 name = "zune-jpeg"
-version = "0.4.14"
+version = "0.4.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "99a5bab8d7dedf81405c4bb1f2b83ea057643d9cb28778cea9eecddeedd2e028"
+checksum = "b63fd466826ec8fe25e1fc010c169213fec4e135ac39caccdba830eaa3895923"
 dependencies = [
  "zune-core",
 ]
