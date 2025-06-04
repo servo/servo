@@ -4,7 +4,7 @@
 
 // https://dom.spec.whatwg.org/#abortsignal
 
-[Exposed=*, Pref="dom_abort_controller_enabled"]
+[Exposed=*]
 interface AbortSignal : EventTarget {
   readonly attribute boolean aborted;
   readonly attribute any reason;

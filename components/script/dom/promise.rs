@@ -11,6 +11,7 @@
 //! native Promise values that refer to the same JS value yet are distinct native objects
 //! (ie. address equality for the native objects is meaningless).
 
+use std::cell::{Cell, RefCell};
 use std::ptr;
 use std::rc::Rc;
 
@@ -22,7 +23,7 @@ use js::jsapi::{
     NewFunctionWithReserved, PromiseState, PromiseUserInputEventHandlingState, RemoveRawValueRoot,
     SetFunctionNativeReserved,
 };
-use js::jsval::{Int32Value, JSVal, ObjectValue, UndefinedValue};
+use js::jsval::{Int32Value, JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::rust::wrappers::{
     AddPromiseReactions, CallOriginalPromiseReject, CallOriginalPromiseResolve,
     GetPromiseIsHandled, GetPromiseState, IsPromiseObject, NewPromiseObject, RejectPromise,
@@ -35,7 +36,7 @@ use crate::dom::bindings::error::{Error, ErrorToJsval};
 use crate::dom::bindings::reflector::{DomGlobal, DomObject, MutDomObject, Reflector};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promisenativehandler::PromiseNativeHandler;
+use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::script_thread::ScriptThread;
@@ -403,5 +404,166 @@ impl FromJSValConvertibleRc for Promise {
 
         let promise = Promise::new_resolved(&global_scope, cx, value, CanGc::note());
         Ok(ConversionResult::Success(promise))
+    }
+}
+
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+/// The fulfillment handler for the list of promises in
+/// <https://webidl.spec.whatwg.org/#wait-for-all>.
+struct WaitAllFulfillmentHandler {
+    /// The steps to call when all promises are resolved.
+    #[ignore_malloc_size_of = "Rc is hard"]
+    #[no_trace]
+    success_steps: Rc<dyn Fn(&[HandleValue])>,
+
+    /// The results of the promises.
+    #[ignore_malloc_size_of = "Rc is hard"]
+    result: Rc<RefCell<Vec<Heap<JSVal>>>>,
+
+    /// The index identifying which promise this handler is attached to.
+    promise_index: usize,
+
+    /// A count of fulfilled promises.
+    #[ignore_malloc_size_of = "Rc is hard"]
+    fulfilled_count: Rc<RefCell<usize>>,
+}
+
+impl Callback for WaitAllFulfillmentHandler {
+    #[allow(unsafe_code)]
+    fn callback(&self, cx: SafeJSContext, v: HandleValue, _realm: InRealm, _can_gc: CanGc) {
+        // Let fulfillmentHandler be the following steps given arg:
+
+        let equals_total = {
+            // Set result[promiseIndex] to arg.
+            let result = self.result.borrow_mut();
+            result[self.promise_index].set(v.get());
+
+            // Set fullfilledCount to fullfilledCount + 1.
+            let mut fulfilled_count = self.fulfilled_count.borrow_mut();
+            *fulfilled_count = *fulfilled_count + 1;
+
+            *fulfilled_count == result.len()
+        };
+
+        // If fullfilledCount equals total, then perform successSteps given result.
+        if equals_total {
+            // Safety: the values are kept alive by the Heap 
+            // while their handles are passed to the the success steps.
+            let result_handles: Vec<HandleValue> = unsafe {
+                self.result
+                    .borrow()
+                    .iter()
+                    .map(|val| HandleValue::from_raw(val.handle()))
+                    .collect()
+            };
+            (self.success_steps)(&result_handles);
+        }
+    }
+}
+
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+/// The rejection handler for the list of promises in
+/// <https://webidl.spec.whatwg.org/#wait-for-all>.
+struct WaitAllRejectionHandler {
+    /// The steps to call if any promise rejects.
+    #[ignore_malloc_size_of = "Rc is hard"]
+    #[no_trace]
+    failure_steps: Rc<dyn Fn(HandleValue)>,
+
+    /// Whether any promises have been rejected already.
+    rejected: Cell<bool>,
+}
+
+impl Callback for WaitAllRejectionHandler {
+    fn callback(&self, cx: SafeJSContext, v: HandleValue, _realm: InRealm, _can_gc: CanGc) {
+        // Let rejectionHandlerSteps be the following steps given arg:
+
+        if self.rejected.replace(true) {
+            // If rejected is true, abort these steps.
+            return;
+        }
+
+        // Set rejected to true.
+        // Done above with `replace`.
+        (self.failure_steps)(v);
+    }
+}
+
+/// <https://webidl.spec.whatwg.org/#wait-for-all>
+pub(crate) fn wait_for_all(
+    cx: SafeJSContext,
+    global: &GlobalScope,
+    promises: Vec<Rc<Promise>>,
+    success_steps: Rc<dyn Fn(&[HandleValue])>,
+    failure_steps: Rc<dyn Fn(HandleValue)>,
+    realm: InRealm,
+    can_gc: CanGc,
+) {
+    // Let fullfilledCount be 0.
+    // Note: done below when constructing a fulfillment handler.
+
+    // Let rejected be false.
+    // Note: done below when constructing a rejection handler.
+
+    // Let rejectionHandlerSteps be the following steps given arg:
+    // Note: implemented with the `WaitAllRejectionHandler`.
+
+    // Let rejectionHandler be CreateBuiltinFunction(rejectionHandlerSteps, « »):
+    // Note: done as part of attaching the `WaitAllRejectionHandler` as native rejection handler.
+    let rejection_handler = WaitAllRejectionHandler {
+        failure_steps,
+        rejected: Default::default(),
+    };
+
+    // Let total be promises’s size.
+    // Note: done using the len of result.
+
+    // If total is 0, then:
+    // TODO: Queue a microtask to perform successSteps given « ».
+
+    // Let index be 0.
+    // Note: done with `enumerate` below.
+
+    // Let result be a list containing total null values.
+    let result: Rc<RefCell<Vec<Heap<JSVal>>>> = Default::default();
+
+    // For each promise of promises:
+    for (promise_index, promise) in promises.into_iter().enumerate() {
+        let result = result.clone();
+
+        {
+            // Note: adding a null value for this promise result.
+            let mut result_list = result.borrow_mut();
+            rooted!(in(*cx) let null_value = NullValue());
+            result_list.push(Heap::default());
+            // Note: modifying the heap only after its move.
+            result_list[promise_index].set(null_value.get());
+        }
+
+        // Let promiseIndex be index.
+        // Note: done with `enumerate` above.
+
+        // Let fulfillmentHandler be the following steps given arg:
+        // Note: implemented with the `WaitAllFulFillmentHandler`.
+
+        // Let fulfillmentHandler be CreateBuiltinFunction(fulfillmentHandler, « »):
+        // Note: passed below to avoid the need to root it.
+
+        // Perform PerformPromiseThen(promise, fulfillmentHandler, rejectionHandler).
+        let handler = PromiseNativeHandler::new(
+            global,
+            Some(Box::new(WaitAllFulfillmentHandler {
+                success_steps: success_steps.clone(),
+                result,
+                promise_index,
+                fulfilled_count: Default::default(),
+            })),
+            Some(Box::new(rejection_handler.clone())),
+            can_gc,
+        );
+        promise.append_native_handler(&handler, realm, can_gc);
+
+        // Set index to index + 1.
+        // Note: done above with `enumerate`.
     }
 }
