@@ -161,7 +161,7 @@ impl Handler {
         let count_non_null_actions_in_tick = tick_actions
             .iter()
             .filter(|(_, action)| {
-                !matches!(action, ActionItem::Pointer(PointerActionItem::Pointer(_)))
+                matches!(action, ActionItem::Pointer(PointerActionItem::Pointer(_)))
             })
             .count();
 
