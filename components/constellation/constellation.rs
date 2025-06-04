@@ -6019,6 +6019,7 @@ where
         }
     }
 
+    // MYNOTES: this shouldn't be necessary anymore since, we have scroll offsets tree at layout impl
     #[cfg_attr(
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")

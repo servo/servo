@@ -4,6 +4,8 @@
 
 //! Defines data structures which are consumed by the Compositor.
 
+use std::collections::HashMap;
+
 use base::id::ScrollTreeNodeId;
 use embedder_traits::Cursor;
 use euclid::SideOffsets2D;
@@ -130,7 +132,7 @@ pub struct ScrollTreeNode {
 }
 
 impl ScrollTreeNode {
-    /// Get the WebRender [`SpatialId`] for the given [`ScrollNodeId`]. This will
+    /// Get the WebRender [`SpatialId`] for the given [`ScrollTreeNodeId`]. This will
     /// panic if [`ScrollTree::build_display_list`] has not been called yet.
     pub fn webrender_id(&self) -> SpatialId {
         self.webrender_id
@@ -249,6 +251,10 @@ pub struct ScrollTree {
     /// of WebRender spatial nodes, used by the compositor to scroll the
     /// contents of the display list.
     pub nodes: Vec<ScrollTreeNode>,
+
+    /// Mapping of [ExternalScrollId] to [ScrollTreeNodeId], this is used for quick
+    /// access of scrolling nodes operation and querying.
+    pub external_scroll_id_to_node_id: HashMap<ExternalScrollId, ScrollTreeNodeId>,
 }
 
 impl ScrollTree {
@@ -258,14 +264,19 @@ impl ScrollTree {
         parent: Option<&ScrollTreeNodeId>,
         info: SpatialTreeNodeInfo,
     ) -> ScrollTreeNodeId {
+        let new_scroll_id =         ScrollTreeNodeId {
+            index: self.nodes.len(),
+        };
+        if let SpatialTreeNodeInfo::Scroll(spatial_scroll_node) = &info {
+            self.external_scroll_id_to_node_id.insert(spatial_scroll_node.external_id, new_scroll_id);
+        }
+
         self.nodes.push(ScrollTreeNode {
             parent: parent.cloned(),
             webrender_id: None,
             info,
         });
-        ScrollTreeNodeId {
-            index: self.nodes.len() - 1,
-        }
+        new_scroll_id
     }
 
     /// Once WebRender display list construction is complete for this [`ScrollTree`], update
@@ -286,7 +297,33 @@ impl ScrollTree {
         &self.nodes[id.index]
     }
 
-    /// Get the WebRender [`SpatialId`] for the given [`ScrollNodeId`]. This will
+    /// Get a mutable reference to the node with the given external scroll id, returning [None] if an
+    /// [ExternalScrollId] does not have a respective [ScrollTreeNode] (e.g. a fragment doesn't have a scroll node).
+    /// Same as [Self::get_node_mut], it will panic if the given id is not registered.
+    pub fn get_node_by_external_scroll_id_mut(
+        &mut self,
+        external_scroll_id: &ExternalScrollId,
+    ) -> Option<&mut ScrollTreeNode> {
+        self.external_scroll_id_to_node_id
+            .get(external_scroll_id)
+            .cloned()
+            .map(|scroll_id| self.get_node_mut(&scroll_id))
+    }
+
+    /// Get an immutable reference to the node with the given external scroll id, returning [None] if an
+    /// [ExternalScrollId] does not have a respective [ScrollTreeNode] (e.g. a fragment doesn't have a scroll node).
+    /// Same as [Self::get_node_mut], it will panic if the given id is not registered.
+    pub fn get_node_by_external_scroll_id(
+        &self,
+        external_scroll_id: &ExternalScrollId,
+    ) -> Option<&ScrollTreeNode> {
+        self.external_scroll_id_to_node_id
+            .get(external_scroll_id)
+            .cloned()
+            .map(|scroll_id| self.get_node(&scroll_id))
+    }
+
+    /// Get the WebRender [`SpatialId`] for the given [`ScrollTreeNodeId`]. This will
     /// panic if [`ScrollTree::build_display_list`] has not been called yet.
     pub fn webrender_id(&self, id: &ScrollTreeNodeId) -> SpatialId {
         self.get_node(id).webrender_id()
@@ -317,13 +354,13 @@ impl ScrollTree {
     /// with the given id.
     pub fn set_scroll_offsets_for_node_with_external_scroll_id(
         &mut self,
-        external_scroll_id: ExternalScrollId,
+        external_scroll_id: &ExternalScrollId,
         offset: LayoutVector2D,
     ) -> bool {
-        for node in self.nodes.iter_mut() {
+        if let Some(node) = self.get_node_by_external_scroll_id_mut(external_scroll_id) {
             match node.info {
                 SpatialTreeNodeInfo::Scroll(ref mut scroll_info)
-                    if scroll_info.external_id == external_scroll_id =>
+                    if &scroll_info.external_id == external_scroll_id =>
                 {
                     scroll_info.offset = offset;
                     return true;

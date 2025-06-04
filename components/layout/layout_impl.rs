@@ -4,8 +4,7 @@
 
 #![allow(unsafe_code)]
 
-use std::cell::{Cell, RefCell};
-use std::collections::HashMap;
+use std::cell::{Cell, Ref, RefCell, RefMut};
 use std::fmt::Debug;
 use std::process;
 use std::rc::Rc;
@@ -15,10 +14,11 @@ use app_units::Au;
 use base::Epoch;
 use base::id::{PipelineId, WebViewId};
 use compositing_traits::CrossProcessCompositorApi;
+use compositing_traits::display_list::{ScrollTree, SpatialTreeNodeInfo};
 use constellation_traits::ScrollState;
 use embedder_traits::{Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
-use euclid::{Point2D, Scale, Size2D, Vector2D};
+use euclid::{Point2D, Scale, Size2D};
 use fnv::FnvHashMap;
 use fonts::{FontContext, FontContextWebFontMethods};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
@@ -36,8 +36,9 @@ use profile_traits::{path, time_profile};
 use rayon::ThreadPool;
 use script::layout_dom::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
 use script_layout_interface::{
-    Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType, OffsetParentResponse, ReflowGoal,
-    ReflowRequest, ReflowResult, TrustedNodeAddress,
+    FragmentType, Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType,
+    OffsetParentResponse, ReflowGoal, ReflowRequest, ReflowResult, TrustedNodeAddress,
+    combine_id_with_fragment_type,
 };
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter, ScriptThreadMessage};
 use servo_arc::Arc as ServoArc;
@@ -74,7 +75,7 @@ use style::{Zero, driver};
 use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
 use url::Url;
-use webrender_api::units::{DevicePixel, DevicePoint, LayoutPixel, LayoutPoint, LayoutSize};
+use webrender_api::units::{DevicePixel, DevicePoint, LayoutSize, LayoutVector2D};
 use webrender_api::{ExternalScrollId, HitTestFlags};
 
 use crate::context::{CachedImageOrError, LayoutContext};
@@ -150,9 +151,6 @@ pub struct LayoutThread {
 
     /// A counter for epoch messages
     epoch: Cell<Epoch>,
-
-    /// Scroll offsets of nodes that scroll.
-    scroll_offsets: RefCell<HashMap<ExternalScrollId, Vector2D<f32, LayoutPixel>>>,
 
     // A cache that maps image resources specified in CSS (e.g as the `url()` value
     // for `background-image` or `content` properties) to either the final resolved
@@ -391,6 +389,45 @@ impl Layout for LayoutThread {
         process_node_scroll_area_request(node, self.fragment_tree.borrow().clone())
     }
 
+    // #[cfg_attr(
+    //     feature = "tracing",
+    //     tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
+    // )]
+    fn query_scroll_offset(&self, node: OpaqueNode) -> LayoutVector2D {
+        let scroll_id = ExternalScrollId(
+            combine_id_with_fragment_type(node.id(), FragmentType::FragmentBody),
+            self.id.into(),
+        );
+        self.cached_scroll_tree().and_then(|tree| {
+            tree.get_node_by_external_scroll_id(&scroll_id)
+            .map(|scroll_node| match &scroll_node.info {
+                SpatialTreeNodeInfo::Scroll(spatial_scroll_node) => spatial_scroll_node.offset,
+                _ => Default::default(),
+            })
+        }).unwrap_or_default()
+    }
+
+    /// Step 1-4 of <https://drafts.csswg.org/cssom-view/#element-scrolling-members>
+    /// Additionally, we are updating the scroll states to be processed by
+    fn process_scroll_an_element_position(
+        &self,
+        node: OpaqueNode,
+        scroll_offset: LayoutVector2D,
+    ) -> LayoutVector2D {
+        // TODO(stevennovaryo): handle step 1-4 properly here
+        let scroll_id = ExternalScrollId(
+            combine_id_with_fragment_type(node.id(), FragmentType::FragmentBody),
+            self.id.into(),
+        );
+        let scroll_state = ScrollState {
+            scroll_id,
+            scroll_offset,
+        };
+        self.update_scroll_node_state(&scroll_state);
+
+        scroll_offset
+    }
+
     #[cfg_attr(
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
@@ -476,10 +513,11 @@ impl Layout for LayoutThread {
     }
 
     fn set_scroll_offsets(&mut self, scroll_states: &[ScrollState]) {
-        *self.scroll_offsets.borrow_mut() = scroll_states
-            .iter()
-            .map(|scroll_state| (scroll_state.scroll_id, scroll_state.scroll_offset))
-            .collect();
+        if let Some(mut tree) = self.cached_scroll_tree_mut() {
+            for ScrollState {scroll_id, scroll_offset} in scroll_states {
+                tree.set_scroll_offsets_for_node_with_external_scroll_id(scroll_id, *scroll_offset);
+            }
+        }
     }
 }
 
@@ -527,7 +565,6 @@ impl LayoutThread {
             // Epoch starts at 1 because of the initial display list for epoch 0 that we send to WR
             epoch: Cell::new(Epoch(1)),
             compositor_api: config.compositor_api,
-            scroll_offsets: Default::default(),
             stylist: Stylist::new(device, QuirksMode::NoQuirks),
             resolved_images_cache: Default::default(),
             debug: opts::get().debug.clone(),
@@ -933,17 +970,47 @@ impl LayoutThread {
             .remove_unused_font_resources(keys, instance_keys)
     }
 
+    fn cached_scroll_tree(&self) -> Option<Ref<ScrollTree>> {
+        let stacking_context_tree = self.stacking_context_tree.borrow();
+        if stacking_context_tree.is_none() {
+            return None;
+        }
+        Some(Ref::map(stacking_context_tree, |stacking_context_tree| {
+            &stacking_context_tree
+                .as_ref()
+                .expect("Uninitialized stacking context tree")
+                .compositor_info
+                .scroll_tree
+        }))
+    }
+
+    fn cached_scroll_tree_mut(&self) -> Option<RefMut<ScrollTree>> {
+        let stacking_context_tree = self.stacking_context_tree.borrow_mut();
+        if stacking_context_tree.is_none() {
+            return None;
+        }
+        Some(RefMut::map(stacking_context_tree, |stacking_context_tree| {
+            &mut stacking_context_tree
+                .as_mut()
+                .expect("Uninitialized stacking context tree")
+                .compositor_info
+                .scroll_tree
+        }))
+    }
+
     fn update_scroll_node_state(&self, state: &ScrollState) {
-        self.scroll_offsets
-            .borrow_mut()
-            .insert(state.scroll_id, state.scroll_offset);
-        let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
-        self.compositor_api.send_scroll_node(
-            self.webview_id,
-            self.id.into(),
-            LayoutPoint::from_untyped(point),
-            state.scroll_id,
-        );
+        if let Some(mut tree) = self.cached_scroll_tree_mut() {
+            tree.set_scroll_offsets_for_node_with_external_scroll_id(
+                    &state.scroll_id,
+                    state.scroll_offset,
+                );
+            self.compositor_api.send_scroll_node(
+                self.webview_id,
+                self.id.into(),
+                state.scroll_offset,
+                state.scroll_id,
+            );
+        }
     }
 
     /// Returns profiling information which is passed to the time profiler.

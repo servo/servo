@@ -1925,20 +1925,14 @@ impl ScriptThread {
             ScriptThreadEventCategory::SetScrollState,
             Some(pipeline_id),
             || {
+                // MYNOTES: FIXME
                 window.layout_mut().set_scroll_offsets(&scroll_states);
 
-                let mut scroll_offsets = HashMap::new();
                 for scroll_state in scroll_states.into_iter() {
-                    let scroll_offset = scroll_state.scroll_offset;
                     if scroll_state.scroll_id.is_root() {
-                        window.update_viewport_for_scroll(-scroll_offset.x, -scroll_offset.y);
-                    } else if let Some(node_id) =
-                        node_id_from_scroll_id(scroll_state.scroll_id.0 as usize)
-                    {
-                        scroll_offsets.insert(OpaqueNode(node_id), -scroll_offset);
+                        window.update_viewport_for_scroll(-scroll_state.scroll_offset.x, -scroll_state.scroll_offset.y);
                     }
                 }
-                window.set_scroll_offsets(scroll_offsets)
             },
         )
     }
