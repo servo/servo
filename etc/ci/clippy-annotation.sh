@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-# Usage: ./clippy-to-annotations.sh < input.json > output.json
-# Will exit with an error if there are no valid annotations.
+# Usage: ./mach clippy --message-format=json --use-crown --locked -- -- --deny warnings | ./etc/ci/clippy-annotation.sh > temp/clippy-output.json
 
 set -euo pipefail
 
@@ -19,7 +18,7 @@ output=$(jq -c '
           $in.message.level
           | if . == "help" or . == "note" then "notice"
             elif . == "warning" then "warning"
-            else "failure"
+            else "error"
             end
         ),
         title: $in.message.message,
@@ -36,10 +35,8 @@ output=$(jq -c '
     end
 ' | jq -s '.')
 
-if [[ "$output" == "[]" || -z "$output" ]]; then
-  echo "❌ No annotations to output." >&2
-  exit 0
-fi
-
-# Output the final result
 echo "$output"
+
+if echo "$output" | jq -e 'map(select(.annotation_level == "error")) | length > 0' >/dev/null; then
+  exit 1
+fi
