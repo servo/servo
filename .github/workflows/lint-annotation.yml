@@ -6,6 +6,10 @@ on:
     types:
       - completed
 
+permissions:
+  checks: write
+  contents: read
+
 jobs:
   pr-annotation:
     name: Create PR annotation
@@ -13,9 +17,11 @@ jobs:
     outputs:
       configuration: ${{ steps.configuration.outputs.result }}
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download Artifact Clippy Result and Head Sha
+        uses: actions/download-artifact@v4
         with:
           name: clippy-lint-result
+          github-token: ${{ secrets.GH_ACCESS_TOKEN }}
       - name: Retrieve Head Sha
         run: |
           echo "HEAD_SHA=$(cat ./pr/head_sha)" >> $GITHUB_OUTPUT
