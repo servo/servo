@@ -25,9 +25,9 @@ jobs:
         run: |
           echo "HEAD_SHA=$(cat ./pr/head_sha)" >> $GITHUB_OUTPUT
         id: head_sha
-      - name: Comment on PR with E2E results
+      - name: Rust linter Clippy annotation on PR
         if: ${{ !cancelled() }}
-        uses: actions/github-script@v7.0.1
+        uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs')
