@@ -118,6 +118,8 @@ pub(crate) struct StackingContextTree {
 impl StackingContextTree {
     /// Create a new [DisplayList] given the dimensions of the layout and the WebRender
     /// pipeline id.
+    // MYNOTES: fix this
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         fragment_tree: &FragmentTree,
         viewport_size: LayoutSize,
@@ -126,6 +128,7 @@ impl StackingContextTree {
         viewport_scroll_sensitivity: AxesScrollSensitivity,
         first_reflow: bool,
         debug: &DebugOptions,
+        maybe_old_stacking_context_tree: &Option<Box<StackingContextTree>>,
     ) -> Self {
         let compositor_info = CompositorDisplayListInfo::new(
             viewport_size,
@@ -179,6 +182,7 @@ impl StackingContextTree {
                 &mut root_stacking_context,
                 StackingContextBuildMode::SkipHoisted,
                 &text_decorations,
+                maybe_old_stacking_context_tree,
             );
         }
         root_stacking_context.sort();
@@ -211,7 +215,7 @@ impl StackingContextTree {
         )
     }
 
-    fn define_scroll_frame(
+    fn define_scroll_frame_with_zero_offset(
         &mut self,
         parent_scroll_node_id: &ScrollTreeNodeId,
         external_id: wr::ExternalScrollId,
@@ -229,6 +233,39 @@ impl StackingContextTree {
                 offset: LayoutVector2D::zero(),
             }),
         )
+    }
+
+    /// Define a new scroll frame, but we are considering the old offset
+    /// from the previous scroll tree.
+    fn define_scroll_frame(
+        &mut self,
+        parent_scroll_node_id: &ScrollTreeNodeId,
+        external_id: wr::ExternalScrollId,
+        content_rect: LayoutRect,
+        clip_rect: LayoutRect,
+        scroll_sensitivity: AxesScrollSensitivity,
+        maybe_old_stacking_context_tree: &Option<Box<StackingContextTree>>,
+    ) -> ScrollTreeNodeId {
+        let scroll_id = self.define_scroll_frame_with_zero_offset(
+            parent_scroll_node_id,
+            external_id,
+            content_rect,
+            clip_rect,
+            scroll_sensitivity,
+        );
+        if let Some(old_stacking_context_tree) = maybe_old_stacking_context_tree.as_ref() {
+            if let Some(old_scroll_node) = old_stacking_context_tree
+                .compositor_info
+                .scroll_tree
+                .get_node_by_external_scroll_id(&external_id)
+            {
+                self.compositor_info
+                    .scroll_tree
+                    .get_node_mut(&scroll_id)
+                    .set_offset(old_scroll_node.offset().unwrap());
+            }
+        }
+        scroll_id
     }
 
     fn define_sticky_frame(
@@ -817,6 +854,7 @@ impl Fragment {
         stacking_context: &mut StackingContext,
         mode: StackingContextBuildMode,
         text_decorations: &Arc<Vec<FragmentTextDecoration>>,
+        maybe_old_stacking_context_tree: &Option<Box<StackingContextTree>>,
     ) {
         let containing_block = containing_block_info.get_containing_block_for_fragment(self);
         let fragment_clone = self.clone();
@@ -841,6 +879,7 @@ impl Fragment {
                     containing_block_info,
                     stacking_context,
                     text_decorations,
+                    maybe_old_stacking_context_tree,
                 );
             },
             Fragment::AbsoluteOrFixedPositioned(fragment) => {
@@ -856,6 +895,7 @@ impl Fragment {
                     stacking_context,
                     StackingContextBuildMode::IncludeHoisted,
                     &Default::default(),
+                    maybe_old_stacking_context_tree,
                 );
             },
             Fragment::Positioning(fragment) => {
@@ -866,6 +906,7 @@ impl Fragment {
                     containing_block_info,
                     stacking_context,
                     text_decorations,
+                    maybe_old_stacking_context_tree,
                 );
             },
             Fragment::Text(_) | Fragment::Image(_) | Fragment::IFrame(_) => {
@@ -946,6 +987,7 @@ impl BoxFragment {
         containing_block_info: &ContainingBlockInfo,
         parent_stacking_context: &mut StackingContext,
         text_decorations: &Arc<Vec<FragmentTextDecoration>>,
+        maybe_old_stacking_context_tree: &Option<Box<StackingContextTree>>,
     ) {
         self.build_stacking_context_tree_maybe_creating_reference_frame(
             fragment,
@@ -954,6 +996,7 @@ impl BoxFragment {
             containing_block_info,
             parent_stacking_context,
             text_decorations,
+            maybe_old_stacking_context_tree,
         );
     }
 
@@ -965,6 +1008,7 @@ impl BoxFragment {
         containing_block_info: &ContainingBlockInfo,
         parent_stacking_context: &mut StackingContext,
         text_decorations: &Arc<Vec<FragmentTextDecoration>>,
+        maybe_old_stacking_context_tree: &Option<Box<StackingContextTree>>,
     ) {
         let reference_frame_data =
             match self.reference_frame_data_if_necessary(&containing_block.rect) {
@@ -977,6 +1021,7 @@ impl BoxFragment {
                         containing_block_info,
                         parent_stacking_context,
                         text_decorations,
+                        maybe_old_stacking_context_tree,
                     );
                 },
             };
@@ -1027,9 +1072,12 @@ impl BoxFragment {
             &new_containing_block_info,
             parent_stacking_context,
             text_decorations,
+            maybe_old_stacking_context_tree,
         );
     }
 
+    // MYNOTES: fix this
+    #[allow(clippy::too_many_arguments)]
     fn build_stacking_context_tree_maybe_creating_stacking_context(
         &self,
         fragment: Fragment,
@@ -1038,6 +1086,7 @@ impl BoxFragment {
         containing_block_info: &ContainingBlockInfo,
         parent_stacking_context: &mut StackingContext,
         text_decorations: &Arc<Vec<FragmentTextDecoration>>,
+        maybe_old_stacking_context_tree: &Option<Box<StackingContextTree>>,
     ) {
         let context_type = match self.get_stacking_context_type() {
             Some(context_type) => context_type,
@@ -1049,6 +1098,7 @@ impl BoxFragment {
                     containing_block_info,
                     parent_stacking_context,
                     text_decorations,
+                    maybe_old_stacking_context_tree,
                 );
                 return;
             },
@@ -1103,6 +1153,7 @@ impl BoxFragment {
             containing_block_info,
             &mut child_stacking_context,
             text_decorations,
+            maybe_old_stacking_context_tree,
         );
 
         let mut stolen_children = vec![];
@@ -1121,6 +1172,8 @@ impl BoxFragment {
             .append(&mut stolen_children);
     }
 
+    // MYNOTES: fix this
+    #[allow(clippy::too_many_arguments)]
     fn build_stacking_context_tree_for_children(
         &self,
         fragment: Fragment,
@@ -1129,6 +1182,7 @@ impl BoxFragment {
         containing_block_info: &ContainingBlockInfo,
         stacking_context: &mut StackingContext,
         text_decorations: &Arc<Vec<FragmentTextDecoration>>,
+        maybe_old_stacking_context_tree: &Option<Box<StackingContextTree>>,
     ) {
         let mut new_scroll_node_id = containing_block.scroll_node_id;
         let mut new_clip_id = containing_block.clip_id;
@@ -1213,6 +1267,7 @@ impl BoxFragment {
             &new_scroll_node_id,
             new_clip_id,
             &containing_block.rect,
+            maybe_old_stacking_context_tree,
         ) {
             new_clip_id = overflow_frame_data.clip_id;
             if let Some(scroll_frame_data) = overflow_frame_data.scroll_frame_data {
@@ -1313,6 +1368,7 @@ impl BoxFragment {
                 stacking_context,
                 StackingContextBuildMode::SkipHoisted,
                 text_decorations,
+                maybe_old_stacking_context_tree,
             );
         }
 
@@ -1375,6 +1431,7 @@ impl BoxFragment {
         parent_scroll_node_id: &ScrollTreeNodeId,
         parent_clip_id: ClipId,
         containing_block_rect: &PhysicalRect<Au>,
+        maybe_old_stacking_context_tree: &Option<Box<StackingContextTree>>,
     ) -> Option<OverflowFrameData> {
         let overflow = self.style.effective_overflow(self.base.flags);
 
@@ -1476,6 +1533,7 @@ impl BoxFragment {
             content_rect,
             scroll_frame_rect,
             sensitivity,
+            maybe_old_stacking_context_tree,
         );
 
         Some(OverflowFrameData {
@@ -1702,6 +1760,7 @@ impl PositioningFragment {
         containing_block_info: &ContainingBlockInfo,
         stacking_context: &mut StackingContext,
         text_decorations: &Arc<Vec<FragmentTextDecoration>>,
+        maybe_old_stacking_context_tree: &Option<Box<StackingContextTree>>,
     ) {
         let rect = self
             .rect
@@ -1717,6 +1776,7 @@ impl PositioningFragment {
                 stacking_context,
                 StackingContextBuildMode::SkipHoisted,
                 text_decorations,
+                maybe_old_stacking_context_tree,
             );
         }
     }

@@ -389,22 +389,27 @@ impl Layout for LayoutThread {
         process_node_scroll_area_request(node, self.fragment_tree.borrow().clone())
     }
 
-    // #[cfg_attr(
-    //     feature = "tracing",
-    //     tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    // )]
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
+    )]
     fn query_scroll_offset(&self, node: OpaqueNode) -> LayoutVector2D {
         let scroll_id = ExternalScrollId(
             combine_id_with_fragment_type(node.id(), FragmentType::FragmentBody),
             self.id.into(),
         );
-        self.cached_scroll_tree().and_then(|tree| {
-            tree.get_node_by_external_scroll_id(&scroll_id)
-            .map(|scroll_node| match &scroll_node.info {
-                SpatialTreeNodeInfo::Scroll(spatial_scroll_node) => spatial_scroll_node.offset,
-                _ => Default::default(),
+        self.cached_scroll_tree()
+            .and_then(|tree| {
+                tree.get_node_by_external_scroll_id(&scroll_id).map(
+                    |scroll_node| match &scroll_node.info {
+                        SpatialTreeNodeInfo::Scroll(spatial_scroll_node) => {
+                            spatial_scroll_node.offset
+                        },
+                        _ => Default::default(),
+                    },
+                )
             })
-        }).unwrap_or_default()
+            .unwrap_or_default()
     }
 
     /// Step 1-4 of <https://drafts.csswg.org/cssom-view/#element-scrolling-members>
@@ -514,7 +519,11 @@ impl Layout for LayoutThread {
 
     fn set_scroll_offsets(&mut self, scroll_states: &[ScrollState]) {
         if let Some(mut tree) = self.cached_scroll_tree_mut() {
-            for ScrollState {scroll_id, scroll_offset} in scroll_states {
+            for ScrollState {
+                scroll_id,
+                scroll_offset,
+            } in scroll_states
+            {
                 tree.set_scroll_offsets_for_node_with_external_scroll_id(scroll_id, *scroll_offset);
             }
         }
@@ -687,7 +696,7 @@ impl LayoutThread {
             highlighted_dom_node: reflow_request.highlighted_dom_node,
         };
 
-        let damage = self.restyle_and_build_trees(
+        let (damage, maybe_old_stacking_context_tree) = self.restyle_and_build_trees(
             &reflow_request,
             root_element,
             rayon_pool,
@@ -695,7 +704,7 @@ impl LayoutThread {
             viewport_changed,
         );
         self.calculate_overflow(damage);
-        self.build_stacking_context_tree(&reflow_request, damage);
+        self.build_stacking_context_tree(&reflow_request, damage, &maybe_old_stacking_context_tree);
         self.build_display_list(&reflow_request, &mut layout_context);
 
         self.first_reflow.set(false);
@@ -777,10 +786,10 @@ impl LayoutThread {
             .flush(guards, Some(root_element), Some(snapshot_map));
     }
 
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
+    // #[cfg_attr(
+    //     feature = "tracing",
+    //     tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
+    // )]
     fn restyle_and_build_trees(
         &self,
         reflow_request: &ReflowRequest,
@@ -788,7 +797,7 @@ impl LayoutThread {
         rayon_pool: Option<&ThreadPool>,
         layout_context: &mut LayoutContext<'_>,
         viewport_changed: bool,
-    ) -> RestyleDamage {
+    ) -> (RestyleDamage, Option<Box<StackingContextTree>>) {
         let dirty_root = unsafe {
             ServoLayoutNode::new(&reflow_request.dirty_root.unwrap())
                 .as_element()
@@ -804,7 +813,7 @@ impl LayoutThread {
 
         if !token.should_traverse() {
             layout_context.style_context.stylist.rule_tree().maybe_gc();
-            return RestyleDamage::empty();
+            return (RestyleDamage::empty(), None);
         }
 
         let dirty_root: ServoLayoutNode =
@@ -817,7 +826,7 @@ impl LayoutThread {
             damage = RestyleDamage::REBUILD_BOX;
         } else if !damage.contains(RestyleDamage::REBUILD_BOX) {
             layout_context.style_context.stylist.rule_tree().maybe_gc();
-            return damage;
+            return (damage, None);
         }
 
         let mut box_tree = self.box_tree.borrow_mut();
@@ -853,7 +862,7 @@ impl LayoutThread {
 
         // The FragmentTree has been updated, so any existing StackingContext tree that layout
         // had is now out of date and should be rebuilt.
-        *self.stacking_context_tree.borrow_mut() = None;
+        let old_stacking_context_tree = self.stacking_context_tree.borrow_mut().take();
 
         if self.debug.dump_style_tree {
             println!(
@@ -872,7 +881,7 @@ impl LayoutThread {
 
         // GC the rule tree if some heuristics are met.
         layout_context.style_context.stylist.rule_tree().maybe_gc();
-        damage
+        (damage, old_stacking_context_tree.map(Box::new))
     }
 
     fn calculate_overflow(&self, damage: RestyleDamage) {
@@ -888,7 +897,12 @@ impl LayoutThread {
         }
     }
 
-    fn build_stacking_context_tree(&self, reflow_request: &ReflowRequest, damage: RestyleDamage) {
+    fn build_stacking_context_tree(
+        &self,
+        reflow_request: &ReflowRequest,
+        damage: RestyleDamage,
+        maybe_old_stacking_context_tree: &Option<Box<StackingContextTree>>,
+    ) {
         if !reflow_request.reflow_goal.needs_display_list() &&
             !reflow_request.reflow_goal.needs_display()
         {
@@ -926,6 +940,7 @@ impl LayoutThread {
             fragment_tree.viewport_scroll_sensitivity,
             self.first_reflow.get(),
             &self.debug,
+            maybe_old_stacking_context_tree,
         ));
     }
 
@@ -957,6 +972,7 @@ impl LayoutThread {
             fragment_tree,
             &self.debug,
         );
+
         self.compositor_api.send_display_list(
             self.webview_id,
             &stacking_context_tree.compositor_info,
@@ -989,21 +1005,24 @@ impl LayoutThread {
         if stacking_context_tree.is_none() {
             return None;
         }
-        Some(RefMut::map(stacking_context_tree, |stacking_context_tree| {
-            &mut stacking_context_tree
-                .as_mut()
-                .expect("Uninitialized stacking context tree")
-                .compositor_info
-                .scroll_tree
-        }))
+        Some(RefMut::map(
+            stacking_context_tree,
+            |stacking_context_tree| {
+                &mut stacking_context_tree
+                    .as_mut()
+                    .expect("Uninitialized stacking context tree")
+                    .compositor_info
+                    .scroll_tree
+            },
+        ))
     }
 
     fn update_scroll_node_state(&self, state: &ScrollState) {
         if let Some(mut tree) = self.cached_scroll_tree_mut() {
             tree.set_scroll_offsets_for_node_with_external_scroll_id(
-                    &state.scroll_id,
-                    state.scroll_offset,
-                );
+                &state.scroll_id,
+                state.scroll_offset,
+            );
             self.compositor_api.send_scroll_node(
                 self.webview_id,
                 self.id.into(),

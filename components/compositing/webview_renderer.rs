@@ -862,9 +862,10 @@ impl WebViewRenderer {
                 combined_event.scroll_location,
             )
         });
-        if let Some(scroll_result) = scroll_result {
-            self.send_scroll_positions_to_layout_for_pipeline(scroll_result.pipeline_id);
-        }
+        // MYNOTES: change this to single update
+        // if let Some(scroll_result) = scroll_result {
+        //     self.send_scroll_positions_to_layout_for_pipeline(scroll_result.pipeline_id);
+        // }
 
         let pinch_zoom_result = match self
             .set_pinch_zoom_level(self.pinch_zoom_level().get() * combined_magnification)

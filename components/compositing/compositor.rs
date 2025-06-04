@@ -257,7 +257,7 @@ impl PipelineDetails {
         }
     }
 
-    // MYNOTES: move this to display list
+    // MYNOTES: we also do this in the display list now
     fn install_new_scroll_tree(&mut self, new_scroll_tree: ScrollTree) {
         let old_scroll_offsets: FnvHashMap<ExternalScrollId, LayoutVector2D> = self
             .scroll_tree
@@ -731,7 +731,10 @@ impl IOCompositor {
 
                 if !pipeline_details
                     .scroll_tree
-                    .set_scroll_offsets_for_node_with_external_scroll_id(&external_scroll_id, offset)
+                    .set_scroll_offsets_for_node_with_external_scroll_id(
+                        &external_scroll_id,
+                        offset,
+                    )
                 {
                     warn!("Could not scroll not with id: {external_scroll_id:?}");
                     return;

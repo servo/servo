@@ -1930,7 +1930,10 @@ impl ScriptThread {
 
                 for scroll_state in scroll_states.into_iter() {
                     if scroll_state.scroll_id.is_root() {
-                        window.update_viewport_for_scroll(-scroll_state.scroll_offset.x, -scroll_state.scroll_offset.y);
+                        window.update_viewport_for_scroll(
+                            -scroll_state.scroll_offset.x,
+                            -scroll_state.scroll_offset.y,
+                        );
                     }
                 }
             },

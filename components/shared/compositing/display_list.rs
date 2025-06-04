@@ -264,11 +264,12 @@ impl ScrollTree {
         parent: Option<&ScrollTreeNodeId>,
         info: SpatialTreeNodeInfo,
     ) -> ScrollTreeNodeId {
-        let new_scroll_id =         ScrollTreeNodeId {
+        let new_scroll_id = ScrollTreeNodeId {
             index: self.nodes.len(),
         };
         if let SpatialTreeNodeInfo::Scroll(spatial_scroll_node) = &info {
-            self.external_scroll_id_to_node_id.insert(spatial_scroll_node.external_id, new_scroll_id);
+            self.external_scroll_id_to_node_id
+                .insert(spatial_scroll_node.external_id, new_scroll_id);
         }
 
         self.nodes.push(ScrollTreeNode {
@@ -370,6 +371,9 @@ impl ScrollTree {
         }
         false
     }
+
+    // Update this stacking context
+    pub fn persevere_old_stacking_context_tree_scroll() {}
 }
 
 /// A data structure which stores compositor-side information about
