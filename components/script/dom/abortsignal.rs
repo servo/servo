@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::RefCell;
-use std::mem;
 
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
@@ -14,7 +13,7 @@ use script_bindings::inheritance::Castable;
 use crate::dom::bindings::codegen::Bindings::AbortSignalBinding::AbortSignalMethods;
 use crate::dom::bindings::error::{Error, ErrorToJsval};
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::readablestream::PipeTo;
@@ -28,6 +27,7 @@ impl js::gc::Rootable for AbortAlgorithm {}
 /// in order to integrate the abort signal with its various use cases.
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+#[allow(dead_code)]
 pub(crate) enum AbortAlgorithm {
     /// <https://dom.spec.whatwg.org/#add-an-event-listener>
     DomEventLister,
@@ -149,13 +149,12 @@ impl AbortSignal {
         can_gc: CanGc,
     ) {
         // For each algorithm of signal’s abort algorithms: run algorithm.
-        let algos = mem::take(&mut *self.abort_algorithms.borrow_mut());
-        for algo in algos {
+        for algo in self.abort_algorithms.borrow().iter() {
             self.run_abort_algorithm(cx, global, &algo, realm, can_gc);
         }
 
         // Empty signal’s abort algorithms.
-        // Done above with `take`.
+        self.abort_algorithms.borrow_mut().clear();
 
         // Fire an event named abort at signal.
         self.upcast::<EventTarget>()
