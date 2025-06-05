@@ -12,6 +12,7 @@ use super::parser::{
     QName as ParserQualName, RelationalOp, StepExpr, UnaryOp,
 };
 use super::{EvaluationCtx, Value};
+use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::{Castable, CharacterDataTypeId, NodeTypeId};
 use crate::dom::bindings::root::DomRoot;
@@ -246,21 +247,29 @@ impl Evaluatable for PathExpr {
     }
 }
 
-impl TryFrom<&ParserQualName> for QualName {
+pub(crate) struct QualNameConverter<'a> {
+    qname: &'a ParserQualName,
+    context: &'a EvaluationCtx,
+}
+
+impl<'a> TryFrom<QualNameConverter<'a>> for QualName {
     type Error = Error;
 
-    fn try_from(qname: &ParserQualName) -> Result<Self, Self::Error> {
-        let qname_as_str = qname.to_string();
-        if let Ok((ns, prefix, local)) = validate_and_extract(None, &qname_as_str) {
+    fn try_from(converter: QualNameConverter<'a>) -> Result<Self, Self::Error> {
+        let qname_as_str = converter.qname.to_string();
+        let namespace = converter.context.resolve_namespace(converter.qname.prefix.as_deref());
+
+        if let Ok((ns, prefix, local)) = validate_and_extract(namespace, &qname_as_str) {
             Ok(QualName { prefix, ns, local })
         } else {
             Err(Error::InvalidQName {
-                qname: qname.clone(),
+                qname: converter.qname.clone(),
             })
         }
     }
 }
 
+#[derive(Debug)]
 pub(crate) enum NameTestComparisonMode {
     /// Namespaces must match exactly
     XHtml,
@@ -310,17 +319,18 @@ pub(crate) fn element_name_test(
     }
 }
 
-fn apply_node_test(test: &NodeTest, node: &Node) -> Result<bool, Error> {
+fn apply_node_test(context: &EvaluationCtx, test: &NodeTest, node: &Node) -> Result<bool, Error> {
     let result = match test {
         NodeTest::Name(qname) => {
             // Convert the unvalidated "parser QualName" into the proper QualName structure
-            let wanted_name: QualName = qname.try_into()?;
-            if matches!(node.type_id(), NodeTypeId::Element(_)) {
+            let wanted_name: QualName = QualNameConverter { qname, context }.try_into()?;
+            match node.type_id() {
+                NodeTypeId::Element(_) => {
                 let element = node.downcast::<Element>().unwrap();
-                let comparison_mode = if node.owner_doc().is_xhtml_document() {
+                    let comparison_mode = if node.owner_doc().is_html_document() {
+                        NameTestComparisonMode::Html
+                    } else {
                     NameTestComparisonMode::XHtml
-                } else {
-                    NameTestComparisonMode::Html
                 };
                 let element_qualname = QualName::new(
                     element.prefix().as_ref().cloned(),
@@ -328,11 +338,22 @@ fn apply_node_test(test: &NodeTest, node: &Node) -> Result<bool, Error> {
                     element.local_name().clone(),
                 );
                 element_name_test(wanted_name, element_qualname, comparison_mode)
-            } else {
-                false
+                },
+                NodeTypeId::Attr => {
+                    let attr = node.downcast::<Attr>().unwrap();
+                    let attr_qualname = QualName::new(
+                        attr.prefix().cloned(),
+                        attr.namespace().clone(),
+                        attr.local_name().clone(),
+                    );
+                    // attributes are always compared with strict namespace matching
+                    let comparison_mode = NameTestComparisonMode::XHtml;
+                    element_name_test(wanted_name, attr_qualname, comparison_mode)
+                },
+                _ => false,
             }
         },
-        NodeTest::Wildcard => true,
+        NodeTest::Wildcard => matches!(node.type_id(), NodeTypeId::Element(_)),
         NodeTest::Kind(kind) => match kind {
             KindTest::PI(target) => {
                 if NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) ==
@@ -427,7 +448,7 @@ impl Evaluatable for StepExpr {
                 let filtered_nodes: Vec<DomRoot<Node>> = nodes
                     .into_iter()
                     .map(|node| {
-                        apply_node_test(&axis_step.node_test, &node)
+                        apply_node_test(context, &axis_step.node_test, &node)
                             .map(|matches| matches.then_some(node))
                     })
                     .collect::<Result<Vec<_>, _>>()?
@@ -505,6 +526,7 @@ impl Evaluatable for PredicateExpr {
 
                     let v = match eval_result {
                         Ok(Value::Number(v)) => Ok(predicate_ctx.index == v as usize),
+                        Ok(Value::Boolean(v)) => Ok(v),
                         Ok(v) => Ok(v.boolean()),
                         Err(e) => Err(e),
                     };

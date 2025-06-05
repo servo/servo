@@ -510,7 +510,7 @@ fn union_expr(input: &str) -> IResult<&str, Expr> {
 fn path_expr(input: &str) -> IResult<&str, Expr> {
     alt((
         // "//" RelativePathExpr
-        map(pair(tag("//"), relative_path_expr), |(_, rel_path)| {
+        map(pair(tag("//"), move |i| relative_path_expr(true, i)), |(_, rel_path)| {
             Expr::Path(PathExpr {
                 is_absolute: true,
                 is_descendant: true,
@@ -521,7 +521,7 @@ fn path_expr(input: &str) -> IResult<&str, Expr> {
             })
         }),
         // "/" RelativePathExpr?
-        map(pair(char('/'), opt(relative_path_expr)), |(_, rel_path)| {
+        map(pair(char('/'), opt(move |i| relative_path_expr(false, i))), |(_, rel_path)| {
             Expr::Path(PathExpr {
                 is_absolute: true,
                 is_descendant: false,
@@ -534,16 +534,15 @@ fn path_expr(input: &str) -> IResult<&str, Expr> {
             })
         }),
         // RelativePathExpr
-        relative_path_expr,
+        move |i| relative_path_expr(false, i),
     ))(input)
 }
 
-fn relative_path_expr(input: &str) -> IResult<&str, Expr> {
-    let (input, first) = step_expr(input)?;
+fn relative_path_expr(is_descendant: bool, input: &str) -> IResult<&str, Expr> {
+    let (input, first) = step_expr(is_descendant, input)?;
     let (input, steps) = many0(pair(
-        // ("/" | "//")
         ws(alt((value(true, tag("//")), value(false, char('/'))))),
-        step_expr,
+        move |i| step_expr(is_descendant, i),
     ))(input)?;
 
     let mut all_steps = vec![first];
@@ -569,16 +568,16 @@ fn relative_path_expr(input: &str) -> IResult<&str, Expr> {
     ))
 }
 
-fn step_expr(input: &str) -> IResult<&str, StepExpr> {
+fn step_expr(is_descendant: bool, input: &str) -> IResult<&str, StepExpr> {
     alt((
         map(filter_expr, StepExpr::Filter),
-        map(axis_step, StepExpr::Axis),
+        map(|i| axis_step(is_descendant, i), StepExpr::Axis),
     ))(input)
 }
 
-fn axis_step(input: &str) -> IResult<&str, AxisStep> {
+fn axis_step(is_descendant: bool, input: &str) -> IResult<&str, AxisStep> {
     let (input, (step, predicates)) =
-        pair(alt((forward_step, reverse_step)), predicate_list)(input)?;
+        pair(alt((move |i| forward_step(is_descendant, i), reverse_step)), predicate_list)(input)?;
 
     let (axis, node_test) = step;
     Ok((
@@ -591,8 +590,11 @@ fn axis_step(input: &str) -> IResult<&str, AxisStep> {
     ))
 }
 
-fn forward_step(input: &str) -> IResult<&str, (Axis, NodeTest)> {
-    alt((pair(forward_axis, node_test), abbrev_forward_step))(input)
+fn forward_step(is_descendant: bool, input: &str) -> IResult<&str, (Axis, NodeTest)> {
+    alt((
+        pair(forward_axis, node_test),
+        move |i| abbrev_forward_step(is_descendant, i),
+    ))(input)
 }
 
 fn forward_axis(input: &str) -> IResult<&str, Axis> {
@@ -610,7 +612,7 @@ fn forward_axis(input: &str) -> IResult<&str, Axis> {
     Ok((input, axis))
 }
 
-fn abbrev_forward_step(input: &str) -> IResult<&str, (Axis, NodeTest)> {
+fn abbrev_forward_step(is_descendant: bool, input: &str) -> IResult<&str, (Axis, NodeTest)> {
     let (input, attr) = opt(char('@'))(input)?;
     let (input, test) = node_test(input)?;
 
@@ -619,6 +621,8 @@ fn abbrev_forward_step(input: &str) -> IResult<&str, (Axis, NodeTest)> {
         (
             if attr.is_some() {
                 Axis::Attribute
+            } else if is_descendant {
+                Axis::DescendantOrSelf
             } else {
                 Axis::Child
             },
