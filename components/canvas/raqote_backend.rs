@@ -710,7 +710,7 @@ impl GenericPathBuilder<RaqoteBackend> for PathBuilder {
             PathOp::MoveTo(point) | PathOp::LineTo(point) => Some(Point2D::new(point.x, point.y)),
             PathOp::CubicTo(_, _, point) => Some(Point2D::new(point.x, point.y)),
             PathOp::QuadTo(_, point) => Some(Point2D::new(point.x, point.y)),
-            PathOp::Close => None,
+            PathOp::Close => path.ops.first().and_then(get_first_point),
         })
     }
 
@@ -730,6 +730,15 @@ impl GenericPathBuilder<RaqoteBackend> for PathBuilder {
     }
     fn finish(&mut self) -> raqote::Path {
         self.0.take().unwrap().finish()
+    }
+}
+
+fn get_first_point(op: &PathOp) -> Option<euclid::Point2D<f32, euclid::UnknownUnit>> {
+    match op {
+        PathOp::MoveTo(point) | PathOp::LineTo(point) => Some(Point2D::new(point.x, point.y)),
+        PathOp::CubicTo(point, _, _) => Some(Point2D::new(point.x, point.y)),
+        PathOp::QuadTo(point, _) => Some(Point2D::new(point.x, point.y)),
+        PathOp::Close => None,
     }
 }
 

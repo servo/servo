@@ -154,7 +154,18 @@ struct PathBuilderRef<'a, B: Backend> {
 }
 
 impl<B: Backend> PathBuilderRef<'_, B> {
+    /// <https://html.spec.whatwg.org/multipage#ensure-there-is-a-subpath>
+    fn ensure_there_is_a_subpath(&mut self, point: &Point2D<f32>) {
+        if self.builder.get_current_point().is_none() {
+            self.builder.move_to(*point);
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage#dom-context-2d-lineto>
     fn line_to(&mut self, pt: &Point2D<f32>) {
+        // 2. If the object's path has no subpaths, then ensure there is a subpath for (x, y).
+        self.ensure_there_is_a_subpath(pt);
+
         let pt = self.transform.transform_point(*pt);
         self.builder.line_to(pt);
     }
@@ -182,14 +193,22 @@ impl<B: Backend> PathBuilderRef<'_, B> {
         self.move_to(&first);
     }
 
+    /// <https://html.spec.whatwg.org/multipage#dom-context-2d-quadraticcurveto>
     fn quadratic_curve_to(&mut self, cp: &Point2D<f32>, endpoint: &Point2D<f32>) {
+        // 2. Ensure there is a subpath for (cpx, cpy).
+        self.ensure_there_is_a_subpath(cp);
+
         self.builder.quadratic_curve_to(
             &self.transform.transform_point(*cp),
             &self.transform.transform_point(*endpoint),
         )
     }
 
+    /// <https://html.spec.whatwg.org/multipage#dom-context-2d-beziercurveto>
     fn bezier_curve_to(&mut self, cp1: &Point2D<f32>, cp2: &Point2D<f32>, endpoint: &Point2D<f32>) {
+        // 2. Ensure there is a subpath for (cp1x, cp1y).
+        self.ensure_there_is_a_subpath(cp1);
+
         self.builder.bezier_curve_to(
             &self.transform.transform_point(*cp1),
             &self.transform.transform_point(*cp2),
@@ -210,6 +229,7 @@ impl<B: Backend> PathBuilderRef<'_, B> {
             .arc(center, radius, start_angle, end_angle, ccw);
     }
 
+    /// <https://html.spec.whatwg.org/multipage#dom-context-2d-arcto>
     fn arc_to(&mut self, cp1: &Point2D<f32>, cp2: &Point2D<f32>, radius: f32) {
         let cp0 = if let (Some(inverse), Some(point)) =
             (self.transform.inverse(), self.builder.get_current_point())
@@ -218,6 +238,9 @@ impl<B: Backend> PathBuilderRef<'_, B> {
         } else {
             *cp1
         };
+
+        // 2. Ensure there is a subpath for (x1, y1) is done by one of self.line_to calls
+
         if (cp0.x == cp1.x && cp0.y == cp1.y) || cp1 == cp2 || radius == 0.0 {
             self.line_to(cp1);
             return;
