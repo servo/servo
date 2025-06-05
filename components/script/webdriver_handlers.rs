@@ -834,24 +834,66 @@ pub(crate) fn handle_find_element_elements_tag_name(
         .unwrap();
 }
 
-pub(crate) fn handle_focus_element(
+pub(crate) fn handle_will_send_keys(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
-    reply: IpcSender<Result<(), ErrorStatus>>,
+    text: String,
+    strict_file_interactability: bool,
+    reply: IpcSender<Result<bool, ErrorStatus>>,
     can_gc: CanGc,
 ) {
     reply
         .send(
             find_node_by_unique_id(documents, pipeline, element_id).and_then(|node| {
-                match node.downcast::<HTMLElement>() {
-                    Some(element) => {
-                        // Need a way to find if this actually succeeded
-                        element.Focus(can_gc);
-                        Ok(())
-                    },
-                    None => Err(ErrorStatus::UnknownError),
+                // Step 6: Let file be true if element is input element
+                // in the file upload state, or false otherwise
+                let file_input = node
+                    .downcast::<HTMLInputElement>()
+                    .filter(|&input_element| input_element.input_type() == InputType::File);
+
+                // Step 7: If file is false or the session's strict file interactability
+                if file_input.is_none() || strict_file_interactability {
+                    match node.downcast::<HTMLElement>() {
+                        Some(element) => {
+                            // Need a way to find if this actually succeeded
+                            element.Focus(can_gc);
+                        },
+                        None => return Err(ErrorStatus::UnknownError),
+                    }
                 }
+
+                // Step 8 (file input)
+                if let Some(file_input) = file_input {
+                    // Step 8.1: Let files be the result of splitting text
+                    // on the newline (\n) character.
+                    let files: Vec<DOMString> = text.split("\n").map(|s| s.into()).collect();
+
+                    // Step 8.2
+                    if files.is_empty() {
+                        return Err(ErrorStatus::InvalidArgument);
+                    }
+
+                    // Step 8.3 - 8.4
+                    if !file_input.Multiple() && files.len() > 1 {
+                        return Err(ErrorStatus::InvalidArgument);
+                    }
+
+                    // Step 8.5
+                    // TODO: Should return invalid argument error if file doesn't exist
+
+                    // Step 8.6 - 8.7
+                    // Input and change event already fired in `htmlinputelement.rs`.
+                    file_input.SelectFiles(files, can_gc);
+
+                    // Step 8.8
+                    return Ok(false);
+                }
+
+                // TODO: Check non-typeable form control
+                // TODO: Check content editable
+
+                Ok(true)
             }),
         )
         .unwrap();
