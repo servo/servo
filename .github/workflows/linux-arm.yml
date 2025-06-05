@@ -1,0 +1,74 @@
+name: Linux Arm Build and Test
+
+on:
+  workflow_call:
+    inputs:
+      profile:
+        required: true
+        type: string
+      unit-tests:
+        required: true
+        type: boolean
+      build-libservo:
+        required: true
+        type: boolean
+      bencher:
+        required: true
+        type: boolean
+  workflow_dispatch:
+    inputs:
+      profile:
+        required: true
+        type: string
+      unit-tests:
+        required: true
+        type: boolean
+      build-libservo:
+        required: true
+        type: boolean
+      bencher:
+        required: true
+        type: boolean
+
+jobs:
+  linux-arm:
+    name: Linux Arm
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+
+      - name: Setup Rust Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Bootstrap Dependencies
+        run: |
+          sudo apt update
+          ./mach bootstrap --skip-lints
+
+      - name: Build libservo for ARM
+        run: |
+          # Build for ARM using the appropriate target
+          ./mach build --release --target=aarch64-unknown-linux-gnu
+
+      - name: Run Unit Tests
+        if: ${{ inputs.unit-tests }}
+        run: |
+          ./mach test-unit --release --target=aarch64-unknown-linux-gnu
+
+      - name: Build libservo with examples
+        if: ${{ inputs.build-libservo }}
+        run: cargo build --target=aarch64-unknown-linux-gnu -p libservo --all-targets
+
+      - name: Run Bencher
+        if: ${{ inputs.bencher }}
+        run: |
+          ./mach test-bencher --release -- target=aarch64-unknown-linux-gnu
