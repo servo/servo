@@ -31,6 +31,7 @@ use script_bindings::str::DOMString;
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use script_bindings::conversions::StringificationBehavior;
 use super::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
+use crate::dom::abortsignal::{AbortAlgorithm, AbortSignal};
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::ReadableStreamDefaultReaderMethods;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultController_Binding::ReadableStreamDefaultControllerMethods;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
@@ -113,7 +114,7 @@ impl js::gc::Rootable for PipeTo {}
 /// - Error and close states must be propagated: we'll do this by checking these states at every step.
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-struct PipeTo {
+pub(crate) struct PipeTo {
     /// <https://streams.spec.whatwg.org/#ref-for-readablestream%E2%91%A7%E2%91%A0>
     reader: Dom<ReadableStreamDefaultReader>,
 
@@ -1636,9 +1637,10 @@ impl ReadableStream {
         cx: SafeJSContext,
         global: &GlobalScope,
         dest: &WritableStream,
+        prevent_close: bool,
         prevent_abort: bool,
         prevent_cancel: bool,
-        prevent_close: bool,
+        signal: Option<&AbortSignal>,
         realm: InRealm,
         can_gc: CanGc,
     ) -> Rc<Promise> {
@@ -1682,9 +1684,6 @@ impl ReadableStream {
         // Let promise be a new promise.
         let promise = Promise::new(global, can_gc);
 
-        // If signal is not undefined,
-        // TODO: implement AbortSignal.
-
         // In parallel, but not really, using reader and writer, read all chunks from source and write them to dest.
         rooted!(in(*cx) let pipe_to = PipeTo {
             reader: Dom::from_ref(&reader),
@@ -1704,6 +1703,23 @@ impl ReadableStream {
         // to distinguish it from cases
         // where the error is set to undefined.
         pipe_to.shutdown_error.set(NullValue());
+
+        // If signal is not undefined,
+        // Note: moving the steps to here, so that the `PipeTo` is available.
+        if let Some(signal) = signal {
+            // Let abortAlgorithm be the following steps:
+            // Note: steps are implemented at call site.
+            rooted!(in(*cx) let abort_algorithm = AbortAlgorithm::StreamPiping(pipe_to.clone()));
+
+            // If signal is aborted, perform abortAlgorithm and return promise.
+            if signal.aborted() {
+                signal.run_abort_algorithm(&abort_algorithm);
+                return promise;
+            }
+
+            // Add abortAlgorithm to signal.
+            signal.add(&abort_algorithm);
+        }
 
         // Note: perfom checks now, since streams can start as closed or errored.
         pipe_to.check_and_propagate_errors_forward(cx, global, realm, can_gc);
@@ -1992,16 +2008,17 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
         }
 
         // Let signal be options["signal"] if it exists, or undefined otherwise.
-        // TODO: implement AbortSignal.
+        let signal = options.signal.as_ref().map(|signal| &**signal);
 
         // Return ! ReadableStreamPipeTo.
         self.pipe_to(
             cx,
             &global,
             destination,
+            options.preventClose,
             options.preventAbort,
             options.preventCancel,
-            options.preventClose,
+            signal,
             realm,
             can_gc,
         )
@@ -2029,7 +2046,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
         }
 
         // Let signal be options["signal"] if it exists, or undefined otherwise.
-        // TODO: implement AbortSignal.
+        let signal = options.signal.as_ref().map(|signal| &**signal);
 
         // Let promise be ! ReadableStreamPipeTo(this, transform["writable"],
         // options["preventClose"], options["preventAbort"], options["preventCancel"], signal).
@@ -2037,9 +2054,10 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
             cx,
             &global,
             &transform.writable,
+            options.preventClose,
             options.preventAbort,
             options.preventCancel,
-            options.preventClose,
+            signal,
             realm,
             can_gc,
         );
@@ -2270,7 +2288,9 @@ impl Transferable for ReadableStream {
         writable.setup_cross_realm_transform_writable(cx, &port_1, can_gc);
 
         // Let promise be ! ReadableStreamPipeTo(value, writable, false, false, false).
-        let promise = self.pipe_to(cx, &global, &writable, false, false, false, comp, can_gc);
+        let promise = self.pipe_to(
+            cx, &global, &writable, false, false, false, None, comp, can_gc,
+        );
 
         // Set promise.[[PromiseIsHandled]] to true.
         promise.set_promise_is_handled();

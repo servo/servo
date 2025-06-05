@@ -14,21 +14,24 @@ use script_bindings::inheritance::Castable;
 use crate::dom::bindings::codegen::Bindings::AbortSignalBinding::AbortSignalMethods;
 use crate::dom::bindings::error::{Error, ErrorToJsval};
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::readablestream::PipeTo;
 use crate::script_runtime::{CanGc, JSContext};
+
+impl js::gc::Rootable for AbortAlgorithm {}
 
 /// <https://dom.spec.whatwg.org/#abortcontroller-api-integration>
 /// TODO: implement algorithms at call point,
 /// in order to integrate the abort signal with its various use cases.
-#[derive(JSTraceable, MallocSizeOf)]
-#[allow(dead_code)]
-enum AbortAlgorithm {
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+pub(crate) enum AbortAlgorithm {
     /// <https://dom.spec.whatwg.org/#add-an-event-listener>
     DomEventLister,
     /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
-    StreamPiping,
+    StreamPiping(PipeTo),
     /// <https://fetch.spec.whatwg.org/#dom-global-fetch>
     Fetch,
 }
@@ -99,13 +102,29 @@ impl AbortSignal {
         // TODO: #36936
     }
 
+    /// <https://dom.spec.whatwg.org/#abortsignal-add>
+    pub(crate) fn add(&self, algorithm: &AbortAlgorithm) {
+        // If signal is aborted, then return.
+        if self.aborted() {
+            return;
+        }
+
+        // Append algorithm to signal’s abort algorithms.
+        self.abort_algorithms.borrow_mut().push(algorithm.clone());
+    }
+
+    /// Run a specific abort algorithm.
+    pub(crate) fn run_abort_algorithm(&self, algorithm: &AbortAlgorithm) {
+        // TODO: match on variant and implement algo steps.
+        // See the various items of #34866
+    }
+
     /// <https://dom.spec.whatwg.org/#run-the-abort-steps>
     fn run_the_abort_steps(&self, can_gc: CanGc) {
         // For each algorithm of signal’s abort algorithms: run algorithm.
         let algos = mem::take(&mut *self.abort_algorithms.borrow_mut());
-        for _algo in algos {
-            // TODO: match on variant and implement algo steps.
-            // See the various items of #34866
+        for algo in algos {
+            self.run_abort_algorithm(&algo);
         }
 
         // Empty signal’s abort algorithms.
@@ -117,7 +136,7 @@ impl AbortSignal {
     }
 
     /// <https://dom.spec.whatwg.org/#abortsignal-aborted>
-    fn aborted(&self) -> bool {
+    pub(crate) fn aborted(&self) -> bool {
         // An AbortSignal object is aborted when its abort reason is not undefined.
         !self.abort_reason.get().is_undefined()
     }
