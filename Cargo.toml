@@ -112,6 +112,7 @@ rand_core = "0.6"
 rand_isaac = "0.3"
 raw-window-handle = "0.6"
 rayon = "1"
+read-fonts = "0.29.2"
 regex = "1.11"
 resvg = "0.45.0"
 rustls = { version = "0.23", default-features = false, features = ["logging", "std", "tls12"] }
