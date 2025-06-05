@@ -752,10 +752,9 @@ impl Node {
     }
 
     pub(crate) fn ranges_is_empty(&self) -> bool {
-        match self.rare_data().as_ref() {
-            Some(data) => data.ranges.is_empty(),
-            None => false,
-        }
+        self.rare_data()
+            .as_ref()
+            .is_none_or(|data| data.ranges.is_empty())
     }
 
     #[inline]
@@ -2665,7 +2664,9 @@ impl Node {
     fn remove(node: &Node, parent: &Node, suppress_observers: SuppressObserver, can_gc: CanGc) {
         parent.owner_doc().add_script_and_layout_blocker();
 
-        // Step 2.
+        // Step 1. Let parent be node’s parent.
+        // Step 2. Assert: parent is non-null.
+        // NOTE: We get parent as an argument instead
         assert!(
             node.GetParentNode()
                 .is_some_and(|node_parent| &*node_parent == parent)
@@ -2677,11 +2678,21 @@ impl Node {
             if parent.ranges_is_empty() {
                 None
             } else {
-                // Step 1.
+                // Step 1. Let parent be node’s parent.
+                // Step 2. Assert: parent is not null.
+                // NOTE: We already have the parent.
+
+                // Step 3. Let index be node’s index.
                 let index = node.index();
-                // Steps 2-3 are handled in Node::unbind_from_tree.
-                // Steps 4-5.
+
+                // Steps 4-5 are handled in Node::unbind_from_tree.
+
+                // Step 6. For each live range whose start node is parent and start offset is greater than index,
+                // decrease its start offset by 1.
+                // Step 7. For each live range whose end node is parent and end offset is greater than index,
+                // decrease its end offset by 1.
                 parent.ranges().decrease_above(parent, index, 1);
+
                 // Parent had ranges, we needed the index, let's keep track of
                 // it to avoid computing it for other ranges when calling
                 // unbind_from_tree recursively.
