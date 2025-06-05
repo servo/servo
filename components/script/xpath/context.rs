@@ -8,8 +8,8 @@ use std::vec::IntoIter;
 use script_bindings::str::DOMString;
 
 use super::Node;
-use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use crate::dom::bindings::root::DomRoot;
 
 /// The context during evaluation of an XPath expression.
 #[derive(Debug)]
@@ -75,7 +75,8 @@ impl EvaluationCtx {
 
     /// Resolve a namespace prefix using the context node's document
     pub(crate) fn resolve_namespace(&self, prefix: Option<&str>) -> Option<DOMString> {
-        self.context_node.LookupNamespaceURI(prefix.map(DOMString::from))
+        self.context_node
+            .LookupNamespaceURI(prefix.map(DOMString::from))
     }
 }
 

@@ -257,7 +257,9 @@ impl<'a> TryFrom<QualNameConverter<'a>> for QualName {
 
     fn try_from(converter: QualNameConverter<'a>) -> Result<Self, Self::Error> {
         let qname_as_str = converter.qname.to_string();
-        let namespace = converter.context.resolve_namespace(converter.qname.prefix.as_deref());
+        let namespace = converter
+            .context
+            .resolve_namespace(converter.qname.prefix.as_deref());
 
         if let Ok((ns, prefix, local)) = validate_and_extract(namespace, &qname_as_str) {
             Ok(QualName { prefix, ns, local })
@@ -326,18 +328,18 @@ fn apply_node_test(context: &EvaluationCtx, test: &NodeTest, node: &Node) -> Res
             let wanted_name: QualName = QualNameConverter { qname, context }.try_into()?;
             match node.type_id() {
                 NodeTypeId::Element(_) => {
-                let element = node.downcast::<Element>().unwrap();
+                    let element = node.downcast::<Element>().unwrap();
                     let comparison_mode = if node.owner_doc().is_html_document() {
                         NameTestComparisonMode::Html
                     } else {
-                    NameTestComparisonMode::XHtml
-                };
-                let element_qualname = QualName::new(
-                    element.prefix().as_ref().cloned(),
-                    element.namespace().clone(),
-                    element.local_name().clone(),
-                );
-                element_name_test(wanted_name, element_qualname, comparison_mode)
+                        NameTestComparisonMode::XHtml
+                    };
+                    let element_qualname = QualName::new(
+                        element.prefix().as_ref().cloned(),
+                        element.namespace().clone(),
+                        element.local_name().clone(),
+                    );
+                    element_name_test(wanted_name, element_qualname, comparison_mode)
                 },
                 NodeTypeId::Attr => {
                     let attr = node.downcast::<Attr>().unwrap();

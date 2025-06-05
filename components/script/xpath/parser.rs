@@ -510,29 +510,35 @@ fn union_expr(input: &str) -> IResult<&str, Expr> {
 fn path_expr(input: &str) -> IResult<&str, Expr> {
     alt((
         // "//" RelativePathExpr
-        map(pair(tag("//"), move |i| relative_path_expr(true, i)), |(_, rel_path)| {
-            Expr::Path(PathExpr {
-                is_absolute: true,
-                is_descendant: true,
-                steps: match rel_path {
-                    Expr::Path(p) => p.steps,
-                    _ => unreachable!(),
-                },
-            })
-        }),
-        // "/" RelativePathExpr?
-        map(pair(char('/'), opt(move |i| relative_path_expr(false, i))), |(_, rel_path)| {
-            Expr::Path(PathExpr {
-                is_absolute: true,
-                is_descendant: false,
-                steps: rel_path
-                    .map(|p| match p {
+        map(
+            pair(tag("//"), move |i| relative_path_expr(true, i)),
+            |(_, rel_path)| {
+                Expr::Path(PathExpr {
+                    is_absolute: true,
+                    is_descendant: true,
+                    steps: match rel_path {
                         Expr::Path(p) => p.steps,
                         _ => unreachable!(),
-                    })
-                    .unwrap_or_default(),
-            })
-        }),
+                    },
+                })
+            },
+        ),
+        // "/" RelativePathExpr?
+        map(
+            pair(char('/'), opt(move |i| relative_path_expr(false, i))),
+            |(_, rel_path)| {
+                Expr::Path(PathExpr {
+                    is_absolute: true,
+                    is_descendant: false,
+                    steps: rel_path
+                        .map(|p| match p {
+                            Expr::Path(p) => p.steps,
+                            _ => unreachable!(),
+                        })
+                        .unwrap_or_default(),
+                })
+            },
+        ),
         // RelativePathExpr
         move |i| relative_path_expr(false, i),
     ))(input)
@@ -576,8 +582,10 @@ fn step_expr(is_descendant: bool, input: &str) -> IResult<&str, StepExpr> {
 }
 
 fn axis_step(is_descendant: bool, input: &str) -> IResult<&str, AxisStep> {
-    let (input, (step, predicates)) =
-        pair(alt((move |i| forward_step(is_descendant, i), reverse_step)), predicate_list)(input)?;
+    let (input, (step, predicates)) = pair(
+        alt((move |i| forward_step(is_descendant, i), reverse_step)),
+        predicate_list,
+    )(input)?;
 
     let (axis, node_test) = step;
     Ok((
@@ -591,10 +599,9 @@ fn axis_step(is_descendant: bool, input: &str) -> IResult<&str, AxisStep> {
 }
 
 fn forward_step(is_descendant: bool, input: &str) -> IResult<&str, (Axis, NodeTest)> {
-    alt((
-        pair(forward_axis, node_test),
-        move |i| abbrev_forward_step(is_descendant, i),
-    ))(input)
+    alt((pair(forward_axis, node_test), move |i| {
+        abbrev_forward_step(is_descendant, i)
+    }))(input)
 }
 
 fn forward_axis(input: &str) -> IResult<&str, Axis> {
