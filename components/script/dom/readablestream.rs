@@ -723,6 +723,9 @@ impl PipeTo {
                     actions.push(promise);
                 }
 
+                // Shutdown with an action consisting
+                // of getting a promise to wait for all of the actions in actions,
+                // and with error.
                 wait_for_all_promise(cx, global, actions, realm, can_gc)
             },
         };
