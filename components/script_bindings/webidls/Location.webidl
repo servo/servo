@@ -20,5 +20,5 @@
            undefined replace(USVString url);
   [Throws] undefined reload();
 
-  //[SameObject] readonly attribute USVString[] ancestorOrigins;
+  [Unimplemented, SameObject] readonly attribute DOMStringList ancestorOrigins;
 };
