@@ -9,9 +9,10 @@ use devtools_traits::NetworkEvent;
 use serde::Serialize;
 
 use crate::actor::ActorRegistry;
+use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::network_event::{EventActor, NetworkEventActor, ResponseStartMsg};
 use crate::protocol::JsonPacketStream;
-
+use crate::resource::ResourceAvailable;
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct NetworkEventMsg {
@@ -57,27 +58,30 @@ pub(crate) fn handle_network_event(
     netevent_actor_name: String,
     mut connections: Vec<TcpStream>,
     network_event: NetworkEvent,
+    browsing_context_actor_name: String,
 ) {
     let mut actors = actors.lock().unwrap();
-    let actor = actors.find_mut::<NetworkEventActor>(&netevent_actor_name);
-
     match network_event {
         NetworkEvent::HttpRequest(httprequest) => {
-            // Store the request information in the actor
-            actor.add_request(httprequest);
-
-            // Send a networkEvent message to the client
-            let msg = NetworkEventMsg {
-                from: console_actor_name,
-                type_: "networkEvent".to_owned(),
-                event_actor: actor.event_actor(),
+            // Scope mutable borrow
+            let event_actor = {
+                let actor = actors.find_mut::<NetworkEventActor>(&netevent_actor_name);
+                actor.add_request(httprequest);
+                actor.event_actor()
             };
+            // Mutable borrow released
+            let browsing_context_actor =
+                actors.find::<BrowsingContextActor>(&browsing_context_actor_name);
             for stream in &mut connections {
-                let _ = stream.write_json_packet(&msg);
+                browsing_context_actor.resource_available(
+                    event_actor.clone(),
+                    "network-event".to_string(),
+                    stream,
+                );
             }
         },
         NetworkEvent::HttpResponse(httpresponse) => {
-            // Store the response information in the actor
+            let actor = actors.find_mut::<NetworkEventActor>(&netevent_actor_name);
             actor.add_response(httpresponse);
 
             let msg = NetworkEventUpdateMsg {

@@ -44,7 +44,7 @@ pub struct NetworkEventActor {
     is_xhr: bool,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct EventActor {
     pub actor: String,
@@ -55,6 +55,7 @@ pub struct EventActor {
     #[serde(rename = "isXHR")]
     pub is_xhr: bool,
     pub private: bool,
+    pub cause: String,
 }
 
 #[derive(Serialize)]
@@ -400,6 +401,7 @@ impl NetworkEventActor {
             time_stamp: self.request.time_stamp,
             is_xhr: self.is_xhr,
             private: false,
+            cause: "network".to_owned(), // TODO: Set the correct cause
         }
     }
 
