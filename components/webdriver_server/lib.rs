@@ -1619,14 +1619,23 @@ impl Handler {
 
         let (sender, receiver) = ipc::channel().unwrap();
 
-        let cmd = WebDriverScriptCommand::FocusElement(element.to_string(), sender);
+        let cmd = WebDriverScriptCommand::WillSendKeys(
+            element.to_string(),
+            keys.text.to_string(),
+            self.session()?.strict_file_interactability,
+            sender,
+        );
         let cmd_msg = WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd);
         self.constellation_chan
             .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
             .unwrap();
 
         // TODO: distinguish the not found and not focusable cases
-        wait_for_script_response(receiver)?.map_err(|error| WebDriverError::new(error, ""))?;
+        // File input and non-typeable form control should have
+        // been handled in `webdriver_handler.rs`.
+        if wait_for_script_response(receiver)?.map_err(|error| WebDriverError::new(error, ""))? {
+            return Ok(WebDriverResponse::Void);
+        }
 
         let input_events = send_keys(&keys.text);
 

@@ -2280,15 +2280,6 @@ impl ScriptThread {
                     can_gc,
                 )
             },
-            WebDriverScriptCommand::FocusElement(element_id, reply) => {
-                webdriver_handlers::handle_focus_element(
-                    &documents,
-                    pipeline_id,
-                    element_id,
-                    reply,
-                    can_gc,
-                )
-            },
             WebDriverScriptCommand::ElementClick(element_id, reply) => {
                 webdriver_handlers::handle_element_click(
                     &documents,
@@ -2394,6 +2385,20 @@ impl ScriptThread {
             WebDriverScriptCommand::GetTitle(reply) => {
                 webdriver_handlers::handle_get_title(&documents, pipeline_id, reply)
             },
+            WebDriverScriptCommand::WillSendKeys(
+                element_id,
+                text,
+                strict_file_interactability,
+                reply,
+            ) => webdriver_handlers::handle_will_send_keys(
+                &documents,
+                pipeline_id,
+                element_id,
+                text,
+                strict_file_interactability,
+                reply,
+                can_gc,
+            ),
             _ => (),
         }
     }

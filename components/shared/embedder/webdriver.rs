@@ -130,7 +130,6 @@ pub enum WebDriverScriptCommand {
         IpcSender<Result<Vec<String>, ErrorStatus>>,
     ),
     FindElementElementsTagName(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
-    FocusElement(String, IpcSender<Result<(), ErrorStatus>>),
     ElementClick(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     GetActiveElement(IpcSender<Option<String>>),
     GetComputedRole(String, IpcSender<Result<Option<String>, ErrorStatus>>),
@@ -161,6 +160,8 @@ pub enum WebDriverScriptCommand {
     IsEnabled(String, IpcSender<Result<bool, ErrorStatus>>),
     IsSelected(String, IpcSender<Result<bool, ErrorStatus>>),
     GetTitle(IpcSender<String>),
+    /// Match the element type before sending the event for webdriver `element send keys`.
+    WillSendKeys(String, String, bool, IpcSender<Result<bool, ErrorStatus>>),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
