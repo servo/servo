@@ -130,6 +130,7 @@ pub enum WebDriverScriptCommand {
         IpcSender<Result<Vec<String>, ErrorStatus>>,
     ),
     FindElementElementsTagName(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
+    GetElementShadowRoot(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     ElementClick(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     GetActiveElement(IpcSender<Option<String>>),
     GetComputedRole(String, IpcSender<Result<Option<String>, ErrorStatus>>),

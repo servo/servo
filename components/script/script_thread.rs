@@ -2280,6 +2280,14 @@ impl ScriptThread {
                     can_gc,
                 )
             },
+            WebDriverScriptCommand::GetElementShadowRoot(element_id, reply) => {
+                webdriver_handlers::handle_get_element_shadow_root(
+                    &documents,
+                    pipeline_id,
+                    element_id,
+                    reply,
+                )
+            },
             WebDriverScriptCommand::ElementClick(element_id, reply) => {
                 webdriver_handlers::handle_element_click(
                     &documents,
