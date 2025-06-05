@@ -18,6 +18,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::readablestream::PipeTo;
+use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 impl js::gc::Rootable for AbortAlgorithm {}
@@ -75,6 +76,8 @@ impl AbortSignal {
     /// <https://dom.spec.whatwg.org/#abortsignal-signal-abort>
     pub(crate) fn signal_abort(&self, cx: SafeJSContext, reason: HandleValue, can_gc: CanGc) {
         let global = self.global();
+        let realm = enter_realm(&*global);
+        let comp = InRealm::Entered(&realm);
 
         // If signal is aborted, then return.
         if self.Aborted() {
@@ -98,7 +101,7 @@ impl AbortSignal {
         // TODO: #36936
 
         // Run the abort steps for signal.
-        self.run_the_abort_steps(cx, &global, can_gc);
+        self.run_the_abort_steps(cx, &global, comp, can_gc);
 
         // For each dependentSignal of dependentSignalsToAbort, run the abort steps for dependentSignal.
         // TODO: #36936
@@ -116,26 +119,39 @@ impl AbortSignal {
     }
 
     /// Run a specific abort algorithm.
-    pub(crate) fn run_abort_algorithm(&self, cx: SafeJSContext, global: &GlobalScope, algorithm: &AbortAlgorithm, can_gc: CanGc) {
+    pub(crate) fn run_abort_algorithm(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        algorithm: &AbortAlgorithm,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
         match algorithm {
             AbortAlgorithm::StreamPiping(pipe) => {
                 rooted!(in(*cx) let mut reason = UndefinedValue());
                 reason.set(self.abort_reason.get());
-                pipe.abort_with_reason(cx, global, reason.handle(), can_gc);
+                pipe.abort_with_reason(cx, global, reason.handle(), realm, can_gc);
             },
             _ => {
                 // TODO: match on variant and implement algo steps.
                 // See the various items of #34866
-            }
+            },
         }
     }
 
     /// <https://dom.spec.whatwg.org/#run-the-abort-steps>
-    fn run_the_abort_steps(&self, cx: SafeJSContext, global: &GlobalScope, can_gc: CanGc) {
+    fn run_the_abort_steps(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
         // For each algorithm of signal’s abort algorithms: run algorithm.
         let algos = mem::take(&mut *self.abort_algorithms.borrow_mut());
         for algo in algos {
-            self.run_abort_algorithm(cx, global, &algo, can_gc);
+            self.run_abort_algorithm(cx, global, &algo, realm, can_gc);
         }
 
         // Empty signal’s abort algorithms.

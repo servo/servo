@@ -47,7 +47,7 @@ use crate::dom::bindings::utils::get_dictionary_property;
 use crate::dom::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
 use crate::dom::readablestreamgenericreader::ReadableStreamGenericReader;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{wait_for_all_promise, Promise};
 use crate::dom::readablebytestreamcontroller::ReadableByteStreamController;
 use crate::dom::readablestreambyobreader::ReadableStreamBYOBReader;
 use crate::dom::readablestreamdefaultcontroller::ReadableStreamDefaultController;
@@ -100,6 +100,8 @@ enum ShutdownAction {
     ReadableStreamCancel,
     /// <https://streams.spec.whatwg.org/#writable-stream-default-writer-close-with-error-propagation>
     WritableStreamDefaultWriterCloseWithErrorPropagation,
+    /// <https://streams.spec.whatwg.org/#ref-for-rs-pipeTo-shutdown-with-action>
+    Abort,
 }
 
 impl js::gc::Rootable for PipeTo {}
@@ -145,6 +147,11 @@ pub(crate) struct PipeTo {
     #[ignore_malloc_size_of = "Rc are hard"]
     shutting_down: Rc<Cell<bool>>,
 
+    /// The abort reason of the abort signal,
+    /// stored here because we must keep it across a microtask.
+    #[ignore_malloc_size_of = "mozjs"]
+    abort_reason: Rc<Heap<JSVal>>,
+
     /// The error potentially passed to shutdown,
     /// stored here because we must keep it across a microtask.
     #[ignore_malloc_size_of = "mozjs"]
@@ -164,57 +171,23 @@ pub(crate) struct PipeTo {
 impl PipeTo {
     /// Run the `abortAlgorithm` defined at
     /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
-    pub(crate) fn abort_with_reason(&self, cx: SafeJSContext, global: &GlobalScope, error: SafeHandleValue, can_gc: CanGc) {
+    pub(crate) fn abort_with_reason(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        error: SafeHandleValue,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
         // Let error be signal’s abort reason.
-        // Note: passed as the `reason` argument.
+        self.abort_reason.set(error.get());
 
         // Let actions be an empty ordered set.
-        let mut actions = vec![];
+        // Note: the actions are defined, and performed, inside `shutdown_with_an_action`.
 
-        // If preventAbort is false, append the following action to actions:
-        if !self.prevent_abort {
-            let dest = self
-                    .writer
-                    .get_stream()
-                    .expect("Destination stream must be set");
-            
-            // If dest.[[state]] is "writable",
-            let promise = if dest.is_writable() {
-                // return ! WritableStreamAbort(dest, error)
-                dest.abort(cx, global, error, can_gc)
-            } else {
-                // Otherwise, return a promise resolved with undefined.
-                Promise::new_resolved(
-                    global,
-                    cx,
-                    &(),
-                    can_gc,
-                )
-            };
-            actions.push(promise);
-        }
-
-        // If preventCancel is false, append the following action action to actions:
-        if !self.prevent_cancel {
-            let source = self.reader.get_stream().expect("Source stream must be set");
-
-            // If source.[[state]] is "readable", 
-            let promise = if source.is_readable() {
-                // return ! ReadableStreamCancel(source, error).
-                source.cancel(cx, global, error, can_gc)
-            } else {
-                // Otherwise, return a promise resolved with undefined.
-                Promise::new_resolved(
-                    global,
-                    cx,
-                    &(),
-                    can_gc,
-                )
-            };
-            actions.push(promise);
-        }
-
-        // Shutdown with an action consisting of getting a promise to wait for all of the actions in actions, and with error.
+        // Shutdown with an action consisting of getting a promise to wait for all of the actions in actions,
+        // and with error.
+        self.shutdown(cx, global, Some(ShutdownAction::Abort), realm, can_gc);
     }
 }
 
@@ -705,6 +678,52 @@ impl PipeTo {
             },
             ShutdownAction::WritableStreamDefaultWriterCloseWithErrorPropagation => {
                 self.writer.close_with_error_propagation(cx, global, can_gc)
+            },
+            ShutdownAction::Abort => {
+                // Note: implementation of the the `abortAlgorithm`
+                // of the signal associated with this piping operation.
+
+                // Let error be signal’s abort reason.
+                rooted!(in(*cx) let mut error = UndefinedValue());
+                error.set(self.abort_reason.get());
+
+                // Let actions be an empty ordered set.
+                let mut actions = vec![];
+
+                // If preventAbort is false, append the following action to actions:
+                if !self.prevent_abort {
+                    let dest = self
+                        .writer
+                        .get_stream()
+                        .expect("Destination stream must be set");
+
+                    // If dest.[[state]] is "writable",
+                    let promise = if dest.is_writable() {
+                        // return ! WritableStreamAbort(dest, error)
+                        dest.abort(cx, global, error.handle(), can_gc)
+                    } else {
+                        // Otherwise, return a promise resolved with undefined.
+                        Promise::new_resolved(global, cx, &(), can_gc)
+                    };
+                    actions.push(promise);
+                }
+
+                // If preventCancel is false, append the following action action to actions:
+                if !self.prevent_cancel {
+                    let source = self.reader.get_stream().expect("Source stream must be set");
+
+                    // If source.[[state]] is "readable",
+                    let promise = if source.is_readable() {
+                        // return ! ReadableStreamCancel(source, error).
+                        source.cancel(cx, global, error.handle(), can_gc)
+                    } else {
+                        // Otherwise, return a promise resolved with undefined.
+                        Promise::new_resolved(global, cx, &(), can_gc)
+                    };
+                    actions.push(promise);
+                }
+
+                wait_for_all_promise(cx, global, actions, realm, can_gc)
             },
         };
 
@@ -1751,6 +1770,7 @@ impl ReadableStream {
             prevent_cancel,
             prevent_close,
             shutting_down: Default::default(),
+            abort_reason: Default::default(),
             shutdown_error: Default::default(),
             shutdown_action_promise:  Default::default(),
             result_promise: promise.clone(),
@@ -1770,7 +1790,7 @@ impl ReadableStream {
 
             // If signal is aborted, perform abortAlgorithm and return promise.
             if signal.aborted() {
-                signal.run_abort_algorithm(cx, global, &abort_algorithm, can_gc);
+                signal.run_abort_algorithm(cx, global, &abort_algorithm, realm, can_gc);
                 return promise;
             }
 
