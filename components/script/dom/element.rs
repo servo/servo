@@ -666,6 +666,10 @@ impl Element {
             .upcast::<Node>()
             .set_containing_shadow_root(Some(&shadow_root));
 
+        if is_ua_widget == IsUserAgentWidget::Yes {
+            shadow_root.upcast::<Node>().set_in_ua_widget();
+        }
+
         let bind_context = BindContext {
             tree_connected: self.upcast::<Node>().is_connected(),
             tree_is_in_a_document_tree: self.upcast::<Node>().is_in_a_document_tree(),

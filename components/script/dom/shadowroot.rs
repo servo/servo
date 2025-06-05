@@ -47,7 +47,7 @@ use crate::script_runtime::CanGc;
 use crate::stylesheet_set::StylesheetSetRef;
 
 /// Whether a shadow root hosts an User Agent widget.
-#[derive(JSTraceable, MallocSizeOf, PartialEq)]
+#[derive(JSTraceable, MallocSizeOf, PartialEq, Clone, Copy)]
 pub(crate) enum IsUserAgentWidget {
     No,
     Yes,

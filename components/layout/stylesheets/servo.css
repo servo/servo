@@ -19,26 +19,26 @@ textarea {
   font-size: 0.8333em;
 }
 
-::-servo-text-control-inner-editor {
+input::-servo-text-control-inner-editor {
   overflow-wrap: normal;
   pointer-events: auto;
 }
 
-::-servo-text-control-inner-container {
+input::-servo-text-control-inner-container {
   position: relative;
   height: 100%;
   pointer-events: none;
   display: flex;
 }
 
-::-servo-text-control-inner-editor, ::-servo-text-control-placeholder {
+input::-servo-text-control-inner-editor, input::-servo-text-control-placeholder {
   white-space: pre;
   margin-block: auto !important;
   inset-block: 0 !important;
   block-size: fit-content !important;
 }
 
-::-servo-text-control-placeholder {
+input::-servo-text-control-placeholder {
   overflow: hidden !important;
   position: absolute !important;
   color: grey !important;
