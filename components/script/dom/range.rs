@@ -346,6 +346,7 @@ impl Range {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-range-bp-set>
+    #[allow(clippy::neg_cmp_op_on_partial_ord)]
     fn set_the_start_or_end(
         &self,
         node: &Node,
@@ -373,7 +374,6 @@ impl Range {
                 // Step 4.2 Set range’s start to bp.
                 self.set_start(node, offset);
                 if !(self.start() <= self.end()) {
-                    // Step 4.
                     self.set_end(node, offset);
                 }
             },
@@ -384,7 +384,6 @@ impl Range {
                 // Step 4.2 Set range’s end to bp.
                 self.set_end(node, offset);
                 if !(self.end() >= self.start()) {
-                    // Step 4.
                     self.set_start(node, offset);
                 }
             },
@@ -418,13 +417,11 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-setstart>
-    #[allow(clippy::neg_cmp_op_on_partial_ord)]
     fn SetStart(&self, node: &Node, offset: u32) -> ErrorResult {
         self.set_the_start_or_end(node, offset, StartOrEnd::Start)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-setend>
-    #[allow(clippy::neg_cmp_op_on_partial_ord)]
     fn SetEnd(&self, node: &Node, offset: u32) -> ErrorResult {
         self.set_the_start_or_end(node, offset, StartOrEnd::End)
     }
@@ -1229,6 +1226,7 @@ impl WeakRangeVec {
     }
 
     /// Used for steps 2-3. when removing a node.
+    ///
     /// <https://dom.spec.whatwg.org/#concept-node-remove>
     pub(crate) fn drain_to_parent(&self, context: &UnbindContext, child: &Node) {
         if self.is_empty() {

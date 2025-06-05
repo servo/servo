@@ -3936,7 +3936,12 @@ impl VirtualMethods for Node {
     /// <https://dom.spec.whatwg.org/#concept-node-remove>
     fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
         self.super_type().unwrap().unbind_from_tree(context, can_gc);
-        if !self.ranges_is_empty() {
+
+        // Ranges should only drain to the parent from inclusive non-shadow
+        // including descendants. If we're in a shadow tree at this point then the
+        // unbind operation happened further up in the tree and we should not
+        // drain any ranges.
+        if !self.is_in_a_shadow_tree() && !self.ranges_is_empty() {
             self.ranges().drain_to_parent(context, self);
         }
     }
