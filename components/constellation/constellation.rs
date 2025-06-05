@@ -6022,14 +6022,13 @@ where
         }
     }
 
-    // MYNOTES: this shouldn't be necessary anymore since, we have scroll offsets tree at layout impl
     #[cfg_attr(
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn handle_set_scroll_states(&self, pipeline_id: PipelineId, scroll_states: Vec<ScrollState>) {
         let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
-            warn!("Discarding scroll offset update for unknown pipeline");
+            warn!("Discarding scroll offsets update for unknown pipeline");
             return;
         };
         if let Err(error) = pipeline
@@ -6049,7 +6048,7 @@ where
     )]
     fn handle_update_scroll_state(&self, pipeline_id: PipelineId, scroll_state: ScrollState) {
         let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
-            warn!("Discarding scroll offset update for unknown pipeline");
+            warn!("Discarding a scroll result update for unknown pipeline");
             return;
         };
         if let Err(error) = pipeline
@@ -6059,7 +6058,7 @@ where
                 scroll_state,
             ))
         {
-            warn!("Could not send scroll offsets to pipeline: {pipeline_id:?}: {error:?}");
+            warn!("Could not send scroll result update to pipeline: {pipeline_id:?}: {error:?}");
         }
     }
 

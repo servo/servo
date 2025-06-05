@@ -90,7 +90,6 @@ pub enum EmbedderToConstellationMessage {
     SetWebViewThrottled(WebViewId, bool),
     /// The Servo renderer scrolled and is updating the scroll states of the nodes in the
     /// given pipeline via the constellation.
-    // MYNOTES: Do we still need this?
     SetScrollStates(PipelineId, Vec<ScrollState>),
     /// The Servo renderer scrolled and is updating the scroll states of the nodes in the
     /// given pipeline via the constellation.

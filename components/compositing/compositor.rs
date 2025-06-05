@@ -257,7 +257,7 @@ impl PipelineDetails {
         }
     }
 
-    // MYNOTES: we also do this in the display list now
+    /// Install a new scroll tree, but maintaining the scroll offsets it has from the old ones.
     fn install_new_scroll_tree(&mut self, new_scroll_tree: ScrollTree) {
         let old_scroll_offsets: FnvHashMap<ExternalScrollId, LayoutVector2D> = self
             .scroll_tree
@@ -744,7 +744,7 @@ impl IOCompositor {
                 txn.set_scroll_offsets(
                     external_scroll_id,
                     vec![SampledScrollOffset {
-                        offset,
+                        offset: -offset,
                         generation: 0,
                     }],
                 );

@@ -118,7 +118,7 @@ pub(crate) struct StackingContextTree {
 impl StackingContextTree {
     /// Create a new [DisplayList] given the dimensions of the layout and the WebRender
     /// pipeline id.
-    // MYNOTES: fix this
+    // FIXME(stevennovaryo): refactor the stacking context parameters
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         fragment_tree: &FragmentTree,
@@ -979,6 +979,8 @@ impl BoxFragment {
         StackingContextSection::DescendantBackgroundsAndBorders
     }
 
+    // FIXME(stevennovaryo): refactor the stacking context parameters
+    #[allow(clippy::too_many_arguments)]
     fn build_stacking_context_tree(
         &self,
         fragment: Fragment,
@@ -1000,6 +1002,8 @@ impl BoxFragment {
         );
     }
 
+    // FIXME(stevennovaryo): refactor the stacking context parameters
+    #[allow(clippy::too_many_arguments)]
     fn build_stacking_context_tree_maybe_creating_reference_frame(
         &self,
         fragment: Fragment,
@@ -1076,7 +1080,7 @@ impl BoxFragment {
         );
     }
 
-    // MYNOTES: fix this
+    // FIXME(stevennovaryo): refactor the stacking context parameters
     #[allow(clippy::too_many_arguments)]
     fn build_stacking_context_tree_maybe_creating_stacking_context(
         &self,
@@ -1172,7 +1176,7 @@ impl BoxFragment {
             .append(&mut stolen_children);
     }
 
-    // MYNOTES: fix this
+    // FIXME(stevennovaryo): refactor the stacking context parameters
     #[allow(clippy::too_many_arguments)]
     fn build_stacking_context_tree_for_children(
         &self,

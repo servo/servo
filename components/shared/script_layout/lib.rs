@@ -48,8 +48,8 @@ use style::properties::PropertyId;
 use style::properties::style_structs::Font;
 use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
 use style::stylesheets::Stylesheet;
-use webrender_api::{ExternalScrollId, ImageKey};
 use webrender_api::units::{DeviceIntSize, LayoutVector2D};
+use webrender_api::{ExternalScrollId, ImageKey};
 
 pub trait GenericLayoutDataTrait: Any + MallocSizeOfTrait {
     fn as_any(&self) -> &dyn Any;

@@ -183,7 +183,6 @@ impl WebViewRenderer {
         self.pipelines.remove(&pipeline_id);
     }
 
-    // MYNOTES: I suppose this is not needed now? If changing composition's frame tree does trigger reflow?
     pub(crate) fn set_frame_tree(&mut self, frame_tree: &SendableFrameTree) {
         let pipeline_id = frame_tree.pipeline.id;
         let old_pipeline_id = std::mem::replace(&mut self.root_pipeline_id, Some(pipeline_id));
@@ -876,6 +875,8 @@ impl WebViewRenderer {
                 combined_event.scroll_location,
             )
         });
+        // If something is scrolled, we are sending the scroll information to layout in
+        // order to sync the scroll offsets for queries and scripts.
         if let Some(scroll_result) = scroll_result {
             self.send_scroll_result_to_layout(scroll_result);
         }
@@ -894,7 +895,6 @@ impl WebViewRenderer {
     /// scrolling to the applicable scroll node under that point. If a scroll was
     /// performed, returns the [`PipelineId`] of the node scrolled, the id, and the final
     /// scroll delta.
-    // MYNOTES: this could be changed to we only store the diff
     fn scroll_node_at_device_point(
         &mut self,
         cursor: DevicePoint,

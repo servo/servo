@@ -496,6 +496,9 @@ impl Layout for LayoutThread {
     ) {
     }
 
+    /// Sets the scroll offsets of the cached [`ScrollTree`] based on the scroll states.
+    ///
+    /// This is done whenever the embedder ask layout to do so.
     fn set_scroll_offsets(&mut self, scroll_states: &[ScrollState]) {
         if let Some(mut tree) = self.cached_scroll_tree_mut() {
             for ScrollState {
@@ -508,7 +511,9 @@ impl Layout for LayoutThread {
         }
     }
 
-    //
+    /// Update a node's scroll offsets in the cached [`ScrollTree`].
+    ///
+    /// This is done whenever the embedder ask layout to do so.
     fn update_scroll_offset(&self, scroll_id: ExternalScrollId, scroll_offset: LayoutVector2D) {
         if let Some(mut scroll_tree) = self.cached_scroll_tree_mut() {
             scroll_tree
@@ -773,10 +778,10 @@ impl LayoutThread {
             .flush(guards, Some(root_element), Some(snapshot_map));
     }
 
-    // #[cfg_attr(
-    //     feature = "tracing",
-    //     tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    // )]
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
+    )]
     fn restyle_and_build_trees(
         &self,
         reflow_request: &ReflowRequest,
@@ -848,7 +853,8 @@ impl LayoutThread {
         *self.fragment_tree.borrow_mut() = Some(fragment_tree);
 
         // The FragmentTree has been updated, so any existing StackingContext tree that layout
-        // had is now out of date and should be rebuilt.
+        // had is now out of date and should be rebuilt. We could still uses some information
+        // from the previous StackingContext tree though.
         let old_stacking_context_tree = self.stacking_context_tree.borrow_mut().take();
 
         if self.debug.dump_style_tree {

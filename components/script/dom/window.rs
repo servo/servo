@@ -77,7 +77,6 @@ use servo_arc::Arc as ServoArc;
 use servo_config::{opts, pref};
 use servo_geometry::{DeviceIndependentIntRect, MaxRect, f32_rect_to_au_rect};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
-use style::dom::OpaqueNode;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::properties::PropertyId;
 use style::properties::style_structs::Font;
@@ -2552,7 +2551,7 @@ impl Window {
             self.pipeline_id().into(),
         );
         self.layout()
-            .update_scroll_offset(scroll_id, Vector2D::new(x, y));
+            .update_scroll_offset(scroll_id, Vector2D::new(-x, -y));
 
         // Step 6
         // > Perform a scroll of box to position, element as the associated

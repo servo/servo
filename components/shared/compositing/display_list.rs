@@ -157,7 +157,7 @@ impl ScrollTreeNode {
 
     /// Set the offset for this node, returns false if this was a
     /// non-scrolling node for which you cannot set the offset.
-    // MYNOTES: should i make this &mut so it will modify the new_offset
+    // TODO(stevennovaryo): We should consider writing mode as well.
     pub fn set_offset(&mut self, new_offset: LayoutVector2D) -> bool {
         match self.info {
             SpatialTreeNodeInfo::Scroll(ref mut info) => {
@@ -361,12 +361,11 @@ impl ScrollTree {
     ) -> bool {
         if let Some(node) = self.get_node_by_external_scroll_id_mut(external_scroll_id) {
             node.set_offset(offset);
+            true
+        } else {
+            false
         }
-        false
     }
-
-    // Update this stacking context
-    pub fn persevere_old_stacking_context_tree_scroll() {}
 }
 
 /// A data structure which stores compositor-side information about
