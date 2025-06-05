@@ -150,7 +150,7 @@ impl AbortSignal {
     ) {
         // For each algorithm of signal’s abort algorithms: run algorithm.
         for algo in self.abort_algorithms.borrow().iter() {
-            self.run_abort_algorithm(cx, global, &algo, realm, can_gc);
+            self.run_abort_algorithm(cx, global, algo, realm, can_gc);
         }
 
         // Empty signal’s abort algorithms.

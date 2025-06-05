@@ -703,7 +703,7 @@ impl PipeTo {
                         dest.abort(cx, global, error.handle(), can_gc)
                     } else {
                         // Otherwise, return a promise resolved with undefined.
-                        Promise::new_resolved(global, cx, &(), can_gc)
+                        Promise::new_resolved(global, cx, (), can_gc)
                     };
                     actions.push(promise);
                 }
@@ -718,7 +718,7 @@ impl PipeTo {
                         source.cancel(cx, global, error.handle(), can_gc)
                     } else {
                         // Otherwise, return a promise resolved with undefined.
-                        Promise::new_resolved(global, cx, &(), can_gc)
+                        Promise::new_resolved(global, cx, (), can_gc)
                     };
                     actions.push(promise);
                 }
@@ -2088,7 +2088,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
         }
 
         // Let signal be options["signal"] if it exists, or undefined otherwise.
-        let signal = options.signal.as_ref().map(|signal| &**signal);
+        let signal = options.signal.as_deref();
 
         // Return ! ReadableStreamPipeTo.
         self.pipe_to(
@@ -2126,7 +2126,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
         }
 
         // Let signal be options["signal"] if it exists, or undefined otherwise.
-        let signal = options.signal.as_ref().map(|signal| &**signal);
+        let signal = options.signal.as_deref();
 
         // Let promise be ! ReadableStreamPipeTo(this, transform["writable"],
         // options["preventClose"], options["preventAbort"], options["preventCancel"], signal).
