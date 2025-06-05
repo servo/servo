@@ -471,7 +471,6 @@ impl Callback for WaitForAllFulfillmentHandler {
 /// The rejection handler for the list of promises in
 /// <https://webidl.spec.whatwg.org/#wait-for-all>.
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct WaitForAllRejectionHandler {
     /// The steps to call if any promise rejects.
     #[ignore_malloc_size_of = "Rc is hard"]
