@@ -161,6 +161,63 @@ pub(crate) struct PipeTo {
     result_promise: Rc<Promise>,
 }
 
+impl PipeTo {
+    /// Run the `abortAlgorithm` defined at
+    /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
+    pub(crate) fn abort_with_reason(&self, cx: SafeJSContext, global: &GlobalScope, error: SafeHandleValue, can_gc: CanGc) {
+        // Let error be signal’s abort reason.
+        // Note: passed as the `reason` argument.
+
+        // Let actions be an empty ordered set.
+        let mut actions = vec![];
+
+        // If preventAbort is false, append the following action to actions:
+        if !self.prevent_abort {
+            let dest = self
+                    .writer
+                    .get_stream()
+                    .expect("Destination stream must be set");
+            
+            // If dest.[[state]] is "writable",
+            let promise = if dest.is_writable() {
+                // return ! WritableStreamAbort(dest, error)
+                dest.abort(cx, global, error, can_gc)
+            } else {
+                // Otherwise, return a promise resolved with undefined.
+                Promise::new_resolved(
+                    global,
+                    cx,
+                    &(),
+                    can_gc,
+                )
+            };
+            actions.push(promise);
+        }
+
+        // If preventCancel is false, append the following action action to actions:
+        if !self.prevent_cancel {
+            let source = self.reader.get_stream().expect("Source stream must be set");
+
+            // If source.[[state]] is "readable", 
+            let promise = if source.is_readable() {
+                // return ! ReadableStreamCancel(source, error).
+                source.cancel(cx, global, error, can_gc)
+            } else {
+                // Otherwise, return a promise resolved with undefined.
+                Promise::new_resolved(
+                    global,
+                    cx,
+                    &(),
+                    can_gc,
+                )
+            };
+            actions.push(promise);
+        }
+
+        // Shutdown with an action consisting of getting a promise to wait for all of the actions in actions, and with error.
+    }
+}
+
 impl Callback for PipeTo {
     /// The pipe makes progress one microtask at a time.
     /// Note: we use one struct as the callback for all promises,
@@ -1713,7 +1770,7 @@ impl ReadableStream {
 
             // If signal is aborted, perform abortAlgorithm and return promise.
             if signal.aborted() {
-                signal.run_abort_algorithm(&abort_algorithm);
+                signal.run_abort_algorithm(cx, global, &abort_algorithm, can_gc);
                 return promise;
             }
 
