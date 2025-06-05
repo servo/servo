@@ -39,7 +39,8 @@ def check_args(**kwargs):
     require_arg(kwargs, "binary")
 
 
-def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
+def browser_kwargs(logger, test_type, run_info_data, config, subsuite, **kwargs):
+    kwargs["binary_args"].extend(subsuite.config.get("binary_args", []))
     return {
         "binary": kwargs["binary"],
         "binary_args": kwargs["binary_args"],
@@ -67,7 +68,7 @@ def env_options():
 
 
 def update_properties():
-    return (["debug", "os", "processor"], {"os": ["version"], "processor": ["bits"]})
+    return (["debug", "os", "processor", "subsuite"], {"os": ["version"], "processor": ["bits"]})
 
 
 def write_hosts_file(config):
