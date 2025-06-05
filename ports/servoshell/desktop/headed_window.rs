@@ -603,7 +603,7 @@ impl WindowPortsMethods for Window {
                 let phase = winit_phase_to_touch_event_type(phase);
 
                 // Send events
-                webview.notify_input_event(InputEvent::Wheel(WheelEvent { delta, point }));
+                webview.notify_input_event(InputEvent::Wheel(WheelEvent::new(delta, point)));
                 webview.notify_scroll_event(
                     scroll_location,
                     self.webview_relative_mouse_point.get().to_i32(),
