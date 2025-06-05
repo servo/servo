@@ -407,9 +407,11 @@ impl FromJSValConvertibleRc for Promise {
     }
 }
 
-#[derive(Clone, JSTraceable, MallocSizeOf)]
+
 /// The fulfillment handler for the list of promises in
 /// <https://webidl.spec.whatwg.org/#wait-for-all>.
+#[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct WaitForAllFulfillmentHandler {
     /// The steps to call when all promises are resolved.
     #[ignore_malloc_size_of = "Rc is hard"]
@@ -461,9 +463,10 @@ impl Callback for WaitForAllFulfillmentHandler {
     }
 }
 
-#[derive(Clone, JSTraceable, MallocSizeOf)]
 /// The rejection handler for the list of promises in
 /// <https://webidl.spec.whatwg.org/#wait-for-all>.
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct WaitForAllRejectionHandler {
     /// The steps to call if any promise rejects.
     #[ignore_malloc_size_of = "Rc is hard"]
