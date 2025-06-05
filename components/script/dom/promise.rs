@@ -407,6 +407,11 @@ impl FromJSValConvertibleRc for Promise {
     }
 }
 
+/// The success steps of <https://webidl.spec.whatwg.org/#wait-for-all>
+type WaitForAllSuccessSteps = Rc<dyn Fn(Vec<HandleValue>)>;
+
+/// The failure steps of <https://webidl.spec.whatwg.org/#wait-for-all>
+type WaitForAllFailureSteps = Rc<dyn Fn(HandleValue)>;
 
 /// The fulfillment handler for the list of promises in
 /// <https://webidl.spec.whatwg.org/#wait-for-all>.
@@ -416,7 +421,7 @@ struct WaitForAllFulfillmentHandler {
     /// The steps to call when all promises are resolved.
     #[ignore_malloc_size_of = "Rc is hard"]
     #[no_trace]
-    success_steps: Rc<dyn Fn(Vec<HandleValue>)>,
+    success_steps: WaitForAllSuccessSteps,
 
     /// The results of the promises.
     #[ignore_malloc_size_of = "Rc is hard"]
@@ -442,7 +447,7 @@ impl Callback for WaitForAllFulfillmentHandler {
 
             // Set fullfilledCount to fullfilledCount + 1.
             let mut fulfilled_count = self.fulfilled_count.borrow_mut();
-            *fulfilled_count = *fulfilled_count + 1;
+            *fulfilled_count += 1;
 
             *fulfilled_count == result.len()
         };
@@ -471,7 +476,7 @@ struct WaitForAllRejectionHandler {
     /// The steps to call if any promise rejects.
     #[ignore_malloc_size_of = "Rc is hard"]
     #[no_trace]
-    failure_steps: Rc<dyn Fn(HandleValue)>,
+    failure_steps: WaitForAllFailureSteps,
 
     /// Whether any promises have been rejected already.
     rejected: Cell<bool>,
@@ -497,8 +502,8 @@ pub(crate) fn wait_for_all(
     cx: SafeJSContext,
     global: &GlobalScope,
     promises: Vec<Rc<Promise>>,
-    success_steps: Rc<dyn Fn(Vec<HandleValue>)>,
-    failure_steps: Rc<dyn Fn(HandleValue)>,
+    success_steps: WaitForAllSuccessSteps,
+    failure_steps: WaitForAllFailureSteps,
     realm: InRealm,
     can_gc: CanGc,
 ) {
