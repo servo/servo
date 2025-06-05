@@ -410,11 +410,11 @@ impl FromJSValConvertibleRc for Promise {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 /// The fulfillment handler for the list of promises in
 /// <https://webidl.spec.whatwg.org/#wait-for-all>.
-struct WaitAllFulfillmentHandler {
+struct WaitForAllFulfillmentHandler {
     /// The steps to call when all promises are resolved.
     #[ignore_malloc_size_of = "Rc is hard"]
     #[no_trace]
-    success_steps: Rc<dyn Fn(&[HandleValue])>,
+    success_steps: Rc<dyn Fn(Vec<HandleValue>)>,
 
     /// The results of the promises.
     #[ignore_malloc_size_of = "Rc is hard"]
@@ -428,9 +428,9 @@ struct WaitAllFulfillmentHandler {
     fulfilled_count: Rc<RefCell<usize>>,
 }
 
-impl Callback for WaitAllFulfillmentHandler {
+impl Callback for WaitForAllFulfillmentHandler {
     #[allow(unsafe_code)]
-    fn callback(&self, cx: SafeJSContext, v: HandleValue, _realm: InRealm, _can_gc: CanGc) {
+    fn callback(&self, _cx: SafeJSContext, v: HandleValue, _realm: InRealm, _can_gc: CanGc) {
         // Let fulfillmentHandler be the following steps given arg:
 
         let equals_total = {
@@ -447,7 +447,7 @@ impl Callback for WaitAllFulfillmentHandler {
 
         // If fullfilledCount equals total, then perform successSteps given result.
         if equals_total {
-            // Safety: the values are kept alive by the Heap 
+            // Safety: the values are kept alive by the Heap
             // while their handles are passed to the the success steps.
             let result_handles: Vec<HandleValue> = unsafe {
                 self.result
@@ -456,7 +456,7 @@ impl Callback for WaitAllFulfillmentHandler {
                     .map(|val| HandleValue::from_raw(val.handle()))
                     .collect()
             };
-            (self.success_steps)(&result_handles);
+            (self.success_steps)(result_handles);
         }
     }
 }
@@ -464,7 +464,7 @@ impl Callback for WaitAllFulfillmentHandler {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 /// The rejection handler for the list of promises in
 /// <https://webidl.spec.whatwg.org/#wait-for-all>.
-struct WaitAllRejectionHandler {
+struct WaitForAllRejectionHandler {
     /// The steps to call if any promise rejects.
     #[ignore_malloc_size_of = "Rc is hard"]
     #[no_trace]
@@ -474,8 +474,8 @@ struct WaitAllRejectionHandler {
     rejected: Cell<bool>,
 }
 
-impl Callback for WaitAllRejectionHandler {
-    fn callback(&self, cx: SafeJSContext, v: HandleValue, _realm: InRealm, _can_gc: CanGc) {
+impl Callback for WaitForAllRejectionHandler {
+    fn callback(&self, _cx: SafeJSContext, v: HandleValue, _realm: InRealm, _can_gc: CanGc) {
         // Let rejectionHandlerSteps be the following steps given arg:
 
         if self.rejected.replace(true) {
@@ -494,7 +494,7 @@ pub(crate) fn wait_for_all(
     cx: SafeJSContext,
     global: &GlobalScope,
     promises: Vec<Rc<Promise>>,
-    success_steps: Rc<dyn Fn(&[HandleValue])>,
+    success_steps: Rc<dyn Fn(Vec<HandleValue>)>,
     failure_steps: Rc<dyn Fn(HandleValue)>,
     realm: InRealm,
     can_gc: CanGc,
@@ -506,11 +506,11 @@ pub(crate) fn wait_for_all(
     // Note: done below when constructing a rejection handler.
 
     // Let rejectionHandlerSteps be the following steps given arg:
-    // Note: implemented with the `WaitAllRejectionHandler`.
+    // Note: implemented with the `WaitForAllRejectionHandler`.
 
     // Let rejectionHandler be CreateBuiltinFunction(rejectionHandlerSteps, « »):
-    // Note: done as part of attaching the `WaitAllRejectionHandler` as native rejection handler.
-    let rejection_handler = WaitAllRejectionHandler {
+    // Note: done as part of attaching the `WaitForAllRejectionHandler` as native rejection handler.
+    let rejection_handler = WaitForAllRejectionHandler {
         failure_steps,
         rejected: Default::default(),
     };
@@ -544,7 +544,7 @@ pub(crate) fn wait_for_all(
         // Note: done with `enumerate` above.
 
         // Let fulfillmentHandler be the following steps given arg:
-        // Note: implemented with the `WaitAllFulFillmentHandler`.
+        // Note: implemented with the `WaitForAllFulFillmentHandler`.
 
         // Let fulfillmentHandler be CreateBuiltinFunction(fulfillmentHandler, « »):
         // Note: passed below to avoid the need to root it.
@@ -552,7 +552,7 @@ pub(crate) fn wait_for_all(
         // Perform PerformPromiseThen(promise, fulfillmentHandler, rejectionHandler).
         let handler = PromiseNativeHandler::new(
             global,
-            Some(Box::new(WaitAllFulfillmentHandler {
+            Some(Box::new(WaitForAllFulfillmentHandler {
                 success_steps: success_steps.clone(),
                 result,
                 promise_index,
@@ -566,4 +566,44 @@ pub(crate) fn wait_for_all(
         // Set index to index + 1.
         // Note: done above with `enumerate`.
     }
+}
+
+/// <https://webidl.spec.whatwg.org/#waiting-for-all-promise>
+pub(crate) fn wait_for_all_promise(
+    cx: SafeJSContext,
+    global: &GlobalScope,
+    promises: Vec<Rc<Promise>>,
+    realm: InRealm,
+    can_gc: CanGc,
+) -> Rc<Promise> {
+    // Let promise be a new promise of type Promise<sequence<T>> in realm.
+    let promise = Promise::new(global, can_gc);
+    let success_promise = promise.clone();
+    let failure_promise = promise.clone();
+
+    // Let successSteps be the following steps, given results:
+    let success_steps = Rc::new(move |results: Vec<HandleValue>| {
+        // Resolve promise with results.
+        success_promise.resolve_native(&results, can_gc);
+    });
+
+    // Let failureSteps be the following steps, given reason:
+    let failure_steps = Rc::new(move |reason: HandleValue| {
+        // Reject promise with reason.
+        failure_promise.reject_native(&reason, can_gc);
+    });
+
+    // Wait for all with promises, given successSteps and failureSteps.
+    wait_for_all(
+        cx,
+        global,
+        promises,
+        success_steps,
+        failure_steps,
+        realm,
+        can_gc,
+    );
+
+    // Return promise.
+    promise
 }
