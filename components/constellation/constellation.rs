@@ -4899,10 +4899,20 @@ where
                         webview_id, x, y, msg_id,
                     ));
             },
-            WebDriverCommandMsg::WheelScrollAction(webview, x, y, delta_x, delta_y) => {
+            WebDriverCommandMsg::WheelScrollAction(
+                webview_id,
+                x,
+                y,
+                delta_x,
+                delta_y,
+                msg_id,
+                response_sender,
+            ) => {
+                self.webdriver.input_command_response_sender = Some(response_sender);
+
                 self.compositor_proxy
                     .send(CompositorMsg::WebDriverWheelScrollEvent(
-                        webview, x, y, delta_x, delta_y,
+                        webview_id, x, y, delta_x, delta_y, msg_id,
                     ));
             },
             WebDriverCommandMsg::TakeScreenshot(webview_id, rect, response_sender) => {

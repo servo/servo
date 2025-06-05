@@ -156,12 +156,16 @@ impl Handler {
         &self,
         tick_actions: &TickActions,
     ) -> Result<(), ErrorStatus> {
-        // TODO: Add matches! for wheel and key actions
-        // after implmenting webdriver id for wheel and key events.
+        // TODO: Add matches! for key actions
+        // after implmenting webdriver id for key events.
         let count_non_null_actions_in_tick = tick_actions
             .iter()
             .filter(|(_, action)| {
-                matches!(action, ActionItem::Pointer(PointerActionItem::Pointer(_)))
+                matches!(
+                    action,
+                    ActionItem::Pointer(PointerActionItem::Pointer(_)) |
+                        ActionItem::Wheel(WheelActionItem::Wheel(_))
+                )
             })
             .count();
 
@@ -176,7 +180,7 @@ impl Handler {
                     let current_waiting_id = self
                         .current_action_id
                         .get()
-                        .expect("Current id should be set before dispat_actions_inner is called");
+                        .expect("Current id should be set before dispatch_actions_inner is called");
 
                     if current_waiting_id != response.id {
                         dbg!("Dispatch actions completed with wrong id in response");
@@ -345,7 +349,7 @@ impl Handler {
         }
         pointer_input_state.pressed.insert(action.button);
 
-        let msg_id = self.current_action_id.get().unwrap();
+        let msg_id = self.current_action_id.get();
         let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
             session.webview_id,
             MouseButtonAction::Down,
@@ -375,7 +379,7 @@ impl Handler {
         }
         pointer_input_state.pressed.remove(&action.button);
 
-        let msg_id = self.current_action_id.get().unwrap();
+        let msg_id = self.current_action_id.get();
         let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
             session.webview_id,
             MouseButtonAction::Up,
@@ -496,9 +500,15 @@ impl Handler {
             let current_y = pointer_input_state.y;
 
             // Step 7
-            if x != current_x || y != current_y {
+            // Actually "last" should not be checked here based on spec.
+            // However, we need to send the webdriver id at the final perform.
+            if x != current_x || y != current_y || last {
                 // Step 7.2
-                let msg_id = self.current_action_id.get().unwrap();
+                let msg_id = if last {
+                    self.current_action_id.get()
+                } else {
+                    None
+                };
                 let cmd_msg = WebDriverCommandMsg::MouseMoveAction(
                     session.webview_id,
                     x as f32,
@@ -627,14 +637,23 @@ impl Handler {
         };
 
         // Step 5
-        if delta_x != 0 || delta_y != 0 {
+        // Actually "last" should not be checked here based on spec.
+        // However, we need to send the webdriver id at the final perform.
+        if delta_x != 0 || delta_y != 0 || last {
             // Perform implementation-specific action dispatch steps
+            let msg_id = if last {
+                self.current_action_id.get()
+            } else {
+                None
+            };
             let cmd_msg = WebDriverCommandMsg::WheelScrollAction(
                 session.webview_id,
                 x as f32,
                 y as f32,
                 delta_x as f64,
                 delta_y as f64,
+                msg_id,
+                self.constellation_sender.clone(),
             );
             self.constellation_chan
                 .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))

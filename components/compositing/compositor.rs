@@ -673,7 +673,7 @@ impl IOCompositor {
                 let point = dppx.transform_point(Point2D::new(x, y));
                 webview_renderer.dispatch_point_input_event(
                     InputEvent::MouseButton(MouseButtonEvent::new(action, button, point))
-                        .with_webdriver_message_id(Some(message_id)),
+                        .with_webdriver_message_id(message_id),
                 );
             },
 
@@ -686,11 +686,18 @@ impl IOCompositor {
                 let point = dppx.transform_point(Point2D::new(x, y));
                 webview_renderer.dispatch_point_input_event(
                     InputEvent::MouseMove(MouseMoveEvent::new(point))
-                        .with_webdriver_message_id(Some(message_id)),
+                        .with_webdriver_message_id(message_id),
                 );
             },
 
-            CompositorMsg::WebDriverWheelScrollEvent(webview_id, x, y, delta_x, delta_y) => {
+            CompositorMsg::WebDriverWheelScrollEvent(
+                webview_id,
+                x,
+                y,
+                delta_x,
+                delta_y,
+                message_id,
+            ) => {
                 let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     warn!("Handling input event for unknown webview: {webview_id}");
                     return;
@@ -705,8 +712,10 @@ impl IOCompositor {
                 let point = dppx.transform_point(Point2D::new(x, y));
                 let scroll_delta =
                     dppx.transform_vector(Vector2D::new(delta_x as f32, delta_y as f32));
-                webview_renderer
-                    .dispatch_point_input_event(InputEvent::Wheel(WheelEvent { delta, point }));
+                webview_renderer.dispatch_point_input_event(
+                    InputEvent::Wheel(WheelEvent::new(delta, point))
+                        .with_webdriver_message_id(message_id),
+                );
                 webview_renderer.on_webdriver_wheel_action(scroll_delta, point);
             },
 
