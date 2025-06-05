@@ -88,7 +88,20 @@ impl<'dom> NodeAndStyleInfo<'dom> {
     }
 
     pub(crate) fn get_selected_style(&self) -> ServoArc<ComputedValues> {
-        self.node.to_threadsafe().selected_style()
+        // The Selection of an inner editor of a `<input>` should follow its
+        // Shadow Host's selection style.
+        if self.node.is_text_control_inner_editor() {
+            self.node
+                .as_element()
+                .expect("Inner editor should be an element")
+                .containing_shadow_host()
+                .expect("Unassociated inner editor")
+                .as_node()
+                .to_threadsafe()
+                .selected_style()
+        } else {
+            self.node.to_threadsafe().selected_style()
+        }
     }
 
     pub(crate) fn get_selection_range(&self) -> Option<Range<ByteIndex>> {

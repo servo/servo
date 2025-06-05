@@ -45,7 +45,7 @@ use smallvec::SmallVec;
 use style::context::QuirksMode;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
-use style::selector_parser::{SelectorImpl, SelectorParser};
+use style::selector_parser::{PseudoElement, SelectorImpl, SelectorParser};
 use style::stylesheets::{Stylesheet, UrlExtraData};
 use uuid::Uuid;
 use xml5ever::{local_name, serialize as xml_serialize};
@@ -1572,6 +1572,10 @@ impl Node {
             next_node: move |n| n.parent_in_flat_tree(),
         }
     }
+
+    pub(crate) fn set_pseudo_element(&self, pseudo_element: PseudoElement) {
+        self.ensure_rare_data().pseudo_element = Some(pseudo_element);
+    }
 }
 
 /// Iterate through `nodes` until we find a `Node` that is not in `not_in`
@@ -1659,6 +1663,7 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
     fn iframe_browsing_context_id(self) -> Option<BrowsingContextId>;
     fn iframe_pipeline_id(self) -> Option<PipelineId>;
     fn opaque(self) -> OpaqueNode;
+    fn pseudo_element(&self) -> Option<PseudoElement>;
 }
 
 impl<'dom> LayoutDom<'dom, Node> {
@@ -1930,6 +1935,14 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     #[allow(unsafe_code)]
     fn opaque(self) -> OpaqueNode {
         unsafe { OpaqueNode(self.get_jsobject() as usize) }
+    }
+
+    #[allow(unsafe_code)]
+    fn pseudo_element(&self) -> Option<PseudoElement> {
+        self.unsafe_get()
+            .rare_data()
+            .as_ref()
+            .and_then(|data| data.pseudo_element)
     }
 }
 
