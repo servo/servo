@@ -344,6 +344,59 @@ impl Range {
             .chain(iter::once(end_clone))
             .flat_map(move |node| node.content_boxes(can_gc))
     }
+
+    /// <https://dom.spec.whatwg.org/#concept-range-bp-set>
+    fn set_the_start_or_end(
+        &self,
+        node: &Node,
+        offset: u32,
+        start_or_end: StartOrEnd,
+    ) -> ErrorResult {
+        // Step 1. If node is a doctype, then throw an "InvalidNodeTypeError" DOMException.
+        if node.is_doctype() {
+            return Err(Error::InvalidNodeType);
+        }
+
+        // Step 2. If offset is greater than node’s length, then throw an "IndexSizeError" DOMException.
+        if offset > node.len() {
+            return Err(Error::IndexSize);
+        }
+
+        // Step 3. Let bp be the boundary point (node, offset).
+        // NOTE: We don't need this part.
+
+        match start_or_end {
+            // If these steps were invoked as "set the start"
+            StartOrEnd::Start => {
+                // Step 4.1  If range’s root is not equal to node’s root, or if bp is after the range’s end,
+                // set range’s end to bp.
+                // Step 4.2 Set range’s start to bp.
+                self.set_start(node, offset);
+                if !(self.start() <= self.end()) {
+                    // Step 4.
+                    self.set_end(node, offset);
+                }
+            },
+            // If these steps were invoked as "set the end"
+            StartOrEnd::End => {
+                // Step 4.1 If range’s root is not equal to node’s root, or if bp is before the range’s start,
+                // set range’s start to bp.
+                // Step 4.2 Set range’s end to bp.
+                self.set_end(node, offset);
+                if !(self.end() >= self.start()) {
+                    // Step 4.
+                    self.set_start(node, offset);
+                }
+            },
+        }
+
+        Ok(())
+    }
+}
+
+enum StartOrEnd {
+    Start,
+    End,
 }
 
 impl RangeMethods<crate::DomTypeHolder> for Range {
@@ -367,41 +420,13 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
     /// <https://dom.spec.whatwg.org/#dom-range-setstart>
     #[allow(clippy::neg_cmp_op_on_partial_ord)]
     fn SetStart(&self, node: &Node, offset: u32) -> ErrorResult {
-        if node.is_doctype() {
-            // Step 1.
-            Err(Error::InvalidNodeType)
-        } else if offset > node.len() {
-            // Step 2.
-            Err(Error::IndexSize)
-        } else {
-            // Step 3.
-            self.set_start(node, offset);
-            if !(self.start() <= self.end()) {
-                // Step 4.
-                self.set_end(node, offset);
-            }
-            Ok(())
-        }
+        self.set_the_start_or_end(node, offset, StartOrEnd::Start)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-setend>
     #[allow(clippy::neg_cmp_op_on_partial_ord)]
     fn SetEnd(&self, node: &Node, offset: u32) -> ErrorResult {
-        if node.is_doctype() {
-            // Step 1.
-            Err(Error::InvalidNodeType)
-        } else if offset > node.len() {
-            // Step 2.
-            Err(Error::IndexSize)
-        } else {
-            // Step 3.
-            self.set_end(node, offset);
-            if !(self.end() >= self.start()) {
-                // Step 4.
-                self.set_start(node, offset);
-            }
-            Ok(())
-        }
+        self.set_the_start_or_end(node, offset, StartOrEnd::End)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-setstartbefore>
