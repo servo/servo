@@ -8,6 +8,9 @@ use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;
 
 use base::id::{PipelineId, WebViewId};
+use compositing_traits::viewport_description::{
+    DEFAULT_ZOOM, MAX_ZOOM, MIN_ZOOM, ViewportDescription,
+};
 use compositing_traits::{SendableFrameTree, WebViewTrait};
 use constellation_traits::{EmbedderToConstellationMessage, ScrollState, WindowSizeType};
 use embedder_traits::{
@@ -28,10 +31,6 @@ use webrender_api::{ExternalScrollId, HitTestFlags, ScrollLocation};
 use crate::compositor::{HitTestError, PipelineDetails, ServoRenderer};
 use crate::touch::{TouchHandler, TouchMoveAction, TouchMoveAllowed, TouchSequenceState};
 
-// Default viewport constraints
-const MAX_ZOOM: f32 = 8.0;
-const MIN_ZOOM: f32 = 0.1;
-
 #[derive(Clone, Copy)]
 struct ScrollEvent {
     /// Scroll by this offset, or to Start or End
@@ -44,8 +43,10 @@ struct ScrollEvent {
 
 #[derive(Clone, Copy)]
 enum ScrollZoomEvent {
-    /// An pinch zoom event that magnifies the view by the given factor.
+    /// A pinch zoom event that magnifies the view by the given factor.
     PinchZoom(f32),
+    /// A zoom event that magnifies the view by the factor parsed from meta tag.
+    ViewportZoom(f32),
     /// A scroll event that scrolls the scroll node at the given location by the
     /// given amount.
     Scroll(ScrollEvent),
@@ -58,7 +59,7 @@ pub(crate) struct ScrollResult {
     pub offset: LayoutVector2D,
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub(crate) enum PinchZoomResult {
     DidPinchZoom,
     DidNotPinchZoom,
@@ -89,9 +90,6 @@ pub(crate) struct WebViewRenderer {
     pub page_zoom: Scale<f32, CSSPixel, DeviceIndependentPixel>,
     /// "Mobile-style" zoom that does not reflow the page.
     viewport_zoom: PinchZoomFactor,
-    /// Viewport zoom constraints provided by @viewport.
-    min_viewport_zoom: Option<PinchZoomFactor>,
-    max_viewport_zoom: Option<PinchZoomFactor>,
     /// The HiDPI scale factor for the `WebView` associated with this renderer. This is controlled
     /// by the embedding layer.
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
@@ -102,6 +100,8 @@ pub(crate) struct WebViewRenderer {
     pending_point_input_events: RefCell<VecDeque<InputEvent>>,
     /// WebRender is not ready between `SendDisplayList` and `WebRenderFrameReady` messages.
     pub webrender_frame_ready: Cell<bool>,
+    /// Viewport Description
+    viewport_description: Option<ViewportDescription>,
 }
 
 impl Drop for WebViewRenderer {
@@ -131,13 +131,12 @@ impl WebViewRenderer {
             global,
             pending_scroll_zoom_events: Default::default(),
             page_zoom: Scale::new(1.0),
-            viewport_zoom: PinchZoomFactor::new(1.0),
-            min_viewport_zoom: Some(PinchZoomFactor::new(1.0)),
-            max_viewport_zoom: None,
+            viewport_zoom: PinchZoomFactor::new(DEFAULT_ZOOM),
             hidpi_scale_factor: Scale::new(hidpi_scale_factor.0),
             animating: false,
             pending_point_input_events: Default::default(),
             webrender_frame_ready: Cell::default(),
+            viewport_description: None,
         }
     }
 
@@ -812,7 +811,8 @@ impl WebViewRenderer {
         let mut combined_magnification = 1.0;
         for scroll_event in self.pending_scroll_zoom_events.drain(..) {
             match scroll_event {
-                ScrollZoomEvent::PinchZoom(magnification) => {
+                ScrollZoomEvent::PinchZoom(magnification) |
+                ScrollZoomEvent::ViewportZoom(magnification) => {
                     combined_magnification *= magnification
                 },
                 ScrollZoomEvent::Scroll(scroll_event_info) => {
@@ -941,11 +941,8 @@ impl WebViewRenderer {
     }
 
     fn set_pinch_zoom_level(&mut self, mut zoom: f32) -> bool {
-        if let Some(min) = self.min_viewport_zoom {
-            zoom = f32::max(min.get(), zoom);
-        }
-        if let Some(max) = self.max_viewport_zoom {
-            zoom = f32::min(max.get(), zoom);
+        if let Some(viewport) = self.viewport_description.as_ref() {
+            zoom = viewport.clamp_zoom(zoom);
         }
 
         let old_zoom = std::mem::replace(&mut self.viewport_zoom, PinchZoomFactor::new(zoom));
@@ -975,7 +972,12 @@ impl WebViewRenderer {
 
         // TODO: Scroll to keep the center in view?
         self.pending_scroll_zoom_events
-            .push(ScrollZoomEvent::PinchZoom(magnification));
+            .push(ScrollZoomEvent::PinchZoom(
+                self.viewport_description
+                    .clone()
+                    .unwrap_or_default()
+                    .clamp_zoom(magnification),
+            ));
     }
 
     fn send_window_size_message(&self) {
@@ -1041,6 +1043,17 @@ impl WebViewRenderer {
     pub(crate) fn available_screen_size(&self) -> Size2D<i32, DeviceIndependentPixel> {
         let screen_geometry = self.webview.screen_geometry().unwrap_or_default();
         (screen_geometry.available_size.to_f32() / self.hidpi_scale_factor).to_i32()
+    }
+
+    pub fn set_viewport_description(&mut self, viewport_description: ViewportDescription) {
+        self.pending_scroll_zoom_events
+            .push(ScrollZoomEvent::ViewportZoom(
+                self.viewport_description
+                    .clone()
+                    .unwrap_or_default()
+                    .clamp_zoom(viewport_description.initial_scale.get()),
+            ));
+        self.viewport_description = Some(viewport_description);
     }
 }
 
