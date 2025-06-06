@@ -483,13 +483,11 @@ impl DevtoolsInstance {
         };
         let netevent_actor_name = self.find_network_event_actor(request_id);
 
-        // Get browsing_context_actor_name
-        let browsing_context_actor_name = match self.pipelines.get(&pipeline_id) {
-            Some(id) => match self.browsing_contexts.get(id) {
-                Some(name) => name.clone(),
-                None => return,
-            },
-            None => return,
+        let Some(id) = self.pipelines.get(&pipeline_id) else {
+            return;
+        };
+        let Some(browsing_context_actor_name) = self.browsing_contexts.get(id) else {
+            return;
         };
 
         handle_network_event(
@@ -498,7 +496,7 @@ impl DevtoolsInstance {
             netevent_actor_name,
             connections,
             network_event,
-            browsing_context_actor_name,
+            browsing_context_actor_name.to_string(),
         )
     }
 

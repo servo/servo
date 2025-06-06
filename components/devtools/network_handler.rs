@@ -13,6 +13,7 @@ use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::network_event::{EventActor, NetworkEventActor, ResponseStartMsg};
 use crate::protocol::JsonPacketStream;
 use crate::resource::ResourceAvailable;
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct NetworkEventMsg {
@@ -51,6 +52,13 @@ struct EventTimingsUpdateMsg {
 struct SecurityInfoUpdateMsg {
     state: String,
 }
+#[derive(Serialize, Clone)] 
+pub struct Cause {
+    #[serde(rename = "type")]
+    pub type_: String,
+    #[serde(rename = "loadingDocumentUri")]
+    pub loading_document_uri: Option<String>,
+}
 
 pub(crate) fn handle_network_event(
     actors: Arc<Mutex<ActorRegistry>>,
@@ -69,7 +77,7 @@ pub(crate) fn handle_network_event(
                 actor.add_request(httprequest);
                 actor.event_actor()
             };
-            // Mutable borrow released
+
             let browsing_context_actor =
                 actors.find::<BrowsingContextActor>(&browsing_context_actor_name);
             for stream in &mut connections {
@@ -81,6 +89,7 @@ pub(crate) fn handle_network_event(
             }
         },
         NetworkEvent::HttpResponse(httpresponse) => {
+            // Store the response information in the actor
             let actor = actors.find_mut::<NetworkEventActor>(&netevent_actor_name);
             actor.add_response(httpresponse);
 
