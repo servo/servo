@@ -188,9 +188,6 @@ impl PipeTo {
         // in which case this error will be overwritten by the shutdown action error.
         self.shutdown_error.set(error.get());
 
-        rooted!(in(*cx) let mut error = self.shutdown_error.get());
-        assert!(!error.is_undefined());
-
         // Let actions be an empty ordered set.
         // Note: the actions are defined, and performed, inside `shutdown_with_an_action`.
 
