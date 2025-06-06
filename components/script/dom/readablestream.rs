@@ -14,7 +14,7 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{Heap, JSObject};
-use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
+use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::rust::{
     HandleObject as SafeHandleObject, HandleValue as SafeHandleValue,
     MutableHandleValue as SafeMutableHandleValue,
@@ -155,7 +155,7 @@ pub(crate) struct PipeTo {
     /// The error potentially passed to shutdown,
     /// stored here because we must keep it across a microtask.
     #[ignore_malloc_size_of = "mozjs"]
-    shutdown_error: Rc<Heap<JSVal>>,
+    shutdown_error: Rc<RefCell<Option<Heap<JSVal>>>>,
 
     /// The promise returned by a shutdown action.
     /// We keep it to only continue when it is not pending anymore.
@@ -175,18 +175,25 @@ impl PipeTo {
         &self,
         cx: SafeJSContext,
         global: &GlobalScope,
-        error: SafeHandleValue,
+        reason: SafeHandleValue,
         realm: InRealm,
         can_gc: CanGc,
     ) {
         // Let error be signal’s abort reason.
-        self.abort_reason.set(error.get());
+        // Note: storing it because it may need to be kept across a microtask,
+        // and see the note below as to why it is kept separately from `shutdown_error`.
+        self.abort_reason.set(reason.get());
 
         // Note: setting the error now,
         // will result in a rejection of the pipe promise, with this error.
         // Unless any shutdown action raise their own error,
         // in which case this error will be overwritten by the shutdown action error.
-        self.shutdown_error.set(error.get());
+        {
+            let mut error = Some(Heap::default());
+            // Setting the value on the heap after it has been moved.
+            error.as_mut().map(|heap| heap.set(reason.get()));
+            *self.shutdown_error.borrow_mut() = error;
+        }
 
         // Let actions be an empty ordered set.
         // Note: the actions are defined, and performed, inside `shutdown_with_an_action`.
@@ -368,7 +375,12 @@ impl Callback for PipeTo {
                         // If `result` isn't undefined, or a list,
                         // then it is an error
                         // and should overwrite the current shutdown error.
-                        self.shutdown_error.set(result.get());
+                        {
+                            let mut error = Some(Heap::default());
+                            // Setting the value on the heap after it has been moved.
+                            error.as_mut().map(|heap| heap.set(result.get()));
+                            *self.shutdown_error.borrow_mut() = error;
+                        }
                     }
                 }
                 self.finalize(cx, &global, can_gc);
@@ -494,7 +506,12 @@ impl PipeTo {
         if source.is_errored() {
             rooted!(in(*cx) let mut source_error = UndefinedValue());
             source.get_stored_error(source_error.handle_mut());
-            self.shutdown_error.set(source_error.get());
+            {
+                let mut error = Some(Heap::default());
+                // Setting the value on the heap after it has been moved.
+                error.as_mut().map(|heap| heap.set(source_error.get()));
+                *self.shutdown_error.borrow_mut() = error;
+            }
 
             // If preventAbort is false,
             if !self.prevent_abort {
@@ -537,7 +554,12 @@ impl PipeTo {
         if dest.is_errored() {
             rooted!(in(*cx) let mut dest_error = UndefinedValue());
             dest.get_stored_error(dest_error.handle_mut());
-            self.shutdown_error.set(dest_error.get());
+            {
+                let mut error = Some(Heap::default());
+                // Setting the value on the heap after it has been moved.
+                error.as_mut().map(|heap| heap.set(dest_error.get()));
+                *self.shutdown_error.borrow_mut() = error;
+            }
 
             // If preventCancel is false,
             if !self.prevent_cancel {
@@ -626,7 +648,12 @@ impl PipeTo {
             let error =
                 Error::Type("Destination is closed or has closed queued or in flight".to_string());
             error.to_jsval(cx, global, dest_closed.handle_mut(), can_gc);
-            self.shutdown_error.set(dest_closed.get());
+            {
+                let mut error = Some(Heap::default());
+                // Setting the value on the heap after it has been moved.
+                error.as_mut().map(|heap| heap.set(dest_closed.get()));
+                *self.shutdown_error.borrow_mut() = error;
+            }
 
             // If preventCancel is false,
             if !self.prevent_cancel {
@@ -697,7 +724,11 @@ impl PipeTo {
         realm: InRealm,
         can_gc: CanGc,
     ) {
-        rooted!(in(*cx) let mut error = self.shutdown_error.get());
+        rooted!(in(*cx) let mut error = UndefinedValue());
+        if let Some(shutdown_error) = self.shutdown_error.borrow().as_ref() {
+            error.set(shutdown_error.get());
+        }
+
         *self.state.borrow_mut() = PipeToState::ShuttingDownPendingAction;
 
         // Let p be the result of performing action.
@@ -798,8 +829,9 @@ impl PipeTo {
         // If signal is not undefined, remove abortAlgorithm from signal.
         // TODO: implement AbortSignal.
 
-        rooted!(in(*cx) let mut error = self.shutdown_error.get());
-        if !error.is_null() {
+        if let Some(shutdown_error) = self.shutdown_error.borrow().as_ref() {
+            rooted!(in(*cx) let mut error = UndefinedValue());
+            error.set(shutdown_error.get());
             // If error was given, reject promise with error.
             self.result_promise.reject_native(&error.handle(), can_gc);
         } else {
@@ -1815,11 +1847,6 @@ impl ReadableStream {
             shutdown_action_promise:  Default::default(),
             result_promise: promise.clone(),
         });
-
-        // Note: set the shutdown error to null,
-        // to distinguish it from cases
-        // where the error is set to undefined.
-        pipe_to.shutdown_error.set(NullValue());
 
         // If signal is not undefined,
         // Note: moving the steps to here, so that the `PipeTo` is available.
