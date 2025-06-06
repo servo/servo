@@ -371,6 +371,8 @@ impl WebViewRenderer {
         }
     }
 
+    // TODO: This function duplicates a lot of `dispatch_point_input_event.
+    // Perhaps it should just be called here instead.
     pub(crate) fn dispatch_pending_point_input_events(&self) {
         while let Some(mut event) = self.pending_point_input_events.borrow_mut().pop_front() {
             // Events that do not need to do hit testing are sent directly to the
