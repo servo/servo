@@ -824,7 +824,9 @@ impl HTMLScriptElement {
             // Step 31. If el has a src content attribute, then:
 
             // Step 31.1. If el's type is "importmap".
-            if let ScriptType::ImportMap = script_type {
+            if script_type == ScriptType::ImportMap {
+                // then queue an element task on the DOM manipulation task source
+                // given el to fire an event named error at el, and return.
                 self.queue_error_event();
                 return;
             }
@@ -1068,7 +1070,6 @@ impl HTMLScriptElement {
             },
             ScriptType::Module => {
                 document.set_current_script(None);
-                assert!(document.GetCurrentScript().is_none());
                 self.run_a_module_script(&script, false, can_gc);
             },
             ScriptType::ImportMap => {
