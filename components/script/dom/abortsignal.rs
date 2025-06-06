@@ -91,7 +91,7 @@ impl AbortSignal {
         let abort_reason = reason.get();
 
         // Set signal’s abort reason to reason if it is given;
-        if !abort_reason.is_undefined() {
+        if !abort_reason.is_null() {
             self.abort_reason.set(abort_reason);
         } else {
             // otherwise to a new "AbortError" DOMException.
@@ -133,6 +133,17 @@ impl AbortSignal {
     ) {
         match algorithm {
             AbortAlgorithm::StreamPiping(pipe) => {
+                // Note: the streams spec says to "If signal is aborted, perform abortAlgorithm",
+                // which bypasses the signal abort concept,
+                // and bypasses the steps in that concept that set the default reason
+                // (see "otherwise to a new "AbortError" DOMException.")
+                // So we add it here even though it remains unspecified,
+                // because the `/stream/piping/abort.any.js` test rely on this mechanism.
+                if self.abort_reason.get().is_undefined() {
+                    rooted!(in(*cx) let mut rooted_error = UndefinedValue());
+                    Error::Abort.to_jsval(cx, &global, rooted_error.handle_mut(), can_gc);
+                    self.abort_reason.set(rooted_error.get())
+                }
                 rooted!(in(*cx) let mut reason = UndefinedValue());
                 reason.set(self.abort_reason.get());
                 pipe.abort_with_reason(cx, global, reason.handle(), realm, can_gc);
@@ -168,7 +179,7 @@ impl AbortSignal {
     /// <https://dom.spec.whatwg.org/#abortsignal-aborted>
     pub(crate) fn aborted(&self) -> bool {
         // An AbortSignal object is aborted when its abort reason is not undefined.
-        !self.abort_reason.get().is_undefined()
+        !self.abort_reason.get().is_null()
     }
 }
 

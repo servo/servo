@@ -26,7 +26,7 @@ impl AbortController {
     /// <https://dom.spec.whatwg.org/#dom-abortcontroller-abortcontroller>
     fn new_inherited(signal: &AbortSignal) -> AbortController {
         // Note: continuation of the constructor steps.
-        
+
         // Set this’s signal to signal.
         AbortController {
             reflector_: Reflector::new(),

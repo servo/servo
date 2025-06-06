@@ -182,6 +182,15 @@ impl PipeTo {
         // Let error be signal’s abort reason.
         self.abort_reason.set(error.get());
 
+        // Note: setting the error now,
+        // will result in a rejection of the pipe promise, with this error.
+        // Unless any shutdown action raise their own error,
+        // in which case this error will be overwritten by the shutdown action error.
+        self.shutdown_error.set(error.get());
+
+        rooted!(in(*cx) let mut error = self.shutdown_error.get());
+        assert!(!error.is_undefined());
+
         // Let actions be an empty ordered set.
         // Note: the actions are defined, and performed, inside `shutdown_with_an_action`.
 
@@ -329,10 +338,28 @@ impl Callback for PipeTo {
 
                 // Finalize, passing along error if it was given.
                 if !result.is_undefined() {
-                    // All actions either resolve with undefined,
+                    // Most actions either resolve with undefined,
                     // or reject with an error,
                     // and the error should be used when finalizing.
-                    self.shutdown_error.set(result.get());
+                    // One exception is the `Abort` action,
+                    // which resolves with a list of undefined values.
+                    rooted!(in(*cx) let object = result.to_object());
+                    rooted!(in(*cx) let mut done = UndefinedValue());
+                    let property = unsafe {
+                        get_dictionary_property(
+                            *cx,
+                            object.handle(),
+                            "0",
+                            done.handle_mut(),
+                            can_gc,
+                        )
+                    };
+                    if let Ok(false) = property {
+                        // If `result` isn't undefined, or a list,
+                        // then it is an error
+                        // and should overwrite the current shutdown error.
+                        self.shutdown_error.set(result.get());
+                    }
                 }
                 self.finalize(cx, &global, can_gc);
             },
