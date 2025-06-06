@@ -520,6 +520,10 @@ impl HTMLMediaElement {
         }
     }
 
+    pub(crate) fn network_state(&self) -> NetworkState {
+        self.network_state.get()
+    }
+
     pub(crate) fn get_ready_state(&self) -> ReadyState {
         self.ready_state.get()
     }

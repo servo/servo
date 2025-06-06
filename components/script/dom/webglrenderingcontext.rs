@@ -575,6 +575,23 @@ impl WebGLRenderingContext {
 
     pub(crate) fn get_image_pixels(&self, source: TexImageSource) -> Fallible<Option<TexPixels>> {
         Ok(Some(match source {
+            TexImageSource::ImageBitmap(bitmap) => {
+                if !bitmap.origin_is_clean() {
+                    return Err(Error::Security);
+                }
+                let Some(snapshot) = bitmap.bitmap_data().clone() else {
+                    return Ok(None);
+                };
+
+                let snapshot = snapshot.as_ipc();
+                let size = snapshot.size().cast();
+                let format = match snapshot.format() {
+                    snapshot::PixelFormat::RGBA => PixelFormat::RGBA8,
+                    snapshot::PixelFormat::BGRA => PixelFormat::BGRA8,
+                };
+                let premultiply = snapshot.alpha_mode().is_premultiplied();
+                TexPixels::new(snapshot.to_ipc_shared_memory(), size, format, premultiply)
+            },
             TexImageSource::ImageData(image_data) => TexPixels::new(
                 image_data.to_shared_memory(),
                 image_data.get_size(),
