@@ -60,7 +60,7 @@ impl AbortSignal {
     }
 
     #[allow(dead_code)]
-    fn new_with_proto(
+    pub(crate) fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,

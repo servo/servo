@@ -24,23 +24,27 @@ pub(crate) struct AbortController {
 
 impl AbortController {
     /// <https://dom.spec.whatwg.org/#dom-abortcontroller-abortcontroller>
-    fn new_inherited() -> AbortController {
-        // The new AbortController() constructor steps are:
-        // Let signal be a new AbortSignal object.
+    fn new_inherited(signal: &AbortSignal) -> AbortController {
+        // Note: continuation of the constructor steps.
+        
         // Set this’s signal to signal.
         AbortController {
             reflector_: Reflector::new(),
-            signal: Dom::from_ref(&AbortSignal::new_inherited()),
+            signal: Dom::from_ref(signal),
         }
     }
 
+    /// <https://dom.spec.whatwg.org/#dom-abortcontroller-abortcontroller>
     fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
     ) -> DomRoot<AbortController> {
+        // The new AbortController() constructor steps are:
+        // Let signal be a new AbortSignal object.
+        let signal = AbortSignal::new_with_proto(global, None, can_gc);
         reflect_dom_object_with_proto(
-            Box::new(AbortController::new_inherited()),
+            Box::new(AbortController::new_inherited(&signal)),
             global,
             proto,
             can_gc,
