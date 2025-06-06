@@ -29,7 +29,7 @@ use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
 use script_bindings::str::DOMString;
 
 use crate::dom::domexception::{DOMErrorName, DOMException};
-use script_bindings::conversions::StringificationBehavior;
+use script_bindings::conversions::{is_array_like, StringificationBehavior};
 use super::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
 use crate::dom::abortsignal::{AbortAlgorithm, AbortSignal};
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::ReadableStreamDefaultReaderMethods;
@@ -346,41 +346,30 @@ impl Callback for PipeTo {
                     return;
                 }
 
+                let is_array_like = {
+                    if !result.is_object() {
+                        false
+                    } else {
+                        unsafe { is_array_like::<crate::DomTypeHolder>(*cx, result) }
+                    }
+                };
+
                 // Finalize, passing along error if it was given.
-                if !result.is_undefined() {
+                if !result.is_undefined() && !is_array_like {
                     // Most actions either resolve with undefined,
                     // or reject with an error,
                     // and the error should be used when finalizing.
                     // One exception is the `Abort` action,
                     // which resolves with a list of undefined values.
-                    let is_sequence = {
-                        if !result.is_object() {
-                            false
-                        } else {
-                            rooted!(in(*cx) let object = result.to_object());
-                            rooted!(in(*cx) let mut done = UndefinedValue());
-                            let property = unsafe {
-                                get_dictionary_property(
-                                    *cx,
-                                    object.handle(),
-                                    "push",
-                                    done.handle_mut(),
-                                    can_gc,
-                                )
-                            };
-                            if let Ok(true) = property { true } else { false }
-                        }
-                    };
-                    if !is_sequence {
-                        // If `result` isn't undefined, or a list,
-                        // then it is an error
-                        // and should overwrite the current shutdown error.
-                        {
-                            let mut error = Some(Heap::default());
-                            // Setting the value on the heap after it has been moved.
-                            error.as_mut().map(|heap| heap.set(result.get()));
-                            *self.shutdown_error.borrow_mut() = error;
-                        }
+
+                    // If `result` isn't undefined or array-like,
+                    // then it is an error
+                    // and should overwrite the current shutdown error.
+                    {
+                        let mut error = Some(Heap::default());
+                        // Setting the value on the heap after it has been moved.
+                        error.as_mut().map(|heap| heap.set(result.get()));
+                        *self.shutdown_error.borrow_mut() = error;
                     }
                 }
                 self.finalize(cx, &global, can_gc);
