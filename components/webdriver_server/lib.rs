@@ -1633,7 +1633,7 @@ impl Handler {
         // TODO: distinguish the not found and not focusable cases
         // File input and non-typeable form control should have
         // been handled in `webdriver_handler.rs`.
-        if wait_for_script_response(receiver)?.map_err(|error| WebDriverError::new(error, ""))? {
+        if !wait_for_script_response(receiver)?.map_err(|error| WebDriverError::new(error, ""))? {
             return Ok(WebDriverResponse::Void);
         }
 
