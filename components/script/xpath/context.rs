@@ -5,10 +5,14 @@
 use std::iter::Enumerate;
 use std::vec::IntoIter;
 
+use script_bindings::str::DOMString;
+
 use super::Node;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::root::DomRoot;
 
 /// The context during evaluation of an XPath expression.
+#[derive(Debug)]
 pub(crate) struct EvaluationCtx {
     /// Where we started at
     pub(crate) starting_node: DomRoot<Node>,
@@ -20,7 +24,7 @@ pub(crate) struct EvaluationCtx {
     pub(crate) predicate_nodes: Option<Vec<DomRoot<Node>>>,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub(crate) struct PredicateCtx {
     pub(crate) index: usize,
     pub(crate) size: usize,
@@ -67,6 +71,12 @@ impl EvaluationCtx {
                 .enumerate(),
             size,
         }
+    }
+
+    /// Resolve a namespace prefix using the context node's document
+    pub(crate) fn resolve_namespace(&self, prefix: Option<&str>) -> Option<DOMString> {
+        self.context_node
+            .LookupNamespaceURI(prefix.map(DOMString::from))
     }
 }
 
