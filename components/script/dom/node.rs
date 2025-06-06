@@ -367,10 +367,12 @@ impl Node {
             .union(NodeFlags::IS_CONNECTED)
             .union(NodeFlags::HAS_DIRTY_DESCENDANTS)
             .union(NodeFlags::HAS_SNAPSHOT)
-            .union(NodeFlags::HANDLED_SNAPSHOT);
+            .union(NodeFlags::HANDLED_SNAPSHOT)
+            .union(NodeFlags::IS_IN_SHADOW_TREE)
+            .union(NodeFlags::IS_IN_UA_WIDGET);
 
         for node in root.traverse_preorder(ShadowIncluding::No) {
-            node.set_flag(RESET_FLAGS | NodeFlags::IS_IN_SHADOW_TREE, false);
+            node.set_flag(RESET_FLAGS, false);
 
             // If the element has a shadow root attached to it then we traverse that as well,
             // but without touching the IS_IN_SHADOW_TREE flags of the children
@@ -716,8 +718,8 @@ impl Node {
             .contains(NodeFlags::IS_TEXT_CONTROL_INNER_EDITOR)
     }
 
-    pub(crate) fn set_in_ua_widget(&self) {
-        self.set_flag(NodeFlags::IS_IN_UA_WIDGET, true)
+    pub(crate) fn set_in_ua_widget(&self, in_ua_widget: bool) {
+        self.set_flag(NodeFlags::IS_IN_UA_WIDGET, in_ua_widget)
     }
 
     pub(crate) fn in_ua_widget(&self) -> bool {
