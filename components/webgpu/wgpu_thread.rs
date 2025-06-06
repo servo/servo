@@ -502,7 +502,7 @@ impl WGPU {
                             .lock()
                             .expect("Lock poisoned?")
                             .next_id(WebrenderImageHandlerType::WebGPU);
-                        let image_key = self.compositor_api.generate_image_key().unwrap();
+                        let image_key = self.compositor_api.generate_image_key_blocking().unwrap();
                         let context_id = WebGPUContextId(id.0);
                         if let Err(e) = sender.send((context_id, image_key)) {
                             warn!("Failed to send ExternalImageId to new context ({})", e);

@@ -10756,6 +10756,50 @@
      "9235007d960cc6c804a93c89f24881bedc3613c3",
      []
     ],
+    "test1.jpg": [
+     "124d70729ea649ee253254ec0f1e2ea0f926ed31",
+     []
+    ],
+    "test10.jpg": [
+     "1ff396cd08dbf8a6039f39e79af860c44859da48",
+     []
+    ],
+    "test11.jpg": [
+     "8074fffaa33a371825c7a54c9536fc22f4d8bca4",
+     []
+    ],
+    "test2.jpg": [
+     "e35589b82207d655379acbcac3932ccbef846dee",
+     []
+    ],
+    "test3.jpg": [
+     "1f135409c45ea58b4cb7b89bdf4f71b8b43d0b88",
+     []
+    ],
+    "test4.jpg": [
+     "793ded09d3e65db01ea2c55c6f9f2bbe10366b94",
+     []
+    ],
+    "test5.jpg": [
+     "3df583072e57fd6195104e8fb16be7a91b751a70",
+     []
+    ],
+    "test6.jpg": [
+     "81c68f412a27fcdcb1d961db568168b0e9ea2caf",
+     []
+    ],
+    "test7.jpg": [
+     "b6169d4a7b804b184e4677eb9eda54c67f0d2e75",
+     []
+    ],
+    "test8.jpg": [
+     "295e9c523527c584eac494298060d2631d69603d",
+     []
+    ],
+    "test9.jpg": [
+     "c82f94f0134105792bb45a3a827c2a51cc92e674",
+     []
+    ],
     "text-overflow-ellipsis-stacking-context-ref.html": [
      "14215e780ab4a0cf00ef23b8472636a393aeacf1",
      []
@@ -13520,6 +13564,13 @@
     ],
     "img_find_non_sibling_map.html": [
      "9b88509ecce3ca0e2ce59f3d86e9570640bb5386",
+     [
+      null,
+      {}
+     ]
+    ],
+    "img_load_more_than_cache.html": [
+     "41f1212f8df42c9082d462d861a1ae5545ea5523",
      [
       null,
       {}

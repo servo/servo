@@ -30,8 +30,8 @@ use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
 pub use structured_data::*;
 use strum_macros::IntoStaticStr;
-use webrender_api::ExternalScrollId;
 use webrender_api::units::LayoutVector2D;
+use webrender_api::{ExternalScrollId, ImageKey};
 
 /// Messages to the Constellation from the embedding layer, whether from `ServoRenderer` or
 /// from `libservo` itself.
@@ -94,6 +94,8 @@ pub enum EmbedderToConstellationMessage {
     EvaluateJavaScript(WebViewId, JavaScriptEvaluationId, String),
     /// Create a memory report and return it via the ipc sender
     CreateMemoryReport(IpcSender<MemoryReportResult>),
+    /// Sends the generated image key to the image cache associated with this pipeline.
+    SendImageKeysForPipeline(PipelineId, Vec<ImageKey>),
 }
 
 /// A description of a paint metric that is sent from the Servo renderer to the
