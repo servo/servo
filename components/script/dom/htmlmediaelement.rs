@@ -2892,12 +2892,12 @@ struct HTMLMediaElementFetchListener {
     url: ServoUrl,
     /// Expected content length of the media asset being fetched or played.
     expected_content_length: Option<u64>,
-    /// Number of the last byte fetched from the network for the ongoing
-    /// request. It is only reset to 0 if we reach EOS. Seek requests
-    /// set it to the requested position. Requests triggered after an
-    /// EnoughData event uses this value to restart the download from
-    /// the last fetched position.
-    latest_fetched_content: u64,
+    /// Actual content length of the media asset was fetched.
+    fetched_content_length: u64,
+    /// Discarded content length from the network for the ongoing
+    /// request if range requests are not supported. Seek requests set it
+    /// to the required position (in bytes).
+    content_length_to_discard: u64,
 }
 
 // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
@@ -2986,16 +2986,34 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         }
     }
 
-    fn process_response_chunk(&mut self, _: RequestId, payload: Vec<u8>) {
+    fn process_response_chunk(&mut self, _: RequestId, chunk: Vec<u8>) {
         let elem = self.elem.root();
 
-        let payload_len = payload.len() as u64;
+        self.fetched_content_length += chunk.len() as u64;
 
         // If an error was received previously, we skip processing the payload.
         if let Some(ref mut current_fetch_context) = *elem.current_fetch_context.borrow_mut() {
             if current_fetch_context.cancel_reason().is_some() {
                 return;
             }
+
+            // Discard chunk of the response body if fetch context doesn't
+            // support range requests.
+            let payload = if !current_fetch_context.is_seekable() &&
+                self.content_length_to_discard != 0
+            {
+                if chunk.len() as u64 > self.content_length_to_discard {
+                    let shrink_chunk = chunk[self.content_length_to_discard as usize..].to_vec();
+                    self.content_length_to_discard = 0;
+                    shrink_chunk
+                } else {
+                    // Completely discard this response chunk.
+                    self.content_length_to_discard -= chunk.len() as u64;
+                    return;
+                }
+            } else {
+                chunk
+            };
 
             if let Err(e) = {
                 let mut data_source = current_fetch_context.data_source().borrow_mut();
@@ -3012,8 +3030,6 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
                 return;
             }
         }
-
-        self.latest_fetched_content += payload_len;
 
         // https://html.spec.whatwg.org/multipage/#concept-media-load-resource step 4,
         // => "If mode is remote" step 2
@@ -3039,6 +3055,26 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         // There are no more chunks of the response body forthcoming, so we can
         // go ahead and notify the media backend not to expect any further data.
         if let Some(ref mut current_fetch_context) = *elem.current_fetch_context.borrow_mut() {
+            // On initial state change READY -> PAUSED the media player perform
+            // seek to initial position by event with seek segment (TIME format)
+            // while media stack operates in BYTES format and configuring segment
+            // start and stop positions without the total size of the stream is not
+            // possible. As fallback the media player perform seek with BYTES format
+            // and initiate seek request via "seek-data" callback with required offset.
+            if self.expected_content_length.is_none() && self.fetched_content_length != 0 {
+                if let Err(e) = elem
+                    .player
+                    .borrow()
+                    .as_ref()
+                    .unwrap()
+                    .lock()
+                    .unwrap()
+                    .set_input_size(self.fetched_content_length)
+                {
+                    warn!("Could not set player input size {:?}", e);
+                }
+            }
+
             let mut data_source = current_fetch_context.data_source().borrow_mut();
 
             data_source.add_buffer_to_queue(DataBuffer::EndOfStream);
@@ -3051,7 +3087,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
             }
         }
 
-        if status.is_ok() && self.latest_fetched_content != 0 {
+        if status.is_ok() && self.fetched_content_length != 0 {
             elem.upcast::<EventTarget>()
                 .fire_event(atom!("progress"), CanGc::note());
 
@@ -3157,7 +3193,8 @@ impl HTMLMediaElementFetchListener {
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
             url,
             expected_content_length: None,
-            latest_fetched_content: offset,
+            fetched_content_length: 0,
+            content_length_to_discard: offset,
         }
     }
 }
