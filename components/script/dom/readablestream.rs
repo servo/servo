@@ -302,6 +302,12 @@ impl Callback for PipeTo {
                 // Write the chunk.
                 self.write_chunk(cx, &global, result, can_gc);
 
+                // An early return is necessary because writing the chunk calls into JS,
+                // which can abort the pipe.
+        if self.shutting_down.get() {
+            return;
+        }
+
                 // Wait for the writer to be ready again.
                 self.wait_for_writer_ready(&global, realm, can_gc);
             },

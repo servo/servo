@@ -179,7 +179,7 @@ impl AbortSignal {
     /// <https://dom.spec.whatwg.org/#abortsignal-aborted>
     pub(crate) fn aborted(&self) -> bool {
         // An AbortSignal object is aborted when its abort reason is not undefined.
-        !self.abort_reason.get().is_null()
+        !self.abort_reason.get().is_undefined()
     }
 }
 
