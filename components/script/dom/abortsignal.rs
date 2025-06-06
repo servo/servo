@@ -17,7 +17,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::readablestream::PipeTo;
-use crate::realms::{InRealm, enter_realm};
+use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 impl js::gc::Rootable for AbortAlgorithm {}
@@ -74,10 +74,14 @@ impl AbortSignal {
     }
 
     /// <https://dom.spec.whatwg.org/#abortsignal-signal-abort>
-    pub(crate) fn signal_abort(&self, cx: SafeJSContext, reason: HandleValue, can_gc: CanGc) {
+    pub(crate) fn signal_abort(
+        &self,
+        cx: SafeJSContext,
+        reason: HandleValue,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
         let global = self.global();
-        let realm = enter_realm(&*global);
-        let comp = InRealm::Entered(&realm);
 
         // If signal is aborted, then return.
         if self.Aborted() {
@@ -101,7 +105,7 @@ impl AbortSignal {
         // TODO: #36936
 
         // Run the abort steps for signal.
-        self.run_the_abort_steps(cx, &global, comp, can_gc);
+        self.run_the_abort_steps(cx, &global, realm, can_gc);
 
         // For each dependentSignal of dependentSignalsToAbort, run the abort steps for dependentSignal.
         // TODO: #36936
