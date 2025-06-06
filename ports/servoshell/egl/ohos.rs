@@ -123,6 +123,8 @@ const PROMPT_QUEUE_SIZE: usize = 4;
 static SET_URL_BAR_CB: OnceLock<
     ThreadsafeFunction<String, (), String, false, false, UPDATE_URL_QUEUE_SIZE>,
 > = OnceLock::new();
+static TERMINATE_CALLBACK: OnceLock<ThreadsafeFunction<(), (), (), false, false, 1>> =
+    OnceLock::new();
 static PROMPT_TOAST: OnceLock<
     ThreadsafeFunction<String, (), String, false, false, PROMPT_QUEUE_SIZE>,
 > = OnceLock::new();
@@ -601,6 +603,15 @@ pub fn register_url_callback(callback: Function<String, ()>) -> napi_ohos::Resul
     })
 }
 
+#[napi(js_name = "registerTerminateCallback")]
+pub fn register_terminate_callback(callback: Function<(), ()>) -> napi_ohos::Result<()> {
+    let tsfn_builder = callback.build_threadsafe_function();
+    let function = tsfn_builder.max_queue_size::<1>().build()?;
+    TERMINATE_CALLBACK
+        .set(function)
+        .map_err(|_| napi_ohos::Error::from_reason("Failed to set terminate function"))
+}
+
 #[napi]
 pub fn register_prompt_toast_callback(callback: Function<String, ()>) -> napi_ohos::Result<()> {
     debug!("register_prompt_toast_callback called!");
@@ -850,7 +861,13 @@ impl HostTrait for HostCallbacks {
         // todo: should we tell the vsync thread that it should perform updates?
     }
 
-    fn on_shutdown_complete(&self) {}
+    fn on_shutdown_complete(&self) {
+        if let Some(terminate_fn) = TERMINATE_CALLBACK.get() {
+            terminate_fn.call((), ThreadsafeFunctionCallMode::Blocking);
+        } else {
+            error!("Could not shut down despite servo shutting down");
+        }
+    }
 
     /// Shows the Inputmethod
     ///
