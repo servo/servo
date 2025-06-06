@@ -507,7 +507,7 @@ pub(crate) fn wait_for_all(
     can_gc: CanGc,
 ) {
     // Let fullfilledCount be 0.
-    // Note: done below when constructing a fulfillment handler.
+    let fulfilled_count: Rc<RefCell<usize>> = Default::default();
 
     // Let rejected be false.
     // Note: done below when constructing a rejection handler.
@@ -563,7 +563,7 @@ pub(crate) fn wait_for_all(
                 success_steps: success_steps.clone(),
                 result,
                 promise_index,
-                fulfilled_count: Default::default(),
+                fulfilled_count: fulfilled_count.clone(),
             })),
             Some(Box::new(rejection_handler.clone())),
             can_gc,
