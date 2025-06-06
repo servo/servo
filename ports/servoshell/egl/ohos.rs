@@ -867,14 +867,14 @@ impl HostTrait for HostCallbacks {
         let mut ime_proxy = self.ime_proxy.borrow_mut();
         let ime = ime_proxy.get_or_insert_with(|| {
             let attach_options = AttachOptions::new(true);
-            let configbuilder = ohos_ime::TextConfigBuilder::new();
             let options = convert_ime_options(input_type, multiline);
-            let text_config = configbuilder
+            let text_config = ohos_ime::TextConfigBuilder::new()
                 .input_type(options.input_type)
                 .enterkey_type(options.enterkey_type)
                 .build();
-            let editor = RawTextEditorProxy::new(Box::new(ServoIme { text_config }));
-            ImeProxy::new(editor, attach_options)
+            let editor = RawTextEditorProxy::new(Box::new(ServoIme { text_config }))
+                .expect("Failed to create RawTextEditorProxy");
+            ImeProxy::new(editor, attach_options).expect("Failed to create IME proxy")
         });
         match ime.show_keyboard() {
             Ok(()) => debug!("IME show keyboard - success"),
