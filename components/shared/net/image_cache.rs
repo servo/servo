@@ -14,6 +14,7 @@ use pixels::{CorsStatus, ImageMetadata, RasterImage};
 use profile_traits::mem::Report;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
+use webrender_api::ImageKey;
 use webrender_api::units::DeviceIntSize;
 
 use crate::FetchResponseMsg;
@@ -171,7 +172,11 @@ pub enum ImageCacheResult {
 }
 
 pub trait ImageCache: Sync + Send {
-    fn new(compositor_api: CrossProcessCompositorApi, rippy_data: Vec<u8>) -> Self
+    fn new(
+        compositor_api: CrossProcessCompositorApi,
+        rippy_data: Vec<u8>,
+        pipeline_id: Option<PipelineId>,
+    ) -> Self
     where
         Self: Sized;
 
@@ -225,6 +230,10 @@ pub trait ImageCache: Sync + Send {
     /// Create new image cache based on this one, while reusing the existing thread_pool.
     fn create_new_image_cache(
         &self,
+        pipeline_id: Option<PipelineId>,
         compositor_api: CrossProcessCompositorApi,
     ) -> Arc<dyn ImageCache>;
+
+    /// Fills the LoadKeyCache with some keys
+    fn fill_key_cache_with_keys(&self, image_keys: Vec<ImageKey>);
 }

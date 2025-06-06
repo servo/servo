@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
+use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Mutex};
 use std::{mem, thread};
 
@@ -11,7 +11,7 @@ use base::id::PipelineId;
 use compositing_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
 use imsz::imsz_from_reader;
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
-use log::{debug, warn};
+use log::{debug, error, warn};
 use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
@@ -29,7 +29,9 @@ use resvg::{tiny_skia, usvg};
 use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use webrender_api::units::DeviceIntSize;
-use webrender_api::{ImageDescriptor, ImageDescriptorFlags, ImageFormat};
+use webrender_api::{
+    ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey as WebRenderImageKey,
+};
 
 use crate::resource_thread::CoreResourceThreadPool;
 
@@ -95,6 +97,7 @@ fn decode_bytes_sync(
     DecoderMsg { key, image }
 }
 
+/// This will block on getting an ImageKey.
 fn get_placeholder_image(
     compositor_api: &CrossProcessCompositorApi,
     data: &[u8],
@@ -102,11 +105,18 @@ fn get_placeholder_image(
     let mut image = load_from_memory(data, CorsStatus::Unsafe)
         .or_else(|| load_from_memory(FALLBACK_RIPPY, CorsStatus::Unsafe))
         .expect("load fallback image failed");
-    set_webrender_image_key(compositor_api, &mut image);
+    let image_key = compositor_api
+        .generate_image_key_blocking()
+        .expect("Could not generate image key");
+    set_webrender_image_key(compositor_api, &mut image, image_key);
     Arc::new(image)
 }
 
-fn set_webrender_image_key(compositor_api: &CrossProcessCompositorApi, image: &mut RasterImage) {
+fn set_webrender_image_key(
+    compositor_api: &CrossProcessCompositorApi,
+    image: &mut RasterImage,
+    image_key: WebRenderImageKey,
+) {
     if image.id.is_some() {
         return;
     }
@@ -146,11 +156,9 @@ fn set_webrender_image_key(compositor_api: &CrossProcessCompositorApi, image: &m
         offset: 0,
         flags,
     };
-    if let Some(image_key) = compositor_api.generate_image_key() {
-        let data = SerializableImageData::Raw(IpcSharedMemory::from_bytes(&bytes));
-        compositor_api.add_image(image_key, descriptor, data);
-        image.id = Some(image_key);
-    }
+    let data = SerializableImageData::Raw(IpcSharedMemory::from_bytes(&bytes));
+    compositor_api.add_image(image_key, descriptor, data);
+    image.id = Some(image_key);
 }
 
 // ======================================================================
@@ -404,6 +412,56 @@ struct RasterizationTask {
     result: Option<RasterImage>,
 }
 
+/// Used for storing images that do not have a `WebRenderImageKey` yet.
+#[derive(Debug, MallocSizeOf)]
+enum PendingKey {
+    RasterImage((LoadKey, RasterImage)),
+    Svg((LoadKey, RasterImage, DeviceIntSize)),
+}
+
+/// The state of the `WebRenderImageKey`` cache
+#[derive(Debug, MallocSizeOf)]
+enum KeyCacheState {
+    /// We already requested a batch of keys but it could be that we still have one key left
+    PendingBatch,
+    /// We have some keys in the cache.
+    Ready(VecDeque<WebRenderImageKey>),
+}
+
+/// As getting new keys takes a round trip over the constellation, we keep a small cache of them.
+/// Additionally, this cache will store image resources that do not have a key yet because we should never block.
+#[derive(MallocSizeOf)]
+struct KeyCache {
+    /// A simple cache of `WebRenderImageKey`
+    cache: KeyCacheState,
+    /// These images are loaded but have no key assigned to yet.
+    no_key_yet: VecDeque<PendingKey>,
+}
+
+impl KeyCache {
+    fn new() -> Self {
+        KeyCache {
+            cache: KeyCacheState::Ready(VecDeque::new()),
+            no_key_yet: VecDeque::new(),
+        }
+    }
+
+    /// Adds a key to the cache. This currently assumes
+    /// that we will ad more than one key if the cache is empty.
+    fn add_key(&mut self, key: WebRenderImageKey) {
+        match self.cache {
+            KeyCacheState::PendingBatch => {
+                let mut v = VecDeque::new();
+                v.push_back(key);
+                self.cache = KeyCacheState::Ready(v);
+            },
+            KeyCacheState::Ready(ref mut items) => {
+                items.push_back(key);
+            },
+        }
+    }
+}
+
 /// ## Image cache implementation.
 #[derive(MallocSizeOf)]
 struct ImageCacheStore {
@@ -433,33 +491,131 @@ struct ImageCacheStore {
     /// Cross-process compositor API instance.
     #[ignore_malloc_size_of = "Channel from another crate"]
     compositor_api: CrossProcessCompositorApi,
+
+    pipeline_id: Option<PipelineId>,
+
+    /// Main struct to handle the cache of `WebRenderImageKey` and
+    /// images that do not have a key yet.
+    key_cache: KeyCache,
 }
 
 impl ImageCacheStore {
-    // Change state of a url from pending -> loaded.
-    fn complete_load(&mut self, key: LoadKey, mut load_result: LoadResult) {
+    /// Finishes loading the image by setting the WebRenderImageKey and calling `compete_load` or `complete_load_svg`.
+    fn set_key_and_finish_load(&mut self, pending_image: PendingKey, image_key: WebRenderImageKey) {
+        match pending_image {
+            PendingKey::RasterImage((pending_id, mut raster_image)) => {
+                set_webrender_image_key(&self.compositor_api, &mut raster_image, image_key);
+                self.complete_load(pending_id, LoadResult::LoadedRasterImage(raster_image));
+            },
+            PendingKey::Svg((pending_id, mut raster_image, requested_size)) => {
+                set_webrender_image_key(&self.compositor_api, &mut raster_image, image_key);
+                self.complete_load_svg(raster_image, pending_id, requested_size);
+            },
+        }
+    }
+
+    /// Load an image. This will either load the image normally, or wait till a key
+    /// is available and then load the image. Only call this if the image does not have a `LoadKey` yet.
+    fn load_image_with_keycache(&mut self, pending_image: PendingKey) {
+        if let Some(pipeline_id) = self.pipeline_id {
+            match self.key_cache.cache {
+                KeyCacheState::PendingBatch => {
+                    self.key_cache.no_key_yet.push_back(pending_image);
+                },
+                KeyCacheState::Ready(ref mut cache) => {
+                    match cache.len() {
+                        0 => {
+                            self.key_cache.no_key_yet.push_back(pending_image);
+                            self.compositor_api.generate_image_key_async(pipeline_id);
+                            self.key_cache.cache = KeyCacheState::PendingBatch;
+                        },
+                        1 => {
+                            let image_key = cache.pop_front().unwrap();
+                            self.compositor_api.generate_image_key_async(pipeline_id);
+                            self.set_key_and_finish_load(pending_image, image_key);
+                            self.key_cache.cache = KeyCacheState::PendingBatch;
+                        },
+                        2 => {
+                            // We do not set the `CacheState` to pending here because we still have a
+                            // key. If we make it in time, the cache will be Ready. If we do not make it in time,
+                            // we still set the state to pending in for size 1. This assumes we will
+                            // have a batch size greater than 2.
+                            let image_key = cache.pop_front().unwrap();
+                            self.compositor_api.generate_image_key_async(pipeline_id);
+                            self.set_key_and_finish_load(pending_image, image_key);
+                        },
+                        _ => {
+                            let image_key = cache.pop_front().unwrap();
+                            self.set_key_and_finish_load(pending_image, image_key);
+                        },
+                    }
+                },
+            }
+        } else {
+            error!("No pipeline id for this image key cache. Have to block.");
+            self.compositor_api.generate_image_key_blocking();
+        }
+    }
+
+    /// Insert received keys into the cache and complete the loading of images
+    fn insert_keys_and_load_images(&mut self, image_keys: Vec<WebRenderImageKey>) {
+        for image_key in image_keys {
+            if let Some(pending_key) = self.key_cache.no_key_yet.pop_front() {
+                self.set_key_and_finish_load(pending_key, image_key);
+            } else {
+                self.key_cache.add_key(image_key);
+            }
+        }
+    }
+
+    /// Complete the loading the of the rasterized svg image. This needs the `RasterImage` to
+    /// already have a `WebRenderImageKey`.
+    fn complete_load_svg(
+        &mut self,
+        rasterized_image: RasterImage,
+        pending_image_id: PendingImageId,
+        requested_size: DeviceIntSize,
+    ) {
+        let listeners = {
+            self.rasterized_vector_images
+                .get_mut(&(pending_image_id, requested_size))
+                .map(|task| {
+                    task.result = Some(rasterized_image);
+                    std::mem::take(&mut task.listeners)
+                })
+                .unwrap_or_default()
+        };
+
+        for (pipeline_id, sender) in listeners {
+            let _ = sender.send(ImageCacheResponseMessage::VectorImageRasterizationComplete(
+                RasterizationCompleteResponse {
+                    pipeline_id,
+                    image_id: pending_image_id,
+                    requested_size,
+                },
+            ));
+        }
+    }
+
+    /// The rest of complete load. This requires that images have a valid `WebRenderImageKey`.
+    fn complete_load(&mut self, key: LoadKey, load_result: LoadResult) {
         debug!("Completed decoding for {:?}", load_result);
         let pending_load = match self.pending_loads.remove(&key) {
             Some(load) => load,
             None => return,
         };
 
-        match load_result {
-            LoadResult::LoadedRasterImage(ref mut raster_image) => {
-                set_webrender_image_key(&self.compositor_api, raster_image)
-            },
-            LoadResult::LoadedVectorImage(ref vector_image) => {
-                self.vector_images.insert(key, vector_image.clone());
-            },
-            LoadResult::PlaceholderLoaded(..) | LoadResult::None => {},
-        }
-
         let url = pending_load.final_url.clone();
         let image_response = match load_result {
             LoadResult::LoadedRasterImage(raster_image) => {
-                ImageResponse::Loaded(Image::Raster(Arc::new(raster_image)), url.unwrap())
+                if raster_image.id.is_some() {
+                    ImageResponse::Loaded(Image::Raster(Arc::new(raster_image)), url.unwrap())
+                } else {
+                    ImageResponse::None
+                }
             },
             LoadResult::LoadedVectorImage(vector_image) => {
+                self.vector_images.insert(key, vector_image.clone());
                 let natural_dimensions = vector_image.svg_tree.size().to_int_size();
                 let metadata = ImageMetadata {
                     width: natural_dimensions.width(),
@@ -523,7 +679,13 @@ impl ImageCacheStore {
     fn handle_decoder(&mut self, msg: DecoderMsg) {
         let image = match msg.image {
             None => LoadResult::None,
-            Some(DecodedImage::Raster(raster_image)) => LoadResult::LoadedRasterImage(raster_image),
+            Some(DecodedImage::Raster(raster_image)) => {
+                if raster_image.id.is_none() {
+                    self.load_image_with_keycache(PendingKey::RasterImage((msg.key, raster_image)));
+                    return;
+                }
+                LoadResult::LoadedRasterImage(raster_image)
+            },
             Some(DecodedImage::Vector(vector_image_data)) => {
                 LoadResult::LoadedVectorImage(vector_image_data)
             },
@@ -540,7 +702,11 @@ pub struct ImageCacheImpl {
 }
 
 impl ImageCache for ImageCacheImpl {
-    fn new(compositor_api: CrossProcessCompositorApi, rippy_data: Vec<u8>) -> ImageCacheImpl {
+    fn new(
+        compositor_api: CrossProcessCompositorApi,
+        rippy_data: Vec<u8>,
+        pipeline_id: Option<PipelineId>,
+    ) -> ImageCacheImpl {
         debug!("New image cache");
 
         // Uses an estimate of the system cpus to decode images
@@ -559,7 +725,9 @@ impl ImageCache for ImageCacheImpl {
                 rasterized_vector_images: HashMap::new(),
                 placeholder_image: get_placeholder_image(&compositor_api, &rippy_data),
                 placeholder_url: ServoUrl::parse("chrome://resources/rippy.png").unwrap(),
-                compositor_api,
+                compositor_api: compositor_api.clone(),
+                pipeline_id,
+                key_cache: KeyCache::new(),
             })),
             thread_pool: Arc::new(CoreResourceThreadPool::new(
                 thread_count,
@@ -767,7 +935,7 @@ impl ImageCache for ImageCacheImpl {
                 height: tinyskia_requested_size.height(),
             };
 
-            let mut rasterized_image = RasterImage {
+            let rasterized_image = RasterImage {
                 metadata: ImageMetadata {
                     width: tinyskia_requested_size.width(),
                     height: tinyskia_requested_size.height(),
@@ -779,28 +947,12 @@ impl ImageCache for ImageCacheImpl {
                 cors_status: vector_image.cors_status,
             };
 
-            let listeners = {
-                let mut store = store.lock().unwrap();
-                set_webrender_image_key(&store.compositor_api, &mut rasterized_image);
-                store
-                    .rasterized_vector_images
-                    .get_mut(&(image_id, requested_size))
-                    .map(|task| {
-                        task.result = Some(rasterized_image);
-                        std::mem::take(&mut task.listeners)
-                    })
-                    .unwrap_or_default()
-            };
-
-            for (pipeline_id, sender) in listeners {
-                let _ = sender.send(ImageCacheResponseMessage::VectorImageRasterizationComplete(
-                    RasterizationCompleteResponse {
-                        pipeline_id,
-                        image_id,
-                        requested_size,
-                    },
-                ));
-            }
+            let mut store = store.lock().unwrap();
+            store.load_image_with_keycache(PendingKey::Svg((
+                image_id,
+                rasterized_image,
+                requested_size,
+            )));
         });
 
         None
@@ -905,6 +1057,7 @@ impl ImageCache for ImageCacheImpl {
 
     fn create_new_image_cache(
         &self,
+        pipeline_id: Option<PipelineId>,
         compositor_api: CrossProcessCompositorApi,
     ) -> Arc<dyn ImageCache> {
         let store = self.store.lock().unwrap();
@@ -916,12 +1069,19 @@ impl ImageCache for ImageCacheImpl {
                 completed_loads: HashMap::new(),
                 placeholder_image,
                 placeholder_url,
-                compositor_api,
+                compositor_api: compositor_api.clone(),
                 vector_images: HashMap::new(),
                 rasterized_vector_images: HashMap::new(),
+                key_cache: KeyCache::new(),
+                pipeline_id,
             })),
             thread_pool: self.thread_pool.clone(),
         })
+    }
+
+    fn fill_key_cache_with_keys(&self, image_keys: Vec<WebRenderImageKey>) {
+        let mut store = self.store.lock().unwrap();
+        store.insert_keys_and_load_images(image_keys);
     }
 }
 

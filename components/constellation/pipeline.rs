@@ -508,6 +508,7 @@ impl UnprivilegedPipelineContent {
         let image_cache = Arc::new(ImageCacheImpl::new(
             self.cross_process_compositor_api.clone(),
             self.rippy_data,
+            Some(self.id),
         ));
         let (content_process_shutdown_chan, content_process_shutdown_port) = unbounded();
         STF::create(
