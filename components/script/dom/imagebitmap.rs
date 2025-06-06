@@ -68,7 +68,7 @@ impl ImageBitmap {
 
     /// Return the value of the [`[[Detached]]`](https://html.spec.whatwg.org/multipage/#detached)
     /// internal slot
-    fn is_detached(&self) -> bool {
+    pub(crate) fn is_detached(&self) -> bool {
         self.bitmap_data.borrow().is_none()
     }
 }
@@ -109,9 +109,9 @@ impl Serializable for ImageBitmap {
     }
 
     fn serialized_storage<'a>(
-        reader: StructuredData<'a, '_>,
+        data: StructuredData<'a, '_>,
     ) -> &'a mut Option<HashMap<ImageBitmapId, Self::Data>> {
-        match reader {
+        match data {
             StructuredData::Reader(r) => &mut r.image_bitmaps,
             StructuredData::Writer(w) => &mut w.image_bitmaps,
         }

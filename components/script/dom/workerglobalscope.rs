@@ -446,7 +446,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             .queue_function_as_microtask(callback);
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-createimagebitmap
+    /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
     fn CreateImageBitmap(
         &self,
         image: ImageBitmapSource,
@@ -455,7 +455,30 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     ) -> Rc<Promise> {
         let p = self
             .upcast::<GlobalScope>()
-            .create_image_bitmap(image, options, can_gc);
+            .create_image_bitmap(image, 0, 0, None, None, options, can_gc);
+        p
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
+    fn CreateImageBitmap_(
+        &self,
+        image: ImageBitmapSource,
+        sx: i32,
+        sy: i32,
+        sw: i32,
+        sh: i32,
+        options: &ImageBitmapOptions,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        let p = self.upcast::<GlobalScope>().create_image_bitmap(
+            image,
+            sx,
+            sy,
+            Some(sw),
+            Some(sh),
+            options,
+            can_gc,
+        );
         p
     }
 

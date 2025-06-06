@@ -148,6 +148,11 @@ impl ImageData {
             imagedata, global, proto, can_gc,
         ))
     }
+
+    pub(crate) fn is_detached(&self) -> bool {
+        self.data.is_detached_buffer(GlobalScope::get_cx())
+    }
+
     #[allow(unsafe_code)]
     pub(crate) fn to_shared_memory(&self) -> IpcSharedMemory {
         IpcSharedMemory::from_bytes(unsafe { self.as_slice() })
