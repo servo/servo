@@ -237,6 +237,8 @@ impl WebViewDelegate for RunningAppState {
         }
     }
 
+    // We open the auxiliary webview without focusing
+    // This behaviour is consistent with desktop/app_state.rs
     fn request_open_auxiliary_webview(&self, parent_webview: WebView) -> Option<WebView> {
         let webview = WebViewBuilder::new_auxiliary(&self.servo)
             .delegate(parent_webview.delegate())

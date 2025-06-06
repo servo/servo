@@ -4702,25 +4702,39 @@ where
             WebDriverCommandMsg::CloseWebView(webview_id) => {
                 self.handle_close_top_level_browsing_context(webview_id);
             },
-            WebDriverCommandMsg::NewWebView(webview_id, sender, load_sender) => {
-                let (chan, port) = match ipc::channel() {
+            WebDriverCommandMsg::NewWebView(
+                originating_webview_id,
+                response_sender,
+                load_status_sender,
+            ) => {
+                let (embedder_endpoint, from_embedder) = match ipc::channel() {
                     Ok(result) => result,
                     Err(error) => return warn!("Failed to create channel: {error:?}"),
                 };
-                self.embedder_proxy
-                    .send(EmbedderMsg::AllowOpeningWebView(webview_id, chan));
-                let (webview_id, viewport_details) = match port.recv() {
-                    Ok(Some((webview_id, viewport_details))) => (webview_id, viewport_details),
+                self.embedder_proxy.send(EmbedderMsg::AllowOpeningWebView(
+                    originating_webview_id,
+                    embedder_endpoint,
+                ));
+                let (new_webview_id, viewport_details) = match from_embedder.recv() {
+                    Ok(Some((new_webview_id, viewport_details))) => {
+                        (new_webview_id, viewport_details)
+                    },
                     Ok(None) => return warn!("Embedder refused to allow opening webview"),
                     Err(error) => return warn!("Failed to receive webview id: {error:?}"),
                 };
                 self.handle_new_top_level_browsing_context(
                     ServoUrl::parse_with_base(None, "about:blank").expect("Infallible parse"),
-                    webview_id,
+                    new_webview_id,
                     viewport_details,
-                    Some(load_sender),
+                    Some(load_status_sender),
                 );
-                let _ = sender.send(webview_id);
+                if let Err(e) = response_sender.send(new_webview_id) {
+                    error!(
+                        "WebDriverCommandMsg::NewWebView: IPC error when sending new_webview_id \
+                        to webdriver server: {}",
+                        e
+                    );
+                }
             },
             WebDriverCommandMsg::FocusWebView(webview_id) => {
                 self.handle_focus_web_view(webview_id);

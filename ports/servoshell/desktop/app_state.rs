@@ -467,6 +467,9 @@ impl WebViewDelegate for RunningAppState {
         );
     }
 
+    // We open the auxiliary webview without focusing
+    // DO NOT change this behaviour because it is required by webdriver
+    // This behaviour is consistent with egl/app_state.rs
     fn request_open_auxiliary_webview(
         &self,
         parent_webview: servo::WebView,
@@ -477,9 +480,6 @@ impl WebViewDelegate for RunningAppState {
             .build();
 
         webview.notify_theme_change(self.inner().window.theme());
-        webview.focus();
-        webview.raise_to_top(true);
-
         self.add(webview.clone());
         Some(webview)
     }
