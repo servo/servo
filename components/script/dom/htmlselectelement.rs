@@ -16,6 +16,8 @@ use embedder_traits::{SelectElementOptionOrOptgroup, SelectElementOption};
 use euclid::{Size2D, Point2D, Rect};
 use embedder_traits::{FormControl as EmbedderFormControl, EmbedderMsg};
 
+use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::event::{EventBubbles, EventCancelable, EventComposed};
 use crate::dom::bindings::codegen::GenericBindings::HTMLOptGroupElementBinding::HTMLOptGroupElement_Binding::HTMLOptGroupElementMethods;
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
@@ -346,13 +348,6 @@ impl HTMLSelectElement {
             .SetData(displayed_text.trim().into());
     }
 
-    pub(crate) fn selection_changed(&self, can_gc: CanGc) {
-        self.update_shadow_tree(can_gc);
-
-        self.upcast::<EventTarget>()
-            .fire_bubbling_event(atom!("change"), can_gc);
-    }
-
     pub(crate) fn selected_option(&self) -> Option<DomRoot<HTMLOptionElement>> {
         self.list_of_options()
             .find(|opt_elem| opt_elem.Selected())
@@ -417,11 +412,38 @@ impl HTMLSelectElement {
             return None;
         };
 
-        if response.is_some() && response != selected_index {
-            self.selection_changed(can_gc);
-        }
-
         response
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#send-select-update-notifications>
+    fn send_update_notifications(&self) {
+        // > When the user agent is to send select update notifications, queue an element task on the
+        // > user interaction task source given the select element to run these steps:
+        let this = Trusted::new(self);
+        self.owner_global()
+            .task_manager()
+            .user_interaction_task_source()
+            .queue(task!(send_select_update_notification: move || {
+                let this = this.root();
+
+                // TODO: Step 1. Set the select element's user validity to true.
+
+                // Step 2. Fire an event named input at the select element, with the bubbles and composed
+                // attributes initialized to true.
+                this.upcast::<EventTarget>()
+                    .fire_event_with_params(
+                        atom!("input"),
+                        EventBubbles::Bubbles,
+                        EventCancelable::NotCancelable,
+                        EventComposed::Composed,
+                        CanGc::note(),
+                    );
+
+                // Step 3. Fire an event named change at the select element, with the bubbles attribute initialized
+                // to true.
+                this.upcast::<EventTarget>()
+                    .fire_bubbling_event(atom!("change"), CanGc::note());
+            }));
     }
 }
 
@@ -578,21 +600,28 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-selectedindex>
     fn SetSelectedIndex(&self, index: i32, can_gc: CanGc) {
+        let mut selection_did_change = false;
+
         let mut opt_iter = self.list_of_options();
         for opt in opt_iter.by_ref().take(index as usize) {
+            selection_did_change |= opt.Selected();
             opt.set_selectedness(false);
         }
-        if let Some(opt) = opt_iter.next() {
-            opt.set_selectedness(true);
-            opt.set_dirtiness(true);
+        if let Some(selected_option) = opt_iter.next() {
+            selection_did_change |= !selected_option.Selected();
+            selected_option.set_selectedness(true);
+            selected_option.set_dirtiness(true);
+
             // Reset remaining <option> elements
             for opt in opt_iter {
+                selection_did_change |= opt.Selected();
                 opt.set_selectedness(false);
             }
         }
 
-        // TODO: Track whether the selected element actually changed
-        self.update_shadow_tree(can_gc);
+        if selection_did_change {
+            self.update_shadow_tree(can_gc);
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate>
@@ -767,7 +796,6 @@ impl Activatable for HTMLSelectElement {
         true
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#input-activation-behavior>
     fn activation_behavior(&self, _event: &Event, _target: &EventTarget, can_gc: CanGc) {
         let Some(selected_value) = self.show_menu(can_gc) else {
             // The user did not select a value
@@ -775,6 +803,7 @@ impl Activatable for HTMLSelectElement {
         };
 
         self.SetSelectedIndex(selected_value as i32, can_gc);
+        self.send_update_notifications();
     }
 }
 
