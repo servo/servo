@@ -5395,7 +5395,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ee3ea454e31a3372cd9c4ed903db4fae861e92f57cf51852a3cd80f9d3945dcd"
 dependencies = [
  "log",
- "ohos-ime-sys",
+ "ohos-ime-sys 0.1.4",
 ]
 
 [[package]]
@@ -5403,6 +5403,12 @@ name = "ohos-ime-sys"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "58f68e03eb5b698781a69dc4918a17fe040a30be87de7014c12e4a2a3cb8a00f"
+
+[[package]]
+name = "ohos-ime-sys"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "89d326ae2b2e71f95ca756b7d418c0adcb0018889e73f7eabed59671cb179608"
 
 [[package]]
 name = "ohos-sys-opaque-types"
@@ -7040,7 +7046,7 @@ dependencies = [
  "objc2-app-kit 0.3.1",
  "objc2-foundation 0.3.1",
  "ohos-ime",
- "ohos-ime-sys",
+ "ohos-ime-sys 0.2.0",
  "ohos-vsync",
  "raw-window-handle",
  "rustls",
