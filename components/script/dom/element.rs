@@ -666,10 +666,6 @@ impl Element {
             .upcast::<Node>()
             .set_containing_shadow_root(Some(&shadow_root));
 
-        if is_ua_widget == IsUserAgentWidget::Yes {
-            shadow_root.upcast::<Node>().set_in_ua_widget();
-        }
-
         let bind_context = BindContext {
             tree_connected: self.upcast::<Node>().is_connected(),
             tree_is_in_a_document_tree: self.upcast::<Node>().is_in_a_document_tree(),
@@ -682,6 +678,36 @@ impl Element {
         node.rev_version();
 
         Ok(shadow_root)
+    }
+
+    /// Attach a UA widget shadow root with its default parameters.
+    /// Additionally mark ShadowRoot to use styling configuration for a UA widget.
+    ///
+    /// TODO: Ideally, all of the UA shadow root should use UA widget styling, but
+    ///       some of the UA widget implemented prior to the implementation of Gecko's
+    ///       UA widget matching, might need some tweaking.
+    pub(crate) fn attach_ua_shadow_root(
+        &self,
+        use_ua_widget_styling: bool,
+        can_gc: CanGc,
+    ) -> DomRoot<ShadowRoot> {
+        let root = self
+            .attach_shadow(
+                IsUserAgentWidget::Yes,
+                ShadowRootMode::Closed,
+                false,
+                false,
+                true,
+                SlotAssignmentMode::Manual,
+                can_gc,
+            )
+            .expect("Attaching UA shadow root failed");
+
+        if use_ua_widget_styling {
+            root.upcast::<Node>().set_in_ua_widget();
+        }
+
+        root
     }
 
     pub(crate) fn detach_shadow(&self, can_gc: CanGc) {

@@ -79,18 +79,8 @@ impl HTMLMeterElement {
 
     fn create_shadow_tree(&self, can_gc: CanGc) {
         let document = self.owner_document();
-        let root = self
-            .upcast::<Element>()
-            .attach_shadow(
-                IsUserAgentWidget::Yes,
-                ShadowRootMode::Closed,
-                false,
-                false,
-                false,
-                SlotAssignmentMode::Manual,
-                can_gc,
-            )
-            .expect("Attaching UA shadow root failed");
+        // FIXME: Add servo specific appearence reftest
+        let root = self.upcast::<Element>().attach_ua_shadow_root(true, can_gc);
 
         let meter_value = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
         root.upcast::<Node>()

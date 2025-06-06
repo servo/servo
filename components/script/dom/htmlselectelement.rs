@@ -258,18 +258,8 @@ impl HTMLSelectElement {
 
     fn create_shadow_tree(&self, can_gc: CanGc) {
         let document = self.owner_document();
-        let root = self
-            .upcast::<Element>()
-            .attach_shadow(
-                IsUserAgentWidget::Yes,
-                ShadowRootMode::Closed,
-                false,
-                false,
-                false,
-                SlotAssignmentMode::Manual,
-                can_gc,
-            )
-            .expect("Attaching UA shadow root failed");
+        // TODO: Adjust <select> element styling considering
+        let root = self.upcast::<Element>().attach_ua_shadow_root(true, can_gc);
 
         let select_box = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
         select_box.upcast::<Element>().set_string_attribute(

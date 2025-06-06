@@ -1996,17 +1996,10 @@ impl HTMLMediaElement {
             // if we are already showing the controls.
             return;
         }
-        let shadow_root = element
-            .attach_shadow(
-                IsUserAgentWidget::Yes,
-                ShadowRootMode::Closed,
-                false,
-                false,
-                false,
-                SlotAssignmentMode::Manual,
-                can_gc,
-            )
-            .unwrap();
+        // FIXME: Recheck styling for media element
+        let shadow_root = self
+            .upcast::<Element>()
+            .attach_ua_shadow_root(false, can_gc);
         let document = self.owner_document();
         let script = HTMLScriptElement::new(
             local_name!("script"),
