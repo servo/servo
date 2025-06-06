@@ -31,6 +31,10 @@ input::-servo-text-control-inner-container {
   display: flex;
 }
 
+input:not(:placeholder-shown)::-servo-text-control-placeholder {
+  visibility: hidden !important
+}
+
 input::-servo-text-control-inner-editor, input::-servo-text-control-placeholder {
   white-space: pre;
   margin-block: auto !important;

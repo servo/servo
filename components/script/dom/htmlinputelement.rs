@@ -2197,17 +2197,10 @@ impl HTMLInputElement {
             return;
         }
 
-        // Ideally we are not supposed to handle visibility of the placeholder.
-        // But we are doing so because UA stylesheet does not support `:host` selector yet.
-        let placeholder_text = match self.upcast::<Element>().placeholder_shown_state() {
-            true => self.placeholder.borrow().clone(),
-            false => "".into(),
-        };
-
         self.text_shadow_tree(can_gc)
             .placeholder_container
             .upcast::<Node>()
-            .SetTextContent(Some(placeholder_text), can_gc);
+            .SetTextContent(Some(self.placeholder.borrow().clone()), can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file)
@@ -3048,7 +3041,6 @@ impl VirtualMethods for HTMLInputElement {
                         }
                         self.value_dirty.set(true);
                         self.update_placeholder_shown_state();
-                        self.update_text_shadow_tree_placeholder(can_gc);
                         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                         event.mark_as_handled();
                     },
