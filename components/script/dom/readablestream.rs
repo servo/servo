@@ -349,7 +349,7 @@ impl Callback for PipeTo {
                         get_dictionary_property(
                             *cx,
                             object.handle(),
-                            "0",
+                            "push",
                             done.handle_mut(),
                             can_gc,
                         )

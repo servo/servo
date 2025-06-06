@@ -526,7 +526,8 @@ pub(crate) fn wait_for_all(
     // Note: done using the len of result.
 
     // If total is 0, then:
-    // TODO: Queue a microtask to perform successSteps given « ».
+    // Queue a microtask to perform successSteps given « ».
+    // TODO: #37259
 
     // Let index be 0.
     // Note: done with `enumerate` below.
@@ -600,16 +601,26 @@ pub(crate) fn wait_for_all_promise(
         failure_promise.reject_native(&reason, can_gc);
     });
 
-    // Wait for all with promises, given successSteps and failureSteps.
-    wait_for_all(
-        cx,
-        global,
-        promises,
-        success_steps,
-        failure_steps,
-        realm,
-        can_gc,
-    );
+    if promises.is_empty() {
+        // Note: part of `wait_for_all`.
+        // Done here by using `resolve_native`.
+        // TODO: #37259
+        // If total is 0, then:
+        // Queue a microtask to perform successSteps given « ».
+        let empty_list: Vec<HandleValue> = vec![];
+        promise.resolve_native(&empty_list, can_gc);
+    } else {
+        // Wait for all with promises, given successSteps and failureSteps.
+        wait_for_all(
+            cx,
+            global,
+            promises,
+            success_steps,
+            failure_steps,
+            realm,
+            can_gc,
+        );
+    }
 
     // Return promise.
     promise
