@@ -29,9 +29,6 @@ use js::rust::{HandleObject, MutableHandleObject};
 use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
 use net_traits::{CoreResourceMsg, IpcSend};
-use script_bindings::codegen::GenericBindings::ShadowRootBinding::{
-    ShadowRootMode, SlotAssignmentMode,
-};
 use style::attr::AttrValue;
 use style::selector_parser::PseudoElement;
 use style::str::{split_commas, str_join};
@@ -60,7 +57,7 @@ use crate::dom::bindings::str::{DOMString, FromInputValueString, ToInputValueStr
 use crate::dom::clipboardevent::ClipboardEvent;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element, ElementCreator, LayoutElementHelpers};
+use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
@@ -74,14 +71,13 @@ use crate::dom::htmlformelement::{
     FormControl, FormDatum, FormDatumValue, FormSubmitterElement, HTMLFormElement, ResetFrom,
     SubmittedFrom,
 };
-use crate::dom::htmlstyleelement::HTMLStyleElement;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::{
     BindContext, CloneChildrenFlag, Node, NodeDamage, NodeTraits, ShadowIncluding, UnbindContext,
 };
 use crate::dom::nodelist::NodeList;
-use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
+use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
@@ -143,16 +139,6 @@ enum ShadowTree {
     Color(InputTypeColorShadowTree),
     // TODO: Add shadow trees for other input types (range etc) here
 }
-
-const COLOR_TREE_STYLE: &str = "
-#color-value {
-    width: 100%;
-    height: 100%;
-    box-sizing: border-box;
-    border: 1px solid gray;
-    border-radius: 2px;
-}
-";
 
 /// <https://html.spec.whatwg.org/multipage/#attr-input-type>
 #[derive(Clone, Copy, Default, JSTraceable, PartialEq)]
@@ -1091,8 +1077,7 @@ impl HTMLInputElement {
     fn shadow_root(&self, can_gc: CanGc) -> DomRoot<ShadowRoot> {
         self.upcast::<Element>().shadow_root().unwrap_or_else(|| {
             // TODO(stevennovaryo): adjust type=color's styling.
-            self.upcast::<Element>()
-                .attach_ua_shadow_root(self.input_type() == InputType::Text, can_gc)
+            self.upcast::<Element>().attach_ua_shadow_root(true, can_gc)
         })
     }
 
@@ -1171,27 +1156,11 @@ impl HTMLInputElement {
 
         let color_value = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
         color_value
-            .upcast::<Element>()
-            .SetId(DOMString::from("color-value"), can_gc);
+            .upcast::<Node>()
+            .set_pseudo_element(PseudoElement::ServoInputColorSwatch);
         shadow_root
             .upcast::<Node>()
             .AppendChild(color_value.upcast::<Node>(), can_gc)
-            .unwrap();
-
-        let style = HTMLStyleElement::new(
-            local_name!("style"),
-            None,
-            &document,
-            None,
-            ElementCreator::ScriptCreated,
-            can_gc,
-        );
-        style
-            .upcast::<Node>()
-            .SetTextContent(Some(DOMString::from(COLOR_TREE_STYLE)), can_gc);
-        shadow_root
-            .upcast::<Node>()
-            .AppendChild(style.upcast::<Node>(), can_gc)
             .unwrap();
 
         let _ = self

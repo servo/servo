@@ -716,8 +716,8 @@ impl Node {
             .contains(NodeFlags::IS_TEXT_CONTROL_INNER_EDITOR)
     }
 
-    pub(crate) fn set_in_ua_widget(&self) {
-        self.set_flag(NodeFlags::IS_IN_UA_WIDGET, true)
+    pub(crate) fn set_in_ua_widget(&self, in_ua_widget: bool) {
+        self.set_flag(NodeFlags::IS_IN_UA_WIDGET, in_ua_widget)
     }
 
     pub(crate) fn in_ua_widget(&self) -> bool {

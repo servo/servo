@@ -703,10 +703,8 @@ impl Element {
             )
             .expect("Attaching UA shadow root failed");
 
-        if use_ua_widget_styling {
-            root.upcast::<Node>().set_in_ua_widget();
-        }
-
+        root.upcast::<Node>()
+            .set_in_ua_widget(use_ua_widget_styling);
         root
     }
 
