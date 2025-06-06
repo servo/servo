@@ -179,6 +179,11 @@ impl PipeTo {
         realm: InRealm,
         can_gc: CanGc,
     ) {
+        // Abort should do nothing if we are already shutting down.
+        if self.shutting_down.get() {
+            return;
+        }
+
         // Let error be signal’s abort reason.
         // Note: storing it because it may need to be kept across a microtask,
         // and see the note below as to why it is kept separately from `shutdown_error`.
@@ -309,8 +314,7 @@ impl Callback for PipeTo {
                 // Write the chunk.
                 self.write_chunk(cx, &global, result, can_gc);
 
-                // An early return is necessary because writing the chunk calls into JS,
-                // which can abort the pipe.
+                // An early return is necessary if the write algorithm aborted the pipe.
                 if self.shutting_down.get() {
                     return;
                 }
