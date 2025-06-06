@@ -275,6 +275,7 @@ pub(crate) static SCRIPT_JS_MIMES: StaticStringVec = &[
 pub(crate) enum ScriptType {
     Classic,
     Module,
+    ImportMap,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -770,14 +771,15 @@ impl HTMLScriptElement {
         // Step 23. Module script credentials mode.
         let module_credentials_mode = match script_type {
             ScriptType::Classic => CredentialsMode::CredentialsSameOrigin,
-            ScriptType::Module => reflect_cross_origin_attribute(element).map_or(
-                CredentialsMode::CredentialsSameOrigin,
-                |attr| match &*attr {
-                    "use-credentials" => CredentialsMode::Include,
-                    "anonymous" => CredentialsMode::CredentialsSameOrigin,
-                    _ => CredentialsMode::CredentialsSameOrigin,
-                },
-            ),
+            ScriptType::Module | ScriptType::ImportMap => reflect_cross_origin_attribute(element)
+                .map_or(
+                    CredentialsMode::CredentialsSameOrigin,
+                    |attr| match &*attr {
+                        "use-credentials" => CredentialsMode::Include,
+                        "anonymous" => CredentialsMode::CredentialsSameOrigin,
+                        _ => CredentialsMode::CredentialsSameOrigin,
+                    },
+                ),
         };
 
         // Step 24. Let cryptographic nonce be el's [[CryptographicNonce]] internal slot's value.
@@ -904,7 +906,7 @@ impl HTMLScriptElement {
                         doc.add_asap_script(self);
                     };
                 },
-                // TODO: Case "importmap"
+                ScriptType::ImportMap => (),
             }
         } else {
             // Step 32. If el does not have a src content attribute:
@@ -913,18 +915,17 @@ impl HTMLScriptElement {
 
             let text_rc = Rc::new(text);
 
-            // TODO: Fix step number or match spec text. Is this step 32.1?
-            let result = Ok(ScriptOrigin::internal(
-                Rc::clone(&text_rc),
-                base_url.clone(),
-                options.clone(),
-                script_type,
-                self.global().unminified_js_dir(),
-            ));
-
-            // TODO: Fix step number or match spec text. Is this step 32.2?
+            // Step 32.2: Switch on el's type:
             match script_type {
                 ScriptType::Classic => {
+                    let result = Ok(ScriptOrigin::internal(
+                        Rc::clone(&text_rc),
+                        base_url.clone(),
+                        options.clone(),
+                        script_type,
+                        self.global().unminified_js_dir(),
+                    ));
+
                     if was_parser_inserted &&
                         doc.get_current_parser()
                             .is_some_and(|parser| parser.script_nesting_level() <= 1) &&
@@ -957,6 +958,9 @@ impl HTMLScriptElement {
                         options,
                         can_gc,
                     );
+                },
+                ScriptType::ImportMap => {
+                    // TODO: Let result be the result of creating an import map parse result given source text and base URL.
                 },
             }
         }
@@ -1054,18 +1058,16 @@ impl HTMLScriptElement {
                 } else {
                     document.set_current_script(Some(self))
                 }
-            },
-            ScriptType::Module => document.set_current_script(None),
-        }
-
-        match script.type_ {
-            ScriptType::Classic => {
                 self.run_a_classic_script(&script, can_gc);
                 document.set_current_script(old_script.as_deref());
             },
             ScriptType::Module => {
+                document.set_current_script(None);
                 assert!(document.GetCurrentScript().is_none());
                 self.run_a_module_script(&script, false, can_gc);
+            },
+            ScriptType::ImportMap => {
+                // TODO: Register an import map given el's relevant global object and el's result.
             },
         }
 
