@@ -446,7 +446,11 @@ impl<'dom> ServoThreadSafeLayoutNodeChildrenIterator<'dom> {
                 .with_pseudo(PseudoElement::Before)
                 .or_else(|| parent.with_pseudo(PseudoElement::DetailsSummary))
                 .or_else(|| unsafe { parent.dangerous_first_child() }),
-            Some(PseudoElement::DetailsContent) | Some(PseudoElement::DetailsSummary) => unsafe {
+            Some(PseudoElement::DetailsContent) |
+            Some(PseudoElement::DetailsSummary) |
+            Some(PseudoElement::ServoTextControlInnerContainer) |
+            Some(PseudoElement::ServoTextControlInnerEditor) |
+            Some(PseudoElement::ServoTextControlPlaceholder) => unsafe {
                 parent.dangerous_first_child()
             },
             _ => None,
@@ -516,7 +520,10 @@ impl<'dom> Iterator for ServoThreadSafeLayoutNodeChildrenIterator<'dom> {
                         Some(PseudoElement::DetailsSummary) => {
                             self.parent_node.with_pseudo(PseudoElement::DetailsContent)
                         },
-                        Some(PseudoElement::DetailsContent) => {
+                        Some(PseudoElement::DetailsContent) |
+                        Some(PseudoElement::ServoTextControlInnerContainer) |
+                        Some(PseudoElement::ServoTextControlInnerEditor) |
+                        Some(PseudoElement::ServoTextControlPlaceholder) => {
                             self.parent_node.with_pseudo(PseudoElement::After)
                         },
                         Some(PseudoElement::After) => None,

@@ -13,9 +13,6 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLDetailsElementBinding::HTMLDetailsElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLSlotElementBinding::HTMLSlotElement_Binding::HTMLSlotElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
-use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
-    ShadowRootMode, SlotAssignmentMode,
-};
 use crate::dom::bindings::codegen::UnionTypes::ElementOrText;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -26,7 +23,6 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlslotelement::HTMLSlotElement;
 use crate::dom::node::{BindContext, ChildrenMutation, Node, NodeDamage, NodeTraits};
-use crate::dom::shadowroot::IsUserAgentWidget;
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
@@ -103,18 +99,10 @@ impl HTMLDetailsElement {
 
     fn create_shadow_tree(&self, can_gc: CanGc) {
         let document = self.owner_document();
+        // TODO(stevennovaryo): Reimplement details styling.
         let root = self
             .upcast::<Element>()
-            .attach_shadow(
-                IsUserAgentWidget::Yes,
-                ShadowRootMode::Closed,
-                false,
-                false,
-                false,
-                SlotAssignmentMode::Manual,
-                can_gc,
-            )
-            .expect("Attaching UA shadow root failed");
+            .attach_ua_shadow_root(false, can_gc);
 
         let summary = HTMLSlotElement::new(local_name!("slot"), None, &document, None, can_gc);
         root.upcast::<Node>()

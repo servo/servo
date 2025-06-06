@@ -29,10 +29,8 @@ use js::rust::{HandleObject, MutableHandleObject};
 use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
 use net_traits::{CoreResourceMsg, IpcSend};
-use script_bindings::codegen::GenericBindings::ShadowRootBinding::{
-    ShadowRootMode, SlotAssignmentMode,
-};
 use style::attr::AttrValue;
+use style::selector_parser::PseudoElement;
 use style::str::{split_commas, str_join};
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
@@ -59,7 +57,7 @@ use crate::dom::bindings::str::{DOMString, FromInputValueString, ToInputValueStr
 use crate::dom::clipboardevent::ClipboardEvent;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element, ElementCreator, LayoutElementHelpers};
+use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
@@ -73,14 +71,13 @@ use crate::dom::htmlformelement::{
     FormControl, FormDatum, FormDatumValue, FormSubmitterElement, HTMLFormElement, ResetFrom,
     SubmittedFrom,
 };
-use crate::dom::htmlstyleelement::HTMLStyleElement;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::{
     BindContext, CloneChildrenFlag, Node, NodeDamage, NodeTraits, ShadowIncluding, UnbindContext,
 };
 use crate::dom::nodelist::NodeList;
-use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
+use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
@@ -134,44 +131,6 @@ struct InputTypeColorShadowTree {
     color_value: Dom<HTMLDivElement>,
 }
 
-// FIXME: These styles should be inside UA stylesheet, but it is not possible without internal pseudo element support.
-const TEXT_TREE_STYLE: &str = "
-#input-editor::selection {
-    background: rgba(176, 214, 255, 1.0);
-    color: black;
-}
-
-:host:not(:placeholder-shown) #input-placeholder {
-    visibility: hidden !important
-}
-
-#input-editor {
-    overflow-wrap: normal;
-    pointer-events: auto;
-}
-
-#input-container {
-    position: relative;
-    height: 100%;
-    pointer-events: none;
-    display: flex;
-}
-
-#input-editor, #input-placeholder {
-    white-space: pre;
-    margin-block: auto !important;
-    inset-block: 0 !important;
-    block-size: fit-content !important;
-}
-
-#input-placeholder {
-    overflow: hidden !important;
-    position: absolute !important;
-    color: grey;
-    pointer-events: none !important;
-}
-";
-
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[non_exhaustive]
@@ -180,16 +139,6 @@ enum ShadowTree {
     Color(InputTypeColorShadowTree),
     // TODO: Add shadow trees for other input types (range etc) here
 }
-
-const COLOR_TREE_STYLE: &str = "
-#color-value {
-    width: 100%;
-    height: 100%;
-    box-sizing: border-box;
-    border: 1px solid gray;
-    border-radius: 2px;
-}
-";
 
 /// <https://html.spec.whatwg.org/multipage/#attr-input-type>
 #[derive(Clone, Copy, Default, JSTraceable, PartialEq)]
@@ -1127,17 +1076,9 @@ impl HTMLInputElement {
     /// or create one if none exists.
     fn shadow_root(&self, can_gc: CanGc) -> DomRoot<ShadowRoot> {
         self.upcast::<Element>().shadow_root().unwrap_or_else(|| {
+            // TODO(stevennovaryo): adjust type=color's styling.
             self.upcast::<Element>()
-                .attach_shadow(
-                    IsUserAgentWidget::Yes,
-                    ShadowRootMode::Closed,
-                    false,
-                    false,
-                    true,
-                    SlotAssignmentMode::Manual,
-                    can_gc,
-                )
-                .expect("Attaching UA shadow root failed")
+                .attach_ua_shadow_root(true, can_gc)
         })
     }
 
@@ -1149,8 +1090,8 @@ impl HTMLInputElement {
         let inner_container =
             HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
         inner_container
-            .upcast::<Element>()
-            .SetId(DOMString::from("input-container"), can_gc);
+            .upcast::<Node>()
+            .set_pseudo_element(PseudoElement::ServoTextControlInnerContainer);
         shadow_root
             .upcast::<Node>()
             .AppendChild(inner_container.upcast::<Node>(), can_gc)
@@ -1159,8 +1100,8 @@ impl HTMLInputElement {
         let placeholder_container =
             HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
         placeholder_container
-            .upcast::<Element>()
-            .SetId(DOMString::from("input-placeholder"), can_gc);
+            .upcast::<Node>()
+            .set_pseudo_element(PseudoElement::ServoTextControlPlaceholder);
         inner_container
             .upcast::<Node>()
             .AppendChild(placeholder_container.upcast::<Node>(), can_gc)
@@ -1168,32 +1109,14 @@ impl HTMLInputElement {
 
         let text_container = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
         text_container
-            .upcast::<Element>()
-            .SetId(DOMString::from("input-editor"), can_gc);
+            .upcast::<Node>()
+            .set_pseudo_element(PseudoElement::ServoTextControlInnerEditor);
         text_container
             .upcast::<Node>()
             .set_text_control_inner_editor();
         inner_container
             .upcast::<Node>()
             .AppendChild(text_container.upcast::<Node>(), can_gc)
-            .unwrap();
-
-        let style = HTMLStyleElement::new(
-            local_name!("style"),
-            None,
-            &document,
-            None,
-            ElementCreator::ScriptCreated,
-            can_gc,
-        );
-        // TODO(stevennovaryo): Either use UA stylesheet with internal pseudo element or preemptively parse
-        //                      the stylesheet to reduce the costly operation and avoid CSP related error.
-        style
-            .upcast::<Node>()
-            .SetTextContent(Some(DOMString::from(TEXT_TREE_STYLE)), can_gc);
-        shadow_root
-            .upcast::<Node>()
-            .AppendChild(style.upcast::<Node>(), can_gc)
             .unwrap();
 
         let _ = self
@@ -1234,27 +1157,11 @@ impl HTMLInputElement {
 
         let color_value = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
         color_value
-            .upcast::<Element>()
-            .SetId(DOMString::from("color-value"), can_gc);
+            .upcast::<Node>()
+            .set_pseudo_element(PseudoElement::ServoInputColorSwatch);
         shadow_root
             .upcast::<Node>()
             .AppendChild(color_value.upcast::<Node>(), can_gc)
-            .unwrap();
-
-        let style = HTMLStyleElement::new(
-            local_name!("style"),
-            None,
-            &document,
-            None,
-            ElementCreator::ScriptCreated,
-            can_gc,
-        );
-        style
-            .upcast::<Node>()
-            .SetTextContent(Some(DOMString::from(COLOR_TREE_STYLE)), can_gc);
-        shadow_root
-            .upcast::<Node>()
-            .AppendChild(style.upcast::<Node>(), can_gc)
             .unwrap();
 
         let _ = self
@@ -1324,7 +1231,7 @@ impl HTMLInputElement {
                 } else {
                     value = DOMString::from("#000000");
                 }
-                let style = format!("background-color: {value}");
+                let style = format!("background-color: {value} !important; z-index: 10000");
                 color_shadow_tree
                     .color_value
                     .upcast::<Element>()
@@ -1662,6 +1569,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                 // normally being done in the attributed mutated. And, being
                 // done in another scope to prevent borrow checker issues.
                 self.update_placeholder_shown_state();
+                self.update_text_shadow_tree_placeholder(can_gc);
             },
             ValueMode::Default | ValueMode::DefaultOn => {
                 self.upcast::<Element>()
@@ -2882,8 +2790,8 @@ impl VirtualMethods for HTMLInputElement {
                     },
                 }
 
-                self.update_text_shadow_tree_placeholder(can_gc);
                 self.update_placeholder_shown_state();
+                self.update_text_shadow_tree_placeholder(can_gc);
             },
             // FIXME(stevennovaryo): This is only reachable by Default and DefaultOn value mode. While others
             //                       are being handled in [Self::SetValue]. Should we merge this two together?
@@ -2894,6 +2802,7 @@ impl VirtualMethods for HTMLInputElement {
                 self.sanitize_value(&mut value);
                 self.textinput.borrow_mut().set_content(value);
                 self.update_placeholder_shown_state();
+                self.update_text_shadow_tree_placeholder(can_gc);
 
                 self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
             },
@@ -2935,8 +2844,8 @@ impl VirtualMethods for HTMLInputElement {
                             .extend(attr.value().chars().filter(|&c| c != '\n' && c != '\r'));
                     }
                 }
-                self.update_text_shadow_tree_placeholder(can_gc);
                 self.update_placeholder_shown_state();
+                self.update_text_shadow_tree_placeholder(can_gc);
             },
             local_name!("readonly") => {
                 if self.input_type().is_textual() {

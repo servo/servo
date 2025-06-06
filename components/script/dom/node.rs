@@ -45,7 +45,7 @@ use smallvec::SmallVec;
 use style::context::QuirksMode;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
-use style::selector_parser::{SelectorImpl, SelectorParser};
+use style::selector_parser::{PseudoElement, SelectorImpl, SelectorParser};
 use style::stylesheets::{Stylesheet, UrlExtraData};
 use uuid::Uuid;
 use xml5ever::{local_name, serialize as xml_serialize};
@@ -231,9 +231,12 @@ bitflags! {
         /// needs extra work or not
         const HAS_WEIRD_PARSER_INSERTION_MODE = 1 << 11;
 
+        /// Whether this node reside in UA shadow DOM.
+        const IS_IN_UA_WIDGET = 1 << 12;
+
         /// Whether this node serves as the text container for editable content of
         /// <input> or <textarea> element.
-        const IS_TEXT_CONTROL_INNER_EDITOR = 1 << 12;
+        const IS_TEXT_CONTROL_INNER_EDITOR = 1 << 13;
     }
 }
 
@@ -292,6 +295,7 @@ impl Node {
         let parent_is_in_a_document_tree = self.is_in_a_document_tree();
         let parent_in_shadow_tree = self.is_in_a_shadow_tree();
         let parent_is_connected = self.is_connected();
+        let parent_is_in_ua_widget = self.in_ua_widget();
 
         for node in new_child.traverse_preorder(ShadowIncluding::No) {
             if parent_in_shadow_tree {
@@ -306,6 +310,7 @@ impl Node {
             );
             node.set_flag(NodeFlags::IS_IN_SHADOW_TREE, parent_in_shadow_tree);
             node.set_flag(NodeFlags::IS_CONNECTED, parent_is_connected);
+            node.set_flag(NodeFlags::IS_IN_UA_WIDGET, parent_is_in_ua_widget);
 
             // Out-of-document elements never have the descendants flag set.
             debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
@@ -362,10 +367,12 @@ impl Node {
             .union(NodeFlags::IS_CONNECTED)
             .union(NodeFlags::HAS_DIRTY_DESCENDANTS)
             .union(NodeFlags::HAS_SNAPSHOT)
-            .union(NodeFlags::HANDLED_SNAPSHOT);
+            .union(NodeFlags::HANDLED_SNAPSHOT)
+            .union(NodeFlags::IS_IN_SHADOW_TREE)
+            .union(NodeFlags::IS_IN_UA_WIDGET);
 
         for node in root.traverse_preorder(ShadowIncluding::No) {
-            node.set_flag(RESET_FLAGS | NodeFlags::IS_IN_SHADOW_TREE, false);
+            node.set_flag(RESET_FLAGS, false);
 
             // If the element has a shadow root attached to it then we traverse that as well,
             // but without touching the IS_IN_SHADOW_TREE flags of the children
@@ -709,6 +716,14 @@ impl Node {
         self.flags
             .get()
             .contains(NodeFlags::IS_TEXT_CONTROL_INNER_EDITOR)
+    }
+
+    pub(crate) fn set_in_ua_widget(&self, in_ua_widget: bool) {
+        self.set_flag(NodeFlags::IS_IN_UA_WIDGET, in_ua_widget)
+    }
+
+    pub(crate) fn in_ua_widget(&self) -> bool {
+        self.flags.get().contains(NodeFlags::IS_IN_UA_WIDGET)
     }
 
     /// Returns the type ID of this node.
@@ -1571,6 +1586,10 @@ impl Node {
             next_node: move |n| n.parent_in_flat_tree(),
         }
     }
+
+    pub(crate) fn set_pseudo_element(&self, pseudo_element: PseudoElement) {
+        self.ensure_rare_data().pseudo_element = Some(pseudo_element);
+    }
 }
 
 /// Iterate through `nodes` until we find a `Node` that is not in `not_in`
@@ -1658,6 +1677,8 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
     fn iframe_browsing_context_id(self) -> Option<BrowsingContextId>;
     fn iframe_pipeline_id(self) -> Option<PipelineId>;
     fn opaque(self) -> OpaqueNode;
+    fn pseudo_element(&self) -> Option<PseudoElement>;
+    fn in_ua_widget(&self) -> bool;
 }
 
 impl<'dom> LayoutDom<'dom, Node> {
@@ -1929,6 +1950,17 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     #[allow(unsafe_code)]
     fn opaque(self) -> OpaqueNode {
         unsafe { OpaqueNode(self.get_jsobject() as usize) }
+    }
+
+    fn pseudo_element(&self) -> Option<PseudoElement> {
+        self.unsafe_get()
+            .rare_data()
+            .as_ref()
+            .and_then(|data| data.pseudo_element)
+    }
+
+    fn in_ua_widget(&self) -> bool {
+        self.unsafe_get().in_ua_widget()
     }
 }
 
