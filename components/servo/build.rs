@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Command;
 use std::{env, fs};
 
@@ -10,7 +10,7 @@ fn main() {
     if cfg!(feature = "media-gstreamer") {
         println!("cargo:rerun-if-changed=../../python/servo/gstreamer.py");
 
-        let output = Command::new(find_python())
+        let output = find_python()
             .arg("../../python/servo/gstreamer.py")
             .arg(std::env::var_os("TARGET").unwrap())
             .output()
@@ -25,47 +25,20 @@ fn main() {
     }
 }
 
-/// Tries to find a suitable python
+/// Tries to find a suitable python, which in Servo is always `uv run python` unless we are running
+/// as a descendant of `uv run python`. In that case, we can use either `uv run python` or `python`
+/// (uv does not provide a `python3` on Windows).
 ///
-/// Algorithm
-/// 1. Trying to find python3/python in $VIRTUAL_ENV (this should be from servos venv)
-/// 2. Checking PYTHON3 (set by mach)
-/// 3. Falling back to the system installation.
+/// More details: <https://book.servo.org/hacking/setting-up-your-environment.html#check-tools>
 ///
 /// Note: This function should be kept in sync with the version in `components/script/build.rs`
-fn find_python() -> PathBuf {
-    let mut candidates = vec![];
-    if let Some(venv) = env::var_os("VIRTUAL_ENV") {
-        // See: https://docs.python.org/3/library/venv.html#how-venvs-work
-        let bin_dir = if cfg!(windows) { "Scripts" } else { "bin" };
-        let bin_directory = PathBuf::from(venv).join(bin_dir);
-        candidates.push(bin_directory.join("python3"));
-        candidates.push(bin_directory.join("python"));
-    }
-    if let Some(python3) = env::var_os("PYTHON3") {
-        candidates.push(PathBuf::from(python3));
+fn find_python() -> Command {
+    let mut command = Command::new("uv");
+    command.args(["run", "python"]);
+
+    if command.output().is_ok_and(|out| out.status.success()) {
+        return command;
     }
 
-    let system_python = ["python3", "python"].map(PathBuf::from);
-    candidates.extend_from_slice(&system_python);
-
-    for name in &candidates {
-        // Command::new() allows us to omit the `.exe` suffix on windows
-        if Command::new(name)
-            .arg("--version")
-            .output()
-            .is_ok_and(|out| out.status.success())
-        {
-            return name.to_owned();
-        }
-    }
-    let candidates = candidates
-        .into_iter()
-        .map(|c| c.into_os_string())
-        .collect::<Vec<_>>();
-    panic!(
-        "Can't find python (tried {:?})! Try enabling Servo's Python venv, \
-        setting the PYTHON3 env var or adding python3 to PATH.",
-        candidates.join(", ".as_ref())
-    )
+    panic!("Can't find python (tried `{command:?}`)! Is uv installed and in PATH?")
 }
