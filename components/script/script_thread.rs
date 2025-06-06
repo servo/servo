@@ -759,7 +759,7 @@ impl ScriptThread {
                             .clone(),
                         image_cache: script_thread
                             .image_cache
-                            .create_new_image_cache(script_thread.compositor_api.clone()),
+                            .create_new_image_cache(None, script_thread.compositor_api.clone()),
                         #[cfg(feature = "webgpu")]
                         gpu_id_hub: script_thread.gpu_id_hub.clone(),
                         inherited_secure_context: script_thread.inherited_secure_context,
@@ -2033,6 +2033,13 @@ impl ScriptThread {
             },
             ScriptThreadMessage::EvaluateJavaScript(pipeline_id, evaluation_id, script) => {
                 self.handle_evaluate_javascript(pipeline_id, evaluation_id, script, can_gc);
+            },
+            ScriptThreadMessage::SendImageKeys(pipeline_id, image_keys) => {
+                if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
+                    window.image_cache().fill_key_cache_with_keys(image_keys);
+                } else {
+                    error!("Could not find window for image cache");
+                }
             },
         }
     }
@@ -3357,7 +3364,7 @@ impl ScriptThread {
 
         let image_cache = self
             .image_cache
-            .create_new_image_cache(self.compositor_api.clone());
+            .create_new_image_cache(Some(incomplete.pipeline_id), self.compositor_api.clone());
 
         let layout_config = LayoutConfig {
             id: incomplete.pipeline_id,
