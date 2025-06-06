@@ -823,7 +823,11 @@ impl HTMLScriptElement {
         if let Some(src) = element.get_attribute(&ns!(), &local_name!("src")) {
             // Step 31. If el has a src content attribute, then:
 
-            // TODO: Step 31.1. If el's type is "importmap".
+            // Step 31.1. If el's type is "importmap".
+            if let ScriptType::ImportMap = script_type {
+                self.queue_error_event();
+                return;
+            }
 
             // Step 31.2. Let src be the value of el's src attribute.
             let src = src.value();
@@ -960,7 +964,8 @@ impl HTMLScriptElement {
                     );
                 },
                 ScriptType::ImportMap => {
-                    // TODO: Let result be the result of creating an import map parse result given source text and base URL.
+                    // TODO: Let result be the result of creating an import map
+                    // parse result given source text and base URL.
                 },
             }
         }
@@ -1067,7 +1072,8 @@ impl HTMLScriptElement {
                 self.run_a_module_script(&script, false, can_gc);
             },
             ScriptType::ImportMap => {
-                // TODO: Register an import map given el's relevant global object and el's result.
+                // TODO: Register an import map given el's relevant
+                // global object and el's result.
             },
         }
 
