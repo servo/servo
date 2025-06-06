@@ -91,7 +91,7 @@ impl AbortSignal {
         let abort_reason = reason.get();
 
         // Set signal’s abort reason to reason if it is given;
-        if !abort_reason.is_null() {
+        if !abort_reason.is_undefined() {
             self.abort_reason.set(abort_reason);
         } else {
             // otherwise to a new "AbortError" DOMException.

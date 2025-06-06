@@ -304,9 +304,9 @@ impl Callback for PipeTo {
 
                 // An early return is necessary because writing the chunk calls into JS,
                 // which can abort the pipe.
-        if self.shutting_down.get() {
-            return;
-        }
+                if self.shutting_down.get() {
+                    return;
+                }
 
                 // Wait for the writer to be ready again.
                 self.wait_for_writer_ready(&global, realm, can_gc);
@@ -346,18 +346,25 @@ impl Callback for PipeTo {
                     // and the error should be used when finalizing.
                     // One exception is the `Abort` action,
                     // which resolves with a list of undefined values.
-                    rooted!(in(*cx) let object = result.to_object());
-                    rooted!(in(*cx) let mut done = UndefinedValue());
-                    let property = unsafe {
-                        get_dictionary_property(
-                            *cx,
-                            object.handle(),
-                            "push",
-                            done.handle_mut(),
-                            can_gc,
-                        )
+                    let is_sequence = {
+                        if !result.is_object() {
+                            false
+                        } else {
+                            rooted!(in(*cx) let object = result.to_object());
+                            rooted!(in(*cx) let mut done = UndefinedValue());
+                            let property = unsafe {
+                                get_dictionary_property(
+                                    *cx,
+                                    object.handle(),
+                                    "push",
+                                    done.handle_mut(),
+                                    can_gc,
+                                )
+                            };
+                            if let Ok(true) = property { true } else { false }
+                        }
                     };
-                    if let Ok(false) = property {
+                    if !is_sequence {
                         // If `result` isn't undefined, or a list,
                         // then it is an error
                         // and should overwrite the current shutdown error.
