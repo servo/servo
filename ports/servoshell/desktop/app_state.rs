@@ -12,7 +12,7 @@ use image::{DynamicImage, ImageFormat};
 use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use log::{error, info};
 use servo::base::id::WebViewId;
-use servo::config::pref;
+use servo::config::{opts, pref};
 use servo::ipc_channel::ipc::IpcSender;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
@@ -467,9 +467,6 @@ impl WebViewDelegate for RunningAppState {
         );
     }
 
-    // We open the auxiliary webview without focusing
-    // DO NOT change this behaviour because it is required by webdriver
-    // This behaviour is consistent with egl/app_state.rs
     fn request_open_auxiliary_webview(
         &self,
         parent_webview: servo::WebView,
@@ -480,6 +477,13 @@ impl WebViewDelegate for RunningAppState {
             .build();
 
         webview.notify_theme_change(self.inner().window.theme());
+        // When WebDriver is enabled, do not focus and raise the WebView to the top,
+        // as that is what the specification expects. Otherwise, we would like `window.open()`
+        // to create a new foreground tab
+        if opts::get().webdriver_port.is_some() {
+            webview.focus();
+            webview.raise_to_top(true);
+        }
         self.add(webview.clone());
         Some(webview)
     }
