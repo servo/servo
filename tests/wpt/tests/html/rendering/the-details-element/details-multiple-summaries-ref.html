@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Details Element Should not Discard the Additional Summary Element</title>
+</head>
+
+<style>
+  #main-summary {
+    display: list-item;
+    list-style: disclosure-open inside;
+  }
+</style>
+
+<div>
+  <summary id="main-summary">This is the main summary</summary>
+  <summary>This is the additional summary</summary>
+  This is the content
+</div>
