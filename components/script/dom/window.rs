@@ -77,7 +77,6 @@ use servo_arc::Arc as ServoArc;
 use servo_config::{opts, pref};
 use servo_geometry::{DeviceIndependentIntRect, MaxRect, f32_rect_to_au_rect};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
-use style::dom::OpaqueNode;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::properties::PropertyId;
 use style::properties::style_structs::Font;
@@ -319,10 +318,6 @@ pub(crate) struct Window {
 
     error_reporter: CSSErrorReporter,
 
-    /// A list of scroll offsets for each scrollable element.
-    #[no_trace]
-    scroll_offsets: DomRefCell<HashMap<OpaqueNode, Vector2D<f32, LayoutPixel>>>,
-
     /// All the MediaQueryLists we need to update
     media_query_lists: DOMTracker<MediaQueryList>,
 
@@ -541,16 +536,6 @@ impl Window {
 
     pub(crate) fn css_error_reporter(&self) -> Option<&dyn ParseErrorReporter> {
         Some(&self.error_reporter)
-    }
-
-    /// Sets a new list of scroll offsets.
-    ///
-    /// This is called when layout gives us new ones and WebRender is in use.
-    pub(crate) fn set_scroll_offsets(
-        &self,
-        offsets: HashMap<OpaqueNode, Vector2D<f32, LayoutPixel>>,
-    ) {
-        *self.scroll_offsets.borrow_mut() = offsets
     }
 
     pub(crate) fn current_viewport(&self) -> UntypedRect<Au> {
@@ -2544,13 +2529,10 @@ impl Window {
     }
 
     pub(crate) fn scroll_offset_query(&self, node: &Node) -> Vector2D<f32, LayoutPixel> {
-        if let Some(scroll_offset) = self.scroll_offsets.borrow().get(&node.to_opaque()) {
-            return *scroll_offset;
-        }
-        Vector2D::new(0.0, 0.0)
+        self.layout.borrow().query_scroll_offset(node.to_opaque())
     }
 
-    // https://drafts.csswg.org/cssom-view/#element-scrolling-members
+    /// <https://drafts.csswg.org/cssom-view/#scroll-an-element>
     pub(crate) fn scroll_node(
         &self,
         node: &Node,
@@ -2562,23 +2544,19 @@ impl Window {
         // The scroll offsets are immediatly updated since later calls
         // to topScroll and others may access the properties before
         // webrender has a chance to update the offsets.
-        self.scroll_offsets
-            .borrow_mut()
-            .insert(node.to_opaque(), Vector2D::new(x_ as f32, y_ as f32));
+        let x = x_.to_f32().unwrap_or(0.0f32);
+        let y = y_.to_f32().unwrap_or(0.0f32);
         let scroll_id = ExternalScrollId(
             combine_id_with_fragment_type(node.to_opaque().id(), FragmentType::FragmentBody),
             self.pipeline_id().into(),
         );
+        self.layout()
+            .update_scroll_offset(scroll_id, Vector2D::new(-x, -y));
 
-        // Step 12
-        self.perform_a_scroll(
-            x_.to_f32().unwrap_or(0.0f32),
-            y_.to_f32().unwrap_or(0.0f32),
-            scroll_id,
-            behavior,
-            None,
-            can_gc,
-        );
+        // Step 6
+        // > Perform a scroll of box to position, element as the associated
+        // > element and behavior as the scroll behavior.
+        self.perform_a_scroll(x, y, scroll_id, behavior, None, can_gc);
     }
 
     pub(crate) fn resolved_style_query(
@@ -3143,7 +3121,6 @@ impl Window {
             devtools_markers: Default::default(),
             webdriver_script_chan: Default::default(),
             error_reporter,
-            scroll_offsets: Default::default(),
             media_query_lists: DOMTracker::new(),
             #[cfg(feature = "bluetooth")]
             test_runner: Default::default(),

@@ -1479,6 +1479,9 @@ where
             EmbedderToConstellationMessage::SetScrollStates(pipeline_id, scroll_states) => {
                 self.handle_set_scroll_states(pipeline_id, scroll_states)
             },
+            EmbedderToConstellationMessage::UpdateScrollState(pipeline_id, scroll_state) => {
+                self.handle_update_scroll_state(pipeline_id, scroll_state)
+            },
             EmbedderToConstellationMessage::PaintMetric(pipeline_id, paint_metric_event) => {
                 self.handle_paint_metric(pipeline_id, paint_metric_event);
             },
@@ -6025,7 +6028,7 @@ where
     )]
     fn handle_set_scroll_states(&self, pipeline_id: PipelineId, scroll_states: Vec<ScrollState>) {
         let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
-            warn!("Discarding scroll offset update for unknown pipeline");
+            warn!("Discarding scroll offsets update for unknown pipeline");
             return;
         };
         if let Err(error) = pipeline
@@ -6036,6 +6039,26 @@ where
             ))
         {
             warn!("Could not send scroll offsets to pipeline: {pipeline_id:?}: {error:?}");
+        }
+    }
+
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
+    )]
+    fn handle_update_scroll_state(&self, pipeline_id: PipelineId, scroll_state: ScrollState) {
+        let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
+            warn!("Discarding a scroll result update for unknown pipeline");
+            return;
+        };
+        if let Err(error) = pipeline
+            .event_loop
+            .send(ScriptThreadMessage::UpdateScrollState(
+                pipeline_id,
+                scroll_state,
+            ))
+        {
+            warn!("Could not send scroll result update to pipeline: {pipeline_id:?}: {error:?}");
         }
     }
 

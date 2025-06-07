@@ -83,16 +83,13 @@ use percent_encoding::percent_decode;
 use profile_traits::mem::{ProcessReports, ReportsChan, perform_memory_report};
 use profile_traits::time::ProfilerCategory;
 use profile_traits::time_profile;
-use script_layout_interface::{
-    LayoutConfig, LayoutFactory, ReflowGoal, ScriptThreadFactory, node_id_from_scroll_id,
-};
+use script_layout_interface::{LayoutConfig, LayoutFactory, ReflowGoal, ScriptThreadFactory};
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
     NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptThreadMessage, UpdatePipelineIdReason,
 };
 use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
-use style::dom::OpaqueNode;
 use style::thread_state::{self, ThreadState};
 use stylo_atoms::Atom;
 use timers::{TimerEventRequest, TimerScheduler};
@@ -1909,6 +1906,9 @@ impl ScriptThread {
             ScriptThreadMessage::SetScrollStates(pipeline_id, scroll_states) => {
                 self.handle_set_scroll_states(pipeline_id, scroll_states)
             },
+            ScriptThreadMessage::UpdateScrollState(pipeline_id, scroll_state) => {
+                self.handle_update_scroll_state(pipeline_id, scroll_state)
+            },
             ScriptThreadMessage::EvaluateJavaScript(pipeline_id, evaluation_id, script) => {
                 self.handle_evaluate_javascript(pipeline_id, evaluation_id, script, can_gc);
             },
@@ -1927,20 +1927,33 @@ impl ScriptThread {
             || {
                 window.layout_mut().set_scroll_offsets(&scroll_states);
 
-                let mut scroll_offsets = HashMap::new();
                 for scroll_state in scroll_states.into_iter() {
-                    let scroll_offset = scroll_state.scroll_offset;
                     if scroll_state.scroll_id.is_root() {
-                        window.update_viewport_for_scroll(-scroll_offset.x, -scroll_offset.y);
-                    } else if let Some(node_id) =
-                        node_id_from_scroll_id(scroll_state.scroll_id.0 as usize)
-                    {
-                        scroll_offsets.insert(OpaqueNode(node_id), -scroll_offset);
+                        window.update_viewport_for_scroll(
+                            -scroll_state.scroll_offset.x,
+                            -scroll_state.scroll_offset.y,
+                        );
                     }
                 }
-                window.set_scroll_offsets(scroll_offsets)
             },
         )
+    }
+
+    fn handle_update_scroll_state(&self, pipeline_id: PipelineId, scroll_state: ScrollState) {
+        let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
+            warn!("Received scroll states for closed pipeline {pipeline_id}");
+            return;
+        };
+
+        if scroll_state.scroll_id.is_root() {
+            window.update_viewport_for_scroll(
+                -scroll_state.scroll_offset.x,
+                -scroll_state.scroll_offset.y,
+            );
+        }
+        window
+            .layout_mut()
+            .update_scroll_offset(scroll_state.scroll_id, scroll_state.scroll_offset);
     }
 
     #[cfg(feature = "webgpu")]

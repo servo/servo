@@ -257,6 +257,7 @@ impl PipelineDetails {
         }
     }
 
+    /// Install a new scroll tree, but maintaining the scroll offsets it has from the old ones.
     fn install_new_scroll_tree(&mut self, new_scroll_tree: ScrollTree) {
         let old_scroll_offsets: FnvHashMap<ExternalScrollId, LayoutVector2D> = self
             .scroll_tree
@@ -717,7 +718,7 @@ impl IOCompositor {
                 self.global.borrow_mut().send_transaction(txn);
             },
 
-            CompositorMsg::SendScrollNode(webview_id, pipeline_id, point, external_scroll_id) => {
+            CompositorMsg::SendScrollNode(webview_id, pipeline_id, offset, external_scroll_id) => {
                 let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     return;
                 };
@@ -728,12 +729,11 @@ impl IOCompositor {
                     return;
                 };
 
-                let offset = LayoutVector2D::new(point.x, point.y);
                 if !pipeline_details
                     .scroll_tree
                     .set_scroll_offsets_for_node_with_external_scroll_id(
-                        external_scroll_id,
-                        -offset,
+                        &external_scroll_id,
+                        offset,
                     )
                 {
                     warn!("Could not scroll not with id: {external_scroll_id:?}");
@@ -744,7 +744,7 @@ impl IOCompositor {
                 txn.set_scroll_offsets(
                     external_scroll_id,
                     vec![SampledScrollOffset {
-                        offset,
+                        offset: -offset,
                         generation: 0,
                     }],
                 );

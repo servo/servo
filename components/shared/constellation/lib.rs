@@ -91,6 +91,9 @@ pub enum EmbedderToConstellationMessage {
     /// The Servo renderer scrolled and is updating the scroll states of the nodes in the
     /// given pipeline via the constellation.
     SetScrollStates(PipelineId, Vec<ScrollState>),
+    /// The Servo renderer scrolled and is updating the scroll states of the nodes in the
+    /// given pipeline via the constellation.
+    UpdateScrollState(PipelineId, ScrollState),
     /// Notify the constellation that a particular paint metric event has happened for the given pipeline.
     PaintMetric(PipelineId, PaintMetricEvent),
     /// Evaluate a JavaScript string in the context of a `WebView`. When execution is complete or an

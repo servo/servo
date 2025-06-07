@@ -48,8 +48,8 @@ use style::properties::PropertyId;
 use style::properties::style_structs::Font;
 use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
 use style::stylesheets::Stylesheet;
-use webrender_api::ImageKey;
-use webrender_api::units::DeviceIntSize;
+use webrender_api::units::{DeviceIntSize, LayoutVector2D};
+use webrender_api::{ExternalScrollId, ImageKey};
 
 pub trait GenericLayoutDataTrait: Any + MallocSizeOfTrait {
     fn as_any(&self) -> &dyn Any;
@@ -246,6 +246,11 @@ pub trait Layout {
 
     /// Set the scroll states of this layout after a compositor scroll.
     fn set_scroll_offsets(&mut self, scroll_states: &[ScrollState]);
+
+    /// Query scroll offset for any scroll offset query through the layout.
+    fn query_scroll_offset(&self, node: OpaqueNode) -> LayoutVector2D;
+
+    fn update_scroll_offset(&self, scroll_id: ExternalScrollId, scroll_offset: LayoutVector2D);
 
     fn query_content_box(&self, node: TrustedNodeAddress) -> Option<Rect<Au>>;
     fn query_content_boxes(&self, node: TrustedNodeAddress) -> Vec<Rect<Au>>;
