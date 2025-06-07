@@ -72,8 +72,11 @@ impl OffscreenCanvas {
         )
     }
 
-    pub(crate) fn get_size(&self) -> Size2D<u64> {
-        Size2D::new(self.Width(), self.Height())
+    pub(crate) fn get_size(&self) -> Size2D<u32> {
+        Size2D::new(
+            self.Width().try_into().unwrap_or(u32::MAX),
+            self.Height().try_into().unwrap_or(u32::MAX),
+        )
     }
 
     pub(crate) fn origin_is_clean(&self) -> bool {

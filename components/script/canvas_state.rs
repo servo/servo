@@ -383,7 +383,7 @@ impl CanvasState {
         }
     }
 
-    pub(crate) fn get_rect(&self, canvas_size: Size2D<u64>, rect: Rect<u64>) -> Vec<u8> {
+    pub(crate) fn get_rect(&self, canvas_size: Size2D<u32>, rect: Rect<u32>) -> Vec<u8> {
         assert!(self.origin_is_clean());
         assert!(Rect::from_size(canvas_size).contains_rect(&rect));
 
@@ -531,11 +531,11 @@ impl CanvasState {
         };
 
         // Step 4. Establish the source and destination rectangles.
-        let video_size = snapshot.size().to_f64();
-        let dw = dw.unwrap_or(video_size.width);
-        let dh = dh.unwrap_or(video_size.height);
-        let sw = sw.unwrap_or(video_size.width);
-        let sh = sh.unwrap_or(video_size.height);
+        let video_size = snapshot.size();
+        let dw = dw.unwrap_or(video_size.width as f64);
+        let dh = dh.unwrap_or(video_size.height as f64);
+        let sw = sw.unwrap_or(video_size.width as f64);
+        let sh = sh.unwrap_or(video_size.height as f64);
 
         let (source_rect, dest_rect) =
             self.adjust_source_dest_rects(video_size, sx, sy, sw, sh, dx, dy, dw, dh);
@@ -577,7 +577,7 @@ impl CanvasState {
         let sw = sw.unwrap_or(canvas_size.width as f64);
         let sh = sh.unwrap_or(canvas_size.height as f64);
 
-        let image_size = Size2D::new(canvas_size.width as f64, canvas_size.height as f64);
+        let image_size = Size2D::new(canvas_size.width, canvas_size.height);
         // 2. Establish the source and destination rectangles
         let (source_rect, dest_rect) =
             self.adjust_source_dest_rects(image_size, sx, sy, sw, sh, dx, dy, dw, dh);
@@ -632,7 +632,7 @@ impl CanvasState {
         let sw = sw.unwrap_or(canvas_size.width as f64);
         let sh = sh.unwrap_or(canvas_size.height as f64);
 
-        let image_size = Size2D::new(canvas_size.width as f64, canvas_size.height as f64);
+        let image_size = Size2D::new(canvas_size.width, canvas_size.height);
         // 2. Establish the source and destination rectangles
         let (source_rect, dest_rect) =
             self.adjust_source_dest_rects(image_size, sx, sy, sw, sh, dx, dy, dw, dh);
@@ -702,12 +702,12 @@ impl CanvasState {
         let snapshot = self
             .fetch_image_data(url, cors_setting)
             .ok_or(Error::InvalidState)?;
-        let image_size = snapshot.size().to_f64();
+        let image_size = snapshot.size();
 
-        let dw = dw.unwrap_or(image_size.width);
-        let dh = dh.unwrap_or(image_size.height);
-        let sw = sw.unwrap_or(image_size.width);
-        let sh = sh.unwrap_or(image_size.height);
+        let dw = dw.unwrap_or(image_size.width as f64);
+        let dh = dh.unwrap_or(image_size.height as f64);
+        let sw = sw.unwrap_or(image_size.width as f64);
+        let sh = sh.unwrap_or(image_size.height as f64);
 
         // Establish the source and destination rectangles
         let (source_rect, dest_rect) =
@@ -741,7 +741,7 @@ impl CanvasState {
     #[allow(clippy::too_many_arguments)]
     fn adjust_source_dest_rects(
         &self,
-        image_size: Size2D<f64>,
+        image_size: Size2D<u32>,
         sx: f64,
         sy: f64,
         sw: f64,
@@ -766,7 +766,7 @@ impl CanvasState {
         // When the source rectangle is outside the source image,
         // the source rectangle must be clipped to the source image
         let source_rect_clipped = source_rect
-            .intersection(&image_rect)
+            .intersection(&image_rect.to_f64())
             .unwrap_or(Rect::zero());
 
         // Width and height ratios between the non clipped and clipped source rectangles
@@ -1486,7 +1486,7 @@ impl CanvasState {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn get_image_data(
         &self,
-        canvas_size: Size2D<u64>,
+        canvas_size: Size2D<u32>,
         global: &GlobalScope,
         sx: i32,
         sy: i32,
@@ -1506,7 +1506,7 @@ impl CanvasState {
         }
 
         let (origin, size) = adjust_size_sign(Point2D::new(sx, sy), Size2D::new(sw, sh));
-        let read_rect = match pixels::clip(origin, size.to_u64(), canvas_size) {
+        let read_rect = match pixels::clip(origin, size.to_u32(), canvas_size) {
             Some(rect) => rect,
             None => {
                 // All the pixels are outside the canvas surface.
@@ -1526,7 +1526,7 @@ impl CanvasState {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
     pub(crate) fn put_image_data(
         &self,
-        canvas_size: Size2D<u64>,
+        canvas_size: Size2D<u32>,
         imagedata: &ImageData,
         dx: i32,
         dy: i32,
@@ -1547,7 +1547,7 @@ impl CanvasState {
     #[allow(unsafe_code, clippy::too_many_arguments)]
     pub(crate) fn put_image_data_(
         &self,
-        canvas_size: Size2D<u64>,
+        canvas_size: Size2D<u32>,
         imagedata: &ImageData,
         dx: i32,
         dy: i32,
@@ -1579,7 +1579,7 @@ impl CanvasState {
             Point2D::new(dirty_x, dirty_y),
             Size2D::new(dirty_width, dirty_height),
         );
-        let src_rect = match pixels::clip(src_origin, src_size.to_u64(), imagedata_size.to_u64()) {
+        let src_rect = match pixels::clip(src_origin, src_size.to_u32(), imagedata_size.to_u32()) {
             Some(rect) => rect,
             None => return,
         };

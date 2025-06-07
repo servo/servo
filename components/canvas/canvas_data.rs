@@ -470,7 +470,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
     pub(crate) fn draw_image(
         &mut self,
         image_data: &[u8],
-        image_size: Size2D<u64>,
+        image_size: Size2D<u32>,
         dest_rect: Rect<f64>,
         source_rect: Rect<f64>,
         smoothing_enabled: bool,
@@ -480,7 +480,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         let source_rect = source_rect.ceil();
         // It discards the extra pixels (if any) that won't be painted
         let image_data = if Rect::from_size(image_size.to_f64()).contains_rect(&source_rect) {
-            pixels::rgba8_get_rect(image_data, image_size, source_rect.to_u64()).into()
+            pixels::rgba8_get_rect(image_data, image_size, source_rect.to_u32()).into()
         } else {
             image_data.into()
         };
@@ -1244,7 +1244,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
-    pub(crate) fn put_image_data(&mut self, mut imagedata: Vec<u8>, rect: Rect<u64>) {
+    pub(crate) fn put_image_data(&mut self, mut imagedata: Vec<u8>, rect: Rect<u32>) {
         assert_eq!(imagedata.len() % 4, 0);
         assert_eq!(rect.size.area() as usize, imagedata.len() / 4);
         pixels::rgba8_byte_swap_and_premultiply_inplace(&mut imagedata);
@@ -1333,8 +1333,8 @@ impl<'a, B: Backend> CanvasData<'a, B> {
     #[allow(unsafe_code)]
     pub(crate) fn read_pixels(
         &self,
-        read_rect: Option<Rect<u64>>,
-        canvas_size: Option<Size2D<u64>>,
+        read_rect: Option<Rect<u32>>,
+        canvas_size: Option<Size2D<u32>>,
     ) -> Snapshot {
         let canvas_size = canvas_size.unwrap_or(self.drawtarget.get_size().cast());
 

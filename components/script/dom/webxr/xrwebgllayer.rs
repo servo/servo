@@ -129,10 +129,7 @@ impl XRWebGLLayer {
                 HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => canvas.get_size(),
                 HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => {
                     let size = canvas.get_size();
-                    Size2D::new(
-                        size.width.try_into().unwrap_or(0),
-                        size.height.try_into().unwrap_or(0),
-                    )
+                    Size2D::new(size.width, size.height)
                 },
             };
             Size2D::from_untyped(size)

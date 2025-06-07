@@ -154,8 +154,8 @@ impl ImageData {
     }
 
     #[allow(unsafe_code)]
-    pub(crate) unsafe fn get_rect(&self, rect: Rect<u64>) -> Cow<[u8]> {
-        pixels::rgba8_get_rect(self.as_slice(), self.get_size().to_u64(), rect)
+    pub(crate) unsafe fn get_rect(&self, rect: Rect<u32>) -> Cow<[u8]> {
+        pixels::rgba8_get_rect(self.as_slice(), self.get_size().to_u32(), rect)
     }
 
     pub(crate) fn get_size(&self) -> Size2D<u32> {
