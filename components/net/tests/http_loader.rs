@@ -329,7 +329,7 @@ fn test_request_and_response_data_with_network_messages() {
     );
     headers.insert(
         HeaderName::from_static("sec-fetch-site"),
-        HeaderValue::from_static("same-site"),
+        HeaderValue::from_static("cross-site"),
     );
     headers.insert(
         HeaderName::from_static("sec-fetch-user"),
