@@ -46,8 +46,8 @@ struct ScrollEvent {
 enum ScrollZoomEvent {
     /// A pinch zoom event that magnifies the view by the given factor.
     PinchZoom(f32),
-    /// A zoom event that magnifies the view by the factor parsed from meta tag.
-    ViewportZoom(f32),
+    /// A zoom event that establishes the initial zoom from the viewport meta tag.
+    InitialViewportZoom(f32),
     /// A scroll event that scrolls the scroll node at the given location by the
     /// given amount.
     Scroll(ScrollEvent),
@@ -810,9 +810,11 @@ impl WebViewRenderer {
         let mut combined_magnification = self.pinch_zoom_level().get();
         for scroll_event in self.pending_scroll_zoom_events.drain(..) {
             match scroll_event {
-                ScrollZoomEvent::PinchZoom(magnification) |
-                ScrollZoomEvent::ViewportZoom(magnification) => {
+                ScrollZoomEvent::PinchZoom(magnification) => {
                     combined_magnification *= magnification
+                },
+                ScrollZoomEvent::InitialViewportZoom(magnification) => {
+                    combined_magnification = magnification
                 },
                 ScrollZoomEvent::Scroll(scroll_event_info) => {
                     let combined_event = match combined_scroll_event.as_mut() {
@@ -1065,7 +1067,7 @@ impl WebViewRenderer {
 
     pub fn set_viewport_description(&mut self, viewport_description: ViewportDescription) {
         self.pending_scroll_zoom_events
-            .push(ScrollZoomEvent::ViewportZoom(
+            .push(ScrollZoomEvent::InitialViewportZoom(
                 viewport_description
                     .clone()
                     .clamp_zoom(viewport_description.initial_scale.get()),
