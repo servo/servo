@@ -432,11 +432,8 @@ impl BlockFormattingContext {
         containing_block: &ContainingBlock,
         depends_on_block_constraints: bool,
     ) -> CacheableLayoutResult {
-        let mut sequential_layout_state = if self.contains_floats || !layout_context.use_rayon {
-            Some(SequentialLayoutState::new(containing_block.size.inline))
-        } else {
-            None
-        };
+        let mut sequential_layout_state =
+            Some(SequentialLayoutState::new(containing_block.size.inline));
 
         // Since this is an independent formatting context, we don't ignore block margins when
         // resolving a stretch block size of the children.
