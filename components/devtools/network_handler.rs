@@ -16,15 +16,6 @@ use crate::resource::ResourceAvailable;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct NetworkEventMsg {
-    from: String,
-    #[serde(rename = "type")]
-    type_: String,
-    event_actor: EventActor,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
 struct NetworkEventUpdateMsg {
     from: String,
     #[serde(rename = "type")]
@@ -52,7 +43,7 @@ struct EventTimingsUpdateMsg {
 struct SecurityInfoUpdateMsg {
     state: String,
 }
-#[derive(Serialize, Clone)] 
+#[derive(Serialize, Clone)]
 pub struct Cause {
     #[serde(rename = "type")]
     pub type_: String,
@@ -62,7 +53,6 @@ pub struct Cause {
 
 pub(crate) fn handle_network_event(
     actors: Arc<Mutex<ActorRegistry>>,
-    console_actor_name: String,
     netevent_actor_name: String,
     mut connections: Vec<TcpStream>,
     network_event: NetworkEvent,
