@@ -14,7 +14,7 @@ use constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::{Sender, select};
 use embedder_traits::EventLoopWaker;
 use log::warn;
-use timers::{BoxedTimerCallback, TimerEventId, TimerEventRequest, TimerScheduler, TimerSource};
+use timers::{BoxedTimerCallback, TimerEventRequest, TimerScheduler};
 
 use crate::compositor::RepaintReason;
 use crate::webview_renderer::WebViewRenderer;
@@ -62,7 +62,7 @@ impl RefreshDriver {
     fn timer_callback(&self) -> BoxedTimerCallback {
         let waiting_for_frame_timeout = self.waiting_for_frame_timeout.clone();
         let event_loop_waker = self.event_loop_waker.clone_box();
-        Box::new(move |_| {
+        Box::new(move || {
             waiting_for_frame_timeout.store(false, Ordering::Relaxed);
             event_loop_waker.wake();
         })
@@ -226,8 +226,6 @@ impl TimerThread {
             .sender
             .send(TimerThreadMessage::Request(TimerEventRequest {
                 callback,
-                source: TimerSource::FromWorker,
-                id: TimerEventId(0),
                 duration,
             }));
     }

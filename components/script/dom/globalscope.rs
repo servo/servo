@@ -62,7 +62,7 @@ use net_traits::{
 use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
 use script_bindings::interfaces::GlobalScopeHelpers;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
-use timers::{TimerEventId, TimerEventRequest, TimerSource};
+use timers::{TimerEventRequest, TimerId};
 use url::Origin;
 use uuid::Uuid;
 #[cfg(feature = "webgpu")]
@@ -147,6 +147,7 @@ use crate::task_manager::TaskManager;
 use crate::task_source::SendableTaskSource;
 use crate::timers::{
     IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback,
+    TimerEventId, TimerSource,
 };
 use crate::unminify::unminified_path;
 
@@ -2480,10 +2481,10 @@ impl GlobalScope {
     /// Schedule a [`TimerEventRequest`] on this [`GlobalScope`]'s [`timers::TimerScheduler`].
     /// Every Worker has its own scheduler, which handles events in the Worker event loop,
     /// but `Window`s use a shared scheduler associated with their [`ScriptThread`].
-    pub(crate) fn schedule_timer(&self, request: TimerEventRequest) {
+    pub(crate) fn schedule_timer(&self, request: TimerEventRequest) -> Option<TimerId> {
         match self.downcast::<WorkerGlobalScope>() {
-            Some(worker_global) => worker_global.timer_scheduler().schedule_timer(request),
-            _ => with_script_thread(|script_thread| script_thread.schedule_timer(request)),
+            Some(worker_global) => Some(worker_global.timer_scheduler().schedule_timer(request)),
+            _ => with_script_thread(|script_thread| Some(script_thread.schedule_timer(request))),
         }
     }
 

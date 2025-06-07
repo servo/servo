@@ -2294,7 +2294,7 @@ impl Window {
         document.update_animations_post_reflow();
         self.update_constellation_epoch();
 
-        true
+        results.built_display_list
     }
 
     /// Reflows the page if it's possible to do so and the page is dirty. Returns true if layout
@@ -2304,6 +2304,11 @@ impl Window {
     /// should happen as part of the HTML event loop via *update the rendering*. Currerntly, the
     /// only exceptions are script queries and scroll requests.
     pub(crate) fn reflow(&self, reflow_goal: ReflowGoal, can_gc: CanGc) -> bool {
+        // Never reflow inactive Documents.
+        if !self.Document().is_fully_active() {
+            return false;
+        }
+
         // Count the pending web fonts before layout, in case a font loads during the layout.
         let waiting_for_web_fonts_to_load = self.font_context.web_fonts_still_loading() != 0;
 
@@ -2482,9 +2487,7 @@ impl Window {
         value: String,
         can_gc: CanGc,
     ) -> Option<ServoArc<Font>> {
-        if !self.layout_reflow(QueryMsg::ResolvedFontStyleQuery, can_gc) {
-            return None;
-        }
+        self.layout_reflow(QueryMsg::ResolvedFontStyleQuery, can_gc);
 
         let document = self.Document();
         let animations = document.animations().sets.clone();
@@ -2504,25 +2507,19 @@ impl Window {
     }
 
     pub(crate) fn content_box_query(&self, node: &Node, can_gc: CanGc) -> Option<UntypedRect<Au>> {
-        if !self.layout_reflow(QueryMsg::ContentBox, can_gc) {
-            return None;
-        }
+        self.layout_reflow(QueryMsg::ContentBox, can_gc);
         self.content_box_query_unchecked(node)
     }
 
     pub(crate) fn content_boxes_query(&self, node: &Node, can_gc: CanGc) -> Vec<UntypedRect<Au>> {
-        if !self.layout_reflow(QueryMsg::ContentBoxes, can_gc) {
-            return vec![];
-        }
+        self.layout_reflow(QueryMsg::ContentBoxes, can_gc);
         self.layout
             .borrow()
             .query_content_boxes(node.to_trusted_node_address())
     }
 
     pub(crate) fn client_rect_query(&self, node: &Node, can_gc: CanGc) -> UntypedRect<i32> {
-        if !self.layout_reflow(QueryMsg::ClientRectQuery, can_gc) {
-            return Rect::zero();
-        }
+        self.layout_reflow(QueryMsg::ClientRectQuery, can_gc);
         self.layout
             .borrow()
             .query_client_rect(node.to_trusted_node_address())
@@ -2535,9 +2532,7 @@ impl Window {
         node: Option<&Node>,
         can_gc: CanGc,
     ) -> UntypedRect<i32> {
-        if !self.layout_reflow(QueryMsg::ScrollingAreaQuery, can_gc) {
-            return Rect::zero();
-        }
+        self.layout_reflow(QueryMsg::ScrollingAreaQuery, can_gc);
         self.layout
             .borrow()
             .query_scrolling_area(node.map(Node::to_trusted_node_address))
@@ -2588,9 +2583,7 @@ impl Window {
         property: PropertyId,
         can_gc: CanGc,
     ) -> DOMString {
-        if !self.layout_reflow(QueryMsg::ResolvedStyleQuery, can_gc) {
-            return DOMString::new();
-        }
+        self.layout_reflow(QueryMsg::ResolvedStyleQuery, can_gc);
 
         let document = self.Document();
         let animations = document.animations().sets.clone();
@@ -2625,10 +2618,7 @@ impl Window {
         node: &Node,
         can_gc: CanGc,
     ) -> (Option<DomRoot<Element>>, UntypedRect<Au>) {
-        if !self.layout_reflow(QueryMsg::OffsetParentQuery, can_gc) {
-            return (None, Rect::zero());
-        }
-
+        self.layout_reflow(QueryMsg::OffsetParentQuery, can_gc);
         let response = self
             .layout
             .borrow()
@@ -2646,9 +2636,7 @@ impl Window {
         point_in_node: UntypedPoint2D<f32>,
         can_gc: CanGc,
     ) -> Option<usize> {
-        if !self.layout_reflow(QueryMsg::TextIndexQuery, can_gc) {
-            return None;
-        }
+        self.layout_reflow(QueryMsg::TextIndexQuery, can_gc);
         self.layout
             .borrow()
             .query_text_indext(node.to_opaque(), point_in_node)

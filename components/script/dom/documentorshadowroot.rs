@@ -103,13 +103,8 @@ impl DocumentOrShadowRoot {
         query_type: NodesFromPointQueryType,
         can_gc: CanGc,
     ) -> Vec<UntrustedNodeAddress> {
-        if !self
-            .window
-            .layout_reflow(QueryMsg::NodesFromPointQuery, can_gc)
-        {
-            return vec![];
-        };
-
+        self.window
+            .layout_reflow(QueryMsg::NodesFromPointQuery, can_gc);
         self.window
             .layout()
             .query_nodes_from_point(*client_point, query_type)
