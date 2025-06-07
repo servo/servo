@@ -4223,7 +4223,9 @@ impl VirtualMethods for Element {
         match *name {
             local_name!("id") => AttrValue::from_atomic(value.into()),
             local_name!("name") => AttrValue::from_atomic(value.into()),
-            local_name!("class") | local_name!("part") => AttrValue::from_serialized_tokenlist(value.into()),
+            local_name!("class") | local_name!("part") => {
+                AttrValue::from_serialized_tokenlist(value.into())
+            },
             _ => self
                 .super_type()
                 .unwrap()

@@ -1583,6 +1583,7 @@ pub(crate) unsafe fn from_untrusted_node_address(candidate: UntrustedNodeAddress
 pub(crate) trait LayoutNodeHelpers<'dom> {
     fn type_id_for_layout(self) -> NodeTypeId;
 
+    fn parent_node_ref(self) -> Option<LayoutDom<'dom, Node>>;
     fn composed_parent_node_ref(self) -> Option<LayoutDom<'dom, Node>>;
     fn first_child_ref(self) -> Option<LayoutDom<'dom, Node>>;
     fn last_child_ref(self) -> Option<LayoutDom<'dom, Node>>;
@@ -1645,7 +1646,7 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
 impl<'dom> LayoutDom<'dom, Node> {
     #[inline]
     #[allow(unsafe_code)]
-    fn parent_node_ref(self) -> Option<LayoutDom<'dom, Node>> {
+    pub(crate) fn parent_node_ref(self) -> Option<LayoutDom<'dom, Node>> {
         unsafe { self.unsafe_get().parent_node.get_inner_as_layout() }
     }
 }
@@ -1659,6 +1660,12 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     #[inline]
     fn is_element_for_layout(&self) -> bool {
         (*self).is::<Element>()
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    fn parent_node_ref(self) -> Option<LayoutDom<'dom, Node>> {
+        unsafe { self.unsafe_get().parent_node.get_inner_as_layout() }
     }
 
     #[inline]
