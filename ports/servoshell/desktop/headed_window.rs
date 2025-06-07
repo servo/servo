@@ -569,6 +569,9 @@ impl WindowPortsMethods for Window {
                 self.webview_relative_mouse_point.set(point);
                 webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
             },
+            WindowEvent::CursorLeft { .. } => {
+                webview.notify_input_event(InputEvent::MouseLeave);
+            },
             WindowEvent::MouseWheel { delta, phase, .. } => {
                 let (mut dx, mut dy, mode) = match delta {
                     MouseScrollDelta::LineDelta(dx, dy) => {

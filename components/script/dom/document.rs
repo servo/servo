@@ -2122,7 +2122,7 @@ impl Document {
         }
     }
 
-    fn handle_mouse_enter_leave_event(
+    pub(crate) fn handle_mouse_enter_leave_event(
         &self,
         client_point: Point2D<f32>,
         event_type: FireMouseEventType,

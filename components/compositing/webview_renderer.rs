@@ -14,7 +14,7 @@ use compositing_traits::viewport_description::{
 use compositing_traits::{SendableFrameTree, WebViewTrait};
 use constellation_traits::{EmbedderToConstellationMessage, ScrollState, WindowSizeType};
 use embedder_traits::{
-    AnimationState, CompositorHitTestResult, InputEvent, MouseButton, MouseButtonAction,
+    AnimationState, CompositorHitTestResult, Cursor, InputEvent, MouseButton, MouseButtonAction,
     MouseButtonEvent, MouseMoveEvent, ShutdownState, TouchEvent, TouchEventResult, TouchEventType,
     TouchId, ViewportDetails,
 };
@@ -333,17 +333,41 @@ impl WebViewRenderer {
 
         // If we can't find a pipeline to send this event to, we cannot continue.
         let get_pipeline_details = |pipeline_id| self.pipelines.get(&pipeline_id);
-        let result = match self
+        let result = self
             .global
             .borrow()
-            .hit_test_at_point(point, get_pipeline_details)
-        {
+            .hit_test_at_point(point, get_pipeline_details);
+        let result = match result {
             Ok(hit_test_results) => hit_test_results,
             Err(HitTestError::EpochMismatch) => {
                 self.pending_point_input_events
                     .borrow_mut()
                     .push_back(event);
                 return false;
+            },
+            // If it didn't hit anything
+            Err(HitTestError::Others)
+                if matches!(
+                    event,
+                    InputEvent::MouseButton(_) | InputEvent::MouseMove(_) | InputEvent::Wheel(_)
+                ) =>
+            {
+                // Reset cursor to default
+                self.global
+                    .borrow_mut()
+                    .update_cursor(point, self.id, Some(Cursor::Default));
+                return if let Err(error) = self.global.borrow().constellation_sender.send(
+                    EmbedderToConstellationMessage::ForwardInputEvent(
+                        self.id,
+                        InputEvent::MouseLeave,
+                        None,
+                    ),
+                ) {
+                    warn!("Sending event to constellation failed ({error:?}).");
+                    false
+                } else {
+                    true
+                };
             },
             _ => {
                 return false;
@@ -355,7 +379,9 @@ impl WebViewRenderer {
                 touch_event.init_sequence_id(self.touch_handler.current_sequence_id);
             },
             InputEvent::MouseButton(_) | InputEvent::MouseMove(_) | InputEvent::Wheel(_) => {
-                self.global.borrow_mut().update_cursor(point, &result);
+                self.global
+                    .borrow_mut()
+                    .update_cursor_from_hittest(point, &result);
             },
             _ => unreachable!("Unexpected input event type: {event:?}"),
         }
@@ -390,7 +416,9 @@ impl WebViewRenderer {
                 return;
             };
 
-            self.global.borrow_mut().update_cursor(point, &result);
+            self.global
+                .borrow_mut()
+                .update_cursor_from_hittest(point, &result);
 
             if let Err(error) = self.global.borrow().constellation_sender.send(
                 EmbedderToConstellationMessage::ForwardInputEvent(self.id, event, Some(result)),
