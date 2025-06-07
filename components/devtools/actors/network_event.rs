@@ -45,7 +45,7 @@ pub struct NetworkEventActor {
     is_xhr: bool,
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EventActor {
     pub actor: String,
