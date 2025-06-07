@@ -43,7 +43,7 @@ struct EventTimingsUpdateMsg {
 struct SecurityInfoUpdateMsg {
     state: String,
 }
-#[derive(Serialize, Clone)]
+#[derive(Clone, Serialize)]
 pub struct Cause {
     #[serde(rename = "type")]
     pub type_: String,
