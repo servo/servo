@@ -125,9 +125,11 @@ use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReactionStack,
 };
 use crate::dom::document::{
-    Document, DocumentSource, FocusInitiator, HasBrowsingContext, IsHTMLDocument, TouchEventResult,
+    Document, DocumentSource, FireMouseEventType, FocusInitiator, HasBrowsingContext,
+    IsHTMLDocument, TouchEventResult,
 };
 use crate::dom::element::Element;
+use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
@@ -1072,6 +1074,54 @@ impl ScriptThread {
         }
     }
 
+    /// Process a compositor mouse leave event.
+    fn process_mouse_leave_event(
+        &self,
+        document: &Document,
+        position: Point2D<f32, DevicePixel>,
+        pressed_mouse_buttons: u16,
+        can_gc: CanGc,
+    ) {
+        if let Some(target) = self.topmost_mouse_over_target.take() {
+            let window = document.window();
+            if target
+                .upcast::<Node>()
+                .inclusive_ancestors(ShadowIncluding::No)
+                .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
+                .next()
+                .is_some()
+            {
+                let event = EmbedderMsg::Status(window.webview_id(), None);
+                window.send_to_embedder(event);
+            }
+            for element in target
+                .upcast::<Node>()
+                .inclusive_ancestors(ShadowIncluding::No)
+                .filter_map(DomRoot::downcast::<Element>)
+            {
+                element.set_hover_state(false);
+                element.set_active_state(false);
+            }
+            document.fire_mouse_event(
+                position.cast_unit(),
+                target.upcast(),
+                FireMouseEventType::Out,
+                EventBubbles::Bubbles,
+                EventCancelable::Cancelable,
+                pressed_mouse_buttons,
+                can_gc,
+            );
+            document.handle_mouse_enter_leave_event(
+                position.cast_unit(),
+                FireMouseEventType::Leave,
+                None,
+                DomRoot::from_ref(target.upcast::<Node>()),
+                pressed_mouse_buttons,
+                can_gc,
+            );
+        }
+    }
+
     /// Process compositor events as part of a "update the rendering task".
     fn process_pending_input_events(&self, pipeline_id: PipelineId, can_gc: CanGc) {
         let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
@@ -1108,6 +1158,14 @@ impl ScriptThread {
                     self.process_mouse_move_event(
                         &document,
                         event.hit_test_result,
+                        event.pressed_mouse_buttons,
+                        can_gc,
+                    );
+                },
+                InputEvent::MouseLeave(leave_event) => {
+                    self.process_mouse_leave_event(
+                        &document,
+                        leave_event.point,
                         event.pressed_mouse_buttons,
                         can_gc,
                     );
