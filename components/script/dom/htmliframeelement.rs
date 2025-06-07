@@ -223,6 +223,7 @@ impl HTMLIFrameElement {
                     old_pipeline_id,
                     sandbox: sandboxed,
                     viewport_details,
+                    theme: window.theme(),
                 };
                 window
                     .as_global_scope()
@@ -238,6 +239,7 @@ impl HTMLIFrameElement {
                     opener: None,
                     load_data,
                     viewport_details,
+                    theme: window.theme(),
                 };
 
                 self.pipeline_id.set(Some(new_pipeline_id));
@@ -250,6 +252,7 @@ impl HTMLIFrameElement {
                     old_pipeline_id,
                     sandbox: sandboxed,
                     viewport_details,
+                    theme: window.theme(),
                 };
                 window
                     .as_global_scope()

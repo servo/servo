@@ -1,0 +1,16 @@
+<!doctype html>
+<title>Datetime input doesn't have stacking contexts inside</title>
+<link rel="help" href="https://drafts.csswg.org/css-forms/"> <!-- a bit of a stretch but... -->
+<link rel="match" href="datetime-stacking-context-ref.html">
+<style>
+  #cover {
+    background: white;
+    position: fixed;
+    width: 100%;
+    height: 200px;
+    top: 0;
+    border: 1px solid black;
+  }
+</style>
+<div id="cover"></div>
+<input type=datetime>

@@ -39,6 +39,7 @@ pub use egui_winit;
 pub use egui_winit::EventResponse;
 use egui_winit::winit;
 use winit::event_loop::ActiveEventLoop;
+use winit::window::Theme;
 
 /// Use [`egui`] from a [`glow`] app based on [`winit`].
 pub struct EguiGlow {
@@ -63,6 +64,7 @@ impl EguiGlow {
             })
             .unwrap();
 
+        let theme = event_loop.system_theme().unwrap_or(Theme::Light);
         let egui_ctx = egui::Context::default();
         Self {
             egui_winit: egui_winit::State::new(
@@ -70,7 +72,7 @@ impl EguiGlow {
                 ViewportId::ROOT,
                 event_loop,
                 None,
-                None,
+                Some(theme),
                 None,
             ),
             egui_ctx,

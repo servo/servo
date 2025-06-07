@@ -32,7 +32,7 @@
         generate_tests( ParsingUtils.testShapeMarginInlineStyle,
                         ParsingUtils.buildTestCases(shape_margin_valid_unit_tests, "inline"));
         ParsingUtils.setupFonts();
-        document.fonts.ready.then(()=> {
+        document.fonts.load("10px Ahem").then(()=> {
             generate_tests( ParsingUtils.testShapeMarginComputedStyle,
                             ParsingUtils.buildTestCases(shape_margin_valid_unit_tests, "computed"));
             ParsingUtils.restoreFonts();

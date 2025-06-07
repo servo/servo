@@ -16,7 +16,7 @@ const fakeDeviceInitParams = {
 };
 
 xr_session_promise_test("Ensures getDepthInformation() throws when not run with stale XRView, `gpu-optimized`",
-  staleViewsTestFunctionGenerator(/*isCpuOptimized=*/false),
+  staleViewsTestFunction,
   fakeDeviceInitParams,
   'immersive-ar', {
     requiredFeatures: ['depth-sensing'],

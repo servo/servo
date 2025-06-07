@@ -58,16 +58,16 @@ impl InputEvent {
         }
     }
 
-    pub fn with_webdriver_message_id(self, webdriver_id: Option<WebDriverMessageId>) -> Self {
+    pub fn with_webdriver_message_id(mut self, webdriver_id: Option<WebDriverMessageId>) -> Self {
         match self {
             InputEvent::EditingAction(..) => {},
             InputEvent::Gamepad(..) => {},
             InputEvent::Ime(..) => {},
             InputEvent::Keyboard(..) => {},
-            InputEvent::MouseButton(mut event) => {
+            InputEvent::MouseButton(ref mut event) => {
                 event.webdriver_id = webdriver_id;
             },
-            InputEvent::MouseMove(mut event) => {
+            InputEvent::MouseMove(ref mut event) => {
                 event.webdriver_id = webdriver_id;
             },
             InputEvent::Touch(..) => {},

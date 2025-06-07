@@ -87,10 +87,6 @@ function add_corner(ctx, ax, ay, bx, by, curvature) {
  *  'border-top-right-radius': [number, number],
  *  'border-bottom-left-radius': [number, number],
  *  'border-bottom-right-radius': [number, number],
- *  'border-top-color': string,
- *  'border-right-color': string,
- *  'border-left-color': string,
- *  'border-bottom-color': string,
  *  'border-top-width': number,
  *  'border-right-width': number,
  *  'border-bottom-width': number,
@@ -109,42 +105,8 @@ function render_rect_with_corner_shapes(style, ctx, width, height) {
     add_corner(ctx, ...params.outer_rect, params.shape);
   }
 
-  function draw_inner_corner_from_params(params) {
-    add_corner(ctx, ...params.inner_rect, params.shape);
-  }
-
   function draw_inner_corner(corner) {
-    draw_inner_corner_from_params(corner_params[corner]);
-  }
-
-  function draw_shadow() {
-    if (!style.shadow || !style.shadow.length) {
-      return;
-    }
-
-    for (const {spread, offset, color} of style.shadow) {
-      const params = resolve_corner_params(style, width, height, spread);
-      ctx.save();
-      ctx.translate(...offset);
-      ctx.beginPath();
-      ctx.lineTo(params['top-right'].inner_rect[0], params['top-right'].inner_rect[1]);
-      draw_inner_corner_from_params(params['top-right']);
-      ctx.lineTo(params['top-right'].inner_rect[2], params['top-right'].inner_rect[3])
-      ctx.lineTo(params['bottom-right'].inner_rect[0], params['bottom-right'].inner_rect[1])
-      draw_inner_corner_from_params(params['bottom-right']);
-      ctx.lineTo(params['bottom-right'].inner_rect[2], params['bottom-right'].inner_rect[3]);
-      ctx.lineTo(params['bottom-left'].inner_rect[0], params['bottom-left'].inner_rect[1]);
-      draw_inner_corner_from_params(params['bottom-left']);
-      ctx.lineTo(params['bottom-left'].inner_rect[2], params['bottom-left'].inner_rect[3])
-      ctx.lineTo(params['top-left'].inner_rect[0], params['top-left'].inner_rect[1])
-      draw_inner_corner_from_params(params['top-left']);
-      ctx.lineTo(params['top-left'].inner_rect[2], params['top-left'].inner_rect[3]);
-      ctx.lineTo(params['top-right'].inner_rect[0], params['top-right'].inner_rect[1]);
-      ctx.fillStyle = color;
-      ctx.closePath();
-      ctx.fill("nonzero");
-      ctx.restore();
-    }
+    add_corner(ctx, ...corner_params[corner].inner_rect, corner_params[corner].shape);
   }
 
   function draw_outer_path() {
@@ -157,6 +119,15 @@ function render_rect_with_corner_shapes(style, ctx, width, height) {
     ctx.fill("nonzero");
   }
 
+  for (const {spread, offset, color} of (style.shadow || [])) {
+    ctx.save();
+    ctx.translate(offset[0] - spread, offset[1] - spread);
+    ctx.scale((width + spread * 2) / width, (height + spread * 2) / height);
+    ctx.fillStyle = color;
+    draw_outer_path();
+    ctx.restore();
+  }
+
   const inner_rect = [
     style["border-left-width"],
     style["border-top-width"],
@@ -164,70 +135,8 @@ function render_rect_with_corner_shapes(style, ctx, width, height) {
     height - style["border-bottom-width"],
   ];
 
-  draw_shadow();
-  {
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(corner_params['top-left'].inner_rect[2], corner_params['top-left'].inner_rect[1])
-    ctx.lineTo(corner_params['top-left'].inner_rect[2], inner_rect[1]);
-    ctx.lineTo(corner_params['top-right'].inner_rect[0], inner_rect[1]);
-    ctx.lineTo(corner_params['top-right'].inner_rect[0], corner_params['top-right'].inner_rect[3]);
-    ctx.lineTo(width, 0);
-    ctx.closePath();
-    ctx.clip();
-    ctx.fillStyle = style['border-top-color'];
-    draw_outer_path();
-    ctx.restore();
-  }
-
-  {
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(width, 0);
-    ctx.lineTo(corner_params['top-right'].inner_rect[0], corner_params['top-right'].inner_rect[3]);
-    ctx.lineTo(inner_rect[2], corner_params['top-right'].inner_rect[3]);
-    ctx.lineTo(inner_rect[2], corner_params['bottom-right'].inner_rect[1]);
-    ctx.lineTo(corner_params['bottom-right'].inner_rect[2], corner_params['bottom-right'].inner_rect[1]);
-    ctx.lineTo(width, height);
-    ctx.closePath();
-    ctx.clip();
-    ctx.fillStyle = style['border-right-color'];
-    draw_outer_path();
-    ctx.restore();
-  }
-
-  {
-    ctx.save();
-    ctx.beginPath();
-    ctx.lineTo(width, height);
-    ctx.lineTo(corner_params['bottom-right'].inner_rect[2], corner_params['bottom-right'].inner_rect[1]);
-    ctx.lineTo(corner_params['bottom-right'].inner_rect[2], inner_rect[3]);
-    ctx.lineTo(corner_params['bottom-left'].inner_rect[0], inner_rect[3]);
-    ctx.lineTo(corner_params['bottom-left'].inner_rect[0], corner_params['bottom-left'].inner_rect[3]);
-    ctx.lineTo(0, height);
-    ctx.closePath();
-    ctx.clip();
-    ctx.fillStyle = style['border-bottom-color'];
-    draw_outer_path();
-    ctx.restore();
-  }
-
-  {
-    ctx.save();
-    ctx.beginPath();
-    ctx.lineTo(0, height);
-    ctx.lineTo(corner_params['bottom-left'].inner_rect[0], corner_params['bottom-left'].inner_rect[3]);
-    ctx.lineTo(inner_rect[0], corner_params['bottom-left'].inner_rect[3]);
-    ctx.lineTo(inner_rect[0], corner_params['top-left'].inner_rect[1]);
-    ctx.lineTo(corner_params['top-left'].inner_rect[2], corner_params['top-left'].inner_rect[1])
-    ctx.lineTo(0, 0);
-    ctx.closePath();
-    ctx.clip();
-    ctx.fillStyle = style['border-left-color'];
-    draw_outer_path();
-    ctx.restore();
-  }
+  ctx.fillStyle = "black";
+  draw_outer_path();
 
   ctx.save();
   ctx.beginPath();

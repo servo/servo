@@ -116,10 +116,6 @@ pub struct Preferences {
     // https://testutils.spec.whatwg.org#availability
     pub dom_testutils_enabled: bool,
     pub dom_trusted_types_enabled: bool,
-    /// Enable the [URLPattern] API.
-    ///
-    /// [URLPattern]: https://developer.mozilla.org/en-US/docs/Web/API/URLPattern
-    pub dom_urlpattern_enabled: bool,
     pub dom_xpath_enabled: bool,
     /// Enable WebGL2 APIs.
     pub dom_webgl2_enabled: bool,
@@ -292,7 +288,6 @@ impl Preferences {
             dom_testperf_enabled: false,
             dom_testutils_enabled: false,
             dom_trusted_types_enabled: false,
-            dom_urlpattern_enabled: false,
             dom_webgl2_enabled: false,
             dom_webgpu_enabled: false,
             dom_webgpu_wgpu_backend: String::new(),

@@ -7,6 +7,12 @@ const content_types = [
   "text/json+blah",
   "application/blahjson",
   "image/json",
+  "text+json",
+  "json+json",
+  "text/json/json+json",
+  "text/html;+json",
+  "text/html+json+xml",
+  "text/json/json",
 ];
 for (const content_type of content_types) {
   promise_test(async test => {

@@ -32,6 +32,8 @@ interface HTMLScriptElement : HTMLElement {
   [CEReactions]
            attribute DOMString referrerPolicy;
 
+  static boolean supports(DOMString type);
+
   // also has obsolete members
 };
 

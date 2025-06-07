@@ -2,11 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::str::FromStr;
+
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::color::AbsoluteColor;
+use style::values::generics::NonNegative;
+use style::values::specified::border::BorderSideWidth;
+use style::values::specified::length::Size;
+use style::values::specified::{LengthPercentage, NoCalcLength};
 
 use crate::dom::bindings::codegen::Bindings::HTMLHRElementBinding::HTMLHRElementMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -65,6 +71,18 @@ impl HTMLHRElementMethods<crate::DomTypeHolder> for HTMLHRElement {
     // https://html.spec.whatwg.org/multipage/#dom-hr-color
     make_legacy_color_setter!(SetColor, "color");
 
+    // https://html.spec.whatwg.org/multipage/#dom-hr-noshade
+    make_bool_getter!(NoShade, "noshade");
+
+    // https://html.spec.whatwg.org/multipage/#dom-hr-noshade
+    make_bool_setter!(SetNoShade, "noshade");
+
+    // https://html.spec.whatwg.org/multipage/#dom-hr-size
+    make_getter!(Size, "size");
+
+    // https://html.spec.whatwg.org/multipage/#dom-hr-size
+    make_dimension_setter!(SetSize, "size");
+
     // https://html.spec.whatwg.org/multipage/#dom-hr-width
     make_getter!(Width, "width");
 
@@ -72,9 +90,20 @@ impl HTMLHRElementMethods<crate::DomTypeHolder> for HTMLHRElement {
     make_dimension_setter!(SetWidth, "width");
 }
 
+/// The result of applying the the presentational hint for the `size` attribute.
+///
+/// (This attribute can mean different things depending on its value and other attributes)
+#[allow(clippy::enum_variant_names)]
+pub(crate) enum SizePresentationalHint {
+    SetHeightTo(Size),
+    SetAllBorderWidthValuesTo(BorderSideWidth),
+    SetBottomBorderWidthToZero,
+}
+
 pub(crate) trait HTMLHRLayoutHelpers {
     fn get_color(self) -> Option<AbsoluteColor>;
     fn get_width(self) -> LengthOrPercentageOrAuto;
+    fn get_size_info(self) -> Option<SizePresentationalHint>;
 }
 
 impl HTMLHRLayoutHelpers for LayoutDom<'_, HTMLHRElement> {
@@ -91,6 +120,35 @@ impl HTMLHRLayoutHelpers for LayoutDom<'_, HTMLHRElement> {
             .map(AttrValue::as_dimension)
             .cloned()
             .unwrap_or(LengthOrPercentageOrAuto::Auto)
+    }
+
+    fn get_size_info(self) -> Option<SizePresentationalHint> {
+        // https://html.spec.whatwg.org/multipage/#the-hr-element-2
+        let element = self.upcast::<Element>();
+        let size_value = element
+            .get_attr_val_for_layout(&ns!(), &local_name!("size"))
+            .and_then(|value| usize::from_str(value).ok())
+            .filter(|value| *value != 0)?;
+
+        let hint = if element
+            .get_attr_for_layout(&ns!(), &local_name!("color"))
+            .is_some() ||
+            element
+                .get_attr_for_layout(&ns!(), &local_name!("noshade"))
+                .is_some()
+        {
+            SizePresentationalHint::SetAllBorderWidthValuesTo(BorderSideWidth::from_px(
+                size_value as f32 / 2.0,
+            ))
+        } else if size_value == 1 {
+            SizePresentationalHint::SetBottomBorderWidthToZero
+        } else {
+            SizePresentationalHint::SetHeightTo(Size::LengthPercentage(NonNegative(
+                LengthPercentage::Length(NoCalcLength::from_px((size_value - 2) as f32)),
+            )))
+        };
+
+        Some(hint)
     }
 }
 

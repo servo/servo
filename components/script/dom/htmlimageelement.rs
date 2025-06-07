@@ -20,8 +20,8 @@ use js::rust::HandleObject;
 use mime::{self, Mime};
 use net_traits::http_status::HttpStatus;
 use net_traits::image_cache::{
-    ImageCache, ImageCacheResult, ImageOrMetadataAvailable, ImageResponder, ImageResponse,
-    PendingImageId, UsePlaceholder,
+    Image, ImageCache, ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable,
+    ImageResponse, PendingImageId, UsePlaceholder,
 };
 use net_traits::request::{Destination, Initiator, RequestId};
 use net_traits::{
@@ -29,14 +29,13 @@ use net_traits::{
     ResourceFetchTiming, ResourceTimingType,
 };
 use num_traits::ToPrimitive;
-use pixels::{CorsStatus, Image, ImageMetadata};
+use pixels::{CorsStatus, ImageMetadata};
 use servo_url::ServoUrl;
 use servo_url::origin::MutableOrigin;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_integer, parse_length};
 use style::context::QuirksMode;
-use style::media_queries::MediaList;
 use style::parser::ParserContext;
-use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
+use style::stylesheets::{CssRuleType, Origin};
 use style::values::specified::AbsoluteLength;
 use style::values::specified::length::{Length, NoCalcLength};
 use style::values::specified::source_size_list::SourceSizeList;
@@ -146,9 +145,8 @@ struct ImageRequest {
     parsed_url: Option<ServoUrl>,
     source_url: Option<USVString>,
     blocker: DomRefCell<Option<LoadBlocker>>,
-    #[conditional_malloc_size_of]
     #[no_trace]
-    image: Option<Arc<Image>>,
+    image: Option<Image>,
     #[no_trace]
     metadata: Option<ImageMetadata>,
     #[no_trace]
@@ -177,7 +175,8 @@ impl HTMLImageElement {
     pub(crate) fn is_usable(&self) -> Fallible<bool> {
         // If image has an intrinsic width or intrinsic height (or both) equal to zero, then return bad.
         if let Some(image) = &self.current_request.borrow().image {
-            if image.width == 0 || image.height == 0 {
+            let intrinsic_size = image.metadata();
+            if intrinsic_size.width == 0 || intrinsic_size.height == 0 {
                 return Ok(false);
             }
         }
@@ -191,7 +190,7 @@ impl HTMLImageElement {
         }
     }
 
-    pub(crate) fn image_data(&self) -> Option<Arc<Image>> {
+    pub(crate) fn image_data(&self) -> Option<Image> {
         self.current_request.borrow().image.clone()
     }
 }
@@ -341,10 +340,12 @@ impl HTMLImageElement {
                 is_placeholder,
             }) => {
                 if is_placeholder {
-                    self.process_image_response(
-                        ImageResponse::PlaceholderLoaded(image, url),
-                        can_gc,
-                    )
+                    if let Some(raster_image) = image.as_raster_image() {
+                        self.process_image_response(
+                            ImageResponse::PlaceholderLoaded(raster_image, url),
+                            can_gc,
+                        )
+                    }
                 } else {
                     self.process_image_response(ImageResponse::Loaded(image, url), can_gc)
                 }
@@ -403,7 +404,7 @@ impl HTMLImageElement {
 
         window
             .image_cache()
-            .add_listener(ImageResponder::new(sender, window.pipeline_id(), id));
+            .add_listener(ImageLoadListener::new(sender, window.pipeline_id(), id));
     }
 
     fn fetch_request(&self, img_url: &ServoUrl, id: PendingImageId) {
@@ -448,11 +449,8 @@ impl HTMLImageElement {
     }
 
     // Steps common to when an image has been loaded.
-    fn handle_loaded_image(&self, image: Arc<Image>, url: ServoUrl, can_gc: CanGc) {
-        self.current_request.borrow_mut().metadata = Some(ImageMetadata {
-            height: image.height,
-            width: image.width,
-        });
+    fn handle_loaded_image(&self, image: Image, url: ServoUrl, can_gc: CanGc) {
+        self.current_request.borrow_mut().metadata = Some(image.metadata());
         self.current_request.borrow_mut().final_url = Some(url);
         self.current_request.borrow_mut().image = Some(image);
         self.current_request.borrow_mut().state = State::CompletelyAvailable;
@@ -471,7 +469,7 @@ impl HTMLImageElement {
                 (true, false)
             },
             (ImageResponse::PlaceholderLoaded(image, url), ImageRequestPhase::Current) => {
-                self.handle_loaded_image(image, url, can_gc);
+                self.handle_loaded_image(Image::Raster(image), url, can_gc);
                 (false, true)
             },
             (ImageResponse::Loaded(image, url), ImageRequestPhase::Pending) => {
@@ -483,7 +481,7 @@ impl HTMLImageElement {
             (ImageResponse::PlaceholderLoaded(image, url), ImageRequestPhase::Pending) => {
                 self.abort_request(State::Unavailable, ImageRequestPhase::Pending, can_gc);
                 self.image_request.set(ImageRequestPhase::Current);
-                self.handle_loaded_image(image, url, can_gc);
+                self.handle_loaded_image(Image::Raster(image), url, can_gc);
                 (false, true)
             },
             (ImageResponse::MetadataLoaded(meta), ImageRequestPhase::Current) => {
@@ -536,11 +534,15 @@ impl HTMLImageElement {
         can_gc: CanGc,
     ) {
         match image {
-            ImageResponse::Loaded(image, url) | ImageResponse::PlaceholderLoaded(image, url) => {
-                self.pending_request.borrow_mut().metadata = Some(ImageMetadata {
-                    height: image.height,
-                    width: image.width,
-                });
+            ImageResponse::Loaded(image, url) => {
+                self.pending_request.borrow_mut().metadata = Some(image.metadata());
+                self.pending_request.borrow_mut().final_url = Some(url);
+                self.pending_request.borrow_mut().image = Some(image);
+                self.finish_reacting_to_environment_change(src, generation, selected_pixel_density);
+            },
+            ImageResponse::PlaceholderLoaded(image, url) => {
+                let image = Image::Raster(image);
+                self.pending_request.borrow_mut().metadata = Some(image.metadata());
                 self.pending_request.borrow_mut().final_url = Some(url);
                 self.pending_request.borrow_mut().image = Some(image);
                 self.finish_reacting_to_environment_change(src, generation, selected_pixel_density);
@@ -675,7 +677,7 @@ impl HTMLImageElement {
 
             // Step 4.6
             if let Some(x) = element.get_attribute(&ns!(), &local_name!("media")) {
-                if !self.matches_environment(x.value().to_string()) {
+                if !elem.matches_environment(&x.value()) {
                     continue;
                 }
             }
@@ -716,33 +718,6 @@ impl HTMLImageElement {
         let document = self.owner_document();
         let quirks_mode = document.quirks_mode();
         let result = source_size_list.evaluate(document.window().layout().device(), quirks_mode);
-        result
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#matches-the-environment>
-    fn matches_environment(&self, media_query: String) -> bool {
-        let document = self.owner_document();
-        let quirks_mode = document.quirks_mode();
-        let document_url_data = UrlExtraData(document.url().get_arc());
-        // FIXME(emilio): This should do the same that we do for other media
-        // lists regarding the rule type and such, though it doesn't really
-        // matter right now...
-        //
-        // Also, ParsingMode::all() is wrong, and should be DEFAULT.
-        let context = ParserContext::new(
-            Origin::Author,
-            &document_url_data,
-            Some(CssRuleType::Style),
-            ParsingMode::all(),
-            quirks_mode,
-            /* namespaces = */ Default::default(),
-            None,
-            None,
-        );
-        let mut parserInput = ParserInput::new(&media_query);
-        let mut parser = Parser::new(&mut parserInput);
-        let media_list = MediaList::parse(&context, &mut parser);
-        let result = media_list.evaluate(document.window().layout().device(), quirks_mode);
         result
     }
 
@@ -1020,10 +995,7 @@ impl HTMLImageElement {
                     // set on this element.
                     self.generation.set(self.generation.get() + 1);
                     // Step 6.3
-                    let metadata = ImageMetadata {
-                        height: image.height,
-                        width: image.width,
-                    };
+                    let metadata = image.metadata();
                     // Step 6.3.2 abort requests
                     self.abort_request(
                         State::CompletelyAvailable,
@@ -1033,7 +1005,7 @@ impl HTMLImageElement {
                     self.abort_request(State::Unavailable, ImageRequestPhase::Pending, can_gc);
                     let mut current_request = self.current_request.borrow_mut();
                     current_request.final_url = Some(img_url.clone());
-                    current_request.image = Some(image.clone());
+                    current_request.image = Some(image);
                     current_request.metadata = Some(metadata);
                     // Step 6.3.6
                     current_request.current_pixel_density = pixel_density;
@@ -1360,7 +1332,7 @@ impl HTMLImageElement {
 
     pub(crate) fn same_origin(&self, origin: &MutableOrigin) -> bool {
         if let Some(ref image) = self.current_request.borrow().image {
-            return image.cors_status == CorsStatus::Safe;
+            return image.cors_status() == CorsStatus::Safe;
         }
 
         self.current_request
@@ -1432,7 +1404,7 @@ impl MicrotaskRunnable for ImageElementMicrotask {
 pub(crate) trait LayoutHTMLImageElementHelpers {
     fn image_url(self) -> Option<ServoUrl>;
     fn image_density(self) -> Option<f64>;
-    fn image_data(self) -> (Option<Arc<Image>>, Option<ImageMetadata>);
+    fn image_data(self) -> (Option<Image>, Option<ImageMetadata>);
     fn get_width(self) -> LengthOrPercentageOrAuto;
     fn get_height(self) -> LengthOrPercentageOrAuto;
 }
@@ -1449,12 +1421,9 @@ impl LayoutHTMLImageElementHelpers for LayoutDom<'_, HTMLImageElement> {
         self.current_request().parsed_url.clone()
     }
 
-    fn image_data(self) -> (Option<Arc<Image>>, Option<ImageMetadata>) {
+    fn image_data(self) -> (Option<Image>, Option<ImageMetadata>) {
         let current_request = self.current_request();
-        (
-            current_request.image.clone(),
-            current_request.metadata.clone(),
-        )
+        (current_request.image.clone(), current_request.metadata)
     }
 
     fn image_density(self) -> Option<f64> {

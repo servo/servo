@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Values and Units Test: support for the ch unit</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#ch">
+<link rel="match" href="reference/ch-unit-019-ref.html">
+<meta name="assert" content="The ch unit should fallback to 0.5em or 1em respectively when it's impossible to derive the width of the “0” (ZERO, U+0030) glyph in the font used to render it">
+<style>
+@font-face {
+  font-family: "icon-font";
+  src: url("data:font/woff2;base64,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") format("woff2");
+}
+
+div {
+  height: 10px;
+  background-color: blue;
+  margin-top: 10px;
+}
+
+div::before {
+  content: "\e00b";
+  display: none;
+}
+
+.test {
+  /* 50px + 10 * (0.5em)*/
+  /* 50px + 10 * (0.5 * 10px) = 100px*/
+  width: calc(50px + 10ch);
+}
+
+.test-upright {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  /* 50px + 5 * (1em)*/
+  /* 50px + 5 * (1 * 10px) = 100px*/
+  width: calc(50px + 5ch);
+}
+
+.ref {
+  width: 100px;
+}
+</style>
+<p>The test passes if there are two blue rectangles of equal length.</p>
+<!-- In the cases where it is impossible or impractical to determine
+     the measure of the “0” glyph, it must be assumed to be 0.5em
+     wide by 1em tall. Thus, the ch unit falls back to 0.5em in the general case-->
+<div class="test" style="font: 10px icon-font"></div>
+<!-- and to 1em when it would be typeset upright (i.e. writing-mode
+     is vertical-rl or vertical-lr and text-orientation is upright).-->
+<div class="test-upright" style="font: 10px icon-font"></div>
+<div class="ref"></div>

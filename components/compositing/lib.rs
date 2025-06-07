@@ -11,7 +11,7 @@ use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::{CompositorMsg, CompositorProxy};
 use constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::{Receiver, Sender};
-use embedder_traits::ShutdownState;
+use embedder_traits::{EventLoopWaker, ShutdownState};
 use profile_traits::{mem, time};
 use webrender::RenderApi;
 use webrender_api::DocumentId;
@@ -22,9 +22,10 @@ pub use crate::compositor::{IOCompositor, WebRenderDebugOption};
 mod tracing;
 
 mod compositor;
+mod refresh_driver;
 mod touch;
-pub mod webview_manager;
-pub mod webview_renderer;
+mod webview_manager;
+mod webview_renderer;
 
 /// Data used to construct a compositor.
 pub struct InitialCompositorState {
@@ -49,4 +50,7 @@ pub struct InitialCompositorState {
     pub webrender_gl: Rc<dyn gleam::gl::Gl>,
     #[cfg(feature = "webxr")]
     pub webxr_main_thread: webxr::MainThreadRegistry,
+    /// An [`EventLoopWaker`] used in order to wake up the embedder when it is
+    /// time to paint.
+    pub event_loop_waker: Box<dyn EventLoopWaker>,
 }

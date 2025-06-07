@@ -6,6 +6,7 @@
     <script src="/resources/testharnessreport.js"></script>
     <script src="/resources/testdriver.js"></script>
     <script src="/resources/testdriver-vendor.js"></script>
+    <script src="resources/soft-navigation-test-helper.js"></script>
   </head>
   <body>
     <div id="main">
@@ -39,25 +40,33 @@
           const test_origin = new URL(location.href).origin;
           history.pushState({}, "", "/foo.html"); // We will observe this below.
           history.pushState({}, "", "/bar.html"); // Prep for history.back().
-          document.getElementById("soft_nav_div").addEventListener("click", () => {
+          document.getElementById("soft_nav_div").addEventListener("click", async () => {
+            // URL change triggering the soft nav. Since history.back()'s
+            // effect is potentially asynchronous, we wait for it to complete
+            // before we mutate the DOM. This way we ensure that the paints
+            // arrive only after the URL change.
+            history.back();
+            await t.step_wait(() => location.href.endsWith("/foo.html"));
             const img = new Image();
             img.src = "/images/lcp-133x106.png";
             document.getElementById("main").appendChild(img);
-            history.back(); // URL change triggering the soft nav
           });
+          const helper = new SoftNavigationTestHelper(t);
 
           // Now, click almost_soft_nav_div, and observe that time image
           // was rendered but no soft nav was triggered.
           {
-            const element_timing_promise = new Promise((resolve) => {
-              new PerformanceObserver(resolve).observe({ type: "element", buffered: true });
-            });
+            const element_timing_promise = helper.getBufferedPerformanceEntriesWithTimeout(
+              /*type=*/ "element",
+              /*includeSoftNavigationObservations=*/ false,
+              /*minNumEntries=*/ 1,
+            );
             if (test_driver) {
               test_driver.click(almost_soft_nav_div);
             }
             // Returns entries of type PerformanceElementTiming, see
             // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceElementTiming.
-            const entries = (await element_timing_promise).getEntries();
+            const entries = await element_timing_promise;
             assert_equals(entries.length, 1);
             assert_equals(
               entries[0].identifier,
@@ -69,15 +78,17 @@
 
           // Now, click soft_nav_div, and observe the detected soft navigation.
           {
-            const soft_nav_promise = new Promise((resolve) => {
-              new PerformanceObserver(resolve).observe({ type: "soft-navigation", buffered: true });
-            });
+            const soft_nav_promise = helper.getBufferedPerformanceEntriesWithTimeout(
+              /*type=*/ "soft-navigation",
+              /*includeSoftNavigationObservations=*/ false,
+              /*minNumEntries=*/ 1,
+            );
             if (test_driver) {
               test_driver.click(soft_nav_div);
             }
             // Returns entries of type SoftNavigationEntry, see
             // https://github.com/WICG/soft-navigations/
-            const entries = (await soft_nav_promise).getEntries();
+            const entries = await soft_nav_promise;
             assert_equals(document.softNavigations, 1, "Single soft navigation detected");
             assert_equals(entries.length, 1, "Performance observer got an entry");
             assert_equals(entries[0].name, test_origin + "/foo.html");

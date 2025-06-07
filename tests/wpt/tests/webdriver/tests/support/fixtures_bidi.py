@@ -499,9 +499,11 @@ async def create_user_context(bidi_session):
 
     user_contexts = []
 
-    async def create_user_context():
+    async def create_user_context(accept_insecure_certs=None, proxy=None):
         nonlocal user_contexts
-        user_context = await bidi_session.browser.create_user_context()
+        user_context = await bidi_session.browser.create_user_context(
+            accept_insecure_certs=accept_insecure_certs, proxy=proxy
+        )
         user_contexts.append(user_context)
 
         return user_context

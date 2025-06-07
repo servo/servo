@@ -113,6 +113,7 @@ impl RunningAppState {
             .delegate(self.clone())
             .build();
 
+        webview.notify_theme_change(self.inner().window.theme());
         webview.focus();
         webview.raise_to_top(true);
 
@@ -475,6 +476,7 @@ impl WebViewDelegate for RunningAppState {
             .delegate(parent_webview.delegate())
             .build();
 
+        webview.notify_theme_change(self.inner().window.theme());
         webview.focus();
         webview.raise_to_top(true);
 

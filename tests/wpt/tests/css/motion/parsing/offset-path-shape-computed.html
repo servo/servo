@@ -27,8 +27,8 @@ test_computed_value("offset-path", "shape(from 10px 10px, curve to 50px 20px wit
 test_computed_value("offset-path", "shape(from 10px 10px, curve to 50px 20px with 10rem 1px / 20% 1em)", "shape(from 10px 10px, curve to 50px 20px with 160px 1px / 20% 16px)");
 test_computed_value("offset-path", "shape(from 10px 10px, smooth to 50px 20px with 10rem 1%)", "shape(from 10px 10px, smooth to 50px 20px with 160px 1%)");
 test_computed_value("offset-path", "shape(from 10px 10px, smooth to 50px 3pt)", "shape(from 10px 10px, smooth to 50px 4px)");
-test_computed_value("offset-path", "shape(from 10px 10px, arc to 50px 3pt of 10px 10px)", "shape(from 10px 10px, arc to 50px 4px of 10px)");
-test_computed_value("offset-path", "shape(from 10px 10px, arc to 50px 3pt of 10px 10px small rotate 0deg)", "shape(from 10px 10px, arc to 50px 4px of 10px)");
+test_computed_value("offset-path", "shape(from 10px 10px, arc to 50px 3pt of 10px 10px)", "shape(from 10px 10px, arc to 50px 4px of 10px 10px)");
+test_computed_value("offset-path", "shape(from 10px 10px, arc to 50px 3pt of 10px small rotate 0deg)", "shape(from 10px 10px, arc to 50px 4px of 10px)");
 test_computed_value("offset-path", "shape(from 10% 1rem, arc to 50px 3pt of 20% cw large rotate 25deg)", "shape(from 10% 16px, arc to 50px 4px of 20% cw large rotate 25deg)");
 </script>
 </body>

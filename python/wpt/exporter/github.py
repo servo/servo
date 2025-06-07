@@ -40,13 +40,9 @@ def authenticated(sync: WPTSync, method, url, json=None) -> requests.Response:
     }
 
     url = urllib.parse.urljoin(sync.github_api_url, url)
-    response = requests.request(
-        method, url, headers=headers, json=json, timeout=TIMEOUT
-    )
+    response = requests.request(method, url, headers=headers, json=json, timeout=TIMEOUT)
     if int(response.status_code / 100) != 2:
-        raise ValueError(
-            f"Got unexpected {response.status_code} response: {response.text}"
-        )
+        raise ValueError(f"Got unexpected {response.status_code} response: {response.text}")
     return response
 
 
@@ -71,33 +67,27 @@ class GithubRepository:
     def get_branch(self, name: str) -> GithubBranch:
         return GithubBranch(self, name)
 
-    def get_open_pull_request_for_branch(
-        self,
-        github_username: str,
-        branch: GithubBranch
-    ) -> Optional[PullRequest]:
+    def get_open_pull_request_for_branch(self, github_username: str, branch: GithubBranch) -> Optional[PullRequest]:
         """If this repository has an open pull request with the
         given source head reference targeting the main branch,
         return the first matching pull request, otherwise return None."""
 
-        params = "+".join([
-            "is:pr",
-            "state:open",
-            f"repo:{self.repo}",
-            f"author:{github_username}",
-            f"head:{branch.name}",
-        ])
+        params = "+".join(
+            [
+                "is:pr",
+                "state:open",
+                f"repo:{self.repo}",
+                f"author:{github_username}",
+                f"head:{branch.name}",
+            ]
+        )
         response = authenticated(self.sync, "GET", f"search/issues?q={params}")
         if int(response.status_code / 100) != 2:
             return None
 
         json = response.json()
-        if not isinstance(json, dict) or \
-           "total_count" not in json or \
-           "items" not in json:
-            raise ValueError(
-                f"Got unexpected response from GitHub search: {response.text}"
-            )
+        if not isinstance(json, dict) or "total_count" not in json or "items" not in json:
+            raise ValueError(f"Got unexpected response from GitHub search: {response.text}")
 
         if json["total_count"] < 1:
             return None
@@ -152,9 +142,7 @@ class PullRequest:
         return authenticated(self.context, *args, **kwargs)
 
     def leave_comment(self, comment: str):
-        return self.api(
-            "POST", f"{self.base_issues_url}/comments", json={"body": comment}
-        )
+        return self.api("POST", f"{self.base_issues_url}/comments", json={"body": comment})
 
     def change(
         self,

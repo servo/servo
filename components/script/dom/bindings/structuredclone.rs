@@ -10,11 +10,13 @@ use std::os::raw;
 use std::ptr;
 
 use base::id::{
-    BlobId, DomExceptionId, DomPointId, Index, MessagePortId, NamespaceIndex, PipelineNamespaceId,
+    BlobId, DomExceptionId, DomPointId, ImageBitmapId, Index, MessagePortId, NamespaceIndex,
+    PipelineNamespaceId,
 };
 use constellation_traits::{
     BlobImpl, DomException, DomPoint, MessagePortImpl, Serializable as SerializableInterface,
-    StructuredSerializedData, Transferrable as TransferrableInterface, TransformStreamData,
+    SerializableImageBitmap, StructuredSerializedData, Transferrable as TransferrableInterface,
+    TransformStreamData,
 };
 use js::gc::RootedVec;
 use js::glue::{
@@ -42,6 +44,7 @@ use crate::dom::blob::Blob;
 use crate::dom::dompoint::DOMPoint;
 use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::imagebitmap::ImageBitmap;
 use crate::dom::messageport::MessagePort;
 use crate::dom::readablestream::ReadableStream;
 use crate::dom::types::{DOMException, TransformStream};
@@ -66,6 +69,7 @@ pub(super) enum StructuredCloneTags {
     DomException = 0xFFFF8007,
     WritableStream = 0xFFFF8008,
     TransformStream = 0xFFFF8009,
+    ImageBitmap = 0xFFFF800A,
     Max = 0xFFFFFFFF,
 }
 
@@ -76,6 +80,7 @@ impl From<SerializableInterface> for StructuredCloneTags {
             SerializableInterface::DomPointReadOnly => StructuredCloneTags::DomPointReadOnly,
             SerializableInterface::DomPoint => StructuredCloneTags::DomPoint,
             SerializableInterface::DomException => StructuredCloneTags::DomException,
+            SerializableInterface::ImageBitmap => StructuredCloneTags::ImageBitmap,
         }
     }
 }
@@ -83,6 +88,7 @@ impl From<SerializableInterface> for StructuredCloneTags {
 impl From<TransferrableInterface> for StructuredCloneTags {
     fn from(v: TransferrableInterface) -> Self {
         match v {
+            TransferrableInterface::ImageBitmap => StructuredCloneTags::ImageBitmap,
             TransferrableInterface::MessagePort => StructuredCloneTags::MessagePort,
             TransferrableInterface::ReadableStream => StructuredCloneTags::ReadableStream,
             TransferrableInterface::WritableStream => StructuredCloneTags::WritableStream,
@@ -104,6 +110,7 @@ fn reader_for_type(
         SerializableInterface::DomPointReadOnly => read_object::<DOMPointReadOnly>,
         SerializableInterface::DomPoint => read_object::<DOMPoint>,
         SerializableInterface::DomException => read_object::<DOMException>,
+        SerializableInterface::ImageBitmap => read_object::<ImageBitmap>,
     }
 }
 
@@ -237,6 +244,7 @@ fn serialize_for_type(val: SerializableInterface) -> SerializeOperation {
         SerializableInterface::DomPointReadOnly => try_serialize::<DOMPointReadOnly>,
         SerializableInterface::DomPoint => try_serialize::<DOMPoint>,
         SerializableInterface::DomException => try_serialize::<DOMException>,
+        SerializableInterface::ImageBitmap => try_serialize::<ImageBitmap>,
     }
 }
 
@@ -264,6 +272,7 @@ fn receiver_for_type(
 ) -> fn(&GlobalScope, &mut StructuredDataReader<'_>, u64, RawMutableHandleObject) -> Result<(), ()>
 {
     match val {
+        TransferrableInterface::ImageBitmap => receive_object::<ImageBitmap>,
         TransferrableInterface::MessagePort => receive_object::<MessagePort>,
         TransferrableInterface::ReadableStream => receive_object::<ReadableStream>,
         TransferrableInterface::WritableStream => receive_object::<WritableStream>,
@@ -390,6 +399,7 @@ type TransferOperation = unsafe fn(
 
 fn transfer_for_type(val: TransferrableInterface) -> TransferOperation {
     match val {
+        TransferrableInterface::ImageBitmap => try_transfer::<ImageBitmap>,
         TransferrableInterface::MessagePort => try_transfer::<MessagePort>,
         TransferrableInterface::ReadableStream => try_transfer::<ReadableStream>,
         TransferrableInterface::WritableStream => try_transfer::<WritableStream>,
@@ -439,6 +449,7 @@ unsafe fn can_transfer_for_type(
         root_from_object::<T>(*obj, cx).map(|o| Transferable::can_transfer(&*o))
     }
     match transferable {
+        TransferrableInterface::ImageBitmap => can_transfer::<ImageBitmap>(obj, cx),
         TransferrableInterface::MessagePort => can_transfer::<MessagePort>(obj, cx),
         TransferrableInterface::ReadableStream => can_transfer::<ReadableStream>(obj, cx),
         TransferrableInterface::WritableStream => can_transfer::<WritableStream>(obj, cx),
@@ -527,6 +538,10 @@ pub(crate) struct StructuredDataReader<'a> {
     pub(crate) points: Option<HashMap<DomPointId, DomPoint>>,
     /// A map of serialized exceptions.
     pub(crate) exceptions: Option<HashMap<DomExceptionId, DomException>>,
+    // A map of serialized image bitmaps.
+    pub(crate) image_bitmaps: Option<HashMap<ImageBitmapId, SerializableImageBitmap>>,
+    /// A map of transferred image bitmaps.
+    pub(crate) transferred_image_bitmaps: Option<HashMap<ImageBitmapId, SerializableImageBitmap>>,
 }
 
 /// A data holder for transferred and serialized objects.
@@ -545,6 +560,10 @@ pub(crate) struct StructuredDataWriter {
     pub(crate) exceptions: Option<HashMap<DomExceptionId, DomException>>,
     /// Serialized blobs.
     pub(crate) blobs: Option<HashMap<BlobId, BlobImpl>>,
+    /// Serialized image bitmaps.
+    pub(crate) image_bitmaps: Option<HashMap<ImageBitmapId, SerializableImageBitmap>>,
+    /// Transferred image bitmaps.
+    pub(crate) transferred_image_bitmaps: Option<HashMap<ImageBitmapId, SerializableImageBitmap>>,
 }
 
 /// Writes a structured clone. Returns a `DataClone` error if that fails.
@@ -599,6 +618,8 @@ pub(crate) fn write(
             points: sc_writer.points.take(),
             exceptions: sc_writer.exceptions.take(),
             blobs: sc_writer.blobs.take(),
+            image_bitmaps: sc_writer.image_bitmaps.take(),
+            transferred_image_bitmaps: sc_writer.transferred_image_bitmaps.take(),
         };
 
         Ok(data)
@@ -623,6 +644,8 @@ pub(crate) fn read(
         points: data.points.take(),
         exceptions: data.exceptions.take(),
         errors: DOMErrorRecord { message: None },
+        image_bitmaps: data.image_bitmaps.take(),
+        transferred_image_bitmaps: data.transferred_image_bitmaps.take(),
     };
     let sc_reader_ptr = &mut sc_reader as *mut _;
     unsafe {

@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
+
 use canvas_traits::canvas::{
     CompositionOrBlending, FillOrStrokeStyle, LineCapStyle, LineJoinStyle,
 };
@@ -21,7 +23,6 @@ pub(crate) trait Backend: Clone + Sized {
     type DrawTarget: GenericDrawTarget<Self>;
     type PathBuilder: GenericPathBuilder<Self>;
     type SourceSurface;
-    type Bytes<'a>: AsRef<[u8]>;
     type Path: PathHelpers<Self> + Clone;
     type GradientStop;
     type GradientStops;
@@ -122,7 +123,7 @@ pub(crate) trait GenericDrawTarget<B: Backend> {
         draw_options: &B::DrawOptions,
     );
     fn surface(&self) -> B::SourceSurface;
-    fn bytes(&'_ self) -> B::Bytes<'_>;
+    fn bytes(&self) -> Cow<[u8]>;
 }
 
 /// A generic PathBuilder that abstracts the interface for azure's and raqote's PathBuilder.

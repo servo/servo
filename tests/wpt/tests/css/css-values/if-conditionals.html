@@ -37,6 +37,21 @@
       inherits: true;
       initial-value: 3;
     }
+    @property --angle {
+      syntax: "<angle>";
+      inherits: true;
+      initial-value: 3deg;
+    }
+    @property --time {
+      syntax: "<time>";
+      inherits: true;
+      initial-value: 3s;
+    }
+    @property --resolution {
+      syntax: "<resolution>";
+      inherits: true;
+      initial-value: 3dpi;
+    }
     div {
       font-size: 30px;
     }
@@ -510,6 +525,122 @@
           else: false_value)`,
         [['--length', 'attr(data-foo type(<length>))']],
         'false_value');
+
+  // style() queries with range syntax in the condition, literals on both sides of equation
+  test_if_with_custom_properties('if(style(10em > 3px): true_value; else: false_value)', [], 'true_value');
+  test_if_with_custom_properties('if(style(1em > 1px): true_value; else: false_value)', [], 'true_value');
+  test_if_with_custom_properties('if(style(7px > 3px): true_value; else: false_value)', [], 'true_value');
+  test_if_with_custom_properties('if(style(3px > 3px): true_value; else: false_value)', [], 'false_value');
+  test_if_with_custom_properties('if(style(3turn > 3deg): true_value; else: false_value)', [], 'true_value');
+  test_if_with_custom_properties('if(style(3turn <= 3deg): true_value; else: false_value)', [], 'false_value');
+  test_if_with_custom_properties('if(style(3% >= 3%): true_value; else: false_value)', [], 'true_value');
+  test_if_with_custom_properties('if(style(3s > 3ms): true_value; else: false_value)', [], 'true_value');
+  test_if_with_custom_properties('if(style(3dppx > 96dpi): true_value; else: false_value)', [], 'true_value');
+
+  // style() queries with range syntax in the condition, simple custom properties in the condition
+  test_if_with_custom_properties('if(style(--x <= 3): true_value; else: false_value)',
+                                  [['--x', '3']],
+                                  'true_value');
+  test_if_with_custom_properties('if(style(--x >= --y): true_value; else: false_value)',
+                                  [['--x', '3'], ['--y', '3']],
+                                  'true_value');
+  test_if_with_custom_properties('if(style(--length > 3px): true_value; else: false_value)',
+                                  [['--length', '11px']],
+                                  'true_value');
+  test_if_with_custom_properties('if(style(--x > 3px): true_value; else: false_value)',
+                                  [['--x', '11px']],
+                                  'true_value');
+  test_if_with_custom_properties('if(style(--number >= 3): true_value; else: false_value)',
+                                  [['--number', '3']],
+                                  'true_value');
+  test_if_with_custom_properties('if(style(--x >= 3): true_value; else: false_value)',
+                                  [['--x', '3']],
+                                  'true_value');
+  test_if_with_custom_properties('if(style(--percentage > 3%): true_value; else: false_value)',
+                                  [['--percentage', '5%']],
+                                  'true_value');
+  test_if_with_custom_properties('if(style(--x > 3%): true_value; else: false_value)',
+                                  [['--x', '5%']],
+                                  'true_value');
+  test_if_with_custom_properties('if(style(--angle < 1turn): true_value; else: false_value)',
+                                  [['--angle', '1deg']],
+                                  'true_value');
+  test_if_with_custom_properties('if(style(--x < 1turn): true_value; else: false_value)',
+                                  [['--x', '1deg']],
+                                  'true_value');
+  test_if_with_custom_properties('if(style(--time <= 1000ms): true_value; else: false_value)',
+                                  [['--time', '1s']],
+                                  'true_value');
+  test_if_with_custom_properties('if(style(--x <= 1000ms): true_value; else: false_value)',
+                                  [['--x', '1s']],
+                                  'true_value');
+  test_if_with_custom_properties('if(style(3dppx > --resolution): true_value; else: false_value)',
+                                  [['--resolution', '96dpi']],
+                                  'true_value');
+  test_if_with_custom_properties('if(style(3dppx > --x): true_value; else: false_value)',
+                                  [['--x', '96dpi']],
+                                  'true_value');
+
+  // style() queries with range syntax in the condition, invalid custom properties in the condition
+  test_if_with_custom_properties('if(style(--x + 1 >= --y): true_value; else: false_value)',
+                                  [['--x', '5'], ['--y', '3']],
+                                  'false_value');
+  test_if_with_custom_properties('if(style(--x >= --y + 1): true_value; else: false_value)',
+                                  [['--x', '5'], ['--y', '3']],
+                                  'false_value');
+  test_if_with_custom_properties('if(style(calc(--x + 1) >= --y): true_value; else: false_value)',
+                                  [['--x', '5'], ['--y', '3']],
+                                  'false_value');
+  test_if_with_custom_properties('if(style(--x >= calc(--y + 1)): true_value; else: false_value)',
+                                  [['--x', '5'], ['--y', '3']],
+                                  'false_value');
+
+  // style() queries with range syntax in the condition, custom properties with functions in the condition
+  test_if_with_custom_properties('if(style(--x >= calc(3px + 3px)): true_value; else: false_value)',
+                                  [['--x', '7px']],
+                                  'true_value');
+  test_if_with_custom_properties('if(style(calc(var(--x) + 1) >= var(--y)): true_value; else: false_value)',
+                                  [['--x', '5'], ['--y', '3']],
+                                  'true_value');
+  test_if_with_custom_properties('if(style(var(--x) >= --x): true_value; else: false_value)',
+                                  [['--x', '3']],
+                                  'true_value');
+
+  // style() queries with range syntax in the condition, incompatible types in the range.
+  test_if_with_custom_properties('if(style(3px > 3): true_value; else: false_value)',
+                                  [],
+                                  'false_value');
+  test_if_with_custom_properties('if(style(3em > 3deg): true_value; else: false_value)',
+                                  [],
+                                  'false_value');
+  test_if_with_custom_properties('if(style(1px >= 1%) or style(1px <= 1%): true_value; else: false_value)',
+                                  [],
+                                  'false_value');
+  test_if_with_custom_properties('if(style(--length > 3): true_value; else: false_value)',
+                                  [['--length', '11em']],
+                                  'false_value');
+  test_if_with_custom_properties('if(style(--number > 3px): true_value; else: false_value)',
+                                  [['--number', '11']],
+                                  'false_value');
+  test_if_with_custom_properties('if(style(--x >= 3): true_value; else: false_value)',
+                                  [['--x', '3px']],
+                                  'false_value');
+  test_if_with_custom_properties(`if(style(--length >= 30px): true_value;
+                                    else: false_value)`,
+                                  [['--length', 'attr(data-foo type(<length>))']],
+                                  'true_value');
+
+  // style() queries with range syntax in the condition, double range
+  test_if_with_custom_properties('if(style(10px <= 10px < 11px): true_value; else: false_value)', [], 'true_value');
+  test_if_with_custom_properties('if(style(3 < --x <= 5): true_value; else: false_value)',
+                                  [['--x', '5']],
+                                  'true_value');
+  test_if_with_custom_properties('if(style(--x >= --y > --z): true_value; else: false_value)',
+                                  [['--x', '3'], ['--y', '3'], ['--z', '3']],
+                                  'false_value');
+  test_if_with_custom_properties('if(style(--x >= --y > --z): true_value; else: false_value)',
+                                  [['--x', '3'], ['--y', '3'], ['--z', '1']],
+                                  'true_value');
 
   // media() queries in the condition
   test_if(`if(media(max-width: 1px): true_value;

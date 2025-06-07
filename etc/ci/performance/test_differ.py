@@ -16,16 +16,16 @@ args = parser.parse_args()
 
 
 def load_data(filename):
-    with open(filename, 'r') as f:
+    with open(filename, "r") as f:
         results = {}
         totals = {}
         counts = {}
         records = json.load(f)
         for record in records:
-            key = record.get('testcase')
-            value = record.get('domComplete') - record.get('domLoading')
-            totals[key] = totals.get('key', 0) + value
-            counts[key] = counts.get('key', 0) + 1
+            key = record.get("testcase")
+            value = record.get("domComplete") - record.get("domLoading")
+            totals[key] = totals.get("key", 0) + value
+            counts[key] = counts.get("key", 0) + 1
             results[key] = round(totals[key] / counts[key])
         return results
 
@@ -34,10 +34,10 @@ data1 = load_data(args.file1)
 data2 = load_data(args.file2)
 keys = set(data1.keys()).union(data2.keys())
 
-BLUE = '\033[94m'
-GREEN = '\033[92m'
-WARNING = '\033[93m'
-END = '\033[0m'
+BLUE = "\033[94m"
+GREEN = "\033[92m"
+WARNING = "\033[93m"
+END = "\033[0m"
 
 
 total1 = 0

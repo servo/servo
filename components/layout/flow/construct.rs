@@ -744,9 +744,14 @@ impl BlockLevelJob<'_> {
                     self.propagated_data,
                     false, /* is_list_item */
                 );
+                // An outside ::marker must establish a BFC, and can't contain floats.
+                let block_formatting_context = BlockFormattingContext {
+                    contents: block_container,
+                    contains_floats: false,
+                };
                 ArcRefCell::new(BlockLevelBox::OutsideMarker(OutsideMarker {
                     base: LayoutBoxBase::new(info.into(), info.style.clone()),
-                    block_container,
+                    block_formatting_context,
                     list_item_style,
                 }))
             },

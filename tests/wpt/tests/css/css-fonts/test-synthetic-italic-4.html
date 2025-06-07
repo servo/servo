@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Fonts: font-style: italic; with italic font face without explicit font style</title>
+    <meta charset="utf-8" />
+    <link rel="author" title="Max Ihlenfeldt" href="mailto:max@igalia.com" />
+    <link rel="help" href="https://drafts.csswg.org/css-fonts/#font-style-matching">
+    <link rel="mismatch" href="test-synthetic-italic-4-notref.html">
+    <meta name="assert" content="Italic text in an italic font face that was declared without an explicit font style is synthetically italicized.">
+    <style type="text/css">
+        @font-face {
+            font-family: "csstest-italic";
+            src: local("CSSTest Basic Italic");
+        }
+        div { font-size: 36px; }
+        span#verify { font-family: "CSSTest Verify"; }
+        div#test1 {
+            font-family: "csstest-italic";
+        }
+        div#test2 {
+            font-family: "csstest-italic";
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div><a href="http://www.w3.org/Style/CSS/Test/Fonts/">Test fonts</a> must be installed for this test: <span id="verify">FAIL</span></div>
+    <p>Test passes if the second line is more italic than the first:</p>
+    <div id="test1">Filler text</div>
+    <div id="test2">Filler text</div>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS GapDecorations: !important flag parsing</title>
+    <link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+    <link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <div id="target" style="display: flex; column-rule: 5px solid red !important"></div>
+</body>
+<script>
+    test(() => {
+        assert_equals(target.style.columnRuleStyle, 'solid');
+        assert_equals(target.style.columnRuleWidth, '5px');
+        assert_equals(target.style.columnRuleColor, 'red');
+    });
+</script>
+</html>

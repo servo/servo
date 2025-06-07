@@ -20,11 +20,8 @@
 //     optional MLGatherOptions options = {});
 
 
-const getGatherPrecisionTolerance = (graphResources) => {
-  const toleranceValueDict = {float32: 0, float16: 0};
-  const expectedDataType =
-      getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
-  return {metricType: 'ULP', value: toleranceValueDict[expectedDataType]};
+const getGatherPrecisionTolerance = () => {
+  return {metricType: 'ULP', value: 0};
 };
 
 const gatherTests = [
@@ -959,6 +956,750 @@ const gatherTests = [
             41.94132614135742, -1.1303654909133911, -50.42131042480469
           ],
           'descriptor': {shape: [12], dataType: 'float32'}
+        }
+      }
+    }
+  },
+
+  // float16 tests
+  {
+    'name':
+        'gather float16 1D tensor and uint32 0D scalar indices default options',
+    'graph': {
+      'inputs': {
+        'gatherInput': {
+          'data': [
+            -66.0625,      -68.9375,    -77,       -26.15625, 89.0625,
+            -45.90625,     43.84375,    48.8125,   51.8125,   41.9375,
+            -1.1298828125, -50.40625,   90.3125,   55.625,    44.90625,
+            56.84375,      10.828125,   -19.6875,  -37.6875,  43.125,
+            0.9130859375,  -7.69921875, 25.765625, 73.625
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        },
+        'gatherIndices': {
+          'data': [4],
+          'descriptor': {shape: [], dataType: 'uint32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'gather',
+        'arguments': [{'input': 'gatherInput'}, {'indices': 'gatherIndices'}],
+        'outputs': 'gatherOutput'
+      }],
+      'expectedOutputs': {
+        'gatherOutput':
+            {'data': [89.0625], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name':
+        'gather float16 1D tensor and int64 0D scalar indices default options',
+    'graph': {
+      'inputs': {
+        'gatherInput': {
+          'data': [
+            -66.0625,      -68.9375,    -77,       -26.15625, 89.0625,
+            -45.90625,     43.84375,    48.8125,   51.8125,   41.9375,
+            -1.1298828125, -50.40625,   90.3125,   55.625,    44.90625,
+            56.84375,      10.828125,   -19.6875,  -37.6875,  43.125,
+            0.9130859375,  -7.69921875, 25.765625, 73.625
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        },
+        'gatherIndices': {
+          'data': [4],
+          'descriptor': {shape: [], dataType: 'int64'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'gather',
+        'arguments': [{'input': 'gatherInput'}, {'indices': 'gatherIndices'}],
+        'outputs': 'gatherOutput'
+      }],
+      'expectedOutputs': {
+        'gatherOutput':
+            {'data': [89.0625], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name':
+        'gather float16 1D tensor and int32 0D scalar indices default options',
+    'graph': {
+      'inputs': {
+        'gatherInput': {
+          'data': [
+            -66.0625,      -68.9375,    -77,       -26.15625, 89.0625,
+            -45.90625,     43.84375,    48.8125,   51.8125,   41.9375,
+            -1.1298828125, -50.40625,   90.3125,   55.625,    44.90625,
+            56.84375,      10.828125,   -19.6875,  -37.6875,  43.125,
+            0.9130859375,  -7.69921875, 25.765625, 73.625
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        },
+        'gatherIndices': {
+          'data': [4],
+          'descriptor': {shape: [], dataType: 'int32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'gather',
+        'arguments': [{'input': 'gatherInput'}, {'indices': 'gatherIndices'}],
+        'outputs': 'gatherOutput'
+      }],
+      'expectedOutputs': {
+        'gatherOutput':
+            {'data': [89.0625], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'gather float16 1D tensor and int32 1D indices default options',
+    'graph': {
+      'inputs': {
+        'gatherInput': {
+          'data': [
+            -66.0625,      -68.9375,    -77,       -26.15625, 89.0625,
+            -45.90625,     43.84375,    48.8125,   51.8125,   41.9375,
+            -1.1298828125, -50.40625,   90.3125,   55.625,    44.90625,
+            56.84375,      10.828125,   -19.6875,  -37.6875,  43.125,
+            0.9130859375,  -7.69921875, 25.765625, 73.625
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        },
+        'gatherIndices': {
+          'data': [16, 20, 6, 11, 17, 19, 13, 17],
+          'descriptor': {shape: [8], dataType: 'int32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'gather',
+        'arguments': [{'input': 'gatherInput'}, {'indices': 'gatherIndices'}],
+        'outputs': 'gatherOutput'
+      }],
+      'expectedOutputs': {
+        'gatherOutput': {
+          'data': [
+            10.828125, 0.9130859375, 43.84375, -50.40625, -19.6875, 43.125,
+            55.625, -19.6875
+          ],
+          'descriptor': {shape: [8], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'gather float16 1D tensor and int32 2D indices default options',
+    'graph': {
+      'inputs': {
+        'gatherInput': {
+          'data': [
+            -66.0625,      -68.9375,    -77,       -26.15625, 89.0625,
+            -45.90625,     43.84375,    48.8125,   51.8125,   41.9375,
+            -1.1298828125, -50.40625,   90.3125,   55.625,    44.90625,
+            56.84375,      10.828125,   -19.6875,  -37.6875,  43.125,
+            0.9130859375,  -7.69921875, 25.765625, 73.625
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        },
+        'gatherIndices': {
+          'data': [14, 9, 21, 17],
+          'descriptor': {shape: [2, 2], dataType: 'int32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'gather',
+        'arguments': [{'input': 'gatherInput'}, {'indices': 'gatherIndices'}],
+        'outputs': 'gatherOutput'
+      }],
+      'expectedOutputs': {
+        'gatherOutput': {
+          'data': [44.90625, 41.9375, -7.69921875, -19.6875],
+          'descriptor': {shape: [2, 2], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'gather float16 1D tensor and int32 3D indices default options',
+    'graph': {
+      'inputs': {
+        'gatherInput': {
+          'data': [
+            -66.0625,      -68.9375,    -77,       -26.15625, 89.0625,
+            -45.90625,     43.84375,    48.8125,   51.8125,   41.9375,
+            -1.1298828125, -50.40625,   90.3125,   55.625,    44.90625,
+            56.84375,      10.828125,   -19.6875,  -37.6875,  43.125,
+            0.9130859375,  -7.69921875, 25.765625, 73.625
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        },
+        'gatherIndices': {
+          'data':
+              [17, 19, 14, 16, 13, 0, 5, 15, 18, 18, 6, 20, 7, 22, 5, 1, 4, 19],
+          'descriptor': {shape: [2, 3, 3], dataType: 'int32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'gather',
+        'arguments': [{'input': 'gatherInput'}, {'indices': 'gatherIndices'}],
+        'outputs': 'gatherOutput'
+      }],
+      'expectedOutputs': {
+        'gatherOutput': {
+          'data': [
+            -19.6875, 43.125, 44.90625, 10.828125, 55.625, -66.0625, -45.90625,
+            56.84375, -37.6875, -37.6875, 43.84375, 0.9130859375, 48.8125,
+            25.765625, -45.90625, -68.9375, 89.0625, 43.125
+          ],
+          'descriptor': {shape: [2, 3, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'gather float16 1D tensor and int32 4D indices default options',
+    'graph': {
+      'inputs': {
+        'gatherInput': {
+          'data': [
+            -66.0625,      -68.9375,    -77,       -26.15625, 89.0625,
+            -45.90625,     43.84375,    48.8125,   51.8125,   41.9375,
+            -1.1298828125, -50.40625,   90.3125,   55.625,    44.90625,
+            56.84375,      10.828125,   -19.6875,  -37.6875,  43.125,
+            0.9130859375,  -7.69921875, 25.765625, 73.625
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        },
+        'gatherIndices': {
+          'data': [18, 18, 22, 11, 8, 15, 12, 11, 7, 13, 7, 7],
+          'descriptor': {shape: [1, 2, 2, 3], dataType: 'int32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'gather',
+        'arguments': [{'input': 'gatherInput'}, {'indices': 'gatherIndices'}],
+        'outputs': 'gatherOutput'
+      }],
+      'expectedOutputs': {
+        'gatherOutput': {
+          'data': [
+            -37.6875, -37.6875, 25.765625, -50.40625, 51.8125, 56.84375,
+            90.3125, -50.40625, 48.8125, 55.625, 48.8125, 48.8125
+          ],
+          'descriptor': {shape: [1, 2, 2, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'gather float16 2D tensor and 0D scalar indices default options',
+    'graph': {
+      'inputs': {
+        'gatherInput': {
+          'data': [
+            -66.0625,      -68.9375,    -77,       -26.15625, 89.0625,
+            -45.90625,     43.84375,    48.8125,   51.8125,   41.9375,
+            -1.1298828125, -50.40625,   90.3125,   55.625,    44.90625,
+            56.84375,      10.828125,   -19.6875,  -37.6875,  43.125,
+            0.9130859375,  -7.69921875, 25.765625, 73.625
+          ],
+          'descriptor': {shape: [12, 2], dataType: 'float16'}
+        },
+        'gatherIndices': {
+          'data': [11],
+          'descriptor': {shape: [], dataType: 'int32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'gather',
+        'arguments': [{'input': 'gatherInput'}, {'indices': 'gatherIndices'}],
+        'outputs': 'gatherOutput'
+      }],
+      'expectedOutputs': {
+        'gatherOutput': {
+          'data': [25.765625, 73.625],
+          'descriptor': {shape: [2], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'gather float16 2D tensor and 1D indices default options',
+    'graph': {
+      'inputs': {
+        'gatherInput': {
+          'data': [
+            -66.0625,      -68.9375,    -77,       -26.15625, 89.0625,
+            -45.90625,     43.84375,    48.8125,   51.8125,   41.9375,
+            -1.1298828125, -50.40625,   90.3125,   55.625,    44.90625,
+            56.84375,      10.828125,   -19.6875,  -37.6875,  43.125,
+            0.9130859375,  -7.69921875, 25.765625, 73.625
+          ],
+          'descriptor': {shape: [12, 2], dataType: 'float16'}
+        },
+        'gatherIndices': {
+          'data': [1, 10, 9, 0, 3, 5, 3, 8],
+          'descriptor': {shape: [8], dataType: 'int32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'gather',
+        'arguments': [{'input': 'gatherInput'}, {'indices': 'gatherIndices'}],
+        'outputs': 'gatherOutput'
+      }],
+      'expectedOutputs': {
+        'gatherOutput': {
+          'data': [
+            -77, -26.15625, 0.9130859375, -7.69921875, -37.6875, 43.125,
+            -66.0625, -68.9375, 43.84375, 48.8125, -1.1298828125, -50.40625,
+            43.84375, 48.8125, 10.828125, -19.6875
+          ],
+          'descriptor': {shape: [8, 2], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'gather float16 2D tensor and 2D indices default options',
+    'graph': {
+      'inputs': {
+        'gatherInput': {
+          'data': [
+            -66.0625,      -68.9375,    -77,       -26.15625, 89.0625,
+            -45.90625,     43.84375,    48.8125,   51.8125,   41.9375,
+            -1.1298828125, -50.40625,   90.3125,   55.625,    44.90625,
+            56.84375,      10.828125,   -19.6875,  -37.6875,  43.125,
+            0.9130859375,  -7.69921875, 25.765625, 73.625
+          ],
+          'descriptor': {shape: [12, 2], dataType: 'float16'}
+        },
+        'gatherIndices': {
+          'data': [4, 8, 9, 10],
+          'descriptor': {shape: [2, 2], dataType: 'int32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'gather',
+        'arguments': [{'input': 'gatherInput'}, {'indices': 'gatherIndices'}],
+        'outputs': 'gatherOutput'
+      }],
+      'expectedOutputs': {
+        'gatherOutput': {
+          'data': [
+            51.8125, 41.9375, 10.828125, -19.6875, -37.6875, 43.125,
+            0.9130859375, -7.69921875
+          ],
+          'descriptor': {shape: [2, 2, 2], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'gather float16 2D tensor and 3D indices default options',
+    'graph': {
+      'inputs': {
+        'gatherInput': {
+          'data': [
+            -66.0625,      -68.9375,    -77,       -26.15625, 89.0625,
+            -45.90625,     43.84375,    48.8125,   51.8125,   41.9375,
+            -1.1298828125, -50.40625,   90.3125,   55.625,    44.90625,
+            56.84375,      10.828125,   -19.6875,  -37.6875,  43.125,
+            0.9130859375,  -7.69921875, 25.765625, 73.625
+          ],
+          'descriptor': {shape: [12, 2], dataType: 'float16'}
+        },
+        'gatherIndices': {
+          'data': [8, 2, 2, 3, 4, 1, 2, 2, 7, 11, 4, 11, 6, 6, 7, 3, 11, 10],
+          'descriptor': {shape: [2, 3, 3], dataType: 'int32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'gather',
+        'arguments': [{'input': 'gatherInput'}, {'indices': 'gatherIndices'}],
+        'outputs': 'gatherOutput'
+      }],
+      'expectedOutputs': {
+        'gatherOutput': {
+          'data': [
+            10.828125,  -19.6875,  89.0625,   -45.90625, 89.0625,
+            -45.90625,  43.84375,  48.8125,   51.8125,   41.9375,
+            -77,        -26.15625, 89.0625,   -45.90625, 89.0625,
+            -45.90625,  44.90625,  56.84375,  25.765625, 73.625,
+            51.8125,    41.9375,   25.765625, 73.625,    90.3125,
+            55.625,     90.3125,   55.625,    44.90625,  56.84375,
+            43.84375,   48.8125,   25.765625, 73.625,    0.9130859375,
+            -7.69921875
+          ],
+          'descriptor': {shape: [2, 3, 3, 2], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'gather float16 2D tensor and 4D indices default options',
+    'graph': {
+      'inputs': {
+        'gatherInput': {
+          'data': [
+            -66.0625,      -68.9375,    -77,       -26.15625, 89.0625,
+            -45.90625,     43.84375,    48.8125,   51.8125,   41.9375,
+            -1.1298828125, -50.40625,   90.3125,   55.625,    44.90625,
+            56.84375,      10.828125,   -19.6875,  -37.6875,  43.125,
+            0.9130859375,  -7.69921875, 25.765625, 73.625
+          ],
+          'descriptor': {shape: [12, 2], dataType: 'float16'}
+        },
+        'gatherIndices': {
+          'data': [6, 9, 7, 3, 4, 7, 4, 3, 7, 7, 6, 0],
+          'descriptor': {shape: [1, 2, 2, 3], dataType: 'int32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'gather',
+        'arguments': [{'input': 'gatherInput'}, {'indices': 'gatherIndices'}],
+        'outputs': 'gatherOutput'
+      }],
+      'expectedOutputs': {
+        'gatherOutput': {
+          'data': [
+            90.3125,  55.625,   -37.6875, 43.125,  44.90625, 56.84375,
+            43.84375, 48.8125,  51.8125,  41.9375, 44.90625, 56.84375,
+            51.8125,  41.9375,  43.84375, 48.8125, 44.90625, 56.84375,
+            44.90625, 56.84375, 90.3125,  55.625,  -66.0625, -68.9375
+          ],
+          'descriptor': {shape: [1, 2, 2, 3, 2], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'gather float16 3D tensor and 2D indices default options',
+    'graph': {
+      'inputs': {
+        'gatherInput': {
+          'data': [
+            -66.0625,      -68.9375,    -77,       -26.15625, 89.0625,
+            -45.90625,     43.84375,    48.8125,   51.8125,   41.9375,
+            -1.1298828125, -50.40625,   90.3125,   55.625,    44.90625,
+            56.84375,      10.828125,   -19.6875,  -37.6875,  43.125,
+            0.9130859375,  -7.69921875, 25.765625, 73.625
+          ],
+          'descriptor': {shape: [3, 4, 2], dataType: 'float16'}
+        },
+        'gatherIndices': {
+          'data': [2, 1, 1, 1],
+          'descriptor': {shape: [2, 2], dataType: 'int32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'gather',
+        'arguments': [{'input': 'gatherInput'}, {'indices': 'gatherIndices'}],
+        'outputs': 'gatherOutput'
+      }],
+      'expectedOutputs': {
+        'gatherOutput': {
+          'data': [
+            10.828125,    -19.6875,    -37.6875,      43.125,
+            0.9130859375, -7.69921875, 25.765625,     73.625,
+            51.8125,      41.9375,     -1.1298828125, -50.40625,
+            90.3125,      55.625,      44.90625,      56.84375,
+            51.8125,      41.9375,     -1.1298828125, -50.40625,
+            90.3125,      55.625,      44.90625,      56.84375,
+            51.8125,      41.9375,     -1.1298828125, -50.40625,
+            90.3125,      55.625,      44.90625,      56.84375
+          ],
+          'descriptor': {shape: [2, 2, 4, 2], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'gather float16 4D tensor and 2D indices default options',
+    'graph': {
+      'inputs': {
+        'gatherInput': {
+          'data': [
+            -66.0625,      -68.9375,    -77,       -26.15625, 89.0625,
+            -45.90625,     43.84375,    48.8125,   51.8125,   41.9375,
+            -1.1298828125, -50.40625,   90.3125,   55.625,    44.90625,
+            56.84375,      10.828125,   -19.6875,  -37.6875,  43.125,
+            0.9130859375,  -7.69921875, 25.765625, 73.625
+          ],
+          'descriptor': {shape: [8, 1, 1, 3], dataType: 'float16'}
+        },
+        'gatherIndices': {
+          'data': [0, 0, 7, 4],
+          'descriptor': {shape: [2, 2], dataType: 'int32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'gather',
+        'arguments': [{'input': 'gatherInput'}, {'indices': 'gatherIndices'}],
+        'outputs': 'gatherOutput'
+      }],
+      'expectedOutputs': {
+        'gatherOutput': {
+          'data': [
+            -66.0625, -68.9375, -77, -66.0625, -68.9375, -77, -7.69921875,
+            25.765625, 73.625, 90.3125, 55.625, 44.90625
+          ],
+          'descriptor': {shape: [2, 2, 1, 1, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'gather float16 5D tensor and 1D indices default options',
+    'graph': {
+      'inputs': {
+        'gatherInput': {
+          'data': [
+            -66.0625,      -68.9375,    -77,       -26.15625, 89.0625,
+            -45.90625,     43.84375,    48.8125,   51.8125,   41.9375,
+            -1.1298828125, -50.40625,   90.3125,   55.625,    44.90625,
+            56.84375,      10.828125,   -19.6875,  -37.6875,  43.125,
+            0.9130859375,  -7.69921875, 25.765625, 73.625
+          ],
+          'descriptor': {shape: [4, 2, 1, 1, 3], dataType: 'float16'}
+        },
+        'gatherIndices': {
+          'data': [3, 2, 2],
+          'descriptor': {shape: [3], dataType: 'int32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'gather',
+        'arguments': [{'input': 'gatherInput'}, {'indices': 'gatherIndices'}],
+        'outputs': 'gatherOutput'
+      }],
+      'expectedOutputs': {
+        'gatherOutput': {
+          'data': [
+            -37.6875, 43.125, 0.9130859375, -7.69921875, 25.765625, 73.625,
+            90.3125, 55.625, 44.90625, 56.84375, 10.828125, -19.6875, 90.3125,
+            55.625, 44.90625, 56.84375, 10.828125, -19.6875
+          ],
+          'descriptor': {shape: [3, 2, 1, 1, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'gather float16 3D tensor and 1D indices options.axis=1',
+    'graph': {
+      'inputs': {
+        'gatherInput': {
+          'data': [
+            -66.0625,      -68.9375,    -77,       -26.15625, 89.0625,
+            -45.90625,     43.84375,    48.8125,   51.8125,   41.9375,
+            -1.1298828125, -50.40625,   90.3125,   55.625,    44.90625,
+            56.84375,      10.828125,   -19.6875,  -37.6875,  43.125,
+            0.9130859375,  -7.69921875, 25.765625, 73.625
+          ],
+          'descriptor': {shape: [3, 4, 2], dataType: 'float16'}
+        },
+        'gatherIndices': {
+          'data': [1, 1, 2],
+          'descriptor': {shape: [3], dataType: 'int32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'gather',
+        'arguments': [
+          {'input': 'gatherInput'}, {'indices': 'gatherIndices'},
+          {'options': {'axis': 1}}
+        ],
+        'outputs': 'gatherOutput'
+      }],
+      'expectedOutputs': {
+        'gatherOutput': {
+          'data': [
+            -77, -26.15625, -77, -26.15625, 89.0625, -45.90625, -1.1298828125,
+            -50.40625, -1.1298828125, -50.40625, 90.3125, 55.625, -37.6875,
+            43.125, -37.6875, 43.125, 0.9130859375, -7.69921875
+          ],
+          'descriptor': {shape: [3, 3, 2], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'gather float16 3D tensor and 2D indices options.axis=2',
+    'graph': {
+      'inputs': {
+        'gatherInput': {
+          'data': [
+            -66.0625,      -68.9375,    -77,       -26.15625, 89.0625,
+            -45.90625,     43.84375,    48.8125,   51.8125,   41.9375,
+            -1.1298828125, -50.40625,   90.3125,   55.625,    44.90625,
+            56.84375,      10.828125,   -19.6875,  -37.6875,  43.125,
+            0.9130859375,  -7.69921875, 25.765625, 73.625
+          ],
+          'descriptor': {shape: [3, 4, 2], dataType: 'float16'}
+        },
+        'gatherIndices': {
+          'data': [0, 0, 0, 1],
+          'descriptor': {shape: [2, 2], dataType: 'int32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'gather',
+        'arguments': [
+          {'input': 'gatherInput'}, {'indices': 'gatherIndices'},
+          {'options': {'axis': 2}}
+        ],
+        'outputs': 'gatherOutput'
+      }],
+      'expectedOutputs': {
+        'gatherOutput': {
+          'data': [
+            -66.0625,      -66.0625,      -66.0625,      -68.9375,    -77,
+            -77,           -77,           -26.15625,     89.0625,     89.0625,
+            89.0625,       -45.90625,     43.84375,      43.84375,    43.84375,
+            48.8125,       51.8125,       51.8125,       51.8125,     41.9375,
+            -1.1298828125, -1.1298828125, -1.1298828125, -50.40625,   90.3125,
+            90.3125,       90.3125,       55.625,        44.90625,    44.90625,
+            44.90625,      56.84375,      10.828125,     10.828125,   10.828125,
+            -19.6875,      -37.6875,      -37.6875,      -37.6875,    43.125,
+            0.9130859375,  0.9130859375,  0.9130859375,  -7.69921875, 25.765625,
+            25.765625,     25.765625,     73.625
+          ],
+          'descriptor': {shape: [3, 4, 2, 2], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'gather float16 4D tensor and 2D indices explict options.axis=0',
+    'graph': {
+      'inputs': {
+        'gatherInput': {
+          'data': [
+            -66.0625,      -68.9375,    -77,       -26.15625, 89.0625,
+            -45.90625,     43.84375,    48.8125,   51.8125,   41.9375,
+            -1.1298828125, -50.40625,   90.3125,   55.625,    44.90625,
+            56.84375,      10.828125,   -19.6875,  -37.6875,  43.125,
+            0.9130859375,  -7.69921875, 25.765625, 73.625
+          ],
+          'descriptor': {shape: [8, 1, 1, 3], dataType: 'float16'}
+        },
+        'gatherIndices': {
+          'data': [0, 0, 7, 4],
+          'descriptor': {shape: [2, 2], dataType: 'int32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'gather',
+        'arguments': [
+          {'input': 'gatherInput'}, {'indices': 'gatherIndices'},
+          {'options': {'axis': 0}}
+        ],
+        'outputs': 'gatherOutput'
+      }],
+      'expectedOutputs': {
+        'gatherOutput': {
+          'data': [
+            -66.0625, -68.9375, -77, -66.0625, -68.9375, -77, -7.69921875,
+            25.765625, 73.625, 90.3125, 55.625, 44.90625
+          ],
+          'descriptor': {shape: [2, 2, 1, 1, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'gather float16 5D tensor and 0D scalar indices options.axis=4',
+    'graph': {
+      'inputs': {
+        'gatherInput': {
+          'data': [
+            -66.0625,      -68.9375,    -77,       -26.15625, 89.0625,
+            -45.90625,     43.84375,    48.8125,   51.8125,   41.9375,
+            -1.1298828125, -50.40625,   90.3125,   55.625,    44.90625,
+            56.84375,      10.828125,   -19.6875,  -37.6875,  43.125,
+            0.9130859375,  -7.69921875, 25.765625, 73.625
+          ],
+          'descriptor': {shape: [4, 2, 1, 1, 3], dataType: 'float16'}
+        },
+        'gatherIndices': {
+          'data': [1],
+          'descriptor': {shape: [], dataType: 'int32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'gather',
+        'arguments': [
+          {'input': 'gatherInput'}, {'indices': 'gatherIndices'},
+          {'options': {'axis': 4}}
+        ],
+        'outputs': 'gatherOutput'
+      }],
+      'expectedOutputs': {
+        'gatherOutput': {
+          'data': [
+            -68.9375, 89.0625, 48.8125, -1.1298828125, 55.625, 10.828125,
+            43.125, 25.765625
+          ],
+          'descriptor': {shape: [4, 2, 1, 1], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'gather float16 2D tensor and int32 0D negative indices default options',
+    'graph': {
+      'inputs': {
+        'gatherInput': {
+          'data': [
+            -66.0625,      -68.9375,    -77,       -26.15625, 89.0625,
+            -45.90625,     43.84375,    48.8125,   51.8125,   41.9375,
+            -1.1298828125, -50.40625,   90.3125,   55.625,    44.90625,
+            56.84375,      10.828125,   -19.6875,  -37.6875,  43.125,
+            0.9130859375,  -7.69921875, 25.765625, 73.625
+          ],
+          'descriptor': {shape: [2, 12], dataType: 'float16'}
+        },
+        'gatherIndices': {
+          'data': [-2],
+          'descriptor': {shape: [], dataType: 'int32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'gather',
+        'arguments': [{'input': 'gatherInput'}, {'indices': 'gatherIndices'}],
+        'outputs': 'gatherOutput'
+      }],
+      'expectedOutputs': {
+        'gatherOutput': {
+          'data': [
+            -66.0625, -68.9375, -77, -26.15625, 89.0625, -45.90625, 43.84375,
+            48.8125, 51.8125, 41.9375, -1.1298828125, -50.40625
+          ],
+          'descriptor': {shape: [12], dataType: 'float16'}
         }
       }
     }

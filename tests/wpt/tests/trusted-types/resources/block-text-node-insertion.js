@@ -14,10 +14,13 @@
   // - includes "count": Count these, and later check against expect_count.
   // - includes "done": Unregister the event handler and finish the test.
   // - all else: Reject, as this is probably an error in the test.
-  function checkMessage(fn, expect_count) {
+  function checkMessage(t, fn, expect_count) {
     return new Promise((resolve, reject) => {
       let count = 0;
       globalThis.addEventListener("message", function handler(e) {
+        t.add_cleanup(() => {
+          globalThis.removeEventListener("message", handler);
+        });
         if (e.data.includes("block")) {
           reject(`'block' received (${e.data})`);
         } else if (e.data.includes("count")) {
@@ -35,6 +38,6 @@
         }
       });
       fn();
-      postMessage("done", "*");
+      requestAnimationFrame(_ => requestAnimationFrame(_ => postMessage("done", "*")));
     });
   }

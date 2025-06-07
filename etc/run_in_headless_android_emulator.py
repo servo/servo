@@ -27,8 +27,10 @@ def main(avd_name, apk_path, *args):
         "-no-window",
         "-no-snapshot",
         "-no-snapstorage",
-        "-gpu", "guest",
-        "-port", emulator_port,
+        "-gpu",
+        "guest",
+        "-port",
+        emulator_port,
     ]
     with terminate_on_exit(emulator_args, stdout=sys.stderr) as emulator_process:
         # This is hopefully enough time for the emulator to exit
@@ -70,7 +72,6 @@ def main(avd_name, apk_path, *args):
             "*:S",  # Hide everything else
         ]
         with terminate_on_exit(adb + ["logcat"] + logcat_args) as logcat:
-
             # This step needs to happen after application start
             forward_webdriver(adb, args)
 
@@ -84,8 +85,7 @@ def tool_path(directory, bin_name):
         if os.path.exists(path):
             return path
 
-    path = os.path.join(os.path.dirname(__file__), "..", "android-toolchains", "sdk",
-                        directory, bin_name)
+    path = os.path.join(os.path.dirname(__file__), "..", "android-toolchains", "sdk", directory, bin_name)
     if os.path.exists(path):
         return path
 
@@ -207,8 +207,7 @@ def interrupt(_signum, _frame):
 if __name__ == "__main__":
     if len(sys.argv) < 3:
         print("Usage: %s avd_name apk_path [servo args...]" % sys.argv[0])
-        print("Example: %s servo-x86 target/i686-linux-android/release/servo.apk https://servo.org"
-              % sys.argv[0])
+        print("Example: %s servo-x86 target/i686-linux-android/release/servo.apk https://servo.org" % sys.argv[0])
         sys.exit(1)
 
     try:

@@ -17,27 +17,31 @@ import os
 def size(args):
     size = os.path.getsize(args.binary)
     print(size)
-    with open(args.bmf_output, 'w', encoding='utf-8') as f:
-        json.dump({
-            args.variant: {
-                'file-size': {
-                    'value': float(size),
+    with open(args.bmf_output, "w", encoding="utf-8") as f:
+        json.dump(
+            {
+                args.variant: {
+                    "file-size": {
+                        "value": float(size),
+                    }
                 }
-            }
-        }, f, indent=4)
+            },
+            f,
+            indent=4,
+        )
 
 
 def merge(args):
     output: dict[str, object] = dict()
     for input_file in args.inputs:
-        with open(input_file, 'r', encoding='utf-8') as f:
+        with open(input_file, "r", encoding="utf-8") as f:
             data = json.load(f)
             diff = set(data) & set(output)
             if diff:
                 print("Duplicated keys:", diff)
             output = data | output
 
-    with open(args.bmf_output, 'w', encoding='utf-8') as f:
+    with open(args.bmf_output, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=4)
 
 

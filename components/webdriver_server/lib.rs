@@ -64,7 +64,7 @@ use webdriver::response::{
 };
 use webdriver::server::{self, Session, SessionTeardownKind, WebDriverHandler};
 
-use crate::actions::{InputSourceState, PointerInputState};
+use crate::actions::{ActionItem, InputSourceState, PointerInputState};
 
 #[derive(Default)]
 pub struct WebDriverMessageIdGenerator {
@@ -171,7 +171,7 @@ pub struct WebDriverSession {
     input_state_table: RefCell<HashMap<String, InputSourceState>>,
 
     /// <https://w3c.github.io/webdriver/#dfn-input-cancel-list>
-    input_cancel_list: RefCell<Vec<ActionSequence>>,
+    input_cancel_list: RefCell<Vec<ActionItem>>,
 }
 
 impl WebDriverSession {
@@ -1480,20 +1480,22 @@ impl Handler {
 
     fn handle_perform_actions(
         &mut self,
-        parameters: &ActionsParameters,
+        parameters: ActionsParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        match self.dispatch_actions(&parameters.actions) {
+        // Step 5. Let actions by tick be the result of trying to extract an action sequence
+        let actions_by_tick = self.extract_an_action_sequence(parameters);
+
+        // Step 6. Dispatch actions
+        match self.dispatch_actions(actions_by_tick) {
             Ok(_) => Ok(WebDriverResponse::Void),
             Err(error) => Err(WebDriverError::new(error, "")),
         }
     }
 
+    /// <https://w3c.github.io/webdriver/#dfn-release-actions>
     fn handle_release_actions(&mut self) -> WebDriverResult<WebDriverResponse> {
-        let input_cancel_list = self.session().unwrap().input_cancel_list.borrow();
-        if let Err(error) = self.dispatch_actions(&input_cancel_list) {
-            return Err(WebDriverError::new(error, ""));
-        }
-
+        // TODO: The previous implementation of this function was different from the spec.
+        // Need to re-implement this to match the spec.
         let session = self.session()?;
         session.input_state_table.borrow_mut().clear();
 
@@ -1617,14 +1619,23 @@ impl Handler {
 
         let (sender, receiver) = ipc::channel().unwrap();
 
-        let cmd = WebDriverScriptCommand::FocusElement(element.to_string(), sender);
+        let cmd = WebDriverScriptCommand::WillSendKeys(
+            element.to_string(),
+            keys.text.to_string(),
+            self.session()?.strict_file_interactability,
+            sender,
+        );
         let cmd_msg = WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd);
         self.constellation_chan
             .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
             .unwrap();
 
         // TODO: distinguish the not found and not focusable cases
-        wait_for_script_response(receiver)?.map_err(|error| WebDriverError::new(error, ""))?;
+        // File input and non-typeable form control should have
+        // been handled in `webdriver_handler.rs`.
+        if !wait_for_script_response(receiver)?.map_err(|error| WebDriverError::new(error, ""))? {
+            return Ok(WebDriverResponse::Void);
+        }
 
         let input_events = send_keys(&keys.text);
 
@@ -1655,7 +1666,7 @@ impl Handler {
                     // Step 8.1
                     self.session_mut()?.input_state_table.borrow_mut().insert(
                         id.clone(),
-                        InputSourceState::Pointer(PointerInputState::new(&PointerType::Mouse)),
+                        InputSourceState::Pointer(PointerInputState::new(PointerType::Mouse)),
                     );
 
                     // Step 8.7. Construct a pointer move action.
@@ -1702,7 +1713,11 @@ impl Handler {
                         },
                     };
 
-                    let _ = self.dispatch_actions(&[action_sequence]);
+                    let actions_by_tick = self.actions_by_tick_from_sequence(vec![action_sequence]);
+
+                    if let Err(e) = self.dispatch_actions(actions_by_tick) {
+                        log::error!("handle_element_click: dispatch_actions failed: {:?}", e);
+                    }
 
                     // Step 8.17 Remove an input source with input state and input id.
                     self.session_mut()?
@@ -1760,8 +1775,12 @@ impl Handler {
             "Unexpected screenshot pixel format"
         );
 
-        let rgb =
-            RgbaImage::from_raw(img.width, img.height, img.first_frame().bytes.to_vec()).unwrap();
+        let rgb = RgbaImage::from_raw(
+            img.metadata.width,
+            img.metadata.height,
+            img.first_frame().bytes.to_vec(),
+        )
+        .unwrap();
         let mut png_data = Cursor::new(Vec::new());
         DynamicImage::ImageRgba8(rgb)
             .write_to(&mut png_data, ImageFormat::Png)
@@ -1936,7 +1955,9 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
                 self.handle_element_css(element, name)
             },
             WebDriverCommand::GetPageSource => self.handle_get_page_source(),
-            WebDriverCommand::PerformActions(ref x) => self.handle_perform_actions(x),
+            WebDriverCommand::PerformActions(actions_parameters) => {
+                self.handle_perform_actions(actions_parameters)
+            },
             WebDriverCommand::ReleaseActions => self.handle_release_actions(),
             WebDriverCommand::ExecuteScript(ref x) => self.handle_execute_script(x),
             WebDriverCommand::ExecuteAsyncScript(ref x) => self.handle_execute_async_script(x),

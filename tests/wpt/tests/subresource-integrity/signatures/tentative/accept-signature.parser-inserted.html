@@ -15,11 +15,11 @@
   <!--
     {
       integrity: `ed25519-${kValidKeys['rfc']}`,
-      header: `sig0=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri"`,
+      header: `sig0=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="ed25519-integrity"`,
     }
   -->
   <script integrity="ed25519-JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs="
-          src="/subresource-integrity/signatures/accept-signature-script.py?header=sig0%3D%28%22unencoded-digest%22%3Bsf%29%3Bkeyid%3D%22JrQLj5P%2F89iXES9%2BvFgrIy29clF9CC%2FoPPsw3c5D0bs%3D%22%3Btag%3D%22sri%22&counter=1"
+          src="/subresource-integrity/signatures/accept-signature-script.py?header=sig0%3D%28%22unencoded-digest%22%3Bsf%29%3Bkeyid%3D%22JrQLj5P%2F89iXES9%2BvFgrIy29clF9CC%2FoPPsw3c5D0bs%3D%22%3Btag%3D%22ed25519-integrity%22&counter=1"
           id="test1"
   ></script>
   <script>
@@ -32,11 +32,11 @@
   <!--
     {
       integrity: `ed25519-${kValidKeys['rfc']} malformed-thing`,
-      header: `sig0=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri"`,
+      header: `sig0=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="ed25519-integrity"`,
     }
   -->
   <script integrity="ed25519-JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs= malformed-thing"
-          src="/subresource-integrity/signatures/accept-signature-script.py?header=sig0%3D%28%22unencoded-digest%22%3Bsf%29%3Bkeyid%3D%22JrQLj5P%2F89iXES9%2BvFgrIy29clF9CC%2FoPPsw3c5D0bs%3D%22%3Btag%3D%22sri%22&counter=2"
+          src="/subresource-integrity/signatures/accept-signature-script.py?header=sig0%3D%28%22unencoded-digest%22%3Bsf%29%3Bkeyid%3D%22JrQLj5P%2F89iXES9%2BvFgrIy29clF9CC%2FoPPsw3c5D0bs%3D%22%3Btag%3D%22ed25519-integrity%22&counter=2"
           id="test2"
   ></script>
   <script>
@@ -49,12 +49,12 @@
   <!--
     {
       integrity: `ed25519-${kValidKeys['arbitrary']} ed25519-${kValidKeys['rfc']}`,
-      header: `sig0=("unencoded-digest";sf);keyid="${kValidKeys['arbitrary']}";tag="sri", ` +
-              `sig1=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri"`,
+      header: `sig0=("unencoded-digest";sf);keyid="${kValidKeys['arbitrary']}";tag="ed25519-integrity", ` +
+              `sig1=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="ed25519-integrity"`,
     }
   -->
   <script integrity="ed25519-xDnP380zcL4rJ76rXYjeHlfMyPZEOqpJYjsjEppbuXE= ed25519-JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs="
-          src="/subresource-integrity/signatures/accept-signature-script.py?header=sig0%3D%28%22unencoded-digest%22%3Bsf%29%3Bkeyid%3D%22xDnP380zcL4rJ76rXYjeHlfMyPZEOqpJYjsjEppbuXE%3D%22%3Btag%3D%22sri%22%2C+sig1%3D%28%22unencoded-digest%22%3Bsf%29%3Bkeyid%3D%22JrQLj5P%2F89iXES9%2BvFgrIy29clF9CC%2FoPPsw3c5D0bs%3D%22%3Btag%3D%22sri%22&counter=3"
+          src="/subresource-integrity/signatures/accept-signature-script.py?header=sig0%3D%28%22unencoded-digest%22%3Bsf%29%3Bkeyid%3D%22xDnP380zcL4rJ76rXYjeHlfMyPZEOqpJYjsjEppbuXE%3D%22%3Btag%3D%22ed25519-integrity%22%2C+sig1%3D%28%22unencoded-digest%22%3Bsf%29%3Bkeyid%3D%22JrQLj5P%2F89iXES9%2BvFgrIy29clF9CC%2FoPPsw3c5D0bs%3D%22%3Btag%3D%22ed25519-integrity%22&counter=3"
           id="test3"
   ></script>
   <script>
@@ -67,12 +67,12 @@
   <!--
     {
       integrity: `ed25519-${kValidKeys['arbitrary']} malformed-thing ed25519-${kValidKeys['rfc']}`,
-      header: `sig0=("unencoded-digest";sf);keyid="${kValidKeys['arbitrary']}";tag="sri", ` +
-              `sig1=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri"`,
+      header: `sig0=("unencoded-digest";sf);keyid="${kValidKeys['arbitrary']}";tag="ed25519-integrity", ` +
+              `sig1=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="ed25519-integrity"`,
     }
   -->
   <script integrity="ed25519-xDnP380zcL4rJ76rXYjeHlfMyPZEOqpJYjsjEppbuXE= malformed-thing ed25519-JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs="
-          src="/subresource-integrity/signatures/accept-signature-script.py?header=sig0%3D%28%22unencoded-digest%22%3Bsf%29%3Bkeyid%3D%22xDnP380zcL4rJ76rXYjeHlfMyPZEOqpJYjsjEppbuXE%3D%22%3Btag%3D%22sri%22%2C+sig1%3D%28%22unencoded-digest%22%3Bsf%29%3Bkeyid%3D%22JrQLj5P%2F89iXES9%2BvFgrIy29clF9CC%2FoPPsw3c5D0bs%3D%22%3Btag%3D%22sri%22&counter=4"
+          src="/subresource-integrity/signatures/accept-signature-script.py?header=sig0%3D%28%22unencoded-digest%22%3Bsf%29%3Bkeyid%3D%22xDnP380zcL4rJ76rXYjeHlfMyPZEOqpJYjsjEppbuXE%3D%22%3Btag%3D%22ed25519-integrity%22%2C+sig1%3D%28%22unencoded-digest%22%3Bsf%29%3Bkeyid%3D%22JrQLj5P%2F89iXES9%2BvFgrIy29clF9CC%2FoPPsw3c5D0bs%3D%22%3Btag%3D%22ed25519-integrity%22&counter=4"
           id="test4"
   ></script>
   <script>

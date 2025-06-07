@@ -58,6 +58,29 @@ text
 |     <div>
 |       "hello"
 
+#data
+<div data-xyz="1" id="2" title="3">
+#config
+{ "attributes": ["id"] }
+#document
+| <html>
+|   <head>
+|   <body>
+|     <div>
+|       id="2"
+
+#data
+<div>a<!-- xx -->b
+#config
+{ }
+#document
+| <html>
+|   <head>
+|   <body>
+|     <div>
+|       "a"
+|       "b"
+
 </script>
 <script id="unsafe" type="html5lib-testcases">
 #data
@@ -80,6 +103,30 @@ text
 |     <div>
 |       "hello"
 
+#data
+<div data-xyz="1" id="2" title="3">
+#config
+{ "attributes": ["id"] }
+#document
+| <html>
+|   <head>
+|   <body>
+|     <div>
+|       data-xyz="1"
+|       id="2"
+
+#data
+<div>a<!-- xx -->b
+#config
+{ }
+#document
+| <html>
+|   <head>
+|   <body>
+|     <div>
+|       "a"
+|       <!-- xx -->
+|       "b"
 </script>
 <script id="document" type="html5lib-testcases">
 #data
@@ -96,18 +143,18 @@ text
 <script>
 function test_safe(testcase, index) {
   let config = undefined;
-  try {
+  if (testcase.config) {
     config = { sanitizer: JSON.parse(testcase.config) };
-  } catch { /* config remains undefined */ }
+  }
   test(_ => {
     assert_testcase(Document.parseHTML(testcase.data, config), testcase);
   }, `parseHTML testcase ${index}, "${testcase.data}"`);
 }
 function test_unsafe(testcase, index) {
   let config = undefined;
-  try {
+  if (testcase.config) {
     config = { sanitizer: JSON.parse(testcase.config) };
-  } catch { /* config remains undefined */ }
+  }
   test(_ => {
     assert_testcase(Document.parseHTMLUnsafe(testcase.data, config), testcase);
   }, `parseHTMLUnsafe testcase ${index}, "${testcase.data}"`);

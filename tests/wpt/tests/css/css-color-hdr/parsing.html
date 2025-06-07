@@ -15,7 +15,6 @@
   test_valid_value("dynamic-range-limit", "dynamic-range-limit-mix(no-limit 8%, standard 2%)");
   test_valid_value("dynamic-range-limit", "dynamic-range-limit-mix(no-limit 99%, standard 99%)");
   test_valid_value("dynamic-range-limit", "dynamic-range-limit-mix(no-limit 99%, standard 99%, constrained 10%)");
-  test_valid_value("dynamic-range-limit", "dynamic-range-limit-mix(no-limit 1%)");
   test_valid_value("dynamic-range-limit", "dynamic-range-limit-mix(constrained 20%, no-limit 80%)");
   test_valid_value("dynamic-range-limit", "dynamic-range-limit-mix(dynamic-range-limit-mix(constrained 90%, no-limit 10%) 1%, no-limit 80%)");
   test_valid_value("dynamic-range-limit", "dynamic-range-limit-mix(no-limit 1%, dynamic-range-limit-mix(constrained 2%, no-limit 10%) 80%)");
@@ -31,6 +30,7 @@
   test_invalid_value("dynamic-range-limit", "hdr");
   test_invalid_value("dynamic-range-limit", "sdr");
   test_invalid_value("dynamic-range-limit", "low");
+  test_invalid_value("dynamic-range-limit", "dynamic-range-limit-mix(no-limit 1%)");
   test_invalid_value("dynamic-range-limit", "dynamic-range-limit-mix(no-limit 80% standard 20%)");
   test_invalid_value("dynamic-range-limit", "dynamic-range-limit-mix(low, no-limit, 10%)");
   test_invalid_value("dynamic-range-limit", "dynamic-range-limit-mix(no-limit 101%, standard 1%)");

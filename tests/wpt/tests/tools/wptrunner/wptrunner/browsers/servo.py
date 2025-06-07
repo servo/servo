@@ -37,11 +37,11 @@ def check_args(**kwargs):
     require_arg(kwargs, "binary")
 
 
-def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
+def browser_kwargs(logger, test_type, run_info_data, config, subsuite, **kwargs):
     return {
         "binary": kwargs["binary"],
         "debug_info": kwargs["debug_info"],
-        "binary_args": kwargs["binary_args"],
+        "binary_args": kwargs["binary_args"] + subsuite.config.get("binary_args", []),
         "user_stylesheets": kwargs.get("user_stylesheets"),
         "ca_certificate_path": config.ssl_config["ca_cert_path"],
     }
@@ -68,13 +68,13 @@ def env_options():
 
 
 def update_properties():
-    return ["debug", "os", "processor"], {"os": ["version"], "processor": ["bits"]}
+    return ["debug", "os", "processor", "subsuite"], {"os": ["version"], "processor": ["bits"]}
 
 
 class ServoBrowser(NullBrowser):
     def __init__(self, logger, binary, debug_info=None, binary_args=None,
                  user_stylesheets=None, ca_certificate_path=None, **kwargs):
-        NullBrowser.__init__(self, logger)
+        NullBrowser.__init__(self, logger, **kwargs)
         self.binary = binary
         self.debug_info = debug_info
         self.binary_args = binary_args or []

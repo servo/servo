@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<meta name=variant content="?isCrossOriginPreload=true&isCrossOriginResource=true">
+<meta name=variant content="?isCrossOriginPreload=true&isCrossOriginResource=false">
+<meta name=variant content="?isCrossOriginPreload=false&isCrossOriginResource=true">
+<meta name=variant content="?isCrossOriginPreload=false&isCrossOriginResource=false">
+<title>The referrerpolicy attribute on Link header should be ignored for subresources</title>
+<meta name="timeout" content="long">
+<script src="resources/dummy.js?link-header-preload2"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
+<body>
+    <p>The referrerpolicy attribute on Link header should be ignored for subresources
+    to prevent cross-origin referrer leakage</p>
+<script>
+window.referrers = {};
+const {REMOTE_ORIGIN} = get_host_info();
+async function loader(t, {preloadPolicy, resourcePolicy, isCrossOriginResource, hrefUrl, hrefParams}) {
+    const img = document.createElement('img');
+    const params = new URLSearchParams();
+    params.set('href', `${hrefUrl}?${hrefParams.toString()}`);
+    if (preloadPolicy === '')
+        params.set('preload-policy', '');
+    else
+        params.set('preload-policy', `referrerpolicy=${preloadPolicy}`);
+    params.set('resource-name', 'green.png');
+    img.src = `${isCrossOriginResource ? REMOTE_ORIGIN : location.origin}/preload/resources/link-header-referrer-policy.py?${params.toString()}`;
+    img.referrerPolicy = resourcePolicy;
+    const preloaded = new Promise(resolve => img.addEventListener('load', resolve));
+    t.add_cleanup(() => img.remove());
+    document.body.appendChild(img);
+    await preloaded;
+    hrefParams.set('operation', 'take');
+    const take_href = `${hrefUrl}?${hrefParams.toString()}`;
+    let actualReferrer;
+    for (let i = 0; i < 10; ++i) {
+        actualReferrer = await fetch(take_href).then(res => res.text());
+        if (actualReferrer === '') {
+            // Preload request has not yet been received. Retry after timeout.
+            await new Promise(resolve => t.step_timeout(resolve, 100));
+        } else {
+            break;
+        }
+    }
+    return {actualReferrer, unsafe: img.src};
+};
+
+function test_referrer_policy(preloadPolicy, resourcePolicy, isCrossOriginPreload, isCrossOriginResource) {
+    promise_test(async t => {
+        const id = token();
+        const hrefUrl = `${isCrossOriginPreload ? REMOTE_ORIGIN : location.origin}/preload/resources/stash-referrer.py`;
+        const hrefParams = new URLSearchParams();
+        hrefParams.set('key', id);
+        hrefParams.set('operation', 'put');
+        const {actualReferrer, unsafe} = await loader(t, {preloadPolicy, resourcePolicy, isCrossOriginResource, hrefUrl, hrefParams})
+        assert_equals(actualReferrer, 'NO-REFERER');
+    }, `referrer policy (${preloadPolicy} -> ${resourcePolicy}, ${isCrossOriginPreload ? 'cross-origin' : 'same-origin'}, ${isCrossOriginResource ? 'cross-origin' : 'same-origin'})`)
+}
+const policies = [
+"",
+"no-referrer",
+"same-origin",
+"origin",
+"origin-when-cross-origin",
+"strict-origin-when-cross-origin",
+"unsafe-url"]
+
+const params = new URLSearchParams(location.search);
+const isCrossOriginPreload = params.get('isCrossOriginPreload') === 'true';
+const isCrossOriginResource = params.get('isCrossOriginResource') === 'true';
+for (const preloadPolicy of policies) {
+    for (const resourcePolicy of policies) {
+        test_referrer_policy(
+            preloadPolicy,
+            resourcePolicy,
+            isCrossOriginPreload,
+            isCrossOriginResource);
+    }
+}
+
+</script>
+</body>

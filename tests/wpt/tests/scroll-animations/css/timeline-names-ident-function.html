@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>Scroll-Driven Animations: The ident() function </title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#ident">
+<link rel="help" href="https://drafts.csswg.org/scroll-animations">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<div id=target></div>
+<script>
+  let actual_ident = 'ident("--myident" calc(42 * sign(1em - 1px)))';
+  let expected_ident = '--myident42';
+
+  // https://drafts.csswg.org/css-animations-2/#propdef-animation-timeline
+  test_computed_value('animation-timeline', actual_ident, expected_ident);
+  test_computed_value('animation-timeline', `--tl, scroll(), ${actual_ident}`,
+    `--tl, scroll(), ${expected_ident}`);
+  test_computed_value('animation-timeline', `${actual_ident}, ${actual_ident}`,
+    `${expected_ident}, ${expected_ident}`);
+
+  // https://drafts.csswg.org/scroll-animations/#scroll-timeline-name
+  test_computed_value('scroll-timeline-name', actual_ident, expected_ident);
+  test_computed_value('scroll-timeline-name', `--tl, ${actual_ident}`,
+    `--tl, ${expected_ident}`);
+  test_computed_value('scroll-timeline-name', `${actual_ident}, ${actual_ident}`,
+    `${expected_ident}, ${expected_ident}`);
+
+  // https://drafts.csswg.org/scroll-animations-1/#timeline-scope
+  test_computed_value('timeline-scope', actual_ident, expected_ident);
+  test_computed_value('timeline-scope', `--tl, ${actual_ident}`,
+    `--tl, ${expected_ident}`);
+  test_computed_value('timeline-scope', `${actual_ident}, ${actual_ident}`,
+    `${expected_ident}, ${expected_ident}`);
+
+  // https://drafts.csswg.org/scroll-animations/#view-timeline-name
+  test_computed_value('view-timeline-name', actual_ident, expected_ident);
+  test_computed_value('view-timeline-name', `--tl, ${actual_ident}`,
+    `--tl, ${expected_ident}`);
+  test_computed_value('view-timeline-name', `${actual_ident}, ${actual_ident}`,
+    `${expected_ident}, ${expected_ident}`);
+</script>

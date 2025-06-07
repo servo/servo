@@ -8,7 +8,6 @@ use std::{fmt, string};
 
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::utils::AsVoidPtr;
 use crate::dom::node::Node;
 
 /// The primary types of values that an XPath expression returns as a result.
@@ -216,7 +215,7 @@ impl NodesetHelpers for Vec<DomRoot<Node>> {
     }
     fn document_order(&self) -> Vec<DomRoot<Node>> {
         let mut nodes: Vec<DomRoot<Node>> = self.clone();
-        if nodes.len() == 1 {
+        if nodes.len() <= 1 {
             return nodes;
         }
 
@@ -233,10 +232,13 @@ impl NodesetHelpers for Vec<DomRoot<Node>> {
         nodes
     }
     fn document_order_unique(&self) -> Vec<DomRoot<Node>> {
-        let mut nodes: Vec<DomRoot<Node>> = self.document_order();
+        let mut seen = HashSet::new();
+        let unique_nodes: Vec<DomRoot<Node>> = self
+            .iter()
+            .filter(|node| seen.insert(node.to_opaque()))
+            .cloned()
+            .collect();
 
-        nodes.dedup_by_key(|n| n.as_void_ptr());
-
-        nodes
+        unique_nodes.document_order()
     }
 }

@@ -1124,7 +1124,13 @@ impl TaskOnce for EventTask {
         let target = self.target.root();
         let bubbles = self.bubbles;
         let cancelable = self.cancelable;
-        target.fire_event_with_params(self.name, bubbles, cancelable, CanGc::note());
+        target.fire_event_with_params(
+            self.name,
+            bubbles,
+            cancelable,
+            EventComposed::NotComposed,
+            CanGc::note(),
+        );
     }
 }
 

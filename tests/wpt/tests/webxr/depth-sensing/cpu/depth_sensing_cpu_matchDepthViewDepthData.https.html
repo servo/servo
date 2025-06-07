@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>WebXR Depth Sensing Test: XRDepthInformation.data buffer with matchDepthView and offset depth data (CPU)</title>
+<link rel="help" href="https://immersive-web.github.io/depth-sensing/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webxr/resources/webxr_util.js"></script>
+<script src="/webxr/resources/webxr_test_constants.js"></script>
+<script src="/webxr/resources/webxr_test_constants_fake_depth.js"></script>
+<script src="/webxr/resources/webxr_test_asserts.js"></script>
+
+<canvas id="webgl-canvas"></canvas>
+<script>
+
+const offsetMatchDepthViewDataTestGenerator = function(matchDepthView) {
+  return function(session, controller, t, sessionObjects) {
+    return session.requestReferenceSpace('viewer').then((viewerSpace) => new Promise((resolve, reject) => {
+      const rafCb = function(time, frame) {
+        const pose = frame.getViewerPose(viewerSpace);
+
+        for (const view of pose.views) {
+          const depthInformation = frame.getDepthInformation(view);
+          t.step(() => {
+            assert_not_equals(depthInformation, null, "Depth information should not be null.");
+            assert_not_equals(depthInformation.data, null, "Depth information data ArrayBuffer should not be null.");
+
+            // OFFSET_DEPTH_SENSING_DATA.depthData is a Uint8Array.
+            // We need its underlying ArrayBuffer for comparison with depthInformation.data.
+            const rawDeviceDepthArrayBuffer = OFFSET_DEPTH_SENSING_DATA.depthData.buffer;
+            const pageVisibleDepthArrayBuffer = depthInformation.data;
+
+            if (matchDepthView) {
+              // When matchDepthView is true, depth data should be reprojected to the XRView.
+              // This reprojected data must be different from the raw device data.
+              assert_array_buffer_not_equals(
+                  pageVisibleDepthArrayBuffer,
+                  rawDeviceDepthArrayBuffer,
+                  "Page depth data ArrayBuffer SHOULD NOT match raw device depth data ArrayBuffer when matchDepthView is true.");
+            } else {
+              // When matchDepthView is false, depth data should be the raw device data,
+              // without reprojection to the XRView.
+              assert_array_buffer_equals(
+                  pageVisibleDepthArrayBuffer,
+                  rawDeviceDepthArrayBuffer,
+                  "Page depth data ArrayBuffer SHOULD match raw device depth data ArrayBuffer when matchDepthView is false.");
+            }
+          });
+        }
+        resolve();
+      };
+
+      session.requestAnimationFrame(rafCb);
+    }));
+  };
+};
+
+const fakeDeviceInitParams = {
+  supportedModes: ["immersive-ar"],
+  views: VALID_VIEWS,
+  supportedFeatures: ALL_FEATURES,
+  depthSensingData: OFFSET_DEPTH_SENSING_DATA,
+};
+
+xr_session_promise_test(
+  `XRDepthInformation.data matches raw device data when matchDepthView is false with offset depth (CPU)`,
+  offsetMatchDepthViewDataTestGenerator(/*matchDepthView=*/false),
+  fakeDeviceInitParams,
+  'immersive-ar',
+  {
+    requiredFeatures: ['depth-sensing'],
+    depthSensing: {
+      usagePreference: ['cpu-optimized'],
+      dataFormatPreference: [OFFSET_DEPTH_SENSING_DATA.depthFormat],
+      matchDepthView: false
+  }
+});
+
+xr_session_promise_test(
+  `XRDepthInformation.data does NOT match raw device data when matchDepthView is true with offset depth (CPU)`,
+  offsetMatchDepthViewDataTestGenerator(/*matchDepthView=*/true),
+  fakeDeviceInitParams,
+  'immersive-ar',
+  {
+    requiredFeatures: ['depth-sensing'],
+    depthSensing: {
+      usagePreference: ['cpu-optimized'],
+      dataFormatPreference: [OFFSET_DEPTH_SENSING_DATA.depthFormat],
+      matchDepthView: true
+    }
+  }
+);
+</script>

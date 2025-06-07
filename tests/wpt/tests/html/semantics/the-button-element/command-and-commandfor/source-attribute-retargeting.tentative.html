@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id=popover popover=auto>popover</div>
+<div id=host>
+  <template shadowrootmode=open>
+    <button id=shadow-button command=show-popover>button in shadowroot</button>
+  </template>
+</div>
+
+<script>
+promise_test(async () => {
+  const popover = document.getElementById('popover');
+  const host = document.getElementById('host');
+  const shadowButton = host.shadowRoot.getElementById('shadow-button');
+  shadowButton.commandForElement = popover;
+
+  const eventNames = ['beforetoggle', 'toggle', 'command'];
+  const eventNameToEvent = {};
+  const eventNameToCaptureSource = {};
+  const eventNameToBubbleSource = {};
+
+  for (const eventName of eventNames) {
+    popover.addEventListener(eventName, event => {
+      eventNameToEvent[eventName] = event;
+      eventNameToBubbleSource[eventName] = event.source;
+    });
+    popover.addEventListener(eventName, event => {
+      eventNameToCaptureSource[eventName] = event.source;
+    }, {capture: true});
+  }
+
+  shadowButton.click();
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
+
+  for (const eventName of eventNames) {
+    const event = eventNameToEvent[eventName];
+    assert_true(!!event, `A ${eventName} event should have been fired.`);
+    assert_equals(eventNameToCaptureSource[eventName], host,
+      `${eventName}.source during capture.`);
+    assert_equals(eventNameToBubbleSource[eventName], host,
+      `${eventName}.source during bubble.`);
+    assert_not_equals(event.source, shadowButton,
+      `${eventName}.source shouldn't leak the shadow button.`);
+    assert_equals(event.source, host,
+      `${eventName}.source after dispatch.`);
+  }
+}, 'CommandEvent.source and ToggleEvent.source should be retargeted during and after event dispatch.');
+</script>
+
+<div id=host2>
+  <template shadowrootmode=open>
+    <div id=source>source</div>
+    <div id=innerhost>
+      <template shadowrootmode=open>
+        <div id=target>target</div>
+      </template>
+    </div>
+  </template>
+</div>
+
+<script>
+// This does not test ToggleEvent because ToggleEventInit does not have a source attribute.
+promise_test(async () => {
+  const host2 = document.getElementById('host2');
+  const source = host2.shadowRoot.getElementById('source');
+  const innerhost = host2.shadowRoot.getElementById('innerhost');
+  const target = innerhost.shadowRoot.getElementById('target');
+
+  const targets = [host2, innerhost, target];
+  const targetToEvent = new Map();
+  const targetToCaptureSource = new Map();
+  const targetToBubbleSource = new Map();
+
+  for (const target of targets) {
+    target.addEventListener('command', event => {
+      targetToEvent.set(target, event);
+      targetToBubbleSource.set(target, event.source);
+    });
+    target.addEventListener('command', event => {
+      targetToCaptureSource.set(target, event.source);
+    }, {capture: true});
+  }
+
+  const commandEvent = new CommandEvent('command', {composed: true, source});
+  target.dispatchEvent(commandEvent);
+
+  for (const target of targets) {
+    const expectedSource = target == host2 ? host2 : source;
+    assert_true(targetToEvent.has(target),
+      `${target.id}: event should have fired.`);
+    assert_equals(targetToCaptureSource.get(target), expectedSource,
+      `${target.id}: event.source at capture.`);
+    assert_equals(targetToBubbleSource.get(target), expectedSource,
+      `${target.id}: event.source at bubble.`);
+    assert_equals(targetToEvent.get(target).source, host2,
+      `${target.id}: event.source after dispatch.`);
+  }
+}, 'CommandEvent.source should be retargeted when manually dispatched with composed set to true.');
+</script>
+
+<div id=popover3 popover=auto>popover 3</div>
+<button id=button3 commandfor=popover3 command=show-popover>show popover 3</button>
+
+<script>
+promise_test(async () => {
+  const button = document.getElementById('button3');
+  const popover = document.getElementById('popover3');
+
+  const eventNames = ['beforetoggle', 'toggle', 'command'];
+  const eventNameToEvent = {};
+  for (const eventName of eventNames) {
+    popover.addEventListener(eventName, event => {
+      eventNameToEvent[eventName] = event;
+    });
+  }
+
+  button.click();
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
+
+  for (const eventName of eventNames) {
+    const event = eventNameToEvent[eventName];
+    assert_true(!!event, `${eventName} should have been fired.`);
+    assert_equals(event.source, button,
+      `${eventName}.source should be the invoker button after dispatch.`);
+  }
+}, 'CommandEvent.source and ToggleEvent.source should not be set to null after dispatch without ShadowDOM.');
+</script>

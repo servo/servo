@@ -1,0 +1,46 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Container Timing: an image inside a containertiming-ignore inside a containertiming root</title>
+<body>
+<style>
+body {
+  margin: 0;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/container-timing/resources/container-timing-helpers.js"></script>
+<script src="/element-timing/resources/element-timing-helpers.js"></script>
+<script>
+  async_test(function (t) {
+    assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
+    const observer = new PerformanceObserver(
+      function(entryList) {
+        assert_unreached("No entry is expected with nothing to paint");
+      }
+    );
+    observer.observe({entryTypes: ['container']});
+
+    finishOnElementTiming(t);
+
+    // Add a div that is the container timing root
+    const div1 = document.createElement('div');
+    div1.setAttribute('containertiming', 'div1_ct');
+    document.body.appendChild(div1);
+
+    // Intermediate ignore should block paint events
+    const div2 = document.createElement('div');
+    div2.setAttribute('containertiming-ignore', '');
+    div1.appendChild(div2)
+
+    // Add image of width equal to 100 and height equal to 100.
+    const img = document.createElement('img');
+    img.src = '/container-timing/resources/square100.png';
+    img.setAttribute('id', 'img_id');
+    div2.appendChild(img);
+
+    addPaintingElementTimingAfterDoubleRAF(document.body);
+  }, 'Paint of the image child of container timing with ignore in the middle is not reported.');
+</script>
+
+</body>

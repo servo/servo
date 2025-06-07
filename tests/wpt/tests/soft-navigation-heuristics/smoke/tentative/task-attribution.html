@@ -62,16 +62,6 @@
         history.pushState({}, "", "/set-timeout-and-sync-url-update");
       }
 
-      // A soft navigation where the click handler synchronously updates its UI
-      // and schedules the URL update with a setTimeout.
-      // https://developer.mozilla.org/en-US/docs/Web/API/Window/setTimeout
-      function setTimeoutForUrlUpdate() {
-        updateUI();
-        setTimeout(() => {
-          history.pushState({}, "", "/set-timeout-for-url-update");
-        }, 10);
-      }
-
       // A soft navigation where the click handler schedules its work with
       // scheduler.postTask.
       // https://developer.mozilla.org/en-US/docs/Web/API/Scheduler/postTask
@@ -83,11 +73,11 @@
       }
 
       // A soft navigation where the click handler yields
-      // (using scheduler.yield) between UI update and URL update.
+      // (using scheduler.yield) between URL and UI update.
       async function withSchedulerYield() {
-        updateUI();
-        await scheduler.yield();
         history.pushState({}, "", "/with-scheduler-yield");
+        await scheduler.yield();
+        updateUI();
       }
 
       // A soft navigation where the click handler schedules its work with
@@ -109,7 +99,6 @@
     <div id="set-timeout-and-sync-url-update" onclick="setTimeoutAndSyncUrlUpdate()">
       Click here!
     </div>
-    <div id="set-timeout-for-url-update" onclick="setTimeoutForUrlUpdate()">Click here!</div>
     <div id="with-scheduler-post-task" onclick="withSchedulerPostTask()">Click here!</div>
     <div id="with-scheduler-yield" onclick="withSchedulerYield()">Click here!</div>
     <div id="with-request-animation-frame" onclick="withRequestAnimationFrame()">Click here!</div>

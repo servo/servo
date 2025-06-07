@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Gap Decorations: individual separate longhands form shorthand</title>
+  <link rel="help" href="https://drafts.csswg.org/css-multicol/#propdef-column-rule">
+  <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12201">
+  <meta name="assert" content="Setting *-rule-width, *-rule-style, and *-rule-color results in the misaligned *-rule shorthand.">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+  <div id="target"></div>
+<script>
+const testCases = [
+  {
+    width: '5px',
+    style: 'solid',
+    color: 'rgb(0, 128, 0)',
+    expected: '5px solid rgb(0, 128, 0)'
+  },
+  {
+    width: 'repeat(auto, 5px)',
+    style: 'repeat(auto, solid)',
+    color: 'repeat(auto, rgb(255, 0, 0))',
+    expected: 'repeat(auto, 5px solid rgb(255, 0, 0))'
+  },
+
+  // The following test cases return an empty string because the longhands do not
+  // line up.
+  {
+    width: 'repeat(auto, thin medium)',
+    style: 'solid',
+    color: 'repeat(8, red blue)',
+    expected: ''
+  },
+  {
+    width: 'repeat(6, 15px thick)',
+    style: 'repeat(auto, solid)',
+    color: 'repeat(auto, red)',
+    expected: ''
+  },
+  {
+    width: '15px 25px 35px',
+    style: 'solid dotted',
+    color: 'green',
+    expected: ''
+  },
+  {
+    width: 'repeat(auto, 5px)',
+    style: 'solid double',
+    color: 'repeat(7, red)',
+    expected: ''
+  },
+  {
+    width: 'repeat(auto, 5px 8px 10px)',
+    style: 'repeat(auto, solid double)',
+    color: 'repeat(auto, red green blue)',
+    expected: ''
+  },
+  {
+    width: 'repeat(2, 1px 3px 5px)',
+    style: 'repeat(2, solid double)',
+    color: 'repeat(2, red)',
+    expected: ''
+  },
+];
+
+const rule_properties = {
+    'column-rule': ['columnRuleWidth',
+                    'columnRuleStyle',
+                    'columnRuleColor'],
+    'row-rule':    ['rowRuleWidth',
+                    'rowRuleStyle',
+                    'rowRuleColor'],
+};
+
+for(rule_property in rule_properties) {
+  const [widthProperty, styleProperty, colorProperty] = rule_properties[rule_property];
+  for (const {width, style, color, expected} of testCases) {
+  let div = document.querySelector('#target');
+  div.style[widthProperty] = width;
+  div.style[styleProperty] = style;
+  div.style[colorProperty]= color;
+  test(() => {
+    assert_equals(window.getComputedStyle(div)[rule_property], expected);
+    assert_equals(div.style[rule_property], expected);
+    }, `${rule_property} computed from width: ${width}, style: ${style}, color: ${color}`);
+  }
+}
+</script>

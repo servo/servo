@@ -26,8 +26,8 @@ class WptreportFormatter(BaseFormatter):  # type: ignore
         self.results = {}
 
     def suite_start(self, data):
-        self.results['run_info'] = data.get('run_info', {})
-        self.results['time_start'] = data['time']
+        self.results["run_info"] = data.get("run_info", {})
+        self.results["time_start"] = data["time"]
         self.results["results"] = []
         self.results["subsuites"] = {}
 
@@ -35,7 +35,7 @@ class WptreportFormatter(BaseFormatter):  # type: ignore
         self.results["subsuites"][data["name"]] = data.get("run_info", {})
 
     def suite_end(self, data):
-        self.results['time_end'] = data['time']
+        self.results["time_end"] = data["time"]
         for subsuite, results in self.raw_results.items():
             for test_name, result in results.items():
                 result["test"] = test_name

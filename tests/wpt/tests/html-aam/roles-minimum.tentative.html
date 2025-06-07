@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang=en>
+<head>
+  <title>HTML-AAM Minimum Role Verification Tests</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+<body>
+
+  <p>Tests minimum computedrole mappings defined in <a href="https://w3c.github.io/html-aam/#minimum-role">HTML-AAM</a> ([HTML-AAM Issue #454](https://github.com/w3c/html-aam/pull/454)), where the returned computed role for generic elements is expected to change based on the generic elements having attributes that would require the element no longer be generic, and potentially ignored by browsers. Most test names correspond to a unique ID defined in the spec.<p>
+
+  <!-- el-div -->
+  <div data-testname="el-div" data-expectedrole="generic" class="ex">Baseline div, role=generic</div>
+
+  <div data-testname="el-div-autofocus-attr" data-expectedrole="group" autofocus class="ex">div with autofocus attribute.</div>
+  <div data-testname="el-div-autofocus-attr-role-generic" data-expectedrole="group" autofocus role="generic" class="ex">div with explicit role=generic and autofocus attribute.</div>
+  <div data-testname="el-div-autofocus-attr-role-none" data-expectedrole="group" autofocus role="none" class="ex">div with explicit role=none and autofocus attribute.</div>
+
+  <div data-testname="el-div-draggable-attr" data-expectedrole="group" draggable class="ex">div with draggable attribute.</div>
+  <div data-testname="el-div-draggable-attr-role-generic" data-expectedrole="group" draggable role="generic" class="ex">div with explicit role=generic and draggable attribute.</div>
+  <div data-testname="el-div-draggable-attr-role-none" data-expectedrole="group" draggable role="none" class="ex">div with explicit role=none and draggable attribute.</div>
+
+  <button popovertarget=pd>Show popover div</button>
+  <div data-testname="el-div-popover-attr" id=pd data-expectedrole="group" popover class="ex">div with popover attribute, role=group</div>
+
+  <div data-testname="el-div-draggable-attr-invalid-role" data-expectedrole="group" draggable role="foo" class="ex">div with draggable attribute and errant role attribute value.</div>
+
+  <!-- el-section - an unnamed section element is a generic, not a region. so when unnamed it would have a minimum role applied -->
+  <section data-testname="el-section-draggable-attr" data-expectedrole="group" draggable class="ex">unnamed section with draggable attribute.</section>
+
+
+  <!--
+    The following tests do not meet the conditions for a minimum role change
+  -->
+  <!-- explicit valid role is used, so minimum role does not apply -->
+  <div data-testname="el-div-draggable-attr-role-article" data-expectedrole="article" role="article" draggable class="ex">div with explicit role=article and draggable attribute.</div>
+
+  <!-- implicit non-generic or none/presentational role, so minimum role does not apply -->
+  <article data-testname="el-article-draggable-attr" data-expectedrole="article" draggable class="ex">article element with draggable attribute.</article>
+  <section data-testname="el-section-named-draggable-attr" data-expectedrole="region" aria-label="test" draggable class="ex">named section with draggable attribute.</section>
+
+  <!-- element has implicit platform computedrole, so minimum role does not apply -->
+  <cite data-testname="el-cite-draggable-attr" data-expectedrole="html-cite" draggable class="ex">cite element with draggable attribute.</cite>
+
+
+  <script>
+    AriaUtils.verifyRolesBySelector(".ex");
+  </script>
+
+</body>
+</html>

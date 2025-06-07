@@ -335,6 +335,21 @@ class AccessibilityProtocolPart(ProtocolPart):
         pass
 
 
+class WebExtensionsProtocolPart(ProtocolPart):
+    """Protocol part for managing WebExtensions"""
+    __metaclass__ = ABCMeta
+
+    name = "web_extensions"
+
+    @abstractmethod
+    def install_web_extension(self, extension):
+        pass
+
+    @abstractmethod
+    def uninstall_web_extension(self, extension_id):
+        pass
+
+
 class BidiBluetoothProtocolPart(ProtocolPart):
     """Protocol part for managing BiDi events"""
     __metaclass__ = ABCMeta

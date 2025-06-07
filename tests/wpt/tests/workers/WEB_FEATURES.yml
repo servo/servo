@@ -1,0 +1,6 @@
+features:
+- name: ua-client-hints
+  files:
+  - WorkerNavigator_userAgentData.http.html
+  - WorkerNavigator_userAgentData.https.html
+  - WorkerNavigator_userAgentData.https.tentative.html

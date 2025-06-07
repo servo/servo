@@ -20,8 +20,8 @@
 
 import os
 
-test_root = os.path.join('tests', 'wpt', 'tests')
-meta_root = os.path.join('tests', 'wpt', 'meta')
+test_root = os.path.join("tests", "wpt", "tests")
+meta_root = os.path.join("tests", "wpt", "meta")
 
 test_counts = {}
 meta_counts = {}
@@ -35,7 +35,7 @@ for base_dir, dir_names, files in os.walk(test_root):
         continue
 
     test_files = []
-    exts = ['.html', '.htm', '.xht', '.xhtml', '.window.js', '.worker.js', '.any.js']
+    exts = [".html", ".htm", ".xht", ".xhtml", ".window.js", ".worker.js", ".any.js"]
     for f in files:
         for ext in exts:
             if f.endswith(ext):
@@ -48,21 +48,21 @@ for base_dir, dir_names, files in os.walk(meta_root):
 
     rel_base = os.path.relpath(base_dir, meta_root)
     num_files = len(files)
-    if '__dir__.ini' in files:
+    if "__dir__.ini" in files:
         num_files -= 1
     meta_counts[rel_base] = num_files
 
 final_counts = []
-for (test_dir, test_count) in test_counts.items():
+for test_dir, test_count in test_counts.items():
     if not test_count:
         continue
     meta_count = meta_counts.get(test_dir, 0)
     final_counts += [(test_dir, test_count, meta_count)]
 
-print('Test counts')
-print('dir: %% failed (num tests / num failures)')
+print("Test counts")
+print("dir: %% failed (num tests / num failures)")
 s = sorted(final_counts, key=lambda x: x[2] / x[1])
-for (test_dir, test_count, meta_count) in reversed(sorted(s, key=lambda x: x[2])):
+for test_dir, test_count, meta_count in reversed(sorted(s, key=lambda x: x[2])):
     if not meta_count:
         continue
-    print('%s: %.2f%% (%d / %d)' % (test_dir, meta_count / test_count * 100, test_count, meta_count))
+    print("%s: %.2f%% (%d / %d)" % (test_dir, meta_count / test_count * 100, test_count, meta_count))

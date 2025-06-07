@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: *rule-break properly adheres to spanning-item when repeater tracks are used.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#break">
+<link rel="match" href="grid-gap-decorations-040-ref.html">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+    .grid-container {
+        display: grid;
+        grid-template-columns: repeat(4, 100px);
+        grid-template-rows: repeat(4, 100px);
+        gap: 10px;
+
+        width: 430px;
+        height: 430px;
+
+        column-rule: 5px solid blue;
+        row-rule: 5px solid red;
+    }
+
+    .grid-item {
+        background-color: gray;
+        opacity: 0.5;
+        border: 1px solid #000;
+    }
+
+</style>
+<div class="grid-container">
+    <div class="grid-item" style="grid-column: 1 / 3; grid-row: 1 / 3;"></div>
+    <div class="grid-item" style="grid-column: 3 / 4; grid-row: 1 / 3;"></div>
+</div>

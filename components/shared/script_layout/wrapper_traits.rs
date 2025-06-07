@@ -6,13 +6,13 @@
 
 use std::borrow::Cow;
 use std::fmt::Debug;
-use std::sync::Arc as StdArc;
 
 use atomic_refcell::AtomicRef;
 use base::id::{BrowsingContextId, PipelineId};
 use fonts_traits::ByteIndex;
 use html5ever::{LocalName, Namespace};
-use pixels::{Image, ImageMetadata};
+use net_traits::image_cache::Image;
+use pixels::ImageMetadata;
 use range::Range;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
@@ -222,7 +222,7 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
     fn image_density(&self) -> Option<f64>;
 
     /// If this is an image element, returns its image data. Otherwise, returns `None`.
-    fn image_data(&self) -> Option<(Option<StdArc<Image>>, Option<ImageMetadata>)>;
+    fn image_data(&self) -> Option<(Option<Image>, Option<ImageMetadata>)>;
 
     fn canvas_data(&self) -> Option<HTMLCanvasData>;
 

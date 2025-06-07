@@ -21,7 +21,9 @@ use super::bindings::structuredclone::StructuredData;
 use super::bindings::transferable::Transferable;
 use super::messageport::MessagePort;
 use super::promisenativehandler::Callback;
+use super::readablestream::CrossRealmTransformReadable;
 use super::types::{TransformStreamDefaultController, WritableStream};
+use super::writablestream::CrossRealmTransformWritable;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
 use crate::dom::bindings::codegen::Bindings::TransformStreamBinding::TransformStreamMethods;
@@ -366,6 +368,19 @@ impl Callback for FlushPromiseRejection {
             .expect("finish promise is not set")
             .reject(cx, v, can_gc);
     }
+}
+
+impl js::gc::Rootable for CrossRealmTransform {}
+
+/// A wrapper to handle `message` and `messageerror` events
+/// for the message port used by the transfered stream.
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+pub(crate) enum CrossRealmTransform {
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
+    Readable(CrossRealmTransformReadable),
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
+    Writable(CrossRealmTransformWritable),
 }
 
 /// <https://streams.spec.whatwg.org/#ts-class>

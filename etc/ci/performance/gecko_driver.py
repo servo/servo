@@ -15,7 +15,7 @@ import sys
 @contextmanager
 def create_gecko_session():
     try:
-        firefox_binary = os.environ['FIREFOX_BIN']
+        firefox_binary = os.environ["FIREFOX_BIN"]
     except KeyError:
         print("+=============================================================+")
         print("| You must set the path to your firefox binary to FIREFOX_BIN |")
@@ -36,10 +36,7 @@ def generate_placeholder(testcase):
     # use a placeholder with values = -1 to make Treeherder happy, and still be
     # able to identify failed tests (successful tests have time >=0).
 
-    timings = {
-        "testcase": testcase,
-        "title": ""
-    }
+    timings = {"testcase": testcase, "title": ""}
 
     timing_names = [
         "navigationStart",
@@ -81,16 +78,9 @@ def run_gecko_test(testcase, url, date, timeout, is_async):
             return generate_placeholder(testcase)
 
         try:
-            timings = {
-                "testcase": testcase,
-                "title": driver.title.replace(",", "&#44;")
-            }
+            timings = {"testcase": testcase, "title": driver.title.replace(",", "&#44;")}
 
-            timings.update(json.loads(
-                driver.execute_script(
-                    "return JSON.stringify(performance.timing)"
-                )
-            ))
+            timings.update(json.loads(driver.execute_script("return JSON.stringify(performance.timing)")))
         except Exception:
             # We need to return a timing object no matter what happened.
             # See the comment in generate_placeholder() for explanation
@@ -101,17 +91,14 @@ def run_gecko_test(testcase, url, date, timeout, is_async):
             # TODO: the timeout is hardcoded
             driver.implicitly_wait(5)  # sec
             driver.find_element_by_id("GECKO_TEST_DONE")
-            timings.update(json.loads(
-                driver.execute_script(
-                    "return JSON.stringify(window.customTimers)"
-                )
-            ))
+            timings.update(json.loads(driver.execute_script("return JSON.stringify(window.customTimers)")))
 
     return [timings]
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Just for manual testing
     from pprint import pprint
+
     url = "http://localhost:8000/page_load_test/tp5n/dailymail.co.uk/www.dailymail.co.uk/ushome/index.html"
     pprint(run_gecko_test(url, 15))

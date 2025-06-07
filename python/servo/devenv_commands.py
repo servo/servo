@@ -25,12 +25,10 @@ from servo.command_base import CommandBase, cd, call
 
 @CommandProvider
 class MachCommands(CommandBase):
-    @Command('check',
-             description='Run "cargo check"',
-             category='devenv')
+    @Command("check", description='Run "cargo check"', category="devenv")
     @CommandArgument(
-        'params', default=None, nargs='...',
-        help="Command-line arguments to be passed through to cargo check")
+        "params", default=None, nargs="...", help="Command-line arguments to be passed through to cargo check"
+    )
     @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
     def check(self, params, **kwargs):
         if not params:
@@ -40,45 +38,34 @@ class MachCommands(CommandBase):
         self.ensure_clobbered()
         status = self.run_cargo_build_like_command("check", params, **kwargs)
         if status == 0:
-            print('Finished checking, binary NOT updated. Consider ./mach build before ./mach run')
+            print("Finished checking, binary NOT updated. Consider ./mach build before ./mach run")
 
         return status
 
-    @Command('cargo-update',
-             description='Same as update-cargo',
-             category='devenv')
+    @Command("cargo-update", description="Same as update-cargo", category="devenv")
     @CommandArgument(
-        'params', default=None, nargs='...',
-        help='Command-line arguments to be passed through to cargo update')
-    @CommandArgument(
-        '--package', '-p', default=None,
-        help='Updates selected package')
-    @CommandArgument(
-        '--all-packages', '-a', action='store_true',
-        help='Updates all packages')
-    @CommandArgument(
-        '--dry-run', '-d', action='store_true',
-        help='Show outdated packages.')
+        "params", default=None, nargs="...", help="Command-line arguments to be passed through to cargo update"
+    )
+    @CommandArgument("--package", "-p", default=None, help="Updates selected package")
+    @CommandArgument("--all-packages", "-a", action="store_true", help="Updates all packages")
+    @CommandArgument("--dry-run", "-d", action="store_true", help="Show outdated packages.")
     def cargo_update(self, params=None, package=None, all_packages=None, dry_run=None):
         self.update_cargo(params, package, all_packages, dry_run)
 
-    @Command('update-cargo',
-             description='Update Cargo dependencies',
-             category='devenv')
+    @Command("update-cargo", description="Update Cargo dependencies", category="devenv")
     @CommandArgument(
-        'params', default=None, nargs='...',
-        help='Command-line arguments to be passed through to cargo update')
+        "params", default=None, nargs="...", help="Command-line arguments to be passed through to cargo update"
+    )
+    @CommandArgument("--package", "-p", default=None, help="Updates the selected package")
     @CommandArgument(
-        '--package', '-p', default=None,
-        help='Updates the selected package')
-    @CommandArgument(
-        '--all-packages', '-a', action='store_true',
-        help='Updates all packages. NOTE! This is very likely to break your '
-             'working copy, making it impossible to build servo. Only do '
-             'this if you really know what you are doing.')
-    @CommandArgument(
-        '--dry-run', '-d', action='store_true',
-        help='Show outdated packages.')
+        "--all-packages",
+        "-a",
+        action="store_true",
+        help="Updates all packages. NOTE! This is very likely to break your "
+        "working copy, making it impossible to build servo. Only do "
+        "this if you really know what you are doing.",
+    )
+    @CommandArgument("--dry-run", "-d", action="store_true", help="Show outdated packages.")
     def update_cargo(self, params=None, package=None, all_packages=None, dry_run=None):
         if not params:
             params = []
@@ -97,12 +84,8 @@ class MachCommands(CommandBase):
         with cd(self.context.topdir):
             call(["cargo", "update"] + params, env=self.build_env())
 
-    @Command('rustc',
-             description='Run the Rust compiler',
-             category='devenv')
-    @CommandArgument(
-        'params', default=None, nargs='...',
-        help="Command-line arguments to be passed through to rustc")
+    @Command("rustc", description="Run the Rust compiler", category="devenv")
+    @CommandArgument("params", default=None, nargs="...", help="Command-line arguments to be passed through to rustc")
     def rustc(self, params):
         if params is None:
             params = []
@@ -110,12 +93,10 @@ class MachCommands(CommandBase):
         self.ensure_bootstrapped()
         return call(["rustc"] + params, env=self.build_env())
 
-    @Command('cargo-fix',
-             description='Run "cargo fix"',
-             category='devenv')
+    @Command("cargo-fix", description='Run "cargo fix"', category="devenv")
     @CommandArgument(
-        'params', default=None, nargs='...',
-        help="Command-line arguments to be passed through to cargo-fix")
+        "params", default=None, nargs="...", help="Command-line arguments to be passed through to cargo-fix"
+    )
     @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
     def cargo_fix(self, params, **kwargs):
         if not params:
@@ -125,12 +106,8 @@ class MachCommands(CommandBase):
         self.ensure_clobbered()
         return self.run_cargo_build_like_command("fix", params, **kwargs)
 
-    @Command('clippy',
-             description='Run "cargo clippy"',
-             category='devenv')
-    @CommandArgument(
-        'params', default=None, nargs='...',
-        help="Command-line arguments to be passed through to clippy")
+    @Command("clippy", description='Run "cargo clippy"', category="devenv")
+    @CommandArgument("params", default=None, nargs="...", help="Command-line arguments to be passed through to clippy")
     @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
     def cargo_clippy(self, params, **kwargs):
         if not params:
@@ -139,48 +116,42 @@ class MachCommands(CommandBase):
         self.ensure_bootstrapped()
         self.ensure_clobbered()
         env = self.build_env()
-        env['RUSTC'] = 'rustc'
+        env["RUSTC"] = "rustc"
         return self.run_cargo_build_like_command("clippy", params, env=env, **kwargs)
 
-    @Command('grep',
-             description='`git grep` for selected directories.',
-             category='devenv')
+    @Command("grep", description="`git grep` for selected directories.", category="devenv")
     @CommandArgument(
-        'params', default=None, nargs='...',
-        help="Command-line arguments to be passed through to `git grep`")
+        "params", default=None, nargs="...", help="Command-line arguments to be passed through to `git grep`"
+    )
     def grep(self, params):
         if not params:
             params = []
         # get all directories under tests/
-        tests_dirs = listdir('tests')
+        tests_dirs = listdir("tests")
         # Directories to be excluded under tests/
-        excluded_tests_dirs = ['wpt', 'jquery']
+        excluded_tests_dirs = ["wpt", "jquery"]
         tests_dirs = filter(lambda dir: dir not in excluded_tests_dirs, tests_dirs)
         # Set of directories in project root
-        root_dirs = ['components', 'ports', 'python', 'etc', 'resources']
+        root_dirs = ["components", "ports", "python", "etc", "resources"]
         # Generate absolute paths for directories in tests/ and project-root/
-        tests_dirs_abs = [path.join(self.context.topdir, 'tests', s) for s in tests_dirs]
+        tests_dirs_abs = [path.join(self.context.topdir, "tests", s) for s in tests_dirs]
         root_dirs_abs = [path.join(self.context.topdir, s) for s in root_dirs]
         # Absolute paths for all directories to be considered
         grep_paths = root_dirs_abs + tests_dirs_abs
         return call(
-            ["git"] + ["grep"] + params + ['--'] + grep_paths + [':(exclude)*.min.js', ':(exclude)*.min.css'],
-            env=self.build_env())
+            ["git"] + ["grep"] + params + ["--"] + grep_paths + [":(exclude)*.min.js", ":(exclude)*.min.css"],
+            env=self.build_env(),
+        )
 
-    @Command('fetch',
-             description='Fetch Rust, Cargo and Cargo dependencies',
-             category='devenv')
+    @Command("fetch", description="Fetch Rust, Cargo and Cargo dependencies", category="devenv")
     def fetch(self):
         self.ensure_bootstrapped()
         return call(["cargo", "fetch"], env=self.build_env())
 
-    @Command('ndk-stack',
-             description='Invoke the ndk-stack tool with the expected symbol paths',
-             category='devenv')
-    @CommandArgument('--release', action='store_true', help="Use release build symbols")
-    @CommandArgument('--target', action='store', default="armv7-linux-androideabi",
-                     help="Build target")
-    @CommandArgument('logfile', action='store', help="Path to logcat output with crash report")
+    @Command("ndk-stack", description="Invoke the ndk-stack tool with the expected symbol paths", category="devenv")
+    @CommandArgument("--release", action="store_true", help="Use release build symbols")
+    @CommandArgument("--target", action="store", default="armv7-linux-androideabi", help="Build target")
+    @CommandArgument("logfile", action="store", help="Path to logcat output with crash report")
     def stack(self, release, target, logfile):
         if not path.isfile(logfile):
             print(logfile + " doesn't exist")
@@ -190,21 +161,13 @@ class MachCommands(CommandBase):
         ndk_stack = path.join(env["ANDROID_NDK"], "ndk-stack")
         self.setup_configuration_for_android_target(target)
         sym_path = path.join(
-            "target",
-            target,
-            "release" if release else "debug",
-            "apk",
-            "obj",
-            "local",
-            self.config["android"]["lib"])
+            "target", target, "release" if release else "debug", "apk", "obj", "local", self.config["android"]["lib"]
+        )
         print(subprocess.check_output([ndk_stack, "-sym", sym_path, "-dump", logfile]))
 
-    @Command('ndk-gdb',
-             description='Invoke ndk-gdb tool with the expected symbol paths',
-             category='devenv')
-    @CommandArgument('--release', action='store_true', help="Use release build symbols")
-    @CommandArgument('--target', action='store', default="armv7-linux-androideabi",
-                     help="Build target")
+    @Command("ndk-gdb", description="Invoke ndk-gdb tool with the expected symbol paths", category="devenv")
+    @CommandArgument("--release", action="store_true", help="Use release build symbols")
+    @CommandArgument("--target", action="store", default="armv7-linux-androideabi", help="Build target")
     def ndk_gdb(self, release, target):
         env = self.build_env()
         ndk_gdb = path.join(env["ANDROID_NDK"], "ndk-gdb")
@@ -218,7 +181,7 @@ class MachCommands(CommandBase):
                 "apk",
                 "obj",
                 "local",
-                self.config["android"]["lib"]
+                self.config["android"]["lib"],
             ),
             path.join(
                 getcwd(),
@@ -227,27 +190,38 @@ class MachCommands(CommandBase):
                 "release" if release else "debug",
                 "apk",
                 "libs",
-                self.config["android"]["lib"]
+                self.config["android"]["lib"],
             ),
         ]
         env["NDK_PROJECT_PATH"] = path.join(getcwd(), "support", "android", "apk")
         signal.signal(signal.SIGINT, signal.SIG_IGN)
 
         with tempfile.NamedTemporaryFile(delete=False) as f:
-            f.write('\n'.join([
-                "python",
-                "param = gdb.parameter('solib-search-path')",
-                "param += ':{}'".format(':'.join(sym_paths)),
-                "gdb.execute('set solib-search-path ' + param)",
-                "end",
-            ]))
+            f.write(
+                "\n".join(
+                    [
+                        "python",
+                        "param = gdb.parameter('solib-search-path')",
+                        "param += ':{}'".format(":".join(sym_paths)),
+                        "gdb.execute('set solib-search-path ' + param)",
+                        "end",
+                    ]
+                )
+            )
 
-        p = subprocess.Popen([
-            ndk_gdb,
-            "--adb", adb_path,
-            "--project", "support/android/apk/servoapp/src/main/",
-            "--launch", "org.servo.servoshell.MainActivity",
-            "-x", f.name,
-            "--verbose",
-        ], env=env)
+        p = subprocess.Popen(
+            [
+                ndk_gdb,
+                "--adb",
+                adb_path,
+                "--project",
+                "support/android/apk/servoapp/src/main/",
+                "--launch",
+                "org.servo.servoshell.MainActivity",
+                "-x",
+                f.name,
+                "--verbose",
+            ],
+            env=env,
+        )
         return p.wait()

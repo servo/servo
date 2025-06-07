@@ -1,0 +1,31 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Serializing a large canvas does not panic</title>
+  <link rel=help href="https://html.spec.whatwg.org/multipage/#dom-canvas-todataurl">
+  <link rel=help href="https://html.spec.whatwg.org/multipage/#dom-canvas-toblob">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+<!-- This is not a standard WPT tests, because canvas size limits are specific
+    to browsers. For us, failure to serialize depends on both canvas size limits
+    and also whether or not the image library we use (image-rs) produces an error
+    when we attempt serialization. -->
+<canvas id="canvas" width="2000000"></canvas>
+
+<script>
+    test(function() {
+        assert_equals(canvas.toDataURL("image/webp", 0.5), 'data:,');
+    }, "Calling toDataURL on an oversized canvas results in an empty URL.");
+
+    async_test(function(t) {
+        canvas.toBlob((blob) => {
+            assert_equals(blob, null);
+            t.done();
+        }, "image/webp", 0.5);
+    }, "Calling toBlob() on an oversized canvas results in a null blob");
+</script>
+</body>
+</html>

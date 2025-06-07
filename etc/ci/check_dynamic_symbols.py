@@ -12,35 +12,46 @@ import re
 import subprocess
 import sys
 
-symbol_regex = re.compile(br"D  \*UND\*\t(.*) (.*)$")
-allowed_symbols = frozenset([
-    b'unshare',
-    b'malloc_usable_size',
-    b'__cxa_type_match',
-    b'signal',
-    b'tcgetattr',
-    b'tcsetattr',
-    b'__strncpy_chk2',
-    b'rand',
-    b'__read_chk',
-    b'fesetenv',
-    b'srand',
-    b'abs',
-    b'fegetenv',
-    b'sigemptyset',
-    b'AHardwareBuffer_allocate',
-    b'AHardwareBuffer_release',
-    b'getentropy',
-])
+symbol_regex = re.compile(rb"D  \*UND\*\t(.*) (.*)$")
+allowed_symbols = frozenset(
+    [
+        b"unshare",
+        b"malloc_usable_size",
+        b"__cxa_type_match",
+        b"signal",
+        b"tcgetattr",
+        b"tcsetattr",
+        b"__strncpy_chk2",
+        b"rand",
+        b"__read_chk",
+        b"fesetenv",
+        b"srand",
+        b"abs",
+        b"fegetenv",
+        b"sigemptyset",
+        b"AHardwareBuffer_allocate",
+        b"AHardwareBuffer_release",
+        b"getentropy",
+    ]
+)
 actual_symbols = set()
 
-objdump_output = subprocess.check_output([
-    os.path.join(
-        'android-toolchains', 'ndk', 'toolchains', 'arm-linux-androideabi-4.9',
-        'prebuilt', 'linux-x86_64', 'bin', 'arm-linux-androideabi-objdump'),
-    '-T',
-    'target/android/armv7-linux-androideabi/debug/libservoshell.so']
-).split(b'\n')
+objdump_output = subprocess.check_output(
+    [
+        os.path.join(
+            "android-toolchains",
+            "ndk",
+            "toolchains",
+            "arm-linux-androideabi-4.9",
+            "prebuilt",
+            "linux-x86_64",
+            "bin",
+            "arm-linux-androideabi-objdump",
+        ),
+        "-T",
+        "target/android/armv7-linux-androideabi/debug/libservoshell.so",
+    ]
+).split(b"\n")
 
 for line in objdump_output:
     m = symbol_regex.search(line)

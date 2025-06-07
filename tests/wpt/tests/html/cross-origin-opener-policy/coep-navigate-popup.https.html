@@ -6,9 +6,11 @@
 <meta name=variant content=?4-last>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="/common/subset-tests.js"></script>
-<script src="/common/get-host-info.sub.js"></script>
-<script src="resources/common.js"></script>
+<script src=/common/subset-tests.js></script>
+<script src=/common/get-host-info.sub.js></script>
+<script src=/common/utils.js></script>
+<script src=resources/common.js></script>
+<script src=/common/dispatcher/dispatcher.js></script>
 <script>
 [
   {
@@ -55,17 +57,18 @@
 
   ["same-origin", "same-site"].forEach(site => {
     const title = `Popup navigating to ${site} with ${variant.title}`;
-    const channel = title.replace(/ /g,"-");
+    const responseToken = token();
+    const iframeToken = token();
     const navigateHost = site === "same-origin" ? SAME_ORIGIN : SAME_SITE;
-    const navigateURL = `${navigateHost.origin}/html/cross-origin-opener-policy/resources/coop-coep.py?coop=${variant.coop}&coep=${variant.coep}&channel=${channel}`;
+    const navigateURL = `${navigateHost.origin}/html/cross-origin-opener-policy/resources/coop-coep.py?coop=${variant.coop}&coep=${variant.coep}&responseToken=${responseToken}&iframeToken=${iframeToken}`;
     const opener = site === "same-origin" ? variant.opener : false;
 
-    async_test(t => {
+    promise_test(t => {
       // For each test we open a COOP: same-origin/COEP: require-corp document in a popup and then
       // navigate that to either a same-origin (site=="same-origin") or same-site (site=="same-site")
       // document whose COOP and COEP are set as per the top-most array. We then verify that this
       // document has the correct opener for its specific setup.
-      url_test(t, `${SAME_ORIGIN.origin}/html/cross-origin-opener-policy/resources/coop-coep.py?coop=same-origin&coep=require-corp&navigate=${encodeURIComponent(navigateURL)}`, channel, opener);
+      return dispatcher_url_test(t, `${SAME_ORIGIN.origin}/html/cross-origin-opener-policy/resources/coop-coep.py?coop=same-origin&coep=require-corp&navigate=${encodeURIComponent(navigateURL)}`, responseToken, iframeToken, opener, undefined, () => t.done());
     }, title);
   });
 });

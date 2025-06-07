@@ -79,10 +79,12 @@ addEventListener("load", () => {
     // initialization, but it's out of scope of this bug.  Therefore, we
     // compare only events after `click`.
     const expectedEvents = [ // no events should be fired on the child due to disconnected
-      { type: "pointerleave", target: div2}, // no pointerout because of first pointer move after the mutation
-      { type: "pointerleave", target: div1},
-      { type: "pointerover", target: document.body},
-      { type: "pointermove", target: document.body},
+      { type: "pointerover", target: div2 }, // no pointerenter because it should've already fired before the `click`
+      { type: "pointerout", target: div2 },
+      { type: "pointerleave", target: div2 },
+      { type: "pointerleave", target: div1 },
+      { type: "pointerover", target: document.body },
+      { type: "pointermove", target: document.body },
     ];
     assert_equals(
       stringifyEvents(eventsAfterClick(events)),
@@ -131,7 +133,9 @@ addEventListener("load", () => {
     // initialization, but it's out of scope of this bug.  Therefore, we
     // compare only events after `click`.
     const expectedEvents = [ // no events should be fired on rootElementInShadow due to disconnected
-      { type: "pointerleave", target: host}, // no pointerout because of first pointer move after the mutation
+      { type: "pointerover", target: host },  // no pointerenter because it should've already fired before the click
+      { type: "pointerout", target: host },
+      { type: "pointerleave", target: host},
       { type: "pointerleave", target: hostContainer},
       { type: "pointerover", target: document.body},
       { type: "pointermove", target: document.body},

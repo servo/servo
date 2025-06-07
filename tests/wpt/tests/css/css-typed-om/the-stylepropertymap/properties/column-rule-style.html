@@ -14,16 +14,36 @@
 'use strict';
 
 runPropertyTests('column-rule-style', [
-  { syntax: 'none' },
-  { syntax: 'hidden' },
-  { syntax: 'dotted' },
-  { syntax: 'dashed' },
-  { syntax: 'solid' },
-  { syntax: 'double' },
-  { syntax: 'groove' },
-  { syntax: 'ridge' },
-  { syntax: 'inset' },
-  { syntax: 'outset' }
+  { syntax: 'none',
+  computed: (_, result) => assert_class_string(result, 'CSSStyleValue')
+   },
+  { syntax: 'hidden',
+  computed: (_, result) => assert_class_string(result, 'CSSStyleValue')
+   },
+  { syntax: 'dotted',
+  computed: (_, result) => assert_class_string(result, 'CSSStyleValue')
+   },
+  { syntax: 'dashed',
+  computed: (_, result) => assert_class_string(result, 'CSSStyleValue')
+   },
+  { syntax: 'solid',
+  computed: (_, result) => assert_class_string(result, 'CSSStyleValue')
+   },
+  { syntax: 'double',
+  computed: (_, result) => assert_class_string(result, 'CSSStyleValue')
+   },
+  { syntax: 'groove',
+  computed: (_, result) => assert_class_string(result, 'CSSStyleValue')
+   },
+  { syntax: 'ridge',
+  computed: (_, result) => assert_class_string(result, 'CSSStyleValue')
+  },
+  { syntax: 'inset',
+  computed: (_, result) => assert_class_string(result, 'CSSStyleValue')
+  },
+  { syntax: 'outset',
+  computed: (_, result) => assert_class_string(result, 'CSSStyleValue')
+  }
 ]);
 
 </script>

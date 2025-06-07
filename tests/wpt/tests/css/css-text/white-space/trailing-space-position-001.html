@@ -31,11 +31,15 @@
     <div class="pre-wrap">1234<span data-line="0" class="bg"> </span>567</div>
   </section>
 <script>
-for (let e of document.querySelectorAll('[data-line]')) {
-  test(() => {
-    let y = e.offsetTop;
-    assert_equals(Math.round(y / 10), parseInt(e.dataset.line));
-  });
-}
+setup({ explicit_done: true });
+document.fonts.ready.then(() => {
+  for (let e of document.querySelectorAll('[data-line]')) {
+    test(() => {
+      let y = e.offsetTop;
+      assert_equals(Math.round(y / 10), parseInt(e.dataset.line));
+    });
+  }
+  done();
+});
 </script>
 </body>

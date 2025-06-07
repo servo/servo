@@ -14,7 +14,7 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::KeyboardEvent;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;
-use pixels::Image;
+use pixels::RasterImage;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
@@ -69,7 +69,7 @@ pub enum WebDriverCommandMsg {
     TakeScreenshot(
         WebViewId,
         Option<Rect<f32, CSSPixel>>,
-        IpcSender<Option<Image>>,
+        IpcSender<Option<RasterImage>>,
     ),
     /// Create a new webview that loads about:blank. The constellation will use
     /// the provided channels to return the top level browsing context id
@@ -130,7 +130,6 @@ pub enum WebDriverScriptCommand {
         IpcSender<Result<Vec<String>, ErrorStatus>>,
     ),
     FindElementElementsTagName(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
-    FocusElement(String, IpcSender<Result<(), ErrorStatus>>),
     ElementClick(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     GetActiveElement(IpcSender<Option<String>>),
     GetComputedRole(String, IpcSender<Result<Option<String>, ErrorStatus>>),
@@ -161,6 +160,8 @@ pub enum WebDriverScriptCommand {
     IsEnabled(String, IpcSender<Result<bool, ErrorStatus>>),
     IsSelected(String, IpcSender<Result<bool, ErrorStatus>>),
     GetTitle(IpcSender<String>),
+    /// Match the element type before sending the event for webdriver `element send keys`.
+    WillSendKeys(String, String, bool, IpcSender<Result<bool, ErrorStatus>>),
 }
 
 #[derive(Debug, Deserialize, Serialize)]

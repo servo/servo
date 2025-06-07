@@ -111,11 +111,11 @@ function generate_fetch_test(request_data, options, expectation, description) {
         // in the header.
         if (options.integrity?.includes(`ed25519-${kInvalidKey}`)) {
           assert_equals(r.headers.get(kAcceptSignature),
-                        `sig0=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri", sig1=("unencoded-digest";sf);keyid="${kInvalidKey}";tag="sri"`,
+                        `sig0=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="ed25519-integrity", sig1=("unencoded-digest";sf);keyid="${kInvalidKey}";tag="ed25519-integrity"`,
                         "`accept-signature` was set.");
         } else if (options.integrity?.includes(`ed25519-${kValidKeys['rfc']}`)) {
           assert_equals(r.headers.get(kAcceptSignature),
-                        `sig0=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri"`,
+                        `sig0=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="ed25519-integrity"`,
                         "`accept-signature` was set.");
         }
       });

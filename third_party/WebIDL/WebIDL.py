@@ -2106,6 +2106,7 @@ class IDLInterface(IDLInterfaceOrNamespace):
                 or identifier == "Serializable"
                 or identifier == "Abstract"
                 or identifier == "Inline"
+                or identifier == "Transferable"
             ):
                 # Known extended attributes that do not take values
                 if not attr.noArguments():

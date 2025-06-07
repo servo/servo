@@ -42,13 +42,17 @@ pub struct App {
     preferences: Preferences,
     servoshell_preferences: ServoShellPreferences,
     suspended: Cell<bool>,
-    windows: HashMap<WindowId, Rc<dyn WindowPortsMethods>>,
     minibrowser: Option<Minibrowser>,
     waker: Box<dyn EventLoopWaker>,
     initial_url: ServoUrl,
     t_start: Instant,
     t: Instant,
     state: AppState,
+
+    // This is the last field of the struct to ensure that windows are dropped *after* all other
+    // references to the relevant rendering contexts have been destroyed.
+    // (https://github.com/servo/servo/issues/36711)
+    windows: HashMap<WindowId, Rc<dyn WindowPortsMethods>>,
 }
 
 /// Action to be taken by the caller of [`App::handle_events`].

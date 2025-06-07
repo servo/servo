@@ -24,6 +24,10 @@
 
     */
 
+    .alt-counter::before {
+      counter-set: cnt 5051;
+      content: "" / counter(cnt);
+    }
     .simple-before::before {
       content: " before "; /* [sic] leading and trailing space */
       margin:0 0.1em;
@@ -101,6 +105,12 @@
 <button data-expectedlabel="label" data-testname="button name from content" class="ex">label</button><br>
 <h3 data-expectedlabel="label" data-testname="heading name from content" class="ex">label</h3>
 <a href="#" data-expectedlabel="label" data-testname="link name from content" class="ex">label</a><br>
+<br>
+
+<h1>alt counter with ::before</h1>
+<button data-expectedlabel="5051 label" data-testname="button with alt counter on ::before" class="ex alt-counter">label</button><br>
+<h3 data-expectedlabel="5051 label" data-testname="heading with alt counter on ::before" class="ex alt-counter">label</h3>
+<a href="#" data-expectedlabel="5051 label" data-testname="link with alt counter on ::before" class="ex alt-counter">label</a><br>
 <br>
 
 <h1>simple with ::before</h1>

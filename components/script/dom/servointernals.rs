@@ -59,7 +59,9 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
 
 impl RoutedPromiseListener<MemoryReportResult> for ServoInternals {
     fn handle_response(&self, response: MemoryReportResult, promise: &Rc<Promise>, can_gc: CanGc) {
-        promise.resolve_native(&response.content, can_gc);
+        let stringified = serde_json::to_string(&response.results)
+            .unwrap_or_else(|_| "{ error: \"failed to create memory report\"}".to_owned());
+        promise.resolve_native(&stringified, can_gc);
     }
 }
 

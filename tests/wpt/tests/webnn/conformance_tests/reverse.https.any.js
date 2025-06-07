@@ -146,6 +146,120 @@ const reverseTests = [
         }
       }
     }
+  },
+
+  // float16 tests
+  {
+    'name': 'reverse float16 2D input with default options',
+    'graph': {
+      'inputs': {
+        'reverseInput': {
+          'data': [
+            -30.0625, 99.5625, 88.0625, -91.875, -23.796875, -91.3125,
+            -63.15625, 12.0703125, -96.125, -44.78125, -80.0625, -64.4375
+          ],
+          'descriptor': {shape: [3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reverse',
+        'arguments': [{'input': 'reverseInput'}],
+        'outputs': 'reverseOutput'
+      }],
+      'expectedOutputs': {
+        'reverseOutput': {
+          'data': [
+            -64.4375, -80.0625, -44.78125, -96.125, 12.0703125, -63.15625,
+            -91.3125, -23.796875, -91.875, 88.0625, 99.5625, -30.0625
+          ],
+          'descriptor': {shape: [3, 4], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reverse float16 3D input options.axes=[1, 2]',
+    'graph': {
+      'inputs': {
+        'reverseInput': {
+          'data': [
+            -30.0625, 99.5625, 88.0625, -91.875, -23.796875, -91.3125,
+            -63.15625, 12.0703125, -96.125, -44.78125, -80.0625, -64.4375
+          ],
+          'descriptor': {shape: [3, 2, 2], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reverse',
+        'arguments': [{'input': 'reverseInput'}, {'options': {'axes': [1, 2]}}],
+        'outputs': 'reverseOutput'
+      }],
+      'expectedOutputs': {
+        'reverseOutput': {
+          'data': [
+            -91.875, 88.0625, 99.5625, -30.0625, 12.0703125, -63.15625,
+            -91.3125, -23.796875, -64.4375, -80.0625, -44.78125, -96.125
+          ],
+          'descriptor': {shape: [3, 2, 2], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reverse float16 4D input options.axes=[3, 1]',
+    'graph': {
+      'inputs': {
+        'reverseInput': {
+          'data': [
+            -30.0625, 99.5625, 88.0625, -91.875, -23.796875, -91.3125,
+            -63.15625, 12.0703125, -96.125, -44.78125, -80.0625, -64.4375
+          ],
+          'descriptor': {shape: [3, 2, 1, 2], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reverse',
+        'arguments': [{'input': 'reverseInput'}, {'options': {'axes': [3, 1]}}],
+        'outputs': 'reverseOutput'
+      }],
+      'expectedOutputs': {
+        'reverseOutput': {
+          'data': [
+            -91.875, 88.0625, 99.5625, -30.0625, 12.0703125, -63.15625,
+            -91.3125, -23.796875, -64.4375, -80.0625, -44.78125, -96.125
+          ],
+          'descriptor': {shape: [3, 2, 1, 2], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reverse float16 4D input options.axes=[]',
+    'graph': {
+      'inputs': {
+        'reverseInput': {
+          'data': [
+            -30.0625, 99.5625, 88.0625, -91.875, -23.796875, -91.3125,
+            -63.15625, 12.0703125, -96.125, -44.78125, -80.0625, -64.4375
+          ],
+          'descriptor': {shape: [2, 1, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reverse',
+        'arguments': [{'input': 'reverseInput'}, {'options': {'axes': []}}],
+        'outputs': 'reverseOutput'
+      }],
+      'expectedOutputs': {
+        'reverseOutput': {
+          'data': [
+            -30.0625, 99.5625, 88.0625, -91.875, -23.796875, -91.3125,
+            -63.15625, 12.0703125, -96.125, -44.78125, -80.0625, -64.4375
+          ],
+          'descriptor': {shape: [2, 1, 2, 3], dataType: 'float16'}
+        }
+      }
+    }
   }
 ];
 

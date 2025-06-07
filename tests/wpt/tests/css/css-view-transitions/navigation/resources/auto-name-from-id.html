@@ -29,6 +29,11 @@ html::view-transition-group(*) {
   animation-timing-function: steps(2, start);
 }
 
+/* Make test fail if ID matches */
+::view-transition-group(green) {
+  border: 2px solid red;
+}
+
 #green {
   background: green;
   width: 100px;

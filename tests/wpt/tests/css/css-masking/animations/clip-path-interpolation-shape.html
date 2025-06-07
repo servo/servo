@@ -145,15 +145,28 @@ test_interpolation({
 
 test_interpolation({
   property: 'clip-path',
-  from: 'shape(from 5% 5px, arc to 15% -15px of 10px 20px, arc by 15% -5px of 30px cw rotate 30deg large, arc to 25% 20px of 10px 5px small)',
-  to: 'shape(from 15% 15px, arc to 5% -25px of 20px 30px, arc by 25% -15px of 20px cw rotate 270deg small, arc to 25% 20px of 10px 5px small cw)'
+  from: 'shape(from 5% 5px, arc to 15% -15px of 10px 20px, arc by 15% -5px of 30px 30px cw rotate 30deg large, arc to 25% 20px of 10px 5px small)',
+  to: 'shape(from 15% 15px, arc to 5% -25px of 20px 30px, arc by 25% -15px of 20px 20px cw rotate 270deg small, arc to 25% 20px of 10px 5px small cw)'
 }, [
   {at: -0.3, expect: 'shape(from 2% 2px, arc to 18% -12px of 7px 17px, arc by 12% -2px of 33px 33px rotate -42deg cw large , arc to 25% 20px of 10px 5px)'},
-  {at: 0, expect: 'shape(from 5% 5px, arc to 15% -15px of 10px 20px, arc by 15% -5px of 30px cw rotate 30deg large, arc to 25% 20px of 10px 5px)'},
+  {at: 0, expect: 'shape(from 5% 5px, arc to 15% -15px of 10px 20px, arc by 15% -5px of 30px 30px cw rotate 30deg large, arc to 25% 20px of 10px 5px)'},
   {at: 0.3, expect: 'shape(from 8% 8px, arc to 12% -18px of 13px 23px, arc by 18% -8px of 27px 27px rotate 102deg cw large, arc to 25% 20px of 10px 5px cw)'},
-  {at: 0.5, expect: 'shape(from 10% 10px, arc to 10% -20px of 15px 25px, arc by 20% -10px of 25px rotate 150deg cw large, arc to 25% 20px of 10px 5px cw)'},
-  {at: 1, expect: 'shape(from 15% 15px, arc to 5% -25px of 20px 30px, arc by 25% -15px of 20px rotate 270deg cw, arc to 25% 20px of 10px 5px cw)'},
-  {at: 1.5, expect: 'shape(from 20% 20px, arc to 0% -30px of 25px 35px, arc by 30% -20px of 15px rotate 390deg cw, arc to 25% 20px of 10px 5px cw)'},
+  {at: 0.5, expect: 'shape(from 10% 10px, arc to 10% -20px of 15px 25px, arc by 20% -10px of 25px 25px rotate 150deg cw large, arc to 25% 20px of 10px 5px cw)'},
+  {at: 1, expect: 'shape(from 15% 15px, arc to 5% -25px of 20px 30px, arc by 25% -15px of 20px 20px rotate 270deg cw, arc to 25% 20px of 10px 5px cw)'},
+  {at: 1.5, expect: 'shape(from 20% 20px, arc to 0% -30px of 25px 35px, arc by 30% -20px of 15px 15px rotate 390deg cw, arc to 25% 20px of 10px 5px cw)'},
+]);
+
+test_interpolation({
+  property: 'clip-path',
+  from: 'shape(from 5% 5px, arc to 15% -15px of 10px, arc by 15% -5px of 30% cw rotate 30deg large, arc to 25% 20px of 10% small)',
+  to: 'shape(from 15% 15px, arc to 5% -25px of 15%, arc by 25% -15px of 12rem cw rotate 270deg small, arc to 15% 20px of 20% small cw)'
+}, [
+  {at: -0.3, expect: 'shape(from 2% 2px, arc to 18% -12px of calc(-4.5% + 13px), arc by 12% -2px of calc(39% - 57.6px) cw large rotate -42deg, arc to 28% 20px of 7%)'},
+  {at: 0, expect: 'shape(from 5% 5px, arc to 15% -15px of calc(0% + 10px), arc by 15% -5px of 30% cw large rotate 30deg, arc to 25% 20px of 10%)'},
+  {at: 0.3, expect: 'shape(from 8% 8px, arc to 12% -18px of calc(4.5% + 7px), arc by 18% -8px of calc(21% + 57.6px) rotate 102deg cw large, arc to 22% 20px of 13% cw)'},
+  {at: 0.5, expect: 'shape(from 10% 10px, arc to 10% -20px of calc(7.5% + 5px), arc by 20% -10px of calc(15% + 96px) cw large rotate 150deg, arc to 20% 20px of 15% cw)'},
+  {at: 1, expect: 'shape(from 15% 15px, arc to 5% -25px of 15%, arc by 25% -15px of calc(0% + 192px) cw rotate 270deg, arc to 15% 20px of 20% cw)'},
+  {at: 1.5, expect: 'shape(from 20% 20px, arc to 0% -30px of calc(22.5% - 5px), arc by 30% -20px of calc(-15% + 288px) cw rotate 390deg, arc to 10% 20px of 25% cw)'},
 ]);
 
 test_interpolation({
@@ -254,28 +267,28 @@ test_interpolation({
 
 test_interpolation({
   property: 'clip-path',
-  from: 'shape(from 5% 5px, arc to 15% -15px of 10px 20px, arc by 15% -5px of 30px cw rotate 30deg large, arc to 25% 20px of 10px 5px small)',
+  from: 'shape(from 5% 5px, arc to 15% -15px of 10px 20px, arc by 15% -5px of 30px 30px cw rotate 30deg large, arc to 25% 20px of 10px 5px small)',
   to: 'path("M 15 15 A 20,30 0 0,0 5,-25 a 20,20 270 0,1 25,-15 A 10,5 0 0,0 25 20")',
 }, [
-  {at: -0.3, expect: 'shape(from calc(6.5% - 4.5px) 2px, arc to calc(19.5% - 1.5px) -12px of 7px 17px, arc by calc(19.5% - 7.5px) -2px of 33px cw large rotate -42deg, arc to calc(32.5% - 7.5px) 20px of 10px 5px)'},
-  {at: 0, expect: 'shape(from 5% 5px, arc to 15% -15px of 10px 20px, arc by 15% -5px of 30px cw rotate 30deg large, arc to 25% 20px of 10px 5px small)'},
-  {at: 0.3, expect: 'shape(from calc(3.5% + 4.5px) 8px, arc to calc(10.5% + 1.5px) -18px of 13px 23px, arc by calc(10.5% + 7.5px) -8px of 27px cw large rotate 102deg, arc to calc(17.5% + 7.5px) 20px of 10px 5px)'},
-  {at: 0.5, expect: 'shape(from calc(2.5% + 7.5px) 10px, arc to calc(7.5% + 2.5px) -20px of 15px 25px, arc by calc(7.5% + 12.5px) -10px of 25px cw large rotate 150deg, arc to calc(12.5% + 12.5px) 20px of 10px 5px)'},
-  {at: 1, expect: 'shape(from calc(0% + 15px) 15px, arc to calc(0% + 5px) -25px of 20px 30px, arc by calc(0% + 25px) -15px of 20px cw rotate 270deg, arc to calc(0% + 25px) 20px of 10px 5px)'},
-  {at: 1.5, expect: 'shape(from calc(-2.5% + 22.5px) 20px, arc to calc(-7.5% + 7.5px) -30px of 25px 35px, arc by calc(-7.5% + 37.5px) -20px of 15px cw rotate 390deg, arc to calc(-12.5% + 37.5px) 20px of 10px 5px)'},
+  {at: -0.3, expect: 'shape(from calc(6.5% - 4.5px) 2px, arc to calc(19.5% - 1.5px) -12px of 7px 17px, arc by calc(19.5% - 7.5px) -2px of 33px 33px cw large rotate -42deg, arc to calc(32.5% - 7.5px) 20px of 10px 5px)'},
+  {at: 0, expect: 'shape(from 5% 5px, arc to 15% -15px of 10px 20px, arc by 15% -5px of 30px 30px cw rotate 30deg large, arc to 25% 20px of 10px 5px small)'},
+  {at: 0.3, expect: 'shape(from calc(3.5% + 4.5px) 8px, arc to calc(10.5% + 1.5px) -18px of 13px 23px, arc by calc(10.5% + 7.5px) -8px of 27px 27px cw large rotate 102deg, arc to calc(17.5% + 7.5px) 20px of 10px 5px)'},
+  {at: 0.5, expect: 'shape(from calc(2.5% + 7.5px) 10px, arc to calc(7.5% + 2.5px) -20px of 15px 25px, arc by calc(7.5% + 12.5px) -10px of 25px 25px cw large rotate 150deg, arc to calc(12.5% + 12.5px) 20px of 10px 5px)'},
+  {at: 1, expect: 'shape(from calc(0% + 15px) 15px, arc to calc(0% + 5px) -25px of 20px 30px, arc by calc(0% + 25px) -15px of 20px 20px cw rotate 270deg, arc to calc(0% + 25px) 20px of 10px 5px)'},
+  {at: 1.5, expect: 'shape(from calc(-2.5% + 22.5px) 20px, arc to calc(-7.5% + 7.5px) -30px of 25px 35px, arc by calc(-7.5% + 37.5px) -20px of 15px 15px cw rotate 390deg, arc to calc(-12.5% + 37.5px) 20px of 10px 5px)'},
 ]);
 
 test_interpolation({
   property: 'clip-path',
   from: 'path("M 5 5 A 10,20 0 0,0 15,-15 a 30,30 30 1,1 15,-5 A 10,5 0 0,0 25 20")',
-  to: 'shape(from 15px 15px, arc to 5px -25px of 20px 30px, arc by 25px -15px of 20px cw rotate 270deg small, arc to 25px 20px of 10px 5px small cw)' // ccw, cw, cw
+  to: 'shape(from 15px 15px, arc to 5px -25px of 20px 30px, arc by 25px -15px of 20px 20px cw rotate 270deg small, arc to 25px 20px of 10px 5px small cw)' // ccw, cw, cw
 }, [
   {at: -0.3, expect: 'shape(from 2px 2px, arc to 18px -12px of 7px 17px, arc by 12px -2px of 33px 33px rotate -42deg cw large, arc to 25px 20px of 10px 5px)'},
-  {at: 0, expect: 'shape(from 5px 5px, arc to 15px -15px of 10px 20px, arc by 15px -5px of 30px cw rotate 30deg large, arc to 25px 20px of 10px 5px)'},
+  {at: 0, expect: 'shape(from 5px 5px, arc to 15px -15px of 10px 20px, arc by 15px -5px of 30px 30px cw rotate 30deg large, arc to 25px 20px of 10px 5px)'},
   {at: 0.3, expect: 'shape(from 8px 8px, arc to 12px -18px of 13px 23px, arc by 18px -8px of 27px 27px rotate 102deg cw large, arc to 25px 20px of 10px 5px cw)'},
-  {at: 0.5, expect: 'shape(from 10px 10px, arc to 10px -20px of 15px 25px, arc by 20px -10px of 25px rotate 150deg cw large, arc to 25px 20px of 10px 5px cw)'},
-  {at: 1, expect: 'shape(from 15px 15px, arc to 5px -25px of 20px 30px, arc by 25px -15px of 20px rotate 270deg cw, arc to 25px 20px of 10px 5px cw)'},
-  {at: 1.5, expect: 'shape(from 20px 20px, arc to 0px -30px of 25px 35px, arc by 30px -20px of 15px rotate 390deg cw, arc to 25px 20px of 10px 5px cw)'},
+  {at: 0.5, expect: 'shape(from 10px 10px, arc to 10px -20px of 15px 25px, arc by 20px -10px of 25px 25px rotate 150deg cw large, arc to 25px 20px of 10px 5px cw)'},
+  {at: 1, expect: 'shape(from 15px 15px, arc to 5px -25px of 20px 30px, arc by 25px -15px of 20px 20px rotate 270deg cw, arc to 25px 20px of 10px 5px cw)'},
+  {at: 1.5, expect: 'shape(from 20px 20px, arc to 0px -30px of 25px 35px, arc by 30px -20px of 15px 15px rotate 390deg cw, arc to 25px 20px of 10px 5px cw)'},
 ]);
 
 </script>

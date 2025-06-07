@@ -19,6 +19,7 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use self::network_parent::{NetworkParentActor, NetworkParentActorMsg};
+use super::breakpoint::BreakpointListActor;
 use super::thread::ThreadActor;
 use super::worker::WorkerMsg;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
@@ -362,10 +363,14 @@ impl Actor for WatcherActor {
                 ActorMessageStatus::Processed
             },
             "getBreakpointListActor" => {
+                let breakpoint_list_name = registry.new_name("breakpoint-list");
+                let breakpoint_list = BreakpointListActor::new(breakpoint_list_name.clone());
+                registry.register_later(Box::new(breakpoint_list));
+
                 let _ = stream.write_json_packet(&GetBreakpointListActorReply {
                     from: self.name(),
                     breakpoint_list: GetBreakpointListActorReplyInner {
-                        actor: registry.new_name("breakpoint-list"),
+                        actor: breakpoint_list_name,
                     },
                 });
                 ActorMessageStatus::Processed

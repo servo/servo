@@ -1,0 +1,38 @@
+
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: shorthands column rules with !important are painted and overriden correctly.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="../agnostic/gap-decorations-001-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+  .flex-container {
+    height: 110px;
+    width: 110px;
+    display: flex;
+    column-gap: 10px;
+    row-gap: 10px;
+    column-rule: 10px solid pink !important;
+    row-rule-color: green;
+    row-rule-style: solid;
+    row-rule-width: 10px;
+    flex-wrap: wrap;
+  }
+  #container {
+    column-rule: 9px dotted blue;
+  }
+  .flex-item {
+    background: skyblue;
+    width: 50px;
+  }
+</style>
+<div class="flex-container" id="container">
+    <div class="flex-item"></div>
+    <div class="flex-item"></div>
+    <div class="flex-item"></div>
+    <div class="flex-item"></div>
+</div>

@@ -5,6 +5,7 @@
 use std::borrow::{Borrow, ToOwned};
 use std::cell::Cell;
 use std::default::Default;
+use std::str::FromStr;
 
 use base::id::WebViewId;
 use content_security_policy as csp;
@@ -12,6 +13,8 @@ use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
+use mime::Mime;
+use net_traits::mime_classifier::{MediaType, MimeClassifier};
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CorsSettings, Destination, Initiator, InsecureRequestsPolicy, Referrer, RequestBuilder,
@@ -22,7 +25,7 @@ use net_traits::{
     ResourceTimingType,
 };
 use servo_arc::Arc;
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, ServoUrl};
 use style::attr::AttrValue;
 use style::stylesheets::Stylesheet;
 use stylo_atoms::Atom;
@@ -78,6 +81,7 @@ struct LinkProcessingOptions {
     policy_container: PolicyContainer,
     source_set: Option<()>,
     base_url: ServoUrl,
+    origin: ImmutableOrigin,
     insecure_requests_policy: InsecureRequestsPolicy,
     has_trustworthy_ancestor_origin: bool,
     // Some fields that we don't need yet are missing
@@ -113,6 +117,10 @@ pub(crate) struct HTMLLinkElement {
     request_generation_id: Cell<RequestGenerationId>,
     /// <https://html.spec.whatwg.org/multipage/#explicitly-enabled>
     is_explicitly_enabled: Cell<bool>,
+    /// Whether the previous type matched with the destination
+    previous_type_matched: Cell<bool>,
+    /// Whether the previous media environment matched with the media query
+    previous_media_environment_matched: Cell<bool>,
 }
 
 impl HTMLLinkElement {
@@ -133,6 +141,8 @@ impl HTMLLinkElement {
             any_failed_load: Cell::new(false),
             request_generation_id: Cell::new(RequestGenerationId(0)),
             is_explicitly_enabled: Cell::new(false),
+            previous_type_matched: Cell::new(true),
+            previous_media_environment_matched: Cell::new(true),
         }
     }
 
@@ -236,7 +246,7 @@ impl VirtualMethods for HTMLLinkElement {
             return;
         }
 
-        if !self.upcast::<Node>().is_connected() || is_removal {
+        if !self.upcast::<Node>().is_connected() {
             return;
         }
         match *local_name {
@@ -245,6 +255,12 @@ impl VirtualMethods for HTMLLinkElement {
                     .set(LinkRelations::for_element(self.upcast()));
             },
             local_name!("href") => {
+                if is_removal {
+                    return;
+                }
+                // https://html.spec.whatwg.org/multipage/#link-type-stylesheet
+                // When the href attribute of the link element of an external resource link
+                // that is already browsing-context connected is changed.
                 if self.relations.get().contains(LinkRelations::STYLESHEET) {
                     self.handle_stylesheet_url(&attr.value());
                 }
@@ -254,8 +270,18 @@ impl VirtualMethods for HTMLLinkElement {
                     self.handle_favicon_url(&attr.value(), &sizes);
                 }
 
+                // https://html.spec.whatwg.org/multipage/#link-type-prefetch
+                // When the href attribute of the link element of an external resource link
+                // that is already browsing-context connected is changed.
                 if self.relations.get().contains(LinkRelations::PREFETCH) {
                     self.fetch_and_process_prefetch_link(&attr.value());
+                }
+
+                // https://html.spec.whatwg.org/multipage/#link-type-preload
+                // When the href attribute of the link element of an external resource link
+                // that is already browsing-context connected is changed.
+                if self.relations.get().contains(LinkRelations::PRELOAD) {
+                    self.handle_preload_url();
                 }
             },
             local_name!("sizes") if self.relations.get().contains(LinkRelations::ICON) => {
@@ -264,9 +290,73 @@ impl VirtualMethods for HTMLLinkElement {
                 }
             },
             local_name!("crossorigin") => {
+                // https://html.spec.whatwg.org/multipage/#link-type-prefetch
+                // When the crossorigin attribute of the link element of an external resource link
+                // that is already browsing-context connected is set, changed, or removed.
                 if self.relations.get().contains(LinkRelations::PREFETCH) {
                     self.fetch_and_process_prefetch_link(&attr.value());
                 }
+
+                // https://html.spec.whatwg.org/multipage/#link-type-stylesheet
+                // When the crossorigin attribute of the link element of an external resource link
+                // that is already browsing-context connected is set, changed, or removed.
+                if self.relations.get().contains(LinkRelations::STYLESHEET) {
+                    self.handle_stylesheet_url(&attr.value());
+                }
+            },
+            local_name!("as") => {
+                // https://html.spec.whatwg.org/multipage/#link-type-preload
+                // When the as attribute of the link element of an external resource link
+                // that is already browsing-context connected is changed.
+                if self.relations.get().contains(LinkRelations::PRELOAD) {
+                    if let AttributeMutation::Set(Some(_)) = mutation {
+                        self.handle_preload_url();
+                    }
+                }
+            },
+            local_name!("type") => {
+                // https://html.spec.whatwg.org/multipage/#link-type-stylesheet
+                // When the type attribute of the link element of an external resource link that
+                // is already browsing-context connected is set or changed to a value that does
+                // not or no longer matches the Content-Type metadata of the previous obtained
+                // external resource, if any.
+                //
+                // TODO: Match Content-Type metadata to check if it needs to be updated
+                if self.relations.get().contains(LinkRelations::STYLESHEET) {
+                    self.handle_stylesheet_url(&attr.value());
+                }
+
+                // https://html.spec.whatwg.org/multipage/#link-type-preload
+                // When the type attribute of the link element of an external resource link that
+                // is already browsing-context connected, but was previously not obtained due to
+                // the type attribute specifying an unsupported type for the request destination,
+                // is set, removed, or changed.
+                if self.relations.get().contains(LinkRelations::PRELOAD) &&
+                    !self.previous_type_matched.get()
+                {
+                    self.handle_preload_url();
+                }
+            },
+            local_name!("media") => {
+                // https://html.spec.whatwg.org/multipage/#link-type-preload
+                // When the media attribute of the link element of an external resource link that
+                // is already browsing-context connected, but was previously not obtained due to
+                // the media attribute not matching the environment, is changed or removed.
+                if self.relations.get().contains(LinkRelations::PRELOAD) &&
+                    !self.previous_media_environment_matched.get()
+                {
+                    match mutation {
+                        AttributeMutation::Removed | AttributeMutation::Set(Some(_)) => {
+                            self.handle_preload_url()
+                        },
+                        _ => {},
+                    };
+                }
+
+                let matches_media_environment =
+                    self.upcast::<Element>().matches_environment(&attr.value());
+                self.previous_media_environment_matched
+                    .set(matches_media_environment);
             },
             _ => {},
         }
@@ -307,6 +397,10 @@ impl VirtualMethods for HTMLLinkElement {
                 if relations.contains(LinkRelations::PREFETCH) {
                     self.fetch_and_process_prefetch_link(&href);
                 }
+
+                if relations.contains(LinkRelations::PRELOAD) {
+                    self.handle_preload_url();
+                }
             }
         }
     }
@@ -325,6 +419,14 @@ impl VirtualMethods for HTMLLinkElement {
 }
 
 impl HTMLLinkElement {
+    fn compute_destination_for_attribute(&self) -> Destination {
+        let element = self.upcast::<Element>();
+        element
+            .get_attribute(&ns!(), &local_name!("as"))
+            .map(|attr| translate_a_preload_destination(&attr.value()))
+            .unwrap_or(Destination::None)
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#create-link-options-from-element>
     fn processing_options(&self) -> LinkProcessingOptions {
         let element = self.upcast::<Element>();
@@ -333,10 +435,7 @@ impl HTMLLinkElement {
         let document = self.upcast::<Node>().owner_doc();
 
         // Step 2. Let options be a new link processing options
-        let destination = element
-            .get_attribute(&ns!(), &local_name!("as"))
-            .map(|attr| translate_a_preload_destination(&attr.value()))
-            .unwrap_or(Destination::None);
+        let destination = self.compute_destination_for_attribute();
 
         let mut options = LinkProcessingOptions {
             href: String::new(),
@@ -348,6 +447,7 @@ impl HTMLLinkElement {
             referrer_policy: referrer_policy_for_element(element),
             policy_container: document.policy_container().to_owned(),
             source_set: None, // FIXME
+            origin: document.borrow().origin().immutable().to_owned(),
             base_url: document.borrow().base_url(),
             insecure_requests_policy: document.insecure_requests_policy(),
             has_trustworthy_ancestor_origin: document.has_trustworthy_ancestor_or_current_origin(),
@@ -446,6 +546,10 @@ impl HTMLLinkElement {
             None => "",
         };
 
+        if !element.matches_environment(mq_str) {
+            return;
+        }
+
         let media = MediaList::parse_media_list(mq_str, document.window());
 
         let im_attribute = element.get_attribute(&ns!(), &local_name!("integrity"));
@@ -458,8 +562,6 @@ impl HTMLLinkElement {
         self.request_generation_id
             .set(self.request_generation_id.get().increment());
 
-        // TODO: #8085 - Don't load external stylesheets if the node's mq
-        // doesn't match.
         let loader = StylesheetLoader::for_element(self.upcast());
         loader.load(
             StylesheetContextSource::LinkElement { media: Some(media) },
@@ -492,6 +594,133 @@ impl HTMLLinkElement {
                 }
             },
             Err(e) => debug!("Parsing url {} failed: {}", href, e),
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#link-type-preload:fetch-and-process-the-linked-resource-2>
+    fn handle_preload_url(&self) {
+        // Step 1. Update the source set for el.
+        // TODO
+        // Step 2. Let options be the result of creating link options from el.
+        let options = self.processing_options();
+        // Step 3. Preload options, with the following steps given a response response:
+        // Step 3.1 If response is a network error, fire an event named error at el.
+        // Otherwise, fire an event named load at el.
+        self.preload(options);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#preload>
+    fn preload(&self, options: LinkProcessingOptions) {
+        // Step 1. If options's type doesn't match options's destination, then return.
+        let type_matches_destination: bool =
+            HTMLLinkElement::type_matches_destination(&options.link_type, options.destination);
+        self.previous_type_matched.set(type_matches_destination);
+        if !type_matches_destination {
+            return;
+        }
+        // Step 2. If options's destination is "image" and options's source set is not null,
+        // then set options's href to the result of selecting an image source from options's source set.
+        // TODO
+        // Step 3. Let request be the result of creating a link request given options.
+        let url = options.base_url.clone();
+        let Some(request) = options.create_link_request(self.owner_window().webview_id()) else {
+            // Step 4. If request is null, then return.
+            return;
+        };
+        let document = self.upcast::<Node>().owner_doc();
+        // Step 5. Let unsafeEndTime be 0.
+        // TODO
+        // Step 6. Let entry be a new preload entry whose integrity metadata is options's integrity.
+        // TODO
+        // Step 7. Let key be the result of creating a preload key given request.
+        // TODO
+        // Step 8. If options's document is "pending", then set request's initiator type to "early hint".
+        // TODO
+        // Step 9. Let controller be null.
+        // Step 10. Let reportTiming given a Document document be to report timing for controller
+        // given document's relevant global object.
+        // Step 11. Set controller to the result of fetching request, with processResponseConsumeBody
+        // set to the following steps given a response response and null, failure, or a byte sequence bodyBytes:
+        let fetch_context = PreloadContext {
+            url,
+            link: Trusted::new(self),
+            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
+        };
+        document.fetch_background(request.clone(), fetch_context);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#match-preload-type>
+    fn type_matches_destination(mime_type: &str, destination: Option<Destination>) -> bool {
+        // Step 1. If type is an empty string, then return true.
+        if mime_type.is_empty() {
+            return true;
+        }
+        // Step 2. If destination is "fetch", then return true.
+        //
+        // Fetch is handled as an empty string destination in the spec:
+        // https://fetch.spec.whatwg.org/#concept-potential-destination-translate
+        let Some(destination) = destination else {
+            return false;
+        };
+        if destination == Destination::None {
+            return true;
+        }
+        // Step 3. Let mimeTypeRecord be the result of parsing type.
+        let Ok(mime_type_record) = Mime::from_str(mime_type) else {
+            // Step 4. If mimeTypeRecord is failure, then return false.
+            return false;
+        };
+        // Step 5. If mimeTypeRecord is not supported by the user agent, then return false.
+        //
+        // We currently don't check if we actually support the mime type. Only if we can classify
+        // it according to the spec.
+        let Some(mime_type) = MimeClassifier::get_media_type(&mime_type_record) else {
+            return false;
+        };
+        // Step 6. If any of the following are true:
+        if
+        // destination is "audio" or "video", and mimeTypeRecord is an audio or video MIME type;
+        ((destination == Destination::Audio || destination == Destination::Video) &&
+            mime_type == MediaType::AudioVideo)
+            // destination is a script-like destination and mimeTypeRecord is a JavaScript MIME type;
+            || (destination.is_script_like() && mime_type == MediaType::JavaScript)
+            // destination is "image" and mimeTypeRecord is an image MIME type;
+            || (destination == Destination::Image && mime_type == MediaType::Image)
+            // destination is "font" and mimeTypeRecord is a font MIME type;
+            || (destination == Destination::Font && mime_type == MediaType::Font)
+            // destination is "json" and mimeTypeRecord is a JSON MIME type;
+            || (destination == Destination::Json && mime_type == MediaType::Json)
+            // destination is "style" and mimeTypeRecord's essence is text/css; or
+            || (destination == Destination::Style && mime_type_record == mime::TEXT_CSS)
+            // destination is "track" and mimeTypeRecord's essence is text/vtt,
+            || (destination == Destination::Track && mime_type_record.essence_str() == "text/vtt")
+        {
+            // then return true.
+            return true;
+        }
+        // Step 7. Return false.
+        false
+    }
+
+    fn fire_event_after_response(&self, response: Result<ResourceFetchTiming, NetworkError>) {
+        if response.is_err() {
+            self.upcast::<EventTarget>()
+                .fire_event(atom!("error"), CanGc::note());
+        } else {
+            // TODO(35035): Figure out why we need to queue a task for the load event. Otherwise
+            // the performance timing data hasn't been saved yet, which fails several preload
+            // WPT tests that assume that performance timing information is available when
+            // the load event is fired.
+            let this = Trusted::new(self);
+            self.owner_global()
+                .task_manager()
+                .performance_timeline_task_source()
+                .queue(task!(preload_load_event: move || {
+                    let this = this.root();
+                    this
+                        .upcast::<EventTarget>()
+                        .fire_event(atom!("load"), CanGc::note());
+                }));
         }
     }
 }
@@ -551,6 +780,21 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
         self.upcast::<Element>()
             .set_tokenlist_attribute(&local_name!("rel"), rel, can_gc);
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-as
+    make_enumerated_getter!(
+        As,
+        "as",
+        "fetch" | "audio" | "audioworklet" | "document" | "embed" | "font" | "frame"
+            | "iframe" | "image" | "json" | "manifest" | "object" | "paintworklet"
+            | "report" | "script" | "serviceworker" | "sharedworker" | "style" | "track"
+            | "video" | "webidentity" | "worker" | "xslt",
+        missing => "",
+        invalid => ""
+    );
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-as
+    make_setter!(SetAs, "as");
 
     // https://html.spec.whatwg.org/multipage/#dom-link-media
     make_getter!(Media, "media");
@@ -689,6 +933,8 @@ impl LinkProcessingOptions {
             self.has_trustworthy_ancestor_origin,
             self.policy_container,
         )
+        .initiator(Initiator::Link)
+        .origin(self.origin)
         .integrity_metadata(self.integrity)
         .cryptographic_nonce_metadata(self.cryptographic_nonce_metadata)
         .referrer_policy(self.referrer_policy);
@@ -792,6 +1038,80 @@ impl ResourceTimingListener for PrefetchContext {
 impl PreInvoke for PrefetchContext {
     fn should_invoke(&self) -> bool {
         // Prefetch requests are never aborted.
+        true
+    }
+}
+
+struct PreloadContext {
+    /// The `<link>` element that caused this preload operation
+    link: Trusted<HTMLLinkElement>,
+
+    resource_timing: ResourceFetchTiming,
+
+    /// The url being preloaded
+    url: ServoUrl,
+}
+
+impl FetchResponseListener for PreloadContext {
+    fn process_request_body(&mut self, _: RequestId) {}
+
+    fn process_request_eof(&mut self, _: RequestId) {}
+
+    fn process_response(
+        &mut self,
+        _: RequestId,
+        fetch_metadata: Result<FetchMetadata, NetworkError>,
+    ) {
+        _ = fetch_metadata;
+    }
+
+    fn process_response_chunk(&mut self, _: RequestId, chunk: Vec<u8>) {
+        _ = chunk;
+    }
+
+    /// Step 3.1 of <https://html.spec.whatwg.org/multipage/#link-type-preload:fetch-and-process-the-linked-resource-2>
+    fn process_response_eof(
+        &mut self,
+        _: RequestId,
+        response: Result<ResourceFetchTiming, NetworkError>,
+    ) {
+        self.link.root().fire_event_after_response(response);
+    }
+
+    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
+        &mut self.resource_timing
+    }
+
+    fn resource_timing(&self) -> &ResourceFetchTiming {
+        &self.resource_timing
+    }
+
+    fn submit_resource_timing(&mut self) {
+        submit_timing(self, CanGc::note())
+    }
+
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+        let global = &self.resource_timing_global();
+        global.report_csp_violations(violations, None);
+    }
+}
+
+impl ResourceTimingListener for PreloadContext {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+        (
+            InitiatorType::LocalName(self.url.clone().into_string()),
+            self.url.clone(),
+        )
+    }
+
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+        self.link.root().upcast::<Node>().owner_doc().global()
+    }
+}
+
+impl PreInvoke for PreloadContext {
+    fn should_invoke(&self) -> bool {
+        // Preload requests are never aborted.
         true
     }
 }

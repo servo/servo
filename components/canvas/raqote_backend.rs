@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::HashMap;
 
@@ -41,7 +42,6 @@ impl Backend for RaqoteBackend {
     type DrawTarget = raqote::DrawTarget;
     type PathBuilder = PathBuilder;
     type SourceSurface = Vec<u8>; // TODO: See if we can avoid the alloc (probably?)
-    type Bytes<'a> = &'a [u8];
     type Path = raqote::Path;
     type GradientStop = raqote::GradientStop;
     type GradientStops = Vec<raqote::GradientStop>;
@@ -656,9 +656,11 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
         );
     }
     #[allow(unsafe_code)]
-    fn bytes(&self) -> &[u8] {
+    fn bytes(&self) -> Cow<[u8]> {
         let v = self.get_data();
-        unsafe { std::slice::from_raw_parts(v.as_ptr() as *const u8, std::mem::size_of_val(v)) }
+        Cow::Borrowed(unsafe {
+            std::slice::from_raw_parts(v.as_ptr() as *const u8, std::mem::size_of_val(v))
+        })
     }
 }
 
@@ -708,7 +710,7 @@ impl GenericPathBuilder<RaqoteBackend> for PathBuilder {
             PathOp::MoveTo(point) | PathOp::LineTo(point) => Some(Point2D::new(point.x, point.y)),
             PathOp::CubicTo(_, _, point) => Some(Point2D::new(point.x, point.y)),
             PathOp::QuadTo(_, point) => Some(Point2D::new(point.x, point.y)),
-            PathOp::Close => None,
+            PathOp::Close => path.ops.first().and_then(get_first_point),
         })
     }
 
@@ -728,6 +730,15 @@ impl GenericPathBuilder<RaqoteBackend> for PathBuilder {
     }
     fn finish(&mut self) -> raqote::Path {
         self.0.take().unwrap().finish()
+    }
+}
+
+fn get_first_point(op: &PathOp) -> Option<euclid::Point2D<f32, euclid::UnknownUnit>> {
+    match op {
+        PathOp::MoveTo(point) | PathOp::LineTo(point) => Some(Point2D::new(point.x, point.y)),
+        PathOp::CubicTo(point, _, _) => Some(Point2D::new(point.x, point.y)),
+        PathOp::QuadTo(point, _) => Some(Point2D::new(point.x, point.y)),
+        PathOp::Close => None,
     }
 }
 

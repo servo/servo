@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Gap Decorations: parsing column-rule with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#propdef-column-rule">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<meta name="assert" content="column-rule supports the full grammar ' <gap-rule-or-repeat>#'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+
+const properties = ["column-rule", "row-rule", "rule"];
+for (let property of properties) {
+    // <gap-rule> = [<line-width> || <line-style> || <line-color>]
+    test_valid_value(property, "5px solid red");
+    test_valid_value(property, "solid 10px rgb(0, 0, 255)", "10px solid rgb(0, 0, 255)");
+    test_valid_value(property, "double");
+    test_valid_value(property, "blue 6px", "6px blue");
+    test_valid_value(property, "currentcolor hidden medium", "hidden");
+    test_valid_value(property, "currentcolor none medium", "medium");
+
+
+    // <gap-auto-repeat-rule> = repeat( auto , <gap-rule># )
+    test_valid_value(property, "repeat(auto, 5px solid green)");
+    test_valid_value(property, "repeat(auto, 5px solid yellow, 10px dotted blue)");
+    test_valid_value(property, "repeat(auto, 5px solid purple, dotted blue, 15px double green)");
+    test_valid_value(property, "repeat(auto, 6px blue, 5px solid red)");
+
+    // <gap-repeat-rule> = repeat( <integer [1,∞]> , <gap-rule># )
+    test_valid_value(property, "repeat(4, 15px dotted pink)");
+    test_valid_value(property, "repeat(3, 8px ridge red, 20px dotted green)");
+    test_valid_value(property, "repeat(1, 15px ridge yellow, 10px dotted blue, 15px double green)");
+    test_valid_value(property, "repeat(4, blue, 5px red)");
+    test_valid_value(property, "repeat(3, 16px, thin dashed purple, 10px dotted)");
+    test_valid_value(property, "repeat(4, 10px solid red)", "repeat(4, 10px solid red)");
+
+    // <gap-rule-list> = <gap-rule-or-repeat>#
+    // <gap-rule-or-repeat> = <gap-rule> | <gap-repeat-rule>
+    test_valid_value(property, "thick, dashed, hotpink");
+    test_valid_value(property, "5px double salmon, repeat(4, 5px ridge red)");
+    test_valid_value(property, "15px dashed skyblue, repeat(3, 3px solid red, 10px dotted blue)");
+    test_valid_value(property, "repeat(1, 5px solid gray, 10px dotted blue, 15px double green), 5px solid red, repeat(4, 6px, 5px solid red)");
+    test_valid_value(property, "repeat(3, 16px lime, 5px solid red, 10px dotted), repeat(4, 5px solid red)");
+    test_valid_value(property, "repeat(4, 5px solid red), repeat(3, 5px solid red, 10px dotted blue)");
+
+    // <gap-auto-rule-list>   = <gap-rule-or-repeat>#? ,
+    //                          <gap-auto-repeat-rule> ,
+    //                          <gap-rule-or-repeat>#?
+    test_valid_value(property, "repeat(auto, 5px solid red), thin dotted green, 10px dotted blue, 15px double green");
+    test_valid_value(property, "5px solid red, repeat(auto, 5px solid red), 10px dotted blue");
+    test_valid_value(property, "10px dotted blue, repeat(4, blue, 5px yellow), repeat(auto, 5px solid red)");
+}
+</script>
+</body>
+</html>

@@ -22,20 +22,28 @@
   </span>
 </div>
 <script>
-  test(()=> {
+setup({ explicit_done: true });
+document.fonts.ready.then(() => {
+  test(() => {
     assert_equals(outer.offsetWidth, 292);
     assert_equals(outer.offsetHeight, 40);
   }, "outer");
-  test(()=> {
+
+  test(() => {
     assert_equals(middle.offsetWidth, 150);
     assert_equals(middle.offsetHeight, 40);
   }, "middle");
-  test(()=> {
+
+  test(() => {
     assert_equals(inner1.offsetWidth, 64);
     assert_equals(inner1.offsetHeight, 24);
   }, "inner1");
-  test(()=> {
+
+  test(() => {
     assert_equals(inner2.offsetWidth, 110);
     assert_equals(inner2.offsetHeight, 40);
   }, "inner2");
+
+  done();
+});
 </script>

@@ -2,12 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use style::Atom;
+
 use super::Value;
 use super::context::EvaluationCtx;
 use super::eval::{Error, Evaluatable, try_extract_nodeset};
 use super::parser::CoreFunction;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::{Castable, NodeTypeId};
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::element::Element;
 use crate::dom::node::Node;
 
@@ -101,6 +104,31 @@ pub(crate) fn normalize_space(s: &str) -> String {
     result
 }
 
+/// <https://www.w3.org/TR/1999/REC-xpath-19991116/#function-lang>
+fn lang_matches(context_lang: Option<&str>, target_lang: &str) -> bool {
+    let Some(context_lang) = context_lang else {
+        return false;
+    };
+
+    let context_lower = context_lang.to_ascii_lowercase();
+    let target_lower = target_lang.to_ascii_lowercase();
+
+    if context_lower == target_lower {
+        return true;
+    }
+
+    // Check if context is target with additional suffix
+    if context_lower.starts_with(&target_lower) {
+        // Make sure the next character is a hyphen to avoid matching
+        // e.g. "england" when target is "en"
+        if let Some(next_char) = context_lower.chars().nth(target_lower.len()) {
+            return next_char == '-';
+        }
+    }
+
+    false
+}
+
 impl Evaluatable for CoreFunction {
     fn evaluate(&self, context: &EvaluationCtx) -> Result<Value, Error> {
         match self {
@@ -131,7 +159,20 @@ impl Evaluatable for CoreFunction {
                     .collect();
                 Ok(Value::String(strings?.join("")))
             },
-            CoreFunction::Id(_expr) => todo!(),
+            CoreFunction::Id(expr) => {
+                let args_str = expr.evaluate(context)?.string();
+                let args_normalized = normalize_space(&args_str);
+                let args = args_normalized.split(' ');
+
+                let document = context.context_node.owner_doc();
+                let mut result = Vec::new();
+                for arg in args {
+                    for element in document.get_elements_with_id(&Atom::from(arg)).iter() {
+                        result.push(DomRoot::from_ref(element.upcast::<Node>()));
+                    }
+                }
+                Ok(Value::Nodeset(result))
+            },
             CoreFunction::LocalName(expr_opt) => {
                 let node = match expr_opt {
                     Some(expr) => expr
@@ -256,7 +297,11 @@ impl Evaluatable for CoreFunction {
             CoreFunction::Not(expr) => Ok(Value::Boolean(!expr.evaluate(context)?.boolean())),
             CoreFunction::True => Ok(Value::Boolean(true)),
             CoreFunction::False => Ok(Value::Boolean(false)),
-            CoreFunction::Lang(_) => Ok(Value::Nodeset(vec![])), // Not commonly used in the DOM, short-circuit it
+            CoreFunction::Lang(expr) => {
+                let context_lang = context.context_node.get_lang();
+                let lang = expr.evaluate(context)?.string();
+                Ok(Value::Boolean(lang_matches(context_lang.as_deref(), &lang)))
+            },
         }
     }
 
@@ -319,7 +364,7 @@ impl Evaluatable for CoreFunction {
 }
 #[cfg(test)]
 mod tests {
-    use super::{substring, substring_after, substring_before};
+    use super::{lang_matches, substring, substring_after, substring_before};
 
     #[test]
     fn test_substring_before() {
@@ -353,5 +398,19 @@ mod tests {
         assert_eq!(substring("", 0, Some(5)), "");
         assert_eq!(substring("hello", 0, Some(0)), "");
         assert_eq!(substring("hello", 0, Some(-5)), "");
+    }
+
+    #[test]
+    fn test_lang_matches() {
+        assert!(lang_matches(Some("en"), "en"));
+        assert!(lang_matches(Some("EN"), "en"));
+        assert!(lang_matches(Some("en"), "EN"));
+        assert!(lang_matches(Some("en-US"), "en"));
+        assert!(lang_matches(Some("en-GB"), "en"));
+
+        assert!(!lang_matches(Some("eng"), "en"));
+        assert!(!lang_matches(Some("fr"), "en"));
+        assert!(!lang_matches(Some("fr-en"), "en"));
+        assert!(!lang_matches(None, "en"));
     }
 }

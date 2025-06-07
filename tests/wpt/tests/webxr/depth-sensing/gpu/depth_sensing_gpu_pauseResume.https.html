@@ -17,7 +17,7 @@ const fakeDeviceInitParams = {
 };
 
 xr_session_promise_test("Ensures appropriate data availability with (pause|resume)DepthSensing, `gpu-optimized`",
-  pauseResumeTestFunctionGenerator(/*isCpuOptimized=*/false),
+  pauseResumeTestFunction,
   fakeDeviceInitParams,
   'immersive-ar', {
     requiredFeatures: ['depth-sensing'],

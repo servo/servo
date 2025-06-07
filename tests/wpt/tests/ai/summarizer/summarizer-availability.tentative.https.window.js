@@ -18,7 +18,7 @@ promise_test(async () => {
 promise_test(async () => {
   // An array of plausible test option values.
   const kCreateOptionsSpec = [
-    {type: [undefined, 'tl;dr', 'teaser', 'key-points', 'headline']},
+    {type: [undefined, 'tldr', 'teaser', 'key-points', 'headline']},
     {format: [undefined, 'plain-text', 'markdown']},
     {length: [undefined, 'short', 'medium', 'long']},
     {expectedInputLanguages: [[], ['en'], ['es'], ['jp', 'fr']]},

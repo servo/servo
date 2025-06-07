@@ -99,7 +99,6 @@ const gatherElementsTests = [
       }
     }
   },
-  ,
   {
     'name': 'gatherElements float32 2D input and int32 indices options.axis=0',
     'graph': {
@@ -237,6 +236,171 @@ const gatherElementsTests = [
         'gatherElementsOutput': {
           'data': [51.79948425292969],
           'descriptor': {shape: [1], dataType: 'float32'}
+        }
+      }
+    }
+  },
+
+  // float16 tests
+  {
+    'name': 'gatherElements float16 2D input and uint32 indices options.axis=1',
+    'graph': {
+      'inputs': {
+        'gatherElementsInput': {
+          'data': [
+            -66.0625, -68.9375, -77, -26.15625, 89.0625, -45.90625, 43.84375,
+            48.8125, 51.8125
+          ],
+          'descriptor': {'shape': [3, 3], 'dataType': 'float16'}
+        },
+        'gatherElementsIndices': {
+          'data': [1, 0, 2, 2, 1, 0],
+          'descriptor': {'shape': [3, 2], 'dataType': 'uint32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'gatherElements',
+        'arguments': [
+          {'input': 'gatherElementsInput'},
+          {'indices': 'gatherElementsIndices'}, {'options': {'axis': 1}}
+        ],
+        'outputs': 'gatherElementsOutput'
+      }],
+      'expectedOutputs': {
+        'gatherElementsOutput': {
+          'data': [-68.9375, -66.0625, -45.90625, -45.90625, 48.8125, 43.84375],
+          'descriptor': {'shape': [3, 2], 'dataType': 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'gatherElements float16 2D input and int32 indices options.axis=1',
+    'graph': {
+      'inputs': {
+        'gatherElementsInput': {
+          'data': [
+            -66.0625, -68.9375, -77, -26.15625, 89.0625, -45.90625, 43.84375,
+            48.8125, 51.8125
+          ],
+          'descriptor': {'shape': [3, 3], 'dataType': 'float16'}
+        },
+        'gatherElementsIndices': {
+          'data': [1, 0, 2, 2, 1, 0],
+          'descriptor': {'shape': [3, 2], 'dataType': 'int32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'gatherElements',
+        'arguments': [
+          {'input': 'gatherElementsInput'},
+          {'indices': 'gatherElementsIndices'}, {'options': {'axis': 1}}
+        ],
+        'outputs': 'gatherElementsOutput'
+      }],
+      'expectedOutputs': {
+        'gatherElementsOutput': {
+          'data': [-68.9375, -66.0625, -45.90625, -45.90625, 48.8125, 43.84375],
+          'descriptor': {'shape': [3, 2], 'dataType': 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'gatherElements float16 2D input and int32 indices options.axis=0',
+    'graph': {
+      'inputs': {
+        'gatherElementsInput': {
+          'data': [
+            -66.0625, -68.9375, -77, -26.15625, 89.0625, -45.90625, 43.84375,
+            48.8125, 51.8125
+          ],
+          'descriptor': {'shape': [3, 3], 'dataType': 'float16'}
+        },
+        'gatherElementsIndices': {
+          'data': [1, 0, 2, 2, 1, 0],
+          'descriptor': {'shape': [2, 3], 'dataType': 'int32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'gatherElements',
+        'arguments': [
+          {'input': 'gatherElementsInput'},
+          {'indices': 'gatherElementsIndices'}, {'options': {'axis': 0}}
+        ],
+        'outputs': 'gatherElementsOutput'
+      }],
+      'expectedOutputs': {
+        'gatherElementsOutput': {
+          'data': [-26.15625, -68.9375, 51.8125, 43.84375, 89.0625, -77],
+          'descriptor': {'shape': [2, 3], 'dataType': 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'gatherElements float16 3D input and int32 indices options.axis=0',
+    'graph': {
+      'inputs': {
+        'gatherElementsInput': {
+          'data': [
+            -66.0625, -68.9375, -77, -26.15625, 89.0625, -45.90625, 43.84375,
+            48.8125
+          ],
+          'descriptor': {'shape': [2, 2, 2], 'dataType': 'float16'}
+        },
+        'gatherElementsIndices': {
+          'data': [1, 0, 0, 1],
+          'descriptor': {'shape': [1, 2, 2], 'dataType': 'int32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'gatherElements',
+        'arguments': [
+          {'input': 'gatherElementsInput'}, {'indices': 'gatherElementsIndices'}
+        ],
+        'outputs': 'gatherElementsOutput'
+      }],
+      'expectedOutputs': {
+        'gatherElementsOutput': {
+          'data': [89.0625, -68.9375, -77, 48.8125],
+          'descriptor': {'shape': [1, 2, 2], 'dataType': 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'gatherElements float16 3D input and int32 negative indices',
+    'graph': {
+      'inputs': {
+        'gatherElementsInput': {
+          'data': [
+            -66.0625, -68.9375, -77, -26.15625, 89.0625, -45.90625, 43.84375,
+            48.8125
+          ],
+          'descriptor': {'shape': [2, 2, 2], 'dataType': 'float16'}
+        },
+        'gatherElementsIndices': {
+          'data': [-1, 0, 0, -1],
+          'descriptor': {'shape': [1, 2, 2], 'dataType': 'int32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'gatherElements',
+        'arguments': [
+          {'input': 'gatherElementsInput'}, {'indices': 'gatherElementsIndices'}
+        ],
+        'outputs': 'gatherElementsOutput'
+      }],
+      'expectedOutputs': {
+        'gatherElementsOutput': {
+          'data': [89.0625, -68.9375, -77, 48.8125],
+          'descriptor': {'shape': [1, 2, 2], 'dataType': 'float16'}
         }
       }
     }

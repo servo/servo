@@ -9,9 +9,11 @@
 <script>
 "use strict";
 
+let png = "/images/green.png?image-decode-with-quick-attach-" + Math.random();
+
 promise_test(function() {
   var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-  img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', "/images/green.png");
+  img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', png);
   const promise = img.decode().then(function(arg) {
     assert_equals(arg, undefined);
   });

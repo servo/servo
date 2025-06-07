@@ -35,7 +35,7 @@ def test_logging_immediate_exit():
 
     with mock.patch.object(base, "wait_for_service", side_effect=CustomException):
         browser = base.WebDriverBrowser(
-            logger, webdriver_binary="echo", webdriver_args=["sample output"]
+            logger, manager_number=0, webdriver_binary="echo", webdriver_args=["sample output"]
         )
         try:
             with pytest.raises(CustomException):

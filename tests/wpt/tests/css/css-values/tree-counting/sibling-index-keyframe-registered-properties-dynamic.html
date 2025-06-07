@@ -13,6 +13,7 @@
   @property --length { syntax: "<length>"; initial-value: 0px; inherits: false; }
   @property --length-percentage { syntax: "<length-percentage>"; initial-value: 0px; inherits: false; }
   @property --color { syntax: "<color>"; initial-value: black; inherits: false; }
+  @property --list { syntax: "<integer>+"; initial-value: 0; inherits: false; }
 
   @keyframes --anim {
     from {
@@ -25,6 +26,7 @@
       --length: calc(sibling-index() * 7px);
       --length-percentage: calc((sibling-index() * 8px) + (sibling-count() * 5%));
       --color: color(srgb 0 calc(0.2 * sibling-index()) 0);
+      --list: 13 sibling-index();
     }
     to {
       --time: 13s;
@@ -36,6 +38,7 @@
       --length: 13px;
       --length-percentage: calc(13px + 7%);
       --color: red;
+      --list: 29 sibling-index();
     }
   }
   #target {
@@ -75,6 +78,9 @@
   test(() => {
     assert_equals(getComputedStyle(target).getPropertyValue("--color"), "color(srgb 0 0.6 0)");
   }, "Initially, the sibling-index() is 3 for --color");
+  test(() => {
+    assert_equals(getComputedStyle(target).getPropertyValue("--list"), "13 3");
+  }, "Initially, the sibling-index() is 3 for --list");
 
   rm.remove();
 
@@ -105,5 +111,8 @@
   test(() => {
     assert_equals(getComputedStyle(target).getPropertyValue("--color"), "color(srgb 0 0.4 0)");
   }, "Removing a preceding sibling of #target reduces the sibling-index() for --color");
+  test(() => {
+    assert_equals(getComputedStyle(target).getPropertyValue("--list"), "13 2");
+  }, "Removing a preceding sibling of #target reduces the sibling-index() for --list");
 
 </script>

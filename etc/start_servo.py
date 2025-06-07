@@ -12,13 +12,13 @@ Created on Mon Mar 26 20:08:25 2018
 @author: Pranshu Sinha, Abhay Soni, Aayushi Agrawal
 The script is intended to start servo on localhost:7002
 """
+
 import subprocess
 
 
 def start_servo(port, resolution):
-
     # Use the below command if you are running this script on windows
     # cmds = 'mach.bat run --webdriver ' + port + ' --window-size ' + resolution
-    cmds = './mach run --webdriver=' + port + ' --window-size ' + resolution
+    cmds = "./mach run --webdriver=" + port + " --window-size " + resolution
     process = subprocess.Popen(cmds, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return process

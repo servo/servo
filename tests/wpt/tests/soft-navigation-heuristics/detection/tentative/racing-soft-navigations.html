@@ -1,0 +1,77 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Two soft navigations racing each other.</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script></script>
+  </head>
+  <body>
+    <div id="slow-soft-navigation">Click here!</div>
+    <div id="fast-soft-navigation">Click here!</div>
+
+    <script>
+      // This soft navigation is slow - it will wait 1s before processing.
+      function slowSoftNavigation(t) {
+        t.step_timeout(() => {
+          const greeting = document.createElement("div");
+          greeting.textContent = "Hello, World.";
+          document.body.appendChild(greeting);
+          history.pushState({}, "", "/slow-soft-navigation");
+        }, 1000);
+      }
+
+      // This soft navigation is fast - it will process immediately.
+      function fastSoftNavigation() {
+        const greeting = document.createElement("div");
+        greeting.textContent = "Hello, World.";
+        document.body.appendChild(greeting);
+        history.pushState({}, "", "/fast-soft-navigation");
+      }
+
+      promise_test(async (t) => {
+        document.getElementById("slow-soft-navigation").addEventListener("click", () => {
+          slowSoftNavigation(t);
+        });
+        document
+          .getElementById("fast-soft-navigation")
+          .addEventListener("click", fastSoftNavigation);
+
+        // Wait for both soft navigations to complete.
+        const promise = new Promise((resolve) => {
+          let entries = [];
+          new PerformanceObserver((list, observer) => {
+            entries.push(...list.getEntries());
+            if (entries.length >= 2) {
+              observer.disconnect();
+              resolve(entries);
+            }
+          }).observe({ type: "soft-navigation" });
+        });
+        // Start both soft navigations in rapid succession.
+        if (test_driver) {
+          test_driver.click(document.getElementById("slow-soft-navigation"));
+          test_driver.click(document.getElementById("fast-soft-navigation"));
+        }
+
+        // Notice that both navigations are detected, with the fast one
+        // arriving first.
+        const entries = await promise;
+        assert_equals(entries.length, 2, "Expected two soft navigation entries");
+        assert_equals(
+          entries[0].name.replace(/.*\//, ""),
+          "fast-soft-navigation",
+          "First entry should be the fast soft navigation.",
+        );
+        assert_equals(
+          entries[1].name.replace(/.*\//, ""),
+          "slow-soft-navigation",
+          "Second entry should be the slow soft navigation.",
+        );
+      }, "Two soft navigations that race each other should be detected correctly.");
+    </script>
+  </body>
+</html>

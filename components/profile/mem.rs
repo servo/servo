@@ -12,9 +12,9 @@ use ipc_channel::ipc::{self, IpcReceiver};
 use ipc_channel::router::ROUTER;
 use log::debug;
 use profile_traits::mem::{
-    MemoryReportResult, ProfilerChan, ProfilerMsg, Report, Reporter, ReporterRequest, ReportsChan,
+    MemoryReport, MemoryReportResult, ProfilerChan, ProfilerMsg, Report, Reporter, ReporterRequest,
+    ReportsChan,
 };
-use serde::Serialize;
 
 use crate::system_reporter;
 
@@ -100,31 +100,20 @@ impl Profiler {
             ProfilerMsg::Report(sender) => {
                 let main_pid = std::process::id();
 
-                #[derive(Serialize)]
-                struct JsonReport {
-                    pid: u32,
-                    #[serde(rename = "isMainProcess")]
-                    is_main_process: bool,
-                    reports: Vec<Report>,
-                }
-
                 let reports = self.collect_reports();
                 // Turn the pid -> reports map into a vector and add the
                 // hint to find the main process.
-                let json_reports: Vec<JsonReport> = reports
+                let results: Vec<MemoryReport> = reports
                     .into_iter()
-                    .map(|(pid, reports)| JsonReport {
+                    .map(|(pid, reports)| MemoryReport {
                         pid,
                         reports,
                         is_main_process: pid == main_pid,
                     })
                     .collect();
-                let content = serde_json::to_string(&json_reports)
-                    .unwrap_or_else(|_| "{ error: \"failed to create memory report\"}".to_owned());
-                let _ = sender.send(MemoryReportResult { content });
+                let _ = sender.send(MemoryReportResult { results });
                 true
             },
-
             ProfilerMsg::Exit => false,
         }
     }

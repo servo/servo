@@ -47,5 +47,41 @@
 
     return promise;
   }, 'LNA Public to private with permission denied');
+
+  promise_test(t => {
+    const sourceUrl = resolveUrl("resources/fetch-private-http.html",
+        sourceResolveOptions({ server: Server.HTTPS_PUBLIC }));
+
+    function checkResult(evt) {
+      checkTestResult(evt.data, FetchTestResult.SUCCESS);
+      t.done();
+    }
+
+    const promise = new Promise((resolve) => {
+                      window.addEventListener('message', resolve, {once: true});
+                    }).then(checkResult);
+    const popup = window.open(sourceUrl);
+    t.add_cleanup(() => popup.close());
+
+    return promise;
+  }, 'LNA Public to private http mixed content bypass');
+
+  promise_test(t => {
+    const sourceUrl = resolveUrl("resources/fetch-public-http-wrong-address-space.html",
+        sourceResolveOptions({ server: Server.HTTPS_PUBLIC }));
+
+    function checkResult(evt) {
+      checkTestResult(evt.data, FetchTestResult.FAILURE);
+      t.done();
+    }
+
+    const promise = new Promise((resolve) => {
+                      window.addEventListener('message', resolve, {once: true});
+                    }).then(checkResult);
+    const popup = window.open(sourceUrl);
+    t.add_cleanup(() => popup.close());
+
+    return promise;
+  }, 'LNA Public to public http mixed content bypass failure');
 </script>
 </body>

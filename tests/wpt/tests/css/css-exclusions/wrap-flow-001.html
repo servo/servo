@@ -41,8 +41,9 @@
         <div id="log"></div>
 
         <script type="text/javascript">
-            setup({ explicit_done: true });
-
+            setup(() => {
+                assert_implements(CSS.supports('wrap-flow', 'clear'), "'wrap-flow: clear'");
+            }, {explicit_done: true});
             document.fonts.ready.then(() => {
                 test(function() {assert_equals(checkLinePos("linesBelow",150,"top"), true)}, "Verify top of the 'linesBelow' span is positioned correctly");
                 done();

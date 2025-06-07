@@ -49,7 +49,6 @@ use crate::desktop::keyutils::CMD_OR_CONTROL;
 use crate::prefs::ServoShellPreferences;
 
 pub struct Window {
-    winit_window: winit::window::Window,
     screen_size: Size2D<u32, DeviceIndependentPixel>,
     inner_size: Cell<PhysicalSize<u32>>,
     toolbar_height: Cell<Length<f32, DeviceIndependentPixel>>,
@@ -72,6 +71,11 @@ pub struct Window {
     /// The `RenderingContext` of Servo itself. This is used to render Servo results
     /// temporarily until they can be blitted into the egui scene.
     rendering_context: Rc<OffscreenRenderingContext>,
+
+    // Keep this as the last field of the struct to ensure that the rendering context is
+    // dropped first.
+    // (https://github.com/servo/servo/issues/36711)
+    winit_window: winit::window::Window,
 }
 
 impl Window {
@@ -731,6 +735,13 @@ impl WindowPortsMethods for Window {
 
     fn hide_ime(&self) {
         self.winit_window.set_ime_allowed(false);
+    }
+
+    fn theme(&self) -> servo::Theme {
+        match self.winit_window.theme() {
+            Some(winit::window::Theme::Dark) => servo::Theme::Dark,
+            Some(winit::window::Theme::Light) | None => servo::Theme::Light,
+        }
     }
 }
 

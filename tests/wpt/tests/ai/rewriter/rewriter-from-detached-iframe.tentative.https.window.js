@@ -44,7 +44,8 @@ promise_test(async (t) => {
   iframe.remove();
 
   assert_throws_dom(
-      'InvalidStateError', iframeDOMException, () => rewriter.rewriteStreaming('hello'));
+    'InvalidStateError',
+    iframeDOMException, () => rewriter.rewriteStreaming('hello'));
 }, 'Rewriter.rewriteStreaming() fails on a detached iframe.');
 
 promise_test(async (t) => {

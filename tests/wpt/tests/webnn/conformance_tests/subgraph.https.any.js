@@ -2523,6 +2523,45 @@ const subgraphTests = [
       }
     }
   },
+  {
+    'name': 'float16 graph with float32 input and output',
+    'graph': {
+      'inputs': {
+        'input': {
+          'data': [1, 2, 3, 4],
+          'descriptor': {shape: [4], dataType: 'float32'}
+        },
+        'weight': {
+          'data': [2],
+          'descriptor': {shape: [], dataType: 'float16'},
+          'constant': true
+        }
+      },
+      'operators': [
+        {
+          'name': 'cast',
+          'arguments': [{'input': 'input'}, {'type': 'float16'}],
+          'outputs': 'castOutput',
+        },
+        {
+          'name': 'add',
+          'arguments': [{'a': 'castOutput'}, {'b': 'weight'}],
+          'outputs': 'addOutput'
+        },
+        {
+          'name': 'cast',
+          'arguments': [{'input': 'addOutput'}, {'type': 'float32'}],
+          'outputs': 'output'
+        },
+      ],
+      'expectedOutputs': {
+        'output': {
+          'data': [3, 4, 5, 6],
+          'descriptor': {shape: [4], dataType: 'float32'}
+        }
+      }
+    }
+  },
 ];
 
 if (navigator.ml) {

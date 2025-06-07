@@ -57,6 +57,7 @@
         .pointerMove(0, 0, {origin: "viewport"})
         .pause(50)
         .send();
+    await waitForAnimationFrames(2);
     assert_equals(changeTarget, snapped1, "snapchange has not been called for #snapped2");
     assert_equals(changingTarget, snapped2, "snapchanging has been called for #snapped2");
     assert_equals(getComputedStyle(target1).getPropertyValue("--snapped"), "",

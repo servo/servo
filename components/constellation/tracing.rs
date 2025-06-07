@@ -78,6 +78,7 @@ mod from_compositor {
                 Self::SetScrollStates(..) => target!("SetScrollStates"),
                 Self::PaintMetric(..) => target!("PaintMetric"),
                 Self::EvaluateJavaScript(..) => target!("EvaluateJavaScript"),
+                Self::CreateMemoryReport(..) => target!("CreateMemoryReport"),
             }
         }
     }

@@ -1132,6 +1132,64 @@ const reduceL1Tests = [
         }
       }
     }
+  },
+  {
+    'name':
+        'reduceL1 int32 4D tensor options.axes with options.keepDimensions=true',
+    'graph': {
+      'inputs': {
+        'reduceL1Input': {
+          'data': [
+            5,  50, 1,  84, 15, 52, 9,  28, 12, 11, 86, 64,
+            71, 76, 41, 97, 31, 6,  61, 69, 38, 52, 22, 99
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'int32'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceL1',
+        'arguments': [
+          {'input': 'reduceL1Input'},
+          {'options': {'axes': [1, 3], 'keepDimensions': true}}
+        ],
+        'outputs': 'reduceL1Output'
+      }],
+      'expectedOutputs': {
+        'reduceL1Output': {
+          'data': [105, 312, 356, 307],
+          'descriptor': {shape: [2, 1, 2, 1], dataType: 'int32'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'reduceL1 uint32 4D tensor options.axes with options.keepDimensions=false',
+    'graph': {
+      'inputs': {
+        'reduceL1Input': {
+          'data': [
+            5,  50, 1,  84, 15, 52, 9,  28, 12, 11, 86, 64,
+            71, 76, 41, 97, 31, 6,  61, 69, 38, 52, 22, 99
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'uint32'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceL1',
+        'arguments': [
+          {'input': 'reduceL1Input'},
+          {'options': {'axes': [0, 2], 'keepDimensions': false}}
+        ],
+        'outputs': 'reduceL1Output'
+      }],
+      'expectedOutputs': {
+        'reduceL1Output': {
+          'data': [257, 172, 100, 133, 205, 213],
+          'descriptor': {shape: [2, 3], dataType: 'uint32'}
+        }
+      }
+    }
   }
 ];
 

@@ -6,17 +6,18 @@ use std::ops::{Deref, DerefMut};
 
 use euclid::default::Size2D;
 use ipc_channel::ipc::IpcSharedMemory;
+use malloc_size_of_derive::MallocSizeOf;
 use pixels::Multiply;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum PixelFormat {
     #[default]
     RGBA,
     BGRA,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum AlphaMode {
     /// Internal data is opaque (alpha is cleared to 1)
     Opaque,
@@ -48,7 +49,7 @@ impl AlphaMode {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum Data {
     // TODO: https://github.com/servo/servo/issues/36594
     //IPC(IpcSharedMemory),
@@ -84,7 +85,7 @@ pub type IpcSnapshot = Snapshot<IpcSharedMemory>;
 ///
 /// Inspired by snapshot for concept in WebGPU spec:
 /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-get-a-copy-of-the-image-contents-of-a-context>
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct Snapshot<T = Data> {
     size: Size2D<u64>,
     /// internal data (can be any format it will be converted on use if needed)

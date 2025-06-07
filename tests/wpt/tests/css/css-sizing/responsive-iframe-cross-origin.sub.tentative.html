@@ -1,0 +1,13 @@
+<!doctype HTML>
+<title>Test that a cross-origin iframe is responsively sized.</title>
+<link rel="author" href="mailto:chrishtr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing/">
+<link rel="match" href="responsive-iframe-ref.html">
+<style>
+iframe {
+    border: 1px solid black;
+    contain-intrinsic-size: from-element;
+}
+</style>
+<iframe frameborder=0 src="http://{{hosts[alt][]}}:{{ports[http][0]}}/css/css-sizing/resources/iframe-contents.html">
+</iframe>

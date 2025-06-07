@@ -4,7 +4,7 @@
 
 use std::cell::Cell;
 use std::cmp::{Ord, Ordering};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::default::Default;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
@@ -47,7 +47,7 @@ pub(crate) struct OneshotTimers {
     global_scope: Dom<GlobalScope>,
     js_timers: JsTimers,
     next_timer_handle: Cell<OneshotTimerHandle>,
-    timers: DomRefCell<Vec<OneshotTimer>>,
+    timers: DomRefCell<VecDeque<OneshotTimer>>,
     suspended_since: Cell<Option<Instant>>,
     /// Initially 0, increased whenever the associated document is reactivated
     /// by the amount of ms the document was inactive. The current time can be
@@ -131,7 +131,7 @@ impl OneshotTimers {
             global_scope: Dom::from_ref(global_scope),
             js_timers: JsTimers::default(),
             next_timer_handle: Cell::new(OneshotTimerHandle(1)),
-            timers: DomRefCell::new(Vec::new()),
+            timers: DomRefCell::new(VecDeque::new()),
             suspended_since: Cell::new(None),
             suspension_offset: Cell::new(Duration::ZERO),
             expected_event_id: Cell::new(TimerEventId(0)),
@@ -180,7 +180,7 @@ impl OneshotTimers {
     }
 
     fn is_next_timer(&self, handle: OneshotTimerHandle) -> bool {
-        match self.timers.borrow().last() {
+        match self.timers.borrow().back() {
             None => false,
             Some(max_timer) => max_timer.handle == handle,
         }
@@ -201,7 +201,7 @@ impl OneshotTimers {
         let base_time = self.base_time();
 
         // Since the event id was the expected one, at least one timer should be due.
-        if base_time < self.timers.borrow().last().unwrap().scheduled_for {
+        if base_time < self.timers.borrow().back().unwrap().scheduled_for {
             warn!("Unexpected timing!");
             return;
         }
@@ -213,11 +213,11 @@ impl OneshotTimers {
         loop {
             let mut timers = self.timers.borrow_mut();
 
-            if timers.is_empty() || timers.last().unwrap().scheduled_for > base_time {
+            if timers.is_empty() || timers.back().unwrap().scheduled_for > base_time {
                 break;
             }
 
-            timers_to_run.push(timers.pop().unwrap());
+            timers_to_run.push(timers.pop_back().unwrap());
         }
 
         for timer in timers_to_run {
@@ -286,7 +286,7 @@ impl OneshotTimers {
         }
 
         let timers = self.timers.borrow();
-        let Some(timer) = timers.last() else {
+        let Some(timer) = timers.back() else {
             return;
         };
 

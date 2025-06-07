@@ -9,21 +9,21 @@ promise_test(async t => {
   await testAbortPromise(t, signal => {
     return createRewriter({signal: signal});
   });
-}, 'Aborting Rewriter.create().');
+}, 'Aborting Rewriter.create()');
 
 promise_test(async t => {
   const rewriter = await createRewriter();
   await testAbortPromise(t, signal => {
     return rewriter.rewrite(kTestPrompt, { signal: signal });
   });
-}, 'Aborting Rewriter.rewrite().');
+}, 'Aborting Rewriter.rewrite()');
 
 promise_test(async t => {
   const rewriter = await createRewriter();
   await testAbortReadableStream(t, signal => {
     return rewriter.rewriteStreaming(kTestPrompt, { signal: signal });
   });
-}, 'Aborting Rewriter.rewriteStreaming().');
+}, 'Aborting Rewriter.rewriteStreaming()');
 
 promise_test(async t => {
   const rewriter = await createRewriter();
@@ -32,4 +32,4 @@ promise_test(async t => {
       kTestPrompt, { signal: controller.signal });
   for await (const chunk of streamingResponse);  // Do nothing
   controller.abort();
-}, 'Aborting Rewriter.rewriteStreaming() after finished reading.');
+}, 'Aborting Rewriter.rewriteStreaming() after finished reading');

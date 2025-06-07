@@ -4,6 +4,10 @@ on:
     types: ['opened', 'synchronize', 'reopened', 'edited', 'closed']
     branches: ['main']
 
+concurrency:
+  group: ${{ github.head_ref }}
+  cancel-in-progress: false
+
 jobs:
   upstream:
     # Run job only on servo/servo

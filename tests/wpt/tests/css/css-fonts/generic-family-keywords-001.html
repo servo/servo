@@ -24,12 +24,14 @@ div {
     let ahem = document.getElementById('ahem');
     let ahem_expected_width = ahem.offsetWidth;
     kGenericFontFamilyKeywords.forEach(keyword => {
-      test(() => {
+      promise_test(async function() {
         let element = document.getElementById('test');
         element.setAttribute("style", `font-family: ${keyword};`);
         let expected_width = element.offsetWidth;
 
         // Insert the @font-face rules for quoted and unquoted keywords.
+        // NOTE that we have to wait for font loads again at each step,
+        // as new asynchronous loads may be initiated when the style changes.
         document.documentElement.insertAdjacentHTML('beforeend', `
 <style>
 @font-face {
@@ -43,10 +45,11 @@ div {
   src: local(Ahem), url('/fonts/Ahem.ttf');
 }
 </style>`);
-
+        await document.fonts.ready;
         assert_equals(element.offsetWidth, expected_width, `unquoted ${keyword} does not match @font-face rule`);
 
         element.setAttribute("style", `font-family: "${keyword}";`);
+        await document.fonts.ready;
         assert_equals(element.offsetWidth, ahem_expected_width, `quoted ${keyword} matches  @font-face rule`);
       }, `@font-face matching for quoted and unquoted ${keyword}`);
     });

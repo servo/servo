@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset=utf-8>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>focus contenteditable element in iframe scroll into view</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+
+iframe {
+  position: absolute;
+  left: 250vw;
+}
+
+.spacer {
+  width: 100vw;
+  height: 250vh;
+}
+
+</style>
+</head>
+<body>
+  <div id="focusable-1" class="editor" contenteditable="true">focusable 1</div>
+  <div class="spacer"></div>
+  <iframe srcdoc="<div id='focusable-2' contenteditable='true'>focusable 2</div>"></iframe>
+  <div class="spacer"></div>
+</body>
+<script>
+
+function waitForLoad(w) {
+  return new Promise(resolve => w.addEventListener('load', resolve));
+}
+
+function waitForFrame() {
+  return new Promise(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+}
+
+promise_test(async (t) => {
+  await waitForLoad(window);
+  const focusable_1 = document.getElementById("focusable-1");
+  const iframeDocument = document.querySelector("iframe").contentDocument;
+  const focusable_2 = iframeDocument.getElementById("focusable-2");
+
+  focusable_1.focus();
+  focusable_2.focus();
+  await waitForFrame();
+  const firstScrollX = window.scrollX;
+  const firstScrollY = window.scrollY;
+
+  assert_greater_than(firstScrollX, window.innerWidth, "scroll X is greater than window.innerWidth");
+  assert_greater_than(firstScrollY, window.innerHeight, "scroll Y is greater than window.innerHeight");
+
+  window.scroll(0, 0);
+  assert_equals(window.scrollX, 0, "scroll X is reset to 0");
+  assert_equals(window.scrollY, 0, "scroll Y is reset to 0");
+
+  focusable_1.focus();
+  focusable_2.focus();
+  await waitForFrame();
+  const secondScrollX = window.scrollX;
+  const secondScrollY = window.scrollY;
+
+  // Ensure that both scroll positions are within +/- 1
+  assert_approx_equals(firstScrollX, secondScrollX, 1.0,
+                       "scroll X is within +/- 1 of a element in an iframe");
+  assert_approx_equals(firstScrollY, secondScrollY, 1.0,
+                       "scroll Y is within +/- 1 of a element in an iframe");
+}, "Check contenteditable element in an iframe scroll into view on second focusing");
+
+</script>
+</html>

@@ -83,6 +83,50 @@ const tests = [
     },
   },
   {
+    name:
+        '[pad] Throw if beginningPadding[index] is equal to inputShape[index] on reflection mode.',
+    input: {dataType: 'float32', shape: [2, 3]},
+    beginningPadding: [2, 0],
+    endingPadding: [1, 2],
+    options: {
+      mode: 'reflection',
+      label: label,
+    },
+  },
+  {
+    name:
+        '[pad] Throw if beginningPadding[index] is greater than inputShape[index] on reflection mode.',
+    input: {dataType: 'float32', shape: [2, 3]},
+    beginningPadding: [3, 0],
+    endingPadding: [1, 2],
+    options: {
+      mode: 'reflection',
+      label: label,
+    },
+  },
+  {
+    name:
+        '[pad] Throw if endingPadding[index] is equal to inputShape[index] on reflection mode.',
+    input: {dataType: 'float32', shape: [2, 3]},
+    beginningPadding: [1, 0],
+    endingPadding: [1, 3],
+    options: {
+      mode: 'reflection',
+      label: label,
+    },
+  },
+  {
+    name:
+        '[pad] Throw if endingPadding[index] is greater than inputShape[index] on reflection mode.',
+    input: {dataType: 'float32', shape: [2, 3]},
+    beginningPadding: [1, 0],
+    endingPadding: [1, 4],
+    options: {
+      mode: 'reflection',
+      label: label,
+    },
+  },
+  {
     name: '[pad] Throw if the padding of one dimension is too large.',
     input: {dataType: 'float32', shape: [2, 3]},
     beginningPadding: [2294967295, 0],

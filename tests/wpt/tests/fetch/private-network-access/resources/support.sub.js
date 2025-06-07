@@ -76,13 +76,13 @@ async function postMessageAndAwaitReply(target, message) {
 const SERVER_PORTS = {
   "http": {
     "local": {{ports[http][0]}},
-    "private": {{ports[http-private][0]}},
+    "private": {{ports[http-local][0]}},
     "public": {{ports[http-public][0]}},
   },
   "https": {
     "local": {{ports[https][0]}},
     "other-local": {{ports[https][1]}},
-    "private": {{ports[https-private][0]}},
+    "private": {{ports[https-local][0]}},
     "public": {{ports[https-public][0]}},
   },
   "ws": {

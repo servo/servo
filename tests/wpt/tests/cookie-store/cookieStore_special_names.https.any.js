@@ -3,7 +3,7 @@
 
 'use strict';
 
-['__Secure-', '__Host-'].forEach(prefix => {
+['__Secure-', '__secure-', '__Host-', '__host-'].forEach(prefix => {
   promise_test(async testCase => {
     await cookieStore.set(`${prefix}cookie-name`, `secure-cookie-value`);
     assert_equals(
@@ -32,25 +32,27 @@
   }, `cookieStore.delete with ${prefix} name on secure origin`);
 });
 
-promise_test(async testCase => {
-  const currentUrl = new URL(self.location.href);
-  const currentDomain = currentUrl.hostname;
-  await promise_rejects_js(testCase, TypeError,
-      cookieStore.set({ name: '__Host-cookie-name', value: 'cookie-value',
-                        domain: currentDomain }));
-}, 'cookieStore.set with __Host- prefix and a domain option');
+['__Host-', '__host-'].forEach(prefix => {
+  promise_test(async testCase => {
+    const currentUrl = new URL(self.location.href);
+    const currentDomain = currentUrl.hostname;
+    await promise_rejects_js(testCase, TypeError,
+        cookieStore.set({ name: `${prefix}cookie-name`, value: 'cookie-value',
+                          domain: currentDomain }));
+  }, `cookieStore.set with ${prefix} prefix and a domain option`);
 
-promise_test(async testCase => {
-  await cookieStore.set({ name: '__Host-cookie-name', value: 'cookie-value',
-                          path: "/" });
+  promise_test(async testCase => {
+    await cookieStore.set({ name: `${prefix}cookie-name`, value: 'cookie-value',
+                            path: "/" });
 
-  assert_equals(
-      (await cookieStore.get(`__Host-cookie-name`)).value, "cookie-value");
+    assert_equals(
+        (await cookieStore.get(`${prefix}cookie-name`)).value, "cookie-value");
 
-  await promise_rejects_js(testCase, TypeError,
-      cookieStore.set( { name: '__Host-cookie-name', value: 'cookie-value',
-                         path: "/path" }));
-}, 'cookieStore.set with __Host- prefix a path option');
+    await promise_rejects_js(testCase, TypeError,
+        cookieStore.set( { name: `${prefix}cookie-name`, value: 'cookie-value',
+                          path: "/path" }));
+  }, `cookieStore.set with ${prefix} prefix a path option`);
+});
 
 promise_test(async testCase => {
     let exceptionThrown = false;

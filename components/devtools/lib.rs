@@ -53,6 +53,7 @@ use crate::protocol::JsonPacketStream;
 mod actor;
 /// <https://searchfox.org/mozilla-central/source/devtools/server/actors>
 mod actors {
+    pub mod breakpoint;
     pub mod browsing_context;
     pub mod console;
     pub mod device;

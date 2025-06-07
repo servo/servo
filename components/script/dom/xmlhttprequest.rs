@@ -797,6 +797,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         if self.ready_state.get() == XMLHttpRequestState::Done {
             self.change_ready_state(XMLHttpRequestState::Unsent, can_gc);
             self.response_status.set(Err(()));
+            *self.status.borrow_mut() = HttpStatus::new_error();
             self.response.borrow_mut().clear();
             self.response_headers.borrow_mut().clear();
         }
@@ -1188,6 +1189,8 @@ impl XMLHttpRequest {
 
                 self.discard_subsequent_responses();
                 self.send_flag.set(false);
+                *self.status.borrow_mut() = HttpStatus::new_error();
+                self.response_headers.borrow_mut().clear();
                 // XXXManishearth set response to NetworkError
                 self.change_ready_state(XMLHttpRequestState::Done, can_gc);
                 return_if_fetch_was_terminated!();

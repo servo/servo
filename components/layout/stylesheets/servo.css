@@ -266,3 +266,7 @@ select {
   /* Don't show a text cursor when hovering selected option */
   cursor: default;
 }
+
+slot {
+  display: contents;
+}

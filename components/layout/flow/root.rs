@@ -29,7 +29,7 @@ use crate::flow::inline::InlineItem;
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::FragmentTree;
-use crate::geom::{LogicalVec2, PhysicalRect, PhysicalSize};
+use crate::geom::{LogicalVec2, PhysicalSize};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::replaced::ReplacedContents;
 use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside};
@@ -392,31 +392,9 @@ impl BoxTree {
             &mut root_fragments,
         );
 
-        let scrollable_overflow = root_fragments
-            .iter()
-            .fold(PhysicalRect::zero(), |acc, child| {
-                let child_overflow = child.scrollable_overflow_for_parent();
-
-                // https://drafts.csswg.org/css-overflow/#scrolling-direction
-                // We want to clip scrollable overflow on box-start and inline-start
-                // sides of the scroll container.
-                //
-                // FIXME(mrobinson, bug 25564): This should take into account writing
-                // mode.
-                let child_overflow = PhysicalRect::new(
-                    euclid::Point2D::zero(),
-                    euclid::Size2D::new(
-                        child_overflow.size.width + child_overflow.origin.x,
-                        child_overflow.size.height + child_overflow.origin.y,
-                    ),
-                );
-                acc.union(&child_overflow)
-            });
-
         FragmentTree::new(
             layout_context,
             root_fragments,
-            scrollable_overflow,
             physical_containing_block,
             self.viewport_scroll_sensitivity,
         )

@@ -12,7 +12,7 @@ promise_test(async () => {
 
 promise_test(async () => {
   const availability = await Summarizer.availability({
-    type: 'tl;dr',
+    type: 'tldr',
     format: 'plain-text',
     length: 'medium',
     expectedInputLanguages: ['en-GB'],
@@ -24,7 +24,7 @@ promise_test(async () => {
 
 promise_test(async () => {
   const availability = await Summarizer.availability({
-    type: 'tl;dr',
+    type: 'tldr',
     format: 'plain-text',
     length: 'medium',
     expectedInputLanguages: ['es'], // not supported

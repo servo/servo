@@ -61,6 +61,34 @@ enum ReadyState {
     Closed = 2,
 }
 
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableEventSource {
+    canceller: DomRefCell<FetchCanceller>,
+}
+
+impl DroppableEventSource {
+    pub(crate) fn new(canceller: DomRefCell<FetchCanceller>) -> Self {
+        DroppableEventSource { canceller }
+    }
+
+    pub(crate) fn cancel(&self) {
+        self.canceller.borrow_mut().cancel();
+    }
+
+    pub(crate) fn set_canceller(&self, data: FetchCanceller) {
+        *self.canceller.borrow_mut() = data;
+    }
+}
+
+// https://html.spec.whatwg.org/multipage/#garbage-collection-2
+impl Drop for DroppableEventSource {
+    fn drop(&mut self) {
+        // If an EventSource object is garbage collected while its connection is still open,
+        // the user agent must abort any instance of the fetch algorithm opened by this EventSource.
+        self.cancel();
+    }
+}
+
 #[dom_struct]
 pub(crate) struct EventSource {
     eventtarget: EventTarget,
@@ -74,7 +102,7 @@ pub(crate) struct EventSource {
 
     ready_state: Cell<ReadyState>,
     with_credentials: bool,
-    canceller: DomRefCell<FetchCanceller>,
+    droppable: DroppableEventSource,
 }
 
 enum ParserState {
@@ -480,7 +508,7 @@ impl EventSource {
 
             ready_state: Cell::new(ReadyState::Connecting),
             with_credentials,
-            canceller: DomRefCell::new(Default::default()),
+            droppable: DroppableEventSource::new(DomRefCell::new(Default::default())),
         }
     }
 
@@ -501,7 +529,7 @@ impl EventSource {
 
     // https://html.spec.whatwg.org/multipage/#sse-processing-model:fail-the-connection-3
     pub(crate) fn cancel(&self) {
-        self.canceller.borrow_mut().cancel();
+        self.droppable.cancel();
         self.fail_the_connection();
     }
 
@@ -526,15 +554,6 @@ impl EventSource {
 
     pub(crate) fn url(&self) -> &ServoUrl {
         &self.url
-    }
-}
-
-// https://html.spec.whatwg.org/multipage/#garbage-collection-2
-impl Drop for EventSource {
-    fn drop(&mut self) {
-        // If an EventSource object is garbage collected while its connection is still open,
-        // the user agent must abort any instance of the fetch algorithm opened by this EventSource.
-        self.canceller.borrow_mut().cancel();
     }
 }
 
@@ -632,7 +651,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
                 listener.notify_fetch(message.unwrap());
             }),
         );
-        *ev.canceller.borrow_mut() = FetchCanceller::new(request.id);
+        ev.droppable.set_canceller(FetchCanceller::new(request.id));
         global
             .core_resource_thread()
             .send(CoreResourceMsg::Fetch(
@@ -672,7 +691,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
     fn Close(&self) {
         let GenerationId(prev_id) = self.generation_id.get();
         self.generation_id.set(GenerationId(prev_id + 1));
-        self.canceller.borrow_mut().cancel();
+        self.droppable.cancel();
         self.ready_state.set(ReadyState::Closed);
     }
 }

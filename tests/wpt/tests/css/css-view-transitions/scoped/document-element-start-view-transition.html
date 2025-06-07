@@ -60,6 +60,9 @@
         target.className = 'update-2';
       });
 
+      assert_equals(vt1.transitionRoot, document.documentElement);
+      assert_equals(vt2.transitionRoot, document.documentElement);
+
       await verifyAbortedTransition(vt1.ready);
       await vt2.ready;
 

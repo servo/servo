@@ -5,6 +5,7 @@
 <link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
 <link rel="author" href="mailto:khushalsagar@chromium.org">
 
+<script src="/dom/events/scrolling/scroll_support.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
@@ -23,8 +24,9 @@ div {
 <script>
 let renderBlocked = true;
 
-promise_test(() => {
+promise_test(async () => {
   assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  await waitForCompositorReady();
   return new Promise(async (resolve, reject) => {
     requestAnimationFrame(() => {
       document.startViewTransition(() => {

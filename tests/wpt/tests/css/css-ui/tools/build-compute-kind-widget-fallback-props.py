@@ -108,7 +108,9 @@ template = u"""<!-- DO NOT EDIT. This file has been generated. Source:
 <link rel="match" href="../compute-kind-widget-fallback-{el_id}-ref.html">
 <style>
     #container {{ width: 500px; }}
+    /* NOTE: This rule is only used in the search-text-input tests: */
     #container > #search-text-input {{ appearance: textfield; }}
+    /* NOTE: This rule is only used in the select-menulist-button tests: */
     #container > #select-menulist-button {{ appearance: none; appearance: menulist-button; }}
 </style>
 

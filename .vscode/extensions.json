@@ -16,6 +16,8 @@
         // IDL language support
         "mythmon.idl",
         // TOML files
-        "tamasfe.even-better-toml"
+        "tamasfe.even-better-toml",
+        // Python files
+        "charliermarsh.ruff"
     ]
 }

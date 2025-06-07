@@ -196,10 +196,9 @@
     <div class="test" data-expected-width="45"></div>
   </div>
   <!--...now with an extra-large sibling sharing the child's flex line, to be
-      sure our 'stretch' sizing value still resolves against the container size
-      rather than the flex line's size: -->
+      sure our 'stretch' sizing value resolves against the flex line's size: -->
   <div class="cb" style="display: inline-flex; flex-flow: column wrap">
-    <div class="test" data-expected-width="45"></div>
+    <div class="test" data-expected-width="55"></div>
     <div style="inline-size: 60px"></div>
   </div>
 

@@ -15,5 +15,7 @@ path = "lib.rs"
 [dependencies]
 euclid = { workspace = true }
 ipc-channel = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
 serde = { workspace = true }
 pixels = { path = "../../pixels" }

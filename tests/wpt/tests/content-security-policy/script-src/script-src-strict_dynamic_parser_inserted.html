@@ -2,11 +2,12 @@
 <html>
 
 <head>
-    <title>Parser-inserted scripts without a correct nonce are not allowed with `strict-dynamic` in the script-src directive.</title>
+    <title>Parser-inserted scripts without a correct nonce are not allowed with `Strict-Dynamic` in the script-src directive.</title>
     <script src='/resources/testharness.js' nonce='dummy'></script>
     <script src='/resources/testharnessreport.js' nonce='dummy'></script>
 
-    <!-- CSP served: script-src 'strict-dynamic' 'nonce-dummy' -->
+    <!-- CSP served: script-src 'Strict-Dynamic' 'nonce-dummy' -->
+    <!-- Strict-Dynamic is intentionally mixed case -->
 </head>
 
 <body>

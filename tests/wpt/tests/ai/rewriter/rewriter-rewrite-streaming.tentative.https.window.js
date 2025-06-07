@@ -1,0 +1,46 @@
+// META: title=Rewriter Rewrite Streaming
+// META: script=/resources/testdriver.js
+// META: script=../resources/util.js
+// META: timeout=long
+
+'use strict';
+
+promise_test(async () => {
+  const rewriter = await createRewriter();
+  const streamingResponse =
+    rewriter.rewriteStreaming(kTestPrompt, { context: kTestContext });
+  assert_equals(
+    Object.prototype.toString.call(streamingResponse),
+    '[object ReadableStream]');
+  let result = '';
+  for await (const chunk of streamingResponse) {
+    result += chunk;
+  }
+  assert_greater_than(result.length, 0);
+}, 'Simple Rewriter.rewriteStreaming() call');
+
+promise_test(async (t) => {
+  const rewriter = await createRewriter();
+  rewriter.destroy();
+  assert_throws_dom(
+    'InvalidStateError', () => rewriter.rewriteStreaming(kTestPrompt));
+}, 'Rewriter.rewriteStreaming() fails after destroyed');
+
+promise_test(async t => {
+  const rewriter = await createRewriter();
+  const streamingResponse = rewriter.rewriteStreaming('');
+  assert_equals(
+    Object.prototype.toString.call(streamingResponse),
+    "[object ReadableStream]"
+  );
+  const { result, done } = await streamingResponse.getReader().read();
+  assert_true(done);
+}, 'Rewriter.rewriteStreaming() returns a ReadableStream without any chunk on an empty input');
+
+promise_test(async () => {
+  const rewriter = await createRewriter();
+  await Promise.all([
+    rewriter.rewriteStreaming(kTestPrompt),
+    rewriter.rewriteStreaming(kTestPrompt)
+  ]);
+}, 'Multiple Rewriter.rewriteStreaming() calls are resolved successfully');

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Fonts: font-weight: bold; with bold font face without explicit font weight</title>
+    <meta charset="utf-8" />
+    <style type="text/css">
+        @font-face {
+            font-family: "csstest-bold";
+            src: local("CSSTest Basic Bold");
+        }
+        div { font-size: 36px; }
+        span#verify { font-family: "CSSTest Verify"; }
+        div.test {
+            font-family: "csstest-bold";
+        }
+    </style>
+</head>
+<body>
+    <div><a href="http://www.w3.org/Style/CSS/Test/Fonts/">Test fonts</a> must be installed for this test: <span id="verify">FAIL</span></div>
+    <p>Test passes if the second line is bolder than the first:</p>
+    <div class="test">Filler text</div>
+    <div class="test">Filler text</div>
+</body>
+</html>

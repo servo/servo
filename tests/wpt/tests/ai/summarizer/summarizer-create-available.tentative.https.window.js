@@ -36,7 +36,7 @@ promise_test(async () => {
 
 promise_test(async t => {
   await testCreateMonitorWithAbort(t, Summarizer.create);
-}, 'Progress events are not emitted after aborted.');
+}, 'Progress events are not emitted after aborted');
 
 promise_test(async () => {
   const sharedContext = 'This is a shared context string';
@@ -73,6 +73,12 @@ promise_test(async () => {
   const summarizer = await createSummarizer({outputLanguage: 'en'});
   assert_equals(summarizer.outputLanguage, 'en');
 }, 'Summarizer.outputLanguage');
+
+promise_test(async (t) => {
+  promise_rejects_js(
+    t, RangeError,
+    createSummarizer({ expectedInputLanguages: ['en-abc-invalid'] }));
+}, 'Creating Summarizer with malformed language string');
 
 promise_test(async () => {
   const summarizer = await createSummarizer();

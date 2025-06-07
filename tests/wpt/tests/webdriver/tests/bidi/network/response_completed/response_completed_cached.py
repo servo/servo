@@ -249,7 +249,9 @@ async def test_page_with_cached_link_stylesheet(
     )
 
     # Reload the page.
-    await bidi_session.browsing_context.reload(context=top_context["context"])
+    await bidi_session.browsing_context.reload(
+        context=top_context["context"], wait="complete"
+    )
 
     # Expect two events after reload, for the document and the stylesheet.
     wait = AsyncPoll(bidi_session, timeout=2)
@@ -324,7 +326,9 @@ async def test_page_with_cached_import_stylesheet(
     )
 
     # Reload the page.
-    await bidi_session.browsing_context.reload(context=top_context["context"])
+    await bidi_session.browsing_context.reload(
+        context=top_context["context"], wait="complete"
+    )
 
     # Expect three events after reload, for the document and the 2 stylesheets.
     wait = AsyncPoll(bidi_session, timeout=2)
@@ -418,7 +422,9 @@ async def test_page_with_cached_duplicated_stylesheets(
     )
 
     # Reload the page.
-    await bidi_session.browsing_context.reload(context=top_context["context"])
+    await bidi_session.browsing_context.reload(
+        context=top_context["context"], wait="complete"
+    )
 
     # Expect three events after reload, for the document and the 2 stylesheets.
     wait = AsyncPoll(bidi_session, timeout=2)
@@ -491,7 +497,9 @@ async def test_page_with_cached_script_javascript(
     )
 
     # Reload the page.
-    await bidi_session.browsing_context.reload(context=top_context["context"])
+    await bidi_session.browsing_context.reload(
+        context=top_context["context"], wait="complete"
+    )
 
     # Expect two events, one for the document and one for the javascript file.
     wait = AsyncPoll(bidi_session, timeout=2)
@@ -622,7 +630,9 @@ async def test_page_with_cached_javascript_module(
     )
 
     # Reload the page.
-    await bidi_session.browsing_context.reload(context=top_context["context"])
+    await bidi_session.browsing_context.reload(
+        context=top_context["context"], wait="complete"
+    )
 
     # Expect two events, one for the document and one for the javascript module.
     wait = AsyncPoll(bidi_session, timeout=2)
@@ -727,7 +737,9 @@ async def test_page_with_cached_image(
     )
 
     # Reload the page.
-    await bidi_session.browsing_context.reload(context=top_context["context"])
+    await bidi_session.browsing_context.reload(
+        context=top_context["context"], wait="complete"
+    )
 
     # Expect two events, one for the document and one for the image.
     wait = AsyncPoll(bidi_session, timeout=2)

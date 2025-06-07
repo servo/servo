@@ -44,8 +44,9 @@
         <div id="log"></div>
 
         <script type="text/javascript">
-            setup({ explicit_done: true });
-
+            setup(() => {
+                assert_implements(CSS.supports('wrap-flow', 'auto'), "'wrap-flow: auto'");
+            }, {explicit_done: true});
             document.fonts.ready.then(() => {
                 test(function() {assert_equals(checkLinePos("line1",216,"right"), true)}, "Verify right of the 'line1' span is positioned correctly");
                 test(function() {assert_equals(checkLinePos("line2",192,"right"), true)}, "Verify right of the 'line2' span is positioned correctly");

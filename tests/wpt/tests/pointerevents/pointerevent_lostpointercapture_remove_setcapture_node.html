@@ -51,9 +51,7 @@
               nextSibling.parentNode.insertBefore(target1, nextSibling);
             });
 
-            let finishPromise = Promise.any([
-              getEvent('pointerup', document.body, test),
-              getEvent('pointerup', target1, test)]);
+            let finishPromise = getEvent('pointerup', window, test);
 
             getEvent('pointerdown', captureButton, test).then((event) => {
               target0.setPointerCapture(event.pointerId);
@@ -89,7 +87,8 @@
                 // Captured by target1, losing capture on target0 which removes target1.
                 "lostpointercapture@target0", "pointerout@target0", "pointerleave@target0",
                 // Uncaptured pointer re-enters button and is lifted.
-                "pointerover@button", "pointerenter@button", "pointermove@button", "pointerup@button"
+                // However, this is not a real pointer move, so, `pointermove` shouldn't be fired.
+                "pointerover@button", "pointerenter@button", "pointerup@button"
             ].join(", "));
           }, "setPointerCapture target removed by lostpointercapture");
         </script>

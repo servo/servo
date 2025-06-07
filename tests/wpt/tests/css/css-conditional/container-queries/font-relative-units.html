@@ -7,6 +7,7 @@
 <style>
   @import url("/fonts/ahem.css");
   :root { font-family: 'Ahem'; font-size: 10px; line-height: 10px; }
+  #log { font-family: sans-serif; }
   #em_container {
     container-type: inline-size;
     width: 100px;
@@ -100,19 +101,23 @@
   <div id="rlh_test"></div>
 </div>
 <script>
-  setup(() => assert_implements_size_container_queries());
+  setup(() => assert_implements_size_container_queries(), { explicit_done: true });
 
   const green = "rgb(0, 128, 0)";
-  test(() => assert_equals(getComputedStyle(em_test).color, green), "em relative inline-size");
-  test(() => assert_equals(getComputedStyle(rem_test).color, green), "rem relative inline-size");
-  test(() => assert_equals(getComputedStyle(ex_test).color, green), "ex relative inline-size");
-  test(() => assert_equals(getComputedStyle(rex_test).color, green), "rex relative inline-size");
-  test(() => assert_equals(getComputedStyle(ch_test).color, green), "ch relative inline-size");
-  test(() => assert_equals(getComputedStyle(rch_test).color, green), "rch relative inline-size");
-  test(() => assert_equals(getComputedStyle(ic_test).color, green), "ic relative inline-size");
-  test(() => assert_equals(getComputedStyle(ric_test).color, green), "ric relative inline-size");
-  test(() => assert_equals(getComputedStyle(lh_test).color, green), "lh relative inline-size");
-  test(() => assert_equals(getComputedStyle(rlh_test).color, green), "rlh relative inline-size");
-  test(() => assert_equals(getComputedStyle(cap_test).color, green), "cap relative inline-size");
-  test(() => assert_equals(getComputedStyle(rcap_test).color, green), "rcap relative inline-size");
+
+  document.fonts.ready.then(() => {
+    test(() => assert_equals(getComputedStyle(em_test).color, green), "em relative inline-size");
+    test(() => assert_equals(getComputedStyle(rem_test).color, green), "rem relative inline-size");
+    test(() => assert_equals(getComputedStyle(ex_test).color, green), "ex relative inline-size");
+    test(() => assert_equals(getComputedStyle(rex_test).color, green), "rex relative inline-size");
+    test(() => assert_equals(getComputedStyle(ch_test).color, green), "ch relative inline-size");
+    test(() => assert_equals(getComputedStyle(rch_test).color, green), "rch relative inline-size");
+    test(() => assert_equals(getComputedStyle(ic_test).color, green), "ic relative inline-size");
+    test(() => assert_equals(getComputedStyle(ric_test).color, green), "ric relative inline-size");
+    test(() => assert_equals(getComputedStyle(lh_test).color, green), "lh relative inline-size");
+    test(() => assert_equals(getComputedStyle(rlh_test).color, green), "rlh relative inline-size");
+    test(() => assert_equals(getComputedStyle(cap_test).color, green), "cap relative inline-size");
+    test(() => assert_equals(getComputedStyle(rcap_test).color, green), "rcap relative inline-size");
+    done();
+  })
 </script>

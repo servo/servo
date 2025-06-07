@@ -89,7 +89,7 @@ pub(crate) struct BoxFragment {
     block_margins_collapsed_with_children: Option<Box<CollapsedBlockMargins>>,
 
     /// The scrollable overflow of this box fragment.
-    pub scrollable_overflow_from_children: PhysicalRect<Au>,
+    scrollable_overflow: Option<PhysicalRect<Au>>,
 
     /// The resolved box insets if this box is `position: sticky`. These are calculated
     /// during `StackingContextTree` construction because they rely on the size of the
@@ -114,11 +114,6 @@ impl BoxFragment {
         margin: PhysicalSides<Au>,
         clearance: Option<Au>,
     ) -> BoxFragment {
-        let scrollable_overflow_from_children =
-            children.iter().fold(PhysicalRect::zero(), |acc, child| {
-                acc.union(&child.scrollable_overflow_for_parent())
-            });
-
         BoxFragment {
             base: base_fragment_info.into(),
             style,
@@ -131,7 +126,7 @@ impl BoxFragment {
             clearance,
             baselines: Baselines::default(),
             block_margins_collapsed_with_children: None,
-            scrollable_overflow_from_children,
+            scrollable_overflow: None,
             resolved_sticky_insets: AtomicRefCell::default(),
             background_mode: BackgroundMode::Normal,
             specific_layout_info: None,
@@ -203,13 +198,23 @@ impl BoxFragment {
     /// Get the scrollable overflow for this [`BoxFragment`] relative to its
     /// containing block.
     pub fn scrollable_overflow(&self) -> PhysicalRect<Au> {
+        self.scrollable_overflow
+            .expect("Should only call `scrollable_overflow()` after calculating overflow")
+    }
+
+    pub(crate) fn calculate_scrollable_overflow(&mut self) {
+        let scrollable_overflow_from_children = self
+            .children
+            .iter()
+            .fold(PhysicalRect::zero(), |acc, child| {
+                acc.union(&child.calculate_scrollable_overflow_for_parent())
+            });
         let physical_padding_rect = self.padding_rect();
         let content_origin = self.content_rect.origin.to_vector();
-        physical_padding_rect.union(
-            &self
-                .scrollable_overflow_from_children
-                .translate(content_origin),
-        )
+        self.scrollable_overflow = Some(
+            physical_padding_rect
+                .union(&scrollable_overflow_from_children.translate(content_origin)),
+        );
     }
 
     pub(crate) fn set_containing_block(&mut self, containing_block: &PhysicalRect<Au>) {
@@ -275,7 +280,12 @@ impl BoxFragment {
         tree.end_level();
     }
 
-    pub fn scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
+    pub(crate) fn scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
+        // TODO: Properly handle absolutely positioned fragments.
+        if self.style.get_box().position.is_absolutely_positioned() {
+            return PhysicalRect::zero();
+        }
+
         let mut overflow = self.border_rect();
         if !self.style.establishes_scroll_container(self.base.flags) {
             // https://www.w3.org/TR/css-overflow-3/#scrollable
@@ -328,7 +338,7 @@ impl BoxFragment {
     ///
     /// Return the clipped the scrollable overflow based on its scroll origin, determined by overflow direction.
     /// For an element, the clip rect is the padding rect and for viewport, it is the initial containing block.
-    pub fn clip_unreachable_scrollable_overflow_region(
+    pub(crate) fn clip_unreachable_scrollable_overflow_region(
         &self,
         scrollable_overflow: PhysicalRect<Au>,
         clipping_rect: PhysicalRect<Au>,
@@ -362,7 +372,7 @@ impl BoxFragment {
     ///
     /// Return the clipped the scrollable overflow based on its scroll origin, determined by overflow direction.
     /// This will coincides with the scrollport if the fragment is a scroll container.
-    pub fn reachable_scrollable_overflow_region(&self) -> PhysicalRect<Au> {
+    pub(crate) fn reachable_scrollable_overflow_region(&self) -> PhysicalRect<Au> {
         self.clip_unreachable_scrollable_overflow_region(
             self.scrollable_overflow(),
             self.padding_rect(),
@@ -421,9 +431,7 @@ impl BoxFragment {
             return convert_to_au_or_auto(PhysicalSides::new(top, right, bottom, left));
         }
 
-        debug_assert!(
-            position == ComputedPosition::Fixed || position == ComputedPosition::Absolute
-        );
+        debug_assert!(position.is_absolutely_positioned());
 
         let margin_rect = self.margin_rect();
         let (top, bottom) = match (&insets.top, &insets.bottom) {

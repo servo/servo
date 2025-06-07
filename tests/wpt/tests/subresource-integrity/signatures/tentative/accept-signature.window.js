@@ -6,35 +6,35 @@
 let test_cases = [
   {
     integrity: `ed25519-${kValidKeys['rfc']}`,
-    header: `sig0=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri"`,
+    header: `sig0=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="ed25519-integrity"`,
   },
   {
     integrity: `ed25519-${kValidKeys['rfc']} malformed-thing`,
-    header: `sig0=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri"`,
+    header: `sig0=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="ed25519-integrity"`,
   },
   {
     integrity: `ed25519-${kValidKeys['rfc']} ed25519-${kValidKeys['rfc']}`,
-    header: `sig0=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri"`,
+    header: `sig0=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="ed25519-integrity"`,
   },
   {
     integrity: `ed25519-${kValidKeys['arbitrary']} ed25519-${kValidKeys['rfc']}`,
-    header: `sig0=("unencoded-digest";sf);keyid="${kValidKeys['arbitrary']}";tag="sri", ` +
-            `sig1=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri"`,
+    header: `sig0=("unencoded-digest";sf);keyid="${kValidKeys['arbitrary']}";tag="ed25519-integrity", ` +
+            `sig1=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="ed25519-integrity"`,
   },
   {
     integrity: `ed25519-${kValidKeys['rfc']} ed25519-${kValidKeys['arbitrary']}`,
-    header: `sig0=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri", ` +
-            `sig1=("unencoded-digest";sf);keyid="${kValidKeys['arbitrary']}";tag="sri"`,
+    header: `sig0=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="ed25519-integrity", ` +
+            `sig1=("unencoded-digest";sf);keyid="${kValidKeys['arbitrary']}";tag="ed25519-integrity"`,
   },
   {
     integrity: `ed25519-${kValidKeys['arbitrary']} malformed-thing ed25519-${kValidKeys['rfc']}`,
-    header: `sig0=("unencoded-digest";sf);keyid="${kValidKeys['arbitrary']}";tag="sri", ` +
-            `sig1=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri"`,
+    header: `sig0=("unencoded-digest";sf);keyid="${kValidKeys['arbitrary']}";tag="ed25519-integrity", ` +
+            `sig1=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="ed25519-integrity"`,
   },
   {
     integrity: `ed25519-${kValidKeys['rfc']} malformed-thing ed25519-${kValidKeys['arbitrary']}`,
-    header: `sig0=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri", ` +
-            `sig1=("unencoded-digest";sf);keyid="${kValidKeys['arbitrary']}";tag="sri"`,
+    header: `sig0=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="ed25519-integrity", ` +
+            `sig1=("unencoded-digest";sf);keyid="${kValidKeys['arbitrary']}";tag="ed25519-integrity"`,
   },
 ];
 

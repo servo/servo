@@ -59,7 +59,7 @@ use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::errorevent::ErrorEvent;
-use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
+use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed, EventStatus};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlformelement::FormControlElementHelpers;
 use crate::dom::node::{Node, NodeTraits};
@@ -767,6 +767,7 @@ impl EventTarget {
             name,
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
+            EventComposed::NotComposed,
             can_gc,
         )
     }
@@ -777,6 +778,7 @@ impl EventTarget {
             name,
             EventBubbles::Bubbles,
             EventCancelable::NotCancelable,
+            EventComposed::NotComposed,
             can_gc,
         )
     }
@@ -787,6 +789,7 @@ impl EventTarget {
             name,
             EventBubbles::DoesNotBubble,
             EventCancelable::Cancelable,
+            EventComposed::NotComposed,
             can_gc,
         )
     }
@@ -801,19 +804,22 @@ impl EventTarget {
             name,
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
+            EventComposed::NotComposed,
             can_gc,
         )
     }
 
-    // https://dom.spec.whatwg.org/#concept-event-fire
+    /// <https://dom.spec.whatwg.org/#concept-event-fire>
     pub(crate) fn fire_event_with_params(
         &self,
         name: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
+        composed: EventComposed,
         can_gc: CanGc,
     ) -> DomRoot<Event> {
         let event = Event::new(&self.global(), name, bubbles, cancelable, can_gc);
+        event.set_composed(composed.into());
         event.fire(self, can_gc);
         event
     }

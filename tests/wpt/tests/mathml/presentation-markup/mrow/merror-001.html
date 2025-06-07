@@ -24,20 +24,25 @@
     </math>
   </div>
   <script>
-    test(function () {
+    setup({ explicit_done: true });
+    document.fonts.ready.then(() => {
+      test(function () {
         var style = window.getComputedStyle(document.getElementById("merror"));
         assert_equals(style.borderWidth, "1px");
         assert_equals(style.borderColor, "rgb(255, 0, 0)");
         assert_equals(style.borderStyle, "solid");
         assert_equals(style.backgroundColor, "rgb(255, 255, 224)");
-    }, "Default CSS properties on merror");
+      }, "Default CSS properties on merror");
 
-    test(function () {
+      test(function () {
         var merrorBox = document.getElementById("merror").getBoundingClientRect();
         var referenceBox = document.getElementById("reference").getBoundingClientRect();
         assert_equals(merrorBox.width, referenceBox.width + 2);
         assert_equals(merrorBox.height, referenceBox.height + 2);
-    }, "Bounding box is the same as mrow + 1px border");
+      }, "Bounding box is the same as mrow + 1px border");
+
+      done();
+    });
 </script>
 </body>
 </html>

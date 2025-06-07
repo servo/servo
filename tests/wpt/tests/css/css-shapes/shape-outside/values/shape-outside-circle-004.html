@@ -23,7 +23,7 @@
             generate_tests( ParsingUtils.testInlineStyle,
                             ParsingUtils.buildPositionTests("circle", true, 'lengthUnit + inline', ParsingUtils.validUnits) );
             ParsingUtils.setupFonts();
-            document.fonts.ready.then(()=> {
+            document.fonts.load("10px Ahem").then(()=> {
                 generate_tests( ParsingUtils.testComputedStyle,
                                 ParsingUtils.buildPositionTests("circle", true, 'lengthUnit + computed', ParsingUtils.validUnits) );
                 ParsingUtils.restoreFonts();
