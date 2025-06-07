@@ -484,12 +484,20 @@ impl DevtoolsInstance {
         };
         let netevent_actor_name = self.find_network_event_actor(request_id);
 
+        let Some(id) = self.pipelines.get(&pipeline_id) else {
+            return;
+        };
+        let Some(browsing_context_actor_name) = self.browsing_contexts.get(id) else {
+            return;
+        };
+
         handle_network_event(
             Arc::clone(&self.actors),
             console_actor_name,
             netevent_actor_name,
             connections,
             network_event,
+            browsing_context_actor_name.to_string(),
         )
     }
 
