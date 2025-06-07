@@ -44,8 +44,26 @@ jobs:
           sudo apt update
           ./mach bootstrap
       # TODO: Do GitHub anotaions
-      - name: Clippy
+      - name: Give permission to script
         run: |
-          ./mach clippy --use-crown --locked -- -- --deny warnings
+          chmod +x ./etc/ci/clippy-annotation.sh
+      - name: Save Head Sha & Create temp directory
+        if: ${{ !cancelled() }}
+        run: |
+          mkdir -p ./pr
+          mkdir -p ./temp
+          echo ${{ github.event.pull_request.head.sha }} > ./pr/head_sha
+      - name: Run Clippy Lint
+        run: |
+          ./mach clippy --message-format=json --use-crown --locked | ./etc/ci/clippy-annotation.sh > temp/clippy-output.json 
+      - name: Clippy Linter Result Upload
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: clippy-lint-result
+          path: |
+            temp/clippy-output.json
+            pr/head_sha
+          retention-days: 14
       - name: Tidy
         run: ./mach test-tidy --no-progress --all
