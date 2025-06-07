@@ -1214,6 +1214,28 @@ impl Handler {
         }
     }
 
+    fn handle_get_shadow_root(&self, element: WebElement) -> WebDriverResult<WebDriverResponse> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        let cmd = WebDriverScriptCommand::GetElementShadowRoot(element.to_string(), sender);
+        self.browsing_context_script_command(cmd)?;
+        match wait_for_script_response(receiver)? {
+            Ok(value) => {
+                if value.is_none() {
+                    return Err(WebDriverError::new(
+                        ErrorStatus::NoSuchShadowRoot,
+                        "No shadow root found for the element",
+                    ));
+                }
+                let value_resp = serde_json::to_value(
+                    value.map(|x| serde_json::to_value(WebElement(x)).unwrap()),
+                )?;
+                let shadow_root_value = json!({ SHADOW_ROOT_IDENTIFIER: value_resp });
+                Ok(WebDriverResponse::Generic(ValueResponse(shadow_root_value)))
+            },
+            Err(error) => Err(WebDriverError::new(error, "")),
+        }
+    }
+
     // https://w3c.github.io/webdriver/webdriver-spec.html#get-element-rect
     fn handle_element_rect(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
@@ -1936,6 +1958,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::FindElementElements(ref element, ref parameters) => {
                 self.handle_find_elements_from_element(element, parameters)
             },
+            WebDriverCommand::GetShadowRoot(element) => self.handle_get_shadow_root(element),
             WebDriverCommand::GetNamedCookie(name) => self.handle_get_cookie(name),
             WebDriverCommand::GetCookies => self.handle_get_cookies(),
             WebDriverCommand::GetActiveElement => self.handle_active_element(),

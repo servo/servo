@@ -843,6 +843,27 @@ pub(crate) fn handle_find_element_elements_tag_name(
         .unwrap();
 }
 
+/// <https://www.w3.org/TR/webdriver2/#dfn-get-element-shadow-root>
+pub(crate) fn handle_get_element_shadow_root(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    element_id: String,
+    reply: IpcSender<Result<Option<String>, ErrorStatus>>,
+) {
+    reply
+        .send(
+            find_node_by_unique_id(documents, pipeline, element_id).and_then(|node| match node
+                .downcast::<Element>(
+            ) {
+                Some(element) => Ok(element
+                    .GetShadowRoot()
+                    .map(|x| x.upcast::<Node>().unique_id(pipeline))),
+                None => Err(ErrorStatus::NoSuchElement),
+            }),
+        )
+        .unwrap();
+}
+
 pub(crate) fn handle_will_send_keys(
     documents: &DocumentCollection,
     pipeline: PipelineId,
