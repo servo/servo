@@ -70,6 +70,7 @@ use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::trustedscript::TrustedScript;
 use crate::dom::trustedscripturl::TrustedScriptURL;
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::dom::window::Window;
 use crate::fetch::create_a_potential_cors_request;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::realms::enter_realm;
@@ -1525,6 +1526,13 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
         self.upcast::<Node>()
             .SetTextContent(Some(DOMString::from(value)), can_gc);
         Ok(())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-script-supports>
+    fn Supports(_window: &Window, type_: DOMString) -> bool {
+        // The type argument has to exactly match these values,
+        // we do not perform an ASCII case-insensitive match.
+        matches!(type_.str(), "classic" | "module" | "importmap")
     }
 }
 
