@@ -330,6 +330,34 @@ impl From<MediaStreamOrBlob> for SrcObject {
     }
 }
 
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableHtmlMediaElement {
+    /// Player Id reported the player thread
+    player_id: Cell<u64>,
+    #[ignore_malloc_size_of = "Defined in other crates"]
+    #[no_trace]
+    player_context: WindowGLContext,
+}
+
+impl DroppableHtmlMediaElement {
+    fn new(player_id: Cell<u64>, player_context: WindowGLContext) -> Self {
+        Self {
+            player_id,
+            player_context,
+        }
+    }
+
+    pub(crate) fn set_player_id(&self, id: u64) {
+        self.player_id.set(id);
+    }
+}
+
+impl Drop for DroppableHtmlMediaElement {
+    fn drop(&mut self) {
+        self.player_context
+            .send(GLPlayerMsg::UnregisterPlayer(self.player_id.get()));
+    }
+}
 #[dom_struct]
 #[allow(non_snake_case)]
 pub(crate) struct HTMLMediaElement {
@@ -411,16 +439,12 @@ pub(crate) struct HTMLMediaElement {
     next_timeupdate_event: Cell<Instant>,
     /// Latest fetch request context.
     current_fetch_context: DomRefCell<Option<HTMLMediaElementFetchContext>>,
-    /// Player Id reported the player thread
-    id: Cell<u64>,
     /// Media controls id.
     /// In order to workaround the lack of privileged JS context, we secure the
     /// the access to the "privileged" document.servoGetMediaControls(id) API by
     /// keeping a whitelist of media controls identifiers.
     media_controls_id: DomRefCell<Option<String>>,
-    #[ignore_malloc_size_of = "Defined in other crates"]
-    #[no_trace]
-    player_context: WindowGLContext,
+    droppable: DroppableHtmlMediaElement,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -488,9 +512,11 @@ impl HTMLMediaElement {
             text_tracks_list: Default::default(),
             next_timeupdate_event: Cell::new(Instant::now() + Duration::from_millis(250)),
             current_fetch_context: DomRefCell::new(None),
-            id: Cell::new(0),
             media_controls_id: DomRefCell::new(None),
-            player_context: document.window().get_player_context(),
+            droppable: DroppableHtmlMediaElement::new(
+                Cell::new(0),
+                document.window().get_player_context(),
+            ),
         }
     }
 
@@ -1368,6 +1394,10 @@ impl HTMLMediaElement {
         task_source.queue_simple_event(self.upcast(), atom!("seeked"));
     }
 
+    fn set_player_id(&self, player_id: u64) {
+        self.droppable.set_player_id(player_id);
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
     pub(crate) fn process_poster_image_loaded(&self, image: Arc<RasterImage>) {
         if !self.show_poster.get() {
@@ -1463,7 +1493,7 @@ impl HTMLMediaElement {
             })
             .unwrap_or((0, None));
 
-        self.id.set(player_id);
+        self.set_player_id(player_id);
         self.video_renderer.lock().unwrap().player_id = Some(player_id);
 
         if let Some(image_receiver) = image_receiver {
@@ -2172,13 +2202,6 @@ impl HTMLMediaElement {
     // https://github.com/servo/servo/issues/22293
     fn direction_of_playback(&self) -> PlaybackDirection {
         PlaybackDirection::Forwards
-    }
-}
-
-impl Drop for HTMLMediaElement {
-    fn drop(&mut self) {
-        self.player_context
-            .send(GLPlayerMsg::UnregisterPlayer(self.id.get()));
     }
 }
 
