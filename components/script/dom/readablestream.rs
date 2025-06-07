@@ -196,7 +196,9 @@ impl PipeTo {
         {
             let mut error = Some(Heap::default());
             // Setting the value on the heap after it has been moved.
-            error.as_mut().map(|heap| heap.set(reason.get()));
+            if let Some(heap) = error.as_mut() {
+                heap.set(reason.get())
+            }
             *self.shutdown_error.borrow_mut() = error;
         }
 
@@ -372,7 +374,9 @@ impl Callback for PipeTo {
                     {
                         let mut error = Some(Heap::default());
                         // Setting the value on the heap after it has been moved.
-                        error.as_mut().map(|heap| heap.set(result.get()));
+                        if let Some(heap) = error.as_mut() {
+                            heap.set(result.get())
+                        }
                         *self.shutdown_error.borrow_mut() = error;
                     }
                 }
@@ -502,7 +506,9 @@ impl PipeTo {
             {
                 let mut error = Some(Heap::default());
                 // Setting the value on the heap after it has been moved.
-                error.as_mut().map(|heap| heap.set(source_error.get()));
+                if let Some(heap) = error.as_mut() {
+                    heap.set(source_error.get())
+                }
                 *self.shutdown_error.borrow_mut() = error;
             }
 
@@ -550,7 +556,9 @@ impl PipeTo {
             {
                 let mut error = Some(Heap::default());
                 // Setting the value on the heap after it has been moved.
-                error.as_mut().map(|heap| heap.set(dest_error.get()));
+                if let Some(heap) = error.as_mut() {
+                    heap.set(dest_error.get())
+                }
                 *self.shutdown_error.borrow_mut() = error;
             }
 
@@ -644,7 +652,9 @@ impl PipeTo {
             {
                 let mut error = Some(Heap::default());
                 // Setting the value on the heap after it has been moved.
-                error.as_mut().map(|heap| heap.set(dest_closed.get()));
+                if let Some(heap) = error.as_mut() {
+                    heap.set(dest_closed.get())
+                }
                 *self.shutdown_error.borrow_mut() = error;
             }
 
