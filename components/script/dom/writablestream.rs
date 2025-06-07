@@ -1241,7 +1241,7 @@ impl Transferable for WritableStream {
         readable.setup_cross_realm_transform_readable(cx, &port_1, can_gc);
 
         // Let promise be ! ReadableStreamPipeTo(readable, value, false, false, false).
-        let promise = readable.pipe_to(cx, &global, self, false, false, false, comp, can_gc);
+        let promise = readable.pipe_to(cx, &global, self, false, false, false, None, comp, can_gc);
 
         // Set promise.[[PromiseIsHandled]] to true.
         promise.set_promise_is_handled();
