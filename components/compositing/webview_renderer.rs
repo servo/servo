@@ -811,9 +811,11 @@ impl WebViewRenderer {
         let mut combined_magnification = self.pinch_zoom_level().get();
         for scroll_event in self.pending_scroll_zoom_events.drain(..) {
             match scroll_event {
-                ScrollZoomEvent::PinchZoom(magnification) |
-                ScrollZoomEvent::ViewportZoom(magnification) => {
+                ScrollZoomEvent::PinchZoom(magnification) => {
                     combined_magnification *= magnification
+                },
+                ScrollZoomEvent::ViewportZoom(magnification) => {
+                    combined_magnification = magnification
                 },
                 ScrollZoomEvent::Scroll(scroll_event_info) => {
                     let combined_event = match combined_scroll_event.as_mut() {
