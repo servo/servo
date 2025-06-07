@@ -40,16 +40,49 @@ use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::script_thread::ScriptThread;
 
-#[dom_struct]
-#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_in_rc)]
-pub(crate) struct Promise {
-    reflector: Reflector,
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppablePromise {
     /// Since Promise values are natively reference counted without the knowledge of
     /// the SpiderMonkey GC, an explicit root for the reflector is stored while any
     /// native instance exists. This ensures that the reflector will never be GCed
     /// while native code could still interact with its native representation.
     #[ignore_malloc_size_of = "SM handles JS values"]
     permanent_js_root: Heap<JSVal>,
+}
+
+impl DroppablePromise {
+    pub(crate) fn new(permanent_js_root: Heap<JSVal>) -> DroppablePromise {
+        DroppablePromise { permanent_js_root }
+    }
+
+    pub(crate) fn set_permanent_js_root(&self, root: JSVal) {
+        self.permanent_js_root.set(root);
+    }
+
+    #[allow(unsafe_code)]
+    pub(crate) fn get_unsafe_permanent_js_root(&self) -> *mut JSVal {
+        self.permanent_js_root.get_unsafe()
+    }
+}
+
+impl Drop for DroppablePromise {
+    #[allow(unsafe_code)]
+    fn drop(&mut self) {
+        unsafe {
+            let object = self.permanent_js_root.get().to_object();
+            assert!(!object.is_null());
+            if let Some(cx) = Runtime::get() {
+                RemoveRawValueRoot(cx.as_ptr(), self.get_unsafe_permanent_js_root());
+            }
+        }
+    }
+}
+
+#[dom_struct]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_in_rc)]
+pub(crate) struct Promise {
+    reflector: Reflector,
+    droppable: DroppablePromise,
 }
 
 /// Private helper to enable adding new methods to `Rc<Promise>`.
@@ -61,26 +94,13 @@ impl PromiseHelper for Rc<Promise> {
     #[allow(unsafe_code)]
     fn initialize(&self, cx: SafeJSContext) {
         let obj = self.reflector().get_jsobject();
-        self.permanent_js_root.set(ObjectValue(*obj));
+        self.set_permanent_js_root(ObjectValue(*obj));
         unsafe {
             assert!(AddRawValueRoot(
                 *cx,
-                self.permanent_js_root.get_unsafe(),
+                self.get_unsafe_permanent_js_root(),
                 c"Promise::root".as_ptr(),
             ));
-        }
-    }
-}
-
-impl Drop for Promise {
-    #[allow(unsafe_code)]
-    fn drop(&mut self) {
-        unsafe {
-            let object = self.permanent_js_root.get().to_object();
-            assert!(!object.is_null());
-            if let Some(cx) = Runtime::get() {
-                RemoveRawValueRoot(cx.as_ptr(), self.permanent_js_root.get_unsafe());
-            }
         }
     }
 }
@@ -112,7 +132,7 @@ impl Promise {
             assert!(IsPromiseObject(obj));
             let promise = Promise {
                 reflector: Reflector::new(),
-                permanent_js_root: Heap::default(),
+                droppable: DroppablePromise::new(Heap::default()),
             };
             let promise = Rc::new(promise);
             promise.init_reflector(obj.get());
@@ -307,6 +327,15 @@ impl Promise {
     pub(crate) fn set_promise_is_handled(&self) -> bool {
         let cx = GlobalScope::get_cx();
         unsafe { SetAnyPromiseIsHandled(*cx, self.reflector().get_jsobject()) }
+    }
+
+    pub(crate) fn set_permanent_js_root(&self, root: JSVal) {
+        self.droppable.set_permanent_js_root(root);
+    }
+
+    #[allow(unsafe_code)]
+    pub(crate) fn get_unsafe_permanent_js_root(&self) -> *mut JSVal {
+        self.droppable.get_unsafe_permanent_js_root()
     }
 }
 
