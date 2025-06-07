@@ -278,6 +278,26 @@ impl InlineItem {
         }
     }
 
+    pub(crate) fn invalidate_subtree_caches(&self) {
+        match self {
+            InlineItem::StartInlineBox(inline_box) => {
+                inline_box.borrow().base.invalidate_all_caches()
+            },
+            InlineItem::EndInlineBox | InlineItem::TextRun(..) => {},
+            InlineItem::OutOfFlowAbsolutelyPositionedBox(positioned_box, ..) => {
+                positioned_box.borrow().context.invalidate_subtree_caches();
+            },
+            InlineItem::OutOfFlowFloatBox(float_box) => {
+                float_box.borrow().contents.invalidate_subtree_caches()
+            },
+            InlineItem::Atomic(independent_formatting_context, ..) => {
+                independent_formatting_context
+                    .borrow()
+                    .invalidate_subtree_caches();
+            },
+        }
+    }
+
     pub(crate) fn fragments(&self) -> Vec<Fragment> {
         match self {
             InlineItem::StartInlineBox(inline_box) => inline_box.borrow().base.fragments(),
@@ -1711,6 +1731,12 @@ impl InlineFormattingContext {
     pub(crate) fn repair_style(&self, node: &ServoLayoutNode, new_style: &Arc<ComputedValues>) {
         *self.shared_inline_styles.style.borrow_mut() = new_style.clone();
         *self.shared_inline_styles.selected.borrow_mut() = node.to_threadsafe().selected_style();
+    }
+
+    pub(crate) fn invalidate_subtree_caches(&self) {
+        for inline_item in &self.inline_items {
+            inline_item.borrow().invalidate_subtree_caches();
+        }
     }
 
     pub(super) fn layout(

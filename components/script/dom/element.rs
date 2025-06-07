@@ -360,8 +360,9 @@ impl Element {
         // NodeStyleDamaged, but I'm preserving existing behavior.
         restyle.hint.insert(RestyleHint::RESTYLE_SELF);
 
-        if damage == NodeDamage::OtherNodeDamage {
-            doc.note_node_with_dirty_descendants(self.upcast());
+        if damage == NodeDamage::NodeContentOrHeritageDamaged {
+            restyle.damage = RestyleDamage::repair();
+        } else if damage == NodeDamage::OtherNodeDamage {
             restyle.damage = RestyleDamage::reconstruct();
         }
     }
