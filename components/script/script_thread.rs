@@ -1127,6 +1127,14 @@ impl ScriptThread {
                         can_gc,
                     );
                 },
+                InputEvent::MouseLeave(_) => {
+                    self.topmost_mouse_over_target.take();
+                    document.handle_mouse_leave_event(
+                        event.hit_test_result,
+                        event.pressed_mouse_buttons,
+                        can_gc,
+                    );
+                },
                 InputEvent::Touch(touch_event) => {
                     let touch_result =
                         document.handle_touch_event(touch_event, event.hit_test_result, can_gc);
