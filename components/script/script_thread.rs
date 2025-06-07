@@ -1078,6 +1078,7 @@ impl ScriptThread {
     fn process_mouse_leave_event(
         &self,
         document: &Document,
+        position: Point2D<f32, DevicePixel>,
         pressed_mouse_buttons: u16,
         can_gc: CanGc,
     ) {
@@ -1102,7 +1103,7 @@ impl ScriptThread {
                 element.set_active_state(false);
             }
             document.fire_mouse_event(
-                Point2D::default(),
+                position.cast_unit(),
                 target.upcast(),
                 FireMouseEventType::Out,
                 EventBubbles::Bubbles,
@@ -1111,7 +1112,7 @@ impl ScriptThread {
                 can_gc,
             );
             document.handle_mouse_enter_leave_event(
-                Point2D::default(),
+                position.cast_unit(),
                 FireMouseEventType::Leave,
                 None,
                 DomRoot::from_ref(target.upcast::<Node>()),
@@ -1161,8 +1162,13 @@ impl ScriptThread {
                         can_gc,
                     );
                 },
-                InputEvent::MouseLeave => {
-                    self.process_mouse_leave_event(&document, event.pressed_mouse_buttons, can_gc);
+                InputEvent::MouseLeave(leave_event) => {
+                    self.process_mouse_leave_event(
+                        &document,
+                        leave_event.point,
+                        event.pressed_mouse_buttons,
+                        can_gc,
+                    );
                 },
                 InputEvent::Touch(touch_event) => {
                     let touch_result =

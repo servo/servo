@@ -15,8 +15,8 @@ use compositing_traits::{SendableFrameTree, WebViewTrait};
 use constellation_traits::{EmbedderToConstellationMessage, ScrollState, WindowSizeType};
 use embedder_traits::{
     AnimationState, CompositorHitTestResult, Cursor, InputEvent, MouseButton, MouseButtonAction,
-    MouseButtonEvent, MouseMoveEvent, ShutdownState, TouchEvent, TouchEventResult, TouchEventType,
-    TouchId, ViewportDetails,
+    MouseButtonEvent, MouseLeaveEvent, MouseMoveEvent, ShutdownState, TouchEvent, TouchEventResult,
+    TouchEventType, TouchId, ViewportDetails,
 };
 use euclid::{Box2D, Point2D, Scale, Size2D, Vector2D};
 use fnv::FnvHashSet;
@@ -359,7 +359,7 @@ impl WebViewRenderer {
                 return if let Err(error) = self.global.borrow().constellation_sender.send(
                     EmbedderToConstellationMessage::ForwardInputEvent(
                         self.id,
-                        InputEvent::MouseLeave,
+                        InputEvent::MouseLeave(MouseLeaveEvent::new(point)),
                         None,
                     ),
                 ) {

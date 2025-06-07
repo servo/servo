@@ -20,9 +20,10 @@ use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePixel};
 use servo::{
     Cursor, ImeEvent, InputEvent, Key, KeyState, KeyboardEvent, MouseButton as ServoMouseButton,
-    MouseButtonAction, MouseButtonEvent, MouseMoveEvent, OffscreenRenderingContext,
-    RenderingContext, ScreenGeometry, Theme, TouchEvent, TouchEventType, TouchId,
-    WebRenderDebugOption, WebView, WheelDelta, WheelEvent, WheelMode, WindowRenderingContext,
+    MouseButtonAction, MouseButtonEvent, MouseLeaveEvent, MouseMoveEvent,
+    OffscreenRenderingContext, RenderingContext, ScreenGeometry, Theme, TouchEvent, TouchEventType,
+    TouchId, WebRenderDebugOption, WebView, WheelDelta, WheelEvent, WheelMode,
+    WindowRenderingContext,
 };
 use surfman::{Context, Device};
 use url::Url;
@@ -570,7 +571,10 @@ impl WindowPortsMethods for Window {
                 webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
             },
             WindowEvent::CursorLeft { .. } => {
-                webview.notify_input_event(InputEvent::MouseLeave);
+                // TODO: Use `cursor_position` instead once https://github.com/rust-windowing/winit/pull/2648 lands
+                let pos = self.webview_relative_mouse_point.get();
+                let point = Point2D::new(pos.x, pos.y);
+                webview.notify_input_event(InputEvent::MouseLeave(MouseLeaveEvent::new(point)));
             },
             WindowEvent::MouseWheel { delta, phase, .. } => {
                 let (mut dx, mut dy, mode) = match delta {
