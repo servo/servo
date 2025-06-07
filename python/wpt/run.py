@@ -304,5 +304,7 @@ def write_unexpected_only_raw_log(
         with open(raw_log_file) as input:
             for line in input.readlines():
                 data = json.loads(line)
-                if data["action"] in ["suite_start", "suite_end"] or ("test" in data and data["test"] in tests):
+                if data["action"] in ["suite_start", "suite_end", "add_subsuite"] or (
+                    "test" in data and data["test"] in tests
+                ):
                     output.write(line)
