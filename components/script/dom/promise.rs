@@ -72,8 +72,8 @@ impl PromiseHelper for Rc<Promise> {
     }
 }
 
-// Promise objects are stored inside Rc values, so Drop is run when the last Rc is dropped, 
-// rather than when SpiderMonkey runs a GC. This makes it safe to interact with the JS engine unlike 
+// Promise objects are stored inside Rc values, so Drop is run when the last Rc is dropped,
+// rather than when SpiderMonkey runs a GC. This makes it safe to interact with the JS engine unlike
 // Drop implementations for other DOM types.
 impl Drop for Promise {
     #[allow(unsafe_code)]
