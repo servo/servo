@@ -108,7 +108,7 @@ class MachCommands(CommandBase):
 
     @Command("clippy", description='Run "cargo clippy"', category="devenv")
     @CommandArgument("params", default=None, nargs="...", help="Command-line arguments to be passed through to clippy")
-    @CommandArgument("--report", "-r", default=False, action="store_true", help="Put the lint result on the file")
+    @CommandArgument("--report", "-rp", default=False, action="store_true", help="Put the lint result on the file")
     @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
     def cargo_clippy(self, params, report=False, **kwargs):
         if not params:
@@ -124,18 +124,37 @@ class MachCommands(CommandBase):
 
             with open("temp/out.json", "r", encoding="utf-8") as file:
                 data = json.load(file)
-                condition = ["help", "note", "warning", "failure"]
+                annotations = []
+                severenty_map = {"help": "notice", "note": "notice", "warning": "warning"}
+                for item in data:
+                    message = item.get("message")
+                    if not message:
+                        continue
 
-                filtered_data = [
-                    item
-                    for item in data
-                    if item["reason"] != "compiler-message"
-                    or item["message"]["code"] is not None
-                    or item["message"]["level"] in condition
-                ]
+                    spans = message.get("spans") or []
+                    primary_span = next((s for s in spans if s.get("is_primary")), None)
+                    if not primary_span:
+                        continue
 
-                with open("temp/clippy.json", "w", encoding="utf-8") as file:
-                    json.dump(filtered_data, file, indent=2)
+                    annotation_level = severenty_map.get(message.get("level"), "failure")
+
+                    annotation = {
+                        "path": primary_span["file_name"],
+                        "start_line": primary_span["line_start"],
+                        "end_line": primary_span["line_end"],
+                        "annotation_level": annotation_level,
+                        "title": message.get("message", ""),
+                        "message": message.get("rendered", ""),
+                    }
+
+                    # Add column info if start_line == end_line
+                    if primary_span["line_start"] == primary_span["line_end"]:
+                        annotation["start_column"] = primary_span["column_start"]
+                        annotation["end_column"] = primary_span["column_end"]
+
+                    annotations.append(annotation)
+                with open("temp/clippy-output.json", "w", encoding="utf-8") as file:
+                    json.dump(annotations, file, indent=2)
             return retcode
         return self.run_cargo_build_like_command("clippy", params, env=env, **kwargs)
 

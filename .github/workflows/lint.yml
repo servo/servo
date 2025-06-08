@@ -55,7 +55,7 @@ jobs:
           echo ${{ github.event.pull_request.head.sha }} > ./pr/head_sha
       - name: Run Clippy Lint
         run: |
-          ./mach clippy --message-format=json --use-crown --locked | ./etc/ci/clippy-annotation.sh > temp/clippy-output.json 
+          ./mach clippy --message-format=json --use-crown --locked --report
       - name: Clippy Linter Result Upload
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
