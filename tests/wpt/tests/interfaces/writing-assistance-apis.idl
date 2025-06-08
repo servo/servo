@@ -56,7 +56,7 @@ dictionary SummarizerSummarizeOptions {
   DOMString context;
 };
 
-enum SummarizerType { "tl;dr", "teaser", "key-points", "headline" };
+enum SummarizerType { "tldr", "teaser", "key-points", "headline" };
 enum SummarizerFormat { "plain-text", "markdown" };
 enum SummarizerLength { "short", "medium", "long" };
 

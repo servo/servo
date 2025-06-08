@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<head>
+<style>
+
+#s {
+  position: relative;
+  view-transition-name: wrapper;
+  border: 5px solid lightgrey;
+  height: 200px;
+  width: 250px;
+}
+.i {
+  position: relative;
+  width: 150px; height: 60px;
+  border: 5px solid #ace;
+}
+::view-transition-group(*),
+::view-transition-old(*),
+::view-transition-new(*) { animation: unset; }
+
+</style>
+</head>
+<body>
+<div id="s">
+  <div class="i">A</div>
+  <div class="i">B</div>
+</div>
+<script>
+
+onload = async () => {
+  await s.startViewTransition(() => {
+    s.appendChild(s.children[0]);
+  }).finished;
+  document.documentElement.classList.remove('test-wait');
+}
+
+</script>
+</body>
+</html>

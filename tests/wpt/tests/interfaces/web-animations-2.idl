@@ -118,7 +118,7 @@ dictionary AnimationPlaybackEventInit : EventInit {
 interface AnimationTrigger {
   constructor(optional AnimationTriggerOptions options = {});
   attribute AnimationTimeline timeline;
-  attribute AnimationTriggerType type;
+  attribute AnimationTriggerBehavior behavior;
   attribute any rangeStart;
   attribute any rangeEnd;
   attribute any exitRangeStart;
@@ -127,11 +127,11 @@ interface AnimationTrigger {
 
 dictionary AnimationTriggerOptions {
   AnimationTimeline? timeline;
-  AnimationTriggerType? type = "once";
+  AnimationTriggerBehavior? behavior = "once";
   (TimelineRangeOffset or CSSNumericValue or CSSKeywordValue or DOMString) rangeStart = "normal";
   (TimelineRangeOffset or CSSNumericValue or CSSKeywordValue or DOMString) rangeEnd = "normal";
   (TimelineRangeOffset or CSSNumericValue or CSSKeywordValue or DOMString) exitRangeStart = "auto";
   (TimelineRangeOffset or CSSNumericValue or CSSKeywordValue or DOMString) exitRangeEnd = "auto";
 };
 
-enum AnimationTriggerType { "once", "repeat", "alternate", "state" };
+enum AnimationTriggerBehavior { "once", "repeat", "alternate", "state" };

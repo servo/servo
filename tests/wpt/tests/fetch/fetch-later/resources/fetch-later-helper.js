@@ -415,7 +415,10 @@ class FetchLaterIframeExpectation {
       }
       if (e.data.type === FetchLaterIframeMessageType.ERROR) {
         const actual = e.data.error.name || e.data.error.type;
-        if (e.data.error.constructor.name === 'DOMException' &&
+        if (this.expectedDomErrorName === 'QuotaExceededError') {
+          return actual == this.expectedDomErrorName;
+        } else if (
+            e.data.error.constructor.name === 'DOMException' &&
             actual == this.expectedDomErrorName) {
           return true;
         }

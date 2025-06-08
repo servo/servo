@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning Test: Invalidation of fallback without anchor references</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#fallback-apply">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<style>
+  #anchor {
+    anchor-name: --anchor;
+    background: green;
+    width: 100px;
+    height: 100vh;
+  }
+  #anchored {
+    background: green;
+    top: anchor(--anchor bottom);
+    width: 100px;
+    height: 50px;
+    position: absolute;
+    position-try: --bottom;
+  }
+
+  @position-try --bottom {
+    top: auto;
+    bottom: 0px;
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="anchor"></div>
+<div id="anchored"></div>
+<script>
+  anchor.offsetTop;
+  anchor.style.height = "50px";
+</script>

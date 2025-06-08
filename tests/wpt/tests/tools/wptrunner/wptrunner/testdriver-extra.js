@@ -160,7 +160,7 @@
         let cmd_id;
         const action_msg = {type: "action",
                             action: name,
-                            ...params};
+                            params};
         if (is_test_context()) {
             cmd_id = window.__wptrunner_message_queue.push(action_msg);
         } else {

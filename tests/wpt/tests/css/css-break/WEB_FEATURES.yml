@@ -2,3 +2,6 @@ features:
 - name: box-decoration-break
   files:
   - box-decoration-break-*
+- name: page-break-aliases
+  files:
+  - page-break-legacy-shorthands.html

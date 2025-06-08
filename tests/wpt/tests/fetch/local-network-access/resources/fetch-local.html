@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Fetch Local resource</title>
+
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="support.sub.js"></script>
+<script>
+"use strict";
+
+// Set the 'local-network-access' permission then attempt to fetch a resource
+// in the local address space.
+//
+// By default, 'local-network-access' permission is set to 'granted'. This can
+// be changed by passing in a different value via the 'permission' URL parameter.
+// Valid values:
+//
+//    * granted
+//    * denied
+//    * prompt
+Promise.resolve().then(async () => {
+
+  const window_url = new URL(window.location.href);
+  let permission_value = 'granted';
+  if (window_url.searchParams.has('permission')) {
+     permission_value = window_url.searchParams.get('permission');
+  }
+
+  test_driver.set_test_context(opener);
+  await test_driver.set_permission({ name: 'local-network-access' }, permission_value);
+
+  const target = {
+    server: Server.HTTPS_LOCAL,
+    behavior: { response: ResponseBehavior.allowCrossOrigin() },
+  };
+  const targetUrl = resolveTargetUrl(target);
+
+  fetch(targetUrl)
+      .then(async function(response) {
+        const body = await response.text();
+        const message = {
+          ok: response.ok,
+          type: response.type,
+          body: body,
+        };
+        opener.postMessage(message, "*");
+      })
+      .catch(error => {
+        opener.postMessage({ error: error.toString() }, "*");
+      });
+});
+</script>

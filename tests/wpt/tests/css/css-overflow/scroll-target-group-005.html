@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow Test: scroll-target-group property invalidation - reparenting nested anchors</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-target-group">
+<link rel="match" href="scroll-target-group-001-ref.html">
+<style>
+  .wrapper {
+    scroll-target-group: auto;
+  }
+
+  #scroller {
+    overflow: auto;
+    height: 130px;
+    width: 100px;
+  }
+
+  #scroller div {
+    width: 100px;
+    height: 100px;
+    background-color: blue;
+    margin: 5px;
+  }
+
+  a {
+    color: red;
+  }
+
+  a:target-current {
+    color: green;
+  }
+</style>
+<div class="wrapper">
+  <div id="target" class="wrapper">
+    <a href="#target1">t1</a>
+    <a href="#target2">t2</a>
+    <a href="#target3">t3</a>
+    <a href="#target4">t4</a>
+  </div>
+</div>
+<div id="scroller">
+  <div id="target1"></div>
+  <div id="target2"></div>
+  <div id="target3"></div>
+  <div id="target4"></div>
+</div>
+<script>
+  scroller.scrollTop = 400;
+  document.documentElement.offsetTop;
+  target.classList.remove('wrapper');
+  document.documentElement.offsetTop;
+  scroller.scrollTop = 0;
+</script>

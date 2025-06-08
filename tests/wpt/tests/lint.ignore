@@ -173,6 +173,7 @@ SET TIMEOUT: encrypted-media/polyfill/clearkey-polyfill.js
 SET TIMEOUT: encrypted-media/scripts/playback-temporary-events.js
 SET TIMEOUT: fedcm/support/fedcm-iframe.html
 SET TIMEOUT: fedcm/support/fedcm/disconnect-iframe.html
+SET TIMEOUT: fedcm/support/login_delay.html
 SET TIMEOUT: fetch/fetch-later/resources/fetch-later-helper.js
 SET TIMEOUT: fetch/metadata/resources/helper.sub.js
 SET TIMEOUT: fetch/metadata/resources/message-opener.html
@@ -423,6 +424,7 @@ SET TIMEOUT: speculation-rules/prerender/resources/media-play.html
 SET TIMEOUT: html/browsers/browsing-the-web/back-forward-cache/timers.html
 SET TIMEOUT: dom/abort/crashtests/timeout-close.html
 SET TIMEOUT: storage-access-api/storage-access-beyond-cookies.locks.sub.https.window.js
+SET TIMEOUT: pointerevents/crashtests/longpress-crash.html
 
 # setTimeout use in reftests
 SET TIMEOUT: acid/acid3/test.html
@@ -818,6 +820,7 @@ TESTDRIVER-IN-UNSUPPORTED-TYPE: payment-handler/change-shipping-address-manual.h
 TESTDRIVER-IN-UNSUPPORTED-TYPE: payment-handler/change-shipping-option-manual.https.html
 TESTDRIVER-IN-UNSUPPORTED-TYPE: payment-handler/payment-request-event-manual.https.html
 TESTDRIVER-IN-UNSUPPORTED-TYPE: payment-handler/supports-shipping-contact-delegation-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: speech-api/SpeechRecognition-phrases-manual.https.html
 
 # Tests automatically imported from the WebAssembly/spec repository that should be removed after getting fixed upstream.
 SET TIMEOUT: wasm/core/js/harness/testharness.js

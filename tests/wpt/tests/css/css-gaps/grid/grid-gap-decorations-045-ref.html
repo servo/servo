@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#break">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    #container,
+    body {
+        overflow: hidden;
+        margin: 0px;
+    }
+
+    #container {
+        display: grid;
+        grid-template-rows: 4rem 2rem auto;
+        width: 80%;
+        gap: 2px;
+        border: solid 2px black;
+        row-rule: 2px solid hotpink, 1px dashed grey;
+        background-color: teal;
+    }
+
+    #one {
+        height: 100px;
+        width: 100px;
+    }
+</style>
+<div id="container">
+    <div id="one"></div>
+</div>

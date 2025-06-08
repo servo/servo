@@ -13,7 +13,7 @@ interface PerformanceElementTiming : PerformanceEntry {
     readonly attribute unsigned long naturalHeight;
     readonly attribute DOMString id;
     readonly attribute Element? element;
-    readonly attribute DOMString url;
+    readonly attribute USVString url;
     [Default] object toJSON();
 };
 

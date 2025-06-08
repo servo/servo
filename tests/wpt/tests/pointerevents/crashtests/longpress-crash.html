@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://crbug.com/421119389">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<html class=test-wait>
+
+<button>Button</button>
+
+<script>
+async function longPress(element) {
+  const actions = new test_driver.Actions();
+  await actions.addPointer("touchPointer", "touch")
+    .pointerMove(0, 0, {sourceName: "touchPointer",origin: element})
+    .pointerDown({sourceName: "touchPointer",origin: element})
+    .send();
+  // This needs to be long enough to trigger long-press:
+  await new Promise(resolve => setTimeout(resolve,1000));
+  await actions.pointerUp({sourceName: "touchPointer"})
+    .send();
+}
+
+async function test() {
+  const el = document.querySelector('button');
+  await longPress(el);
+  await longPress(el);
+  document.documentElement.classList.remove('test-wait');
+}
+// This test should pass if nothing crashes.
+test();
+
+</script>

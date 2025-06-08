@@ -375,98 +375,108 @@ function test_prerender_defer(fn, label) {
   }, label);
 }
 
-/**
- * Starts prerendering a page from the given referrer `RemoteContextWrapper`,
- * using `<script type="speculationrules">`.
- *
- * See
- * /html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js
- * for more details on the `RemoteContextWrapper` framework, and supported fields for extraConfig.
- *
- * The returned `RemoteContextWrapper` for the prerendered remote
- * context will have an extra `url` property, which is used by
- * @see activatePrerenderRC. (Most `RemoteContextWrapper` uses should not care
- * about the URL, but prerendering is unique in that you need to navigate to
- * a prerendered page after creating it.)
- *
- * @param {RemoteContextWrapper} referrerRemoteContext
- * @param {RemoteContextConfig|object} extraConfig
- * @returns {Promise<RemoteContextWrapper>}
- */
-function addPrerenderRC(referrerRemoteContext, extraConfig) {
-  return referrerRemoteContext.helper.createContext({
-    executorCreator(url) {
-      return referrerRemoteContext.executeScript(url => {
-        const script = document.createElement("script");
-        script.type = "speculationrules";
-        script.textContent = JSON.stringify({
-          prerender: [
-            {
-              source: "list",
-              urls: [url]
-            }
-          ]
+// If you want access to these, be sure to include
+// /html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js
+// and /speculation-rules/resources/utils.js. So as to avoid requiring everyone
+// to do that, we only conditionally define this infrastructure.
+if (globalThis.PreloadingRemoteContextHelper) {
+  class PrerenderingRemoteContextWrapper extends PreloadingRemoteContextHelper.RemoteContextWrapper {
+    /**
+    * Activates a prerendered page represented by `destinationRC` by navigating
+    * the page currently displayed in this `PrerenderingRemoteContextWrapper` to
+    * it. If the navigation does not result in a prerender activation, the
+    * returned promise will be rejected with a testharness.js AssertionError.
+    *
+    * @param {PrerenderingRemoteContextWrapper} destinationRC - The
+    *     `PrerenderingRemoteContextWrapper` pointing to the prerendered
+    *     content. This is monitored to ensure the navigation results in a
+    *     prerendering activation.
+    * @param {(string) => Promise<undefined>} [navigateFn] - An optional
+    *     function to customize the navigation. It will be passed the URL of the
+    *     prerendered content, and will run as a script in this  (see
+    *     `RemoteContextWrapper.prototype.executeScript`). If not given,
+    *     navigation will be done via the `location.href` setter (see
+    *     `RemoteContextWrapper.prototype.navigateTo`).
+    * @returns {Promise<undefined>}
+    */
+    async navigateExpectingPrerenderingActivation(destinationRC, navigateFn) {
+      // Store a promise that will fulfill when the `prerenderingchange` event
+      // fires.
+      await destinationRC.executeScript(() => {
+        window.activatedPromise = new Promise(resolve => {
+          document.addEventListener("prerenderingchange", () => resolve("activated"), { once: true });
         });
-        document.head.append(script);
-      }, [url]);
-    }, extraConfig
-  });
-}
+      });
 
-/**
- * Activates a prerendered RemoteContextWrapper `prerenderedRC` by navigating
- * the referrer RemoteContextWrapper `referrerRC` to it. If the navigation does
- * not result in a prerender activation, the returned
- * promise will be rejected with a testharness.js AssertionError.
- *
- * See
- * /html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js
- * for more on the RemoteContext helper framework.
- *
- * @param {RemoteContextWrapper} referrerRC - The referrer
- *     `RemoteContextWrapper` in which the prerendering was triggered,
- *     probably via `addPrerenderRC()`.
- * @param {RemoteContextWrapper} prerenderedRC - The `RemoteContextWrapper`
- *     pointing to the prerendered content. This is monitored to ensure the
- *     navigation results in a prerendering activation.
- * @param {(string) => Promise<undefined>} [navigateFn] - An optional function
- *     to customize the navigation. It will be passed the URL of the prerendered
- *     content, and will run as a script in `referrerRC` (see
- *     `RemoteContextWrapper.prototype.executeScript`). If not given, navigation
- *     will be done via the `location.href` setter (see
- *     `RemoteContextWrapper.prototype.navigateTo`).
- * @returns {Promise<undefined>}
- */
-async function activatePrerenderRC(referrerRC, prerenderedRC, navigateFn) {
-  // Store a promise that will fulfill when the prerenderingchange event fires.
-  await prerenderedRC.executeScript(() => {
-    window.activatedPromise = new Promise(resolve => {
-      document.addEventListener("prerenderingchange", () => resolve("activated"));
-    });
-  });
+      if (navigateFn === undefined) {
+        await this.navigateTo(destinationRC.url);
+      } else {
+        await this.navigate(navigateFn, [destinationRC.url]);
+      }
 
-  if (navigateFn === undefined) {
-    referrerRC.navigateTo(prerenderedRC.url);
-  } else {
-    referrerRC.navigate(navigateFn, [prerenderedRC.url]);
+      // Wait until that event fires. If the activation fails and a normal
+      // navigation happens instead, then `destinationRC` will start pointing to
+      // that other page, where `window.activatedPromise` is undefined. In that
+      // case this assert will fail since `undefined !== "activated"`.
+      assert_equals(
+        await destinationRC.executeScript(() => window.activatedPromise),
+        "activated",
+        "The prerendered page must be activated; instead a normal navigation happened."
+      );
+    }
+
+    /**
+    * Navigates to the URL identified by `destinationRC`, but expects that the
+    * navigation does not cause a prerendering activation. (E.g., because the
+    * prerender was canceled by something in the test code.) If the navigation
+    * results in a prerendering activation, the returned promise will be
+    * rejected with a testharness.js AssertionError.
+    * @param {RemoteContextWrapper} destinationRC - The `RemoteContextWrapper`
+    *     pointing to the destination URL. Usually this is obtained by
+    *     prerendering (e.g., via `addPrerender()`), even though we are testing
+    *     that the prerendering does not activate.
+    * @param {(string) => Promise<undefined>} [navigateFn] - An optional
+    *     function to customize the navigation. It will be passed the URL of the
+    *     prerendered content, and will run as a script in this  (see
+    *     `RemoteContextWrapper.prototype.executeScript`). If not given,
+    *     navigation will be done via the `location.href` setter (see
+    *     `RemoteContextWrapper.prototype.navigateTo`).
+    * @returns {Promise<undefined>}
+    */
+    async navigateExpectingNoPrerenderingActivation(destinationRC, navigateFn) {
+      if (navigateFn === undefined) {
+        await this.navigateTo(destinationRC.url);
+      } else {
+        await this.navigate(navigateFn, [destinationRC.url]);
+      }
+
+      assert_equals(
+        await destinationRC.executeScript(() => {
+          return performance.getEntriesByType("navigation")[0].activationStart;
+        }),
+        0,
+        "The prerendered page must not be activated."
+      );
+    }
+
+    /**
+    * Starts prerendering a page with this `PreloadingRemoteContextWrapper` as the
+    * referrer, using `<script type="speculationrules">`.
+    *
+    * @param {object} [extrasInSpeculationRule] - Additional properties to add
+    *     to the speculation rule JSON.
+    * @param {RemoteContextConfig|object} [extraConfig] - Additional remote
+    *     context configuration for the preloaded context.
+    * @returns {Promise<PreloadingRemoteContextWrapper>}
+    */
+    addPrerender(options) {
+      return this.addPreload("prerender", options);
+    }
   }
 
-  // Wait until that event fires. If the activation fails and a normal
-  // navigation happens instead, then prerenderedRC will start pointing to that
-  // other page, where window.activatedPromise is undefined. In that case this
-  // assert will fail since undefined !== "activated".
-  assert_equals(
-    await prerenderedRC.executeScript(() => window.activatedPromise),
-    "activated",
-    "The prerendered page must be activated; instead a normal navigation happened."
-  );
-}
-
-async function getActivationStart(prerenderedRC) {
-  return await prerenderedRC.executeScript(() => {
-    const entry = performance.getEntriesByType("navigation")[0];
-    return entry.activationStart;
-  });;
+  globalThis.PrerenderingRemoteContextHelper = class extends PreloadingRemoteContextHelper {
+    static RemoteContextWrapper = PrerenderingRemoteContextWrapper;
+  };
 }
 
 // Used by the opened window, to tell the main test runner to terminate a

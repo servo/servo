@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow Test Reference: scroll-target-group property makes anchor elements scroll markers and does scroll tracking</title>
+<style>
+  #scroller {
+    overflow: auto;
+    height: 130px;
+    width: 100px;
+  }
+
+  #scroller div {
+    width: 100px;
+    height: 100px;
+    background-color: blue;
+    margin: 5px;
+  }
+
+  a {
+    color: red;
+  }
+
+  a:last-of-type {
+    color: green;
+  }
+</style>
+<div>
+  <a href="#target1">t1</a>
+  <a href="#target2">t2</a>
+  <a href="#target3">t3</a>
+  <a href="#target4">t4</a>
+</div>
+<div id="scroller">
+  <div id="target1"></div>
+  <div id="target2"></div>
+  <div id="target3"></div>
+  <div id="target4"></div>
+</div>
+<script>
+  scroller.scrollTop = 400;
+</script>

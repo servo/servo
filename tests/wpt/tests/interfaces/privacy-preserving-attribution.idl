@@ -30,9 +30,12 @@ dictionary PrivateAttributionImpressionOptions {
   unsigned long lifetimeDays = 30;
 };
 
+dictionary PrivateAttributionImpressionResult {
+};
+
 [SecureContext, Exposed=Window]
 partial interface PrivateAttribution {
-  undefined saveImpression(PrivateAttributionImpressionOptions options);
+  Promise<PrivateAttributionImpressionResult> saveImpression(PrivateAttributionImpressionOptions options);
 };
 
 dictionary PrivateAttributionConversionOptions {

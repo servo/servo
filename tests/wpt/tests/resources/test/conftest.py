@@ -55,6 +55,7 @@ def pytest_configure(config):
 
     config.driver = webdriver.Session("localhost", 4444,
                                       capabilities=capabilities)
+    config.driver.start()
     config.add_cleanup(config.driver.end)
 
     # Although the name of the `_create_unverified_context` method suggests

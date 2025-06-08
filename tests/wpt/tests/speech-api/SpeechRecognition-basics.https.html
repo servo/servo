@@ -11,7 +11,7 @@ test(function() {
   assert_false(reco.continuous, 'SpeechRecognition.continuous');
   assert_false(reco.interimResults, 'SpeechRecognition.interimResults');
   assert_equals(reco.maxAlternatives, 1, 'SpeechRecognition.maxAlternatives');
-  assert_equals(reco.mode, 'ondevice-preferred', 'SpeechRecognition.mode');
+  assert_false(reco.processLocally, 'SpeechRecognition.processLocally');
   assert_equals(reco.phrases.length, 0, 'SpeechRecognition.phrases.length');
 });
 </script>

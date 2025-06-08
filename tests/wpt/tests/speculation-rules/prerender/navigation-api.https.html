@@ -13,12 +13,12 @@
 setup(() => assertSpeculationRulesIsSupported());
 
 promise_test(async t => {
-  const rcHelper = new RemoteContextHelper();
+  const rcHelper = new PrerenderingRemoteContextHelper();
   const referrerRC = await rcHelper.addWindow(undefined, { features: 'noopener' });
   assert_equals(await referrerRC.executeScript(() => navigation.entries().length), 1);
   let referrerRCCurrentId = await referrerRC.executeScript(() => navigation.currentEntry.id);
 
-  const prerenderedRC = await addPrerenderRC(referrerRC);
+  const prerenderedRC = await referrerRC.addPrerender();
   let activationStateBeforeActivation = await prerenderedRC.executeScript(() => {
     return {
      entries: navigation.entries().map(e => ({ id: e.id, })),
@@ -35,7 +35,7 @@ promise_test(async t => {
   // Save the current entry before activation.
   await prerenderedRC.executeScript(() => window.currentEntryBeforeActivation = navigation.currentEntry);
 
-  await activatePrerenderRC(referrerRC, prerenderedRC);
+  await referrerRC.navigateExpectingPrerenderingActivation(prerenderedRC);
 
   let activationStateAfterActivation = await prerenderedRC.executeScript(() => {
     return {
