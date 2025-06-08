@@ -3501,7 +3501,8 @@ impl GlobalScope {
                 Some(event_target) => Trusted::new(event_target.upcast()),
             };
             // Step 3: Queue a task to run the following steps:
-            let task = CSPViolationReportTask::new(Trusted::new(self), target, report);
+            let task =
+                CSPViolationReportTask::new(Trusted::new(self), target, report, violation.policy);
             self.task_manager()
                 .dom_manipulation_task_source()
                 .queue(task);
