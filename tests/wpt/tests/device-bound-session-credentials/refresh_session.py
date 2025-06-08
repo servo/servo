@@ -9,7 +9,8 @@ def main(request, response):
     session_id_header = request.headers.get("Sec-Session-Id")
     if session_id_header == None:
         return (400, response.headers, "")
-    session_id = int(session_id_header.decode('utf-8'))
+    session_id_header = session_id_header.decode('utf-8')
+    session_id = int(session_id_header)
 
     if test_session_manager.get_should_refresh_end_session():
         response_body = {
@@ -34,6 +35,9 @@ def main(request, response):
             challenge = early_challenge
 
         if not verified or jwt_payload.get("jti") != challenge:
+            return (400, response.headers, "")
+
+        if jwt_payload.get("sub") != session_id_header:
             return (400, response.headers, "")
 
     return test_session_manager.get_session_instructions_response(session_id, request)

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/csp-violations.js"></script>
+<meta http-equiv="Content-Security-Policy"
+      content="require-trusted-types-for 'script'; connect-src 'none';">
+<meta http-equiv="Content-Security-Policy" content="script-src 'nonce-self'">
+<div id="container"></div>
+<script nonce="self">
+  const originalSource = `${';'.repeat(100)}`;
+  promise_test(async t => {
+    let violation = await trusted_type_violation_without_exception_for(_ => {
+      let script = document.createElement("script");
+      script.setAttribute("nonce", "self");
+
+      // Node.appendChild() makes the script text untrusted.
+      script.appendChild(document.createTextNode(originalSource));
+      document.body.appendChild(script);
+    });
+    assert_equals(violation.blockedURI, "trusted-types-sink");
+    assert_equals(violation.sample, `HTMLScriptElement text|${clipSampleIfNeeded(originalSource)}`);
+  }, `sink mismatch violation report when the script text is changed by manipulating its children.`);
+
+
+  promise_test(async t => {
+    const sourceAfterApplicationOfDefaultPolicy = `${';'.repeat(100)}`;
+    trustedTypes.createPolicy("default", {
+      createScript: value => sourceAfterApplicationOfDefaultPolicy,
+    });
+    let violation = await trusted_type_violation_without_exception_for(async _ => {
+      let script = document.createElement("script");
+
+      // Node.appendChild() makes the script text untrusted.
+      script.appendChild(document.createTextNode(originalSource));
+      document.body.appendChild(script);
+    });
+    assert_equals(violation.effectiveDirective, "script-src-elem");
+    assert_equals(violation.blockedURI, "inline");
+    assert_equals(violation.sample, "");
+    assert_equals(violation.originalPolicy, "script-src 'nonce-self'");
+  }, `inline check violation report when the script text is changed by manipulating its children.`);
+</script>

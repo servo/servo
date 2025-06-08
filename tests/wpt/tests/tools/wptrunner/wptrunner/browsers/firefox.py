@@ -256,6 +256,7 @@ def update_properties():
     return ([
         "os",
         "debug",
+        "display",
         "fission",
         "processor",
         "swgl",

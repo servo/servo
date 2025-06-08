@@ -7,7 +7,8 @@ permissions: {}
 on:
   workflow_dispatch:
   workflow_run:
-    workflows: [epochs]
+    workflows:
+      - epochs
     types:
       - completed
   push:
@@ -34,3 +35,12 @@ jobs:
       artifact-name: "safari-technology-preview-results"
       safari-technology-preview: true
       safaridriver-diagnose: false
+      matrix-include: >-
+        [{"current-chunk": 1, "total-chunks": 8},
+         {"current-chunk": 2, "total-chunks": 8},
+         {"current-chunk": 3, "total-chunks": 8},
+         {"current-chunk": 4, "total-chunks": 8},
+         {"current-chunk": 5, "total-chunks": 8},
+         {"current-chunk": 6, "total-chunks": 8},
+         {"current-chunk": 7, "total-chunks": 8},
+         {"current-chunk": 8, "total-chunks": 8}]

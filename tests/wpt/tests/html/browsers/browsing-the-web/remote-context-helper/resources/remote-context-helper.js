@@ -228,82 +228,6 @@
   const DEFAULT_CONTEXT_CONFIG = new RemoteContextConfig();
 
   /**
-   * This class represents a configuration for creating remote contexts. This is
-   * the entry-point
-   * for creating remote contexts, providing @see addWindow .
-   */
-  class RemoteContextHelper {
-    /**
-     * @param {RemoteContextConfig|object} config The configuration
-     *     for this remote context.
-     */
-    constructor(config) {
-      this.config = RemoteContextConfig.ensure(config);
-    }
-
-    /**
-     * Creates a new remote context and returns a `RemoteContextWrapper` giving
-     * access to it.
-     * @private
-     * @param {Object} options
-     * @param {(url: string) => Promise<undefined>} [options.executorCreator] A
-     *     function that takes a URL and causes the browser to navigate some
-     *     window to that URL, e.g. via an iframe or a new window. If this is
-     *     not supplied, then the returned RemoteContextWrapper won't actually
-     *     be communicating with something yet, and something will need to
-     *     navigate to it using its `url` property, before communication can be
-     *     established.
-     * @param {RemoteContextConfig|object} [options.extraConfig] If supplied,
-     *     extra configuration for this remote context to be merged with
-     *     `this`'s existing config. If it's not a `RemoteContextConfig`, it
-     *     will be used to construct a new one.
-     * @returns {Promise<RemoteContextWrapper>}
-     */
-    async createContext({
-      executorCreator,
-      extraConfig,
-      isWorker = false,
-    }) {
-      const config =
-          this.config.merged(RemoteContextConfig.ensure(extraConfig));
-
-      // UUID is needed for executor.
-      const uuid = token();
-      const url = await config.createExecutorUrl(uuid, isWorker);
-
-      if (executorCreator) {
-        if (config.urlType == 'blank') {
-          await executorCreator(undefined, await fetchText(url));
-        } else {
-          await executorCreator(url, undefined);
-        }
-      }
-
-      return new RemoteContextWrapper(new RemoteContext(uuid), this, url);
-    }
-
-    /**
-     * Creates a window with a remote context. @see createContext for
-     * @param {RemoteContextConfig|object} [extraConfig] Will be
-     *     merged with `this`'s config.
-     * @param {Object} [options]
-     * @param {string} [options.target] Passed to `window.open` as the
-     *     2nd argument
-     * @param {string} [options.features] Passed to `window.open` as the
-     *     3rd argument
-     * @returns {Promise<RemoteContextWrapper>}
-     */
-    addWindow(extraConfig, options) {
-      return this.createContext({
-        executorCreator: windowExecutorCreator(options),
-        extraConfig,
-      });
-    }
-  }
-  // Export this class.
-  self.RemoteContextHelper = RemoteContextHelper;
-
-  /**
    * Attaches header to the URL. See
    * https://web-platform-tests.org/writing-tests/server-pipes.html#headers
    * @param {string} url the URL to which headers should be attached.
@@ -736,4 +660,87 @@
       }
     }
   }
+
+
+  /**
+   * This class represents a configuration for creating remote contexts. This is
+   * the entry-point
+   * for creating remote contexts, providing @see addWindow .
+   */
+  class RemoteContextHelper {
+    /**
+     * The constructor to use when creating new remote context wrappers.
+     * Can be overridden by subclasses.
+     */
+    static RemoteContextWrapper = RemoteContextWrapper;
+
+    /**
+     * @param {RemoteContextConfig|object} config The configuration
+     *     for this remote context.
+     */
+    constructor(config) {
+      this.config = RemoteContextConfig.ensure(config);
+    }
+
+    /**
+     * Creates a new remote context and returns a `RemoteContextWrapper` giving
+     * access to it.
+     * @private
+     * @param {Object} options
+     * @param {(url: string) => Promise<undefined>} [options.executorCreator] A
+     *     function that takes a URL and causes the browser to navigate some
+     *     window to that URL, e.g. via an iframe or a new window. If this is
+     *     not supplied, then the returned RemoteContextWrapper won't actually
+     *     be communicating with something yet, and something will need to
+     *     navigate to it using its `url` property, before communication can be
+     *     established.
+     * @param {RemoteContextConfig|object} [options.extraConfig] If supplied,
+     *     extra configuration for this remote context to be merged with
+     *     `this`'s existing config. If it's not a `RemoteContextConfig`, it
+     *     will be used to construct a new one.
+     * @returns {Promise<RemoteContextWrapper>}
+     */
+    async createContext({
+      executorCreator,
+      extraConfig,
+      isWorker = false,
+    }) {
+      const config =
+        this.config.merged(RemoteContextConfig.ensure(extraConfig));
+
+      // UUID is needed for executor.
+      const uuid = token();
+      const url = await config.createExecutorUrl(uuid, isWorker);
+
+      if (executorCreator) {
+        if (config.urlType == 'blank') {
+          await executorCreator(undefined, await fetchText(url));
+        } else {
+          await executorCreator(url, undefined);
+        }
+      }
+
+      return new this.constructor.RemoteContextWrapper(new RemoteContext(uuid), this, url);
+    }
+
+    /**
+     * Creates a window with a remote context. @see createContext for
+     * @param {RemoteContextConfig|object} [extraConfig] Will be
+     *     merged with `this`'s config.
+     * @param {Object} [options]
+     * @param {string} [options.target] Passed to `window.open` as the
+     *     2nd argument
+     * @param {string} [options.features] Passed to `window.open` as the
+     *     3rd argument
+     * @returns {Promise<RemoteContextWrapper>}
+     */
+    addWindow(extraConfig, options) {
+      return this.createContext({
+        executorCreator: windowExecutorCreator(options),
+        extraConfig,
+      });
+    }
+  }
+  // Export this class.
+  self.RemoteContextHelper = RemoteContextHelper;
 }

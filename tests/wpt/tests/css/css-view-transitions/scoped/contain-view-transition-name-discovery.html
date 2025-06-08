@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <!-- TODO update link -->
+  <link rel="help" href="https://www.w3.org/TR/css-view-transitions-2/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Contain and name discovery</title>
+</head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #outer {
+    view-transition-name: outer;
+  }
+
+  #inner {
+    view-transition-name: inner;
+  }
+
+  .containment {
+    contain: view-transition;
+  }
+</style>
+<body>
+  <div id="outer">
+    <div id="inner"></div>
+  </div>
+</body>
+<script>
+  function capturedNames() {
+    const regexp = /\((?<name>[^\)]+)/;
+    const names = document.getAnimations()
+                     .map(a => a.effect.pseudoElement)
+                     .map(name => name.match(regexp).groups.name);
+    return [...new Set(names)].sort();
+  }
+
+  promise_test(async t => {
+    const outer = document.getElementById('outer');
+    const inner = document.getElementById('inner');
+
+    let vt = document.startViewTransition(() => {});
+    await vt.ready;
+    assert_array_equals(
+        capturedNames(), ['inner', 'outer', 'root'],
+        'Retrieve all names in absence of contain style');
+    vt.skipTransition();
+
+    document.documentElement.classList.toggle('containment');
+    vt = document.startViewTransition(() => {});
+    await vt.ready;
+    assert_array_equals(
+        capturedNames(), ['inner', 'outer', 'root'],
+        'contain on the root element does not affect tag discovery');
+    vt.skipTransition();
+
+    outer.classList.toggle('containment');
+    vt = document.startViewTransition(() => {});
+    await vt.ready;
+    assert_array_equals(
+      capturedNames(), ['root'],
+      'contain on outer element blocks tag discovery in subtree');
+    vt.skipTransition();
+
+    vt = outer.startViewTransition(() => {});
+    await vt.ready;
+    assert_array_equals(
+        capturedNames(), ['inner', 'outer'],
+        'contain on the scoped element includes self');
+    vt.skipTransition();
+
+    vt = inner.startViewTransition(() => {});
+    await vt.ready;
+    assert_array_equals(
+        capturedNames(), ['inner'],
+        'contain on ancestor of the scoped element does not affect tag ' +
+        'discovery');
+    vt.skipTransition();
+
+    outer.classList.toggle('containment');
+    inner.classList.toggle('containment');
+    vt = document.startViewTransition(() => {});
+    await vt.ready;
+    assert_array_equals(
+        capturedNames(), ['outer', 'root'],
+        'contain on inner element still permits tag discovery of ancestor ' +
+        'elements');
+    vt.skipTransition();
+
+    vt = outer.startViewTransition(() => {});
+    await vt.ready;
+    assert_array_equals(
+        capturedNames(), ['outer'],
+        'contain on inner element limits tag discovery on outer element');
+    vt.skipTransition();
+
+    vt = inner.startViewTransition(() => {});
+    await vt.ready;
+    assert_array_equals(
+        capturedNames(), ['inner'],
+        'contain permits tag discovery on scoped element');
+    vt.skipTransition();
+  }, 'Contain: view-transition blocks propagation of name discovery.');
+</script>
+</html>

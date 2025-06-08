@@ -767,15 +767,16 @@ class CallbackHandler:
     def process_action(self, url, payload):
         action = payload["action"]
         cmd_id = payload["id"]
+        params = payload["params"]
         self.logger.debug(f"Got action: {action}")
         try:
             action_handler = self.actions[action]
         except KeyError as e:
             raise ValueError(f"Unknown action {action}") from e
         try:
-            with ActionContext(self.logger, self.protocol, payload.get("context")):
+            with ActionContext(self.logger, self.protocol, params.get("context")):
                 try:
-                    result = action_handler(payload)
+                    result = action_handler(params)
                 except AttributeError as e:
                     # If we fail to get an attribute from the protocol presumably that's a
                     # ProtocolPart we don't implement
@@ -839,8 +840,9 @@ class AsyncCallbackHandler(CallbackHandler):
         """
         async_action_handler = self.async_actions[action]
         cmd_id = payload["id"]
+        params = payload["params"]
         try:
-            result = await async_action_handler(payload)
+            result = await async_action_handler(params)
         except AttributeError as e:
             # If we fail to get an attribute from the protocol presumably that's a
             # ProtocolPart we don't implement

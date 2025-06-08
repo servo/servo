@@ -15,9 +15,9 @@
 setup(() => assertSpeculationRulesIsSupported());
 
 promise_test(async () => {
-  const rcHelper = new RemoteContextHelper();
+  const rcHelper = new PrerenderingRemoteContextHelper();
   const referrerRC = await rcHelper.addWindow(undefined, { features: 'noopener' });
-  const prerenderedRC = await addPrerenderRC(referrerRC);
+  const prerenderedRC = await referrerRC.addPrerender();
 
   const prerenderedHeaders = await prerenderedRC.getRequestHeaders();
   assertHeaders(prerenderedHeaders, true, true, 'prerendered page');
@@ -53,14 +53,14 @@ promise_test(async () => {
 }, 'Headers before activation, including prerendered page navigation');
 
 promise_test(async () => {
-  const rcHelper = new RemoteContextHelper();
+  const rcHelper = new PrerenderingRemoteContextHelper();
   const referrerRC = await rcHelper.addWindow(undefined, { features: 'noopener' });
-  const prerenderedRC = await addPrerenderRC(referrerRC);
+  const prerenderedRC = await referrerRC.addPrerender();
 
   // Add the iframe now, but only check its headers after activation.
   const crossOriginIframeBeforeActivationRC = await prerenderedRC.addIframe({ origin: 'HTTPS_REMOTE_ORIGIN' });
 
-  await activatePrerenderRC(referrerRC, prerenderedRC);
+  await referrerRC.navigateExpectingPrerenderingActivation(prerenderedRC);
 
   const crossOriginIframeBeforeActivationHeaders = await crossOriginIframeBeforeActivationRC.getRequestHeaders();
   assertHeaders(crossOriginIframeBeforeActivationHeaders, true, false, 'cross-origin iframe before activation');

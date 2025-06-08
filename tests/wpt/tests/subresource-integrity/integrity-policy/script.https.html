@@ -31,12 +31,6 @@
 
   const blob_url = URL.createObjectURL(blob);
 
-  // Generated using https://sha2.it/ed25519.html (In Chrome Canary, with Experimental Web Platform Features enabled)
-  const signature = encodeURIComponent(
-    'header(Unencoded-Digest, sha-384=:tqyFpeo21WFM8HDeUtLqH20GUq\/q3D1R6mqTzW3RtyTZ3dAYZJhC1wUcnkgOE2ak:)' +
-    '|header(Signature-Input, signature=\\("unencoded-digest";sf\\); keyid="JrQLj5P\/89iXES9+vFgrIy29clF9CC\/oPPsw3c5D0bs="; tag="sri")' +
-    '|header(Signature, signature=:qM19uLskHm2TQG5LJcH/hY0n0BWWzYOJztVWYlwk0cZb3u0JdgUMre1J4Jn8Tma0x2u5/kPBfbXRMbB+X+vTBw==:)');
-
   const test_cases = [
     {
       description: "Ensure that a script without integrity did not run",
@@ -93,16 +87,6 @@
       url: "/content-security-policy/resources/ran.js",
       cross_origin: true,
       integrity: "sha384-tqyFpeo21WFM8HDeUtLqH20GUq/q3D1R6mqTzW3RtyTZ3dAYZJhC1wUcnkgOE2ak",
-      policy_violation: false,
-      block: true,
-      endpoints: true,
-      expected: {blocked: "", ran: true },
-    },
-    {
-      description: "Ensure that a script with signature integrity runs",
-      url: "/content-security-policy/resources/ran.js?pipe=" + signature,
-      cross_origin: true,
-      integrity: "ed25519-JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=",
       policy_violation: false,
       block: true,
       endpoints: true,

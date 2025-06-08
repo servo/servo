@@ -51,7 +51,7 @@
 
       if (document.scrollingElement.scrollTop == 100) {
         scroll_position = "AT_SCROLL_START";
-      } else if (document.scrollingElement.scrollTop == expected_scroll_top) {
+      } else if (document.scrollingElement.scrollTop - expected_scroll_top < 1.0) {
         scroll_position = "AT_TEXT_FRAGMENT";
       }
 

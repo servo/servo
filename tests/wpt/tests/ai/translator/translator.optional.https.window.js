@@ -1,8 +1,7 @@
-// META: title=Translator Translate
+// META: title=Optional Translator tests
 // META: global=window
 // META: timeout=long
 // META: script=../resources/util.js
-// META: script=../resources/language_codes.js
 // META: script=/resources/testdriver.js
 // META: script=resources/util.js
 //
