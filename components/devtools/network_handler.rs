@@ -10,7 +10,7 @@ use serde::Serialize;
 
 use crate::actor::ActorRegistry;
 use crate::actors::browsing_context::BrowsingContextActor;
-use crate::actors::network_event::{EventActor, NetworkEventActor, ResponseStartMsg};
+use crate::actors::network_event::{NetworkEventActor, ResponseStartMsg};
 use crate::protocol::JsonPacketStream;
 use crate::resource::ResourceAvailable;
 
