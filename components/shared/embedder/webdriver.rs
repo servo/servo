@@ -94,7 +94,7 @@ pub enum WebDriverScriptCommand {
             serialize_with = "::hyper_serde::serialize"
         )]
         Cookie<'static>,
-        IpcSender<Result<(), WebDriverCookieError>>,
+        IpcSender<Result<(), ErrorStatus>>,
     ),
     DeleteCookies(IpcSender<Result<(), ErrorStatus>>),
     DeleteCookie(String, IpcSender<Result<(), ErrorStatus>>),
@@ -134,8 +134,11 @@ pub enum WebDriverScriptCommand {
     ElementClick(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     GetActiveElement(IpcSender<Option<String>>),
     GetComputedRole(String, IpcSender<Result<Option<String>, ErrorStatus>>),
-    GetCookie(String, IpcSender<Vec<Serde<Cookie<'static>>>>),
-    GetCookies(IpcSender<Vec<Serde<Cookie<'static>>>>),
+    GetCookie(
+        String,
+        IpcSender<Result<Vec<Serde<Cookie<'static>>>, ErrorStatus>>,
+    ),
+    GetCookies(IpcSender<Result<Vec<Serde<Cookie<'static>>>, ErrorStatus>>),
     GetElementAttribute(
         String,
         String,
@@ -163,12 +166,6 @@ pub enum WebDriverScriptCommand {
     GetTitle(IpcSender<String>),
     /// Match the element type before sending the event for webdriver `element send keys`.
     WillSendKeys(String, String, bool, IpcSender<Result<bool, ErrorStatus>>),
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub enum WebDriverCookieError {
-    InvalidDomain,
-    UnableToSetCookie,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
