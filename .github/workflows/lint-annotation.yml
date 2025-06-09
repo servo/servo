@@ -37,31 +37,20 @@ jobs:
 
             if (!Array.isArray(annotations) || annotations.length === 0) {
               console.log("✅ No annotations to report.");
-              await github.rest.checks.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              check_run_id: context.payload.workflow_run.id
-              head_sha: headSha,
-              status: "completed",
-              conclusion: "success",
-              output: {
-                title: "Rust Clippy Code Annotations",
-                summary: "No error or warning",
-              }
-            });
               return;
             }
 
             await github.rest.checks.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
+              name: "Rust Clippy Lint Report",
               check_run_id: context.payload.workflow_run.id
               head_sha: headSha,
               status: "completed",
-              conclusion: "failure",
+              conclusion: "neutral",
               output: {
                 title: "Rust Clippy Code Annotations",
-                summary: `${annotations.length} issue(s) reported`,
+                summary: `${limitedAnnotations.length} issue(s) reported`,
                 annotations: limitedAnnotations
               }
             });
