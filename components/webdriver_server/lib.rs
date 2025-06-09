@@ -981,7 +981,6 @@ impl Handler {
 
         let _ = self.wait_for_load();
 
-        // We can't create a new OS-level window, so the type would always be "tab"
         Ok(WebDriverResponse::NewWindow(NewWindowResponse {
             handle,
             typ: "tab".to_string(),
