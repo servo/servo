@@ -414,6 +414,12 @@ impl Window {
             }
         }
     }
+
+    fn was_cursor_inside(&self, webview: &WebView) -> bool {
+        webview
+            .rect()
+            .contains(self.webview_relative_mouse_point.get())
+    }
 }
 
 impl WindowPortsMethods for Window {
@@ -567,14 +573,24 @@ impl WindowPortsMethods for Window {
                 let mut point = winit_position_to_euclid_point(position).to_f32();
                 point.y -= (self.toolbar_height() * self.hidpi_scale_factor()).0;
 
+                let was_cursor_inside = self.was_cursor_inside(&webview);
                 self.webview_relative_mouse_point.set(point);
-                webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
+                if webview.rect().contains(point) {
+                    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
+                } else if was_cursor_inside {
+                    webview.notify_input_event(InputEvent::MouseLeave(MouseLeaveEvent::new(point)));
+                    self.winit_window
+                        .set_cursor(winit::window::Cursor::default());
+                }
             },
             WindowEvent::CursorLeft { .. } => {
                 // TODO: Use `cursor_position` instead once https://github.com/rust-windowing/winit/pull/2648 lands
-                let pos = self.webview_relative_mouse_point.get();
-                let point = Point2D::new(pos.x, pos.y);
-                webview.notify_input_event(InputEvent::MouseLeave(MouseLeaveEvent::new(point)));
+                let was_cursor_inside = self.was_cursor_inside(&webview);
+                if was_cursor_inside {
+                    let pos = self.webview_relative_mouse_point.get();
+                    let point = Point2D::new(pos.x, pos.y);
+                    webview.notify_input_event(InputEvent::MouseLeave(MouseLeaveEvent::new(point)));
+                }
             },
             WindowEvent::MouseWheel { delta, phase, .. } => {
                 let (mut dx, mut dy, mode) = match delta {

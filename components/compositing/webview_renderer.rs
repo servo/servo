@@ -333,41 +333,17 @@ impl WebViewRenderer {
 
         // If we can't find a pipeline to send this event to, we cannot continue.
         let get_pipeline_details = |pipeline_id| self.pipelines.get(&pipeline_id);
-        let result = self
+        let result = match self
             .global
             .borrow()
-            .hit_test_at_point(point, get_pipeline_details);
-        let result = match result {
+            .hit_test_at_point(point, get_pipeline_details)
+        {
             Ok(hit_test_results) => hit_test_results,
             Err(HitTestError::EpochMismatch) => {
                 self.pending_point_input_events
                     .borrow_mut()
                     .push_back(event);
                 return false;
-            },
-            // If it didn't hit anything
-            Err(HitTestError::Others)
-                if matches!(
-                    event,
-                    InputEvent::MouseButton(_) | InputEvent::MouseMove(_) | InputEvent::Wheel(_)
-                ) =>
-            {
-                // Reset cursor to default
-                self.global
-                    .borrow_mut()
-                    .update_cursor(point, self.id, Some(Cursor::Default));
-                return if let Err(error) = self.global.borrow().constellation_sender.send(
-                    EmbedderToConstellationMessage::ForwardInputEvent(
-                        self.id,
-                        InputEvent::MouseLeave(MouseLeaveEvent::new(point)),
-                        None,
-                    ),
-                ) {
-                    warn!("Sending event to constellation failed ({error:?}).");
-                    false
-                } else {
-                    true
-                };
             },
             _ => {
                 return false;
@@ -438,6 +414,11 @@ impl WebViewRenderer {
             return;
         }
 
+        if let InputEvent::MouseLeave(event) = event {
+            self.on_mouse_leave_event(event);
+            return;
+        }
+
         if self.global.borrow().convert_mouse_to_touch {
             match event {
                 InputEvent::MouseButton(event) => {
@@ -495,6 +476,21 @@ impl WebViewRenderer {
         }
 
         self.dispatch_point_input_event(event);
+    }
+
+    fn on_mouse_leave_event(&mut self, event: MouseLeaveEvent) {
+        self.global
+            .borrow_mut()
+            .update_cursor(event.point, self.id, Some(Cursor::Default));
+        if let Err(error) = self.global.borrow().constellation_sender.send(
+            EmbedderToConstellationMessage::ForwardInputEvent(
+                self.id,
+                InputEvent::MouseLeave(event),
+                None,
+            ),
+        ) {
+            warn!("Sending event to constellation failed ({error:?}).");
+        }
     }
 
     fn send_touch_event(&mut self, event: TouchEvent) -> bool {
