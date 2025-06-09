@@ -126,10 +126,6 @@ impl OffscreenCanvas {
         Some(context)
     }
 
-    pub(crate) fn is_valid(&self) -> bool {
-        self.Width() != 0 && self.Height() != 0
-    }
-
     pub(crate) fn placeholder(&self) -> Option<&HTMLCanvasElement> {
         self.placeholder.as_deref()
     }

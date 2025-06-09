@@ -37,7 +37,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlmediaelement::{HTMLMediaElement, ReadyState};
+use crate::dom::htmlmediaelement::{HTMLMediaElement, NetworkState, ReadyState};
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -293,6 +293,10 @@ impl HTMLVideoElement {
 
     pub(crate) fn origin_is_clean(&self) -> bool {
         self.htmlmediaelement.origin_is_clean()
+    }
+
+    pub(crate) fn is_network_state_empty(&self) -> bool {
+        self.htmlmediaelement.network_state() == NetworkState::Empty
     }
 }
 
