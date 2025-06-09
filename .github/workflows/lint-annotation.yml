@@ -49,7 +49,7 @@ jobs:
               conclusion: "neutral",
               output: {
                 title: "Rust Clippy Code Annotations",
-                summary: `${limitedAnnotations.length} issue(s) reported`,
-                annotations: limitedAnnotations
+                summary: `${annotations.length} issue(s) reported`,
+                annotations: annotations
               }
             });
