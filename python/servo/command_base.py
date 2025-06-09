@@ -865,6 +865,7 @@ class CommandBase(object):
 
                 with open("./temp/out.json", "w", encoding="utf-8") as file:
                     json.dump(json_array, file, indent=2)
+                    file.write("\n")
 
                 return 0
             except subprocess.CalledProcessError as e:
@@ -873,6 +874,7 @@ class CommandBase(object):
 
                 with open("./temp/out.json", "w", encoding="utf-8") as file:
                     json.dump(json_array, file, indent=2)
+                    file.write("\n")
 
                 return e.returncode
 
@@ -948,7 +950,7 @@ class CommandBase(object):
 
         if auto:
             if os.path.getmtime(src_clobber) > os.path.getmtime(target_clobber):
-                prstdoutint("Automatically clobbering target directory: {}".format(target_dir))
+                print("Automatically clobbering target directory: {}".format(target_dir))
 
                 try:
                     Registrar.dispatch("clean", context=self.context, verbose=True)

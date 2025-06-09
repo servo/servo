@@ -155,6 +155,7 @@ class MachCommands(CommandBase):
                     annotations.append(annotation)
                 with open("temp/clippy-output.json", "w", encoding="utf-8") as file:
                     json.dump(annotations, file, indent=2)
+                    file.write("\n")
             return retcode
         return self.run_cargo_build_like_command("clippy", params, env=env, **kwargs)
 
