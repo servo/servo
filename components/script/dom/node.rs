@@ -2363,12 +2363,18 @@ impl Node {
         debug_assert!(child.is_none_or(|child| Some(parent) == child.GetParentNode().as_deref()));
 
         // Step 1. Let nodes be node’s children, if node is a DocumentFragment node; otherwise « node ».
-        rooted_vec!(let mut new_nodes);
-        let new_nodes = if let NodeTypeId::DocumentFragment(_) = node.type_id() {
-            new_nodes.extend(node.children().map(|node| Dom::from_ref(&*node)));
-            new_nodes.r()
+        let mut unrooted_vec = js::gc::RootableVec::new_unrooted();
+        let fragment_nodes = if let NodeTypeId::DocumentFragment(_) = node.type_id() {
+            let mut rooted_vec = js::gc::RootedVec::new(&mut unrooted_vec);
+            rooted_vec.extend(node.children().map(|n| Dom::from_ref(&*n)));
+            Some(rooted_vec)
         } else {
-            from_ref(&node)
+            None
+        };
+
+        let new_nodes = match fragment_nodes {
+            Some(ref vec) => vec.r(),
+            None => from_ref(&node),
         };
 
         // Step 2. Let count be nodes’s size.
@@ -2506,36 +2512,47 @@ impl Node {
             MutationObserver::queue_a_mutation_record(parent, mutation);
         }
 
-        // Step 10. Let staticNodeList be a list of nodes, initially « ».
-        let mut static_node_list = vec![];
+        if let NodeTypeId::DocumentFragment(_) = node.type_id() {
+            // Step 10. Let staticNodeList be a list of nodes, initially « ».
+            let mut static_node_list = vec![];
 
-        // Step 11. For each node of nodes, in tree order:
-        for node in new_nodes {
-            // Step 11.1 For each shadow-including inclusive descendant inclusiveDescendant of node,
-            //           in shadow-including tree order, append inclusiveDescendant to staticNodeList.
-            static_node_list.extend(
-                node.traverse_preorder(ShadowIncluding::Yes)
-                    .map(|n| Trusted::new(&*n)),
-            );
-        }
-
-        // We use a delayed task for this step to work around an awkward interaction between
-        // script/layout blockers, Node::replace_all, and the children_changed vtable method.
-        // Any node with a post connection step that triggers layout (such as iframes) needs
-        // to be marked as dirty before doing so. This is handled by Node's children_changed
-        // callback, but when Node::insert is called as part of Node::replace_all then the
-        // callback is suppressed until we return to Node::replace_all. To ensure the sequence:
-        // 1) children_changed in Node::replace_all,
-        // 2) post_connection_steps from Node::insert,
-        // we use a delayed task that will run as soon as Node::insert removes its
-        // script/layout blocker.
-        parent_document.add_delayed_task(task!(PostConnectionSteps: move || {
-            // Step 12. For each node of staticNodeList, if node is connected, then run the
-            //          post-connection steps with node.
-            for node in static_node_list.iter().map(Trusted::root).filter(|n| n.is_connected()) {
-                vtable_for(&node).post_connection_steps();
+            // Step 11. For each node of nodes, in tree order:
+            for node in new_nodes {
+                // Step 11.1 For each shadow-including inclusive descendant inclusiveDescendant of node,
+                //           in shadow-including tree order, append inclusiveDescendant to staticNodeList.
+                static_node_list.extend(
+                    node.traverse_preorder(ShadowIncluding::Yes)
+                        .map(|n| Trusted::new(&*n)),
+                );
             }
-        }));
+
+            // We use a delayed task for this step to work around an awkward interaction between
+            // script/layout blockers, Node::replace_all, and the children_changed vtable method.
+            // Any node with a post connection step that triggers layout (such as iframes) needs
+            // to be marked as dirty before doing so. This is handled by Node's children_changed
+            // callback, but when Node::insert is called as part of Node::replace_all then the
+            // callback is suppressed until we return to Node::replace_all. To ensure the sequence:
+            // 1) children_changed in Node::replace_all,
+            // 2) post_connection_steps from Node::insert,
+            // we use a delayed task that will run as soon as Node::insert removes its
+            // script/layout blocker.
+            parent_document.add_delayed_task(task!(PostConnectionSteps: move || {
+                // Step 12. For each node of staticNodeList, if node is connected, then run the
+                //          post-connection steps with node.
+                for node in static_node_list.iter().map(Trusted::root).filter(|n| n.is_connected()) {
+                    vtable_for(&node).post_connection_steps();
+                }
+            }));
+        } else {
+            // In this case, directly call step 12 to avoid unnecessary memory allocation
+            let static_node = Trusted::new(&*new_nodes[0]);
+            parent_document.add_delayed_task(task!(PostConnectionSteps: move || {
+                let node = Trusted::root(&static_node);
+                if node.is_connected() {
+                    vtable_for(&node).post_connection_steps();
+                }
+            }));
+        }
 
         parent_document.remove_script_and_layout_blocker();
         from_document.remove_script_and_layout_blocker();
