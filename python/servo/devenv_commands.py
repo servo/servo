@@ -127,6 +127,9 @@ class MachCommands(CommandBase):
                 annotations = []
                 severenty_map = {"help": "notice", "note": "notice", "warning": "warning"}
                 for item in data:
+                    if len(annotations) >= 3:
+                        break
+
                     message = item.get("message")
                     if not message:
                         continue
