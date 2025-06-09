@@ -81,6 +81,8 @@ fn find_node_by_unique_id(
     match documents.find_document(pipeline) {
         Some(doc) => find_node_by_unique_id_in_document(&doc, node_id),
         None => {
+            // FIXME: This is unreacheable!! Because we already early return in Constellation
+            // To be Fixed soon
             if ScriptThread::has_node_id(pipeline, &node_id) {
                 Err(ErrorStatus::StaleElementReference)
             } else {
