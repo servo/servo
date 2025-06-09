@@ -66,7 +66,7 @@ def run_tests(default_binary_path: str, **kwargs):
     # chunks and leads to more consistent timing on GitHub Actions.
     set_if_none(kwargs, "chunk_type", "id_hash")
 
-    kwargs["user_stylesheets"].append(os.path.join(SERVO_ROOT, "resources", "ahem.css"))
+    kwargs["user_stylesheets"].append(os.path.join(SERVO_ROOT, "tests", "wpt", "tests", "fonts", "ahem.css"))
 
     set_if_none(kwargs, "binary", default_binary_path)
     set_if_none(kwargs, "webdriver_binary", default_binary_path)
