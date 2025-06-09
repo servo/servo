@@ -567,6 +567,8 @@ pub(crate) struct Document {
     active_keyboard_modifiers: Cell<Modifiers>,
     /// The node that is currently highlighted by the devtools
     highlighted_dom_node: MutNullableDom<Node>,
+    /// Whether `create_auxiliary_browsing_context` has just been triggered from the window
+    skip_sending_to_constellation: Cell<bool>,
 }
 
 #[allow(non_snake_case)]
@@ -1222,6 +1224,15 @@ impl Document {
         }
     }
 
+    // Needed for create_auxiliary_browsing_context
+    // Make sure when handling click event in document::handle_mouse_button_event
+    // does not send ScriptToConstellationMessage::Focus to Constellation
+    // but still commit focus transaction in Script
+    // See <https://github.com/servo/servo/issues/37364>
+    pub(crate) fn get_skip_sending_to_constellation(&self) -> &Cell<bool> {
+        &self.skip_sending_to_constellation
+    }
+
     /// Update the local focus state accordingly after being notified that the
     /// document's container is removed from the top-level browsing context's
     /// focus chain (not considering system focus).
@@ -1426,12 +1437,14 @@ impl Document {
                         .map(|id| id as &dyn std::fmt::Display)
                         .unwrap_or(&"(none)"),
                 );
-
-                self.window()
-                    .send_to_constellation(ScriptToConstellationMessage::Focus(
-                        child_browsing_context_id,
-                        sequence,
-                    ));
+                if !self.skip_sending_to_constellation.get() {
+                    self.window()
+                        .send_to_constellation(ScriptToConstellationMessage::Focus(
+                            child_browsing_context_id,
+                            sequence,
+                        ));
+                    self.skip_sending_to_constellation.set(false);
+                }
             },
             (false, false) => {
                 // Our `Document` doesn't have focus, and we intend to keep it
@@ -4228,6 +4241,7 @@ impl Document {
             intersection_observers: Default::default(),
             active_keyboard_modifiers: Cell::new(Modifiers::empty()),
             highlighted_dom_node: Default::default(),
+            skip_sending_to_constellation: Cell::new(false),
         }
     }
 
