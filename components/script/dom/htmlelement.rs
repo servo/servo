@@ -437,7 +437,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         document.request_focus(None, FocusInitiator::Local, can_gc);
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetparent
+    /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetparent>
     fn GetOffsetParent(&self, can_gc: CanGc) -> Option<DomRoot<Element>> {
         if self.is::<HTMLBodyElement>() || self.is::<HTMLHtmlElement>() {
             return None;

@@ -861,8 +861,14 @@ pub(crate) fn get_attr_for_layout<'dom>(
 
 pub(crate) trait LayoutElementHelpers<'dom> {
     fn attrs(self) -> &'dom [LayoutDom<'dom, Attr>];
-    fn has_class_for_layout(self, name: &AtomIdent, case_sensitivity: CaseSensitivity) -> bool;
+    fn has_class_or_part_for_layout(
+        self,
+        name: &AtomIdent,
+        attr_name: &LocalName,
+        case_sensitivity: CaseSensitivity,
+    ) -> bool;
     fn get_classes_for_layout(self) -> Option<&'dom [Atom]>;
+    fn get_parts_for_layout(self) -> Option<&'dom [Atom]>;
 
     fn synthesize_presentational_hints_for_legacy_attributes<V>(self, hints: &mut V)
     where
@@ -905,8 +911,13 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     }
 
     #[inline]
-    fn has_class_for_layout(self, name: &AtomIdent, case_sensitivity: CaseSensitivity) -> bool {
-        get_attr_for_layout(self, &ns!(), &local_name!("class")).is_some_and(|attr| {
+    fn has_class_or_part_for_layout(
+        self,
+        name: &AtomIdent,
+        attr_name: &LocalName,
+        case_sensitivity: CaseSensitivity,
+    ) -> bool {
+        get_attr_for_layout(self, &ns!(), attr_name).is_some_and(|attr| {
             attr.to_tokens()
                 .unwrap()
                 .iter()
@@ -917,6 +928,11 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     #[inline]
     fn get_classes_for_layout(self) -> Option<&'dom [Atom]> {
         get_attr_for_layout(self, &ns!(), &local_name!("class"))
+            .map(|attr| attr.to_tokens().unwrap())
+    }
+
+    fn get_parts_for_layout(self) -> Option<&'dom [Atom]> {
+        get_attr_for_layout(self, &ns!(), &local_name!("part"))
             .map(|attr| attr.to_tokens().unwrap())
     }
 
@@ -1987,6 +2003,16 @@ impl Element {
 
     pub(crate) fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         self.get_attribute(&ns!(), &local_name!("class"))
+            .is_some_and(|attr| {
+                attr.value()
+                    .as_tokens()
+                    .iter()
+                    .any(|atom| case_sensitivity.eq_atom(name, atom))
+            })
+    }
+
+    pub(crate) fn is_part(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
+        self.get_attribute(&ns!(), &LocalName::from("part"))
             .is_some_and(|attr| {
                 attr.value()
                     .as_tokens()
@@ -4051,6 +4077,13 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         rooted!(in(*cx) let slottable = Slottable(Dom::from_ref(self.upcast::<Node>())));
         slottable.find_a_slot(true)
     }
+
+    /// <https://drafts.csswg.org/css-shadow-parts/#dom-element-part>
+    fn Part(&self) -> DomRoot<DOMTokenList> {
+        self.ensure_rare_data()
+            .part
+            .or_init(|| DOMTokenList::new(self, &local_name!("part"), None, CanGc::note()))
+    }
 }
 
 impl VirtualMethods for Element {
@@ -4190,7 +4223,9 @@ impl VirtualMethods for Element {
         match *name {
             local_name!("id") => AttrValue::from_atomic(value.into()),
             local_name!("name") => AttrValue::from_atomic(value.into()),
-            local_name!("class") => AttrValue::from_serialized_tokenlist(value.into()),
+            local_name!("class") | local_name!("part") => {
+                AttrValue::from_serialized_tokenlist(value.into())
+            },
             _ => self
                 .super_type()
                 .unwrap()
@@ -4564,8 +4599,8 @@ impl SelectorsElement for SelectorWrapper<'_> {
             .is_some_and(|atom| case_sensitivity.eq_atom(id, atom))
     }
 
-    fn is_part(&self, _name: &AtomIdent) -> bool {
-        false
+    fn is_part(&self, name: &AtomIdent) -> bool {
+        Element::is_part(self, name, CaseSensitivity::CaseSensitive)
     }
 
     fn imported_part(&self, _: &AtomIdent) -> Option<AtomIdent> {
