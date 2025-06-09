@@ -44,7 +44,6 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               name: "Rust Clippy Lint Report",
-              check_run_id: context.payload.workflow_run.id
               head_sha: headSha,
               status: "completed",
               conclusion: "neutral",
