@@ -480,7 +480,7 @@ impl WebViewDelegate for RunningAppState {
         // When WebDriver is enabled, do not focus and raise the WebView to the top,
         // as that is what the specification expects. Otherwise, we would like `window.open()`
         // to create a new foreground tab
-        if opts::get().webdriver_port.is_some() {
+        if opts::get().webdriver_port.is_none() {
             webview.focus();
             webview.raise_to_top(true);
         }
