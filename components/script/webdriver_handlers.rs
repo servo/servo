@@ -9,9 +9,7 @@ use std::ptr::NonNull;
 
 use base::id::{BrowsingContextId, PipelineId};
 use cookie::Cookie;
-use embedder_traits::{
-    WebDriverCookieError, WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue,
-};
+use embedder_traits::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
 use euclid::default::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
@@ -994,7 +992,7 @@ pub(crate) fn handle_get_page_source(
 pub(crate) fn handle_get_cookies(
     documents: &DocumentCollection,
     pipeline: PipelineId,
-    reply: IpcSender<Vec<Serde<Cookie<'static>>>>,
+    reply: IpcSender<Result<Vec<Serde<Cookie<'static>>>, ErrorStatus>>,
 ) {
     reply
         .send(
@@ -1008,9 +1006,9 @@ pub(crate) fn handle_get_cookies(
                         .as_global_scope()
                         .resource_threads()
                         .send(GetCookiesDataForUrl(url, sender, NonHTTP));
-                    receiver.recv().unwrap()
+                    Ok(receiver.recv().unwrap())
                 },
-                None => Vec::new(),
+                None => Ok(Vec::new()),
             },
         )
         .unwrap();
@@ -1021,7 +1019,7 @@ pub(crate) fn handle_get_cookie(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     name: String,
-    reply: IpcSender<Vec<Serde<Cookie<'static>>>>,
+    reply: IpcSender<Result<Vec<Serde<Cookie<'static>>>, ErrorStatus>>,
 ) {
     reply
         .send(
@@ -1036,12 +1034,12 @@ pub(crate) fn handle_get_cookie(
                         .resource_threads()
                         .send(GetCookiesDataForUrl(url, sender, NonHTTP));
                     let cookies = receiver.recv().unwrap();
-                    cookies
+                    Ok(cookies
                         .into_iter()
                         .filter(|cookie| cookie.name() == &*name)
-                        .collect()
+                        .collect())
                 },
-                None => Vec::new(),
+                None => Ok(Vec::new()),
             },
         )
         .unwrap();
@@ -1052,15 +1050,13 @@ pub(crate) fn handle_add_cookie(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     cookie: Cookie<'static>,
-    reply: IpcSender<Result<(), WebDriverCookieError>>,
+    reply: IpcSender<Result<(), ErrorStatus>>,
 ) {
     // TODO: Return a different error if the pipeline doesn't exist
     let document = match documents.find_document(pipeline) {
         Some(document) => document,
         None => {
-            return reply
-                .send(Err(WebDriverCookieError::UnableToSetCookie))
-                .unwrap();
+            return reply.send(Err(ErrorStatus::UnableToSetCookie)).unwrap();
         },
     };
     let url = document.url();
@@ -1073,7 +1069,7 @@ pub(crate) fn handle_add_cookie(
     let domain = cookie.domain().map(ToOwned::to_owned);
     reply
         .send(match (document.is_cookie_averse(), domain) {
-            (true, _) => Err(WebDriverCookieError::InvalidDomain),
+            (true, _) => Err(ErrorStatus::InvalidCookieDomain),
             (false, Some(ref domain)) if url.host_str().map(|x| x == domain).unwrap_or(false) => {
                 let _ = document
                     .window()
@@ -1090,7 +1086,7 @@ pub(crate) fn handle_add_cookie(
                     .send(SetCookieForUrl(url, Serde(cookie), method));
                 Ok(())
             },
-            (_, _) => Err(WebDriverCookieError::UnableToSetCookie),
+            (_, _) => Err(ErrorStatus::UnableToSetCookie),
         })
         .unwrap();
 }

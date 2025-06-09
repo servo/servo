@@ -24,9 +24,9 @@ use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use cookie::{CookieBuilder, Expiration};
 use crossbeam_channel::{Receiver, Sender, after, select, unbounded};
 use embedder_traits::{
-    MouseButton, WebDriverCommandMsg, WebDriverCommandResponse, WebDriverCookieError,
-    WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus,
-    WebDriverMessageId, WebDriverScriptCommand,
+    MouseButton, WebDriverCommandMsg, WebDriverCommandResponse, WebDriverFrameId, WebDriverJSError,
+    WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus, WebDriverMessageId,
+    WebDriverScriptCommand,
 };
 use euclid::{Rect, Size2D};
 use http::method::Method;
@@ -1365,7 +1365,10 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetCookies(sender);
         self.browsing_context_script_command(cmd)?;
-        let cookies = wait_for_script_response(receiver)?;
+        let cookies = match wait_for_script_response(receiver)? {
+            Ok(cookies) => cookies,
+            Err(error) => return Err(WebDriverError::new(error, "")),
+        };
         let response = cookies
             .into_iter()
             .map(|cookie| cookie_msg_to_cookie(cookie.into_inner()))
@@ -1377,7 +1380,10 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetCookie(name, sender);
         self.browsing_context_script_command(cmd)?;
-        let cookies = wait_for_script_response(receiver)?;
+        let cookies = match wait_for_script_response(receiver)? {
+            Ok(cookies) => cookies,
+            Err(error) => return Err(WebDriverError::new(error, "")),
+        };
         let Some(response) = cookies
             .into_iter()
             .map(|cookie| cookie_msg_to_cookie(cookie.into_inner()))
@@ -1410,16 +1416,7 @@ impl Handler {
         self.browsing_context_script_command(cmd)?;
         match wait_for_script_response(receiver)? {
             Ok(_) => Ok(WebDriverResponse::Void),
-            Err(response) => match response {
-                WebDriverCookieError::InvalidDomain => Err(WebDriverError::new(
-                    ErrorStatus::InvalidCookieDomain,
-                    "Invalid cookie domain",
-                )),
-                WebDriverCookieError::UnableToSetCookie => Err(WebDriverError::new(
-                    ErrorStatus::UnableToSetCookie,
-                    "Unable to set cookie",
-                )),
-            },
+            Err(error) => Err(WebDriverError::new(error, "")),
         }
     }
 
