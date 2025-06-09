@@ -949,6 +949,7 @@ impl Handler {
         )))
     }
 
+    /// <https://w3c.github.io/webdriver/#new-window>
     fn handle_new_window(
         &mut self,
         _parameters: &NewWindowParameters,
@@ -956,11 +957,16 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
 
         let session = self.session().unwrap();
+        // Step 2. (TODO) If session's current top-level browsing context is no longer open,
+        // return error with error code no such window.
+
         let cmd_msg = WebDriverCommandMsg::NewWebView(
             session.webview_id,
             sender,
             self.load_status_sender.clone(),
         );
+        // Step 5. Create a new top-level browsing context by running the window open steps.
+        // This MUST be done without invoking the focusing steps.
         self.constellation_chan
             .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
             .unwrap();
@@ -968,8 +974,6 @@ impl Handler {
         let mut handle = self.session.as_ref().unwrap().id.to_string();
         if let Ok(new_webview_id) = receiver.recv() {
             let session = self.session_mut().unwrap();
-            session.webview_id = new_webview_id;
-            session.browsing_context_id = BrowsingContextId::from(new_webview_id);
             let new_handle = Uuid::new_v4().to_string();
             handle = new_handle.clone();
             session.window_handles.insert(new_webview_id, new_handle);
