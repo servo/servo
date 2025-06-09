@@ -47,6 +47,21 @@ jobs:
       - name: Give permission to script
         run: |
           chmod +x ./etc/ci/clippy-annotation.sh
+      - name: Run Rust linter Clippy Check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: "Rust Clippy Lint Report",
+              head_sha: context.payload.pull_request.head.sha,
+              status: "in_progress",
+              output: {
+                title: "Rust Clippy Code Annotations is running",
+                summary: "Code linting for Rust",
+              }
+            });
       - name: Save Head Sha & Create temp directory
         if: ${{ !cancelled() }}
         run: |
