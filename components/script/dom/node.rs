@@ -295,7 +295,7 @@ impl Node {
         let parent_is_in_a_document_tree = self.is_in_a_document_tree();
         let parent_in_shadow_tree = self.is_in_a_shadow_tree();
         let parent_is_connected = self.is_connected();
-        let parent_is_in_ua_widget = self.in_ua_widget();
+        let parent_is_in_ua_widget = self.is_in_ua_widget();
 
         for node in new_child.traverse_preorder(ShadowIncluding::No) {
             if parent_in_shadow_tree {
@@ -720,7 +720,7 @@ impl Node {
         self.set_flag(NodeFlags::IS_IN_UA_WIDGET, in_ua_widget)
     }
 
-    pub(crate) fn in_ua_widget(&self) -> bool {
+    pub(crate) fn is_in_ua_widget(&self) -> bool {
         self.flags.get().contains(NodeFlags::IS_IN_UA_WIDGET)
     }
 
@@ -1677,7 +1677,7 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
     fn iframe_pipeline_id(self) -> Option<PipelineId>;
     fn opaque(self) -> OpaqueNode;
     fn pseudo_element(&self) -> Option<PseudoElement>;
-    fn in_ua_widget(&self) -> bool;
+    fn is_in_ua_widget(&self) -> bool;
 }
 
 impl<'dom> LayoutDom<'dom, Node> {
@@ -1958,8 +1958,8 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
             .and_then(|data| data.pseudo_element)
     }
 
-    fn in_ua_widget(&self) -> bool {
-        self.unsafe_get().in_ua_widget()
+    fn is_in_ua_widget(&self) -> bool {
+        self.unsafe_get().is_in_ua_widget()
     }
 }
 

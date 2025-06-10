@@ -327,13 +327,20 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
             .set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, false)
     }
 
+    /// We would like to match rules from the same tree in all cases and optimize computation.
+    /// UA Widget is an exception since we could have a pseudo element selector inside it.
     #[inline]
     fn matches_user_and_content_rules(&self) -> bool {
-        !self.as_node().node.in_ua_widget()
+        !self.as_node().node.is_in_ua_widget()
     }
 
+    /// Returns the pseudo-element implemented by this element, if any. In other words,
+    /// the element will match the specified pseudo element throughout the style computation.
     #[inline]
     fn implemented_pseudo_element(&self) -> Option<PseudoElement> {
+        if self.matches_user_and_content_rules() {
+            return None;
+        }
         self.as_node().node.pseudo_element()
     }
 
@@ -563,6 +570,22 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
         self.containing_shadow().map(|s| s.host())
     }
 
+    #[inline]
+    fn is_pseudo_element(&self) -> bool {
+        self.implemented_pseudo_element().is_some()
+    }
+
+    #[inline]
+    fn pseudo_element_originating_element(&self) -> Option<Self> {
+        debug_assert!(self.is_pseudo_element());
+        debug_assert!(!self.matches_user_and_content_rules());
+        if self.element.upcast::<Node>().is_in_ua_widget() {
+            self.containing_shadow_host()
+        } else {
+            self.parent_element()
+        }
+    }
+
     fn prev_sibling_element(&self) -> Option<Self> {
         let mut node = self.as_node();
         while let Some(sibling) = node.prev_sibling() {
@@ -641,29 +664,6 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
             self.element.namespace() == other.element.namespace()
     }
 
-    #[inline]
-    fn is_pseudo_element(&self) -> bool {
-        self.element.upcast::<Node>().pseudo_element().is_some()
-    }
-
-    #[inline]
-    fn pseudo_element_originating_element(&self) -> Option<Self> {
-        debug_assert!(self.is_pseudo_element());
-        if self.element.upcast::<Node>().in_ua_widget() {
-            self.containing_shadow_host()
-        } else {
-            self.parent_element()
-        }
-    }
-
-    fn match_pseudo_element(
-        &self,
-        pseudo: &PseudoElement,
-        _context: &mut MatchingContext<Self::Impl>,
-    ) -> bool {
-        self.element.upcast::<Node>().pseudo_element() == Some(*pseudo)
-    }
-
     fn match_non_ts_pseudo_class(
         &self,
         pseudo_class: &NonTSPseudoClass,
@@ -720,6 +720,14 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
                 .get_state_for_layout()
                 .contains(pseudo_class.state_flag()),
         }
+    }
+
+    fn match_pseudo_element(
+        &self,
+        pseudo: &PseudoElement,
+        _context: &mut MatchingContext<Self::Impl>,
+    ) -> bool {
+        self.implemented_pseudo_element() == Some(*pseudo)
     }
 
     #[inline]
@@ -914,23 +922,32 @@ impl ::selectors::Element for ServoThreadSafeLayoutElement<'_> {
         ::selectors::OpaqueElement::new(unsafe { &*(self.as_node().opaque().0 as *const ()) })
     }
 
-    #[inline]
-    fn is_pseudo_element(&self) -> bool {
-        self.element.is_pseudo_element()
-    }
-
     fn parent_element(&self) -> Option<Self> {
         warn!("ServoThreadSafeLayoutElement::parent_element called");
         None
     }
 
+    #[inline]
     fn parent_node_is_shadow_root(&self) -> bool {
         self.element.parent_node_is_shadow_root()
     }
 
+    #[inline]
     fn containing_shadow_host(&self) -> Option<Self> {
         self.element
             .containing_shadow_host()
+            .and_then(|element| element.as_node().to_threadsafe().as_element())
+    }
+
+    #[inline]
+    fn is_pseudo_element(&self) -> bool {
+        self.element.is_pseudo_element()
+    }
+
+    #[inline]
+    fn pseudo_element_originating_element(&self) -> Option<Self> {
+        self.element
+            .pseudo_element_originating_element()
             .and_then(|element| element.as_node().to_threadsafe().as_element())
     }
 
@@ -976,22 +993,6 @@ impl ::selectors::Element for ServoThreadSafeLayoutElement<'_> {
             self.element.namespace() == other.element.namespace()
     }
 
-    #[inline]
-    fn pseudo_element_originating_element(&self) -> Option<Self> {
-        debug_assert!(self.is_pseudo_element());
-        self.element
-            .pseudo_element_originating_element()
-            .and_then(|element| element.as_node().to_threadsafe().as_element())
-    }
-
-    fn match_pseudo_element(
-        &self,
-        pseudo: &PseudoElement,
-        _context: &mut MatchingContext<Self::Impl>,
-    ) -> bool {
-        self.element.implemented_pseudo_element() == Some(*pseudo)
-    }
-
     fn attr_matches(
         &self,
         ns: &NamespaceConstraint<&style::Namespace>,
@@ -1019,6 +1020,14 @@ impl ::selectors::Element for ServoThreadSafeLayoutElement<'_> {
         // NB: This could maybe be implemented
         warn!("ServoThreadSafeLayoutElement::match_non_ts_pseudo_class called");
         false
+    }
+
+    fn match_pseudo_element(
+        &self,
+        pseudo: &PseudoElement,
+        context: &mut MatchingContext<Self::Impl>,
+    ) -> bool {
+        self.element.match_pseudo_element(pseudo, context)
     }
 
     fn is_link(&self) -> bool {
