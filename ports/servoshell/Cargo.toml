@@ -37,7 +37,7 @@ ProductName = "Servo"
 [features]
 crown = ["libservo/crown"]
 debugmozjs = ["libservo/debugmozjs"]
-default = ["max_log_level", "webdriver", "webgpu", "webxr"]
+default = ["max_log_level", "webgpu", "webxr"]
 jitspew = ["libservo/jitspew"]
 js_backtrace = ["libservo/js_backtrace"]
 max_log_level = ["log/release_max_level_info"]
@@ -55,6 +55,8 @@ webxr = ["libservo/webxr"]
 
 [dependencies]
 cfg-if = { workspace = true }
+constellation_traits = { workspace = true }
+crossbeam-channel = { workspace = true }
 dpi = { workspace = true }
 euclid = { workspace = true }
 getopts = { workspace = true }
@@ -72,6 +74,7 @@ tracing = { workspace = true, optional = true }
 tracing-perfetto = { workspace = true, optional = true }
 tracing-subscriber = { workspace = true, optional = true, features = ["env-filter"] }
 url = { workspace = true }
+webdriver_server = { path = "../../components/webdriver_server" }
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.15"

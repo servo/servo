@@ -24,9 +24,9 @@ use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use cookie::{CookieBuilder, Expiration};
 use crossbeam_channel::{Receiver, Sender, after, select, unbounded};
 use embedder_traits::{
-    MouseButton, WebDriverCommandMsg, WebDriverCommandResponse, WebDriverFrameId, WebDriverJSError,
-    WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus, WebDriverMessageId,
-    WebDriverScriptCommand,
+    EmbedderMsg, EmbedderProxy, EventLoopWaker, MouseButton, WebDriverCommandMsg,
+    WebDriverCommandResponse, WebDriverFrameId, WebDriverJSError, WebDriverJSResult,
+    WebDriverJSValue, WebDriverLoadStatus, WebDriverMessageId, WebDriverScriptCommand,
 };
 use euclid::{Rect, Size2D};
 use http::method::Method;
@@ -122,8 +122,25 @@ fn cookie_msg_to_cookie(cookie: cookie::Cookie) -> Cookie {
     }
 }
 
-pub fn start_server(port: u16, constellation_chan: Sender<EmbedderToConstellationMessage>) {
-    let handler = Handler::new(constellation_chan);
+pub fn create_embedder_channel(
+    event_loop_waker: Box<dyn EventLoopWaker>,
+) -> (EmbedderProxy, Receiver<EmbedderMsg>) {
+    let (sender, receiver) = unbounded();
+    (
+        EmbedderProxy {
+            sender,
+            event_loop_waker,
+        },
+        receiver,
+    )
+}
+
+pub fn start_server(
+    port: u16,
+    constellation_chan: Sender<EmbedderToConstellationMessage>,
+    embedder_proxy: EmbedderProxy,
+) {
+    let handler = Handler::new(constellation_chan, embedder_proxy);
     thread::Builder::new()
         .name("WebDriverHttpServer".to_owned())
         .spawn(move || {
@@ -223,10 +240,15 @@ struct Handler {
 
     session: Option<WebDriverSession>,
 
+    /// Embedder proxy
+    embedder_proxy: EmbedderProxy,
+
     /// The channel for sending Webdriver messages to the constellation.
+    /// TODO: change name to constellation_sender
     constellation_chan: Sender<EmbedderToConstellationMessage>,
 
     /// The IPC sender which we can clone and pass along to the constellation
+    /// TODO: change name to webdriver_response_sender
     constellation_sender: IpcSender<WebDriverCommandResponse>,
 
     /// Receiver notification from the constellation when a command is completed
@@ -450,7 +472,10 @@ impl<'de> Visitor<'de> for TupleVecMapVisitor {
 }
 
 impl Handler {
-    pub fn new(constellation_chan: Sender<EmbedderToConstellationMessage>) -> Handler {
+    pub fn new(
+        constellation_chan: Sender<EmbedderToConstellationMessage>,
+        embedder_proxy: EmbedderProxy,
+    ) -> Handler {
         // Create a pair of both an IPC and a threaded channel,
         // keep the IPC sender to clone and pass to the constellation for each load,
         // and keep a threaded receiver to block on an incoming load-status.
@@ -466,6 +491,7 @@ impl Handler {
             load_status_sender,
             load_status_receiver,
             session: None,
+            embedder_proxy,
             constellation_chan,
             constellation_sender,
             constellation_receiver,
@@ -1001,9 +1027,8 @@ impl Handler {
         // Step 3. Close session's current top-level browsing context.
         session.window_handles.remove(&webview_id);
         let cmd_msg = WebDriverCommandMsg::CloseWebView(session.webview_id);
-        self.constellation_chan
-            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
-            .unwrap();
+        self.embedder_proxy
+            .send(EmbedderMsg::WebDriverCommand(cmd_msg));
         let window_handles: Vec<String> = self
             .session()
             .unwrap()
@@ -1015,6 +1040,7 @@ impl Handler {
         if window_handles.is_empty() {
             self.session = None;
         }
+
         // Step 5. Return the result of running the remote end steps for the Get Window Handles command
         Ok(WebDriverResponse::CloseWindow(CloseWindowResponse(
             window_handles,
@@ -2052,11 +2078,9 @@ impl Handler {
         webview_id: WebViewId,
     ) -> Result<(), WebDriverError> {
         let (sender, receiver) = ipc::channel().unwrap();
-        self.constellation_chan
-            .send(EmbedderToConstellationMessage::WebDriverCommand(
-                WebDriverCommandMsg::IsWebViewOpen(webview_id, sender),
-            ))
-            .unwrap();
+        self.embedder_proxy.send(EmbedderMsg::WebDriverCommand(
+            WebDriverCommandMsg::IsWebViewOpen(webview_id, sender),
+        ));
         if !receiver.recv().unwrap_or(false) {
             Err(WebDriverError::new(
                 ErrorStatus::NoSuchWindow,
@@ -2072,11 +2096,9 @@ impl Handler {
         browsing_context_id: BrowsingContextId,
     ) -> Result<(), WebDriverError> {
         let (sender, receiver) = ipc::channel().unwrap();
-        self.constellation_chan
-            .send(EmbedderToConstellationMessage::WebDriverCommand(
-                WebDriverCommandMsg::IsBrowsingContextOpen(browsing_context_id, sender),
-            ))
-            .unwrap();
+        self.embedder_proxy.send(EmbedderMsg::WebDriverCommand(
+            WebDriverCommandMsg::IsBrowsingContextOpen(browsing_context_id, sender),
+        ));
         if !receiver.recv().unwrap_or(false) {
             Err(WebDriverError::new(
                 ErrorStatus::NoSuchWindow,

@@ -138,9 +138,6 @@ fn webdriver(port: u16, constellation: Sender<EmbedderToConstellationMessage>) {
     webdriver_server::start_server(port, constellation);
 }
 
-#[cfg(not(feature = "webdriver"))]
-fn webdriver(_port: u16, _constellation: Sender<EmbedderToConstellationMessage>) {}
-
 #[cfg(feature = "media-gstreamer")]
 mod media_platform {
     #[cfg(any(windows, target_os = "macos"))]
@@ -467,12 +464,6 @@ impl Servo {
             protocols,
             builder.user_content_manager,
         );
-
-        if cfg!(feature = "webdriver") {
-            if let Some(port) = opts.webdriver_port {
-                webdriver(port, constellation_chan.clone());
-            }
-        }
 
         // The compositor coordinates with the client window to create the final
         // rendered page and display it somewhere.
@@ -1008,7 +999,19 @@ impl Servo {
                     webview.delegate().show_form_control(webview, form_control);
                 }
             },
+            _ => {},
         }
+    }
+
+    pub fn constellation_sender(&self) -> Sender<EmbedderToConstellationMessage> {
+        self.constellation_proxy.sender()
+    }
+
+    pub fn execute_webdriver_command(&self, command: WebDriverCommandMsg) {
+        let _ = self
+            .constellation_proxy
+            .sender()
+            .send(EmbedderToConstellationMessage::WebDriverCommand(command));
     }
 }
 
