@@ -32,12 +32,11 @@ use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::{
     WebGL2RenderingContextConstants as constants, WebGL2RenderingContextMethods,
 };
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{
-    WebGLContextAttributes, WebGLRenderingContextMethods,
+    TexImageSource, WebGLContextAttributes, WebGLRenderingContextMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, Float32ArrayOrUnrestrictedFloatSequence,
-    HTMLCanvasElementOrOffscreenCanvas,
-    ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement, Int32ArrayOrLongSequence,
+    HTMLCanvasElementOrOffscreenCanvas, Int32ArrayOrLongSequence,
     Uint32ArrayOrUnsignedLongSequence,
 };
 use crate::dom::bindings::error::{ErrorResult, Fallible};
@@ -535,7 +534,7 @@ impl WebGL2RenderingContext {
             let src_origin = Point2D::new(x, y);
             let src_size = Size2D::new(width as u32, height as u32);
             let fb_size = Size2D::new(fb_width as u32, fb_height as u32);
-            match pixels::clip(src_origin, src_size.to_u64(), fb_size.to_u64()) {
+            match pixels::clip(src_origin, src_size.to_u32(), fb_size.to_u32()) {
                 Some(rect) => rect.to_u32(),
                 None => return,
             }
@@ -2184,7 +2183,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             let src_origin = Point2D::new(x, y);
             let src_size = Size2D::new(width as u32, height as u32);
             let fb_size = Size2D::new(fb_width as u32, fb_height as u32);
-            if pixels::clip(src_origin, src_size.to_u64(), fb_size.to_u64()).is_none() {
+            if pixels::clip(src_origin, src_size.to_u32(), fb_size.to_u32()).is_none() {
                 return;
             }
         }
@@ -3023,7 +3022,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         internal_format: i32,
         format: u32,
         data_type: u32,
-        source: ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement,
+        source: TexImageSource,
     ) -> ErrorResult {
         self.base
             .TexImage2D_(target, level, internal_format, format, data_type, source)
@@ -3118,7 +3117,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         border: i32,
         format: u32,
         type_: u32,
-        source: ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement,
+        source: TexImageSource,
     ) -> Fallible<()> {
         if self.bound_pixel_unpack_buffer.get().is_some() {
             self.base.webgl_error(InvalidOperation);
@@ -3301,7 +3300,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         yoffset: i32,
         format: u32,
         data_type: u32,
-        source: ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement,
+        source: TexImageSource,
     ) -> ErrorResult {
         self.base
             .TexSubImage2D_(target, level, xoffset, yoffset, format, data_type, source)

@@ -71,7 +71,7 @@ use js::jsval::UndefinedValue;
 use js::rust::ParentRuntime;
 use media::WindowGLContext;
 use metrics::MAX_TASK_NS;
-use net_traits::image_cache::{ImageCache, PendingImageResponse};
+use net_traits::image_cache::{ImageCache, ImageCacheResponseMessage};
 use net_traits::request::{Referrer, RequestId};
 use net_traits::response::ResponseInit;
 use net_traits::storage_thread::StorageType;
@@ -194,6 +194,8 @@ pub(crate) struct IncompleteParserContexts(RefCell<Vec<(PipelineId, ParserContex
 
 unsafe_no_jsmanaged_fields!(TaskQueue<MainThreadScriptMsg>);
 
+type NodeIdSet = HashSet<String>;
+
 #[derive(JSTraceable)]
 // ScriptThread instances are rooted on creation, so this is okay
 #[cfg_attr(crown, allow(crown::unrooted_must_root))]
@@ -315,8 +317,9 @@ pub struct ScriptThread {
     #[no_trace]
     player_context: WindowGLContext,
 
-    /// A set of all nodes ever created in this script thread
-    node_ids: DomRefCell<HashSet<String>>,
+    /// A map from pipelines to all owned nodes ever created in this script thread
+    #[no_trace]
+    pipeline_to_node_ids: DomRefCell<HashMap<PipelineId, NodeIdSet>>,
 
     /// Code is running as a consequence of a user interaction
     is_user_interacting: Cell<bool>,
@@ -403,14 +406,20 @@ impl ScriptThreadFactory for ScriptThread {
                 WebViewId::install(state.webview_id);
                 let roots = RootCollection::new();
                 let _stack_roots = ThreadLocalStackRoots::new(&roots);
-                let id = state.id;
-                let browsing_context_id = state.browsing_context_id;
-                let webview_id = state.webview_id;
-                let parent_info = state.parent_info;
-                let opener = state.opener;
                 let memory_profiler_sender = state.memory_profiler_sender.clone();
-                let viewport_details = state.viewport_details;
 
+                let in_progress_load = InProgressLoad::new(
+                    state.id,
+                    state.browsing_context_id,
+                    state.webview_id,
+                    state.parent_info,
+                    state.opener,
+                    state.viewport_details,
+                    state.theme,
+                    MutableOrigin::new(load_data.url.origin()),
+                    load_data,
+                );
+                let reporter_name = format!("script-reporter-{:?}", state.id);
                 let script_thread = ScriptThread::new(state, layout_factory, system_font_service);
 
                 SCRIPT_THREAD_ROOT.with(|root| {
@@ -419,19 +428,8 @@ impl ScriptThreadFactory for ScriptThread {
 
                 let mut failsafe = ScriptMemoryFailsafe::new(&script_thread);
 
-                let origin = MutableOrigin::new(load_data.url.origin());
-                script_thread.pre_page_load(InProgressLoad::new(
-                    id,
-                    browsing_context_id,
-                    webview_id,
-                    parent_info,
-                    opener,
-                    viewport_details,
-                    origin,
-                    load_data,
-                ));
+                script_thread.pre_page_load(in_progress_load);
 
-                let reporter_name = format!("script-reporter-{:?}", id);
                 memory_profiler_sender.run_with_memory_reporting(
                     || {
                         script_thread.start(CanGc::note());
@@ -823,14 +821,25 @@ impl ScriptThread {
         })
     }
 
-    pub(crate) fn save_node_id(node_id: String) {
+    pub(crate) fn save_node_id(pipeline: PipelineId, node_id: String) {
         with_script_thread(|script_thread| {
-            script_thread.node_ids.borrow_mut().insert(node_id);
+            script_thread
+                .pipeline_to_node_ids
+                .borrow_mut()
+                .entry(pipeline)
+                .or_default()
+                .insert(node_id);
         })
     }
 
-    pub(crate) fn has_node_id(node_id: &str) -> bool {
-        with_script_thread(|script_thread| script_thread.node_ids.borrow().contains(node_id))
+    pub(crate) fn has_node_id(pipeline: PipelineId, node_id: &str) -> bool {
+        with_script_thread(|script_thread| {
+            script_thread
+                .pipeline_to_node_ids
+                .borrow()
+                .get(&pipeline)
+                .is_some_and(|node_ids| node_ids.contains(node_id))
+        })
     }
 
     /// Creates a new script thread.
@@ -950,7 +959,7 @@ impl ScriptThread {
             unminify_css: opts.unminify_css,
             user_content_manager: state.user_content_manager,
             player_context: state.player_context,
-            node_ids: Default::default(),
+            pipeline_to_node_ids: Default::default(),
             is_user_interacting: Cell::new(false),
             #[cfg(feature = "webgpu")]
             gpu_id_hub: Arc::new(IdentityHub::default()),
@@ -2100,11 +2109,24 @@ impl ScriptThread {
         }
     }
 
-    fn handle_msg_from_image_cache(&self, response: PendingImageResponse) {
-        let window = self.documents.borrow().find_window(response.pipeline_id);
-        if let Some(ref window) = window {
-            window.pending_image_notification(response);
-        }
+    fn handle_msg_from_image_cache(&self, response: ImageCacheResponseMessage) {
+        match response {
+            ImageCacheResponseMessage::NotifyPendingImageLoadStatus(pending_image_response) => {
+                let window = self
+                    .documents
+                    .borrow()
+                    .find_window(pending_image_response.pipeline_id);
+                if let Some(ref window) = window {
+                    window.pending_image_notification(pending_image_response);
+                }
+            },
+            ImageCacheResponseMessage::VectorImageRasterizationComplete(response) => {
+                let window = self.documents.borrow().find_window(response.pipeline_id);
+                if let Some(ref window) = window {
+                    window.handle_image_rasterization_complete_notification(response);
+                }
+            },
+        };
     }
 
     fn handle_webdriver_msg(
@@ -2258,13 +2280,12 @@ impl ScriptThread {
                     can_gc,
                 )
             },
-            WebDriverScriptCommand::FocusElement(element_id, reply) => {
-                webdriver_handlers::handle_focus_element(
+            WebDriverScriptCommand::GetElementShadowRoot(element_id, reply) => {
+                webdriver_handlers::handle_get_element_shadow_root(
                     &documents,
                     pipeline_id,
                     element_id,
                     reply,
-                    can_gc,
                 )
             },
             WebDriverScriptCommand::ElementClick(element_id, reply) => {
@@ -2372,6 +2393,20 @@ impl ScriptThread {
             WebDriverScriptCommand::GetTitle(reply) => {
                 webdriver_handlers::handle_get_title(&documents, pipeline_id, reply)
             },
+            WebDriverScriptCommand::WillSendKeys(
+                element_id,
+                text,
+                strict_file_interactability,
+                reply,
+            ) => webdriver_handlers::handle_will_send_keys(
+                &documents,
+                pipeline_id,
+                element_id,
+                text,
+                strict_file_interactability,
+                reply,
+                can_gc,
+            ),
             _ => (),
         }
     }
@@ -2435,6 +2470,7 @@ impl ScriptThread {
             opener,
             load_data,
             viewport_details,
+            theme,
         } = new_layout_info;
 
         // Kick off the fetch for the new resource.
@@ -2446,6 +2482,7 @@ impl ScriptThread {
             parent_info,
             opener,
             viewport_details,
+            theme,
             origin,
             load_data,
         );
@@ -3189,6 +3226,7 @@ impl ScriptThread {
             time_profiler_chan: self.senders.time_profiler_sender.clone(),
             compositor_api: self.compositor_api.clone(),
             viewport_details: incomplete.viewport_details,
+            theme: incomplete.theme,
         };
 
         // Create the window and document objects.
@@ -3228,6 +3266,7 @@ impl ScriptThread {
             #[cfg(feature = "webgpu")]
             self.gpu_id_hub.clone(),
             incomplete.load_data.inherited_secure_context,
+            incomplete.theme,
         );
 
         let _realm = enter_realm(&*window);

@@ -70,6 +70,9 @@
     assert_equals(CSS.highlights.size, 0, 'HighlightRegistry.clear empties the map.');
     CSS.highlights.clear();
     assert_equals(CSS.highlights.size, 0, 'HighlightRegistry.clear called with an empty registry keeps it empty.');
+
+    CSS.highlights.set(name1, h1).set(name2, h2);
+    assert_equals(CSS.highlights.size, 2, 'HighlightRegistry.size is 2 after inserting two different Highlights by chaining the set method.');
   }, 'HighlightRegistry has a maplike interface.');
 
 </script>

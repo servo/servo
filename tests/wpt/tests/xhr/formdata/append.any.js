@@ -19,13 +19,13 @@
         assert_equals(create_formdata(['key', null], ['key', 'value1']).get('key'), "null");
     }, 'testFormDataAppendNull2');
     test(function() {
-        var before = new Date(new Date().getTime() - 2000); // two seconds ago, in case there's clock drift
+        var before = new Date(new Date().getTime() - 2000).getTime(); // two seconds ago, in case there's clock drift
         var fd = create_formdata(['key', new Blob(), 'blank.txt']).get('key');
         assert_equals(fd.name, "blank.txt");
         assert_equals(fd.type, "");
         assert_equals(fd.size, 0);
         assert_greater_than_equal(fd.lastModified, before);
-        assert_less_than_equal(fd.lastModified, new Date());
+        assert_less_than_equal(fd.lastModified, new Date().getTime());
     }, 'testFormDataAppendEmptyBlob');
 
     function create_formdata() {

@@ -76,7 +76,10 @@ struct Index {
   }
 
   build() {
-    Column() {
+    // We originally use `Column()` here, but for some reason the column
+    // extends beyond the edge of the screen. This does not happen with
+    // Flex.
+    Flex({ direction: FlexDirection.Column}) {
       Row() {
         Button('⇦').backgroundColor(Color.White)
           .fontColor(Color.Black)

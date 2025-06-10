@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+
+.box { position: relative; contain: strict; }
+#scopeA { background: #ccc;
+          left: 0; top: 0; width: 300px; height: 300px; }
+#partA { background: #4af;
+         left: 30px; top: 30px; width: 240px; height: 240px; }
+#scopeB { background: #eee;
+          left: 30px; top: 30px; width: 180px; height: 180px; }
+#partB { background: cyan;
+         left: 30px; top: 30px; width: 120px; height: 120px; }
+
+</style>
+</head>
+<body>
+<div id=scopeA class=box>
+  <div id=partA class=box>
+    <div id=scopeB class=box>
+      <div id=partB class=box>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

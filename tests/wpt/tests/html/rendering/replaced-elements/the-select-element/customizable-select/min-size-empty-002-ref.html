@@ -1,0 +1,19 @@
+<!DOCTYPE HTML>
+<link rel="match" href="min-size-empty-002-ref2.html">
+<style>
+
+select, select::picker(select) {
+  appearance: base-select;
+}
+select::picker-icon {
+  display: none;
+}
+
+select {
+  width: 24px;
+  height: max(1lh, 24px);
+}
+
+</style>
+
+<select><option></option></select>

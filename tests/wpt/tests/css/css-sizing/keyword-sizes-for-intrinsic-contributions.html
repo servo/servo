@@ -111,5 +111,5 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/check-layout-th.js"></script>
 <script>
-checkLayout(".test");
+document.fonts.ready.then(() => checkLayout(".test"));
 </script>

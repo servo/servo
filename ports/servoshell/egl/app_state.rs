@@ -152,6 +152,24 @@ impl WebViewDelegate for RunningAppState {
         self.callbacks
             .host_callbacks
             .notify_load_status_changed(load_status);
+
+        #[cfg(feature = "tracing")]
+        if load_status == LoadStatus::Complete {
+            #[cfg(feature = "tracing-hitrace")]
+            let (snd, recv) = ipc_channel::ipc::channel().expect("Could not create channel");
+            self.servo.create_memory_report(snd);
+            std::thread::spawn(move || {
+                let result = recv.recv().expect("Could not get memory report");
+                let reports = result
+                    .results
+                    .first()
+                    .expect("We should have some memory report");
+                for report in &reports.reports {
+                    let path = String::from("servo_memory_profiling:") + &report.path.join("/");
+                    hitrace::trace_metric_str(&path, report.size as i64);
+                }
+            });
+        }
     }
 
     fn notify_closed(&self, webview: WebView) {
@@ -620,11 +638,27 @@ impl RunningAppState {
     }
 
     pub fn ime_insert_text(&self, text: String) {
-        self.active_webview()
-            .notify_input_event(InputEvent::Ime(ImeEvent::Composition(CompositionEvent {
+        // In OHOS, we get empty text after the intended text.
+        if text.is_empty() {
+            return;
+        }
+        let active_webview = self.active_webview();
+        active_webview.notify_input_event(InputEvent::Keyboard(KeyboardEvent {
+            state: KeyState::Down,
+            key: Key::Process,
+            ..KeyboardEvent::default()
+        }));
+        active_webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
+            CompositionEvent {
                 state: CompositionState::End,
                 data: text,
-            })));
+            },
+        )));
+        active_webview.notify_input_event(InputEvent::Keyboard(KeyboardEvent {
+            state: KeyState::Up,
+            key: Key::Process,
+            ..KeyboardEvent::default()
+        }));
         self.perform_updates();
     }
 

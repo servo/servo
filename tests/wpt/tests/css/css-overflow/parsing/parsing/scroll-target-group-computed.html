@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: parsing scroll-target-group property computed values</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-target-group">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<div id="target"></div>
+<script>
+  test_computed_value('scroll-target-group', 'initial', 'none');
+  test_computed_value('scroll-target-group', 'inherit', 'none');
+  test_computed_value('scroll-target-group', 'unset', 'none');
+  test_computed_value('scroll-target-group', 'revert', 'none');
+
+  test_computed_value('scroll-target-group', 'none');
+  test_computed_value('scroll-target-group', 'auto');
+
+  test(() => {
+    let style = getComputedStyle(document.getElementById('target'));
+    assert_not_equals(Array.from(style).indexOf('scroll-target-group'), -1);
+  }, 'The scroll-target-group property shows up in CSSStyleDeclaration enumeration');
+
+  test(() => {
+    let style = document.getElementById('target').style;
+    assert_not_equals(style.cssText.indexOf('scroll-target-group'), -1);
+  }, 'The scroll-target-group property shows up in CSSStyleDeclaration.cssText');
+</script>

@@ -5,7 +5,7 @@
 // https://drafts.csswg.org/cssom/#the-stylesheet-interface
 [Exposed=Window]
 interface StyleSheet {
-  readonly attribute DOMString type_;
+  readonly attribute DOMString type;
   readonly attribute DOMString? href;
 
   readonly attribute Element? ownerNode;

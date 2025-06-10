@@ -28,6 +28,7 @@ interface PerformanceResourceTiming : PerformanceEntry {
     readonly attribute unsigned short responseStatus;
     readonly attribute RenderBlockingStatusType renderBlockingStatus;
     readonly attribute DOMString contentType;
+    readonly attribute DOMString contentEncoding;
     [Default] object toJSON();
 };
 

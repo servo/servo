@@ -43,7 +43,8 @@ use crate::async_runtime::HANDLE;
 use crate::connector::{CACertificates, TlsConfig, create_tls_config};
 use crate::cookie::ServoCookie;
 use crate::fetch::methods::{
-    should_request_be_blocked_by_csp, should_request_be_blocked_due_to_a_bad_port,
+    convert_request_to_csp_request, should_request_be_blocked_by_csp,
+    should_request_be_blocked_due_to_a_bad_port,
 };
 use crate::hosts::replace_host;
 use crate::http_loader::HttpState;
@@ -168,12 +169,12 @@ fn setup_dom_listener(
             trace!("handling WS DOM action: {:?}", dom_action);
             match dom_action {
                 WebSocketDomAction::SendMessage(MessageData::Text(data)) => {
-                    if let Err(e) = sender.send(DomMsg::Send(Message::Text(data))) {
+                    if let Err(e) = sender.send(DomMsg::Send(Message::Text(data.into()))) {
                         warn!("Error sending websocket message: {:?}", e);
                     }
                 },
                 WebSocketDomAction::SendMessage(MessageData::Binary(data)) => {
-                    if let Err(e) = sender.send(DomMsg::Send(Message::Binary(data))) {
+                    if let Err(e) = sender.send(DomMsg::Send(Message::Binary(data.into()))) {
                         warn!("Error sending websocket message: {:?}", e);
                     }
                 },
@@ -245,7 +246,7 @@ async fn run_ws_loop(
                 };
                 match msg {
                     Message::Text(s) => {
-                        let message = MessageData::Text(s);
+                        let message = MessageData::Text(s.as_str().to_owned());
                         if let Err(e) = resource_event_sender
                             .send(WebSocketNetworkEvent::MessageReceived(message))
                         {
@@ -255,7 +256,7 @@ async fn run_ws_loop(
                     }
 
                     Message::Binary(v) => {
-                        let message = MessageData::Binary(v);
+                        let message = MessageData::Binary(v.to_vec());
                         if let Err(e) = resource_event_sender
                             .send(WebSocketNetworkEvent::MessageReceived(message))
                         {
@@ -390,14 +391,18 @@ fn connect(
         RequestPolicyContainer::PolicyContainer(container) => container.to_owned(),
     };
 
-    let (check_result, violations) = should_request_be_blocked_by_csp(&request, &policy_container);
+    if let Some(csp_request) = convert_request_to_csp_request(&request) {
+        let (check_result, violations) =
+            should_request_be_blocked_by_csp(&csp_request, &policy_container);
 
-    if !violations.is_empty() {
-        let _ = resource_event_sender.send(WebSocketNetworkEvent::ReportCSPViolations(violations));
-    }
+        if !violations.is_empty() {
+            let _ =
+                resource_event_sender.send(WebSocketNetworkEvent::ReportCSPViolations(violations));
+        }
 
-    if check_result == csp::CheckResult::Blocked {
-        return Err("Blocked by Content-Security-Policy".to_string());
+        if check_result == csp::CheckResult::Blocked {
+            return Err("Blocked by Content-Security-Policy".to_string());
+        }
     }
 
     let client = match create_request(

@@ -154,7 +154,18 @@ struct PathBuilderRef<'a, B: Backend> {
 }
 
 impl<B: Backend> PathBuilderRef<'_, B> {
+    /// <https://html.spec.whatwg.org/multipage#ensure-there-is-a-subpath>
+    fn ensure_there_is_a_subpath(&mut self, point: &Point2D<f32>) {
+        if self.builder.get_current_point().is_none() {
+            self.builder.move_to(*point);
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage#dom-context-2d-lineto>
     fn line_to(&mut self, pt: &Point2D<f32>) {
+        // 2. If the object's path has no subpaths, then ensure there is a subpath for (x, y).
+        self.ensure_there_is_a_subpath(pt);
+
         let pt = self.transform.transform_point(*pt);
         self.builder.line_to(pt);
     }
@@ -182,14 +193,22 @@ impl<B: Backend> PathBuilderRef<'_, B> {
         self.move_to(&first);
     }
 
+    /// <https://html.spec.whatwg.org/multipage#dom-context-2d-quadraticcurveto>
     fn quadratic_curve_to(&mut self, cp: &Point2D<f32>, endpoint: &Point2D<f32>) {
+        // 2. Ensure there is a subpath for (cpx, cpy).
+        self.ensure_there_is_a_subpath(cp);
+
         self.builder.quadratic_curve_to(
             &self.transform.transform_point(*cp),
             &self.transform.transform_point(*endpoint),
         )
     }
 
+    /// <https://html.spec.whatwg.org/multipage#dom-context-2d-beziercurveto>
     fn bezier_curve_to(&mut self, cp1: &Point2D<f32>, cp2: &Point2D<f32>, endpoint: &Point2D<f32>) {
+        // 2. Ensure there is a subpath for (cp1x, cp1y).
+        self.ensure_there_is_a_subpath(cp1);
+
         self.builder.bezier_curve_to(
             &self.transform.transform_point(*cp1),
             &self.transform.transform_point(*cp2),
@@ -210,6 +229,7 @@ impl<B: Backend> PathBuilderRef<'_, B> {
             .arc(center, radius, start_angle, end_angle, ccw);
     }
 
+    /// <https://html.spec.whatwg.org/multipage#dom-context-2d-arcto>
     fn arc_to(&mut self, cp1: &Point2D<f32>, cp2: &Point2D<f32>, radius: f32) {
         let cp0 = if let (Some(inverse), Some(point)) =
             (self.transform.inverse(), self.builder.get_current_point())
@@ -218,6 +238,9 @@ impl<B: Backend> PathBuilderRef<'_, B> {
         } else {
             *cp1
         };
+
+        // 2. Ensure there is a subpath for (x1, y1) is done by one of self.line_to calls
+
         if (cp0.x == cp1.x && cp0.y == cp1.y) || cp1 == cp2 || radius == 0.0 {
             self.line_to(cp1);
             return;
@@ -447,7 +470,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
     pub(crate) fn draw_image(
         &mut self,
         image_data: &[u8],
-        image_size: Size2D<u64>,
+        image_size: Size2D<u32>,
         dest_rect: Rect<f64>,
         source_rect: Rect<f64>,
         smoothing_enabled: bool,
@@ -457,7 +480,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         let source_rect = source_rect.ceil();
         // It discards the extra pixels (if any) that won't be painted
         let image_data = if Rect::from_size(image_size.to_f64()).contains_rect(&source_rect) {
-            pixels::rgba8_get_rect(image_data, image_size, source_rect.to_u64()).into()
+            pixels::rgba8_get_rect(image_data, image_size, source_rect.to_u32()).into()
         } else {
             image_data.into()
         };
@@ -1221,7 +1244,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
-    pub(crate) fn put_image_data(&mut self, mut imagedata: Vec<u8>, rect: Rect<u64>) {
+    pub(crate) fn put_image_data(&mut self, mut imagedata: Vec<u8>, rect: Rect<u32>) {
         assert_eq!(imagedata.len() % 4, 0);
         assert_eq!(rect.size.area() as usize, imagedata.len() / 4);
         pixels::rgba8_byte_swap_and_premultiply_inplace(&mut imagedata);
@@ -1310,8 +1333,8 @@ impl<'a, B: Backend> CanvasData<'a, B> {
     #[allow(unsafe_code)]
     pub(crate) fn read_pixels(
         &self,
-        read_rect: Option<Rect<u64>>,
-        canvas_size: Option<Size2D<u64>>,
+        read_rect: Option<Rect<u32>>,
+        canvas_size: Option<Size2D<u32>>,
     ) -> Snapshot {
         let canvas_size = canvas_size.unwrap_or(self.drawtarget.get_size().cast());
 
@@ -1327,7 +1350,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
                     .to_vec()
             }
         } else {
-            self.drawtarget.bytes().as_ref().to_vec()
+            self.drawtarget.bytes().into_owned()
         };
 
         Snapshot::from_vec(

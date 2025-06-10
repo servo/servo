@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::str::FromStr;
+
+use compositing_traits::CompositorMsg;
+use compositing_traits::viewport_description::ViewportDescription;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
@@ -61,6 +65,9 @@ impl HTMLMetaElement {
             if name == "referrer" {
                 self.apply_referrer();
             }
+            if name == "viewport" {
+                self.parse_and_send_viewport_if_necessary();
+            }
         // https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv
         } else if !self.HttpEquiv().is_empty() {
             // TODO: Implement additional http-equiv candidates
@@ -112,6 +119,29 @@ impl HTMLMetaElement {
             if !attr_val.is_empty() {
                 doc.set_referrer_policy(determine_policy_for_token(attr_val));
             }
+        }
+    }
+
+    /// <https://drafts.csswg.org/css-viewport/#parsing-algorithm>
+    fn parse_and_send_viewport_if_necessary(&self) {
+        // Skip processing if this isn't the top level frame
+        if !self.owner_window().is_top_level() {
+            return;
+        }
+        let element = self.upcast::<Element>();
+        let Some(content) = element.get_attribute(&ns!(), &local_name!("content")) else {
+            return;
+        };
+
+        if let Ok(viewport) = ViewportDescription::from_str(&content.value()) {
+            self.owner_window()
+                .compositor_api()
+                .sender()
+                .send(CompositorMsg::Viewport(
+                    self.owner_window().webview_id(),
+                    viewport,
+                ))
+                .unwrap();
         }
     }
 

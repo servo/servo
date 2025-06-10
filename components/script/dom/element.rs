@@ -13,7 +13,7 @@ use std::str::FromStr;
 use std::{fmt, mem};
 
 use content_security_policy as csp;
-use cssparser::match_ignore_ascii_case;
+use cssparser::{Parser as CssParser, ParserInput as CssParserInput, match_ignore_ascii_case};
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
 use embedder_traits::InputMethodType;
@@ -36,6 +36,8 @@ use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::QuirksMode;
 use style::invalidation::element::restyle_hints::RestyleHint;
+use style::media_queries::MediaList;
+use style::parser::ParserContext as CssParserContext;
 use style::properties::longhands::{
     self, background_image, border_spacing, font_family, font_size,
 };
@@ -50,13 +52,14 @@ use style::selector_parser::{
 };
 use style::shared_lock::{Locked, SharedRwLock};
 use style::stylesheets::layer_rule::LayerOrder;
-use style::stylesheets::{CssRuleType, UrlExtraData};
+use style::stylesheets::{CssRuleType, Origin as CssOrigin, UrlExtraData};
 use style::values::computed::Overflow;
 use style::values::generics::NonNegative;
 use style::values::generics::position::PreferredRatio;
 use style::values::generics::ratio::Ratio;
 use style::values::{AtomIdent, AtomString, CSSFloat, computed, specified};
 use style::{ArcSlice, CaseSensitivityExt, dom_apis, thread_state};
+use style_traits::ParsingMode as CssParsingMode;
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
 use xml5ever::serialize::TraversalScope::{
@@ -118,7 +121,7 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::htmlfontelement::{HTMLFontElement, HTMLFontElementLayoutHelpers};
 use crate::dom::htmlformelement::FormControlElementHelpers;
-use crate::dom::htmlhrelement::{HTMLHRElement, HTMLHRLayoutHelpers};
+use crate::dom::htmlhrelement::{HTMLHRElement, HTMLHRLayoutHelpers, SizePresentationalHint};
 use crate::dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMethods};
 use crate::dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
 use crate::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
@@ -781,6 +784,33 @@ impl Element {
             .registered_intersection_observers
             .retain(|reg_obs| *reg_obs.observer != *observer)
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#matches-the-environment>
+    pub(crate) fn matches_environment(&self, media_query: &str) -> bool {
+        let document = self.owner_document();
+        let quirks_mode = document.quirks_mode();
+        let document_url_data = UrlExtraData(document.url().get_arc());
+        // FIXME(emilio): This should do the same that we do for other media
+        // lists regarding the rule type and such, though it doesn't really
+        // matter right now...
+        //
+        // Also, ParsingMode::all() is wrong, and should be DEFAULT.
+        let context = CssParserContext::new(
+            CssOrigin::Author,
+            &document_url_data,
+            Some(CssRuleType::Style),
+            CssParsingMode::all(),
+            quirks_mode,
+            /* namespaces = */ Default::default(),
+            None,
+            None,
+        );
+        let mut parser_input = CssParserInput::new(media_query);
+        let mut parser = CssParser::new(&mut parser_input);
+        let media_list = MediaList::parse(&context, &mut parser);
+        let result = media_list.evaluate(document.window().layout().device(), quirks_mode);
+        result
+    }
 }
 
 /// <https://dom.spec.whatwg.org/#valid-shadow-host-name>
@@ -831,8 +861,14 @@ pub(crate) fn get_attr_for_layout<'dom>(
 
 pub(crate) trait LayoutElementHelpers<'dom> {
     fn attrs(self) -> &'dom [LayoutDom<'dom, Attr>];
-    fn has_class_for_layout(self, name: &AtomIdent, case_sensitivity: CaseSensitivity) -> bool;
+    fn has_class_or_part_for_layout(
+        self,
+        name: &AtomIdent,
+        attr_name: &LocalName,
+        case_sensitivity: CaseSensitivity,
+    ) -> bool;
     fn get_classes_for_layout(self) -> Option<&'dom [Atom]>;
+    fn get_parts_for_layout(self) -> Option<&'dom [Atom]>;
 
     fn synthesize_presentational_hints_for_legacy_attributes<V>(self, hints: &mut V)
     where
@@ -875,8 +911,13 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     }
 
     #[inline]
-    fn has_class_for_layout(self, name: &AtomIdent, case_sensitivity: CaseSensitivity) -> bool {
-        get_attr_for_layout(self, &ns!(), &local_name!("class")).is_some_and(|attr| {
+    fn has_class_or_part_for_layout(
+        self,
+        name: &AtomIdent,
+        attr_name: &LocalName,
+        case_sensitivity: CaseSensitivity,
+    ) -> bool {
+        get_attr_for_layout(self, &ns!(), attr_name).is_some_and(|attr| {
             attr.to_tokens()
                 .unwrap()
                 .iter()
@@ -887,6 +928,11 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     #[inline]
     fn get_classes_for_layout(self) -> Option<&'dom [Atom]> {
         get_attr_for_layout(self, &ns!(), &local_name!("class"))
+            .map(|attr| attr.to_tokens().unwrap())
+    }
+
+    fn get_parts_for_layout(self) -> Option<&'dom [Atom]> {
+        get_attr_for_layout(self, &ns!(), &local_name!("part"))
             .map(|attr| attr.to_tokens().unwrap())
     }
 
@@ -1275,6 +1321,47 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
                 shared_lock,
                 PropertyDeclaration::PaddingRight(cellpadding),
             ));
+        }
+
+        // https://html.spec.whatwg.org/multipage/#the-hr-element-2
+        if let Some(size_info) = self
+            .downcast::<HTMLHRElement>()
+            .and_then(|hr_element| hr_element.get_size_info())
+        {
+            match size_info {
+                SizePresentationalHint::SetHeightTo(height) => {
+                    hints.push(from_declaration(
+                        shared_lock,
+                        PropertyDeclaration::Height(height),
+                    ));
+                },
+                SizePresentationalHint::SetAllBorderWidthValuesTo(border_width) => {
+                    hints.push(from_declaration(
+                        shared_lock,
+                        PropertyDeclaration::BorderLeftWidth(border_width.clone()),
+                    ));
+                    hints.push(from_declaration(
+                        shared_lock,
+                        PropertyDeclaration::BorderRightWidth(border_width.clone()),
+                    ));
+                    hints.push(from_declaration(
+                        shared_lock,
+                        PropertyDeclaration::BorderTopWidth(border_width.clone()),
+                    ));
+                    hints.push(from_declaration(
+                        shared_lock,
+                        PropertyDeclaration::BorderBottomWidth(border_width),
+                    ));
+                },
+                SizePresentationalHint::SetBottomBorderWidthToZero => {
+                    hints.push(from_declaration(
+                        shared_lock,
+                        PropertyDeclaration::BorderBottomWidth(
+                            specified::border::BorderSideWidth::from_px(0.),
+                        ),
+                    ));
+                },
+            }
         }
     }
 
@@ -1916,6 +2003,16 @@ impl Element {
 
     pub(crate) fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         self.get_attribute(&ns!(), &local_name!("class"))
+            .is_some_and(|attr| {
+                attr.value()
+                    .as_tokens()
+                    .iter()
+                    .any(|atom| case_sensitivity.eq_atom(name, atom))
+            })
+    }
+
+    pub(crate) fn is_part(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
+        self.get_attribute(&ns!(), &LocalName::from("part"))
             .is_some_and(|attr| {
                 attr.value()
                     .as_tokens()
@@ -3980,6 +4077,13 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         rooted!(in(*cx) let slottable = Slottable(Dom::from_ref(self.upcast::<Node>())));
         slottable.find_a_slot(true)
     }
+
+    /// <https://drafts.csswg.org/css-shadow-parts/#dom-element-part>
+    fn Part(&self) -> DomRoot<DOMTokenList> {
+        self.ensure_rare_data()
+            .part
+            .or_init(|| DOMTokenList::new(self, &local_name!("part"), None, CanGc::note()))
+    }
 }
 
 impl VirtualMethods for Element {
@@ -4119,7 +4223,9 @@ impl VirtualMethods for Element {
         match *name {
             local_name!("id") => AttrValue::from_atomic(value.into()),
             local_name!("name") => AttrValue::from_atomic(value.into()),
-            local_name!("class") => AttrValue::from_serialized_tokenlist(value.into()),
+            local_name!("class") | local_name!("part") => {
+                AttrValue::from_serialized_tokenlist(value.into())
+            },
             _ => self
                 .super_type()
                 .unwrap()
@@ -4430,7 +4536,9 @@ impl SelectorsElement for SelectorWrapper<'_> {
             // a string containing commas (separating each language tag in
             // a list) but the pseudo-class instead should be parsing and
             // storing separate <ident> or <string>s for each language tag.
-            NonTSPseudoClass::Lang(ref lang) => extended_filtering(&self.get_lang(), lang),
+            NonTSPseudoClass::Lang(ref lang) => {
+                extended_filtering(&self.upcast::<Node>().get_lang().unwrap_or_default(), lang)
+            },
 
             NonTSPseudoClass::ReadOnly => {
                 !Element::state(self).contains(NonTSPseudoClass::ReadWrite.state_flag())
@@ -4491,8 +4599,8 @@ impl SelectorsElement for SelectorWrapper<'_> {
             .is_some_and(|atom| case_sensitivity.eq_atom(id, atom))
     }
 
-    fn is_part(&self, _name: &AtomIdent) -> bool {
-        false
+    fn is_part(&self, name: &AtomIdent) -> bool {
+        Element::is_part(self, name, CaseSensitivity::CaseSensitive)
     }
 
     fn imported_part(&self, _: &AtomIdent) -> Option<AtomIdent> {
@@ -4770,24 +4878,7 @@ impl Element {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#language
-    pub(crate) fn get_lang(&self) -> String {
-        self.upcast::<Node>()
-            .inclusive_ancestors(ShadowIncluding::Yes)
-            .filter_map(|node| {
-                node.downcast::<Element>().and_then(|el| {
-                    el.get_attribute(&ns!(xml), &local_name!("lang"))
-                        .or_else(|| el.get_attribute(&ns!(), &local_name!("lang")))
-                        .map(|attr| String::from(attr.Value()))
-                })
-                // TODO: Check meta tags for a pragma-set default language
-                // TODO: Check HTTP Content-Language header
-            })
-            .next()
-            .unwrap_or(String::new())
-    }
-
-    pub(crate) fn state(&self) -> ElementState {
+    pub fn state(&self) -> ElementState {
         self.state.get()
     }
 

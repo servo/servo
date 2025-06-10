@@ -30,10 +30,11 @@ use log::warn;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use num_derive::FromPrimitive;
-use pixels::Image;
+use pixels::RasterImage;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_url::ServoUrl;
 use strum_macros::IntoStaticStr;
+use style::queries::values::PrefersColorScheme;
 use style_traits::CSSPixel;
 use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
@@ -598,6 +599,16 @@ pub enum Theme {
     /// Dark theme.
     Dark,
 }
+
+impl From<Theme> for PrefersColorScheme {
+    fn from(value: Theme) -> Self {
+        match value {
+            Theme::Light => PrefersColorScheme::Light,
+            Theme::Dark => PrefersColorScheme::Dark,
+        }
+    }
+}
+
 // The type of MediaSession action.
 /// <https://w3c.github.io/mediasession/#enumdef-mediasessionaction>
 #[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
@@ -663,16 +674,16 @@ pub struct Notification {
     /// The URL of an icon. The icon will be displayed as part of the notification.
     pub icon_url: Option<ServoUrl>,
     /// Icon's raw image data and metadata.
-    pub icon_resource: Option<Arc<Image>>,
+    pub icon_resource: Option<Arc<RasterImage>>,
     /// The URL of a badge. The badge is used when there is no enough space to display the notification,
     /// such as on a mobile device's notification bar.
     pub badge_url: Option<ServoUrl>,
     /// Badge's raw image data and metadata.
-    pub badge_resource: Option<Arc<Image>>,
+    pub badge_resource: Option<Arc<RasterImage>>,
     /// The URL of an image. The image will be displayed as part of the notification.
     pub image_url: Option<ServoUrl>,
     /// Image's raw image data and metadata.
-    pub image_resource: Option<Arc<Image>>,
+    pub image_resource: Option<Arc<RasterImage>>,
     /// Actions available for users to choose from for interacting with the notification.
     pub actions: Vec<NotificationAction>,
 }
@@ -687,7 +698,7 @@ pub struct NotificationAction {
     /// The URL of an icon. The icon will be displayed with the action.
     pub icon_url: Option<ServoUrl>,
     /// Icon's raw image data and metadata.
-    pub icon_resource: Option<Arc<Image>>,
+    pub icon_resource: Option<Arc<RasterImage>>,
 }
 
 /// Information about a `WebView`'s screen geometry and offset. This is used

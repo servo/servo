@@ -141,6 +141,7 @@ partial interface Element {
 };
 
 partial interface HTMLElement {
+  readonly attribute Element? scrollParent;
   readonly attribute Element? offsetParent;
   readonly attribute long offsetTop;
   readonly attribute long offsetLeft;

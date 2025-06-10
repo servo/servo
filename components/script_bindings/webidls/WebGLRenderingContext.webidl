@@ -24,7 +24,8 @@ typedef unsigned long  GLuint;
 typedef unrestricted float GLfloat;
 typedef unrestricted float GLclampf;
 
-typedef (ImageData or
+typedef (ImageBitmap or
+         ImageData or
          HTMLImageElement or
          HTMLCanvasElement or
          HTMLVideoElement) TexImageSource;

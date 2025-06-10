@@ -82,6 +82,13 @@ struct BrowsingContextTraits {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "lowercase")]
+enum TargetType {
+    Frame,
+    // Other target types not implemented yet.
+}
+
+#[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BrowsingContextActorMsg {
     actor: String,
@@ -104,6 +111,7 @@ pub struct BrowsingContextActorMsg {
     reflow_actor: String,
     style_sheets_actor: String,
     thread_actor: String,
+    target_type: TargetType,
     // Part of the official protocol, but not yet implemented.
     // animations_actor: String,
     // changes_actor: String,
@@ -302,6 +310,7 @@ impl BrowsingContextActor {
             reflow_actor: self.reflow.clone(),
             style_sheets_actor: self.style_sheets.clone(),
             thread_actor: self.thread.clone(),
+            target_type: TargetType::Frame,
         }
     }
 

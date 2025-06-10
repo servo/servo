@@ -8,6 +8,7 @@
 <script src='../../mediacapture-streams/permission-helper.js'></script>
 <script src="../../webrtc/RTCPeerConnection-helper.js"></script>
 <script src="../../service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script src='RTCEncodedFrame-timestamps-helper.js'></script>
 
 <script>
 "use strict";
@@ -41,6 +42,8 @@ promise_test(async t => {
       assert_equals(original.getMetadata().rtpTimestamp, newFrame.getMetadata().rtpTimestamp);
       assert_equals(original.getMetadata().captureTime, newFrame.getMetadata().captureTime);
       assert_equals(original.getMetadata().receiveTime, newFrame.getMetadata().receiveTime);
+      assert_true(original.getMetadata().hasOwnProperty('audioLevel'));
+      assert_equals(original.getMetadata().audioLevel, newFrame.getMetadata().audioLevel);
       assert_array_equals(Array.from(original.data), Array.from(newFrame.data));
       await writer2.write(newFrame);
       resolve();
@@ -84,6 +87,7 @@ promise_test(async t => {
       assert_equals(newMetadata.rtpTimestamp, newFrame.getMetadata().rtpTimestamp);
       assert_equals(original.getMetadata().receiveTime, newFrame.getMetadata().receiveTime);
       assert_equals(original.getMetadata().captureTime, newFrame.getMetadata().captureTime);
+      assert_equals(original.getMetadata().audioLevel, newFrame.getMetadata().audioLevel);
       assert_array_equals(Array.from(original.data), Array.from(newFrame.data));
       await writer2.write(newFrame);
       resolve();
@@ -130,4 +134,63 @@ promise_test(async t => {
 
   return framesReceivedCorrectly;
 }, "Constructing audio frame with bad metadata argument before sending does not work");
+
+promise_test(async t => {
+  const kAudioLevel = 0.5;
+  const kCaptureTime = 12345;
+  const pc1 = new RTCPeerConnection({encodedInsertableStreams:true});
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection({encodedInsertableStreams:true});
+  t.add_cleanup(() => pc2.close());
+
+  exchangeIceCandidates(pc1, pc2);
+
+  let numFrames = 0;
+  let audioLevelRead = new Promise((resolve, reject) => {
+    pc2.ontrack = t.step_func(e => {
+      const receiverTransformer = new TransformStream({
+        async transform(encodedFrame, controller) {
+        const metadata = encodedFrame.getMetadata();
+        if (metadata.audioLevel === undefined) {
+          reject("No audioLevel");
+        } else if (metadata.audioLevel < kAudioLevel - 0.1 || metadata.audioLevel > kAudioLevel + 0.1) {
+          reject("Unexpected audioLevel");
+        }
+        if (metadata.captureTime < kCaptureTime - 1 || metadata.captureTime > kCaptureTime + 1) {
+          reject("Unexpected captureTime");
+        }
+        controller.enqueue(encodedFrame);
+        if (++numFrames == 10)
+          resolve();
+        }
+      });
+      const receiverStreams = e.receiver.createEncodedStreams();
+      receiverStreams.readable
+          .pipeThrough(receiverTransformer)
+          .pipeTo(receiverStreams.writable);
+    });
+  });
+
+  const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  const sender = pc1.addTrack(stream.getAudioTracks()[0]);
+  const senderStreams = sender.createEncodedStreams();
+  const senderTransformer = new TransformStream({
+    async transform(encodedFrame, controller) {
+      let metadata = encodedFrame.getMetadata();
+      metadata.audioLevel = kAudioLevel;
+      metadata.captureTime = kCaptureTime;
+      controller.enqueue(new RTCEncodedAudioFrame(encodedFrame, {metadata}));
+    }
+  });
+  senderStreams.readable
+      .pipeThrough(senderTransformer)
+      .pipeTo(senderStreams.writable);
+
+  await addAbsCaptureTimeAndExchangeOffer(pc1, pc2);
+  await checkAbsCaptureTimeAndExchangeAnswer(pc1, pc2, true);
+
+  await audioLevelRead;
+}, 'Basic simulcast setup with three spatial layers');
+
 </script>

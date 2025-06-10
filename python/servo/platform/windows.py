@@ -13,6 +13,7 @@ import tempfile
 from typing import Optional
 import urllib
 import zipfile
+import shutil
 
 from servo import util
 
@@ -28,10 +29,49 @@ GSTREAMER_URL = f"{DEPS_URL}/gstreamer-1.0-msvc-x86_64-1.22.8.msi"
 GSTREAMER_DEVEL_URL = f"{DEPS_URL}/gstreamer-1.0-devel-msvc-x86_64-1.22.8.msi"
 DEPENDENCIES_DIR = os.path.join(util.get_target_dir(), "dependencies")
 
+WINGET_DEPENDENCIES = ["Kitware.CMake", "LLVM.LLVM", "Ninja-build.Ninja", "WiXToolset.WiXToolset"]
+
 
 def get_dependency_dir(package):
     """Get the directory that a given Windows dependency should extract to."""
     return os.path.join(DEPENDENCIES_DIR, package, DEPENDENCIES[package])
+
+
+def _winget_import(force: bool = False):
+    try:
+        # We install tools like LLVM / CMake, so we probably don't want to force-upgrade
+        # a user installed version without good reason.
+        cmd = ["winget", "install", "--interactive"]
+        if force:
+            cmd.append("--force")
+        else:
+            cmd.append("--no-upgrade")
+
+        cmd.extend(WINGET_DEPENDENCIES)
+
+        # The output will be printed to the terminal that `./mach bootstrap` is running in.
+        subprocess.run(cmd, encoding="utf-8")
+    except subprocess.CalledProcessError as e:
+        print("Could not run winget.  Follow manual build setup instructions.")
+        raise e
+
+
+def _choco_install(force: bool = False):
+    try:
+        choco_config = os.path.join(util.SERVO_ROOT, "support", "windows", "chocolatey.config")
+
+        # This is the format that PowerShell wants arguments passed to it.
+        cmd_exe_args = f"'/K','choco','install','-y', '\"{choco_config}\"'"
+        if force:
+            cmd_exe_args += ",'-f'"
+
+        print(cmd_exe_args)
+        subprocess.check_output(
+            ["powershell", "Start-Process", "-Wait", "-verb", "runAs", "cmd.exe", "-ArgumentList", f"@({cmd_exe_args})"]
+        ).decode("utf-8")
+    except subprocess.CalledProcessError as e:
+        print("Could not run chocolatey.  Follow manual build setup instructions.")
+        raise e
 
 
 class Windows(Base):
@@ -61,23 +101,11 @@ class Windows(Base):
 
     def _platform_bootstrap(self, force: bool) -> bool:
         installed_something = self.passive_bootstrap()
-
-        try:
-            choco_config = os.path.join(util.SERVO_ROOT, "support", "windows", "chocolatey.config")
-
-            # This is the format that PowerShell wants arguments passed to it.
-            cmd_exe_args = f"'/K','choco','install','-y', '\"{choco_config}\"'"
-            if force:
-                cmd_exe_args += ",'-f'"
-
-            print(cmd_exe_args)
-            subprocess.check_output([
-                "powershell", "Start-Process", "-Wait", "-verb", "runAs",
-                "cmd.exe", "-ArgumentList", f"@({cmd_exe_args})"
-            ]).decode("utf-8")
-        except subprocess.CalledProcessError as e:
-            print("Could not run chocolatey.  Follow manual build setup instructions.")
-            raise e
+        # If `winget` works well in practice, we could switch the default in the future.
+        if shutil.which("choco") is not None:
+            _choco_install(force)
+        else:
+            _winget_import()
 
         target = BuildTarget.from_triple(None)
         installed_something |= self._platform_bootstrap_gstreamer(target, force)
@@ -85,10 +113,9 @@ class Windows(Base):
 
     def passive_bootstrap(self) -> bool:
         """A bootstrap method that is called without explicitly invoking `./mach bootstrap`
-           but that is executed in the process of other `./mach` commands. This should be
-           as fast as possible."""
-        to_install = [package for package in DEPENDENCIES if
-                      not os.path.isdir(get_dependency_dir(package))]
+        but that is executed in the process of other `./mach` commands. This should be
+        as fast as possible."""
+        to_install = [package for package in DEPENDENCIES if not os.path.isdir(get_dependency_dir(package))]
         if not to_install:
             return False
 
@@ -116,9 +143,7 @@ class Windows(Base):
         gst_arch_name = gst_arch_names[build_target_triple.split("-")[0]]
 
         # The bootstraped version of GStreamer always takes precedance of the installed vesion.
-        prepackaged_root = os.path.join(
-            DEPENDENCIES_DIR, "gstreamer", "1.0", f"msvc_{gst_arch_name}"
-        )
+        prepackaged_root = os.path.join(DEPENDENCIES_DIR, "gstreamer", "1.0", f"msvc_{gst_arch_name}")
         if os.path.exists(os.path.join(prepackaged_root, "bin", "ffi-7.dll")):
             return prepackaged_root
 
@@ -143,20 +168,15 @@ class Windows(Base):
             return False
 
         if "x86_64" not in self.triple:
-            print("Bootstrapping gstreamer not supported on "
-                  "non-x86-64 Windows. Please install manually")
+            print("Bootstrapping gstreamer not supported on non-x86-64 Windows. Please install manually")
             return False
 
         with tempfile.TemporaryDirectory() as temp_dir:
             libs_msi = os.path.join(temp_dir, GSTREAMER_URL.rsplit("/", maxsplit=1)[-1])
-            devel_msi = os.path.join(
-                temp_dir, GSTREAMER_DEVEL_URL.rsplit("/", maxsplit=1)[-1]
-            )
+            devel_msi = os.path.join(temp_dir, GSTREAMER_DEVEL_URL.rsplit("/", maxsplit=1)[-1])
 
             util.download_file("GStreamer libraries", GSTREAMER_URL, libs_msi)
-            util.download_file(
-                "GStreamer development support", GSTREAMER_DEVEL_URL, devel_msi
-            )
+            util.download_file("GStreamer development support", GSTREAMER_DEVEL_URL, devel_msi)
 
             print(f"Installing GStreamer packages to {DEPENDENCIES_DIR}...")
             os.makedirs(DEPENDENCIES_DIR, exist_ok=True)
@@ -164,15 +184,24 @@ class Windows(Base):
             for installer in [libs_msi, devel_msi]:
                 arguments = [
                     "/a",
-                    f'"{installer}"'
-                    f'TARGETDIR="{DEPENDENCIES_DIR}"',  # Install destination
+                    f'"{installer}"TARGETDIR="{DEPENDENCIES_DIR}"',  # Install destination
                     "/qn",  # Quiet mode
                 ]
                 quoted_arguments = ",".join((f"'{arg}'" for arg in arguments))
-                subprocess.check_call([
-                    "powershell", "exit (Start-Process", "-PassThru", "-Wait", "-verb", "runAs",
-                    "msiexec.exe", "-ArgumentList", f"@({quoted_arguments})", ").ExitCode"
-                ])
+                subprocess.check_call(
+                    [
+                        "powershell",
+                        "exit (Start-Process",
+                        "-PassThru",
+                        "-Wait",
+                        "-verb",
+                        "runAs",
+                        "msiexec.exe",
+                        "-ArgumentList",
+                        f"@({quoted_arguments})",
+                        ").ExitCode",
+                    ]
+                )
 
             assert self.is_gstreamer_installed(target)
             return True

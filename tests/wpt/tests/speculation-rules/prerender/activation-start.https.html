@@ -16,9 +16,9 @@ setup(() => assertSpeculationRulesIsSupported());
 promise_test(async t => {
   const ACTIVATION_DELAY = 10;
 
-  const rcHelper = new RemoteContextHelper();
+  const rcHelper = new PrerenderingRemoteContextHelper();
   const referrerRC = await rcHelper.addWindow(undefined, { features: 'noopener' });
-  const prerenderedRC = await addPrerenderRC(referrerRC);
+  const prerenderedRC = await referrerRC.addPrerender();
   const iframeRC = await prerenderedRC.addIframe();
 
   assert_equals(
@@ -36,7 +36,7 @@ promise_test(async t => {
   // Wait ACTIVATION_DELAY ms before activation.
   await new Promise(resolve => t.step_timeout(resolve, ACTIVATION_DELAY));
 
-  await activatePrerenderRC(referrerRC, prerenderedRC);
+  await referrerRC.navigateExpectingPrerenderingActivation(prerenderedRC);
 
   assert_greater_than_equal(
     await getActivationStart(prerenderedRC),

@@ -47,35 +47,42 @@ def check_args(**kwargs):
 
 
 def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
-    return {"adb_binary": kwargs["adb_binary"],
-            "webdriver_binary": kwargs["webdriver_binary"],
-            "webdriver_args": kwargs["webdriver_args"].copy(),
-            "binary": None,
-            "package_name": kwargs["package_name"],
-            "device_serial": kwargs["device_serial"],
-            "prefs_root": kwargs["prefs_root"],
-            "extra_prefs": kwargs["extra_prefs"].copy(),
-            "test_type": test_type,
-            "debug_info": kwargs["debug_info"],
-            "symbols_path": kwargs["symbols_path"],
-            "stackwalk_binary": kwargs["stackwalk_binary"],
-            "certutil_binary": kwargs["certutil_binary"],
-            "ca_certificate_path": config.ssl_config["ca_cert_path"],
-            "stackfix_dir": kwargs["stackfix_dir"],
-            "binary_args": kwargs["binary_args"].copy(),
-            "timeout_multiplier": get_timeout_multiplier(test_type,
-                                                         run_info_data,
-                                                         **kwargs),
-            "disable_fission": kwargs["disable_fission"],
-            # desktop only
-            "leak_check": False,
-            "chaos_mode_flags": kwargs["chaos_mode_flags"],
-            "config": config,
-            "install_fonts": kwargs["install_fonts"],
-            "tests_root": config.doc_root,
-            "specialpowers_path": kwargs["specialpowers_path"],
-            "debug_test": kwargs["debug_test"],
-            "env_extras": dict([x.split('=') for x in kwargs.get("env", [])])}
+    browser_kwargs = {"adb_binary": kwargs["adb_binary"],
+                      "package_name": kwargs["package_name"],
+                      "device_serial": kwargs["device_serial"],
+                      "prefs_root": kwargs["prefs_root"],
+                      "extra_prefs": kwargs["extra_prefs"].copy(),
+                      "debug_info": kwargs["debug_info"],
+                      "symbols_path": kwargs["symbols_path"],
+                      "stackwalk_binary": kwargs["stackwalk_binary"],
+                      "certutil_binary": kwargs["certutil_binary"],
+                      "ca_certificate_path": config.ssl_config["ca_cert_path"],
+                      "stackfix_dir": kwargs["stackfix_dir"],
+                      "disable_fission": kwargs["disable_fission"],
+                      # desktop only
+                      "leak_check": False,
+                      "chaos_mode_flags": kwargs["chaos_mode_flags"],
+                      "config": config,
+                      "debug_test": kwargs["debug_test"],
+                      }
+
+    if test_type == "wdspec":
+        browser_kwargs["webdriver_binary"] = kwargs["webdriver_binary"]
+        browser_kwargs["webdriver_args"] = kwargs["webdriver_args"].copy()
+        browser_kwargs["binary"] = None
+
+    else:
+        browser_kwargs["test_type"] = test_type
+        browser_kwargs["binary_args"] = kwargs["binary_args"].copy()
+        browser_kwargs["timeout_multiplier"] = get_timeout_multiplier(test_type,
+                                                                      run_info_data,
+                                                                      **kwargs)
+        browser_kwargs["install_fonts"] = kwargs["install_fonts"]
+        browser_kwargs["tests_root"] = config.doc_root
+        browser_kwargs["specialpowers_path"] = kwargs["specialpowers_path"]
+        browser_kwargs["env_extras"] = dict([x.split('=') for x in kwargs.get("env", [])])
+
+    return browser_kwargs
 
 
 def executor_kwargs(logger, test_type, test_environment, run_info_data,
@@ -160,7 +167,7 @@ class ProfileCreator(FirefoxProfileCreator):
 
     @staticmethod
     def default_prefs():
-        return {"fission.disableSessionHistoryInParent": True}
+        return {"fission.disableSessionHistoryInParent": False}
 
     def _set_required_prefs(self, profile):
         profile.set_preferences({
@@ -207,13 +214,13 @@ class FirefoxAndroidBrowser(Browser):
                  binary_args=None, timeout_multiplier=None, leak_check=False, asan=False,
                  chaos_mode_flags=None, config=None, browser_channel="nightly",
                  install_fonts=False, tests_root=None, specialpowers_path=None, adb_binary=None,
-                 debug_test=False, disable_fission=False, **kwargs):
+                 debug_test=False, disable_fission=False, env_extras=None, **kwargs):
 
-        super().__init__(logger)
+        super().__init__(logger, **kwargs)
         self.prefs_root = prefs_root
         self.test_type = test_type
         self.package_name = package_name
-        self.device_serial = device_serial
+        self.device_serial = device_serial[self.manager_number]
         self.debug_info = debug_info
         self.symbols_path = symbols_path
         self.stackwalk_binary = stackwalk_binary
@@ -249,7 +256,7 @@ class FirefoxAndroidBrowser(Browser):
         self.marionette_port = None
         self.profile = None
         self.runner = None
-        self.env_extras = kwargs["env_extras"]
+        self.env_extras = env_extras
         self._settings = {}
 
     def settings(self, test):
@@ -372,29 +379,17 @@ class FirefoxAndroidBrowser(Browser):
 
 
 class FirefoxAndroidWdSpecBrowser(FirefoxWdSpecBrowser):
-    def __init__(self, logger, prefs_root, webdriver_binary, webdriver_args,
-                 extra_prefs=None, debug_info=None, symbols_path=None, stackwalk_binary=None,
-                 certutil_binary=None, ca_certificate_path=None,
-                 disable_fission=False, stackfix_dir=None, leak_check=False,
-                 asan=False, chaos_mode_flags=None, config=None,
-                 browser_channel="nightly", headless=None, debug_test=None,
-                 binary=None, package_name="org.mozilla.geckoview.test_runner", device_serial=None,
-                 adb_binary=None, profile_creator_cls=ProfileCreator, **kwargs):
+    def __init__(self, logger, config=None, device_serial=None, adb_binary=None, **kwargs):
 
-        super().__init__(logger, None, package_name, prefs_root, webdriver_binary, webdriver_args,
-                         extra_prefs=extra_prefs, debug_info=debug_info, symbols_path=symbols_path,
-                         stackwalk_binary=stackwalk_binary, certutil_binary=certutil_binary,
-                         ca_certificate_path=ca_certificate_path,
-                         disable_fission=disable_fission, stackfix_dir=stackfix_dir,
-                         leak_check=leak_check, asan=asan,
-                         chaos_mode_flags=chaos_mode_flags, config=config,
-                         browser_channel=browser_channel, headless=headless,
-                         debug_test=debug_test, profile_creator_cls=profile_creator_cls, **kwargs)
+        if "profile_creator_cls" not in kwargs:
+            kwargs["profile_creator_cls"] = ProfileCreator
+
+        super().__init__(logger, config=config, **kwargs)
 
         self.config = config
-        self.device_serial = device_serial
+        self.device_serial = device_serial[self.manager_number]
         # This is just to support the same adb lookup as for other test types
-        context = get_app_context("fennec")(adb_path=adb_binary, device_serial=device_serial)
+        context = get_app_context("fennec")(adb_path=adb_binary, device_serial=self.device_serial)
         self.device = context.get_device(context.adb, self.device_serial)
 
     def start(self, group_metadata, **kwargs):

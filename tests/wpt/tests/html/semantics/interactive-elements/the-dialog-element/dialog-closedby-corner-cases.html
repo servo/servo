@@ -36,9 +36,9 @@
     assert_true(dialog.matches(':open'),'Should be open now (pseudo)');
   }
 
-  function awaitEvent(el, type, signal) {
+  function awaitClose(el, signal) {
     const {promise, resolve} = Promise.withResolvers();
-    el.addEventListener(type, resolve, { once: true, signal });
+    el.addEventListener('close', resolve, { signal });
     return promise
   }
 
@@ -56,7 +56,7 @@
         }, {signal});
 
         // Await for the close event before asserting.
-        return awaitEvent(dialog, 'close', signal)
+        return awaitClose(dialog, signal)
       }
     },
     {
@@ -70,7 +70,7 @@
         }, {signal});
 
         // Await for the close event before asserting.
-        return awaitEvent(dialog, 'close', signal)
+        return awaitClose(dialog, signal)
       }
     },
     {
@@ -86,7 +86,7 @@
         }, {signal});
 
         // Await for the close event before asserting.
-        return awaitEvent(dialog, 'close', signal)
+        return awaitClose(dialog, signal)
       },
       respondsTo(openMethod) {
         // Since the closing steps will trigger another call to showModal
@@ -106,24 +106,7 @@
         }, {signal});
 
         // Await for the close event before asserting.
-        return awaitEvent(dialog, 'close', signal)
-      }
-    },
-    {
-      description: 'requestIdleCallback calls showModal',
-      setup: (openMethod,signal) => {
-        return new Promise(resolve => {
-          requestIdleCallback(() => {
-            try {
-              dialog.showModal();
-            } catch {
-            } finally {
-              resolve();
-            }
-          });
-        // Wait for one more tick to reduce racey behaviour between
-        // requestIdleCallback and task queue event dispatch
-        }).then(() => waitForRender());
+        return awaitClose(dialog, signal)
       }
     },
     {
@@ -140,7 +123,7 @@
         }, {signal});
 
         // Await for the close event before asserting.
-        return awaitEvent(dialog, 'close', signal)
+        return awaitClose(dialog, signal)
       }
     },
   ];
@@ -152,9 +135,7 @@
       assert_equals(dialog.closedBy, "any", 'Dialog should be closedby=any');
 
       const signal = t.get_signal();
-      t.add_cleanup(() => {
-        dialog.close();
-      });
+      t.add_cleanup(() => dialog.close());
 
       const step = changeMethod.setup(openMethod, signal);
 

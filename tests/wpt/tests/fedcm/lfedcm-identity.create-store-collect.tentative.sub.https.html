@@ -68,8 +68,8 @@ promise_test(async t => {
 
 
 promise_test(async t => {
-
-  let promise4 = navigator.credentials.get({identity: {providers: []}});
+  await test_driver.bless();
+  let promise4 = navigator.credentials.get({identity: {mode: "active", providers: []}});
   assert_true(promise4 instanceof Promise, "The return value of get must be a promise.");
   let result4 = await promise4;
   assert_equals(result4, null, "A credential is not returned from the CredentialContainer when a request with no providers is given");
@@ -87,7 +87,8 @@ promise_test(async t => {
     identity : initData,
   });
   await navigator.credentials.store(result1);
-  let promise2 = navigator.credentials.get({identity: {providers: [{origin: window.origin}]}});
+  await test_driver.bless();
+  let promise2 = navigator.credentials.get({identity: {mode: "active", providers: [{origin: window.origin}]}});
   assert_true(promise2 instanceof Promise, "The return value of get must be a promise.");
   let result2 = await promise2;
   assert_equals(result2, null, "A credential is not returned from the CredentialContainer when the RP is not on the allowlist.");
@@ -103,7 +104,8 @@ promise_test(async t => {
   });
   await navigator.credentials.store(credential);
 
-  let getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: window.origin}]}});
+  await test_driver.bless();
+  let getCredentialPromise = navigator.credentials.get({identity: {mode: "active", providers: [{origin: window.origin}]}});
   let credentialGotten = await getCredentialPromise;
   fedcm_select_account_promise(t, 0);
   assert_not_equals(credentialGotten, undefined, "A credential is returned from the CredentialContainer.");
@@ -111,13 +113,15 @@ promise_test(async t => {
   assert_equals(credentialGotten.id, "wpt-pick-me", "The identity matches the argument");
   assert_equals(credentialGotten.token, "token1", "The token matches the argument");
 
-  let promise3 = navigator.credentials.get({identity: {providers: []}});
+  await test_driver.bless();
+  let promise3 = navigator.credentials.get({identity: {mode: "active", providers: []}});
   assert_true(promise3 instanceof Promise, "The return value of get must be a promise.");
   let result3 = await promise3;
   assert_equals(result3, null, "A credential is not returned from the CredentialContainer when no providers are given.");
 
 
-  let promise4 = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}"}]}});
+  await test_driver.bless();
+  let promise4 = navigator.credentials.get({identity: {mode: "active", providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}"}]}});
   assert_true(promise4 instanceof Promise, "The return value of get must be a promise.");
   let result4 = await promise4;
   assert_equals(result4, null, "A credential is not returned from the CredentialContainer when a provider with no credentials is given.");
@@ -137,13 +141,15 @@ promise_test(async t => {
   });
   await navigator.credentials.store(credential);
 
-  let promise2 = navigator.credentials.get({identity: {providers: [{origin: window.origin}]}});
+  await test_driver.bless();
+  let promise2 = navigator.credentials.get({identity: {mode: "active", providers: [{origin: window.origin}]}});
   assert_true(promise2 instanceof Promise, "The return value of get must be a promise.");
   let result2 = await promise2;
   assert_equals(result2, null, "A credential is not returned from the CredentialContainer when the effectiveQueryURL is not provided.");
 
 
-  let getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: window.origin, effectiveQueryURL: `https://{{hosts[][]}}:{{ports[https][0]}}/fedcm/support/acao-cors.py`}]}});
+  await test_driver.bless();
+  let getCredentialPromise = navigator.credentials.get({identity: {mode: "active", providers: [{origin: window.origin, effectiveQueryURL: `https://{{hosts[][]}}:{{ports[https][0]}}/fedcm/support/acao-cors.py`}]}});
   assert_true(getCredentialPromise instanceof Promise, "The return value of get must be a promise.");
   fedcm_select_account_promise(t, 0);
   let credentialGotten = await getCredentialPromise;
@@ -165,7 +171,8 @@ promise_test(async t => {
   });
   await navigator.credentials.store(credential);
 
-  let promise2 = navigator.credentials.get({identity: {providers: [{loginURL: "https://{{hosts[][]}}:{{ports[https][0]}}/fedcm/support/lfedcm-identity.provider-create.sub.html"}]}});
+  await test_driver.bless();
+  let promise2 = navigator.credentials.get({identity: {mode: "active", providers: [{loginURL: "https://{{hosts[][]}}:{{ports[https][0]}}/fedcm/support/lfedcm-identity.provider-create.sub.html"}]}});
   assert_true(promise2 instanceof Promise, "The return value of get must be a promise.");
   let result2 = await promise2;
   fedcm_select_account_promise(t, 0);
@@ -188,13 +195,15 @@ promise_test(async t => {
   });
   await navigator.credentials.store(credential);
 
-  let promise2 = navigator.credentials.get({identity: {providers: [{origin: window.origin}]}});
+  await test_driver.bless();
+  let promise2 = navigator.credentials.get({identity: {mode: "active", providers: [{origin: window.origin}]}});
   assert_true(promise2 instanceof Promise, "The return value of get must be a promise.");
   let result2 = await promise2;
   assert_equals(result2, null, "A credential is not returned from the CredentialContainer when the effectiveQueryURL is not provided.");
 
 
-  let getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: window.origin, effectiveQueryURL: `https://{{hosts[][]}}:{{ports[https][0]}}/fedcm/support/no-cors.py`}]}});
+  await test_driver.bless();
+  let getCredentialPromise = navigator.credentials.get({identity: {mode: "active", providers: [{origin: window.origin, effectiveQueryURL: `https://{{hosts[][]}}:{{ports[https][0]}}/fedcm/support/no-cors.py`}]}});
   let credentialGotten = await getCredentialPromise;
   fedcm_select_account_promise(t, 0);
   assert_not_equals(credentialGotten, undefined, "A credential is returned from the CredentialContainer.");
@@ -212,7 +221,8 @@ promise_test(async t => {
     id: "wpt-pick-me",
   });
 
-  getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}"}]}});
+  await test_driver.bless();
+  getCredentialPromise = navigator.credentials.get({identity: {mode: "active", providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}"}]}});
   assert_true(getCredentialPromise instanceof Promise, "The return value of get must be a promise.");
   credentialGotten = await getCredentialPromise;
   assert_equals(credentialGotten, null, "A optionless credential is not returned from the CredentialContainer.");
@@ -228,7 +238,8 @@ promise_test(async t => {
     id: "wpt-pick-me",
     origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}/",
   });
-  getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}"}]}});
+  await test_driver.bless();
+  getCredentialPromise = navigator.credentials.get({identity: {mode: "active", providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}"}]}});
   assert_true(getCredentialPromise instanceof Promise, "The return value of get must be a promise.");
   credentialGotten = await getCredentialPromise;
   assert_equals(credentialGotten, null, "An innefective credential is not returned from the CredentialContainer.");
@@ -244,7 +255,8 @@ promise_test(async t => {
     origin: "https://{{hosts[][]}}:{{ports[https][0]}}/",
   });
 
-  getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}"}]}});
+  await test_driver.bless();
+  getCredentialPromise = navigator.credentials.get({identity: {mode: "active", providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}"}]}});
   assert_true(getCredentialPromise instanceof Promise, "The return value of get must be a promise.");
   fedcm_select_account_promise(t, 0);
   credentialGotten = await getCredentialPromise;
@@ -261,7 +273,8 @@ promise_test(async t => {
     url: "no-cors"
   });
 
-  getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}"}]}});
+  await test_driver.bless();
+  getCredentialPromise = navigator.credentials.get({identity: {mode: "active", providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}"}]}});
   assert_true(getCredentialPromise instanceof Promise, "The return value of get must be a promise.");
   credentialGotten = await getCredentialPromise;
   assert_equals(credentialGotten, null, "An innefective credential is not returned from the CredentialContainer.");
@@ -278,7 +291,8 @@ promise_test(async t => {
     url: "cors"
   });
 
-  getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}", effectiveQueryURL: "https://{{hosts[alt][]}}:{{ports[https][0]}}/fedcm/support/acao-cors.py"}]}});
+  await test_driver.bless();
+  getCredentialPromise = navigator.credentials.get({identity: {mode: "active", providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}", effectiveQueryURL: "https://{{hosts[alt][]}}:{{ports[https][0]}}/fedcm/support/acao-cors.py"}]}});
   assert_true(getCredentialPromise instanceof Promise, "The return value of get must be a promise.");
   fedcm_select_account_promise(t, 0);
   credentialGotten = await getCredentialPromise;
@@ -296,7 +310,8 @@ promise_test(async t => {
     type: "correct"
   });
 
-  getCredentialPromise = navigator.credentials.get({identity: {providers: [{effectiveType: "correct"}]}});
+  await test_driver.bless();
+  getCredentialPromise = navigator.credentials.get({identity: {mode: "active", providers: [{effectiveType: "correct"}]}});
   assert_true(getCredentialPromise instanceof Promise, "The return value of get must be a promise.");
   fedcm_select_account_promise(t, 0);
   credentialGotten = await getCredentialPromise;
@@ -313,7 +328,8 @@ promise_test(async t => {
     type: "correct"
   });
 
-  getCredentialPromise = navigator.credentials.get({identity: {providers: [{effectiveType: "wrong"}]}});
+  await test_driver.bless();
+  getCredentialPromise = navigator.credentials.get({identity: {mode: "active", providers: [{effectiveType: "wrong"}]}});
   assert_true(getCredentialPromise instanceof Promise, "The return value of get must be a promise.");
   fedcm_select_account_promise(t, 0);
   credentialGotten = await getCredentialPromise;
@@ -331,7 +347,8 @@ promise_test(async t => {
     identity : initData,
   });
   await navigator.credentials.store(result1);
-  let promise2 = navigator.credentials.get({identity: {providers: [{origin: window.origin}]}});
+  await test_driver.bless();
+  let promise2 = navigator.credentials.get({identity: {mode: "active", providers: [{origin: window.origin}]}});
   assert_true(promise2 instanceof Promise, "The return value of get must be a promise.");
   let result2 = await promise2;
   assert_equals(result2, null, "A credential is not returned from the CredentialContainer when the RP is not on the allowlist.");
@@ -347,7 +364,8 @@ promise_test(async t => {
   await navigator.credentials.store(credential);
 
   // Collect a credential so we can use silent access
-  let getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: window.origin}]}});
+  await test_driver.bless();
+  let getCredentialPromise = navigator.credentials.get({identity: {mode: "active", providers: [{origin: window.origin}]}});
   let credentialGotten = await getCredentialPromise;
   fedcm_select_account_promise(t, 0);
   assert_not_equals(credentialGotten, undefined, "A credential is returned from the CredentialContainer.");
@@ -356,7 +374,8 @@ promise_test(async t => {
 
 
   // Collect the credential silently.
-  let getCredentialPromise2 = navigator.credentials.get({identity: {providers: [{origin: window.origin}]}});
+  await test_driver.bless();
+  let getCredentialPromise2 = navigator.credentials.get({identity: {mode: "active", providers: [{origin: window.origin}]}});
   let credentialGotten2 = await getCredentialPromise2;
   assert_not_equals(credentialGotten2, undefined, "A credential is returned from the CredentialContainer.");
   assert_equals(credentialGotten2.type, "identity", "The credential is an IdentityCredential");
@@ -364,7 +383,8 @@ promise_test(async t => {
 
   await navigator.credentials.preventSilentAccess();
 
-  let getCredentialPromise3 = navigator.credentials.get({identity: {providers: [{origin: window.origin}]}});
+  await test_driver.bless();
+  let getCredentialPromise3 = navigator.credentials.get({identity: {mode: "active", providers: [{origin: window.origin}]}});
   fedcm_select_account_promise(t, 0);
   let credentialGotten3 = await getCredentialPromise3;
   assert_not_equals(credentialGotten3, undefined, "A credential is returned from the CredentialContainer.");

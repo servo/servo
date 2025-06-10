@@ -59,6 +59,7 @@
     const vt = element.startViewTransition(() => {
       element.style.flexDirection = 'column';
     });
+    assert_equals(vt.transitionRoot, element);
     await vt.ready;
     const results =
         document.getAnimations().map((a) => {

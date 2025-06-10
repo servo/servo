@@ -1,6 +1,7 @@
 # mypy: allow-untyped-defs
 
 import errno
+import http
 import http.server
 import os
 import socket
@@ -341,6 +342,34 @@ class BaseWebTestRequestHandler(http.server.BaseHTTPRequestHandler):
                                                    server_side=True)
             self.setup()
         return
+
+    def log_request(self, code="-", size="-"):
+        if isinstance(code, http.HTTPStatus):
+            code = code.value
+
+        self.logger.debug(
+            "{} - - [{}] {!r} {!s} {!s}".format(
+                self.address_string(),
+                self.log_date_time_string(),
+                self.requestline,
+                code,
+                size,
+            )
+        )
+
+    def log_error(self, format, *args):
+        self.logger.error(
+            "{} - - [{}] {}".format(
+                self.address_string(), self.log_date_time_string(), format % args
+            )
+        )
+
+    def log_message(self, format, *args):
+        self.logger.info(
+            "{} - - [{}] {}".format(
+                self.address_string(), self.log_date_time_string(), format % args
+            )
+        )
 
 
 class Http2WebTestRequestHandler(BaseWebTestRequestHandler):

@@ -12,7 +12,7 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use constellation_traits::LoadData;
 use crossbeam_channel::Sender;
-use embedder_traits::ViewportDetails;
+use embedder_traits::{Theme, ViewportDetails};
 use http::header;
 use net_traits::request::{
     CredentialsMode, InsecureRequestsPolicy, RedirectMode, RequestBuilder, RequestMode,
@@ -159,6 +159,9 @@ pub(crate) struct InProgressLoad {
     /// this load.
     #[no_trace]
     pub(crate) url_list: Vec<ServoUrl>,
+    /// The [`Theme`] to use for this page, once it loads.
+    #[no_trace]
+    pub(crate) theme: Theme,
 }
 
 impl InProgressLoad {
@@ -171,6 +174,7 @@ impl InProgressLoad {
         parent_info: Option<PipelineId>,
         opener: Option<BrowsingContextId>,
         viewport_details: ViewportDetails,
+        theme: Theme,
         origin: MutableOrigin,
         load_data: LoadData,
     ) -> InProgressLoad {
@@ -189,6 +193,7 @@ impl InProgressLoad {
             canceller: Default::default(),
             load_data,
             url_list: vec![url],
+            theme,
         }
     }
 

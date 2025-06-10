@@ -20,31 +20,35 @@
 <input id="verticalInput">
 
 <script>
-for (const inputType of ["text", "email", "password", "search", "tel", "url", "number"]) {
-    horizontalInput.type = inputType;
-    verticalInput.type = inputType;
-    for (const writingMode of ["vertical-lr", "vertical-rl", "sideways-lr", "sideways-rl"]) {
-        if (!CSS.supports(`writing-mode: ${writingMode}`))
-            continue;
-        test(t => {
-            verticalInput.style.writingMode = writingMode;
-            t.add_cleanup(() => {
-                verticalInput.removeAttribute("style");
-            });
+setup({ explicit_done: true });
+document.fonts.ready.then(() => {
+    for (const inputType of ["text", "email", "password", "search", "tel", "url", "number"]) {
+        horizontalInput.type = inputType;
+        verticalInput.type = inputType;
+        for (const writingMode of ["vertical-lr", "vertical-rl", "sideways-lr", "sideways-rl"]) {
+            if (!CSS.supports(`writing-mode: ${writingMode}`))
+                continue;
+            test(t => {
+                verticalInput.style.writingMode = writingMode;
+                t.add_cleanup(() => {
+                    verticalInput.removeAttribute("style");
+                });
 
-            const verticalRect = verticalInput.getBoundingClientRect();
-            assert_true(
-                verticalRect.width < verticalRect.height,
-                "input has correct aspect ratio for default input size"
-            );
+                const verticalRect = verticalInput.getBoundingClientRect();
+                assert_true(
+                    verticalRect.width < verticalRect.height,
+                    "input has correct aspect ratio for default input size"
+                );
 
-            const horizontalRect = horizontalInput.getBoundingClientRect();
-            assert_equals(
-                Math.round(verticalRect.width),
-                Math.round(horizontalRect.height),
-                "width of vertical input matches height of horizontal input"
-            );
-        }, `Test input[type=${inputType}] block-size in writing-mode: ${writingMode}`);
+                const horizontalRect = horizontalInput.getBoundingClientRect();
+                assert_equals(
+                    Math.round(verticalRect.width),
+                    Math.round(horizontalRect.height),
+                    "width of vertical input matches height of horizontal input"
+                );
+            }, `Test input[type=${inputType}] block-size in writing-mode: ${writingMode}`);
+        }
     }
-}
+    done();
+});
 </script>

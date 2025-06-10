@@ -2,3 +2,7 @@ features:
 - name: pdf-viewer
   files:
   - plugins-and-mimetypes.html
+- name: ua-client-hints
+  files:
+  - navigator_user_agent.tentative.html
+  - navigator_user_agent.https.tentative.html

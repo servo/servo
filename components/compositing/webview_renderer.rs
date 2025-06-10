@@ -2,12 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
-use std::collections::HashMap;
+use std::cell::{Cell, RefCell};
 use std::collections::hash_map::Keys;
+use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;
 
 use base::id::{PipelineId, WebViewId};
+use compositing_traits::viewport_description::{
+    DEFAULT_ZOOM, MAX_ZOOM, MIN_ZOOM, ViewportDescription,
+};
 use compositing_traits::{SendableFrameTree, WebViewTrait};
 use constellation_traits::{EmbedderToConstellationMessage, ScrollState, WindowSizeType};
 use embedder_traits::{
@@ -25,12 +28,8 @@ use webrender_api::units::{
 };
 use webrender_api::{ExternalScrollId, HitTestFlags, ScrollLocation};
 
-use crate::compositor::{PipelineDetails, ServoRenderer};
+use crate::compositor::{HitTestError, PipelineDetails, ServoRenderer};
 use crate::touch::{TouchHandler, TouchMoveAction, TouchMoveAllowed, TouchSequenceState};
-
-// Default viewport constraints
-const MAX_ZOOM: f32 = 8.0;
-const MIN_ZOOM: f32 = 0.1;
 
 #[derive(Clone, Copy)]
 struct ScrollEvent {
@@ -44,8 +43,10 @@ struct ScrollEvent {
 
 #[derive(Clone, Copy)]
 enum ScrollZoomEvent {
-    /// An pinch zoom event that magnifies the view by the given factor.
+    /// A pinch zoom event that magnifies the view by the given factor.
     PinchZoom(f32),
+    /// A zoom event that magnifies the view by the factor parsed from meta tag.
+    ViewportZoom(f32),
     /// A scroll event that scrolls the scroll node at the given location by the
     /// given amount.
     Scroll(ScrollEvent),
@@ -58,7 +59,7 @@ pub(crate) struct ScrollResult {
     pub offset: LayoutVector2D,
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub(crate) enum PinchZoomResult {
     DidPinchZoom,
     DidNotPinchZoom,
@@ -89,15 +90,18 @@ pub(crate) struct WebViewRenderer {
     pub page_zoom: Scale<f32, CSSPixel, DeviceIndependentPixel>,
     /// "Mobile-style" zoom that does not reflow the page.
     viewport_zoom: PinchZoomFactor,
-    /// Viewport zoom constraints provided by @viewport.
-    min_viewport_zoom: Option<PinchZoomFactor>,
-    max_viewport_zoom: Option<PinchZoomFactor>,
     /// The HiDPI scale factor for the `WebView` associated with this renderer. This is controlled
     /// by the embedding layer.
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
     /// Whether or not this [`WebViewRenderer`] isn't throttled and has a pipeline with
     /// active animations or animation frame callbacks.
     animating: bool,
+    /// Pending input events queue. Priavte and only this thread pushes events to it.
+    pending_point_input_events: RefCell<VecDeque<InputEvent>>,
+    /// WebRender is not ready between `SendDisplayList` and `WebRenderFrameReady` messages.
+    pub webrender_frame_ready: Cell<bool>,
+    /// Viewport Description
+    viewport_description: Option<ViewportDescription>,
 }
 
 impl Drop for WebViewRenderer {
@@ -127,11 +131,12 @@ impl WebViewRenderer {
             global,
             pending_scroll_zoom_events: Default::default(),
             page_zoom: Scale::new(1.0),
-            viewport_zoom: PinchZoomFactor::new(1.0),
-            min_viewport_zoom: Some(PinchZoomFactor::new(1.0)),
-            max_viewport_zoom: None,
+            viewport_zoom: PinchZoomFactor::new(DEFAULT_ZOOM),
             hidpi_scale_factor: Scale::new(hidpi_scale_factor.0),
             animating: false,
+            pending_point_input_events: Default::default(),
+            webrender_frame_ready: Cell::default(),
+            viewport_description: None,
         }
     }
 
@@ -309,29 +314,89 @@ impl WebViewRenderer {
         }
     }
 
-    pub(crate) fn dispatch_input_event(&mut self, event: InputEvent) {
+    pub(crate) fn dispatch_point_input_event(&mut self, mut event: InputEvent) -> bool {
         // Events that do not need to do hit testing are sent directly to the
         // constellation to filter down.
         let Some(point) = event.point() else {
-            return;
+            return false;
         };
+
+        // Delay the event if the epoch is not synchronized yet (new frame is not ready),
+        // or hit test result would fail and the event is rejected anyway.
+        if !self.webrender_frame_ready.get() || !self.pending_point_input_events.borrow().is_empty()
+        {
+            self.pending_point_input_events
+                .borrow_mut()
+                .push_back(event);
+            return false;
+        }
 
         // If we can't find a pipeline to send this event to, we cannot continue.
         let get_pipeline_details = |pipeline_id| self.pipelines.get(&pipeline_id);
-        let Some(result) = self
+        let result = match self
             .global
             .borrow()
             .hit_test_at_point(point, get_pipeline_details)
-        else {
-            return;
+        {
+            Ok(hit_test_results) => hit_test_results,
+            Err(HitTestError::EpochMismatch) => {
+                self.pending_point_input_events
+                    .borrow_mut()
+                    .push_back(event);
+                return false;
+            },
+            _ => {
+                return false;
+            },
         };
 
-        self.global.borrow_mut().update_cursor(point, &result);
+        match event {
+            InputEvent::Touch(ref mut touch_event) => {
+                touch_event.init_sequence_id(self.touch_handler.current_sequence_id);
+            },
+            InputEvent::MouseButton(_) | InputEvent::MouseMove(_) | InputEvent::Wheel(_) => {
+                self.global.borrow_mut().update_cursor(point, &result);
+            },
+            _ => unreachable!("Unexpected input event type: {event:?}"),
+        }
 
         if let Err(error) = self.global.borrow().constellation_sender.send(
             EmbedderToConstellationMessage::ForwardInputEvent(self.id, event, Some(result)),
         ) {
             warn!("Sending event to constellation failed ({error:?}).");
+            false
+        } else {
+            true
+        }
+    }
+
+    pub(crate) fn dispatch_pending_point_input_events(&self) {
+        while let Some(event) = self.pending_point_input_events.borrow_mut().pop_front() {
+            // Events that do not need to do hit testing are sent directly to the
+            // constellation to filter down.
+            let Some(point) = event.point() else {
+                continue;
+            };
+
+            // If we can't find a pipeline to send this event to, we cannot continue.
+            let get_pipeline_details = |pipeline_id| self.pipelines.get(&pipeline_id);
+            let Ok(result) = self
+                .global
+                .borrow()
+                .hit_test_at_point(point, get_pipeline_details)
+            else {
+                // Don't need to process pending input events in this frame any more.
+                // TODO: Add multiple retry later if needed.
+                return;
+            };
+
+            self.global.borrow_mut().update_cursor(point, &result);
+
+            if let Err(error) = self.global.borrow().constellation_sender.send(
+                EmbedderToConstellationMessage::ForwardInputEvent(self.id, event, Some(result)),
+            ) {
+                warn!("Sending event to constellation failed ({error:?}).");
+            }
         }
     }
 
@@ -401,29 +466,11 @@ impl WebViewRenderer {
             }
         }
 
-        self.dispatch_input_event(event);
+        self.dispatch_point_input_event(event);
     }
 
-    fn send_touch_event(&self, mut event: TouchEvent) -> bool {
-        let get_pipeline_details = |pipeline_id| self.pipelines.get(&pipeline_id);
-        let Some(result) = self
-            .global
-            .borrow()
-            .hit_test_at_point(event.point, get_pipeline_details)
-        else {
-            return false;
-        };
-
-        event.init_sequence_id(self.touch_handler.current_sequence_id);
-        let event = InputEvent::Touch(event);
-        if let Err(e) = self.global.borrow().constellation_sender.send(
-            EmbedderToConstellationMessage::ForwardInputEvent(self.id, event, Some(result)),
-        ) {
-            warn!("Sending event to constellation failed ({:?}).", e);
-            false
-        } else {
-            true
-        }
+    fn send_touch_event(&mut self, event: TouchEvent) -> bool {
+        self.dispatch_point_input_event(InputEvent::Touch(event))
     }
 
     pub(crate) fn on_touch_event(&mut self, event: TouchEvent) {
@@ -687,13 +734,13 @@ impl WebViewRenderer {
     /// <http://w3c.github.io/touch-events/#mouse-events>
     fn simulate_mouse_click(&mut self, point: DevicePoint) {
         let button = MouseButton::Left;
-        self.dispatch_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
-        self.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
+        self.dispatch_point_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
+        self.dispatch_point_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
             MouseButtonAction::Down,
             button,
             point,
         )));
-        self.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
+        self.dispatch_point_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
             MouseButtonAction::Up,
             button,
             point,
@@ -764,7 +811,8 @@ impl WebViewRenderer {
         let mut combined_magnification = 1.0;
         for scroll_event in self.pending_scroll_zoom_events.drain(..) {
             match scroll_event {
-                ScrollZoomEvent::PinchZoom(magnification) => {
+                ScrollZoomEvent::PinchZoom(magnification) |
+                ScrollZoomEvent::ViewportZoom(magnification) => {
                     combined_magnification *= magnification
                 },
                 ScrollZoomEvent::Scroll(scroll_event_info) => {
@@ -858,7 +906,8 @@ impl WebViewRenderer {
                 HitTestFlags::FIND_ALL,
                 None,
                 get_pipeline_details,
-            );
+            )
+            .unwrap_or_default();
 
         // Iterate through all hit test results, processing only the first node of each pipeline.
         // This is needed to propagate the scroll events from a pipeline representing an iframe to
@@ -892,11 +941,8 @@ impl WebViewRenderer {
     }
 
     fn set_pinch_zoom_level(&mut self, mut zoom: f32) -> bool {
-        if let Some(min) = self.min_viewport_zoom {
-            zoom = f32::max(min.get(), zoom);
-        }
-        if let Some(max) = self.max_viewport_zoom {
-            zoom = f32::min(max.get(), zoom);
+        if let Some(viewport) = self.viewport_description.as_ref() {
+            zoom = viewport.clamp_zoom(zoom);
         }
 
         let old_zoom = std::mem::replace(&mut self.viewport_zoom, PinchZoomFactor::new(zoom));
@@ -926,7 +972,12 @@ impl WebViewRenderer {
 
         // TODO: Scroll to keep the center in view?
         self.pending_scroll_zoom_events
-            .push(ScrollZoomEvent::PinchZoom(magnification));
+            .push(ScrollZoomEvent::PinchZoom(
+                self.viewport_description
+                    .clone()
+                    .unwrap_or_default()
+                    .clamp_zoom(magnification),
+            ));
     }
 
     fn send_window_size_message(&self) {
@@ -992,6 +1043,17 @@ impl WebViewRenderer {
     pub(crate) fn available_screen_size(&self) -> Size2D<i32, DeviceIndependentPixel> {
         let screen_geometry = self.webview.screen_geometry().unwrap_or_default();
         (screen_geometry.available_size.to_f32() / self.hidpi_scale_factor).to_i32()
+    }
+
+    pub fn set_viewport_description(&mut self, viewport_description: ViewportDescription) {
+        self.pending_scroll_zoom_events
+            .push(ScrollZoomEvent::ViewportZoom(
+                self.viewport_description
+                    .clone()
+                    .unwrap_or_default()
+                    .clamp_zoom(viewport_description.initial_scale.get()),
+            ));
+        self.viewport_description = Some(viewport_description);
     }
 }
 

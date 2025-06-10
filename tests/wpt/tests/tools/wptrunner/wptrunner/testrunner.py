@@ -1,6 +1,8 @@
 # mypy: allow-untyped-defs
 
+import random
 import threading
+import time
 import traceback
 from queue import Empty
 from collections import namedtuple, defaultdict
@@ -311,7 +313,7 @@ class TestSource:
         if not self.current_group.group or len(self.current_group.group) == 0:
             try:
                 self.current_group = self.test_queue.get()
-                self.logger.debug(f"Got new test group subsuite:{self.current_group[1]} "
+                self.logger.debug(f"Got new test group subsuite:{self.current_group[1]!r} "
                                   f"test_type:{self.current_group[2]}")
             except Empty:
                 return testloader.TestGroup(None, None, None, None)
@@ -340,7 +342,8 @@ class TestRunnerManager(threading.Thread):
                  test_implementations, stop_flag, retry_index=0, rerun=1,
                  pause_after_test=False, pause_on_unexpected=False,
                  restart_on_unexpected=True, debug_info=None,
-                 capture_stdio=True, restart_on_new_group=True, recording=None, max_restarts=5):
+                 capture_stdio=True, restart_on_new_group=True, recording=None,
+                 max_restarts=5, max_restart_backoff=0):
         """Thread that owns a single TestRunner process and any processes required
         by the TestRunner (e.g. the Firefox binary).
 
@@ -359,21 +362,7 @@ class TestRunnerManager(threading.Thread):
         self.suite_name = suite_name
         self.manager_number = index
         self.test_implementation_key = None
-
-        self.test_implementations = {}
-        for key, test_implementation in test_implementations.items():
-            browser_kwargs = test_implementation.browser_kwargs
-            if browser_kwargs.get("device_serial"):
-                browser_kwargs = browser_kwargs.copy()
-                # Assign Android device to runner according to current manager index
-                browser_kwargs["device_serial"] = browser_kwargs["device_serial"][index]
-                self.test_implementations[key] = TestImplementation(
-                    test_implementation.executor_cls,
-                    test_implementation.executor_kwargs,
-                    test_implementation.browser_cls,
-                    browser_kwargs)
-            else:
-                self.test_implementations[key] = test_implementation
+        self.test_implementations = test_implementations
 
         # Flags used to shut down this thread if we get a sigint
         self.parent_stop_flag = stop_flag
@@ -391,6 +380,7 @@ class TestRunnerManager(threading.Thread):
         self.capture_stdio = capture_stdio
         self.restart_on_new_group = restart_on_new_group
         self.max_restarts = max_restarts
+        self.max_restart_backoff = max_restart_backoff
 
         assert recording is not None
         self.recording = recording
@@ -483,11 +473,11 @@ class TestRunnerManager(threading.Thread):
 
             if skipped_tests:
                 self.logger.critical(
-                    f"Tests left in the queue: {subsuite}:{skipped_tests[0].id!r} "
+                    f"Tests left in the queue: {subsuite!r}:{skipped_tests[0].id!r} "
                     f"and {len(skipped_tests) - 1} others"
                 )
                 for test in skipped_tests[1:]:
-                    self.logger.debug(f"Test left in the queue: {subsuite}:{test.id!r}")
+                    self.logger.debug(f"Test left in the queue: {subsuite!r}:{test.id!r}")
 
             force_stop = (not isinstance(self.state, RunnerManagerState.stop) or
                           self.state.force_stop)
@@ -595,6 +585,12 @@ class TestRunnerManager(threading.Thread):
         if self.state.failure_count > self.max_restarts:
             self.logger.critical("Max restarts exceeded")
             return RunnerManagerState.error()
+        elif self.state.failure_count > 0 and self.max_restart_backoff:
+            # Subtract one so we start with 2**0 (i.e., 1)
+            base_backoff = min(self.max_restart_backoff, 2**(self.state.failure_count-1))
+            used_backoff = base_backoff + random.uniform(0, 1)
+            self.logger.info(f"Waiting {used_backoff:.2f}s before restarting browser")
+            time.sleep(used_backoff)
 
         if (self.state.subsuite, self.state.test_type) != self.test_implementation_key:
             if self.browser is not None:
@@ -602,6 +598,7 @@ class TestRunnerManager(threading.Thread):
                 self.browser.browser.cleanup()
             impl = self.test_implementations[(self.state.subsuite, self.state.test_type)]
             browser = impl.browser_cls(self.logger,
+                                       manager_number=self.manager_number,
                                        **impl.browser_kwargs)
             browser.setup()
             self.browser = BrowserManager(self.logger,
@@ -903,7 +900,7 @@ class TestRunnerManager(threading.Thread):
             if test is None:
                 return RunnerManagerState.stop(force_stop)
             if subsuite != self.state.subsuite:
-                self.logger.info(f"Restarting browser for new subsuite:{subsuite}")
+                self.logger.info(f"Restarting browser for new subsuite:{subsuite!r}")
                 restart = True
             elif self.restart_on_new_group and test_group is not self.state.test_group:
                 self.logger.info("Restarting browser for new test group")
@@ -1049,7 +1046,8 @@ class ManagerGroup:
                  capture_stdio=True,
                  restart_on_new_group=True,
                  recording=None,
-                 max_restarts=5):
+                 max_restarts=5,
+                 max_restart_backoff=0):
         self.suite_name = suite_name
         self.test_queue_builder = test_queue_builder
         self.test_implementations = test_implementations
@@ -1064,6 +1062,7 @@ class ManagerGroup:
         self.recording = recording
         assert recording is not None
         self.max_restarts = max_restarts
+        self.max_restart_backoff = max_restart_backoff
 
         self.pool = set()
         self.stop_flag = None
@@ -1096,7 +1095,8 @@ class ManagerGroup:
                                         self.capture_stdio,
                                         self.restart_on_new_group,
                                         recording=self.recording,
-                                        max_restarts=self.max_restarts)
+                                        max_restarts=self.max_restarts,
+                                        max_restart_backoff=self.max_restart_backoff)
             manager.start()
             self.pool.add(manager)
         self.wait()

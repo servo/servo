@@ -131,7 +131,9 @@ pub(crate) fn compute_damage_and_repair_style_inner(
         }
     }
 
-    if propagated_damage == RestyleDamage::REPAINT && original_damage == RestyleDamage::REPAINT {
+    if !propagated_damage.contains(RestyleDamage::REBUILD_BOX) &&
+        !original_damage.contains(RestyleDamage::REBUILD_BOX)
+    {
         node.repair_style(context);
     }
 

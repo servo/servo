@@ -1926,7 +1926,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
             // If ! IsReadableStreamLocked(this) is true,
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new(&global, can_gc);
-            promise.reject_error(Error::Type("stream is not locked".to_owned()), can_gc);
+            promise.reject_error(Error::Type("stream is locked".to_owned()), can_gc);
             promise
         } else {
             // Return ! ReadableStreamCancel(this, reason).

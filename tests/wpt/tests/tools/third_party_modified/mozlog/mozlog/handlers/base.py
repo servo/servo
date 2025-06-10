@@ -18,7 +18,7 @@ class BaseHandler(object):
     def __init__(self, inner):
         self.message_handler = MessageHandler()
         if hasattr(inner, "message_handler"):
-            self.message_handler.wrapped.append(inner)
+            self.message_handler.wrapped.append(inner.message_handler)
 
 
 class LogLevelFilter(BaseHandler):

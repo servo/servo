@@ -119,6 +119,6 @@ rowspanned td's should contribute to baseline, but not to the row height.</p>
 
 </main>
 <script>
-  checkLayout("table, .display-table");
+  document.fonts.ready.then(() => checkLayout("table, .display-table"));
 </script>
 

@@ -54,6 +54,8 @@ use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::element::{Element, cors_setting_for_element};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::HTMLCanvasElement;
+use crate::dom::htmlvideoelement::HTMLVideoElement;
+use crate::dom::imagebitmap::ImageBitmap;
 use crate::dom::imagedata::ImageData;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::offscreencanvas::OffscreenCanvas;
@@ -310,14 +312,16 @@ impl CanvasState {
         self.origin_clean.set(false)
     }
 
-    // https://html.spec.whatwg.org/multipage/#the-image-argument-is-not-origin-clean
-    fn is_origin_clean(&self, image: CanvasImageSource) -> bool {
-        match image {
-            CanvasImageSource::HTMLCanvasElement(canvas) => canvas.origin_is_clean(),
-            CanvasImageSource::OffscreenCanvas(canvas) => canvas.origin_is_clean(),
+    /// <https://html.spec.whatwg.org/multipage/#the-image-argument-is-not-origin-clean>
+    fn is_origin_clean(&self, source: CanvasImageSource) -> bool {
+        match source {
             CanvasImageSource::HTMLImageElement(image) => {
                 image.same_origin(GlobalScope::entry().origin())
             },
+            CanvasImageSource::HTMLVideoElement(video) => video.origin_is_clean(),
+            CanvasImageSource::HTMLCanvasElement(canvas) => canvas.origin_is_clean(),
+            CanvasImageSource::ImageBitmap(bitmap) => bitmap.origin_is_clean(),
+            CanvasImageSource::OffscreenCanvas(canvas) => canvas.origin_is_clean(),
             CanvasImageSource::CSSStyleValue(_) => true,
         }
     }
@@ -328,7 +332,15 @@ impl CanvasState {
         cors_setting: Option<CorsSettings>,
     ) -> Option<snapshot::Snapshot> {
         let img = match self.request_image_from_cache(url, cors_setting) {
-            ImageResponse::Loaded(img, _) => img,
+            ImageResponse::Loaded(image, _) => {
+                if let Some(image) = image.as_raster_image() {
+                    image
+                } else {
+                    // TODO: https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
+                    warn!("Vector images are not supported as image source in canvas2d");
+                    return None;
+                }
+            },
             ImageResponse::PlaceholderLoaded(_, _) |
             ImageResponse::None |
             ImageResponse::MetadataLoaded(_) => {
@@ -336,7 +348,7 @@ impl CanvasState {
             },
         };
 
-        let size = Size2D::new(img.width, img.height);
+        let size = Size2D::new(img.metadata.width, img.metadata.height);
         let format = match img.format {
             PixelFormat::BGRA8 => snapshot::PixelFormat::BGRA,
             PixelFormat::RGBA8 => snapshot::PixelFormat::RGBA,
@@ -373,7 +385,7 @@ impl CanvasState {
         }
     }
 
-    pub(crate) fn get_rect(&self, canvas_size: Size2D<u64>, rect: Rect<u64>) -> Vec<u8> {
+    pub(crate) fn get_rect(&self, canvas_size: Size2D<u32>, rect: Rect<u32>) -> Vec<u8> {
         assert!(self.origin_is_clean());
         assert!(Rect::from_size(canvas_size).contains_rect(&rect));
 
@@ -430,6 +442,17 @@ impl CanvasState {
         }
 
         let result = match image {
+            CanvasImageSource::HTMLVideoElement(ref video) => {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                // Step 2. Let usability be the result of checking the usability of image.
+                // Step 3. If usability is bad, then return (without drawing anything).
+                if !video.is_usable() {
+                    return Ok(());
+                }
+
+                self.draw_html_video_element(video, htmlcanvas, sx, sy, sw, sh, dx, dy, dw, dh);
+                Ok(())
+            },
             CanvasImageSource::HTMLCanvasElement(ref canvas) => {
                 // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
                 if canvas.get_size().is_empty() {
@@ -437,6 +460,15 @@ impl CanvasState {
                 }
 
                 self.draw_html_canvas_element(canvas, htmlcanvas, sx, sy, sw, sh, dx, dy, dw, dh)
+            },
+            CanvasImageSource::ImageBitmap(ref bitmap) => {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                if bitmap.is_detached() {
+                    return Err(Error::InvalidState);
+                }
+
+                self.draw_image_bitmap(bitmap, htmlcanvas, sx, sy, sw, sh, dx, dy, dw, dh);
+                Ok(())
             },
             CanvasImageSource::OffscreenCanvas(ref canvas) => {
                 // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
@@ -490,6 +522,52 @@ impl CanvasState {
         result
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage>
+    #[allow(clippy::too_many_arguments)]
+    fn draw_html_video_element(
+        &self,
+        video: &HTMLVideoElement,
+        canvas: Option<&HTMLCanvasElement>,
+        sx: f64,
+        sy: f64,
+        sw: Option<f64>,
+        sh: Option<f64>,
+        dx: f64,
+        dy: f64,
+        dw: Option<f64>,
+        dh: Option<f64>,
+    ) {
+        let Some(snapshot) = video.get_current_frame_data() else {
+            return;
+        };
+
+        // Step 4. Establish the source and destination rectangles.
+        let video_size = snapshot.size();
+        let dw = dw.unwrap_or(video_size.width as f64);
+        let dh = dh.unwrap_or(video_size.height as f64);
+        let sw = sw.unwrap_or(video_size.width as f64);
+        let sh = sh.unwrap_or(video_size.height as f64);
+
+        let (source_rect, dest_rect) =
+            self.adjust_source_dest_rects(video_size, sx, sy, sw, sh, dx, dy, dw, dh);
+
+        // Step 5. If one of the sw or sh arguments is zero, then return. Nothing is painted.
+        if !is_rect_valid(source_rect) || !is_rect_valid(dest_rect) {
+            return;
+        }
+
+        let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
+
+        self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
+            snapshot.as_ipc(),
+            dest_rect,
+            source_rect,
+            smoothing_enabled,
+        ));
+
+        self.mark_as_dirty(canvas);
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn draw_offscreen_canvas(
         &self,
@@ -510,7 +588,7 @@ impl CanvasState {
         let sw = sw.unwrap_or(canvas_size.width as f64);
         let sh = sh.unwrap_or(canvas_size.height as f64);
 
-        let image_size = Size2D::new(canvas_size.width as f64, canvas_size.height as f64);
+        let image_size = Size2D::new(canvas_size.width, canvas_size.height);
         // 2. Establish the source and destination rectangles
         let (source_rect, dest_rect) =
             self.adjust_source_dest_rects(image_size, sx, sy, sw, sh, dx, dy, dw, dh);
@@ -565,7 +643,7 @@ impl CanvasState {
         let sw = sw.unwrap_or(canvas_size.width as f64);
         let sh = sh.unwrap_or(canvas_size.height as f64);
 
-        let image_size = Size2D::new(canvas_size.width as f64, canvas_size.height as f64);
+        let image_size = Size2D::new(canvas_size.width, canvas_size.height);
         // 2. Establish the source and destination rectangles
         let (source_rect, dest_rect) =
             self.adjust_source_dest_rects(image_size, sx, sy, sw, sh, dx, dy, dw, dh);
@@ -635,12 +713,12 @@ impl CanvasState {
         let snapshot = self
             .fetch_image_data(url, cors_setting)
             .ok_or(Error::InvalidState)?;
-        let image_size = snapshot.size().to_f64();
+        let image_size = snapshot.size();
 
-        let dw = dw.unwrap_or(image_size.width);
-        let dh = dh.unwrap_or(image_size.height);
-        let sw = sw.unwrap_or(image_size.width);
-        let sh = sh.unwrap_or(image_size.height);
+        let dw = dw.unwrap_or(image_size.width as f64);
+        let dh = dh.unwrap_or(image_size.height as f64);
+        let sw = sw.unwrap_or(image_size.width as f64);
+        let sh = sh.unwrap_or(image_size.height as f64);
 
         // Establish the source and destination rectangles
         let (source_rect, dest_rect) =
@@ -661,6 +739,52 @@ impl CanvasState {
         Ok(())
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage>
+    #[allow(clippy::too_many_arguments)]
+    fn draw_image_bitmap(
+        &self,
+        bitmap: &ImageBitmap,
+        canvas: Option<&HTMLCanvasElement>,
+        sx: f64,
+        sy: f64,
+        sw: Option<f64>,
+        sh: Option<f64>,
+        dx: f64,
+        dy: f64,
+        dw: Option<f64>,
+        dh: Option<f64>,
+    ) {
+        let Some(snapshot) = bitmap.bitmap_data().clone() else {
+            return;
+        };
+
+        // Step 4. Establish the source and destination rectangles.
+        let bitmap_size = snapshot.size();
+        let dw = dw.unwrap_or(bitmap_size.width as f64);
+        let dh = dh.unwrap_or(bitmap_size.height as f64);
+        let sw = sw.unwrap_or(bitmap_size.width as f64);
+        let sh = sh.unwrap_or(bitmap_size.height as f64);
+
+        let (source_rect, dest_rect) =
+            self.adjust_source_dest_rects(bitmap_size, sx, sy, sw, sh, dx, dy, dw, dh);
+
+        // Step 5. If one of the sw or sh arguments is zero, then return. Nothing is painted.
+        if !is_rect_valid(source_rect) || !is_rect_valid(dest_rect) {
+            return;
+        }
+
+        let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
+
+        self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
+            snapshot.as_ipc(),
+            dest_rect,
+            source_rect,
+            smoothing_enabled,
+        ));
+
+        self.mark_as_dirty(canvas);
+    }
+
     pub(crate) fn mark_as_dirty(&self, canvas: Option<&HTMLCanvasElement>) {
         if let Some(canvas) = canvas {
             canvas.mark_as_dirty();
@@ -674,7 +798,7 @@ impl CanvasState {
     #[allow(clippy::too_many_arguments)]
     fn adjust_source_dest_rects(
         &self,
-        image_size: Size2D<f64>,
+        image_size: Size2D<u32>,
         sx: f64,
         sy: f64,
         sw: f64,
@@ -699,7 +823,7 @@ impl CanvasState {
         // When the source rectangle is outside the source image,
         // the source rectangle must be clipped to the source image
         let source_rect_clipped = source_rect
-            .intersection(&image_rect)
+            .intersection(&image_rect.to_f64())
             .unwrap_or(Rect::zero());
 
         // Width and height ratios between the non clipped and clipped source rectangles
@@ -958,7 +1082,7 @@ impl CanvasState {
         ))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-context-2d-createpattern
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-createpattern>
     pub(crate) fn create_pattern(
         &self,
         global: &GlobalScope,
@@ -968,7 +1092,7 @@ impl CanvasState {
     ) -> Fallible<Option<DomRoot<CanvasPattern>>> {
         let snapshot = match image {
             CanvasImageSource::HTMLImageElement(ref image) => {
-                // https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
                 if !image.is_usable()? {
                     return Ok(None);
                 }
@@ -980,10 +1104,36 @@ impl CanvasState {
                     })
                     .ok_or(Error::InvalidState)?
             },
+            CanvasImageSource::HTMLVideoElement(ref video) => {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                if !video.is_usable() {
+                    return Ok(None);
+                }
+
+                video.get_current_frame_data().ok_or(Error::InvalidState)?
+            },
             CanvasImageSource::HTMLCanvasElement(ref canvas) => {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                if canvas.get_size().is_empty() {
+                    return Err(Error::InvalidState);
+                }
+
                 canvas.get_image_data().ok_or(Error::InvalidState)?
             },
+            CanvasImageSource::ImageBitmap(ref bitmap) => {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                if bitmap.is_detached() {
+                    return Err(Error::InvalidState);
+                }
+
+                bitmap.bitmap_data().clone().ok_or(Error::InvalidState)?
+            },
             CanvasImageSource::OffscreenCanvas(ref canvas) => {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                if canvas.get_size().is_empty() {
+                    return Err(Error::InvalidState);
+                }
+
                 canvas.get_image_data().ok_or(Error::InvalidState)?
             },
             CanvasImageSource::CSSStyleValue(ref value) => value
@@ -1401,7 +1551,7 @@ impl CanvasState {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn get_image_data(
         &self,
-        canvas_size: Size2D<u64>,
+        canvas_size: Size2D<u32>,
         global: &GlobalScope,
         sx: i32,
         sy: i32,
@@ -1421,7 +1571,7 @@ impl CanvasState {
         }
 
         let (origin, size) = adjust_size_sign(Point2D::new(sx, sy), Size2D::new(sw, sh));
-        let read_rect = match pixels::clip(origin, size.to_u64(), canvas_size) {
+        let read_rect = match pixels::clip(origin, size.to_u32(), canvas_size) {
             Some(rect) => rect,
             None => {
                 // All the pixels are outside the canvas surface.
@@ -1441,7 +1591,7 @@ impl CanvasState {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
     pub(crate) fn put_image_data(
         &self,
-        canvas_size: Size2D<u64>,
+        canvas_size: Size2D<u32>,
         imagedata: &ImageData,
         dx: i32,
         dy: i32,
@@ -1462,7 +1612,7 @@ impl CanvasState {
     #[allow(unsafe_code, clippy::too_many_arguments)]
     pub(crate) fn put_image_data_(
         &self,
-        canvas_size: Size2D<u64>,
+        canvas_size: Size2D<u32>,
         imagedata: &ImageData,
         dx: i32,
         dy: i32,
@@ -1494,7 +1644,7 @@ impl CanvasState {
             Point2D::new(dirty_x, dirty_y),
             Size2D::new(dirty_width, dirty_height),
         );
-        let src_rect = match pixels::clip(src_origin, src_size.to_u64(), imagedata_size.to_u64()) {
+        let src_rect = match pixels::clip(src_origin, src_size.to_u32(), imagedata_size.to_u32()) {
             Some(rect) => rect,
             None => return,
         };

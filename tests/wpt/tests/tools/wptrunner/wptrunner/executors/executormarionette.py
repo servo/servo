@@ -47,6 +47,7 @@ from .protocol import (AccessibilityProtocolPart,
                        DevicePostureProtocolPart,
                        VirtualPressureSourceProtocolPart,
                        DisplayFeaturesProtocolPart,
+                       WebExtensionsProtocolPart,
                        merge_dicts)
 
 
@@ -738,6 +739,24 @@ class MarionetteDisplayFeaturesProtocolPart(DisplayFeaturesProtocolPart):
     def clear_display_features(self):
         raise NotImplementedError("clear_display_features not yet implemented")
 
+
+class MarionetteWebExtensionsProtocolPart(WebExtensionsProtocolPart):
+    def setup(self):
+        self.addons = Addons(self.parent.marionette)
+
+    def install_web_extension(self, extension):
+        if extension["type"] == "base64":
+            extension_id = self.addons.install(data=extension["value"], temp=True)
+        else:
+            path = self.parent.test_dir + extension["path"]
+            extension_id = self.addons.install(path, temp=True)
+
+        return {'extension': extension_id}
+
+    def uninstall_web_extension(self, extension_id):
+        return self.addons.uninstall(extension_id)
+
+
 class MarionetteProtocol(Protocol):
     implements = [MarionetteBaseProtocolPart,
                   MarionetteTestharnessProtocolPart,
@@ -761,7 +780,8 @@ class MarionetteProtocol(Protocol):
                   MarionetteVirtualSensorProtocolPart,
                   MarionetteDevicePostureProtocolPart,
                   MarionetteVirtualPressureSourceProtocolPart,
-                  MarionetteDisplayFeaturesProtocolPart]
+                  MarionetteDisplayFeaturesProtocolPart,
+                  MarionetteWebExtensionsProtocolPart]
 
     def __init__(self, executor, browser, capabilities=None, timeout_multiplier=1, e10s=True, ccov=False):
         do_delayed_imports()
@@ -955,6 +975,10 @@ class MarionetteTestharnessExecutor(TestharnessExecutor):
             self.protocol.testharness.load_runner(new_environment["protocol"])
 
     def do_test(self, test):
+        # TODO: followup to do this properly, pass test as state on the CallbackHandler:
+        # https://phabricator.services.mozilla.com/D244400?id=1030480#inline-1369921
+        self.protocol.test_dir = os.path.dirname(test.path)
+
         timeout = (test.timeout * self.timeout_multiplier if self.debug_info is None
                    else None)
 

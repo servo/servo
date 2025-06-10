@@ -575,6 +575,23 @@ impl WebGLRenderingContext {
 
     pub(crate) fn get_image_pixels(&self, source: TexImageSource) -> Fallible<Option<TexPixels>> {
         Ok(Some(match source {
+            TexImageSource::ImageBitmap(bitmap) => {
+                if !bitmap.origin_is_clean() {
+                    return Err(Error::Security);
+                }
+                let Some(snapshot) = bitmap.bitmap_data().clone() else {
+                    return Ok(None);
+                };
+
+                let snapshot = snapshot.as_ipc();
+                let size = snapshot.size().cast();
+                let format = match snapshot.format() {
+                    snapshot::PixelFormat::RGBA => PixelFormat::RGBA8,
+                    snapshot::PixelFormat::BGRA => PixelFormat::BGRA8,
+                };
+                let premultiply = snapshot.alpha_mode().is_premultiplied();
+                TexPixels::new(snapshot.to_ipc_shared_memory(), size, format, premultiply)
+            },
             TexImageSource::ImageData(image_data) => TexPixels::new(
                 image_data.to_shared_memory(),
                 image_data.get_size(),
@@ -609,15 +626,31 @@ impl WebGLRenderingContext {
                 };
                 let cors_setting = cors_setting_for_element(image.upcast());
 
-                let img =
-                    match canvas_utils::request_image_from_cache(&window, img_url, cors_setting) {
-                        ImageResponse::Loaded(img, _) => img,
-                        ImageResponse::PlaceholderLoaded(_, _) |
-                        ImageResponse::None |
-                        ImageResponse::MetadataLoaded(_) => return Ok(None),
-                    };
+                let img = match canvas_utils::request_image_from_cache(
+                    &window,
+                    img_url,
+                    cors_setting,
+                ) {
+                    ImageResponse::Loaded(image, _) => {
+                        match image.as_raster_image() {
+                            Some(image) => image,
+                            None => {
+                                // Vector images are not currently supported here and there are some open questions
+                                // in the specification about how to handle them:
+                                // See https://github.com/KhronosGroup/WebGL/issues/1503.
+                                warn!(
+                                    "Vector images as are not yet supported as WebGL texture source"
+                                );
+                                return Ok(None);
+                            },
+                        }
+                    },
+                    ImageResponse::PlaceholderLoaded(_, _) |
+                    ImageResponse::None |
+                    ImageResponse::MetadataLoaded(_) => return Ok(None),
+                };
 
-                let size = Size2D::new(img.width, img.height);
+                let size = Size2D::new(img.metadata.width, img.metadata.height);
 
                 let data = IpcSharedMemory::from_bytes(img.first_frame().bytes);
                 TexPixels::new(data, size, img.format, false)
@@ -642,14 +675,23 @@ impl WebGLRenderingContext {
                     return Ok(None);
                 }
             },
-            TexImageSource::HTMLVideoElement(video) => match video.get_current_frame_data() {
-                Some((data, size)) => {
-                    let data = data.unwrap_or_else(|| {
-                        IpcSharedMemory::from_bytes(&vec![0; size.area() as usize * 4])
-                    });
-                    TexPixels::new(data, size, PixelFormat::BGRA8, false)
-                },
-                None => return Ok(None),
+            TexImageSource::HTMLVideoElement(video) => {
+                if !video.origin_is_clean() {
+                    return Err(Error::Security);
+                }
+
+                let Some(snapshot) = video.get_current_frame_data() else {
+                    return Ok(None);
+                };
+
+                let snapshot = snapshot.as_ipc();
+                let size = snapshot.size().cast();
+                let format: PixelFormat = match snapshot.format() {
+                    snapshot::PixelFormat::RGBA => PixelFormat::RGBA8,
+                    snapshot::PixelFormat::BGRA => PixelFormat::BGRA8,
+                };
+                let premultiply = snapshot.alpha_mode().is_premultiplied();
+                TexPixels::new(snapshot.to_ipc_shared_memory(), size, format, premultiply)
             },
         }))
     }
@@ -3813,7 +3855,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         let src_origin = Point2D::new(x, y);
         let src_size = Size2D::new(width as u32, height as u32);
         let fb_size = Size2D::new(fb_width as u32, fb_height as u32);
-        let src_rect = match pixels::clip(src_origin, src_size.to_u64(), fb_size.to_u64()) {
+        let src_rect = match pixels::clip(src_origin, src_size.to_u32(), fb_size.to_u32()) {
             Some(rect) => rect,
             None => return,
         };

@@ -6,17 +6,18 @@ use std::ops::{Deref, DerefMut};
 
 use euclid::default::Size2D;
 use ipc_channel::ipc::IpcSharedMemory;
+use malloc_size_of_derive::MallocSizeOf;
 use pixels::Multiply;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum PixelFormat {
     #[default]
     RGBA,
     BGRA,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum AlphaMode {
     /// Internal data is opaque (alpha is cleared to 1)
     Opaque,
@@ -48,7 +49,7 @@ impl AlphaMode {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum Data {
     // TODO: https://github.com/servo/servo/issues/36594
     //IPC(IpcSharedMemory),
@@ -84,9 +85,9 @@ pub type IpcSnapshot = Snapshot<IpcSharedMemory>;
 ///
 /// Inspired by snapshot for concept in WebGPU spec:
 /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-get-a-copy-of-the-image-contents-of-a-context>
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct Snapshot<T = Data> {
-    size: Size2D<u64>,
+    size: Size2D<u32>,
     /// internal data (can be any format it will be converted on use if needed)
     data: T,
     /// RGBA/BGRA (reflect internal data)
@@ -96,7 +97,7 @@ pub struct Snapshot<T = Data> {
 }
 
 impl<T> Snapshot<T> {
-    pub const fn size(&self) -> Size2D<u64> {
+    pub const fn size(&self) -> Size2D<u32> {
         self.size
     }
 
@@ -130,7 +131,7 @@ impl Snapshot<Data> {
     }
 
     /// Returns snapshot with provided size that is black transparent alpha
-    pub fn cleared(size: Size2D<u64>) -> Self {
+    pub fn cleared(size: Size2D<u32>) -> Self {
         Self {
             size,
             data: Data::Owned(vec![0; size.area() as usize * 4]),
@@ -142,7 +143,7 @@ impl Snapshot<Data> {
     }
 
     pub fn from_vec(
-        size: Size2D<u64>,
+        size: Size2D<u32>,
         format: PixelFormat,
         alpha_mode: AlphaMode,
         data: Vec<u8>,
@@ -156,7 +157,7 @@ impl Snapshot<Data> {
     }
 
     pub fn from_shared_memory(
-        size: Size2D<u64>,
+        size: Size2D<u32>,
         format: PixelFormat,
         alpha_mode: AlphaMode,
         ism: IpcSharedMemory,
@@ -176,7 +177,7 @@ impl Snapshot<Data> {
     /// This is safe if data is owned by this process only
     /// (ownership is transferred on send)
     pub unsafe fn from_shared_memory(
-        size: Size2D<u64>,
+        size: Size2D<u32>,
         format: PixelFormat,
         alpha_mode: AlphaMode,
         ism: IpcSharedMemory,

@@ -6,12 +6,12 @@
 
 use std::borrow::Cow;
 use std::fmt;
-use std::sync::Arc as StdArc;
 
 use base::id::{BrowsingContextId, PipelineId};
 use fonts_traits::ByteIndex;
 use html5ever::{local_name, ns};
-use pixels::{Image, ImageMetadata};
+use net_traits::image_cache::Image;
+use pixels::ImageMetadata;
 use range::Range;
 use script_layout_interface::wrapper_traits::{LayoutDataTrait, LayoutNode, ThreadSafeLayoutNode};
 use script_layout_interface::{
@@ -119,9 +119,7 @@ impl<'dom> style::dom::TNode for ServoLayoutNode<'dom> {
     type ConcreteShadowRoot = ServoShadowRoot<'dom>;
 
     fn parent_node(&self) -> Option<Self> {
-        self.node
-            .composed_parent_node_ref()
-            .map(Self::from_layout_js)
+        self.node.parent_node_ref().map(Self::from_layout_js)
     }
 
     fn first_child(&self) -> Option<Self> {
@@ -302,8 +300,8 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
     }
 
     fn parent_style(&self) -> Arc<ComputedValues> {
-        let parent = self.node.parent_node().unwrap().as_element().unwrap();
-        let parent_data = parent.borrow_data().unwrap();
+        let parent_element = self.node.traversal_parent().unwrap();
+        let parent_data = parent_element.borrow_data().unwrap();
         parent_data.styles.primary().clone()
     }
 
@@ -371,7 +369,7 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
         this.image_density()
     }
 
-    fn image_data(&self) -> Option<(Option<StdArc<Image>>, Option<ImageMetadata>)> {
+    fn image_data(&self) -> Option<(Option<Image>, Option<ImageMetadata>)> {
         let this = unsafe { self.get_jsmanaged() };
         this.image_data()
     }

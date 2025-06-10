@@ -308,7 +308,7 @@ pub(crate) struct CollapsibleWithParentStartMargin(bool);
 pub(crate) struct OutsideMarker {
     pub list_item_style: Arc<ComputedValues>,
     pub base: LayoutBoxBase,
-    pub block_container: BlockContainer,
+    pub block_formatting_context: BlockFormattingContext,
 }
 
 impl OutsideMarker {
@@ -317,8 +317,11 @@ impl OutsideMarker {
         layout_context: &LayoutContext,
         constraint_space: &ConstraintSpace,
     ) -> InlineContentSizesResult {
-        self.base
-            .inline_content_sizes(layout_context, constraint_space, &self.block_container)
+        self.base.inline_content_sizes(
+            layout_context,
+            constraint_space,
+            &self.block_formatting_context.contents,
+        )
     }
 
     fn layout(
@@ -326,8 +329,6 @@ impl OutsideMarker {
         layout_context: &LayoutContext<'_>,
         containing_block: &ContainingBlock<'_>,
         positioning_context: &mut PositioningContext,
-        sequential_layout_state: Option<&mut SequentialLayoutState>,
-        collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
     ) -> Fragment {
         let constraint_space = ConstraintSpace::new_for_style_and_ratio(
             &self.base.style,
@@ -342,17 +343,11 @@ impl OutsideMarker {
             style: &self.base.style,
         };
 
-        // A ::marker can't have a stretch size (must be auto), so this doesn't matter.
-        // https://drafts.csswg.org/css-sizing-4/#stretch-fit-sizing
-        let ignore_block_margins_for_stretch = LogicalSides1D::new(false, false);
-
-        let flow_layout = self.block_container.layout(
+        let flow_layout = self.block_formatting_context.layout(
             layout_context,
             positioning_context,
             &containing_block_for_children,
-            sequential_layout_state,
-            collapsible_with_parent_start_margin.unwrap_or(CollapsibleWithParentStartMargin(false)),
-            ignore_block_margins_for_stretch,
+            false, /* depends_on_block_constraints */
         );
 
         let max_inline_size =
@@ -900,13 +895,9 @@ impl BlockLevelBox {
             BlockLevelBox::OutOfFlowFloatBox(float_box) => Fragment::Float(ArcRefCell::new(
                 float_box.layout(layout_context, positioning_context, containing_block),
             )),
-            BlockLevelBox::OutsideMarker(outside_marker) => outside_marker.layout(
-                layout_context,
-                containing_block,
-                positioning_context,
-                sequential_layout_state,
-                collapsible_with_parent_start_margin,
-            ),
+            BlockLevelBox::OutsideMarker(outside_marker) => {
+                outside_marker.layout(layout_context, containing_block, positioning_context)
+            },
         };
 
         self.with_base(|base| base.set_fragment(fragment.clone()));
@@ -2032,8 +2023,10 @@ fn solve_inline_margins_avoiding_floats(
     placement_rect: LogicalRect<Au>,
     justify_self: AlignFlags,
 ) -> ((Au, Au), Au) {
-    let free_space = placement_rect.size.inline - inline_size;
-    debug_assert!(free_space >= Au::zero());
+    // PlacementAmongFloats should guarantee that the inline size of the placement rect
+    // is at least as big as `inline_size`. However, that may fail when dealing with
+    // huge sizes that need to be saturated to MAX_AU, so floor by zero. See #37312.
+    let free_space = Au::zero().max(placement_rect.size.inline - inline_size);
     let cb_info = &sequential_layout_state.floats.containing_block_info;
     let start_adjustment = placement_rect.start_corner.inline - cb_info.inline_start;
     let end_adjustment = cb_info.inline_end - placement_rect.max_inline_position();

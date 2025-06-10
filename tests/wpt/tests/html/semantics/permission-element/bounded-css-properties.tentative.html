@@ -17,11 +17,13 @@
     word-spacing: 1em;
     font-size: 100px;
     letter-spacing: 21px;
+    box-shadow: 5px 5px inset;
   }
   #id-under-bounds {
     word-spacing: -1px;
     font-size: 100px;
     letter-spacing: -6px;
+    box-shadow: rgb(255, 0, 0) 5px 4px 3px 2px, 5px 5px inset;
   }
   #id-within-bounds {
     font-weight: 300;
@@ -29,6 +31,7 @@
     word-spacing: 0.4em;
     font-size: 100px;
     letter-spacing: 15px;
+    box-shadow: rgb(255, 0, 0) 5px 4px 3px 2px;
   }
 </style>
 
@@ -44,10 +47,12 @@
     assert_equals(getComputedStyle(el).fontStyle, "normal", "font-style");
     assert_equals(getComputedStyle(el).wordSpacing, "50px", "word-spacing");
     assert_equals(getComputedStyle(el).letterSpacing, "20px", "letter-spacing");
+    assert_equals(getComputedStyle(el).boxShadow, "none", "box-shadow");
 
     el = document.getElementById("id-under-bounds");
     assert_equals(getComputedStyle(el).wordSpacing, "0px", "word-spacing, negative");
     assert_equals(getComputedStyle(el).letterSpacing, "-5px", "letter-spacing, negative");
+    assert_equals(getComputedStyle(el).boxShadow, "none", "box-shadow, multiple");
   }, "Properties with out-of-bounds values should be corrected");
 
   test(function(){
@@ -56,6 +61,7 @@
     assert_equals(getComputedStyle(el).fontStyle, "italic", "font-style");
     assert_equals(getComputedStyle(el).wordSpacing, "40px", "word-spacing");
     assert_equals(getComputedStyle(el).letterSpacing, "15px", "letter-spacing");
+    assert_equals(getComputedStyle(el).boxShadow, "rgb(255, 0, 0) 5px 4px 3px 2px", "box-shadow");
 
     el.style.letterSpacing = "-4px";
     assert_equals(getComputedStyle(el).letterSpacing, "-4px", "letter-spacing, negative");

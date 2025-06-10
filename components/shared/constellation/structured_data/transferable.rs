@@ -24,6 +24,8 @@ pub struct TransformStreamData {
 /// All the DOM interfaces that can be transferred.
 #[derive(Clone, Copy, Debug, EnumIter)]
 pub enum Transferrable {
+    /// The `ImageBitmap` interface.
+    ImageBitmap,
     /// The `MessagePort` interface.
     MessagePort,
     /// The `ReadableStream` interface.

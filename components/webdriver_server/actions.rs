@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
+use std::thread;
 use std::time::{Duration, Instant};
-use std::{cmp, thread};
 
 use constellation_traits::EmbedderToConstellationMessage;
 use embedder_traits::{MouseButtonAction, WebDriverCommandMsg, WebDriverScriptCommand};
@@ -12,10 +12,11 @@ use ipc_channel::ipc;
 use keyboard_types::webdriver::KeyInputState;
 use webdriver::actions::{
     ActionSequence, ActionsType, GeneralAction, KeyAction, KeyActionItem, KeyDownAction,
-    KeyUpAction, NullActionItem, PointerAction, PointerActionItem, PointerActionParameters,
-    PointerDownAction, PointerMoveAction, PointerOrigin, PointerType, PointerUpAction, WheelAction,
-    WheelActionItem, WheelScrollAction,
+    KeyUpAction, NullActionItem, PointerAction, PointerActionItem, PointerDownAction,
+    PointerMoveAction, PointerOrigin, PointerType, PointerUpAction, WheelAction, WheelActionItem,
+    WheelScrollAction,
 };
+use webdriver::command::ActionsParameters;
 use webdriver::error::{ErrorStatus, WebDriverError};
 
 use crate::{Handler, WebElement, wait_for_script_response};
@@ -24,11 +25,32 @@ use crate::{Handler, WebElement, wait_for_script_response};
 static POINTERMOVE_INTERVAL: u64 = 17;
 static WHEELSCROLL_INTERVAL: u64 = 17;
 
-// https://w3c.github.io/webdriver/#dfn-input-source-state
+// A single action, corresponding to an `action object` in the spec.
+// In the spec, `action item` refers to a plain JSON object.
+// However, we use the name ActionItem here
+// to be consistent with type names from webdriver crate.
+pub(crate) enum ActionItem {
+    Null(NullActionItem),
+    Key(KeyActionItem),
+    Pointer(PointerActionItem),
+    Wheel(WheelActionItem),
+}
+
+// A set of actions with multiple sources executed within a single tick.
+// The order in which they are performed is not guaranteed.
+// The `id` is used to identify the source of the actions.
+pub(crate) type TickActions = HashMap<String, ActionItem>;
+
+// Consumed by the `dispatch_actions` method.
+pub(crate) type ActionsByTick = Vec<TickActions>;
+
+/// <https://w3c.github.io/webdriver/#dfn-input-source-state>
 pub(crate) enum InputSourceState {
     Null,
+    #[allow(dead_code)]
     Key(KeyInputState),
     Pointer(PointerInputState),
+    #[allow(dead_code)]
     Wheel,
 }
 
@@ -44,13 +66,9 @@ pub(crate) struct PointerInputState {
 }
 
 impl PointerInputState {
-    pub fn new(subtype: &PointerType) -> PointerInputState {
+    pub fn new(subtype: PointerType) -> PointerInputState {
         PointerInputState {
-            subtype: match subtype {
-                PointerType::Mouse => PointerType::Mouse,
-                PointerType::Pen => PointerType::Pen,
-                PointerType::Touch => PointerType::Touch,
-            },
+            subtype,
             pressed: HashSet::new(),
             x: 0.0,
             y: 0.0,
@@ -58,48 +76,44 @@ impl PointerInputState {
     }
 }
 
-// https://w3c.github.io/webdriver/#dfn-computing-the-tick-duration
-fn compute_tick_duration(tick_actions: &ActionSequence) -> u64 {
-    let mut duration = 0;
-    match &tick_actions.actions {
-        ActionsType::Null { actions } => {
-            for action in actions.iter() {
-                let NullActionItem::General(GeneralAction::Pause(pause_action)) = action;
-                duration = cmp::max(duration, pause_action.duration.unwrap_or(0));
+/// <https://w3c.github.io/webdriver/#dfn-computing-the-tick-duration>
+fn compute_tick_duration(tick_actions: &TickActions) -> u64 {
+    // Step 1. Let max duration be 0.
+    // Step 2. For each action in tick actions:
+    tick_actions
+        .iter()
+        .filter_map(|(_, action_item)| {
+            // If action object has subtype property set to "pause" or
+            // action object has type property set to "pointer" and subtype property set to "pointerMove",
+            // or action object has type property set to "wheel" and subtype property set to "scroll",
+            // let duration be equal to the duration property of action object.
+            match action_item {
+                ActionItem::Null(NullActionItem::General(GeneralAction::Pause(pause_action))) |
+                ActionItem::Key(KeyActionItem::General(GeneralAction::Pause(pause_action))) |
+                ActionItem::Pointer(PointerActionItem::General(GeneralAction::Pause(
+                    pause_action,
+                ))) |
+                ActionItem::Wheel(WheelActionItem::General(GeneralAction::Pause(pause_action))) => {
+                    pause_action.duration
+                },
+                ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Move(action))) => {
+                    action.duration
+                },
+                ActionItem::Wheel(WheelActionItem::Wheel(WheelAction::Scroll(action))) => {
+                    action.duration
+                },
+                _ => None,
             }
-        },
-        ActionsType::Pointer {
-            parameters: _,
-            actions,
-        } => {
-            for action in actions.iter() {
-                let action_duration = match action {
-                    PointerActionItem::General(GeneralAction::Pause(action)) => action.duration,
-                    PointerActionItem::Pointer(PointerAction::Move(action)) => action.duration,
-                    _ => None,
-                };
-                duration = cmp::max(duration, action_duration.unwrap_or(0));
-            }
-        },
-        ActionsType::Key { actions: _ } => (),
-        ActionsType::Wheel { actions } => {
-            for action in actions.iter() {
-                let action_duration = match action {
-                    WheelActionItem::General(GeneralAction::Pause(action)) => action.duration,
-                    WheelActionItem::Wheel(WheelAction::Scroll(action)) => action.duration,
-                };
-                duration = cmp::max(duration, action_duration.unwrap_or(0));
-            }
-        },
-    }
-    duration
+        })
+        .max()
+        .unwrap_or(0)
 }
 
 impl Handler {
-    // https://w3c.github.io/webdriver/#dfn-dispatch-actions
+    /// <https://w3c.github.io/webdriver/#dfn-dispatch-actions>
     pub(crate) fn dispatch_actions(
         &self,
-        actions_by_tick: &[ActionSequence],
+        actions_by_tick: ActionsByTick,
     ) -> Result<(), ErrorStatus> {
         // Step 1. Wait for an action queue token with input state.
         let new_token = self.id_generator.next();
@@ -116,11 +130,8 @@ impl Handler {
         res
     }
 
-    // https://w3c.github.io/webdriver/#dfn-dispatch-actions-inner
-    fn dispatch_actions_inner(
-        &self,
-        actions_by_tick: &[ActionSequence],
-    ) -> Result<(), ErrorStatus> {
+    /// <https://w3c.github.io/webdriver/#dfn-dispatch-actions-inner>
+    fn dispatch_actions_inner(&self, actions_by_tick: ActionsByTick) -> Result<(), ErrorStatus> {
         // Step 1. For each item tick actions in actions by tick
         for tick_actions in actions_by_tick.iter() {
             // Step 1.2. Let tick duration be the result of
@@ -133,19 +144,33 @@ impl Handler {
             // Step 1.4. Wait for
             // The user agent event loop has spun enough times to process the DOM events
             // generated by the last invocation of the dispatch tick actions steps.
-            //
-            // To ensure we wait for all events to be processed, only the last event in
-            // this tick action step holds the message id.
-            // Whenever a new event is generated, the message id is passed to it.
-            //
-            // TO-DO: remove the first match after webdriver_id is implemented in all commands
-            match tick_actions.actions {
-                ActionsType::Key { .. } | ActionsType::Wheel { .. } | ActionsType::Null { .. } => {
-                    return Ok(());
-                },
-                _ => {},
-            }
+            self.wait_for_user_agent_handling_complete(tick_actions)?;
+        }
 
+        // Step 2. Return success with data null.
+        dbg!("Dispatch actions completed successfully");
+        Ok(())
+    }
+
+    fn wait_for_user_agent_handling_complete(
+        &self,
+        tick_actions: &TickActions,
+    ) -> Result<(), ErrorStatus> {
+        // TODO: Add matches! for wheel and key actions
+        // after implmenting webdriver id for wheel and key events.
+        let count_non_null_actions_in_tick = tick_actions
+            .iter()
+            .filter(|(_, action)| {
+                matches!(action, ActionItem::Pointer(PointerActionItem::Pointer(_)))
+            })
+            .count();
+
+        // To ensure we wait for all events to be processed, only the last event
+        // in each tick action step holds the message id.
+        // Whenever a new event is generated, the message id is passed to it.
+        //
+        // Wait for count_non_null_actions_in_tick number of responses
+        for _ in 0..count_non_null_actions_in_tick {
             match self.constellation_receiver.recv() {
                 Ok(response) => {
                     let current_waiting_id = self
@@ -165,8 +190,86 @@ impl Handler {
             };
         }
 
-        // Step 2. Return success with data null.
-        dbg!("Dispatch actions completed successfully");
+        Ok(())
+    }
+
+    /// <https://w3c.github.io/webdriver/#dfn-dispatch-tick-actions>
+    fn dispatch_tick_actions(
+        &self,
+        tick_actions: &TickActions,
+        tick_duration: u64,
+    ) -> Result<(), ErrorStatus> {
+        // Step 1. For each action object in tick actions:
+        // Step 1.1. Let input_id be the value of the id property of action object.
+        for (input_id, action) in tick_actions.iter() {
+            // Step 6. Let subtype be action object's subtype.
+            // Steps 7, 8. Try to run specific algorithm based on the action type.
+            match action {
+                ActionItem::Null(NullActionItem::General(_)) => {
+                    self.dispatch_general_action(input_id);
+                },
+                ActionItem::Key(KeyActionItem::General(_)) => {
+                    self.dispatch_general_action(input_id);
+                },
+                ActionItem::Key(KeyActionItem::Key(KeyAction::Down(keydown_action))) => {
+                    self.dispatch_keydown_action(input_id, keydown_action);
+
+                    // Step 9. If subtype is "keyDown", append a copy of action
+                    // object with the subtype property changed to "keyUp" to
+                    // input state's input cancel list.
+                    self.session()
+                        .unwrap()
+                        .input_cancel_list
+                        .borrow_mut()
+                        .push(ActionItem::Key(KeyActionItem::Key(KeyAction::Up(
+                            KeyUpAction {
+                                value: keydown_action.value.clone(),
+                            },
+                        ))));
+                },
+                ActionItem::Key(KeyActionItem::Key(KeyAction::Up(keyup_action))) => {
+                    self.dispatch_keyup_action(input_id, keyup_action);
+                },
+                ActionItem::Pointer(PointerActionItem::General(_)) => {
+                    self.dispatch_general_action(input_id);
+                },
+                ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Down(
+                    pointer_down_action,
+                ))) => {
+                    self.dispatch_pointerdown_action(input_id, pointer_down_action);
+
+                    // Step 10. If subtype is "pointerDown", append a copy of action
+                    // object with the subtype property changed to "pointerUp" to
+                    // input state's input cancel list.
+                    self.session().unwrap().input_cancel_list.borrow_mut().push(
+                        ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Up(
+                            PointerUpAction {
+                                button: pointer_down_action.button,
+                                ..Default::default()
+                            },
+                        ))),
+                    );
+                },
+                ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Move(
+                    pointer_move_action,
+                ))) => {
+                    self.dispatch_pointermove_action(input_id, pointer_move_action, tick_duration)?;
+                },
+                ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Up(
+                    pointer_up_action,
+                ))) => {
+                    self.dispatch_pointerup_action(input_id, pointer_up_action);
+                },
+                ActionItem::Wheel(WheelActionItem::General(_)) => {
+                    self.dispatch_general_action(input_id);
+                },
+                ActionItem::Wheel(WheelActionItem::Wheel(WheelAction::Scroll(scroll_action))) => {
+                    self.dispatch_scroll_action(scroll_action, tick_duration)?;
+                },
+                _ => {},
+            }
+        }
+
         Ok(())
     }
 
@@ -181,143 +284,7 @@ impl Handler {
         // Nothing to be done
     }
 
-    // https://w3c.github.io/webdriver/#dfn-dispatch-tick-actions
-    fn dispatch_tick_actions(
-        &self,
-        tick_actions: &ActionSequence,
-        tick_duration: u64,
-    ) -> Result<(), ErrorStatus> {
-        let source_id = &tick_actions.id;
-        match &tick_actions.actions {
-            ActionsType::Null { actions } => {
-                for _action in actions.iter() {
-                    self.dispatch_general_action(source_id);
-                }
-            },
-            ActionsType::Key { actions } => {
-                for action in actions.iter() {
-                    match action {
-                        KeyActionItem::General(_action) => {
-                            self.dispatch_general_action(source_id);
-                        },
-                        KeyActionItem::Key(action) => {
-                            self.session()
-                                .unwrap()
-                                .input_state_table
-                                .borrow_mut()
-                                .entry(source_id.to_string())
-                                .or_insert(InputSourceState::Key(KeyInputState::new()));
-                            match action {
-                                KeyAction::Down(action) => {
-                                    self.dispatch_keydown_action(source_id, action);
-                                    // Step 9. If subtype is "keyDown", append a copy of action
-                                    // object with the subtype property changed to "keyUp" to
-                                    // input state's input cancel list.
-                                    self.session().unwrap().input_cancel_list.borrow_mut().push(
-                                        ActionSequence {
-                                            id: source_id.into(),
-                                            actions: ActionsType::Key {
-                                                actions: vec![KeyActionItem::Key(KeyAction::Up(
-                                                    KeyUpAction {
-                                                        value: action.value.clone(),
-                                                    },
-                                                ))],
-                                            },
-                                        },
-                                    );
-                                },
-                                KeyAction::Up(action) => {
-                                    self.dispatch_keyup_action(source_id, action)
-                                },
-                            };
-                        },
-                    }
-                }
-            },
-            ActionsType::Pointer {
-                parameters,
-                actions,
-            } => {
-                for action in actions.iter() {
-                    match action {
-                        PointerActionItem::General(_action) => {
-                            self.dispatch_general_action(source_id);
-                        },
-                        PointerActionItem::Pointer(action) => {
-                            self.session()
-                                .unwrap()
-                                .input_state_table
-                                .borrow_mut()
-                                .entry(source_id.to_string())
-                                .or_insert(InputSourceState::Pointer(PointerInputState::new(
-                                    &parameters.pointer_type,
-                                )));
-                            match action {
-                                PointerAction::Cancel => (),
-                                PointerAction::Down(action) => {
-                                    self.dispatch_pointerdown_action(source_id, action);
-
-                                    // Step 10. If subtype is "pointerDown", append a copy of action
-                                    // object with the subtype property changed to "pointerUp" to
-                                    // input state's input cancel list.
-                                    self.session().unwrap().input_cancel_list.borrow_mut().push(
-                                        ActionSequence {
-                                            id: source_id.into(),
-                                            actions: ActionsType::Pointer {
-                                                parameters: PointerActionParameters {
-                                                    pointer_type: parameters.pointer_type,
-                                                },
-                                                actions: vec![PointerActionItem::Pointer(
-                                                    PointerAction::Up(PointerUpAction {
-                                                        button: action.button,
-                                                        ..Default::default()
-                                                    }),
-                                                )],
-                                            },
-                                        },
-                                    );
-                                },
-                                PointerAction::Move(action) => self.dispatch_pointermove_action(
-                                    source_id,
-                                    action,
-                                    tick_duration,
-                                )?,
-                                PointerAction::Up(action) => {
-                                    self.dispatch_pointerup_action(source_id, action)
-                                },
-                            }
-                        },
-                    }
-                }
-            },
-            ActionsType::Wheel { actions } => {
-                for action in actions.iter() {
-                    match action {
-                        WheelActionItem::General(_action) => {
-                            self.dispatch_general_action(source_id)
-                        },
-                        WheelActionItem::Wheel(action) => {
-                            self.session()
-                                .unwrap()
-                                .input_state_table
-                                .borrow_mut()
-                                .entry(source_id.to_string())
-                                .or_insert(InputSourceState::Wheel);
-                            match action {
-                                WheelAction::Scroll(action) => {
-                                    self.dispatch_scroll_action(action, tick_duration)?
-                                },
-                            }
-                        },
-                    }
-                }
-            },
-        }
-
-        Ok(())
-    }
-
-    // https://w3c.github.io/webdriver/#dfn-dispatch-a-keydown-action
+    /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-keydown-action>
     fn dispatch_keydown_action(&self, source_id: &str, action: &KeyDownAction) {
         let session = self.session().unwrap();
 
@@ -340,7 +307,7 @@ impl Handler {
             .unwrap();
     }
 
-    // https://w3c.github.io/webdriver/#dfn-dispatch-a-keyup-action
+    /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-keyup-action>
     fn dispatch_keyup_action(&self, source_id: &str, action: &KeyUpAction) {
         let session = self.session().unwrap();
 
@@ -393,7 +360,7 @@ impl Handler {
             .unwrap();
     }
 
-    // https://w3c.github.io/webdriver/#dfn-dispatch-a-pointerup-action
+    /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pointerup-action>
     pub(crate) fn dispatch_pointerup_action(&self, source_id: &str, action: &PointerUpAction) {
         let session = self.session().unwrap();
 
@@ -423,7 +390,7 @@ impl Handler {
             .unwrap();
     }
 
-    // https://w3c.github.io/webdriver/#dfn-dispatch-a-pointermove-action
+    /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pointermove-action>
     pub(crate) fn dispatch_pointermove_action(
         &self,
         source_id: &str,
@@ -736,6 +703,96 @@ impl Handler {
         match response? {
             Some(point) => Ok(point),
             None => Err(ErrorStatus::UnknownError),
+        }
+    }
+
+    /// <https://w3c.github.io/webdriver/#dfn-extract-an-action-sequence>
+    pub(crate) fn extract_an_action_sequence(&self, params: ActionsParameters) -> ActionsByTick {
+        // Step 1. Let actions be the result of getting a property named "actions" from parameters.
+        // Step 2 (ignored because params is already validated earlier). If actions is not a list,
+        // return an error with status InvalidArgument.
+        let actions = params.actions;
+
+        self.actions_by_tick_from_sequence(actions)
+    }
+
+    pub(crate) fn actions_by_tick_from_sequence(
+        &self,
+        actions: Vec<ActionSequence>,
+    ) -> ActionsByTick {
+        // Step 3. Let actions by tick be an empty list.
+        let mut actions_by_tick: ActionsByTick = Vec::new();
+
+        // Step 4. For each value action sequence corresponding to an indexed property in actions
+        for action_sequence in actions {
+            // Store id before moving action_sequence
+            let id = action_sequence.id.clone();
+            // Step 4.1. Let source actions be the result of trying to process an input source action sequence
+            let source_actions = self.process_an_input_source_action_sequence(action_sequence);
+
+            // Step 4.2.2. Ensure we have enough ticks to hold all actions
+            while actions_by_tick.len() < source_actions.len() {
+                actions_by_tick.push(HashMap::new());
+            }
+
+            // Step 4.2.3.
+            for (tick_index, action_item) in source_actions.into_iter().enumerate() {
+                actions_by_tick[tick_index].insert(id.clone(), action_item);
+            }
+        }
+
+        actions_by_tick
+    }
+
+    /// <https://w3c.github.io/webdriver/#dfn-process-an-input-source-action-sequence>
+    pub(crate) fn process_an_input_source_action_sequence(
+        &self,
+        action_sequence: ActionSequence,
+    ) -> Vec<ActionItem> {
+        // Step 2. Let id be the value of the id property of action sequence.
+        let id = action_sequence.id.clone();
+
+        let mut input_state_table = self.session().unwrap().input_state_table.borrow_mut();
+
+        match action_sequence.actions {
+            ActionsType::Null {
+                actions: null_actions,
+            } => {
+                input_state_table
+                    .entry(id)
+                    .or_insert(InputSourceState::Null);
+                null_actions.into_iter().map(ActionItem::Null).collect()
+            },
+            ActionsType::Key {
+                actions: key_actions,
+            } => {
+                input_state_table
+                    .entry(id)
+                    .or_insert(InputSourceState::Key(KeyInputState::new()));
+                key_actions.into_iter().map(ActionItem::Key).collect()
+            },
+            ActionsType::Pointer {
+                parameters: _,
+                actions: pointer_actions,
+            } => {
+                input_state_table
+                    .entry(id)
+                    .or_insert(InputSourceState::Pointer(PointerInputState::new(
+                        PointerType::Mouse,
+                    )));
+                pointer_actions
+                    .into_iter()
+                    .map(ActionItem::Pointer)
+                    .collect()
+            },
+            ActionsType::Wheel {
+                actions: wheel_actions,
+            } => {
+                input_state_table
+                    .entry(id)
+                    .or_insert(InputSourceState::Wheel);
+                wheel_actions.into_iter().map(ActionItem::Wheel).collect()
+            },
         }
     }
 }

@@ -31,7 +31,21 @@ pub enum PixelFormat {
     BGRA8,
 }
 
-pub fn rgba8_get_rect(pixels: &[u8], size: Size2D<u64>, rect: Rect<u64>) -> Cow<[u8]> {
+// Computes image byte length, returning None if overflow occurred or the total length exceeds
+// the maximum image allocation size.
+pub fn compute_rgba8_byte_length_if_within_limit(width: usize, height: usize) -> Option<usize> {
+    // Maximum allowed image allocation size (2^31-1 ~ 2GB).
+    const MAX_IMAGE_BYTE_LENGTH: usize = 2147483647;
+
+    // The color components of each pixel must be stored in four sequential
+    // elements in the order of red, green, blue, and then alpha.
+    4usize
+        .checked_mul(width)
+        .and_then(|v| v.checked_mul(height))
+        .filter(|v| *v <= MAX_IMAGE_BYTE_LENGTH)
+}
+
+pub fn rgba8_get_rect(pixels: &[u8], size: Size2D<u32>, rect: Rect<u32>) -> Cow<[u8]> {
     assert!(!rect.is_empty());
     assert!(Rect::from_size(size).contains_rect(&rect));
     assert_eq!(pixels.len() % 4, 0);
@@ -92,18 +106,18 @@ pub fn multiply_u8_color(a: u8, b: u8) -> u8 {
 
 pub fn clip(
     mut origin: Point2D<i32>,
-    mut size: Size2D<u64>,
-    surface: Size2D<u64>,
-) -> Option<Rect<u64>> {
+    mut size: Size2D<u32>,
+    surface: Size2D<u32>,
+) -> Option<Rect<u32>> {
     if origin.x < 0 {
-        size.width = size.width.saturating_sub(-origin.x as u64);
+        size.width = size.width.saturating_sub(-origin.x as u32);
         origin.x = 0;
     }
     if origin.y < 0 {
-        size.height = size.height.saturating_sub(-origin.y as u64);
+        size.height = size.height.saturating_sub(-origin.y as u32);
         origin.y = 0;
     }
-    let origin = Point2D::new(origin.x as u64, origin.y as u64);
+    let origin = Point2D::new(origin.x as u32, origin.y as u32);
     Rect::new(origin, size)
         .intersection(&Rect::from_size(surface))
         .filter(|rect| !rect.is_empty())
@@ -121,9 +135,8 @@ pub enum CorsStatus {
 }
 
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
-pub struct Image {
-    pub width: u32,
-    pub height: u32,
+pub struct RasterImage {
+    pub metadata: ImageMetadata,
     pub format: PixelFormat,
     pub id: Option<ImageKey>,
     pub cors_status: CorsStatus,
@@ -149,7 +162,7 @@ pub struct ImageFrameView<'a> {
     pub height: u32,
 }
 
-impl Image {
+impl RasterImage {
     pub fn should_animate(&self) -> bool {
         self.frames.len() > 1
     }
@@ -170,17 +183,17 @@ impl Image {
     }
 }
 
-impl fmt::Debug for Image {
+impl fmt::Debug for RasterImage {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
             "Image {{ width: {}, height: {}, format: {:?}, ..., id: {:?} }}",
-            self.width, self.height, self.format, self.id
+            self.metadata.width, self.metadata.height, self.format, self.id
         )
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub struct ImageMetadata {
     pub width: u32,
     pub height: u32,
@@ -189,7 +202,7 @@ pub struct ImageMetadata {
 // FIXME: Images must not be copied every frame. Instead we should atomically
 // reference count them.
 
-pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Image> {
+pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<RasterImage> {
     if buffer.is_empty() {
         return None;
     }
@@ -212,9 +225,11 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Image>
                         width: rgba.width(),
                         height: rgba.height(),
                     };
-                    Some(Image {
-                        width: rgba.width(),
-                        height: rgba.height(),
+                    Some(RasterImage {
+                        metadata: ImageMetadata {
+                            width: rgba.width(),
+                            height: rgba.height(),
+                        },
                         format: PixelFormat::BGRA8,
                         frames: vec![frame],
                         bytes: IpcSharedMemory::from_bytes(&rgba),
@@ -374,7 +389,7 @@ fn is_webp(buffer: &[u8]) -> bool {
     buffer[8..].len() >= len && &buffer[8..12] == b"WEBP"
 }
 
-fn decode_gif(buffer: &[u8], cors_status: CorsStatus) -> Option<Image> {
+fn decode_gif(buffer: &[u8], cors_status: CorsStatus) -> Option<RasterImage> {
     let Ok(decoded_gif) = GifDecoder::new(Cursor::new(buffer)) else {
         return None;
     };
@@ -430,9 +445,8 @@ fn decode_gif(buffer: &[u8], cors_status: CorsStatus) -> Option<Image> {
         bytes.extend_from_slice(frame.buffer());
     }
 
-    Some(Image {
-        width,
-        height,
+    Some(RasterImage {
+        metadata: ImageMetadata { width, height },
         cors_status,
         frames,
         id: None,

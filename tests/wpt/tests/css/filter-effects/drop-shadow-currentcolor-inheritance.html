@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Filter Effects: Inheritance of 'currentcolor' in drop-shadow()</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#funcdef-filter-drop-shadow">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#filter {
+    color: red;
+    filter: drop-shadow(100px 0px 0px currentcolor);
+}
+#target {
+  background-color: black;
+  color: green;
+  width: 100px;
+  height: 100px;
+  filter: inherit;
+}
+</style>
+<div id="filter">
+  <div id="target"></div>
+</div>
+<script>
+test(function() {
+    assert_equals(getComputedStyle(target).filter, "drop-shadow(rgb(0, 128, 0) 100px 0px 0px)");
+}, "Test currentcolor inheritance in drop-shadow()");
+
+test(function() {
+    target.style.color = "blue";
+    assert_equals(getComputedStyle(target).filter, "drop-shadow(rgb(0, 0, 255) 100px 0px 0px)");
+}, "Test currentcolor inheritance in drop-shadow() after color mutation");
+
+</script>

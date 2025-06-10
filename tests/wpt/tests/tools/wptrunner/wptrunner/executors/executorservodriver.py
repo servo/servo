@@ -20,17 +20,14 @@ def do_delayed_imports():
         def __init__(self, session):
             self.session = session
 
-        @webdriver.client.command
         def get_prefs(self, *prefs):
             body = {"prefs": list(prefs)}
             return self.session.send_session_command("POST", "servo/prefs/get", body)
 
-        @webdriver.client.command
         def set_prefs(self, prefs):
             body = {"prefs": prefs}
             return self.session.send_session_command("POST", "servo/prefs/set", body)
 
-        @webdriver.client.command
         def reset_prefs(self, *prefs):
             body = {"prefs": list(prefs)}
             return self.session.send_session_command("POST", "servo/prefs/reset", body)

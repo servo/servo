@@ -5,6 +5,8 @@ const cspDirectives = [
   "trusted-types",
   // https://w3c.github.io/webappsec-csp/#script-src
   "script-src",
+  // https://w3c.github.io/webappsec-csp/#directive-script-src-elem
+  "script-src-elem",
 ];
 
 // A generic helper that runs function fn and returns a promise resolving with

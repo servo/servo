@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: flex gaps are painted when there's only one flex line
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="flex-gap-decorations-025-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+      margin: 0;
+    }
+
+    main {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      row-rule: 10px solid gold;
+    }
+
+    .item {
+      background-color: teal;
+      height: 50px;
+      flex-basis: 100%;
+    }
+</style>
+<main>
+    <div class="item"></div>
+    <div class="item"></div>
+</main>

@@ -494,6 +494,11 @@ class RefTestImplementation:
 
         lhs = Image.open(io.BytesIO(base64.b64decode(screenshots[0]))).convert("RGB")
         rhs = Image.open(io.BytesIO(base64.b64decode(screenshots[1]))).convert("RGB")
+        if lhs.size != rhs.size:
+            self.logger.info(
+                f"Images differ in size; {urls[0]} is {lhs.size}, {urls[1]} is {rhs.size}" +
+                ("" if page_idx is None else f" on page {page_idx + 1}")
+            )
         self.check_if_solid_color(lhs, urls[0])
         self.check_if_solid_color(rhs, urls[1])
         diff = ImageChops.difference(lhs, rhs)
@@ -762,15 +767,16 @@ class CallbackHandler:
     def process_action(self, url, payload):
         action = payload["action"]
         cmd_id = payload["id"]
+        params = payload["params"]
         self.logger.debug(f"Got action: {action}")
         try:
             action_handler = self.actions[action]
         except KeyError as e:
             raise ValueError(f"Unknown action {action}") from e
         try:
-            with ActionContext(self.logger, self.protocol, payload.get("context")):
+            with ActionContext(self.logger, self.protocol, params.get("context")):
                 try:
-                    result = action_handler(payload)
+                    result = action_handler(params)
                 except AttributeError as e:
                     # If we fail to get an attribute from the protocol presumably that's a
                     # ProtocolPart we don't implement
@@ -834,8 +840,9 @@ class AsyncCallbackHandler(CallbackHandler):
         """
         async_action_handler = self.async_actions[action]
         cmd_id = payload["id"]
+        params = payload["params"]
         try:
-            result = await async_action_handler(payload)
+            result = await async_action_handler(params)
         except AttributeError as e:
             # If we fail to get an attribute from the protocol presumably that's a
             # ProtocolPart we don't implement

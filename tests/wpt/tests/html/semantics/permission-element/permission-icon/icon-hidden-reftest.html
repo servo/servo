@@ -1,0 +1,11 @@
+<!doctype html>
+<title>The icon of the location permission element should not be visibe if it is set to display:none</title>
+<!-- TODO: Update the link to the permission icon spec -->
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md">
+<link rel="mismatch" href="standard-location-permission-element-ref.html">
+<style>
+  ::permission-icon {
+    display: none;
+  }
+</style>
+<permission id="geolocation" type="geolocation"></permission>

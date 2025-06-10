@@ -48,7 +48,7 @@ pub(crate) trait CanvasContext {
         true
     }
 
-    fn size(&self) -> Size2D<u64> {
+    fn size(&self) -> Size2D<u32> {
         self.canvas().size()
     }
 
@@ -73,12 +73,12 @@ pub(crate) trait CanvasContext {
 }
 
 pub(crate) trait CanvasHelpers {
-    fn size(&self) -> Size2D<u64>;
+    fn size(&self) -> Size2D<u32>;
     fn canvas(&self) -> Option<&HTMLCanvasElement>;
 }
 
 impl CanvasHelpers for HTMLCanvasElementOrOffscreenCanvas {
-    fn size(&self) -> Size2D<u64> {
+    fn size(&self) -> Size2D<u32> {
         match self {
             HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
                 canvas.get_size().cast()
@@ -164,7 +164,7 @@ impl CanvasContext for RenderingContext {
         }
     }
 
-    fn size(&self) -> Size2D<u64> {
+    fn size(&self) -> Size2D<u32> {
         match self {
             RenderingContext::Placeholder(context) => (*context.context().unwrap()).size(),
             RenderingContext::Context2d(context) => context.size(),
@@ -251,7 +251,7 @@ impl CanvasContext for OffscreenRenderingContext {
         }
     }
 
-    fn size(&self) -> Size2D<u64> {
+    fn size(&self) -> Size2D<u32> {
         match self {
             OffscreenRenderingContext::Context2d(context) => context.size(),
         }

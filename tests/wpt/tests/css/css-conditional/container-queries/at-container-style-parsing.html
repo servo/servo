@@ -18,7 +18,34 @@
   test_cq_condition_known('style(--my-prop: )');
   test_cq_condition_known('style(--foo: bar !important)');
   test_cq_condition_known('style(--foo)');
+  test_cq_condition_known('style(--my-prop: attr(data-foo))');
+  test_cq_condition_known('style(--foo >= --bar)');
+  test_cq_condition_known('style(--foo = --bar)');
+  test_cq_condition_known('style(--foo <= --bar)');
+  test_cq_condition_known('style(10px > 10em)');
+  test_cq_condition_known('style(--foo >= 10em)');
+  test_cq_condition_known('style(10px > --bar)');
+  test_cq_condition_known('style(10px = --bar)');
+  test_cq_condition_known('style(--foo < --bar)');
+  test_cq_condition_known('style(10px <= 10em)');
+  test_cq_condition_known('style(10px = 10em)');
+  test_cq_condition_known('style(10px <= calc(10em + 20em))');
+  test_cq_condition_known('style(calc(10em + 20em) < 10px)');
+  test_cq_condition_known('style(--foo < 10em)');
+  test_cq_condition_known('style(10px <= --bar)');
+  test_cq_condition_known('style(--foo < --bar <= --baz)');
+  test_cq_condition_known('style(--foo >= --bar > --baz)');
+  test_cq_condition_known('style(--foo > 10px > 10em)');
+  test_cq_condition_known('style(10px < --foo < 10em)');
+  test_cq_condition_known('style(10px < --foo <= 10em)');
+  test_cq_condition_known('style(10px <= --foo < 10em)');
+  test_cq_condition_known('style(10px > 10em > --foo)');
+  test_cq_condition_known('style(10px < 10em < 10)');
+  test_cq_condition_known('style(var(--p) < calc(100 + 200))');
+  test_cq_condition_known('style(attr(data-foo type(<number>)) < var(--p) < var(--q))');
 
   test_cq_condition_unknown('style(--foo: bar;)');
   test_cq_condition_unknown('style(style(--foo: bar))');
+  test_cq_condition_unknown('style(10px < 10em > 10)');
+  test_cq_condition_unknown('style( < 10em)');
 </script>

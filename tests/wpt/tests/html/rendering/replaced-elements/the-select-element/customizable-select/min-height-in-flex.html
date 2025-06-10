@@ -1,0 +1,30 @@
+<!DOCTYPE HTML>
+<link rel="match" href="min-height-in-flex-ref.html">
+<style>
+
+select, select::picker(select) {
+  appearance: base-select;
+}
+select::picker-icon {
+  font-size: 60px;
+}
+
+</style>
+
+<div style="display:flex; flex-direction: column; align-items: flex-start; height: 100px;">
+  <select>
+    <option>Option</option>
+  </select>
+  <div style="color: transparent">
+    This div has a lot of text in it but it should not make the select become smaller.
+    A lot of text.  Really a lot of text.
+    A lot of text.  Really a lot of text.
+    A lot of text.  Really a lot of text.
+    A lot of text.  Really a lot of text.
+    A lot of text.  Really a lot of text.
+    A lot of text.  Really a lot of text.
+    A lot of text.  Really a lot of text.
+    A lot of text.  Really a lot of text.
+    A lot of text.  Really a lot of text.
+  </div>
+</div>

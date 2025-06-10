@@ -10,7 +10,6 @@ use std::default::Default;
 use std::f64::consts::PI;
 use std::ops::Range;
 use std::slice::from_ref;
-use std::sync::Arc as StdArc;
 use std::{cmp, fmt, iter};
 
 use app_units::Au;
@@ -26,7 +25,8 @@ use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use pixels::{Image, ImageMetadata};
+use net_traits::image_cache::Image;
+use pixels::ImageMetadata;
 use script_bindings::codegen::InheritTypes::DocumentFragmentTypeId;
 use script_layout_interface::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType, QueryMsg,
@@ -48,7 +48,7 @@ use style::properties::ComputedValues;
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::stylesheets::{Stylesheet, UrlExtraData};
 use uuid::Uuid;
-use xml5ever::serialize as xml_serialize;
+use xml5ever::{local_name, serialize as xml_serialize};
 
 use crate::conversions::Convert;
 use crate::document_loader::DocumentLoader;
@@ -738,10 +738,9 @@ impl Node {
     }
 
     pub(crate) fn ranges_is_empty(&self) -> bool {
-        match self.rare_data().as_ref() {
-            Some(data) => data.ranges.is_empty(),
-            None => false,
-        }
+        self.rare_data()
+            .as_ref()
+            .is_none_or(|data| data.ranges.is_empty())
     }
 
     #[inline]
@@ -1247,13 +1246,13 @@ impl Node {
         }
     }
 
-    pub(crate) fn unique_id(&self) -> String {
+    pub(crate) fn unique_id(&self, pipeline: PipelineId) -> String {
         let mut rare_data = self.ensure_rare_data();
 
         if rare_data.unique_id.is_none() {
-            let id = UniqueId::new();
-            ScriptThread::save_node_id(id.borrow().simple().to_string());
-            rare_data.unique_id = Some(id);
+            let node_id = UniqueId::new();
+            ScriptThread::save_node_id(pipeline, node_id.borrow().simple().to_string());
+            rare_data.unique_id = Some(node_id);
         }
         rare_data
             .unique_id
@@ -1267,6 +1266,7 @@ impl Node {
     pub(crate) fn summarize(&self, can_gc: CanGc) -> NodeInfo {
         let USVString(base_uri) = self.BaseURI();
         let node_type = self.NodeType();
+        let pipeline = self.owner_document().window().pipeline_id();
 
         let maybe_shadow_root = self.downcast::<ShadowRoot>();
         let shadow_root_mode = maybe_shadow_root
@@ -1274,7 +1274,7 @@ impl Node {
             .map(ShadowRootMode::convert);
         let host = maybe_shadow_root
             .map(ShadowRoot::Host)
-            .map(|host| host.upcast::<Node>().unique_id());
+            .map(|host| host.upcast::<Node>().unique_id(pipeline));
         let is_shadow_host = self.downcast::<Element>().is_some_and(|potential_host| {
             let Some(root) = potential_host.shadow_root() else {
                 return false;
@@ -1296,12 +1296,12 @@ impl Node {
             .map(|style| style.Display().into());
 
         NodeInfo {
-            unique_id: self.unique_id(),
+            unique_id: self.unique_id(pipeline),
             host,
             base_uri,
             parent: self
                 .GetParentNode()
-                .map_or("".to_owned(), |node| node.unique_id()),
+                .map_or("".to_owned(), |node| node.unique_id(pipeline)),
             node_type,
             is_top_level_document: node_type == NodeConstants::DOCUMENT_NODE,
             node_name: String::from(self.NodeName()),
@@ -1455,6 +1455,21 @@ impl Node {
             .map(|data| data.element_data.borrow().styles.primary().clone())
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#language>
+    pub(crate) fn get_lang(&self) -> Option<String> {
+        self.inclusive_ancestors(ShadowIncluding::Yes)
+            .filter_map(|node| {
+                node.downcast::<Element>().and_then(|el| {
+                    el.get_attribute(&ns!(xml), &local_name!("lang"))
+                        .or_else(|| el.get_attribute(&ns!(), &local_name!("lang")))
+                        .map(|attr| String::from(attr.Value()))
+                })
+                // TODO: Check meta tags for a pragma-set default language
+                // TODO: Check HTTP Content-Language header
+            })
+            .next()
+    }
+
     /// <https://dom.spec.whatwg.org/#assign-slotables-for-a-tree>
     pub(crate) fn assign_slottables_for_a_tree(&self) {
         // NOTE: This method traverses all descendants of the node and is potentially very
@@ -1568,6 +1583,7 @@ pub(crate) unsafe fn from_untrusted_node_address(candidate: UntrustedNodeAddress
 pub(crate) trait LayoutNodeHelpers<'dom> {
     fn type_id_for_layout(self) -> NodeTypeId;
 
+    fn parent_node_ref(self) -> Option<LayoutDom<'dom, Node>>;
     fn composed_parent_node_ref(self) -> Option<LayoutDom<'dom, Node>>;
     fn first_child_ref(self) -> Option<LayoutDom<'dom, Node>>;
     fn last_child_ref(self) -> Option<LayoutDom<'dom, Node>>;
@@ -1618,7 +1634,7 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
     fn selection(self) -> Option<Range<usize>>;
     fn image_url(self) -> Option<ServoUrl>;
     fn image_density(self) -> Option<f64>;
-    fn image_data(self) -> Option<(Option<StdArc<Image>>, Option<ImageMetadata>)>;
+    fn image_data(self) -> Option<(Option<Image>, Option<ImageMetadata>)>;
     fn canvas_data(self) -> Option<HTMLCanvasData>;
     fn media_data(self) -> Option<HTMLMediaData>;
     fn svg_data(self) -> Option<SVGSVGData>;
@@ -1630,7 +1646,7 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
 impl<'dom> LayoutDom<'dom, Node> {
     #[inline]
     #[allow(unsafe_code)]
-    fn parent_node_ref(self) -> Option<LayoutDom<'dom, Node>> {
+    pub(crate) fn parent_node_ref(self) -> Option<LayoutDom<'dom, Node>> {
         unsafe { self.unsafe_get().parent_node.get_inner_as_layout() }
     }
 }
@@ -1644,6 +1660,12 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     #[inline]
     fn is_element_for_layout(&self) -> bool {
         (*self).is::<Element>()
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    fn parent_node_ref(self) -> Option<LayoutDom<'dom, Node>> {
+        unsafe { self.unsafe_get().parent_node.get_inner_as_layout() }
     }
 
     #[inline]
@@ -1831,7 +1853,7 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
             .image_url()
     }
 
-    fn image_data(self) -> Option<(Option<StdArc<Image>>, Option<ImageMetadata>)> {
+    fn image_data(self) -> Option<(Option<Image>, Option<ImageMetadata>)> {
         self.downcast::<HTMLImageElement>().map(|e| e.image_data())
     }
 
@@ -2034,6 +2056,10 @@ impl TreeIterator {
         debug_assert_eq!(self.depth, 0);
         self.current = None;
         Some(current)
+    }
+
+    pub(crate) fn peek(&self) -> Option<&DomRoot<Node>> {
+        self.current.as_ref()
     }
 }
 
@@ -2599,7 +2625,9 @@ impl Node {
     fn remove(node: &Node, parent: &Node, suppress_observers: SuppressObserver, can_gc: CanGc) {
         parent.owner_doc().add_script_and_layout_blocker();
 
-        // Step 2.
+        // Step 1. Let parent be node’s parent.
+        // Step 2. Assert: parent is non-null.
+        // NOTE: We get parent as an argument instead
         assert!(
             node.GetParentNode()
                 .is_some_and(|node_parent| &*node_parent == parent)
@@ -2611,11 +2639,21 @@ impl Node {
             if parent.ranges_is_empty() {
                 None
             } else {
-                // Step 1.
+                // Step 1. Let parent be node’s parent.
+                // Step 2. Assert: parent is not null.
+                // NOTE: We already have the parent.
+
+                // Step 3. Let index be node’s index.
                 let index = node.index();
-                // Steps 2-3 are handled in Node::unbind_from_tree.
-                // Steps 4-5.
+
+                // Steps 4-5 are handled in Node::unbind_from_tree.
+
+                // Step 6. For each live range whose start node is parent and start offset is greater than index,
+                // decrease its start offset by 1.
+                // Step 7. For each live range whose end node is parent and end offset is greater than index,
+                // decrease its end offset by 1.
                 parent.ranges().decrease_above(parent, index, 1);
+
                 // Parent had ranges, we needed the index, let's keep track of
                 // it to avoid computing it for other ranges when calling
                 // unbind_from_tree recursively.
@@ -3859,7 +3897,12 @@ impl VirtualMethods for Node {
     /// <https://dom.spec.whatwg.org/#concept-node-remove>
     fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
         self.super_type().unwrap().unbind_from_tree(context, can_gc);
-        if !self.ranges_is_empty() {
+
+        // Ranges should only drain to the parent from inclusive non-shadow
+        // including descendants. If we're in a shadow tree at this point then the
+        // unbind operation happened further up in the tree and we should not
+        // drain any ranges.
+        if !self.is_in_a_shadow_tree() && !self.ranges_is_empty() {
             self.ranges().drain_to_parent(context, self);
         }
     }

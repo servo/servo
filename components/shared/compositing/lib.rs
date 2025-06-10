@@ -16,13 +16,14 @@ use euclid::Rect;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
-use pixels::Image;
+use pixels::RasterImage;
 use strum_macros::IntoStaticStr;
 use style_traits::CSSPixel;
 use webrender_api::DocumentId;
 
 pub mod display_list;
 pub mod rendering_context;
+pub mod viewport_description;
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -41,6 +42,8 @@ use webrender_api::{
     FontInstanceFlags, FontInstanceKey, FontKey, HitTestFlags, ImageData, ImageDescriptor,
     ImageKey, NativeFontHandle, PipelineId as WebRenderPipelineId,
 };
+
+use crate::viewport_description::ViewportDescription;
 
 /// Sends messages to the compositor.
 #[derive(Clone)]
@@ -83,7 +86,7 @@ pub enum CompositorMsg {
     CreatePng(
         WebViewId,
         Option<Rect<f32, CSSPixel>>,
-        IpcSender<Option<Image>>,
+        IpcSender<Option<RasterImage>>,
     ),
     /// A reply to the compositor asking if the output image is stable.
     IsReadyToSaveImageReply(bool),
@@ -176,6 +179,8 @@ pub enum CompositorMsg {
     /// Measure the current memory usage associated with the compositor.
     /// The report must be sent on the provided channel once it's complete.
     CollectMemoryReport(ReportsChan),
+    /// A top-level frame has parsed a viewport metatag and is sending the new constraints.
+    Viewport(WebViewId, ViewportDescription),
 }
 
 impl Debug for CompositorMsg {

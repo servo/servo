@@ -112,29 +112,11 @@ function resolve_corner_params(style, width, height, outset = null) {
           outer_rect[3] + inner_offset[3] * offset[0],
         ];
 
-        let inner_shape = shape;
-        if (outset) {
-          const new_width = width + outset * 2;
-          const new_height = height + outset * 2;
-          inner_rect = [
-            (outer_rect[0] / width) * new_width - outset,
-            (outer_rect[1] / height) * new_height - outset,
-            (outer_rect[2] / width) * new_width - outset,
-            (outer_rect[3] / height) * new_height - outset
-          ]
-        } else if (shape > 2 || shape < 0.5) {
-          const outer_length = Math.hypot(
-            outer_rect[2] - outer_rect[0], outer_rect[3] - outer_rect[1]);
-          const inner_length = Math.hypot(
-            inner_rect[2] - inner_rect[0], inner_rect[3] - inner_rect[1])
-        }
-
         return [
           corner,
           {
             outer_rect,
             shape,
-            inner_shape,
             inset,
             inner_rect,
             inner_offset,

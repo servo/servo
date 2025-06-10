@@ -8608,7 +8608,7 @@
     ],
     "css": {
      "ahem.css": [
-      "51eede74aaa0b43f2c9235019bc73a508b1f14e4",
+      "a7db592e0df53e0b70f66ca7b31a7734db18887e",
       []
      ]
     },
@@ -10654,7 +10654,7 @@
       []
      ],
      "no_mime_type.py": [
-      "860005a42c237735287031133786352d7c732402",
+      "980eeee18f993f20a9df033f337a52ec93155ec4",
       []
      ],
      "origin_helpers.js": [
@@ -12850,6 +12850,13 @@
       ]
      ]
     },
+    "canvas-oversize-serialization.html": [
+     "3330ee2b8c4e33a18a3e17151fd7c398c9a5d024",
+     [
+      null,
+      {}
+     ]
+    ],
     "canvas.initial.reset.2dstate.html": [
      "e276ed09ffcf16eff16b784c622b93665c4109ee",
      [

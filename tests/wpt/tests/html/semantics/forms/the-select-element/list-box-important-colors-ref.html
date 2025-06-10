@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<style>
+option:not(:checked) {
+  background-color: green;
+  color: blue;
+}
+</style>
+
+<select multiple size=4 autofocus>
+  <option>option</option>
+  <option id=target>focused and checked</option>
+</select>
+
+<script>
+const target = document.getElementById('target');
+(async () => {
+  await (new test_driver.Actions()
+    .pointerMove(0, 0, {origin: target})
+    .pointerDown()
+    .pointerUp())
+    .send();
+  document.documentElement.classList.remove('reftest-wait');
+})();
+</script>

@@ -1235,17 +1235,18 @@ interface HTMLDialogElement : HTMLElement {
 interface HTMLScriptElement : HTMLElement {
   [HTMLConstructor] constructor();
 
-  [CEReactions] attribute USVString src;
   [CEReactions] attribute DOMString type;
+  [CEReactions] attribute USVString src;
   [CEReactions] attribute boolean noModule;
   [CEReactions] attribute boolean async;
   [CEReactions] attribute boolean defer;
-  [CEReactions] attribute DOMString? crossOrigin;
-  [CEReactions] attribute DOMString text;
-  [CEReactions] attribute DOMString integrity;
-  [CEReactions] attribute DOMString referrerPolicy;
   [SameObject, PutForwards=value] readonly attribute DOMTokenList blocking;
+  [CEReactions] attribute DOMString? crossOrigin;
+  [CEReactions] attribute DOMString referrerPolicy;
+  [CEReactions] attribute DOMString integrity;
   [CEReactions] attribute DOMString fetchPriority;
+
+  [CEReactions] attribute DOMString text;
 
   static boolean supports(DOMString type);
 
@@ -1542,28 +1543,6 @@ interface TextMetrics {
   readonly attribute double ideographicBaseline;
 };
 
-typedef (Uint8ClampedArray or Float16Array) ImageDataArray;
-
-enum ImageDataPixelFormat { "rgba-unorm8", "rgba-float16" };
-
-dictionary ImageDataSettings {
-  PredefinedColorSpace colorSpace;
-  ImageDataPixelFormat pixelFormat = "rgba-unorm8";
-};
-
-[Exposed=(Window,Worker),
- Serializable]
-interface ImageData {
-  constructor(unsigned long sw, unsigned long sh, optional ImageDataSettings settings = {});
-  constructor(ImageDataArray data, unsigned long sw, optional unsigned long sh, optional ImageDataSettings settings = {});
-
-  readonly attribute unsigned long width;
-  readonly attribute unsigned long height;
-  readonly attribute ImageDataArray data;
-  readonly attribute ImageDataPixelFormat pixelFormat;
-  readonly attribute PredefinedColorSpace colorSpace;
-};
-
 [Exposed=(Window,Worker)]
 interface Path2D {
   constructor(optional (Path2D or DOMString) path);
@@ -1716,6 +1695,7 @@ interface ToggleEvent : Event {
   constructor(DOMString type, optional ToggleEventInit eventInitDict = {});
   readonly attribute DOMString oldState;
   readonly attribute DOMString newState;
+  readonly attribute Element source;
 };
 
 dictionary ToggleEventInit : EventInit {
@@ -2474,6 +2454,28 @@ interface MimeType {
   readonly attribute DOMString description;
   readonly attribute DOMString suffixes;
   readonly attribute Plugin enabledPlugin;
+};
+
+typedef (Uint8ClampedArray or Float16Array) ImageDataArray;
+
+enum ImageDataPixelFormat { "rgba-unorm8", "rgba-float16" };
+
+dictionary ImageDataSettings {
+  PredefinedColorSpace colorSpace;
+  ImageDataPixelFormat pixelFormat = "rgba-unorm8";
+};
+
+[Exposed=(Window,Worker),
+ Serializable]
+interface ImageData {
+  constructor(unsigned long sw, unsigned long sh, optional ImageDataSettings settings = {});
+  constructor(ImageDataArray data, unsigned long sw, optional unsigned long sh, optional ImageDataSettings settings = {});
+
+  readonly attribute unsigned long width;
+  readonly attribute unsigned long height;
+  readonly attribute ImageDataArray data;
+  readonly attribute ImageDataPixelFormat pixelFormat;
+  readonly attribute PredefinedColorSpace colorSpace;
 };
 
 [Exposed=(Window,Worker), Serializable, Transferable]

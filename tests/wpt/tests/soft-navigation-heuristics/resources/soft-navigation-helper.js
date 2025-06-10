@@ -8,6 +8,34 @@ const URL = 'foobar.html';
 const readValue = (value, defaultValue) => {
   return value !== undefined ? value : defaultValue;
 };
+
+const withTimeoutMessage =
+    async (t, promise, message, timeout = 1000) => {
+  return Promise.race([
+    promise,
+    new Promise((resolve, reject) => {
+      t.step_timeout(() => {
+        reject(new Error(message));
+      }, timeout);
+    }),
+  ]);
+}
+
+// Helper method for use with history.back(), when we want to be
+// sure that its asynchronous effect has completed.
+const waitForUrlToEndWith = async (url) => {
+  return new Promise((resolve, reject) => {
+    window.addEventListener('popstate', () => {
+      if (location.href.endsWith(url)) {
+        resolve();
+      } else {
+        reject(
+            'Got ' + location.href + ' - expected URL ends with "' + url + '"');
+      }
+    }, {once: true});
+  });
+};
+
 const testSoftNavigation = options => {
   const addContent = options.addContent;
   const link = options.link;
@@ -16,13 +44,19 @@ const testSoftNavigation = options => {
   const clicks = readValue(options.clicks, 1);
   const extraValidations = readValue(options.extraValidations, () => {});
   const testName = options.testName;
-  const pushUrl = readValue(options.pushUrl, true);
+  const pushUrl = readValue(options.pushUrl, URL);
   const eventType = readValue(options.eventType, 'click');
   const interactionFunc = options.interactionFunc;
   const eventPrepWork = options.eventPrepWork;
+  const preTestWork = options.preTestWork;
   promise_test(async t => {
-    await waitInitialLCP();
-    const preClickLcp = await getLcpEntries();
+    if (preTestWork) {
+      await preTestWork();
+    }
+    await withTimeoutMessage(
+        t, waitInitialLCP(), 'Timed out waiting for initial LCP');
+    const preClickLcp = await withTimeoutMessage(
+        t, getLcpEntries(), 'Timed out waiting for LCP entries');
     setEvent(t, link, pushState, addContent, pushUrl, eventType, eventPrepWork);
     let first_navigation_id;
     for (let i = 0; i < clicks; ++i) {
@@ -32,21 +66,28 @@ const testSoftNavigation = options => {
       const soft_nav_promise = waitOnSoftNav();
       interact(link, interactionFunc);
 
-      const navigation_id = await soft_nav_promise;
+      const navigation_id = await withTimeoutMessage(
+          t, soft_nav_promise, 'Timed out waiting for soft navigation', 3000);
       if (!first_navigation_id) {
         first_navigation_id = navigation_id;
       }
       // Ensure paint timing entries are fired before moving on to the next
       // click.
-      await paint_entries_promise;
+      await withTimeoutMessage(
+          t, paint_entries_promise, 'Timed out waiting for paint entries');
     }
     assert_equals(
         document.softNavigations, clicks,
         'Soft Navigations detected are the same as the number of clicks');
-    await validateSoftNavigationEntry(clicks, extraValidations, pushUrl);
+    await withTimeoutMessage(
+        t, validateSoftNavigationEntry(clicks, extraValidations, pushUrl),
+        'Timed out waiting for soft navigation entry validation');
 
-    await runEntryValidations(
-        preClickLcp, first_navigation_id, clicks + 1, options.validate);
+    await withTimeoutMessage(
+        t,
+        runEntryValidations(
+            preClickLcp, first_navigation_id, clicks + 1, options.validate),
+        'Timed out waiting for entry validations');
   }, testName);
 };
 
@@ -70,28 +111,6 @@ const testNavigationApi = (testName, navigateEventHandler, link) => {
 
     await runEntryValidations(preClickLcp, first_navigation_id);
   }, testName);
-};
-
-const testSoftNavigationNotDetected = options => {
-  promise_test(async t => {
-    const preClickLcp = await getLcpEntries();
-    options.eventTarget.addEventListener(
-        options.eventName, options.eventHandler);
-    interact(options.link);
-    await new Promise((resolve, reject) => {
-      new PerformanceObserver(() => {
-        reject('Soft navigation should not be triggered');
-      }).observe({type: 'soft-navigation', buffered: true});
-      t.step_timeout(resolve, 1000);
-    });
-    if (document.softNavigations) {
-      assert_equals(
-          document.softNavigations, 0, 'Soft Navigation not detected');
-    }
-    const postClickLcp = await getLcpEntries();
-    assert_equals(
-        preClickLcp.length, postClickLcp.length, 'No LCP entries accumulated');
-  }, options.testName);
 };
 
 const runEntryValidations = async (
@@ -159,11 +178,12 @@ const setEvent =
 
         const url = URL + '?' + counter;
         if (pushState) {
-          // Change the URL
+          // Change the URL; pushState may be asynchronous, e.g. to deal
+          // with history.back()'s asynchronous effect.
           if (pushUrl) {
-            pushState(url);
+            await pushState(url);
           } else {
-            pushState();
+            await pushState();
           }
         }
 
@@ -191,7 +211,7 @@ const validateSoftNavigationEntry =
   for (let i = 0; i < entries.length; ++i) {
     const entry = entries[i];
     assert_true(
-        entry.name.includes(pushUrl ? URL : document.location.href),
+        entry.name.includes(pushUrl ? pushUrl : document.location.href),
         'The soft navigation name is properly set');
     const entryTimestamp = entry.startTime;
     assert_less_than_equal(

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/415953695">
+<link rel=match href="list-box-important-colors-ref.html">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<style>
+option {
+  background-color: green;
+  color: blue;
+}
+</style>
+
+<select multiple size=4 autofocus>
+  <option>option</option>
+  <option id=target>focused and checked</option>
+</select>
+
+<script>
+const target = document.getElementById('target');
+(async () => {
+  await (new test_driver.Actions()
+    .pointerMove(0, 0, {origin: target})
+    .pointerDown()
+    .pointerUp())
+    .send();
+  document.documentElement.classList.remove('reftest-wait');
+})();
+</script>

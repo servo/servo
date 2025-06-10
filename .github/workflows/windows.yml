@@ -167,10 +167,6 @@ jobs:
         run: |
           .\mach build --use-crown --locked --${{ inputs.profile }} ${{ inputs.build-args }}
           cp C:\a\servo\servo\target\cargo-timings C:\a\servo\servo\target\cargo-timings-windows -Recurse
-      - name: Copy resources
-        if: ${{ runner.environment != 'self-hosted' }}
-        # GitHub-hosted runners check out the repo on D: drive.
-        run: cp D:\a\servo\servo\resources C:\a\servo\servo -Recurse
       - name: Smoketest
         run: .\mach smoketest --${{ inputs.profile }}
       - name: Unit tests
