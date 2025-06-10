@@ -62,4 +62,5 @@ jobs:
             pr/head_sha
           retention-days: 14
       - name: Tidy
+        if: ${{ !cancelled() }}
         run: ./mach test-tidy --no-progress --all
