@@ -2023,8 +2023,10 @@ fn solve_inline_margins_avoiding_floats(
     placement_rect: LogicalRect<Au>,
     justify_self: AlignFlags,
 ) -> ((Au, Au), Au) {
-    let free_space = placement_rect.size.inline - inline_size;
-    debug_assert!(free_space >= Au::zero());
+    // PlacementAmongFloats should guarantee that the inline size of the placement rect
+    // is at least as big as `inline_size`. However, that may fail when dealing with
+    // huge sizes that need to be saturated to MAX_AU, so floor by zero. See #37312.
+    let free_space = Au::zero().max(placement_rect.size.inline - inline_size);
     let cb_info = &sequential_layout_state.floats.containing_block_info;
     let start_adjustment = placement_rect.start_corner.inline - cb_info.inline_start;
     let end_adjustment = cb_info.inline_end - placement_rect.max_inline_position();
