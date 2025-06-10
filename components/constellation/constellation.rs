@@ -4738,11 +4738,11 @@ where
             WebDriverCommandMsg::FocusWebView(webview_id) => {
                 self.handle_focus_web_view(webview_id);
             },
-            WebDriverCommandMsg::CheckWebViewOpen(webview_id, response_sender) => {
+            WebDriverCommandMsg::IsWebViewOpen(webview_id, response_sender) => {
                 let is_open = self.webviews.get(webview_id).is_some();
                 let _ = response_sender.send(is_open);
             },
-            WebDriverCommandMsg::CheckBrowsingContextOpen(browsing_context_id, response_sender) => {
+            WebDriverCommandMsg::IsBrowsingContextOpen(browsing_context_id, response_sender) => {
                 let is_open = self.browsing_contexts.contains_key(&browsing_context_id);
                 let _ = response_sender.send(is_open);
             },

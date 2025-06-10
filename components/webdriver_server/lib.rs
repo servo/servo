@@ -1963,7 +1963,7 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         self.constellation_chan
             .send(EmbedderToConstellationMessage::WebDriverCommand(
-                WebDriverCommandMsg::CheckWebViewOpen(webview_id, sender),
+                WebDriverCommandMsg::IsWebViewOpen(webview_id, sender),
             ))
             .unwrap();
         if !receiver.recv().unwrap_or(false) {
@@ -1983,7 +1983,7 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         self.constellation_chan
             .send(EmbedderToConstellationMessage::WebDriverCommand(
-                WebDriverCommandMsg::CheckBrowsingContextOpen(browsing_context_id, sender),
+                WebDriverCommandMsg::IsBrowsingContextOpen(browsing_context_id, sender),
             ))
             .unwrap();
         if !receiver.recv().unwrap_or(false) {
