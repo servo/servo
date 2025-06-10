@@ -30,6 +30,7 @@ use net_traits::{
 };
 use num_traits::ToPrimitive;
 use pixels::{CorsStatus, ImageMetadata};
+use script_bindings::script_runtime::JSContext;
 use servo_url::ServoUrl;
 use servo_url::origin::MutableOrigin;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_integer, parse_length};
@@ -1365,7 +1366,7 @@ pub(crate) enum ImageElementMicrotask {
 }
 
 impl MicrotaskRunnable for ImageElementMicrotask {
-    fn handler(&self, can_gc: CanGc) {
+    fn handler(&self, _cx: JSContext, can_gc: CanGc) {
         match *self {
             ImageElementMicrotask::StableStateUpdateImageData {
                 ref elem,

@@ -48,7 +48,7 @@ pub(crate) enum Microtask {
 }
 
 pub(crate) trait MicrotaskRunnable {
-    fn handler(&self, _can_gc: CanGc) {}
+    fn handler(&self, _cx: JSContext, _can_gc: CanGc) {}
     fn enter_realm(&self) -> JSAutoRealm;
 }
 
@@ -134,11 +134,11 @@ impl MicrotaskQueue {
                     },
                     Microtask::MediaElement(ref task) => {
                         let _realm = task.enter_realm();
-                        task.handler(can_gc);
+                        task.handler(cx, can_gc);
                     },
                     Microtask::ImageElement(ref task) => {
                         let _realm = task.enter_realm();
-                        task.handler(can_gc);
+                        task.handler(cx, can_gc);
                     },
                     Microtask::CustomElementReaction => {
                         ScriptThread::invoke_backup_element_queue(can_gc);
@@ -147,7 +147,8 @@ impl MicrotaskQueue {
                         MutationObserver::notify_mutation_observers(can_gc);
                     },
                     Microtask::ReadableStreamTeeReadRequest(ref task) => {
-                        task.microtask_chunk_steps(cx, can_gc)
+                        let _realm = task.enter_realm();
+                        task.handler(cx, can_gc);
                     },
                 }
             }

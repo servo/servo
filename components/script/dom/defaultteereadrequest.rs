@@ -6,7 +6,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::jsapi::Heap;
+use js::jsapi::{Heap, JSAutoRealm};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleValue as SafeHandleValue;
 
@@ -20,7 +20,8 @@ use crate::dom::defaultteeunderlyingsource::DefaultTeeUnderlyingSource;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
-use crate::microtask::Microtask;
+use crate::microtask::{Microtask, MicrotaskRunnable};
+use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -31,9 +32,13 @@ pub(crate) struct DefaultTeeReadRequestMicrotask {
     tee_read_request: Dom<DefaultTeeReadRequest>,
 }
 
-impl DefaultTeeReadRequestMicrotask {
-    pub(crate) fn microtask_chunk_steps(&self, cx: SafeJSContext, can_gc: CanGc) {
-        self.tee_read_request.chunk_steps(cx, &self.chunk, can_gc)
+impl MicrotaskRunnable for DefaultTeeReadRequestMicrotask {
+    fn handler(&self, cx: SafeJSContext, can_gc: CanGc) {
+        self.tee_read_request.chunk_steps(cx, &self.chunk, can_gc);
+    }
+
+    fn enter_realm(&self) -> JSAutoRealm {
+        enter_realm(&*self.tee_read_request)
     }
 }
 
