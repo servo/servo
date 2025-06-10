@@ -11,9 +11,9 @@ use malloc_size_of_derive::MallocSizeOf;
 /// testing clipboard-dependent parts of `script`.
 pub trait ClipboardProvider {
     /// Get the text content of the clipboard.
-    fn get_text(&mut self) -> Result<String, String>;
+    fn get_text(&mut self) -> Result<Utf16String, Utf16String>;
     /// Set the text content of the clipboard.
-    fn set_text(&mut self, _: String);
+    fn set_text(&mut self, _: Utf16String);
 }
 
 #[derive(MallocSizeOf)]
@@ -23,16 +23,16 @@ pub(crate) struct EmbedderClipboardProvider {
 }
 
 impl ClipboardProvider for EmbedderClipboardProvider {
-    fn get_text(&mut self) -> Result<String, String> {
+    fn get_text(&mut self) -> Result<Utf16String, Utf16String> {
         let (tx, rx) = channel().unwrap();
         self.embedder_sender
             .send(EmbedderMsg::GetClipboardText(self.webview_id, tx))
             .unwrap();
-        rx.recv().unwrap()
+        rx.recv().unwrap().map(Into::into).map_err(Into::into)
     }
-    fn set_text(&mut self, s: String) {
+    fn set_text(&mut self, value: String) {
         self.embedder_sender
-            .send(EmbedderMsg::SetClipboardText(self.webview_id, s))
+            .send(EmbedderMsg::SetClipboardText(self.webview_id, value.into()))
             .unwrap();
     }
 }
