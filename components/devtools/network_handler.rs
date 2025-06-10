@@ -11,26 +11,18 @@ use serde::Serialize;
 use crate::actor::ActorRegistry;
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::network_event::{NetworkEventActor, ResponseStartMsg};
-use crate::protocol::JsonPacketStream;
 use crate::resource::ResourceAvailable;
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct NetworkEventUpdateMsg {
-    from: String,
-    #[serde(rename = "type")]
-    type_: String,
-    update_type: String,
+#[derive(Clone, Serialize)]
+struct ResourcesUpdatedArray {
+    updates: Vec<UpdateEntry>,
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct ResponseStartUpdateMsg {
-    from: String,
-    #[serde(rename = "type")]
-    type_: String,
+#[derive(Clone, Serialize)]
+struct UpdateEntry {
+    #[serde(rename = "updateType")]
     update_type: String,
-    response: ResponseStartMsg,
+    data: serde_json::Value,
 }
 
 #[derive(Serialize)]
@@ -79,88 +71,63 @@ pub(crate) fn handle_network_event(
             }
         },
         NetworkEvent::HttpResponse(httpresponse) => {
-            // Store the response information in the actor
-            let actor = actors.find_mut::<NetworkEventActor>(&netevent_actor_name);
-            actor.add_response(httpresponse);
+            // Scope mutable borrow
+            let resource = {
+                let actor = actors.find_mut::<NetworkEventActor>(&netevent_actor_name);
+                // Store the response information in the actor
+                actor.add_response(httpresponse);
+                ResourcesUpdatedArray {
+                    updates: vec![
+                        UpdateEntry {
+                            update_type: "requestHeaders".to_owned(),
+                            data: serde_json::to_value(actor.request_headers()).unwrap(),
+                        },
+                        UpdateEntry {
+                            update_type: "requestCookies".to_owned(),
+                            data: serde_json::to_value(actor.request_cookies()).unwrap(),
+                        },
+                        UpdateEntry {
+                            update_type: "responseStart".to_owned(),
+                            data: serde_json::to_value(actor.response_start()).unwrap(),
+                        },
+                        UpdateEntry {
+                            update_type: "eventTimings".to_owned(),
+                            data: serde_json::to_value(EventTimingsUpdateMsg {
+                                total_time: actor.total_time().as_millis() as u64,
+                            })
+                            .unwrap(),
+                        },
+                        UpdateEntry {
+                            update_type: "securityInfo".to_owned(),
+                            data: serde_json::to_value(SecurityInfoUpdateMsg {
+                                state: "insecure".to_owned(),
+                            })
+                            .unwrap(),
+                        },
+                        UpdateEntry {
+                            update_type: "responseContent".to_owned(),
+                            data: serde_json::to_value(actor.response_content()).unwrap(),
+                        },
+                        UpdateEntry {
+                            update_type: "responseCookies".to_owned(),
+                            data: serde_json::to_value(actor.response_cookies()).unwrap(),
+                        },
+                        UpdateEntry {
+                            update_type: "responseHeaders".to_owned(),
+                            data: serde_json::to_value(actor.response_headers()).unwrap(),
+                        },
+                    ],
+                }
+            };
 
-            let msg = NetworkEventUpdateMsg {
-                from: netevent_actor_name.clone(),
-                type_: "networkEventUpdate".to_owned(),
-                update_type: "requestHeaders".to_owned(),
-            };
+            let browsing_context_actor =
+                actors.find::<BrowsingContextActor>(&browsing_context_actor_name);
             for stream in &mut connections {
-                let _ = stream.write_merged_json_packet(&msg, &actor.request_headers());
-            }
-
-            let msg = NetworkEventUpdateMsg {
-                from: netevent_actor_name.clone(),
-                type_: "networkEventUpdate".to_owned(),
-                update_type: "requestCookies".to_owned(),
-            };
-            for stream in &mut connections {
-                let _ = stream.write_merged_json_packet(&msg, &actor.request_cookies());
-            }
-
-            // Send a networkEventUpdate (responseStart) to the client
-            let msg = ResponseStartUpdateMsg {
-                from: netevent_actor_name.clone(),
-                type_: "networkEventUpdate".to_owned(),
-                update_type: "responseStart".to_owned(),
-                response: actor.response_start(),
-            };
-
-            for stream in &mut connections {
-                let _ = stream.write_json_packet(&msg);
-            }
-            let msg = NetworkEventUpdateMsg {
-                from: netevent_actor_name.clone(),
-                type_: "networkEventUpdate".to_owned(),
-                update_type: "eventTimings".to_owned(),
-            };
-            let extra = EventTimingsUpdateMsg {
-                total_time: actor.total_time().as_millis() as u64,
-            };
-            for stream in &mut connections {
-                let _ = stream.write_merged_json_packet(&msg, &extra);
-            }
-
-            let msg = NetworkEventUpdateMsg {
-                from: netevent_actor_name.clone(),
-                type_: "networkEventUpdate".to_owned(),
-                update_type: "securityInfo".to_owned(),
-            };
-            let extra = SecurityInfoUpdateMsg {
-                state: "insecure".to_owned(),
-            };
-            for stream in &mut connections {
-                let _ = stream.write_merged_json_packet(&msg, &extra);
-            }
-
-            let msg = NetworkEventUpdateMsg {
-                from: netevent_actor_name.clone(),
-                type_: "networkEventUpdate".to_owned(),
-                update_type: "responseContent".to_owned(),
-            };
-            for stream in &mut connections {
-                let _ = stream.write_merged_json_packet(&msg, &actor.response_content());
-            }
-
-            let msg = NetworkEventUpdateMsg {
-                from: netevent_actor_name.clone(),
-                type_: "networkEventUpdate".to_owned(),
-                update_type: "responseCookies".to_owned(),
-            };
-            for stream in &mut connections {
-                let _ = stream.write_merged_json_packet(&msg, &actor.response_cookies());
-            }
-
-            let msg = NetworkEventUpdateMsg {
-                from: netevent_actor_name,
-                type_: "networkEventUpdate".to_owned(),
-                update_type: "responseHeaders".to_owned(),
-            };
-            for stream in &mut connections {
-                let _ = stream.write_merged_json_packet(&msg, &actor.response_headers());
+                browsing_context_actor.resource_available(
+                    resource.clone(),
+                    "resources-updated".to_string(),
+                    stream,
+                );
             }
         },
     }
