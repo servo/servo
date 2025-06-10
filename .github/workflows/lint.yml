@@ -52,6 +52,9 @@ jobs:
       - name: Run Clippy Lint
         run: |
           ./mach clippy --message-format=json --use-crown --locked --report
+      - name: Tidy
+        if: ${{ !cancelled() }}
+        run: ./mach test-tidy --no-progress --all
       - name: Clippy Linter Result Upload
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
@@ -61,6 +64,3 @@ jobs:
             temp/report-output.json
             pr/head_sha
           retention-days: 14
-      - name: Tidy
-        if: ${{ !cancelled() }}
-        run: ./mach test-tidy --no-progress --all
