@@ -7029,7 +7029,7 @@ dependencies = [
  "log",
  "malloc_size_of_derive",
  "rand 0.8.5",
- "rand_core 0.6.4",
+ "rand_core 0.9.3",
  "rand_isaac",
  "servo_malloc_size_of",
  "uuid",
