@@ -21,10 +21,10 @@ from typing import Any, Dict, List
 
 import colorama
 import toml
-
 import wpt.manifestupdate
 
-from .licenseck import OLD_MPL, MPL, APACHE, COPYRIGHT, licenses_toml
+from .licenseck import APACHE, COPYRIGHT, MPL, OLD_MPL, licenses_toml
+from .linting_report import LintingReportManager
 
 TOPDIR = os.path.abspath(os.path.dirname(sys.argv[0]))
 WPT_PATH = os.path.join(".", "tests", "wpt")
@@ -983,6 +983,8 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
 
 
 def scan(only_changed_files=False, progress=False):
+    # Store lint into filesystem
+    report_manager = LintingReportManager("./temp/report-output")
     # check config file for errors
     config_errors = check_config_file(CONFIG_FILE_PATH)
     # check directories contain expected files
@@ -1017,7 +1019,9 @@ def scan(only_changed_files=False, progress=False):
             + f"{colorama.Fore.YELLOW}{error[1]}{colorama.Style.RESET_ALL}: "
             + f"{colorama.Fore.RED}{error[2]}{colorama.Style.RESET_ALL}"
         )
+        report_manager.append(error)
 
+    report_manager.save()
     return int(error is not None)
 
 
