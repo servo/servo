@@ -19,6 +19,7 @@ use js::rust::{HandleObject, HandleValue};
 use num_traits::Zero;
 use regex::Regex;
 use stylo_atoms::Atom;
+use utf16string::Utf16String;
 
 use crate::error::Error;
 use crate::script_runtime::JSContext as SafeJSContext;
@@ -479,5 +480,17 @@ impl Extend<char> for DOMString {
         I: IntoIterator<Item = char>,
     {
         self.0.extend(iterable)
+    }
+}
+
+impl From<Utf16String> for DOMString {
+    fn from(value: Utf16String) -> Self {
+        Self::from(value.to_string())
+    }
+}
+
+impl From<DOMString> for Utf16String {
+    fn from(value: DOMString) -> Self {
+        Self::from(value.str())
     }
 }
