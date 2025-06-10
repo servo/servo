@@ -32,7 +32,7 @@ jobs:
           script: |
             const fs = require('fs')
             const headSha = fs.readFileSync('./pr/head_sha', 'utf8').trim()
-            const data = fs.readFileSync('./temp/clippy-output.json', 'utf8')
+            const data = fs.readFileSync('./temp/report-output.json', 'utf8')
             const annotations = JSON.parse(data)
 
             if (!Array.isArray(annotations) || annotations.length === 0) {

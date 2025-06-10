@@ -58,7 +58,7 @@ jobs:
         with:
           name: clippy-lint-result
           path: |
-            temp/clippy-output.json
+            temp/report-output.json
             pr/head_sha
           retention-days: 14
       - name: Tidy

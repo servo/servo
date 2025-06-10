@@ -8,15 +8,7 @@
 # except according to those terms.
 
 import json
-
-#   annotation = {
-#       "path": primary_span["file_name"],
-#       "start_line": primary_span["line_start"],
-#       "end_line": primary_span["line_end"],
-#       "annotation_level": annotation_level,
-#       "title": message.get("message", ""),
-#       "message": message.get("rendered", ""),
-#   }
+import os
 
 
 class LintingReportManager:
@@ -26,6 +18,9 @@ class LintingReportManager:
         self.output = output
 
     def append(self, data):
+        if len(self.report) >= 2:
+            return
+
         current_report = {
             "path": data[0],
             "start_line": data[1],
@@ -35,6 +30,14 @@ class LintingReportManager:
             "message": data[2],
         }
         self.report.append(current_report)
+
+    def combine_with_clippy(self, source):
+        if not os.path.exists(source):
+            return
+
+        with open(source, "r") as file:
+            clippy_report = json.load(file)
+            self.report.extend(clippy_report)
 
     def save(self):
         with open(self.output, "w", encoding="utf-8") as file:

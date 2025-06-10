@@ -984,7 +984,7 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
 
 def scan(only_changed_files=False, progress=False):
     # Store lint into filesystem
-    report_manager = LintingReportManager("./temp/report-output")
+    report_manager = LintingReportManager("./temp/report-output.json")
     # check config file for errors
     config_errors = check_config_file(CONFIG_FILE_PATH)
     # check directories contain expected files
@@ -1021,6 +1021,7 @@ def scan(only_changed_files=False, progress=False):
         )
         report_manager.append(error)
 
+    report_manager.combine_with_clippy("./temp/clippy-output.json")
     report_manager.save()
     return int(error is not None)
 
