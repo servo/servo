@@ -164,6 +164,7 @@ unicode-script = "0.5"
 unicode-segmentation = "1.12.0"
 url = "2.5"
 urlpattern = "0.3"
+utf16string = { git = "https://github.com/simonwuelker/utf16string" }
 uuid = { version = "1.12.1", features = ["v4"] }
 webdriver = "0.53.0"
 webgpu_traits = { path = "components/shared/webgpu" }

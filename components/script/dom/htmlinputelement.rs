@@ -39,6 +39,7 @@ use stylo_dom::ElementState;
 use time::{Month, OffsetDateTime, Time};
 use unicode_bidi::{BidiClass, bidi_class};
 use url::Url;
+use utf16string::Utf16String;
 use webrender_api::units::DeviceIntRect;
 
 use crate::clipboard_provider::EmbedderClipboardProvider;
@@ -92,8 +93,7 @@ use crate::textinput::KeyReaction::{
 };
 use crate::textinput::Lines::Single;
 use crate::textinput::{
-    Direction, SelectionDirection, TextInput, UTF8Bytes, UTF16CodeUnits,
-    handle_text_clipboard_action,
+    Direction, SelectionDirection, TextInput, UTF16CodeUnits, handle_text_clipboard_action,
 };
 
 const DEFAULT_SUBMIT_VALUE: &str = "Submit";
@@ -401,7 +401,7 @@ impl HTMLInputElement {
             size: Cell::new(DEFAULT_INPUT_SIZE),
             textinput: DomRefCell::new(TextInput::new(
                 Single,
-                DOMString::new(),
+                Default::default(),
                 EmbedderClipboardProvider {
                     constellation_sender,
                     webview_id: document.webview_id(),
@@ -517,9 +517,10 @@ impl HTMLInputElement {
     pub(crate) fn enable_sanitization(&self) {
         self.sanitization_flag.set(true);
         let mut textinput = self.textinput.borrow_mut();
-        let mut value = textinput.single_line_content().clone();
+        // FIXME: Don't convert utf16->utf8->utf16 here
+        let mut value = textinput.single_line_content().clone().to_utf8().into();
         self.sanitize_value(&mut value);
-        textinput.set_content(value);
+        textinput.set_content(Utf16String::from(value));
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
@@ -1176,6 +1177,7 @@ impl<'dom> LayoutDom<'dom, HTMLInputElement> {
                 .textinput
                 .borrow_for_layout()
                 .get_content()
+                .into()
         }
     }
     fn get_filelist(self) -> Option<LayoutDom<'dom, FileList>> {
@@ -1190,7 +1192,7 @@ impl<'dom> LayoutDom<'dom, HTMLInputElement> {
         self.unsafe_get().input_type.get()
     }
 
-    fn textinput_sorted_selection_offsets_range(self) -> Range<UTF8Bytes> {
+    fn textinput_sorted_selection_offsets_range(self) -> Range<usize> {
         unsafe {
             self.unsafe_get()
                 .textinput
@@ -1276,7 +1278,7 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
         match self.input_type() {
             InputType::Password => {
                 let text = self.get_raw_textinput_value();
-                let sel = UTF8Bytes::unwrap_range(sorted_selection_offsets_range);
+                let sel = sorted_selection_offsets_range;
 
                 // Translate indices from the raw value to indices in the replacement value.
                 let char_start = text[..sel.start].chars().count();
@@ -1285,9 +1287,7 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
                 let bytes_per_char = PASSWORD_REPLACEMENT_CHAR.len_utf8();
                 Some(char_start * bytes_per_char..char_end * bytes_per_char)
             },
-            input_type if input_type.is_textual() => {
-                Some(UTF8Bytes::unwrap_range(sorted_selection_offsets_range))
-            },
+            input_type if input_type.is_textual() => Some(sorted_selection_offsets_range),
             _ => None,
         }
     }
@@ -1431,7 +1431,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-value
     fn Value(&self) -> DOMString {
         match self.value_mode() {
-            ValueMode::Value => self.textinput.borrow().get_content(),
+            ValueMode::Value => self.textinput.borrow().get_content().into(),
             ValueMode::Default => self
                 .upcast::<Element>()
                 .get_attribute(&ns!(), &local_name!("value"))
@@ -1474,6 +1474,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                 let mut textinput = self.textinput.borrow_mut();
 
                 // Step 5.
+                let value = Utf16String::from(value);
                 if *textinput.single_line_content() != value {
                     // Steps 1-2
                     textinput.set_content(value);
@@ -1769,10 +1770,14 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         self.selection().set_dom_range(start, end, direction)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext>
     fn SetRangeText(&self, replacement: DOMString) -> ErrorResult {
-        self.selection()
-            .set_dom_range_text(replacement, None, None, Default::default())
+        self.selection().set_dom_range_text(
+            Utf16String::from(replacement),
+            None,
+            None,
+            Default::default(),
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext
@@ -1783,8 +1788,12 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         end: u32,
         selection_mode: SelectionMode,
     ) -> ErrorResult {
-        self.selection()
-            .set_dom_range_text(replacement, Some(start), Some(end), selection_mode)
+        self.selection().set_dom_range_text(
+            Utf16String::from(replacement),
+            Some(start),
+            Some(end),
+            selection_mode,
+        )
     }
 
     // Select the files based on filepaths passed in,
@@ -2046,7 +2055,9 @@ impl HTMLInputElement {
             InputType::Image => (),
             _ => (),
         }
-        self.textinput.borrow_mut().set_content(self.DefaultValue());
+        self.textinput
+            .borrow_mut()
+            .set_content(self.DefaultValue().into());
         self.value_dirty.set(false);
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
@@ -2665,10 +2676,11 @@ impl VirtualMethods for HTMLInputElement {
                         }
 
                         // Step 6
+                        // FIXME: Don't convert utf16->utf8->utf16 here
                         let mut textinput = self.textinput.borrow_mut();
-                        let mut value = textinput.single_line_content().clone();
+                        let mut value = textinput.single_line_content().to_utf8().into();
                         self.sanitize_value(&mut value);
-                        textinput.set_content(value);
+                        textinput.set_content(value.into());
                         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
 
                         // Steps 7-9
@@ -2695,7 +2707,9 @@ impl VirtualMethods for HTMLInputElement {
                 let mut value = value.map_or(DOMString::new(), DOMString::from);
 
                 self.sanitize_value(&mut value);
-                self.textinput.borrow_mut().set_content(value);
+                self.textinput
+                    .borrow_mut()
+                    .set_content(Utf16String::from(value));
                 self.update_placeholder_shown_state();
 
                 self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);

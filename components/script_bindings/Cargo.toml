@@ -42,6 +42,7 @@ stylo = { workspace = true }
 stylo_atoms = { workspace = true }
 tendril = { version = "0.4.1", features = ["encoding_rs"] }
 tracing = { workspace = true, optional = true }
+utf16string = { workspace = true }
 webxr-api = { workspace = true, optional = true }
 xml5ever = { workspace = true }
 

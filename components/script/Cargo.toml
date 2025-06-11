@@ -134,6 +134,7 @@ url = { workspace = true }
 urlpattern = { workspace = true }
 utf-8 = "0.7"
 uuid = { workspace = true, features = ["serde"] }
+byteorder = { workspace = true }
 webdriver = { workspace = true }
 webgpu_traits = { workspace = true }
 webrender_api = { workspace = true }
@@ -141,6 +142,7 @@ webxr-api = { workspace = true, features = ["ipc"], optional = true }
 wgpu-core = { workspace = true }
 wgpu-types = { workspace = true }
 xml5ever = { workspace = true }
+utf16string = { workspace = true }
 
 [target.'cfg(not(target_os = "ios"))'.dependencies]
 mozangle = { workspace = true }

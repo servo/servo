@@ -11,6 +11,7 @@ use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
+use utf16string::Utf16String;
 
 use crate::clipboard_provider::EmbedderClipboardProvider;
 use crate::dom::attr::Attr;
@@ -43,7 +44,7 @@ use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 use crate::textinput::{
-    Direction, KeyReaction, Lines, SelectionDirection, TextInput, UTF8Bytes, UTF16CodeUnits,
+    Direction, KeyReaction, Lines, SelectionDirection, TextInput, UTF16CodeUnits,
     handle_text_clipboard_action,
 };
 
@@ -76,10 +77,11 @@ impl<'dom> LayoutDom<'dom, HTMLTextAreaElement> {
                 .textinput
                 .borrow_for_layout()
                 .get_content()
+                .into()
         }
     }
 
-    fn textinput_sorted_selection_offsets_range(self) -> Range<UTF8Bytes> {
+    fn textinput_sorted_selection_offsets_range(self) -> Range<usize> {
         unsafe {
             self.unsafe_get()
                 .textinput
@@ -109,9 +111,7 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutDom<'_, HTMLTextAreaElement> {
         if !self.upcast::<Element>().focus_state() {
             return None;
         }
-        Some(UTF8Bytes::unwrap_range(
-            self.textinput_sorted_selection_offsets_range(),
-        ))
+        Some(self.textinput_sorted_selection_offsets_range())
     }
 
     fn get_cols(self) -> u32 {
@@ -157,7 +157,7 @@ impl HTMLTextAreaElement {
             placeholder: DomRefCell::new(DOMString::new()),
             textinput: DomRefCell::new(TextInput::new(
                 Lines::Multiple,
-                DOMString::new(),
+                Default::default(),
                 EmbedderClipboardProvider {
                     constellation_sender,
                     webview_id: document.webview_id(),
@@ -323,7 +323,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-value
     fn Value(&self) -> DOMString {
-        self.textinput.borrow().get_content()
+        self.textinput.borrow().get_content().to_string().into()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-value
@@ -335,7 +335,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
             let old_value = textinput.get_content();
 
             // Step 2
-            textinput.set_content(value);
+            textinput.set_content(Utf16String::from(value));
 
             // Step 3
             self.value_dirty.set(true);
@@ -402,8 +402,12 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext
     fn SetRangeText(&self, replacement: DOMString) -> ErrorResult {
-        self.selection()
-            .set_dom_range_text(replacement, None, None, Default::default())
+        self.selection().set_dom_range_text(
+            Utf16String::from(replacement),
+            None,
+            None,
+            Default::default(),
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext
@@ -414,8 +418,12 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
         end: u32,
         selection_mode: SelectionMode,
     ) -> ErrorResult {
-        self.selection()
-            .set_dom_range_text(replacement, Some(start), Some(end), selection_mode)
+        self.selection().set_dom_range_text(
+            Utf16String::from(replacement),
+            Some(start),
+            Some(end),
+            selection_mode,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate
@@ -453,7 +461,7 @@ impl HTMLTextAreaElement {
     pub(crate) fn reset(&self) {
         // https://html.spec.whatwg.org/multipage/#the-textarea-element:concept-form-reset-control
         let mut textinput = self.textinput.borrow_mut();
-        textinput.set_content(self.DefaultValue());
+        textinput.set_content(self.DefaultValue().str().into());
         self.value_dirty.set(false);
     }
 
