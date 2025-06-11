@@ -199,7 +199,7 @@ impl Handler {
                     }
                 },
                 Err(error) => {
-                    error!("Dispatch actions completed with IPC error: {:?}", error);
+                    error!("Dispatch actions completed with IPC error: {error}");
                     return Err(ErrorStatus::UnknownError);
                 },
             };
