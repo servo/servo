@@ -85,8 +85,7 @@ backtrace = { workspace = true }
 env_filter = "0.1.3"
 euclid = { workspace = true }
 hilog = "0.2.0"
-# force inprocess for now.
-# https://github.com/rust-lang/libc/commit/9e248e212c5602cb4e98676e4c21ea0382663a12
+# force inprocess until we add multi-process support for ohos
 ipc-channel = { workspace = true, features = ["force-inprocess"] }
 napi-derive-ohos = "1.0.4"
 napi-ohos = "1.0.4"

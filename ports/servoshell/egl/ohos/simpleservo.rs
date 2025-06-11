@@ -34,31 +34,22 @@ struct NativeValues {
     os_full_name: String,
 }
 
-fn get_c_string_from_buffer_writer<E>(
-    f: unsafe extern "C" fn(*mut c_char, i32, *mut i32) -> Result<(), E>,
-) -> CString {
-    const BUFFER_SIZE: i32 = 100;
-    let mut buffer: Vec<c_char> = Vec::with_capacity(BUFFER_SIZE as usize);
-    let mut write_length = 0;
-    let pbuffer = buffer.as_mut_ptr();
-    unsafe {
-        let res = f(pbuffer, BUFFER_SIZE, &mut write_length);
-        if res.is_err() {
-            panic!("Your call failed");
-        }
-        buffer.set_len(write_length as usize);
-    }
-    CString::new(buffer).expect("Could not convert to CString")
-}
-
 /// Gets the resource and cache directory from the native c methods.
 fn get_native_values() -> NativeValues {
     let cache_dir = {
-        get_c_string_from_buffer_writer(
-            application_context::OH_AbilityRuntime_ApplicationContextGetCacheDir,
-        )
-        .into_string()
-        .expect("Could not convert cache_dir")
+        const BUFFER_SIZE: i32 = 100;
+        let mut buffer: Vec<u8> = Vec::with_capacity(BUFFER_SIZE as usize);
+        let mut write_length = 0;
+        unsafe {
+            application_context::OH_AbilityRuntime_ApplicationContextGetCacheDir(
+                buffer.as_mut_ptr().cast(),
+                BUFFER_SIZE,
+                &mut write_length,
+            )
+            .expect("Call to cache dir failed");
+            buffer.set_len(write_length as usize);
+            String::from_utf8(buffer).expect("UTF-8")
+        }
     };
     let display_density = unsafe {
         let mut density: f32 = 0_f32;

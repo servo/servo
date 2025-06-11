@@ -50,8 +50,6 @@ pub struct InitOpts {
     pub commandline_args: String,
 }
 
-/// display_density:
-
 #[derive(Debug)]
 enum CallError {
     ChannelNotInitialized,
