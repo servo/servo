@@ -6,6 +6,7 @@ use std::collections::{HashMap, HashSet};
 use std::thread;
 use std::time::{Duration, Instant};
 
+use base::id::BrowsingContextId;
 use constellation_traits::EmbedderToConstellationMessage;
 use embedder_traits::{MouseButtonAction, WebDriverCommandMsg, WebDriverScriptCommand};
 use ipc_channel::ipc;
@@ -114,6 +115,7 @@ impl Handler {
     pub(crate) fn dispatch_actions(
         &self,
         actions_by_tick: ActionsByTick,
+        browsing_context: BrowsingContextId,
     ) -> Result<(), ErrorStatus> {
         // Step 1. Wait for an action queue token with input state.
         let new_token = self.id_generator.next();
@@ -121,7 +123,7 @@ impl Handler {
         self.current_action_id.set(Some(new_token));
 
         // Step 2. Let actions result be the result of dispatch actions inner.
-        let res = self.dispatch_actions_inner(actions_by_tick);
+        let res = self.dispatch_actions_inner(actions_by_tick, browsing_context);
 
         // Step 3. Dequeue input state's actions queue.
         self.current_action_id.set(None);
@@ -131,9 +133,17 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-actions-inner>
-    fn dispatch_actions_inner(&self, actions_by_tick: ActionsByTick) -> Result<(), ErrorStatus> {
+    fn dispatch_actions_inner(
+        &self,
+        actions_by_tick: ActionsByTick,
+        browsing_context: BrowsingContextId,
+    ) -> Result<(), ErrorStatus> {
         // Step 1. For each item tick actions in actions by tick
         for tick_actions in actions_by_tick.iter() {
+            // Step 1.1. If browsing context is no longer open,
+            // return error with error code no such window.
+            self.verify_browsing_context_is_open(browsing_context)
+                .map_err(|e| e.error)?;
             // Step 1.2. Let tick duration be the result of
             // computing the tick duration with argument tick actions.
             let tick_duration = compute_tick_duration(tick_actions);

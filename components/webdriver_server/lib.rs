@@ -1543,14 +1543,15 @@ impl Handler {
         &mut self,
         parameters: ActionsParameters,
     ) -> WebDriverResult<WebDriverResponse> {
+        let browsing_context = self.session()?.browsing_context_id;
         // Step 1. If session's current browsing context is no longer open,
         // return error with error code no such window.
-        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
+        self.verify_browsing_context_is_open(browsing_context)?;
         // Step 5. Let actions by tick be the result of trying to extract an action sequence
         let actions_by_tick = self.extract_an_action_sequence(parameters);
 
-        // Step 6. Dispatch actions
-        match self.dispatch_actions(actions_by_tick) {
+        // Step 6. Dispatch actions with current browsing context
+        match self.dispatch_actions(actions_by_tick, browsing_context) {
             Ok(_) => Ok(WebDriverResponse::Void),
             Err(error) => Err(WebDriverError::new(error, "")),
         }
@@ -1782,9 +1783,11 @@ impl Handler {
                         },
                     };
 
+                    // Step 8.16. Dispatch a list of actions with session's current browsing context
                     let actions_by_tick = self.actions_by_tick_from_sequence(vec![action_sequence]);
-
-                    if let Err(e) = self.dispatch_actions(actions_by_tick) {
+                    if let Err(e) =
+                        self.dispatch_actions(actions_by_tick, self.session()?.browsing_context_id)
+                    {
                         log::error!("handle_element_click: dispatch_actions failed: {:?}", e);
                     }
 
