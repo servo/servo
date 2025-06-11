@@ -445,14 +445,14 @@ impl Callback for WaitForAllFulfillmentHandler {
             let result = self.result.borrow_mut();
             result[self.promise_index].set(v.get());
 
-            // Set fullfilledCount to fullfilledCount + 1.
+            // Set fulfilledCount to fulfilledCount + 1.
             let mut fulfilled_count = self.fulfilled_count.borrow_mut();
             *fulfilled_count += 1;
 
             *fulfilled_count == result.len()
         };
 
-        // If fullfilledCount equals total, then perform successSteps given result.
+        // If fulfilledCount equals total, then perform successSteps given result.
         if equals_total {
             // Safety: the values are kept alive by the Heap
             // while their handles are passed to the the success steps.
@@ -506,7 +506,7 @@ pub(crate) fn wait_for_all(
     realm: InRealm,
     can_gc: CanGc,
 ) {
-    // Let fullfilledCount be 0.
+    // Let fulfilledCount be 0.
     let fulfilled_count: Rc<RefCell<usize>> = Default::default();
 
     // Let rejected be false.
