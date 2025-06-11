@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, Ref, RefCell};
 use std::collections::HashMap;
 use std::env;
 use std::fs::create_dir_all;
@@ -1651,40 +1651,45 @@ impl IOCompositor {
         );
     }
 
+    /// Get the message receiver for this [`IOCompositor`].
+    pub fn receiver(&self) -> Ref<Receiver<CompositorMsg>> {
+        Ref::map(self.global.borrow(), |global| &global.compositor_receiver)
+    }
+
     #[cfg_attr(
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    pub fn receive_messages(&mut self) {
+    pub fn handle_messages(&mut self, mut messages: Vec<CompositorMsg>) {
         // Check for new messages coming from the other threads in the system.
-        let mut compositor_messages = vec![];
         let mut found_recomposite_msg = false;
-        while let Ok(msg) = self.global.borrow_mut().compositor_receiver.try_recv() {
-            match msg {
+        messages.retain(|message| {
+            match message {
                 CompositorMsg::NewWebRenderFrameReady(..) if found_recomposite_msg => {
                     // Only take one of duplicate NewWebRendeFrameReady messages, but do subtract
                     // one frame from the pending frames.
                     self.pending_frames -= 1;
+                    false
                 },
                 CompositorMsg::NewWebRenderFrameReady(..) => {
                     found_recomposite_msg = true;
-                    compositor_messages.push(msg);
+
+                    // Process all pending events
+                    // FIXME: Shouldn't `webview_frame_ready` be stored globally and why can't `pending_frames`
+                    // be used here?
+                    self.webview_renderers.iter().for_each(|webview| {
+                        webview.dispatch_pending_point_input_events();
+                        webview.webrender_frame_ready.set(true);
+                    });
+
+                    true
                 },
-                _ => compositor_messages.push(msg),
+                _ => true,
             }
-        }
+        });
 
-        if found_recomposite_msg {
-            // Process all pending events
-            self.webview_renderers.iter().for_each(|webview| {
-                webview.dispatch_pending_point_input_events();
-                webview.webrender_frame_ready.set(true);
-            });
-        }
-
-        for msg in compositor_messages {
-            self.handle_browser_message(msg);
-
+        for message in messages {
+            self.handle_browser_message(message);
             if self.global.borrow().shutdown_state() == ShutdownState::FinishedShuttingDown {
                 return;
             }

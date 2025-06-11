@@ -548,7 +548,14 @@ impl Servo {
             return false;
         }
 
-        self.compositor.borrow_mut().receive_messages();
+        {
+            let mut compositor = self.compositor.borrow_mut();
+            let mut messages = Vec::new();
+            while let Ok(message) = compositor.receiver().try_recv() {
+                messages.push(message);
+            }
+            compositor.handle_messages(messages);
+        }
 
         // Only handle incoming embedder messages if the compositor hasn't already started shutting down.
         while let Ok(message) = self.embedder_receiver.try_recv() {
