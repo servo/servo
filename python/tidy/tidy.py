@@ -982,7 +982,7 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
                     yield (filename,) + error
 
 
-def scan(only_changed_files=False, progress=False):
+def scan(only_changed_files=False, progress=False, report_ci=False):
     # Store lint into filesystem
     report_manager = LintingReportManager("./temp/report-output.json")
     # check config file for errors
@@ -1019,10 +1019,13 @@ def scan(only_changed_files=False, progress=False):
             + f"{colorama.Fore.YELLOW}{error[1]}{colorama.Style.RESET_ALL}: "
             + f"{colorama.Fore.RED}{error[2]}{colorama.Style.RESET_ALL}"
         )
-        report_manager.append(error)
 
-    report_manager.combine_with_clippy("./temp/clippy-output.json")
-    report_manager.save()
+        if report_ci:
+            report_manager.append(error)
+
+    if report_ci:
+        report_manager.combine_with_clippy("./temp/clippy-output.json")
+        report_manager.save()
     return int(error is not None)
 
 

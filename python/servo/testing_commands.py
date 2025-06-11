@@ -8,34 +8,32 @@
 # except according to those terms.
 
 import argparse
+import json
 import logging
-import re
-import sys
 import os
 import os.path as path
 import platform
+import re
 import shutil
 import subprocess
+import sys
 import textwrap
-import json
 
-import servo.devtools_tests
-from servo.post_build_commands import PostBuildCommands
+import tidy
 import wpt
 import wpt.manifestupdate
 import wpt.run
 import wpt.update
-
 from mach.decorators import (
+    Command,
     CommandArgument,
     CommandProvider,
-    Command,
 )
 
+import servo.devtools_tests
 import servo.try_parser
-import tidy
-
 from servo.command_base import BuildType, CommandBase, call, check_call
+from servo.post_build_commands import PostBuildCommands
 from servo.util import delete
 
 SCRIPT_PATH = os.path.split(__file__)[0]
@@ -254,8 +252,9 @@ class MachCommands(CommandBase):
         help="Check all files, and run the WPT lint in tidy, even if unchanged",
     )
     @CommandArgument("--no-progress", default=False, action="store_true", help="Don't show progress for tidy")
-    def test_tidy(self, all_files, no_progress):
-        tidy_failed = tidy.scan(not all_files, not no_progress)
+    @CommandArgument("--report-ci", "-rci", default=False, action="store_true", help="Put the lint result on the file")
+    def test_tidy(self, all_files, no_progress, report_ci):
+        tidy_failed = tidy.scan(not all_files, not no_progress, report_ci)
 
         print("\r ➤  Checking formatting of Rust files...")
         rustfmt_failed = format_with_rustfmt(check_only=True)

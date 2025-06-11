@@ -1,4 +1,4 @@
-# Copyright 2013 The Servo Project Developers. See the COPYRIGHT
+# Copyright 2013 The Servo Project Developers. See the COPYRIGHTscan(
 # file at the top-level directory of this distribution.
 #
 # Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
@@ -108,9 +108,9 @@ class MachCommands(CommandBase):
 
     @Command("clippy", description='Run "cargo clippy"', category="devenv")
     @CommandArgument("params", default=None, nargs="...", help="Command-line arguments to be passed through to clippy")
-    @CommandArgument("--report", "-rp", default=False, action="store_true", help="Put the lint result on the file")
+    @CommandArgument("--report-ci", "-rci", default=False, action="store_true", help="Put the lint result on the file")
     @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
-    def cargo_clippy(self, params, report=False, **kwargs):
+    def cargo_clippy(self, params, report_ci=False, **kwargs):
         if not params:
             params = []
 
@@ -119,7 +119,7 @@ class MachCommands(CommandBase):
         env = self.build_env()
         env["RUSTC"] = "rustc"
 
-        if "--message-format=json" in params and report:
+        if "--message-format=json" in params and report_ci:
             retcode = self.run_cargo_build_like_command("clippy", params, env=env, dump_output=True, **kwargs)
 
             with open("temp/out.json", "r", encoding="utf-8") as file:

@@ -43,12 +43,12 @@ jobs:
             await github.rest.checks.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              name: "Rust Clippy Lint Report",
+              name: "Mach Linter",
               head_sha: headSha,
               status: "completed",
               conclusion: "neutral",
               output: {
-                title: "Rust Clippy Code Annotations",
+                title: "Mach Linter Annotations",
                 summary: `${annotations.length} issue(s) reported`,
                 annotations: annotations
               }
