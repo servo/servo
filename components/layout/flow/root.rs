@@ -125,168 +125,11 @@ impl BoxTree {
     /// * how intrinsic content sizes are computed eagerly makes it hard
     ///   to update those sizes for ancestors of the node from which we
     ///   made an incremental update.
-    pub fn update(context: &LayoutContext, mut dirty_node: ServoLayoutNode<'_>) -> bool {
-        #[allow(clippy::enum_variant_names)]
-        enum UpdatePoint {
-            AbsolutelyPositionedBlockLevelBox(ArcRefCell<BlockLevelBox>),
-            AbsolutelyPositionedInlineLevelBox(ArcRefCell<InlineItem>, usize),
-            AbsolutelyPositionedFlexLevelBox(ArcRefCell<FlexLevelBox>),
-            AbsolutelyPositionedTaffyLevelBox(ArcRefCell<TaffyItemBox>),
-        }
-
-        fn update_point(
-            node: ServoLayoutNode<'_>,
-        ) -> Option<(Arc<ComputedValues>, DisplayInside, UpdatePoint)> {
-            if !node.is_element() {
-                return None;
-            }
-
-            if node.type_id() == LayoutNodeType::Element(LayoutElementType::HTMLBodyElement) {
-                // This can require changes to the canvas background.
-                return None;
-            }
-
-            // Don't update unstyled nodes or nodes that have pseudo-elements.
-            let element_data = node.style_data()?.element_data.borrow();
-            if !element_data.styles.pseudos.is_empty() {
-                return None;
-            }
-
-            let layout_data = NodeExt::layout_data(&node)?;
-            if layout_data.pseudo_before_box.borrow().is_some() {
-                return None;
-            }
-            if layout_data.pseudo_after_box.borrow().is_some() {
-                return None;
-            }
-
-            let primary_style = element_data.styles.primary();
-            let box_style = primary_style.get_box();
-
-            if !box_style.position.is_absolutely_positioned() {
-                return None;
-            }
-
-            let display_inside = match Display::from(box_style.display) {
-                Display::GeneratingBox(DisplayGeneratingBox::OutsideInside { inside, .. }) => {
-                    inside
-                },
-                _ => return None,
-            };
-
-            let update_point =
-                match &*AtomicRef::filter_map(layout_data.self_box.borrow(), Option::as_ref)? {
-                    LayoutBox::DisplayContents(..) => return None,
-                    LayoutBox::BlockLevel(block_level_box) => match &*block_level_box.borrow() {
-                        BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(_)
-                            if box_style.position.is_absolutely_positioned() =>
-                        {
-                            UpdatePoint::AbsolutelyPositionedBlockLevelBox(block_level_box.clone())
-                        },
-                        _ => return None,
-                    },
-                    LayoutBox::InlineLevel(inline_level_items) => {
-                        let inline_level_box = inline_level_items.first()?;
-                        let InlineItem::OutOfFlowAbsolutelyPositionedBox(_, text_offset_index) =
-                            &*inline_level_box.borrow()
-                        else {
-                            return None;
-                        };
-                        UpdatePoint::AbsolutelyPositionedInlineLevelBox(
-                            inline_level_box.clone(),
-                            *text_offset_index,
-                        )
-                    },
-                    LayoutBox::FlexLevel(flex_level_box) => match &*flex_level_box.borrow() {
-                        FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(_)
-                            if box_style.position.is_absolutely_positioned() =>
-                        {
-                            UpdatePoint::AbsolutelyPositionedFlexLevelBox(flex_level_box.clone())
-                        },
-                        _ => return None,
-                    },
-                    LayoutBox::TableLevelBox(..) => return None,
-                    LayoutBox::TaffyItemBox(taffy_level_box) => match &taffy_level_box
-                        .borrow()
-                        .taffy_level_box
-                    {
-                        TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(_)
-                            if box_style.position.is_absolutely_positioned() =>
-                        {
-                            UpdatePoint::AbsolutelyPositionedTaffyLevelBox(taffy_level_box.clone())
-                        },
-                        _ => return None,
-                    },
-                };
-            Some((primary_style.clone(), display_inside, update_point))
-        }
-
-        loop {
-            let Some((primary_style, display_inside, update_point)) = update_point(dirty_node)
-            else {
-                dirty_node = match dirty_node.parent_node() {
-                    Some(parent) => parent,
-                    None => return false,
-                };
-                continue;
-            };
-
-            let contents = ReplacedContents::for_element(dirty_node, context)
-                .map_or_else(|| NonReplacedContents::OfElement.into(), Contents::Replaced);
-            let info = NodeAndStyleInfo::new(dirty_node, Arc::clone(&primary_style));
-            let out_of_flow_absolutely_positioned_box = ArcRefCell::new(
-                AbsolutelyPositionedBox::construct(context, &info, display_inside, contents),
-            );
-            match update_point {
-                UpdatePoint::AbsolutelyPositionedBlockLevelBox(block_level_box) => {
-                    *block_level_box.borrow_mut() = BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(
-                        out_of_flow_absolutely_positioned_box,
-                    );
-                },
-                UpdatePoint::AbsolutelyPositionedInlineLevelBox(
-                    inline_level_box,
-                    text_offset_index,
-                ) => {
-                    *inline_level_box.borrow_mut() = InlineItem::OutOfFlowAbsolutelyPositionedBox(
-                        out_of_flow_absolutely_positioned_box,
-                        text_offset_index,
-                    );
-                },
-                UpdatePoint::AbsolutelyPositionedFlexLevelBox(flex_level_box) => {
-                    *flex_level_box.borrow_mut() = FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(
-                        out_of_flow_absolutely_positioned_box,
-                    );
-                },
-                UpdatePoint::AbsolutelyPositionedTaffyLevelBox(taffy_level_box) => {
-                    taffy_level_box.borrow_mut().taffy_level_box =
-                        TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(
-                            out_of_flow_absolutely_positioned_box,
-                        );
-                },
-            }
-            break;
-        }
-
-        // We are going to rebuild the box tree from the update point downward, but this update
-        // point is an absolute, which means that it needs to be laid out again in the containing
-        // block for absolutes, which is established by one of its ancestors. In addition,
-        // absolutes, when laid out, can produce more absolutes (either fixed or absolutely
-        // positioned) elements, so there may be yet more layout that has to happen in this
-        // ancestor.
-        //
-        // We do not know which ancestor is the one that established the containing block for this
-        // update point, so just invalidate the fragment cache of all ancestors, meaning that even
-        // though the box tree is preserved, the fragment tree from the root to the update point and
-        // all of its descendants will need to be rebuilt. This isn't as bad as it seems, because
-        // siblings and siblings of ancestors of this path through the tree will still have cached
-        // fragments.
-        //
-        // TODO: Do better. This is still a very crude way to do incremental layout.
-        while let Some(parent_node) = dirty_node.parent_node() {
-            parent_node.invalidate_cached_fragment();
-            dirty_node = parent_node;
-        }
-
+    pub fn update(context: &LayoutContext, dirty_root_from_script: ServoLayoutNode<'_>) -> bool {
+        let Some(box_tree_update) = IncrementalBoxTreeUpdate::find(dirty_root_from_script) else {
+            return false;
+        };
+        box_tree_update.update_from_dirty_root(context);
         true
     }
 }
@@ -398,5 +241,191 @@ impl BoxTree {
             physical_containing_block,
             self.viewport_scroll_sensitivity,
         )
+    }
+}
+
+#[allow(clippy::enum_variant_names)]
+enum DirtyRootBoxTreeNode {
+    AbsolutelyPositionedBlockLevelBox(ArcRefCell<BlockLevelBox>),
+    AbsolutelyPositionedInlineLevelBox(ArcRefCell<InlineItem>, usize),
+    AbsolutelyPositionedFlexLevelBox(ArcRefCell<FlexLevelBox>),
+    AbsolutelyPositionedTaffyLevelBox(ArcRefCell<TaffyItemBox>),
+}
+
+struct IncrementalBoxTreeUpdate<'dom> {
+    node: ServoLayoutNode<'dom>,
+    box_tree_node: DirtyRootBoxTreeNode,
+    primary_style: Arc<ComputedValues>,
+    display_inside: DisplayInside,
+}
+
+impl<'dom> IncrementalBoxTreeUpdate<'dom> {
+    fn find(dirty_root_from_script: ServoLayoutNode<'dom>) -> Option<Self> {
+        let mut maybe_dirty_root_node = Some(dirty_root_from_script);
+        while let Some(dirty_root_node) = maybe_dirty_root_node {
+            if let Some(dirty_root) = Self::new_if_valid(dirty_root_node) {
+                return Some(dirty_root);
+            }
+
+            maybe_dirty_root_node = dirty_root_node.parent_node();
+        }
+
+        None
+    }
+
+    fn new_if_valid(potential_dirty_root_node: ServoLayoutNode<'dom>) -> Option<Self> {
+        if !potential_dirty_root_node.is_element() {
+            return None;
+        }
+
+        if potential_dirty_root_node.type_id() ==
+            LayoutNodeType::Element(LayoutElementType::HTMLBodyElement)
+        {
+            // This can require changes to the canvas background.
+            return None;
+        }
+
+        // Don't update unstyled nodes or nodes that have pseudo-elements.
+        let element_data = potential_dirty_root_node
+            .style_data()?
+            .element_data
+            .borrow();
+        if !element_data.styles.pseudos.is_empty() {
+            return None;
+        }
+
+        let layout_data = NodeExt::layout_data(&potential_dirty_root_node)?;
+        if layout_data.pseudo_before_box.borrow().is_some() {
+            return None;
+        }
+        if layout_data.pseudo_after_box.borrow().is_some() {
+            return None;
+        }
+
+        let primary_style = element_data.styles.primary();
+        let box_style = primary_style.get_box();
+
+        if !box_style.position.is_absolutely_positioned() {
+            return None;
+        }
+
+        let display_inside = match Display::from(box_style.display) {
+            Display::GeneratingBox(DisplayGeneratingBox::OutsideInside { inside, .. }) => inside,
+            _ => return None,
+        };
+
+        let box_tree_node =
+            match &*AtomicRef::filter_map(layout_data.self_box.borrow(), Option::as_ref)? {
+                LayoutBox::DisplayContents(..) => return None,
+                LayoutBox::BlockLevel(block_level_box) => match &*block_level_box.borrow() {
+                    BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(_)
+                        if box_style.position.is_absolutely_positioned() =>
+                    {
+                        DirtyRootBoxTreeNode::AbsolutelyPositionedBlockLevelBox(
+                            block_level_box.clone(),
+                        )
+                    },
+                    _ => return None,
+                },
+                LayoutBox::InlineLevel(inline_level_items) => {
+                    let inline_level_box = inline_level_items.first()?;
+                    let InlineItem::OutOfFlowAbsolutelyPositionedBox(_, text_offset_index) =
+                        &*inline_level_box.borrow()
+                    else {
+                        return None;
+                    };
+                    DirtyRootBoxTreeNode::AbsolutelyPositionedInlineLevelBox(
+                        inline_level_box.clone(),
+                        *text_offset_index,
+                    )
+                },
+                LayoutBox::FlexLevel(flex_level_box) => match &*flex_level_box.borrow() {
+                    FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(_)
+                        if box_style.position.is_absolutely_positioned() =>
+                    {
+                        DirtyRootBoxTreeNode::AbsolutelyPositionedFlexLevelBox(
+                            flex_level_box.clone(),
+                        )
+                    },
+                    _ => return None,
+                },
+                LayoutBox::TableLevelBox(..) => return None,
+                LayoutBox::TaffyItemBox(taffy_level_box) => {
+                    match &taffy_level_box.borrow().taffy_level_box {
+                        TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(_)
+                            if box_style.position.is_absolutely_positioned() =>
+                        {
+                            DirtyRootBoxTreeNode::AbsolutelyPositionedTaffyLevelBox(
+                                taffy_level_box.clone(),
+                            )
+                        },
+                        _ => return None,
+                    }
+                },
+            };
+
+        Some(Self {
+            node: potential_dirty_root_node,
+            box_tree_node,
+            primary_style: primary_style.clone(),
+            display_inside,
+        })
+    }
+
+    fn update_from_dirty_root(&self, context: &LayoutContext) {
+        let contents = ReplacedContents::for_element(self.node, context)
+            .map_or_else(|| NonReplacedContents::OfElement.into(), Contents::Replaced);
+        let info = NodeAndStyleInfo::new(self.node, self.primary_style.clone());
+        let out_of_flow_absolutely_positioned_box = ArcRefCell::new(
+            AbsolutelyPositionedBox::construct(context, &info, self.display_inside, contents),
+        );
+        match &self.box_tree_node {
+            DirtyRootBoxTreeNode::AbsolutelyPositionedBlockLevelBox(block_level_box) => {
+                *block_level_box.borrow_mut() = BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(
+                    out_of_flow_absolutely_positioned_box,
+                );
+            },
+            DirtyRootBoxTreeNode::AbsolutelyPositionedInlineLevelBox(
+                inline_level_box,
+                text_offset_index,
+            ) => {
+                *inline_level_box.borrow_mut() = InlineItem::OutOfFlowAbsolutelyPositionedBox(
+                    out_of_flow_absolutely_positioned_box,
+                    *text_offset_index,
+                );
+            },
+            DirtyRootBoxTreeNode::AbsolutelyPositionedFlexLevelBox(flex_level_box) => {
+                *flex_level_box.borrow_mut() = FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(
+                    out_of_flow_absolutely_positioned_box,
+                );
+            },
+            DirtyRootBoxTreeNode::AbsolutelyPositionedTaffyLevelBox(taffy_level_box) => {
+                taffy_level_box.borrow_mut().taffy_level_box =
+                    TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(
+                        out_of_flow_absolutely_positioned_box,
+                    );
+            },
+        }
+
+        // We are going to rebuild the box tree from the update point downward, but this update
+        // point is an absolute, which means that it needs to be laid out again in the containing
+        // block for absolutes, which is established by one of its ancestors. In addition,
+        // absolutes, when laid out, can produce more absolutes (either fixed or absolutely
+        // positioned) elements, so there may be yet more layout that has to happen in this
+        // ancestor.
+        //
+        // We do not know which ancestor is the one that established the containing block for this
+        // update point, so just invalidate the fragment cache of all ancestors, meaning that even
+        // though the box tree is preserved, the fragment tree from the root to the update point and
+        // all of its descendants will need to be rebuilt. This isn't as bad as it seems, because
+        // siblings and siblings of ancestors of this path through the tree will still have cached
+        // fragments.
+        //
+        // TODO: Do better. This is still a very crude way to do incremental layout.
+        let mut invalidate_start_point = self.node;
+        while let Some(parent_node) = invalidate_start_point.parent_node() {
+            parent_node.invalidate_cached_fragment();
+            invalidate_start_point = parent_node;
+        }
     }
 }
