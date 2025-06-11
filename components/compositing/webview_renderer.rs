@@ -1048,9 +1048,8 @@ impl WebViewRenderer {
     pub fn set_viewport_description(&mut self, viewport_description: ViewportDescription) {
         self.pending_scroll_zoom_events
             .push(ScrollZoomEvent::ViewportZoom(
-                self.viewport_description
+                viewport_description
                     .clone()
-                    .unwrap_or_default()
                     .clamp_zoom(viewport_description.initial_scale.get()),
             ));
         self.viewport_description = Some(viewport_description);
