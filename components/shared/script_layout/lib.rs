@@ -43,13 +43,18 @@ use style::context::QuirksMode;
 use style::data::ElementData;
 use style::dom::OpaqueNode;
 use style::invalidation::element::restyle_hints::RestyleHint;
-use style::media_queries::Device;
+use style::media_queries::{Device, MediaList};
 use style::properties::PropertyId;
 use style::properties::style_structs::Font;
 use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
-use style::stylesheets::Stylesheet;
+use style::shared_lock::SharedRwLock;
+use style::stylesheets::{DocumentStyleSheet, Origin, Stylesheet};
+use url::Url;
 use webrender_api::ImageKey;
 use webrender_api::units::DeviceIntSize;
+
+/// A CSS file to style <details> element.
+static DETAILS_CSS: &[u8] = include_bytes!("../../layout/stylesheets/details.css");
 
 pub trait GenericLayoutDataTrait: Any + MallocSizeOfTrait {
     fn as_any(&self) -> &dyn Any;
@@ -625,4 +630,50 @@ mod test {
         assert_eq!(image_animation_state.active_frame, 1);
         assert_eq!(image_animation_state.last_update_time, 0.101);
     }
+}
+
+pub fn parse_stylesheet_as_origin(
+    shared_lock: &SharedRwLock,
+    filename: &str,
+    content: &[u8],
+    origin: Origin,
+) -> Result<ServoArc<Stylesheet>, &'static str> {
+    let url = Url::parse(&format!("chrome://resources/{:?}", filename))
+        .ok()
+        .unwrap();
+    Ok(ServoArc::new(Stylesheet::from_bytes(
+        content,
+        url.into(),
+        None,
+        None,
+        origin,
+        MediaList::empty(),
+        shared_lock.clone(),
+        None,
+        None,
+        QuirksMode::NoQuirks,
+    )))
+}
+
+pub fn parse_ua_stylesheet(
+    shared_lock: &SharedRwLock,
+    filename: &str,
+    content: &[u8],
+) -> Result<DocumentStyleSheet, &'static str> {
+    parse_stylesheet_as_origin(shared_lock, filename, content, Origin::UserAgent)
+        .map(DocumentStyleSheet)
+}
+
+/// Parse stylesheet for <details> element to insert its UA shadow DOM.
+///
+/// TODO(stevennovaryo): The more approriate way to handle this is to use UA stylesheet.
+///                      But this element's styles needs to be in shadow-scoped stylesheet.
+///                      This could be done if an UA shadow-scoped UA sheet is introduced.
+pub fn parse_details_stylesheet(
+    shared_lock: &SharedRwLock,
+) -> Result<ServoArc<Stylesheet>, &'static str> {
+    // FIXME: We are parsing it as a Author stylesheet, but according to, it's nature
+    //        it should be an user agent stylesheet. This is because we are only allowing
+    //        the actual UA stylesheet to have that origin.
+    parse_stylesheet_as_origin(shared_lock, "details.css", DETAILS_CSS, Origin::Author)
 }

@@ -6591,6 +6591,7 @@ dependencies = [
  "servo_malloc_size_of",
  "servo_url",
  "stylo",
+ "url",
  "webrender_api",
 ]
 

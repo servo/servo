@@ -7,7 +7,11 @@ use std::cell::{Cell, Ref};
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
 use js::rust::HandleObject;
+use script_layout_interface::parse_details_stylesheet;
+use style::attr::AttrValue;
 
+use super::element::ElementCreator;
+use super::types::HTMLLinkElement;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLDetailsElementBinding::HTMLDetailsElementMethods;
@@ -41,10 +45,9 @@ const DEFAULT_SUMMARY: &str = "Details";
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct ShadowTree {
-    summary: Dom<HTMLSlotElement>,
-    descendants: Dom<HTMLSlotElement>,
-    /// The summary that is displayed if no other summary exists
-    implicit_summary: Dom<HTMLElement>,
+    summary_slot: Dom<HTMLSlotElement>,
+    descendants_slot: Dom<HTMLSlotElement>,
+    fallback_summary: Dom<HTMLElement>,
 }
 
 #[dom_struct]
@@ -101,6 +104,7 @@ impl HTMLDetailsElement {
             .expect("UA shadow tree was not created")
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#the-details-and-summary-elements>
     fn create_shadow_tree(&self, can_gc: CanGc) {
         let document = self.owner_document();
         let root = self
@@ -116,30 +120,82 @@ impl HTMLDetailsElement {
             )
             .expect("Attaching UA shadow root failed");
 
-        let summary = HTMLSlotElement::new(local_name!("slot"), None, &document, None, can_gc);
+        // > The details element is expected to have an internal shadow tree with three child elements:
+        // > 1. The first child element is a slot that is expected to take the details element's first summary
+        // >    element child, if any.
+        let summary_slot = HTMLSlotElement::new(local_name!("slot"), None, &document, None, can_gc);
+        summary_slot.upcast::<Element>().set_attribute(
+            &local_name!("id"),
+            AttrValue::from_atomic("internal-summary-slot".to_owned()),
+            can_gc,
+        );
         root.upcast::<Node>()
-            .AppendChild(summary.upcast::<Node>(), can_gc)
+            .AppendChild(summary_slot.upcast::<Node>(), can_gc)
             .unwrap();
 
+        // >    This element has a single child summary element called the default summary which has
+        // >    text content that is implementation-defined (and probably locale-specific).
         let fallback_summary =
             HTMLElement::new(local_name!("summary"), None, &document, None, can_gc);
+        fallback_summary.upcast::<Element>().set_attribute(
+            &local_name!("id"),
+            AttrValue::from_atomic("internal-fallback-summary".to_owned()),
+            can_gc,
+        );
         fallback_summary
             .upcast::<Node>()
             .SetTextContent(Some(DEFAULT_SUMMARY.into()), can_gc);
-        summary
+        summary_slot
             .upcast::<Node>()
             .AppendChild(fallback_summary.upcast::<Node>(), can_gc)
             .unwrap();
 
-        let descendants = HTMLSlotElement::new(local_name!("slot"), None, &document, None, can_gc);
+        // > 2. The second child element is a slot that is expected to take the details element's
+        // >    remaining descendants, if any. This element has no contents.
+        let descendants_slot =
+            HTMLSlotElement::new(local_name!("slot"), None, &document, None, can_gc);
+        descendants_slot.upcast::<Element>().set_attribute(
+            &local_name!("id"),
+            AttrValue::from_atomic("internal-contents-slot".to_owned()),
+            can_gc,
+        );
         root.upcast::<Node>()
-            .AppendChild(descendants.upcast::<Node>(), can_gc)
+            .AppendChild(descendants_slot.upcast::<Node>(), can_gc)
             .unwrap();
 
+        // > 3. The third child element is either a link or style element with the following
+        // >    styles for the default summary:
+        let link_element = HTMLLinkElement::new(
+            local_name!("link"),
+            None,
+            &document,
+            None,
+            ElementCreator::ScriptCreated,
+            can_gc,
+        );
+        link_element.upcast::<Element>().set_attribute(
+            &local_name!("rel"),
+            AttrValue::String("stylesheet".to_owned()),
+            can_gc,
+        );
+        root.upcast::<Node>()
+            .AppendChild(link_element.upcast::<Node>(), can_gc)
+            .unwrap();
+
+        // TODO(stevennovaryo): We need a mechanism for parsing and storing a stylesheet as
+        //                      we shouldn't reparse this each time we access the element.
+        let details_stylesheet = parse_details_stylesheet(
+            link_element
+                .upcast::<Node>()
+                .owner_doc()
+                .style_shared_lock(),
+        );
+        link_element.set_stylesheet(details_stylesheet.unwrap());
+
         let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {
-            summary: summary.as_traced(),
-            descendants: descendants.as_traced(),
-            implicit_summary: fallback_summary.as_traced(),
+            summary_slot: summary_slot.as_traced(),
+            descendants_slot: descendants_slot.as_traced(),
+            fallback_summary: fallback_summary.as_traced(),
         });
         self.upcast::<Node>()
             .dirty(crate::dom::node::NodeDamage::Other);
@@ -157,16 +213,20 @@ impl HTMLDetailsElement {
     fn update_shadow_tree_contents(&self, can_gc: CanGc) {
         let shadow_tree = self.shadow_tree(can_gc);
 
-        if let Some(summary) = self.find_corresponding_summary_element() {
-            shadow_tree
-                .summary
-                .Assign(vec![ElementOrText::Element(DomRoot::upcast(summary))]);
-        }
-
+        let mut discovered_first_summary_element = false;
         let mut slottable_children = vec![];
+
+        // Assign all children to its corresponding slots.
         for child in self.upcast::<Node>().children() {
             if let Some(element) = child.downcast::<Element>() {
-                if element.local_name() == &local_name!("summary") {
+                // Assign the first summary element to the summary slot.
+                if element.local_name() == &local_name!("summary") &&
+                    !discovered_first_summary_element
+                {
+                    shadow_tree
+                        .summary_slot
+                        .Assign(vec![ElementOrText::Element(DomRoot::from_ref(element))]);
+                    discovered_first_summary_element = true;
                     continue;
                 }
 
@@ -177,41 +237,16 @@ impl HTMLDetailsElement {
                 slottable_children.push(ElementOrText::Text(DomRoot::from_ref(text)));
             }
         }
-        shadow_tree.descendants.Assign(slottable_children);
-    }
+        shadow_tree.descendants_slot.Assign(slottable_children);
 
-    fn update_shadow_tree_styles(&self, can_gc: CanGc) {
-        let shadow_tree = self.shadow_tree(can_gc);
-
-        let value = if self.Open() {
-            "display: block;"
-        } else {
-            // TODO: This should be "display: block; content-visibility: hidden;",
-            // but servo does not support content-visibility yet
-            "display: none;"
-        };
-        shadow_tree
-            .descendants
-            .upcast::<Element>()
-            .set_string_attribute(&local_name!("style"), value.into(), can_gc);
-
-        // Manually update the list item style of the implicit summary element.
-        // Unlike the other summaries, this summary is in the shadow tree and
-        // can't be styled with UA sheets
-        let implicit_summary_list_item_style = if self.Open() {
-            "disclosure-open"
-        } else {
-            "disclosure-closed"
-        };
-        let implicit_summary_style = format!(
-            "display: list-item;
-            counter-increment: list-item 0;
-            list-style: {implicit_summary_list_item_style} inside;"
-        );
-        shadow_tree
-            .implicit_summary
-            .upcast::<Element>()
-            .set_string_attribute(&local_name!("style"), implicit_summary_style.into(), can_gc);
+        // If there are no summary element, assign fallback summary instead.
+        if !discovered_first_summary_element {
+            shadow_tree
+                .summary_slot
+                .Assign(vec![ElementOrText::Element(DomRoot::upcast(
+                    shadow_tree.fallback_summary.as_rooted(),
+                ))]);
+        }
     }
 }
 
@@ -234,8 +269,6 @@ impl VirtualMethods for HTMLDetailsElement {
             .attribute_mutated(attr, mutation, can_gc);
 
         if attr.local_name() == &local_name!("open") {
-            self.update_shadow_tree_styles(can_gc);
-
             let counter = self.toggle_counter.get() + 1;
             self.toggle_counter.set(counter);
 
@@ -263,6 +296,5 @@ impl VirtualMethods for HTMLDetailsElement {
         self.super_type().unwrap().bind_to_tree(context, can_gc);
 
         self.update_shadow_tree_contents(CanGc::note());
-        self.update_shadow_tree_styles(CanGc::note());
     }
 }

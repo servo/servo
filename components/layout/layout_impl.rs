@@ -37,7 +37,7 @@ use rayon::ThreadPool;
 use script::layout_dom::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
 use script_layout_interface::{
     Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType, OffsetParentResponse, ReflowGoal,
-    ReflowRequest, ReflowResult, TrustedNodeAddress,
+    ReflowRequest, ReflowResult, TrustedNodeAddress, parse_ua_stylesheet,
 };
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter, ScriptThreadMessage};
 use servo_arc::Arc as ServoArc;
@@ -59,7 +59,7 @@ use style::properties::{ComputedValues, PropertyId};
 use style::queries::values::PrefersColorScheme;
 use style::selector_parser::{PseudoElement, RestyleDamage, SnapshotMap};
 use style::servo::media_queries::FontMetricsProvider;
-use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
+use style::shared_lock::{SharedRwLockReadGuard, StylesheetGuards};
 use style::stylesheets::{
     DocumentStyleSheet, Origin, Stylesheet, StylesheetInDocument, UrlExtraData,
     UserAgentStylesheets,
@@ -73,7 +73,6 @@ use style::values::specified::font::{KeywordInfo, QueryFontMetricsFlags};
 use style::{Zero, driver};
 use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
-use url::Url;
 use webrender_api::units::{DevicePixel, DevicePoint, LayoutPixel, LayoutPoint, LayoutSize};
 use webrender_api::{ExternalScrollId, HitTestFlags};
 
@@ -1001,28 +1000,6 @@ impl LayoutThread {
 }
 
 fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
-    fn parse_ua_stylesheet(
-        shared_lock: &SharedRwLock,
-        filename: &str,
-        content: &[u8],
-    ) -> Result<DocumentStyleSheet, &'static str> {
-        let url = Url::parse(&format!("chrome://resources/{:?}", filename))
-            .ok()
-            .unwrap();
-        Ok(DocumentStyleSheet(ServoArc::new(Stylesheet::from_bytes(
-            content,
-            url.into(),
-            None,
-            None,
-            Origin::UserAgent,
-            MediaList::empty(),
-            shared_lock.clone(),
-            None,
-            None,
-            QuirksMode::NoQuirks,
-        ))))
-    }
-
     let shared_lock = &GLOBAL_STYLE_DATA.shared_lock;
 
     // FIXME: presentational-hints.css should be at author origin with zero specificity.
