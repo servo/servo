@@ -11,6 +11,7 @@ use constellation_traits::EmbedderToConstellationMessage;
 use embedder_traits::{MouseButtonAction, WebDriverCommandMsg, WebDriverScriptCommand};
 use ipc_channel::ipc;
 use keyboard_types::webdriver::KeyInputState;
+use log::{error, info};
 use webdriver::actions::{
     ActionSequence, ActionsType, GeneralAction, KeyAction, KeyActionItem, KeyDownAction,
     KeyUpAction, NullActionItem, PointerAction, PointerActionItem, PointerDownAction,
@@ -158,7 +159,7 @@ impl Handler {
         }
 
         // Step 2. Return success with data null.
-        dbg!("Dispatch actions completed successfully");
+        info!("Dispatch actions completed successfully");
         Ok(())
     }
 
@@ -193,12 +194,12 @@ impl Handler {
                         .expect("Current id should be set before dispatch_actions_inner is called");
 
                     if current_waiting_id != response.id {
-                        dbg!("Dispatch actions completed with wrong id in response");
+                        error!("Dispatch actions completed with wrong id in response");
                         return Err(ErrorStatus::UnknownError);
                     }
                 },
                 Err(error) => {
-                    dbg!("Dispatch actions completed with IPC error: {:?}", error);
+                    error!("Dispatch actions completed with IPC error: {:?}", error);
                     return Err(ErrorStatus::UnknownError);
                 },
             };
