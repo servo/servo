@@ -1,8 +1,0 @@
-# To trigger a clobber replace ALL of the textual description below,
-# giving a pull request number and a one line description of why a clobber is
-# required.
-#
-# Modifying this file will now automatically clobber the buildbot machines \o/
-#
-
-Pull 16722 - Added CLOBBER file
