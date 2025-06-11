@@ -50,7 +50,8 @@ pub enum WebDriverCommandMsg {
         MouseButton,
         f32,
         f32,
-        WebDriverMessageId,
+        // Should never be None.
+        Option<WebDriverMessageId>,
         IpcSender<WebDriverCommandResponse>,
     ),
     /// Act as if the mouse was moved in the browsing context with the given ID.
@@ -58,11 +59,23 @@ pub enum WebDriverCommandMsg {
         WebViewId,
         f32,
         f32,
-        WebDriverMessageId,
+        // None if it's not the last `perform_pointer_move` since we only
+        // expect one response from constellation for each tick actions.
+        Option<WebDriverMessageId>,
         IpcSender<WebDriverCommandResponse>,
     ),
     /// Act as if the mouse wheel is scrolled in the browsing context given the given ID.
-    WheelScrollAction(WebViewId, f32, f32, f64, f64),
+    WheelScrollAction(
+        WebViewId,
+        f32,
+        f32,
+        f64,
+        f64,
+        // None if it's not the last `perform_wheel_scroll` since we only
+        // expect one response from constellation for each tick actions.
+        Option<WebDriverMessageId>,
+        IpcSender<WebDriverCommandResponse>,
+    ),
     /// Set the window size.
     SetWindowSize(WebViewId, DeviceIntSize, IpcSender<Size2D<f32, CSSPixel>>),
     /// Take a screenshot of the window.
