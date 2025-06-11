@@ -142,6 +142,12 @@ impl FlexContainer {
         self.config = FlexContainerConfig::new(new_style);
         self.style = new_style.clone();
     }
+
+    pub(crate) fn invalidate_subtree_caches(&self) {
+        for flex_level_box in &self.children {
+            flex_level_box.borrow().invalidate_subtree_caches();
+        }
+    }
 }
 
 #[derive(Debug, MallocSizeOf)]
@@ -179,6 +185,17 @@ impl FlexLevelBox {
                 .context
                 .base
                 .invalidate_cached_fragment(),
+        }
+    }
+
+    pub(crate) fn invalidate_subtree_caches(&self) {
+        match self {
+            FlexLevelBox::FlexItem(flex_item_box) => flex_item_box
+                .independent_formatting_context
+                .invalidate_subtree_caches(),
+            FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(positioned_box) => {
+                positioned_box.borrow().context.invalidate_subtree_caches()
+            },
         }
     }
 

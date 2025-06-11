@@ -75,6 +75,12 @@ impl TaffyContainer {
     pub(crate) fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
         self.style = new_style.clone();
     }
+
+    pub(crate) fn invalidate_subtree_caches(&self) {
+        for taffy_level_box in &self.children {
+            taffy_level_box.borrow_mut().invalidate_subtree_caches();
+        }
+    }
 }
 
 #[derive(MallocSizeOf)]
@@ -136,6 +142,21 @@ impl TaffyItemBox {
                     .context
                     .base
                     .invalidate_cached_fragment()
+            },
+        }
+    }
+
+    pub(crate) fn invalidate_subtree_caches(&mut self) {
+        self.taffy_layout = Default::default();
+        self.positioning_context = PositioningContext::default();
+        self.child_fragments.clear();
+
+        match self.taffy_level_box {
+            TaffyItemBoxInner::InFlowBox(ref independent_formatting_context) => {
+                independent_formatting_context.invalidate_subtree_caches();
+            },
+            TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(ref positioned_box) => {
+                positioned_box.borrow().context.invalidate_subtree_caches();
             },
         }
     }
