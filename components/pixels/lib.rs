@@ -10,12 +10,25 @@ use std::{cmp, fmt, vec};
 
 use euclid::default::{Point2D, Rect, Size2D};
 use image::codecs::gif::GifDecoder;
-use image::{AnimationDecoder as _, ImageFormat};
+use image::imageops::{self, FilterType};
+use image::{AnimationDecoder as _, ImageBuffer, ImageFormat, Rgba};
 use ipc_channel::ipc::IpcSharedMemory;
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use webrender_api::ImageKey;
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+pub enum FilterQuality {
+    /// No image interpolation (Nearest-neighbor)
+    None,
+    /// Low-quality image interpolation (Bilinear)
+    Low,
+    /// Medium-quality image interpolation (CatmullRom, Mitchell)
+    Medium,
+    /// High-quality image interpolation (Lanczos)
+    High,
+}
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum PixelFormat {
@@ -31,8 +44,8 @@ pub enum PixelFormat {
     BGRA8,
 }
 
-// Computes image byte length, returning None if overflow occurred or the total length exceeds
-// the maximum image allocation size.
+/// Computes image byte length, returning None if overflow occurred or the total length exceeds
+/// the maximum image allocation size.
 pub fn compute_rgba8_byte_length_if_within_limit(width: usize, height: usize) -> Option<usize> {
     // Maximum allowed image allocation size (2^31-1 ~ 2GB).
     const MAX_IMAGE_BYTE_LENGTH: usize = 2147483647;
@@ -43,6 +56,89 @@ pub fn compute_rgba8_byte_length_if_within_limit(width: usize, height: usize) ->
         .checked_mul(width)
         .and_then(|v| v.checked_mul(height))
         .filter(|v| *v <= MAX_IMAGE_BYTE_LENGTH)
+}
+
+/// Copies the rectangle of the source image to the destination image.
+pub fn copy_rgba8_image(
+    src_size: Size2D<u32>,
+    src_rect: Rect<u32>,
+    src_pixels: &[u8],
+    dest_size: Size2D<u32>,
+    dest_rect: Rect<u32>,
+    dest_pixels: &mut [u8],
+) {
+    assert!(!src_rect.is_empty());
+    assert!(!dest_rect.is_empty());
+    assert!(Rect::from_size(src_size).contains_rect(&src_rect));
+    assert!(Rect::from_size(dest_size).contains_rect(&dest_rect));
+    assert!(src_rect.size == dest_rect.size);
+    assert_eq!(src_pixels.len() % 4, 0);
+    assert_eq!(dest_pixels.len() % 4, 0);
+
+    if src_size == dest_size && src_rect == dest_rect {
+        dest_pixels.copy_from_slice(src_pixels);
+        return;
+    }
+
+    let src_first_column_start = src_rect.origin.x as usize * 4;
+    let src_row_length = src_size.width as usize * 4;
+    let src_first_row_start = src_rect.origin.y as usize * src_row_length;
+
+    let dest_first_column_start = dest_rect.origin.x as usize * 4;
+    let dest_row_length = dest_size.width as usize * 4;
+    let dest_first_row_start = dest_rect.origin.y as usize * dest_row_length;
+
+    let (chunk_length, chunk_count) = (
+        src_rect.size.width as usize * 4,
+        src_rect.size.height as usize,
+    );
+
+    for i in 0..chunk_count {
+        let src = &src_pixels[src_first_row_start + i * src_row_length..][src_first_column_start..]
+            [..chunk_length];
+        let dest = &mut dest_pixels[dest_first_row_start + i * dest_row_length..]
+            [dest_first_column_start..][..chunk_length];
+        dest.copy_from_slice(src);
+    }
+}
+
+/// Scales the source image to the required size, performing sampling filter algorithm.
+pub fn scale_rgba8_image(
+    size: Size2D<u32>,
+    pixels: &[u8],
+    required_size: Size2D<u32>,
+    quality: FilterQuality,
+) -> Option<Vec<u8>> {
+    let filter = match quality {
+        FilterQuality::None => FilterType::Nearest,
+        FilterQuality::Low => FilterType::Triangle,
+        FilterQuality::Medium => FilterType::CatmullRom,
+        FilterQuality::High => FilterType::Lanczos3,
+    };
+
+    let buffer: ImageBuffer<Rgba<u8>, &[u8]> =
+        ImageBuffer::from_raw(size.width, size.height, pixels)?;
+
+    let scaled_buffer =
+        imageops::resize(&buffer, required_size.width, required_size.height, filter);
+
+    Some(scaled_buffer.into_vec())
+}
+
+/// Flips the source image vertically in place.
+pub fn flip_y_rgba8_image_inplace(size: Size2D<u32>, pixels: &mut [u8]) {
+    assert_eq!(pixels.len() % 4, 0);
+
+    let row_length = size.width as usize * 4;
+    let half_height = (size.height / 2) as usize;
+
+    let (left, right) = pixels.split_at_mut(pixels.len() - row_length * half_height);
+
+    for i in 0..half_height {
+        let top = &mut left[i * row_length..][..row_length];
+        let bottom = &mut right[(half_height - i - 1) * row_length..][..row_length];
+        top.swap_with_slice(bottom);
+    }
 }
 
 pub fn rgba8_get_rect(pixels: &[u8], size: Size2D<u32>, rect: Rect<u32>) -> Cow<[u8]> {

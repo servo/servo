@@ -2970,8 +2970,8 @@ impl GlobalScope {
     pub(crate) fn create_image_bitmap(
         &self,
         image: ImageBitmapSource,
-        _sx: i32,
-        _sy: i32,
+        sx: i32,
+        sy: i32,
         sw: Option<i32>,
         sh: Option<i32>,
         options: &ImageBitmapOptions,
@@ -3026,8 +3026,8 @@ impl GlobalScope {
                     return p;
                 };
 
+                // TODO: Support vector HTMLImageElement.
                 let Some(img) = img.as_raster_image() else {
-                    // Vector HTMLImageElement are not yet supported.
                     p.reject_error(Error::InvalidState, can_gc);
                     return p;
                 };
@@ -3051,7 +3051,18 @@ impl GlobalScope {
                     IpcSharedMemory::from_bytes(img.first_frame().bytes),
                 );
 
-                let image_bitmap = ImageBitmap::new(self, snapshot, can_gc);
+                // Step 6.3. Set imageBitmap's bitmap data to a copy of image's media data,
+                // cropped to the source rectangle with formatting.
+                let Some(bitmap_data) =
+                    ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
+                else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let image_bitmap = ImageBitmap::new(self, bitmap_data, can_gc);
+                // Step 6.4. If image is not origin-clean, then set the origin-clean flag
+                // of imageBitmap's bitmap to false.
                 image_bitmap.set_origin_clean(image.same_origin(GlobalScope::entry().origin()));
 
                 p.resolve_native(&image_bitmap, can_gc);
@@ -3063,6 +3074,8 @@ impl GlobalScope {
                     return p;
                 }
 
+                // Step 6.1. If image's networkState attribute is NETWORK_EMPTY, then return
+                // a promise rejected with an "InvalidStateError" DOMException.
                 if video.is_network_state_empty() {
                     p.reject_error(Error::InvalidState, can_gc);
                     return p;
@@ -3074,7 +3087,20 @@ impl GlobalScope {
                     return p;
                 };
 
-                let image_bitmap = ImageBitmap::new(self, snapshot, can_gc);
+                // Step 6.2. Set imageBitmap's bitmap data to a copy of the frame at the current
+                // playback position, at the media resource's natural width and natural height
+                // (i.e., after any aspect-ratio correction has been applied),
+                // cropped to the source rectangle with formatting.
+                let Some(bitmap_data) =
+                    ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
+                else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let image_bitmap = ImageBitmap::new(self, bitmap_data, can_gc);
+                // Step 6.3. If image is not origin-clean, then set the origin-clean flag
+                // of imageBitmap's bitmap to false.
                 image_bitmap.set_origin_clean(video.origin_is_clean());
 
                 p.resolve_native(&image_bitmap, can_gc);
@@ -3092,7 +3118,18 @@ impl GlobalScope {
                     return p;
                 };
 
-                let image_bitmap = ImageBitmap::new(self, snapshot, can_gc);
+                // Step 6.1. Set imageBitmap's bitmap data to a copy of image's bitmap data,
+                // cropped to the source rectangle with formatting.
+                let Some(bitmap_data) =
+                    ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
+                else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let image_bitmap = ImageBitmap::new(self, bitmap_data, can_gc);
+                // Step 6.2. Set the origin-clean flag of the imageBitmap's bitmap to the same value
+                // as the origin-clean flag of image's bitmap.
                 image_bitmap.set_origin_clean(canvas.origin_is_clean());
 
                 p.resolve_native(&image_bitmap, can_gc);
@@ -3110,7 +3147,18 @@ impl GlobalScope {
                     return p;
                 };
 
-                let image_bitmap = ImageBitmap::new(self, snapshot, can_gc);
+                // Step 6.1. Set imageBitmap's bitmap data to a copy of image's bitmap data,
+                // cropped to the source rectangle with formatting.
+                let Some(bitmap_data) =
+                    ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
+                else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let image_bitmap = ImageBitmap::new(self, bitmap_data, can_gc);
+                // Step 6.2. Set the origin-clean flag of imageBitmap's bitmap to the same value
+                // as the origin-clean flag of image's bitmap.
                 image_bitmap.set_origin_clean(bitmap.origin_is_clean());
 
                 p.resolve_native(&image_bitmap, can_gc);
@@ -3128,7 +3176,18 @@ impl GlobalScope {
                     return p;
                 };
 
-                let image_bitmap = ImageBitmap::new(self, snapshot, can_gc);
+                // Step 6.1. Set imageBitmap's bitmap data to a copy of image's bitmap data,
+                // cropped to the source rectangle with formatting.
+                let Some(bitmap_data) =
+                    ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
+                else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let image_bitmap = ImageBitmap::new(self, bitmap_data, can_gc);
+                // Step 6.2. Set the origin-clean flag of the imageBitmap's bitmap to the same value
+                // as the origin-clean flag of image's bitmap.
                 image_bitmap.set_origin_clean(canvas.origin_is_clean());
 
                 p.resolve_native(&image_bitmap, can_gc);
@@ -3138,7 +3197,9 @@ impl GlobalScope {
                 p.reject_error(Error::InvalidState, can_gc);
             },
             ImageBitmapSource::ImageData(ref image_data) => {
-                // <https://html.spec.whatwg.org/multipage/#the-imagebitmap-interface:imagedata-4>
+                // Step 6.1. Let buffer be image's data attribute value's [[ViewedArrayBuffer]] internal slot.
+                // Step 6.2. If IsDetachedBuffer(buffer) is true, then return a promise rejected
+                // with an "InvalidStateError" DOMException.
                 if image_data.is_detached() {
                     p.reject_error(Error::InvalidState, can_gc);
                     return p;
@@ -3155,7 +3216,16 @@ impl GlobalScope {
                     image_data.to_shared_memory(),
                 );
 
-                let image_bitmap = ImageBitmap::new(self, snapshot, can_gc);
+                // Step 6.3. Set imageBitmap's bitmap data to image's image data,
+                // cropped to the source rectangle with formatting.
+                let Some(bitmap_data) =
+                    ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
+                else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let image_bitmap = ImageBitmap::new(self, bitmap_data, can_gc);
 
                 p.resolve_native(&image_bitmap, can_gc);
             },
