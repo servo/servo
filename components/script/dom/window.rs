@@ -2541,22 +2541,23 @@ impl Window {
         behavior: ScrollBehavior,
         can_gc: CanGc,
     ) {
-        // The scroll offsets are immediatly updated since later calls
-        // to topScroll and others may access the properties before
-        // webrender has a chance to update the offsets.
-        let x = x_.to_f32().unwrap_or(0.0f32);
-        let y = y_.to_f32().unwrap_or(0.0f32);
+        // TODO(stevennovaryo): Impl step 1-5
         let scroll_id = ExternalScrollId(
             combine_id_with_fragment_type(node.to_opaque().id(), FragmentType::FragmentBody),
             self.pipeline_id().into(),
         );
-        self.layout()
-            .update_scroll_offset(scroll_id, Vector2D::new(-x, -y));
 
         // Step 6
         // > Perform a scroll of box to position, element as the associated
         // > element and behavior as the scroll behavior.
-        self.perform_a_scroll(x, y, scroll_id, behavior, None, can_gc);
+        self.perform_a_scroll(
+            x_.to_f32().unwrap_or(0.0f32),
+            y_.to_f32().unwrap_or(0.0f32),
+            scroll_id,
+            behavior,
+            None,
+            can_gc,
+        );
     }
 
     pub(crate) fn resolved_style_query(
