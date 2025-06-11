@@ -718,7 +718,7 @@ impl VirtualMethods for HTMLCanvasElement {
         match attr.local_name() {
             &local_name!("width") | &local_name!("height") => {
                 self.recreate_contexts_after_resize();
-                self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                self.upcast::<Node>().dirty(NodeDamage::Other);
             },
             _ => {},
         };

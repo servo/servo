@@ -96,7 +96,7 @@ impl Animations {
             .keys()
             .filter_map(|key| rooted_nodes.get(&NoTrace(key.node)))
         {
-            node.dirty(NodeDamage::NodeStyleDamaged);
+            node.dirty(NodeDamage::Style);
         }
 
         true
