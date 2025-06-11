@@ -293,8 +293,8 @@ class OpenHarmonyTarget(CrossBuildTarget):
                 meta = json.load(meta_file)
             ohos_api_version = int(meta["apiVersion"])
             ohos_sdk_version = parse_version(meta["version"])
-            if ohos_sdk_version < parse_version("5.0") or ohos_api_version < 12:
-                raise RuntimeError("Building servo for OpenHarmony requires SDK version 5.0 (API-12) or newer.")
+            if ohos_sdk_version < parse_version("5.0") or ohos_api_version < 14:
+                raise RuntimeError("Building servo for OpenHarmony requires SDK version 5.0.2 (API-14) or newer.")
             print(f"Info: The OpenHarmony SDK {ohos_sdk_version} is targeting API-level {ohos_api_version}")
         except (OSError, json.JSONDecodeError) as e:
             print(f"Failed to read metadata information from {package_info}")
