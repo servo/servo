@@ -68,14 +68,14 @@ use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMe
 use script_bindings::interfaces::WindowHelpers;
 use script_bindings::root::Root;
 use script_layout_interface::{
-    FragmentType, Layout, PendingImageState, QueryMsg, Reflow, ReflowGoal, ReflowRequest,
+    FragmentType, Layout, PendingImageState, QueryMsg, ReflowGoal, ReflowRequest,
     TrustedNodeAddress, combine_id_with_fragment_type,
 };
 use script_traits::ScriptThreadMessage;
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
 use servo_config::{opts, pref};
-use servo_geometry::{DeviceIndependentIntRect, MaxRect, f32_rect_to_au_rect};
+use servo_geometry::{DeviceIndependentIntRect, f32_rect_to_au_rect};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::dom::OpaqueNode;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
@@ -295,11 +295,6 @@ pub(crate) struct Window {
 
     #[cfg(feature = "bluetooth")]
     bluetooth_extra_permission_data: BluetoothExtraPermissionData,
-
-    /// An enlarged rectangle around the page contents visible in the viewport, used
-    /// to prevent creating display list items for content that is far away from the viewport.
-    #[no_trace]
-    page_clip_rect: Cell<UntypedRect<Au>>,
 
     /// See the documentation for [`LayoutBlocker`]. Essentially, this flag prevents
     /// layouts from happening before the first load event, apart from a few exceptional
@@ -2219,9 +2214,6 @@ impl Window {
 
         // Send new document and relevant styles to layout.
         let reflow = ReflowRequest {
-            reflow_info: Reflow {
-                page_clip_rect: self.page_clip_rect.get(),
-            },
             document: document.upcast::<Node>().to_trusted_node_address(),
             dirty_root,
             stylesheets_changed,
@@ -2841,36 +2833,17 @@ impl Window {
         self.unhandled_resize_event.borrow_mut().take()
     }
 
-    pub(crate) fn set_page_clip_rect_with_new_viewport(&self, viewport: UntypedRect<f32>) -> bool {
-        let rect = f32_rect_to_au_rect(viewport);
-        self.current_viewport.set(rect);
-        // We use a clipping rectangle that is five times the size of the of the viewport,
-        // so that we don't collect display list items for areas too far outside the viewport,
-        // but also don't trigger reflows every time the viewport changes.
-        static VIEWPORT_EXPANSION: f32 = 2.0; // 2 lengths on each side plus original length is 5 total.
-        let proposed_clip_rect = f32_rect_to_au_rect(viewport.inflate(
-            viewport.size.width * VIEWPORT_EXPANSION,
-            viewport.size.height * VIEWPORT_EXPANSION,
-        ));
-        let clip_rect = self.page_clip_rect.get();
-        if proposed_clip_rect == clip_rect {
-            return false;
+    pub(crate) fn set_viewport(&self, new_viewport: UntypedRect<f32>) {
+        let new_viewport = f32_rect_to_au_rect(new_viewport);
+        if new_viewport == self.current_viewport.get() {
+            return;
         }
 
-        let had_clip_rect = clip_rect != MaxRect::max_rect();
-        if had_clip_rect && !should_move_clip_rect(clip_rect, viewport) {
-            return false;
-        }
-
-        self.page_clip_rect.set(proposed_clip_rect);
+        self.current_viewport.set(new_viewport);
 
         // The document needs to be repainted, because the initial containing block
         // is now a different size.
         self.Document().set_needs_paint(true);
-
-        // If we didn't have a clip rect, the previous display doesn't need rebuilding
-        // because it was built for infinite clip (MaxRect::amax_rect()).
-        had_clip_rect
     }
 
     pub(crate) fn suspend(&self, can_gc: CanGc) {
@@ -3156,7 +3129,6 @@ impl Window {
             bluetooth_thread,
             #[cfg(feature = "bluetooth")]
             bluetooth_extra_permission_data: BluetoothExtraPermissionData::new(),
-            page_clip_rect: Cell::new(MaxRect::max_rect()),
             unhandled_resize_event: Default::default(),
             viewport_details: Cell::new(viewport_details),
             current_viewport: Cell::new(initial_viewport.to_untyped()),
