@@ -146,7 +146,7 @@ class MachCommands(CommandBase):
                         "start_line": primary_span["line_start"],
                         "end_line": primary_span["line_end"],
                         "annotation_level": annotation_level,
-                        "title": message.get("message", ""),
+                        "title": f"Mach clippy: {message.get('message', '')}",
                         "message": message.get("rendered", ""),
                     }
 

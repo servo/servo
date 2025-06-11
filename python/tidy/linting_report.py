@@ -25,8 +25,8 @@ class LintingReportManager:
             "path": data[0],
             "start_line": data[1],
             "end_line": data[1],
-            "annotation_level": "error",
-            "title": data[2],
+            "annotation_level": "failure",
+            "title": f"Mach test-tidy: {data[2]}",
             "message": data[2],
         }
         self.report.append(current_report)
@@ -35,7 +35,7 @@ class LintingReportManager:
         if not os.path.exists(source):
             return
 
-        with open(source, "r") as file:
+        with open(source, "r", encoding="utf-8") as file:
             clippy_report = json.load(file)
             self.report.extend(clippy_report)
 
