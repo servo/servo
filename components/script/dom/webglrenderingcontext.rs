@@ -2016,7 +2016,7 @@ impl CanvasContext for WebGLRenderingContext {
 
         match self.canvas {
             HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
-                canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                canvas.upcast::<Node>().dirty(NodeDamage::Other);
                 canvas.owner_document().add_dirty_webgl_canvas(self);
             },
             HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => {},

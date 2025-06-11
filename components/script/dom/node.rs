@@ -3912,9 +3912,9 @@ impl VirtualMethods for Node {
 #[derive(Clone, Copy, MallocSizeOf, PartialEq)]
 pub(crate) enum NodeDamage {
     /// The node's `style` attribute changed.
-    NodeStyleDamaged,
+    Style,
     /// Other parts of a node changed; attributes, text content, etc.
-    OtherNodeDamage,
+    Other,
 }
 
 pub(crate) enum ChildrenMutation<'a> {

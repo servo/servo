@@ -170,7 +170,7 @@ impl CanvasContext for CanvasRenderingContext2D {
 
     fn mark_as_dirty(&self) {
         if let Some(canvas) = self.canvas.canvas() {
-            canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+            canvas.upcast::<Node>().dirty(NodeDamage::Other);
             canvas.owner_document().add_dirty_2d_canvas(self);
         }
     }

@@ -2088,7 +2088,7 @@ impl HTMLMediaElement {
             warn!("Could not render media controls {:?}", e);
         }
 
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        self.upcast::<Node>().dirty(NodeDamage::Other);
     }
 
     fn remove_controls(&self, can_gc: CanGc) {
@@ -2118,7 +2118,7 @@ impl HTMLMediaElement {
     fn handle_resize(&self, width: Option<u32>, height: Option<u32>) {
         if let Some(video_elem) = self.downcast::<HTMLVideoElement>() {
             video_elem.resize(width, height);
-            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+            self.upcast::<Node>().dirty(NodeDamage::Other);
         }
     }
 

@@ -360,7 +360,7 @@ impl Element {
         // NodeStyleDamaged, but I'm preserving existing behavior.
         restyle.hint.insert(RestyleHint::RESTYLE_SELF);
 
-        if damage == NodeDamage::OtherNodeDamage {
+        if damage == NodeDamage::Other {
             doc.note_node_with_dirty_descendants(self.upcast());
             restyle.damage = RestyleDamage::reconstruct();
         }
@@ -674,7 +674,7 @@ impl Element {
         shadow_root.bind_to_tree(&bind_context, can_gc);
 
         let node = self.upcast::<Node>();
-        node.dirty(NodeDamage::OtherNodeDamage);
+        node.dirty(NodeDamage::Other);
         node.rev_version();
 
         Ok(shadow_root)
@@ -4208,7 +4208,7 @@ impl VirtualMethods for Element {
                 // FIXME(emilio): This is pretty dubious, and should be done in
                 // the relevant super-classes.
                 if attr.namespace() == &ns!() && attr.local_name() == &local_name!("src") {
-                    node.dirty(NodeDamage::OtherNodeDamage);
+                    node.dirty(NodeDamage::Other);
                 }
             },
         };
@@ -4321,20 +4321,20 @@ impl VirtualMethods for Element {
         let flags = self.selector_flags.get();
         if flags.intersects(ElementSelectorFlags::HAS_SLOW_SELECTOR) {
             // All children of this node need to be restyled when any child changes.
-            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+            self.upcast::<Node>().dirty(NodeDamage::Other);
         } else {
             if flags.intersects(ElementSelectorFlags::HAS_SLOW_SELECTOR_LATER_SIBLINGS) {
                 if let Some(next_child) = mutation.next_child() {
                     for child in next_child.inclusively_following_siblings() {
                         if child.is::<Element>() {
-                            child.dirty(NodeDamage::OtherNodeDamage);
+                            child.dirty(NodeDamage::Other);
                         }
                     }
                 }
             }
             if flags.intersects(ElementSelectorFlags::HAS_EDGE_CHILD_SELECTOR) {
                 if let Some(child) = mutation.modified_edge_element() {
-                    child.dirty(NodeDamage::OtherNodeDamage);
+                    child.dirty(NodeDamage::Other);
                 }
             }
         }
@@ -4916,7 +4916,7 @@ impl Element {
 
     pub(crate) fn set_focus_state(&self, value: bool) {
         self.set_state(ElementState::FOCUS, value);
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        self.upcast::<Node>().dirty(NodeDamage::Other);
     }
 
     pub(crate) fn hover_state(&self) -> bool {
@@ -4958,7 +4958,7 @@ impl Element {
     pub(crate) fn set_placeholder_shown_state(&self, value: bool) {
         if self.placeholder_shown_state() != value {
             self.set_state(ElementState::PLACEHOLDER_SHOWN, value);
-            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+            self.upcast::<Node>().dirty(NodeDamage::Other);
         }
     }
 

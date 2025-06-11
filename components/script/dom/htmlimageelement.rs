@@ -456,7 +456,7 @@ impl HTMLImageElement {
         self.current_request.borrow_mut().state = State::CompletelyAvailable;
         LoadBlocker::terminate(&self.current_request.borrow().blocker, can_gc);
         // Mark the node dirty
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        self.upcast::<Node>().dirty(NodeDamage::Other);
         self.resolve_image_decode_promises(can_gc);
     }
 
@@ -522,7 +522,7 @@ impl HTMLImageElement {
                 .fire_event(atom!("loadend"), can_gc);
         }
 
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        self.upcast::<Node>().dirty(NodeDamage::Other);
     }
 
     fn process_image_response_for_environment_change(
@@ -1229,7 +1229,7 @@ impl HTMLImageElement {
                 this.abort_request(State::Unavailable, ImageRequestPhase::Pending, CanGc::note());
 
                 // Step 15.6
-                this.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                this.upcast::<Node>().dirty(NodeDamage::Other);
 
                 // Step 15.7
                 this.upcast::<EventTarget>().fire_event(atom!("load"), CanGc::note());

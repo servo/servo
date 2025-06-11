@@ -54,7 +54,7 @@ pub(crate) trait CanvasContext {
 
     fn mark_as_dirty(&self) {
         if let HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) = &self.canvas() {
-            canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+            canvas.upcast::<Node>().dirty(NodeDamage::Other);
         }
     }
 

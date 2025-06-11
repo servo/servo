@@ -594,7 +594,7 @@ impl Window {
             Entry::Vacant(_) => return,
         };
         for node in nodes.get() {
-            node.dirty(NodeDamage::OtherNodeDamage);
+            node.dirty(NodeDamage::Other);
         }
         match response.response {
             ImageResponse::MetadataLoaded(_) => {},
@@ -617,7 +617,7 @@ impl Window {
             Entry::Vacant(_) => return,
         };
         for node in nodes.get() {
-            node.dirty(NodeDamage::OtherNodeDamage);
+            node.dirty(NodeDamage::Other);
         }
         nodes.remove();
     }

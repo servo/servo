@@ -940,7 +940,7 @@ impl Document {
 
         // FIXME(emilio): This is very inefficient, ideally the flag above would
         // be enough and incremental layout could figure out from there.
-        node.dirty(NodeDamage::OtherNodeDamage);
+        node.dirty(NodeDamage::Other);
     }
 
     /// Remove any existing association between the provided id and any elements in this document.
@@ -1516,7 +1516,7 @@ impl Document {
             .upcast::<Node>()
             .traverse_preorder(ShadowIncluding::Yes)
         {
-            node.dirty(NodeDamage::OtherNodeDamage)
+            node.dirty(NodeDamage::Other)
         }
     }
 
@@ -2550,7 +2550,7 @@ impl Document {
         //
         // FIXME(emilio): Use the DocumentStylesheetSet invalidation stuff.
         if let Some(element) = self.GetDocumentElement() {
-            element.upcast::<Node>().dirty(NodeDamage::NodeStyleDamaged);
+            element.upcast::<Node>().dirty(NodeDamage::Style);
         }
     }
 

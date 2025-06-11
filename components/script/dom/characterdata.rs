@@ -86,7 +86,7 @@ impl CharacterData {
 
     fn content_changed(&self) {
         let node = self.upcast::<Node>();
-        node.dirty(NodeDamage::OtherNodeDamage);
+        node.dirty(NodeDamage::Other);
 
         // If this is a Text node, we might need to re-parse (say, if our parent
         // is a <style> element.) We don't need to if this is a Comment or
