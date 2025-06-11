@@ -872,21 +872,13 @@ impl LayoutThread {
             viewport_size.height.to_f32_px(),
         );
 
-        let scrollable_overflow = fragment_tree.scrollable_overflow();
-        let scrollable_overflow = LayoutSize::from_untyped(Size2D::new(
-            scrollable_overflow.size.width.to_f32_px(),
-            scrollable_overflow.size.height.to_f32_px(),
-        ));
-
         // Build the StackingContextTree. This turns the `FragmentTree` into a
         // tree of fragments in CSS painting order and also creates all
         // applicable spatial and clip nodes.
         *self.stacking_context_tree.borrow_mut() = Some(StackingContextTree::new(
             fragment_tree,
             viewport_size,
-            scrollable_overflow,
             self.id.into(),
-            fragment_tree.viewport_scroll_sensitivity,
             self.first_reflow.get(),
             &self.debug,
         ));

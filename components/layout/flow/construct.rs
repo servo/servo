@@ -230,7 +230,7 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
             self.context,
             !self.have_already_seen_first_line_for_text_indent,
             self.info.is_single_line_text_input(),
-            self.info.style.writing_mode.to_bidi_level(),
+            self.info.style.to_bidi_level(),
         )
     }
 
@@ -539,7 +539,7 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
                 builder.split_around_block_and_finish(
                     self.context,
                     !self.have_already_seen_first_line_for_text_indent,
-                    self.info.style.writing_mode.to_bidi_level(),
+                    self.info.style.to_bidi_level(),
                 )
             })
         {

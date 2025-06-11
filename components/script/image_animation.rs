@@ -71,7 +71,7 @@ impl ImageAnimationManager {
                         .expect("active_frame should within range of frames");
 
                     if let Some(node) = rooted_nodes.get(&NoTrace(*node)) {
-                        node.dirty(crate::dom::node::NodeDamage::OtherNodeDamage);
+                        node.dirty(crate::dom::node::NodeDamage::Other);
                     }
                     Some(ImageUpdate::UpdateImage(
                         image.id.unwrap(),

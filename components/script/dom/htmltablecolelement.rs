@@ -101,7 +101,7 @@ impl VirtualMethods for HTMLTableColElement {
         }
 
         if matches!(*attr.local_name(), local_name!("span")) {
-            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+            self.upcast::<Node>().dirty(NodeDamage::Other);
         }
     }
 

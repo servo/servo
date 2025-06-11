@@ -4738,6 +4738,14 @@ where
             WebDriverCommandMsg::FocusWebView(webview_id) => {
                 self.handle_focus_web_view(webview_id);
             },
+            WebDriverCommandMsg::IsWebViewOpen(webview_id, response_sender) => {
+                let is_open = self.webviews.get(webview_id).is_some();
+                let _ = response_sender.send(is_open);
+            },
+            WebDriverCommandMsg::IsBrowsingContextOpen(browsing_context_id, response_sender) => {
+                let is_open = self.browsing_contexts.contains_key(&browsing_context_id);
+                let _ = response_sender.send(is_open);
+            },
             WebDriverCommandMsg::GetWindowSize(webview_id, response_sender) => {
                 let browsing_context_id = BrowsingContextId::from(webview_id);
                 let size = self
@@ -4772,12 +4780,11 @@ where
             },
             WebDriverCommandMsg::Refresh(webview_id, response_sender) => {
                 let browsing_context_id = BrowsingContextId::from(webview_id);
-                let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
-                    Some(browsing_context) => browsing_context.pipeline_id,
-                    None => {
-                        return warn!("{}: Refresh after closure", browsing_context_id);
-                    },
-                };
+                let pipeline_id = self
+                    .browsing_contexts
+                    .get(&browsing_context_id)
+                    .expect("Refresh: Browsing context must exist at this point")
+                    .pipeline_id;
                 let load_data = match self.pipelines.get(&pipeline_id) {
                     Some(pipeline) => pipeline.load_data.clone(),
                     None => return warn!("{}: Refresh after closure", pipeline_id),
@@ -4791,12 +4798,11 @@ where
             },
             // TODO: This should use the ScriptThreadMessage::EvaluateJavaScript command
             WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd) => {
-                let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
-                    Some(browsing_context) => browsing_context.pipeline_id,
-                    None => {
-                        return warn!("{}: ScriptCommand after closure", browsing_context_id);
-                    },
-                };
+                let pipeline_id = self
+                    .browsing_contexts
+                    .get(&browsing_context_id)
+                    .expect("ScriptCommand: Browsing context must exist at this point")
+                    .pipeline_id;
                 let control_msg = ScriptThreadMessage::WebDriverScriptCommand(pipeline_id, cmd);
                 let result = match self.pipelines.get(&pipeline_id) {
                     Some(pipeline) => pipeline.event_loop.send(control_msg),
@@ -4807,12 +4813,11 @@ where
                 }
             },
             WebDriverCommandMsg::SendKeys(browsing_context_id, cmd) => {
-                let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
-                    Some(browsing_context) => browsing_context.pipeline_id,
-                    None => {
-                        return warn!("{}: SendKeys after closure", browsing_context_id);
-                    },
-                };
+                let pipeline_id = self
+                    .browsing_contexts
+                    .get(&browsing_context_id)
+                    .expect("SendKeys: Browsing context must exist at this point")
+                    .pipeline_id;
                 let event_loop = match self.pipelines.get(&pipeline_id) {
                     Some(pipeline) => pipeline.event_loop.clone(),
                     None => return warn!("{}: SendKeys after closure", pipeline_id),
@@ -4891,10 +4896,20 @@ where
                         webview_id, x, y, msg_id,
                     ));
             },
-            WebDriverCommandMsg::WheelScrollAction(webview, x, y, delta_x, delta_y) => {
+            WebDriverCommandMsg::WheelScrollAction(
+                webview_id,
+                x,
+                y,
+                delta_x,
+                delta_y,
+                msg_id,
+                response_sender,
+            ) => {
+                self.webdriver.input_command_response_sender = Some(response_sender);
+
                 self.compositor_proxy
                     .send(CompositorMsg::WebDriverWheelScrollEvent(
-                        webview, x, y, delta_x, delta_y,
+                        webview_id, x, y, delta_x, delta_y, msg_id,
                     ));
             },
             WebDriverCommandMsg::TakeScreenshot(webview_id, rect, response_sender) => {

@@ -6,10 +6,12 @@ use std::collections::{HashMap, HashSet};
 use std::thread;
 use std::time::{Duration, Instant};
 
+use base::id::BrowsingContextId;
 use constellation_traits::EmbedderToConstellationMessage;
 use embedder_traits::{MouseButtonAction, WebDriverCommandMsg, WebDriverScriptCommand};
 use ipc_channel::ipc;
 use keyboard_types::webdriver::KeyInputState;
+use log::{error, info};
 use webdriver::actions::{
     ActionSequence, ActionsType, GeneralAction, KeyAction, KeyActionItem, KeyDownAction,
     KeyUpAction, NullActionItem, PointerAction, PointerActionItem, PointerDownAction,
@@ -114,6 +116,7 @@ impl Handler {
     pub(crate) fn dispatch_actions(
         &self,
         actions_by_tick: ActionsByTick,
+        browsing_context: BrowsingContextId,
     ) -> Result<(), ErrorStatus> {
         // Step 1. Wait for an action queue token with input state.
         let new_token = self.id_generator.next();
@@ -121,7 +124,7 @@ impl Handler {
         self.current_action_id.set(Some(new_token));
 
         // Step 2. Let actions result be the result of dispatch actions inner.
-        let res = self.dispatch_actions_inner(actions_by_tick);
+        let res = self.dispatch_actions_inner(actions_by_tick, browsing_context);
 
         // Step 3. Dequeue input state's actions queue.
         self.current_action_id.set(None);
@@ -131,9 +134,17 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-actions-inner>
-    fn dispatch_actions_inner(&self, actions_by_tick: ActionsByTick) -> Result<(), ErrorStatus> {
+    fn dispatch_actions_inner(
+        &self,
+        actions_by_tick: ActionsByTick,
+        browsing_context: BrowsingContextId,
+    ) -> Result<(), ErrorStatus> {
         // Step 1. For each item tick actions in actions by tick
         for tick_actions in actions_by_tick.iter() {
+            // Step 1.1. If browsing context is no longer open,
+            // return error with error code no such window.
+            self.verify_browsing_context_is_open(browsing_context)
+                .map_err(|e| e.error)?;
             // Step 1.2. Let tick duration be the result of
             // computing the tick duration with argument tick actions.
             let tick_duration = compute_tick_duration(tick_actions);
@@ -148,7 +159,7 @@ impl Handler {
         }
 
         // Step 2. Return success with data null.
-        dbg!("Dispatch actions completed successfully");
+        info!("Dispatch actions completed successfully");
         Ok(())
     }
 
@@ -156,12 +167,16 @@ impl Handler {
         &self,
         tick_actions: &TickActions,
     ) -> Result<(), ErrorStatus> {
-        // TODO: Add matches! for wheel and key actions
-        // after implmenting webdriver id for wheel and key events.
+        // TODO: Add matches! for key actions
+        // after implmenting webdriver id for key events.
         let count_non_null_actions_in_tick = tick_actions
             .iter()
             .filter(|(_, action)| {
-                matches!(action, ActionItem::Pointer(PointerActionItem::Pointer(_)))
+                matches!(
+                    action,
+                    ActionItem::Pointer(PointerActionItem::Pointer(_)) |
+                        ActionItem::Wheel(WheelActionItem::Wheel(_))
+                )
             })
             .count();
 
@@ -176,15 +191,15 @@ impl Handler {
                     let current_waiting_id = self
                         .current_action_id
                         .get()
-                        .expect("Current id should be set before dispat_actions_inner is called");
+                        .expect("Current id should be set before dispatch_actions_inner is called");
 
                     if current_waiting_id != response.id {
-                        dbg!("Dispatch actions completed with wrong id in response");
+                        error!("Dispatch actions completed with wrong id in response");
                         return Err(ErrorStatus::UnknownError);
                     }
                 },
                 Err(error) => {
-                    dbg!("Dispatch actions completed with IPC error: {:?}", error);
+                    error!("Dispatch actions completed with IPC error: {error}");
                     return Err(ErrorStatus::UnknownError);
                 },
             };
@@ -345,7 +360,7 @@ impl Handler {
         }
         pointer_input_state.pressed.insert(action.button);
 
-        let msg_id = self.current_action_id.get().unwrap();
+        let msg_id = self.current_action_id.get();
         let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
             session.webview_id,
             MouseButtonAction::Down,
@@ -375,7 +390,7 @@ impl Handler {
         }
         pointer_input_state.pressed.remove(&action.button);
 
-        let msg_id = self.current_action_id.get().unwrap();
+        let msg_id = self.current_action_id.get();
         let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
             session.webview_id,
             MouseButtonAction::Up,
@@ -496,9 +511,15 @@ impl Handler {
             let current_y = pointer_input_state.y;
 
             // Step 7
-            if x != current_x || y != current_y {
+            // Actually "last" should not be checked here based on spec.
+            // However, we need to send the webdriver id at the final perform.
+            if x != current_x || y != current_y || last {
                 // Step 7.2
-                let msg_id = self.current_action_id.get().unwrap();
+                let msg_id = if last {
+                    self.current_action_id.get()
+                } else {
+                    None
+                };
                 let cmd_msg = WebDriverCommandMsg::MouseMoveAction(
                     session.webview_id,
                     x as f32,
@@ -627,14 +648,23 @@ impl Handler {
         };
 
         // Step 5
-        if delta_x != 0 || delta_y != 0 {
+        // Actually "last" should not be checked here based on spec.
+        // However, we need to send the webdriver id at the final perform.
+        if delta_x != 0 || delta_y != 0 || last {
             // Perform implementation-specific action dispatch steps
+            let msg_id = if last {
+                self.current_action_id.get()
+            } else {
+                None
+            };
             let cmd_msg = WebDriverCommandMsg::WheelScrollAction(
                 session.webview_id,
                 x as f32,
                 y as f32,
                 delta_x as f64,
                 delta_y as f64,
+                msg_id,
+                self.constellation_sender.clone(),
             );
             self.constellation_chan
                 .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
