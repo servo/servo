@@ -30,6 +30,8 @@ pub struct Method {
 
 pub trait JsonPacketStream {
     fn write_json_packet<T: Serialize>(&mut self, obj: &T) -> Result<(), Box<dyn Error>>;
+
+    #[allow(dead_code)]
     fn write_merged_json_packet<T: Serialize, U: Serialize>(
         &mut self,
         base: &T,
