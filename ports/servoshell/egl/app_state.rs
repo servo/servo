@@ -25,6 +25,7 @@ use servo::{
 use url::Url;
 
 use crate::egl::host_trait::HostTrait;
+use crate::output_image::save_output_image_if_necessary;
 use crate::prefs::ServoShellPreferences;
 
 #[derive(Clone, Debug)]
@@ -718,8 +719,14 @@ impl RunningAppState {
     pub fn present_if_needed(&self) {
         if self.inner().need_present {
             self.inner_mut().need_present = false;
-            self.active_webview().paint();
+            if !self.active_webview().paint() {
+                return;
+            }
+            save_output_image_if_necessary(&self.servoshell_preferences, &self.rendering_context);
             self.rendering_context.present();
+            if self.servoshell_preferences.exit_after_stable_image {
+                self.request_shutdown();
+            }
         }
     }
 }

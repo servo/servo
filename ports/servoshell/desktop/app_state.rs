@@ -7,15 +7,14 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
 
-use euclid::{Point2D, Vector2D};
-use image::{DynamicImage, ImageFormat};
+use euclid::Vector2D;
 use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use log::{error, info};
 use servo::base::id::WebViewId;
 use servo::config::{opts, pref};
 use servo::ipc_channel::ipc::IpcSender;
 use servo::webrender_api::ScrollLocation;
-use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
+use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FormControl, GamepadHapticEffectType,
     LoadStatus, PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog, TouchEventType,
@@ -28,6 +27,7 @@ use super::dialog::Dialog;
 use super::gamepad::GamepadSupport;
 use super::keyutils::CMD_OR_CONTROL;
 use super::window_trait::{LINE_HEIGHT, WindowPortsMethods};
+use crate::output_image::save_output_image_if_necessary;
 use crate::prefs::ServoShellPreferences;
 
 pub(crate) enum AppState {
@@ -140,31 +140,6 @@ impl RunningAppState {
         }
     }
 
-    pub(crate) fn save_output_image_if_necessary(&self) {
-        let Some(output_path) = self.servoshell_preferences.output_image_path.as_ref() else {
-            return;
-        };
-
-        let inner = self.inner();
-        let size = inner.window.rendering_context().size2d().to_i32();
-        let viewport_rect = DeviceIntRect::from_origin_and_size(Point2D::origin(), size);
-        let Some(image) = inner
-            .window
-            .rendering_context()
-            .read_to_image(viewport_rect)
-        else {
-            error!("Failed to read output image.");
-            return;
-        };
-
-        let image_format = ImageFormat::from_path(output_path).unwrap_or(ImageFormat::Png);
-        if let Err(error) =
-            DynamicImage::ImageRgba8(image).save_with_format(output_path, image_format)
-        {
-            error!("Failed to save {output_path}: {error}.");
-        }
-    }
-
     /// Repaint the Servo view is necessary, returning true if anything was actually
     /// painted or false otherwise. Something may not be painted if Servo is waiting
     /// for a stable image to paint.
@@ -181,7 +156,10 @@ impl RunningAppState {
 
         // This needs to be done before presenting(), because `ReneringContext::read_to_image` reads
         // from the back buffer.
-        self.save_output_image_if_necessary();
+        save_output_image_if_necessary(
+            &self.servoshell_preferences,
+            &self.inner().window.rendering_context(),
+        );
 
         let mut inner_mut = self.inner_mut();
         inner_mut.window.rendering_context().present();

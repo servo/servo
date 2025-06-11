@@ -8,6 +8,7 @@ interface ServoXComponentInterface {
   goBack(): void;
   goForward(): void;
   registerURLcallback(callback: (url: string) => void): void;
+  registerTerminateCallback(callback: () => void): void;
   registerPromptToastCallback(callback: (msg: string) => void): void
   initServo(options: InitOpts): void;
 }
@@ -130,6 +131,7 @@ struct Index {
             console.info('New URL from native: ', new_url)
             this.urlToLoad = new_url
           })
+          this.xComponentContext.registerTerminateCallback(() => { this.context?.terminateSelf(); })
           this.xComponentContext.registerPromptToastCallback(prompt_toast)
         })
     }
