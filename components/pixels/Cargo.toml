@@ -10,6 +10,7 @@ rust-version.workspace = true
 [lib]
 name = "pixels"
 path = "lib.rs"
+test = true
 
 [dependencies]
 euclid = { workspace = true }

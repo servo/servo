@@ -29,7 +29,7 @@ use crossbeam_channel::Sender;
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
-use euclid::default::Size2D;
+use euclid::default::{Point2D, Rect, Size2D};
 use http::HeaderMap;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
@@ -83,7 +83,7 @@ use crate::dom::bindings::codegen::Bindings::BroadcastChannelBinding::BroadcastC
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::EventSource_Binding::EventSourceMethods;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
-    ImageBitmapOptions, ImageBitmapSource,
+    ImageBitmapOptions, ImageBitmapSource, ImageOrientation, PremultiplyAlpha, ResizeQuality,
 };
 use crate::dom::bindings::codegen::Bindings::NotificationBinding::NotificationPermissionCallback;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
@@ -2959,13 +2959,188 @@ impl GlobalScope {
         result == CheckResult::Blocked
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#cropped-to-the-source-rectangle-with-formatting>
+    fn crop_and_transform_bitmap_data(
+        &self,
+        input: Snapshot,
+        mut sx: i32,
+        mut sy: i32,
+        sw: Option<i32>,
+        sh: Option<i32>,
+        options: &ImageBitmapOptions,
+    ) -> Option<Snapshot> {
+        let input_size = input.size().to_i32();
+
+        // Step 2. If sx, sy, sw and sh are specified, let sourceRectangle be a rectangle whose corners
+        // are the four points (sx, sy), (sx+sw, sy), (sx+sw, sy+sh), (sx, sy+sh). Otherwise,
+        // let sourceRectangle be a rectangle whose corners are the four points (0, 0), (width of input, 0),
+        // (width of input, height of input), (0, height of input). If either sw or sh are negative,
+        // then the top-left corner of this rectangle will be to the left or above the (sx, sy) point.
+        let sw = sw.map_or(input_size.width, |w| {
+            if w < 0 {
+                sx = sx.saturating_add(w);
+                w.saturating_abs()
+            } else {
+                w
+            }
+        });
+
+        let sh = sh.map_or(input_size.height, |h| {
+            if h < 0 {
+                sy = sy.saturating_add(h);
+                h.saturating_abs()
+            } else {
+                h
+            }
+        });
+
+        let source_rect = Rect::new(Point2D::new(sx, sy), Size2D::new(sw, sh));
+
+        // In the case the source is too large, we should fail, and that is not defined.
+        // <https://github.com/whatwg/html/issues/3323>
+        let Some(source_byte_length) = pixels::compute_rgba8_byte_length_if_within_limit(
+            source_rect.size.width as usize,
+            source_rect.size.height as usize,
+        ) else {
+            // The requested source bytes length exceeds the supported range.
+            return None;
+        };
+
+        // Step 3. Let outputWidth be determined as follows:
+        // Step 4. Let outputHeight be determined as follows:
+        let output_size = match (options.resizeWidth, options.resizeHeight) {
+            (Some(width), Some(height)) => Size2D::new(width, height),
+            (Some(width), None) => {
+                let height =
+                    source_rect.size.height as f64 * width as f64 / source_rect.size.width as f64;
+                Size2D::new(width, height.round() as u32)
+            },
+            (None, Some(height)) => {
+                let width =
+                    source_rect.size.width as f64 * height as f64 / source_rect.size.height as f64;
+                Size2D::new(width.round() as u32, height)
+            },
+            (None, None) => source_rect.size.to_u32(),
+        };
+
+        // In the case the output is too large, we should fail, and that is not defined.
+        // <https://github.com/whatwg/html/issues/3323>
+        let Some(output_byte_length) = pixels::compute_rgba8_byte_length_if_within_limit(
+            output_size.width as usize,
+            output_size.height as usize,
+        ) else {
+            // The requested output bytes length exceeds the supported range.
+            return None;
+        };
+
+        // TODO: Take into account the image orientation (such as EXIF metadata).
+
+        // Step 5. Place input on an infinite transparent black grid plane, positioned so that
+        // its top left corner is at the origin of the plane, with the x-coordinate increasing to the right,
+        // and the y-coordinate increasing down, and with each pixel in the input image data occupying a cell
+        // on the plane's grid.
+        let input_rect = Rect::new(Point2D::zero(), input_size);
+
+        let input_rect_cropped = source_rect
+            .intersection(&input_rect)
+            .unwrap_or(Rect::zero());
+
+        // Early out for empty tranformations.
+        if input_rect_cropped.is_empty() {
+            return Some(Snapshot::cleared(output_size));
+        }
+
+        // Step 6. Let output be the rectangle on the plane denoted by sourceRectangle.
+        let mut source: Snapshot = Snapshot::from_vec(
+            source_rect.size.cast(),
+            input.format(),
+            input.alpha_mode(),
+            vec![0; source_byte_length],
+        );
+
+        let source_rect_cropped = Rect::new(
+            Point2D::new(
+                input_rect_cropped.origin.x - source_rect.origin.x,
+                input_rect_cropped.origin.y - source_rect.origin.y,
+            ),
+            input_rect_cropped.size,
+        );
+
+        pixels::copy_rgba8_image(
+            input.size(),
+            input_rect_cropped.cast(),
+            input.data(),
+            source.size(),
+            source_rect_cropped.cast(),
+            source.data_mut(),
+        );
+
+        // Step 7. Scale output to the size specified by outputWidth and outputHeight.
+        let mut output = if source.size() != output_size {
+            let quality = match options.resizeQuality {
+                ResizeQuality::Pixelated => pixels::FilterQuality::None,
+                ResizeQuality::Low => pixels::FilterQuality::Low,
+                ResizeQuality::Medium => pixels::FilterQuality::Medium,
+                ResizeQuality::High => pixels::FilterQuality::High,
+            };
+
+            let output_data =
+                pixels::scale_rgba8_image(source.size(), source.data(), output_size, quality)?;
+            debug_assert_eq!(output_data.len(), output_byte_length);
+
+            Snapshot::from_vec(
+                output_size,
+                source.format(),
+                source.alpha_mode(),
+                output_data,
+            )
+        } else {
+            source
+        };
+
+        // Step 8. If the value of the imageOrientation member of options is "flipY",
+        // output must be flipped vertically, disregarding any image orientation metadata
+        // of the source (such as EXIF metadata), if any.
+        if options.imageOrientation == ImageOrientation::FlipY {
+            pixels::flip_y_rgba8_image_inplace(output.size(), output.data_mut());
+        }
+
+        // TODO: Step 9. If image is an img element or a Blob object, let val be the value
+        // of the colorSpaceConversion member of options, and then run these substeps:
+
+        // Step 10. Let val be the value of premultiplyAlpha member of options,
+        // and then run these substeps:
+        // TODO: Preserve the original input pixel format and perform conversion on demand.
+        match options.premultiplyAlpha {
+            PremultiplyAlpha::Default | PremultiplyAlpha::Premultiply => {
+                output.transform(
+                    snapshot::AlphaMode::Transparent {
+                        premultiplied: true,
+                    },
+                    snapshot::PixelFormat::BGRA,
+                );
+            },
+            PremultiplyAlpha::None => {
+                output.transform(
+                    snapshot::AlphaMode::Transparent {
+                        premultiplied: false,
+                    },
+                    snapshot::PixelFormat::BGRA,
+                );
+            },
+        }
+
+        // Step 11. Return output.
+        Some(output)
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn create_image_bitmap(
         &self,
         image: ImageBitmapSource,
-        _sx: i32,
-        _sy: i32,
+        sx: i32,
+        sy: i32,
         sw: Option<i32>,
         sh: Option<i32>,
         options: &ImageBitmapOptions,
@@ -3020,8 +3195,8 @@ impl GlobalScope {
                     return p;
                 };
 
+                // TODO: Support vector HTMLImageElement.
                 let Some(img) = img.as_raster_image() else {
-                    // Vector HTMLImageElement are not yet supported.
                     p.reject_error(Error::InvalidState, can_gc);
                     return p;
                 };
@@ -3045,7 +3220,14 @@ impl GlobalScope {
                     IpcSharedMemory::from_bytes(img.first_frame().bytes),
                 );
 
-                let image_bitmap = ImageBitmap::new(self, snapshot, can_gc);
+                let Some(bitmap_data) =
+                    self.crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
+                else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let image_bitmap = ImageBitmap::new(self, bitmap_data, can_gc);
                 image_bitmap.set_origin_clean(image.same_origin(GlobalScope::entry().origin()));
 
                 p.resolve_native(&image_bitmap, can_gc);
@@ -3068,7 +3250,14 @@ impl GlobalScope {
                     return p;
                 };
 
-                let image_bitmap = ImageBitmap::new(self, snapshot, can_gc);
+                let Some(bitmap_data) =
+                    self.crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
+                else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let image_bitmap = ImageBitmap::new(self, bitmap_data, can_gc);
                 image_bitmap.set_origin_clean(video.origin_is_clean());
 
                 p.resolve_native(&image_bitmap, can_gc);
@@ -3086,7 +3275,14 @@ impl GlobalScope {
                     return p;
                 };
 
-                let image_bitmap = ImageBitmap::new(self, snapshot, can_gc);
+                let Some(bitmap_data) =
+                    self.crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
+                else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let image_bitmap = ImageBitmap::new(self, bitmap_data, can_gc);
                 image_bitmap.set_origin_clean(canvas.origin_is_clean());
 
                 p.resolve_native(&image_bitmap, can_gc);
@@ -3104,7 +3300,14 @@ impl GlobalScope {
                     return p;
                 };
 
-                let image_bitmap = ImageBitmap::new(self, snapshot, can_gc);
+                let Some(bitmap_data) =
+                    self.crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
+                else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let image_bitmap = ImageBitmap::new(self, bitmap_data, can_gc);
                 image_bitmap.set_origin_clean(bitmap.origin_is_clean());
 
                 p.resolve_native(&image_bitmap, can_gc);
@@ -3122,7 +3325,14 @@ impl GlobalScope {
                     return p;
                 };
 
-                let image_bitmap = ImageBitmap::new(self, snapshot, can_gc);
+                let Some(bitmap_data) =
+                    self.crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
+                else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let image_bitmap = ImageBitmap::new(self, bitmap_data, can_gc);
                 image_bitmap.set_origin_clean(canvas.origin_is_clean());
 
                 p.resolve_native(&image_bitmap, can_gc);
@@ -3149,7 +3359,14 @@ impl GlobalScope {
                     image_data.to_shared_memory(),
                 );
 
-                let image_bitmap = ImageBitmap::new(self, snapshot, can_gc);
+                let Some(bitmap_data) =
+                    self.crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
+                else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let image_bitmap = ImageBitmap::new(self, bitmap_data, can_gc);
 
                 p.resolve_native(&image_bitmap, can_gc);
             },
