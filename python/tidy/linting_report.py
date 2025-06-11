@@ -22,7 +22,7 @@ class LintingReportManager:
             return
 
         current_report = {
-            "path": data[0],
+            "path": data[0].removeprefix("./"),
             "start_line": data[1],
             "end_line": data[1],
             "annotation_level": "failure",
