@@ -13,7 +13,7 @@ use compositing_traits::viewport_description::{
     DEFAULT_ZOOM, MAX_ZOOM, MIN_ZOOM, ViewportDescription,
 };
 use compositing_traits::{SendableFrameTree, WebViewTrait};
-use constellation_traits::{EmbedderToConstellationMessage, ScrollState, WindowSizeType};
+use constellation_traits::{EmbedderToConstellationMessage, WindowSizeType};
 use embedder_traits::{
     AnimationState, CompositorHitTestResult, InputEvent, MouseButton, MouseButtonAction,
     MouseButtonEvent, MouseMoveEvent, ShutdownState, TouchEvent, TouchEventResult, TouchEventType,
@@ -204,18 +204,18 @@ impl WebViewRenderer {
             return;
         };
 
-        let mut scroll_states = Vec::new();
-        details.scroll_tree.nodes.iter().for_each(|node| {
-            if let (Some(scroll_id), Some(scroll_offset)) = (node.external_id(), node.offset()) {
-                scroll_states.push(ScrollState {
-                    scroll_id,
-                    scroll_offset,
-                });
-            }
-        });
+        let scroll_offsets = details.scroll_tree.scroll_offsets();
+
+        // This might be true if we have not received a display list from the layout
+        // associated with this pipeline yet. In that case, the layout is not ready to
+        // receive scroll offsets anyway, so just save time and prevent other issues by
+        // not sending them.
+        if scroll_offsets.is_empty() {
+            return;
+        }
 
         let _ = self.global.borrow().constellation_sender.send(
-            EmbedderToConstellationMessage::SetScrollStates(pipeline_id, scroll_states),
+            EmbedderToConstellationMessage::SetScrollStates(pipeline_id, scroll_offsets),
         );
     }
 
