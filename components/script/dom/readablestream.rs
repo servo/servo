@@ -830,7 +830,9 @@ impl PipeTo {
             .expect("Releasing the reader should not fail");
 
         // If signal is not undefined, remove abortAlgorithm from signal.
-        // TODO: implement AbortSignal.
+        // Note: since `self.shutdown` is true at this point,
+        // the abort algorithm is a no-op,
+        // so for now not implementing this step.
 
         if let Some(shutdown_error) = self.shutdown_error.borrow().as_ref() {
             rooted!(in(*cx) let mut error = UndefinedValue());
@@ -1802,7 +1804,7 @@ impl ReadableStream {
 
         // If signal was not given, let signal be undefined.
         // Assert: either signal is undefined, or signal implements AbortSignal.
-        // TODO: implement AbortSignal.
+        // Note: done with the `signal` argument.
 
         // Assert: ! IsReadableStreamLocked(source) is false.
         assert!(!self.is_locked());
