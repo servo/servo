@@ -12,8 +12,8 @@ use servo::webrender_api::units::DeviceIntRect;
 
 use crate::prefs::ServoShellPreferences;
 
-// This needs to be done before presenting(), because `ReneringContext::read_to_image` reads
-// from the back buffer.
+/// This needs to be done before presenting(), because `ReneringContext::read_to_image` reads
+/// from the back buffer. This does nothing if the preference `output_image_path` is not set.
 pub(crate) fn save_output_image_if_necessary<T>(
     prefs: &ServoShellPreferences,
     rendering_context: &Rc<T>,

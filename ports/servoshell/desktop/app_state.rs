@@ -154,6 +154,8 @@ impl RunningAppState {
             return;
         }
 
+        // This needs to be done before presenting(), because `ReneringContext::read_to_image` reads
+        // from the back buffer.
         save_output_image_if_necessary(
             &self.servoshell_preferences,
             &self.inner().window.rendering_context(),
