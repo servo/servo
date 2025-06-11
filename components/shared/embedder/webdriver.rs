@@ -50,6 +50,7 @@ pub enum WebDriverCommandMsg {
         MouseButton,
         f32,
         f32,
+        // Should never be None.
         Option<WebDriverMessageId>,
         IpcSender<WebDriverCommandResponse>,
     ),
@@ -58,6 +59,8 @@ pub enum WebDriverCommandMsg {
         WebViewId,
         f32,
         f32,
+        // None if it's not the last `perform_pointer_move` since we only
+        // expect one response from constellation for each tick actions.
         Option<WebDriverMessageId>,
         IpcSender<WebDriverCommandResponse>,
     ),
@@ -68,6 +71,8 @@ pub enum WebDriverCommandMsg {
         f32,
         f64,
         f64,
+        // None if it's not the last `perform_wheel_scroll` since we only
+        // expect one response from constellation for each tick actions.
         Option<WebDriverMessageId>,
         IpcSender<WebDriverCommandResponse>,
     ),
