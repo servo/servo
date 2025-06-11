@@ -4780,12 +4780,11 @@ where
             },
             WebDriverCommandMsg::Refresh(webview_id, response_sender) => {
                 let browsing_context_id = BrowsingContextId::from(webview_id);
-                let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
-                    Some(browsing_context) => browsing_context.pipeline_id,
-                    None => {
-                        return warn!("{}: Refresh after closure", browsing_context_id);
-                    },
-                };
+                let pipeline_id = self
+                    .browsing_contexts
+                    .get(&browsing_context_id)
+                    .expect("Refresh: Browsing context must exist at this point")
+                    .pipeline_id;
                 let load_data = match self.pipelines.get(&pipeline_id) {
                     Some(pipeline) => pipeline.load_data.clone(),
                     None => return warn!("{}: Refresh after closure", pipeline_id),
@@ -4799,12 +4798,11 @@ where
             },
             // TODO: This should use the ScriptThreadMessage::EvaluateJavaScript command
             WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd) => {
-                let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
-                    Some(browsing_context) => browsing_context.pipeline_id,
-                    None => {
-                        return warn!("{}: ScriptCommand after closure", browsing_context_id);
-                    },
-                };
+                let pipeline_id = self
+                    .browsing_contexts
+                    .get(&browsing_context_id)
+                    .expect("ScriptCommand: Browsing context must exist at this point")
+                    .pipeline_id;
                 let control_msg = ScriptThreadMessage::WebDriverScriptCommand(pipeline_id, cmd);
                 let result = match self.pipelines.get(&pipeline_id) {
                     Some(pipeline) => pipeline.event_loop.send(control_msg),
@@ -4815,12 +4813,11 @@ where
                 }
             },
             WebDriverCommandMsg::SendKeys(browsing_context_id, cmd) => {
-                let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
-                    Some(browsing_context) => browsing_context.pipeline_id,
-                    None => {
-                        return warn!("{}: SendKeys after closure", browsing_context_id);
-                    },
-                };
+                let pipeline_id = self
+                    .browsing_contexts
+                    .get(&browsing_context_id)
+                    .expect("SendKeys: Browsing context must exist at this point")
+                    .pipeline_id;
                 let event_loop = match self.pipelines.get(&pipeline_id) {
                     Some(pipeline) => pipeline.event_loop.clone(),
                     None => return warn!("{}: SendKeys after closure", pipeline_id),
