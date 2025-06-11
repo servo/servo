@@ -382,13 +382,6 @@ impl ReflowGoal {
     }
 }
 
-/// Information needed for a reflow.
-#[derive(Debug)]
-pub struct Reflow {
-    ///  A clipping rectangle for the page, an enlarged rectangle containing the viewport.
-    pub page_clip_rect: Rect<Au>,
-}
-
 #[derive(Clone, Debug, MallocSizeOf)]
 pub struct IFrameSize {
     pub browsing_context_id: BrowsingContextId,
@@ -416,8 +409,6 @@ pub struct ReflowResult {
 /// Information needed for a script-initiated reflow.
 #[derive(Debug)]
 pub struct ReflowRequest {
-    /// General reflow data.
-    pub reflow_info: Reflow,
     /// The document node.
     pub document: TrustedNodeAddress,
     /// The dirty root from which to restyle.

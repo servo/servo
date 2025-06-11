@@ -2451,7 +2451,7 @@ impl ScriptThread {
     fn handle_viewport(&self, id: PipelineId, rect: Rect<f32>) {
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
-            document.window().set_page_clip_rect_with_new_viewport(rect);
+            document.window().set_viewport(rect);
             return;
         }
         let loads = self.incomplete_loads.borrow();
