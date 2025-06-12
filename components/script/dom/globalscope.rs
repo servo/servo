@@ -279,6 +279,10 @@ pub(crate) struct GlobalScope {
     #[no_trace]
     origin: MutableOrigin,
 
+    /// <https://html.spec.whatwg.org/multipage/#concept-environment-creation-url>
+    #[no_trace]
+    creation_url: ServoUrl,
+
     /// <https://html.spec.whatwg.org/multipage/#concept-environment-top-level-creation-url>
     #[no_trace]
     top_level_creation_url: Option<ServoUrl>,
@@ -732,6 +736,7 @@ impl GlobalScope {
         script_to_constellation_chan: ScriptToConstellationChan,
         resource_threads: ResourceThreads,
         origin: MutableOrigin,
+        creation_url: ServoUrl,
         top_level_creation_url: Option<ServoUrl>,
         microtask_queue: Rc<MicrotaskQueue>,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
@@ -760,6 +765,7 @@ impl GlobalScope {
             resource_threads,
             timers: OnceCell::default(),
             origin,
+            creation_url,
             top_level_creation_url,
             permission_state_invocation_results: Default::default(),
             microtask_queue,
@@ -2462,6 +2468,11 @@ impl GlobalScope {
     /// Get the origin for this global scope
     pub(crate) fn origin(&self) -> &MutableOrigin {
         &self.origin
+    }
+
+    /// Get the creation_url for this global scope
+    pub(crate) fn creation_url(&self) -> &ServoUrl {
+        &self.creation_url
     }
 
     /// Get the top_level_creation_url for this global scope

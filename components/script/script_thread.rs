@@ -3353,6 +3353,7 @@ impl ScriptThread {
             incomplete.parent_info,
             incomplete.viewport_details,
             origin.clone(),
+            final_url.clone(),
             // TODO(37417): Set correct top-level URL here. Currently, we only specify the
             // url of the current window. However, in case this is an iframe, we should
             // pass in the URL from the frame that includes the iframe (which potentially

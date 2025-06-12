@@ -84,6 +84,7 @@ pub(crate) fn prepare_workerscope_init(
         worker_id: worker_id.unwrap_or_else(|| WorkerId(Uuid::new_v4())),
         pipeline_id: global.pipeline_id(),
         origin: global.origin().immutable().clone(),
+        creation_url: global.creation_url().clone(),
         inherited_secure_context: Some(global.is_secure_context()),
     };
 
@@ -167,6 +168,7 @@ impl WorkerGlobalScope {
                 init.script_to_constellation_chan,
                 init.resource_threads,
                 MutableOrigin::new(init.origin),
+                init.creation_url,
                 None,
                 runtime.microtask_queue.clone(),
                 #[cfg(feature = "webgpu")]
