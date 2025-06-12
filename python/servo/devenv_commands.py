@@ -140,7 +140,7 @@ class MachCommands(CommandBase):
                         continue
 
                     annotation_level = severenty_map.get(message.get("level"), "error")
-
+                    rendered_message = message.get("rendered", "").replace("\n", "%0A")
                     # Add column info if start_line == end_line
                     if primary_span["line_start"] == primary_span["line_end"]:
                         print(
@@ -151,7 +151,7 @@ class MachCommands(CommandBase):
                                 f"col={primary_span['column_start']},"
                                 f"endColumn={primary_span['column_end']},"
                                 f"title=Mach clippy: {message.get('message', '')}::"
-                                f"{message.get('rendered', '')}"
+                                f"{rendered_message}"
                             ),
                             flush=True,
                         )
