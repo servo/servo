@@ -147,7 +147,8 @@ impl MicrotaskQueue {
                         MutationObserver::notify_mutation_observers(can_gc);
                     },
                     Microtask::ReadableStreamTeeReadRequest(ref task) => {
-                        task.microtask_chunk_steps(cx, can_gc)
+                        let _realm = task.enter_realm();
+                        task.handler(can_gc);
                     },
                 }
             }
