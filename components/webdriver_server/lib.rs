@@ -521,7 +521,14 @@ impl Handler {
         let mut servo_capabilities = ServoCapabilities::new();
         let processed_capabilities = parameters.match_browser(&mut servo_capabilities)?;
 
-        if self.session.is_none() {
+        // Step 1. If the list of active HTTP sessions is not empty
+        // return error with error code session not created.
+        if self.session.is_some() {
+            Err(WebDriverError::new(
+                ErrorStatus::SessionNotCreated,
+                "Session already created",
+            ))
+        } else {
             match processed_capabilities {
                 Some(mut processed) => {
                     let webview_id = self.focus_webview_id()?;
@@ -633,16 +640,15 @@ impl Handler {
                     let response =
                         NewSessionResponse::new(session.id.to_string(), Value::Object(processed));
                     self.session = Some(session);
-
                     Ok(WebDriverResponse::NewSession(response))
                 },
-                None => Ok(WebDriverResponse::Void),
+                // Step 5. If capabilities's is null,
+                // return error with error code session not created.
+                None => Err(WebDriverError::new(
+                    ErrorStatus::SessionNotCreated,
+                    "Session not created due to invalid capabilities",
+                )),
             }
-        } else {
-            Err(WebDriverError::new(
-                ErrorStatus::UnknownError,
-                "Session already created",
-            ))
         }
     }
 
@@ -967,24 +973,31 @@ impl Handler {
 
     /// <https://w3c.github.io/webdriver/#close-window>
     fn handle_close_window(&mut self) -> WebDriverResult<WebDriverResponse> {
-        {
-            let webview_id = self.session()?.webview_id;
-            self.verify_top_level_browsing_context_is_open(webview_id)?;
-            let session = self.session_mut().unwrap();
-            session.window_handles.remove(&webview_id);
-            let cmd_msg = WebDriverCommandMsg::CloseWebView(session.webview_id);
-            self.constellation_chan
-                .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
-                .unwrap();
+        let webview_id = self.session()?.webview_id;
+        // Step 1. If session's current top-level browsing context is no longer open,
+        // return error with error code no such window.
+        self.verify_top_level_browsing_context_is_open(webview_id)?;
+        let session = self.session_mut().unwrap();
+        // Step 3. Close session's current top-level browsing context.
+        session.window_handles.remove(&webview_id);
+        let cmd_msg = WebDriverCommandMsg::CloseWebView(session.webview_id);
+        self.constellation_chan
+            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
+            .unwrap();
+        let window_handles: Vec<String> = self
+            .session()
+            .unwrap()
+            .window_handles
+            .values()
+            .cloned()
+            .collect();
+        // Step 4. If there are no more open top-level browsing contexts, try to close the session.
+        if window_handles.is_empty() {
+            self.session = None;
         }
-
+        // Step 5. Return the result of running the remote end steps for the Get Window Handles command
         Ok(WebDriverResponse::CloseWindow(CloseWindowResponse(
-            self.session()
-                .unwrap()
-                .window_handles
-                .values()
-                .cloned()
-                .collect(),
+            window_handles,
         )))
     }
 
@@ -1484,6 +1497,9 @@ impl Handler {
 
     // https://w3c.github.io/webdriver/#dismiss-alert
     fn handle_dismiss_alert(&mut self) -> WebDriverResult<WebDriverResponse> {
+        // Step 1. If session's current top-level browsing context is no longer open,
+        // return error with error code no such window.
+        self.verify_top_level_browsing_context_is_open(self.session()?.webview_id)?;
         // Since user prompts are not yet implement this will always succeed
         Ok(WebDriverResponse::Void)
     }
