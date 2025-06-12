@@ -124,7 +124,6 @@ class MachCommands(CommandBase):
 
             with open("temp/out.json", "r", encoding="utf-8") as file:
                 data = json.load(file)
-                annotations = []
                 count = 0
                 severenty_map = {"help": "notice", "note": "notice", "warning": "warning"}
                 for item in data:
