@@ -72,8 +72,11 @@ impl OffscreenCanvas {
         )
     }
 
-    pub(crate) fn get_size(&self) -> Size2D<u64> {
-        Size2D::new(self.Width(), self.Height())
+    pub(crate) fn get_size(&self) -> Size2D<u32> {
+        Size2D::new(
+            self.Width().try_into().unwrap_or(u32::MAX),
+            self.Height().try_into().unwrap_or(u32::MAX),
+        )
     }
 
     pub(crate) fn origin_is_clean(&self) -> bool {
@@ -121,10 +124,6 @@ impl OffscreenCanvas {
             &*context,
         )));
         Some(context)
-    }
-
-    pub(crate) fn is_valid(&self) -> bool {
-        self.Width() != 0 && self.Height() != 0
     }
 
     pub(crate) fn placeholder(&self) -> Option<&HTMLCanvasElement> {

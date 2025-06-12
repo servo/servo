@@ -50,8 +50,8 @@ test((t) => {
 test((t) => {
   main.append(test_visited.content.cloneNode(true));
   t.add_cleanup(() => main.replaceChildren());
-  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(255, 255, 255)');
-  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(255, 255, 255)');
+  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(255, 255, 255)', 'visited');
+  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(255, 255, 255)', 'unvisited');
 }, ':visited as scoped selector');
 </script>
 
@@ -68,8 +68,8 @@ test((t) => {
 test((t) => {
   main.append(test_not_link.content.cloneNode(true));
   t.add_cleanup(() => main.replaceChildren());
-  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(255, 255, 255)');
-  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(255, 255, 255)');
+  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(255, 255, 255)', 'visited');
+  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(255, 255, 255)', 'unvisited');
 }, ':not(:link) as scoped selector');
 </script>
 
@@ -86,8 +86,8 @@ test((t) => {
 test((t) => {
   main.append(test_not_visited.content.cloneNode(true));
   t.add_cleanup(() => main.replaceChildren());
-  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(0, 128, 0)');
-  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(0, 128, 0)');
+  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(0, 128, 0)', 'visited');
+  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(0, 128, 0)', 'unvisited');
 }, ':not(:visited) as scoped selector');
 </script>
 
@@ -106,8 +106,8 @@ test((t) => {
 test((t) => {
   main.append(test_link_root.content.cloneNode(true));
   t.add_cleanup(() => main.replaceChildren());
-  assert_equals(getComputedStyle(visited.firstElementChild).backgroundColor, 'rgb(0, 128, 0)');
-  assert_equals(getComputedStyle(unvisited.firstElementChild).backgroundColor, 'rgb(0, 128, 0)');
+  assert_equals(getComputedStyle(visited.firstElementChild).backgroundColor, 'rgb(0, 128, 0)', 'visited');
+  assert_equals(getComputedStyle(unvisited.firstElementChild).backgroundColor, 'rgb(0, 128, 0)', 'unvisited');
 }, ':link as scoping root');
 </script>
 
@@ -124,8 +124,8 @@ test((t) => {
 test((t) => {
   main.append(test_visited_root.content.cloneNode(true));
   t.add_cleanup(() => main.replaceChildren());
-  assert_equals(getComputedStyle(visited.firstElementChild).backgroundColor, 'rgb(255, 255, 255)');
-  assert_equals(getComputedStyle(unvisited.firstElementChild).backgroundColor, 'rgb(255, 255, 255)');
+  assert_equals(getComputedStyle(visited.firstElementChild).backgroundColor, 'rgb(255, 255, 255)', 'visited');
+  assert_equals(getComputedStyle(unvisited.firstElementChild).backgroundColor, 'rgb(255, 255, 255)', 'unvisited');
 }, ':visited as scoping root');
 </script>
 
@@ -142,8 +142,8 @@ test((t) => {
 test((t) => {
   main.append(test_not_visited_root.content.cloneNode(true));
   t.add_cleanup(() => main.replaceChildren());
-  assert_equals(getComputedStyle(visited.firstElementChild).backgroundColor, 'rgb(0, 128, 0)');
-  assert_equals(getComputedStyle(unvisited.firstElementChild).backgroundColor, 'rgb(0, 128, 0)');
+  assert_equals(getComputedStyle(visited.firstElementChild).backgroundColor, 'rgb(0, 128, 0)', 'visited');
+  assert_equals(getComputedStyle(unvisited.firstElementChild).backgroundColor, 'rgb(0, 128, 0)', 'unvisited');
 }, ':not(:visited) as scoping root');
 </script>
 
@@ -160,8 +160,8 @@ test((t) => {
 test((t) => {
   main.append(test_not_link_root.content.cloneNode(true));
   t.add_cleanup(() => main.replaceChildren());
-  assert_equals(getComputedStyle(visited.firstElementChild).backgroundColor, 'rgb(255, 255, 255)');
-  assert_equals(getComputedStyle(unvisited.firstElementChild).backgroundColor, 'rgb(255, 255, 255)');
+  assert_equals(getComputedStyle(visited.firstElementChild).backgroundColor, 'rgb(255, 255, 255)', 'visited');
+  assert_equals(getComputedStyle(unvisited.firstElementChild).backgroundColor, 'rgb(255, 255, 255)', 'unvisited');
 }, ':not(:link) as scoping root');
 </script>
 
@@ -180,8 +180,8 @@ test((t) => {
 test((t) => {
   main.append(test_link_root_scope.content.cloneNode(true));
   t.add_cleanup(() => main.replaceChildren());
-  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(0, 128, 0)');
-  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(0, 128, 0)');
+  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(0, 128, 0)', 'visited');
+  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(0, 128, 0)', 'unvisited');
 }, ':link as scoping root, :scope');
 </script>
 
@@ -198,8 +198,8 @@ test((t) => {
 test((t) => {
   main.append(test_visited_root_scope.content.cloneNode(true));
   t.add_cleanup(() => main.replaceChildren());
-  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(255, 255, 255)');
-  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(255, 255, 255)');
+  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(255, 255, 255)', 'visited');
+  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(255, 255, 255)', 'unvisited');
 }, ':visited as scoping root, :scope');
 </script>
 
@@ -216,8 +216,8 @@ test((t) => {
 test((t) => {
   main.append(test_not_visited_root_scope.content.cloneNode(true));
   t.add_cleanup(() => main.replaceChildren());
-  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(0, 128, 0)');
-  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(0, 128, 0)');
+  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(0, 128, 0)', 'visited');
+  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(0, 128, 0)', 'unvisited');
 }, ':not(:visited) as scoping root, :scope');
 </script>
 
@@ -234,8 +234,8 @@ test((t) => {
 test((t) => {
   main.append(test_not_link_root_scope.content.cloneNode(true));
   t.add_cleanup(() => main.replaceChildren());
-  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(255, 255, 255)');
-  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(255, 255, 255)');
+  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(255, 255, 255)', 'visited');
+  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(255, 255, 255)', 'unvisited');
 }, ':not(:link) as scoping root, :scope');
 </script>
 
@@ -254,8 +254,8 @@ test((t) => {
 test((t) => {
   main.append(test_link_scoping_limit.content.cloneNode(true));
   t.add_cleanup(() => main.replaceChildren());
-  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(255, 255, 255)');
-  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(255, 255, 255)');
+  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(255, 255, 255)', 'visited');
+  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(255, 255, 255)', 'unvisited');
 }, ':link as scoping limit');
 </script>
 
@@ -272,8 +272,8 @@ test((t) => {
 test((t) => {
   main.append(test_visited_scoping_limit.content.cloneNode(true));
   t.add_cleanup(() => main.replaceChildren());
-  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(0, 128, 0)');
-  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(0, 128, 0)');
+  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(0, 128, 0)', 'visited');
+  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(0, 128, 0)', 'unvisited');
 }, ':visited as scoping limit');
 </script>
 
@@ -290,8 +290,8 @@ test((t) => {
 test((t) => {
   main.append(test_not_link_scoping_limit.content.cloneNode(true));
   t.add_cleanup(() => main.replaceChildren());
-  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(0, 128, 0)');
-  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(0, 128, 0)');
+  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(0, 128, 0)', 'visited');
+  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(0, 128, 0)', 'unvisited');
 }, ':not(:link) as scoping limit');
 </script>
 
@@ -308,7 +308,7 @@ test((t) => {
 test((t) => {
   main.append(test_not_visited_scoping_limit.content.cloneNode(true));
   t.add_cleanup(() => main.replaceChildren());
-  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(255, 255, 255)');
-  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(255, 255, 255)');
+  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(255, 255, 255)', 'visited');
+  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(255, 255, 255)', 'unvisited');
 }, ':not(:visited) as scoping limit');
 </script>

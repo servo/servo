@@ -1,0 +1,51 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/reporting/resources/report-helper.js"></script>
+
+<body>
+<script>
+  promise_test(async () => {
+    // Generated using https://sha2.it/ed25519.html in a browser that supports Signature-Based SRI (e.g. Chrome 136+, with Experimental Web Platform Features enabled)
+    const signature = encodeURIComponent(
+      'header(Unencoded-Digest, sha-384=:tqyFpeo21WFM8HDeUtLqH20GUq\/q3D1R6mqTzW3RtyTZ3dAYZJhC1wUcnkgOE2ak:)' +
+      '|header(Signature-Input, signature=\\("unencoded-digest";sf\\); keyid="JrQLj5P\/89iXES9+vFgrIy29clF9CC\/oPPsw3c5D0bs="; tag="sri")' +
+      '|header(Signature, signature=:qM19uLskHm2TQG5LJcH/hY0n0BWWzYOJztVWYlwk0cZb3u0JdgUMre1J4Jn8Tma0x2u5/kPBfbXRMbB+X+vTBw==:)');
+
+    const REMOTE_EXECUTOR =
+      `/common/dispatcher/remote-executor.html`;
+    const iframe_uuid = token();
+
+    let header =
+      `header(Integrity-Policy,blocked-destinations=\\(script\\)\\, endpoints=\\(integrity-endpoint-1 integrity-endpoint-2\\))`;
+    header +=
+      `|header(Integrity-Policy-Report-Only,blocked-destinations=\\(script\\)\\, endpoints=\\(integrity-endpoint-3\\))`;
+    const params = new URLSearchParams();
+    params.set('uuid', iframe_uuid);
+    params.set('pipe', header);
+
+    const iframe = document.createElement('iframe');
+    iframe.src = `${REMOTE_EXECUTOR}?${params}`;
+    document.body.appendChild(iframe);
+
+    // Execute code directly from the iframe.
+    const ctx = new RemoteContext(iframe_uuid);
+    const result = await ctx.execute_script(async (signature) => {
+      window.ran = false;
+      // Load the script
+      await new Promise(resolve => {
+        const script = document.createElement('script');
+        script.crossOrigin="anonymous";
+        script.integrity = "ed25519-JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";
+        script.onload = resolve;
+        script.onerror = resolve;
+        script.src = "/content-security-policy/resources/ran.js?pipe=" + signature;
+        document.body.appendChild(script);
+      });
+      return { ran: window.ran };
+    }, [signature]);
+    assert_equals(result.ran, true);
+  }, "Ensure that a script with signature integrity runs");
+</script>

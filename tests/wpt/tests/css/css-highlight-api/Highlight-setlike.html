@@ -62,6 +62,15 @@
     }, 'Highlight add and has methods work as expected' + rangesCombinationDescription);
 
     test(() => {
+      let customHighlight = new Highlight();
+      customHighlight.add(rangeCollections[i][0]).add(rangeCollections[i][1]);
+      assert_true(customHighlight.has(rangeCollections[i][0]), 'Highlight.has returns true when it contains the first range added');
+      assert_true(customHighlight.has(rangeCollections[i][1]), 'Highlight.has returns true when it contains the second range added');
+      assert_false(customHighlight.has(rangeCollections[i][2]), 'Highlight.has returns false when it doesn\'t contain the range which is passed as the argument');
+      assert_equals(customHighlight.size, 2, 'Highlight.size is 2 after adding two different ranges by chaining the add method');
+    }, "Highlight add method is chainable" + rangesCombinationDescription);
+
+    test(() => {
       let customHighlight = new Highlight(rangeCollections[i][0], rangeCollections[i][1]);
       assert_false(customHighlight.delete(rangeCollections[i][2]), 'Highlight.delete returns false when trying to delete a range that is not in the highlight');
       assert_true(customHighlight.delete(rangeCollections[i][1]), 'Highlight.delete returns true when trying to delete a range that is in the highlight');

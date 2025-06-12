@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-contain-3/#contain-property">
+<!-- TODO link scoped-view-transition-spec once available -->
+<meta name="assert" content="contain supports view-transition'.">
+<meta name="assert" content="contain serializes in canonical order.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+</body>
+<script>
+/* Note this test is an extension of contain-valid. Once
+   contain: view-transition" is resolved, this test should be moved or
+   replaced, depending on the resolution. */
+test_valid_value("contain", "view-transition");
+test_valid_value("contain", "view-transition layout", "layout view-transition");
+test_valid_value("contain",
+                 "paint view-transition style",
+                 "style paint view-transition");
+</script>
+</html>

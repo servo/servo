@@ -38,11 +38,10 @@ def check_args(**kwargs):
 
 
 def browser_kwargs(logger, test_type, run_info_data, config, subsuite, **kwargs):
-    kwargs["binary_args"].extend(subsuite.config.get("binary_args", []))
     return {
         "binary": kwargs["binary"],
         "debug_info": kwargs["debug_info"],
-        "binary_args": kwargs["binary_args"],
+        "binary_args": kwargs["binary_args"] + subsuite.config.get("binary_args", []),
         "user_stylesheets": kwargs.get("user_stylesheets"),
         "ca_certificate_path": config.ssl_config["ca_cert_path"],
     }

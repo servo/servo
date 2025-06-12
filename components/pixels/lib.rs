@@ -45,7 +45,7 @@ pub fn compute_rgba8_byte_length_if_within_limit(width: usize, height: usize) ->
         .filter(|v| *v <= MAX_IMAGE_BYTE_LENGTH)
 }
 
-pub fn rgba8_get_rect(pixels: &[u8], size: Size2D<u64>, rect: Rect<u64>) -> Cow<[u8]> {
+pub fn rgba8_get_rect(pixels: &[u8], size: Size2D<u32>, rect: Rect<u32>) -> Cow<[u8]> {
     assert!(!rect.is_empty());
     assert!(Rect::from_size(size).contains_rect(&rect));
     assert_eq!(pixels.len() % 4, 0);
@@ -106,18 +106,18 @@ pub fn multiply_u8_color(a: u8, b: u8) -> u8 {
 
 pub fn clip(
     mut origin: Point2D<i32>,
-    mut size: Size2D<u64>,
-    surface: Size2D<u64>,
-) -> Option<Rect<u64>> {
+    mut size: Size2D<u32>,
+    surface: Size2D<u32>,
+) -> Option<Rect<u32>> {
     if origin.x < 0 {
-        size.width = size.width.saturating_sub(-origin.x as u64);
+        size.width = size.width.saturating_sub(-origin.x as u32);
         origin.x = 0;
     }
     if origin.y < 0 {
-        size.height = size.height.saturating_sub(-origin.y as u64);
+        size.height = size.height.saturating_sub(-origin.y as u32);
         origin.y = 0;
     }
-    let origin = Point2D::new(origin.x as u64, origin.y as u64);
+    let origin = Point2D::new(origin.x as u32, origin.y as u32);
     Rect::new(origin, size)
         .intersection(&Rect::from_size(surface))
         .filter(|rect| !rect.is_empty())

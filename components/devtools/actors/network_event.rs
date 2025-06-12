@@ -18,6 +18,7 @@ use serde_json::{Map, Value};
 
 use crate::StreamId;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::network_handler::Cause;
 use crate::protocol::JsonPacketStream;
 
 struct HttpRequest {
@@ -44,7 +45,7 @@ pub struct NetworkEventActor {
     is_xhr: bool,
 }
 
-#[derive(Serialize)]
+#[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EventActor {
     pub actor: String,
@@ -55,6 +56,7 @@ pub struct EventActor {
     #[serde(rename = "isXHR")]
     pub is_xhr: bool,
     pub private: bool,
+    pub cause: Cause,
 }
 
 #[derive(Serialize)]
@@ -392,6 +394,14 @@ impl NetworkEventActor {
             LocalResult::Ambiguous(date_time, _) => date_time.to_rfc3339().to_string(),
         };
 
+        let cause_type = match self.request.url.as_str() {
+            // Adjust based on request data
+            url if url.ends_with(".css") => "stylesheet",
+            url if url.ends_with(".js") => "script",
+            url if url.ends_with(".png") || url.ends_with(".jpg") => "img",
+            _ => "document",
+        };
+
         EventActor {
             actor: self.name(),
             url: self.request.url.clone(),
@@ -400,6 +410,10 @@ impl NetworkEventActor {
             time_stamp: self.request.time_stamp,
             is_xhr: self.is_xhr,
             private: false,
+            cause: Cause {
+                type_: cause_type.to_string(),
+                loading_document_uri: None, // Set if available
+            },
         }
     }
 

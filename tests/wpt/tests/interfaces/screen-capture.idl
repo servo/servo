@@ -29,6 +29,12 @@ enum SystemAudioPreferenceEnum {
   "exclude"
 };
 
+enum WindowAudioPreferenceEnum {
+  "system",
+  "window",
+  "exclude"
+};
+
 enum SurfaceSwitchingPreferenceEnum {
   "include",
   "exclude"
@@ -45,6 +51,7 @@ dictionary DisplayMediaStreamOptions {
   CaptureController controller;
   SelfCapturePreferenceEnum selfBrowserSurface;
   SystemAudioPreferenceEnum systemAudio;
+  WindowAudioPreferenceEnum windowAudio;
   SurfaceSwitchingPreferenceEnum surfaceSwitching;
   MonitorTypeSurfacesEnum monitorTypeSurfaces;
 };

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html class='reftest-wait'>
+<title>CSS Backdrop Filter with transform and clip</title>
+<link rel="author" href="mailto:kevers@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match" href="css-backdrop-filter-transform-clip-ref.html">
+<link rel="help" href="https://crbug.com/401816608">
+<script src="/common/reftest-wait.js"></script>
+<style>
+#wrapper {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  border-radius: 50px;
+  overflow: hidden;
+}
+
+#child {
+  position: absolute;
+  left: 50px;
+  width: 300px;
+  height: 300px;
+  backdrop-filter: invert(100%);
+}
+@keyframes a {
+  0% { transform: translateX(0px); }
+  50% { transform: translateX(-100px); }
+  100% { transform: translateX(100px); }
+}
+#animation {
+  animation: a 2s linear paused;
+}
+</style>
+<body>
+<div id="wrapper">
+  <div id="animation">
+    <div id="child"></div>
+  </div>
+</div>
+</body>
+<script>
+  function rAF() {
+    return new Promise(resolve => {
+      requestAnimationFrame(resolve);
+    });
+  }
+  async function runTest() {
+    await rAF();
+    const anim = document.getAnimations()[0];
+    anim.ready.then(async () => {
+      await rAF();
+      // Initially the backdrop filter does not completely cover the clip area
+      // because of left: 50px. Shift the backdrop filter 100px to left.
+      // Ensure the filter now completely covers the clip and is not applied
+      // outside the left boundary of the clip.
+      anim.currentTime = 1000;
+      await rAF();
+      takeScreenshot();
+    });
+  }
+  window.onload = runTest;
+</script>
+</html>

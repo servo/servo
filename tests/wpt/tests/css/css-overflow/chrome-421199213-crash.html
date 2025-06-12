@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/421199213">
+<style>
+  #scroller {
+    overflow: scroll;
+    scroll-marker-group: before;
+  }
+  #item::scroll-marker { content: counter(x); }
+</style>
+<p>Pass if no crash</p>
+<div id="scroller">
+  <div id="item"></div>
+</div>

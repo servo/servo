@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/namespaces.js"></script>
+<script src="support/passthroughpolicy.js"></script>
+<script src="support/script-messages.js"></script>
+<link rel="help" href="https://w3c.github.io/trusted-types/dist/spec/#enforcement-in-scripts">
+<link rel="help" href="https://html.spec.whatwg.org/#prepare-the-script-element">
+<meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script'">
+<!-- This is the same test as script-enforcement-006 but for SVGScriptElement. -->
+<svg id="container"></svg>
+<script>
+  const logMessageModulePath = "./support/logMessage-module.sub.js";
+
+  // Define a default policy that transforms the script's type to some valid
+  // source content.
+  trustedTypes.createPolicy("default", {
+    createScript: (value, _, sink) => {
+      window.log_message("CREATE_SCRIPT");
+      window.log_message(sink);
+      switch (value) {
+      case "classic":
+        return `window.log_message('CLASSIC');`;
+      case "module":
+        return `window.log_message('MODULE');`;
+      case "importmap":
+        return `{ "imports": { "${logMessageModulePath}?message=UNMAPPED": "${logMessageModulePath}?message=IMPORTMAP" }}`;
+      }
+    }
+  });
+
+  promise_test(async t => {
+    let messages = await script_messages_for(_ => {
+      let script = create_svg_script_with_untrusted_source_text("classic");
+      script.setAttribute("type", "application/ecmascript");
+      // Appending the script will log "CLASSIC".
+      container.appendChild(script);
+    });
+    assert_array_equals(messages, ["CREATE_SCRIPT", "SVGScriptElement text", "CLASSIC"]);
+  }, "Untrusted SVGScriptElement with classic type uses the source text returned by the default policy.");
+
+  // Firefox disallows import map after a module load, so place this promise
+  // test before the module test.
+  // See https://bugzilla.mozilla.org/show_bug.cgi?id=1916277#c4
+  promise_test(async t => {
+    let messages = await script_messages_for(async _ => {
+      let script = create_svg_script_with_untrusted_source_text("importmap");
+      script.setAttribute("type", "importmap");
+
+      // Appending the script sets up an import map for logMessageModulePath.
+      container.appendChild(script);
+
+      // Importing logMessageModulePath will log message "IMPORTMAP".
+      await import(`${logMessageModulePath}?message=UNMAPPED`);
+    });
+    assert_array_equals(messages, ["CREATE_SCRIPT", "SVGScriptElement text", "IMPORTMAP"]);
+  }, "Untrusted SVGScriptElement of importmap type uses the source text returned by the default policy.");
+
+  promise_test(async t => {
+    let messages = await script_messages_for(async _ => {
+      let script = create_svg_script_with_untrusted_source_text("module");
+      script.setAttribute("type", "module");
+
+      // Appending the script will log message "MODULE".
+      container.appendChild(script);
+    });
+    assert_array_equals(messages, ["CREATE_SCRIPT", "SVGScriptElement text", "MODULE"]);
+  }, "Untrusted SVGScriptElement of module type uses the source text returned by the default policy.");
+</script>

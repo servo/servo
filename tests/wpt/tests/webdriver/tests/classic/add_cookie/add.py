@@ -237,7 +237,8 @@ def test_add_cookie_with_valid_samesite_flag(session, url, same_site):
     new_cookie = {
         "name": "hello",
         "value": "world",
-        "sameSite": same_site
+        "secure": True,
+        "sameSite": same_site,
     }
 
     session.url = url("/common/blank.html")

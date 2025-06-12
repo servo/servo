@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<script>
+async function doLogin() {
+  navigator.login.setStatus("logged-in");
+  // Delay the close call to allow the accounts fetch to complete beforehand.
+  setTimeout(() => {
+    IdentityProvider.close();
+  }, 200);
+}
+window.onload = doLogin;
+</script>

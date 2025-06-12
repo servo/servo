@@ -44,6 +44,7 @@ async def test_partition_context(bidi_session, set_cookie, top_context, test_pag
             domain=domain_value(),
             name=cookie_name,
             value=NetworkStringValue(cookie_value),
+            secure=True,
         ),
         partition=partition,
     )

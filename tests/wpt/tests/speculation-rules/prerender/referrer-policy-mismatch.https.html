@@ -15,17 +15,17 @@
 setup(() => assertSpeculationRulesIsSupported());
 
 promise_test(async t => {
-  const rcHelper = new RemoteContextHelper();
+  const rcHelper = new PrerenderingRemoteContextHelper();
   const referrerRC = await rcHelper.addWindow(undefined, { features: "noopener" });
   await setReferrerPolicy(referrerRC, "strict-origin-when-cross-origin");
-  const prerenderedRC = await addPrerenderRC(referrerRC);
+  const prerenderedRC = await referrerRC.addPrerender();
 
   const referrerURL = await referrerRC.executeScript(() => location.href);
 
   assert_equals(await prerenderedRC.executeScript(() => document.prerendering), true);
   assert_equals(await prerenderedRC.executeScript(() => document.referrer), referrerURL);
 
-  await activatePrerenderRC(referrerRC, prerenderedRC, url => {
+  await referrerRC.navigateExpectingPrerenderingActivation(prerenderedRC, url => {
     const a = document.createElement("a");
     a.href = url;
     a.referrerPolicy = "no-referrer";
@@ -37,17 +37,17 @@ promise_test(async t => {
 }, 'prerendered with "strict-origin-when-cross-origin", activated with "no-referrer"');
 
 promise_test(async t => {
-  const rcHelper = new RemoteContextHelper();
+  const rcHelper = new PrerenderingRemoteContextHelper();
   const referrerRC = await rcHelper.addWindow(undefined, { features: "noopener" });
   await setReferrerPolicy(referrerRC, "strict-origin-when-cross-origin");
-  const prerenderedRC = await addPrerenderRC(referrerRC);
+  const prerenderedRC = await referrerRC.addPrerender();
 
   const referrerURL = await referrerRC.executeScript(() => location.href);
 
   assert_equals(await prerenderedRC.executeScript(() => document.prerendering), true);
   assert_equals(await prerenderedRC.executeScript(() => document.referrer), referrerURL);
 
-  await activatePrerenderRC(referrerRC, prerenderedRC, url => {
+  await referrerRC.navigateExpectingPrerenderingActivation(prerenderedRC, url => {
     const a = document.createElement("a");
     a.href = url;
     a.referrerPolicy = "strict-origin";
@@ -59,10 +59,10 @@ promise_test(async t => {
 }, 'prerendered with "strict-origin-when-cross-origin", activated with "strict-origin"');
 
 promise_test(async t => {
-  const rcHelper = new RemoteContextHelper();
+  const rcHelper = new PrerenderingRemoteContextHelper();
   const referrerRC = await rcHelper.addWindow(undefined, { features: "noopener" });
   await setReferrerPolicy(referrerRC, "strict-origin");
-  const prerenderedRC = await addPrerenderRC(referrerRC);
+  const prerenderedRC = await referrerRC.addPrerender();
 
   const referrerURL = await referrerRC.executeScript(() => location.href);
   const referrerOrigin = (new URL(referrerURL)).origin + "/";
@@ -70,7 +70,7 @@ promise_test(async t => {
   assert_equals(await prerenderedRC.executeScript(() => document.prerendering), true);
   assert_equals(await prerenderedRC.executeScript(() => document.referrer), referrerOrigin);
 
-  await activatePrerenderRC(referrerRC, prerenderedRC, url => {
+  await referrerRC.navigateExpectingPrerenderingActivation(prerenderedRC, url => {
     const a = document.createElement("a");
     a.href = url;
     a.referrerPolicy = "unsafe-url";

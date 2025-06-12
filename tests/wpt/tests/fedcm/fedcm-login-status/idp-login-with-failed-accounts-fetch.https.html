@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>FedCM IDP log-in status API tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script type="module">
+import {request_options_with_mediation_required,
+        fedcm_test,
+        fedcm_get_dialog_type_promise,
+        select_manifest,
+        mark_signed_out} from '../support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  await mark_signed_out();
+
+  let test_options = request_options_with_mediation_required("manifest_no_accounts_login_delay.json");
+  await select_manifest(t, test_options);
+
+  test_options.identity.mode = "active";
+  let cred_promise = navigator.credentials.get(test_options);
+
+  // We should get the login popup window, which will automatically set
+  // the login status and close itself.
+  // The promise should get rejected because the accounts list is empty.
+
+  return promise_rejects_dom(t, 'NetworkError', cred_promise);
+}, 'Tests the IDP login dialog and subsequent account chooser.');
+</script>

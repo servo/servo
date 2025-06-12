@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: parsing scroll-target-group property invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-target-group">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<div id="target"></div>
+<script>
+  test_invalid_value('scroll-target-group', '10');
+  test_invalid_value('scroll-target-group', 'true');
+  test_invalid_value('scroll-target-group', 'default');
+  test_invalid_value('scroll-target-group', 'all');
+  test_invalid_value('scroll-target-group', 'auto, auto');
+</script>

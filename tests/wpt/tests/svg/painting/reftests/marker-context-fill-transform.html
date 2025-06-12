@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+
+<title>SVG rendering test: context-fill in markers with transform</title>
+
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1969782">
+<link rel="match" href="marker-context-fill-transform-ref.html">
+
+<style>
+iframe {
+  display: block;
+  border: none;
+}
+#a {
+  zoom: 1;
+}
+#b {
+  zoom: 2;
+}
+#c {
+  zoom: 0.25;
+}
+</style>
+
+<p>None of the marker rects should be visible as disruptions in the gradient, regardless of transforms:</p>
+<iframe id=a width=300 height=150 src='support/svg-marker-context-paint.svg'></iframe>
+<iframe id=b width=150 height=75 src='support/svg-marker-context-paint.svg'></iframe>
+<iframe id=c width=1200 height=600 src='support/svg-marker-context-paint.svg'></iframe>

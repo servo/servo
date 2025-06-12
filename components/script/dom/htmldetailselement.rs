@@ -142,7 +142,7 @@ impl HTMLDetailsElement {
             implicit_summary: fallback_summary.as_traced(),
         });
         self.upcast::<Node>()
-            .dirty(crate::dom::node::NodeDamage::OtherNodeDamage);
+            .dirty(crate::dom::node::NodeDamage::Other);
     }
 
     pub(crate) fn find_corresponding_summary_element(&self) -> Option<DomRoot<HTMLElement>> {
@@ -249,7 +249,7 @@ impl VirtualMethods for HTMLDetailsElement {
                         this.upcast::<EventTarget>().fire_event(atom!("toggle"), CanGc::note());
                     }
                 }));
-            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+            self.upcast::<Node>().dirty(NodeDamage::Other);
         }
     }
 

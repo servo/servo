@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/invoker-utils.js"></script>
+
+<button id=invoker interesttarget=target>
+  Button content
+  <span id=inner tabindex=0>Inner content</span>
+</button>
+<div id=target>Target</div>
+<button id=otherbutton>Other button</button>
+<style>
+  [interesttarget] { interest-target-delay: 0s; }
+</style>
+
+<script>
+const invoker = document.getElementById('invoker');
+const innerSpan = document.getElementById('inner');
+const target = document.getElementById('target');
+const otherbutton = document.getElementById('otherbutton');
+
+promise_test(async function (t) {
+  t.add_cleanup(() => otherbutton.focus());
+  const signal = t.get_signal();
+  let interestCount = 0;
+  let loseInterestCount = 0;
+  target.addEventListener('interest',() => (++interestCount),{signal});
+  target.addEventListener('loseinterest',() => (++loseInterestCount),{signal});
+  await focusOn(invoker);
+  assert_true(invoker.matches(':has-interest'),'focusing invoker should show interest');
+  assert_equals(interestCount,1,'One interest event');
+  interestCount = 0;
+  assert_equals(loseInterestCount,0,'No loseinterest events');
+  await focusOn(innerSpan);
+  assert_true(invoker.matches(':has-interest'),'focusing inner span should keep interest');
+  assert_equals(interestCount,0,'No extra interest events');
+  assert_equals(loseInterestCount,0,'No loseinterest events');
+  await focusOn(invoker);
+  assert_true(invoker.matches(':has-interest'),'focusing back to outer button should keep interest');
+  assert_equals(interestCount,0,'No extra interest events');
+  assert_equals(loseInterestCount,0,'No loseinterest events');
+  await focusOn(otherbutton);
+  assert_false(invoker.matches(':has-interest'),'focusing outside should lose interest');
+  assert_equals(interestCount,0,'No extra interest events');
+  assert_equals(loseInterestCount,1,'Finally got loseinterest event');
+},'Moving focus within invoker works correctly');
+
+promise_test(async function (t) {
+  t.add_cleanup(() => otherbutton.focus());
+  const signal = t.get_signal();
+  let interestCount = 0;
+  let loseInterestCount = 0;
+  target.addEventListener('interest',() => (++interestCount),{signal});
+  target.addEventListener('loseinterest',() => (++loseInterestCount),{signal});
+  await hoverOver(invoker);
+  assert_true(invoker.matches(':has-interest'),'hovering invoker should show interest');
+  assert_equals(interestCount,1,'One interest event');
+  interestCount = 0;
+  assert_equals(loseInterestCount,0,'No loseinterest events');
+  await hoverOver(innerSpan);
+  assert_true(invoker.matches(':has-interest'),'hovering inner span should keep interest');
+  assert_equals(interestCount,0,'No extra interest events');
+  assert_equals(loseInterestCount,0,'No loseinterest events');
+  await hoverOver(invoker);
+  assert_true(invoker.matches(':has-interest'),'hovering back to outer button should keep interest');
+  assert_equals(interestCount,0,'No extra interest events');
+  assert_equals(loseInterestCount,0,'No loseinterest events');
+  await hoverOver(otherbutton);
+  assert_false(invoker.matches(':has-interest'),'hovering outside should lose interest');
+  assert_equals(interestCount,0,'No extra interest events');
+  assert_equals(loseInterestCount,1,'Finally got loseinterest event');
+},'Moving hover within invoker works correctly');
+</script>

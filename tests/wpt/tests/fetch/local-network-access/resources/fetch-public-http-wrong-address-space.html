@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>Fetch HTTP public targetAddress private resource</title>
+<title>Fetch HTTP public targetAddress local resource</title>
 
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
@@ -9,11 +9,11 @@
 "use strict";
 
 // Fetch a public address over HTTP. Fetch is annotated with a
-// targetAddressSpace of private to try to bypass mixed content, but should
+// targetAddressSpace of local to try to bypass mixed content, but should
 // fail because the address space of the resource does not match the target
 // address space.
 //
-// TODO(crbug.com/406991278): consolidate with fetch-private.html adding
+// TODO(crbug.com/406991278): consolidate with fetch-local.html adding
 // options to minimize # of resources needed.
 Promise.resolve().then(async () => {
   test_driver.set_test_context(opener);

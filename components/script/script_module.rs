@@ -43,7 +43,6 @@ use net_traits::{
     ResourceFetchTiming, ResourceTimingType,
 };
 use servo_url::ServoUrl;
-use url::ParseError as UrlParseError;
 use uuid::Uuid;
 
 use crate::document_loader::LoadType;
@@ -634,7 +633,7 @@ impl ModuleTree {
                     specifier.handle().into_handle(),
                 );
 
-                if url.is_err() {
+                if url.is_none() {
                     let specifier_error =
                         gen_type_error(global, "Wrong module specifier".to_owned(), can_gc);
 
@@ -660,24 +659,28 @@ impl ModuleTree {
         cx: *mut JSContext,
         url: &ServoUrl,
         specifier: RawHandle<*mut JSString>,
-    ) -> Result<ServoUrl, UrlParseError> {
+    ) -> Option<ServoUrl> {
         let specifier_str = unsafe { jsstring_to_str(cx, ptr::NonNull::new(*specifier).unwrap()) };
 
-        // Step 1.
-        if let Ok(specifier_url) = ServoUrl::parse(&specifier_str) {
-            return Ok(specifier_url);
-        }
+        // TODO: We return the url here to keep the origianl behavior. should fix when we implement the full spec.
+        // Step 7. Let asURL be the result of resolving a URL-like module specifier given specifier and baseURL.
+        Self::resolve_url_like_module_specifier(&specifier_str, url)
+    }
 
-        // Step 2.
-        if !specifier_str.starts_with('/') &&
-            !specifier_str.starts_with("./") &&
-            !specifier_str.starts_with("../")
+    /// <https://html.spec.whatwg.org/multipage/#resolving-a-url-like-module-specifier>
+    fn resolve_url_like_module_specifier(
+        specifier: &DOMString,
+        base_url: &ServoUrl,
+    ) -> Option<ServoUrl> {
+        // Step 1. If specifier starts with "/", "./", or "../", then:
+        if specifier.starts_with('/') || specifier.starts_with("./") || specifier.starts_with("../")
         {
-            return Err(UrlParseError::InvalidDomainCharacter);
+            // Step 1.1. Let url be the result of URL parsing specifier with baseURL.
+            return ServoUrl::parse_with_base(Some(base_url), specifier).ok();
         }
 
-        // Step 3.
-        ServoUrl::parse_with_base(Some(url), &specifier_str)
+        // Step 2. Let url be the result of URL parsing specifier (with no base URL).
+        ServoUrl::parse_with_base(None, specifier).ok()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#finding-the-first-parse-error>
@@ -1437,7 +1440,7 @@ fn fetch_an_import_module_script_graph(
     let url = ModuleTree::resolve_module_specifier(*cx, &base_url, specifier.handle().into());
 
     // Step 2.
-    if url.is_err() {
+    if url.is_none() {
         let specifier_error = gen_type_error(global, "Wrong module specifier".to_owned(), can_gc);
         return Err(specifier_error);
     }
@@ -1514,7 +1517,7 @@ unsafe extern "C" fn HostResolveImportedModule(
     );
 
     // Step 6.
-    assert!(url.is_ok());
+    assert!(url.is_some());
 
     let parsed_url = url.unwrap();
 

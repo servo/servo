@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: Column gutter with no column gaps and row gaps with no row gutter should not crash.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  .grid-container {
+    display: grid;
+    column-gap: 40px;
+
+    grid-template: 1fr 1fr / 1fr;
+    column-rule: solid blue;
+  }
+</style>
+
+<div class="grid-container"></div>

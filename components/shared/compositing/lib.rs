@@ -111,12 +111,12 @@ pub enum CompositorMsg {
         MouseButton,
         f32,
         f32,
-        WebDriverMessageId,
+        Option<WebDriverMessageId>,
     ),
     /// WebDriver mouse move event
-    WebDriverMouseMoveEvent(WebViewId, f32, f32, WebDriverMessageId),
+    WebDriverMouseMoveEvent(WebViewId, f32, f32, Option<WebDriverMessageId>),
     // Webdriver wheel scroll event
-    WebDriverWheelScrollEvent(WebViewId, f32, f32, f64, f64),
+    WebDriverWheelScrollEvent(WebViewId, f32, f32, f64, f64, Option<WebDriverMessageId>),
 
     /// Inform WebRender of the existence of this pipeline.
     SendInitialTransaction(WebRenderPipelineId),

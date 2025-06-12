@@ -316,8 +316,6 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
                 );
         }
 
-        self.element
-            .upcast::<Node>()
-            .dirty(NodeDamage::OtherNodeDamage);
+        self.element.upcast::<Node>().dirty(NodeDamage::Other);
     }
 }

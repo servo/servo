@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="help" src="https://drafts.csswg.org/css-animations-2/#animation-trigger">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/web-animations/testcommon.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+    <script src="support/support.js"></script>
+  </head>
+  <body>
+    <style>
+      .subject, .target {
+        height: 50px;
+        width: 50px;
+        background-color: red;
+      }
+      .scroller {
+        overflow-y: scroll;
+        height: 500px;
+        width: 500px;
+        border: solid 1px;
+        position: relative;
+      }
+      #space {
+        width: 50px;
+        height: 600px;
+      }
+    </style>
+    <div id="wrapper">
+      <div id="scroller" class="scroller">
+        <div id="space"></div>
+        <div id="subject" class="subject"></div>
+        <div id="space"></div>
+      </div>
+      <div id="target1" class="target"></div>
+      <div id="target2" class="target"></div>
+    </div>
+    <script>
+      // The trigger and exit ranges are the same for this test.
+      const TRIGGER_START_PX = 150;
+      const TRIGGER_END_PX = 200;
+      const scroller = document.getElementById("scroller");
+      const subject = document.getElementById("subject");
+      const target = document.getElementById("target");
+
+      const ANIMATION_DURATION_MS = 1;
+
+      const COVER_START_OFFSET = 100;
+      const rangeBoundaries = getRangeBoundariesForTest(
+                                    COVER_START_OFFSET + TRIGGER_START_PX,
+                                    COVER_START_OFFSET + TRIGGER_END_PX,
+                                    COVER_START_OFFSET + TRIGGER_START_PX,
+                                    COVER_START_OFFSET + TRIGGER_END_PX,
+                                    scroller);
+
+      function setupAnimation(target) {
+        const animation = new Animation(
+          new KeyframeEffect(
+            target,
+            [
+              { transform: "scaleX(1)", backgroundColor: "pink", left: "0px" },
+              { transform: "scaleX(5)", backgroundColor: "pink", left: "10px" }
+            ],
+            { duration: ANIMATION_DURATION_MS, fill: "both" }
+          ));
+        return animation;
+      }
+
+      const view_timeline = new ViewTimeline({ subject: subject });
+      function setupAnimationTrigger() {
+        const trigger = new AnimationTrigger({
+              type: "alternate",
+              timeline: view_timeline,
+              rangeStart: `${TRIGGER_START_PX}px`,
+              rangeEnd: `${TRIGGER_END_PX}px`
+            });
+        return trigger;
+      }
+
+      promise_test(async (test) => {
+        const animation1 = setupAnimation(target1);
+        const animation2 = setupAnimation(target2);
+        const trigger = setupAnimationTrigger();
+
+        assert_equals(animation1.playState, "idle", "animation1 is idle");
+        assert_equals(animation1.currentTime, null,
+          "animation1's currentTime is null");
+        assert_equals(animation2.playState, "idle", "animation is idle");
+        assert_equals(animation2.currentTime, null,
+          "animations2's currentTime is null");
+        assert_equals(scroller.scrollTop, 0,
+          "scroller is not scrolled, i.e. not within the trigger range");
+
+        trigger.addAnimation(animation1);
+
+        assert_equals(animation1.playState, "paused",
+          "animation1 is paused, awaiting trigger event");
+        assert_times_equal(animation1.currentTime, 0,
+          "animation1's currentTime is 0");
+        assert_equals(animation2.playState, "idle", "animation2 is idle");
+        assert_equals(animation2.currentTime, null,
+          "animations2's currentTime is null");
+
+        trigger.addAnimation(animation2);
+
+        assert_equals(animation1.playState, "paused",
+          "animation is paused, awaiting trigger event");
+        assert_times_equal(animation1.currentTime, 0,
+          "animation1's currentTime is 0");
+        assert_equals(animation2.playState, "paused",
+          "animation2 is paused, awaiting trigger event");
+        assert_times_equal(animation2.currentTime, 0,
+          "animation2's currentTime is 0");
+
+        rangeBoundaries.enterTriggerRange();
+
+        await animation1.finished;
+        await animation2.finished;
+
+        assert_equals(animation1.playState, "finished",
+          "animation1 is paused, awaiting trigger event");
+        assert_times_equal(animation1.currentTime, ANIMATION_DURATION_MS,
+          `animation1's currentTime is ${ANIMATION_DURATION_MS}`);
+        assert_equals(animation2.playState, "finished",
+          "animation2 is paused, awaiting trigger event");
+        assert_times_equal(animation2.currentTime, ANIMATION_DURATION_MS,
+          `animation2's currentTime is ${ANIMATION_DURATION_MS}`);
+      }, "Single trigger controls multiple animations");
+    </script>
+  </body>
+</html>

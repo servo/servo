@@ -4,16 +4,16 @@
       {
         "name": "default",
         "signingConfig": "default",
-        "compileSdkVersion": 12,
-        "compatibleSdkVersion": 12,
-        "targetSdkVersion": 12,
+        "compileSdkVersion": 14,
+        "compatibleSdkVersion": 14,
+        "targetSdkVersion": 14,
         "runtimeOS": "OpenHarmony"
       },
       {
         "name": "harmonyos",
         "signingConfig": "hos",
-        "compatibleSdkVersion": "5.0.0(12)",
-        "targetSdkVersion": "5.0.0(12)",
+        "compatibleSdkVersion": "5.0.2(14)",
+        "targetSdkVersion": "5.0.2(14)",
         "runtimeOS": "HarmonyOS"
       }
     ],

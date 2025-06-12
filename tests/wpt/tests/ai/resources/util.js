@@ -182,6 +182,20 @@ async function testMonitor(createFunc, options = {}) {
   return result;
 }
 
+async function testCreateMonitorCallbackThrowsError(
+    t, createFunc, options = {}) {
+  const error = new Error('CreateMonitorCallback threw an error');
+  function monitor(m) {
+    m.addEventListener('downloadprogress', e => {
+      assert_unreached(
+          'This should never be reached since monitor throws an error.');
+    });
+    throw error;
+  }
+
+  await promise_rejects_exactly(t, error, createFunc({...options, monitor}));
+}
+
 function run_iframe_test(iframe, test_name) {
   const id = getId();
   iframe.contentWindow.postMessage({id, type: test_name}, '*');

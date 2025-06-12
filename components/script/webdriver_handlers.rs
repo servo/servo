@@ -9,9 +9,7 @@ use std::ptr::NonNull;
 
 use base::id::{BrowsingContextId, PipelineId};
 use cookie::Cookie;
-use embedder_traits::{
-    WebDriverCookieError, WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue,
-};
+use embedder_traits::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
 use euclid::default::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
@@ -78,16 +76,10 @@ fn find_node_by_unique_id(
     pipeline: PipelineId,
     node_id: String,
 ) -> Result<DomRoot<Node>, ErrorStatus> {
-    match documents.find_document(pipeline) {
-        Some(doc) => find_node_by_unique_id_in_document(&doc, node_id),
-        None => {
-            if ScriptThread::has_node_id(pipeline, &node_id) {
-                Err(ErrorStatus::StaleElementReference)
-            } else {
-                Err(ErrorStatus::NoSuchElement)
-            }
-        },
-    }
+    let doc = documents
+        .find_document(pipeline)
+        .expect("webdriver_handlers::Document should exists");
+    find_node_by_unique_id_in_document(&doc, node_id)
 }
 
 pub(crate) fn find_node_by_unique_id_in_document(
@@ -843,6 +835,27 @@ pub(crate) fn handle_find_element_elements_tag_name(
         .unwrap();
 }
 
+/// <https://www.w3.org/TR/webdriver2/#dfn-get-element-shadow-root>
+pub(crate) fn handle_get_element_shadow_root(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    element_id: String,
+    reply: IpcSender<Result<Option<String>, ErrorStatus>>,
+) {
+    reply
+        .send(
+            find_node_by_unique_id(documents, pipeline, element_id).and_then(|node| match node
+                .downcast::<Element>(
+            ) {
+                Some(element) => Ok(element
+                    .GetShadowRoot()
+                    .map(|x| x.upcast::<Node>().unique_id(pipeline))),
+                None => Err(ErrorStatus::NoSuchElement),
+            }),
+        )
+        .unwrap();
+}
+
 pub(crate) fn handle_will_send_keys(
     documents: &DocumentCollection,
     pipeline: PipelineId,
@@ -973,7 +986,7 @@ pub(crate) fn handle_get_page_source(
 pub(crate) fn handle_get_cookies(
     documents: &DocumentCollection,
     pipeline: PipelineId,
-    reply: IpcSender<Vec<Serde<Cookie<'static>>>>,
+    reply: IpcSender<Result<Vec<Serde<Cookie<'static>>>, ErrorStatus>>,
 ) {
     reply
         .send(
@@ -987,9 +1000,9 @@ pub(crate) fn handle_get_cookies(
                         .as_global_scope()
                         .resource_threads()
                         .send(GetCookiesDataForUrl(url, sender, NonHTTP));
-                    receiver.recv().unwrap()
+                    Ok(receiver.recv().unwrap())
                 },
-                None => Vec::new(),
+                None => Ok(Vec::new()),
             },
         )
         .unwrap();
@@ -1000,7 +1013,7 @@ pub(crate) fn handle_get_cookie(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     name: String,
-    reply: IpcSender<Vec<Serde<Cookie<'static>>>>,
+    reply: IpcSender<Result<Vec<Serde<Cookie<'static>>>, ErrorStatus>>,
 ) {
     reply
         .send(
@@ -1015,12 +1028,12 @@ pub(crate) fn handle_get_cookie(
                         .resource_threads()
                         .send(GetCookiesDataForUrl(url, sender, NonHTTP));
                     let cookies = receiver.recv().unwrap();
-                    cookies
+                    Ok(cookies
                         .into_iter()
                         .filter(|cookie| cookie.name() == &*name)
-                        .collect()
+                        .collect())
                 },
-                None => Vec::new(),
+                None => Ok(Vec::new()),
             },
         )
         .unwrap();
@@ -1031,15 +1044,13 @@ pub(crate) fn handle_add_cookie(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     cookie: Cookie<'static>,
-    reply: IpcSender<Result<(), WebDriverCookieError>>,
+    reply: IpcSender<Result<(), ErrorStatus>>,
 ) {
     // TODO: Return a different error if the pipeline doesn't exist
     let document = match documents.find_document(pipeline) {
         Some(document) => document,
         None => {
-            return reply
-                .send(Err(WebDriverCookieError::UnableToSetCookie))
-                .unwrap();
+            return reply.send(Err(ErrorStatus::UnableToSetCookie)).unwrap();
         },
     };
     let url = document.url();
@@ -1052,7 +1063,7 @@ pub(crate) fn handle_add_cookie(
     let domain = cookie.domain().map(ToOwned::to_owned);
     reply
         .send(match (document.is_cookie_averse(), domain) {
-            (true, _) => Err(WebDriverCookieError::InvalidDomain),
+            (true, _) => Err(ErrorStatus::InvalidCookieDomain),
             (false, Some(ref domain)) if url.host_str().map(|x| x == domain).unwrap_or(false) => {
                 let _ = document
                     .window()
@@ -1069,7 +1080,7 @@ pub(crate) fn handle_add_cookie(
                     .send(SetCookieForUrl(url, Serde(cookie), method));
                 Ok(())
             },
-            (_, _) => Err(WebDriverCookieError::UnableToSetCookie),
+            (_, _) => Err(ErrorStatus::UnableToSetCookie),
         })
         .unwrap();
 }

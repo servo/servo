@@ -21,7 +21,7 @@ use crate::formatting_contexts::{
     IndependentNonReplacedContents,
 };
 use crate::layout_box_base::LayoutBoxBase;
-use crate::style_ext::DisplayGeneratingBox;
+use crate::style_ext::{ComputedValuesExt, DisplayGeneratingBox};
 
 /// A builder used for both flex and grid containers.
 pub(crate) struct ModernContainerBuilder<'a, 'dom> {
@@ -152,7 +152,7 @@ impl<'a, 'dom> ModernContainerBuilder<'a, 'dom> {
                         self.context,
                         true,  /* has_first_formatted_line */
                         false, /* is_single_line_text_box */
-                        self.info.style.writing_mode.to_bidi_level(),
+                        self.info.style.to_bidi_level(),
                     )?;
 
                     let block_formatting_context = BlockFormattingContext::from_block_container(

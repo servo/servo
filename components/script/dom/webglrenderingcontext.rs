@@ -575,6 +575,23 @@ impl WebGLRenderingContext {
 
     pub(crate) fn get_image_pixels(&self, source: TexImageSource) -> Fallible<Option<TexPixels>> {
         Ok(Some(match source {
+            TexImageSource::ImageBitmap(bitmap) => {
+                if !bitmap.origin_is_clean() {
+                    return Err(Error::Security);
+                }
+                let Some(snapshot) = bitmap.bitmap_data().clone() else {
+                    return Ok(None);
+                };
+
+                let snapshot = snapshot.as_ipc();
+                let size = snapshot.size().cast();
+                let format = match snapshot.format() {
+                    snapshot::PixelFormat::RGBA => PixelFormat::RGBA8,
+                    snapshot::PixelFormat::BGRA => PixelFormat::BGRA8,
+                };
+                let premultiply = snapshot.alpha_mode().is_premultiplied();
+                TexPixels::new(snapshot.to_ipc_shared_memory(), size, format, premultiply)
+            },
             TexImageSource::ImageData(image_data) => TexPixels::new(
                 image_data.to_shared_memory(),
                 image_data.get_size(),
@@ -1999,7 +2016,7 @@ impl CanvasContext for WebGLRenderingContext {
 
         match self.canvas {
             HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
-                canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                canvas.upcast::<Node>().dirty(NodeDamage::Other);
                 canvas.owner_document().add_dirty_webgl_canvas(self);
             },
             HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => {},
@@ -3838,7 +3855,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         let src_origin = Point2D::new(x, y);
         let src_size = Size2D::new(width as u32, height as u32);
         let fb_size = Size2D::new(fb_width as u32, fb_height as u32);
-        let src_rect = match pixels::clip(src_origin, src_size.to_u64(), fb_size.to_u64()) {
+        let src_rect = match pixels::clip(src_origin, src_size.to_u32(), fb_size.to_u32()) {
             Some(rect) => rect,
             None => return,
         };

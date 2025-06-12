@@ -19,4 +19,7 @@ def main(request, response):
     if jwt_payload.get("authorization") != test_session_manager.get_authorization_value():
         return (400, response.headers, "")
 
+    if jwt_payload.get("sub") is not None:
+        return (400, response.headers, "")
+
     return test_session_manager.get_session_instructions_response(session_id, request)

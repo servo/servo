@@ -215,7 +215,7 @@ impl ShadowRoot {
         self.author_styles.borrow_mut().stylesheets.force_dirty();
         // Mark the host element dirty so a reflow will be performed.
         if let Some(host) = self.host.get() {
-            host.upcast::<Node>().dirty(NodeDamage::NodeStyleDamaged);
+            host.upcast::<Node>().dirty(NodeDamage::Style);
         }
     }
 

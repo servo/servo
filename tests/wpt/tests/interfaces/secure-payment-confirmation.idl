@@ -11,6 +11,7 @@ dictionary SecurePaymentConfirmationRequest {
     unsigned long timeout;
     USVString payeeName;
     USVString payeeOrigin;
+    sequence<PaymentEntityLogo> paymentEntitiesLogos;
     AuthenticationExtensionsClientInputs extensions;
     sequence<USVString> locale;
     boolean showOptOut;
@@ -40,6 +41,7 @@ dictionary AuthenticationExtensionsPaymentInputs {
   USVString topOrigin;
   USVString payeeName;
   USVString payeeOrigin;
+  sequence<PaymentEntityLogo> paymentEntitiesLogos;
   PaymentCurrencyAmount total;
   PaymentCredentialInstrument instrument;
 };
@@ -53,6 +55,7 @@ dictionary CollectedClientAdditionalPaymentData {
     required USVString topOrigin;
     USVString payeeName;
     USVString payeeOrigin;
+    sequence<PaymentEntityLogo> paymentEntitiesLogos;
     required PaymentCurrencyAmount total;
     required PaymentCredentialInstrument instrument;
 };
@@ -61,4 +64,9 @@ dictionary PaymentCredentialInstrument {
     required USVString displayName;
     required USVString icon;
     boolean iconMustBeShown = true;
+};
+
+dictionary PaymentEntityLogo {
+    required USVString url;
+    required USVString label;
 };

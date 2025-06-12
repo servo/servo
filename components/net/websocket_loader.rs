@@ -169,12 +169,12 @@ fn setup_dom_listener(
             trace!("handling WS DOM action: {:?}", dom_action);
             match dom_action {
                 WebSocketDomAction::SendMessage(MessageData::Text(data)) => {
-                    if let Err(e) = sender.send(DomMsg::Send(Message::Text(data))) {
+                    if let Err(e) = sender.send(DomMsg::Send(Message::Text(data.into()))) {
                         warn!("Error sending websocket message: {:?}", e);
                     }
                 },
                 WebSocketDomAction::SendMessage(MessageData::Binary(data)) => {
-                    if let Err(e) = sender.send(DomMsg::Send(Message::Binary(data))) {
+                    if let Err(e) = sender.send(DomMsg::Send(Message::Binary(data.into()))) {
                         warn!("Error sending websocket message: {:?}", e);
                     }
                 },
@@ -246,7 +246,7 @@ async fn run_ws_loop(
                 };
                 match msg {
                     Message::Text(s) => {
-                        let message = MessageData::Text(s);
+                        let message = MessageData::Text(s.as_str().to_owned());
                         if let Err(e) = resource_event_sender
                             .send(WebSocketNetworkEvent::MessageReceived(message))
                         {
@@ -256,7 +256,7 @@ async fn run_ws_loop(
                     }
 
                     Message::Binary(v) => {
-                        let message = MessageData::Binary(v);
+                        let message = MessageData::Binary(v.to_vec());
                         if let Err(e) = resource_event_sender
                             .send(WebSocketNetworkEvent::MessageReceived(message))
                         {

@@ -473,7 +473,7 @@ impl HTMLIFrameElement {
             LoadBlocker::terminate(blocker, can_gc);
         }
 
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        self.upcast::<Node>().dirty(NodeDamage::Other);
     }
 
     fn new_inherited(

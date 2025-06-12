@@ -15,6 +15,26 @@ on:
         description: "Run safaridriver capturing diagnostics"
         required: true
         type: boolean
+      fetch-ref:
+        description: "The ref to fetch and initially checkout"
+        required: false
+        type: string
+      fetch-depth:
+        description: "The fetch-depth to checkout"
+        required: false
+        type: number
+      test-rev:
+        description: "The rev to checkout before running the tests"
+        required: false
+        type: string
+      matrix-include:
+        description: "Extra items to include in the matrix, to override test-type/current-chunk/total-chunks"
+        required: false
+        type: string
+      extra-options:
+        description: "Extra options to pass to wpt run"
+        required: false
+        type: string
 
 # We never interact with the GitHub API, thus we can simply disable all
 # permissions the GitHub token would have.
@@ -29,13 +49,23 @@ jobs:
     timeout-minutes: 180
     strategy:
       matrix:
-        current-chunk: [1, 2, 3, 4, 5, 6, 7, 8]
-        total-chunks: [8]
+        current-chunk:
+          - 1
+        total-chunks:
+          - 1
+        include: ${{ fromJSON(inputs.matrix-include || '[]') }}
     steps:
       - name: checkout
         uses: actions/checkout@v4.1.0
         with:
-          fetch-depth: 1
+          fetch-depth: ${{ inputs.fetch-depth || 1 }}
+          ref: ${{ inputs.fetch-ref }}
+      - name: test-checkout
+        if: inputs.test-rev
+        env:
+          REV: ${{ inputs.test-rev }}
+        run: |-
+          git switch --force --progress -d "$REV"
       - name: Set display color profile
         run: |-
           ./wpt macos-color-profile
@@ -71,8 +101,9 @@ jobs:
             --no-manifest-update \
             --no-restart-on-unexpected \
             --no-fail-on-unexpected \
-            --this-chunk=${{ matrix.current-chunk }} \
-            --total-chunks=${{ matrix.total-chunks }} \
+            --no-pause \
+            --this-chunk ${{ matrix.current-chunk }} \
+            --total-chunks ${{ matrix.total-chunks }} \
             --chunk-type hash \
             --log-wptreport ${{ runner.temp }}/wpt_report_${{ matrix.current-chunk }}.json \
             --log-wptscreenshot ${{ runner.temp }}/wpt_screenshot_${{ matrix.current-chunk }}.txt \
@@ -81,6 +112,8 @@ jobs:
             --channel ${{ inputs.safari-technology-preview && 'preview' || 'stable' }} \
             --kill-safari \
             --max-restarts 100 \
+            ${{ inputs.extra-options }} \
+            -- \
             safari
       - name: Publish results
         uses: actions/upload-artifact@v4.1.0
@@ -105,8 +138,8 @@ jobs:
       - name: Cleanup
         if: always()
         run: |-
-            set -ux
-            sudo sed -i '' '/^# Start web-platform-tests hosts$/,/^# End web-platform-tests hosts$/d' /etc/hosts
+          set -ux
+          sudo sed -i '' '/^# Start web-platform-tests hosts$/,/^# End web-platform-tests hosts$/d' /etc/hosts
 
   safari-notify:
     needs: safari-results

@@ -24,9 +24,9 @@ use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use cookie::{CookieBuilder, Expiration};
 use crossbeam_channel::{Receiver, Sender, after, select, unbounded};
 use embedder_traits::{
-    MouseButton, WebDriverCommandMsg, WebDriverCommandResponse, WebDriverCookieError,
-    WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus,
-    WebDriverMessageId, WebDriverScriptCommand,
+    MouseButton, WebDriverCommandMsg, WebDriverCommandResponse, WebDriverFrameId, WebDriverJSError,
+    WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus, WebDriverMessageId,
+    WebDriverScriptCommand,
 };
 use euclid::{Rect, Size2D};
 use http::method::Method;
@@ -667,6 +667,7 @@ impl Handler {
         cmd_msg: WebDriverScriptCommand,
     ) -> WebDriverResult<()> {
         let browsing_context_id = self.session()?.browsing_context_id;
+        self.verify_browsing_context_is_open(browsing_context_id)?;
         let msg = EmbedderToConstellationMessage::WebDriverCommand(
             WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd_msg),
         );
@@ -675,7 +676,9 @@ impl Handler {
     }
 
     fn top_level_script_command(&self, cmd_msg: WebDriverScriptCommand) -> WebDriverResult<()> {
-        let browsing_context_id = BrowsingContextId::from(self.session()?.webview_id);
+        let webview_id = self.session()?.webview_id;
+        self.verify_top_level_browsing_context_is_open(webview_id)?;
+        let browsing_context_id = BrowsingContextId::from(webview_id);
         let msg = EmbedderToConstellationMessage::WebDriverCommand(
             WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd_msg),
         );
@@ -683,7 +686,14 @@ impl Handler {
         Ok(())
     }
 
+    /// <https://w3c.github.io/webdriver/#navigate-to>
     fn handle_get(&self, parameters: &GetParameters) -> WebDriverResult<WebDriverResponse> {
+        let webview_id = self.session()?.webview_id;
+        // Step 2. If session's current top-level browsing context is no longer open,
+        // return error with error code no such window.
+        self.verify_top_level_browsing_context_is_open(webview_id)?;
+        // Step 3. If URL is not an absolute URL or is not an absolute URL with fragment
+        // or not a local scheme, return error with error code invalid argument.
         let url = match ServoUrl::parse(&parameters.url[..]) {
             Ok(url) => url,
             Err(_) => {
@@ -693,8 +703,6 @@ impl Handler {
                 ));
             },
         };
-
-        let webview_id = self.session()?.webview_id;
 
         let cmd_msg =
             WebDriverCommandMsg::LoadUrl(webview_id, url, self.load_status_sender.clone());
@@ -732,6 +740,9 @@ impl Handler {
     fn handle_window_size(&self) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
         let webview_id = self.session()?.webview_id;
+
+        self.verify_top_level_browsing_context_is_open(webview_id)?;
+
         let cmd_msg = WebDriverCommandMsg::GetWindowSize(webview_id, sender);
 
         self.constellation_chan
@@ -764,6 +775,11 @@ impl Handler {
         let height = params.height.unwrap_or(0);
         let size = Size2D::new(width as u32, height as u32);
         let webview_id = self.session()?.webview_id;
+        // TODO: Return some other error earlier if the size is invalid.
+
+        // Step 12. If session's current top-level browsing context is no longer open,
+        // return error with error code no such window.
+        self.verify_top_level_browsing_context_is_open(webview_id)?;
         let cmd_msg = WebDriverCommandMsg::SetWindowSize(webview_id, size.to_i32(), sender.clone());
 
         self.constellation_chan
@@ -793,6 +809,10 @@ impl Handler {
     }
 
     fn handle_is_enabled(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
+        // Step 1. If session's current browsing context is no longer open,
+        // return error with error code no such window.
+        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
+
         let (sender, receiver) = ipc::channel().unwrap();
 
         self.top_level_script_command(WebDriverScriptCommand::IsEnabled(
@@ -809,6 +829,10 @@ impl Handler {
     }
 
     fn handle_is_selected(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
+        // Step 1. If session's current browsing context is no longer open,
+        // return error with error code no such window.
+        self.verify_browsing_context_is_open(self.session()?.browsing_context_id)?;
+
         let (sender, receiver) = ipc::channel().unwrap();
 
         self.top_level_script_command(WebDriverScriptCommand::IsSelected(
@@ -826,6 +850,9 @@ impl Handler {
 
     fn handle_go_back(&self) -> WebDriverResult<WebDriverResponse> {
         let webview_id = self.session()?.webview_id;
+        // Step 1. If session's current top-level browsing context is no longer open,
+        // return error with error code no such window.
+        self.verify_top_level_browsing_context_is_open(webview_id)?;
         let direction = TraversalDirection::Back(1);
         let msg = EmbedderToConstellationMessage::TraverseHistory(webview_id, direction);
         self.constellation_chan.send(msg).unwrap();
@@ -834,6 +861,9 @@ impl Handler {
 
     fn handle_go_forward(&self) -> WebDriverResult<WebDriverResponse> {
         let webview_id = self.session()?.webview_id;
+        // Step 1. If session's current top-level browsing context is no longer open,
+        // return error with error code no such window.
+        self.verify_top_level_browsing_context_is_open(webview_id)?;
         let direction = TraversalDirection::Forward(1);
         let msg = EmbedderToConstellationMessage::TraverseHistory(webview_id, direction);
         self.constellation_chan.send(msg).unwrap();
@@ -842,6 +872,9 @@ impl Handler {
 
     fn handle_refresh(&self) -> WebDriverResult<WebDriverResponse> {
         let webview_id = self.session()?.webview_id;
+        // Step 1. If session's current top-level browsing context is no longer open,
+        // return error with error code no such window.
+        self.verify_top_level_browsing_context_is_open(webview_id)?;
 
         let cmd_msg = WebDriverCommandMsg::Refresh(webview_id, self.load_status_sender.clone());
         self.constellation_chan
@@ -864,6 +897,9 @@ impl Handler {
 
     fn handle_window_handle(&self) -> WebDriverResult<WebDriverResponse> {
         let session = self.session.as_ref().unwrap();
+        // Step 1. If session's current top-level browsing context is no longer open,
+        // return error with error code no such window.
+        self.verify_top_level_browsing_context_is_open(session.webview_id)?;
         match session.window_handles.get(&session.webview_id) {
             Some(handle) => Ok(WebDriverResponse::Generic(ValueResponse(
                 serde_json::to_value(handle)?,
@@ -929,10 +965,13 @@ impl Handler {
         }
     }
 
+    /// <https://w3c.github.io/webdriver/#close-window>
     fn handle_close_window(&mut self) -> WebDriverResult<WebDriverResponse> {
         {
+            let webview_id = self.session()?.webview_id;
+            self.verify_top_level_browsing_context_is_open(webview_id)?;
             let session = self.session_mut().unwrap();
-            session.window_handles.remove(&session.webview_id);
+            session.window_handles.remove(&webview_id);
             let cmd_msg = WebDriverCommandMsg::CloseWebView(session.webview_id);
             self.constellation_chan
                 .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
@@ -949,6 +988,7 @@ impl Handler {
         )))
     }
 
+    /// <https://w3c.github.io/webdriver/#new-window>
     fn handle_new_window(
         &mut self,
         _parameters: &NewWindowParameters,
@@ -956,11 +996,15 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
 
         let session = self.session().unwrap();
+        self.verify_top_level_browsing_context_is_open(session.webview_id)?;
+
         let cmd_msg = WebDriverCommandMsg::NewWebView(
             session.webview_id,
             sender,
             self.load_status_sender.clone(),
         );
+        // Step 5. Create a new top-level browsing context by running the window open steps.
+        // This MUST be done without invoking the focusing steps.
         self.constellation_chan
             .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
             .unwrap();
@@ -968,8 +1012,6 @@ impl Handler {
         let mut handle = self.session.as_ref().unwrap().id.to_string();
         if let Ok(new_webview_id) = receiver.recv() {
             let session = self.session_mut().unwrap();
-            session.webview_id = new_webview_id;
-            session.browsing_context_id = BrowsingContextId::from(new_webview_id);
             let new_handle = Uuid::new_v4().to_string();
             handle = new_handle.clone();
             session.window_handles.insert(new_webview_id, new_handle);
@@ -1214,6 +1256,28 @@ impl Handler {
         }
     }
 
+    fn handle_get_shadow_root(&self, element: WebElement) -> WebDriverResult<WebDriverResponse> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        let cmd = WebDriverScriptCommand::GetElementShadowRoot(element.to_string(), sender);
+        self.browsing_context_script_command(cmd)?;
+        match wait_for_script_response(receiver)? {
+            Ok(value) => {
+                if value.is_none() {
+                    return Err(WebDriverError::new(
+                        ErrorStatus::NoSuchShadowRoot,
+                        "No shadow root found for the element",
+                    ));
+                }
+                let value_resp = serde_json::to_value(
+                    value.map(|x| serde_json::to_value(WebElement(x)).unwrap()),
+                )?;
+                let shadow_root_value = json!({ SHADOW_ROOT_IDENTIFIER: value_resp });
+                Ok(WebDriverResponse::Generic(ValueResponse(shadow_root_value)))
+            },
+            Err(error) => Err(WebDriverError::new(error, "")),
+        }
+    }
+
     // https://w3c.github.io/webdriver/webdriver-spec.html#get-element-rect
     fn handle_element_rect(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
@@ -1343,7 +1407,10 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetCookies(sender);
         self.browsing_context_script_command(cmd)?;
-        let cookies = wait_for_script_response(receiver)?;
+        let cookies = match wait_for_script_response(receiver)? {
+            Ok(cookies) => cookies,
+            Err(error) => return Err(WebDriverError::new(error, "")),
+        };
         let response = cookies
             .into_iter()
             .map(|cookie| cookie_msg_to_cookie(cookie.into_inner()))
@@ -1355,7 +1422,10 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetCookie(name, sender);
         self.browsing_context_script_command(cmd)?;
-        let cookies = wait_for_script_response(receiver)?;
+        let cookies = match wait_for_script_response(receiver)? {
+            Ok(cookies) => cookies,
+            Err(error) => return Err(WebDriverError::new(error, "")),
+        };
         let Some(response) = cookies
             .into_iter()
             .map(|cookie| cookie_msg_to_cookie(cookie.into_inner()))
@@ -1388,16 +1458,7 @@ impl Handler {
         self.browsing_context_script_command(cmd)?;
         match wait_for_script_response(receiver)? {
             Ok(_) => Ok(WebDriverResponse::Void),
-            Err(response) => match response {
-                WebDriverCookieError::InvalidDomain => Err(WebDriverError::new(
-                    ErrorStatus::InvalidCookieDomain,
-                    "Invalid cookie domain",
-                )),
-                WebDriverCookieError::UnableToSetCookie => Err(WebDriverError::new(
-                    ErrorStatus::UnableToSetCookie,
-                    "Unable to set cookie",
-                )),
-            },
+            Err(error) => Err(WebDriverError::new(error, "")),
         }
     }
 
@@ -1482,11 +1543,15 @@ impl Handler {
         &mut self,
         parameters: ActionsParameters,
     ) -> WebDriverResult<WebDriverResponse> {
+        let browsing_context = self.session()?.browsing_context_id;
+        // Step 1. If session's current browsing context is no longer open,
+        // return error with error code no such window.
+        self.verify_browsing_context_is_open(browsing_context)?;
         // Step 5. Let actions by tick be the result of trying to extract an action sequence
         let actions_by_tick = self.extract_an_action_sequence(parameters);
 
-        // Step 6. Dispatch actions
-        match self.dispatch_actions(actions_by_tick) {
+        // Step 6. Dispatch actions with current browsing context
+        match self.dispatch_actions(actions_by_tick, browsing_context) {
             Ok(_) => Ok(WebDriverResponse::Void),
             Err(error) => Err(WebDriverError::new(error, "")),
         }
@@ -1497,6 +1562,9 @@ impl Handler {
         // TODO: The previous implementation of this function was different from the spec.
         // Need to re-implement this to match the spec.
         let session = self.session()?;
+        // Step 1. If session's current browsing context is no longer open,
+        // return error with error code no such window.
+        self.verify_browsing_context_is_open(session.browsing_context_id)?;
         session.input_state_table.borrow_mut().clear();
 
         Ok(WebDriverResponse::Void)
@@ -1616,7 +1684,9 @@ impl Handler {
         keys: &SendKeysParameters,
     ) -> WebDriverResult<WebDriverResponse> {
         let browsing_context_id = self.session()?.browsing_context_id;
-
+        // Step 3. If session's current browsing context is no longer open,
+        // return error with error code no such window.
+        self.verify_browsing_context_is_open(browsing_context_id)?;
         let (sender, receiver) = ipc::channel().unwrap();
 
         let cmd = WebDriverScriptCommand::WillSendKeys(
@@ -1713,9 +1783,11 @@ impl Handler {
                         },
                     };
 
+                    // Step 8.16. Dispatch a list of actions with session's current browsing context
                     let actions_by_tick = self.actions_by_tick_from_sequence(vec![action_sequence]);
-
-                    if let Err(e) = self.dispatch_actions(actions_by_tick) {
+                    if let Err(e) =
+                        self.dispatch_actions(actions_by_tick, self.session()?.browsing_context_id)
+                    {
                         log::error!("handle_element_click: dispatch_actions failed: {:?}", e);
                     }
 
@@ -1736,6 +1808,9 @@ impl Handler {
     }
 
     fn take_screenshot(&self, rect: Option<Rect<f32, CSSPixel>>) -> WebDriverResult<String> {
+        // Step 1. If session's current top-level browsing context is no longer open,
+        // return error with error code no such window.
+        self.verify_top_level_browsing_context_is_open(self.session()?.webview_id)?;
         let mut img = None;
 
         let interval = 1000;
@@ -1883,6 +1958,46 @@ impl Handler {
             serde_json::to_value(map)?,
         )))
     }
+
+    fn verify_top_level_browsing_context_is_open(
+        &self,
+        webview_id: WebViewId,
+    ) -> Result<(), WebDriverError> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.constellation_chan
+            .send(EmbedderToConstellationMessage::WebDriverCommand(
+                WebDriverCommandMsg::IsWebViewOpen(webview_id, sender),
+            ))
+            .unwrap();
+        if !receiver.recv().unwrap_or(false) {
+            Err(WebDriverError::new(
+                ErrorStatus::NoSuchWindow,
+                "No such window",
+            ))
+        } else {
+            Ok(())
+        }
+    }
+
+    fn verify_browsing_context_is_open(
+        &self,
+        browsing_context_id: BrowsingContextId,
+    ) -> Result<(), WebDriverError> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.constellation_chan
+            .send(EmbedderToConstellationMessage::WebDriverCommand(
+                WebDriverCommandMsg::IsBrowsingContextOpen(browsing_context_id, sender),
+            ))
+            .unwrap();
+        if !receiver.recv().unwrap_or(false) {
+            Err(WebDriverError::new(
+                ErrorStatus::NoSuchWindow,
+                "No such window",
+            ))
+        } else {
+            Ok(())
+        }
+    }
 }
 
 impl WebDriverHandler<ServoExtensionRoute> for Handler {
@@ -1936,6 +2051,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::FindElementElements(ref element, ref parameters) => {
                 self.handle_find_elements_from_element(element, parameters)
             },
+            WebDriverCommand::GetShadowRoot(element) => self.handle_get_shadow_root(element),
             WebDriverCommand::GetNamedCookie(name) => self.handle_get_cookie(name),
             WebDriverCommand::GetCookies => self.handle_get_cookies(),
             WebDriverCommand::GetActiveElement => self.handle_active_element(),

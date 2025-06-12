@@ -1,0 +1,20 @@
+<svg id="svg-root" viewBox="0 0 1600 900"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <defs>
+    <linearGradient id="lg">
+      <stop offset="0" stop-color="red"/>
+      <stop offset="1" stop-color="blue"/>
+    </linearGradient>
+  </defs>
+
+  <path fill="url(#lg)" d="M 10 10 h 600 v 400 h -600 Z"/>
+
+  <g transform="translate(300 450) scale(0.75 0.5) rotate(60)">
+    <path fill="url(#lg)" d="M 10 10 h 600 v 400 h -600 Z"/>
+  </g>
+
+  <g transform="translate(600 450) scale(1.5 0.5) rotate(-30)">
+    <path fill="url(#lg)" d="M 10 10 h 600 v 400 h -600 Z"/>
+  </g>
+</svg>

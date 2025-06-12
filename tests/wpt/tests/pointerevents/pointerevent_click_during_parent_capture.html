@@ -240,6 +240,7 @@ addEventListener(
         .pointerMove(0, 0, { origin: target })
         .pointerDown()
         .pointerUp()
+        .pause(100) // XXX Required for preventing intermittent failure of Firefox
         .send();
 
       test(() => {

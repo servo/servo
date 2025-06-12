@@ -520,7 +520,7 @@ impl HTMLInputElement {
         let mut value = textinput.single_line_content().clone();
         self.sanitize_value(&mut value);
         textinput.set_content(value);
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        self.upcast::<Node>().dirty(NodeDamage::Other);
     }
 
     fn does_minmaxlength_apply(&self) -> bool {
@@ -1498,7 +1498,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         }
 
         self.value_changed(can_gc);
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        self.upcast::<Node>().dirty(NodeDamage::Other);
         Ok(())
     }
 
@@ -2025,7 +2025,7 @@ impl HTMLInputElement {
             broadcast_radio_checked(self, self.radio_group_name().as_ref());
         }
 
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        self.upcast::<Node>().dirty(NodeDamage::Other);
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-fe-mutable
@@ -2048,7 +2048,7 @@ impl HTMLInputElement {
         }
         self.textinput.borrow_mut().set_content(self.DefaultValue());
         self.value_dirty.set(false);
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        self.upcast::<Node>().dirty(NodeDamage::Other);
     }
 
     fn update_placeholder_shown_state(&self) {
@@ -2669,7 +2669,7 @@ impl VirtualMethods for HTMLInputElement {
                         let mut value = textinput.single_line_content().clone();
                         self.sanitize_value(&mut value);
                         textinput.set_content(value);
-                        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                        self.upcast::<Node>().dirty(NodeDamage::Other);
 
                         // Steps 7-9
                         if !previously_selectable && self.selection_api_applies() {
@@ -2698,7 +2698,7 @@ impl VirtualMethods for HTMLInputElement {
                 self.textinput.borrow_mut().set_content(value);
                 self.update_placeholder_shown_state();
 
-                self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                self.upcast::<Node>().dirty(NodeDamage::Other);
             },
             local_name!("name") if self.input_type() == InputType::Radio => {
                 self.radio_group_updated(
@@ -2865,7 +2865,7 @@ impl VirtualMethods for HTMLInputElement {
                             .borrow_mut()
                             .set_edit_point_index(edit_point_index);
                         // trigger redraw
-                        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                        self.upcast::<Node>().dirty(NodeDamage::Other);
                         event.PreventDefault();
                     }
                 }
@@ -2896,11 +2896,11 @@ impl VirtualMethods for HTMLInputElement {
                         }
                         self.value_dirty.set(true);
                         self.update_placeholder_shown_state();
-                        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                        self.upcast::<Node>().dirty(NodeDamage::Other);
                         event.mark_as_handled();
                     },
                     RedrawSelection => {
-                        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                        self.upcast::<Node>().dirty(NodeDamage::Other);
                         event.mark_as_handled();
                     },
                     Nothing => (),
@@ -2924,13 +2924,13 @@ impl VirtualMethods for HTMLInputElement {
                         .textinput
                         .borrow_mut()
                         .handle_compositionend(compositionevent);
-                    self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                    self.upcast::<Node>().dirty(NodeDamage::Other);
                 } else if event.type_() == atom!("compositionupdate") {
                     let _ = self
                         .textinput
                         .borrow_mut()
                         .handle_compositionupdate(compositionevent);
-                    self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                    self.upcast::<Node>().dirty(NodeDamage::Other);
                 }
                 event.mark_as_handled();
             }

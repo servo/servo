@@ -32,10 +32,10 @@
     let buttonFocused = false
     to.addEventListener("click", t.unreached_func("Button should not be clicked"))
     to.addEventListener("focus", () => buttonFocused = true)
-    endTest.addEventListener('click', () => {
+    endTest.addEventListener('click', t.step_func(() => {
       assert_true(buttonFocused, "Button should be focused")
       t.step_timeout(() => t.done(), 200)
-    })
+    }))
 
     // execute test
     from.focus()

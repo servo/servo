@@ -145,6 +145,8 @@ def create_parser():
                         help="Jobs to check for. Return code is 0 if all jobs are found, otherwise 1")
     parser.add_argument("--json", action="store_true",
                         help="Output jobs as JSON, instead of one per line")
+    parser.add_argument("--json-indent", type=int,
+                        help="Indent the JSON with this many spaces (default: no indentation, single line output)")
     return parser
 
 
@@ -153,7 +155,7 @@ def run(**kwargs):
     jobs = get_jobs(paths, **kwargs)
     if not kwargs["includes"]:
         if kwargs["json"]:
-            json.dump(sorted(jobs), sys.stdout, indent=2)
+            json.dump(sorted(jobs), sys.stdout, indent=kwargs["json_indent"])
             sys.stdout.write("\n")
         else:
             for item in sorted(jobs):

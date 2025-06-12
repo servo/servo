@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Fetch HTTP local with targetAddressSpace local </title>
+
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="support.sub.js"></script>
+<script>
+"use strict";
+
+// Fetch a local address over HTTP. Fetch is annotated with a
+// targetAddressSpace of local to allow for mixed content check bypassing.
+//
+// TODO(crbug.com/406991278): consolidate with fetch-local.html adding
+// options to minimize # of resources needed.
+Promise.resolve().then(async () => {
+  test_driver.set_test_context(opener);
+  await test_driver.set_permission({ name: 'local-network-access' }, 'granted');
+
+  const target = {
+    server: Server.HTTP_LOCAL,
+    behavior: { response: ResponseBehavior.allowCrossOrigin() },
+  };
+  const targetUrl = resolveTargetUrl(target);
+
+  fetch(targetUrl, {targetAddressSpace: 'local'})
+      .then(async function(response) {
+        const body = await response.text();
+        const message = {
+          ok: response.ok,
+          type: response.type,
+          body: body,
+        };
+        opener.postMessage(message, "*");
+      })
+      .catch(error => {
+        opener.postMessage({ error: error.toString() }, "*");
+      });
+});
+</script>

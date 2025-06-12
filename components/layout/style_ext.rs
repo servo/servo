@@ -28,6 +28,7 @@ use style::values::generics::position::{GenericAspectRatio, PreferredRatio};
 use style::values::generics::transform::{GenericRotate, GenericScale, GenericTranslate};
 use style::values::specified::align::AlignFlags;
 use style::values::specified::{Overflow, WillChangeBits, box_ as stylo};
+use unicode_bidi::Level;
 use webrender_api as wr;
 use webrender_api::units::LayoutTransform;
 
@@ -365,6 +366,7 @@ pub(crate) trait ComputedValuesExt {
     ) -> bool;
     fn is_inline_box(&self, fragment_flags: FragmentFlags) -> bool;
     fn overflow_direction(&self) -> OverflowDirection;
+    fn to_bidi_level(&self) -> Level;
 }
 
 impl ComputedValuesExt for ComputedValues {
@@ -1015,6 +1017,17 @@ impl ComputedValuesExt for ComputedValues {
         OverflowDirection {
             rightward,
             downward,
+        }
+    }
+
+    /// The default bidirectional embedding level for the writing mode of this style.
+    ///
+    /// Returns bidi level 0 if the mode is LTR, or 1 otherwise.
+    fn to_bidi_level(&self) -> Level {
+        if self.writing_mode.is_bidi_ltr() {
+            Level::ltr()
+        } else {
+            Level::rtl()
         }
     }
 }

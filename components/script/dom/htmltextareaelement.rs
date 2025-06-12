@@ -348,7 +348,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 
         self.validity_state()
             .perform_validation_and_update(ValidationFlags::all(), CanGc::note());
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        self.upcast::<Node>().dirty(NodeDamage::Other);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-textlength
@@ -656,11 +656,11 @@ impl VirtualMethods for HTMLTextAreaElement {
                         }
                         self.value_dirty.set(true);
                         self.update_placeholder_shown_state();
-                        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                        self.upcast::<Node>().dirty(NodeDamage::Other);
                         event.mark_as_handled();
                     },
                     KeyReaction::RedrawSelection => {
-                        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                        self.upcast::<Node>().dirty(NodeDamage::Other);
                         event.mark_as_handled();
                     },
                     KeyReaction::Nothing => (),
@@ -680,13 +680,13 @@ impl VirtualMethods for HTMLTextAreaElement {
                         .textinput
                         .borrow_mut()
                         .handle_compositionend(compositionevent);
-                    self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                    self.upcast::<Node>().dirty(NodeDamage::Other);
                 } else if event.type_() == atom!("compositionupdate") {
                     let _ = self
                         .textinput
                         .borrow_mut()
                         .handle_compositionupdate(compositionevent);
-                    self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                    self.upcast::<Node>().dirty(NodeDamage::Other);
                 }
                 event.mark_as_handled();
             }

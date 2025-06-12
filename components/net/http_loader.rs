@@ -59,7 +59,7 @@ use net_traits::{
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
 use servo_arc::Arc;
-use servo_url::{ImmutableOrigin, ServoUrl};
+use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use tokio::sync::mpsc::{
     Receiver as TokioReceiver, Sender as TokioSender, UnboundedReceiver, UnboundedSender, channel,
     unbounded_channel,
@@ -223,8 +223,11 @@ fn strict_origin_when_cross_origin(
     strip_url_for_use_as_referrer(referrer_url, true)
 }
 
-/// <https://html.spec.whatwg.org/multipage/#concept-site-same-site>
+/// <https://html.spec.whatwg.org/multipage/#same-site>
 fn is_same_site(site_a: &ImmutableOrigin, site_b: &ImmutableOrigin) -> bool {
+    // First steps are for
+    // https://html.spec.whatwg.org/multipage/#concept-site-same-site
+    //
     // Step 1. If A and B are the same opaque origin, then return true.
     if !site_a.is_tuple() && !site_b.is_tuple() && site_a == site_b {
         return true;
@@ -244,7 +247,12 @@ fn is_same_site(site_a: &ImmutableOrigin, site_b: &ImmutableOrigin) -> bool {
     }
 
     // Step 4. If A's and B's host values are not equal, then return false.
-    if host_a != host_b {
+    // Includes the steps of https://html.spec.whatwg.org/multipage/#obtain-a-site
+    if let (Host::Domain(domain_a), Host::Domain(domain_b)) = (host_a, host_b) {
+        if reg_suffix(domain_a) != reg_suffix(domain_b) {
+            return false;
+        }
+    } else if host_a != host_b {
         return false;
     }
 
@@ -2564,7 +2572,7 @@ fn set_the_sec_fetch_site_header(r: &mut Request) {
             header = SecFetchSite::CrossSite;
 
             // Step 5.3 If r’s origin is not same site with url’s origin, then break.
-            if is_same_site(request_origin, &url.origin()) {
+            if !is_same_site(request_origin, &url.origin()) {
                 break;
             }
 

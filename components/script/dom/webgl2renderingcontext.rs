@@ -534,7 +534,7 @@ impl WebGL2RenderingContext {
             let src_origin = Point2D::new(x, y);
             let src_size = Size2D::new(width as u32, height as u32);
             let fb_size = Size2D::new(fb_width as u32, fb_height as u32);
-            match pixels::clip(src_origin, src_size.to_u64(), fb_size.to_u64()) {
+            match pixels::clip(src_origin, src_size.to_u32(), fb_size.to_u32()) {
                 Some(rect) => rect.to_u32(),
                 None => return,
             }
@@ -2183,7 +2183,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             let src_origin = Point2D::new(x, y);
             let src_size = Size2D::new(width as u32, height as u32);
             let fb_size = Size2D::new(fb_width as u32, fb_height as u32);
-            if pixels::clip(src_origin, src_size.to_u64(), fb_size.to_u64()).is_none() {
+            if pixels::clip(src_origin, src_size.to_u32(), fb_size.to_u32()).is_none() {
                 return;
             }
         }

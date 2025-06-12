@@ -12,7 +12,7 @@ interface SpeechRecognition : EventTarget {
     attribute boolean continuous;
     attribute boolean interimResults;
     attribute unsigned long maxAlternatives;
-    attribute SpeechRecognitionMode mode;
+    attribute boolean processLocally;
     attribute SpeechRecognitionPhraseList phrases;
 
     // methods to drive the speech interaction
@@ -20,8 +20,8 @@ interface SpeechRecognition : EventTarget {
     undefined start(MediaStreamTrack audioTrack);
     undefined stop();
     undefined abort();
-    static Promise<AvailabilityStatus> availableOnDevice(DOMString lang);
-    static Promise<boolean> installOnDevice(DOMString lang);
+    static Promise<AvailabilityStatus> available(SpeechRecognitionOptions options);
+    static Promise<boolean> install(SpeechRecognitionOptions options);
 
     // event methods
     attribute EventHandler onaudiostart;
@@ -37,6 +37,11 @@ interface SpeechRecognition : EventTarget {
     attribute EventHandler onend;
 };
 
+dictionary SpeechRecognitionOptions {
+  required sequence<DOMString> langs;
+  boolean processLocally = false;
+};
+
 enum SpeechRecognitionErrorCode {
     "no-speech",
     "aborted",
@@ -46,12 +51,6 @@ enum SpeechRecognitionErrorCode {
     "service-not-allowed",
     "language-not-supported",
     "phrases-not-supported"
-};
-
-enum SpeechRecognitionMode {
-    "ondevice-preferred", // On-device speech recognition if available, otherwise use Cloud speech recognition as a fallback.
-    "ondevice-only", // On-device speech recognition only. Returns an error if on-device speech recognition is not available.
-    "cloud-only", // Cloud speech recognition only.
 };
 
 enum AvailabilityStatus {

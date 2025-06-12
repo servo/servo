@@ -121,19 +121,23 @@ impl StackingContextTree {
     pub fn new(
         fragment_tree: &FragmentTree,
         viewport_size: LayoutSize,
-        content_size: LayoutSize,
         pipeline_id: wr::PipelineId,
-        viewport_scroll_sensitivity: AxesScrollSensitivity,
         first_reflow: bool,
         debug: &DebugOptions,
     ) -> Self {
+        let scrollable_overflow = fragment_tree.scrollable_overflow();
+        let scrollable_overflow = LayoutSize::from_untyped(Size2D::new(
+            scrollable_overflow.size.width.to_f32_px(),
+            scrollable_overflow.size.height.to_f32_px(),
+        ));
+
         let compositor_info = CompositorDisplayListInfo::new(
             viewport_size,
-            content_size,
+            scrollable_overflow,
             pipeline_id,
             // This epoch is set when the WebRender display list is built. For now use a dummy value.
             wr::Epoch(0),
-            viewport_scroll_sensitivity,
+            fragment_tree.viewport_scroll_sensitivity,
             first_reflow,
         );
 

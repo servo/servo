@@ -372,8 +372,10 @@ impl WebViewRenderer {
         }
     }
 
+    // TODO: This function duplicates a lot of `dispatch_point_input_event.
+    // Perhaps it should just be called here instead.
     pub(crate) fn dispatch_pending_point_input_events(&self) {
-        while let Some(event) = self.pending_point_input_events.borrow_mut().pop_front() {
+        while let Some(mut event) = self.pending_point_input_events.borrow_mut().pop_front() {
             // Events that do not need to do hit testing are sent directly to the
             // constellation to filter down.
             let Some(point) = event.point() else {
@@ -392,9 +394,17 @@ impl WebViewRenderer {
                 return;
             };
 
-            self.global
-                .borrow_mut()
-                .update_cursor_from_hittest(point, &result);
+            match event {
+                InputEvent::Touch(ref mut touch_event) => {
+                    touch_event.init_sequence_id(self.touch_handler.current_sequence_id);
+                },
+                InputEvent::MouseButton(_) | InputEvent::MouseMove(_) | InputEvent::Wheel(_) => {
+                    self.global
+                        .borrow_mut()
+                        .update_cursor_from_hittest(point, &result);
+                },
+                _ => unreachable!("Unexpected input event type: {event:?}"),
+            }
 
             if let Err(error) = self.global.borrow().constellation_sender.send(
                 EmbedderToConstellationMessage::ForwardInputEvent(self.id, event, Some(result)),
@@ -1072,9 +1082,8 @@ impl WebViewRenderer {
     pub fn set_viewport_description(&mut self, viewport_description: ViewportDescription) {
         self.pending_scroll_zoom_events
             .push(ScrollZoomEvent::ViewportZoom(
-                self.viewport_description
+                viewport_description
                     .clone()
-                    .unwrap_or_default()
                     .clamp_zoom(viewport_description.initial_scale.get()),
             ));
         self.viewport_description = Some(viewport_description);

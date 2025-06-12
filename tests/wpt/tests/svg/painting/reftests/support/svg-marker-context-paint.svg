@@ -1,0 +1,29 @@
+<svg id="svg-root" viewBox="0 0 1600 900"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <defs>
+    <linearGradient id="lg">
+      <stop offset="0" stop-color="red"/>
+      <stop offset="1" stop-color="blue"/>
+    </linearGradient>
+
+    <!--
+      This marker will render two rectangles, both within the filled area
+      of the path we're using, so they should be indistinguishable from it.
+      -->
+    <marker id="marker" refX="-10" refY="-10" markerWidth="600" markerHeight="400" >
+      <rect y="0" width="200" height="100" fill="context-fill"/>
+      <rect x="250" y="270" width="300" height="100" fill="context-fill"/>
+    </marker>
+  </defs>
+
+  <path fill="url(#lg)" d="M 10 10 h 600 v 400 h -600 Z" marker-start="url(#marker)"/>
+
+  <g transform="translate(300 450) scale(0.75 0.5) rotate(60)">
+    <path fill="url(#lg)" d="M 10 10 h 600 v 400 h -600 Z" marker-start="url(#marker)"/>
+  </g>
+
+  <g transform="translate(600 450) scale(1.5 0.5) rotate(-30)">
+    <path fill="url(#lg)" d="M 10 10 h 600 v 400 h -600 Z" marker-start="url(#marker)"/>
+  </g>
+</svg>

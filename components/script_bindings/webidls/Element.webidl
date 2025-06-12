@@ -144,3 +144,8 @@ Element includes NonDocumentTypeChildNode;
 Element includes ParentNode;
 Element includes ActivatableElement;
 Element includes ARIAMixin;
+
+// https://drafts.csswg.org/css-shadow-parts/#idl
+partial interface Element {
+  [SameObject, PutForwards=value] readonly attribute DOMTokenList part;
+};

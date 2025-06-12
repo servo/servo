@@ -119,9 +119,7 @@ impl<'dom> style::dom::TNode for ServoLayoutNode<'dom> {
     type ConcreteShadowRoot = ServoShadowRoot<'dom>;
 
     fn parent_node(&self) -> Option<Self> {
-        self.node
-            .composed_parent_node_ref()
-            .map(Self::from_layout_js)
+        self.node.parent_node_ref().map(Self::from_layout_js)
     }
 
     fn first_child(&self) -> Option<Self> {
@@ -302,8 +300,8 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
     }
 
     fn parent_style(&self) -> Arc<ComputedValues> {
-        let parent = self.node.parent_node().unwrap().as_element().unwrap();
-        let parent_data = parent.borrow_data().unwrap();
+        let parent_element = self.node.traversal_parent().unwrap();
+        let parent_data = parent_element.borrow_data().unwrap();
         parent_data.styles.primary().clone()
     }
 

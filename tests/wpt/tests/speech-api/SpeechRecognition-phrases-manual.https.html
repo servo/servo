@@ -1,7 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+<meta name="timeout" content="long">
 <title>SpeechRecognition Phrases</title>
 
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
@@ -22,6 +25,24 @@ async function getAudioTrackFromFile(filePath) {
 }
 
 promise_test(async (t) => {
+    window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    // Install en-US for on-device speech recognition.
+    const installOptions = { langs: ["en-US"], processLocally: true };
+    const installPromise = test_driver.bless(
+        "Install on-device en-US speech recognition",
+        () => SpeechRecognition.install(installOptions)
+    );
+    assert_true(
+        installPromise instanceof Promise,
+        "SpeechRecognition.install() should return a Promise."
+    );
+    const installResult = await installPromise;
+    assert_true(
+        installResult,
+        "SpeechRecognition.install() for en-US should resolve with true."
+    );
+
     // Verify the audio track for recognition context exists.
     const audioTrack = await getAudioTrackFromFile("/media/recognition_context.mp3");
     assert_true(
@@ -31,9 +52,8 @@ promise_test(async (t) => {
 
     // Create the first speech recognition with a mode that does not support contextual biasing.
     // Note that this may vary between browsers in the future.
-    window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition1 = new SpeechRecognition();
-    recognition1.mode = "cloud-only";
+    recognition1.processLocally = false;
     recognition1.lang = "en-US";
 
     recognition1.onerror = function(event) {
@@ -50,7 +70,7 @@ promise_test(async (t) => {
 
     // Create the second speech recognition with a mode that supports contextual biasing.
     const recognition2 = new SpeechRecognition();
-    recognition2.mode = "ondevice-only";
+    recognition2.processLocally = true;
     recognition2.lang = "en-US";
 
     recognition2.onerror = function(event) {
@@ -67,7 +87,11 @@ promise_test(async (t) => {
     const recognitionPromise = new Promise((resolve) => {
         recognition2.onresult = (event) => {
             const transcript = event.results[0][0].transcript;
-            resolve(transcript);
+            const words = transcript.toLowerCase().split(' ');
+            // Resolve when the last word is "expectations".
+            if (words.length > 0 && words[words.length - 1] === "expectations") {
+                resolve(transcript);
+            }
         };
     });
     recognition2.start(audioTrack);

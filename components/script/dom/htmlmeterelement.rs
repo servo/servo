@@ -101,7 +101,7 @@ impl HTMLMeterElement {
             meter_value: meter_value.as_traced(),
         });
         self.upcast::<Node>()
-            .dirty(crate::dom::node::NodeDamage::OtherNodeDamage);
+            .dirty(crate::dom::node::NodeDamage::Other);
     }
 
     fn shadow_tree(&self, can_gc: CanGc) -> Ref<'_, ShadowTree> {

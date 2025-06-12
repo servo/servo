@@ -1105,7 +1105,8 @@ const lesserOrEqualTests = [
 if (navigator.ml) {
   lesserOrEqualTests.forEach((test) => {
     webnn_conformance_test(
-        buildAndExecuteGraph, getLesserOrEqualPrecisionTolerance, test);
+        buildAndExecuteGraph, getLesserOrEqualPrecisionTolerance, test,
+        /*cast_to_supported_type=*/true);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

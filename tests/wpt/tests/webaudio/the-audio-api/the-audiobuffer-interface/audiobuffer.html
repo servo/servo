@@ -1,71 +1,65 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>
-      audiobuffer.html
-    </title>
-    <script src="/resources/testharness.js"></script>
-    <script src="/resources/testharnessreport.js"></script>
-    <script src="/webaudio/resources/audit-util.js"></script>
-    <script src="/webaudio/resources/audit.js"></script>
-  </head>
-  <body>
-    <script id="layout-test-code">
-      let sampleRate = 44100.0
-      let lengthInSeconds = 2;
-      let numberOfChannels = 4;
+<head>
+  <title>AudioBuffer API Test</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <script>
+    const sampleRate = 44100.0;
+    const lengthInSeconds = 2;
+    const numberOfChannels = 4;
 
-      let audit = Audit.createTaskRunner();
-
-      audit.define('Basic tests for AudioBuffer', function(task, should) {
-        let context = new AudioContext();
-        let buffer = context.createBuffer(
-            numberOfChannels, sampleRate * lengthInSeconds, sampleRate);
-
-        // Just for printing out a message describing what "buffer" is in the
-        // following tests.
-        should(
-            true,
-            'buffer = context.createBuffer(' + numberOfChannels + ', ' +
-                (sampleRate * lengthInSeconds) + ', ' + sampleRate + ')')
-            .beTrue();
-
-        should(buffer.sampleRate, 'buffer.sampleRate').beEqualTo(sampleRate);
-
-        should(buffer.length, 'buffer.length')
-            .beEqualTo(sampleRate * lengthInSeconds);
-
-        should(buffer.duration, 'buffer.duration').beEqualTo(lengthInSeconds);
-
-        should(buffer.numberOfChannels, 'buffer.numberOfChannels')
-            .beEqualTo(numberOfChannels);
-
-        for (let index = 0; index < buffer.numberOfChannels; ++index) {
-          should(
-              buffer.getChannelData(index) instanceof window.Float32Array,
-              'buffer.getChannelData(' + index +
-                  ') instanceof window.Float32Array')
-              .beTrue();
-        }
-
-        should(
-            function() {
-              buffer.getChannelData(buffer.numberOfChannels);
-            },
-            'buffer.getChannelData(' + buffer.numberOfChannels + ')')
-            .throw(DOMException, 'IndexSizeError');
-
-        let buffer2 = context.createBuffer(1, 1000, 24576);
-        let expectedDuration = 1000 / 24576;
-
-        should(
-            buffer2.duration, 'context.createBuffer(1, 1000, 24576).duration')
-            .beEqualTo(expectedDuration);
-
-        task.done();
+    test(() => {
+      const buffer = new AudioBuffer({
+        numberOfChannels,
+        length: sampleRate * lengthInSeconds,
+        sampleRate
       });
 
-      audit.run();
-    </script>
-  </body>
+      assert_true(
+          true,
+          `buffer = new AudioBuffer({numberOfChannels: ${numberOfChannels}, ` +
+              `length: ${sampleRate * lengthInSeconds}, ` +
+                  `sampleRate: ${sampleRate}})`);
+
+      assert_equals(buffer.sampleRate, sampleRate, 'buffer.sampleRate');
+      assert_equals(
+          buffer.length, sampleRate * lengthInSeconds, 'buffer.length');
+      assert_equals(buffer.duration, lengthInSeconds, 'buffer.duration');
+      assert_equals(
+          buffer.numberOfChannels, numberOfChannels, 'buffer.numberOfChannels');
+
+      for (let i = 0; i < buffer.numberOfChannels; ++i) {
+        assert_true(
+            buffer.getChannelData(i) instanceof Float32Array,
+            `buffer.getChannelData(${i}) instanceof Float32Array`);
+      }
+
+      assert_throws_dom(
+          'IndexSizeError',
+          () => buffer.getChannelData(buffer.numberOfChannels),
+          `buffer.getChannelData(${buffer.numberOfChannels}) throws`);
+
+      // Non-standard values (1000 & 24576) to test edge-case duration behavior.
+      const testSampleRate = 24576;
+      const testLength = 1000;
+
+      const buffer2 = new AudioBuffer({
+        numberOfChannels: 1,
+        length: testLength,
+        sampleRate: testSampleRate
+      });
+
+      const expectedDuration = testLength / testSampleRate;
+
+      assert_equals(
+          buffer2.duration,
+          expectedDuration,
+          'new AudioBuffer({numberOfChannels: 1,\n' +
+              `length: ${testLength},sampleRate: ${testSampleRate}}).duration`);
+    }, 'AudioBuffer: creation and property validation');
+  </script>
+</body>
 </html>

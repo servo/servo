@@ -183,10 +183,10 @@ impl VirtualMethods for HTMLTableCellElement {
         }
 
         if matches!(*attr.local_name(), local_name!("colspan")) {
-            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+            self.upcast::<Node>().dirty(NodeDamage::Other);
         }
         if matches!(*attr.local_name(), local_name!("rowspan")) {
-            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+            self.upcast::<Node>().dirty(NodeDamage::Other);
         }
     }
 

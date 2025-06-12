@@ -1,34 +1,34 @@
 <!DOCTYPE html>
-<title>SpeechRecognition availableOnDevice</title>
+<title>SpeechRecognition available</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
 promise_test(async (t) => {
-  const lang = "en-US";
+  const options = { langs: ["en-US", "fr-FR"], processLocally: true };
   window.SpeechRecognition = window.SpeechRecognition ||
     window.webkitSpeechRecognition;
 
   // Test that it returns a promise.
-  const resultPromise = SpeechRecognition.availableOnDevice(lang);
+  const resultPromise = SpeechRecognition.available(options);
   assert_true(
     resultPromise instanceof Promise,
-    "availableOnDevice should return a Promise."
+    "available should return a Promise."
   );
 
   // Verify the resolved value is a string.
   const result = await resultPromise;
   assert_true(
     typeof result === "string",
-    "The resolved value of the availableOnDevice promise should be a string."
+    "The resolved value of the available promise should be a string."
   );
 
   assert_true(
     result === "unavailable" || result === "downloadable" ||
     result === "downloading" || result === "available",
-    "The resolved value of the availableOnDevice promise should be a " +
+    "The resolved value of the available promise should be a " +
     "valid value."
   );
-}, "SpeechRecognition.availableOnDevice resolves with a string value.");
+}, "SpeechRecognition.available resolves with a string value for on-device.");
 
 promise_test(async (t) => {
   const iframe = document.createElement("iframe");
@@ -38,14 +38,15 @@ promise_test(async (t) => {
   const frameSpeechRecognition =
     frameWindow.SpeechRecognition || frameWindow.webkitSpeechRecognition;
 
+  const options = { langs: ["en-US"], processLocally: true };
   iframe.remove();
   await promise_rejects_dom(
     t,
     "InvalidStateError",
     frameDOMException,
-    frameSpeechRecognition.availableOnDevice("en-US"),
+    frameSpeechRecognition.available(options),
   );
-}, "SpeechRecognition.availableOnDevice rejects in a detached context.");
+}, "SpeechRecognition.available rejects in a detached context for on-device.");
 
 promise_test(async (t) => {
   const iframe = document.createElement("iframe");
@@ -70,17 +71,18 @@ promise_test(async (t) => {
 
   assert_true(!!frameSpeechRecognition,
     "SpeechRecognition should exist in iframe.");
-  assert_true(!!frameSpeechRecognition.availableOnDevice,
-    "availableOnDevice method should exist on SpeechRecognition in iframe.");
+  assert_true(!!frameSpeechRecognition.available,
+    "available method should exist on SpeechRecognition in iframe.");
 
-  // Call availableOnDevice and expect it to resolve to "unavailable".
+  const options = { langs: ["en-US"], processLocally: true };
+  // Call available and expect it to resolve to "unavailable".
   const availabilityStatus =
-    await frameSpeechRecognition.availableOnDevice("en-US");
+    await frameSpeechRecognition.available(options);
   assert_equals(availabilityStatus, "unavailable",
-    "availableOnDevice should resolve to 'unavailable' if " +
+    "available should resolve to 'unavailable' if " +
     "'on-device-speech-recognition' Permission Policy is 'none'."
   );
-}, "SpeechRecognition.availableOnDevice resolves to 'unavailable' if " +
+}, "SpeechRecognition.available resolves to 'unavailable' for on-device if " +
   "'on-device-speech-recognition' Permission Policy is 'none'.");
 
 promise_test(async (t) => {
@@ -89,24 +91,25 @@ promise_test(async (t) => {
     <script>
       window.addEventListener('message', async (event) => {
         // Ensure we only process the message intended to trigger the test.
-        if (event.data !== "runTestCallAvailableOnDevice") return;
+        if (event.data !== "runTestCallAvailable") return;
 
         try {
           const SpeechRecognition = window.SpeechRecognition ||
                                     window.webkitSpeechRecognition;
-          if (!SpeechRecognition || !SpeechRecognition.availableOnDevice) {
+          if (!SpeechRecognition || !SpeechRecognition.available) {
             parent.postMessage({
               type: "error", // Use "error" for API not found or other issues.
               name: "NotSupportedError",
-              message: "SpeechRecognition.availableOnDevice API not " +
+              message: "SpeechRecognition.available API not " +
                        "available in iframe"
             }, "*");
             return;
           }
 
-          // Call availableOnDevice and post its resolution.
+          const options = { langs: ["en-US"], processLocally: true };
+          // Call available and post its resolution.
           const availabilityStatus =
-              await SpeechRecognition.availableOnDevice("en-US");
+              await SpeechRecognition.available(options);
           parent.postMessage(
               { type: "resolution", result: availabilityStatus },
               "*"
@@ -155,7 +158,7 @@ promise_test(async (t) => {
     }));
 
     // Send a distinct message to the iframe to trigger its test logic.
-    iframe.contentWindow.postMessage("runTestCallAvailableOnDevice", "*");
+    iframe.contentWindow.postMessage("runTestCallAvailable", "*");
   });
 
   // Check if the iframe's script reported an error (e.g., API not found).
@@ -175,9 +178,9 @@ promise_test(async (t) => {
   assert_equals(
     testResult.result, // Expecting the string "unavailable".
     "unavailable",
-    "availableOnDevice should resolve to 'unavailable' in a cross-origin " +
+    "available should resolve to 'unavailable' for on-device in a cross-origin " +
     "iframe."
   );
-}, "SpeechRecognition.availableOnDevice should resolve to 'unavailable' " +
+}, "SpeechRecognition.available should resolve to 'unavailable' for on-device " +
    "in a cross-origin iframe.");
 </script>

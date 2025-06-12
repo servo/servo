@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<link rel="match" href="min-width-in-flex-ref.html">
+<style>
+
+select, select::picker(select) {
+  appearance: base-select;
+}
+
+select {
+  white-space: nowrap;
+}
+
+</style>
+
+<div style="display:flex; flex-direction: row; width: 400px">
+  <select style="align-self: flex-start">
+    <option>This is an option</option>
+  </select>
+  <div style="color: transparent">
+    This div has a lot of text in it but it should not make the select become smaller.
+    A lot of text.  Really a lot of text.
+  </div>
+</div>

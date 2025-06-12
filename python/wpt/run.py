@@ -66,7 +66,7 @@ def run_tests(default_binary_path: str, **kwargs):
     # chunks and leads to more consistent timing on GitHub Actions.
     set_if_none(kwargs, "chunk_type", "id_hash")
 
-    kwargs["user_stylesheets"].append(os.path.join(SERVO_ROOT, "resources", "ahem.css"))
+    kwargs["user_stylesheets"].append(os.path.join(SERVO_ROOT, "tests", "wpt", "tests", "fonts", "ahem.css"))
 
     set_if_none(kwargs, "binary", default_binary_path)
     set_if_none(kwargs, "webdriver_binary", default_binary_path)
@@ -304,5 +304,7 @@ def write_unexpected_only_raw_log(
         with open(raw_log_file) as input:
             for line in input.readlines():
                 data = json.loads(line)
-                if data["action"] in ["suite_start", "suite_end"] or ("test" in data and data["test"] in tests):
+                if data["action"] in ["suite_start", "suite_end", "add_subsuite"] or (
+                    "test" in data and data["test"] in tests
+                ):
                     output.write(line)

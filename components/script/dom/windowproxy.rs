@@ -466,26 +466,40 @@ impl WindowProxy {
         features: DOMString,
         can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<WindowProxy>>> {
-        // Step 4.
+        // Step 5. If target is the empty string, then set target to "_blank".
         let non_empty_target = match target.as_ref() {
             "" => DOMString::from("_blank"),
             _ => target,
         };
-        // Step 5
+        // Step 6. Let tokenizedFeatures be the result of tokenizing features.
         let tokenized_features = tokenize_open_features(features);
-        // Step 7-9
+        // Step 7 - 8.
+        // If tokenizedFeatures["noreferrer"] exists, then set noreferrer to
+        // the result of parsing tokenizedFeatures["noreferrer"] as a boolean feature.
         let noreferrer = parse_open_feature_boolean(&tokenized_features, "noreferrer");
+
+        // Step 9. Let noopener be the result of getting noopener for window
+        // open with sourceDocument, tokenizedFeatures, and urlRecord.
         let noopener = if noreferrer {
             true
         } else {
             parse_open_feature_boolean(&tokenized_features, "noopener")
         };
-        // Step 10, 11
+        // (TODO) Step 10. Remove tokenizedFeatures["noopener"] and tokenizedFeatures["noreferrer"].
+
+        // (TODO) Step 11. Let referrerPolicy be the empty string.
+        // (TODO) Step 12. If noreferrer is true, then set referrerPolicy to "no-referrer".
+
+        // Step 13 - 14
+        // Let targetNavigable and windowType be the result of applying the rules for
+        // choosing a navigable given target, sourceDocument's node navigable, and noopener.
+        // If targetNavigable is null, then return null.
         let (chosen, new) = match self.choose_browsing_context(non_empty_target, noopener) {
             (Some(chosen), new) => (chosen, new),
             (None, _) => return Ok(None),
         };
-        // TODO Step 12, set up browsing context features.
+        // TODO Step 15.2, Set up browsing context features for targetNavigable's
+        // active browsing context given tokenizedFeatures.
         let target_document = match chosen.document() {
             Some(target_document) => target_document,
             None => return Ok(None),
@@ -496,7 +510,7 @@ impl WindowProxy {
             false
         };
         let target_window = target_document.window();
-        // Step 13, and 14.4, will have happened elsewhere,
+        // Step 15.3 and 15.4 will have happened elsewhere,
         // since we've created a new browsing context and loaded it with about:blank.
         if !url.is_empty() {
             let existing_document = self
@@ -504,18 +518,18 @@ impl WindowProxy {
                 .get()
                 .and_then(ScriptThread::find_document)
                 .unwrap();
-            // Step 14.1
             let url = match existing_document.url().join(&url) {
                 Ok(url) => url,
                 Err(_) => return Err(Error::Syntax),
             };
-            // Step 14.3
             let referrer = if noreferrer {
                 Referrer::NoReferrer
             } else {
                 target_window.as_global_scope().get_referrer()
             };
-            // Step 14.5
+            // Step 15.5 Otherwise, navigate targetNavigable to urlRecord using sourceDocument,
+            // with referrerPolicy set to referrerPolicy and exceptionsEnabled set to true.
+            // FIXME: referrerPolicy may not be used properly here. exceptionsEnabled not used.
             let referrer_policy = target_document.get_referrer_policy();
             let pipeline_id = target_window.pipeline_id();
             let secure = target_window.as_global_scope().is_secure_context();
@@ -534,14 +548,13 @@ impl WindowProxy {
             } else {
                 NavigationHistoryBehavior::Push
             };
-
             target_window.load_url(history_handling, false, load_data, can_gc);
         }
+        // Step 17 (Dis-owning has been done in create_auxiliary_browsing_context).
         if noopener {
-            // Step 15 (Dis-owning has been done in create_auxiliary_browsing_context).
             return Ok(None);
         }
-        // Step 17.
+        // Step 18
         Ok(target_document.browsing_context())
     }
 

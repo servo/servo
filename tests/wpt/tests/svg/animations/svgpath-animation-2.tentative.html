@@ -1,0 +1,34 @@
+<!doctype html>
+<title>'inherit' path animation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+<script src="support/animated-path-helpers.js"></script>
+<svg>
+  <g style="d: path('M0,50h100')">
+    <path stroke-width="100" stroke="green">
+      <animate attributeName="d" attributeType="CSS" values="M0,50h50; inherit"
+               dur="5s" fill="freeze"/>
+    </path>
+  </g>
+</svg>
+<script>
+const rootSVGElement = document.querySelector("svg");
+
+smil_async_test(t => {
+  const path = document.querySelector("svg > g > path");
+  const expectedValues = [
+    // [animationId, time, sampleCallback]
+    ["animation", 0,   () => {
+      assert_animated_path_equals(path, "M 0 50 h 50");
+    }],
+    ["animation", 2.5, () => {
+      assert_animated_path_equals(path, "M 0 50 h 75");
+    }],
+    ["animation", 5, () => {
+      assert_animated_path_equals(path, "M 0 50 h 100");
+    }]
+  ];
+  runAnimationTest(t, expectedValues);
+});
+</script>

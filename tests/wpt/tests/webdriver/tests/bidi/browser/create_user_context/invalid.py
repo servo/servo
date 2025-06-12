@@ -66,3 +66,107 @@ async def test_proxy_proxy_type_manual_socks_proxy_without_socks_version(
                 "proxyType": "manual",
                 "socksProxy": "127.0.0.1:1080"
             })
+
+
+@pytest.mark.parametrize("value", [42, True, [], {}])
+async def test_params_proxy_ftp_proxy_invalid_type(create_user_context, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await create_user_context(proxy={"proxyType": "manual", "ftpProxy": value})
+
+
+@pytest.mark.parametrize("value", [42, True, [], {}])
+async def test_params_proxy_http_proxy_invalid_type(create_user_context, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await create_user_context(proxy={"proxyType": "manual", "httpProxy": value})
+
+
+@pytest.mark.parametrize("value", [
+    "http://foo",
+    "foo:-1",
+    "foo:65536",
+    "foo/test",
+    "foo#42",
+    "foo?foo=bar",
+    "2001:db8::1",
+])
+async def test_params_proxy_http_proxy_invalid_value(create_user_context, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await create_user_context(proxy={"proxyType": "manual", "httpProxy": value})
+
+
+@pytest.mark.parametrize("value", [42, True, [], {}])
+async def test_params_proxy_ssl_proxy_invalid_type(create_user_context, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await create_user_context(proxy={"proxyType": "manual", "sslProxy": value})
+
+
+@pytest.mark.parametrize("value", [
+    "https://foo",
+    "foo:-1",
+    "foo:65536",
+    "foo/test",
+    "foo#42",
+    "foo?foo=bar",
+    "2001:db8::1",
+])
+async def test_params_proxy_ssl_proxy_invalid_value(create_user_context, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await create_user_context(proxy={"proxyType": "manual", "sslProxy": value})
+
+
+@pytest.mark.parametrize("value", [42, True, [], {}])
+async def test_params_proxy_socks_proxy_invalid_type(create_user_context, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await create_user_context(
+            proxy={"proxyType": "manual", "socksProxy": value, "socksVersion": 4}
+        )
+
+
+@pytest.mark.parametrize("value", [
+    "https://foo",
+    "foo:-1",
+    "foo:65536",
+    "foo/test",
+    "foo#42",
+    "foo?foo=bar",
+    "2001:db8::1",
+])
+async def test_params_proxy_socks_proxy_invalid_value(create_user_context, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await create_user_context(proxy={"proxyType": "manual", "socksProxy": value})
+
+
+@pytest.mark.parametrize("value", ["foo", True, [], {}])
+async def test_params_socks_version_invalid_type(create_user_context, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await create_user_context(
+            proxy={"proxyType": "manual", "socksProxy": "foo:1", "socksVersion": value}
+        )
+
+
+@pytest.mark.parametrize("value", [42, True, "foo", {}])
+async def test_params_no_proxy_invalid_type(create_user_context, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await create_user_context(proxy={"proxyType": "manual", "noProxy": value})
+
+
+@pytest.mark.parametrize("value", [42, True, [], {}])
+async def test_params_no_proxy_element_invalid_type(create_user_context, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await create_user_context(proxy={"proxyType": "manual", "noProxy": [value]})
+
+
+@pytest.mark.parametrize("value", [42, True, [], {}, None])
+async def test_params_autoconfig_url_invalid_type(create_user_context, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await create_user_context(
+            proxy={"proxyType": "pac", "proxyAutoconfigUrl": value}
+        )
+
+
+@pytest.mark.parametrize("value", [42, True, [], {}])
+async def test_params_autoconfig_missing(create_user_context, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await create_user_context(
+            proxy={"proxyType": "pac"}
+        )

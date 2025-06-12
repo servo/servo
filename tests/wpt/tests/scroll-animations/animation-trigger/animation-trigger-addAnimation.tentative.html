@@ -1,0 +1,148 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="help" src="https://drafts.csswg.org/css-animations-2/#animation-trigger">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/web-animations/testcommon.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+    <script src="support/support.js"></script>
+  </head>
+  <body>
+    <style>
+      .subject, .target {
+        height: 50px;
+        width: 50px;
+        background-color: red;
+      }
+      .scroller {
+        overflow-y: scroll;
+        height: 500px;
+        width: 500px;
+        border: solid 1px;
+        position: relative;
+      }
+      #space {
+        width: 50px;
+        height: 600px;
+      }
+    </style>
+    <div id="wrapper">
+      <div id="scroller" class="scroller">
+        <div id="space"></div>
+        <div id="subject" class="subject"></div>
+        <div id="space"></div>
+      </div>
+      <div id="target" class="target"></div>
+    </div>
+    <script>
+      // The trigger and exit ranges are the same for this test.
+      const TRIGGER_START_PX = 150;
+      const TRIGGER_END_PX = 200;
+      const scroller = document.getElementById("scroller");
+      const target = document.getElementById("target");
+      const COVER_START_OFFSET = 100;
+      const rangeBoundaries = getRangeBoundariesForTest(
+                                    COVER_START_OFFSET + TRIGGER_START_PX,
+                                    COVER_START_OFFSET + TRIGGER_END_PX,
+                                    COVER_START_OFFSET + TRIGGER_START_PX,
+                                    COVER_START_OFFSET + TRIGGER_END_PX,
+                                    scroller);
+      const ANIMATION_DURATION_MS = 1;
+      const view_timeline = new ViewTimeline({ subject: subject });
+      function setupAnimation() {
+        const animation = new Animation(
+          new KeyframeEffect(
+            target,
+            [
+              { transform: "scaleX(1)", backgroundColor: "pink", left: "0px" },
+              { transform: "scaleX(5)", backgroundColor: "pink", left: "10px" }
+            ],
+            { duration: ANIMATION_DURATION_MS, fill: "both" }
+          ));
+        return animation;
+      }
+      function setupAnimationTrigger(use_default_trigger=false) {
+        const trigger = use_default_trigger ? new AnimationTrigger()
+            : new AnimationTrigger({
+              type: "alternate",
+              timeline: view_timeline,
+              rangeStart: `${TRIGGER_START_PX}px`,
+              rangeEnd: `${TRIGGER_END_PX}px`
+            });
+        return trigger;
+      }
+
+      promise_test(async (test) => {
+        const animation = setupAnimation();
+        const trigger = setupAnimationTrigger(/*use_default_trigger=*/true);
+
+        // As the default trigger is always  in the tripped state, the animation
+        // should be played right away.
+        trigger.addAnimation(animation);
+        await animation.finished;
+
+        assert_times_equal(animation.currentTime, ANIMATION_DURATION_MS,
+          "animation finish reflected in currentTime");
+        assert_equals(animation.playState, "finished",
+          "animation finish reflected in playeState");
+      }, "Animation attached to tripped (default) trigger plays.");
+
+      promise_test(async (test) => {
+        const animation = setupAnimation();
+        const trigger = setupAnimationTrigger();
+
+        assert_equals(animation.playState, "idle", "animation is idle");
+        assert_equals(animation.currentTime, null, "currentTime is null");
+
+        assert_equals(scroller.scrollTop, 0, "scroller is not scrolled, i.e. " +
+          "not within the trigger range");
+
+        trigger.addAnimation(animation);
+
+        await waitForAnimationFrames(2);
+
+        assert_equals(animation.playState, "paused",
+          "animation is paused, awaiting trigger event");
+        assert_times_equal(animation.currentTime, 0, "currentTime is 0");
+
+        // Entering the trigger range should play the animation.
+        rangeBoundaries.enterTriggerRange();
+        await animation.finished;
+
+        assert_equals(animation.playState, "finished",
+          "animation is paused, awaiting trigger event");
+        assert_times_equal(animation.currentTime, ANIMATION_DURATION_MS,
+          "currentTime is 0");
+      }, "Animation attached to untripped trigger is paused at the beginning.");
+
+      promise_test(async (test) => {
+        await waitForScrollReset(test, scroller);
+
+        assert_equals(scroller.scrollTop, 0, "scroller is not scrolled, i.e. " +
+          "not within the trigger range");
+
+        const animation = setupAnimation();
+        const trigger = setupAnimationTrigger();
+
+        assert_equals(animation.playState, "idle", "animation is idle");
+        assert_equals(animation.currentTime, null, "currentTime is null");
+
+        rangeBoundaries.enterTriggerRange();
+        await waitForAnimationFrames(2);
+
+        assert_equals(animation.playState, "idle", "animation is still idle");
+        assert_equals(animation.currentTime, null, "currentTime is still null");
+
+        trigger.addAnimation(animation);
+        await animation.finished;
+
+        assert_equals(animation.playState, "finished",
+          "animation is paused, awaiting trigger event");
+        assert_times_equal(animation.currentTime, ANIMATION_DURATION_MS,
+          `currentTime is ${ANIMATION_DURATION_MS}`);
+      }, "Animation attached to tripped trigger is played immediately.");
+    </script>
+  </body>
+</html>

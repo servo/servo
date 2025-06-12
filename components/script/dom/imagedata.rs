@@ -148,14 +148,19 @@ impl ImageData {
             imagedata, global, proto, can_gc,
         ))
     }
+
+    pub(crate) fn is_detached(&self) -> bool {
+        self.data.is_detached_buffer(GlobalScope::get_cx())
+    }
+
     #[allow(unsafe_code)]
     pub(crate) fn to_shared_memory(&self) -> IpcSharedMemory {
         IpcSharedMemory::from_bytes(unsafe { self.as_slice() })
     }
 
     #[allow(unsafe_code)]
-    pub(crate) unsafe fn get_rect(&self, rect: Rect<u64>) -> Cow<[u8]> {
-        pixels::rgba8_get_rect(self.as_slice(), self.get_size().to_u64(), rect)
+    pub(crate) unsafe fn get_rect(&self, rect: Rect<u32>) -> Cow<[u8]> {
+        pixels::rgba8_get_rect(self.as_slice(), self.get_size().to_u32(), rect)
     }
 
     pub(crate) fn get_size(&self) -> Size2D<u32> {

@@ -57,7 +57,7 @@ impl InputEvent {
             InputEvent::MouseMove(event) => event.webdriver_id,
             InputEvent::MouseLeave(..) => None,
             InputEvent::Touch(..) => None,
-            InputEvent::Wheel(..) => None,
+            InputEvent::Wheel(event) => event.webdriver_id,
         }
     }
 
@@ -75,7 +75,9 @@ impl InputEvent {
             },
             InputEvent::MouseLeave(..) => {},
             InputEvent::Touch(..) => {},
-            InputEvent::Wheel(..) => {},
+            InputEvent::Wheel(ref mut event) => {
+                event.webdriver_id = webdriver_id;
+            },
         };
 
         self
@@ -290,6 +292,17 @@ pub struct WheelDelta {
 pub struct WheelEvent {
     pub delta: WheelDelta,
     pub point: DevicePoint,
+    webdriver_id: Option<WebDriverMessageId>,
+}
+
+impl WheelEvent {
+    pub fn new(delta: WheelDelta, point: DevicePoint) -> Self {
+        WheelEvent {
+            delta,
+            point,
+            webdriver_id: None,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

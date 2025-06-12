@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>border-radius should not clip contents if overflow is clipped in only one direction</title>
+<link rel="author" title="Psychpsyo" href="mailto:psychpsyo@gmail.com" />
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#corner-clipping">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  #testHolder {
+    width: 100px;
+    height: 100px;
+    background-color: red;
+  }
+  #clipped {
+    width: 100px;
+    height: 100px;
+    overflow-x: clip;
+    background-color: wheat;
+    border-radius: 50%;
+  }
+  #contents {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="testHolder">
+  <div id="clipped">
+    <div id="contents"></div>
+  </div>
+</div>
