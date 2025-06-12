@@ -167,7 +167,7 @@ class MachCommands(CommandBase):
                             flush=True,
                         )
 
-                    self.count += 1
+                    count += 1
             return retcode
         return self.run_cargo_build_like_command("clippy", params, env=env, **kwargs)
 
