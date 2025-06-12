@@ -42,6 +42,10 @@ impl<WebView> WebViewManager<WebView> {
         self.webviews.remove(&webview_id)
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.webviews.is_empty()
+    }
+
     pub fn get(&self, webview_id: WebViewId) -> Option<&WebView> {
         self.webviews.get(&webview_id)
     }

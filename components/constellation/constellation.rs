@@ -1296,6 +1296,12 @@ where
                 self.handle_exit();
             },
             EmbedderToConstellationMessage::GetFocusTopLevelBrowsingContext(resp_chan) => {
+                if self.webviews.is_empty() {
+                    // https://github.com/servo/servo/issues/37408
+                    info!("Creating new webview because none is open");
+                    self.embedder_proxy
+                        .send(EmbedderMsg::OpenNewTopLevelWebview);
+                }
                 let focused_context = self
                     .webviews
                     .focused_webview()
