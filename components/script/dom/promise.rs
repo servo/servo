@@ -425,7 +425,8 @@ struct WaitForAllFulfillmentHandler {
 
     /// The results of the promises.
     #[ignore_malloc_size_of = "Rc is hard"]
-    result: Rc<RefCell<Vec<Heap<JSVal>>>>,
+    #[allow(clippy::vec_box)]
+    result: Rc<RefCell<Vec<Box<Heap<JSVal>>>>>,
 
     /// The index identifying which promise this handler is attached to.
     promise_index: usize,
@@ -533,7 +534,7 @@ pub(crate) fn wait_for_all(
     // Note: done with `enumerate` below.
 
     // Let result be a list containing total null values.
-    let result: Rc<RefCell<Vec<Heap<JSVal>>>> = Default::default();
+    let result: Rc<RefCell<Vec<Box<Heap<JSVal>>>>> = Default::default();
 
     // For each promise of promises:
     for (promise_index, promise) in promises.into_iter().enumerate() {
@@ -543,9 +544,7 @@ pub(crate) fn wait_for_all(
             // Note: adding a null value for this promise result.
             let mut result_list = result.borrow_mut();
             rooted!(in(*cx) let null_value = NullValue());
-            result_list.push(Heap::default());
-            // Note: modifying the heap only after its move.
-            result_list[promise_index].set(null_value.get());
+            result_list.push(Heap::boxed(null_value.get()));
         }
 
         // Let promiseIndex be index.
