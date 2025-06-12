@@ -394,6 +394,8 @@ pub type IFrameSizes = FnvHashMap<BrowsingContextId, IFrameSize>;
 /// Information derived from a layout pass that needs to be returned to the script thread.
 #[derive(Debug, Default)]
 pub struct ReflowResult {
+    /// Whether or not this reflow produced a display list.
+    pub built_display_list: bool,
     /// The list of images that were encountered that are in progress.
     pub pending_images: Vec<PendingImage>,
     /// The list of vector images that were encountered that still need to be rasterized.

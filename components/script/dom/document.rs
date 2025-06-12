@@ -212,15 +212,6 @@ use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
 use crate::timers::OneshotTimerCallback;
 
-/// The number of times we are allowed to see spurious `requestAnimationFrame()` calls before
-/// falling back to fake ones.
-///
-/// A spurious `requestAnimationFrame()` call is defined as one that does not change the DOM.
-const SPURIOUS_ANIMATION_FRAME_THRESHOLD: u8 = 5;
-
-/// The amount of time between fake `requestAnimationFrame()`s.
-const FAKE_REQUEST_ANIMATION_FRAME_DELAY: u64 = 16;
-
 pub(crate) enum TouchEventResult {
     Processed(bool),
     Forwarded,
@@ -2563,27 +2554,26 @@ impl Document {
     /// <https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe>
     pub(crate) fn request_animation_frame(&self, callback: AnimationFrameCallback) -> u32 {
         let ident = self.animation_frame_ident.get() + 1;
-
         self.animation_frame_ident.set(ident);
-        self.animation_frame_list
-            .borrow_mut()
-            .push_back((ident, Some(callback)));
 
-        // If we are running 'fake' animation frames, we unconditionally
-        // set up a one-shot timer for script to execute the rAF callbacks.
-        if self.is_faking_animation_frames() && !self.window().throttled() {
-            self.schedule_fake_animation_frame();
-        } else if !self.running_animation_callbacks.get() {
-            // No need to send a `ChangeRunningAnimationsState` if we're running animation callbacks:
-            // we're guaranteed to already be in the "animation callbacks present" state.
-            //
-            // This reduces CPU usage by avoiding needless thread wakeups in the common case of
-            // repeated rAF.
+        let had_animation_frame_callbacks;
+        {
+            let mut animation_frame_list = self.animation_frame_list.borrow_mut();
+            had_animation_frame_callbacks = !animation_frame_list.is_empty();
+            animation_frame_list.push_back((ident, Some(callback)));
+        }
 
-            let event = ScriptToConstellationMessage::ChangeRunningAnimationsState(
-                AnimationState::AnimationCallbacksPresent,
+        // No need to send a `ChangeRunningAnimationsState` if we're running animation callbacks:
+        // we're guaranteed to already be in the "animation callbacks present" state.
+        //
+        // This reduces CPU usage by avoiding needless thread wakeups in the common case of
+        // repeated rAF.
+        if !self.running_animation_callbacks.get() && !had_animation_frame_callbacks {
+            self.window().send_to_constellation(
+                ScriptToConstellationMessage::ChangeRunningAnimationsState(
+                    AnimationState::AnimationCallbacksPresent,
+                ),
             );
-            self.window().send_to_constellation(event);
         }
 
         ident
@@ -2597,23 +2587,11 @@ impl Document {
         }
     }
 
-    fn schedule_fake_animation_frame(&self) {
-        warn!("Scheduling fake animation frame. Animation frames tick too fast.");
-        let callback = FakeRequestAnimationFrameCallback {
-            document: Trusted::new(self),
-        };
-        self.global().schedule_callback(
-            OneshotTimerCallback::FakeRequestAnimationFrame(callback),
-            Duration::from_millis(FAKE_REQUEST_ANIMATION_FRAME_DELAY),
-        );
-    }
-
     /// <https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks>
     pub(crate) fn run_the_animation_frame_callbacks(&self, can_gc: CanGc) {
         let _realm = enter_realm(self);
 
         self.running_animation_callbacks.set(true);
-        let was_faking_animation_frames = self.is_faking_animation_frames();
         let timing = self.global().performance().Now();
 
         let num_callbacks = self.animation_frame_list.borrow().len();
@@ -2623,68 +2601,12 @@ impl Document {
                 callback.call(self, *timing, can_gc);
             }
         }
-
         self.running_animation_callbacks.set(false);
-        let callbacks_did_not_trigger_reflow = self.needs_reflow().is_none();
-        let is_empty = self.animation_frame_list.borrow().is_empty();
 
-        if !is_empty && callbacks_did_not_trigger_reflow && !was_faking_animation_frames {
-            // If the rAF callbacks did not mutate the DOM, then the impending
-            // reflow call as part of *update the rendering* will not do anything
-            // and therefore no new frame will be sent to the compositor.
-            // If this happens, the compositor will not tick the animation
-            // and the next rAF will never be called! When this happens
-            // for several frames, then the spurious rAF detection below
-            // will kick in and use a timer to tick the callbacks. However,
-            // for the interim frames where we are deciding whether this rAF
-            // is considered spurious, we need to ensure that the layout
-            // and compositor *do* tick the animation.
-            self.set_needs_paint(true);
-        }
-
-        // Update the counter of spurious animation frames.
-        let spurious_frames = self.spurious_animation_frames.get();
-        if callbacks_did_not_trigger_reflow {
-            if spurious_frames < SPURIOUS_ANIMATION_FRAME_THRESHOLD {
-                self.spurious_animation_frames.set(spurious_frames + 1);
-            }
-        } else {
-            self.spurious_animation_frames.set(0);
-        }
-
-        // Only send the animation change state message after running any callbacks.
-        // This means that if the animation callback adds a new callback for
-        // the next frame (which is the common case), we won't send a NoAnimationCallbacksPresent
-        // message quickly followed by an AnimationCallbacksPresent message.
-        //
-        // If this frame was spurious and we've seen too many spurious frames in a row, tell the
-        // constellation to stop giving us video refresh callbacks, to save energy. (A spurious
-        // animation frame is one in which the callback did not mutate the DOM—that is, an
-        // animation frame that wasn't actually used for animation.)
-        let just_crossed_spurious_animation_threshold =
-            !was_faking_animation_frames && self.is_faking_animation_frames();
-        if is_empty || just_crossed_spurious_animation_threshold {
-            if !is_empty {
-                // We just realized that we need to stop requesting compositor's animation ticks
-                // due to spurious animation frames, but we still have rAF callbacks queued. Since
-                // `is_faking_animation_frames` would not have been true at the point where these
-                // new callbacks were registered, the one-shot timer will not have been setup in
-                // `request_animation_frame()`. Since we stop the compositor ticks below, we need
-                // to expliclty trigger a OneshotTimerCallback for these queued callbacks.
-                self.schedule_fake_animation_frame();
-            }
-            let event = ScriptToConstellationMessage::ChangeRunningAnimationsState(
-                AnimationState::NoAnimationCallbacksPresent,
-            );
-            self.window().send_to_constellation(event);
-        }
-
-        // If we were previously faking animation frames, we need to re-enable video refresh
-        // callbacks when we stop seeing spurious animation frames.
-        if was_faking_animation_frames && !self.is_faking_animation_frames() && !is_empty {
+        if self.animation_frame_list.borrow().is_empty() {
             self.window().send_to_constellation(
                 ScriptToConstellationMessage::ChangeRunningAnimationsState(
-                    AnimationState::AnimationCallbacksPresent,
+                    AnimationState::NoAnimationCallbacksPresent,
                 ),
             );
         }
@@ -4713,12 +4635,6 @@ impl Document {
     fn decr_ignore_opens_during_unload_counter(&self) {
         self.ignore_opens_during_unload_counter
             .set(self.ignore_opens_during_unload_counter.get() - 1);
-    }
-
-    /// Whether we've seen so many spurious animation frames (i.e. animation frames that didn't
-    /// mutate the DOM) that we've decided to fall back to fake ones.
-    fn is_faking_animation_frames(&self) -> bool {
-        self.spurious_animation_frames.get() >= SPURIOUS_ANIMATION_FRAME_THRESHOLD
     }
 
     // https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen
@@ -6756,27 +6672,6 @@ pub enum FocusInitiator {
 pub(crate) enum FocusEventType {
     Focus, // Element gained focus. Doesn't bubble.
     Blur,  // Element lost focus. Doesn't bubble.
-}
-
-/// A fake `requestAnimationFrame()` callback—"fake" because it is not triggered by the video
-/// refresh but rather a simple timer.
-///
-/// If the page is observed to be using `requestAnimationFrame()` for non-animation purposes (i.e.
-/// without mutating the DOM), then we fall back to simple timeouts to save energy over video
-/// refresh.
-#[derive(JSTraceable, MallocSizeOf)]
-pub(crate) struct FakeRequestAnimationFrameCallback {
-    /// The document.
-    #[ignore_malloc_size_of = "non-owning"]
-    document: Trusted<Document>,
-}
-
-impl FakeRequestAnimationFrameCallback {
-    pub(crate) fn invoke(self, can_gc: CanGc) {
-        // TODO: Once there is a more generic mechanism to trigger `update_the_rendering` when
-        // not driven by the compositor, it should be used here.
-        with_script_thread(|script_thread| script_thread.update_the_rendering(true, can_gc))
-    }
 }
 
 /// This is a temporary workaround to update animated images,
