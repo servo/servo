@@ -8,6 +8,7 @@ use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;
 
 use base::id::{PipelineId, WebViewId};
+use compositing_traits::display_list::ScrollType;
 use compositing_traits::viewport_description::{
     DEFAULT_ZOOM, MAX_ZOOM, MIN_ZOOM, ViewportDescription,
 };
@@ -931,9 +932,11 @@ impl WebViewRenderer {
         {
             let pipeline_details = self.pipelines.get_mut(pipeline_id)?;
             if previous_pipeline_id.replace(pipeline_id) != Some(pipeline_id) {
-                let scroll_result = pipeline_details
-                    .scroll_tree
-                    .scroll_node_or_ancestor(scroll_tree_node, scroll_location);
+                let scroll_result = pipeline_details.scroll_tree.scroll_node_or_ancestor(
+                    scroll_tree_node,
+                    scroll_location,
+                    ScrollType::InputEvents,
+                );
                 if let Some((external_scroll_id, offset)) = scroll_result {
                     return Some(ScrollResult {
                         pipeline_id: *pipeline_id,

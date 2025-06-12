@@ -1123,6 +1123,7 @@ version = "0.0.1"
 dependencies = [
  "base",
  "bincode",
+ "bitflags 2.9.1",
  "crossbeam-channel",
  "dpi",
  "embedder_traits",

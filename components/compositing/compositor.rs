@@ -15,7 +15,9 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::id::{PipelineId, WebViewId};
 use base::{Epoch, WebRenderEpochToU16};
 use bitflags::bitflags;
-use compositing_traits::display_list::{CompositorDisplayListInfo, HitTestInfo, ScrollTree};
+use compositing_traits::display_list::{
+    CompositorDisplayListInfo, HitTestInfo, ScrollTree, ScrollType,
+};
 use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::{
     CompositionPipeline, CompositorMsg, ImageUpdate, SendableFrameTree, WebViewTrait,
@@ -738,22 +740,22 @@ impl IOCompositor {
                 };
 
                 let offset = LayoutVector2D::new(point.x, point.y);
-                if !pipeline_details
+                let Some(offset) = pipeline_details
                     .scroll_tree
                     .set_scroll_offsets_for_node_with_external_scroll_id(
                         external_scroll_id,
                         -offset,
+                        ScrollType::Script,
                     )
-                {
-                    warn!("Could not scroll not with id: {external_scroll_id:?}");
+                else {
                     return;
-                }
+                };
 
                 let mut txn = Transaction::new();
                 txn.set_scroll_offsets(
                     external_scroll_id,
                     vec![SampledScrollOffset {
-                        offset,
+                        offset: -offset,
                         generation: 0,
                     }],
                 );
