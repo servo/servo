@@ -141,9 +141,39 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
     let wakeup = Box::new(WakeupCallback::new(callbacks_ref.clone(), &env));
     let callbacks = Box::new(HostCallbacks::new(callbacks_ref, &env));
 
+    let user_agent = get_user_agent(&mut env);
+    info!("user agent: {user_agent}");
+
+    //We could add the user agent to opts.args and that should get picked up by init later.
+    //Either that or we do the JNI somewhere else? That's require saving/passing around the env though...
+
+    //This doesn't work because opts is immutable. We could append some stuff before returning in get_options() though.
+    // opts.args.push("user-agent".to_string());
+    // opts.args.push(user_agent);
+
     if let Err(err) = simpleservo::init(opts, wakeup, callbacks) {
         throw(&mut env, err)
     };
+}
+
+fn get_user_agent<'local>(env: &mut JNIEnv<'local>) -> String {
+    //copy-pasted from components/config/prefs.rs
+    const SERVO_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+    let mut release: String = "10".to_string();
+
+    if let Ok(class) = env.find_class("android/os/Build$VERSION") {
+        if let Ok(release_field) = env.get_static_field(class, "RELEASE", "Ljava/lang/String;") {
+            if let JValueOwned::Object(obj) = release_field {
+                let java_string = env.get_string((&obj).into()).unwrap();
+                release = java_string.into();
+
+                //TODO: check if version is <= 10 and don't assign release in that case
+            }
+        }
+    }
+
+    format!("Mozilla/5.0 (Android {release}; Mobile; rv:128.0) Servo/{SERVO_VERSION} Firefox/128.0")
 }
 
 #[unsafe(no_mangle)]
