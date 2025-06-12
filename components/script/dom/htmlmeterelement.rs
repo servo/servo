@@ -14,9 +14,6 @@ use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLMeterElementBinding::HTMLMeterElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
-use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
-    ShadowRootMode, SlotAssignmentMode,
-};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
@@ -27,7 +24,6 @@ use crate::dom::htmldivelement::HTMLDivElement;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{BindContext, ChildrenMutation, Node, NodeTraits};
 use crate::dom::nodelist::NodeList;
-use crate::dom::shadowroot::IsUserAgentWidget;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
@@ -79,18 +75,8 @@ impl HTMLMeterElement {
 
     fn create_shadow_tree(&self, can_gc: CanGc) {
         let document = self.owner_document();
-        let root = self
-            .upcast::<Element>()
-            .attach_shadow(
-                IsUserAgentWidget::Yes,
-                ShadowRootMode::Closed,
-                false,
-                false,
-                false,
-                SlotAssignmentMode::Manual,
-                can_gc,
-            )
-            .expect("Attaching UA shadow root failed");
+        // FIXME: Add servo specific appearence reftest
+        let root = self.upcast::<Element>().attach_ua_shadow_root(true, can_gc);
 
         let meter_value = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
         root.upcast::<Node>()

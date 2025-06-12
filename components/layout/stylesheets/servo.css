@@ -19,6 +19,15 @@ textarea {
   font-size: 0.8333em;
 }
 
+input::-servo-input-color-swatch {
+  width: 100%;
+  height: 100%;
+  display: inline-block;
+  box-sizing: border-box;
+  border: 1px solid gray;
+  border-radius: 2px;
+}
+
 input::selection,
 textarea::selection {
   background: rgba(176, 214, 255, 1.0);

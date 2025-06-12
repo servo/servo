@@ -687,6 +687,34 @@ impl Element {
         Ok(shadow_root)
     }
 
+    /// Attach a UA widget shadow root with its default parameters.
+    /// Additionally mark ShadowRoot to use styling configuration for a UA widget.
+    ///
+    /// TODO: Ideally, all of the UA shadow root should use UA widget styling, but
+    ///       some of the UA widget implemented prior to the implementation of Gecko's
+    ///       UA widget matching might need some tweaking.
+    pub(crate) fn attach_ua_shadow_root(
+        &self,
+        use_ua_widget_styling: bool,
+        can_gc: CanGc,
+    ) -> DomRoot<ShadowRoot> {
+        let root = self
+            .attach_shadow(
+                IsUserAgentWidget::Yes,
+                ShadowRootMode::Closed,
+                false,
+                false,
+                true,
+                SlotAssignmentMode::Manual,
+                can_gc,
+            )
+            .expect("Attaching UA shadow root failed");
+
+        root.upcast::<Node>()
+            .set_in_ua_widget(use_ua_widget_styling);
+        root
+    }
+
     pub(crate) fn detach_shadow(&self, can_gc: CanGc) {
         let Some(ref shadow_root) = self.shadow_root() else {
             unreachable!("Trying to detach a non-attached shadow root");
