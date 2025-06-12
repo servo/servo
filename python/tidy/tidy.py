@@ -1021,11 +1021,8 @@ def scan(only_changed_files=False, progress=False, report_ci=False):
         )
 
         if report_ci:
-            report_manager.append(error)
+            report_manager.annotation_log("error", error)
 
-    if report_ci:
-        report_manager.combine_with_clippy("./temp/clippy-output.json")
-        report_manager.save()
     return int(error is not None)
 
 

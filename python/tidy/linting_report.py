@@ -13,6 +13,7 @@ import os
 
 class LintingReportManager:
     report = []
+    count = 0
 
     def __init__(self, output):
         self.output = output
@@ -30,6 +31,18 @@ class LintingReportManager:
             "message": data[2],
         }
         self.report.append(current_report)
+
+    def annotation_log(self, severity, data):
+        if self.count >= 10:
+            return
+
+        file_path = data[0].removeprefix("./")
+        line_number = data[1]
+        title = f"Mach test-tidy: {data[2]}"
+        message = data[2]
+
+        print(f"::{severity} file={file_path},line={line_number},endLine={line_number},title={title}::{message}")
+        self.count += 1
 
     def combine_with_clippy(self, source):
         if not os.path.exists(source):
