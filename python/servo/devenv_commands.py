@@ -145,19 +145,25 @@ class MachCommands(CommandBase):
                     # Add column info if start_line == end_line
                     if primary_span["line_start"] == primary_span["line_end"]:
                         print(
-                            f"::{annotation_level} file={primary_span['file_name']},line={
-                                primary_span['line_start']
-                            },endLine={primary_span['line_end']},col={primary_span['column_start']},endColumn={
-                                primary_span['column_end']
-                            },title={f'Mach clippy: {message.get("message", "")}'}::{message.get('rendered', '')}"
+                            (
+                                f"::{annotation_level} file={primary_span['file_name']},"
+                                f"line={primary_span['line_start']},"
+                                f"endLine={primary_span['line_end']},"
+                                f"col={primary_span['column_start']},"
+                                f"endColumn={primary_span['column_end']},"
+                                f"title=Mach clippy: {message.get('message', '')}::"
+                                f"{message.get('rendered', '')}"
+                            )
                         )
                     else:
                         print(
-                            f"::{annotation_level} file={primary_span['file_name']},line={
-                                primary_span['line_start']
-                            },endLine={primary_span['line_end']},title={f'Mach clippy: {message.get("message", "")}'}::{
-                                message.get('rendered', '')
-                            }"
+                            (
+                                f"::{annotation_level} file={primary_span['file_name']},"
+                                f"line={primary_span['line_start']},"
+                                f"endLine={primary_span['line_end']},"
+                                f"title=Mach clippy: {message.get('message', '')}::"
+                                f"{message.get('rendered', '')}"
+                            )
                         )
 
                     self.count += 1
