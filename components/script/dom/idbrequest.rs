@@ -31,7 +31,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::idbobjectstore::IDBObjectStore;
 use crate::dom::idbtransaction::IDBTransaction;
-use crate::enter_realm;
+use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[derive(Clone)]

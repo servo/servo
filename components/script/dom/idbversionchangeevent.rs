@@ -83,7 +83,7 @@ impl IDBVersionChangeEvent {
 impl IDBVersionChangeEventMethods<crate::DomTypeHolder> for IDBVersionChangeEvent {
     fn Constructor(
         window: &Window,
-        proto: Option<HandleObject>,
+        _proto: Option<HandleObject>,
         can_gc: CanGc,
         type_: DOMString,
         init: &IDBVersionChangeEventInit,

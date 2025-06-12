@@ -25,7 +25,7 @@ use crate::dom::idbdatabase::IDBDatabase;
 use crate::dom::idbrequest::IDBRequest;
 use crate::dom::idbtransaction::IDBTransaction;
 use crate::dom::idbversionchangeevent::IDBVersionChangeEvent;
-use crate::enter_realm;
+use crate::realms::enter_realm;
 use crate::js::conversions::ToJSValConvertible;
 use crate::script_runtime::CanGc;
 
@@ -149,7 +149,7 @@ impl IDBOpenDBRequest {
             &global,
             &connection,
             IDBTransactionMode::Versionchange,
-            connection.object_stores(),
+            &connection.object_stores(),
             can_gc,
         );
 

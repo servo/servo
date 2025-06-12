@@ -257,7 +257,7 @@ impl IndexedDBManager {
                     origin,
                     name: db_name,
                 };
-                if let Some(db) = self.databases.remove(&idb_description) {
+                if let Some(_db) = self.databases.remove(&idb_description) {
                     // TODO: maybe close store here?
                 }
                 let _ = sender.send(Ok(()));

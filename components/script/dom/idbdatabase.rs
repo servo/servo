@@ -45,7 +45,7 @@ pub struct IDBDatabase {
     upgrade_transaction: MutNullableDom<IDBTransaction>,
 
     // Flags
-    /// https://w3c.github.io/IndexedDB/#connection-close-pending-flag
+    /// <https://w3c.github.io/IndexedDB/#connection-close-pending-flag>
     closing: Cell<bool>,
 }
 
@@ -161,7 +161,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
                 &self.global(),
                 &self,
                 mode,
-                DOMStringList::new(self.global().as_window(), vec![name], CanGc::note()),
+                &DOMStringList::new(self.global().as_window(), vec![name], CanGc::note()),
                 CanGc::note(),
             ),
             StringOrStringSequence::StringSequence(sequence) => {
@@ -171,7 +171,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
                     &self.global(),
                     &self,
                     mode,
-                    DOMStringList::new(self.global().as_window(), sequence, CanGc::note()),
+                    &DOMStringList::new(self.global().as_window(), sequence, CanGc::note()),
                     CanGc::note(),
                 )
             },
@@ -265,7 +265,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
             .is_err()
         {
             warn!("Object store creation failed in idb thread");
-            return Err(Error::JSFailed);
+            return Err(Error::InvalidState);
         };
 
         self.object_store_names.borrow_mut().push(name);
@@ -324,6 +324,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
             .is_err()
         {
             warn!("Object store deletion failed in idb thread");
+            return Err(Error::InvalidState);
         };
         Ok(())
     }

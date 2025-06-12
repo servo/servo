@@ -118,7 +118,7 @@ impl IDBObjectStore {
 
     // https://www.w3.org/TR/IndexedDB-2/#valid-key-path
     pub fn is_valid_key_path(key_path: &StrOrStringSequence) -> bool {
-        fn is_identifier(s: &str) -> bool {
+        fn is_identifier(_s: &str) -> bool {
             // FIXME: (arihant2math)
             true
         }

@@ -41,7 +41,6 @@ pub struct IDBTransaction {
     db: Dom<IDBDatabase>,
     error: MutNullableDom<DOMException>,
 
-    // Not specified in WebIDL below this line
     store_handles: DomRefCell<HashMap<String, Dom<IDBObjectStore>>>,
     // https://www.w3.org/TR/IndexedDB-2/#transaction-request-list
     requests: DomRefCell<Vec<Dom<IDBRequest>>>,
@@ -58,13 +57,13 @@ impl IDBTransaction {
     fn new_inherited(
         connection: &IDBDatabase,
         mode: IDBTransactionMode,
-        scope: DomRoot<DOMStringList>,
+        scope: &DOMStringList,
         serial_number: u64,
     ) -> IDBTransaction {
         IDBTransaction {
             eventtarget: EventTarget::new_inherited(),
-            object_store_names: scope,
-            mode: mode,
+            object_store_names: Dom::from_ref(scope),
+            mode,
             db: Dom::from_ref(connection),
             error: Default::default(),
 
@@ -72,7 +71,7 @@ impl IDBTransaction {
             requests: Default::default(),
             active: Cell::new(true),
             finished: Cell::new(false),
-            serial_number: serial_number,
+            serial_number,
         }
     }
 
@@ -80,7 +79,7 @@ impl IDBTransaction {
         global: &GlobalScope,
         connection: &IDBDatabase,
         mode: IDBTransactionMode,
-        scope: DomRoot<DOMStringList>,
+        scope: &DOMStringList,
         can_gc: CanGc,
     ) -> DomRoot<IDBTransaction> {
         let serial_number = IDBTransaction::register_new(&global, connection.get_name());
@@ -291,7 +290,7 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-objectstorenames
     fn ObjectStoreNames(&self) -> DomRoot<DOMStringList> {
-        self.object_store_names.clone()
+        self.object_store_names.as_rooted()
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-mode
