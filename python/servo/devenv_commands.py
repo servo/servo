@@ -125,9 +125,10 @@ class MachCommands(CommandBase):
             with open("temp/out.json", "r", encoding="utf-8") as file:
                 data = json.load(file)
                 annotations = []
+                count = 0
                 severenty_map = {"help": "notice", "note": "notice", "warning": "warning"}
                 for item in data:
-                    if len(annotations) >= 2:
+                    if count >= 10:
                         break
 
                     message = item.get("message")
@@ -139,26 +140,27 @@ class MachCommands(CommandBase):
                     if not primary_span:
                         continue
 
-                    annotation_level = severenty_map.get(message.get("level"), "failure")
-
-                    annotation = {
-                        "path": primary_span["file_name"],
-                        "start_line": primary_span["line_start"],
-                        "end_line": primary_span["line_end"],
-                        "annotation_level": annotation_level,
-                        "title": f"Mach clippy: {message.get('message', '')}",
-                        "message": message.get("rendered", ""),
-                    }
+                    annotation_level = severenty_map.get(message.get("level"), "error")
 
                     # Add column info if start_line == end_line
                     if primary_span["line_start"] == primary_span["line_end"]:
-                        annotation["start_column"] = primary_span["column_start"]
-                        annotation["end_column"] = primary_span["column_end"]
+                        print(
+                            f"::{annotation_level} file={primary_span['file_name']},line={
+                                primary_span['line_start']
+                            },endLine={primary_span['line_end']},col={primary_span['column_start']},endColumn={
+                                primary_span['column_end']
+                            },title={f'Mach clippy: {message.get("message", "")}'}::{message.get('rendered', '')}"
+                        )
+                    else:
+                        print(
+                            f"::{annotation_level} file={primary_span['file_name']},line={
+                                primary_span['line_start']
+                            },endLine={primary_span['line_end']},title={f'Mach clippy: {message.get("message", "")}'}::{
+                                message.get('rendered', '')
+                            }"
+                        )
 
-                    annotations.append(annotation)
-                with open("temp/clippy-output.json", "w", encoding="utf-8") as file:
-                    json.dump(annotations, file, indent=2)
-                    file.write("\n")
+                    self.count += 1
             return retcode
         return self.run_cargo_build_like_command("clippy", params, env=env, **kwargs)
 

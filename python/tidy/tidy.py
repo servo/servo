@@ -984,7 +984,7 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
 
 def scan(only_changed_files=False, progress=False, report_ci=False):
     # Store lint into filesystem
-    report_manager = LintingReportManager("./temp/report-output.json")
+    report_manager = LintingReportManager(10)
     # check config file for errors
     config_errors = check_config_file(CONFIG_FILE_PATH)
     # check directories contain expected files

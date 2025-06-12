@@ -43,24 +43,9 @@ jobs:
         run: |
           sudo apt update
           ./mach bootstrap
-      - name: Save Head Sha & Create temp directory
-        if: ${{ !cancelled() }}
-        run: |
-          mkdir -p ./pr
-          mkdir -p ./temp
-          echo ${{ github.event.pull_request.head.sha }} > ./pr/head_sha
       - name: Run Clippy Lint
         run: |
           ./mach clippy --message-format=json --use-crown --locked --report-ci
       - name: Tidy
         if: ${{ !cancelled() }}
         run: ./mach test-tidy --no-progress --all --report-ci
-      - name: Clippy Linter Result Upload
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: clippy-lint-result
-          path: |
-            temp/report-output.json
-            pr/head_sha
-          retention-days: 14
