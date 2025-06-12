@@ -536,7 +536,7 @@ impl ReplacedContents {
         );
 
         // Now we can compute the block size, using the inline size from above.
-        let block_content_size = LazyCell::new(|| -> ContentSizes {
+        let get_block_content_size = || -> ContentSizes {
             let get_inline_size = || SizeConstraint::Definite(inline_size);
             self.content_size(
                 Direction::Block,
@@ -545,13 +545,13 @@ impl ReplacedContents {
                 &get_block_fallback_size,
             )
             .into()
-        });
+        };
         let block_size = sizes.block.resolve(
             Direction::Block,
             automatic_size.block,
             Au::zero,
             block_stretch_size,
-            || *block_content_size,
+            get_block_content_size,
             false, /* is_table */
         );
 
