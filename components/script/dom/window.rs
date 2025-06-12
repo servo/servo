@@ -3062,6 +3062,7 @@ impl Window {
         parent_info: Option<PipelineId>,
         viewport_details: ViewportDetails,
         origin: MutableOrigin,
+        creation_url: ServoUrl,
         top_level_creation_url: Option<ServoUrl>,
         navigation_start: CrossProcessInstant,
         webgl_chan: Option<WebGLChan>,
@@ -3098,6 +3099,7 @@ impl Window {
                 constellation_chan,
                 resource_threads,
                 origin,
+                creation_url,
                 top_level_creation_url,
                 microtask_queue,
                 #[cfg(feature = "webgpu")]

@@ -104,6 +104,7 @@ impl WorkletGlobalScope {
                 script_to_constellation_chan,
                 init.resource_threads.clone(),
                 MutableOrigin::new(ImmutableOrigin::new_opaque()),
+                base_url.clone(),
                 None,
                 Default::default(),
                 #[cfg(feature = "webgpu")]
