@@ -128,7 +128,7 @@ class MachCommands(CommandBase):
         host = servo.platform.host_triple()
         target_triple = self.target.triple()
 
-        if sanitizer.is_none():
+        if sanitizer.is_some():
             self.build_sanitizer_env(env, opts, kwargs, target_triple, sanitizer)
 
         build_start = time()
