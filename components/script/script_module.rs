@@ -16,7 +16,7 @@ use encoding_rs::UTF_8;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use html5ever::local_name;
 use hyper_serde::Serde;
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use js::jsapi::{
     CompileModule1, ExceptionStackBehavior, FinishDynamicModuleImport, GetModuleRequestSpecifier,
     GetModuleResolveHook, GetRequestedModuleSpecifier, GetRequestedModulesCount,
@@ -42,6 +42,8 @@ use net_traits::{
     FetchMetadata, FetchResponseListener, Metadata, NetworkError, ReferrerPolicy,
     ResourceFetchTiming, ResourceTimingType,
 };
+use script_bindings::error::Fallible;
+use serde_json::{Map as JsonMap, Value as JsonValue};
 use servo_url::ServoUrl;
 use uuid::Uuid;
 
@@ -68,6 +70,7 @@ use crate::dom::node::NodeTraits;
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
+use crate::dom::types::Console;
 use crate::dom::window::Window;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
@@ -678,9 +681,8 @@ impl ModuleTree {
             // Step 1.1. Let url be the result of URL parsing specifier with baseURL.
             return ServoUrl::parse_with_base(Some(base_url), specifier).ok();
         }
-
         // Step 2. Let url be the result of URL parsing specifier (with no base URL).
-        ServoUrl::parse_with_base(None, specifier).ok()
+        ServoUrl::parse(specifier).ok()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#finding-the-first-parse-error>
@@ -1860,4 +1862,329 @@ pub(crate) fn fetch_inline_module_script(
             owner.notify_owner_to_finish(ModuleIdentity::ScriptId(script_id), options, can_gc);
         },
     }
+}
+
+#[derive(Default, JSTraceable)]
+pub(crate) struct ImportMap {
+    #[no_trace]
+    imports: IndexMap<String, Option<ServoUrl>>,
+    #[no_trace]
+    scopes: IndexMap<String, IndexMap<String, Option<ServoUrl>>>,
+    #[no_trace]
+    integrity: IndexMap<String, String>,
+}
+
+/// <https://html.spec.whatwg.org/multipage/#parse-an-import-map-string>
+pub(crate) fn parse_an_import_map_string(
+    module_owner: ModuleOwner,
+    input: Rc<DOMString>,
+    base_url: ServoUrl,
+    can_gc: CanGc,
+) -> Fallible<ImportMap> {
+    // Step 1. Let parsed be the result of parsing a JSON string to an Infra value given input.
+    let parsed: JsonValue = serde_json::from_str(input.str())
+        .map_err(|_| Error::Type("The value needs to be a JSON object.".to_owned()))?;
+    // Step 2. If parsed is not an ordered map, then throw a TypeError indicating that the
+    // top-level value needs to be a JSON object.
+    let JsonValue::Object(mut parsed) = parsed else {
+        return Err(Error::Type(
+            "The top-level value needs to be a JSON object.".to_owned(),
+        ));
+    };
+
+    // Step 3. Let sortedAndNormalizedImports be an empty ordered map.
+    let mut sorted_and_normalized_imports: IndexMap<String, Option<ServoUrl>> = IndexMap::new();
+    // Step 4. If parsed["imports"] exists, then:
+    if let Some(imports) = parsed.get("imports") {
+        // Step 4.1 If parsed["imports"] is not an ordered map, then throw a TypeError
+        // indicating that the value for the "imports" top-level key needs to be a JSON object.
+        let JsonValue::Object(imports) = imports else {
+            return Err(Error::Type(
+                "The \"imports\" top-level value needs to be a JSON object.".to_owned(),
+            ));
+        };
+        // Step 4.2 Set sortedAndNormalizedImports to the result of sorting and
+        // normalizing a module specifier map given parsed["imports"] and baseURL.
+        sorted_and_normalized_imports = sort_and_normalize_module_specifier_map(
+            &module_owner.global(),
+            imports,
+            &base_url,
+            can_gc,
+        );
+    }
+
+    // Step 5. Let sortedAndNormalizedScopes be an empty ordered map.
+    let mut sorted_and_normalized_scopes: IndexMap<String, IndexMap<String, Option<ServoUrl>>> =
+        IndexMap::new();
+    // Step 6. If parsed["scopes"] exists, then:
+    if let Some(scopes) = parsed.get("scopes") {
+        // Step 6.1 If parsed["scopes"] is not an ordered map, then throw a TypeError
+        // indicating that the value for the "scopes" top-level key needs to be a JSON object.
+        let JsonValue::Object(scopes) = scopes else {
+            return Err(Error::Type(
+                "The \"scopes\" top-level value needs to be a JSON object.".to_owned(),
+            ));
+        };
+        // Step 6.2 Set sortedAndNormalizedScopes to the result of sorting and
+        // normalizing scopes given parsed["scopes"] and baseURL.
+        sorted_and_normalized_scopes =
+            sort_and_normalize_scopes(&module_owner.global(), scopes, &base_url, can_gc)?;
+    }
+
+    // Step 7. Let normalizedIntegrity be an empty ordered map.
+    let mut normalized_integrity = IndexMap::new();
+    // Step 8. If parsed["integrity"] exists, then:
+    if let Some(integrity) = parsed.get("integrity") {
+        // Step 8.1 If parsed["integrity"] is not an ordered map, then throw a TypeError
+        // indicating that the value for the "integrity" top-level key needs to be a JSON object.
+        let JsonValue::Object(integrity) = integrity else {
+            return Err(Error::Type(
+                "The \"integrity\" top-level value needs to be a JSON object.".to_owned(),
+            ));
+        };
+        // Step 8.2 Set normalizedIntegrity to the result of normalizing
+        // a module integrity map given parsed["integrity"] and baseURL.
+        normalized_integrity =
+            normalize_module_integrity_map(&module_owner.global(), integrity, &base_url, can_gc);
+    }
+
+    // Step 9. If parsed's keys contains any items besides "imports", "scopes", or "integrity",
+    // then the user agent should report a warning to the console indicating that an invalid
+    // top-level key was present in the import map.
+    parsed.retain(|k, _| !matches!(k.as_str(), "imports" | "scopes" | "integrity"));
+    if !parsed.is_empty() {
+        Console::internal_warn(
+            &module_owner.global(),
+            DOMString::from(
+                "Invalid top-level key was present in the import map.
+                Only \"imports\", \"scopes\", and \"integrity\" are allowed.",
+            ),
+        );
+    }
+
+    // Step 10. Return an import map
+    Ok(ImportMap {
+        imports: sorted_and_normalized_imports,
+        scopes: sorted_and_normalized_scopes,
+        integrity: normalized_integrity,
+    })
+}
+
+/// <https://html.spec.whatwg.org/multipage/#sorting-and-normalizing-a-module-specifier-map>
+#[allow(unsafe_code)]
+fn sort_and_normalize_module_specifier_map(
+    global: &GlobalScope,
+    original_map: &JsonMap<String, JsonValue>,
+    base_url: &ServoUrl,
+    can_gc: CanGc,
+) -> IndexMap<String, Option<ServoUrl>> {
+    // Step 1. Let normalized be an empty ordered map.
+    let mut normalized: IndexMap<String, Option<ServoUrl>> = IndexMap::new();
+
+    // Step 2. For each specifier_key -> value in originalMap
+    for (specifier_key, value) in original_map {
+        // Step 2.1 Let normalized_specifier_key be the result of
+        // normalizing a specifier key given specifier_key and base_url.
+        let Some(normalized_specifier_key) =
+            normalize_specifier_key(global, specifier_key, base_url, can_gc)
+        else {
+            // Step 2.2 If normalized_specifier_key is null, then continue.
+            continue;
+        };
+
+        // Step 2.3 If value is not a string, then:
+        let JsonValue::String(value) = value else {
+            // Step 2.3.1 The user agent may report a warning to the console
+            // indicating that addresses need to be strings.
+            Console::internal_warn(global, DOMString::from("Addresses need to be strings."));
+
+            // Step 2.3.2 Set normalized[normalized_specifier_key] to null.
+            normalized.insert(normalized_specifier_key, None);
+            // Step 2.3.3 Continue.
+            continue;
+        };
+
+        // Step 2.4. Let address_url be the result of resolving a URL-like module specifier given value and baseURL.
+        let value = DOMString::from(value.as_str());
+        let Some(address_url) = ModuleTree::resolve_url_like_module_specifier(&value, base_url)
+        else {
+            // Step 2.5 If address_url is null, then:
+            // Step 2.5.1. The user agent may report a warning to the console
+            // indicating that the address was invalid.
+            Console::internal_warn(
+                global,
+                DOMString::from(format!(
+                    "Value failed to resolve to module specifier: {value}"
+                )),
+            );
+
+            // Step 2.5.2 Set normalized[normalized_specifier_key] to null.
+            normalized.insert(normalized_specifier_key, None);
+            // Step 2.5.3 Continue.
+            continue;
+        };
+
+        // Step 2.6 If specifier_key ends with U+002F (/), and the serialization of
+        // address_url does not end with U+002F (/), then:
+        if specifier_key.ends_with('\u{002f}') && !address_url.as_str().ends_with('\u{002f}') {
+            // step 2.6.1. The user agent may report a warning to the console
+            // indicating that an invalid address was given for the specifier key specifierKey;
+            // since specifierKey ends with a slash, the address needs to as well.
+            Console::internal_warn(
+                global,
+                DOMString::from(format!(
+                    "Invalid address for specifier key '{specifier_key}': {address_url}.
+                    Since specifierKey ends with a slash, the address needs to as well."
+                )),
+            );
+
+            // Step 2.6.2 Set normalized[normalized_specifier_key] to null.
+            normalized.insert(normalized_specifier_key, None);
+            // Step 2.6.3 Continue.
+            continue;
+        }
+
+        // Step 2.7 Set normalized[normalized_specifier_key] to address_url.
+        normalized.insert(normalized_specifier_key, Some(address_url));
+    }
+
+    // Step 3. Return the result of sorting in descending order normalized
+    // with an entry a being less than an entry b if a's key is code unit less than b's key.
+    normalized.sort_by(|a_key, _, b_key, _| b_key.cmp(a_key));
+    normalized
+}
+
+/// <https://html.spec.whatwg.org/multipage/#sorting-and-normalizing-scopes>
+fn sort_and_normalize_scopes(
+    global: &GlobalScope,
+    original_map: &JsonMap<String, JsonValue>,
+    base_url: &ServoUrl,
+    can_gc: CanGc,
+) -> Fallible<IndexMap<String, IndexMap<String, Option<ServoUrl>>>> {
+    // Step 1. Let normalized be an empty ordered map.
+    let mut normalized: IndexMap<String, IndexMap<String, Option<ServoUrl>>> = IndexMap::new();
+
+    // Step 2. For each scopePrefix → potentialSpecifierMap of originalMap:
+    for (scope_prefix, potential_specifier_map) in original_map {
+        // Step 2.1 If potentialSpecifierMap is not an ordered map, then throw a TypeError indicating
+        // that the value of the scope with prefix scopePrefix needs to be a JSON object.
+        let JsonValue::Object(potential_specifier_map) = potential_specifier_map else {
+            return Err(Error::Type(
+                "The value of the scope with prefix scopePrefix needs to be a JSON object."
+                    .to_owned(),
+            ));
+        };
+
+        // Step 2.2 Let scopePrefixURL be the result of URL parsing scopePrefix with baseURL.
+        let Ok(scope_prefix_url) = ServoUrl::parse_with_base(Some(base_url), scope_prefix) else {
+            // Step 2.3 If scopePrefixURL is failure, then:
+            // Step 2.3.1 The user agent may report a warning
+            // to the console that the scope prefix URL was not parseable.
+            Console::internal_warn(
+                global,
+                DOMString::from(format!(
+                    "Scope prefix URL was not parseable: {scope_prefix}"
+                )),
+            );
+            // Step 2.3.2 Continue.
+            continue;
+        };
+
+        // Step 2.4 Let normalizedScopePrefix be the serialization of scopePrefixURL.
+        let normalized_scope_prefix = scope_prefix_url.into_string();
+
+        // Step 2.5 Set normalized[normalizedScopePrefix] to the result of sorting and
+        // normalizing a module specifier map given potentialSpecifierMap and baseURL.
+        let normalized_specifier_map = sort_and_normalize_module_specifier_map(
+            global,
+            potential_specifier_map,
+            base_url,
+            can_gc,
+        );
+        normalized.insert(normalized_scope_prefix, normalized_specifier_map);
+    }
+
+    // Step 3. Return the result of sorting in descending order normalized,
+    // with an entry a being less than an entry b if a's key is code unit less than b's key.
+    normalized.sort_by(|a_key, _, b_key, _| b_key.cmp(a_key));
+    Ok(normalized)
+}
+
+/// <https://html.spec.whatwg.org/multipage/#normalizing-a-module-integrity-map>
+fn normalize_module_integrity_map(
+    global: &GlobalScope,
+    original_map: &JsonMap<String, JsonValue>,
+    base_url: &ServoUrl,
+    _can_gc: CanGc,
+) -> IndexMap<String, String> {
+    // Step 1. Let normalized be an empty ordered map.
+    let mut normalized: IndexMap<String, String> = IndexMap::new();
+
+    // Step 2. For each key → value of originalMap:
+    for (key, value) in original_map {
+        // Step 2.1 Let resolvedURL be the result of
+        // resolving a URL-like module specifier given key and baseURL.
+        let Some(resolved_url) =
+            ModuleTree::resolve_url_like_module_specifier(&DOMString::from(key.as_str()), base_url)
+        else {
+            // Step 2.2 If resolvedURL is null, then:
+            // Step 2.2.1 The user agent may report a warning
+            // to the console indicating that the key failed to resolve.
+            Console::internal_warn(
+                global,
+                DOMString::from(format!("Key failed to resolve to module specifier: {key}")),
+            );
+            // Step 2.2.2 Continue.
+            continue;
+        };
+
+        // Step 2.3 If value is not a string, then:
+        let JsonValue::String(value) = value else {
+            // Step 2.3.1 The user agent may report a warning
+            // to the console indicating that integrity metadata values need to be strings.
+            Console::internal_warn(
+                global,
+                DOMString::from("Integrity metadata values need to be strings."),
+            );
+            // Step 2.3.2 Continue.
+            continue;
+        };
+
+        // Step 2.4 Set normalized[resolvedURL] to value.
+        normalized.insert(resolved_url.into_string(), value.clone());
+    }
+
+    // Step 3. Return normalized.
+    normalized
+}
+
+/// <https://html.spec.whatwg.org/multipage/#normalizing-a-specifier-key>
+fn normalize_specifier_key(
+    global: &GlobalScope,
+    specifier_key: &str,
+    base_url: &ServoUrl,
+    _can_gc: CanGc,
+) -> Option<String> {
+    // step 1. If specifierKey is the empty string, then:
+    if specifier_key.is_empty() {
+        // step 1.1 The user agent may report a warning to the console
+        // indicating that specifier keys may not be the empty string.
+        Console::internal_warn(
+            global,
+            DOMString::from("Specifier keys may not be the empty string."),
+        );
+        // step 1.2 Return null.
+        return None;
+    }
+    // step 2. Let url be the result of resolving a URL-like module specifier, given specifierKey and baseURL.
+    let url =
+        ModuleTree::resolve_url_like_module_specifier(&DOMString::from(specifier_key), base_url);
+
+    // step 3. If url is not null, then return the serialization of url.
+    if let Some(url) = url {
+        return Some(url.into_string());
+    }
+
+    // step 4. Return specifierKey.
+    Some(specifier_key.to_string())
 }

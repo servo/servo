@@ -76,6 +76,7 @@ use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingLi
 use crate::realms::enter_realm;
 use crate::script_module::{
     ModuleOwner, ScriptFetchOptions, fetch_external_module_script, fetch_inline_module_script,
+    parse_an_import_map_string,
 };
 use crate::script_runtime::CanGc;
 use crate::task_source::{SendableTaskSource, TaskSourceName};
@@ -967,8 +968,14 @@ impl HTMLScriptElement {
                     );
                 },
                 ScriptType::ImportMap => {
-                    // TODO: Let result be the result of creating an import map
+                    // Step 32.1 Let result be the result of creating an import map
                     // parse result given source text and base URL.
+                    let _result = parse_an_import_map_string(
+                        ModuleOwner::Window(Trusted::new(self)),
+                        text_rc,
+                        base_url.clone(),
+                        can_gc,
+                    );
                 },
             }
         }
