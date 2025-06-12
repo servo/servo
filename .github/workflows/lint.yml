@@ -43,9 +43,46 @@ jobs:
         run: |
           sudo apt update
           ./mach bootstrap
-      # TODO: Do GitHub anotaions
+      # TODO: Do GitHub annotations
       - name: Clippy
         run: |
           ./mach clippy --use-crown --locked -- -- --deny warnings
       - name: Tidy
         run: ./mach test-tidy --no-progress --all
+
+  msrv_check:
+    name: Minimum supported Rust version check
+    runs-on: ubuntu-22.04
+    env:
+      # This version should be kept in sync with the `rust-version` in our
+      # workspace Cargo.toml. Changes should be discussed on zulip.
+      MINIMUM_SUPPORTED_RUST_VERSION: "1.85.0"
+    steps:
+      - uses: actions/checkout@v4
+        if: github.event_name != 'pull_request_target'
+        with:
+          fetch-depth: 1
+      # This is necessary to checkout the pull request if this run was triggered via a
+      # `pull_request_target` event.
+      - uses: actions/checkout@v4
+        if: github.event_name == 'pull_request_target'
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+      - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
+        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
+      - name: Setup Python
+        if: ${{ runner.environment != 'self-hosted' }}
+        uses: ./.github/actions/setup-python
+      - name: Bootstrap dependencies
+        if: ${{ runner.environment != 'self-hosted' }}
+        run: |
+          sudo apt update
+          ./mach bootstrap --skip-lints
+      - name: Install MSRV
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${MINIMUM_SUPPORTED_RUST_VERSION}
+      - name: Compile libservo with MSRV
+        run: |
+          cargo +${MINIMUM_SUPPORTED_RUST_VERSION} build -p libservo --locked
