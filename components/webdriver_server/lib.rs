@@ -507,6 +507,7 @@ impl Handler {
         }
     }
 
+    /// <https://w3c.github.io/webdriver/#new-session>
     fn handle_new_session(
         &mut self,
         parameters: &NewSessionParameters,
