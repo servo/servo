@@ -119,6 +119,11 @@ class MachCommands(CommandBase):
         env = self.build_env()
         env["RUSTC"] = "rustc"
 
+        def escape(s):
+            return (
+                s.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A").replace(":", "%3A").replace(",", "%2C")
+            )
+
         if "--message-format=json" in params and report_ci:
             retcode = self.run_cargo_build_like_command("clippy", params, env=env, dump_output=True, **kwargs)
 
@@ -140,8 +145,9 @@ class MachCommands(CommandBase):
                         continue
 
                     annotation_level = severenty_map.get(message.get("level"), "error")
-                    rendered_message = message.get("rendered", "").replace("\n", "%0A")
-                    # Add column info if start_line == end_line
+                    title = escape(message.get("message", ""))
+                    rendered_message = escape(message.get("rendered", ""))
+
                     if primary_span["line_start"] == primary_span["line_end"]:
                         print(
                             (
@@ -150,7 +156,7 @@ class MachCommands(CommandBase):
                                 f"endLine={primary_span['line_end']},"
                                 f"col={primary_span['column_start']},"
                                 f"endColumn={primary_span['column_end']},"
-                                f"title=Mach clippy: {message.get('message', '')}::"
+                                f"title=Mach clippy: {title}::"
                                 f"{rendered_message}"
                             ),
                             flush=True,
