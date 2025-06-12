@@ -220,7 +220,7 @@ class MachCommands(CommandBase):
         self, env: Dict, opts: List[str], kwargs, target_triple, sanitizer: SanitizerKind = SanitizerKind.NONE
     ):
         if sanitizer.is_none():
-            return None
+            return
         # do not use crown (clashes with different rust version)
         env["RUSTC"] = "rustc"
         # Enable usage of unstable rust flags
@@ -285,8 +285,6 @@ class MachCommands(CommandBase):
             env["RUSTFLAGS"] += " -Zsanitizer=thread"
             env["TARGET_CFLAGS"] += " -fsanitize=thread"
             env["TARGET_CXXFLAGS"] += " -fsanitize=thread"
-
-        return None
 
     def notify(self, title: str, message: str):
         """Generate desktop notification when build is complete and the

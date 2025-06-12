@@ -330,7 +330,7 @@ class CommandBase(object):
     def get_top_dir(self):
         return self.context.topdir
 
-    def get_binary_path(self, build_type: BuildType, sanitizer: SanitizerKind = None):
+    def get_binary_path(self, build_type: BuildType, sanitizer: SanitizerKind = SanitizerKind.NONE):
         base_path = util.get_target_dir()
         if sanitizer.is_some() or self.target.is_cross_build():
             base_path = path.join(base_path, self.target.triple())
