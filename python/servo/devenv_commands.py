@@ -152,7 +152,8 @@ class MachCommands(CommandBase):
                                 f"endColumn={primary_span['column_end']},"
                                 f"title=Mach clippy: {message.get('message', '')}::"
                                 f"{message.get('rendered', '')}"
-                            )
+                            ),
+                            flush=True,
                         )
                     else:
                         print(
@@ -162,7 +163,8 @@ class MachCommands(CommandBase):
                                 f"endLine={primary_span['line_end']},"
                                 f"title=Mach clippy: {message.get('message', '')}::"
                                 f"{message.get('rendered', '')}"
-                            )
+                            ),
+                            flush=True,
                         )
 
                     self.count += 1

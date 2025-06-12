@@ -23,5 +23,8 @@ class LintingReportManager:
         title = f"Mach test-tidy: {data[2]}"
         message = data[2]
 
-        print(f"::{severity} file={file_path},line={line_number},endLine={line_number},title={title}::{message}")
+        print(
+            f"::{severity} file={file_path},line={line_number},endLine={line_number},title={title}::{message}",
+            flush=True,
+        )
         self.count += 1
