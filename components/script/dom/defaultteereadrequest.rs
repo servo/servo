@@ -33,7 +33,8 @@ pub(crate) struct DefaultTeeReadRequestMicrotask {
 }
 
 impl MicrotaskRunnable for DefaultTeeReadRequestMicrotask {
-    fn handler(&self, cx: SafeJSContext, can_gc: CanGc) {
+    fn handler(&self, can_gc: CanGc) {
+        let cx = GlobalScope::get_cx();
         self.tee_read_request.chunk_steps(cx, &self.chunk, can_gc);
     }
 

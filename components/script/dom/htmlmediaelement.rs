@@ -32,7 +32,6 @@ use script_bindings::codegen::GenericBindings::TimeRangesBinding::TimeRangesMeth
 use script_bindings::codegen::InheritTypes::{
     ElementTypeId, HTMLElementTypeId, HTMLMediaElementTypeId, NodeTypeId,
 };
-use script_bindings::script_runtime::JSContext;
 use script_layout_interface::MediaFrame;
 use servo_config::pref;
 use servo_media::player::audio::AudioRenderer;
@@ -2710,7 +2709,7 @@ pub(crate) enum MediaElementMicrotask {
 }
 
 impl MicrotaskRunnable for MediaElementMicrotask {
-    fn handler(&self, _cx: JSContext, can_gc: CanGc) {
+    fn handler(&self, can_gc: CanGc) {
         match self {
             &MediaElementMicrotask::ResourceSelection {
                 ref elem,
