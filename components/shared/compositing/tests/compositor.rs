@@ -4,7 +4,7 @@
 
 use base::id::ScrollTreeNodeId;
 use compositing_traits::display_list::{
-    AxesScrollSensitivity, ScrollSensitivity, ScrollTree, ScrollableNodeInfo, SpatialTreeNodeInfo,
+    AxesScrollSensitivity, ScrollTree, ScrollType, ScrollableNodeInfo, SpatialTreeNodeInfo,
     StickyNodeInfo,
 };
 use euclid::{SideOffsets2D, Size2D};
@@ -29,8 +29,8 @@ fn add_mock_scroll_node(tree: &mut ScrollTree) -> ScrollTreeNodeId {
             content_rect: Size2D::new(200.0, 200.0).into(),
             clip_rect: Size2D::new(100.0, 100.0).into(),
             scroll_sensitivity: AxesScrollSensitivity {
-                x: ScrollSensitivity::ScriptAndInputEvents,
-                y: ScrollSensitivity::ScriptAndInputEvents,
+                x: ScrollType::Script | ScrollType::InputEvents,
+                y: ScrollType::Script | ScrollType::InputEvents,
             },
             offset: LayoutVector2D::zero(),
         }),
@@ -47,6 +47,7 @@ fn test_scroll_tree_simple_scroll() {
         .scroll_node_or_ancestor(
             &id,
             ScrollLocation::Delta(LayoutVector2D::new(-20.0, -40.0)),
+            ScrollType::Script,
         )
         .unwrap();
     let expected_offset = LayoutVector2D::new(-20.0, -40.0);
@@ -55,7 +56,11 @@ fn test_scroll_tree_simple_scroll() {
     assert_eq!(scroll_tree.get_node(&id).offset(), Some(expected_offset));
 
     let (scrolled_id, offset) = scroll_tree
-        .scroll_node_or_ancestor(&id, ScrollLocation::Delta(LayoutVector2D::new(20.0, 40.0)))
+        .scroll_node_or_ancestor(
+            &id,
+            ScrollLocation::Delta(LayoutVector2D::new(20.0, 40.0)),
+            ScrollType::Script,
+        )
         .unwrap();
     let expected_offset = LayoutVector2D::new(0.0, 0.0);
     assert_eq!(scrolled_id, ExternalScrollId(0, pipeline_id));
@@ -63,8 +68,11 @@ fn test_scroll_tree_simple_scroll() {
     assert_eq!(scroll_tree.get_node(&id).offset(), Some(expected_offset));
 
     // Scroll offsets must be negative.
-    let result = scroll_tree
-        .scroll_node_or_ancestor(&id, ScrollLocation::Delta(LayoutVector2D::new(20.0, 40.0)));
+    let result = scroll_tree.scroll_node_or_ancestor(
+        &id,
+        ScrollLocation::Delta(LayoutVector2D::new(20.0, 40.0)),
+        ScrollType::Script,
+    );
     assert!(result.is_none());
     assert_eq!(
         scroll_tree.get_node(&id).offset(),
@@ -92,6 +100,7 @@ fn test_scroll_tree_simple_scroll_chaining() {
         .scroll_node_or_ancestor(
             &unscrollable_child_id,
             ScrollLocation::Delta(LayoutVector2D::new(-20.0, -40.0)),
+            ScrollType::Script,
         )
         .unwrap();
     let expected_offset = LayoutVector2D::new(-20.0, -40.0);
@@ -106,6 +115,7 @@ fn test_scroll_tree_simple_scroll_chaining() {
         .scroll_node_or_ancestor(
             &unscrollable_child_id,
             ScrollLocation::Delta(LayoutVector2D::new(-10.0, -15.0)),
+            ScrollType::Script,
         )
         .unwrap();
     let expected_offset = LayoutVector2D::new(-30.0, -55.0);
@@ -127,7 +137,7 @@ fn test_scroll_tree_chain_when_at_extent() {
     let child_id = add_mock_scroll_node(&mut scroll_tree);
 
     let (scrolled_id, offset) = scroll_tree
-        .scroll_node_or_ancestor(&child_id, ScrollLocation::End)
+        .scroll_node_or_ancestor(&child_id, ScrollLocation::End, ScrollType::Script)
         .unwrap();
 
     let expected_offset = LayoutVector2D::new(0.0, -100.0);
@@ -144,6 +154,7 @@ fn test_scroll_tree_chain_when_at_extent() {
         .scroll_node_or_ancestor(
             &child_id,
             ScrollLocation::Delta(LayoutVector2D::new(0.0, -10.0)),
+            ScrollType::Script,
         )
         .unwrap();
     let expected_offset = LayoutVector2D::new(0.0, -10.0);
@@ -168,8 +179,8 @@ fn test_scroll_tree_chain_through_overflow_hidden() {
 
     if let SpatialTreeNodeInfo::Scroll(ref mut scroll_node_info) = node.info {
         scroll_node_info.scroll_sensitivity = AxesScrollSensitivity {
-            x: ScrollSensitivity::Script,
-            y: ScrollSensitivity::Script,
+            x: ScrollType::Script,
+            y: ScrollType::Script,
         };
     }
 
@@ -177,6 +188,7 @@ fn test_scroll_tree_chain_through_overflow_hidden() {
         .scroll_node_or_ancestor(
             &overflow_hidden_id,
             ScrollLocation::Delta(LayoutVector2D::new(-20.0, -40.0)),
+            ScrollType::InputEvents,
         )
         .unwrap();
     let expected_offset = LayoutVector2D::new(-20.0, -40.0);
