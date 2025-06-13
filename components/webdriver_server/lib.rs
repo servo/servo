@@ -1167,8 +1167,7 @@ impl Handler {
 
         match wait_for_script_response(receiver)? {
             Ok(value) => {
-                let resp_value: Vec<WebElement> =
-                    value.into_iter().map(|x| WebElement(x)).collect();
+                let resp_value: Vec<WebElement> = value.into_iter().map(WebElement).collect();
                 Ok(WebDriverResponse::Generic(ValueResponse(
                     serde_json::to_value(resp_value)?,
                 )))
