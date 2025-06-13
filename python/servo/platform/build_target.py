@@ -15,6 +15,7 @@ import platform
 import shutil
 import subprocess
 import sys
+from enum import Enum
 
 from os import path
 from packaging.version import parse as parse_version
@@ -22,6 +23,28 @@ from typing import Any, Dict, Optional
 
 import servo.platform
 import servo.util as util
+
+
+class SanitizerKind(Enum):
+    NONE = 0
+    ASAN = 1
+    TSAN = 2
+
+    # Apparently enums don't always compare across modules, so we define
+    # helper methods.
+    def is_asan(self) -> bool:
+        return self is self.ASAN
+
+    def is_tsan(self) -> bool:
+        return self is self.TSAN
+
+    # Returns true if no sanitizer is enabled.
+    def is_none(self) -> bool:
+        return self is self.NONE
+
+    # Returns true if a sanitizer is enabled.
+    def is_some(self) -> bool:
+        return not self.is_none()
 
 
 class BuildTarget(object):
@@ -397,8 +420,9 @@ class OpenHarmonyTarget(CrossBuildTarget):
         bindgen_extra_clangs_args = bindgen_extra_clangs_args + " " + ohos_cflags_str
         env[bindgen_extra_clangs_args_var] = bindgen_extra_clangs_args
 
-        # On OpenHarmony we add some additional flags when asan is enabled
-        if config["build"]["with_asan"]:
+        sanitizer: SanitizerKind = config["build"]["sanitizer"]
+        san_compile_flags = []
+        if sanitizer.is_some():
             # Lookup `<sdk>/native/llvm/lib/clang/15.0.4/lib/aarch64-linux-ohos/libclang_rt.asan.so`
             lib_clang = llvm_toolchain.joinpath("lib", "clang")
             children = [f.path for f in os.scandir(lib_clang) if f.is_dir()]
@@ -406,6 +430,12 @@ class OpenHarmonyTarget(CrossBuildTarget):
                 raise RuntimeError(f"Expected exactly 1 libclang version: `{children}`")
             lib_clang_version_dir = pathlib.Path(children[0])
             libclang_arch = lib_clang_version_dir.joinpath("lib", clang_target_triple).resolve()
+            # Use the clangrt from the NDK to use the same library for both C++ and Rust.
+            env["RUSTFLAGS"] += " -Zexternal-clangrt"
+            san_compile_flags.append("-fno-omit-frame-pointer")
+
+        # On OpenHarmony we add some additional flags when asan is enabled
+        if sanitizer.is_asan():
             libasan_so_path = libclang_arch.joinpath("libclang_rt.asan.so")
             libasan_preinit_path = libclang_arch.joinpath("libclang_rt.asan-preinit.a")
             if not libasan_so_path.exists():
@@ -422,23 +452,26 @@ class OpenHarmonyTarget(CrossBuildTarget):
                 ]
             )
 
-            # Use the clangrt from the NDK to use the same library for both C++ and Rust.
-            env["RUSTFLAGS"] += " -Zexternal-clangrt"
-
-            asan_compile_flags = (
-                " -fsanitize=address -shared-libasan -fno-omit-frame-pointer -fsanitize-recover=address"
-            )
+            san_compile_flags.extend(["-fsanitize=address", "-shared-libasan", "-fsanitize-recover=address"])
 
             arch_asan_ignore_list = lib_clang_version_dir.joinpath("share", "asan_ignorelist.txt")
             if arch_asan_ignore_list.exists():
-                asan_compile_flags += " -fsanitize-system-ignorelist=" + str(arch_asan_ignore_list)
+                san_compile_flags.append("-fsanitize-system-ignorelist=" + str(arch_asan_ignore_list))
             else:
                 print(f"Warning: Couldn't find system ASAN ignorelist at `{arch_asan_ignore_list}`")
-            env["TARGET_CFLAGS"] += asan_compile_flags
-            env["TARGET_CXXFLAGS"] += asan_compile_flags
+        elif sanitizer.is_tsan():
+            libtsan_so_path = libclang_arch.joinpath("libclang_rt.tsan.so")
+            builtins_path = libclang_arch.joinpath("libclang_rt.builtins.a")
+
+            link_args.extend(
+                ["-fsanitize=thread", "--rtlib=compiler-rt", "-shared-libsan", str(libtsan_so_path), str(builtins_path)]
+            )
+            san_compile_flags.append("-shared-libsan")
 
         link_args = [f"-Clink-arg={arg}" for arg in link_args]
         env["RUSTFLAGS"] += " " + " ".join(link_args)
+        env["TARGET_CFLAGS"] += " " + " ".join(san_compile_flags)
+        env["TARGET_CXXFLAGS"] += " " + " ".join(san_compile_flags)
 
     def binary_name(self) -> str:
         return "libservoshell.so"
