@@ -49,7 +49,10 @@ pub(crate) struct NodeRareData {
     /// The live list of children return by .childNodes.
     pub(crate) child_list: MutNullableDom<NodeList>,
 
-    /// The pseudo element this node are supposed to represent
+    /// Whether this node represent a certain implemented pseudo element.
+    /// Implemented pseudo element is referred as a concrete element within
+    /// an UA widget that will match a certain pseudo selector. An example
+    /// of this is the element representing `::placeholder` selector.
     #[no_trace]
     pub(crate) implemented_pseudo_element: Option<PseudoElement>,
 }
