@@ -221,6 +221,7 @@ codegen-units = 1
 # html5ever = { path = "../html5ever/html5ever" }
 # markup5ever = { path = "../html5ever/markup5ever" }
 # xml5ever = { path = "../html5ever/xml5ever" }
+# web_atoms = { path = "../html5ever/web_atoms" }
 #
 # Or for Stylo:
 #
@@ -248,4 +249,3 @@ codegen-units = 1
 #
 # [patch."https://github.com/servo/rust-content-security-policy"]
 # content-security-policy = { path = "../rust-content-security-policy/" }
-# content-security-policy = { git = "https://github.com/timvdlippe/rust-content-security-policy/", branch = "fix-report-checks", features = ["serde"] }
