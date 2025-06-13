@@ -19,7 +19,6 @@ import subprocess
 import sys
 from typing import Any, Dict, List
 
-import colorama
 import toml
 import wpt.manifestupdate
 
@@ -1010,15 +1009,9 @@ def scan(only_changed_files=False, progress=False, report_ci=False):
     # chain all the iterators
     errors = itertools.chain(config_errors, directory_errors, file_errors, python_errors, wpt_errors, cargo_lock_errors)
 
-    colorama.init()
     error = None
     for error in errors:
-        print(
-            "\r  | "
-            + f"{colorama.Fore.BLUE}{error[0]}{colorama.Style.RESET_ALL}:"
-            + f"{colorama.Fore.YELLOW}{error[1]}{colorama.Style.RESET_ALL}: "
-            + f"{colorama.Fore.RED}{error[2]}{colorama.Style.RESET_ALL}"
-        )
+        report_manager.error_log(error)
 
         if report_ci:
             report_manager.annotation_log("error", error)

@@ -8,14 +8,18 @@
 # except according to those terms.
 
 
+import colorama
+
+
 class LintingReportManager:
-    count = 0
+    error_count = 0
 
     def __init__(self, limit):
         self.limit = limit
+        colorama.init()
 
     def annotation_log(self, severity, data):
-        if self.count >= self.limit:
+        if self.error_count >= self.limit:
             return
 
         file_path = data[0].removeprefix("./")
@@ -27,4 +31,12 @@ class LintingReportManager:
             f"::{severity} file={file_path},line={line_number},endLine={line_number},title={title}::{message}",
             flush=True,
         )
-        self.count += 1
+        self.error_count += 1
+
+    def error_log(self, error):
+        print(
+            "\r  | "
+            + f"{colorama.Fore.BLUE}{error[0]}{colorama.Style.RESET_ALL}:"
+            + f"{colorama.Fore.YELLOW}{error[1]}{colorama.Style.RESET_ALL}: "
+            + f"{colorama.Fore.RED}{error[2]}{colorama.Style.RESET_ALL}"
+        )
