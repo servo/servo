@@ -168,7 +168,7 @@ class MachCommands(CommandBase):
                                 f"line={primary_span['line_start']},"
                                 f"endLine={primary_span['line_end']},"
                                 f"title=Mach clippy: {message.get('message', '')}::"
-                                f"{message.get('rendered', '')}"
+                                f"{rendered_message}"
                             ),
                             flush=True,
                         )
