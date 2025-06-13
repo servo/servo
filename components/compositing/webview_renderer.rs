@@ -819,12 +819,14 @@ impl WebViewRenderer {
 
         // Batch up all scroll events into one, or else we'll do way too much painting.
         let mut combined_scroll_event: Option<ScrollEvent> = None;
-        let mut combined_magnification = 1.0;
+        let mut combined_magnification = self.pinch_zoom_level().get();
         for scroll_event in self.pending_scroll_zoom_events.drain(..) {
             match scroll_event {
-                ScrollZoomEvent::PinchZoom(magnification) |
-                ScrollZoomEvent::ViewportZoom(magnification) => {
+                ScrollZoomEvent::PinchZoom(magnification) => {
                     combined_magnification *= magnification
+                },
+                ScrollZoomEvent::ViewportZoom(magnification) => {
+                    combined_magnification = magnification
                 },
                 ScrollZoomEvent::Scroll(scroll_event_info) => {
                     let combined_event = match combined_scroll_event.as_mut() {
@@ -876,9 +878,7 @@ impl WebViewRenderer {
             self.send_scroll_positions_to_layout_for_pipeline(scroll_result.pipeline_id);
         }
 
-        let pinch_zoom_result = match self
-            .set_pinch_zoom_level(self.pinch_zoom_level().get() * combined_magnification)
-        {
+        let pinch_zoom_result = match self.set_pinch_zoom_level(combined_magnification) {
             true => PinchZoomResult::DidPinchZoom,
             false => PinchZoomResult::DidNotPinchZoom,
         };
