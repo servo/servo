@@ -143,7 +143,9 @@ use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoop
 use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
 use crate::network_listener::{NetworkListener, PreInvoke};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
-use crate::script_module::{DynamicModuleList, ModuleScript, ModuleTree, ScriptFetchOptions};
+use crate::script_module::{
+    DynamicModuleList, ImportMap, ModuleScript, ModuleTree, ScriptFetchOptions,
+};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, ThreadSafeJSContext};
 use crate::script_thread::{ScriptThread, with_script_thread};
 use crate::security_manager::CSPViolationReportTask;
@@ -380,6 +382,12 @@ pub(crate) struct GlobalScope {
     #[ignore_malloc_size_of = "Rc<T> is hard"]
     notification_permission_request_callback_map:
         DomRefCell<HashMap<String, Rc<NotificationPermissionCallback>>>,
+
+    /// An import map allows control over module specifier resolution.
+    /// For now, only Window global objects have their import map modified from the initial empty one.
+    ///
+    /// <https://html.spec.whatwg.org/multipage/#import-maps>
+    import_map: DomRefCell<ImportMap>,
 }
 
 /// A wrapper for glue-code between the ipc router and the event-loop.
@@ -781,6 +789,7 @@ impl GlobalScope {
             byte_length_queuing_strategy_size_function: OnceCell::new(),
             count_queuing_strategy_size_function: OnceCell::new(),
             notification_permission_request_callback_map: Default::default(),
+            import_map: Default::default(),
         }
     }
 
@@ -3758,6 +3767,10 @@ impl GlobalScope {
                 .dom_manipulation_task_source()
                 .queue(task);
         }
+    }
+
+    pub(crate) fn import_map(&self) -> &DomRefCell<ImportMap> {
+        &self.import_map
     }
 }
 
