@@ -27,44 +27,6 @@ variables:
   safaridriver_diagnose: false
 
 jobs:
-# The affected tests jobs are unconditional for speed, as most PRs have one or
-# more affected tests: https://github.com/web-platform-tests/wpt/issues/13936.
-- job: affected_safari_preview
-  displayName: 'affected tests: Safari Technology Preview'
-  condition: eq(variables['Build.Reason'], 'PullRequest')
-  pool:
-    vmImage: 'macOS-14'
-  steps:
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '3.12'
-  - template: tools/ci/azure/affected_tests.yml
-    parameters:
-      artifactName: 'safari-preview-affected-tests'
-- template: tools/ci/azure/fyi_hook.yml
-  parameters:
-    dependsOn: affected_safari_preview
-    artifactName: safari-preview-affected-tests
-
-- job: affected_without_changes_safari_preview
-  displayName: 'affected tests without changes: Safari Technology Preview'
-  condition: eq(variables['Build.Reason'], 'PullRequest')
-  pool:
-    vmImage: 'macOS-14'
-  steps:
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '3.13'
-  - template: tools/ci/azure/affected_tests.yml
-    parameters:
-      checkoutCommit: 'HEAD^1'
-      affectedRange: 'HEAD@{1}'
-      artifactName: 'safari-preview-affected-tests-without-changes'
-- template: tools/ci/azure/fyi_hook.yml
-  parameters:
-    dependsOn: affected_without_changes_safari_preview
-    artifactName: safari-preview-affected-tests-without-changes
-
 # The decision jobs runs `./wpt test-jobs` to determine which jobs to run,
 # and all following jobs wait for it to finish and depend on its output.
 - job: decision
@@ -86,37 +48,6 @@ jobs:
       done
     name: test_jobs
     displayName: 'Run ./wpt test-jobs'
-
-- job: infrastructure_mac
-  displayName: 'infrastructure/ tests: macOS'
-  dependsOn: decision
-  condition: dependencies.decision.outputs['test_jobs.wptrunner_infrastructure']
-  pool:
-    vmImage: 'macOS-14'
-  steps:
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '3.13'
-  - template: tools/ci/azure/checkout.yml
-  - template: tools/ci/azure/install_fonts.yml
-  - template: tools/ci/azure/install_certs.yml
-  - template: tools/ci/azure/color_profile.yml
-  - template: tools/ci/azure/install_safari.yml
-  - template: tools/ci/azure/update_hosts.yml
-  - template: tools/ci/azure/update_manifest.yml
-  - script: |
-      set -eux -o pipefail
-      export SYSTEM_VERSION_COMPAT=0
-      ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --log-mach - --log-mach-level info  --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_macos_safari.json --channel preview safari infrastructure/
-    condition: succeededOrFailed()
-    displayName: 'Run tests (Safari Technology Preview)'
-  - task: PublishBuildArtifacts@1
-    condition: succeededOrFailed()
-    displayName: 'Publish results'
-    inputs:
-      artifactName: 'infrastructure-results'
-  - template: tools/ci/azure/publish_logs.yml
-  - template: tools/ci/azure/sysdiagnose.yml
 
 - job: tools_unittest_mac_py38
   displayName: 'tools/ unittests: macOS + Python 3.8'

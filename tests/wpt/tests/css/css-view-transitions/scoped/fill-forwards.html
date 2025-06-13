@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <!-- TODO update link -->
+  <link rel="help" href="https://www.w3.org/TR/css-view-transitions-2/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scoped view transition with fill forwards</title>
+</head>
+<style>
+  #target {
+    background-color: blue;
+    height: 100px;
+    width: 100px;
+    z-index: 1;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-fill-mode: forwards;
+  }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <div id="target">
+  </div>
+</body>
+<script>
+  promise_test(async () => {
+    const target = document.getElementById('target');
+    const vt = target.startViewTransition(() => {
+      target.style = 'background-color: teal';
+    });
+    await vt.ready;
+    const tally = document.getAnimations().length;
+    assert_greater_than(tally, 0);
+    document.getAnimations().forEach(a => {
+      a.finish();
+    });
+    assert_equals(document.getAnimations().length, tally);
+    await vt.finished;
+    assert_equals(document.getAnimations().length, 0);
+  }, 'View transition animations do not persist once the transition is ' +
+     'finished even if animation-fill-mode is forwards');
+
+
+</script>
+</html>

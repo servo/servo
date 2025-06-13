@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<head>
+    <title>Make sure we don't crash while attempting to animate.</title>
+    <link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+    <link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+</head>
+<style>
+    .crazy-class {
+      height: 110px;
+      width: 110px;
+      display: flex;
+
+      column-gap: 10px;
+
+      column-rule-style: solid;
+      column-rule-width: 1px; /* start at 1px */
+    }
+
+    .flex-item {
+      width: 50px;
+    }
+  </style>
+</head>
+<body>
+  <div class="crazy-class">
+    <div class="flex-item"></div>
+    <div class="flex-item"></div>
+  </div>
+
+  <script>
+    window.addEventListener('load', () => {
+      const container = document.querySelector('.crazy-class');
+
+      // Animate row rule color from green → red
+      container.animate(
+        [
+          { rowRuleColor: 'green' },
+          { rowRuleColor: 'red' }
+        ],
+        {
+          duration: 2000,
+          easing: 'ease-out',
+          fill: 'forwards'
+        }
+      );
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- TODO update link -->
+  <link rel="help" href="https://www.w3.org/TR/css-view-transitions-2/">
+  <title>Scoped view transition DOM callback ordering</title>
+</head>
+<style>
+  #target {
+    background-color: blue;
+    height: 100px;
+    width: 100px;
+    z-index: 1;
+  }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<body>
+  <div id="target">
+    <div id="child"></div>
+  </div>
+</body>
+<script>
+  promise_test(async () => {
+    await waitForNextFrame();
+    const target = document.getElementById('target');
+    const updates = [];
+    const vt1 = document.startViewTransition(() => {
+      target.style = 'background-color: rgb(255, 165, 0)';
+      updates.push('vt1');
+    });
+    const vt2 = child.startViewTransition(() => {
+      target.style = 'background-color: rgb(102, 51, 153)';
+      updates.push('vt2');
+    });
+    const vt3 = target.startViewTransition(() => {
+      target.style = 'background-color: rgb(0, 128, 128)';
+      updates.push('vt3');
+    });
+    await Promise.all([vt1.ready, vt2.ready, vt3.ready]);
+    assert_array_equals(updates, ['vt1', 'vt2', 'vt3']);
+    assert_equals(getComputedStyle(target).backgroundColor, 'rgb(0, 128, 128)');
+
+  }, 'View transition DOM callbacks triggered in creation order.');
+</script>
+</html>

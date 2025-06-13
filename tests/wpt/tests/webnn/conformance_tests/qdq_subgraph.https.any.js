@@ -528,6 +528,161 @@ const subgraphTests = [
     }
   },
   {
+    'name': 'quantized conv2d with padding',
+    'graph': {
+      'inputs': {
+        'input': {
+          'data': [
+            0.6124474406242371,  0.8857858777046204,  0.13667134940624237,
+            0.5645291209220886,  0.8965172171592712,  0.36792829632759094,
+            0.6811466217041016,  0.0479511022567749,  0.33355462551116943,
+            0.19882695376873016, 0.41167140007019043, 0.07934240251779556,
+            0.4272463321685791,  0.535800576210022,   0.5910806059837341,
+            0.28415432572364807, 0.4147258698940277,  0.026906268671154976,
+            0.3621256649494171,  0.9945681691169739,  0.07184549421072006,
+            0.12204372137784958, 0.8422137498855591,  0.4537501037120819,
+            0.21529443562030792
+          ],
+          'descriptor': {shape: [1, 5, 5, 1], dataType: 'float32'},
+          'constant': false
+        },
+        'inputScale': {
+          'data': [0.003921568859368563],
+          'descriptor': {shape: [1], dataType: 'float32'},
+          'constant': true
+        },
+        'inputZeroPoint': {
+          'data': [-128],
+          'descriptor': {shape: [1], dataType: 'int8'},
+          'constant': true
+        },
+        'filter': {
+          'data': [2, 3, 4, 5, 6, 7, 8, 9, 3],
+          'descriptor': {shape: [1, 3, 3, 1], dataType: 'int8'},
+          'constant': true
+        },
+        'filterScale': {
+          'data': [0.023458752938762234],
+          'descriptor': {shape: [1], dataType: 'float32'},
+          'constant': true
+        },
+        'filterZeroPoint': {
+          'data': [0],
+          'descriptor': {shape: [1], dataType: 'int8'},
+          'constant': true
+        },
+        'bias': {
+          'data': [1],
+          'descriptor': {shape: [1], dataType: 'int32'},
+          'constant': true
+        },
+        'biasScale': {
+          'data': [0.000091995115004270],
+          'descriptor': {shape: [1], dataType: 'float32'},
+          'constant': true
+        },
+        'biasZeroPoint': {
+          'data': [0],
+          'descriptor': {shape: [1], dataType: 'int32'},
+          'constant': true
+        },
+        'outputScale': {
+          'data': [0.003921568859368563],
+          'descriptor': {shape: [1], dataType: 'float32'},
+          'constant': true
+        },
+        'outputZeroPoint': {
+          'data': [0],
+          'descriptor': {shape: [1], dataType: 'int8'},
+          'constant': true
+        },
+      },
+      'operators': [
+        {
+          'name': 'quantizeLinear',
+          'arguments': [
+            {'input': 'input'},
+            {'scale': 'inputScale', 'zeroPoint': 'inputZeroPoint'}
+          ],
+          'outputs': 'quantizedInput'
+        },
+        {
+          'name': 'dequantizeLinear',
+          'arguments': [
+            {'input': 'quantizedInput'},
+            {'scale': 'inputScale', 'zeroPoint': 'inputZeroPoint'}
+          ],
+          'outputs': 'dequantizedInput'
+        },
+        {
+          'name': 'dequantizeLinear',
+          'arguments': [
+            {'input': 'filter'},
+            {'scale': 'filterScale', 'zeroPoint': 'filterZeroPoint'}
+          ],
+          'outputs': 'dequantizedFilter'
+        },
+        {
+          'name': 'dequantizeLinear',
+          'arguments': [
+            {'input': 'bias'},
+            {'scale': 'biasScale', 'zeroPoint': 'biasZeroPoint'}
+          ],
+          'outputs': 'dequantizedBias'
+        },
+        {
+          'name': 'conv2d',
+          'arguments': [
+            {'input': 'dequantizedInput'}, {'filter': 'dequantizedFilter'}, {
+              'options': {
+                'inputLayout': 'nhwc',
+                'bias': 'dequantizedBias',
+                'filterLayout': 'ohwi',
+                'padding': [2, 1, 2, 1]
+              }
+            }
+          ],
+          'outputs': 'conv2dOutput'
+        },
+        {
+          'name': 'quantizeLinear',
+          'arguments': [
+            {'input': 'conv2dOutput'},
+            {'scale': 'outputScale', 'zeroPoint': 'outputZeroPoint'}
+          ],
+          'outputs': 'quantizedConv2dOutput'
+        },
+        {
+          'name': 'dequantizeLinear',
+          'arguments': [
+            {'input': 'quantizedConv2dOutput'},
+            {'scale': 'outputScale', 'zeroPoint': 'outputZeroPoint'}
+          ],
+          'outputs': 'output'
+        }
+      ],
+      'expectedOutputs': {
+        'output': {
+          'data': [
+            0.04313725605607033, 0.19215688109397888, 0.30980393290519714,
+            0.2352941334247589, 0.20784315466880798, 0.29411765933036804,
+            0.125490203499794, 0.35686275362968445, 0.43529415130615234,
+            0.3764706254005432, 0.33725491166114807, 0.2980392277240753,
+            0.14509804546833038,  0.38431376218795776, 0.3764706254005432,
+            0.38823533058166504, 0.45098042488098145, 0.38431376218795776,
+            0.12156863510608673, 0.250980406999588, 0.34117648005485535,
+            0.3333333432674408,  0.41960787773132324, 0.4549019932746887,
+            0.09019608050584793,  0.16862745583057404, 0.25882354378700256,
+            0.4274510145187378,  0.49803924560546875, 0.3803921937942505,
+            0.03921568766236305, 0.09019608050584793, 0.20784315466880798,
+            0.26274511218070984, 0.3176470696926117, 0.1725490242242813
+          ],
+          'descriptor': {shape: [1, 6, 6, 1], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
     'name': 'quantized element-wise binary sub',
     'graph': {
       'inputs': {

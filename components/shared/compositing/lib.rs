@@ -35,7 +35,7 @@ use ipc_channel::ipc::{self, IpcSharedMemory};
 use profile_traits::mem::{OpaqueSender, ReportsChan};
 use serde::{Deserialize, Serialize};
 use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize};
-use webrender_api::units::{DevicePoint, LayoutPoint, TexelRect};
+use webrender_api::units::{DevicePoint, LayoutVector2D, TexelRect};
 use webrender_api::{
     BuiltDisplayList, BuiltDisplayListDescriptor, ExternalImage, ExternalImageData,
     ExternalImageHandler, ExternalImageId, ExternalImageSource, ExternalScrollId,
@@ -124,7 +124,7 @@ pub enum CompositorMsg {
     SendScrollNode(
         WebViewId,
         WebRenderPipelineId,
-        LayoutPoint,
+        LayoutVector2D,
         ExternalScrollId,
     ),
     /// Inform WebRender of a new display list for the given pipeline.
@@ -232,7 +232,7 @@ impl CrossProcessCompositorApi {
         &self,
         webview_id: WebViewId,
         pipeline_id: WebRenderPipelineId,
-        point: LayoutPoint,
+        point: LayoutVector2D,
         scroll_id: ExternalScrollId,
     ) {
         if let Err(e) = self.0.send(CompositorMsg::SendScrollNode(

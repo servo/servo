@@ -1,0 +1,105 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Soft Navigation Detection: LCP, with unbuffered observers.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+<script>
+  // The click handler is triggered by user interaction; it modifies
+  // the DOM by adding an image to the page; this triggers both
+  // a soft navigation and a soft navigation LCP entry.
+  function clickHandler() {
+    const img = new Image();
+    img.src = "/images/lcp-256x256.png";
+    img.id = "lcp-img";
+    document.body.appendChild(img);
+    history.pushState({}, "", "/show-image");
+  }
+
+  // We start this promise early, so that it can observe the initial LCP,
+  // which is expected to be the div just below.
+  const firstLcpPromise = SoftNavigationTestHelper.getPerformanceEntries(
+    /*type=*/ "largest-contentful-paint",
+    /*include_soft_navigation_observations=*/ false,
+    /*min_num_entries=*/ 1,
+  );
+</script>
+<div id="click-target" onclick="clickHandler()">Click here!</div>
+
+<script>
+  promise_test(async (t) => {
+    const helper = new SoftNavigationTestHelper(t);
+    const firstLcp = await helper.withTimeoutMessage(firstLcpPromise, "First LCP missing.");
+    assert_equals(firstLcp.length, 1, "Expecting first LCP.");
+    assert_equals(firstLcp[0].id, "click-target", "LCP should be click target.");
+
+    // Set up promises for soft navigation and LCP entries, before the click.
+    const softNavPromise = SoftNavigationTestHelper.getPerformanceEntries(
+      /*type=*/ "soft-navigation",
+      /*include_soft_navigation_observations=*/ false,
+      /*min_num_entries=*/ 1,
+      /*timeout_ms=*/ 3000,
+    );
+    const lcpPromise = SoftNavigationTestHelper.getPerformanceEntries(
+      /*type=*/ "largest-contentful-paint",
+      /*include_soft_navigation_observations=*/ true,
+      /*min_num_entries=*/ 1,
+    );
+    if (test_driver) {
+      test_driver.click(document.getElementById("click-target"));
+    }
+    // Now that we've clicked, we expect to see a soft navigation,
+    // and a soft navigation LCP entry.
+    const results = await Promise.allSettled([
+      helper.withTimeoutMessage(softNavPromise, "Soft navigation entry never arrived.", 3000),
+      helper.withTimeoutMessage(lcpPromise, "LCP entry never arrived.", 3000),
+    ]);
+
+    // If either or both of soft nav entry or soft nav LCP are missing,
+    // fail the test.
+    const errors = results.filter((r) => r.status === "rejected").map((r) => r.reason.message);
+    if (errors.length > 0) {
+      throw new AssertionError("PerformanceObservers failed: " + format_value(errors));
+    }
+
+    // Examine the soft navigation entries.
+    const softNavs = results[0].value;
+    assert_equals(softNavs.length, 1, "Expecting one soft navigation entry.");
+    assert_equals(
+      softNavs[0].name.replace(/.*\//, ""),
+      "show-image",
+      "Expecting soft navigation to 'show-image'",
+    );
+
+    // Examine the soft navigation LCP entry.
+    const lcps = results[1].value;
+    assert_equals(lcps.length, 1, "Expecting one LCP after click.");
+    assert_equals(lcps[0].id, "lcp-img", "LCP after click should be for the image.");
+
+    // Examine timestamps.
+    assert_less_than(
+      firstLcp[0].startTime,
+      softNavs[0].startTime,
+      "Soft navigation should start after first LCP.",
+    );
+    assert_less_than(
+      softNavs[0].startTime,
+      lcps[0].startTime,
+      "LCP should start after soft navigation.",
+    );
+
+    // Examine navigation ids.
+    assert_equals(
+      lcps[0].navigationId,
+      softNavs[0].navigationId,
+      "LCP should have the same navigation id as soft navigation.",
+    );
+    assert_not_equals(
+      lcps[0].navigationId,
+      firstLcp[0].navigationId,
+      "LCP should have a different navigation id than first LCP.",
+    );
+  }, "Detect soft navigation and LCP after a click with unbuffered observers.");
+</script>

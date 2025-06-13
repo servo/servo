@@ -201,14 +201,14 @@
   <canvas width="100" height="100" class="test height" style="height: fit-content"
           data-expected-width="110" data-expected-height="110"></canvas>
   <canvas width="100" height="100" class="test min-height" style="min-height: fit-content"
-          data-expected-width="10" data-expected-height="10"></canvas>
+          data-expected-width="110" data-expected-height="110"></canvas>
   <canvas width="100" height="100" class="test max-height" style="max-height: fit-content"
-          data-expected-width="510" data-expected-height="510"></canvas>
+          data-expected-width="110" data-expected-height="110"></canvas>
 
   <canvas width="100" height="100" class="test height" style="max-width: 50px; height: fit-content"
           data-expected-width="60" data-expected-height="60"></canvas>
   <canvas width="100" height="100" class="test min-height" style="min-width: 50px; min-height: fit-content"
-          data-expected-width="60" data-expected-height="60"></canvas>
+          data-expected-width="110" data-expected-height="110"></canvas>
   <canvas width="100" height="100" class="test max-height" style="max-width: 50px; max-height: fit-content"
           data-expected-width="60" data-expected-height="60"></canvas>
 
@@ -217,7 +217,31 @@
   <canvas width="100" height="100" class="test min-height" style="min-width: 150px; min-height: fit-content"
           data-expected-width="160" data-expected-height="160"></canvas>
   <canvas width="100" height="100" class="test max-height" style="max-width: 150px; max-height: fit-content"
+          data-expected-width="110" data-expected-height="110"></canvas>
+</div>
+
+<!-- min-content -->
+<div class="wrapper" style="width: 200px; max-height: 100px">
+  <canvas width="100" height="100" class="test height" style="height: min-content"
+          data-expected-width="110" data-expected-height="110"></canvas>
+  <canvas width="100" height="100" class="test min-height" style="min-height: min-content"
+          data-expected-width="110" data-expected-height="110"></canvas>
+  <canvas width="100" height="100" class="test max-height" style="max-height: min-content"
+          data-expected-width="110" data-expected-height="110"></canvas>
+
+  <canvas width="100" height="100" class="test height" style="max-width: 50px; height: min-content"
+          data-expected-width="60" data-expected-height="60"></canvas>
+  <canvas width="100" height="100" class="test min-height" style="min-width: 50px; min-height: min-content"
+          data-expected-width="110" data-expected-height="110"></canvas>
+  <canvas width="100" height="100" class="test max-height" style="max-width: 50px; max-height: min-content"
+          data-expected-width="60" data-expected-height="60"></canvas>
+
+  <canvas width="100" height="100" class="test height" style="min-width: 150px; height: min-content"
           data-expected-width="160" data-expected-height="160"></canvas>
+  <canvas width="100" height="100" class="test min-height" style="min-width: 150px; min-height: min-content"
+          data-expected-width="160" data-expected-height="160"></canvas>
+  <canvas width="100" height="100" class="test max-height" style="max-width: 150px; max-height: min-content"
+          data-expected-width="110" data-expected-height="110"></canvas>
 </div>
 
 <script src="/resources/testharness.js"></script>

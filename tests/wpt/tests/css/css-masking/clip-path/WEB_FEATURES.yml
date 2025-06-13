@@ -1,4 +1,6 @@
 features:
+- name: clip-path
+  files: "**"
 - name: clip-path-boxes
   files:
   - clip-path-fillBox-1a.html

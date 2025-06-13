@@ -18,7 +18,7 @@ on:
 
 jobs:
   check-workflow-run:
-    name: "Check for appropriate epochs"
+    name: Check for appropriate epochs
     uses: ./.github/workflows/check-workflow-run.yml
     with:
       check-refs: '["refs/heads/epochs/three_hourly"]'
@@ -32,15 +32,7 @@ jobs:
       github.event_name != 'workflow_run' || fromJSON(needs.check-workflow-run.outputs.updated-refs)[0] != null
     uses: ./.github/workflows/safari-wptrunner.yml
     with:
-      artifact-name: "safari-technology-preview-results"
+      artifact-name: safari-technology-preview-results
       safari-technology-preview: true
       safaridriver-diagnose: false
-      matrix-include: >-
-        [{"current-chunk": 1, "total-chunks": 8},
-         {"current-chunk": 2, "total-chunks": 8},
-         {"current-chunk": 3, "total-chunks": 8},
-         {"current-chunk": 4, "total-chunks": 8},
-         {"current-chunk": 5, "total-chunks": 8},
-         {"current-chunk": 6, "total-chunks": 8},
-         {"current-chunk": 7, "total-chunks": 8},
-         {"current-chunk": 8, "total-chunks": 8}]
+      matrix: '{"current-chunk": [1, 2, 3, 4, 5, 6, 7, 8], "total-chunks": [8]}'

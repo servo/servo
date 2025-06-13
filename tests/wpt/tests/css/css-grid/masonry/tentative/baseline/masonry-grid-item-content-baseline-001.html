@@ -18,6 +18,7 @@ html,body {
 .grid {
   float: left;
   display: grid;
+  display: masonry;
   grid: masonry / repeat(4, auto);
   border: 2px solid;
   padding: 1px;
@@ -25,6 +26,7 @@ html,body {
 }
 .c {
   grid: repeat(4, auto) / masonry;
+  masonry-direction: row;
 }
 
 span {

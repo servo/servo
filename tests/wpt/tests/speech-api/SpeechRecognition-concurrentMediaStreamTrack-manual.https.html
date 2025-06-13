@@ -27,10 +27,10 @@ promise_test(async (t) => {
 
     // Create two SpeechRecognition instances
     const speechRecognition1 = new SpeechRecognition();
-    speechRecognition1.mode = 'cloud-only';
+    speechRecognition1.processLocally = false;
     speechRecognition1.lang = lang;
     const speechRecognition2 = new SpeechRecognition();
-    speechRecognition2.mode = 'cloud-only';
+    speechRecognition2.processLocally = false;
     speechRecognition2.lang = lang;
 
     const audioTrack1 = await getAudioTrackFromFile("/media/speech.wav");

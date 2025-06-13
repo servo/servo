@@ -307,6 +307,21 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
         }
     }
 
+    fn each_exported_part<F>(&self, name: &AtomIdent, callback: F)
+    where
+        F: FnMut(&AtomIdent),
+    {
+        let Some(exported_parts) = self
+            .element
+            .get_attr_for_layout(&ns!(), &local_name!("exportparts"))
+        else {
+            return;
+        };
+        exported_parts
+            .as_shadow_parts()
+            .for_each_exported_part(AtomIdent::cast(name), callback);
+    }
+
     fn has_dirty_descendants(&self) -> bool {
         unsafe {
             self.as_node()
@@ -751,8 +766,12 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
         )
     }
 
-    fn imported_part(&self, _: &AtomIdent) -> Option<AtomIdent> {
-        None
+    fn imported_part(&self, name: &AtomIdent) -> Option<AtomIdent> {
+        self.element
+            .get_attr_for_layout(&ns!(), &local_name!("exportparts"))?
+            .as_shadow_parts()
+            .imported_part(name)
+            .map(|import| AtomIdent::new(import.clone()))
     }
 
     #[inline]

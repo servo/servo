@@ -7,6 +7,7 @@
     <script src="/resources/testharnessreport.js"></script>
     <script src="/resources/testdriver.js"></script>
     <script src="/resources/testdriver-vendor.js"></script>
+    <script src="../../resources/soft-navigation-test-helper.js"></script>
     <script>
       // We append this value to the URL of actualSoftNavigation() to
       // identify the test, and to ensure it's unique.
@@ -84,31 +85,35 @@
 
     <script>
       function test_template(test_id, description) {
-        promise_test(() => {
-          return new Promise((resolve) => {
-            const entries = [];
-            new PerformanceObserver((list, observer) => {
-              entries.push(...list.getEntries());
-              if (entries[entries.length - 1].name.endsWith("actual-softnavigation?" + test_id)) {
-                observer.disconnect();
-                resolve(entries);
-              }
-            }).observe({ type: "soft-navigation" });
-            if (test_driver) {
-              global_test_id = test_id;
-              test_driver.click(document.getElementById(test_id));
-              test_driver.click(document.getElementById("actual-softnavigation"));
-            }
-          }).then((entries) => {
-            assert_equals(
-              entries.length,
-              1,
-              "Expected only one soft navigation (test_id=" + test_id + ").",
-            );
-          });
+        promise_test(async (t) => {
+          const promise = SoftNavigationTestHelper.getPerformanceEntries(
+            "soft-navigation",
+            /*includeSoftNavigationObservations=*/ false,
+            /*minNumEntries=*/ 1,
+          );
+          if (test_driver) {
+            global_test_id = test_id;
+            test_driver.click(document.getElementById(test_id));
+            test_driver.click(document.getElementById("actual-softnavigation"));
+          }
+          const helper = new SoftNavigationTestHelper(t);
+          const entries = await helper.withTimeoutMessage(
+            promise,
+            "No soft navigation (test_id=" + test_id + ").",
+            /*timeout=*/ 3000,
+          );
+          assert_equals(
+            entries.length,
+            1,
+            "Expected single soft navigation (test_id=" + test_id + ").",
+          );
+          assert_equals(
+            entries[0].name.replace(/.*\//, ""),
+            "actual-softnavigation?" + test_id,
+            "Expected name ending in 'actual-softnavigation?" + test_id + "'",
+          );
         }, description);
       }
-
       test_template("no-url-change", "The URL change is missing.");
       test_template("dom-not-attached", "Creates an element but doesn't attach it to the DOM.");
       test_template("no-paint", "Doesn't paint because the element is hidden.");

@@ -1,0 +1,35 @@
+<!DOCTYPE HTML>
+<html>
+ <head>
+  <title>Forms</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+ </head>
+ <body>
+  <h3>input_valueAsDate_TypeError</h3>
+  <hr>
+  <div id="log"></div>
+  <input id="input_date" type="date">
+  <input id="input_time" type="time">
+  <input id="input_week" type="week">
+  <input id="input_month" type="month">
+
+  <script>
+    "use strict";
+
+    function testExpectTypeError(input) {
+      test(
+        () => assert_throws_js(TypeError, () => input.valueAsDate = {}),
+        `valueAsDate setter with non-Date object (input type ${input.type})`,
+        'expected TypeError'
+      );
+    }
+
+    testExpectTypeError(document.getElementById("input_date"));
+    testExpectTypeError(document.getElementById("input_time"));
+    testExpectTypeError(document.getElementById("input_week"));
+    testExpectTypeError(document.getElementById("input_month"));
+  </script>
+
+ </body>
+</html>

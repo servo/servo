@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>TestDriver bidi.bluetooth.simulate_gatt_disconnection method</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/bidi-bluetooth-helper.js"></script>
+
+<script>
+    promise_setup(async () => {
+        await test_driver.bidi.bluetooth.request_device_prompt_updated.subscribe();
+        await test_driver.bidi.bluetooth.gatt_connection_attempted.subscribe();
+    });
+
+    bluetooth_test(async (t) => {
+        const handle_prompt_promise = selectFirstDeviceOnDevicePromptUpdated();
+        const [device] = await Promise.all([requestDeviceWithTrustedClick({
+            acceptAllDevices: true
+        }), handle_prompt_promise]);
+
+        await createGattConnection(device);
+        assert_true(device.gatt.connected);
+        await test_driver.bidi.bluetooth.simulate_gatt_disconnection({
+            address: DEVICE_ADDRESS,
+        });
+        assert_false(device.gatt.connected);
+    }, "simulate a GATT disconnection.");
+</script>

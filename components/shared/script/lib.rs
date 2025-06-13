@@ -9,6 +9,7 @@
 #![deny(missing_docs)]
 #![deny(unsafe_code)]
 
+use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
 
@@ -20,8 +21,8 @@ use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use compositing_traits::CrossProcessCompositorApi;
 use constellation_traits::{
-    LoadData, NavigationHistoryBehavior, ScriptToConstellationChan, ScrollState,
-    StructuredSerializedData, WindowSizeType,
+    LoadData, NavigationHistoryBehavior, ScriptToConstellationChan, StructuredSerializedData,
+    WindowSizeType,
 };
 use crossbeam_channel::{RecvTimeoutError, Sender};
 use devtools_traits::ScriptToDevtoolsControlMsg;
@@ -47,8 +48,8 @@ use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::WebGPUMsg;
-use webrender_api::ImageKey;
-use webrender_api::units::DevicePixel;
+use webrender_api::units::{DevicePixel, LayoutVector2D};
+use webrender_api::{ExternalScrollId, ImageKey};
 
 /// The initial data required to create a new layout attached to an existing script thread.
 #[derive(Debug, Deserialize, Serialize)]
@@ -246,7 +247,7 @@ pub enum ScriptThreadMessage {
     SetWebGPUPort(IpcReceiver<WebGPUMsg>),
     /// The compositor scrolled and is updating the scroll states of the nodes in the given
     /// pipeline via the Constellation.
-    SetScrollStates(PipelineId, Vec<ScrollState>),
+    SetScrollStates(PipelineId, HashMap<ExternalScrollId, LayoutVector2D>),
     /// Evaluate the given JavaScript and return a result via a corresponding message
     /// to the Constellation.
     EvaluateJavaScript(PipelineId, JavaScriptEvaluationId, String),

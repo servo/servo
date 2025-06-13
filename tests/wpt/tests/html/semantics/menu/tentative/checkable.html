@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<link rel=author href=mailto:dom@chromium.org>
+<link rel=help href=https://open-ui.org/components/menu.explainer>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<menubar>
+  <fieldset checkable=single>
+    <menuitem id=menubar-menuitem></menuitem>
+  </fieldset>
+</menubar>
+
+<menulist>
+  <menuitem id=menulist-menuitem-not-checkable></menuitem>
+  <fieldset checkable=single>
+    <menuitem id=menulist-menuitem-checkable></menuitem>
+  </fieldset>
+  <fieldset checkable=single>
+    <menuitem id=single1></menuitem>
+    <menuitem id=single2></menuitem>
+    <menuitem id=single3></menuitem>
+  </fieldset>
+  <fieldset checkable=multiple>
+    <menuitem id=multiple1></menuitem>
+    <menuitem id=multiple2></menuitem>
+    <menuitem id=multiple3></menuitem>
+  </fieldset>
+</menulist>
+
+<script>
+test(() => {
+  const mi = document.createElement('menuitem');
+  assert_false(mi.checked, "defaults to unchecked when detached");
+  assert_false(mi.matches(":checked"));
+  mi.checked = true;
+  assert_equals(mi.checked, false, "cannot be checked when detached");
+  assert_false(mi.matches(":checked"));
+
+  document.body.append(mi);
+
+  assert_equals(mi.checked, false, "defaults to unchecked when connected");
+  assert_false(mi.matches(":checked"));
+  mi.checked = true;
+  assert_equals(mi.checked, false,
+      "cannot be checked when not attached in a menulist");
+  assert_false(mi.matches(":checked"));
+
+  mi.remove();
+}, "menuitem is not checkable on its own");
+
+test(() => {
+  const mi = document.querySelector("#menubar-menuitem");
+  assert_equals(mi.checked, false, "menuitem in menubar is not checked");
+  assert_false(mi.matches(":checked"));
+  mi.checked = true;
+  assert_equals(mi.checked, false, "menuitem in menubar cannot be checked");
+  assert_false(mi.matches(":checked"));
+}, "menuitem in menubar is not checkable");
+
+test(() => {
+  const nonCheckable =
+      document.querySelector("#menulist-menuitem-not-checkable");
+  assert_equals(nonCheckable.checked, false,
+      "menuitem direct child of menulist is not checked");
+  assert_false(nonCheckable.matches(":checked"));
+  nonCheckable.checked = true;
+  assert_equals(nonCheckable.checked, false,
+      "menuitem direct child of menulist cannot be checked");
+  assert_false(nonCheckable.matches(":checked"));
+
+  const checkable = document.querySelector("#menulist-menuitem-checkable");
+  assert_equals(nonCheckable.checked, false,
+      "checkable menuitem is not checked");
+  assert_false(nonCheckable.matches(":checked"));
+  checkable.checked = true;
+  assert_equals(checkable.checked, true, "checkable menuitem is checked");
+  assert_true(checkable.matches(":checked"));
+}, "menuitem in menulist");
+
+test(() => {
+  assert_false(single1.checked, "single1 not checked");
+  assert_false(single1.matches(":checked"), "single1 not :checked");
+  assert_false(single2.checked, "single2 not checked");
+  assert_false(single2.matches(":checked"), "single2 not :checked");
+  assert_false(single3.checked, "single3 not checked");
+  assert_false(single3.matches(":checked"), "single3 not :checked");
+
+  single1.checked = true;
+  assert_true(single1.checked, "single1 IS checked [after single1 checked]");
+  assert_true(single1.matches(":checked"),
+      "single1 IS :checked [after single1 checked]");
+  assert_false(single2.checked, "single2 not checked [after single1 checked]");
+  assert_false(single2.matches(":checked"),
+      "single2 not :checked [after single1 checked]");
+  assert_false(single3.checked, "single3 not checked [after single1 checked]");
+  assert_false(single3.matches(":checked"),
+      "single3 not :checked [after single1 checked]");
+
+  single2.checked = true;
+  assert_false(single1.checked, "single1 not checked [after single2 checked]");
+  assert_false(single1.matches(":checked"),
+      "single1 not :checked [after single2 checked]");
+  assert_true(single2.checked, "single2 IS checked [after single1 checked]");
+  assert_true(single2.matches(":checked"),
+      "single2 IS :checked [after single2 checked]");
+  assert_false(single3.checked, "single3 not checked [after single2 checked]");
+  assert_false(single3.matches(":checked"),
+      "single3 not :checked [after single2 checked]");
+
+  single3.checked = true;
+  assert_false(single1.checked, "single1 not checked [after single3 checked]");
+  assert_false(single1.matches(":checked"),
+      "single1 not :checked [after single3 checked]");
+  assert_false(single2.checked, "single2 not checked [after single3 checked]");
+  assert_false(single2.matches(":checked"),
+      "single2 not :checked [after single3 checked]");
+  assert_true(single3.checked, "single3 IS checked [after single3 checked]");
+  assert_true(single3.matches(":checked"),
+      "single3 IS :checked [after single3 checked]");
+}, "checkable menuitem exclusivity");
+
+test(() => {
+  assert_false(multiple1.checked, "multiple1 not checked");
+  assert_false(multiple1.matches(":checked"), "multiple1 not :checked");
+  assert_false(multiple2.checked, "multiple2 not checked");
+  assert_false(multiple2.matches(":checked"), "multiple2 not :checked");
+  assert_false(multiple3.checked, "multiple3 not checked");
+  assert_false(multiple3.matches(":checked"), "multiple2 not :checked");
+
+  multiple1.checked = true;
+  assert_true(multiple1.checked, "multiple1 checked [after multiple1 checked]");
+  assert_true(multiple1.matches(":checked"),
+      "multiple1 IS :checked [after multiple1 checked]");
+  assert_false(multiple2.checked, "multiple2 not checked [after multiple1 checked]");
+  assert_false(multiple2.matches(":checked"),
+      "multiple2 not :checked [after multiple1 checked]");
+  assert_false(multiple3.checked, "multiple3 not checked [after multiple1 checked]");
+  assert_false(multiple3.matches(":checked"),
+      "multiple3 not :checked [after multiple1 checked]");
+
+  multiple2.checked = true;
+  assert_true(multiple1.checked, "multiple1 checked [after multiple2 checked]");
+  assert_true(multiple1.matches(":checked"),
+      "multiple1 IS :checked [after multiple2 checked]");
+  assert_true(multiple2.checked, "multiple2 checked [after multiple2 checked]");
+  assert_true(multiple2.matches(":checked"),
+      "multiple2 IS :checked [after multiple2 checked]");
+  assert_false(multiple3.checked, "multiple3 not checked [after multiple2 checked]");
+  assert_false(multiple3.matches(":checked"),
+      "multiple3 not :checked [after multiple2 checked]");
+
+  multiple3.checked = true;
+  assert_true(multiple1.checked, "multiple1 checked [after multiple3 checked]");
+  assert_true(multiple1.matches(":checked"),
+      "multiple1 IS :checked [after multiple3 checked]");
+  assert_true(multiple2.checked, "multiple2 checked [after multiple3 checked]");
+  assert_true(multiple2.matches(":checked"),
+      "multiple2 IS :checked [after multiple3 checked]");
+  assert_true(multiple3.checked, "multiple3 checked [after multiple3 checked]");
+  assert_true(multiple3.matches(":checked"),
+      "multiple3 IS checked [after multiple3 checked]");
+}, "checkable multiple");
+
+test(() => {
+  const menulist = document.createElement('menulist');
+  const fieldset = menulist.appendChild(document.createElement('fieldset'));
+  fieldset.setAttribute("checkable", "single");
+  const single1 = fieldset.appendChild(document.createElement('menuitem'));
+  const single2 = fieldset.appendChild(document.createElement('menuitem'));
+
+  single1.checked = true;
+  single2.checked = true;
+
+  assert_false(single1.checked, "single1 is unchecked");
+  assert_true(single2.checked, "single2 is checked");
+}, "checkable menuitem exclusivity when disconnected");
+
+test(() => {
+  const menulist = document.createElement('menulist');
+  const fieldset = menulist.appendChild(document.createElement('fieldset'));
+  fieldset.setAttribute("checkable", "single");
+  const single1 = fieldset.appendChild(document.createElement('menuitem'));
+
+  single1.checked = true;
+  assert_true(single1.checked, true);
+  fieldset.removeAttribute('checkable');
+  assert_false(single1.checked, false,
+      "menuitem gets unchecked after fieldset becomes uncheckable");
+  single1.checked = true;
+  assert_false(single1.checked,
+      "menuitem cannot become checked after fieldset becomes uncheckable");
+}, "when fieldset becomes uncheckable, so do its menuitems");
+
+test(() => {
+  const menulist = document.createElement('menulist');
+  const fieldset = menulist.appendChild(document.createElement('fieldset'));
+  fieldset.setAttribute("checkable", "multiple");
+  const single1 = fieldset.appendChild(document.createElement('menuitem'));
+  const single2 = fieldset.appendChild(document.createElement('menuitem'));
+
+  single1.checked = true;
+  single2.checked = true;
+  fieldset.setAttribute("checkable", "single");
+  assert_true(single1.checked, "first menuitem stays checked");
+  assert_false(single2.checked, "second menuitem becomes unchecked");
+}, "fieldset multiple => single; all but the first checked menuitem gets " +
+   "reset");
+</script>

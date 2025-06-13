@@ -94,3 +94,18 @@ promise_test(async t => {
   await promise_rejects_js(
       t, TypeError, writer.write(view), 'write() should reject');
 }, 'writing a view on a shared buffer should be rejected');
+
+promise_test(async () => {
+  let wss = new WebSocketStream(ECHOURL);
+  let { writable } = await wss.opened;
+  let writer = writable.getWriter();
+  wss = writable = null;
+  const promises = [];
+  for (let i = 0; i < 20; ++i) {
+    promises.push(writer.write(new Uint8Array(100000)));
+  }
+  writer = null;
+  for (let i = 0; i < 5; ++i) {
+    await garbageCollect();
+  }
+}, 'Garbage collecting a WebSocket stream doesn\'t crash while write promise is pending');

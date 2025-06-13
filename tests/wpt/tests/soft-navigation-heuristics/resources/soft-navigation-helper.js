@@ -2,8 +2,6 @@ var counter = 0;
 var interacted;
 var timestamps = [];
 const MAX_CLICKS = 50;
-// Entries for one hard navigation + 50 soft navigations.
-const MAX_PAINT_ENTRIES = 51;
 const URL = 'foobar.html';
 const readValue = (value, defaultValue) => {
   return value !== undefined ? value : defaultValue;
@@ -116,10 +114,6 @@ const testNavigationApi = (testName, navigateEventHandler, link) => {
 const runEntryValidations = async (
     preClickLcp, first_navigation_id, entries_expected_number = 2,
     validate = null) => {
-  await validatePaintEntries(
-      'first-contentful-paint', entries_expected_number, first_navigation_id);
-  await validatePaintEntries(
-      'first-paint', entries_expected_number, first_navigation_id);
   const postClickLcp = await getLcpEntries();
   const postClickLcpWithoutSoftNavs = await getLcpEntriesWithoutSoftNavs();
   assert_greater_than(
@@ -234,50 +228,6 @@ const validateSoftNavigationEntry =
       performance.getEntriesByType('soft-navigation').length, expectedClicks,
       'Performance timeline got an entry');
   await extraValidations(entries, options);
-};
-
-const validatePaintEntries =
-    async (type, entries_number, first_navigation_id) => {
-  if (!performance.softNavPaintMetricsSupported) {
-    return;
-  }
-  const expected_entries_number = Math.min(entries_number, MAX_PAINT_ENTRIES);
-  const entries = await new Promise(resolve => {
-    const entries = [];
-    new PerformanceObserver(list => {
-      entries.push(...list.getEntriesByName(type));
-      if (entries.length >= expected_entries_number) {
-        resolve(entries);
-      }
-    }).observe({
-      type: 'paint',
-      buffered: true,
-      includeSoftNavigationObservations: true
-    });
-  });
-  const entries_without_softnavs = await new Promise(resolve => {
-    new PerformanceObserver(list => {
-      resolve(list.getEntriesByName(type));
-    }).observe({type: 'paint', buffered: true});
-  });
-  assert_equals(
-      entries.length, expected_entries_number,
-      `There are ${entries_number} entries for ${type}`);
-  assert_equals(
-      entries_without_softnavs.length, 1,
-      `There is one non-softnav entry for ${type}`);
-  if (entries_number > 1) {
-    assert_not_equals(
-        entries[0].startTime, entries[1].startTime,
-        'Entries have different timestamps for ' + type);
-  }
-  if (expected_entries_number > entries_without_softnavs.length) {
-    assert_equals(
-        entries[entries_without_softnavs.length].navigationId,
-        first_navigation_id,
-        'First paint entry should have the same navigation ID as the last soft ' +
-            'navigation entry');
-  }
 };
 
 const waitInitialLCP =

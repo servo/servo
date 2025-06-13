@@ -197,15 +197,19 @@ function index_get_all_test_setup(storeName, callback, testDescription) {
 
 // Test `getAll()`, `getAllKeys()` or `getAllRecords()` on either `storeName` or
 // `optionalIndexName` with the given `options`.
+//
 //  - `getAllFunctionName` is name of the function to test, which must be
 //     `getAll`, `getAllKeys` or `getAllRecords`.
-//  - `options` is an `IDBGetAllRecordsOptions ` dictionary that may contain a
-//    `query`, `direction` and `count`.  Use `direction` to test
-//    `getAllRecords()` only.  `getAll()` and `getAllKeys()` do not support
-//    `direction`.
+//
+//  - `options` is an `IDBGetAllOptions` dictionary that may contain a  `query`,
+//    `direction` and `count`.
+//
+// - `shouldUseDictionaryArgument` is true when testing the get all function
+//    overloads that takes an `IDBGetAllOptions` dictionary.  False tests the
+//    overloads that take two optional arguments: `query` and `count`.
 function get_all_test(
     getAllFunctionName, storeName, optionalIndexName, options,
-    testDescription) {
+    shouldUseDictionaryArgument, testDescription) {
   const testGetAllCallback = (test, connection, expectedRecords) => {
     // Create a transaction and a get all request.
     const transaction = connection.transaction(storeName, 'readonly');
@@ -213,8 +217,8 @@ function get_all_test(
     if (optionalIndexName) {
       queryTarget = queryTarget.index(optionalIndexName);
     }
-    const request =
-        createGetAllRequest(getAllFunctionName, queryTarget, options);
+    const request = createGetAllRequest(
+        getAllFunctionName, queryTarget, options, shouldUseDictionaryArgument);
     request.onerror = test.unreached_func('The get all request must succeed');
 
     // Verify the results after the get all request completes.
@@ -238,51 +242,86 @@ function get_all_test(
 function object_store_get_all_keys_test(storeName, options, testDescription) {
   get_all_test(
       'getAllKeys', storeName, /*indexName=*/ undefined, options,
-      testDescription);
+      /*shouldUseDictionaryArgument=*/ false, testDescription);
 }
 
 function object_store_get_all_values_test(storeName, options, testDescription) {
   get_all_test(
-      'getAll', storeName, /*indexName=*/ undefined, options, testDescription);
+      'getAll', storeName, /*indexName=*/ undefined, options,
+      /*shouldUseDictionaryArgument=*/ false, testDescription);
+}
+
+function object_store_get_all_values_with_options_test(
+    storeName, options, testDescription) {
+  get_all_test(
+      'getAll', storeName, /*indexName=*/ undefined, options,
+      /*shouldUseDictionaryArgument=*/ true, testDescription);
+}
+
+function object_store_get_all_keys_with_options_test(
+    storeName, options, testDescription) {
+  get_all_test(
+      'getAllKeys', storeName, /*indexName=*/ undefined, options,
+      /*shouldUseDictionaryArgument=*/ true, testDescription);
 }
 
 function object_store_get_all_records_test(
     storeName, options, testDescription) {
   get_all_test(
       'getAllRecords', storeName, /*indexName=*/ undefined, options,
-      testDescription);
+      /*shouldUseDictionaryArgument=*/ true, testDescription);
 }
 
 function index_get_all_keys_test(storeName, options, testDescription) {
-  get_all_test('getAllKeys', storeName, 'test_idx', options, testDescription);
+  get_all_test(
+      'getAllKeys', storeName, 'test_idx', options,
+      /*shouldUseDictionaryArgument=*/ false, testDescription);
+}
+
+function index_get_all_keys_with_options_test(
+    storeName, options, testDescription) {
+  get_all_test(
+      'getAllKeys', storeName, 'test_idx', options,
+      /*shouldUseDictionaryArgument=*/ true, testDescription);
 }
 
 function index_get_all_values_test(storeName, options, testDescription) {
-  get_all_test('getAll', storeName, 'test_idx', options, testDescription);
+  get_all_test(
+      'getAll', storeName, 'test_idx', options,
+      /*shouldUseDictionaryArgument=*/ false, testDescription);
+}
+
+function index_get_all_values_with_options_test(
+    storeName, options, testDescription) {
+  get_all_test(
+      'getAll', storeName, 'test_idx', options,
+      /*shouldUseDictionaryArgument=*/ true, testDescription);
 }
 
 function index_get_all_records_test(storeName, options, testDescription) {
   get_all_test(
-      'getAllRecords', storeName, 'test_idx', options, testDescription);
+      'getAllRecords', storeName, 'test_idx', options,
+      /*shouldUseDictionaryArgument=*/ true, testDescription);
 }
 
-function createGetAllRequest(getAllFunctionName, queryTarget, options) {
-  switch (getAllFunctionName) {
-    case 'getAll':
-    case 'getAllKeys':
-      // `getAll()` and `getAllKeys()` use optional arguments.  Omit the
-      // optional arguments when undefined.
-      if (options && options.count) {
-        return queryTarget[getAllFunctionName](options.query, options.count);
-      }
-      if (options && options.query) {
-        return queryTarget[getAllFunctionName](options.query);
-      }
-      return queryTarget[getAllFunctionName]();
-    case 'getAllRecords':
-      return queryTarget.getAllRecords(options);
+function createGetAllRequest(
+    getAllFunctionName, queryTarget, options, shouldUseDictionaryArgument) {
+  if (options && shouldUseDictionaryArgument) {
+    assert_true(
+        'getAllRecords' in queryTarget,
+        `"${queryTarget}" must support "getAllRecords()" to use an "IDBGetAllOptions" dictionary with "${
+            getAllFunctionName}".`);
+    return queryTarget[getAllFunctionName](options);
   }
-  assert_unreached(`Unknown getAllFunctionName: "${getAllFunctionName}"`);
+  // `getAll()` and `getAllKeys()` use optional arguments.  Omit the
+  // optional arguments when undefined.
+  if (options && options.count) {
+    return queryTarget[getAllFunctionName](options.query, options.count);
+  }
+  if (options && options.query) {
+    return queryTarget[getAllFunctionName](options.query);
+  }
+  return queryTarget[getAllFunctionName]();
 }
 
 // Returns the expected results when `getAllFunctionName` is called with
@@ -485,4 +524,38 @@ function assert_idb_values_equals(actual_values, expected_values) {
   for (let i = 0; i < actual_values.length; i++) {
     assert_idb_value_equals(actual_values[i], expected_values[i]);
   }
+}
+
+// Test passing both an options dictionary  and a count to `getAll()` and
+// `getAllKeys()`.  The get all request must ignore the `count` argument, using
+//  count from the options dictionary instead.
+function get_all_with_options_and_count_test(
+    getAllFunctionName, storeName, optionalIndexName, testDescription) {
+  // Set up the object store or index to query.
+  const setupFunction = optionalIndexName ? index_get_all_test_setup :
+                                            object_store_get_all_test_setup;
+
+  setupFunction(storeName, (test, connection, expectedRecords) => {
+    const transaction = connection.transaction(storeName, 'readonly');
+    let queryTarget = transaction.objectStore(storeName);
+    if (optionalIndexName) {
+      queryTarget = queryTarget.index(optionalIndexName);
+    }
+
+    const options = {count: 10};
+    const request = queryTarget[getAllFunctionName](options, /*count=*/ 17);
+
+    request.onerror =
+        test.unreached_func(`"${getAllFunctionName}()" request must succeed.`);
+
+    request.onsuccess = test.step_func(event => {
+      const expectedResults = calculateExpectedGetAllResults(
+          getAllFunctionName, expectedRecords, options);
+
+      const actualResults = event.target.result;
+      verifyGetAllResults(getAllFunctionName, actualResults, expectedResults);
+
+      test.done();
+    });
+  }, testDescription);
 }

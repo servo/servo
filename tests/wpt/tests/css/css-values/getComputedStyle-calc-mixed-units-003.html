@@ -81,6 +81,13 @@
       104px / 8px * 1px = 13 * 1px = 13px
       Total = 13px
     */
+
+    verifyComputedStyle("width", "calc(52px * 1px / 10%)", "1px");
+    /*
+      10% of 520px = 52px
+      52px * 1px / 52px = 1px
+      Total = 1px
+    */
   }
 
   startTesting();

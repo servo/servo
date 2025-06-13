@@ -4,7 +4,9 @@
 <meta name="timeout" content="long"/>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="./resources/compression-dictionary-util.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="./resources/compression-dictionary-util.sub.js"></script>
 </head>
 <body>
 <script>
@@ -24,7 +26,7 @@ compression_dictionary_promise_test(async (t) => {
   assert_equals(
       await waitUntilAvailableDictionaryHeader(t, {}),
       kDefaultDictionaryHashBase64);
-  assert_equals((await checkHeaders())['dictionary-id'], '"test"');
+  assert_equals(await checkHeader('dictionary-id', {}), '"test"');
 }, 'Dictionary registration with dictionary ID');
 
 compression_dictionary_promise_test(async (t) => {
@@ -36,7 +38,7 @@ compression_dictionary_promise_test(async (t) => {
       await waitUntilAvailableDictionaryHeader(t, {}),
       kDefaultDictionaryHashBase64);
   // Check the `dictionary-id` header.
-  assert_equals((await checkHeaders())['dictionary-id'], '"id1"');
+  assert_equals(await checkHeader('dictionary-id', {}), '"id1"');
 
   // Registers a second dictionary.
   const kAlternativeDictionaryContent =
@@ -54,8 +56,52 @@ compression_dictionary_promise_test(async (t) => {
           t, {expected_header: expected_dictionary_header}),
       expected_dictionary_header);
   // Check the `dictionary-id` header.
-  assert_equals((await checkHeaders())['dictionary-id'], '"id2"');
+  assert_equals(await checkHeader('dictionary-id', {}), '"id2"');
 }, 'New dictionary registration overrides the existing one');
+
+compression_dictionary_promise_test(async (t) => {
+  // Dictionary responses often include
+  // Vary: available-dictionary, accept-encoding
+  // We need to make sure that the browser cache does not actually vary
+  // based on those headers, otherwise a resource that uses itself as a
+  // dictionary would trigger a second fetch of the same resource.
+  const dictionaryUrl = `${SAME_ORIGIN_RESOURCES_URL}/register-dictionary.py?id=cache`;
+  const dict = await (await fetch(dictionaryUrl)).text();
+  assert_equals(dict, kDefaultDictionaryContent);
+  // Wait until `available-dictionary` header is available.
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {}),
+      kDefaultDictionaryHashBase64);
+
+  // re-fetch the dictionary (should come from cache)
+  const dict2 = await (await fetch(dictionaryUrl)).text();
+  assert_equals(dict2, kDefaultDictionaryContent);
+
+  const entries = performance.getEntriesByName(dictionaryUrl);
+  assert_equals(entries.length, 2);
+  assert_not_equals(entries[0].transferSize, 0);
+  assert_equals(entries[1].transferSize, 0);
+}, 'Dictionary registration does not invalidate cache entry');
+
+compression_dictionary_promise_test(async (t) => {
+  // Register a dictionary that has already expired (age > max-age).
+  // Make sure it is on a path separate from another dictionary so they can
+  // be checked independently.
+  const pattern = "%2Ffetch%2Fcompression-dictionary%2Fresources%2Fecho-headers.py";
+  await fetch(`${kRegisterDictionaryPath}?id=id1&age=7200&max-age=3600&match=${pattern}`);
+  // register another dictionary that we can use to tell when the first
+  // dictionary should also be registered (since the first dictionary
+  // should not send any headers that can be detected directly).
+  const pattern2 = "%2Ffetch%2Fcompression-dictionary%2Fresources%2Fecho-headers2.py";
+  await fetch(`${kRegisterDictionaryPath}?id=id2&match=${pattern2}`);
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {use_alt_path: true}),
+      kDefaultDictionaryHashBase64);
+  assert_equals((await checkHeaders({use_alt_path: true}))['dictionary-id'], '"id2"');
+  // Make sure the expired dictionary isn't announced as being available.
+  const headers = await (await fetch('./resources/echo-headers.py')).json();
+  assert_false("available-dictionary" in headers);
+}, 'Expired dictionary is not used');
 
 </script>
 </body>

@@ -1,0 +1,84 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: ::scroll-marker on scroll container</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-activation">
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+
+  #marker-scroller {
+    border: 2px solid gray;
+    width: 600px;
+    height: 300px;
+    overflow: auto;
+    scroll-snap-type: x mandatory;
+    position: relative;
+    scroll-marker-group: before;
+    white-space: nowrap;
+  }
+
+  #marker-scroller > div {
+    scroll-snap-align: start;
+    box-sizing: border-box;
+    border-radius: 5px;
+    background: lightgray;
+    border: 1px solid black;
+    display: inline-block;
+    width: 500px;
+    height: 100%;
+    scroll-padding: 16px;
+    overflow: auto;
+  }
+
+  .content {
+    height: 1000px;
+  }
+
+  #marker-scroller::scroll-marker-group {
+    display: flex;
+    height: 100px;
+  }
+
+  #marker-scroller > div::scroll-marker {
+    content: "";
+    width: 100px;
+    height: 100px;
+    box-sizing: border-box;
+    border-radius: 5px;
+    border: 1px solid black;
+    display: inline-block;
+  }
+  #marker-scroller > div::scroll-marker:target-current {
+    background: blue;
+  }
+</style>
+<div id="marker-scroller">
+  <div><div class="content">1</div></div>
+  <div id="target"><div class="content">2</div></div>
+  <div><div class="content">3</div></div>
+</div>
+<script>
+  promise_test(async t => {
+    const target = document.querySelector('#target');
+    const scroller = document.querySelector('#marker-scroller');
+    const innerScroller = document.querySelector('#target');
+    innerScroller.scrollTop = 100;
+    const scrollEndPromise = waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
+    actions_promise = new test_driver.Actions()
+      .pointerMove(150, 50)
+      .pointerDown()
+      .pointerUp()
+      .send();
+    await actions_promise;
+    await scrollEndPromise;
+    assert_equals(scroller.scrollLeft, target.offsetLeft, "::scroll-marker activation scrolls to target");
+    assert_equals(innerScroller.scrollTop, 100, "::scroll-marker activation doesn't scroll marker's inner scroll container");
+  });
+</script>

@@ -5,3 +5,7 @@ features:
   files:
   - "dialog-cancel-events.html"
   - "dialog-canceling.html"
+- name: requestclose
+  files:
+  - dialog-requestclose.html
+  - dialog-requestclose-*

@@ -16,6 +16,8 @@ html,body {
 
 grid {
   display: inline-grid;
+  display: inline-masonry;
+  masonry-direction: row;
   grid-template-rows: 40px 30px 20px;
   grid-template-columns: masonry;
   gap: 4px 2px;
@@ -25,6 +27,7 @@ grid {
   background: lightgrey content-box;
 }
 .rows {
+  masonry-direction: column;
   grid-template-columns: 40px 30px 20px;
   grid-template-rows: masonry;
 }

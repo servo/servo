@@ -25,7 +25,7 @@ promise_test(async (t) => {
     const lang = "en-US";
     window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const speechRecognition = new SpeechRecognition();
-    speechRecognition.mode = 'cloud-only';
+    speechRecognition.processLocally = false;
     speechRecognition.lang = lang;
     const audioTrack = await getAudioTrackFromFile("/media/speech.wav");
 

@@ -89,4 +89,31 @@ class SoftNavigationTestHelper {
           observer.disconnect();
         });
   }
+
+  /**
+   * Waits for a number of performance entries of a given type,
+   * optionally including soft navigation observations.
+   * @param {string} type The type of the entries to wait for.
+   * @param {boolean} includeSoftNavigationObservations Whether to include
+   *     soft navigation observations.
+   * @param {number} minNumEntries The minimum number of entries to wait for.
+   * @return {!Promise} The promise, which resolves with the entries.
+   */
+  static getPerformanceEntries(
+      type, includeSoftNavigationObservations, minNumEntries) {
+    return new Promise((resolve) => {
+      const entries = [];
+      const observer = new PerformanceObserver((list) => {
+        entries.push(...list.getEntries());
+        if (entries.length >= minNumEntries) {
+          resolve(entries);
+          observer.disconnect();
+        }
+      })
+      observer.observe({
+        type: type,
+        includeSoftNavigationObservations: includeSoftNavigationObservations,
+      });
+    });
+  }
 }

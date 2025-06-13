@@ -49,6 +49,21 @@ promise_test(async () => {
   assert_equals(await translator.translate('hello'), 'こんにちは');
 }, 'Simple Translator.translateStreaming() call');
 
+promise_test(async () => {
+  const translator =
+      await createTranslator({sourceLanguage: 'en', targetLanguage: 'ja'});
+  const streamingResponse = translator.translateStreaming('hello');
+  gc();
+  assert_equals(Object.prototype.toString.call(streamingResponse),
+                '[object ReadableStream]');
+  let result = '';
+  for await (const value of streamingResponse) {
+    result += value;
+    gc();
+  }
+assert_greater_than(result.length, 0, 'The result should not be empty.');
+}, 'Translate Streaming API must continue even after GC has been performed.');
+
 promise_test(async t => {
   const translator =
       await createTranslator({sourceLanguage: 'en', targetLanguage: 'ja'});

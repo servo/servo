@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>Clear-Site-Data: cache for bfcache</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="support/clear-cache-helper.sub.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/html/browsers/browsing-the-web/back-forward-cache/resources/helper.sub.js"></script>
+<script type="module">
+
+runBfCacheClearTest(
+  {
+    getUrlParams: {
+      clear: "cache",
+    },
+    mode: "iframe",
+    shouldBeCached: false,
+  },
+  "BfCached document shouldn't be cached after receiving clear-cache header from the same origin."
+);
+
+runBfCacheClearTest(
+  {
+    targetOrigin: subdomainOrigin,
+    getUrlParams: {
+      subdomain: true,
+      clear: "cache",
+    },
+    mode: "iframe",
+    shouldBeCached: true,
+  },
+  "BfCached document should be cached after receiving clear-cache header from a subdomain."
+);
+
+runBfCacheClearTest(
+  {
+    targetOrigin: crossSiteOrigin,
+    getUrlParams: {
+      secondOrigin: true,
+      clear: "cache",
+    },
+    mode: "iframe",
+    shouldBeCached: true,
+  },
+  "BfCached document should be cached after receiving clear-cache header from another site."
+);
+
+runBfCacheClearTest(
+  {
+    getUrlParams: {
+      clear: "cache",
+    },
+    mode: "window",
+    shouldBeCached: false,
+  },
+  "BfCached document shouldn't be cached after receiving clear-cache header from another window."
+);
+
+</script>

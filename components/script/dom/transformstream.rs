@@ -1053,7 +1053,9 @@ impl Transferable for TransformStream {
         let proxy_readable = ReadableStream::new_with_proto(&global, None, can_gc);
         proxy_readable.setup_cross_realm_transform_readable(cx, &port1, can_gc);
         proxy_readable
-            .pipe_to(cx, &global, &writable, false, false, false, comp, can_gc)
+            .pipe_to(
+                cx, &global, &writable, false, false, false, None, comp, can_gc,
+            )
             .set_promise_is_handled();
 
         // Second port pair (proxy readable → writable)
@@ -1075,6 +1077,7 @@ impl Transferable for TransformStream {
                 false,
                 false,
                 false,
+                None,
                 comp,
                 can_gc,
             )

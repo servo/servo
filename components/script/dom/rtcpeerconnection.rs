@@ -8,6 +8,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_bindings::weakref::WeakReferenceable;
 use servo_media::ServoMedia;
 use servo_media::streams::MediaStreamType;
 use servo_media::streams::registry::MediaStreamId;
@@ -309,15 +310,16 @@ impl RTCPeerConnection {
                 event.upcast::<Event>().fire(self.upcast(), can_gc);
             },
             _ => {
-                let channel = if let Some(channel) = self.data_channels.borrow().get(&channel_id) {
-                    DomRoot::from_ref(&**channel)
-                } else {
-                    warn!(
-                        "Got an event for an unregistered data channel {:?}",
-                        channel_id
-                    );
-                    return;
-                };
+                let channel: DomRoot<RTCDataChannel> =
+                    if let Some(channel) = self.data_channels.borrow().get(&channel_id) {
+                        DomRoot::from_ref(&**channel)
+                    } else {
+                        warn!(
+                            "Got an event for an unregistered data channel {:?}",
+                            channel_id
+                        );
+                        return;
+                    };
 
                 match event {
                     DataChannelEvent::Open => channel.on_open(can_gc),
@@ -788,6 +790,8 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         RTCRtpTransceiver::new(&self.global(), init.direction, CanGc::note())
     }
 }
+
+impl WeakReferenceable for RTCPeerConnection {}
 
 impl Convert<RTCSessionDescriptionInit> for SessionDescription {
     fn convert(self) -> RTCSessionDescriptionInit {

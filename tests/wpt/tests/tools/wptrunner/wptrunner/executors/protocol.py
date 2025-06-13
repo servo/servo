@@ -374,12 +374,20 @@ class BidiBluetoothProtocolPart(ProtocolPart):
     @abstractmethod
     async def simulate_adapter(self,
                                context: str,
-                               state: str,
-                               type_: str) -> None:
+                               state: str) -> None:
         """
         Creates a simulated bluetooth adapter.
         :param context: Browsing context to set the simulated adapter to.
         :param state: The state of the simulated bluetooth adapter.
+        """
+        pass
+
+    @abstractmethod
+    async def disable_simulation(self,
+                                 context: str) -> None:
+        """
+        Disables bluetooth simulation.
+        :param context: Browsing context to disable the simulation for.
         """
         pass
 
@@ -397,6 +405,30 @@ class BidiBluetoothProtocolPart(ProtocolPart):
         :param name: The name of the simulated bluetooth peripheral.
         :param manufacturer_data: The manufacturer data of the simulated bluetooth peripheral.
         :param known_service_uuids: The known service uuids of the simulated bluetooth peripheral.
+        """
+        pass
+
+    @abstractmethod
+    async def simulate_gatt_connection_response(self,
+                               context: str,
+                               address: str,
+                               code: int) -> None:
+        """
+        Simulates a GATT connection response from simulated bluetooth peripheral.
+        :param context: Browsing context to set the simulated peripheral to.
+        :param address: The address of the simulated bluetooth peripheral.
+        :param code: The GATT connection response code of the simulated bluetooth peripheral.
+        """
+        pass
+
+    @abstractmethod
+    async def simulate_gatt_disconnection(self,
+                               context: str,
+                               address: str) -> None:
+        """
+        Simulates a GATT disconnection from simulated bluetooth peripheral.
+        :param context: Browsing context to set the simulated peripheral to.
+        :param address: The address of the simulated bluetooth peripheral.
         """
         pass
 

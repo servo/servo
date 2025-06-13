@@ -65,6 +65,29 @@ function check_method(receiver, method, args) {
   }
 }
 
+// Verifies that invalid keys throw when used with the `IDBGetAllOptions`
+// dictionary. `getAllRecords()` added `IDBGetAllOptions`, which `getAll()` and
+// `getAllKeys()` also support.
+function check_method_with_get_all_options(receiver, method) {
+  assert_throws_dom('DataError', () => {
+    receiver[method]({query: invalid_key});
+  }, 'options query key conversion with invalid key should throw DataError');
+
+  const [key, err] = throwing_key('getter');
+  assert_throws_exactly(err, () => {
+    receiver[method]({query: key});
+  }, 'options query key conversion with throwing getter should rethrow');
+
+  // Verify `getAll()` and `getAllKeys()` throw when given an invalid key range
+  // directly without the options dictionary.  `getAllRecords()` only supports
+  // the options dictionary.
+  if (method !== 'getAllRecords') {
+    assert_throws_exactly(err, () => {
+      receiver[method](key);
+    }, 'query key conversion with throwing getter should rethrow');
+  }
+}
+
 // Static key comparison utility on IDBFactory.
 test(
     t => check_method(indexedDB, 'cmp', 2),
@@ -176,8 +199,6 @@ test(
 ['delete',
  'get',
  'getKey',
- 'getAll',
- 'getAllKeys',
  'count',
  'openCursor',
  'openKeyCursor',
@@ -192,8 +213,6 @@ test(
 // Generic (key-or-key-path) methods on IDBIndex.
 ['get',
  'getKey',
- 'getAll',
- 'getAllKeys',
  'count',
  'openCursor',
  'openKeyCursor',
@@ -203,5 +222,35 @@ test(
     const index = store.createIndex('index', 'keyPath');
 
     check_method(index, method);
+  }, `IDBIndex ${method}() method with throwing/invalid keys`);
+});
+
+// Verify methods that take `IDBGetAllOptions` on `IDBObjectStore`.
+['getAll',
+ 'getAllKeys',
+ 'getAllRecords',
+].forEach(method => {
+  indexeddb_upgrade_only_test((t, db) => {
+    const store = db.createObjectStore('store');
+    if ('getAllRecords' in store) {
+      check_method_with_get_all_options(store, method);
+    } else if (method !== 'getAllRecords') {
+      // This browser does not support `getAllRecords()` or the
+      // `IDBGetAllOptions` dictionary.
+      check_method(store, method);
+    }
+  }, `IDBObjectStore ${method}() method with throwing/invalid keys`);
+});
+
+// Verify methods that take `IDBGetAllOptions` on `IDBIndex`.
+['getAll', 'getAllKeys', 'getAllRecords'].forEach(method => {
+  indexeddb_upgrade_only_test((t, db) => {
+    const store = db.createObjectStore('store');
+    const index = store.createIndex('index', 'keyPath');
+    if ('getAllRecords' in index) {
+      check_method_with_get_all_options(index, method);
+    } else if (method !== 'getAllRecords') {
+      check_method(store, method);
+    }
   }, `IDBIndex ${method}() method with throwing/invalid keys`);
 });

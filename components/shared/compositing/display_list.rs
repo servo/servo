@@ -4,6 +4,8 @@
 
 //! Defines data structures which are consumed by the Compositor.
 
+use std::collections::HashMap;
+
 use base::id::ScrollTreeNodeId;
 use bitflags::bitflags;
 use embedder_traits::Cursor;
@@ -338,7 +340,7 @@ impl ScrollTree {
 
     /// Given an [`ExternalScrollId`] and an offset, update the scroll offset of the scroll node
     /// with the given id.
-    pub fn set_scroll_offsets_for_node_with_external_scroll_id(
+    pub fn set_scroll_offset_for_node_with_external_scroll_id(
         &mut self,
         external_scroll_id: ExternalScrollId,
         offset: LayoutVector2D,
@@ -352,6 +354,29 @@ impl ScrollTree {
             },
             _ => None,
         })
+    }
+
+    /// Given a set of all scroll offsets coming from the Servo renderer, update all of the offsets
+    /// for nodes that actually exist in this tree.
+    pub fn set_all_scroll_offsets(&mut self, offsets: &HashMap<ExternalScrollId, LayoutVector2D>) {
+        for node in self.nodes.iter_mut() {
+            if let SpatialTreeNodeInfo::Scroll(ref mut scroll_info) = node.info {
+                if let Some(offset) = offsets.get(&scroll_info.external_id) {
+                    scroll_info.offset = *offset;
+                }
+            }
+        }
+    }
+
+    /// Collect all of the scroll offsets of the scrolling nodes of this tree into a
+    /// [`HashMap`] which can be applied to another tree.
+    pub fn scroll_offsets(&self) -> HashMap<ExternalScrollId, LayoutVector2D> {
+        HashMap::from_iter(self.nodes.iter().filter_map(|node| match node.info {
+            SpatialTreeNodeInfo::Scroll(ref scroll_info) => {
+                Some((scroll_info.external_id, scroll_info.offset))
+            },
+            _ => None,
+        }))
     }
 }
 

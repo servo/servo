@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>scrollIntoView on a scroller does not scroll the targeted scroll container</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollintoview">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .scroller {
+    overflow: scroll;
+    position: relative;
+    border: 2px solid black;
+  }
+  #outer {
+    width: 300px;
+    height: 400px;
+    border-color: blue;
+  }
+  #inner {
+    height: 200px;
+    border-color: red;
+    background: lightgreen;
+    /* Scroll padding on the inner scroller makes the scroll into view
+     * position of content within non-zero. */
+    scroll-padding: 50px;
+    /* Scroll margin is the offset in the outer scroller to preserve. */
+    scroll-margin: 20px;
+  }
+  .spacer {
+    height: 1000px;
+  }
+</style>
+
+<div id="outer" class="scroller">
+  <div class="spacer"></div>
+  <div id="inner" class="scroller">
+    <div class="spacer"></div>
+  </div>
+  <div class="spacer"></div>
+</div>
+
+<script>
+  promise_test(async t => {
+    const outerScroller = document.getElementById('outer');
+    const innerScroller = document.getElementById('inner');
+
+    innerScroller.scrollTop = 200;
+    innerScroller.scrollIntoView();
+
+    assert_equals(innerScroller.offsetTop - outerScroller.scrollTop, 20, "Should scroll inner scroller to scroll margin offset.");
+    assert_equals(innerScroller.scrollTop, 200, "Inner scroller should not scroll when asked to scroll into view.");
+  }, "scrollIntoView on a scrolling container should scroll its outer scrollers into view but not scroll itself.");
+</script>

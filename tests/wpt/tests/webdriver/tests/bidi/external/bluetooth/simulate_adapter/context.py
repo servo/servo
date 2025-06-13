@@ -1,6 +1,7 @@
 import pytest
 
-from . import get_bluetooth_availability, set_simulate_adapter
+from .. import set_simulate_adapter
+from . import get_bluetooth_availability
 
 pytestmark = pytest.mark.asyncio
 

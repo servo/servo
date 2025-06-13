@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="./resources/compression-dictionary-util.sub.js"></script>
+</head>
+<body>
+<script>
+
+// This is a set of tests for the dictionary itself being compressed, both by
+// non-dictionary content encodings and dictionary encodings. The encoding used
+// for the dictionary itself is independent of the encoding used for the data
+// so the test uses different encodings just to make sure that the dictionaries
+// don't carry any encoding-specific dependencies.
+
+compression_dictionary_promise_test(async (t) => {
+  const dictionaryUrl =
+    `${SAME_ORIGIN_RESOURCES_URL}/register-dictionary.py?content_encoding=gzip`;
+  const dict = await (await fetch(dictionaryUrl)).text();
+  assert_equals(dict, kDefaultDictionaryContent);
+  const dictionary_hash = await waitUntilAvailableDictionaryHeader(t, {});
+  assert_equals(dictionary_hash, kDefaultDictionaryHashBase64);
+
+  // Check if the data compressed using the dictionary can be decompressed.
+  const data_url = `${kCompressedDataPath}?content_encoding=dcb`;
+  const data = await (await fetch(data_url)).text();
+  assert_equals(data, kExpectedCompressedData);
+}, 'Decompresion using gzip-encoded dictionary works as expected');
+
+compression_dictionary_promise_test(async (t) => {
+  const dictionaryUrl =
+    `${SAME_ORIGIN_RESOURCES_URL}/register-dictionary.py?content_encoding=br`;
+  const dict = await (await fetch(dictionaryUrl)).text();
+  assert_equals(dict, kDefaultDictionaryContent);
+  const dictionary_hash = await waitUntilAvailableDictionaryHeader(t, {});
+  assert_equals(dictionary_hash, kDefaultDictionaryHashBase64);
+
+  // Check if the data compressed using the dictionary can be decompressed.
+  const data_url = `${kCompressedDataPath}?content_encoding=dcz`;
+  const data = await (await fetch(data_url)).text();
+  assert_equals(data, kExpectedCompressedData);
+}, 'Decompresion using Brotli-encoded dictionary works as expected');
+
+compression_dictionary_promise_test(async (t) => {
+  const dictionaryUrl =
+    `${SAME_ORIGIN_RESOURCES_URL}/register-dictionary.py?content_encoding=zstd`;
+  const dict = await (await fetch(dictionaryUrl)).text();
+  assert_equals(dict, kDefaultDictionaryContent);
+  const dictionary_hash = await waitUntilAvailableDictionaryHeader(t, {});
+  assert_equals(dictionary_hash, kDefaultDictionaryHashBase64);
+
+  // Check if the data compressed using Brotli with the dictionary can be
+  // decompressed (Zstandard decompression of the data is tested separately).
+  const data_url = `${kCompressedDataPath}?content_encoding=dcb`;
+  const data = await (await fetch(data_url)).text();
+  assert_equals(data, kExpectedCompressedData);
+}, 'Decompresion using Zstandard-encoded dictionary works as expected');
+
+compression_dictionary_promise_test(async (t) => {
+  const dictionaryUrl = `${SAME_ORIGIN_RESOURCES_URL}/register-dictionary.py?id=id1`;
+  const dict = await (await fetch(dictionaryUrl)).text();
+  assert_equals(dict, kDefaultDictionaryContent);
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {}),
+      kDefaultDictionaryHashBase64);
+
+  // Register another dictionary, compressed with dcb using the first dictionary.
+  const compressedDictionaryUrl =
+    `${SAME_ORIGIN_RESOURCES_URL}/register-dictionary.py?content_encoding=dcb&id=id2`;
+  const dict2 = await (await fetch(compressedDictionaryUrl)).text();
+  assert_equals(dict2, kDefaultDictionaryContent);
+  await waitUntilHeader(t, "dictionary-id", {expected_header: '"id2"'});
+
+  // Check if the data compressed using dcz with the updated dictionary works.
+  const data_url = `${SAME_ORIGIN_RESOURCES_URL}/compressed-data.py?content_encoding=dcz`;
+  const data = await (await fetch(data_url)).text();
+  assert_equals(data, kExpectedCompressedData);
+}, 'A dcb dictionary-compressed dictionary can be used as a dictionary for future requests.');
+
+compression_dictionary_promise_test(async (t) => {
+  const dictionaryUrl = `${SAME_ORIGIN_RESOURCES_URL}/register-dictionary.py?id=id1`;
+  const dict = await (await fetch(dictionaryUrl)).text();
+  assert_equals(dict, kDefaultDictionaryContent);
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {}),
+      kDefaultDictionaryHashBase64);
+
+  // Register another dictionary, compressed with dcz using the first dictionary.
+  const compressedDictionaryUrl =
+    `${SAME_ORIGIN_RESOURCES_URL}/register-dictionary.py?content_encoding=dcz&id=id2`;
+  const dict2 = await (await fetch(compressedDictionaryUrl)).text();
+  assert_equals(dict2, kDefaultDictionaryContent);
+  await waitUntilHeader(t, "dictionary-id", {expected_header: '"id2"'});
+
+  // Check if the data compressed using dcb with the updated dictionary works.
+  const data_url = `${SAME_ORIGIN_RESOURCES_URL}/compressed-data.py?content_encoding=dcb`;
+  const data = await (await fetch(data_url)).text();
+  assert_equals(data, kExpectedCompressedData);
+}, 'A dcz dictionary-compressed dictionary can be used as a dictionary for future requests.');
+
+</script>
+</body>

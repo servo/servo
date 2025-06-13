@@ -1,5 +1,8 @@
 'use strict';
 
+const DEVICE_NAME = 'LE Device';
+const DEVICE_ADDRESS = '09:09:09:09:09:09';
+
 /**
  * Waits until the document has finished loading.
  * @returns {Promise<void>} Resolves if the document is already completely
@@ -49,13 +52,33 @@ async function callWithTrustedClick(callback) {
 function selectFirstDeviceOnDevicePromptUpdated() {
   return test_driver.bidi.bluetooth.request_device_prompt_updated.once().then(
       (promptEvent) => {
-        assert_greater_than_equal(promptEvent.devices.length, 0);
+        assert_greater_than(promptEvent.devices.length, 0);
         return test_driver.bidi.bluetooth.handle_request_device_prompt({
           prompt: promptEvent.prompt,
           accept: true,
           device: promptEvent.devices[0].id
         });
       });
+}
+
+/**
+ * Create a GATT connection to the `device` by registering a one-time handler
+ * that simulate a successful GATT connection response upon a GATT connection
+ * attempted event and making a GATT connection to it.
+ * @returns {Promise} fulfilled after the GATT connection is created, or
+ * rejected if the operation fails.
+ */
+async function createGattConnection(device) {
+  const simulationProcessedPromise =
+      test_driver.bidi.bluetooth.gatt_connection_attempted.once().then(
+          (event) => {
+            return test_driver.bidi.bluetooth.simulate_gatt_connection_response({
+                address: event.address,
+                code: 0x0,
+            });
+          });
+  const connectPromise = device.gatt.connect();
+  await Promise.all([connectPromise, simulationProcessedPromise]);
 }
 
 /**
@@ -68,3 +91,30 @@ function requestDeviceWithTrustedClick(...args) {
       () => navigator.bluetooth.requestDevice(...args));
 }
 
+/**
+ * This is a test helper to run promise_test with Bluetooth emulation setup
+ * before the test and teardown after the test.
+ * @param {function{*}: Promise<*>} test_function The test to run.
+ * @param {string} name The name or description of the test.
+ * @returns {Promise<void>} Resolves if the test ran successfully, or rejects if
+ * the test failed.
+ */
+function bluetooth_test(test_function, name) {
+  return promise_test(async (t) => {
+    assert_implements(navigator.bluetooth, 'missing navigator.bluetooth');
+    await test_driver.bidi.bluetooth.simulate_adapter({
+        state: "powered-on"
+    });
+    await test_driver.bidi.bluetooth.simulate_preconnected_peripheral({
+        address: DEVICE_ADDRESS,
+        name: DEVICE_NAME,
+        manufacturerData: [],
+        knownServiceUuids: []
+    });
+    try {
+      await test_function(t);
+    } finally {
+      await test_driver.bidi.bluetooth.disable_simulation();
+    }
+  }, name);
+}

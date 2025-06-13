@@ -527,6 +527,9 @@
         'false_value');
 
   // style() queries with range syntax in the condition, literals on both sides of equation
+  test_if_with_custom_properties('if(style(5 > 3): true_value; else: false_value)', [], 'true_value');
+  test_if_with_custom_properties('if(style(5.5 > 3): true_value; else: false_value)', [], 'true_value');
+  test_if_with_custom_properties('if(style(5.5 > 3.3): true_value; else: false_value)', [], 'true_value');
   test_if_with_custom_properties('if(style(10em > 3px): true_value; else: false_value)', [], 'true_value');
   test_if_with_custom_properties('if(style(1em > 1px): true_value; else: false_value)', [], 'true_value');
   test_if_with_custom_properties('if(style(7px > 3px): true_value; else: false_value)', [], 'true_value');

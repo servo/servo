@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel=author href=mailto:dizhangg@chromium.org>
+<link rel=help href=https://open-ui.org/components/menu.explainer>
+
+<menulist id="menu">
+ <menuitem>Command 1</menuitem>
+ <menuitem>Command 2</menuitem>
+</menulist>
+
+<script>
+test(() => {
+  assert_equals(menu.popover, null);
+  menu.showPopover();
+  assert_true(menu.matches(':popover-open'));
+  menu.hidePopover();
+
+  menu.popover = 'auto';
+  assert_equals(menu.popover, 'auto');
+  menu.showPopover();
+  assert_true(menu.matches(':popover-open'));
+  menu.hidePopover();
+
+  menu.popover = 'manual';
+  assert_equals(menu.popover, 'manual');
+  menu.showPopover();
+  assert_true(menu.matches(':popover-open'));
+  menu.hidePopover();
+
+  menu.popover = null;
+  assert_equals(menu.popover, null);
+  menu.showPopover();
+  assert_true(menu.matches(':popover-open'));
+  menu.hidePopover();
+}, "menulist is a popover by default.");
+</script>

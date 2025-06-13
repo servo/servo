@@ -44,6 +44,7 @@ class SessionManager:
         self.refresh_sends_challenge = True
         self.refresh_url = "/device-bound-session-credentials/refresh_session.py"
         self.include_site = True
+        self.refresh_endpoint_unavailable = False
 
     def next_session_id(self):
         return len(self.session_to_key_map)
@@ -116,6 +117,10 @@ class SessionManager:
         include_site = configuration.get("includeSite")
         if include_site is not None:
             self.include_site = include_site
+
+        refresh_endpoint_unavailable = configuration.get("refreshEndpointUnavailable")
+        if refresh_endpoint_unavailable is not None:
+            self.refresh_endpoint_unavailable = refresh_endpoint_unavailable
 
     def get_should_refresh_end_session(self):
         return self.should_refresh_end_session
@@ -192,3 +197,6 @@ class SessionManager:
         ]
 
         return (200, headers, json.dumps(response_body))
+
+    def get_refresh_endpoint_unavailable(self):
+        return self.refresh_endpoint_unavailable

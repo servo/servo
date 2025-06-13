@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel=stylesheet href="../customizable-select/resources/customizable-select-styles.css">
+
+<div class=customizable-select-button popovertarget=popover id=button>
+  <span class=customizable-select-selectedcontent>2 selected</span>
+</div>
+<div id=popover popover=auto anchor=button class=customizable-select-popover>
+  <div class="customizable-select-option selected">one</div>
+  <div class="customizable-select-option selected">two</div>
+  <div class=customizable-select-option>three</div>
+</div>
+
+<script>
+document.getElementById('popover').showPopover();
+</script>

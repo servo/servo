@@ -44,3 +44,17 @@ promise_test(async () => {
     rewriter.rewriteStreaming(kTestPrompt)
   ]);
 }, 'Multiple Rewriter.rewriteStreaming() calls are resolved successfully');
+
+promise_test(async () => {
+  const rewriter = await createRewriter();
+  const streamingResponse = rewriter.rewriteStreaming(kTestPrompt);
+  gc();
+  assert_equals(Object.prototype.toString.call(streamingResponse),
+                '[object ReadableStream]');
+  let result = '';
+  for await (const value of streamingResponse) {
+    result += value;
+    gc();
+  }
+assert_greater_than(result.length, 0, 'The result should not be empty.');
+}, 'Rewrite Streaming API must continue even after GC has been performed.');

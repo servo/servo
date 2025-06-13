@@ -6,6 +6,10 @@ session_manager = importlib.import_module('device-bound-session-credentials.sess
 def main(request, response):
     test_session_manager = session_manager.find_for_request(request)
     test_session_manager.set_has_called_refresh(True)
+
+    if test_session_manager.get_refresh_endpoint_unavailable():
+        return (500, response.headers, "")
+
     session_id_header = request.headers.get("Sec-Session-Id")
     if session_id_header == None:
         return (400, response.headers, "")
