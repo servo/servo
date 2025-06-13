@@ -71,6 +71,3 @@ support/macos/Brewfile.lock.json
 
 # direnv
 .envrc
-
-# Temporary logs for CI
-/temp
