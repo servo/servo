@@ -25,6 +25,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::element::Element;
+use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{self, Node, VecPreOrderInsertionHelper};
 use crate::dom::shadowroot::ShadowRoot;
@@ -210,34 +211,44 @@ impl DocumentOrShadowRoot {
         // Step 5
         elements
     }
+
     /// <https://html.spec.whatwg.org/multipage/#dom-document-activeelement>
     pub(crate) fn get_active_element(
         &self,
+        document_or_shadowroot: &EventTarget,
         focused_element: Option<DomRoot<Element>>,
         body: Option<DomRoot<HTMLElement>>,
         document_element: Option<DomRoot<Element>>,
     ) -> Option<DomRoot<Element>> {
         if let Some(candidate) = focused_element {
-            // (TODO) Step 2. Set candidate to the result of retargeting candidate against this.
-            // https://dom.spec.whatwg.org/#retarget
-            // Similar to `components\script\dom\eventtarget.rs::retarget`
+            // Step 2. Set candidate to the result of retargeting candidate against this.
+            // NOTE: Unwrapping on the result of the downcast call is fine. The retarget algorithm will
+            // always return a node when both inputs are nodes.
+            let candidate: DomRoot<Node> = DomRoot::downcast(
+                candidate
+                    .upcast::<EventTarget>()
+                    .retarget(document_or_shadowroot),
+            )
+            .unwrap();
 
             // Step 3. If candidate's root is not this, then return null.
-            if &*candidate
-                .upcast::<Node>()
-                .GetRootNode(&GetRootNodeOptions::empty()) !=
+            if &*candidate.GetRootNode(&GetRootNodeOptions::empty()) !=
                 self.window.Document().upcast::<Node>()
             {
                 return None;
             }
+
             // Step 4. If candidate is not a Document object, then return candidate.
-            if !candidate.upcast::<Node>().is::<Document>() {
-                return Some(candidate);
+            if !candidate.is::<Document>() {
+                // The retarget algorithm will return either a document or an element, so unwrapping here is ok.
+                return Some(DomRoot::downcast(candidate).unwrap());
             }
+
             // Step 5. If candidate has a body element, then return that body element.
             if let Some(body) = body {
                 return Some(DomRoot::upcast(body));
             }
+
             // Step 6. If candidate's document element is non-null,
             // then return that document element.
             if document_element.is_some() {
