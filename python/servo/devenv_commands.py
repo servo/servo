@@ -120,9 +120,7 @@ class MachCommands(CommandBase):
         env["RUSTC"] = "rustc"
 
         def escape(s):
-            return (
-                s.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A").replace(":", "%3A").replace(",", "%2C")
-            )
+            return s.replace("\r", "%0D").replace("\n", "%0A")
 
         if "--message-format=json" in params and report_ci:
             retcode = self.run_cargo_build_like_command("clippy", params, env=env, dump_output=True, **kwargs)
