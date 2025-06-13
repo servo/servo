@@ -5235,6 +5235,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     // https://html.spec.whatwg.org/multipage/#dom-document-activeelement
     fn GetActiveElement(&self) -> Option<DomRoot<Element>> {
         self.document_or_shadow_root.get_active_element(
+            self.upcast(),
             self.get_focused_element(),
             self.GetBody(),
             self.GetDocumentElement(),
