@@ -36,8 +36,8 @@ use embedder_traits::{
     GamepadUpdateType, PromptResponse, SimpleDialog, Theme, ViewportDetails, WebDriverJSError,
     WebDriverJSResult,
 };
-use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
-use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
+use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
+use euclid::{Point2D, Scale, Size2D, Vector2D};
 use fonts::FontContext;
 use ipc_channel::ipc::{self, IpcSender};
 use js::conversions::ToJSValConvertible;
@@ -77,7 +77,6 @@ use servo_arc::Arc as ServoArc;
 use servo_config::{opts, pref};
 use servo_geometry::{DeviceIndependentIntRect, f32_rect_to_au_rect};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
-use style::dom::OpaqueNode;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::properties::PropertyId;
 use style::properties::style_structs::Font;
@@ -311,14 +310,12 @@ pub(crate) struct Window {
     /// The current state of the window object
     current_state: Cell<WindowState>,
 
+    /// The current size of the viewport. This might change if the `WebView` or containing `<iframe>`
+    /// for this `Window` object change.
     #[no_trace]
-    current_viewport: Cell<UntypedRect<Au>>,
+    current_viewport_size: Cell<UntypedSize2D<Au>>,
 
     error_reporter: CSSErrorReporter,
-
-    /// A list of scroll offsets for each scrollable element.
-    #[no_trace]
-    scroll_offsets: DomRefCell<HashMap<OpaqueNode, Vector2D<f32, LayoutPixel>>>,
 
     /// All the MediaQueryLists we need to update
     media_query_lists: DOMTracker<MediaQueryList>,
@@ -538,20 +535,6 @@ impl Window {
 
     pub(crate) fn css_error_reporter(&self) -> Option<&dyn ParseErrorReporter> {
         Some(&self.error_reporter)
-    }
-
-    /// Sets a new list of scroll offsets.
-    ///
-    /// This is called when layout gives us new ones and WebRender is in use.
-    pub(crate) fn set_scroll_offsets(
-        &self,
-        offsets: HashMap<OpaqueNode, Vector2D<f32, LayoutPixel>>,
-    ) {
-        *self.scroll_offsets.borrow_mut() = offsets
-    }
-
-    pub(crate) fn current_viewport(&self) -> UntypedRect<Au> {
-        self.current_viewport.clone().get()
     }
 
     pub(crate) fn webgl_chan(&self) -> Option<WebGLCommandSender> {
@@ -1547,9 +1530,13 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         self.viewport_details.get().size.width.to_i32().unwrap_or(0)
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-window-scrollx
+    /// <https://drafts.csswg.org/cssom-view/#dom-window-scrollx>
     fn ScrollX(&self) -> i32 {
-        self.current_viewport.get().origin.x.to_px()
+        self.scroll_offset_query_with_external_scroll_id(
+            self.pipeline_id().root_scroll_id(),
+            CanGc::note(),
+        )
+        .x as i32
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-pagexoffset
@@ -1557,9 +1544,13 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         self.ScrollX()
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-window-scrolly
+    /// <https://drafts.csswg.org/cssom-view/#dom-window-scrolly>
     fn ScrollY(&self) -> i32 {
-        self.current_viewport.get().origin.y.to_px()
+        self.scroll_offset_query_with_external_scroll_id(
+            self.pipeline_id().root_scroll_id(),
+            CanGc::note(),
+        )
+        .y as i32
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-pageyoffset
@@ -2073,14 +2064,13 @@ impl Window {
         }
 
         //TODO Step 11
-        //let document = self.Document();
-        // Step 12
-        let x = x.to_f32().unwrap_or(0.0f32);
-        let y = y.to_f32().unwrap_or(0.0f32);
-        self.update_viewport_for_scroll(x, y);
+
+        // Step 12: Perform a scroll of the viewport to position, document’s root element
+        // as the associated element, if there is one, or null otherwise, and the scroll
+        // behavior being the value of the behavior dictionary member of options.
         self.perform_a_scroll(
-            x,
-            y,
+            x.to_f32().unwrap_or(0.0f32),
+            y.to_f32().unwrap_or(0.0f32),
             self.pipeline_id().root_scroll_id(),
             behavior,
             None,
@@ -2102,15 +2092,9 @@ impl Window {
         // TODO(mrobinson, #18709): Add smooth scrolling support to WebRender so that we can
         // properly process ScrollBehavior here.
         self.reflow(
-            ReflowGoal::UpdateScrollNode(scroll_id, Vector2D::new(-x, -y)),
+            ReflowGoal::UpdateScrollNode(scroll_id, Vector2D::new(x, y)),
             can_gc,
         );
-    }
-
-    pub(crate) fn update_viewport_for_scroll(&self, x: f32, y: f32) {
-        let size = self.current_viewport.get().size;
-        let new_viewport = Rect::new(Point2D::new(Au::from_f32_px(x), Au::from_f32_px(y)), size);
-        self.current_viewport.set(new_viewport)
     }
 
     pub(crate) fn device_pixel_ratio(&self) -> Scale<f32, CSSPixel, DevicePixel> {
@@ -2549,17 +2533,34 @@ impl Window {
         node: Option<&Node>,
         can_gc: CanGc,
     ) -> UntypedRect<i32> {
-        self.layout_reflow(QueryMsg::ScrollingAreaQuery, can_gc);
+        self.layout_reflow(QueryMsg::ScrollingAreaOrOffsetQuery, can_gc);
         self.layout
             .borrow()
             .query_scrolling_area(node.map(Node::to_trusted_node_address))
     }
 
-    pub(crate) fn scroll_offset_query(&self, node: &Node) -> Vector2D<f32, LayoutPixel> {
-        if let Some(scroll_offset) = self.scroll_offsets.borrow().get(&node.to_opaque()) {
-            return *scroll_offset;
-        }
-        Vector2D::new(0.0, 0.0)
+    pub(crate) fn scroll_offset_query(
+        &self,
+        node: &Node,
+        can_gc: CanGc,
+    ) -> Vector2D<f32, LayoutPixel> {
+        let external_scroll_id = ExternalScrollId(
+            combine_id_with_fragment_type(node.to_opaque().id(), FragmentType::FragmentBody),
+            self.pipeline_id().into(),
+        );
+        self.scroll_offset_query_with_external_scroll_id(external_scroll_id, can_gc)
+    }
+
+    fn scroll_offset_query_with_external_scroll_id(
+        &self,
+        external_scroll_id: ExternalScrollId,
+        can_gc: CanGc,
+    ) -> Vector2D<f32, LayoutPixel> {
+        self.layout_reflow(QueryMsg::ScrollingAreaOrOffsetQuery, can_gc);
+        self.layout
+            .borrow()
+            .scroll_offset(external_scroll_id)
+            .unwrap_or_default()
     }
 
     // https://drafts.csswg.org/cssom-view/#element-scrolling-members
@@ -2571,12 +2572,6 @@ impl Window {
         behavior: ScrollBehavior,
         can_gc: CanGc,
     ) {
-        // The scroll offsets are immediatly updated since later calls
-        // to topScroll and others may access the properties before
-        // webrender has a chance to update the offsets.
-        self.scroll_offsets
-            .borrow_mut()
-            .insert(node.to_opaque(), Vector2D::new(x_ as f32, y_ as f32));
         let scroll_id = ExternalScrollId(
             combine_id_with_fragment_type(node.to_opaque().id(), FragmentType::FragmentBody),
             self.pipeline_id().into(),
@@ -2823,13 +2818,16 @@ impl Window {
         self.unhandled_resize_event.borrow_mut().take()
     }
 
-    pub(crate) fn set_viewport(&self, new_viewport: UntypedRect<f32>) {
-        let new_viewport = f32_rect_to_au_rect(new_viewport);
-        if new_viewport == self.current_viewport.get() {
+    pub(crate) fn set_viewport_size(&self, new_viewport_size: UntypedSize2D<f32>) {
+        let new_viewport_size = Size2D::new(
+            Au::from_f32_px(new_viewport_size.width),
+            Au::from_f32_px(new_viewport_size.height),
+        );
+        if new_viewport_size == self.current_viewport_size.get() {
             return;
         }
 
-        self.current_viewport.set(new_viewport);
+        self.current_viewport_size.set(new_viewport_size);
 
         // The document needs to be repainted, because the initial containing block
         // is now a different size.
@@ -3124,14 +3122,13 @@ impl Window {
             bluetooth_extra_permission_data: BluetoothExtraPermissionData::new(),
             unhandled_resize_event: Default::default(),
             viewport_details: Cell::new(viewport_details),
-            current_viewport: Cell::new(initial_viewport.to_untyped()),
+            current_viewport_size: Cell::new(initial_viewport.to_untyped().size),
             layout_blocker: Cell::new(LayoutBlocker::WaitingForParse),
             current_state: Cell::new(WindowState::Alive),
             devtools_marker_sender: Default::default(),
             devtools_markers: Default::default(),
             webdriver_script_chan: Default::default(),
             error_reporter,
-            scroll_offsets: Default::default(),
             media_query_lists: DOMTracker::new(),
             #[cfg(feature = "bluetooth")]
             test_runner: Default::default(),
@@ -3245,7 +3242,7 @@ fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal) {
             QueryMsg::ContentBoxes => "\tContentBoxesQuery",
             QueryMsg::NodesFromPointQuery => "\tNodesFromPointQuery",
             QueryMsg::ClientRectQuery => "\tClientRectQuery",
-            QueryMsg::ScrollingAreaQuery => "\tNodeScrollGeometryQuery",
+            QueryMsg::ScrollingAreaOrOffsetQuery => "\tNodeScrollGeometryQuery",
             QueryMsg::ResolvedStyleQuery => "\tResolvedStyleQuery",
             QueryMsg::ResolvedFontStyleQuery => "\nResolvedFontStyleQuery",
             QueryMsg::OffsetParentQuery => "\tOffsetParentQuery",

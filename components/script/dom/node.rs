@@ -18,7 +18,7 @@ use bitflags::bitflags;
 use devtools_traits::NodeInfo;
 use dom_struct::dom_struct;
 use embedder_traits::UntrustedNodeAddress;
-use euclid::default::{Rect, Size2D, Vector2D};
+use euclid::default::{Rect, Size2D};
 use html5ever::serialize::HtmlSerializer;
 use html5ever::{Namespace, Prefix, QualName, ns, serialize as html_serialize};
 use js::jsapi::JSObject;
@@ -978,12 +978,6 @@ impl Node {
         // these steps."
         // "7. Return the width of the element’s scrolling area."
         window.scrolling_area_query(Some(self), can_gc)
-    }
-
-    pub(crate) fn scroll_offset(&self) -> Vector2D<f32> {
-        let document = self.owner_doc();
-        let window = document.window();
-        window.scroll_offset_query(self).to_untyped()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-before>

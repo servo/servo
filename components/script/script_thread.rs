@@ -83,16 +83,13 @@ use percent_encoding::percent_decode;
 use profile_traits::mem::{ProcessReports, ReportsChan, perform_memory_report};
 use profile_traits::time::ProfilerCategory;
 use profile_traits::time_profile;
-use script_layout_interface::{
-    LayoutConfig, LayoutFactory, ReflowGoal, ScriptThreadFactory, node_id_from_scroll_id,
-};
+use script_layout_interface::{LayoutConfig, LayoutFactory, ReflowGoal, ScriptThreadFactory};
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
     NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptThreadMessage, UpdatePipelineIdReason,
 };
 use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
-use style::dom::OpaqueNode;
 use style::thread_state::{self, ThreadState};
 use stylo_atoms::Atom;
 use timers::{TimerEventRequest, TimerId, TimerScheduler};
@@ -2054,16 +2051,6 @@ impl ScriptThread {
                 window
                     .layout_mut()
                     .set_scroll_offsets_from_renderer(&scroll_states);
-
-                let mut scroll_offsets = HashMap::new();
-                for (scroll_id, scroll_offset) in scroll_states.into_iter() {
-                    if scroll_id.is_root() {
-                        window.update_viewport_for_scroll(-scroll_offset.x, -scroll_offset.y);
-                    } else if let Some(node_id) = node_id_from_scroll_id(scroll_id.0 as usize) {
-                        scroll_offsets.insert(OpaqueNode(node_id), -scroll_offset);
-                    }
-                }
-                window.set_scroll_offsets(scroll_offsets)
             },
         )
     }
@@ -2580,7 +2567,7 @@ impl ScriptThread {
     fn handle_viewport(&self, id: PipelineId, rect: Rect<f32>) {
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
-            document.window().set_viewport(rect);
+            document.window().set_viewport_size(rect.size);
             return;
         }
         let loads = self.incomplete_loads.borrow();

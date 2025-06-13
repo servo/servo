@@ -424,6 +424,15 @@ impl ScrollTree {
             _ => None,
         }))
     }
+
+    /// Get the scroll offset for the given [`ExternalScrollId`] or `None` if that node cannot
+    /// be found in the tree.
+    pub fn scroll_offset(&self, id: ExternalScrollId) -> Option<LayoutVector2D> {
+        self.nodes.iter().find_map(|node| match node.info {
+            SpatialTreeNodeInfo::Scroll(ref info) if info.external_id == id => Some(info.offset),
+            _ => None,
+        })
+    }
 }
 
 /// In order to pretty print the [ScrollTree] structure, we are converting
