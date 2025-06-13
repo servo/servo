@@ -817,6 +817,17 @@ impl HTMLElement {
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/dom.html#the-body-element-2>
+    pub(crate) fn is_body_element(&self) -> bool {
+        let self_node = self.upcast::<Node>();
+        self_node.GetParentNode().is_some_and(|parent| {
+            let parent_node = parent.upcast::<Node>();
+            self_node.is::<HTMLBodyElement>()
+             && parent_node.is::<HTMLHtmlElement>()
+              && self_node.preceding_siblings().all(|n| !n.is::<HTMLBodyElement>())
+        })
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#category-submit>
     pub(crate) fn is_submittable_element(&self) -> bool {
         match self.upcast::<Node>().type_id() {
