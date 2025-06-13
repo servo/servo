@@ -3080,7 +3080,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         }
 
         // Step 9
-        let point = node.scroll_offset();
+        let point = win.scroll_offset_query(node, can_gc);
         point.y.abs() as f64
     }
 
@@ -3179,7 +3179,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         }
 
         // Step 9
-        let point = node.scroll_offset();
+        let point = win.scroll_offset_query(node, can_gc);
         point.x.abs() as f64
     }
 

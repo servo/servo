@@ -9,6 +9,7 @@ use dom_struct::dom_struct;
 use embedder_traits::CompositorHitTestResult;
 use euclid::default::Point2D;
 use js::rust::HandleObject;
+use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use servo_config::pref;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
@@ -373,9 +374,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
         if self.upcast::<Event>().dispatching() {
             self.page_x.get()
         } else {
-            let global = self.global();
-            let window = global.as_window();
-            window.current_viewport().origin.x.to_px() + self.client_x.get()
+            self.global().as_window().ScrollX() + self.client_x.get()
         }
     }
 
@@ -384,9 +383,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
         if self.upcast::<Event>().dispatching() {
             self.page_y.get()
         } else {
-            let global = self.global();
-            let window = global.as_window();
-            window.current_viewport().origin.y.to_px() + self.client_y.get()
+            self.global().as_window().ScrollY() + self.client_y.get()
         }
     }
 

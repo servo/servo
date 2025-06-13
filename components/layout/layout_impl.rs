@@ -503,6 +503,14 @@ impl Layout for LayoutThread {
             .scroll_tree
             .set_all_scroll_offsets(scroll_states);
     }
+
+    fn scroll_offset(&self, id: ExternalScrollId) -> Option<LayoutVector2D> {
+        self.stacking_context_tree
+            .borrow_mut()
+            .as_mut()
+            .and_then(|tree| tree.compositor_info.scroll_tree.scroll_offset(id))
+            .map(|scroll_offset| -scroll_offset)
+    }
 }
 
 impl LayoutThread {
@@ -1010,7 +1018,7 @@ impl LayoutThread {
             .scroll_tree
             .set_scroll_offset_for_node_with_external_scroll_id(
                 external_scroll_id,
-                offset,
+                -offset,
                 ScrollType::Script,
             )
         {

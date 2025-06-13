@@ -251,6 +251,10 @@ pub trait Layout {
         scroll_states: &HashMap<ExternalScrollId, LayoutVector2D>,
     );
 
+    /// Get the scroll offset of the given scroll node with id of [`ExternalScrollId`] or `None` if it does
+    /// not exist in the tree.
+    fn scroll_offset(&self, id: ExternalScrollId) -> Option<LayoutVector2D>;
+
     fn query_content_box(&self, node: TrustedNodeAddress) -> Option<Rect<Au>>;
     fn query_content_boxes(&self, node: TrustedNodeAddress) -> Vec<Rect<Au>>;
     fn query_client_rect(&self, node: TrustedNodeAddress) -> Rect<i32>;
@@ -309,7 +313,7 @@ pub enum QueryMsg {
     ContentBox,
     ContentBoxes,
     ClientRectQuery,
-    ScrollingAreaQuery,
+    ScrollingAreaOrOffsetQuery,
     OffsetParentQuery,
     TextIndexQuery,
     NodesFromPointQuery,
@@ -351,13 +355,13 @@ impl ReflowGoal {
                 QueryMsg::InnerWindowDimensionsQuery |
                 QueryMsg::NodesFromPointQuery |
                 QueryMsg::ResolvedStyleQuery |
+                QueryMsg::ScrollingAreaOrOffsetQuery |
                 QueryMsg::TextIndexQuery => true,
                 QueryMsg::ClientRectQuery |
                 QueryMsg::ContentBox |
                 QueryMsg::ContentBoxes |
                 QueryMsg::OffsetParentQuery |
                 QueryMsg::ResolvedFontStyleQuery |
-                QueryMsg::ScrollingAreaQuery |
                 QueryMsg::StyleQuery => false,
             },
         }
@@ -375,7 +379,7 @@ impl ReflowGoal {
                 QueryMsg::ContentBox |
                 QueryMsg::ContentBoxes |
                 QueryMsg::ClientRectQuery |
-                QueryMsg::ScrollingAreaQuery |
+                QueryMsg::ScrollingAreaOrOffsetQuery |
                 QueryMsg::ResolvedStyleQuery |
                 QueryMsg::ResolvedFontStyleQuery |
                 QueryMsg::OffsetParentQuery |
@@ -505,13 +509,6 @@ pub fn combine_id_with_fragment_type(id: usize, fragment_type: FragmentType) -> 
     } else {
         next_special_id() | (fragment_type as u64)
     }
-}
-
-pub fn node_id_from_scroll_id(id: usize) -> Option<usize> {
-    if (id as u64 & !SPECIAL_SCROLL_ROOT_ID_MASK) != 0 {
-        return Some(id & !3);
-    }
-    None
 }
 
 #[derive(Clone, Debug, MallocSizeOf)]
