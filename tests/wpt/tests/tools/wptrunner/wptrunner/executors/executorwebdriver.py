@@ -141,10 +141,14 @@ class WebDriverBidiBluetoothProtocolPart(BidiBluetoothProtocolPart):
 
     async def simulate_adapter(self,
           context: str,
-          state: str,
-          type_: str) -> None:
+          state: str) -> None:
         await self.webdriver.bidi_session.bluetooth.simulate_adapter(
-            context=context, state=state, type_=type_)
+            context=context, state=state)
+
+    async def disable_simulation(self,
+          context: str) -> None:
+        await self.webdriver.bidi_session.bluetooth.disable_simulation(
+            context=context)
 
     async def simulate_preconnected_peripheral(self,
             context: str,
@@ -159,6 +163,21 @@ class WebDriverBidiBluetoothProtocolPart(BidiBluetoothProtocolPart):
             manufacturer_data=manufacturer_data,
             known_service_uuids=known_service_uuids)
 
+    async def simulate_gatt_connection_response(self,
+            context: str,
+            address: str,
+            code: int) -> None:
+        await self.webdriver.bidi_session.bluetooth.simulate_gatt_connection_response(
+            context=context,
+            address=address,
+            code=code)
+
+    async def simulate_gatt_disconnection(self,
+            context: str,
+            address: str) -> None:
+        await self.webdriver.bidi_session.bluetooth.simulate_gatt_disconnection(
+            context=context,
+            address=address)
 
 class WebDriverBidiBrowsingContextProtocolPart(BidiBrowsingContextProtocolPart):
     def __init__(self, parent):

@@ -11,19 +11,20 @@
 <script src="resources/invoker-utils.js"></script>
 <script src="/html/semantics/popovers/resources/popover-utils.js"></script>
 
-<div id="examples">
-  <button id="<button>" interesttarget=target>Button</button>
-  <a id="<a>" href=foo interesttarget=target>Link</a>
-  <img src="/images/blue.png" usemap="#map">
-  <map id=map>
-    <area id="<area>" interesttarget=target href="/" shape=default id=interestarea>
-  </map>
-    <svg viewBox="0 0 100 100" style="width: 100px" xmlns="http://www.w3.org/2000/svg">
-    <a id="SVG <a>" href=foo interesttarget=target>
-      <text x=50 y=90>SVG A</text>
-    </a>
-  </svg>
-</div>
+<button data-testcase="<button>" interesttarget=target>Button</button>
+
+<a data-testcase="<a>" href=foo interesttarget=target>Link</a>
+
+<img src="/images/blue.png" usemap="#map">
+<map id=map>
+  <area data-testcase="<area>" interesttarget=target href="/" shape=default>
+</map>
+
+<svg viewBox="0 0 100 100" style="width: 100px" xmlns="http://www.w3.org/2000/svg">
+  <a data-testcase="SVG <a>" href=foo interesttarget=target>
+    <text x=50 y=90>SVG A</text>
+  </a>
+</svg>
 
 <div id=target popover>Popover</div>
 <button id="otherbutton">Other button</button>
@@ -40,29 +41,31 @@
 </style>
 
 <script>
-const allInterestTargetElements = document.querySelectorAll('#examples [interesttarget]');
+const allInterestTargetElements = document.querySelectorAll('[data-testcase]');
+assert_true(allInterestTargetElements.length > 0);
+
 function verifyInterest(onlyElements,description) {
   if (!(onlyElements instanceof Array)) {
     onlyElements = [onlyElements];
   }
   [...allInterestTargetElements, another].forEach(el => {
     const expectInterest = onlyElements.includes(el);
-    assert_equals(el.matches(':has-interest'),expectInterest,`${description}, element ${el.id} should ${expectInterest ? "" : "NOT "}have interest`);
+    assert_equals(el.matches(':has-interest'),expectInterest,`${description}, element ${el.dataset.testcase} should ${expectInterest ? "" : "NOT "}have interest`);
   })
 }
 allInterestTargetElements.forEach(el => {
-  const description = `${el.id}`;
+  const description = el.dataset.testcase;
   promise_test(async function (t) {
     t.add_cleanup(() => otherbutton.focus());
     target.hidePopover(); // Just in case
     await focusOn(el);
     assert_equals(document.activeElement,el,'Elements should all be focusable');
     assert_true(target.matches(':popover-open'),'Focusing should trigger interest');
-    verifyInterest(el,`After show interest in ${el.id}`);
+    verifyInterest(el,`After show interest in ${description}`);
     await focusOn(otherbutton);
     assert_not_equals(document.activeElement,el);
     assert_false(target.matches(':popover-open'),'Blurring should trigger lose interest');
-    verifyInterest(undefined,`After lose interest in ${el.id}`);
+    verifyInterest(undefined,`After lose interest in ${description}`);
   },`Basic keyboard focus behavior, ${description}`);
 
   promise_test(async function (t) {
@@ -70,14 +73,14 @@ allInterestTargetElements.forEach(el => {
     target.hidePopover(); // Just in case
     await focusOn(el);
     assert_true(target.matches(':popover-open'),'Focusing should trigger interest');
-    verifyInterest(el,`After show interest in ${el.id}`);
+    verifyInterest(el,`After show interest in ${description}`);
     await sendLoseInterestHotkey();
     assert_false(target.matches(':popover-open'),'Pressing lose interest hot key should trigger lose interest');
-    verifyInterest(undefined,`After lose interest in ${el.id}`);
+    verifyInterest(undefined,`After lose interest in ${description}`);
     await focusOn(otherbutton);
     assert_not_equals(document.activeElement,el);
     assert_false(target.matches(':popover-open'),'Blurring should do nothing at this point');
-    verifyInterest(undefined,`After blurring ${el.id}`);
+    verifyInterest(undefined,`After blurring ${description}`);
   },`Lose interest hot key behavior, ${description}`);
 
   promise_test(async function (t) {
@@ -88,15 +91,15 @@ allInterestTargetElements.forEach(el => {
     target.hidePopover(); // Just in case
     await focusOn(el);
     assert_true(target.matches(':popover-open'),'Focusing should trigger interest');
-    verifyInterest(el,`After show interest in ${el.id}`);
+    verifyInterest(el,`After show interest in ${description}`);
     await focusOn(otherbutton);
     assert_not_equals(document.activeElement,el);
     assert_true(target.matches(':popover-open'),'Blurring should not immediately lose interest');
-    verifyInterest(el,`After blurring ${el.id}`);
+    verifyInterest(el,`After blurring ${description}`);
     // Send lose interest hot key to the other button (not the invoker):
     await sendLoseInterestHotkey();
     assert_false(target.matches(':popover-open'),'Pressing lose interest hot key should trigger lose interest');
-    verifyInterest(undefined,`After lose interest in ${el.id}`);
+    verifyInterest(undefined,`After lose interest in ${description}`);
   },`Lose interest hot key behavior with element not focused, ${description}`);
 
   promise_test(async function (t) {
@@ -105,7 +108,7 @@ allInterestTargetElements.forEach(el => {
     target.addEventListener('interest', (e) => e.preventDefault(), {once: true});
     await focusOn(el);
     assert_false(target.matches(':popover-open'));
-    verifyInterest(undefined,`Nothing has interest, ${el.id}`);
+    verifyInterest(undefined,`Nothing has interest, ${description}`);
   }, `canceling the interest event stops behavior, ${description}`);
 
   let events = [];
@@ -123,7 +126,7 @@ allInterestTargetElements.forEach(el => {
     addListeners(t,anothertarget);
     await focusOn(el);
     assert_array_equals(events,['target interest'],'first hotkey');
-    verifyInterest(el,`After show interest in ${el.id}`);
+    verifyInterest(el,`After show interest in ${description}`);
     await focusOn(another);
     assert_array_equals(events,['target interest','target loseinterest','anothertarget interest'],
         'showing interest in another trigger should lose interest in the first, then gain interest in second');
@@ -144,7 +147,7 @@ allInterestTargetElements.forEach(el => {
     addListeners(t,anothertarget);
     await focusOn(el);
     assert_array_equals(events,['target interest'],'setup');
-    verifyInterest(el,`After show interest in ${el.id}`);
+    verifyInterest(el,`After show interest in ${description}`);
     const signal = t.get_signal();
     let shouldCancelLoseInterest = true;
     target.addEventListener('loseinterest',(e) => {
@@ -156,7 +159,7 @@ allInterestTargetElements.forEach(el => {
     assert_array_equals(events,['target interest','target loseinterest','anothertarget interest','target loseinterest'],
         'the loseinterest listener should fire but get cancelled, anothertarget should still get interest, and that should close the first target popover firing another loseinterest');
     events = [];
-    verifyInterest([el,another],`${el.id} should still have interest because loseinterest was cancelled`);
+    verifyInterest([el,another],`${description} should still have interest because loseinterest was cancelled`);
     assert_false(target.matches(':popover-open'),'anothertarget popover opens, closing target');
     assert_true(anothertarget.matches(':popover-open'));
     await sendLoseInterestHotkey();

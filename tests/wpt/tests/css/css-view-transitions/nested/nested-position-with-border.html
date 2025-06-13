@@ -1,0 +1,65 @@
+<!doctype html>
+<html class=reftest-wait>
+<title>Nested View Transitions: nested position with borders</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="nested-position-with-border-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+
+<style>
+:root {
+  view-transition-name: none;
+}
+#clipper {
+  view-transition-group: contain;
+  view-transition-name: clipper;
+
+  border-width: 6px 10px 16px 20px;
+  border-style: solid;
+  border-color: red;
+
+  height: 200px;
+  width: 200px;
+}
+
+.item {
+  view-transition-name: item;
+  background: blue;
+  position: relative;
+
+  width: 100px;
+  height: 100px;
+  border: 1px solid black;
+}
+
+::view-transition {
+  background: pink;
+}
+::view-transition-group-children(clipper) {
+  overflow: clip;
+  border-color: green;
+}
+
+::view-transition-group(*),
+::view-transition-new(*),
+::view-transition-old(*) {
+  animation-play-state: paused;
+}
+</style>
+
+<div id=clipper>
+  <div class=item></div>
+</div>
+
+<script>
+
+function runTest() {
+  document.startViewTransition().ready.then(takeScreenshot);
+}
+
+onload = () => {
+  waitForCompositorReady().then(runTest);
+}
+</script>
+
+

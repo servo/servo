@@ -8,21 +8,11 @@
 <script src="resources/bidi-bluetooth-helper.js"></script>
 
 <script>
-    const name = 'LE Device';
     promise_setup(async () => {
-        await test_driver.bidi.bluetooth.simulate_adapter({
-            state: "powered-on"
-        });
-        await test_driver.bidi.bluetooth.simulate_preconnected_peripheral({
-            address: "09:09:09:09:09:09",
-            name: name,
-            manufacturerData: [],
-            knownServiceUuids: []
-        });
         await test_driver.bidi.bluetooth.request_device_prompt_updated.subscribe();
     });
 
-    promise_test(async (t) => {
+    bluetooth_test(async (t) => {
         const handle_prompt_promise =
             test_driver.bidi.bluetooth.request_device_prompt_updated.once().then(
                 (promptEvent) => {
@@ -36,10 +26,10 @@
         const [device] = await Promise.all([requestDeviceWithTrustedClick({
             acceptAllDevices: true
         }), handle_prompt_promise]);
-        assert_equals(device.name, name);
+        assert_equals(device.name, DEVICE_NAME);
     }, "accept upon request_device_prompt_updated event");
 
-    promise_test(async (t) => {
+    bluetooth_test(async (t) => {
         const handle_prompt_promise =
             test_driver.bidi.bluetooth.request_device_prompt_updated.once().then(
                 (promptEvent) => {

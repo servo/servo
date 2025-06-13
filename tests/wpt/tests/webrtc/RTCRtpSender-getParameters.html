@@ -21,6 +21,8 @@ promise_test(async t => {
   callee.addTrack(track);
   var callerSender = caller.getTransceivers()[0].sender;
   assert_equals(callerSender.getParameters().codecs.length, 0);
+  assert_equals(callerSender.getParameters().headerExtensions.length, 0,
+                "caller header extensions before offer");
   const offer = await caller.createOffer();
   await caller.setLocalDescription(offer);
   await callee.setRemoteDescription(offer);
@@ -35,6 +37,8 @@ promise_test(async t => {
   await caller.setRemoteDescription(answer);
   assert_greater_than(callerSender.getParameters().codecs.length, 0,
                       "caller codecs after answer");
+  assert_greater_than(callerSender.getParameters().headerExtensions.length, 0,
+                      "caller header extensions after answer");
 }, 'getParameters() surfaces codecs on two-way sender with addTrack at the right time');
 
 </script>

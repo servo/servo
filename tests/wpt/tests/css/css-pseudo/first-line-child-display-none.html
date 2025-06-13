@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-text-line">
+<link rel="match" href="first-line-child-display-none-ref.html">
+<style>
+#container { color: red; }
+#container::first-line { color:green; }
+#hideme { display: none; }
+</style>
+<p>The text below should be green.</p>
+<div id="container">
+  <div id="hideme"></div>
+  <div>
+    Here's a line of text.
+  </div>
+</div>

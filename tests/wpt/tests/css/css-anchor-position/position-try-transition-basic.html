@@ -36,6 +36,8 @@
   function cleanup() {
     target.className = '';
     cb.className = '';
+    // Clean up running transition
+    target.getAnimations().forEach(a => a.cancel());
   }
 
   test((t) => {
