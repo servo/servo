@@ -5,6 +5,7 @@
 use std::rc::Rc;
 
 use euclid::default::Rect;
+use style::selector_parser::PseudoElement;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::root::{Dom, MutNullableDom};
@@ -47,6 +48,10 @@ pub(crate) struct NodeRareData {
 
     /// The live list of children return by .childNodes.
     pub(crate) child_list: MutNullableDom<NodeList>,
+
+    /// The pseudo element this node are supposed to represent
+    #[no_trace]
+    pub(crate) implemented_pseudo_element: Option<PseudoElement>,
 }
 
 #[derive(Default, JSTraceable, MallocSizeOf)]
