@@ -16,6 +16,7 @@ use content_security_policy as csp;
 use devtools_traits::{ScriptToDevtoolsControlMsg, SourceInfo};
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
+use html5ever::serialize::TraversalScope;
 use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use ipc_channel::ipc;
 use js::jsval::UndefinedValue;
@@ -1083,21 +1084,31 @@ impl HTMLScriptElement {
         if let Some(chan) = self.global().devtools_chan() {
             let pipeline_id = self.global().pipeline_id();
 
-            // TODO: https://github.com/servo/servo/issues/36874
-            let content = match &script.code {
-                SourceCode::Text(text) => text.to_string(),
-                SourceCode::Compiled(compiled) => compiled.original_text.to_string(),
+            let (url, content, content_type, is_external) = if script.external {
+                let content = match &script.code {
+                    SourceCode::Text(text) => text.to_string(),
+                    SourceCode::Compiled(compiled) => compiled.original_text.to_string(),
+                };
+
+                // content_type: https://html.spec.whatwg.org/multipage/#scriptingLanguages
+                (script.url.clone(), content, "text/javascript", true)
+            } else {
+                let document_node = doc.upcast::<Node>();
+                let content = document_node.html_serialize(
+                    TraversalScope::IncludeNode,
+                    false,
+                    Vec::new(),
+                    can_gc,
+                );
+                (doc.url(), content.to_string(), "text/html", false)
             };
 
-            // https://html.spec.whatwg.org/multipage/#scriptingLanguages
-            let content_type = Some("text/javascript".to_string());
-
             let source_info = SourceInfo {
-                url: script.url.clone(),
-                external: script.external,
+                url,
+                external: is_external,
                 worker_id: None,
                 content,
-                content_type,
+                content_type: Some(content_type.to_string()),
             };
             let _ = chan.send(ScriptToDevtoolsControlMsg::ScriptSourceLoaded(
                 pipeline_id,
