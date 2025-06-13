@@ -11,7 +11,7 @@ mod capabilities;
 
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, VecDeque};
 use std::io::Cursor;
 use std::net::{SocketAddr, SocketAddrV4};
 use std::time::Duration;
@@ -64,7 +64,7 @@ use webdriver::response::{
 };
 use webdriver::server::{self, Session, SessionTeardownKind, WebDriverHandler};
 
-use crate::actions::{ActionItem, InputSourceState, PointerInputState};
+use crate::actions::{ActionItem, ActionsByTick, InputSourceState, PointerInputState};
 
 #[derive(Default)]
 pub struct WebDriverMessageIdGenerator {
@@ -143,11 +143,19 @@ pub fn start_server(port: u16, constellation_chan: Sender<EmbedderToConstellatio
 }
 
 /// Represents the current WebDriver session and holds relevant session state.
+/// Currently, only 1 webview is supported per session.
+/// So only there is only 1 InputState.
 pub struct WebDriverSession {
+    /// <https://www.w3.org/TR/webdriver2/#dfn-session-id>
     id: Uuid,
-    browsing_context_id: BrowsingContextId,
+
+    /// <https://www.w3.org/TR/webdriver2/#dfn-current-top-level-browsing-context>
     webview_id: WebViewId,
 
+    /// <https://www.w3.org/TR/webdriver2/#dfn-current-browsing-context>
+    browsing_context_id: BrowsingContextId,
+
+    /// <https://www.w3.org/TR/webdriver2/#dfn-window-handles>
     window_handles: HashMap<WebViewId, String>,
 
     /// Time to wait for injected scripts to run before interrupting them.  A [`None`] value
@@ -171,7 +179,7 @@ pub struct WebDriverSession {
     input_state_table: RefCell<HashMap<String, InputSourceState>>,
 
     /// <https://w3c.github.io/webdriver/#dfn-input-cancel-list>
-    input_cancel_list: RefCell<Vec<ActionItem>>,
+    input_cancel_list: RefCell<Vec<(String, ActionItem)>>,
 }
 
 impl WebDriverSession {
@@ -201,6 +209,8 @@ impl WebDriverSession {
     }
 }
 
+/// The `Handler` for the WebDriver server.
+/// Currently, only 1 session is supported.
 struct Handler {
     /// The threaded receiver on which we can block for a load-status.
     /// It will receive messages sent on the load_status_sender,
@@ -1614,12 +1624,35 @@ impl Handler {
 
     /// <https://w3c.github.io/webdriver/#dfn-release-actions>
     fn handle_release_actions(&mut self) -> WebDriverResult<WebDriverResponse> {
-        // TODO: The previous implementation of this function was different from the spec.
-        // Need to re-implement this to match the spec.
         let session = self.session()?;
+
         // Step 1. If session's current browsing context is no longer open,
         // return error with error code no such window.
         self.verify_browsing_context_is_open(session.browsing_context_id)?;
+
+        // TODO: Step 2. User prompts. No user prompt implemented yet.
+        // TODO: Step 3. Skip for now because webdriver holds only one session.
+        // TODO: Step 4. Actions options are not used yet.
+        // TODO: Step 5. Skip for now because webdriver holds only one session.
+
+        // Step 6. Let undo actions be input cancel list in reverse order.
+        let mut input_cancel_list = session.input_cancel_list.borrow_mut();
+        let undo_actions: ActionsByTick = input_cancel_list
+            .drain(..)
+            .rev()
+            .map(|action| {
+                let mut map = HashMap::new();
+                map.insert(action.0, action.1);
+                map
+            })
+            .collect();
+
+        // Step 7. Dispatch undo actions with current browsing context.
+        if let Err(err) = self.dispatch_actions(undo_actions, session.browsing_context_id) {
+            return Err(WebDriverError::new(err, "Failed to dispatch undo actions"));
+        }
+
+        // Step 8. Reset the input state of session's current top-level browsing context.
         session.input_state_table.borrow_mut().clear();
 
         Ok(WebDriverResponse::Void)
