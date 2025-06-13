@@ -62,6 +62,7 @@ pub struct EventActor {
 #[derive(Serialize)]
 pub struct ResponseCookiesMsg {
     pub cookies: usize,
+    pub response_cookies_available: bool,
 }
 
 #[derive(Serialize)]
@@ -469,6 +470,7 @@ impl NetworkEventActor {
         }
         ResponseCookiesMsg {
             cookies: cookies_size,
+            response_cookies_available: false,
         }
     }
 
