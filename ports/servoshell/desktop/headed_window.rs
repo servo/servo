@@ -414,12 +414,6 @@ impl Window {
             }
         }
     }
-
-    fn was_cursor_inside(&self, webview: &WebView) -> bool {
-        webview
-            .rect()
-            .contains(self.webview_relative_mouse_point.get())
-    }
 }
 
 impl WindowPortsMethods for Window {
@@ -573,22 +567,24 @@ impl WindowPortsMethods for Window {
                 let mut point = winit_position_to_euclid_point(position).to_f32();
                 point.y -= (self.toolbar_height() * self.hidpi_scale_factor()).0;
 
-                let was_cursor_inside = self.was_cursor_inside(&webview);
+                let was_cursor_inside = webview
+                    .rect()
+                    .contains(self.webview_relative_mouse_point.get());
                 self.webview_relative_mouse_point.set(point);
                 if webview.rect().contains(point) {
                     webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
                 } else if was_cursor_inside {
                     webview.notify_input_event(InputEvent::MouseLeave(MouseLeaveEvent::new(point)));
-                    self.winit_window
-                        .set_cursor(winit::window::Cursor::default());
                 }
             },
             WindowEvent::CursorLeft { .. } => {
                 // TODO: Use `cursor_position` instead once https://github.com/rust-windowing/winit/pull/2648 lands
                 let was_cursor_inside = self.was_cursor_inside(&webview);
-                if was_cursor_inside {
-                    let pos = self.webview_relative_mouse_point.get();
-                    let point = Point2D::new(pos.x, pos.y);
+                if webview
+                    .rect()
+                    .contains(self.webview_relative_mouse_point.get())
+                {
+                    let point = self.webview_relative_mouse_point.get();
                     webview.notify_input_event(InputEvent::MouseLeave(MouseLeaveEvent::new(point)));
                 }
             },
@@ -611,8 +607,7 @@ impl WindowPortsMethods for Window {
                     z: 0.0,
                     mode,
                 };
-                let pos = self.webview_relative_mouse_point.get();
-                let point = Point2D::new(pos.x, pos.y);
+                let point = self.webview_relative_mouse_point.get();
 
                 // Scroll events snap to the major axis of movement, with vertical
                 // preferred over horizontal.
@@ -627,11 +622,7 @@ impl WindowPortsMethods for Window {
 
                 // Send events
                 webview.notify_input_event(InputEvent::Wheel(WheelEvent::new(delta, point)));
-                webview.notify_scroll_event(
-                    scroll_location,
-                    self.webview_relative_mouse_point.get().to_i32(),
-                    phase,
-                );
+                webview.notify_scroll_event(scroll_location, point.to_i32(), phase);
             },
             WindowEvent::Touch(touch) => {
                 webview.notify_input_event(InputEvent::Touch(TouchEvent::new(
