@@ -163,12 +163,20 @@ fn get_user_agent<'local>(env: &mut JNIEnv<'local>) -> String {
     let mut release: String = "10".to_string();
 
     if let Ok(class) = env.find_class("android/os/Build$VERSION") {
-        if let Ok(release_field) = env.get_static_field(class, "RELEASE", "Ljava/lang/String;") {
-            if let JValueOwned::Object(obj) = release_field {
-                let java_string = env.get_string((&obj).into()).unwrap();
-                release = java_string.into();
+        if let Ok(sdk) = env.get_static_field(&class, "SDK_INT", "I") {
+            let sdk = sdk.i().unwrap();
 
-                //TODO: check if version is <= 10 and don't assign release in that case
+            //https://developer.android.com/reference/android/os/Build.VERSION_CODES#Q
+            //API level 29 corresponds to Android 10.
+            if sdk > 29 {
+                if let Ok(release_field) =
+                    env.get_static_field(&class, "RELEASE", "Ljava/lang/String;")
+                {
+                    if let JValueOwned::Object(obj) = release_field {
+                        let java_string = env.get_string((&obj).into()).unwrap();
+                        release = java_string.into();
+                    }
+                }
             }
         }
     }
