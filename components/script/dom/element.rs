@@ -4226,6 +4226,7 @@ impl VirtualMethods for Element {
             local_name!("class") | local_name!("part") => {
                 AttrValue::from_serialized_tokenlist(value.into())
             },
+            local_name!("exportparts") => AttrValue::from_shadow_parts(value.into()),
             _ => self
                 .super_type()
                 .unwrap()
