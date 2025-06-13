@@ -15,6 +15,7 @@ pub mod hsts;
 pub mod http_cache;
 pub mod http_loader;
 pub mod image_cache;
+pub mod indexeddb;
 pub mod local_directory_listing;
 pub mod protocols;
 pub mod request_interceptor;

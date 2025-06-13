@@ -45,6 +45,12 @@ pub enum Error {
     InvalidNodeType,
     /// DataCloneError DOMException
     DataClone(Option<String>),
+    /// TransactionInactiveError DOMException
+    TransactionInactive,
+    /// ReadOnlyError DOMException
+    ReadOnly,
+    /// VersionError DOMException
+    Version,
     /// NoModificationAllowedError DOMException
     NoModificationAllowed,
     /// QuotaExceededError DOMException
