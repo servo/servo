@@ -116,20 +116,16 @@ def run_tests(default_binary_path: str, **kwargs):
     logger.add_handler(handler)
 
     wptrunner.run_tests(**kwargs)
-    return_value = 0 if not handler.unexpected_results else 1
+    return_value = 0 if not handler.suites[-1].unexpected_results else 1
 
     # Filter intermittents if that was specified on the command-line.
-    if handler.unexpected_results and filter_intermittents_output:
+    if handler.suites[-1].unexpected_results and filter_intermittents_output:
         # Copy the list of unexpected results from the first run, so that we
         # can access them after the tests are rerun (which changes
         # `handler.unexpected_results`). After rerunning some tests will be
         # marked as flaky but otherwise the contents of this original list
         # won't change.
-        unexpected_results = list(handler.unexpected_results)
-
-        # This isn't strictly necessary since `handler.suite_start()` clears
-        # the state, but make sure that we are starting with a fresh handler.
-        handler.reset_state()
+        unexpected_results = list(handler.suites[-1].unexpected_results)
 
         print(80 * "=")
         print(f"Rerunning {len(unexpected_results)} tests with unexpected results to detect flaky tests.")
@@ -146,7 +142,7 @@ def run_tests(default_binary_path: str, **kwargs):
         # discard the results otherwise.
         # TODO: It might be a good idea to send the new results to the
         # dashboard if they were also unexpected.
-        stable_tests = [result.path for result in handler.unexpected_results]
+        stable_tests = [result.path for result in handler.suites[-1].unexpected_results]
         for result in unexpected_results:
             result.flaky = result.path not in stable_tests
 
@@ -159,7 +155,7 @@ def run_tests(default_binary_path: str, **kwargs):
             print("'--log-raw-unexpected' not written without '--log-raw'.")
         else:
             write_unexpected_only_raw_log(
-                handler.unexpected_results, raw_log_outputs[0].name, unexpected_raw_log_output_file
+                handler.suites[-1].unexpected_results, raw_log_outputs[0].name, unexpected_raw_log_output_file
             )
 
     return return_value
