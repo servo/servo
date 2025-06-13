@@ -315,6 +315,13 @@ impl WebViewRenderer {
         }
     }
 
+    /// This function performs hit testing for point input events
+    /// before dispatching them to the constellation.
+    /// Return `true` if the event was successfully dispatched.
+    ///
+    /// We may want to retry the event if the hit test failed due to
+    /// epoch mismatch. To avoid infinite loops, we only retry once.
+    /// The `retried` parameter indicates whether the event has already been retried.
     pub(crate) fn dispatch_point_input_event(&self, mut event: InputEvent, retried: bool) -> bool {
         // Events that do not need to do hit testing are sent directly to the
         // constellation to filter down.
