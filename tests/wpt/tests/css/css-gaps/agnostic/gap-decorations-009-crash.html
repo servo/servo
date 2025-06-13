@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<title>Crash test found by fuzzer.</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    p {
+        transition: column-rule-width 0.4s ease-in-out;
+    }
+</style>
+<p id="test">This is a very long string like the one the fuzzer used</p>
+<script>
+    window.addEventListener('load', () => {
+        const p = document.getElementById('test');
+        p.style.setProperty('column-rule-width', 'repeat(4,50px)');
+    });
+</script>
+</html>

@@ -1,0 +1,33 @@
+<!doctype html>
+<head>
+  <meta charset=utf-8>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Test calling focus() on the same element in "blur" event listener when focus has moved away</title>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+</head>
+<body>
+  <input id="input1" placeholder="input1"/>
+  <input id="input2" placeholder="input2"/>
+</body>
+<script>
+// This test tests calling focus() in the "blur" event
+// listener on the same element again when the focus has
+// moved away.
+test((t) => {
+  let counter = 0;
+  input1.addEventListener("focus", function(e) {
+    counter++;
+  });
+
+  input1.addEventListener("blur", function(e) {
+    input1.focus();
+  });
+
+  input1.focus();
+  input2.focus();
+
+  assert_equals(counter, 2, "Should have received 2 focus events on input1");
+  assert_equals(document.activeElement, input1, "Focused element should be still input1");
+}, "Element.focus() in blur listener when focus has moved away");
+</script>

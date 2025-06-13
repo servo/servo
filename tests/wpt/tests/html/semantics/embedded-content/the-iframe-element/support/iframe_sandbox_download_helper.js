@@ -1,5 +1,5 @@
 function StreamDownloadFinishDelay() {
-    return 1000;
+    return 2000;
 }
 
 function DownloadVerifyDelay() {

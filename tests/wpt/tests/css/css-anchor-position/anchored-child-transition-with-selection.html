@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning Test: Transition on anchored element child with ::selection</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #container {
+    position: absolute;
+    right: anchor(right);
+    --i: 1px;
+  }
+  #content {
+    scale: 0;
+    transition: scale 1000s step-end;
+  }
+  #content.show { scale: 1; }
+  ::selection { color: var(--a); }
+  #container.foo {}
+</style>
+<div id="container">
+  <div id="content">FAIL</div>
+</div>
+<script>
+  test(() => {
+    content.offsetTop;
+    content.classList.toggle("show");
+    container.classList.toggle("foo");
+    assert_equals(getComputedStyle(content).scale, "0");
+  }, "Should transition scale property on anchored child");
+</script>

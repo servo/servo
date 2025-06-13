@@ -38,9 +38,9 @@
       cross_origin: true,
       integrity: "",
       policy_violation: true,
-      block: true,
+      add_blocking_header: true,
       endpoints: true,
-      expected: {blocked: ORIGIN + "/content-security-policy/resources/ran.js", ran: false },
+      expected: {blocked: ORIGIN + "/content-security-policy/resources/ran.js", ran: false},
     },
     {
       description: "Ensure that a script with unknown integrity algorithm did not run",
@@ -48,9 +48,9 @@
       cross_origin: true,
       integrity: "foobar-AAAAAAAAAAAAAAAAAAAa",
       policy_violation: true,
-      block: true,
+      add_blocking_header: true,
       endpoints: true,
-      expected: {blocked: ORIGIN + "/content-security-policy/resources/ran.js", ran: false },
+      expected: {blocked: ORIGIN + "/content-security-policy/resources/ran.js", ran: false},
     },
     {
       description: "Ensure that a script without integrity algorithm runs and gets reported in report-only mode",
@@ -58,9 +58,9 @@
       cross_origin: true,
       integrity: "",
       policy_violation: true,
-      block: false,
+      add_blocking_header: false,
       endpoints: true,
-      expected: {blocked: ORIGIN + "/content-security-policy/resources/ran.js", ran: true },
+      expected: {blocked: ORIGIN + "/content-security-policy/resources/ran.js", ran: true},
     },
     {
       description: "Ensure that a no-cors script gets blocked",
@@ -68,9 +68,9 @@
       cross_origin: false,
       integrity: "sha384-tqyFpeo21WFM8HDeUtLqH20GUq/q3D1R6mqTzW3RtyTZ3dAYZJhC1wUcnkgOE2ak",
       policy_violation: true,
-      block: true,
+      add_blocking_header: true,
       endpoints: true,
-      expected: {blocked: ORIGIN + "/content-security-policy/resources/ran.js", ran: false },
+      expected: {blocked: ORIGIN + "/content-security-policy/resources/ran.js", ran: false},
     },
     {
       description: "Ensure that ReportingObserver gets called without endpoints",
@@ -78,9 +78,9 @@
       cross_origin: false,
       integrity: "sha384-tqyFpeo21WFM8HDeUtLqH20GUq/q3D1R6mqTzW3RtyTZ3dAYZJhC1wUcnkgOE2ak",
       policy_violation: true,
-      block: true,
+      add_blocking_header: true,
       endpoints: false,
-      expected: {blocked: ORIGIN + "/content-security-policy/resources/ran.js", ran: false },
+      expected: {blocked: ORIGIN + "/content-security-policy/resources/ran.js", ran: false},
     },
     {
       description: "Ensure that a script with integrity runs",
@@ -88,9 +88,9 @@
       cross_origin: true,
       integrity: "sha384-tqyFpeo21WFM8HDeUtLqH20GUq/q3D1R6mqTzW3RtyTZ3dAYZJhC1wUcnkgOE2ak",
       policy_violation: false,
-      block: true,
+      add_blocking_header: true,
       endpoints: true,
-      expected: {blocked: "", ran: true },
+      expected: {blocked: "", ran: true},
     },
     {
       description: "Ensure that a data URI script with no integrity runs",
@@ -98,9 +98,9 @@
       cross_origin: true,
       integrity: "",
       policy_violation: false,
-      block: true,
+      add_blocking_header: true,
       endpoints: true,
-      expected: {blocked: "", ran: true },
+      expected: {blocked: "", ran: true},
     },
     {
       description: "Ensure that a no-CORS data URI script with no integrity runs",
@@ -108,9 +108,9 @@
       cross_origin: false,
       integrity: "",
       policy_violation: false,
-      block: true,
+      add_blocking_header: true,
       endpoints: true,
-      expected: {blocked: "", ran: true },
+      expected: {blocked: "", ran: true},
     },
     {
       description: "Ensure that a blob URL script with no integrity runs",
@@ -118,9 +118,9 @@
       cross_origin: true,
       integrity: "",
       policy_violation: false,
-      block: true,
+      add_blocking_header: true,
       endpoints: true,
-      expected: {blocked: "", ran: true },
+      expected: {blocked: "", ran: true},
     },
     {
       description: "Ensure that a no-CORS blob URL script with no integrity runs",
@@ -128,9 +128,29 @@
       cross_origin: false,
       integrity: "",
       policy_violation: false,
-      block: true,
+      add_blocking_header: true,
       endpoints: true,
-      expected: {blocked: "", ran: true },
+      expected: {blocked: "", ran: true},
+    },
+    {
+      description: "Ensure that an about:blank URL script with no integrity does not trigger a report",
+      url: "about:blank",
+      cross_origin: true,
+      integrity: "",
+      policy_violation: false,
+      add_blocking_header: true,
+      endpoints: false,
+      expected: {blocked: "", ran: false},
+    },
+    {
+      description: "Ensure that a no-CORS about:blank URL script with no integrity does not trigger a report",
+      url: "about:blank",
+      cross_origin: false,
+      integrity: "",
+      policy_violation: false,
+      add_blocking_header: true,
+      endpoints: false,
+      expected: {blocked: "", ran: false},
     }
   ];
   test_cases.map(test_case => {
@@ -151,7 +171,7 @@
       const reporting_uuid_3 = token();
       const reporting_endpoint = `${ORIGIN}/reporting/resources/report.py`;
       let header = "";
-      if (test_case.block) {
+      if (test_case.add_blocking_header) {
         header +=
           `header(Integrity-Policy,blocked-destinations=\\(script\\)\\, endpoints=\\(integrity-endpoint-1 integrity-endpoint-2\\))`;
       }
@@ -173,19 +193,24 @@
       const ctx = new RemoteContext(iframe_uuid);
       const result = await ctx.execute_script(async (test_case) => {
         window.ran = false;
-        let report_observed_promise;
-        if (test_case.policy_violation) {
-           report_observed_promise = new Promise(r => {
-            (new ReportingObserver((reports, observer) => {
-              reports.forEach(report => {
-                if (report.body.blockedURL.endsWith(test_case.url)) {
-                  r(report.body);
-                  observer.disconnect();
-                }
-              });
-            })).observe('integrity-violation');
-          });
-        }
+
+        // Always set up report observer to catch any unexpected reports
+        const report_observed_promise = new Promise(r => {
+          (new ReportingObserver((reports, observer) => {
+            reports.forEach(report => {
+              // Match the tested URL against the stripped one:
+              // https://www.w3.org/TR/reporting-1/#strip-url-for-use-in-reports
+              // 1. If url’s scheme is not an HTTP(S) scheme, then return url’s scheme.
+              const test_url = test_case.url.startsWith("http") ?
+                test_case.url :
+                test_case.url.split(":")[0];
+              if (report.body.blockedURL.endsWith(test_url)) {
+                r(report.body);
+                observer.disconnect();
+              }
+            });
+          })).observe('integrity-violation');
+        });
 
         // Load the script
         await new Promise(resolve => {
@@ -201,20 +226,33 @@
           script.src = test_case.url;
           document.body.appendChild(script);
         });
-        const report_body = await report_observed_promise;
+
+        let report_body = null;
+        if (test_case.policy_violation) {
+          report_body = await report_observed_promise;
+        } else {
+          const timeout_promise = new Promise(r => setTimeout(() => r('timeout'), 100));
+          const race_result = await Promise.race([report_observed_promise, timeout_promise]);
+          if (race_result !== 'timeout') {
+            report_body = race_result;
+          }
+        }
         return { body: report_body, ran: window.ran };
       }, [test_case]);
-      assert_equals(result.ran, test_case.expected.ran);
+      assert_equals(result.ran, test_case.expected.ran, "Ran");
       if (test_case.policy_violation) {
+        assert_not_equals(result.body, null, "Expected a policy violation report");
         assert_equals(result.body.blockedURL, test_case.expected.blocked);
         assert_true(result.body.documentURL.endsWith(iframe_url));
         assert_equals(result.body.destination, "script");
-        assert_equals(result.body.reportOnly, !test_case.block);
+        assert_equals(result.body.reportOnly, !test_case.add_blocking_header);
+      } else {
+        assert_equals(result.body, null, "No policy violation report should be observed");
       }
       if (test_case.endpoints && test_case.policy_violation) {
-        if (test_case.block) {
-          await check_report(reporting_endpoint, reporting_uuid_1, iframe_url, test_case.url, !test_case.block);
-          await check_report(reporting_endpoint, reporting_uuid_2, iframe_url, test_case.url, !test_case.block);
+        if (test_case.add_blocking_header) {
+          await check_report(reporting_endpoint, reporting_uuid_1, iframe_url, test_case.url, !test_case.add_blocking_header);
+          await check_report(reporting_endpoint, reporting_uuid_2, iframe_url, test_case.url, !test_case.add_blocking_header);
         }
         await check_report(reporting_endpoint, reporting_uuid_3, iframe_url, test_case.url, true);
       }

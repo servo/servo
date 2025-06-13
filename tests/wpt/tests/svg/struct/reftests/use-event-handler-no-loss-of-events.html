@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html class="reftest-wait"></html>
+<meta charset="utf-8">
+<title>No loss of events when use instances copies event handlers</title>
+<link rel="author" title="Divyansh Mangal" href="mailto:dmangal@microsoft.com">
+<link rel="help" href="https://svgwg.org/svg2-draft/struct.html#UseEventHandling">
+<link rel="match" href="reference/green-100x100.html">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<svg xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <rect id="target" width="100" height="100" onclick="click()" onmouseover="handleMouseOver()"/>
+  </defs>
+  <use id="use" href="#target"/>
+</svg>
+
+<script>
+  const use = document.getElementById("use");
+  function click() {
+    document.getElementById("target").setAttribute("fill", "green");
+  }
+
+  function handleMouseOver() {
+    document.getElementById("target").setAttribute("fill", "red");
+  }
+
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    new test_driver.Actions()
+        .pointerMove(50, 50, { origin: use })
+        .pointerDown()
+        .pointerUp()
+        .send()
+        .then(() =>  document.documentElement.classList.remove('reftest-wait'));
+    }));
+</script>
+</html>

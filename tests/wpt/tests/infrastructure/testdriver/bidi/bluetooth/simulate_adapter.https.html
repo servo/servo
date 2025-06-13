@@ -14,6 +14,7 @@
 
         assert_equals(false, await navigator.bluetooth.getAvailability(),
             "Assert bluetooth is not available");
+        await test_driver.bidi.bluetooth.disable_simulation();
     }, "simulate bluetooth adapter 'absent'");
 
     promise_test(async (t) => {
@@ -23,6 +24,7 @@
 
         assert_equals(true, await navigator.bluetooth.getAvailability(),
             "Assert bluetooth available");
+        await test_driver.bidi.bluetooth.disable_simulation();
     }, "simulate bluetooth adapter 'powered-off'");
 
     promise_test(async (t) => {
@@ -32,5 +34,6 @@
 
         assert_equals(true, await navigator.bluetooth.getAvailability(),
             "Assert bluetooth available");
+        await test_driver.bidi.bluetooth.disable_simulation();
     }, "simulate bluetooth adapter 'powered-on'");
 </script>
