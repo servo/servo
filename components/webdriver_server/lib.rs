@@ -1043,6 +1043,8 @@ impl Handler {
         &mut self,
         parameters: &SwitchToFrameParameters,
     ) -> WebDriverResult<WebDriverResponse> {
+        self.verify_top_level_browsing_context_is_open(self.session()?.webview_id)?;
+
         use webdriver::common::FrameId;
         let frame_id = match parameters.id {
             FrameId::Top => {
@@ -1058,6 +1060,11 @@ impl Handler {
     }
 
     fn handle_switch_to_parent_frame(&mut self) -> WebDriverResult<WebDriverResponse> {
+        let webview_id = self.session()?.webview_id;
+        self.verify_top_level_browsing_context_is_open(webview_id)?;
+        if self.session()?.browsing_context_id == webview_id {
+            return Ok(WebDriverResponse::Void);
+        }
         self.switch_to_frame(WebDriverFrameId::Parent)
     }
 
