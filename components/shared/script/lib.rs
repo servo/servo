@@ -251,6 +251,8 @@ pub enum ScriptThreadMessage {
     /// Evaluate the given JavaScript and return a result via a corresponding message
     /// to the Constellation.
     EvaluateJavaScript(PipelineId, JavaScriptEvaluationId, String),
+    /// A new key for the image cache for the specific pipeline.
+    SendImageKeys(PipelineId, Vec<ImageKey>),
 }
 
 impl fmt::Debug for ScriptThreadMessage {

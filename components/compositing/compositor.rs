@@ -58,6 +58,10 @@ use crate::refresh_driver::RefreshDriver;
 use crate::webview_manager::WebViewManager;
 use crate::webview_renderer::{PinchZoomResult, UnknownWebView, WebViewRenderer};
 
+/// The number of image keys we create to cache in one execution.
+/// Code in image_cache requires this being larger than 2.
+const NUMBER_OF_IMAGE_KEYS: i32 = 10;
+
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
     NotReadyToPaintImage(NotReadyToPaint),
@@ -869,6 +873,17 @@ impl IOCompositor {
                 let _ = sender.send(self.global.borrow().webrender_api.generate_image_key());
             },
 
+            CompositorMsg::GenerateImageKeysForPipeline(pipeline_id) => {
+                let image_keys = (0..NUMBER_OF_IMAGE_KEYS)
+                    .map(|_| self.global.borrow().webrender_api.generate_image_key())
+                    .collect();
+                let _ = self.global.borrow().constellation_sender.send(
+                    EmbedderToConstellationMessage::SendImageKeysForPipeline(
+                        pipeline_id,
+                        image_keys,
+                    ),
+                );
+            },
             CompositorMsg::UpdateImages(updates) => {
                 let mut txn = Transaction::new();
                 for update in updates {
