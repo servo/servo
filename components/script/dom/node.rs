@@ -1561,12 +1561,19 @@ impl Node {
         }
     }
 
+    /// We are marking this as an implemented pseudo element.
     pub(crate) fn set_implemented_pseudo_element(&self, pseudo_element: PseudoElement) {
+        // Implemented pseudo element should exist only in
+        // the UA shadow DOM.
+        debug_assert!(self.is_in_ua_widget());
         self.ensure_rare_data().implemented_pseudo_element = Some(pseudo_element);
     }
 
     pub(crate) fn implemented_pseudo_element(&self) -> Option<PseudoElement> {
-        self.ensure_rare_data().implemented_pseudo_element
+        self.rare_data
+            .borrow()
+            .as_ref()
+            .and_then(|rare_data| rare_data.implemented_pseudo_element)
     }
 }
 

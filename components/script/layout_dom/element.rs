@@ -381,7 +381,7 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
     /// the element will match the specified pseudo element throughout the style computation.
     #[inline]
     fn implemented_pseudo_element(&self) -> Option<PseudoElement> {
-        if self.matches_user_and_content_rules() {
+        if !self.as_node().node.is_in_ua_widget() {
             return None;
         }
         self.as_node().node.implemented_pseudo_element()
@@ -626,11 +626,7 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
     fn pseudo_element_originating_element(&self) -> Option<Self> {
         debug_assert!(self.is_pseudo_element());
         debug_assert!(!self.matches_user_and_content_rules());
-        if self.element.upcast::<Node>().is_in_ua_widget() {
-            self.containing_shadow_host()
-        } else {
-            self.parent_element()
-        }
+        self.containing_shadow_host()
     }
 
     fn prev_sibling_element(&self) -> Option<Self> {

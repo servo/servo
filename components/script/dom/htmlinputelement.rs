@@ -1062,13 +1062,13 @@ impl HTMLInputElement {
         Node::replace_all(None, shadow_root.upcast::<Node>(), can_gc);
 
         let color_value = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
-        color_value
-            .upcast::<Node>()
-            .set_implemented_pseudo_element(PseudoElement::ServoInputColorSwatch);
         shadow_root
             .upcast::<Node>()
             .AppendChild(color_value.upcast::<Node>(), can_gc)
             .unwrap();
+        color_value
+            .upcast::<Node>()
+            .set_implemented_pseudo_element(PseudoElement::ServoInputColorSwatch);
 
         let _ = self
             .shadow_tree
