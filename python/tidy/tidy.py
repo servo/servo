@@ -23,7 +23,7 @@ import toml
 import wpt.manifestupdate
 
 from .licenseck import APACHE, COPYRIGHT, MPL, OLD_MPL, licenses_toml
-from .linting_report import LintingReportManager
+from .linting_report import LintingReportManager, OptionalAnnotation
 
 TOPDIR = os.path.abspath(os.path.dirname(sys.argv[0]))
 WPT_PATH = os.path.join(".", "tests", "wpt")
@@ -1011,11 +1011,20 @@ def scan(only_changed_files=False, progress=False, report_ci=False):
 
     error = None
     for error in errors:
-        report_manager.error_log(error)
-
         if report_ci:
-            report_manager.annotation_log("error", error)
+            annotation: OptionalAnnotation = {
+                "title": f"Mach test-tidy: {error[2]}",
+                "message": error[2],
+                "file_name": report_manager.clean_path(error[0]),
+                "line_start": error[1],
+                "line_end": error[1],
+                "level": "error",
+            }
 
+            report_manager.append_log(annotation)
+
+    if report_ci:
+        report_manager.logs_annotation()
     return int(error is not None)
 
 

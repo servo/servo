@@ -13,7 +13,6 @@ import contextlib
 import functools
 import gzip
 import itertools
-import json
 import locale
 import os
 import re
@@ -251,6 +250,7 @@ class CommandBase(object):
         self.context = context
         self.enable_media = False
         self.features = []
+        self.last_output = None
 
         # Default to native build target. This will later be overriden
         # by `configure_build_target`
@@ -782,7 +782,7 @@ class CommandBase(object):
         with_debug_assertions=False,
         with_frame_pointer=False,
         use_crown=False,
-        dump_output=False,
+        capture_output=False,
         target_override: Optional[str] = None,
         **_kwargs,
     ):
@@ -854,29 +854,11 @@ class CommandBase(object):
         # but uv venv on Windows only provides a `python`, not `python3`.
         env["PYTHON3"] = "python"
 
-        os.makedirs("./temp", exist_ok=True)
+        if capture_output:
+            output = subprocess.run(["cargo", command] + args + cargo_args, env=env, capture_output=capture_output)
 
-        if dump_output:
-            try:
-                output = subprocess.check_output(["cargo", command] + args + cargo_args, env=env)
-
-                output_str = output.decode("utf-8").strip()
-                json_array = [json.loads(line) for line in output_str.splitlines()]
-
-                with open("./temp/out.json", "w", encoding="utf-8") as file:
-                    json.dump(json_array, file, indent=2)
-                    file.write("\n")
-
-                return 0
-            except subprocess.CalledProcessError as e:
-                output_str = e.output.decode("utf-8").strip()
-                json_array = [json.loads(line) for line in output_str.splitlines()]
-
-                with open("./temp/out.json", "w", encoding="utf-8") as file:
-                    json.dump(json_array, file, indent=2)
-                    file.write("\n")
-
-                return e.returncode
+            self.last_output = output.stdout.decode("utf-8").strip()
+            return output.returncode
 
         return call(["cargo", command] + args + cargo_args, env=env, verbose=verbose)
 

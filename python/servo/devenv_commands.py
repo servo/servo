@@ -19,6 +19,7 @@ from mach.decorators import (
     CommandArgument,
     CommandProvider,
 )
+from tidy.linting_report import LintingReportManager
 
 from servo.command_base import CommandBase, call, cd
 
@@ -123,55 +124,18 @@ class MachCommands(CommandBase):
             return s.replace("\r", "%0D").replace("\n", "%0A")
 
         if "--message-format=json" in params and report_ci:
-            retcode = self.run_cargo_build_like_command("clippy", params, env=env, dump_output=True, **kwargs)
+            report_manager = LintingReportManager(10)
 
-            with open("temp/out.json", "r", encoding="utf-8") as file:
-                data = json.load(file)
-                count = 0
-                severenty_map = {"help": "notice", "note": "notice", "warning": "warning"}
-                for item in data:
-                    if count >= 10:
-                        break
+            retcode = self.run_cargo_build_like_command("clippy", params, env=env, capture_output=True, **kwargs)
 
-                    message = item.get("message")
-                    if not message:
-                        continue
-
-                    spans = message.get("spans") or []
-                    primary_span = next((s for s in spans if s.get("is_primary")), None)
-                    if not primary_span:
-                        continue
-
-                    annotation_level = severenty_map.get(message.get("level"), "error")
-                    title = escape(message.get("message", ""))
-                    rendered_message = escape(message.get("rendered", ""))
-
-                    if primary_span["line_start"] == primary_span["line_end"]:
-                        print(
-                            (
-                                f"::{annotation_level} file={primary_span['file_name']},"
-                                f"line={primary_span['line_start']},"
-                                f"endLine={primary_span['line_end']},"
-                                f"col={primary_span['column_start']},"
-                                f"endColumn={primary_span['column_end']},"
-                                f"title=Mach clippy: {title}::"
-                                f"{rendered_message}"
-                            ),
-                            flush=True,
-                        )
-                    else:
-                        print(
-                            (
-                                f"::{annotation_level} file={primary_span['file_name']},"
-                                f"line={primary_span['line_start']},"
-                                f"endLine={primary_span['line_end']},"
-                                f"title=Mach clippy: {message.get('message', '')}::"
-                                f"{rendered_message}"
-                            ),
-                            flush=True,
-                        )
-
-                    count += 1
+            if retcode != 0 and self.last_output:
+                try:
+                    data = [json.loads(line) for line in self.last_output.splitlines() if line.strip()]
+                    report_manager.filter_clippy_log(data)
+                    report_manager.logs_annotation()
+                except json.JSONDecodeError as e:
+                    print("Failed to parse JSON:", e)
+                    return retcode
             return retcode
         return self.run_cargo_build_like_command("clippy", params, env=env, **kwargs)
 
