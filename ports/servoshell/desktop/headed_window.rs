@@ -579,12 +579,8 @@ impl WindowPortsMethods for Window {
             },
             WindowEvent::CursorLeft { .. } => {
                 // TODO: Use `cursor_position` instead once https://github.com/rust-windowing/winit/pull/2648 lands
-                let was_cursor_inside = self.was_cursor_inside(&webview);
-                if webview
-                    .rect()
-                    .contains(self.webview_relative_mouse_point.get())
-                {
-                    let point = self.webview_relative_mouse_point.get();
+                let point = self.webview_relative_mouse_point.get();
+                if webview.rect().contains(point) {
                     webview.notify_input_event(InputEvent::MouseLeave(MouseLeaveEvent::new(point)));
                 }
             },
