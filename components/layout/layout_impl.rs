@@ -15,16 +15,16 @@ use app_units::Au;
 use base::Epoch;
 use base::id::{PipelineId, WebViewId};
 use compositing_traits::CrossProcessCompositorApi;
-use constellation_traits::ScrollState;
+use compositing_traits::display_list::ScrollType;
 use embedder_traits::{Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
-use euclid::{Point2D, Scale, Size2D, Vector2D};
+use euclid::{Point2D, Scale, Size2D};
 use fnv::FnvHashMap;
 use fonts::{FontContext, FontContextWebFontMethods};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
-use log::{debug, error};
+use log::{debug, error, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
 use parking_lot::{Mutex, RwLock};
@@ -74,7 +74,7 @@ use style::{Zero, driver};
 use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
 use url::Url;
-use webrender_api::units::{DevicePixel, DevicePoint, LayoutPixel, LayoutPoint, LayoutSize};
+use webrender_api::units::{DevicePixel, DevicePoint, LayoutSize, LayoutVector2D};
 use webrender_api::{ExternalScrollId, HitTestFlags};
 
 use crate::context::{CachedImageOrError, LayoutContext};
@@ -149,6 +149,12 @@ pub struct LayoutThread {
     /// layout trees remain the same.
     need_new_display_list: Cell<bool>,
 
+    /// Whether or not the existing stacking context tree is dirty and needs to be
+    /// rebuilt. This happens after a relayout or overflow update. The reason that we
+    /// don't simply clear the stacking context tree when it becomes dirty is that we need
+    /// to preserve scroll offsets from the old tree to the new one.
+    need_new_stacking_context_tree: Cell<bool>,
+
     /// The box tree.
     box_tree: RefCell<Option<Arc<BoxTree>>>,
 
@@ -160,9 +166,6 @@ pub struct LayoutThread {
 
     /// A counter for epoch messages
     epoch: Cell<Epoch>,
-
-    /// Scroll offsets of nodes that scroll.
-    scroll_offsets: RefCell<HashMap<ExternalScrollId, Vector2D<f32, LayoutPixel>>>,
 
     // A cache that maps image resources specified in CSS (e.g as the `url()` value
     // for `background-image` or `content` properties) to either the final resolved
@@ -485,11 +488,20 @@ impl Layout for LayoutThread {
     ) {
     }
 
-    fn set_scroll_offsets(&mut self, scroll_states: &[ScrollState]) {
-        *self.scroll_offsets.borrow_mut() = scroll_states
-            .iter()
-            .map(|scroll_state| (scroll_state.scroll_id, scroll_state.scroll_offset))
-            .collect();
+    fn set_scroll_offsets_from_renderer(
+        &mut self,
+        scroll_states: &HashMap<ExternalScrollId, LayoutVector2D>,
+    ) {
+        let mut stacking_context_tree = self.stacking_context_tree.borrow_mut();
+        let Some(stacking_context_tree) = stacking_context_tree.as_mut() else {
+            warn!("Received scroll offsets before finishing layout.");
+            return;
+        };
+
+        stacking_context_tree
+            .compositor_info
+            .scroll_tree
+            .set_all_scroll_offsets(scroll_states);
     }
 }
 
@@ -533,13 +545,13 @@ impl LayoutThread {
             have_added_user_agent_stylesheets: false,
             have_ever_generated_display_list: Cell::new(false),
             need_new_display_list: Cell::new(false),
+            need_new_stacking_context_tree: Cell::new(false),
             box_tree: Default::default(),
             fragment_tree: Default::default(),
             stacking_context_tree: Default::default(),
             // Epoch starts at 1 because of the initial display list for epoch 0 that we send to WR
             epoch: Cell::new(Epoch(1)),
             compositor_api: config.compositor_api,
-            scroll_offsets: Default::default(),
             stylist: Stylist::new(device, QuirksMode::NoQuirks),
             resolved_images_cache: Default::default(),
             debug: opts::get().debug.clone(),
@@ -674,8 +686,9 @@ impl LayoutThread {
         let built_display_list =
             self.build_display_list(&reflow_request, damage, &mut layout_context);
 
-        if let ReflowGoal::UpdateScrollNode(scroll_state) = reflow_request.reflow_goal {
-            self.update_scroll_node_state(&scroll_state);
+        if let ReflowGoal::UpdateScrollNode(external_scroll_id, offset) = reflow_request.reflow_goal
+        {
+            self.set_scroll_offset_from_script(external_scroll_id, offset);
         }
 
         let pending_images = std::mem::take(&mut *layout_context.pending_images.lock());
@@ -828,12 +841,10 @@ impl LayoutThread {
 
         *self.fragment_tree.borrow_mut() = Some(fragment_tree);
 
-        // The FragmentTree has been updated, so any existing StackingContext tree that layout
-        // had is now out of date and should be rebuilt.
-        *self.stacking_context_tree.borrow_mut() = None;
-
-        // Force display list generation as layout has changed.
+        // Changes to layout require us to generate a new stacking context tree and display
+        // list the next time one is requested.
         self.need_new_display_list.set(true);
+        self.need_new_stacking_context_tree.set(true);
 
         if self.debug.dump_style_tree {
             println!(
@@ -866,6 +877,11 @@ impl LayoutThread {
                 fragment_tree.print();
             }
         }
+
+        // Changes to overflow require us to generate a new stacking context tree and
+        // display list the next time one is requested.
+        self.need_new_display_list.set(true);
+        self.need_new_stacking_context_tree.set(true);
     }
 
     fn build_stacking_context_tree(&self, reflow_request: &ReflowRequest, damage: RestyleDamage) {
@@ -878,7 +894,7 @@ impl LayoutThread {
             return;
         };
         if !damage.contains(RestyleDamage::REBUILD_STACKING_CONTEXT) &&
-            self.stacking_context_tree.borrow().is_some()
+            !self.need_new_stacking_context_tree.get()
         {
             return;
         }
@@ -889,19 +905,39 @@ impl LayoutThread {
             viewport_size.height.to_f32_px(),
         );
 
+        let mut stacking_context_tree = self.stacking_context_tree.borrow_mut();
+        let old_scroll_offsets = stacking_context_tree
+            .as_ref()
+            .map(|tree| tree.compositor_info.scroll_tree.scroll_offsets());
+
         // Build the StackingContextTree. This turns the `FragmentTree` into a
         // tree of fragments in CSS painting order and also creates all
         // applicable spatial and clip nodes.
-        *self.stacking_context_tree.borrow_mut() = Some(StackingContextTree::new(
+        let mut new_stacking_context_tree = StackingContextTree::new(
             fragment_tree,
             viewport_size,
             self.id.into(),
             !self.have_ever_generated_display_list.get(),
             &self.debug,
-        ));
+        );
+
+        // When a new StackingContextTree is built, it contains a freshly built
+        // ScrollTree. We want to preserve any existing scroll offsets in that tree,
+        // adjusted by any new scroll constraints.
+        if let Some(old_scroll_offsets) = old_scroll_offsets {
+            new_stacking_context_tree
+                .compositor_info
+                .scroll_tree
+                .set_all_scroll_offsets(&old_scroll_offsets);
+        }
+
+        *stacking_context_tree = Some(new_stacking_context_tree);
 
         // Force display list generation as layout has changed.
         self.need_new_display_list.set(true);
+
+        // The stacking context tree is up-to-date again.
+        self.need_new_stacking_context_tree.set(false);
     }
 
     /// Build the display list for the current layout and send it to the renderer. If no display
@@ -959,17 +995,32 @@ impl LayoutThread {
         true
     }
 
-    fn update_scroll_node_state(&self, state: &ScrollState) {
-        self.scroll_offsets
-            .borrow_mut()
-            .insert(state.scroll_id, state.scroll_offset);
-        let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
-        self.compositor_api.send_scroll_node(
-            self.webview_id,
-            self.id.into(),
-            LayoutPoint::from_untyped(point),
-            state.scroll_id,
-        );
+    fn set_scroll_offset_from_script(
+        &self,
+        external_scroll_id: ExternalScrollId,
+        offset: LayoutVector2D,
+    ) {
+        let mut stacking_context_tree = self.stacking_context_tree.borrow_mut();
+        let Some(stacking_context_tree) = stacking_context_tree.as_mut() else {
+            return;
+        };
+
+        if let Some(offset) = stacking_context_tree
+            .compositor_info
+            .scroll_tree
+            .set_scroll_offset_for_node_with_external_scroll_id(
+                external_scroll_id,
+                offset,
+                ScrollType::Script,
+            )
+        {
+            self.compositor_api.send_scroll_node(
+                self.webview_id,
+                self.id.into(),
+                offset,
+                external_scroll_id,
+            );
+        }
     }
 
     /// Returns profiling information which is passed to the time profiler.

@@ -30,7 +30,6 @@ use embedder_traits::{
     TouchEventType, UntrustedNodeAddress, ViewportDetails, WheelDelta, WheelEvent, WheelMode,
 };
 use euclid::{Point2D, Rect, Scale, Size2D, Transform3D, Vector2D};
-use fnv::FnvHashMap;
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use libc::c_void;
 use log::{debug, info, trace, warn};
@@ -48,10 +47,10 @@ use webrender_api::units::{
 };
 use webrender_api::{
     self, BuiltDisplayList, DirtyRect, DisplayListPayload, DocumentId, Epoch as WebRenderEpoch,
-    ExternalScrollId, FontInstanceFlags, FontInstanceKey, FontInstanceOptions, FontKey,
-    HitTestFlags, PipelineId as WebRenderPipelineId, PropertyBinding, ReferenceFrameKind,
-    RenderReasons, SampledScrollOffset, ScrollLocation, SpaceAndClipInfo, SpatialId,
-    SpatialTreeItemKey, TransformStyle,
+    FontInstanceFlags, FontInstanceKey, FontInstanceOptions, FontKey, HitTestFlags,
+    PipelineId as WebRenderPipelineId, PropertyBinding, ReferenceFrameKind, RenderReasons,
+    SampledScrollOffset, ScrollLocation, SpaceAndClipInfo, SpatialId, SpatialTreeItemKey,
+    TransformStyle,
 };
 
 use crate::InitialCompositorState;
@@ -260,26 +259,9 @@ impl PipelineDetails {
     }
 
     fn install_new_scroll_tree(&mut self, new_scroll_tree: ScrollTree) {
-        let old_scroll_offsets: FnvHashMap<ExternalScrollId, LayoutVector2D> = self
-            .scroll_tree
-            .nodes
-            .drain(..)
-            .filter_map(|node| match (node.external_id(), node.offset()) {
-                (Some(external_id), Some(offset)) => Some((external_id, offset)),
-                _ => None,
-            })
-            .collect();
-
+        let old_scroll_offsets = self.scroll_tree.scroll_offsets();
         self.scroll_tree = new_scroll_tree;
-        for node in self.scroll_tree.nodes.iter_mut() {
-            match node.external_id() {
-                Some(external_id) => match old_scroll_offsets.get(&external_id) {
-                    Some(new_offset) => node.set_offset(*new_offset),
-                    None => continue,
-                },
-                _ => continue,
-            };
-        }
+        self.scroll_tree.set_all_scroll_offsets(&old_scroll_offsets);
     }
 }
 
@@ -728,7 +710,7 @@ impl IOCompositor {
                 self.global.borrow_mut().send_transaction(txn);
             },
 
-            CompositorMsg::SendScrollNode(webview_id, pipeline_id, point, external_scroll_id) => {
+            CompositorMsg::SendScrollNode(webview_id, pipeline_id, offset, external_scroll_id) => {
                 let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     return;
                 };
@@ -739,15 +721,17 @@ impl IOCompositor {
                     return;
                 };
 
-                let offset = LayoutVector2D::new(point.x, point.y);
                 let Some(offset) = pipeline_details
                     .scroll_tree
-                    .set_scroll_offsets_for_node_with_external_scroll_id(
+                    .set_scroll_offset_for_node_with_external_scroll_id(
                         external_scroll_id,
-                        -offset,
+                        offset,
                         ScrollType::Script,
                     )
                 else {
+                    // The renderer should be fully up-to-date with script at this point and script
+                    // should never try to scroll to an invalid location.
+                    warn!("Could not scroll node with id: {external_scroll_id:?}");
                     return;
                 };
 

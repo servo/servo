@@ -24,7 +24,7 @@ use canvas_traits::webgl::WebGLChan;
 use compositing_traits::CrossProcessCompositorApi;
 use constellation_traits::{
     DocumentState, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptToConstellationChan,
-    ScriptToConstellationMessage, ScrollState, StructuredSerializedData, WindowSizeType,
+    ScriptToConstellationMessage, StructuredSerializedData, WindowSizeType,
 };
 use crossbeam_channel::{Sender, unbounded};
 use cssparser::SourceLocation;
@@ -2097,10 +2097,7 @@ impl Window {
         // TODO(mrobinson, #18709): Add smooth scrolling support to WebRender so that we can
         // properly process ScrollBehavior here.
         self.reflow(
-            ReflowGoal::UpdateScrollNode(ScrollState {
-                scroll_id,
-                scroll_offset: Vector2D::new(-x, -y),
-            }),
+            ReflowGoal::UpdateScrollNode(scroll_id, Vector2D::new(-x, -y)),
             can_gc,
         );
     }
@@ -3234,7 +3231,7 @@ fn should_move_clip_rect(clip_rect: UntypedRect<Au>, new_viewport: UntypedRect<f
 fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal) {
     let goal_string = match *reflow_goal {
         ReflowGoal::UpdateTheRendering => "\tFull",
-        ReflowGoal::UpdateScrollNode(_) => "\tUpdateScrollNode",
+        ReflowGoal::UpdateScrollNode(..) => "\tUpdateScrollNode",
         ReflowGoal::LayoutQuery(ref query_msg) => match *query_msg {
             QueryMsg::ContentBox => "\tContentBoxQuery",
             QueryMsg::ContentBoxes => "\tContentBoxesQuery",
