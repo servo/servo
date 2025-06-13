@@ -56,5 +56,5 @@ dictionary StreamPipeOptions {
   boolean preventClose = false;
   boolean preventAbort = false;
   boolean preventCancel = false;
-  // AbortSignal signal;
+  AbortSignal signal;
 };
