@@ -1020,7 +1020,6 @@ impl HTMLScriptElement {
         }
 
         // TODO: Step 3. Unblock rendering on el.
-
         let mut script = match result {
             // Step 4. If el's result is null, then fire an event named error at el, and return.
             Err(e) => {
@@ -1034,10 +1033,22 @@ impl HTMLScriptElement {
 
         if let Some(chan) = self.global().devtools_chan() {
             let pipeline_id = self.global().pipeline_id();
+
+            // TODO: https://github.com/servo/servo/issues/36874
+            let content = match &script.code {
+                SourceCode::Text(text) => text.to_string(),
+                SourceCode::Compiled(compiled) => compiled.original_text.to_string(),
+            };
+
+            // https://html.spec.whatwg.org/multipage/#scriptingLanguages
+            let content_type = Some("text/javascript".to_string());
+
             let source_info = SourceInfo {
                 url: script.url.clone(),
                 external: script.external,
                 worker_id: None,
+                content,
+                content_type,
             };
             let _ = chan.send(ScriptToDevtoolsControlMsg::ScriptSourceLoaded(
                 pipeline_id,
