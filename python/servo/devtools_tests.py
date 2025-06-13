@@ -258,7 +258,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         if result:
             raise result
 
-        #  we found at least one source with the url
+        # We found at least one source with the given url.
         self.assertIn(source_url, source_actors)
         source_actor = source_actors[source_url]
 

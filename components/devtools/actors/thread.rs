@@ -124,12 +124,17 @@ impl Actor for ThreadActor {
             // Client has attached to the thread and wants to load script sources.
             // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#loading-script-sources>
             "sources" => {
-                let sources = self.source_manager.source_urls.borrow();
-                let sources_vec: Vec<SourceData> = sources.iter().cloned().collect();
+                let sources: Vec<SourceData> = self
+                    .source_manager
+                    .source_urls
+                    .borrow()
+                    .iter()
+                    .cloned()
+                    .collect();
 
                 let msg = SourcesReply {
                     from: self.name(),
-                    sources: sources_vec,
+                    sources,
                 };
                 let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed

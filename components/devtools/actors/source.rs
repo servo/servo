@@ -34,8 +34,7 @@ pub(crate) struct SourceManager {
     pub source_urls: RefCell<BTreeSet<SourceData>>,
 }
 
-#[derive(Clone, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Clone, Debug)]
 pub struct SourceActor {
     pub name: String,
     pub content: String,
@@ -104,6 +103,7 @@ impl Actor for SourceActor {
         _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
+            // Client has requested contents of the source.
             "source" => {
                 let reply = SourceContentReply {
                     from: self.name(),
