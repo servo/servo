@@ -103,6 +103,7 @@ pub(crate) fn find_node_by_unique_id_in_document(
     }
 }
 
+/// <https://w3c.github.io/webdriver/#dfn-link-text-selector>
 fn matching_links(
     links: &NodeList,
     link_text: String,
