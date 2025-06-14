@@ -108,14 +108,9 @@ class UnexpectedResult:
         return lines
 
 
-class ServoHandler(mozlog.reader.LogHandler):
-    """LogHandler designed to collect unexpected results for use by
-    script or by the ServoFormatter output formatter."""
-
-    def __init__(self):
-        self.reset_state()
-
-    def reset_state(self):
+class SuiteState:
+    def __init__(self, suite_data):
+        self.suite_data = suite_data
         self.number_of_tests = 0
         self.completed_tests = 0
         self.need_to_erase_last_line = False
@@ -146,16 +141,30 @@ class ServoHandler(mozlog.reader.LogHandler):
             "PRECONDITION_FAILED": [],
         }
 
-    def suite_start(self, data):
+
+class ServoHandler(mozlog.reader.LogHandler):
+    """LogHandler designed to collect unexpected results for use by
+    script or by the ServoFormatter output formatter."""
+
+    def __init__(self):
         self.reset_state()
-        self.number_of_tests = sum(len(tests) for tests in itervalues(data["tests"]))
-        self.suite_start_time = data["time"]
+
+    def reset_state(self) -> None:
+        # dummy suite when nothing is happening
+        self.suites: list[SuiteState] = [SuiteState(None)]
+        self.current_suite: SuiteState = self.suites[0]
+
+    def suite_start(self, data):
+        self.suites.append(SuiteState(data))
+        self.current_suite = self.suites[-1]
+        self.current_suite.number_of_tests = sum(len(tests) for tests in itervalues(data["tests"]))
+        self.current_suite.suite_start_time = data["time"]
 
     def suite_end(self, _):
-        pass
+        self.current_suite = self.suites[0]
 
     def test_start(self, data):
-        self.running_tests[data["thread"]] = data["test"]
+        self.current_suite.running_tests[data["thread"]] = data["test"]
 
     @staticmethod
     def data_was_for_expected_result(data):
@@ -164,15 +173,15 @@ class ServoHandler(mozlog.reader.LogHandler):
         return "known_intermittent" in data and data["status"] in data["known_intermittent"]
 
     def test_end(self, data: dict) -> Optional[UnexpectedResult]:
-        self.completed_tests += 1
+        self.current_suite.completed_tests += 1
         test_status = data["status"]
         test_path = data["test"]
-        del self.running_tests[data["thread"]]
+        del self.current_suite.running_tests[data["thread"]]
 
         had_expected_test_result = self.data_was_for_expected_result(data)
-        subtest_failures = self.subtest_failures.pop(test_path, [])
+        subtest_failures = self.current_suite.subtest_failures.pop(test_path, [])
         if had_expected_test_result and not subtest_failures:
-            self.expected[test_status] += 1
+            self.current_suite.expected[test_status] += 1
             return None
 
         # If the test crashed or timed out, we also include any process output,
@@ -181,7 +190,7 @@ class ServoHandler(mozlog.reader.LogHandler):
         stack = data.get("stack", None)
         if test_status in ("CRASH", "TIMEOUT"):
             stack = f"\n{stack}" if stack else ""
-            stack = f"{self.test_output[test_path]}{stack}"
+            stack = f"{self.current_suite.test_output[test_path]}{stack}"
 
         result = UnexpectedResult(
             test_path,
@@ -194,17 +203,17 @@ class ServoHandler(mozlog.reader.LogHandler):
         )
 
         if not had_expected_test_result:
-            self.unexpected_tests[result.actual].append(data)
+            self.current_suite.unexpected_tests[result.actual].append(data)
         if subtest_failures:
-            self.tests_with_failing_subtests.append(data)
+            self.current_suite.tests_with_failing_subtests.append(data)
 
-        self.unexpected_results.append(result)
+        self.current_suite.unexpected_results.append(result)
         return result
 
     def test_status(self, data: dict):
         if self.data_was_for_expected_result(data):
             return
-        self.subtest_failures[data["test"]].append(
+        self.current_suite.subtest_failures[data["test"]].append(
             UnexpectedSubtestResult(
                 data["test"],
                 data["subtest"],
@@ -218,7 +227,7 @@ class ServoHandler(mozlog.reader.LogHandler):
 
     def process_output(self, data):
         if "test" in data:
-            self.test_output[data["test"]] += data["data"] + "\n"
+            self.current_suite.test_output[data["test"]] += data["data"] + "\n"
 
     def log(self, _):
         pass
@@ -265,15 +274,15 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
         return output + self.current_display
 
     def test_counter(self):
-        if self.number_of_tests == 0:
-            return "  [%i] " % self.completed_tests
+        if self.current_suite.number_of_tests == 0:
+            return "  [%i] " % self.current_suite.completed_tests
         else:
-            return "  [%i/%i] " % (self.completed_tests, self.number_of_tests)
+            return "  [%i/%i] " % (self.current_suite.completed_tests, self.current_suite.number_of_tests)
 
     def build_status_line(self):
         new_display = self.test_counter()
 
-        if self.running_tests:
+        if self.current_suite.running_tests:
             indent = " " * len(new_display)
             if self.interactive:
                 max_width = self.line_width - len(new_display)
@@ -285,10 +294,10 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
 
     def suite_start(self, data):
         ServoHandler.suite_start(self, data)
-        if self.number_of_tests == 0:
+        if self.current_suite.number_of_tests == 0:
             return "Running tests in %s\n\n" % data["source"]
         else:
-            return "Running %i tests in %s\n\n" % (self.number_of_tests, data["source"])
+            return "Running %i tests in %s\n\n" % (self.current_suite.number_of_tests, data["source"])
 
     def test_start(self, data):
         ServoHandler.test_start(self, data)
@@ -325,18 +334,18 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
             output = ""
 
         output += "Ran %i tests finished in %.1f seconds.\n" % (
-            self.completed_tests,
-            (data["time"] - self.suite_start_time) / 1000,
+            self.current_suite.completed_tests,
+            (data["time"] - self.current_suite.suite_start_time) / 1000,
         )
 
         # Sum the number of expected test results from each category
-        expected_test_results = sum(self.expected.values())
+        expected_test_results = sum(self.current_suite.expected.values())
         output += f"  \u2022 {expected_test_results} ran as expected.\n"
         if self.number_skipped:
             output += f"    \u2022 {self.number_skipped} skipped.\n"
 
         def text_for_unexpected_list(text, section):
-            tests = self.unexpected_tests[section]
+            tests = self.current_suite.unexpected_tests[section]
             if not tests:
                 return ""
             return "  \u2022 %i tests %s\n" % (len(tests), text)
@@ -349,16 +358,16 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
         output += text_for_unexpected_list("passed unexpectedly", "PASS")
         output += text_for_unexpected_list("unexpectedly okay", "OK")
 
-        num_with_failing_subtests = len(self.tests_with_failing_subtests)
+        num_with_failing_subtests = len(self.current_suite.tests_with_failing_subtests)
         if num_with_failing_subtests:
             output += "  \u2022 %i tests had unexpected subtest results\n" % num_with_failing_subtests
         output += "\n"
 
         # Repeat failing test output, so that it is easier to find, since the
         # non-interactive version prints all the test names.
-        if not self.interactive and self.unexpected_results:
+        if not self.interactive and self.current_suite.unexpected_results:
             output += "Tests with unexpected results:\n"
-            output += "".join([str(result) for result in self.unexpected_results])
+            output += "".join([str(result) for result in self.current_suite.unexpected_results])
 
         return self.generate_output(text=output, new_display="")
 
