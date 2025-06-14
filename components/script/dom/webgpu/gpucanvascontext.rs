@@ -294,8 +294,8 @@ impl CanvasContext for GPUCanvasContext {
         })
     }
 
-    fn canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
-        self.canvas.clone()
+    fn canvas(&self) -> Option<HTMLCanvasElementOrOffscreenCanvas> {
+        Some(self.canvas.clone())
     }
 }
 

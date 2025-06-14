@@ -35,7 +35,7 @@ pub(crate) trait CanvasContext {
 
     fn context_id(&self) -> Self::ID;
 
-    fn canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas;
+    fn canvas(&self) -> Option<HTMLCanvasElementOrOffscreenCanvas>;
 
     fn resize(&self);
 
@@ -49,11 +49,16 @@ pub(crate) trait CanvasContext {
     }
 
     fn size(&self) -> Size2D<u32> {
-        self.canvas().size()
+        if let Some(canvas) = self.canvas() {
+            canvas.size()
+        } else {
+            Size2D::default()
+        }
     }
 
     fn mark_as_dirty(&self) {
-        if let HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) = &self.canvas() {
+        if let Some(HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas)) = &self.canvas()
+        {
             canvas.upcast::<Node>().dirty(NodeDamage::Other);
         }
     }
@@ -62,12 +67,13 @@ pub(crate) trait CanvasContext {
 
     fn onscreen(&self) -> bool {
         match self.canvas() {
-            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
+            Some(HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas)) => {
                 canvas.upcast::<Node>().is_connected()
             },
             // FIXME(34628): Offscreen canvases should be considered offscreen if a placeholder is set.
             // <https://www.w3.org/TR/webgpu/#abstract-opdef-updating-the-rendering-of-a-webgpu-canvas>
-            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => false,
+            Some(HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_)) => false,
+            None => false,
         }
     }
 }
@@ -112,9 +118,15 @@ impl CanvasContext for RenderingContext {
 
     fn context_id(&self) -> Self::ID {}
 
-    fn canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
+    fn canvas(&self) -> Option<HTMLCanvasElementOrOffscreenCanvas> {
         match self {
-            RenderingContext::Placeholder(context) => (*context.context().unwrap()).canvas(),
+            RenderingContext::Placeholder(offscreen_canvas) => {
+                if let Some(context) = offscreen_canvas.context() {
+                    context.canvas()
+                } else {
+                    None
+                }
+            },
             RenderingContext::Context2d(context) => context.canvas(),
             RenderingContext::WebGL(context) => context.canvas(),
             RenderingContext::WebGL2(context) => context.canvas(),
@@ -253,7 +265,7 @@ impl CanvasContext for OffscreenRenderingContext {
 
     fn context_id(&self) -> Self::ID {}
 
-    fn canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
+    fn canvas(&self) -> Option<HTMLCanvasElementOrOffscreenCanvas> {
         match self {
             OffscreenRenderingContext::Context2d(context) => context.canvas(),
         }
