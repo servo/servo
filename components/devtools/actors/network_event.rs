@@ -62,6 +62,7 @@ pub struct EventActor {
 #[derive(Serialize)]
 pub struct ResponseCookiesMsg {
     pub cookies: usize,
+    pub response_cookies_available: bool,
 }
 
 #[derive(Serialize)]
@@ -74,6 +75,7 @@ pub struct ResponseStartMsg {
     pub status_text: String,
     pub headers_size: usize,
     pub discard_response_body: bool,
+    pub response_start_vailable: bool,
 }
 
 #[derive(Serialize)]
@@ -83,6 +85,7 @@ pub struct ResponseContentMsg {
     pub content_size: u32,
     pub transferred_size: u32,
     pub discard_response_body: bool,
+    pub response_content_available: bool,
 }
 
 #[derive(Serialize)]
@@ -90,11 +93,14 @@ pub struct ResponseContentMsg {
 pub struct ResponseHeadersMsg {
     pub headers: usize,
     pub headers_size: usize,
+    pub response_headers_available: bool,
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RequestCookiesMsg {
     pub cookies: usize,
+    request_cookies_available: bool,
 }
 
 #[derive(Serialize)]
@@ -102,6 +108,7 @@ pub struct RequestCookiesMsg {
 pub struct RequestHeadersMsg {
     headers: usize,
     headers_size: usize,
+    request_headers_available: bool,
 }
 
 #[derive(Serialize)]
@@ -431,6 +438,7 @@ impl NetworkEventActor {
             status_text: String::from_utf8_lossy(status.message()).to_string(),
             headers_size: h_size,
             discard_response_body: false,
+            response_start_vailable: true,
         }
     }
 
@@ -448,6 +456,7 @@ impl NetworkEventActor {
             content_size: 0,
             transferred_size: 0,
             discard_response_body: true,
+            response_content_available: false,
         }
     }
 
@@ -461,6 +470,7 @@ impl NetworkEventActor {
         }
         ResponseCookiesMsg {
             cookies: cookies_size,
+            response_cookies_available: false,
         }
     }
 
@@ -476,6 +486,7 @@ impl NetworkEventActor {
         ResponseHeadersMsg {
             headers: headers_size,
             headers_size: headers_byte_count,
+            response_headers_available: true,
         }
     }
 
@@ -486,6 +497,7 @@ impl NetworkEventActor {
         RequestHeadersMsg {
             headers: self.request.headers.len(),
             headers_size: size,
+            request_headers_available: true,
         }
     }
 
@@ -496,6 +508,7 @@ impl NetworkEventActor {
         };
         RequestCookiesMsg {
             cookies: cookies_size,
+            request_cookies_available: true,
         }
     }
 

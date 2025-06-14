@@ -15,6 +15,9 @@ use crate::resource::ResourceAvailable;
 
 #[derive(Clone, Serialize)]
 struct ResourcesUpdatedArray {
+    //browsing_context_id: u64,
+    //inner_window_id: u64,
+    //resource_id: u64,
     updates: Vec<UpdateEntry>,
 }
 
@@ -29,11 +32,14 @@ struct UpdateEntry {
 #[serde(rename_all = "camelCase")]
 struct EventTimingsUpdateMsg {
     total_time: u64,
+    event_timings_available: bool,
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct SecurityInfoUpdateMsg {
-    state: String,
+    security_state: String,
+    security_info_available: bool,
 }
 #[derive(Clone, Serialize)]
 pub struct Cause {
@@ -77,6 +83,9 @@ pub(crate) fn handle_network_event(
                 // Store the response information in the actor
                 actor.add_response(httpresponse);
                 ResourcesUpdatedArray {
+                    //browsing_context_id,
+                    //inner_window_id: browsing_context_actor.inner_window_id(),
+                    //resource_id: actor.id().clone(),
                     updates: vec![
                         UpdateEntry {
                             update_type: "requestHeaders".to_owned(),
@@ -94,13 +103,15 @@ pub(crate) fn handle_network_event(
                             update_type: "eventTimings".to_owned(),
                             data: serde_json::to_value(EventTimingsUpdateMsg {
                                 total_time: actor.total_time().as_millis() as u64,
+                                event_timings_available: true,
                             })
                             .unwrap(),
                         },
                         UpdateEntry {
                             update_type: "securityInfo".to_owned(),
                             data: serde_json::to_value(SecurityInfoUpdateMsg {
-                                state: "insecure".to_owned(),
+                                security_state: "insecure".to_owned(),
+                                security_info_available: true,
                             })
                             .unwrap(),
                         },
