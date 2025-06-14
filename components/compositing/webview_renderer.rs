@@ -384,7 +384,16 @@ impl WebViewRenderer {
     }
 
     pub(crate) fn dispatch_pending_point_input_events(&self) {
-        while let Some(event) = self.pending_point_input_events.borrow_mut().pop_front() {
+        loop {
+            let event = {
+                let mut pending = self.pending_point_input_events.borrow_mut();
+                pending.pop_front()
+            };
+
+            let event = match event {
+                Some(ev) => ev,
+                None => break,
+            };
             // We don't need to process more if 1 event failed to dispatch.
             // All events are point events
             if !self.dispatch_point_input_event(event, true) {
