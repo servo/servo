@@ -2278,6 +2278,7 @@ impl ScriptThread {
                     selector,
                     partial,
                     reply,
+                    can_gc,
                 )
             },
             WebDriverScriptCommand::FindElementTagName(selector, reply) => {
@@ -2304,6 +2305,7 @@ impl ScriptThread {
                     selector,
                     partial,
                     reply,
+                    can_gc,
                 )
             },
             WebDriverScriptCommand::FindElementsTagName(selector, reply) => {
@@ -2336,6 +2338,7 @@ impl ScriptThread {
                 selector,
                 partial,
                 reply,
+                can_gc,
             ),
             WebDriverScriptCommand::FindElementElementTagName(selector, element_id, reply) => {
                 webdriver_handlers::handle_find_element_element_tag_name(
@@ -2368,6 +2371,7 @@ impl ScriptThread {
                 selector,
                 partial,
                 reply,
+                can_gc,
             ),
             WebDriverScriptCommand::FindElementElementsTagName(selector, element_id, reply) => {
                 webdriver_handlers::handle_find_element_elements_tag_name(

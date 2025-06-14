@@ -107,12 +107,14 @@ fn matching_links(
     links: &NodeList,
     link_text: String,
     partial: bool,
+    can_gc: CanGc,
 ) -> impl Iterator<Item = String> + '_ {
     links
         .iter()
         .filter(move |node| {
             let content = node
-                .GetTextContent()
+                .downcast::<HTMLElement>()
+                .map(|element| element.InnerText(can_gc))
                 .map_or("".to_owned(), String::from)
                 .trim()
                 .to_owned();
@@ -122,16 +124,14 @@ fn matching_links(
                 content == link_text
             }
         })
-        .map(|node| {
-            node.upcast::<Node>()
-                .unique_id(node.owner_doc().window().pipeline_id())
-        })
+        .map(|node| node.unique_id(node.owner_doc().window().pipeline_id()))
 }
 
 fn all_matching_links(
     root_node: &Node,
     link_text: String,
     partial: bool,
+    can_gc: CanGc,
 ) -> Result<Vec<String>, ErrorStatus> {
     // <https://w3c.github.io/webdriver/#dfn-find>
     // Step 7.2. If a DOMException, SyntaxError, XPathException, or other error occurs
@@ -139,13 +139,14 @@ fn all_matching_links(
     root_node
         .query_selector_all(DOMString::from("a"))
         .map_err(|_| ErrorStatus::InvalidSelector)
-        .map(|nodes| matching_links(&nodes, link_text, partial).collect())
+        .map(|nodes| matching_links(&nodes, link_text, partial, can_gc).collect())
 }
 
 fn first_matching_link(
     root_node: &Node,
     link_text: String,
     partial: bool,
+    can_gc: CanGc,
 ) -> Result<Option<String>, ErrorStatus> {
     // <https://w3c.github.io/webdriver/#dfn-find>
     // Step 7.2. If a DOMException, SyntaxError, XPathException, or other error occurs
@@ -153,7 +154,11 @@ fn first_matching_link(
     root_node
         .query_selector_all(DOMString::from("a"))
         .map_err(|_| ErrorStatus::InvalidSelector)
-        .map(|nodes| matching_links(&nodes, link_text, partial).take(1).next())
+        .map(|nodes| {
+            matching_links(&nodes, link_text, partial, can_gc)
+                .take(1)
+                .next()
+        })
 }
 
 #[allow(unsafe_code)]
@@ -632,6 +637,7 @@ pub(crate) fn handle_find_element_link_text(
     selector: String,
     partial: bool,
     reply: IpcSender<Result<Option<String>, ErrorStatus>>,
+    can_gc: CanGc,
 ) {
     match retrieve_document_and_check_root_existence(documents, pipeline) {
         Ok(document) => reply
@@ -639,6 +645,7 @@ pub(crate) fn handle_find_element_link_text(
                 document.upcast::<Node>(),
                 selector.clone(),
                 partial,
+                can_gc,
             ))
             .unwrap(),
         Err(error) => reply.send(Err(error)).unwrap(),
@@ -694,6 +701,7 @@ pub(crate) fn handle_find_elements_link_text(
     selector: String,
     partial: bool,
     reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    can_gc: CanGc,
 ) {
     match retrieve_document_and_check_root_existence(documents, pipeline) {
         Ok(document) => reply
@@ -701,6 +709,7 @@ pub(crate) fn handle_find_elements_link_text(
                 document.upcast::<Node>(),
                 selector.clone(),
                 partial,
+                can_gc,
             ))
             .unwrap(),
         Err(error) => reply.send(Err(error)).unwrap(),
@@ -751,11 +760,12 @@ pub(crate) fn handle_find_element_element_link_text(
     selector: String,
     partial: bool,
     reply: IpcSender<Result<Option<String>, ErrorStatus>>,
+    can_gc: CanGc,
 ) {
     reply
         .send(
             find_node_by_unique_id(documents, pipeline, element_id)
-                .and_then(|node| first_matching_link(&node, selector.clone(), partial)),
+                .and_then(|node| first_matching_link(&node, selector.clone(), partial, can_gc)),
         )
         .unwrap();
 }
@@ -814,11 +824,12 @@ pub(crate) fn handle_find_element_elements_link_text(
     selector: String,
     partial: bool,
     reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    can_gc: CanGc,
 ) {
     reply
         .send(
             find_node_by_unique_id(documents, pipeline, element_id)
-                .and_then(|node| all_matching_links(&node, selector.clone(), partial)),
+                .and_then(|node| all_matching_links(&node, selector.clone(), partial, can_gc)),
         )
         .unwrap();
 }
