@@ -1405,81 +1405,7 @@ impl TreeSink for Sink {
         template: &Dom<Node>,
         attrs: Vec<Attribute>,
     ) -> Result<(), String> {
-        let host_element = host.downcast::<Element>().unwrap();
-
-        if host_element.shadow_root().is_some() {
-            return Err(String::from("Already in a shadow host"));
-        }
-
-        let template_element = template.downcast::<HTMLTemplateElement>().unwrap();
-
-        // Step 3. Let mode be template start tag's shadowrootmode attribute's value.
-        // Step 4. Let clonable be true if template start tag has a shadowrootclonable attribute; otherwise false.
-        // Step 5. Let delegatesfocus be true if template start tag
-        // has a shadowrootdelegatesfocus attribute; otherwise false.
-        // Step 6. Let serializable be true if template start tag
-        // has a shadowrootserializable attribute; otherwise false.
-        let mut shadow_root_mode = ShadowRootMode::Open;
-        let mut clonable = false;
-        let mut delegatesfocus = false;
-        let mut serializable = false;
-
-        let attrs: Vec<ElementAttribute> = attrs
-            .clone()
-            .into_iter()
-            .map(|attr| ElementAttribute::new(attr.name, DOMString::from(String::from(attr.value))))
-            .collect();
-
-        attrs
-            .iter()
-            .for_each(|attr: &ElementAttribute| match attr.name.local {
-                local_name!("shadowrootmode") => {
-                    if attr.value.str().eq_ignore_ascii_case("open") {
-                        shadow_root_mode = ShadowRootMode::Open;
-                    } else if attr.value.str().eq_ignore_ascii_case("closed") {
-                        shadow_root_mode = ShadowRootMode::Closed;
-                    } else {
-                        unreachable!("shadowrootmode value is not open nor closed");
-                    }
-                },
-                local_name!("shadowrootclonable") => {
-                    clonable = true;
-                },
-                local_name!("shadowrootdelegatesfocus") => {
-                    delegatesfocus = true;
-                },
-                local_name!("shadowrootserializable") => {
-                    serializable = true;
-                },
-                _ => {},
-            });
-
-        // Step 8.1. Attach a shadow root with declarative shadow host element,
-        // mode, clonable, serializable, delegatesFocus, and "named".
-        match host_element.attach_shadow(
-            IsUserAgentWidget::No,
-            shadow_root_mode,
-            clonable,
-            serializable,
-            delegatesfocus,
-            SlotAssignmentMode::Named,
-            CanGc::note(),
-        ) {
-            Ok(shadow_root) => {
-                // Step 8.3. Set shadow's declarative to true.
-                shadow_root.set_declarative(true);
-
-                // Set 8.4. Set template's template contents property to shadow.
-                let shadow = shadow_root.upcast::<DocumentFragment>();
-                template_element.set_contents(Some(shadow));
-
-                // Step 8.5. Set shadow’s available to element internals to true.
-                shadow_root.set_available_to_element_internals(true);
-
-                Ok(())
-            },
-            Err(_) => Err(String::from("Attaching shadow fails")),
-        }
+        attach_declarative_shadow_inner(host, template, attrs)
     }
 }
 
@@ -1614,5 +1540,87 @@ impl TendrilSink<UTF8> for NetworkSink {
 
     fn finish(self) -> Self::Output {
         self.output
+    }
+}
+
+fn attach_declarative_shadow_inner(
+    host: &Node,
+    template: &Node,
+    attrs: Vec<Attribute>,
+) -> Result<(), String> {
+    let host_element = host.downcast::<Element>().unwrap();
+
+    if host_element.shadow_root().is_some() {
+        return Err(String::from("Already in a shadow host"));
+    }
+
+    let template_element = template.downcast::<HTMLTemplateElement>().unwrap();
+
+    // Step 3. Let mode be template start tag's shadowrootmode attribute's value.
+    // Step 4. Let clonable be true if template start tag has a shadowrootclonable attribute; otherwise false.
+    // Step 5. Let delegatesfocus be true if template start tag
+    // has a shadowrootdelegatesfocus attribute; otherwise false.
+    // Step 6. Let serializable be true if template start tag
+    // has a shadowrootserializable attribute; otherwise false.
+    let mut shadow_root_mode = ShadowRootMode::Open;
+    let mut clonable = false;
+    let mut delegatesfocus = false;
+    let mut serializable = false;
+
+    let attrs: Vec<ElementAttribute> = attrs
+        .clone()
+        .into_iter()
+        .map(|attr| ElementAttribute::new(attr.name, DOMString::from(String::from(attr.value))))
+        .collect();
+
+    attrs
+        .iter()
+        .for_each(|attr: &ElementAttribute| match attr.name.local {
+            local_name!("shadowrootmode") => {
+                if attr.value.str().eq_ignore_ascii_case("open") {
+                    shadow_root_mode = ShadowRootMode::Open;
+                } else if attr.value.str().eq_ignore_ascii_case("closed") {
+                    shadow_root_mode = ShadowRootMode::Closed;
+                } else {
+                    unreachable!("shadowrootmode value is not open nor closed");
+                }
+            },
+            local_name!("shadowrootclonable") => {
+                clonable = true;
+            },
+            local_name!("shadowrootdelegatesfocus") => {
+                delegatesfocus = true;
+            },
+            local_name!("shadowrootserializable") => {
+                serializable = true;
+            },
+            _ => {},
+        });
+
+    // Step 8.1. Attach a shadow root with declarative shadow host element,
+    // mode, clonable, serializable, delegatesFocus, and "named".
+    match host_element.attach_shadow(
+        IsUserAgentWidget::No,
+        shadow_root_mode,
+        clonable,
+        serializable,
+        delegatesfocus,
+        SlotAssignmentMode::Named,
+        CanGc::note(),
+    ) {
+        Ok(shadow_root) => {
+            // Step 8.3. Set shadow's declarative to true.
+            shadow_root.set_declarative(true);
+
+            // Set 8.4. Set template's template contents property to shadow.
+            let shadow = shadow_root.upcast::<DocumentFragment>();
+            template_element.set_contents(Some(shadow));
+
+            // Step 8.5. Set shadow’s available to element internals to true.
+            shadow_root.set_available_to_element_internals(true);
+
+            Ok(())
+        },
+        Err(_) => Err(String::from("Attaching shadow fails")),
     }
 }
