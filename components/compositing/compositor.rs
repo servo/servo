@@ -695,7 +695,7 @@ impl IOCompositor {
                 let dppx = webview_renderer.device_pixels_per_page_pixel();
                 let point = dppx.transform_point(Point2D::new(x, y));
                 let scroll_delta =
-                    dppx.transform_vector(Vector2D::new(delta_x as f32, delta_y as f32));
+                    dppx.transform_vector(Vector2D::new(-delta_x as f32, -delta_y as f32));
                 webview_renderer.dispatch_point_input_event(
                     InputEvent::Wheel(WheelEvent::new(delta, point))
                         .with_webdriver_message_id(message_id),
