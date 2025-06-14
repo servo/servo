@@ -654,6 +654,7 @@ impl ServoParser {
             let script_nesting_level = self.script_nesting_level.get();
 
             self.script_nesting_level.set(script_nesting_level + 1);
+            script.set_initial_script_text();
             script.prepare(can_gc);
             self.script_nesting_level.set(script_nesting_level);
 
