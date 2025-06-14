@@ -140,8 +140,8 @@ impl CanvasContext for CanvasRenderingContext2D {
         self.canvas_state.get_canvas_id()
     }
 
-    fn canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
-        self.canvas.clone()
+    fn canvas(&self) -> Option<HTMLCanvasElementOrOffscreenCanvas> {
+        Some(self.canvas.clone())
     }
 
     fn update_rendering(&self) {

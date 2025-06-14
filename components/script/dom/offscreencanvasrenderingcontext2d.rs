@@ -75,7 +75,7 @@ impl CanvasContext for OffscreenCanvasRenderingContext2D {
         self.context.context_id()
     }
 
-    fn canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
+    fn canvas(&self) -> Option<HTMLCanvasElementOrOffscreenCanvas> {
         self.context.canvas()
     }
 
@@ -98,7 +98,7 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
     // https://html.spec.whatwg.org/multipage/offscreencontext2d-canvas
     fn Canvas(&self) -> DomRoot<OffscreenCanvas> {
         match self.context.canvas() {
-            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => canvas,
+            Some(HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas)) => canvas,
             _ => panic!("Should not be called from onscreen canvas"),
         }
     }
