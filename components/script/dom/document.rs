@@ -54,6 +54,7 @@ use profile_traits::ipc as profile_ipc;
 use profile_traits::time::TimerMetadataFrameType;
 use regex::bytes::Regex;
 use script_bindings::interfaces::DocumentHelpers;
+use script_bindings::root::Root;
 use script_layout_interface::{PendingRestyle, TrustedNodeAddress};
 use script_traits::{ConstellationInputEvent, DocumentActivity, ProgressiveWebMetricType};
 use servo_arc::Arc;
@@ -2111,6 +2112,50 @@ impl Document {
         if target_has_changed {
             prev_mouse_over_target.set(Some(&new_target));
         }
+    }
+
+    pub(crate) fn handle_mouse_leave_event(
+        &self,
+        prev_mouse_over_target: Root<Dom<Element>>,
+        position: Point2D<f32>,
+        pressed_mouse_buttons: u16,
+        can_gc: CanGc,
+    ) {
+        let window = self.window();
+        if prev_mouse_over_target
+            .upcast::<Node>()
+            .inclusive_ancestors(ShadowIncluding::No)
+            .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
+            .next()
+            .is_some()
+        {
+            window.send_to_embedder(EmbedderMsg::Status(window.webview_id(), None));
+        }
+        for element in prev_mouse_over_target
+            .upcast::<Node>()
+            .inclusive_ancestors(ShadowIncluding::No)
+            .filter_map(DomRoot::downcast::<Element>)
+        {
+            element.set_hover_state(false);
+            element.set_active_state(false);
+        }
+        self.fire_mouse_event(
+            position,
+            prev_mouse_over_target.upcast(),
+            FireMouseEventType::Out,
+            EventBubbles::Bubbles,
+            EventCancelable::Cancelable,
+            pressed_mouse_buttons,
+            can_gc,
+        );
+        self.handle_mouse_enter_leave_event(
+            position,
+            FireMouseEventType::Leave,
+            None,
+            DomRoot::from_ref(prev_mouse_over_target.upcast::<Node>()),
+            pressed_mouse_buttons,
+            can_gc,
+        );
     }
 
     fn handle_mouse_enter_leave_event(

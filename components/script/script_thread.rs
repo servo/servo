@@ -1087,6 +1087,23 @@ impl ScriptThread {
         }
     }
 
+    fn process_mouse_leave_event(
+        &self,
+        document: &Document,
+        position: Point2D<f32, DevicePixel>,
+        pressed_mouse_buttons: u16,
+        can_gc: CanGc,
+    ) {
+        if let Some(target) = self.topmost_mouse_over_target.take() {
+            document.handle_mouse_leave_event(
+                target,
+                position.cast_unit(),
+                pressed_mouse_buttons,
+                can_gc,
+            );
+        }
+    }
+
     /// Process compositor events as part of a "update the rendering task".
     fn process_pending_input_events(&self, pipeline_id: PipelineId, can_gc: CanGc) {
         let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
@@ -1123,6 +1140,14 @@ impl ScriptThread {
                     self.process_mouse_move_event(
                         &document,
                         event.hit_test_result,
+                        event.pressed_mouse_buttons,
+                        can_gc,
+                    );
+                },
+                InputEvent::MouseLeave(leave_event) => {
+                    self.process_mouse_leave_event(
+                        &document,
+                        leave_event.point,
                         event.pressed_mouse_buttons,
                         can_gc,
                     );
