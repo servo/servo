@@ -61,6 +61,7 @@ impl DissimilarOriginWindow {
                 global_to_clone_from.resource_threads().clone(),
                 global_to_clone_from.origin().clone(),
                 global_to_clone_from.creation_url().clone(),
+                global_to_clone_from.top_level_creation_url().clone(),
                 // FIXME(nox): The microtask queue is probably not important
                 // here, but this whole DOM interface is a hack anyway.
                 global_to_clone_from.microtask_queue().clone(),
