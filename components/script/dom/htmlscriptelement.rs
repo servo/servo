@@ -41,6 +41,7 @@ use crate::HasParent;
 use crate::document_loader::LoadType;
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -207,6 +208,9 @@ pub(crate) struct HTMLScriptElement {
     /// Unique id for each script element
     #[ignore_malloc_size_of = "Defined in uuid"]
     id: ScriptId,
+
+    /// <https://w3c.github.io/trusted-types/dist/spec/#htmlscriptelement-script-text>
+    script_text: DomRefCell<DOMString>,
 }
 
 impl HTMLScriptElement {
@@ -225,6 +229,7 @@ impl HTMLScriptElement {
             parser_document: Dom::from_ref(document),
             preparation_time_document: MutNullableDom::new(None),
             line_number: creator.return_line_number(),
+            script_text: DomRefCell::new(DOMString::new()),
         }
     }
 
@@ -650,6 +655,30 @@ fn fetch_a_classic_script(
 }
 
 impl HTMLScriptElement {
+    /// <https://w3c.github.io/trusted-types/dist/spec/#setting-slot-values-from-parser>
+    pub(crate) fn set_initial_script_text(&self) {
+        *self.script_text.borrow_mut() = self.text();
+    }
+
+    /// <https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-prepare-the-script-text>
+    fn prepare_the_script_text(&self, can_gc: CanGc) -> Fallible<()> {
+        // Step 1. If script’s script text value is not equal to its child text content,
+        // set script’s script text to the result of executing
+        // Get Trusted Type compliant string, with the following arguments:
+        if self.script_text.borrow().clone() != self.text() {
+            *self.script_text.borrow_mut() = TrustedScript::get_trusted_script_compliant_string(
+                &self.owner_global(),
+                self.Text(),
+                "HTMLScriptElement",
+                "text",
+                can_gc,
+            )?
+            .into();
+        }
+
+        Ok(())
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#prepare-the-script-element>
     pub(crate) fn prepare(&self, can_gc: CanGc) {
         // Step 1. If el's already started is true, then return.
@@ -673,9 +702,14 @@ impl HTMLScriptElement {
             self.non_blocking.set(true);
         }
 
-        // Step 5. Let source text be el's child text content.
+        // Step 5. Execute the Prepare the script text algorithm on el.
+        // If that algorithm threw an error, then return.
+        if self.prepare_the_script_text(can_gc).is_err() {
+            return;
+        }
+        // Step 5a. Let source text be el’s script text value.
+        let text = self.script_text.borrow().clone();
         // Step 6. If el has no src attribute, and source text is the empty string, then return.
-        let text = self.text();
         if text.is_empty() && !element.has_attribute(&local_name!("src")) {
             return;
         }
@@ -1490,9 +1524,10 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
             "innerText",
             can_gc,
         )?;
+        let value = DOMString::from(value);
+        *self.script_text.borrow_mut() = value.clone();
         // Step 3: Run set the inner text steps with this and value.
-        self.upcast::<HTMLElement>()
-            .set_inner_text(DOMString::from(value), can_gc);
+        self.upcast::<HTMLElement>().set_inner_text(value, can_gc);
         Ok(())
     }
 
@@ -1513,9 +1548,10 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
             can_gc,
         )?;
         // Step 2: Set this's script text value to the given value.
-        // TODO: Implement for https://w3c.github.io/trusted-types/dist/spec/#prepare-script-text
+        let value = DOMString::from(value);
+        *self.script_text.borrow_mut() = value.clone();
         // Step 3: String replace all with the given value within this.
-        Node::string_replace_all(DOMString::from(value), self.upcast::<Node>(), can_gc);
+        Node::string_replace_all(value, self.upcast::<Node>(), can_gc);
         Ok(())
     }
 
@@ -1539,10 +1575,10 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
             can_gc,
         )?;
         // Step 2: Set this's script text value to value.
-        // TODO: Implement for https://w3c.github.io/trusted-types/dist/spec/#prepare-script-text
+        let value = DOMString::from(value);
+        *self.script_text.borrow_mut() = value.clone();
         // Step 3: Run set text content with this and value.
-        self.upcast::<Node>()
-            .SetTextContent(Some(DOMString::from(value)), can_gc);
+        self.upcast::<Node>().SetTextContent(Some(value), can_gc);
         Ok(())
     }
 
