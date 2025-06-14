@@ -16,7 +16,7 @@ pub enum InputEvent {
     EditingAction(EditingActionEvent),
     Gamepad(GamepadEvent),
     Ime(ImeEvent),
-    Keyboard(KeyboardEvent),
+    Keyboard(KeyboardEventWithWebDriverId),
     MouseButton(MouseButtonEvent),
     MouseMove(MouseMoveEvent),
     Touch(TouchEvent),
@@ -50,7 +50,7 @@ impl InputEvent {
             InputEvent::EditingAction(..) => None,
             InputEvent::Gamepad(..) => None,
             InputEvent::Ime(..) => None,
-            InputEvent::Keyboard(..) => None,
+            InputEvent::Keyboard(event) => event.webdriver_id,
             InputEvent::MouseButton(event) => event.webdriver_id,
             InputEvent::MouseMove(event) => event.webdriver_id,
             InputEvent::Touch(..) => None,
@@ -63,7 +63,9 @@ impl InputEvent {
             InputEvent::EditingAction(..) => {},
             InputEvent::Gamepad(..) => {},
             InputEvent::Ime(..) => {},
-            InputEvent::Keyboard(..) => {},
+            InputEvent::Keyboard(ref mut event) => {
+                event.webdriver_id = webdriver_id;
+            },
             InputEvent::MouseButton(ref mut event) => {
                 event.webdriver_id = webdriver_id;
             },
@@ -77,6 +79,23 @@ impl InputEvent {
         };
 
         self
+    }
+}
+
+/// Wrap the KeyboardEvent from crate to pair it with webdriver_id,
+/// which is used for webdriver action synchronization.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct KeyboardEventWithWebDriverId {
+    pub event: KeyboardEvent,
+    webdriver_id: Option<WebDriverMessageId>,
+}
+
+impl KeyboardEventWithWebDriverId {
+    pub fn new(keyboard_event: KeyboardEvent) -> Self {
+        Self {
+            event: keyboard_event,
+            webdriver_id: None,
+        }
     }
 }
 
