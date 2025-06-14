@@ -537,10 +537,8 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
 
         let mut sourced_names_vec: Vec<SourcedName> = Vec::new();
 
-        let controls = self.controls.borrow();
-
         // Step 2
-        for child in controls.iter() {
+        for child in self.controls.borrow().iter() {
             if child
                 .downcast::<HTMLElement>()
                 .is_some_and(|c| c.is_listed_element())
@@ -565,7 +563,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
         }
 
         // Step 3
-        for child in controls.iter() {
+        for child in self.controls.borrow().iter() {
             if child.is::<HTMLImageElement>() {
                 if let Some(id_atom) = child.get_id() {
                     let entry = SourcedName {
@@ -713,8 +711,9 @@ impl HTMLFormElement {
     }
 
     pub(crate) fn update_validity(&self, can_gc: CanGc) {
-        let controls = self.controls.borrow();
-        let is_any_invalid = controls
+        let is_any_invalid = self
+            .controls
+            .borrow()
             .iter()
             .any(|control| control.is_invalid(false, can_gc));
 
@@ -1084,9 +1083,10 @@ impl HTMLFormElement {
     /// Statitically validate the constraints of form elements
     /// <https://html.spec.whatwg.org/multipage/#statically-validate-the-constraints>
     fn static_validation(&self, can_gc: CanGc) -> Result<(), Vec<DomRoot<Element>>> {
-        let controls = self.controls.borrow();
         // Step 1-3
-        let invalid_controls = controls
+        let invalid_controls = self
+            .controls
+            .borrow()
             .iter()
             .filter_map(|field| {
                 if let Some(element) = field.downcast::<Element>() {
@@ -1131,9 +1131,8 @@ impl HTMLFormElement {
         encoding: Option<&'static Encoding>,
         can_gc: CanGc,
     ) -> Vec<FormDatum> {
-        let controls = self.controls.borrow();
         let mut data_set = Vec::new();
-        for child in controls.iter() {
+        for child in self.controls.borrow().iter() {
             // Step 5.1: The field element is disabled.
             if child.disabled_state() {
                 continue;
