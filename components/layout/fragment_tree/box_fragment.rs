@@ -202,14 +202,32 @@ impl BoxFragment {
             .expect("Should only call `scrollable_overflow()` after calculating overflow")
     }
 
+    /// This is an implementation of <https://drafts.csswg.org/css-overflow-3/#scrollable>:
     pub(crate) fn calculate_scrollable_overflow(&mut self) {
-        let scrollable_overflow_from_children = self
-            .children
-            .iter()
-            .fold(PhysicalRect::zero(), |acc, child| {
-                acc.union(&child.calculate_scrollable_overflow_for_parent())
-            });
+        // > The scrollable overflow area is the union of:
+        // > *  The scroll container’s own padding box.
         let physical_padding_rect = self.padding_rect();
+
+        let scrollable_overflow_from_children =
+            self.children
+                .iter()
+                .fold(PhysicalRect::zero(), |acc, child| {
+                    let scrollable_overflow_from_child =
+                        child.calculate_scrollable_overflow_for_parent();
+
+                    // > * The border boxes of all boxes for which it is the containing block and
+                    // >  whose border boxes are positioned not wholly in the unreachable
+                    // >  scrollable overflow region, accounting for transforms by projecting
+                    // >  each box onto the plane of the element that establishes its 3D
+                    // >  rendering context. [CSS3-TRANSFORMS]
+                    let scrollable_overflow_from_child = self
+                        .clip_unreachable_scrollable_overflow_region(
+                            scrollable_overflow_from_child,
+                            physical_padding_rect,
+                        );
+
+                    acc.union(&scrollable_overflow_from_child)
+                });
         let content_origin = self.content_rect.origin.to_vector();
         self.scrollable_overflow = Some(
             physical_padding_rect
@@ -281,31 +299,35 @@ impl BoxFragment {
     }
 
     pub(crate) fn scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
-        // TODO: Properly handle absolutely positioned fragments.
-        if self.style.get_box().position.is_absolutely_positioned() {
-            return PhysicalRect::zero();
+        let mut overflow = self.border_rect();
+        if self.style.establishes_scroll_container(self.base.flags) {
+            return overflow;
         }
 
-        let mut overflow = self.border_rect();
-        if !self.style.establishes_scroll_container(self.base.flags) {
-            // https://www.w3.org/TR/css-overflow-3/#scrollable
-            // Only include the scrollable overflow of a child box if it has overflow: visible.
-            let scrollable_overflow = self.scrollable_overflow();
-            let bottom_right = PhysicalPoint::new(
-                overflow.max_x().max(scrollable_overflow.max_x()),
-                overflow.max_y().max(scrollable_overflow.max_y()),
-            );
+        // https://www.w3.org/TR/css-overflow-3/#scrollable
+        // Only include the scrollable overflow of a child box if it has overflow: visible.
+        let scrollable_overflow = self.scrollable_overflow();
+        let bottom_right = PhysicalPoint::new(
+            overflow.max_x().max(scrollable_overflow.max_x()),
+            overflow.max_y().max(scrollable_overflow.max_y()),
+        );
 
-            let overflow_style = self.style.effective_overflow(self.base.flags);
-            if overflow_style.y == ComputedOverflow::Visible {
-                overflow.origin.y = overflow.origin.y.min(scrollable_overflow.origin.y);
-                overflow.size.height = bottom_right.y - overflow.origin.y;
-            }
+        let overflow_style = self.style.effective_overflow(self.base.flags);
+        if overflow_style.y == ComputedOverflow::Visible {
+            overflow.origin.y = overflow.origin.y.min(scrollable_overflow.origin.y);
+            overflow.size.height = bottom_right.y - overflow.origin.y;
+        }
 
-            if overflow_style.x == ComputedOverflow::Visible {
-                overflow.origin.x = overflow.origin.x.min(scrollable_overflow.origin.x);
-                overflow.size.width = bottom_right.x - overflow.origin.x;
-            }
+        if overflow_style.x == ComputedOverflow::Visible {
+            overflow.origin.x = overflow.origin.x.min(scrollable_overflow.origin.x);
+            overflow.size.width = bottom_right.x - overflow.origin.x;
+        }
+
+        if !self
+            .style
+            .has_effective_transform_or_perspective(self.base.flags)
+        {
+            return overflow;
         }
 
         // <https://drafts.csswg.org/css-overflow-3/#scrollable-overflow-region>
@@ -313,24 +335,14 @@ impl BoxFragment {
         // > the element that establishes its 3D rendering context. [CSS3-TRANSFORMS]
         // Both boxes and its scrollable overflow (if it is included) should be transformed accordingly.
         //
-        // TODO(stevennovaryo): We are supposed to handle perspective transform and 3d context, but it is yet to happen.
-        if self
-            .style
-            .has_effective_transform_or_perspective(self.base.flags)
-        {
-            if let Some(transform) =
-                self.calculate_transform_matrix(&self.border_rect().to_untyped())
-            {
-                if let Some(transformed_overflow_box) =
-                    transform.outer_transformed_rect(&overflow.to_webrender().to_rect())
-                {
-                    overflow =
-                        f32_rect_to_au_rect(transformed_overflow_box.to_untyped()).cast_unit();
-                }
-            }
-        }
-
-        overflow
+        // TODO(stevennovaryo): We are supposed to handle perspective transform and 3d
+        // contexts, but it is yet to happen.
+        self.calculate_transform_matrix(&self.border_rect().to_untyped())
+            .and_then(|transform| {
+                transform.outer_transformed_rect(&overflow.to_webrender().to_rect())
+            })
+            .map(|transformed_rect| f32_rect_to_au_rect(transformed_rect.to_untyped()).cast_unit())
+            .unwrap_or(overflow)
     }
 
     /// <https://drafts.csswg.org/css-overflow/#unreachable-scrollable-overflow-region>
@@ -365,18 +377,6 @@ impl BoxFragment {
             true => PhysicalRect::zero(),
             false => scrollable_overflow_box.to_rect(),
         }
-    }
-
-    /// <https://drafts.csswg.org/css-overflow/#unreachable-scrollable-overflow-region>
-    /// > area beyond the scroll origin in either axis is considered the unreachable scrollable overflow region
-    ///
-    /// Return the clipped the scrollable overflow based on its scroll origin, determined by overflow direction.
-    /// This will coincides with the scrollport if the fragment is a scroll container.
-    pub(crate) fn reachable_scrollable_overflow_region(&self) -> PhysicalRect<Au> {
-        self.clip_unreachable_scrollable_overflow_region(
-            self.scrollable_overflow(),
-            self.padding_rect(),
-        )
     }
 
     pub(crate) fn calculate_resolved_insets_if_positioned(&self) -> PhysicalSides<AuOrAuto> {
