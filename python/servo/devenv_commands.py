@@ -120,9 +120,6 @@ class MachCommands(CommandBase):
         env = self.build_env()
         env["RUSTC"] = "rustc"
 
-        def escape(s):
-            return s.replace("\r", "%0D").replace("\n", "%0A")
-
         if "--message-format=json" in params and report_ci:
             report_manager = LintingReportManager(10)
 
@@ -133,8 +130,7 @@ class MachCommands(CommandBase):
                     data = [json.loads(line) for line in self.last_output.splitlines() if line.strip()]
                     report_manager.filter_clippy_log(data)
                     report_manager.logs_annotation()
-                except json.JSONDecodeError as e:
-                    print("Failed to parse JSON:", e)
+                except json.JSONDecodeError:
                     return retcode
             return retcode
         return self.run_cargo_build_like_command("clippy", params, env=env, **kwargs)
