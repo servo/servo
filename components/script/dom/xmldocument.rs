@@ -122,7 +122,7 @@ impl XMLDocumentMethods<crate::DomTypeHolder> for XMLDocument {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
-    fn NamedGetter(&self, name: DOMString) -> Option<NamedPropertyValue> {
-        self.upcast::<Document>().NamedGetter(name)
+    fn NamedGetter(&self, name: DOMString, can_gc: CanGc) -> Option<NamedPropertyValue> {
+        self.upcast::<Document>().NamedGetter(name, can_gc)
     }
 }
