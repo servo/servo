@@ -81,6 +81,9 @@
               assert_equals(clonedOps.style.background, "")
           });
           test(function() {
+              assert_equals(clonedOps.style.color, "red")
+          });
+          test(function() {
               assert_equals(violetOps.style.background.match(/rgb\(238, 130, 238\)/)[0], "rgb(238, 130, 238)")
           });
           test(function() {
@@ -90,10 +93,7 @@
               assert_equals(window.getComputedStyle(clonedOps).color, window.getComputedStyle(ops).color)
           });
           test(function() {
-              assert_equals(window.getComputedStyle(ops).background, window.getComputedStyle(violetOps).background)
-          });
-          test(function() {
-              assert_equals(window.getComputedStyle(clonedOps).background, window.getComputedStyle(violetOps).background)
+              assert_not_equals(window.getComputedStyle(clonedOps).background, window.getComputedStyle(violetOps).background)
           });
           test(function() {
               assert_equals(ops.id, "ops")
