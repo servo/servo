@@ -92,7 +92,6 @@ use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator, Se
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlbodyelement::HTMLBodyElement;
 use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutHTMLCanvasElementHelpers};
 use crate::dom::htmlcollection::HTMLCollection;
 use crate::dom::htmlelement::HTMLElement;
@@ -958,8 +957,8 @@ impl Node {
         let in_quirks_mode = document.quirks_mode() == QuirksMode::Quirks;
         let is_root = self.downcast::<Element>().is_some_and(|e| e.is_root());
         let is_body_element = self
-            .downcast::<HTMLBodyElement>()
-            .is_some_and(|e| e.is_the_html_body_element());
+            .downcast::<HTMLElement>()
+            .is_some_and(|e| e.is_body_element());
 
         // "4. If the element is the root element and document is not in quirks mode
         // return max(viewport scrolling area width/height, viewport width/height)."

@@ -145,7 +145,6 @@ use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmlareaelement::HTMLAreaElement;
 use crate::dom::htmlbaseelement::HTMLBaseElement;
-use crate::dom::htmlbodyelement::HTMLBodyElement;
 use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlembedelement::HTMLEmbedElement;
@@ -2490,12 +2489,11 @@ impl Document {
     }
 
     pub(crate) fn get_body_attribute(&self, local_name: &LocalName) -> DOMString {
-        match self
-            .GetBody()
-            .and_then(DomRoot::downcast::<HTMLBodyElement>)
-        {
-            Some(ref body) => body.upcast::<Element>().get_string_attribute(local_name),
-            None => DOMString::new(),
+        match self.GetBody() {
+            Some(ref body) if body.is_body_element() => {
+                body.upcast::<Element>().get_string_attribute(local_name)
+            },
+            _ => DOMString::new(),
         }
     }
 
@@ -2505,10 +2503,7 @@ impl Document {
         value: DOMString,
         can_gc: CanGc,
     ) {
-        if let Some(ref body) = self
-            .GetBody()
-            .and_then(DomRoot::downcast::<HTMLBodyElement>)
-        {
+        if let Some(ref body) = self.GetBody().filter(|elem| elem.is_body_element()) {
             let body = body.upcast::<Element>();
             let value = body.parse_attribute(&ns!(), local_name, value);
             body.set_attribute(local_name, value, can_gc);
