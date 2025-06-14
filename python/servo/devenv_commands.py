@@ -7,20 +7,21 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-from os import path, listdir, getcwd
-
+import json
 import signal
 import subprocess
 import sys
 import tempfile
+from os import getcwd, listdir, path
 
 from mach.decorators import (
+    Command,
     CommandArgument,
     CommandProvider,
-    Command,
 )
+from tidy.linting_report import LintingReportManager
 
-from servo.command_base import CommandBase, cd, call
+from servo.command_base import CommandBase, call, cd
 
 
 @CommandProvider
@@ -108,8 +109,9 @@ class MachCommands(CommandBase):
 
     @Command("clippy", description='Run "cargo clippy"', category="devenv")
     @CommandArgument("params", default=None, nargs="...", help="Command-line arguments to be passed through to clippy")
+    @CommandArgument("--report-ci", "-rci", default=False, action="store_true", help="Put the lint result on the file")
     @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
-    def cargo_clippy(self, params, **kwargs):
+    def cargo_clippy(self, params, report_ci=False, **kwargs):
         if not params:
             params = []
 
@@ -117,6 +119,20 @@ class MachCommands(CommandBase):
         self.ensure_clobbered()
         env = self.build_env()
         env["RUSTC"] = "rustc"
+
+        if "--message-format=json" in params and report_ci:
+            report_manager = LintingReportManager(10)
+
+            retcode = self.run_cargo_build_like_command("clippy", params, env=env, capture_output=True, **kwargs)
+
+            if retcode != 0 and self.last_output:
+                try:
+                    data = [json.loads(line) for line in self.last_output.splitlines() if line.strip()]
+                    report_manager.filter_clippy_log(data)
+                    report_manager.logs_annotation()
+                except json.JSONDecodeError:
+                    return retcode
+            return retcode
         return self.run_cargo_build_like_command("clippy", params, env=env, **kwargs)
 
     @Command("grep", description="`git grep` for selected directories.", category="devenv")
