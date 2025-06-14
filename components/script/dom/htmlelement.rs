@@ -439,7 +439,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
 
     /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetparent>
     fn GetOffsetParent(&self, can_gc: CanGc) -> Option<DomRoot<Element>> {
-        if self.is::<HTMLBodyElement>() || self.is::<HTMLHtmlElement>() {
+        if self.is_body_element() || self.is::<HTMLHtmlElement>() {
             return None;
         }
 
@@ -452,7 +452,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
 
     // https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsettop
     fn OffsetTop(&self, can_gc: CanGc) -> i32 {
-        if self.is::<HTMLBodyElement>() {
+        if self.is_body_element() {
             return 0;
         }
 
@@ -465,7 +465,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
 
     // https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetleft
     fn OffsetLeft(&self, can_gc: CanGc) -> i32 {
-        if self.is::<HTMLBodyElement>() {
+        if self.is_body_element() {
             return 0;
         }
 
