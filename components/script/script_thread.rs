@@ -1156,7 +1156,7 @@ impl ScriptThread {
                     document.handle_wheel_event(wheel_event, event.hit_test_result, can_gc);
                 },
                 InputEvent::Keyboard(keyboard_event) => {
-                    document.dispatch_key_event(keyboard_event, can_gc);
+                    document.dispatch_key_event(keyboard_event.event, can_gc);
                 },
                 InputEvent::Ime(ime_event) => {
                     document.dispatch_ime_event(ime_event, can_gc);

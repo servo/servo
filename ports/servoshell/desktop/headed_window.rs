@@ -19,10 +19,11 @@ use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePixel};
 use servo::{
-    Cursor, ImeEvent, InputEvent, Key, KeyState, KeyboardEvent, MouseButton as ServoMouseButton,
-    MouseButtonAction, MouseButtonEvent, MouseMoveEvent, OffscreenRenderingContext,
-    RenderingContext, ScreenGeometry, Theme, TouchEvent, TouchEventType, TouchId,
-    WebRenderDebugOption, WebView, WheelDelta, WheelEvent, WheelMode, WindowRenderingContext,
+    Cursor, ImeEvent, InputEvent, Key, KeyState, KeyboardEvent, KeyboardEventWithWebDriverId,
+    MouseButton as ServoMouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
+    OffscreenRenderingContext, RenderingContext, ScreenGeometry, Theme, TouchEvent, TouchEventType,
+    TouchId, WebRenderDebugOption, WebView, WheelDelta, WheelEvent, WheelMode,
+    WindowRenderingContext,
 };
 use surfman::{Context, Device};
 use url::Url;
@@ -201,7 +202,9 @@ impl Window {
         for xr_window_pose in &*xr_poses {
             xr_window_pose.handle_xr_translation(&event);
         }
-        webview.notify_input_event(InputEvent::Keyboard(event));
+        webview.notify_input_event(InputEvent::Keyboard(KeyboardEventWithWebDriverId::new(
+            event,
+        )));
     }
 
     fn handle_keyboard_input(&self, state: Rc<RunningAppState>, winit_event: KeyEvent) {
@@ -242,7 +245,9 @@ impl Window {
             for xr_window_pose in &*xr_poses {
                 xr_window_pose.handle_xr_rotation(&winit_event, self.modifiers_state.get());
             }
-            webview.notify_input_event(InputEvent::Keyboard(keyboard_event));
+            webview.notify_input_event(InputEvent::Keyboard(KeyboardEventWithWebDriverId::new(
+                keyboard_event,
+            )));
         }
 
         // servoshell also has key bindings that are visible to, and overridable by, the page.
