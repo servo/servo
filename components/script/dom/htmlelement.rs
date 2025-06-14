@@ -817,7 +817,7 @@ impl HTMLElement {
         }
     }
 
-    /// <https://html.spec.whatwg.org/multipage/dom.html#the-body-element-2>
+    /// <https://html.spec.whatwg.org/multipage/#the-body-element-2>
     pub(crate) fn is_body_element(&self) -> bool {
         let self_node = self.upcast::<Node>();
         self_node.GetParentNode().is_some_and(|parent| {
