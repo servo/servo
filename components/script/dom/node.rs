@@ -44,6 +44,7 @@ use servo_arc::Arc;
 use servo_config::pref;
 use servo_url::ServoUrl;
 use smallvec::SmallVec;
+use style::attr::AttrValue;
 use style::context::QuirksMode;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
@@ -2713,6 +2714,27 @@ impl Node {
         parent.owner_doc().remove_script_and_layout_blocker();
     }
 
+    /// Ensure that for styles, we clone the already-parsed property declaration block.
+    /// This does two things:
+    /// 1. it uses the same fast-path as CSSStyleDeclaration
+    /// 2. it also avoids the CSP checks when cloning (it shouldn't run any when cloning
+    ///    existing valid attributes)
+    fn compute_attribute_value_with_style_fast_path(attr: &Dom<Attr>, elem: &Element) -> AttrValue {
+        if *attr.local_name() == local_name!("style") {
+            if let Some(ref pdb) = *elem.style_attribute().borrow() {
+                let document = elem.owner_document();
+                let shared_lock = document.style_shared_lock();
+                let new_pdb = pdb.read_with(&shared_lock.read()).clone();
+                return AttrValue::Declaration(
+                    (**attr.value()).to_owned(),
+                    Arc::new(shared_lock.wrap(new_pdb)),
+                );
+            }
+        }
+
+        attr.value().clone()
+    }
+
     /// <https://dom.spec.whatwg.org/#concept-node-clone>
     pub(crate) fn clone(
         node: &Node,
@@ -2835,9 +2857,11 @@ impl Node {
                 let copy_elem = copy.downcast::<Element>().unwrap();
 
                 for attr in node_elem.attrs().iter() {
+                    let new_value =
+                        Node::compute_attribute_value_with_style_fast_path(attr, node_elem);
                     copy_elem.push_new_attribute(
                         attr.local_name().clone(),
-                        attr.value().clone(),
+                        new_value,
                         attr.name().clone(),
                         attr.namespace().clone(),
                         attr.prefix().cloned(),
