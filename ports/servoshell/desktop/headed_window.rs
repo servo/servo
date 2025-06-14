@@ -583,8 +583,8 @@ impl WindowPortsMethods for Window {
 
                 // Create wheel event before snapping to the major axis of movement
                 let delta = WheelDelta {
-                    x: dx,
-                    y: dy,
+                    x: -dx,
+                    y: -dy,
                     z: 0.0,
                     mode,
                 };
