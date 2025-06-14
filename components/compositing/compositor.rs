@@ -679,28 +679,26 @@ impl IOCompositor {
                 );
             },
 
-            CompositorMsg::WebDriverWheelScrollEvent(
-                webview_id,
-                x,
-                y,
-                delta_x,
-                delta_y,
-                message_id,
-            ) => {
+            CompositorMsg::WebDriverWheelScrollEvent(webview_id, x, y, dx, dy, message_id) => {
                 let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     warn!("Handling input event for unknown webview: {webview_id}");
                     return;
                 };
+                // The sign of wheel delta value definition in uievent
+                // is inverted compared to `winit`s wheel delta. Hence,
+                // here we invert the sign to mimic wheel scroll
+                // implementation in `headed_window.rs`.
+                let dx = -dx;
+                let dy = -dy;
                 let delta = WheelDelta {
-                    x: delta_x,
-                    y: delta_y,
+                    x: dx,
+                    y: dy,
                     z: 0.0,
                     mode: WheelMode::DeltaPixel,
                 };
                 let dppx = webview_renderer.device_pixels_per_page_pixel();
                 let point = dppx.transform_point(Point2D::new(x, y));
-                let scroll_delta =
-                    dppx.transform_vector(Vector2D::new(delta_x as f32, delta_y as f32));
+                let scroll_delta = dppx.transform_vector(Vector2D::new(dx as f32, dy as f32));
                 webview_renderer.dispatch_point_input_event(
                     InputEvent::Wheel(WheelEvent::new(delta, point))
                         .with_webdriver_message_id(message_id),
