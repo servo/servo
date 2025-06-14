@@ -4,6 +4,7 @@
 // <LICENSE.md or https://opensource.org/licenses/BSD-3-Clause>.
 // This file may not be copied, modified, or distributed except
 // according to those terms.
+#![cfg(target_os = "macos")]
 
 #[macro_use]
 extern crate log;
