@@ -404,6 +404,7 @@ class CGMethodCall(CGThing):
 
         methodName = f'\\"{descriptor.interface.identifier.name}.{method.identifier.name}\\"'
 
+
         def requiredArgCount(signature):
             arguments = signature[1]
             if len(arguments) == 0:
@@ -417,10 +418,11 @@ class CGMethodCall(CGThing):
 
         def getPerSignatureCall(signature, argConversionStartsAt=0):
             signatureIndex = signatures.index(signature)
+            isUnimplemented = method.getExtendedAttribute("Unimplemented") is not None or descriptor.isUnimplemented()
             return CGPerSignatureCall(signature[0], argsPre, signature[1],
                                       f"{nativeMethodName}{'_' * signatureIndex}",
                                       static, descriptor,
-                                      method, argConversionStartsAt)
+                                      method, isUnimplemented, argConversionStartsAt)
 
         if len(signatures) == 1:
             # Special case: we can just do a per-signature method call
@@ -1615,10 +1617,16 @@ class PropertyDefiner:
         return attr[0]
 
     @staticmethod
+    def hasAttr(member, name) -> bool:
+        attr = member.getExtendedAttribute(name)
+        return attr is not None
+
+    @staticmethod
     def getControllingCondition(interfaceMember, descriptor):
+        prefCondition = PropertyDefiner.getStringAttr(interfaceMember, "Pref")
+
         return MemberCondition(
-            PropertyDefiner.getStringAttr(interfaceMember,
-                                          "Pref"),
+            prefCondition,
             PropertyDefiner.getStringAttr(interfaceMember,
                                           "Func"),
             interfaceMember.exposureSet,
@@ -2801,7 +2809,10 @@ def DomTypes(descriptors, descriptorProvider, dictionaries, callbacks, typedefs,
                 traits += ["crate::reflector::DomObjectWrap<Self>"]
 
         if not descriptor.interface.isCallback() and not descriptor.interface.isIteratorInterface():
-            nonConstMembers = [m for m in descriptor.interface.members if not m.isConst()]
+            nonConstMembers = [
+                m for m in descriptor.interface.members
+                if not m.isConst() and not m.getExtendedAttribute("Unimplemented")
+            ]
             ctor = descriptor.interface.ctor()
             if (
                     nonConstMembers
@@ -2839,9 +2850,48 @@ def DomTypeHolder(descriptors, descriptorProvider, dictionaries, callbacks, type
         if descriptor.interface.isCallback() or descriptor.interface.isIteratorInterface():
             continue
         iface_name = descriptor.interface.identifier.name
-        path = f"crate::dom::{iface_name.lower()}::{firstCap(iface_name)}"
+
+        if descriptor.isUnimplemented():
+            path = f"crate::dom::bindings::codegen::StubbedInterfaces::{firstCap(iface_name)}"
+        else:
+            path = f"crate::dom::{iface_name.lower()}::{firstCap(iface_name)}"
         elements.append(CGGeneric(f"    type {firstCap(iface_name)} = {path};\n"))
     elements.append(CGGeneric("}\n"))
+    return CGList(elements)
+
+def StubbedInterfaces(descriptors, descriptorProvider, dictionaries, callbacks, typedefs, config):
+    if not config.stubUnimplementedDomInterfaces:
+        # Nothing to do
+        return CGList([])
+
+    elements = [
+        CGGeneric("use crate::dom::types::*;\n"),
+        CGGeneric("use dom_struct::dom_struct;\n"),
+    ]
+
+    for descriptor in descriptors:
+        if not descriptor.isUnimplemented():
+            continue
+        iface_name = descriptor.interface.identifier.name
+        nativeName = firstCap(iface_name)
+        parentName = firstCap(descriptor.interface.parent.identifier.name)
+
+        # Create stub dom struct definitions
+        definition = CGGeneric((
+            "#[dom_struct]\n"
+            f"pub(crate) struct {nativeName}{{\n"
+            f"   parent: {parentName},\n"
+            "}\n"
+        ))
+        elements.append(definition)
+
+        # Implement the relevant bindings methods for it
+        impl = CGGeneric((
+            f"use script_bindings::codegen::GenericBindings::{nativeName}Binding::{nativeName}_Binding::{nativeName}Methods;\n"
+            f"impl {nativeName}Methods<crate::DomTypeHolder> for {nativeName} {{\n"
+            f"}}\n"
+        ))
+        elements.append(impl)
     return CGList(elements)
 
 
@@ -3928,7 +3978,7 @@ def needCx(returnType, arguments, considerTypes):
 
 class CGCallGenerator(CGThing):
     """
-    A class to generate an actual call to a C++ object.  Assumes that the C++
+    A class to generate an actual call to a Rust object.  Assumes that the Rust
     object is stored in a variable whose name is given by the |object| argument.
 
     errorResult should be a string for the value to return in case of an
@@ -3936,7 +3986,7 @@ class CGCallGenerator(CGThing):
     """
     def __init__(self, errorResult, arguments, argsPre, returnType,
                  extendedAttributes, descriptor, nativeMethodName,
-                 static, object="this", hasCEReactions=False):
+                 static, isUnimplemented: bool, object="this", hasCEReactions=False):
         CGThing.__init__(self)
 
         assert errorResult is None or isinstance(errorResult, str)
@@ -3973,6 +4023,17 @@ class CGCallGenerator(CGThing):
 
         # Build up our actual call
         self.cgRoot = CGList([], "\n")
+
+        if isUnimplemented:
+            # Generate a stub implementation that logs a warning and does nothing else
+            logMessage = (
+                f"log::warn!(target: \"dom-stubs\", \""
+                f"Attempt to use unimplemented method or attribute "
+                f"{descriptor.interface.identifier.name}::{nativeMethodName}"
+                f"\");"
+            )
+            self.cgRoot.append(CGGeneric(logMessage))
+            return
 
         if rootType:
             self.cgRoot.append(CGList([
@@ -4045,7 +4106,7 @@ class CGPerSignatureCall(CGThing):
     # there.
 
     def __init__(self, returnType, argsPre, arguments, nativeMethodName, static,
-                 descriptor, idlNode, argConversionStartsAt=0,
+                 descriptor, idlNode, isUnimplemented: bool, argConversionStartsAt=0,
                  getter=False, setter=False):
         CGThing.__init__(self)
         self.returnType = returnType
@@ -4057,6 +4118,8 @@ class CGPerSignatureCall(CGThing):
         self.argsPre = argsPre
         self.arguments = arguments
         self.argCount = len(arguments)
+        self.isUnimplemented = isUnimplemented
+
         cgThings = []
         cgThings.extend([CGArgumentConverter(arguments[i], i, self.getArgs(),
                                              self.getArgc(), self.descriptor,
@@ -4083,7 +4146,7 @@ class CGPerSignatureCall(CGThing):
                 errorResult,
                 self.getArguments(), self.argsPre, returnType,
                 self.extendedAttributes, descriptor, nativeMethodName,
-                static, hasCEReactions=hasCEReactions))
+                static, isUnimplemented, hasCEReactions=hasCEReactions))
 
         self.cgRoot = CGList(cgThings, "\n")
 
@@ -4100,6 +4163,14 @@ class CGPerSignatureCall(CGThing):
         return 'infallible' not in self.extendedAttributes
 
     def wrap_return_value(self):
+        if self.isUnimplemented:
+            # Unimplemented methods don't actually compute a result type, so we stub
+            # it out here
+            return (
+                "args.rval().set(UndefinedValue());\n"
+                "return true;"
+            )
+
         resultName = "result"
         # Maplike methods have `any` return values in WebIDL, but our internal bindings
         # use stronger types so we need to exclude them from being handled like other
@@ -4170,9 +4241,10 @@ class CGGetterCall(CGPerSignatureCall):
     getter.
     """
     def __init__(self, argsPre, returnType, nativeMethodName, descriptor, attr):
+        isUnimplemented = attr.getExtendedAttribute("Unimplemented") is not None
         CGPerSignatureCall.__init__(self, returnType, argsPre, [],
                                     nativeMethodName, attr.isStatic(), descriptor,
-                                    attr, getter=True)
+                                    attr, isUnimplemented, getter=True)
 
 
 class FakeArgument():
@@ -4197,9 +4269,10 @@ class CGSetterCall(CGPerSignatureCall):
     setter.
     """
     def __init__(self, argsPre, argType, nativeMethodName, descriptor, attr):
+        isUnimplemented = attr.getExtendedAttribute("Unimplemented") is not None
         CGPerSignatureCall.__init__(self, None, argsPre,
                                     [FakeArgument(argType, attr, allowTreatNonObjectAsNull=True)],
-                                    nativeMethodName, attr.isStatic(), descriptor, attr,
+                                    nativeMethodName, attr.isStatic(), descriptor, attr, isUnimplemented,
                                     setter=True)
 
     def wrap_return_value(self):
@@ -5826,8 +5899,9 @@ class CGProxySpecialOperation(CGPerSignatureCall):
 
         # We pass len(arguments) as the final argument so that the
         # CGPerSignatureCall won't do any argument conversion of its own.
+        isUnimplemented = False
         CGPerSignatureCall.__init__(self, returnType, "", arguments, nativeName,
-                                    False, descriptor, operation,
+                                    False, descriptor, operation, isUnimplemented,
                                     len(arguments))
 
         if operation.isSetter():
@@ -6687,6 +6761,11 @@ class CGInterfaceTrait(CGThing):
 
         def members():
             for m in descriptor.interface.members:
+                if m.getExtendedAttribute("Unimplemented"):
+                    # Unimplemented methods or attributes generate a stub implementation and should
+                    # therefore not be part of the trait
+                    continue
+
                 if (m.isMethod()
                         and not m.isMaplikeOrSetlikeOrIterableMethod()
                         and (not m.isIdentifierLess() or (m.isStringifier() and not m.underlyingAttr))
@@ -8666,14 +8745,20 @@ class GlobalGenRoots():
 
     @staticmethod
     def InterfaceTypes(config):
-        descriptors = sorted([MakeNativeName(d.name)
-                              for d in config.getDescriptors(register=True,
-                                                             isCallback=False,
-                                                             isIteratorInterface=False)])
-        curr = CGList([CGGeneric(f"pub(crate) use crate::dom::{name.lower()}::{MakeNativeName(name)};\n")
-                       for name in descriptors])
-        curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
-        return curr
+        descriptors = config.getDescriptors(register=True,
+                                       isCallback=False,
+                                       isIteratorInterface=False)
+
+        definitions = []
+        for descriptor in descriptors:
+            name = MakeNativeName(descriptor.name)
+            if descriptor.isUnimplemented():
+                definition = CGGeneric(f"pub(crate) use crate::dom::bindings::codegen::StubbedInterfaces::{MakeNativeName(name)};\n")
+            else:
+                definition = CGGeneric(f"pub(crate) use crate::dom::{name.lower()}::{MakeNativeName(name)};\n")
+            definitions.append(definition)
+
+        return CGWrapper(CGList(definitions), pre=AUTOGENERATED_WARNING_COMMENT)
 
     @staticmethod
     def Bindings(config):
@@ -8689,8 +8774,7 @@ class GlobalGenRoots():
             "#[allow(clippy::derivable_impls)]\n"
             f"pub mod {name};\n"
         ) for name in sorted(descriptors)])
-        curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
-        return curr
+        return CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
 
     @staticmethod
     def ConcreteInheritTypes(config):
@@ -8872,6 +8956,19 @@ impl Clone for TopTypeId {
         curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
 
         # Done.
+        return curr
+
+    @staticmethod
+    def StubbedInterfaces(config):
+        curr = StubbedInterfaces(config.getDescriptors(),
+                             config.getDescriptorProvider(),
+                             config.getDictionaries(),
+                             config.getCallbacks(),
+                             config.typedefs,
+                             config)
+
+        # Add the auto-generated comment.
+        curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
         return curr
 
     @staticmethod

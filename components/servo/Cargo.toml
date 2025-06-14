@@ -62,6 +62,7 @@ webgpu = [
     "constellation/webgpu",
     "constellation_traits/webgpu",
 ]
+stub-unimplemented-dom-interfaces = ["script/stub-unimplemented-dom-interfaces"]
 
 [dependencies]
 background_hang_monitor = { path = "../background_hang_monitor" }
