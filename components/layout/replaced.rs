@@ -551,13 +551,14 @@ impl ReplacedContents {
         // First, compute the inline size. Intrinsic values depend on the block sizing properties
         // through the aspect ratio, but these can also be intrinsic and depend on the inline size.
         // Therefore, when there is an aspect ratio, we may need to:
-        //  1. Tentatively resolve the inline size, ignoring block sizing properties.
+        //  1. Tentatively resolve the inline size, ignoring sizing properties in both axes
+        //     (i.e. resulting in the inline fallback size).
         //  2. Tentatively resolve the block size, resolving intrinsic keywords by transferring (1).
         //  3. Resolve the final inline size, resolving intrinsic keywords by transferring (2).
         //  4. Resolve the final block size, resolving intrinsic keywords by transferring (3).
         let inline_size = resolve_inline_size(&|| {
             SizeConstraint::Definite(resolve_block_size(&|| {
-                SizeConstraint::Definite(resolve_inline_size(&|| SizeConstraint::default()))
+                SizeConstraint::Definite(get_inline_fallback_size())
             }))
         });
         LogicalVec2 {
