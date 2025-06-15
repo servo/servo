@@ -8,10 +8,11 @@
 use std::error::Error;
 use std::os::raw::c_int;
 
-use delegate::bm;
-use framework::{cb, io, ns};
 use objc::runtime::{Object, YES};
-use utils::{NOT_SUPPORTED_ERROR, nsx};
+
+use crate::delegate::bm;
+use crate::framework::{cb, io, ns};
+use crate::utils::{NOT_SUPPORTED_ERROR, nsx};
 
 #[derive(Clone, Debug)]
 pub struct BluetoothAdapter {

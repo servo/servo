@@ -10,8 +10,9 @@ use std::ffi::{CStr, CString};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::{thread, time};
 
-use framework::{cb, nil, ns};
 use objc::runtime::Object;
+
+use crate::framework::{cb, nil, ns};
 
 pub const NOT_SUPPORTED_ERROR: &str = "Error! Not supported by blurmac!";
 pub const NO_PERIPHERAL_FOUND: &str = "Error! No peripheral found!";

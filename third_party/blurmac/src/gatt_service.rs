@@ -8,11 +8,12 @@
 use std::error::Error;
 use std::sync::Arc;
 
-use delegate::bmx;
-use device::BluetoothDevice;
-use framework::{cb, nil, ns};
 use objc::runtime::Object;
-use utils::{NO_SERVICE_FOUND, cbx, wait};
+
+use crate::delegate::bmx;
+use crate::device::BluetoothDevice;
+use crate::framework::{cb, nil, ns};
+use crate::utils::{NO_SERVICE_FOUND, cbx, wait};
 
 #[derive(Clone, Debug)]
 pub struct BluetoothGATTService {
