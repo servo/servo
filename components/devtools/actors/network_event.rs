@@ -438,7 +438,7 @@ impl NetworkEventActor {
             status_text: String::from_utf8_lossy(status.message()).to_string(),
             headers_size: h_size,
             discard_response_body: false,
-            response_start_vailable: true,
+            response_start_available: true,
         }
     }
 
