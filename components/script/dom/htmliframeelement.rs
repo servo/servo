@@ -168,7 +168,7 @@ impl HTMLIFrameElement {
             if let Some(window_proxy) = window_proxy {
                 if document
                     .global()
-                    .should_navigation_request_be_blocked(&load_data)
+                    .should_navigation_request_be_blocked(&load_data, Some(self.upcast()))
                 {
                     return;
                 }

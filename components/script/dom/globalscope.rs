@@ -2933,7 +2933,11 @@ impl GlobalScope {
         is_js_evaluation_allowed == CheckResult::Allowed
     }
 
-    pub(crate) fn should_navigation_request_be_blocked(&self, load_data: &LoadData) -> bool {
+    pub(crate) fn should_navigation_request_be_blocked(
+        &self,
+        load_data: &LoadData,
+        element: Option<&Element>,
+    ) -> bool {
         let Some(csp_list) = self.get_csp_list() else {
             return false;
         };
@@ -2955,7 +2959,7 @@ impl GlobalScope {
         let (result, violations) =
             csp_list.should_navigation_request_be_blocked(&request, NavigationCheckType::Other);
 
-        self.report_csp_violations(violations, None);
+        self.report_csp_violations(violations, element);
 
         result == CheckResult::Blocked
     }

@@ -627,7 +627,7 @@ impl ScriptThread {
                     if let Some(window) = trusted_global.root().downcast::<Window>() {
                         // Step 5: If the result of should navigation request of type be blocked by
                         // Content Security Policy? given request and cspNavigationType is "Blocked", then return. [CSP]
-                        if trusted_global.root().should_navigation_request_be_blocked(&load_data) {
+                        if trusted_global.root().should_navigation_request_be_blocked(&load_data, None) {
                             return;
                         }
                         if ScriptThread::check_load_origin(&load_data.load_origin, &window.get_url().origin()) {
