@@ -15,9 +15,9 @@ use compositing_traits::viewport_description::{
 use compositing_traits::{SendableFrameTree, WebViewTrait};
 use constellation_traits::{EmbedderToConstellationMessage, WindowSizeType};
 use embedder_traits::{
-    AnimationState, CompositorHitTestResult, InputEvent, MouseButton, MouseButtonAction,
-    MouseButtonEvent, MouseMoveEvent, ShutdownState, TouchEvent, TouchEventResult, TouchEventType,
-    TouchId, ViewportDetails,
+    AnimationState, CompositorHitTestResult, Cursor, InputEvent, MouseButton, MouseButtonAction,
+    MouseButtonEvent, MouseLeaveEvent, MouseMoveEvent, ShutdownState, TouchEvent, TouchEventResult,
+    TouchEventType, TouchId, ViewportDetails,
 };
 use euclid::{Box2D, Point2D, Scale, Size2D, Vector2D};
 use fnv::FnvHashSet;
@@ -356,7 +356,9 @@ impl WebViewRenderer {
                 touch_event.init_sequence_id(self.touch_handler.current_sequence_id);
             },
             InputEvent::MouseButton(_) | InputEvent::MouseMove(_) | InputEvent::Wheel(_) => {
-                self.global.borrow_mut().update_cursor(point, &result);
+                self.global
+                    .borrow_mut()
+                    .update_cursor_from_hittest(point, &result);
             },
             _ => unreachable!("Unexpected input event type: {event:?}"),
         }
@@ -398,7 +400,9 @@ impl WebViewRenderer {
                     touch_event.init_sequence_id(self.touch_handler.current_sequence_id);
                 },
                 InputEvent::MouseButton(_) | InputEvent::MouseMove(_) | InputEvent::Wheel(_) => {
-                    self.global.borrow_mut().update_cursor(point, &result);
+                    self.global
+                        .borrow_mut()
+                        .update_cursor_from_hittest(point, &result);
                 },
                 _ => unreachable!("Unexpected input event type: {event:?}"),
             }
@@ -418,6 +422,11 @@ impl WebViewRenderer {
 
         if let InputEvent::Touch(event) = event {
             self.on_touch_event(event);
+            return;
+        }
+
+        if let InputEvent::MouseLeave(event) = event {
+            self.on_mouse_leave_event(event);
             return;
         }
 
@@ -478,6 +487,21 @@ impl WebViewRenderer {
         }
 
         self.dispatch_point_input_event(event);
+    }
+
+    fn on_mouse_leave_event(&mut self, event: MouseLeaveEvent) {
+        self.global
+            .borrow_mut()
+            .update_cursor(event.point, self.id, Some(Cursor::Default));
+        if let Err(error) = self.global.borrow().constellation_sender.send(
+            EmbedderToConstellationMessage::ForwardInputEvent(
+                self.id,
+                InputEvent::MouseLeave(event),
+                None,
+            ),
+        ) {
+            warn!("Sending event to constellation failed ({error:?}).");
+        }
     }
 
     fn send_touch_event(&mut self, event: TouchEvent) -> bool {
