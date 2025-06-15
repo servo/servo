@@ -908,7 +908,7 @@ impl CanvasContext for WebGL2RenderingContext {
         self.base.context_id()
     }
 
-    fn canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
+    fn canvas(&self) -> Option<HTMLCanvasElementOrOffscreenCanvas> {
         self.base.canvas().clone()
     }
 

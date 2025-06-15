@@ -1914,8 +1914,8 @@ impl CanvasContext for WebGLRenderingContext {
         self.webgl_sender.context_id()
     }
 
-    fn canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
-        self.canvas.clone()
+    fn canvas(&self) -> Option<HTMLCanvasElementOrOffscreenCanvas> {
+        Some(self.canvas.clone())
     }
 
     fn resize(&self) {

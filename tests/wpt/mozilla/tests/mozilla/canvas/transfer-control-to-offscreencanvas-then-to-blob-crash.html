@@ -1,0 +1,6 @@
+<!DOCTYPE html>
+<canvas id="canvas"></canvas>
+<script>
+  canvas.transferControlToOffscreen();
+  canvas.toBlob(_ => {});
+</script>
