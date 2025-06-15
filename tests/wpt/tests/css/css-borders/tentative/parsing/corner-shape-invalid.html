@@ -24,4 +24,16 @@ test_invalid_value("corner-shape", "superellipse(1 abc)");
 test_invalid_value("corner-shape", "superellipse(1) / bevel");
 test_invalid_value("corner-shape", "superellipse(1) / superellipse(3)");
 test_invalid_value("corner-shape", "superellipse(1), superellipse(3)");
+
+for (const edge of ["left", "right", "top", "bottom"]) {
+    const prop = `corner-${edge}-shape`;
+    test_invalid_value(prop, "auto");
+    test_invalid_value(prop, "none");
+    test_invalid_value(prop, "superellipse(1 abc)");
+    test_invalid_value(prop, "superellipse()");
+    test_invalid_value(prop, "auto round");
+    test_invalid_value(prop, "superellipse(--.3) squircle");
+    test_invalid_value(prop, "superellipse(--.3) squircle bc");
+}
+
 </script>

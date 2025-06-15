@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="help" href="https://drafts.csswg.org/mediaqueries4/#error-handling">
+    <link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+    <meta name="assert" content="Test if we ignore syntactically invalid media query lists with multiple media queries and missing media types.">
+    <style>
+        div {
+            width: 100px;
+            height: 20px;
+        }
+
+        #valid1,
+        #valid2,
+        #valid3 {
+            background-color: red;
+        }
+
+        #invalid1,
+        #invalid2 {
+            background-color: green;
+        }
+
+        @media screen and (min-width: 480px), screen and (device-width: 768px) {
+            #valid1 {
+                background-color: green;
+            }
+        }
+
+        @media screen {
+            #valid2 {
+                background-color: green;
+            }
+        }
+
+        @media {
+            #valid3 {
+                background-color: green;
+            }
+        }
+
+        @media screen and (min-width: 480px) screen and (device-width: 768px) {
+            #invalid1 {
+                background-color: red;
+            }
+        }
+
+        @media screen and (min-width: 480px) and (device-width: 768px) {
+            #invalid2 {
+                background-color: red;
+            }
+        }
+    </style>
+</head>
+<body>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="valid1"></div>
+<div id="valid2"></div>
+<div id="valid3"></div>
+<div id="invalid1"></div>
+<div id="invalid2"></div>
+</body>
+</html>
