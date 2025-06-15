@@ -3783,7 +3783,9 @@ impl Document {
                 containing_class,
                 field,
                 can_gc,
-            )?;
+            )?
+            .as_ref()
+            .to_owned();
         }
         // Step 5: If lineFeed is true, append U+000A LINE FEED to string.
         if line_feed {

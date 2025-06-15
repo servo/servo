@@ -21,11 +21,11 @@ use crate::script_runtime::CanGc;
 pub struct TrustedScriptURL {
     reflector_: Reflector,
 
-    data: String,
+    data: DOMString,
 }
 
 impl TrustedScriptURL {
-    fn new_inherited(data: String) -> Self {
+    fn new_inherited(data: DOMString) -> Self {
         Self {
             reflector_: Reflector::new(),
             data,
@@ -33,7 +33,7 @@ impl TrustedScriptURL {
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub(crate) fn new(data: String, global: &GlobalScope, can_gc: CanGc) -> DomRoot<Self> {
+    pub(crate) fn new(data: DOMString, global: &GlobalScope, can_gc: CanGc) -> DomRoot<Self> {
         reflect_dom_object(Box::new(Self::new_inherited(data)), global, can_gc)
     }
 
@@ -43,21 +43,21 @@ impl TrustedScriptURL {
         containing_class: &str,
         field: &str,
         can_gc: CanGc,
-    ) -> Fallible<String> {
+    ) -> Fallible<DOMString> {
         match value {
             TrustedScriptURLOrUSVString::USVString(value) => {
                 let sink = format!("{} {}", containing_class, field);
                 TrustedTypePolicyFactory::get_trusted_type_compliant_string(
                     TrustedType::TrustedScriptURL,
                     global,
-                    value.as_ref().to_owned(),
+                    value.as_ref().into(),
                     &sink,
                     "'script'",
                     can_gc,
                 )
             },
             TrustedScriptURLOrUSVString::TrustedScriptURL(trusted_script_url) => {
-                Ok(trusted_script_url.to_string())
+                Ok(trusted_script_url.data.clone())
             },
         }
     }
@@ -73,11 +73,11 @@ impl fmt::Display for TrustedScriptURL {
 impl TrustedScriptURLMethods<crate::DomTypeHolder> for TrustedScriptURL {
     /// <https://www.w3.org/TR/trusted-types/#trustedscripturl-stringification-behavior>
     fn Stringifier(&self) -> DOMString {
-        DOMString::from(&*self.data)
+        self.data.clone()
     }
 
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedscripturl-tojson>
     fn ToJSON(&self) -> DOMString {
-        DOMString::from(&*self.data)
+        self.data.clone()
     }
 }

@@ -144,10 +144,10 @@ impl TrustedTypePolicyFactory {
     pub(crate) fn process_value_with_default_policy(
         expected_type: TrustedType,
         global: &GlobalScope,
-        input: String,
+        input: DOMString,
         sink: &str,
         can_gc: CanGc,
-    ) -> Fallible<Option<String>> {
+    ) -> Fallible<Option<DOMString>> {
         // Step 1: Let defaultPolicy be the value of global’s trusted type policy factory's default policy.
         let global_policy_factory = global.trusted_types(can_gc);
         let default_policy = match global_policy_factory.default_policy.get() {
@@ -172,7 +172,7 @@ impl TrustedTypePolicyFactory {
         let policy_value = default_policy.get_trusted_type_policy_value(
             expected_type,
             cx,
-            DOMString::from(input.to_owned()),
+            input,
             arguments,
             false,
             can_gc,
@@ -194,11 +194,11 @@ impl TrustedTypePolicyFactory {
     pub(crate) fn get_trusted_type_compliant_string(
         expected_type: TrustedType,
         global: &GlobalScope,
-        input: String,
+        input: DOMString,
         sink: &str,
         sink_group: &str,
         can_gc: CanGc,
-    ) -> Fallible<String> {
+    ) -> Fallible<DOMString> {
         let csp_list = match global.get_csp_list() {
             None => return Ok(input),
             Some(csp_list) => csp_list,
@@ -288,11 +288,11 @@ impl TrustedTypePolicyFactoryMethods<crate::DomTypeHolder> for TrustedTypePolicy
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-emptyhtml>
     fn EmptyHTML(&self, can_gc: CanGc) -> DomRoot<TrustedHTML> {
-        TrustedHTML::new("".to_string(), &self.global(), can_gc)
+        TrustedHTML::new(DOMString::new(), &self.global(), can_gc)
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-emptyscript>
     fn EmptyScript(&self, can_gc: CanGc) -> DomRoot<TrustedScript> {
-        TrustedScript::new("".to_string(), &self.global(), can_gc)
+        TrustedScript::new(DOMString::new(), &self.global(), can_gc)
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-getattributetype>
     fn GetAttributeType(
