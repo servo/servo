@@ -19,12 +19,11 @@ import subprocess
 import sys
 from typing import Any, Dict, List
 
-import colorama
 import toml
-
 import wpt.manifestupdate
 
-from .licenseck import OLD_MPL, MPL, APACHE, COPYRIGHT, licenses_toml
+from .licenseck import APACHE, COPYRIGHT, MPL, OLD_MPL, licenses_toml
+from .linting_report import LintingReportManager, OptionalAnnotation
 
 TOPDIR = os.path.abspath(os.path.dirname(sys.argv[0]))
 WPT_PATH = os.path.join(".", "tests", "wpt")
@@ -982,7 +981,9 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
                     yield (filename,) + error
 
 
-def scan(only_changed_files=False, progress=False):
+def scan(only_changed_files=False, progress=False, report_ci=False):
+    # Store lint into filesystem
+    report_manager = LintingReportManager(10)
     # check config file for errors
     config_errors = check_config_file(CONFIG_FILE_PATH)
     # check directories contain expected files
@@ -1008,16 +1009,22 @@ def scan(only_changed_files=False, progress=False):
     # chain all the iterators
     errors = itertools.chain(config_errors, directory_errors, file_errors, python_errors, wpt_errors, cargo_lock_errors)
 
-    colorama.init()
     error = None
     for error in errors:
-        print(
-            "\r  | "
-            + f"{colorama.Fore.BLUE}{error[0]}{colorama.Style.RESET_ALL}:"
-            + f"{colorama.Fore.YELLOW}{error[1]}{colorama.Style.RESET_ALL}: "
-            + f"{colorama.Fore.RED}{error[2]}{colorama.Style.RESET_ALL}"
-        )
+        if report_ci:
+            annotation: OptionalAnnotation = {
+                "title": f"Mach test-tidy: {error[2]}",
+                "message": error[2],
+                "file_name": report_manager.clean_path(error[0]),
+                "line_start": error[1],
+                "line_end": error[1],
+                "level": "error",
+            }
 
+            report_manager.append_log(annotation)
+
+    if report_ci:
+        report_manager.logs_annotation()
     return int(error is not None)
 
 
