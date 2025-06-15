@@ -88,7 +88,10 @@ pub(crate) struct BoxFragment {
 
     block_margins_collapsed_with_children: Option<Box<CollapsedBlockMargins>>,
 
-    /// The scrollable overflow of this box fragment.
+    /// The scrollable overflow of this box fragment in the same coordiante system as
+    /// [`Self::content_rect`] ie a rectangle within the parent fragment's content
+    /// rectangle. This does not take into account any transforms this fragment applies.
+    /// This is handled when calling [`Self::scrollable_overflow_for_parent`].
     scrollable_overflow: Option<PhysicalRect<Au>>,
 
     /// The resolved box insets if this box is `position: sticky`. These are calculated
@@ -202,19 +205,57 @@ impl BoxFragment {
             .expect("Should only call `scrollable_overflow()` after calculating overflow")
     }
 
+    /// This is an implementation of:
+    /// - <https://drafts.csswg.org/css-overflow-3/#scrollable>.
+    /// - <https://drafts.csswg.org/cssom-view/#scrolling-area>
     pub(crate) fn calculate_scrollable_overflow(&mut self) {
-        let scrollable_overflow_from_children = self
-            .children
-            .iter()
-            .fold(PhysicalRect::zero(), |acc, child| {
-                acc.union(&child.calculate_scrollable_overflow_for_parent())
-            });
         let physical_padding_rect = self.padding_rect();
         let content_origin = self.content_rect.origin.to_vector();
-        self.scrollable_overflow = Some(
-            physical_padding_rect
-                .union(&scrollable_overflow_from_children.translate(content_origin)),
-        );
+
+        // > The scrollable overflow area is the union of:
+        // > * The scroll container’s own padding box.
+        // > * All line boxes directly contained by the scroll container.
+        // > * The border boxes of all boxes for which it is the containing block and
+        // >   whose border boxes are positioned not wholly in the unreachable
+        // >   scrollable overflow region, accounting for transforms by projecting
+        // >   each box onto the plane of the element that establishes its 3D
+        // >   rendering context.
+        // > * The margin areas of grid item and flex item boxes for which the box
+        // >   establishes a containing block.
+        // > * The scrollable overflow areas of all of the above boxes (including zero-area
+        // >   boxes and accounting for transforms as described above), provided they
+        // >   themselves have overflow: visible (i.e. do not themselves trap the overflow)
+        // >   and that scrollable overflow is not already clipped (e.g. by the clip property
+        // >   or the contain property).
+        // > * Additional padding added to the scrollable overflow rectangle as necessary
+        //     to enable scroll positions that satisfy the requirements of both place-content:
+        //     start and place-content: end alignment.
+        //
+        // TODO(mrobinson): Below we are handling the border box and the scrollable
+        // overflow together, but from the specification it seems that if the border
+        // box of an item is in the "wholly unreachable scrollable overflow region", but
+        // its scrollable overflow is not, it should also be excluded.
+        let scrollable_overflow = self
+            .children
+            .iter()
+            .fold(physical_padding_rect, |acc, child| {
+                let scrollable_overflow_from_child = child
+                    .calculate_scrollable_overflow_for_parent()
+                    .translate(content_origin);
+
+                // Note that this doesn't just exclude scrollable overflow outside the
+                // wholly unrechable scrollable overflow area, but also clips it. This
+                // makes the resulting value more like the "scroll area" rather than the
+                // "scrollable overflow."
+                let scrollable_overflow_from_child = self
+                    .clip_wholly_unreachable_scrollable_overflow(
+                        scrollable_overflow_from_child,
+                        physical_padding_rect,
+                    );
+                acc.union(&scrollable_overflow_from_child)
+            });
+
+        self.scrollable_overflow = Some(scrollable_overflow)
     }
 
     pub(crate) fn set_containing_block(&mut self, containing_block: &PhysicalRect<Au>) {
@@ -281,11 +322,6 @@ impl BoxFragment {
     }
 
     pub(crate) fn scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
-        // TODO: Properly handle absolutely positioned fragments.
-        if self.style.get_box().position.is_absolutely_positioned() {
-            return PhysicalRect::zero();
-        }
-
         let mut overflow = self.border_rect();
         if !self.style.establishes_scroll_container(self.base.flags) {
             // https://www.w3.org/TR/css-overflow-3/#scrollable
@@ -308,45 +344,46 @@ impl BoxFragment {
             }
         }
 
+        if !self
+            .style
+            .has_effective_transform_or_perspective(self.base.flags)
+        {
+            return overflow;
+        }
+
         // <https://drafts.csswg.org/css-overflow-3/#scrollable-overflow-region>
         // > ...accounting for transforms by projecting each box onto the plane of
         // > the element that establishes its 3D rendering context. [CSS3-TRANSFORMS]
         // Both boxes and its scrollable overflow (if it is included) should be transformed accordingly.
         //
-        // TODO(stevennovaryo): We are supposed to handle perspective transform and 3d context, but it is yet to happen.
-        if self
-            .style
-            .has_effective_transform_or_perspective(self.base.flags)
-        {
-            if let Some(transform) =
-                self.calculate_transform_matrix(&self.border_rect().to_untyped())
-            {
-                if let Some(transformed_overflow_box) =
-                    transform.outer_transformed_rect(&overflow.to_webrender().to_rect())
-                {
-                    overflow =
-                        f32_rect_to_au_rect(transformed_overflow_box.to_untyped()).cast_unit();
-                }
-            }
-        }
-
-        overflow
+        // TODO(stevennovaryo): We are supposed to handle perspective transform and 3d
+        // contexts, but it is yet to happen.
+        self.calculate_transform_matrix(&self.border_rect().to_untyped())
+            .and_then(|transform| {
+                transform.outer_transformed_rect(&overflow.to_webrender().to_rect())
+            })
+            .map(|transformed_rect| f32_rect_to_au_rect(transformed_rect.to_untyped()).cast_unit())
+            .unwrap_or(overflow)
     }
 
-    /// <https://drafts.csswg.org/css-overflow/#unreachable-scrollable-overflow-region>
-    /// > area beyond the scroll origin in either axis is considered the unreachable scrollable overflow region
-    ///
-    /// Return the clipped the scrollable overflow based on its scroll origin, determined by overflow direction.
-    /// For an element, the clip rect is the padding rect and for viewport, it is the initial containing block.
-    pub(crate) fn clip_unreachable_scrollable_overflow_region(
+    /// Return the clipped the scrollable overflow based on its scroll origin, determined
+    /// by overflow direction. For an element, the clip rect is the padding rect and for
+    /// viewport, it is the initial containing block.
+    pub(crate) fn clip_wholly_unreachable_scrollable_overflow(
         &self,
         scrollable_overflow: PhysicalRect<Au>,
         clipping_rect: PhysicalRect<Au>,
     ) -> PhysicalRect<Au> {
+        // From <https://drafts.csswg.org/css-overflow/#unreachable-scrollable-overflow-region>:
+        // > Unless otherwise adjusted (e.g. by content alignment [css-align-3]), the area
+        // > beyond the scroll origin in either axis is considered the unreachable scrollable
+        // > overflow region: content rendered here is not accessible to the reader, see § 2.2
+        // > Scrollable Overflow. A scroll container is said to be scrolled to its scroll
+        // > origin when its scroll origin coincides with the corresponding corner of its
+        // > scrollport. This scroll position, the scroll origin position, usually, but not
+        // > always, coincides with the initial scroll position.
         let scrolling_direction = self.style.overflow_direction();
-        let mut scrollable_overflow_box = scrollable_overflow.to_box2d();
         let mut clipping_box = clipping_rect.to_box2d();
-
         if scrolling_direction.rightward {
             clipping_box.max.x = MAX_AU;
         } else {
@@ -359,24 +396,14 @@ impl BoxFragment {
             clipping_box.min.y = MIN_AU;
         }
 
-        scrollable_overflow_box = scrollable_overflow_box.intersection_unchecked(&clipping_box);
+        let scrollable_overflow_box = scrollable_overflow
+            .to_box2d()
+            .intersection_unchecked(&clipping_box);
 
         match scrollable_overflow_box.is_negative() {
             true => PhysicalRect::zero(),
             false => scrollable_overflow_box.to_rect(),
         }
-    }
-
-    /// <https://drafts.csswg.org/css-overflow/#unreachable-scrollable-overflow-region>
-    /// > area beyond the scroll origin in either axis is considered the unreachable scrollable overflow region
-    ///
-    /// Return the clipped the scrollable overflow based on its scroll origin, determined by overflow direction.
-    /// This will coincides with the scrollport if the fragment is a scroll container.
-    pub(crate) fn reachable_scrollable_overflow_region(&self) -> PhysicalRect<Au> {
-        self.clip_unreachable_scrollable_overflow_region(
-            self.scrollable_overflow(),
-            self.padding_rect(),
-        )
     }
 
     pub(crate) fn calculate_resolved_insets_if_positioned(&self) -> PhysicalSides<AuOrAuto> {
