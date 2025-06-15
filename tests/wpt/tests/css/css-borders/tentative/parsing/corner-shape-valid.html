@@ -7,6 +7,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
 
 <script>
     function test_values_for_prop(prop) {
@@ -29,6 +30,13 @@
         test_valid_value(prop, "superellipse(calc(0.5 * 4))", "superellipse(calc(2))");
     }
 
+    function test_corner_shape_shorthand(shorthand, longhand1, longhand2) {
+        test_shorthand_value(shorthand, "scoop", {[longhand1]: "scoop", [longhand2]: "scoop"});
+        test_shorthand_value(shorthand, "bevel notch", {[longhand1]: "bevel", [longhand2]: "notch"});
+        test_shorthand_value(shorthand, "superellipse(-2) squircle", {[longhand1]: "superellipse(-2)", [longhand2]: "squircle"});
+        test_shorthand_value(shorthand, "superellipse(3)", {[longhand1]: "superellipse(3)", [longhand2]: "superellipse(3)"});
+    }
+
     for (const v of ["top", "bottom"]) {
         for (const h of ["left", "right"]) {
             test_values_for_prop(`corner-${v}-${h}-shape`);
@@ -49,4 +57,8 @@
     test_valid_value("corner-shape", "bevel superellipse(2) squircle     round", "bevel superellipse(2) squircle round");
     test_valid_value("corner-shape", "superellipse(0.5) superellipse(3) superellipse(1) superellipse(infinity)");
 
+    test_corner_shape_shorthand('corner-top-shape', 'corner-top-left-shape', 'corner-top-right-shape');
+    test_corner_shape_shorthand('corner-right-shape', 'corner-top-right-shape', 'corner-bottom-right-shape');
+    test_corner_shape_shorthand('corner-bottom-shape', 'corner-bottom-left-shape', 'corner-bottom-right-shape');
+    test_corner_shape_shorthand('corner-left-shape', 'corner-top-left-shape', 'corner-bottom-left-shape');
 </script>

@@ -1,0 +1,78 @@
+<!doctype html>
+<!--
+The soft navigation version of the identically named test in
+/largest-contentful-paint/broken-image-icon.html.
+Notes:
+ - Awaits trivial soft navigation with same page contents as original test.
+ - Viewport is very small so that the small icon below (16x8) is
+   sufficiently large to trigger a soft navigation.
+ - Original test was awaiting FCP, but we don't support that yet
+   for soft navs; so now we await LCP for the hard navigation, and then
+   LCP and soft nav for the soft navigation, with the promise set up prior
+   to the click.
+-->
+<meta name="viewport" content="width=50, height=50, initial-scale=1" />
+<title>Broken Image Icon Should Not Be LCP after soft navigation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+<script>
+  function clickHandler() {
+    document.body.innerHTML = `
+          <img src="../non-existent-image.jpg">
+          <img src="/css/css-images/support/colors-16x8.png">
+        `;
+    history.pushState({}, "", "/test");
+  }
+</script>
+<body>
+  <div id="click-target" onclick="clickHandler()">Click!</div>
+</body>
+<script>
+  promise_test(async (t) => {
+    assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+    const helper = new SoftNavigationTestHelper(t);
+    const lcpEntries = await helper.getBufferedPerformanceEntriesWithTimeout(
+      /*type=*/ "largest-contentful-paint",
+      /*includeSoftNavigationObservations=*/ false,
+      /*minNumEntries=*/ 1,
+    );
+    assert_equals(lcpEntries.length, 1);
+    assert_equals(lcpEntries[0].id, "click-target", "The first entry should be the button");
+
+    const promise = Promise.all([
+      SoftNavigationTestHelper.getPerformanceEntries(
+        /*type=*/ "largest-contentful-paint",
+        /*includeSoftNavigationObservations=*/ true,
+        /*minNumEntries=*/ 1,
+      ),
+      SoftNavigationTestHelper.getPerformanceEntries(
+        /*type=*/ "soft-navigation",
+        /*includeSoftNavigationObservations=*/ true,
+        /*minNumEntries=*/ 1,
+      ),
+    ]);
+
+    if (test_driver) {
+      test_driver.click(document.getElementById("click-target"));
+    }
+
+    const [softLcpEntries, softNavigationEntries] = await promise;
+    assert_equals(softNavigationEntries.length, 1, "One soft navigation entry.");
+    assert_true(
+      softNavigationEntries[0].name.endsWith("test"),
+      "Soft navigation should be to test page.",
+    );
+
+    // There should be only 1 LCP entry and it should be the colors-16x8.png though
+    // being smaller than the broken image icon. The broken image icon should not
+    // emit an LCP entry.
+    assert_equals(softLcpEntries.length, 1, "There should be one and only one LCP entry.");
+    assert_true(
+      softLcpEntries[0].url.includes("colors-16x8.png"),
+      "The LCP entry should be the colors-16x8.png",
+    );
+  }, "The broken image icon should not emit an LCP entry after soft navigation.");
+</script>

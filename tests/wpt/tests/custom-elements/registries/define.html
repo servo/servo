@@ -70,6 +70,9 @@
     'a-0123456789',
     'a-\u6F22\u5B57', // Two CJK Unified Ideographs
     'a-\uD840\uDC0B', // Surrogate pair U+2000B
+    'a-a\u00D7',
+    'a-a\u3000',
+    'a-a\uDB80\uDC00', // Surrogate pair U+F0000
   ];
   let invalidCustomElementNames = [
     undefined,
@@ -85,9 +88,6 @@
     'a-A',
     'a-Z',
     'A-a',
-    'a-a\u00D7',
-    'a-a\u3000',
-    'a-a\uDB80\uDC00', // Surrogate pair U+F0000
     // name must not be any of the hyphen-containing element names.
     'annotation-xml',
     'color-profile',
