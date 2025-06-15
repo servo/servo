@@ -618,6 +618,9 @@ impl DedicatedWorkerGlobalScope {
     }
 
     fn handle_mixed_message(&self, msg: MixedMessage, can_gc: CanGc) -> bool {
+        if self.upcast::<WorkerGlobalScope>().is_closing() {
+            return false;
+        }
         // FIXME(#26324): `self.worker` is None in devtools messages.
         match msg {
             MixedMessage::Devtools(msg) => match msg {
