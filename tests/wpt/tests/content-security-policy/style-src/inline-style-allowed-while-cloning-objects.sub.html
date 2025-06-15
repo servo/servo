@@ -81,6 +81,9 @@
               assert_equals(clonedOps.style.background, "")
           });
           test(function() {
+              assert_equals(clonedOps.style.color, "red")
+          });
+          test(function() {
               assert_equals(violetOps.style.background.match(/rgb\(238, 130, 238\)/)[0], "rgb(238, 130, 238)")
           });
           test(function() {
