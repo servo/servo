@@ -9,11 +9,12 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::sync::Arc;
 
-use adapter::BluetoothAdapter;
-use delegate::{bm, bmx};
-use framework::{cb, nil, ns};
 use objc::runtime::Object;
-use utils::{NO_PERIPHERAL_FOUND, NOT_SUPPORTED_ERROR, cbx, nsx, wait};
+
+use crate::adapter::BluetoothAdapter;
+use crate::delegate::{bm, bmx};
+use crate::framework::{cb, nil, ns};
+use crate::utils::{NO_PERIPHERAL_FOUND, NOT_SUPPORTED_ERROR, cbx, nsx, wait};
 
 #[derive(Clone, Debug)]
 pub struct BluetoothDevice {

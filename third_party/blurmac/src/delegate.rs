@@ -8,10 +8,11 @@
 use std::error::Error;
 use std::sync::Once;
 
-use framework::{cb, nil, ns};
 use objc::declare::ClassDecl;
 use objc::runtime::{Class, Object, Protocol, Sel};
-use utils::{NO_PERIPHERAL_FOUND, cbx, nsx, wait};
+
+use crate::framework::{cb, nil, ns};
+use crate::utils::{NO_PERIPHERAL_FOUND, cbx, nsx, wait};
 
 pub mod bm {
     use super::*;

@@ -10,11 +10,12 @@ use std::os::raw::c_uint;
 use std::slice;
 use std::sync::Arc;
 
-use delegate::bmx;
-use framework::{cb, nil, ns};
-use gatt_service::BluetoothGATTService;
 use objc::runtime::{NO, Object, YES};
-use utils::{NO_CHARACTERISTIC_FOUND, NOT_SUPPORTED_ERROR, cbx, wait};
+
+use crate::delegate::bmx;
+use crate::framework::{cb, nil, ns};
+use crate::gatt_service::BluetoothGATTService;
+use crate::utils::{NO_CHARACTERISTIC_FOUND, NOT_SUPPORTED_ERROR, cbx, wait};
 
 #[derive(Clone, Debug)]
 pub struct BluetoothGATTCharacteristic {

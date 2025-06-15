@@ -150,7 +150,7 @@ jobs:
           brew install gnu-tar
       - name: Build (${{ inputs.profile }})
         run: |
-          ./mach build --use-crown --locked --${{ inputs.profile }}  ${{ inputs.build-args }}
+          ./mach build --features native-bluetooth --use-crown --locked --${{ inputs.profile }}  ${{ inputs.build-args }}
           cp -r target/cargo-timings target/cargo-timings-macos
       - name: Smoketest
         uses: nick-fields/retry@v3
