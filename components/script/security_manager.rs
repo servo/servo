@@ -198,7 +198,7 @@ impl CSPViolationReportTask {
             &self.global.root(),
             Atom::from("securitypolicyviolation"),
             EventBubbles::Bubbles,
-            EventCancelable::Cancelable,
+            EventCancelable::NotCancelable,
             EventComposed::Composed,
             &self.violation_report.clone().convert(),
             can_gc,

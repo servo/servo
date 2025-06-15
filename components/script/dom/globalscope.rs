@@ -120,7 +120,7 @@ use crate::dom::htmlscriptelement::{ScriptId, SourceCode};
 use crate::dom::imagebitmap::ImageBitmap;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::messageport::MessagePort;
-use crate::dom::node::Node;
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::Performance;
 use crate::dom::performanceobserver::VALID_ENTRY_TYPES;
@@ -3626,11 +3626,10 @@ impl GlobalScope {
                 // Step 3.1: If target is not null, and global is a Window,
                 // and target’s shadow-including root is not global’s associated Document, set target to null.
                 if let Some(window) = self.downcast::<Window>() {
-                    if !window
-                        .Document()
-                        .upcast::<Node>()
-                        .is_shadow_including_inclusive_ancestor_of(event_target.upcast())
-                    {
+                    // If a node is connected, its owner document is always the shadow-including root.
+                    // If it isn't connected, then it also doesn't have a corresponding document, hence
+                    // it can't be this document.
+                    if event_target.upcast::<Node>().owner_document() != window.Document() {
                         return None;
                     }
                 }
