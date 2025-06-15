@@ -75,7 +75,7 @@ pub struct ResponseStartMsg {
     pub status_text: String,
     pub headers_size: usize,
     pub discard_response_body: bool,
-    pub response_start_vailable: bool,
+    pub response_start_available: bool,
 }
 
 #[derive(Serialize)]
@@ -100,7 +100,7 @@ pub struct ResponseHeadersMsg {
 #[serde(rename_all = "camelCase")]
 pub struct RequestCookiesMsg {
     pub cookies: usize,
-    request_cookies_available: bool,
+    pub request_cookies_available: bool,
 }
 
 #[derive(Serialize)]
