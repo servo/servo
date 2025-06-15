@@ -19,8 +19,6 @@
     const link = document.getElementById("link");
 
     promise_test(async t => {
-      validatePaintEntries('first-contentful-paint', 1);
-      validatePaintEntries('first-paint', 1);
       const preClickLcp = await getLcpEntries();
       setEvent(t, link, /*pushState=*/url=>history.pushState({}, '', url),
         /*addContent=*/async () => await addImageToMain(), /*pushUrl=*/true,

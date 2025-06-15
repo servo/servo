@@ -68,7 +68,7 @@ impl TrustedTypePolicy {
     }
 
     /// <https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-policy-value-algorithm>
-    fn check_callback_if_missing(throw_if_missing: bool) -> Fallible<Option<String>> {
+    fn check_callback_if_missing(throw_if_missing: bool) -> Fallible<Option<DOMString>> {
         // Step 3.1: If throwIfMissing throw a TypeError.
         if throw_if_missing {
             Err(Type("Cannot find type".to_owned()))
@@ -87,7 +87,7 @@ impl TrustedTypePolicy {
         arguments: Vec<HandleValue>,
         throw_if_missing: bool,
         can_gc: CanGc,
-    ) -> Fallible<Option<String>> {
+    ) -> Fallible<Option<DOMString>> {
         rooted!(in(*cx) let this_object: *mut JSObject);
         // Step 1: Let functionName be a function name for the given trustedTypeName, based on the following table:
         match expected_type {
@@ -99,15 +99,13 @@ impl TrustedTypePolicy {
                     // Step 4: Let policyValue be the result of invoking function with value as a first argument,
                     // items of arguments as subsequent arguments, and callback **this** value set to null,
                     // rethrowing any exceptions.
-                    callback
-                        .Call_(
-                            &this_object.handle(),
-                            input,
-                            arguments,
-                            ExceptionHandling::Rethrow,
-                            can_gc,
-                        )
-                        .map(|result| result.map(|str| str.as_ref().to_owned()))
+                    callback.Call_(
+                        &this_object.handle(),
+                        input,
+                        arguments,
+                        ExceptionHandling::Rethrow,
+                        can_gc,
+                    )
                 },
             },
             TrustedType::TrustedScript => match &self.create_script {
@@ -118,15 +116,13 @@ impl TrustedTypePolicy {
                     // Step 4: Let policyValue be the result of invoking function with value as a first argument,
                     // items of arguments as subsequent arguments, and callback **this** value set to null,
                     // rethrowing any exceptions.
-                    callback
-                        .Call_(
-                            &this_object.handle(),
-                            input,
-                            arguments,
-                            ExceptionHandling::Rethrow,
-                            can_gc,
-                        )
-                        .map(|result| result.map(|str| str.as_ref().to_owned()))
+                    callback.Call_(
+                        &this_object.handle(),
+                        input,
+                        arguments,
+                        ExceptionHandling::Rethrow,
+                        can_gc,
+                    )
                 },
             },
             TrustedType::TrustedScriptURL => match &self.create_script_url {
@@ -145,7 +141,7 @@ impl TrustedTypePolicy {
                             ExceptionHandling::Rethrow,
                             can_gc,
                         )
-                        .map(|result| result.map(|str| str.as_ref().to_owned()))
+                        .map(|result| result.map(|str| DOMString::from(str.as_ref())))
                 },
             },
         }
@@ -173,7 +169,7 @@ impl TrustedTypePolicy {
     ) -> Fallible<DomRoot<R>>
     where
         R: DomObject,
-        TrustedTypeCallback: FnOnce(String) -> DomRoot<R>,
+        TrustedTypeCallback: FnOnce(DOMString) -> DomRoot<R>,
     {
         // Step 1: Let policyValue be the result of executing Get Trusted Type policy value
         // with the same arguments as this algorithm and additionally true as throwIfMissing.
@@ -187,7 +183,7 @@ impl TrustedTypePolicy {
                 let data_string = match policy_value {
                     Some(value) => value,
                     // Step 4: If policyValue is null or undefined, set dataString to the empty string.
-                    None => "".to_owned(),
+                    None => DOMString::new(),
                 };
                 // Step 5: Return a new instance of an interface with a type name trustedTypeName,
                 // with its associated data value set to dataString.

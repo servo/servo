@@ -204,6 +204,7 @@
   fuzzy_test_computed_color(`hsl(from rgb(20%, 40%, 60%, 80%) calc(h) calc(s) calc(l) / calc(alpha))`, `color(srgb 0.2 0.4 0.6 / 0.8)`);
   fuzzy_test_computed_color(`hsl(from hsl(20 30 40 / 0.8) calc(h + 1) calc(s + 1) calc(l + 1) / calc(alpha + 0.01))`, `color(srgb 0.537 0.372 0.283 / 0.81)`); // hsl(21 31 41)
   fuzzy_test_computed_color(`hsl(from rebeccapurple calc((h / 360) * 360deg) calc((s / 100) * 100%) calc((l / 100) * 100%) / calc(alpha * 100%))`, `color(srgb 0.4 0.2 0.6)`);
+  fuzzy_test_computed_color(`hsl(from rebeccapurple h s calc(50% * l / 100))`, `color(srgb 0.2 0.1 0.3)`);
 
   // Alpha is clamped to [0,1]
   fuzzy_test_computed_color(`hsl(from hsl(from rebeccapurple h s l / calc(alpha + 0.5)) h s l / calc(alpha - 0.5))`, `color(srgb 0.4 0.2 0.6 / 0.5)`);

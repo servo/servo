@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+    <!-- TODO update link -->
+  <link rel="help" href="https://www.w3.org/TR/css-view-transitions-2/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scoped view transition with negative playback rate</title>
+</head>
+<style>
+  #target {
+    background-color: blue;
+    height: 100px;
+    width: 100px;
+    z-index: 1;
+  }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<body>
+  <div id="target">
+  </div>
+</body>
+<script>
+  promise_test(async () => {
+    await waitForNextFrame();
+    const target = document.getElementById('target');
+    const vt = target.startViewTransition(() => {
+      target.style = 'background-color: teal';
+    });
+    await vt.ready;
+    const promises = [];
+    document.getAnimations().forEach(a => {
+      a.playbackRate = -1;
+      promises.push(a.ready);
+    });
+    let finished = false;
+    vt.finished.then(() => {
+      finished = true;
+    });
+    await Promise.all(promises);
+    await waitForNextFrame();
+    assert_equals(document.getAnimations.length, 0,
+                  'Animations have finished running on the next frame');
+    await waitForNextFrame();
+    await waitForNextFrame();
+    assert_true(finished,
+                'transition completes once animations are no longer running');
+  }, 'View transition duration affected by playback rate');
+</script>
+</html>

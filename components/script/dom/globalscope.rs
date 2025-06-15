@@ -107,6 +107,7 @@ use crate::dom::bindings::weakref::{DOMTracker, WeakRef};
 use crate::dom::blob::Blob;
 use crate::dom::broadcastchannel::BroadcastChannel;
 use crate::dom::crypto::Crypto;
+use crate::dom::csppolicyviolationreport::CSPViolationReportBuilder;
 use crate::dom::dedicatedworkerglobalscope::{
     DedicatedWorkerControlMsg, DedicatedWorkerGlobalScope,
 };
@@ -120,7 +121,7 @@ use crate::dom::htmlscriptelement::{ScriptId, SourceCode};
 use crate::dom::imagebitmap::ImageBitmap;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::messageport::MessagePort;
-use crate::dom::node::Node;
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::Performance;
 use crate::dom::performanceobserver::VALID_ENTRY_TYPES;
@@ -145,7 +146,7 @@ use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_module::{DynamicModuleList, ModuleScript, ModuleTree, ScriptFetchOptions};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, ThreadSafeJSContext};
 use crate::script_thread::{ScriptThread, with_script_thread};
-use crate::security_manager::{CSPViolationReportBuilder, CSPViolationReportTask};
+use crate::security_manager::CSPViolationReportTask;
 use crate::task_manager::TaskManager;
 use crate::task_source::SendableTaskSource;
 use crate::timers::{
@@ -2933,7 +2934,11 @@ impl GlobalScope {
         is_js_evaluation_allowed == CheckResult::Allowed
     }
 
-    pub(crate) fn should_navigation_request_be_blocked(&self, load_data: &LoadData) -> bool {
+    pub(crate) fn should_navigation_request_be_blocked(
+        &self,
+        load_data: &LoadData,
+        element: Option<&Element>,
+    ) -> bool {
         let Some(csp_list) = self.get_csp_list() else {
             return false;
         };
@@ -2955,7 +2960,7 @@ impl GlobalScope {
         let (result, violations) =
             csp_list.should_navigation_request_be_blocked(&request, NavigationCheckType::Other);
 
-        self.report_csp_violations(violations, None);
+        self.report_csp_violations(violations, element);
 
         result == CheckResult::Blocked
     }
@@ -3626,11 +3631,10 @@ impl GlobalScope {
                 // Step 3.1: If target is not null, and global is a Window,
                 // and target’s shadow-including root is not global’s associated Document, set target to null.
                 if let Some(window) = self.downcast::<Window>() {
-                    if !window
-                        .Document()
-                        .upcast::<Node>()
-                        .is_shadow_including_inclusive_ancestor_of(event_target.upcast())
-                    {
+                    // If a node is connected, its owner document is always the shadow-including root.
+                    // If it isn't connected, then it also doesn't have a corresponding document, hence
+                    // it can't be this document.
+                    if event_target.upcast::<Node>().owner_document() != window.Document() {
                         return None;
                     }
                 }

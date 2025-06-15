@@ -145,7 +145,6 @@ use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmlareaelement::HTMLAreaElement;
 use crate::dom::htmlbaseelement::HTMLBaseElement;
-use crate::dom::htmlbodyelement::HTMLBodyElement;
 use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlembedelement::HTMLEmbedElement;
@@ -2490,12 +2489,11 @@ impl Document {
     }
 
     pub(crate) fn get_body_attribute(&self, local_name: &LocalName) -> DOMString {
-        match self
-            .GetBody()
-            .and_then(DomRoot::downcast::<HTMLBodyElement>)
-        {
-            Some(ref body) => body.upcast::<Element>().get_string_attribute(local_name),
-            None => DOMString::new(),
+        match self.GetBody() {
+            Some(ref body) if body.is_body_element() => {
+                body.upcast::<Element>().get_string_attribute(local_name)
+            },
+            _ => DOMString::new(),
         }
     }
 
@@ -2505,10 +2503,7 @@ impl Document {
         value: DOMString,
         can_gc: CanGc,
     ) {
-        if let Some(ref body) = self
-            .GetBody()
-            .and_then(DomRoot::downcast::<HTMLBodyElement>)
-        {
+        if let Some(ref body) = self.GetBody().filter(|elem| elem.is_body_element()) {
             let body = body.upcast::<Element>();
             let value = body.parse_attribute(&ns!(), local_name, value);
             body.set_attribute(local_name, value, can_gc);
@@ -3788,7 +3783,9 @@ impl Document {
                 containing_class,
                 field,
                 can_gc,
-            )?;
+            )?
+            .as_ref()
+            .to_owned();
         }
         // Step 5: If lineFeed is true, append U+000A LINE FEED to string.
         if line_feed {
@@ -6129,15 +6126,15 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         self.set_body_attribute(&local_name!("text"), value, can_gc)
     }
 
-    #[allow(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter>
-    fn NamedGetter(&self, name: DOMString) -> Option<NamedPropertyValue> {
+    fn NamedGetter(&self, name: DOMString, can_gc: CanGc) -> Option<NamedPropertyValue> {
         if name.is_empty() {
             return None;
         }
         let name = Atom::from(name);
 
-        // Step 1.
+        // Step 1. Let elements be the list of named elements with the name name that are in a document tree
+        // with the Document as their root.
         let elements_with_name = self.get_elements_with_name(&name);
         let name_iter = elements_with_name
             .iter()
@@ -6148,10 +6145,14 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             .filter(|elem| is_named_element_with_id_attribute(elem));
         let mut elements = name_iter.chain(id_iter);
 
-        let first = elements.next()?;
+        // Step 2. If elements has only one element, and that element is an iframe element,
+        // and that iframe element's content navigable is not null, then return the active
+        // WindowProxy of the element's content navigable.
 
-        if elements.next().is_none() {
-            // Step 2.
+        // NOTE: We have to check if all remaining elements are equal to the first, since
+        // the same element may appear in both lists.
+        let first = elements.next()?;
+        if elements.all(|other| first == other) {
             if let Some(nested_window_proxy) = first
                 .downcast::<HTMLIFrameElement>()
                 .and_then(|iframe| iframe.GetContentWindow())
@@ -6159,11 +6160,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 return Some(NamedPropertyValue::WindowProxy(nested_window_proxy));
             }
 
-            // Step 3.
+            // Step 3. Otherwise, if elements has only one element, return that element.
             return Some(NamedPropertyValue::Element(DomRoot::from_ref(first)));
         }
 
-        // Step 4.
+        // Step 4. Otherwise, return an HTMLCollection rooted at the Document node,
+        // whose filter matches only named elements with the name name.
         #[derive(JSTraceable, MallocSizeOf)]
         struct DocumentNamedGetter {
             #[no_trace]
@@ -6194,7 +6196,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             self.window(),
             self.upcast(),
             Box::new(DocumentNamedGetter { name }),
-            CanGc::note(),
+            can_gc,
         );
         Some(NamedPropertyValue::HTMLCollection(collection))
     }

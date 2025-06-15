@@ -71,6 +71,7 @@ use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::script_thread::ScriptThread;
 
+/// <https://w3c.github.io/webdriver/#dfn-get-a-known-element>
 fn find_node_by_unique_id(
     documents: &DocumentCollection,
     pipeline: PipelineId,
@@ -1217,16 +1218,21 @@ pub(crate) fn handle_get_bounding_client_rect(
         .unwrap();
 }
 
+/// <https://w3c.github.io/webdriver/#dfn-get-element-text>
 pub(crate) fn handle_get_text(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
     reply: IpcSender<Result<String, ErrorStatus>>,
+    can_gc: CanGc,
 ) {
     reply
         .send(
-            find_node_by_unique_id(documents, pipeline, node_id)
-                .map(|node| node.GetTextContent().map_or("".to_owned(), String::from)),
+            find_node_by_unique_id(documents, pipeline, node_id).map(|node| {
+                node.downcast::<HTMLElement>()
+                    .map(|element| element.InnerText(can_gc).to_string())
+                    .unwrap_or_else(|| node.GetTextContent().map_or("".to_owned(), String::from))
+            }),
         )
         .unwrap();
 }

@@ -45,12 +45,8 @@ mod simpleservo;
 #[derive(Debug)]
 pub struct InitOpts {
     pub url: String,
-    pub device_type: String,
-    pub os_full_name: String,
     /// Path to application data bundled with the servo app, e.g. web-pages.
     pub resource_dir: String,
-    pub cache_dir: String,
-    pub display_density: f64,
     pub commandline_args: String,
 }
 
@@ -626,10 +622,6 @@ pub fn register_prompt_toast_callback(callback: Function<String, ()>) -> napi_oh
 #[napi]
 pub fn init_servo(init_opts: InitOpts) -> napi_ohos::Result<()> {
     info!("Servo is being initialised with the following Options: ");
-    info!(
-        "Device Type: {}, DisplayDensity: {}",
-        init_opts.device_type, init_opts.display_density
-    );
     info!("Initial URL: {}", init_opts.url);
     let channel = if let Some(channel) = SERVO_CHANNEL.get() {
         channel

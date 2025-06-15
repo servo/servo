@@ -30,6 +30,23 @@ async function hoverOver(element) {
       .send();
   await waitForRender();
 }
+async function longPress(element) {
+  await waitForRender();
+  let rect = element.getBoundingClientRect();
+  // FIXME: Switch to pointerMove(0, 0, {origin: element}) once
+  // https://github.com/web-platform-tests/wpt/issues/41257 is fixed.
+  const x = Math.round(rect.x + rect.width / 2);
+  const y = Math.round(rect.y + rect.height / 2);
+  await new test_driver.Actions()
+    .addPointer("touchPointer", "touch")
+    .pointerMove(x, y, {sourceName: "touchPointer"})
+    .pointerDown({sourceName: "touchPointer"})
+    // This needs to be long enough to trigger long-press on all platforms:
+    .pause(1000, "pointer", {sourceName: "touchPointer"})
+    .pointerUp({sourceName: "touchPointer"})
+    .send();
+  await waitForRender();
+}
 function mouseOverAndRecord(t,element) {
   let timingInfo = {element, started: performance.now()};
   return (new test_driver.Actions())

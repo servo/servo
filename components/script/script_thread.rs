@@ -39,7 +39,7 @@ use chrono::{DateTime, Local};
 use compositing_traits::CrossProcessCompositorApi;
 use constellation_traits::{
     JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptToConstellationChan,
-    ScriptToConstellationMessage, ScrollState, StructuredSerializedData, WindowSizeType,
+    ScriptToConstellationMessage, StructuredSerializedData, WindowSizeType,
 };
 use content_security_policy::{self as csp};
 use crossbeam_channel::unbounded;
@@ -99,7 +99,8 @@ use timers::{TimerEventRequest, TimerId, TimerScheduler};
 use url::Position;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPUDevice, WebGPUMsg};
-use webrender_api::units::DevicePixel;
+use webrender_api::ExternalScrollId;
+use webrender_api::units::{DevicePixel, LayoutVector2D};
 
 use crate::document_collection::DocumentCollection;
 use crate::document_loader::DocumentLoader;
@@ -626,7 +627,7 @@ impl ScriptThread {
                     if let Some(window) = trusted_global.root().downcast::<Window>() {
                         // Step 5: If the result of should navigation request of type be blocked by
                         // Content Security Policy? given request and cspNavigationType is "Blocked", then return. [CSP]
-                        if trusted_global.root().should_navigation_request_be_blocked(&load_data) {
+                        if trusted_global.root().should_navigation_request_be_blocked(&load_data, None) {
                             return;
                         }
                         if ScriptThread::check_load_origin(&load_data.load_origin, &window.get_url().origin()) {
@@ -2010,7 +2011,11 @@ impl ScriptThread {
         }
     }
 
-    fn handle_set_scroll_states(&self, pipeline_id: PipelineId, scroll_states: Vec<ScrollState>) {
+    fn handle_set_scroll_states(
+        &self,
+        pipeline_id: PipelineId,
+        scroll_states: HashMap<ExternalScrollId, LayoutVector2D>,
+    ) {
         let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
             warn!("Received scroll states for closed pipeline {pipeline_id}");
             return;
@@ -2020,16 +2025,15 @@ impl ScriptThread {
             ScriptThreadEventCategory::SetScrollState,
             Some(pipeline_id),
             || {
-                window.layout_mut().set_scroll_offsets(&scroll_states);
+                window
+                    .layout_mut()
+                    .set_scroll_offsets_from_renderer(&scroll_states);
 
                 let mut scroll_offsets = HashMap::new();
-                for scroll_state in scroll_states.into_iter() {
-                    let scroll_offset = scroll_state.scroll_offset;
-                    if scroll_state.scroll_id.is_root() {
+                for (scroll_id, scroll_offset) in scroll_states.into_iter() {
+                    if scroll_id.is_root() {
                         window.update_viewport_for_scroll(-scroll_offset.x, -scroll_offset.y);
-                    } else if let Some(node_id) =
-                        node_id_from_scroll_id(scroll_state.scroll_id.0 as usize)
-                    {
+                    } else if let Some(node_id) = node_id_from_scroll_id(scroll_id.0 as usize) {
                         scroll_offsets.insert(OpaqueNode(node_id), -scroll_offset);
                     }
                 }
@@ -2457,7 +2461,7 @@ impl ScriptThread {
                 )
             },
             WebDriverScriptCommand::GetElementText(node_id, reply) => {
-                webdriver_handlers::handle_get_text(&documents, pipeline_id, node_id, reply)
+                webdriver_handlers::handle_get_text(&documents, pipeline_id, node_id, reply, can_gc)
             },
             WebDriverScriptCommand::GetElementInViewCenterPoint(node_id, reply) => {
                 webdriver_handlers::handle_get_element_in_view_center_point(

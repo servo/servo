@@ -1,0 +1,4 @@
+features:
+- name: contain-inline-size
+  files:
+  - contain-inline-size-*

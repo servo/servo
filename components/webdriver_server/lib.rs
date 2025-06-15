@@ -1043,6 +1043,8 @@ impl Handler {
         &mut self,
         parameters: &SwitchToFrameParameters,
     ) -> WebDriverResult<WebDriverResponse> {
+        self.verify_top_level_browsing_context_is_open(self.session()?.webview_id)?;
+
         use webdriver::common::FrameId;
         let frame_id = match parameters.id {
             FrameId::Top => {
@@ -1058,6 +1060,11 @@ impl Handler {
     }
 
     fn handle_switch_to_parent_frame(&mut self) -> WebDriverResult<WebDriverResponse> {
+        let webview_id = self.session()?.webview_id;
+        self.verify_top_level_browsing_context_is_open(webview_id)?;
+        if self.session()?.browsing_context_id == webview_id {
+            return Ok(WebDriverResponse::Void);
+        }
         self.switch_to_frame(WebDriverFrameId::Parent)
     }
 
@@ -1311,6 +1318,7 @@ impl Handler {
         }
     }
 
+    /// <https://w3c.github.io/webdriver/#dfn-get-element-text>
     fn handle_element_text(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetElementText(element.to_string(), sender);
@@ -1323,15 +1331,26 @@ impl Handler {
         }
     }
 
+    ///<https://w3c.github.io/webdriver/#get-active-element>
     fn handle_active_element(&self) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetActiveElement(sender);
         self.browsing_context_script_command(cmd)?;
         let value = wait_for_script_response(receiver)?
             .map(|x| serde_json::to_value(WebElement(x)).unwrap());
-        Ok(WebDriverResponse::Generic(ValueResponse(
-            serde_json::to_value(value)?,
-        )))
+        // Step 4. If active element is a non-null element, return success
+        // with data set to web element reference object for session and active element.
+        // Otherwise, return error with error code no such element.
+        if value.is_some() {
+            Ok(WebDriverResponse::Generic(ValueResponse(
+                serde_json::to_value(value)?,
+            )))
+        } else {
+            Err(WebDriverError::new(
+                ErrorStatus::NoSuchElement,
+                "No active element found",
+            ))
+        }
     }
 
     fn handle_computed_role(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {

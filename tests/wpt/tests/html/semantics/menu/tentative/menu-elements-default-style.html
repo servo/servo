@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<link rel=author href=mailto:dom@chromium.org>
+<link rel=help href=https://open-ui.org/components/menu.explainer>
+<link rel="match" href="menu-elements-default-style-ref.html">
+
+<menubar>
+  <menuitem>Item A</menuitem>
+  <menuitem>Item B</menuitem>
+  <menuitem>Item C</menuitem>
+</menubar>
+
+<br>
+
+<menulist>
+  <menuitem>Item A</menuitem>
+  <menuitem>Item B</menuitem>
+  <menuitem>Item C</menuitem>
+</menulist>
+
+<script>
+const menulist = document.querySelector("menulist");
+menulist.showPopover();
+</script>
