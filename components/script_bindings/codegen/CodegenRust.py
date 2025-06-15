@@ -7306,13 +7306,11 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         else:
             initParent = ""
 
-        def memberInit(memberInfo, isInitial):
+        def memberInit(memberInfo):
             member, _ = memberInfo
             name = self.makeMemberName(member.identifier.name)
             conversion = self.getMemberConversion(memberInfo, member.type)
-            if isInitial:
-                return CGGeneric(f"{name}: {conversion.define()},\n")
-            return CGGeneric(f"dictionary.{name} = {conversion.define()};\n")
+            return CGGeneric(f"{name}: {conversion.define()},\n")
 
         def varInsert(varName, dictionaryName):
             insertion = (
@@ -7347,7 +7345,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             preInitial = f"let dictionary = {selfName} {{\n"
             postInitial = "};\n"
         initParent = f"parent: {initParent},\n" if initParent else ""
-        memberInits = CGList([memberInit(m, True) for m in self.memberInfo])
+        memberInits = CGList([memberInit(member) for member in self.memberInfo])
 
         unsafe_if_necessary = "unsafe"
         if not initParent and not memberInits:
