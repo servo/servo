@@ -37,7 +37,9 @@ use crate::dom::htmlscriptelement::HTMLScriptElement;
 use crate::dom::htmltemplateelement::HTMLTemplateElement;
 use crate::dom::node::Node;
 use crate::dom::processinginstruction::ProcessingInstruction;
-use crate::dom::servoparser::{ElementAttribute, ParsingAlgorithm, create_element_for_token};
+use crate::dom::servoparser::{
+    ElementAttribute, ParsingAlgorithm, attach_declarative_shadow_inner, create_element_for_token,
+};
 use crate::dom::virtualmethods::vtable_for;
 use crate::script_runtime::CanGc;
 
@@ -138,6 +140,15 @@ enum ParseOperation {
         #[ignore_malloc_size_of = "Defined in style"]
         #[no_trace]
         mode: ServoQuirksMode,
+    },
+
+    AttachDeclarativeShadowRoot {
+        location: ParseNodeId,
+        template: ParseNodeId,
+        attributes: Vec<Attribute>,
+        /// Used to notify the parser thread whether or not attaching the shadow root succeeded
+        #[no_trace]
+        sender: Sender<bool>,
     },
 }
 
@@ -562,6 +573,26 @@ impl Tokenizer {
             ParseOperation::SetQuirksMode { mode } => {
                 document.set_quirks_mode(mode);
             },
+            ParseOperation::AttachDeclarativeShadowRoot {
+                location,
+                template,
+                attributes,
+                sender,
+            } => {
+                let location = self.get_node(&location);
+                let template = self.get_node(&template);
+                let attributes = attributes
+                    .into_iter()
+                    .map(|attribute| HtmlAttribute {
+                        name: attribute.name,
+                        value: StrTendril::from(attribute.value),
+                    })
+                    .collect();
+
+                let did_succeed =
+                    attach_declarative_shadow_inner(&location, &template, attributes).is_ok();
+                sender.send(did_succeed).unwrap();
+            },
         }
     }
 }
@@ -919,5 +950,41 @@ impl TreeSink for Sink {
 
     fn pop(&self, node: &Self::Handle) {
         self.send_op(ParseOperation::Pop { node: node.id });
+    }
+
+    /// Attach declarative shadow
+    fn attach_declarative_shadow(
+        &self,
+        location: &Self::Handle,
+        template: &Self::Handle,
+        attributes: Vec<HtmlAttribute>,
+    ) -> Result<(), String> {
+        let attributes = attributes
+            .into_iter()
+            .map(|attribute| Attribute {
+                name: attribute.name,
+                value: String::from(attribute.value),
+            })
+            .collect();
+
+        // Unfortunately the parser can only proceed after it knows whether attaching the shadow root
+        // succeeded or failed. Attaching a shadow root can fail for many different reasons,
+        // and so we need to block until the script thread has processed this operation.
+        let (sender, receiver) = unbounded();
+        self.send_op(ParseOperation::AttachDeclarativeShadowRoot {
+            location: location.id,
+            template: template.id,
+            attributes,
+            sender,
+        });
+
+        let did_succeed = receiver.recv().unwrap();
+
+        // TODO: This api is silly, we shouldn't have to return a string here
+        if did_succeed {
+            Ok(())
+        } else {
+            Err("Attaching declarative shadow root failed".to_owned())
+        }
     }
 }
