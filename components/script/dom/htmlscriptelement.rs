@@ -672,8 +672,7 @@ impl HTMLScriptElement {
                 "HTMLScriptElement",
                 "text",
                 can_gc,
-            )?
-            .into();
+            )?;
         }
 
         Ok(())
@@ -1436,7 +1435,11 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
             local_name,
             can_gc,
         )?;
-        element.set_attribute(local_name, AttrValue::String(value), can_gc);
+        element.set_attribute(
+            local_name,
+            AttrValue::String(value.as_ref().to_owned()),
+            can_gc,
+        );
         Ok(())
     }
 
@@ -1524,7 +1527,6 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
             "innerText",
             can_gc,
         )?;
-        let value = DOMString::from(value);
         *self.script_text.borrow_mut() = value.clone();
         // Step 3: Run set the inner text steps with this and value.
         self.upcast::<HTMLElement>().set_inner_text(value, can_gc);
@@ -1548,7 +1550,6 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
             can_gc,
         )?;
         // Step 2: Set this's script text value to the given value.
-        let value = DOMString::from(value);
         *self.script_text.borrow_mut() = value.clone();
         // Step 3: String replace all with the given value within this.
         Node::string_replace_all(value, self.upcast::<Node>(), can_gc);
@@ -1575,7 +1576,6 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
             can_gc,
         )?;
         // Step 2: Set this's script text value to value.
-        let value = DOMString::from(value);
         *self.script_text.borrow_mut() = value.clone();
         // Step 3: Run set text content with this and value.
         self.upcast::<Node>().SetTextContent(Some(value), can_gc);

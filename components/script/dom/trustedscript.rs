@@ -20,11 +20,11 @@ use crate::script_runtime::CanGc;
 pub struct TrustedScript {
     reflector_: Reflector,
 
-    data: String,
+    data: DOMString,
 }
 
 impl TrustedScript {
-    fn new_inherited(data: String) -> Self {
+    fn new_inherited(data: DOMString) -> Self {
         Self {
             reflector_: Reflector::new(),
             data,
@@ -32,7 +32,7 @@ impl TrustedScript {
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub(crate) fn new(data: String, global: &GlobalScope, can_gc: CanGc) -> DomRoot<Self> {
+    pub(crate) fn new(data: DOMString, global: &GlobalScope, can_gc: CanGc) -> DomRoot<Self> {
         reflect_dom_object(Box::new(Self::new_inherited(data)), global, can_gc)
     }
 
@@ -42,21 +42,21 @@ impl TrustedScript {
         containing_class: &str,
         field: &str,
         can_gc: CanGc,
-    ) -> Fallible<String> {
+    ) -> Fallible<DOMString> {
         match value {
             TrustedScriptOrString::String(value) => {
                 let sink = format!("{} {}", containing_class, field);
                 TrustedTypePolicyFactory::get_trusted_type_compliant_string(
                     TrustedType::TrustedScript,
                     global,
-                    value.as_ref().to_owned(),
+                    value,
                     &sink,
                     "'script'",
                     can_gc,
                 )
             },
 
-            TrustedScriptOrString::TrustedScript(trusted_script) => Ok(trusted_script.to_string()),
+            TrustedScriptOrString::TrustedScript(trusted_script) => Ok(trusted_script.data.clone()),
         }
     }
 }
@@ -71,11 +71,11 @@ impl fmt::Display for TrustedScript {
 impl TrustedScriptMethods<crate::DomTypeHolder> for TrustedScript {
     /// <https://www.w3.org/TR/trusted-types/#trustedscript-stringification-behavior>
     fn Stringifier(&self) -> DOMString {
-        DOMString::from(&*self.data)
+        self.data.clone()
     }
 
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedscript-tojson>
     fn ToJSON(&self) -> DOMString {
-        DOMString::from(&*self.data)
+        self.data.clone()
     }
 }
