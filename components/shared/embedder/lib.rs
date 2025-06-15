@@ -373,6 +373,7 @@ pub enum EmbedderMsg {
         JavaScriptEvaluationId,
         Result<JSValue, JavaScriptEvaluationError>,
     ),
+    OpenNewTopLevelWebview,
 }
 
 impl Debug for EmbedderMsg {
