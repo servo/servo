@@ -22,6 +22,8 @@ class Configuration:
         self.dictConfig = glbl['Dictionaries']
         self.unionConfig = glbl['Unions']
 
+        self.stubUnimplementedDomInterfaces = "CARGO_FEATURE_STUB_UNIMPLEMENTED_DOM_INTERFACES" in os.environ
+
         # Build descriptors for all the interfaces we have in the parse data.
         # This allows callers to specify a subset of interfaces by filtering
         # |parseData|.
@@ -37,6 +39,9 @@ class Configuration:
             assert not thing.isType()
 
             if not thing.isInterface() and not thing.isNamespace():
+                continue
+
+            if thing.getExtendedAttribute("Unimplemented") is not None and not self.stubUnimplementedDomInterfaces:
                 continue
 
             iface = thing
@@ -477,6 +482,9 @@ class Descriptor(DescriptorProvider):
         """
         return bool(self.interface.getExtendedAttribute("Global")
                     or self.interface.getExtendedAttribute("PrimaryGlobal"))
+
+    def isUnimplemented(self) -> bool:
+        return self.interface.getExtendedAttribute("Unimplemented") is not None
 
 
 # Some utility methods

@@ -16,7 +16,7 @@ interface CSSRule {
 
   readonly attribute unsigned short type;
   attribute DOMString cssText;
-  // readonly attribute CSSRule? parentRule;
+  [Unimplemented] readonly attribute CSSRule? parentRule;
   readonly attribute CSSStyleSheet? parentStyleSheet;
 };
 
