@@ -1318,6 +1318,7 @@ impl Handler {
         }
     }
 
+    /// <https://w3c.github.io/webdriver/#dfn-get-element-text>
     fn handle_element_text(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetElementText(element.to_string(), sender);
