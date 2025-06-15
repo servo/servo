@@ -658,6 +658,7 @@ impl IOCompositor {
                 webview_renderer.dispatch_point_input_event(
                     InputEvent::MouseButton(MouseButtonEvent::new(action, button, point))
                         .with_webdriver_message_id(message_id),
+                    false,
                 );
             },
 
@@ -671,6 +672,7 @@ impl IOCompositor {
                 webview_renderer.dispatch_point_input_event(
                     InputEvent::MouseMove(MouseMoveEvent::new(point))
                         .with_webdriver_message_id(message_id),
+                    false,
                 );
             },
 
@@ -699,6 +701,7 @@ impl IOCompositor {
                 webview_renderer.dispatch_point_input_event(
                     InputEvent::Wheel(WheelEvent::new(delta, point))
                         .with_webdriver_message_id(message_id),
+                    false,
                 );
                 webview_renderer.on_webdriver_wheel_action(scroll_delta, point);
             },
