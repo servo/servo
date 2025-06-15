@@ -171,6 +171,9 @@ skip = [
     "rand_core",
     "wasi",
     "webpki-roots",
+
+    # Stylo uses 2.0, WebRender uses 0.99
+    "derive_more",
 ]
 
 # github.com organizations to allow git sources for
