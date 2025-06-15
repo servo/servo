@@ -6,6 +6,7 @@ use keyboard_types::{CompositionEvent, KeyboardEvent};
 use log::error;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
+use webrender_api::ExternalScrollId;
 use webrender_api::units::DevicePoint;
 
 use crate::WebDriverMessageId;
@@ -21,6 +22,7 @@ pub enum InputEvent {
     MouseMove(MouseMoveEvent),
     Touch(TouchEvent),
     Wheel(WheelEvent),
+    Scroll(ScrollEvent),
 }
 
 /// An editing action that should be performed on a `WebView`.
@@ -42,6 +44,7 @@ impl InputEvent {
             InputEvent::MouseMove(event) => Some(event.point),
             InputEvent::Touch(event) => Some(event.point),
             InputEvent::Wheel(event) => Some(event.point),
+            InputEvent::Scroll(..) => None,
         }
     }
 
@@ -55,6 +58,7 @@ impl InputEvent {
             InputEvent::MouseMove(event) => event.webdriver_id,
             InputEvent::Touch(..) => None,
             InputEvent::Wheel(event) => event.webdriver_id,
+            InputEvent::Scroll(..) => None,
         }
     }
 
@@ -74,6 +78,7 @@ impl InputEvent {
             InputEvent::Wheel(ref mut event) => {
                 event.webdriver_id = webdriver_id;
             },
+            InputEvent::Scroll(..) => {},
         };
 
         self
@@ -288,6 +293,11 @@ impl WheelEvent {
             webdriver_id: None,
         }
     }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub struct ScrollEvent {
+    pub external_id: ExternalScrollId,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
