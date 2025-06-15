@@ -318,6 +318,7 @@ impl WindowProxy {
         };
         let constellation_msg = ScriptToConstellationMessage::CreateAuxiliaryWebView(load_info);
         window.send_to_constellation(constellation_msg);
+        document.get_skip_sending_to_constellation().set(true);
 
         let response = response_receiver.recv().unwrap()?;
         let new_browsing_context_id = BrowsingContextId::from(response.new_webview_id);
