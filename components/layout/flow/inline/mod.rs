@@ -170,7 +170,8 @@ pub(crate) struct InlineFormattingContext {
     /// Whether or not this [`InlineFormattingContext`] contains floats.
     pub(super) contains_floats: bool,
 
-    /// Whether or not this is an [`InlineFormattingContext`] for a single line text input.
+    /// Whether or not this is an [`InlineFormattingContext`] for a single line text input's inner
+    /// text container.
     pub(super) is_single_line_text_input: bool,
 
     /// Whether or not this is an [`InlineFormattingContext`] has right-to-left content, which
@@ -2241,8 +2242,9 @@ fn line_height(
         LineHeight::Length(length) => length.0.into(),
     };
 
-    // Single line text inputs line height is clamped to the size of `normal`. See
-    // <https://github.com/whatwg/html/pull/5462>.
+    // The line height of a single-line text input's inner text container is clamped to
+    // the size of `normal`.
+    // <https://html.spec.whatwg.org/multipage/#the-input-element-as-a-text-entry-widget>
     if is_single_line_text_input {
         line_height.max_assign(font_metrics.line_gap);
     }
