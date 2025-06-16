@@ -2331,7 +2331,7 @@ impl Document {
     /// The entry point for all key processing for web content
     pub(crate) fn dispatch_key_event(
         &self,
-        keyboard_event: ::keyboard_types::KeyboardEvent,
+        keyboard_event: ::embedder_traits::KeyboardEvent,
         can_gc: CanGc,
     ) {
         let focused = self.get_focused_element();

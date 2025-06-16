@@ -172,14 +172,12 @@ impl Handler {
     }
 
     fn wait_for_user_agent_handling_complete(&self) -> Result<(), ErrorStatus> {
-        let mut count_non_null_actions_in_tick = self.num_pending_actions.borrow_mut();
-
         // To ensure we wait for all events to be processed, only the last event
         // in each tick action step holds the message id.
         // Whenever a new event is generated, the message id is passed to it.
         //
-        // Wait for count_non_null_actions_in_tick number of responses
-        for _ in 0..*count_non_null_actions_in_tick {
+        // Wait for num_pending_actions number of responses
+        for _ in 0..self.num_pending_actions.get() {
             match self.constellation_receiver.recv() {
                 Ok(response) => {
                     let current_waiting_id = self
@@ -199,7 +197,7 @@ impl Handler {
             };
         }
 
-        *count_non_null_actions_in_tick = 0;
+        self.num_pending_actions.set(0);
 
         Ok(())
     }
@@ -308,7 +306,7 @@ impl Handler {
         let keyboard_event = key_input_state.dispatch_keydown(raw_key);
 
         // Step 12
-        *self.num_pending_actions.borrow_mut() += 1;
+        self.increment_num_pending_actions();
         let msg_id = self.current_action_id.get();
         let cmd_msg = WebDriverCommandMsg::KeyboardAction(
             self.session().unwrap().browsing_context_id,
@@ -334,7 +332,7 @@ impl Handler {
 
         if let Some(keyboard_event) = key_input_state.dispatch_keyup(raw_key) {
             // Step 12
-            *self.num_pending_actions.borrow_mut() += 1;
+            self.increment_num_pending_actions();
             let msg_id = self.current_action_id.get();
             let cmd_msg = WebDriverCommandMsg::KeyboardAction(
                 self.session().unwrap().browsing_context_id,
@@ -363,7 +361,7 @@ impl Handler {
         }
         pointer_input_state.pressed.insert(action.button);
 
-        *self.num_pending_actions.borrow_mut() += 1;
+        self.increment_num_pending_actions();
         let msg_id = self.current_action_id.get();
         let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
             session.webview_id,
@@ -394,7 +392,7 @@ impl Handler {
         }
         pointer_input_state.pressed.remove(&action.button);
 
-        *self.num_pending_actions.borrow_mut() += 1;
+        self.increment_num_pending_actions();
         let msg_id = self.current_action_id.get();
         let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
             session.webview_id,
@@ -521,7 +519,7 @@ impl Handler {
             if x != current_x || y != current_y || last {
                 // Step 7.2
                 let msg_id = if last {
-                    *self.num_pending_actions.borrow_mut() += 1;
+                    self.increment_num_pending_actions();
                     self.current_action_id.get()
                 } else {
                     None
@@ -659,7 +657,7 @@ impl Handler {
         if delta_x != 0 || delta_y != 0 || last {
             // Perform implementation-specific action dispatch steps
             let msg_id = if last {
-                *self.num_pending_actions.borrow_mut() += 1;
+                self.increment_num_pending_actions();
                 self.current_action_id.get()
             } else {
                 None

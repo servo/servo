@@ -129,9 +129,9 @@ use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
     AnimationState, CompositorHitTestResult, Cursor, EmbedderMsg, EmbedderProxy,
     FocusSequenceNumber, ImeEvent, InputEvent, JSValue, JavaScriptEvaluationError,
-    JavaScriptEvaluationId, KeyboardEventWithWebDriverId, MediaSessionActionType,
-    MediaSessionEvent, MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent,
-    Theme, ViewportDetails, WebDriverCommandMsg, WebDriverCommandResponse, WebDriverLoadStatus,
+    JavaScriptEvaluationId, KeyboardEvent, MediaSessionActionType, MediaSessionEvent,
+    MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent, Theme,
+    ViewportDetails, WebDriverCommandMsg, WebDriverCommandResponse, WebDriverLoadStatus,
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
@@ -140,7 +140,7 @@ use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;
-use keyboard_types::{Key, KeyState, KeyboardEvent, Modifiers};
+use keyboard_types::{Key, KeyState, Modifiers};
 use log::{debug, error, info, trace, warn};
 use media::WindowGLContext;
 use net_traits::pub_domains::reg_host;
@@ -3064,7 +3064,7 @@ where
         }
 
         if let InputEvent::Keyboard(event) = &event {
-            self.update_active_keybord_modifiers(&event.event);
+            self.update_active_keybord_modifiers(event);
         }
 
         // The constellation tracks the state of pressed mouse buttons and keyboard
@@ -4828,7 +4828,7 @@ where
                             pressed_mouse_buttons: self.pressed_mouse_buttons,
                             active_keyboard_modifiers: event.modifiers,
                             hit_test_result: None,
-                            event: InputEvent::Keyboard(KeyboardEventWithWebDriverId::new(event)),
+                            event: InputEvent::Keyboard(KeyboardEvent::new(event)),
                         },
                         WebDriverInputEvent::Composition(event) => ConstellationInputEvent {
                             pressed_mouse_buttons: self.pressed_mouse_buttons,
@@ -4861,9 +4861,8 @@ where
                     Some(pipeline) => pipeline.event_loop.clone(),
                     None => return warn!("{}: KeyboardAction after closure", pipeline_id),
                 };
-                let event =
-                    InputEvent::Keyboard(KeyboardEventWithWebDriverId::new(key_event.clone()))
-                        .with_webdriver_message_id(msg_id);
+                let event = InputEvent::Keyboard(KeyboardEvent::new(key_event.clone()))
+                    .with_webdriver_message_id(msg_id);
                 let control_msg = ScriptThreadMessage::SendInputEvent(
                     pipeline_id,
                     ConstellationInputEvent {

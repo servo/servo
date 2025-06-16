@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 use euclid::Vector2D;
-use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
+use keyboard_types::{Key, Modifiers};
 use log::{error, info};
 use servo::base::id::WebViewId;
 use servo::config::{opts, pref};
@@ -17,8 +17,8 @@ use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FormControl, GamepadHapticEffectType,
-    LoadStatus, PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog, TouchEventType,
-    WebView, WebViewBuilder, WebViewDelegate,
+    KeyboardEvent, LoadStatus, PermissionRequest, Servo, ServoDelegate, ServoError,
+    ShortcutMatcher, SimpleDialog, TouchEventType, WebView, WebViewBuilder, WebViewDelegate,
 };
 use url::Url;
 

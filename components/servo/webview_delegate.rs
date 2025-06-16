@@ -8,12 +8,11 @@ use base::id::PipelineId;
 use constellation_traits::EmbedderToConstellationMessage;
 use embedder_traits::{
     AllowOrDeny, AuthenticationResponse, ContextMenuResult, Cursor, FilterPattern,
-    GamepadHapticEffectType, InputMethodType, LoadStatus, MediaSessionEvent, Notification,
-    PermissionFeature, RgbColor, ScreenGeometry, SelectElementOptionOrOptgroup, SimpleDialog,
-    WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
+    GamepadHapticEffectType, InputMethodType, KeyboardEvent, LoadStatus, MediaSessionEvent,
+    Notification, PermissionFeature, RgbColor, ScreenGeometry, SelectElementOptionOrOptgroup,
+    SimpleDialog, WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
 };
 use ipc_channel::ipc::IpcSender;
-use keyboard_types::KeyboardEvent;
 use serde::Serialize;
 use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
