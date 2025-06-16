@@ -22,6 +22,8 @@ use crate::task_manager::TaskManager;
 /// doesn't implement TaskSource.
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, MallocSizeOf, PartialEq, VariantArray)]
 pub(crate) enum TaskSourceName {
+    /// <https://html.spec.whatwg.org/multipage/#bitmap-task-source>
+    Bitmap,
     Canvas,
     Clipboard,
     DOMManipulation,
@@ -48,6 +50,7 @@ pub(crate) enum TaskSourceName {
 impl From<TaskSourceName> for ScriptThreadEventCategory {
     fn from(value: TaskSourceName) -> Self {
         match value {
+            TaskSourceName::Bitmap => ScriptThreadEventCategory::ScriptEvent,
             TaskSourceName::Canvas => ScriptThreadEventCategory::ScriptEvent,
             TaskSourceName::Clipboard => ScriptThreadEventCategory::ScriptEvent,
             TaskSourceName::DOMManipulation => ScriptThreadEventCategory::ScriptEvent,
