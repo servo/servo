@@ -51,8 +51,14 @@ impl<'dom> NodeAndStyleInfo<'dom> {
         }
     }
 
+    /// Whether this is a container for the editable text within a single-line text input.
+    /// This is used to solve the special case of line height for a text editor.
+    /// <https://html.spec.whatwg.org/multipage/#the-input-element-as-a-text-entry-widget>
+    // FIXME(stevennovaryo): Now, this would also refer to HTMLInputElement, to handle input
+    //                       elements that is yet to to be implemented with shadow DOM.
     pub(crate) fn is_single_line_text_input(&self) -> bool {
-        self.node.type_id() == LayoutNodeType::Element(LayoutElementType::HTMLInputElement)
+        self.node.type_id() == LayoutNodeType::Element(LayoutElementType::HTMLInputElement) ||
+            self.node.is_single_line_text_inner_editor()
     }
 
     pub(crate) fn pseudo(
@@ -75,7 +81,15 @@ impl<'dom> NodeAndStyleInfo<'dom> {
     }
 
     pub(crate) fn get_selected_style(&self) -> ServoArc<ComputedValues> {
-        self.node.to_threadsafe().selected_style()
+        if self.node.is_single_line_text_inner_editor() {
+            self.node
+                .containing_shadow_host()
+                .expect("Ua widget inner editor is not contained")
+                .to_threadsafe()
+                .selected_style()
+        } else {
+            self.node.to_threadsafe().selected_style()
+        }
     }
 
     pub(crate) fn get_selection_range(&self) -> Option<Range<ByteIndex>> {
