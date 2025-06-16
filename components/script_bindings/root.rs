@@ -229,15 +229,15 @@ impl<T: DomObject> Deref for Dom<T> {
 }
 
 unsafe impl<T: DomObject> JSTraceable for Dom<T> {
-    unsafe fn trace(&self, trc: *mut JSTracer) {
-        let trace_string;
+    unsafe fn trace(&self, tracer: *mut JSTracer) {
         let trace_info = if cfg!(debug_assertions) {
-            trace_string = format!("for {} on heap", ::std::any::type_name::<T>());
-            &trace_string[..]
+            std::any::type_name::<T>()
         } else {
-            "for DOM object on heap"
+            "DOM object on heap"
         };
-        trace_reflector(trc, trace_info, (*self.ptr.as_ptr()).reflector());
+        unsafe {
+            trace_reflector(tracer, trace_info, (*self.ptr.as_ptr()).reflector());
+        }
     }
 }
 
