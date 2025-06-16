@@ -2034,11 +2034,16 @@ impl ScriptThread {
             ScriptThreadMessage::EvaluateJavaScript(pipeline_id, evaluation_id, script) => {
                 self.handle_evaluate_javascript(pipeline_id, evaluation_id, script, can_gc);
             },
-            ScriptThreadMessage::SendImageKeys(pipeline_id, image_keys) => {
+            ScriptThreadMessage::SendImageKeysBatch(pipeline_id, image_keys) => {
                 if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
-                    window.image_cache().fill_key_cache_with_keys(image_keys);
+                    window
+                        .image_cache()
+                        .fill_key_cache_with_batch_of_keys(image_keys);
                 } else {
-                    error!("Could not find window for image cache");
+                    warn!(
+                        "Could not find window corresponding to an image cache to send image keys to pipeline {:?}",
+                        pipeline_id
+                    );
                 }
             },
         }

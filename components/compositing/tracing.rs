@@ -60,7 +60,7 @@ mod from_constellation {
                 Self::GetAvailableScreenSize(..) => target!("GetAvailableScreenSize"),
                 Self::CollectMemoryReport(..) => target!("CollectMemoryReport"),
                 Self::Viewport(..) => target!("Viewport"),
-                Self::GenerateImageKeysForPipeline(..) => target!("GenerateImageViewForPipeline"),
+                Self::GenerateImageKeysForPipeline(..) => target!("GenerateImageKeysForPipeline"),
             }
         }
     }
