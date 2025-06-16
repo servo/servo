@@ -110,13 +110,13 @@ class MachCommands(CommandBase):
     @Command("clippy", description='Run "cargo clippy"', category="devenv")
     @CommandArgument("params", default=None, nargs="...", help="Command-line arguments to be passed through to clippy")
     @CommandArgument(
-        "--github-annotation",
+        "--github-annotations",
         default=False,
         action="store_true",
         help="Emit the clippy warnings in the Github Actions annotations format",
     )
     @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
-    def cargo_clippy(self, params, github_annotation=False, **kwargs):
+    def cargo_clippy(self, params, github_annotations=False, **kwargs):
         if not params:
             params = []
 
@@ -125,7 +125,7 @@ class MachCommands(CommandBase):
         env = self.build_env()
         env["RUSTC"] = "rustc"
 
-        if github_annotation:
+        if github_annotations:
             if "--message-format=json" not in params:
                 params.insert(0, "--message-format=json")
 
