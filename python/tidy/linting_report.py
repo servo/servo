@@ -121,7 +121,7 @@ class LintingReportManager:
         for annotation in self.annotations:
             self.emit_github_annotation(annotation)
 
-    def emit_github_annotation(self, annotation: OptionalAnnotation):
+    def emit_github_annotation(self, annotation: GithubAnnotation):
         line_info = f"line={annotation['line_start']},endLine={annotation['line_end']},title={annotation['title']}"
 
         column_info = ""
