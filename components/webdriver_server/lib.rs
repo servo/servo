@@ -929,10 +929,15 @@ impl Handler {
         )))
     }
 
+    /// <https://w3c.github.io/webdriver/#find-element>
     fn handle_find_element(
         &self,
         parameters: &LocatorParameters,
     ) -> WebDriverResult<WebDriverResponse> {
+        // Step 4. If selector is undefined, return error with error code invalid argument.
+        if parameters.value.is_empty() {
+            return Err(WebDriverError::new(ErrorStatus::InvalidArgument, ""));
+        }
         let (sender, receiver) = ipc::channel().unwrap();
 
         match parameters.using {
@@ -961,12 +966,15 @@ impl Handler {
             },
         }
 
+        // Step 10. If result is empty, return error with error code no such element.
+        // Otherwise, return the first element of result.
         match wait_for_script_response(receiver)? {
-            Ok(value) => {
-                let value_resp = serde_json::to_value(
-                    value.map(|x| serde_json::to_value(WebElement(x)).unwrap()),
-                )?;
-                Ok(WebDriverResponse::Generic(ValueResponse(value_resp)))
+            Ok(value) => match value {
+                Some(value) => {
+                    let value_resp = serde_json::to_value(WebElement(value)).unwrap();
+                    Ok(WebDriverResponse::Generic(ValueResponse(value_resp)))
+                },
+                None => Err(WebDriverError::new(ErrorStatus::NoSuchElement, "")),
             },
             Err(error) => Err(WebDriverError::new(error, "")),
         }
@@ -1121,13 +1129,16 @@ impl Handler {
         }
     }
 
-    // https://w3c.github.io/webdriver/#find-elements
+    /// <https://w3c.github.io/webdriver/#find-elements>
     fn handle_find_elements(
         &self,
         parameters: &LocatorParameters,
     ) -> WebDriverResult<WebDriverResponse> {
+        // Step 4. If selector is undefined, return error with error code invalid argument.
+        if parameters.value.is_empty() {
+            return Err(WebDriverError::new(ErrorStatus::InvalidArgument, ""));
+        }
         let (sender, receiver) = ipc::channel().unwrap();
-
         match parameters.using {
             LocatorStrategy::CSSSelector => {
                 let cmd = WebDriverScriptCommand::FindElementsCSS(parameters.value.clone(), sender);
@@ -1156,10 +1167,7 @@ impl Handler {
 
         match wait_for_script_response(receiver)? {
             Ok(value) => {
-                let resp_value: Vec<Value> = value
-                    .into_iter()
-                    .map(|x| serde_json::to_value(WebElement(x)).unwrap())
-                    .collect();
+                let resp_value: Vec<WebElement> = value.into_iter().map(WebElement).collect();
                 Ok(WebDriverResponse::Generic(ValueResponse(
                     serde_json::to_value(resp_value)?,
                 )))

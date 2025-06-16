@@ -104,16 +104,19 @@ pub(crate) fn find_node_by_unique_id_in_document(
     }
 }
 
+/// <https://w3c.github.io/webdriver/#dfn-link-text-selector>
 fn matching_links(
     links: &NodeList,
     link_text: String,
     partial: bool,
+    can_gc: CanGc,
 ) -> impl Iterator<Item = String> + '_ {
     links
         .iter()
         .filter(move |node| {
             let content = node
-                .GetTextContent()
+                .downcast::<HTMLElement>()
+                .map(|element| element.InnerText(can_gc))
                 .map_or("".to_owned(), String::from)
                 .trim()
                 .to_owned();
@@ -123,32 +126,41 @@ fn matching_links(
                 content == link_text
             }
         })
-        .map(|node| {
-            node.upcast::<Node>()
-                .unique_id(node.owner_doc().window().pipeline_id())
-        })
+        .map(|node| node.unique_id(node.owner_doc().window().pipeline_id()))
 }
 
 fn all_matching_links(
     root_node: &Node,
     link_text: String,
     partial: bool,
+    can_gc: CanGc,
 ) -> Result<Vec<String>, ErrorStatus> {
+    // <https://w3c.github.io/webdriver/#dfn-find>
+    // Step 7.2. If a DOMException, SyntaxError, XPathException, or other error occurs
+    // during the execution of the element location strategy, return error invalid selector.
     root_node
         .query_selector_all(DOMString::from("a"))
-        .map_err(|_| ErrorStatus::UnknownError)
-        .map(|nodes| matching_links(&nodes, link_text, partial).collect())
+        .map_err(|_| ErrorStatus::InvalidSelector)
+        .map(|nodes| matching_links(&nodes, link_text, partial, can_gc).collect())
 }
 
 fn first_matching_link(
     root_node: &Node,
     link_text: String,
     partial: bool,
+    can_gc: CanGc,
 ) -> Result<Option<String>, ErrorStatus> {
+    // <https://w3c.github.io/webdriver/#dfn-find>
+    // Step 7.2. If a DOMException, SyntaxError, XPathException, or other error occurs
+    // during the execution of the element location strategy, return error invalid selector.
     root_node
         .query_selector_all(DOMString::from("a"))
-        .map_err(|_| ErrorStatus::UnknownError)
-        .map(|nodes| matching_links(&nodes, link_text, partial).take(1).next())
+        .map_err(|_| ErrorStatus::InvalidSelector)
+        .map(|nodes| {
+            matching_links(&nodes, link_text, partial, can_gc)
+                .take(1)
+                .next()
+        })
 }
 
 #[allow(unsafe_code)]
@@ -584,25 +596,42 @@ pub(crate) fn handle_get_element_in_view_center_point(
         .unwrap();
 }
 
+fn retrieve_document_and_check_root_existence(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+) -> Result<DomRoot<Document>, ErrorStatus> {
+    let document = documents
+        .find_document(pipeline)
+        .ok_or(ErrorStatus::NoSuchWindow)?;
+
+    // <https://w3c.github.io/webdriver/#find-element>
+    // <https://w3c.github.io/webdriver/#find-elements>
+    // Step 7 - 8. If current browsing context's document element is null,
+    // return error with error code no such element.
+    if document.GetDocumentElement().is_none() {
+        Err(ErrorStatus::NoSuchElement)
+    } else {
+        Ok(document)
+    }
+}
+
 pub(crate) fn handle_find_element_css(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     selector: String,
     reply: IpcSender<Result<Option<String>, ErrorStatus>>,
 ) {
-    reply
-        .send(
-            documents
-                .find_document(pipeline)
-                .ok_or(ErrorStatus::UnknownError)
-                .and_then(|document| {
-                    document
-                        .QuerySelector(DOMString::from(selector))
-                        .map_err(|_| ErrorStatus::InvalidSelector)
-                })
-                .map(|node| node.map(|x| x.upcast::<Node>().unique_id(pipeline))),
-        )
-        .unwrap();
+    match retrieve_document_and_check_root_existence(documents, pipeline) {
+        Ok(document) => reply
+            .send(
+                document
+                    .QuerySelector(DOMString::from(selector))
+                    .map_err(|_| ErrorStatus::InvalidSelector)
+                    .map(|node| node.map(|x| x.upcast::<Node>().unique_id(pipeline))),
+            )
+            .unwrap(),
+        Err(error) => reply.send(Err(error)).unwrap(),
+    }
 }
 
 pub(crate) fn handle_find_element_link_text(
@@ -611,17 +640,19 @@ pub(crate) fn handle_find_element_link_text(
     selector: String,
     partial: bool,
     reply: IpcSender<Result<Option<String>, ErrorStatus>>,
+    can_gc: CanGc,
 ) {
-    reply
-        .send(
-            documents
-                .find_document(pipeline)
-                .ok_or(ErrorStatus::UnknownError)
-                .and_then(|document| {
-                    first_matching_link(document.upcast::<Node>(), selector.clone(), partial)
-                }),
-        )
-        .unwrap();
+    match retrieve_document_and_check_root_existence(documents, pipeline) {
+        Ok(document) => reply
+            .send(first_matching_link(
+                document.upcast::<Node>(),
+                selector.clone(),
+                partial,
+                can_gc,
+            ))
+            .unwrap(),
+        Err(error) => reply.send(Err(error)).unwrap(),
+    }
 }
 
 pub(crate) fn handle_find_element_tag_name(
@@ -631,20 +662,16 @@ pub(crate) fn handle_find_element_tag_name(
     reply: IpcSender<Result<Option<String>, ErrorStatus>>,
     can_gc: CanGc,
 ) {
-    reply
-        .send(
-            documents
-                .find_document(pipeline)
-                .ok_or(ErrorStatus::UnknownError)
-                .map(|document| {
-                    document
-                        .GetElementsByTagName(DOMString::from(selector), can_gc)
-                        .elements_iter()
-                        .next()
-                })
-                .map(|node| node.map(|x| x.upcast::<Node>().unique_id(pipeline))),
-        )
-        .unwrap();
+    match retrieve_document_and_check_root_existence(documents, pipeline) {
+        Ok(document) => reply
+            .send(Ok(document
+                .GetElementsByTagName(DOMString::from(selector), can_gc)
+                .elements_iter()
+                .next()
+                .map(|node| node.upcast::<Node>().unique_id(pipeline))))
+            .unwrap(),
+        Err(error) => reply.send(Err(error)).unwrap(),
+    }
 }
 
 pub(crate) fn handle_find_elements_css(
@@ -653,24 +680,22 @@ pub(crate) fn handle_find_elements_css(
     selector: String,
     reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
 ) {
-    reply
-        .send(
-            documents
-                .find_document(pipeline)
-                .ok_or(ErrorStatus::UnknownError)
-                .and_then(|document| {
-                    document
-                        .QuerySelectorAll(DOMString::from(selector))
-                        .map_err(|_| ErrorStatus::InvalidSelector)
-                })
-                .map(|nodes| {
-                    nodes
-                        .iter()
-                        .map(|x| x.upcast::<Node>().unique_id(pipeline))
-                        .collect()
-                }),
-        )
-        .unwrap();
+    match retrieve_document_and_check_root_existence(documents, pipeline) {
+        Ok(document) => reply
+            .send(
+                document
+                    .QuerySelectorAll(DOMString::from(selector))
+                    .map_err(|_| ErrorStatus::InvalidSelector)
+                    .map(|nodes| {
+                        nodes
+                            .iter()
+                            .map(|x| x.upcast::<Node>().unique_id(pipeline))
+                            .collect()
+                    }),
+            )
+            .unwrap(),
+        Err(error) => reply.send(Err(error)).unwrap(),
+    }
 }
 
 pub(crate) fn handle_find_elements_link_text(
@@ -679,17 +704,19 @@ pub(crate) fn handle_find_elements_link_text(
     selector: String,
     partial: bool,
     reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    can_gc: CanGc,
 ) {
-    reply
-        .send(
-            documents
-                .find_document(pipeline)
-                .ok_or(ErrorStatus::UnknownError)
-                .and_then(|document| {
-                    all_matching_links(document.upcast::<Node>(), selector.clone(), partial)
-                }),
-        )
-        .unwrap();
+    match retrieve_document_and_check_root_existence(documents, pipeline) {
+        Ok(document) => reply
+            .send(all_matching_links(
+                document.upcast::<Node>(),
+                selector.clone(),
+                partial,
+                can_gc,
+            ))
+            .unwrap(),
+        Err(error) => reply.send(Err(error)).unwrap(),
+    }
 }
 
 pub(crate) fn handle_find_elements_tag_name(
@@ -699,20 +726,16 @@ pub(crate) fn handle_find_elements_tag_name(
     reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
     can_gc: CanGc,
 ) {
-    reply
-        .send(
-            documents
-                .find_document(pipeline)
-                .ok_or(ErrorStatus::UnknownError)
-                .map(|document| document.GetElementsByTagName(DOMString::from(selector), can_gc))
-                .map(|nodes| {
-                    nodes
-                        .elements_iter()
-                        .map(|x| x.upcast::<Node>().unique_id(pipeline))
-                        .collect::<Vec<String>>()
-                }),
-        )
-        .unwrap();
+    match retrieve_document_and_check_root_existence(documents, pipeline) {
+        Ok(document) => reply
+            .send(Ok(document
+                .GetElementsByTagName(DOMString::from(selector), can_gc)
+                .elements_iter()
+                .map(|x| x.upcast::<Node>().unique_id(pipeline))
+                .collect::<Vec<String>>()))
+            .unwrap(),
+        Err(error) => reply.send(Err(error)).unwrap(),
+    }
 }
 
 pub(crate) fn handle_find_element_element_css(
@@ -740,11 +763,12 @@ pub(crate) fn handle_find_element_element_link_text(
     selector: String,
     partial: bool,
     reply: IpcSender<Result<Option<String>, ErrorStatus>>,
+    can_gc: CanGc,
 ) {
     reply
         .send(
             find_node_by_unique_id(documents, pipeline, element_id)
-                .and_then(|node| first_matching_link(&node, selector.clone(), partial)),
+                .and_then(|node| first_matching_link(&node, selector.clone(), partial, can_gc)),
         )
         .unwrap();
 }
@@ -803,11 +827,12 @@ pub(crate) fn handle_find_element_elements_link_text(
     selector: String,
     partial: bool,
     reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    can_gc: CanGc,
 ) {
     reply
         .send(
             find_node_by_unique_id(documents, pipeline, element_id)
-                .and_then(|node| all_matching_links(&node, selector.clone(), partial)),
+                .and_then(|node| all_matching_links(&node, selector.clone(), partial, can_gc)),
         )
         .unwrap();
 }
