@@ -102,29 +102,41 @@ impl FragmentTree {
             .expect("Should only call `scrollable_overflow()` after calculating overflow")
     }
 
+    /// Calculate the scrollable overflow / scrolling area for this [`FragmentTree`] according
+    /// to <https://drafts.csswg.org/cssom-view/#scrolling-area>.
     pub(crate) fn calculate_scrollable_overflow(&self) {
-        self.scrollable_overflow
-            .set(Some(self.root_fragments.iter().fold(
-                PhysicalRect::zero(),
-                |acc, child| {
-                    let child_overflow = child.calculate_scrollable_overflow_for_parent();
+        let scrollable_overflow = || {
+            let Some(first_root_fragment) = self.root_fragments.first() else {
+                return self.initial_containing_block;
+            };
 
-                    // https://drafts.csswg.org/css-overflow/#scrolling-direction
-                    // We want to clip scrollable overflow on box-start and inline-start
-                    // sides of the scroll container.
-                    //
-                    // FIXME(mrobinson, bug 25564): This should take into account writing
-                    // mode.
-                    let child_overflow = PhysicalRect::new(
-                        euclid::Point2D::zero(),
-                        euclid::Size2D::new(
-                            child_overflow.size.width + child_overflow.origin.x,
-                            child_overflow.size.height + child_overflow.origin.y,
-                        ),
-                    );
-                    acc.union(&child_overflow)
+            let scrollable_overflow = self.root_fragments.iter().fold(
+                self.initial_containing_block,
+                |overflow, fragment| {
+                    fragment
+                        .calculate_scrollable_overflow_for_parent()
+                        .union(&overflow)
                 },
-            )));
+            );
+
+            // Assuming that the first fragment is the root element, ensure that
+            // scrollable overflow that is unreachable is not included in the final
+            // rectangle. See
+            // <https://drafts.csswg.org/css-overflow/#scrolling-direction>.
+            let first_root_fragment = match first_root_fragment {
+                Fragment::Box(fragment) | Fragment::Float(fragment) => fragment.borrow(),
+                _ => return scrollable_overflow,
+            };
+            if !first_root_fragment.is_root_element() {
+                return scrollable_overflow;
+            }
+            first_root_fragment.clip_wholly_unreachable_scrollable_overflow(
+                scrollable_overflow,
+                self.initial_containing_block,
+            )
+        };
+
+        self.scrollable_overflow.set(Some(scrollable_overflow()))
     }
 
     pub(crate) fn find<T>(
@@ -139,29 +151,6 @@ impl FragmentTree {
         self.root_fragments
             .iter()
             .find_map(|child| child.find(&info, 0, &mut process_func))
-    }
-
-    /// <https://drafts.csswg.org/cssom-view/#scrolling-area>
-    ///
-    /// Scrolling area for a viewport that is clipped according to overflow direction of root element.
-    pub fn get_scrolling_area_for_viewport(&self) -> PhysicalRect<Au> {
-        let mut scroll_area = self.initial_containing_block;
-        if let Some(root_fragment) = self.root_fragments.first() {
-            for fragment in self.root_fragments.iter() {
-                scroll_area = fragment.unclipped_scrolling_area().union(&scroll_area);
-            }
-            match root_fragment {
-                Fragment::Box(fragment) | Fragment::Float(fragment) => fragment
-                    .borrow()
-                    .clip_unreachable_scrollable_overflow_region(
-                        scroll_area,
-                        self.initial_containing_block,
-                    ),
-                _ => scroll_area,
-            }
-        } else {
-            scroll_area
-        }
     }
 
     /// Find the `<body>` element's [`Fragment`], if it exists in this [`FragmentTree`].

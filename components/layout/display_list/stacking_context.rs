@@ -1472,12 +1472,10 @@ impl BoxFragment {
             y: overflow.y.into(),
         };
 
-        let content_rect = self.reachable_scrollable_overflow_region().to_webrender();
-
         let scroll_tree_node_id = stacking_context_tree.define_scroll_frame(
             parent_scroll_node_id,
             external_id,
-            content_rect,
+            self.scrollable_overflow().to_webrender(),
             scroll_frame_rect,
             sensitivity,
         );

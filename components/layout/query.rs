@@ -92,7 +92,7 @@ pub fn process_node_scroll_area_request(
             .first()
             .map(Fragment::scrolling_area)
             .unwrap_or_default(),
-        None => tree.get_scrolling_area_for_viewport(),
+        None => tree.scrollable_overflow(),
     };
 
     Rect::new(
