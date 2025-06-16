@@ -1634,15 +1634,7 @@ impl From<&InheritedText> for SegmentContentFlags {
 }
 
 impl InlineFormattingContext {
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(
-            name = "InlineFormattingContext::new_with_builder",
-            skip_all,
-            fields(servo_profiling = true),
-            level = "trace",
-        )
-    )]
+    #[servo_tracing::instrument(name = "InlineFormattingContext::new_with_builder", skip_all)]
     pub(super) fn new_with_builder(
         builder: InlineFormattingContextBuilder,
         layout_context: &LayoutContext,
