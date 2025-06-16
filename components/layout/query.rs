@@ -37,11 +37,12 @@ use style::values::generics::font::LineHeight;
 use style::values::generics::position::AspectRatio;
 use style::values::specified::GenericGridTemplateComponent;
 use style::values::specified::box_::DisplayInside;
+use style::values::specified::text::TextTransformCase;
 use style_traits::{ParsingMode, ToCss};
 
 use crate::ArcRefCell;
 use crate::dom::NodeExt;
-use crate::flow::inline::construct::{TextTransformation, WhitespaceCollapse};
+use crate::flow::inline::construct::{TextTransformation, WhitespaceCollapse, capitalize_string};
 use crate::fragment_tree::{
     BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo,
 };
@@ -782,6 +783,11 @@ fn rendered_text_collection_steps(
                     style.clone_text_transform().case(),
                 )
                 .collect();
+
+                // Since iterator for capitalize not doing anything, we must handle it outside here
+                if TextTransformCase::Capitalize == style.clone_text_transform().case() {
+                    transformed_text = capitalize_string(&transformed_text, true);
+                }
 
                 let is_preformatted_element =
                     white_space_collapse == WhiteSpaceCollapseValue::Preserve;
