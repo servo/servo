@@ -315,14 +315,7 @@ impl WebViewRenderer {
         }
     }
 
-    /// This function performs hit testing for point input events
-    /// before dispatching them to the constellation.
-    /// Return `true` if the event was successfully dispatched.
-    ///
-    /// We may want to retry the event if the hit test failed due to
-    /// epoch mismatch. To avoid infinite loops, we only retry once.
-    /// The `retried` parameter indicates whether the event has already been retried.
-    pub(crate) fn dispatch_point_input_event(&self, mut event: InputEvent, retried: bool) -> bool {
+    pub(crate) fn dispatch_point_input_event(&mut self, mut event: InputEvent) -> bool {
         // Events that do not need to do hit testing are sent directly to the
         // constellation to filter down.
         let Some(point) = event.point() else {
@@ -331,9 +324,7 @@ impl WebViewRenderer {
 
         // Delay the event if the epoch is not synchronized yet (new frame is not ready),
         // or hit test result would fail and the event is rejected anyway.
-        if !(self.webrender_frame_ready.get() &&
-            self.pending_point_input_events.borrow().is_empty() &&
-            retried)
+        if !self.webrender_frame_ready.get() || !self.pending_point_input_events.borrow().is_empty()
         {
             self.pending_point_input_events
                 .borrow_mut()
@@ -350,12 +341,9 @@ impl WebViewRenderer {
         {
             Ok(hit_test_results) => hit_test_results,
             Err(HitTestError::EpochMismatch) => {
-                if !retried {
-                    self.pending_point_input_events
-                        .borrow_mut()
-                        .push_back(event);
-                }
-
+                self.pending_point_input_events
+                    .borrow_mut()
+                    .push_back(event);
                 return false;
             },
             _ => {
@@ -383,21 +371,42 @@ impl WebViewRenderer {
         }
     }
 
+    // TODO: This function duplicates a lot of `dispatch_point_input_event.
+    // Perhaps it should just be called here instead.
     pub(crate) fn dispatch_pending_point_input_events(&self) {
-        loop {
-            let event = {
-                let mut pending = self.pending_point_input_events.borrow_mut();
-                pending.pop_front()
+        while let Some(mut event) = self.pending_point_input_events.borrow_mut().pop_front() {
+            // Events that do not need to do hit testing are sent directly to the
+            // constellation to filter down.
+            let Some(point) = event.point() else {
+                continue;
             };
 
-            let event = match event {
-                Some(ev) => ev,
-                None => break,
-            };
-            // We don't need to process more if 1 event failed to dispatch.
-            // All events are point events
-            if !self.dispatch_point_input_event(event, true) {
+            // If we can't find a pipeline to send this event to, we cannot continue.
+            let get_pipeline_details = |pipeline_id| self.pipelines.get(&pipeline_id);
+            let Ok(result) = self
+                .global
+                .borrow()
+                .hit_test_at_point(point, get_pipeline_details)
+            else {
+                // Don't need to process pending input events in this frame any more.
+                // TODO: Add multiple retry later if needed.
                 return;
+            };
+
+            match event {
+                InputEvent::Touch(ref mut touch_event) => {
+                    touch_event.init_sequence_id(self.touch_handler.current_sequence_id);
+                },
+                InputEvent::MouseButton(_) | InputEvent::MouseMove(_) | InputEvent::Wheel(_) => {
+                    self.global.borrow_mut().update_cursor(point, &result);
+                },
+                _ => unreachable!("Unexpected input event type: {event:?}"),
+            }
+
+            if let Err(error) = self.global.borrow().constellation_sender.send(
+                EmbedderToConstellationMessage::ForwardInputEvent(self.id, event, Some(result)),
+            ) {
+                warn!("Sending event to constellation failed ({error:?}).");
             }
         }
     }
@@ -468,11 +477,11 @@ impl WebViewRenderer {
             }
         }
 
-        self.dispatch_point_input_event(event, false);
+        self.dispatch_point_input_event(event);
     }
 
     fn send_touch_event(&mut self, event: TouchEvent) -> bool {
-        self.dispatch_point_input_event(InputEvent::Touch(event), false)
+        self.dispatch_point_input_event(InputEvent::Touch(event))
     }
 
     pub(crate) fn on_touch_event(&mut self, event: TouchEvent) {
@@ -736,19 +745,17 @@ impl WebViewRenderer {
     /// <http://w3c.github.io/touch-events/#mouse-events>
     fn simulate_mouse_click(&mut self, point: DevicePoint) {
         let button = MouseButton::Left;
-        self.dispatch_point_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)), false);
-        self.dispatch_point_input_event(
-            InputEvent::MouseButton(MouseButtonEvent::new(
-                MouseButtonAction::Down,
-                button,
-                point,
-            )),
-            false,
-        );
-        self.dispatch_point_input_event(
-            InputEvent::MouseButton(MouseButtonEvent::new(MouseButtonAction::Up, button, point)),
-            false,
-        );
+        self.dispatch_point_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
+        self.dispatch_point_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
+            MouseButtonAction::Down,
+            button,
+            point,
+        )));
+        self.dispatch_point_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
+            MouseButtonAction::Up,
+            button,
+            point,
+        )));
     }
 
     pub(crate) fn notify_scroll_event(
