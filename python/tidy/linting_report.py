@@ -73,7 +73,7 @@ class LintingReportManager:
             line_end = line_start
 
         annotation: GithubAnnotation = {
-            "title": f"./Mach {self.annotation_prefix}: {title}",
+            "title": f"./mach {self.annotation_prefix}: {title}",
             "message": self.escape(message),
             "file_name": self.clean_path(file_name),
             "line_start": line_start,

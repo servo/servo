@@ -109,7 +109,12 @@ class MachCommands(CommandBase):
 
     @Command("clippy", description='Run "cargo clippy"', category="devenv")
     @CommandArgument("params", default=None, nargs="...", help="Command-line arguments to be passed through to clippy")
-    @CommandArgument("--report-ci", default=False, action="store_true", help="Put the lint result on the file")
+    @CommandArgument(
+        "--report-ci",
+        default=False,
+        action="store_true",
+        help="Emit the clippy warnings in  the Github Worfklow command format",
+    )
     @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
     def cargo_clippy(self, params, report_ci=False, **kwargs):
         if not params:
