@@ -208,16 +208,13 @@ fn traverse_children_of<'dom>(
 ) {
     traverse_eager_pseudo_element(PseudoElement::Before, parent_element_info, context, handler);
 
+    // TODO(stevennovaryo): In the past we are rendering text input as a normal element,
+    //                      and the processing of text is happening here. Remove this
+    //                      special case after the implementation of UA Shadow DOM for
+    //                      all affected input elements.
     if parent_element_info.node.is_text_input() {
         let node_text_content = parent_element_info.node.to_threadsafe().node_text_content();
         if node_text_content.is_empty() {
-            // The addition of zero-width space here forces the text input to have an inline formatting
-            // context that might otherwise be trimmed if there's no text. This is important to ensure
-            // that the input element is at least as tall as the line gap of the caret:
-            // <https://drafts.csswg.org/css-ui/#element-with-default-preferred-size>.
-            //
-            // This is also used to ensure that the caret will still be rendered when the input is empty.
-            // TODO: Is there a less hacky way to do this?
             handler.handle_text(parent_element_info, "\u{200B}".into());
         } else {
             handler.handle_text(parent_element_info, node_text_content);
