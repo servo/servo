@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>text-transform: capitalize innerText WPT tests</title>
+    <link rel="author" href="mailto:yezhizhenjiakang@gmail.com" title="Euclid Ye">
+    <link rel="help" href="https://drafts.csswg.org/css-text/#propdef-text-transform">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <div id="div1" style="text-transform: capitalize;">hello world</div>
+    <div id="div2" style="text-transform: capitalize;">foo-bar</div>
+    <div id="div3" style="text-transform: capitalize;">john's apple</div>
+    <!-- Test case 4 nested elements -->
+    <div id="div4" style="text-transform: capitalize;">
+        hello <span>world</span>
+    </div>
+    <div id="div5" style="text-transform: capitalize;">foo_bar</div>
+    <!-- Test case 6 not starting at word boundary -->
+    a<span id="span1" style="text-transform: capitalize;">b</span>c
+
+    <script>
+        test(function () {
+            var div = document.getElementById("div1");
+            assert_equals(div.innerText, "Hello World",
+                "innerText for 'hello world' should be 'Hello World'");
+        }, "text-transform: capitalize test for 'hello world'");
+
+        test(function () {
+            var div = document.getElementById("div2");
+            assert_equals(div.innerText, "Foo-Bar",
+                "innerText for 'foo-bar' should be 'Foo-Bar'");
+        }, "text-transform: capitalize test for 'foo-bar'");
+
+        test(function () {
+            var div = document.getElementById("div3");
+            assert_equals(div.innerText, "John's Apple",
+                "innerText for \"john's apple\" should be \"John's Apple\"");
+        }, "text-transform: capitalize test for \"john's apple\"");
+
+        // Test for nested elements: the text inside the span should also be affected.
+        test(function () {
+            var div = document.getElementById("div4");
+            assert_equals(div.innerText, "Hello World",
+                "innerText for nested 'hello <span>world</span>' should be 'Hello World'");
+        }, "text-transform: capitalize test for nested elements");
+
+        // Test for underscore
+        test(function () {
+            var div = document.getElementById("div5");
+            assert_equals(div.innerText.trim(), "Foo_bar",
+                "innerText for 'foo_bar' should be 'Foo_bar'");
+        }, "text-transform: capitalize test for underscore");
+
+        test(function () {
+            var div = document.getElementById("span1");
+            assert_equals(div.innerText, "b",
+                "innerText for span in 'a<span style='text-transform: capitalize;'>b</span>c' should be 'b'");
+        }, "text-transform: capitalize test for not starting at word boundary");
+    </script>
+</body>
+</html>
