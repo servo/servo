@@ -45,6 +45,6 @@ jobs:
           ./mach bootstrap
       - name: Run Clippy Lint
         run: |
-          ./mach clippy --use-crown --locked --report-ci
+          ./mach clippy --use-crown --locked --github-annotations
       - name: Tidy
-        run: ./mach test-tidy --no-progress --all --report-ci
+        run: ./mach test-tidy --no-progress --all --github-annotations
