@@ -76,7 +76,7 @@ mod from_compositor {
                 Self::PaintMetric(..) => target!("PaintMetric"),
                 Self::EvaluateJavaScript(..) => target!("EvaluateJavaScript"),
                 Self::CreateMemoryReport(..) => target!("CreateMemoryReport"),
-                Self::SendImageKeysForPipeline(..) => target!("SendImageKeyForPipeline"),
+                Self::SendImageKeysForPipeline(..) => target!("SendImageKeysForPipeline"),
             }
         }
     }

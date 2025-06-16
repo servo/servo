@@ -172,11 +172,7 @@ pub enum ImageCacheResult {
 }
 
 pub trait ImageCache: Sync + Send {
-    fn new(
-        compositor_api: CrossProcessCompositorApi,
-        rippy_data: Vec<u8>,
-        pipeline_id: Option<PipelineId>,
-    ) -> Self
+    fn new(compositor_api: CrossProcessCompositorApi, rippy_data: Vec<u8>) -> Self
     where
         Self: Sized;
 
@@ -234,6 +230,6 @@ pub trait ImageCache: Sync + Send {
         compositor_api: CrossProcessCompositorApi,
     ) -> Arc<dyn ImageCache>;
 
-    /// Fills the LoadKeyCache with some keys
-    fn fill_key_cache_with_keys(&self, image_keys: Vec<ImageKey>);
+    /// Fills the LoadKeyCache with a batch of keys
+    fn fill_key_cache_with_batch_of_keys(&self, image_keys: Vec<ImageKey>);
 }

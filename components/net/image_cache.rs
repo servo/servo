@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cmp::min;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Mutex};
@@ -97,7 +98,8 @@ fn decode_bytes_sync(
     DecoderMsg { key, image }
 }
 
-/// This will block on getting an ImageKey.
+/// This will block on getting an ImageKey
+/// but that is ok because it is done once upon start-up of a script-thread.
 fn get_placeholder_image(
     compositor_api: &CrossProcessCompositorApi,
     data: &[u8],
@@ -422,42 +424,37 @@ enum PendingKey {
 /// The state of the `WebRenderImageKey`` cache
 #[derive(Debug, MallocSizeOf)]
 enum KeyCacheState {
-    /// We already requested a batch of keys but it could be that we still have one key left
+    /// We already requested a batch of keys.
     PendingBatch,
     /// We have some keys in the cache.
-    Ready(VecDeque<WebRenderImageKey>),
+    Ready(Vec<WebRenderImageKey>),
+}
+
+impl KeyCacheState {
+    fn size(&self) -> usize {
+        match self {
+            KeyCacheState::PendingBatch => 0,
+            KeyCacheState::Ready(items) => items.len(),
+        }
+    }
 }
 
 /// As getting new keys takes a round trip over the constellation, we keep a small cache of them.
-/// Additionally, this cache will store image resources that do not have a key yet because we should never block.
+/// Additionally, this cache will store image resources that do not have a key yet because those
+/// are needed to complete the load.
 #[derive(MallocSizeOf)]
 struct KeyCache {
-    /// A simple cache of `WebRenderImageKey`
+    /// A cache of `WebRenderImageKey`.
     cache: KeyCacheState,
     /// These images are loaded but have no key assigned to yet.
-    no_key_yet: VecDeque<PendingKey>,
+    images_pending_keys: VecDeque<PendingKey>,
 }
 
 impl KeyCache {
     fn new() -> Self {
         KeyCache {
-            cache: KeyCacheState::Ready(VecDeque::new()),
-            no_key_yet: VecDeque::new(),
-        }
-    }
-
-    /// Adds a key to the cache. This currently assumes
-    /// that we will ad more than one key if the cache is empty.
-    fn add_key(&mut self, key: WebRenderImageKey) {
-        match self.cache {
-            KeyCacheState::PendingBatch => {
-                let mut v = VecDeque::new();
-                v.push_back(key);
-                self.cache = KeyCacheState::Ready(v);
-            },
-            KeyCacheState::Ready(ref mut items) => {
-                items.push_back(key);
-            },
+            cache: KeyCacheState::Ready(Vec::new()),
+            images_pending_keys: VecDeque::new(),
         }
     }
 }
@@ -492,6 +489,8 @@ struct ImageCacheStore {
     #[ignore_malloc_size_of = "Channel from another crate"]
     compositor_api: CrossProcessCompositorApi,
 
+    // The PipelineId will be None because the constructed cache is not associated
+    // with any pipeline yet. This will happen later by way of `create_new_image_cache`.
     pipeline_id: Option<PipelineId>,
 
     /// Main struct to handle the cache of `WebRenderImageKey` and
@@ -520,35 +519,17 @@ impl ImageCacheStore {
         if let Some(pipeline_id) = self.pipeline_id {
             match self.key_cache.cache {
                 KeyCacheState::PendingBatch => {
-                    self.key_cache.no_key_yet.push_back(pending_image);
+                    self.key_cache.images_pending_keys.push_back(pending_image);
                 },
-                KeyCacheState::Ready(ref mut cache) => {
-                    match cache.len() {
-                        0 => {
-                            self.key_cache.no_key_yet.push_back(pending_image);
-                            self.compositor_api.generate_image_key_async(pipeline_id);
-                            self.key_cache.cache = KeyCacheState::PendingBatch;
-                        },
-                        1 => {
-                            let image_key = cache.pop_front().unwrap();
-                            self.compositor_api.generate_image_key_async(pipeline_id);
-                            self.set_key_and_finish_load(pending_image, image_key);
-                            self.key_cache.cache = KeyCacheState::PendingBatch;
-                        },
-                        2 => {
-                            // We do not set the `CacheState` to pending here because we still have a
-                            // key. If we make it in time, the cache will be Ready. If we do not make it in time,
-                            // we still set the state to pending in for size 1. This assumes we will
-                            // have a batch size greater than 2.
-                            let image_key = cache.pop_front().unwrap();
-                            self.compositor_api.generate_image_key_async(pipeline_id);
-                            self.set_key_and_finish_load(pending_image, image_key);
-                        },
-                        _ => {
-                            let image_key = cache.pop_front().unwrap();
-                            self.set_key_and_finish_load(pending_image, image_key);
-                        },
-                    }
+                KeyCacheState::Ready(ref mut cache) => match cache.pop() {
+                    Some(image_key) => {
+                        self.set_key_and_finish_load(pending_image, image_key);
+                    },
+                    None => {
+                        self.key_cache.images_pending_keys.push_back(pending_image);
+                        self.compositor_api.generate_image_key_async(pipeline_id);
+                        self.key_cache.cache = KeyCacheState::PendingBatch
+                    },
                 },
             }
         } else {
@@ -557,14 +538,24 @@ impl ImageCacheStore {
         }
     }
 
-    /// Insert received keys into the cache and complete the loading of images
+    /// Insert received keys into the cache and complete the loading of images.
     fn insert_keys_and_load_images(&mut self, image_keys: Vec<WebRenderImageKey>) {
-        for image_key in image_keys {
-            if let Some(pending_key) = self.key_cache.no_key_yet.pop_front() {
-                self.set_key_and_finish_load(pending_key, image_key);
-            } else {
-                self.key_cache.add_key(image_key);
+        if let KeyCacheState::PendingBatch = self.key_cache.cache {
+            let len = min(
+                self.key_cache.cache.size(),
+                self.key_cache.images_pending_keys.len(),
+            );
+            self.key_cache.cache = KeyCacheState::Ready(image_keys);
+            let images = self
+                .key_cache
+                .images_pending_keys
+                .drain(0..len)
+                .collect::<Vec<PendingKey>>();
+            for key in images {
+                self.load_image_with_keycache(key);
             }
+        } else {
+            unreachable!("A batch was received while we didn't request one")
         }
     }
 
@@ -608,11 +599,8 @@ impl ImageCacheStore {
         let url = pending_load.final_url.clone();
         let image_response = match load_result {
             LoadResult::LoadedRasterImage(raster_image) => {
-                if raster_image.id.is_some() {
-                    ImageResponse::Loaded(Image::Raster(Arc::new(raster_image)), url.unwrap())
-                } else {
-                    ImageResponse::None
-                }
+                assert!(raster_image.id.is_some());
+                ImageResponse::Loaded(Image::Raster(Arc::new(raster_image)), url.unwrap())
             },
             LoadResult::LoadedVectorImage(vector_image) => {
                 self.vector_images.insert(key, vector_image.clone());
@@ -680,11 +668,8 @@ impl ImageCacheStore {
         let image = match msg.image {
             None => LoadResult::None,
             Some(DecodedImage::Raster(raster_image)) => {
-                if raster_image.id.is_none() {
-                    self.load_image_with_keycache(PendingKey::RasterImage((msg.key, raster_image)));
-                    return;
-                }
-                LoadResult::LoadedRasterImage(raster_image)
+                self.load_image_with_keycache(PendingKey::RasterImage((msg.key, raster_image)));
+                return;
             },
             Some(DecodedImage::Vector(vector_image_data)) => {
                 LoadResult::LoadedVectorImage(vector_image_data)
@@ -702,11 +687,7 @@ pub struct ImageCacheImpl {
 }
 
 impl ImageCache for ImageCacheImpl {
-    fn new(
-        compositor_api: CrossProcessCompositorApi,
-        rippy_data: Vec<u8>,
-        pipeline_id: Option<PipelineId>,
-    ) -> ImageCacheImpl {
+    fn new(compositor_api: CrossProcessCompositorApi, rippy_data: Vec<u8>) -> ImageCacheImpl {
         debug!("New image cache");
 
         // Uses an estimate of the system cpus to decode images
@@ -726,7 +707,7 @@ impl ImageCache for ImageCacheImpl {
                 placeholder_image: get_placeholder_image(&compositor_api, &rippy_data),
                 placeholder_url: ServoUrl::parse("chrome://resources/rippy.png").unwrap(),
                 compositor_api: compositor_api.clone(),
-                pipeline_id,
+                pipeline_id: None,
                 key_cache: KeyCache::new(),
             })),
             thread_pool: Arc::new(CoreResourceThreadPool::new(
@@ -1069,7 +1050,7 @@ impl ImageCache for ImageCacheImpl {
                 completed_loads: HashMap::new(),
                 placeholder_image,
                 placeholder_url,
-                compositor_api: compositor_api.clone(),
+                compositor_api,
                 vector_images: HashMap::new(),
                 rasterized_vector_images: HashMap::new(),
                 key_cache: KeyCache::new(),
@@ -1079,7 +1060,7 @@ impl ImageCache for ImageCacheImpl {
         })
     }
 
-    fn fill_key_cache_with_keys(&self, image_keys: Vec<WebRenderImageKey>) {
+    fn fill_key_cache_with_batch_of_keys(&self, image_keys: Vec<WebRenderImageKey>) {
         let mut store = self.store.lock().unwrap();
         store.insert_keys_and_load_images(image_keys);
     }

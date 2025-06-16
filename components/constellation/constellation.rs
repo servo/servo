@@ -1453,9 +1453,16 @@ where
             },
             EmbedderToConstellationMessage::SendImageKeysForPipeline(pipeline_id, image_keys) => {
                 if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
-                    let _ = pipeline
+                    if pipeline
                         .event_loop
-                        .send(ScriptThreadMessage::SendImageKeys(pipeline_id, image_keys));
+                        .send(ScriptThreadMessage::SendImageKeysBatch(
+                            pipeline_id,
+                            image_keys,
+                        ))
+                        .is_err()
+                    {
+                        warn!("Could not send image keys to pipeline {:?}", pipeline_id);
+                    }
                 }
             },
         }

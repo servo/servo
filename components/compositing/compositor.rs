@@ -38,7 +38,7 @@ use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage};
 use profile_traits::mem::{ProcessReports, ProfilerRegistration, Report, ReportKind};
 use profile_traits::time::{self as profile_time, ProfilerCategory};
 use profile_traits::{path, time_profile};
-use servo_config::opts;
+use servo_config::{opts, pref};
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::CSSPixel;
 use webrender::{CaptureBits, RenderApi, Transaction};
@@ -58,10 +58,6 @@ use crate::InitialCompositorState;
 use crate::refresh_driver::RefreshDriver;
 use crate::webview_manager::WebViewManager;
 use crate::webview_renderer::{PinchZoomResult, UnknownWebView, WebViewRenderer};
-
-/// The number of image keys we create to cache in one execution.
-/// Code in image_cache requires this being larger than 2.
-const NUMBER_OF_IMAGE_KEYS: i32 = 10;
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -903,15 +899,17 @@ impl IOCompositor {
             },
 
             CompositorMsg::GenerateImageKeysForPipeline(pipeline_id) => {
-                let image_keys = (0..NUMBER_OF_IMAGE_KEYS)
+                let image_keys = (0..pref!(image_key_batch_size))
                     .map(|_| self.global.borrow().webrender_api.generate_image_key())
                     .collect();
-                let _ = self.global.borrow().constellation_sender.send(
+                if let Err(error) = self.global.borrow().constellation_sender.send(
                     EmbedderToConstellationMessage::SendImageKeysForPipeline(
                         pipeline_id,
                         image_keys,
                     ),
-                );
+                ) {
+                    warn!("Sending Image Keys to Constellation failed with({error:?}).");
+                }
             },
             CompositorMsg::UpdateImages(updates) => {
                 let mut txn = Transaction::new();

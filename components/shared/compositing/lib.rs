@@ -305,10 +305,16 @@ impl CrossProcessCompositorApi {
         receiver.recv().ok()
     }
 
+    /// Sends a message to the compositor for creating new image keys.
+    /// The compositor will then send a batch of keys over the constellation to the script_thread
+    /// and the appropriate pipeline.
     pub fn generate_image_key_async(&self, pipeline_id: PipelineId) {
-        self.0
+        if let Err(e) = self
+            .0
             .send(CompositorMsg::GenerateImageKeysForPipeline(pipeline_id))
-            .expect("Could not send to channel");
+        {
+            warn!("Could not send image keys to Compositor {}", e);
+        }
     }
 
     pub fn add_image(

@@ -94,7 +94,7 @@ pub enum EmbedderToConstellationMessage {
     EvaluateJavaScript(WebViewId, JavaScriptEvaluationId, String),
     /// Create a memory report and return it via the ipc sender
     CreateMemoryReport(IpcSender<MemoryReportResult>),
-    /// Sends the generated image key to the webview.
+    /// Sends the generated image key to a pipeline.
     SendImageKeysForPipeline(PipelineId, Vec<ImageKey>),
 }
 
