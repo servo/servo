@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::ffi::CString;
+use std::fs::File;
 use std::os::raw::c_long;
 use std::{mem, ptr};
 
@@ -10,14 +11,16 @@ use app_units::Au;
 use euclid::default::{Point2D, Rect, Size2D};
 use freetype_sys::{
     FT_Byte, FT_Done_Face, FT_Error, FT_F26Dot6, FT_FACE_FLAG_COLOR, FT_FACE_FLAG_FIXED_SIZES,
-    FT_FACE_FLAG_SCALABLE, FT_Face, FT_Fixed, FT_Get_Char_Index, FT_Get_Kerning, FT_Get_Sfnt_Table,
-    FT_GlyphSlot, FT_Int32, FT_KERNING_DEFAULT, FT_LOAD_COLOR, FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING,
-    FT_Load_Glyph, FT_Long, FT_MulFix, FT_New_Face, FT_New_Memory_Face, FT_Pos,
-    FT_STYLE_FLAG_ITALIC, FT_Select_Size, FT_Set_Char_Size, FT_Short, FT_Size_Metrics, FT_SizeRec,
-    FT_UInt, FT_ULong, FT_UShort, FT_Vector, TT_OS2, ft_sfnt_head, ft_sfnt_os2,
+    FT_FACE_FLAG_SCALABLE, FT_Face, FT_Get_Char_Index, FT_Get_Kerning, FT_GlyphSlot, FT_Int32,
+    FT_KERNING_DEFAULT, FT_LOAD_COLOR, FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, FT_Load_Glyph, FT_Long,
+    FT_New_Face, FT_New_Memory_Face, FT_Pos, FT_Select_Size, FT_Set_Char_Size, FT_Size_Metrics,
+    FT_SizeRec, FT_UInt, FT_ULong, FT_Vector,
 };
 use log::debug;
+use memmap2::Mmap;
 use parking_lot::ReentrantMutex;
+use read_fonts::tables::os2::SelectionFlags;
+use read_fonts::{FontRef, ReadError, TableProvider};
 use style::Zero;
 use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_weight::T as FontWeight;
@@ -55,24 +58,15 @@ impl FontTableMethods for FontTable {
     }
 }
 
-/// Data from the OS/2 table of an OpenType font.
-/// See <https://www.microsoft.com/typography/otspec/os2.htm>
-#[derive(Debug)]
-struct OS2Table {
-    x_average_char_width: FT_Short,
-    us_weight_class: FT_UShort,
-    us_width_class: FT_UShort,
-    y_strikeout_size: FT_Short,
-    y_strikeout_position: FT_Short,
-    sx_height: FT_Short,
-}
-
 #[derive(Debug)]
 #[allow(unused)]
 pub struct PlatformFont {
     face: ReentrantMutex<FT_Face>,
     requested_face_size: Au,
     actual_face_size: Au,
+
+    /// A member that allows using `skrifa` to read values from this font.
+    table_provider_data: FreeTypeFaceTableProviderData,
 }
 
 // FT_Face can be used in multiple threads, but from only one thread at a time.
@@ -129,6 +123,7 @@ impl PlatformFontMethods for PlatformFont {
             face: ReentrantMutex::new(face),
             requested_face_size,
             actual_face_size,
+            table_provider_data: FreeTypeFaceTableProviderData::Web(font_data.clone()),
         })
     }
 
@@ -158,41 +153,50 @@ impl PlatformFontMethods for PlatformFont {
             None => (Au::zero(), Au::zero()),
         };
 
+        let Ok(memory_mapped_font_data) =
+            File::open(&*font_identifier.path).and_then(|file| unsafe { Mmap::map(&file) })
+        else {
+            return Err("Could not memory map");
+        };
+
         Ok(PlatformFont {
             face: ReentrantMutex::new(face),
             requested_face_size,
             actual_face_size,
+            table_provider_data: FreeTypeFaceTableProviderData::Local(
+                memory_mapped_font_data,
+                font_identifier.index(),
+            ),
         })
     }
 
     fn descriptor(&self) -> FontTemplateDescriptor {
-        let face = self.face.lock();
-        let style = if unsafe { (**face).style_flags & FT_STYLE_FLAG_ITALIC as c_long != 0 } {
-            FontStyle::ITALIC
-        } else {
-            FontStyle::NORMAL
+        let Ok(font_ref) = self.table_provider_data.font_ref() else {
+            return FontTemplateDescriptor::default();
         };
 
-        let os2_table = face.os2_table();
-        let weight = os2_table
-            .as_ref()
-            .map(|os2| FontWeight::from_float(os2.us_weight_class as f32))
-            .unwrap_or_else(FontWeight::normal);
-        let stretch = os2_table
-            .as_ref()
-            .map(|os2| match os2.us_width_class {
-                1 => FontStretch::ULTRA_CONDENSED,
-                2 => FontStretch::EXTRA_CONDENSED,
-                3 => FontStretch::CONDENSED,
-                4 => FontStretch::SEMI_CONDENSED,
-                5 => FontStretch::NORMAL,
-                6 => FontStretch::SEMI_EXPANDED,
-                7 => FontStretch::EXPANDED,
-                8 => FontStretch::EXTRA_EXPANDED,
-                9 => FontStretch::ULTRA_EXPANDED,
-                _ => FontStretch::NORMAL,
-            })
-            .unwrap_or(FontStretch::NORMAL);
+        let Ok(os2) = font_ref.os2() else {
+            return FontTemplateDescriptor::default();
+        };
+
+        let mut style = FontStyle::NORMAL;
+        if os2.fs_selection().contains(SelectionFlags::ITALIC) {
+            style = FontStyle::ITALIC;
+        }
+
+        let weight = FontWeight::from_float(os2.us_weight_class() as f32);
+        let stretch = match os2.us_width_class() {
+            1 => FontStretch::ULTRA_CONDENSED,
+            2 => FontStretch::EXTRA_CONDENSED,
+            3 => FontStretch::CONDENSED,
+            4 => FontStretch::SEMI_CONDENSED,
+            5 => FontStretch::NORMAL,
+            6 => FontStretch::SEMI_EXPANDED,
+            7 => FontStretch::EXPANDED,
+            8 => FontStretch::EXTRA_EXPANDED,
+            9 => FontStretch::ULTRA_EXPANDED,
+            _ => FontStretch::NORMAL,
+        };
 
         FontTemplateDescriptor::new(weight, stretch, style)
     }
@@ -254,6 +258,7 @@ impl PlatformFontMethods for PlatformFont {
     fn metrics(&self) -> FontMetrics {
         let face_ptr = *self.face.lock();
         let face = unsafe { &*face_ptr };
+        let font_ref = self.table_provider_data.font_ref();
 
         // face.size is a *c_void in the bindings, presumably to avoid recursive structural types
         let freetype_size: &FT_SizeRec = unsafe { mem::transmute(&(*face.size)) };
@@ -291,8 +296,7 @@ impl PlatformFontMethods for PlatformFont {
             // scalable outlines". If it's an sfnt, we can get units_per_EM from the 'head' table
             // instead; otherwise, we don't have a unitsPerEm value so we can't compute y_scale and
             // x_scale.
-            let head = unsafe { FT_Get_Sfnt_Table(face_ptr, ft_sfnt_head) as *mut TtHeader };
-            if !head.is_null() && unsafe { (*head).table_version != 0xffff } {
+            if let Ok(head) = font_ref.clone().and_then(|font_ref| font_ref.head()) {
                 // Bug 1267909 - Even if the font is not explicitly scalable, if the face has color
                 // bitmaps, it should be treated as scalable and scaled to the desired size. Metrics
                 // based on y_ppem need to be rescaled for the adjusted size.
@@ -304,8 +308,7 @@ impl PlatformFontMethods for PlatformFont {
                     max_ascent *= adjust_scale;
                     line_height *= adjust_scale;
                 }
-                let units_per_em = unsafe { (*head).units_per_em } as f64;
-                y_scale = em_height / units_per_em;
+                y_scale = em_height / head.units_per_em() as f64;
             }
         }
 
@@ -330,22 +333,23 @@ impl PlatformFontMethods for PlatformFont {
         // 0.5em should be used."
         let mut x_height = 0.5 * em_height;
         let mut average_advance = 0.0;
-        if let Some(os2) = face_ptr.os2_table() {
-            if !os2.y_strikeout_size.is_zero() && !os2.y_strikeout_position.is_zero() {
-                strikeout_size = os2.y_strikeout_size as f64 * y_scale;
-                strikeout_offset = os2.y_strikeout_position as f64 * y_scale;
-            }
-            if !os2.sx_height.is_zero() {
-                x_height = os2.sx_height as f64 * y_scale;
+
+        if let Ok(os2) = font_ref.and_then(|font_ref| font_ref.os2()) {
+            let y_strikeout_size = os2.y_strikeout_size();
+            let y_strikeout_position = os2.y_strikeout_position();
+            if !y_strikeout_size.is_zero() && !y_strikeout_position.is_zero() {
+                strikeout_size = y_strikeout_size as f64 * y_scale;
+                strikeout_offset = y_strikeout_position as f64 * y_scale;
             }
 
-            if !os2.x_average_char_width.is_zero() {
-                average_advance = fixed_26_dot_6_to_float(unsafe {
-                    FT_MulFix(
-                        os2.x_average_char_width as FT_F26Dot6,
-                        freetype_metrics.x_scale,
-                    )
-                });
+            let sx_height = os2.sx_height().unwrap_or(0);
+            if !sx_height.is_zero() {
+                x_height = sx_height as f64 * y_scale;
+            }
+
+            let x_average_char_width = os2.x_avg_char_width();
+            if !x_average_char_width.is_zero() {
+                average_advance = x_average_char_width as f64 * y_scale;
             }
         }
 
@@ -451,7 +455,6 @@ trait FreeTypeFaceHelpers {
     fn color(self) -> bool;
     fn set_size(self, pt_size: Au) -> Result<Au, &'static str>;
     fn glyph_load_flags(self) -> FT_Int32;
-    fn os2_table(self) -> Option<OS2Table>;
 }
 
 impl FreeTypeFaceHelpers for FT_Face {
@@ -524,53 +527,6 @@ impl FreeTypeFaceHelpers for FT_Face {
 
         load_flags as FT_Int32
     }
-
-    fn os2_table(self) -> Option<OS2Table> {
-        unsafe {
-            let os2 = FT_Get_Sfnt_Table(self, ft_sfnt_os2) as *mut TT_OS2;
-            let valid = !os2.is_null() && (*os2).version != 0xffff;
-
-            if !valid {
-                return None;
-            }
-
-            Some(OS2Table {
-                x_average_char_width: (*os2).xAvgCharWidth,
-                us_weight_class: (*os2).usWeightClass,
-                us_width_class: (*os2).usWidthClass,
-                y_strikeout_size: (*os2).yStrikeoutSize,
-                y_strikeout_position: (*os2).yStrikeoutPosition,
-                sx_height: (*os2).sxHeight,
-            })
-        }
-    }
-}
-
-#[repr(C)]
-struct TtHeader {
-    table_version: FT_Fixed,
-    font_revision: FT_Fixed,
-
-    checksum_adjust: FT_Long,
-    magic_number: FT_Long,
-
-    flags: FT_UShort,
-    units_per_em: FT_UShort,
-
-    created: [FT_ULong; 2],
-    modified: [FT_ULong; 2],
-
-    x_min: FT_Short,
-    y_min: FT_Short,
-    x_max: FT_Short,
-    y_max: FT_Short,
-
-    mac_style: FT_UShort,
-    lowest_rec_ppem: FT_UShort,
-
-    font_direction: FT_Short,
-    index_to_loc_format: FT_Short,
-    glyph_data_format: FT_Short,
 }
 
 unsafe extern "C" {
@@ -581,4 +537,24 @@ unsafe extern "C" {
         buffer: *mut FT_Byte,
         length: *mut FT_ULong,
     ) -> FT_Error;
+}
+
+enum FreeTypeFaceTableProviderData {
+    Web(FontData),
+    Local(Mmap, u32),
+}
+
+impl FreeTypeFaceTableProviderData {
+    fn font_ref(&self) -> Result<FontRef<'_>, ReadError> {
+        match self {
+            Self::Web(ipc_shared_memory) => FontRef::new(&ipc_shared_memory.0),
+            Self::Local(mmap, index) => FontRef::from_index(mmap, *index),
+        }
+    }
+}
+
+impl std::fmt::Debug for FreeTypeFaceTableProviderData {
+    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Ok(())
+    }
 }
