@@ -601,7 +601,8 @@ fn retrieve_document_and_check_root_existence(
 ) -> Result<DomRoot<Document>, ErrorStatus> {
     let document = documents
         .find_document(pipeline)
-        .expect("script:webdriver_handlers::Document should exists because we checked");
+        .ok_or(ErrorStatus::NoSuchWindow)?;
+
     // <https://w3c.github.io/webdriver/#find-element>
     // <https://w3c.github.io/webdriver/#find-elements>
     // Step 7 - 8. If current browsing context's document element is null,
