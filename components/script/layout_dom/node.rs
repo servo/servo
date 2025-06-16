@@ -18,6 +18,7 @@ use layout_api::{
 use net_traits::image_cache::Image;
 use pixels::ImageMetadata;
 use range::Range;
+use selectors::Element as _;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use style;
@@ -28,7 +29,7 @@ use style::selector_parser::PseudoElement;
 use super::{
     ServoLayoutDocument, ServoLayoutElement, ServoShadowRoot, ServoThreadSafeLayoutElement,
 };
-use crate::dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId, TextTypeId};
+use crate::dom::bindings::inheritance::NodeTypeId;
 use crate::dom::bindings::root::LayoutDom;
 use crate::dom::element::{Element, LayoutElementHelpers};
 use crate::dom::node::{LayoutNodeHelpers, Node, NodeFlags, NodeTypeIdWrapper};
@@ -100,6 +101,14 @@ impl<'dom> ServoLayoutNode<'dom> {
     pub fn is_text_input(&self) -> bool {
         self.node.is_text_input()
     }
+
+    pub fn is_single_line_text_inner_editor(&self) -> bool {
+        self.node.is_single_line_text_inner_editor()
+    }
+
+    pub fn containing_shadow_host(&self) -> Option<ServoLayoutNode> {
+        Some(self.as_element()?.containing_shadow_host()?.as_node())
+    }
 }
 
 impl style::dom::NodeInfo for ServoLayoutNode<'_> {
@@ -108,8 +117,7 @@ impl style::dom::NodeInfo for ServoLayoutNode<'_> {
     }
 
     fn is_text_node(&self) -> bool {
-        self.script_type_id() ==
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text))
+        self.node.is_text_node_for_layout()
     }
 }
 

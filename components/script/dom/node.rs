@@ -1612,6 +1612,7 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
     fn assigned_slot_for_layout(self) -> Option<LayoutDom<'dom, HTMLSlotElement>>;
 
     fn is_element_for_layout(&self) -> bool;
+    fn is_text_node_for_layout(&self) -> bool;
     unsafe fn get_flag(self, flag: NodeFlags) -> bool;
     unsafe fn set_flag(self, flag: NodeFlags, value: bool);
 
@@ -1646,7 +1647,15 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
     unsafe fn clear_style_and_layout_data(self);
 
     /// Whether this element is a `<input>` rendered as text or a `<textarea>`.
+    /// This is used for the rendering of text control element in the past
+    /// where the necessities is being handled within layout. With the current
+    /// implementation of Shadow DOM, we are able to move and expand this kind
+    /// of behavior in the previous pipelines (i.e. DOM, style traversal).
     fn is_text_input(&self) -> bool;
+
+    /// Whether this element serve as a container of editable text for a text input
+    /// that is implemented as an UA widget.
+    fn is_single_line_text_inner_editor(&self) -> bool;
     fn text_content(self) -> Cow<'dom, str>;
     fn selection(self) -> Option<Range<usize>>;
     fn image_url(self) -> Option<ServoUrl>;
@@ -1679,6 +1688,11 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     #[inline]
     fn is_element_for_layout(&self) -> bool {
         (*self).is::<Element>()
+    }
+
+    fn is_text_node_for_layout(&self) -> bool {
+        self.type_id_for_layout() ==
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text))
     }
 
     #[inline]
@@ -1828,14 +1842,21 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
         {
             let input = self.unsafe_get().downcast::<HTMLInputElement>().unwrap();
 
-            // FIXME: All the non-color input types currently render as text
-            input.input_type() != InputType::Color
+            // FIXME: All the non-color and non-text input types currently render as text
+            !matches!(input.input_type(), InputType::Color | InputType::Text)
         } else {
             type_id ==
                 NodeTypeId::Element(ElementTypeId::HTMLElement(
                     HTMLElementTypeId::HTMLTextAreaElement,
                 ))
         }
+    }
+
+    fn is_single_line_text_inner_editor(&self) -> bool {
+        matches!(
+            self.unsafe_get().implemented_pseudo_element(),
+            Some(PseudoElement::ServoTextControlInnerEditor)
+        )
     }
 
     fn text_content(self) -> Cow<'dom, str> {
@@ -1855,6 +1876,24 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     }
 
     fn selection(self) -> Option<Range<usize>> {
+        // If this is a inner editor of an UA widget element, we should find
+        // the selection from its shadow host.
+        // FIXME(stevennovaryo): This should account for the multiline text input,
+        //                       but we are yet to support that input with UA widget.
+        if self.is_in_ua_widget() &&
+            self.is_text_node_for_layout() &&
+            self.parent_node_ref()
+                .is_some_and(|parent| parent.is_single_line_text_inner_editor())
+        {
+            let shadow_root = self.containing_shadow_root_for_layout();
+            if let Some(containing_shadow_host) = shadow_root.map(|root| root.get_host_for_layout())
+            {
+                if let Some(input) = containing_shadow_host.downcast::<HTMLInputElement>() {
+                    return input.selection_for_layout();
+                }
+            }
+        }
+
         if let Some(area) = self.downcast::<HTMLTextAreaElement>() {
             return area.selection_for_layout();
         }
