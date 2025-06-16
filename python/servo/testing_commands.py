@@ -253,13 +253,13 @@ class MachCommands(CommandBase):
     )
     @CommandArgument("--no-progress", default=False, action="store_true", help="Don't show progress for tidy")
     @CommandArgument(
-        "--report-ci",
+        "--github-annotations",
         default=False,
         action="store_true",
-        help="Emit the tidy warnings in the Github Worfklow command format",
+        help="Emit tidy warnings in the Github Actions annotations format",
     )
-    def test_tidy(self, all_files, no_progress, report_ci):
-        tidy_failed = tidy.scan(not all_files, not no_progress, report_ci)
+    def test_tidy(self, all_files, no_progress, github_annotations):
+        tidy_failed = tidy.scan(not all_files, not no_progress, github_annotations)
 
         print("\r ➤  Checking formatting of Rust files...")
         rustfmt_failed = format_with_rustfmt(check_only=True)

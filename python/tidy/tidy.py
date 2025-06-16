@@ -19,6 +19,7 @@ import subprocess
 import sys
 from typing import Any, Dict, List
 
+import colorama
 import toml
 import wpt.manifestupdate
 
@@ -981,7 +982,7 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
                     yield (filename,) + error
 
 
-def scan(only_changed_files=False, progress=False, report_ci=False):
+def scan(only_changed_files=False, progress=False, github_annotations=False):
     report_manager = LintingReportManager("test-tidy", 10)
     # check config file for errors
     config_errors = check_config_file(CONFIG_FILE_PATH)
@@ -1008,13 +1009,20 @@ def scan(only_changed_files=False, progress=False, report_ci=False):
     # chain all the iterators
     errors = itertools.chain(config_errors, directory_errors, file_errors, python_errors, wpt_errors, cargo_lock_errors)
 
+    colorama.init()
     error = None
     for error in errors:
-        report_manager.error_log(error)
-        if report_ci:
+        print(
+            "\r  | "
+            + f"{colorama.Fore.BLUE}{error[0]}{colorama.Style.RESET_ALL}:"
+            + f"{colorama.Fore.YELLOW}{error[1]}{colorama.Style.RESET_ALL}: "
+            + f"{colorama.Fore.RED}{error[2]}{colorama.Style.RESET_ALL}"
+        )
+
+        if github_annotations:
             report_manager.append_annotation(error[2], error[2], error[0], error[1])
 
-    if report_ci:
+    if github_annotations:
         report_manager.emit_github_annotations()
     return int(error is not None)
 
