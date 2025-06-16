@@ -784,6 +784,8 @@ fn rendered_text_collection_steps(
                         .collect();
 
                 // Since iterator for capitalize not doing anything, we must handle it outside here
+                // FIXME: This assumes the element always start at a word boundary. But can fail:
+                // a<span style="text-transform: capitalize">b</span>c
                 if TextTransformCase::Capitalize == text_transform {
                     transformed_text = capitalize_string(&transformed_text, true);
                 }
