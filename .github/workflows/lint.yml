@@ -45,7 +45,6 @@ jobs:
           ./mach bootstrap
       - name: Run Clippy Lint
         run: |
-          ./mach clippy --message-format=json --use-crown --locked --report-ci
+          ./mach clippy --use-crown --locked --report-ci
       - name: Tidy
-        if: ${{ !cancelled() }}
         run: ./mach test-tidy --no-progress --all --report-ci

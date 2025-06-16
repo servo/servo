@@ -8,23 +8,20 @@
 # except according to those terms.
 
 
-from typing import List, Literal, TypedDict
+from typing import List, Literal, NotRequired, TypedDict
 
 import colorama
 
 
-class RequiredAnnotation(TypedDict):
+class GithubAnnotation(TypedDict):
     file_name: str
     line_start: int
     line_end: int
     level: Literal["notice", "warning", "error"]
     title: str
     message: str
-
-
-class OptionalAnnotation(RequiredAnnotation, total=False):
-    column_start: int
-    column_end: int
+    column_start: NotRequired[int]
+    column_end: NotRequired[int]
 
 
 class LintingReportManager:
@@ -37,7 +34,7 @@ class LintingReportManager:
             "warning": "warning",
             "error": "error",
         }
-        self.annotations: List[OptionalAnnotation] = []
+        self.annotations: List[GithubAnnotation] = []
         self.total_count = 0
         colorama.init()
 
@@ -75,7 +72,7 @@ class LintingReportManager:
         if line_end is None:
             line_end = line_start
 
-        annotation: OptionalAnnotation = {
+        annotation: GithubAnnotation = {
             "title": f"./Mach {self.annotation_prefix}: {title}",
             "message": self.escape(message),
             "file_name": self.clean_path(file_name),
