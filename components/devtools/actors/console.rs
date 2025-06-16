@@ -30,7 +30,7 @@ use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::object::ObjectActor;
 use crate::actors::worker::WorkerActor;
 use crate::protocol::JsonPacketStream;
-use crate::resource::ResourceAvailable;
+use crate::resource::{ResourceArrayType, ResourceAvailable};
 use crate::{StreamId, UniqueId};
 
 trait EncodableConsoleMessage {
@@ -261,13 +261,12 @@ impl ConsoleActor {
             .push(CachedConsoleMessage::PageError(page_error.clone()));
         if id == self.current_unique_id(registry) {
             if let Root::BrowsingContext(bc) = &self.root {
-                registry
-                    .find::<BrowsingContextActor>(bc)
-                    .resource_available(
-                        PageErrorWrapper { page_error },
-                        "error-message".into(),
-                        stream,
-                    )
+                registry.find::<BrowsingContextActor>(bc).resource_array(
+                    PageErrorWrapper { page_error },
+                    "error-message".into(),
+                    ResourceArrayType::Available,
+                    stream,
+                )
             };
         }
     }
@@ -287,9 +286,12 @@ impl ConsoleActor {
             .push(CachedConsoleMessage::ConsoleLog(log_message.clone()));
         if id == self.current_unique_id(registry) {
             if let Root::BrowsingContext(bc) = &self.root {
-                registry
-                    .find::<BrowsingContextActor>(bc)
-                    .resource_available(log_message, "console-message".into(), stream)
+                registry.find::<BrowsingContextActor>(bc).resource_array(
+                    log_message,
+                    "console-message".into(),
+                    ResourceArrayType::Available,
+                    stream,
+                )
             };
         }
     }

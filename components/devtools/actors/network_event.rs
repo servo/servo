@@ -47,6 +47,15 @@ pub struct NetworkEventActor {
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct NetworkEventResource {
+    pub resource_id: u64,
+    pub resource_updates: Map<String, Value>,
+    pub browsing_context_id: u64,
+    pub inner_window_id: u64,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EventActor {
     pub actor: String,
     pub url: String,
@@ -62,6 +71,7 @@ pub struct EventActor {
 #[derive(Serialize)]
 pub struct ResponseCookiesMsg {
     pub cookies: usize,
+    pub response_cookies_available: bool,
 }
 
 #[derive(Serialize)]
@@ -74,6 +84,7 @@ pub struct ResponseStartMsg {
     pub status_text: String,
     pub headers_size: usize,
     pub discard_response_body: bool,
+    pub response_start_available: bool,
 }
 
 #[derive(Serialize)]
@@ -83,6 +94,7 @@ pub struct ResponseContentMsg {
     pub content_size: u32,
     pub transferred_size: u32,
     pub discard_response_body: bool,
+    pub response_content_available: bool,
 }
 
 #[derive(Serialize)]
@@ -90,11 +102,13 @@ pub struct ResponseContentMsg {
 pub struct ResponseHeadersMsg {
     pub headers: usize,
     pub headers_size: usize,
+    pub response_headers_available: bool,
 }
 
 #[derive(Serialize)]
 pub struct RequestCookiesMsg {
     pub cookies: usize,
+    pub request_cookies_available: bool,
 }
 
 #[derive(Serialize)]
@@ -102,6 +116,7 @@ pub struct RequestCookiesMsg {
 pub struct RequestHeadersMsg {
     headers: usize,
     headers_size: usize,
+    request_headers_available: bool,
 }
 
 #[derive(Serialize)]
@@ -431,6 +446,7 @@ impl NetworkEventActor {
             status_text: String::from_utf8_lossy(status.message()).to_string(),
             headers_size: h_size,
             discard_response_body: false,
+            response_start_available: true,
         }
     }
 
@@ -448,6 +464,7 @@ impl NetworkEventActor {
             content_size: 0,
             transferred_size: 0,
             discard_response_body: true,
+            response_content_available: false,
         }
     }
 
@@ -461,6 +478,7 @@ impl NetworkEventActor {
         }
         ResponseCookiesMsg {
             cookies: cookies_size,
+            response_cookies_available: false,
         }
     }
 
@@ -476,6 +494,7 @@ impl NetworkEventActor {
         ResponseHeadersMsg {
             headers: headers_size,
             headers_size: headers_byte_count,
+            response_headers_available: true,
         }
     }
 
@@ -486,6 +505,7 @@ impl NetworkEventActor {
         RequestHeadersMsg {
             headers: self.request.headers.len(),
             headers_size: size,
+            request_headers_available: true,
         }
     }
 
@@ -496,10 +516,136 @@ impl NetworkEventActor {
         };
         RequestCookiesMsg {
             cookies: cookies_size,
+            request_cookies_available: true,
         }
     }
 
     pub fn total_time(&self) -> Duration {
         self.request.connect_time + self.request.send_time
+    }
+
+    pub fn resource_updates(&self) -> NetworkEventResource {
+        let mut resource_updates = Map::new();
+        resource_updates.insert(
+            "requestCookiesAvailable".to_owned(),
+            serde_json::to_value(self.request_cookies()).unwrap(),
+        ); //check for boolean
+
+        resource_updates.insert(
+            "requestHeadersAvailable".to_owned(),
+            serde_json::to_value(self.request_cookies()).unwrap(),
+        ); //check for boolean
+
+        resource_updates.insert(
+            "httpVersion".to_owned(),
+            serde_json::to_value(self.request_headers()).unwrap(),
+        ); //http version
+
+        resource_updates.insert(
+            "status".to_owned(),
+            serde_json::to_value(self.response_start()).unwrap(),
+        ); //http status
+
+        resource_updates.insert(
+            "statusText".to_owned(),
+            serde_json::to_value(self.response_start()).unwrap(),
+        ); //http status text
+
+        resource_updates.insert(
+            "earlyHintsStatus".to_owned(),
+            serde_json::to_value(self.response_start()).unwrap(),
+        ); //hmm
+
+        resource_updates.insert(
+            "remoteAddress".to_owned(),
+            serde_json::to_value(self.response_start()).unwrap(),
+        );
+
+        resource_updates.insert(
+            "remotePort".to_owned(),
+            serde_json::to_value(self.response_start()).unwrap(),
+        );
+
+        resource_updates.insert(
+            "mimeType".to_owned(),
+            serde_json::to_value(self.response_start()).unwrap(),
+        ); //mime type
+
+        resource_updates.insert(
+            "waitingTime".to_owned(),
+            serde_json::to_value(self.response_start()).unwrap(),
+        ); // waiting time
+
+        resource_updates.insert(
+            "isResolvedByTRR".to_owned(),
+            serde_json::to_value(self.response_start()).unwrap(),
+        ); // is resolved by TRR
+
+        resource_updates.insert(
+            "responseHeadersAvailable".to_owned(),
+            serde_json::to_value(self.response_start()).unwrap(),
+        ); // check for boolean
+
+        resource_updates.insert(
+            "responseCookiesAvailable".to_owned(),
+            serde_json::to_value(self.response_start()).unwrap(),
+        ); // check for boolean
+
+        resource_updates.insert(
+            "responseStartAvailable".to_owned(),
+            serde_json::to_value(self.response_start()).unwrap(),
+        ); // check for boolean
+
+        resource_updates.insert(
+            "totalTime".to_owned(),
+            serde_json::to_value(self.response_start()).unwrap(),
+        ); // total time
+
+        resource_updates.insert(
+            "eventTimingsAvailable".to_owned(),
+            serde_json::to_value(self.response_start()).unwrap(),
+        ); // check for boolean
+
+        resource_updates.insert(
+            "securityState".to_owned(),
+            serde_json::to_value(self.response_start()).unwrap(),
+        ); // security state
+
+        resource_updates.insert(
+            "isRacing".to_owned(),
+            serde_json::to_value(self.response_start()).unwrap(),
+        ); // is racing
+
+        resource_updates.insert(
+            "securityInfoAvailable".to_owned(),
+            serde_json::to_value(self.response_start()).unwrap(),
+        ); // check for boolean
+
+        resource_updates.insert(
+            "contentSize".to_owned(),
+            serde_json::to_value(self.response_start()).unwrap(),
+        ); // content size
+
+        resource_updates.insert(
+            "transferredSize".to_owned(),
+            serde_json::to_value(self.response_start()).unwrap(),
+        ); // transferred size
+
+        resource_updates.insert(
+            "blockedReason".to_owned(),
+            serde_json::to_value(self.response_start()).unwrap(),
+        ); //  blocked reason
+
+        resource_updates.insert(
+            "responseContentAvailable".to_owned(),
+            serde_json::to_value(self.response_start()).unwrap(),
+        ); //  check for boolean
+
+        NetworkEventResource {
+            resource_id: 0, // Set to a valid ID if available
+            resource_updates,
+            browsing_context_id: 0, // Set to a valid ID if available
+            inner_window_id: 0,     // Set to a valid ID if available
+        }
     }
 }
