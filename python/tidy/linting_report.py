@@ -1,4 +1,4 @@
-# Copyright 2013 The Servo Project Developers. See the COPYRIGHT
+# Copyright 2025 The Servo Project Developers. See the COPYRIGHT
 # file at the top-level directory of this distribution.
 #
 # Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
@@ -28,7 +28,8 @@ class OptionalAnnotation(RequiredAnnotation, total=False):
 
 
 class LintingReportManager:
-    def __init__(self, limit: int):
+    def __init__(self, annotation_prefix: str, limit: int):
+        self.annotation_prefix: str = annotation_prefix
         self.limit: int = limit
         self.severenty_map: dict[str, Literal["notice", "warning", "error"]] = {
             "help": "notice",
@@ -36,9 +37,8 @@ class LintingReportManager:
             "warning": "warning",
             "error": "error",
         }
-        self.logs: List[OptionalAnnotation] = []
+        self.annotations: List[OptionalAnnotation] = []
         self.total_count = 0
-        self.error_count = 0
         colorama.init()
 
     def error_log(self, error):
@@ -55,10 +55,40 @@ class LintingReportManager:
     def escape(self, s):
         return s.replace("\r", "%0D").replace("\n", "%0A")
 
-    def append_log(self, annotation: OptionalAnnotation):
+    def append_annotation(
+        self,
+        title,
+        message,
+        file_name,
+        line_start,
+        line_end=None,
+        annotation_level=None,
+        column_start=None,
+        column_end=None,
+    ):
         if self.total_count >= self.limit:
             return
-        self.logs.append(annotation)
+
+        if annotation_level is None:
+            annotation_level = "error"
+
+        if line_end is None:
+            line_end = line_start
+
+        annotation: OptionalAnnotation = {
+            "title": f"./Mach {self.annotation_prefix}: {title}",
+            "message": self.escape(message),
+            "file_name": self.clean_path(file_name),
+            "line_start": line_start,
+            "line_end": line_end,
+            "level": annotation_level,
+        }
+
+        if line_start == line_end and column_start is not None and column_end is not None:
+            annotation["column_start"] = column_start
+            annotation["column_end"] = column_end
+
+        self.annotations.append(annotation)
         self.total_count += 1
 
     def filter_clippy_log(self, data):
@@ -79,50 +109,33 @@ class LintingReportManager:
             title = self.escape(message.get("message", ""))
             rendered_message = self.escape(message.get("rendered", ""))
 
-            annotation: OptionalAnnotation = {
-                "title": f"Mach clippy: {title}",
-                "message": rendered_message,
-                "file_name": primary_span["file_name"],
-                "line_start": primary_span["line_start"],
-                "line_end": primary_span["line_end"],
-                "column_start": primary_span["column_start"],
-                "column_end": primary_span["column_end"],
-                "level": annotation_level,
-            }
-
-            if primary_span.get("line_start") == primary_span.get("line_end"):
-                annotation["column_start"] = primary_span["column_start"]
-                annotation["column_end"] = primary_span["column_end"]
-
-            self.logs.append(annotation)
-            self.total_count += 1
-
-    def logs_annotation(self):
-        for annotation in self.logs:
-            self.log_annotation(annotation)
-
-    def log_annotation(self, annotation: OptionalAnnotation):
-        if "column_start" in annotation and "column_end" in annotation:
-            print(
-                (
-                    f"::{annotation['level']} file={annotation['file_name']},"
-                    f"line={annotation['line_start']},"
-                    f"endLine={annotation['line_end']},"
-                    f"col={annotation['column_start']},"
-                    f"endColumn={annotation['column_end']},"
-                    f"title={annotation['title']}::"
-                    f"{annotation['message']}"
-                ),
-                flush=True,
+            self.append_annotation(
+                title,
+                rendered_message,
+                primary_span["file_name"],
+                primary_span["line_start"],
+                primary_span["line_end"],
+                annotation_level,
+                primary_span["column_start"],
+                primary_span["column_end"],
             )
-        else:
-            print(
-                (
-                    f"::{annotation['level']} file={annotation['file_name']},"
-                    f"line={annotation['line_start']},"
-                    f"endLine={annotation['line_end']},"
-                    f"title={annotation['title']}::"
-                    f"{annotation['message']}"
-                ),
-                flush=True,
-            )
+
+    def emit_github_annotations(self):
+        for annotation in self.annotations:
+            self.emit_github_annotation(annotation)
+
+    def emit_github_annotation(self, annotation: OptionalAnnotation):
+        line_info = f"line={annotation['line_start']},endLine={annotation['line_end']},title={annotation['title']}"
+
+        column_info = ""
+        if "column_end" in annotation and "column_start" in annotation:
+            column_info = f"col={annotation['column_start']},endColumn={annotation['column_end']},"
+
+        print(
+            (
+                f"::{annotation['level']} file={annotation['file_name']},"
+                f"{column_info}{line_info}"
+                f"::{annotation['message']}"
+            ),
+            flush=True,
+        )

@@ -109,7 +109,7 @@ class MachCommands(CommandBase):
 
     @Command("clippy", description='Run "cargo clippy"', category="devenv")
     @CommandArgument("params", default=None, nargs="...", help="Command-line arguments to be passed through to clippy")
-    @CommandArgument("--report-ci", "-rci", default=False, action="store_true", help="Put the lint result on the file")
+    @CommandArgument("--report-ci", default=False, action="store_true", help="Put the lint result on the file")
     @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
     def cargo_clippy(self, params, report_ci=False, **kwargs):
         if not params:
@@ -120,8 +120,11 @@ class MachCommands(CommandBase):
         env = self.build_env()
         env["RUSTC"] = "rustc"
 
-        if "--message-format=json" in params and report_ci:
-            report_manager = LintingReportManager(10)
+        if report_ci:
+            if "--message-format=json" not in params:
+                params.insert(0, "--message-format=json")
+
+            report_manager = LintingReportManager("clippy", 10)
 
             retcode = self.run_cargo_build_like_command("clippy", params, env=env, capture_output=True, **kwargs)
 
@@ -129,7 +132,7 @@ class MachCommands(CommandBase):
                 try:
                     data = [json.loads(line) for line in self.last_output.splitlines() if line.strip()]
                     report_manager.filter_clippy_log(data)
-                    report_manager.logs_annotation()
+                    report_manager.emit_github_annotations()
                 except json.JSONDecodeError:
                     return retcode
             return retcode
