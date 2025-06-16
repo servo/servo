@@ -356,6 +356,15 @@ impl RunningAppState {
         self.inner_mut().webviews.insert(webview.id(), webview);
     }
 
+    /// The focused webview will not be immediately valid via `active_webview()`
+    pub(crate) fn focus_webview(&self, id: WebViewId) {
+        if let Some(webview) = self.inner().webviews.get(&id) {
+            webview.focus();
+        } else {
+            error!("We could not find the webview with this id {id}");
+        }
+    }
+
     fn inner(&self) -> Ref<RunningAppStateInner> {
         self.inner.borrow()
     }
@@ -372,14 +381,14 @@ impl RunningAppState {
         Ok(webview_id)
     }
 
-    fn newest_webview(&self) -> Option<WebView> {
+    pub(crate) fn newest_webview(&self) -> Option<WebView> {
         self.inner()
             .creation_order
             .last()
             .and_then(|id| self.inner().webviews.get(id).cloned())
     }
 
-    fn active_webview(&self) -> WebView {
+    pub(crate) fn active_webview(&self) -> WebView {
         self.inner()
             .focused_webview_id
             .and_then(|id| self.inner().webviews.get(&id).cloned())

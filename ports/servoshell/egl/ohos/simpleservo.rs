@@ -26,6 +26,20 @@ use crate::egl::ohos::InitOpts;
 use crate::egl::ohos::resources::ResourceReaderInstance;
 use crate::prefs::{ArgumentParsingResult, parse_command_line_arguments};
 
+pub(crate) fn get_raw_window_handle(
+    xcomponent: *mut OH_NativeXComponent,
+    window: *mut c_void,
+) -> (RawWindowHandle, euclid::default::Size2D<i32>, Coordinates) {
+    let window_size = unsafe { super::get_xcomponent_size(xcomponent, window) }
+        .expect("Could not get native window size");
+    let (x, y) = unsafe { super::get_xcomponent_offset(xcomponent, window) }
+        .expect("Could not get native window offset");
+    let coordinates = Coordinates::new(x, y, window_size.width, window_size.height);
+    let native_window = NonNull::new(window).expect("Could not get native window");
+    let window_handle = RawWindowHandle::OhosNdk(OhosNdkWindowHandle::new(native_window));
+    (window_handle, window_size, coordinates)
+}
+
 #[derive(Debug)]
 struct NativeValues {
     cache_dir: String,
@@ -143,19 +157,12 @@ pub fn init(
     #[cfg(target_env = "ohos")]
     crate::egl::ohos::set_log_filter(servoshell_preferences.log_filter.as_deref());
 
-    let Ok(window_size) = (unsafe { super::get_xcomponent_size(xcomponent, native_window) }) else {
-        return Err("Failed to get xcomponent size");
-    };
-    let Ok((x, y)) = (unsafe { super::get_xcomponent_offset(xcomponent, native_window) }) else {
-        return Err("Failed to get xcomponent offset");
-    };
-    let coordinates = Coordinates::new(x, y, window_size.width, window_size.height);
+    let (window_handle, window_size, coordinates) =
+        get_raw_window_handle(xcomponent, native_window);
 
     let display_handle = RawDisplayHandle::Ohos(OhosDisplayHandle::new());
     let display_handle = unsafe { DisplayHandle::borrow_raw(display_handle) };
 
-    let native_window = NonNull::new(native_window).expect("Could not get native window");
-    let window_handle = RawWindowHandle::OhosNdk(OhosNdkWindowHandle::new(native_window));
     let window_handle = unsafe { WindowHandle::borrow_raw(window_handle) };
 
     let rendering_context = Rc::new(
