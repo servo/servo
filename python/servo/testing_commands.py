@@ -256,7 +256,7 @@ class MachCommands(CommandBase):
         "--report-ci",
         default=False,
         action="store_true",
-        help="Emit the clippy warnings in  the Github Worfklow command format",
+        help="Emit the clippy warnings in the Github Worfklow command format",
     )
     def test_tidy(self, all_files, no_progress, report_ci):
         tidy_failed = tidy.scan(not all_files, not no_progress, report_ci)

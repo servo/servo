@@ -113,7 +113,7 @@ class MachCommands(CommandBase):
         "--report-ci",
         default=False,
         action="store_true",
-        help="Emit the clippy warnings in  the Github Worfklow command format",
+        help="Emit the clippy warnings in the Github Worfklow command format",
     )
     @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
     def cargo_clippy(self, params, report_ci=False, **kwargs):
