@@ -106,6 +106,12 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         expected_content = 'console.log("external classic");\n'
         self.assert_source_content(f"{self.base_url}/classic.js", expected_content)
 
+    def test_source_content_html_file(self):
+        self.start_web_server(test_dir=os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
+        self.run_servoshell()
+        expected_content = '<!doctype html><meta charset=utf-8>\n<script src="classic.js"></script>\n<script>\n    console.log("inline classic");\n    new Worker("worker.js");\n</script>\n<script type="module">\n    import module from "./module.js";\n    console.log("inline module");\n</script>\n<script src="https://servo.org/js/load-table.js"></script>\n'
+        self.assert_source_content(f"{self.base_url}/test.html", expected_content)
+
     # Sets `base_url` and `web_server` and `web_server_thread`.
     def start_web_server(self, *, test_dir=None):
         if test_dir is None:
