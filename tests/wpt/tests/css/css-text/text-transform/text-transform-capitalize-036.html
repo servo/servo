@@ -53,11 +53,10 @@
                 "innerText for 'foo_bar' should be 'Foo_bar'");
         }, "text-transform: capitalize test for underscore");
 
-        // Test for underscore
         test(function () {
             var div = document.getElementById("span1");
             assert_equals(div.innerText, "b",
-                "innerText for span in 'a<span  style='text-transform: capitalize;'>b</span>c' should be 'b'");
+                "innerText for span in 'a<span style='text-transform: capitalize;'>b</span>c' should be 'b'");
         }, "text-transform: capitalize test for not starting at word boundary");
     </script>
 </body>
