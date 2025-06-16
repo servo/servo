@@ -1,0 +1,12 @@
+<title>Transfer Canvas without Context</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/canvas-tests.js"></script>
+<canvas id="canvas"></canvas>
+
+<script>
+test(function(t) {
+  canvas.transferControlToOffscreen();
+  canvas.toBlob(_ => {});
+}, "Tests that transferring a canvas without getting context does not cause a crash.");
+</script>
