@@ -6,6 +6,6 @@
 
 [Exposed=*]
 interface WritableStreamDefaultController {
-  // readonly attribute AbortSignal signal;
+  readonly attribute AbortSignal signal;
   undefined error(optional any e);
 };

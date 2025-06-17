@@ -27,6 +27,7 @@ use crate::dom::messageport::MessagePort;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestreamdefaultcontroller::{EnqueuedValue, QueueWithSizes, ValueWithSize};
+use crate::dom::types::{AbortController, AbortSignal};
 use crate::dom::writablestream::WritableStream;
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
@@ -339,6 +340,9 @@ pub struct WritableStreamDefaultController {
 
     /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-stream>
     stream: MutNullableDom<WritableStream>,
+
+    /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller>
+    abort_controller: Dom<AbortController>,
 }
 
 impl WritableStreamDefaultController {
@@ -358,6 +362,9 @@ impl WritableStreamDefaultController {
             strategy_hwm,
             strategy_size: RefCell::new(Some(strategy_size)),
             started: Default::default(),
+            abort_controller: Dom::from_ref(&AbortController::new_inherited(
+                &AbortSignal::new_inherited(),
+            )),
         }
     }
 
@@ -387,6 +394,12 @@ impl WritableStreamDefaultController {
     /// Setting the JS object after the heap has settled down.
     pub(crate) fn set_underlying_sink_this_object(&self, this_object: SafeHandleObject) {
         self.underlying_sink_obj.set(*this_object);
+    }
+
+    /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-abortcontroller>
+    pub(crate) fn abort_controller(&self) -> DomRoot<AbortController> {
+        // The abort controller getter steps are to return this’s [[abortController]].
+        self.abort_controller.as_rooted()
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-clear-algorithms>
@@ -1084,5 +1097,11 @@ impl WritableStreamDefaultControllerMethods<crate::DomTypeHolder>
 
         // Perform ! WritableStreamDefaultControllerError(this, e).
         self.error(&stream, cx, e, &global, can_gc);
+    }
+
+    /// <https://streams.spec.whatwg.org/#ws-default-controller-signal>
+    fn Signal(&self) -> DomRoot<AbortSignal> {
+        // Return this.[[abortController]]’s signal.
+        self.abort_controller.signal()
     }
 }

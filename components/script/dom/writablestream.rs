@@ -655,6 +655,7 @@ impl WritableStream {
         cx: SafeJSContext,
         global: &GlobalScope,
         provided_reason: SafeHandleValue,
+        realm: InRealm,
         can_gc: CanGc,
     ) -> Rc<Promise> {
         // If stream.[[state]] is "closed" or "errored",
@@ -663,10 +664,22 @@ impl WritableStream {
             return Promise::new_resolved(global, cx, (), can_gc);
         }
 
-        // TODO: Signal abort on stream.[[controller]].[[abortController]] with reason.
+        // Signal abort on stream.[[controller]].[[abortController]] with reason.
+        self.get_controller()
+            .expect("Stream must have a controller.")
+            .abort_controller()
+            .signal_abort(cx, provided_reason, realm, can_gc);
 
-        // TODO: If state is "closed" or "errored", return a promise resolved with undefined.
-        // Note: state may have changed because of signal above.
+        // Let state be stream.[[state]].
+        let state = self.state.get();
+
+        // If state is "closed" or "errored", return a promise resolved with undefined.
+        if matches!(
+            state,
+            WritableStreamState::Closed | WritableStreamState::Errored
+        ) {
+            return Promise::new_resolved(global, cx, (), can_gc);
+        }
 
         // If stream.[[pendingAbortRequest]] is not undefined,
         if self.pending_abort_request.borrow().is_some() {
@@ -1077,7 +1090,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         }
 
         // Return ! WritableStreamAbort(this, reason).
-        self.abort(cx, &global, reason, can_gc)
+        self.abort(cx, &global, reason, realm, can_gc)
     }
 
     /// <https://streams.spec.whatwg.org/#ws-close>

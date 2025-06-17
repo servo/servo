@@ -51,7 +51,7 @@ pub(crate) struct AbortSignal {
 }
 
 impl AbortSignal {
-    fn new_inherited() -> AbortSignal {
+    pub(crate) fn new_inherited() -> AbortSignal {
         AbortSignal {
             eventtarget: EventTarget::new_inherited(),
             abort_reason: Default::default(),
@@ -59,7 +59,6 @@ impl AbortSignal {
         }
     }
 
-    #[allow(dead_code)]
     pub(crate) fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,

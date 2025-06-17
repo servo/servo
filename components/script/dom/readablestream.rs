@@ -738,7 +738,7 @@ impl PipeTo {
         let promise = match action {
             ShutdownAction::WritableStreamAbort => {
                 let dest = self.writer.get_stream().expect("Stream must be set");
-                dest.abort(cx, global, error.handle(), can_gc)
+                dest.abort(cx, global, error.handle(), realm, can_gc)
             },
             ShutdownAction::ReadableStreamCancel => {
                 let source = self
@@ -771,7 +771,7 @@ impl PipeTo {
                     // If dest.[[state]] is "writable",
                     let promise = if dest.is_writable() {
                         // return ! WritableStreamAbort(dest, error)
-                        dest.abort(cx, global, error.handle(), can_gc)
+                        dest.abort(cx, global, error.handle(), realm, can_gc)
                     } else {
                         // Otherwise, return a promise resolved with undefined.
                         Promise::new_resolved(global, cx, (), can_gc)
