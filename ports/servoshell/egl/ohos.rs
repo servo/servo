@@ -869,6 +869,17 @@ impl HostTrait for HostCallbacks {
                 response_sender,
             } => {
                 debug!("SimpleDialog::Alert");
+
+                // forward it to tracing
+                #[cfg(feature = "tracing-hitrace")]
+                {
+                    if message.contains("TESTCASE_PROFILING") {
+                        if let Some((tag, number)) = message.rsplit_once(":") {
+                            hitrace::trace_metric_str(tag, number.parse::<i64>().unwrap_or(-1));
+                        }
+                    }
+                }
+
                 // TODO: Indicate that this message is untrusted, and what origin it came from.
                 self.show_alert(message);
                 response_sender.send(AlertResponse::Ok)
