@@ -7,6 +7,7 @@ use std::mem;
 use std::rc::Rc;
 
 use dpi::PhysicalSize;
+use log::info;
 use raw_window_handle::{DisplayHandle, RawDisplayHandle, RawWindowHandle, WindowHandle};
 pub use servo::webrender_api::units::DeviceIntRect;
 use servo::{self, EventLoopWaker, ServoBuilder, resources};
@@ -32,6 +33,7 @@ pub struct InitOptions {
     pub xr_discovery: Option<servo::webxr::Discovery>,
     pub window_handle: RawWindowHandle,
     pub display_handle: RawDisplayHandle,
+    pub user_agent: String,
 }
 
 /// Initialize Servo. At that point, we need a valid GL context.
@@ -47,6 +49,15 @@ pub fn init(
     // `parse_command_line_arguments` expects the first argument to be the binary name.
     let mut args = mem::take(&mut init_opts.args);
     args.insert(0, "servo".to_string());
+
+    //If args already had a user agent from an intent extra (or otherwise), we should use that.
+    //Otherwise, add the default one here.
+    if !args.iter().any(|s| s == "-u") && !args.iter().any(|s| s == "--user-agent") {
+        args.push("--user-agent".to_string());
+        args.push(init_opts.user_agent);
+
+        info!("args: {:?}", args);
+    }
 
     let (opts, preferences, servoshell_preferences) = match parse_command_line_arguments(args) {
         ArgumentParsingResult::ContentProcess(..) => {

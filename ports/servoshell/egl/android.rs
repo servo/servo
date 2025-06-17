@@ -141,16 +141,6 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
     let wakeup = Box::new(WakeupCallback::new(callbacks_ref.clone(), &env));
     let callbacks = Box::new(HostCallbacks::new(callbacks_ref, &env));
 
-    let user_agent = get_user_agent(&mut env);
-    info!("user agent: {user_agent}");
-
-    //We could add the user agent to opts.args and that should get picked up by init later.
-    //Either that or we do the JNI somewhere else? That's require saving/passing around the env though...
-
-    //This doesn't work because opts is immutable. We could append some stuff before returning in get_options() though.
-    // opts.args.push("user-agent".to_string());
-    // opts.args.push(user_agent);
-
     if let Err(err) = simpleservo::init(opts, wakeup, callbacks) {
         throw(&mut env, err)
     };
@@ -853,6 +843,7 @@ fn get_options<'local>(
     };
 
     let (display_handle, window_handle) = display_and_window_handle(env, surface);
+    let user_agent = get_user_agent(env);
     let opts = InitOptions {
         args: args.unwrap_or(vec![]),
         url,
@@ -861,6 +852,7 @@ fn get_options<'local>(
         xr_discovery: None,
         window_handle,
         display_handle,
+        user_agent,
     };
 
     Ok((opts, log, log_str, gst_debug_str))
