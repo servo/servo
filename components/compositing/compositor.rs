@@ -20,7 +20,8 @@ use compositing_traits::display_list::{
 };
 use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::{
-    CompositionPipeline, CompositorMsg, ImageUpdate, SendableFrameTree, WebViewTrait,
+    CompositionPipeline, CompositorMsg, ImageUpdate, PipelineExitSource, SendableFrameTree,
+    WebViewTrait,
 };
 use constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
 use crossbeam_channel::{Receiver, Sender};
@@ -226,6 +227,10 @@ pub(crate) struct PipelineDetails {
 
     /// The paint metric status of the first contentful paint.
     pub first_contentful_paint_metric: PaintMetricState,
+
+    /// Which parts of Servo have reported that this `Pipeline` has exited. Only when all
+    /// have done so will it be discarded.
+    pub exited: PipelineExitSource,
 }
 
 impl PipelineDetails {
@@ -255,6 +260,7 @@ impl PipelineDetails {
             scroll_tree: ScrollTree::default(),
             first_paint_metric: PaintMetricState::Waiting,
             first_contentful_paint_metric: PaintMetricState::Waiting,
+            exited: PipelineExitSource::empty(),
         }
     }
 
@@ -604,15 +610,14 @@ impl IOCompositor {
                 }
             },
 
-            CompositorMsg::PipelineExited(webview_id, pipeline_id, sender) => {
+            CompositorMsg::PipelineExited(webview_id, pipeline_id, pipeline_exit_source) => {
                 debug!(
                     "Compositor got pipeline exited: {:?} {:?}",
                     webview_id, pipeline_id
                 );
                 if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
-                    webview_renderer.remove_pipeline(pipeline_id);
+                    webview_renderer.pipeline_exited(pipeline_id, pipeline_exit_source);
                 }
-                let _ = sender.send(());
             },
 
             CompositorMsg::NewWebRenderFrameReady(_document_id, recomposite_needed) => {
@@ -987,15 +992,14 @@ impl IOCompositor {
     /// compositor no longer does any WebRender frame generation.
     fn handle_browser_message_while_shutting_down(&mut self, msg: CompositorMsg) {
         match msg {
-            CompositorMsg::PipelineExited(webview_id, pipeline_id, sender) => {
+            CompositorMsg::PipelineExited(webview_id, pipeline_id, pipeline_exit_source) => {
                 debug!(
                     "Compositor got pipeline exited: {:?} {:?}",
                     webview_id, pipeline_id
                 );
                 if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
-                    webview_renderer.remove_pipeline(pipeline_id);
+                    webview_renderer.pipeline_exited(pipeline_id, pipeline_exit_source);
                 }
-                let _ = sender.send(());
             },
             CompositorMsg::GenerateImageKey(sender) => {
                 let _ = sender.send(self.global.borrow().webrender_api.generate_image_key());

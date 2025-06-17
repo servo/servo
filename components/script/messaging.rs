@@ -58,7 +58,7 @@ impl MixedMessage {
                 ScriptThreadMessage::ThemeChange(id, ..) => Some(*id),
                 ScriptThreadMessage::ResizeInactive(id, ..) => Some(*id),
                 ScriptThreadMessage::UnloadDocument(id) => Some(*id),
-                ScriptThreadMessage::ExitPipeline(id, ..) => Some(*id),
+                ScriptThreadMessage::ExitPipeline(_webview_id, id, ..) => Some(*id),
                 ScriptThreadMessage::ExitScriptThread => None,
                 ScriptThreadMessage::SendInputEvent(id, ..) => Some(*id),
                 ScriptThreadMessage::Viewport(id, ..) => Some(*id),
