@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <style>
+        html {
+            background: red;
+            transition: all 0.1s;
+        }
+    </style>
+    <script>
+        window.addEventListener("message", () => {
+            document.documentElement.style.background = "green";
+        });
+        document.documentElement.addEventListener(
+            "transitionend", () => {
+                window.parent.postMessage("complete", "*");
+            }
+        );
+    </script>
+</body>
+</html>
