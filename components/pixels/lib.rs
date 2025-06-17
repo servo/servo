@@ -195,9 +195,13 @@ pub fn rgba8_premultiply_inplace(pixels: &mut [u8]) -> bool {
     is_opaque
 }
 
+/// Returns a*b/255, rounding any fractional bits to nearest integer
+/// to reduce the loss of precision after multiple consequence alpha
+/// (un)premultiply operations.
 #[inline(always)]
 pub fn multiply_u8_color(a: u8, b: u8) -> u8 {
-    (a as u32 * b as u32 / 255) as u8
+    let c = a as u32 * b as u32 + 128;
+    ((c + (c >> 8)) >> 8) as u8
 }
 
 pub fn clip(
