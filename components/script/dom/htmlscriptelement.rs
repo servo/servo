@@ -28,7 +28,7 @@ use net_traits::request::{
     RequestBuilder, RequestId,
 };
 use net_traits::{
-    FetchMetadata, FetchResponseListener, Metadata, NetworkError, ResourceFetchTiming,
+    FetchMetadata, FetchResponseListener, IpcSend, Metadata, NetworkError, ResourceFetchTiming,
     ResourceTimingType,
 };
 use servo_config::pref;
@@ -73,7 +73,7 @@ use crate::dom::trustedscript::TrustedScript;
 use crate::dom::trustedscripturl::TrustedScriptURL;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
-use crate::fetch::create_a_potential_cors_request;
+use crate::fetch::{create_a_potential_cors_request, load_whole_resource};
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::realms::enter_realm;
 use crate::script_module::{
@@ -1093,14 +1093,30 @@ impl HTMLScriptElement {
                 // content_type: https://html.spec.whatwg.org/multipage/#scriptingLanguages
                 (script.url.clone(), content, "text/javascript", true)
             } else {
-                let document_node = doc.upcast::<Node>();
-                let content = document_node.html_serialize(
-                    TraversalScope::IncludeNode,
-                    false,
-                    Vec::new(),
-                    can_gc,
+                // TODO: make the request the same way as in the original request.
+                // TODO: make the request in devtools, only when needed by a devtools client.
+                let request = RequestBuilder::new(
+                    Some(doc.webview_id()),
+                    doc.url(),
+                    self.global().get_referrer(),
                 );
-                (doc.url(), content.to_string(), "text/html", false)
+                let (metadata, content) = load_whole_resource(
+                    request,
+                    &self.global().resource_threads().sender(),
+                    &self.global(),
+                    can_gc,
+                )
+                .expect("FIXME: devtools page request failed");
+
+                // TODO: handle encodings the same way as in HTML, taking <meta charset> into account.
+                let encoding = metadata
+                    .charset
+                    .and_then(|encoding| Encoding::for_label(encoding.as_bytes()))
+                    .expect("FIXME: no character encoding");
+                let (content, _, _) = encoding.decode(&content);
+
+                // TODO: handle cases where Content-Type is not text/html.
+                (doc.url(), content.into_owned(), "text/html", false)
             };
 
             let source_info = SourceInfo {
