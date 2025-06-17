@@ -36,7 +36,7 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::id::{BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, WebViewId};
 use canvas_traits::webgl::WebGLPipeline;
 use chrono::{DateTime, Local};
-use compositing_traits::CrossProcessCompositorApi;
+use compositing_traits::{CompositorMsg, CrossProcessCompositorApi, PipelineExitSource};
 use constellation_traits::{
     JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptToConstellationChan,
     ScriptToConstellationMessage, StructuredSerializedData, WindowSizeType,
@@ -1605,10 +1605,12 @@ impl ScriptThread {
                         return false;
                     },
                     MixedMessage::FromConstellation(ScriptThreadMessage::ExitPipeline(
+                        webview_id,
                         pipeline_id,
                         discard_browsing_context,
                     )) => {
                         self.handle_exit_pipeline_msg(
+                            webview_id,
                             pipeline_id,
                             discard_browsing_context,
                             can_gc,
@@ -1970,9 +1972,16 @@ impl ScriptThread {
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg)
             },
             ScriptThreadMessage::Reload(pipeline_id) => self.handle_reload(pipeline_id, can_gc),
-            ScriptThreadMessage::ExitPipeline(pipeline_id, discard_browsing_context) => {
-                self.handle_exit_pipeline_msg(pipeline_id, discard_browsing_context, can_gc)
-            },
+            ScriptThreadMessage::ExitPipeline(
+                webview_id,
+                pipeline_id,
+                discard_browsing_context,
+            ) => self.handle_exit_pipeline_msg(
+                webview_id,
+                pipeline_id,
+                discard_browsing_context,
+                can_gc,
+            ),
             ScriptThreadMessage::PaintMetric(
                 pipeline_id,
                 metric_type,
@@ -2975,6 +2984,7 @@ impl ScriptThread {
     /// Handles a request to exit a pipeline and shut down layout.
     fn handle_exit_pipeline_msg(
         &self,
+        webview_id: WebViewId,
         id: PipelineId,
         discard_bc: DiscardBrowsingContext,
         can_gc: CanGc,
@@ -3032,6 +3042,15 @@ impl ScriptThread {
             .send((id, ScriptToConstellationMessage::PipelineExited))
             .ok();
 
+        self.compositor_api
+            .sender()
+            .send(CompositorMsg::PipelineExited(
+                webview_id,
+                id,
+                PipelineExitSource::Script,
+            ))
+            .ok();
+
         debug!("{id}: Finished pipeline exit");
     }
 
@@ -3039,24 +3058,29 @@ impl ScriptThread {
     fn handle_exit_script_thread_msg(&self, can_gc: CanGc) {
         debug!("Exiting script thread.");
 
-        let mut pipeline_ids = Vec::new();
-        pipeline_ids.extend(
+        let mut webview_and_pipeline_ids = Vec::new();
+        webview_and_pipeline_ids.extend(
             self.incomplete_loads
                 .borrow()
                 .iter()
                 .next()
-                .map(|load| load.pipeline_id),
+                .map(|load| (load.webview_id, load.pipeline_id)),
         );
-        pipeline_ids.extend(
+        webview_and_pipeline_ids.extend(
             self.documents
                 .borrow()
                 .iter()
                 .next()
-                .map(|(pipeline_id, _)| pipeline_id),
+                .map(|(pipeline_id, document)| (document.webview_id(), pipeline_id)),
         );
 
-        for pipeline_id in pipeline_ids {
-            self.handle_exit_pipeline_msg(pipeline_id, DiscardBrowsingContext::Yes, can_gc);
+        for (webview_id, pipeline_id) in webview_and_pipeline_ids {
+            self.handle_exit_pipeline_msg(
+                webview_id,
+                pipeline_id,
+                DiscardBrowsingContext::Yes,
+                can_gc,
+            );
         }
 
         self.background_hang_monitor.unregister();
