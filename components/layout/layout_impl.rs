@@ -181,6 +181,11 @@ pub struct LayoutThread {
     /// Debug options, copied from configuration to this `LayoutThread` in order
     /// to avoid having to constantly access the thread-safe global options.
     debug: DebugOptions,
+
+    /// Tracks the node that was highlighted by the devtools during the last reflow.
+    ///
+    /// If this changed, then we need to create a new display list.
+    previously_highlighted_dom_node: Cell<Option<OpaqueNode>>,
 }
 
 pub struct LayoutFactoryImpl();
@@ -555,6 +560,7 @@ impl LayoutThread {
             stylist: Stylist::new(device, QuirksMode::NoQuirks),
             resolved_images_cache: Default::default(),
             debug: opts::get().debug.clone(),
+            previously_highlighted_dom_node: Cell::new(None),
         }
     }
 
@@ -647,6 +653,12 @@ impl LayoutThread {
             ua_stylesheets,
             &snapshot_map,
         );
+
+        if self.previously_highlighted_dom_node.get() != reflow_request.highlighted_dom_node {
+            // Need to manually force layout to build a new display list regardless of whether the box tree
+            // changed or not.
+            self.need_new_display_list.set(true);
+        }
 
         let mut layout_context = LayoutContext {
             id: self.id,
@@ -992,6 +1004,8 @@ impl LayoutThread {
 
         self.have_ever_generated_display_list.set(true);
         self.need_new_display_list.set(false);
+        self.previously_highlighted_dom_node
+            .set(reflow_request.highlighted_dom_node);
         true
     }
 
