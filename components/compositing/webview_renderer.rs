@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, RefCell};
-use std::collections::hash_map::Keys;
+use std::collections::hash_map::{Entry, Keys};
 use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;
 
@@ -12,7 +12,7 @@ use compositing_traits::display_list::ScrollType;
 use compositing_traits::viewport_description::{
     DEFAULT_ZOOM, MAX_ZOOM, MIN_ZOOM, ViewportDescription,
 };
-use compositing_traits::{SendableFrameTree, WebViewTrait};
+use compositing_traits::{PipelineExitSource, SendableFrameTree, WebViewTrait};
 use constellation_traits::{EmbedderToConstellationMessage, WindowSizeType};
 use embedder_traits::{
     AnimationState, CompositorHitTestResult, InputEvent, MouseButton, MouseButtonAction,
@@ -175,12 +175,26 @@ impl WebViewRenderer {
         })
     }
 
-    pub(crate) fn remove_pipeline(&mut self, pipeline_id: PipelineId) {
+    pub(crate) fn pipeline_exited(&mut self, pipeline_id: PipelineId, source: PipelineExitSource) {
+        let pipeline = self.pipelines.entry(pipeline_id);
+        let Entry::Occupied(mut pipeline) = pipeline else {
+            return;
+        };
+
+        pipeline.get_mut().exited.insert(source);
+
+        // Do not remove pipeline details until both the Constellation and Script have
+        // finished processing the pipeline shutdown. This prevents any followup messges
+        // from re-adding the pipeline details and creating a zombie.
+        if !pipeline.get().exited.is_all() {
+            return;
+        }
+
+        pipeline.remove_entry();
         self.global
             .borrow_mut()
             .pipeline_to_webview_map
             .remove(&pipeline_id);
-        self.pipelines.remove(&pipeline_id);
     }
 
     pub(crate) fn set_frame_tree(&mut self, frame_tree: &SendableFrameTree) {

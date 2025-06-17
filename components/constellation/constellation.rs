@@ -109,7 +109,8 @@ use canvas_traits::ConstellationCanvasMsg;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use canvas_traits::webgl::WebGLThreads;
 use compositing_traits::{
-    CompositorMsg, CompositorProxy, SendableFrameTree, WebrenderExternalImageRegistry,
+    CompositorMsg, CompositorProxy, PipelineExitSource, SendableFrameTree,
+    WebrenderExternalImageRegistry,
 };
 use constellation_traits::{
     AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse, BroadcastMsg, DocumentState,
@@ -2840,7 +2841,18 @@ where
 
     fn handle_pipeline_exited(&mut self, pipeline_id: PipelineId) {
         debug!("{}: Exited", pipeline_id);
-        self.pipelines.remove(&pipeline_id);
+        let Some(pipeline) = self.pipelines.remove(&pipeline_id) else {
+            return;
+        };
+
+        // Now that the Script and Constellation parts of Servo no longer have a reference to
+        // this pipeline, tell the compositor that it has shut down. This is delayed until the
+        // last moment.
+        self.compositor_proxy.send(CompositorMsg::PipelineExited(
+            pipeline.webview_id,
+            pipeline.id,
+            PipelineExitSource::Constellation,
+        ));
     }
 
     #[cfg_attr(
@@ -5910,10 +5922,8 @@ where
         }
 
         // Inform script, compositor that this pipeline has exited.
-        match exit_mode {
-            ExitPipelineMode::Normal => pipeline.exit(dbc),
-            ExitPipelineMode::Force => pipeline.force_exit(dbc),
-        }
+        pipeline.send_exit_message_to_script(dbc);
+
         debug!("{}: Closed", pipeline_id);
     }
 
@@ -5952,7 +5962,7 @@ where
                         // Note that we deliberately do not do any of the tidying up
                         // associated with closing a pipeline. The constellation should cope!
                         warn!("{}: Randomly closing pipeline", pipeline_id);
-                        pipeline.force_exit(DiscardBrowsingContext::No);
+                        pipeline.send_exit_message_to_script(DiscardBrowsingContext::No);
                     }
                 }
             }

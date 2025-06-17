@@ -140,7 +140,7 @@ pub enum ScriptThreadMessage {
     /// Notifies the script that the document associated with this pipeline should 'unload'.
     UnloadDocument(PipelineId),
     /// Notifies the script that a pipeline should be closed.
-    ExitPipeline(PipelineId, DiscardBrowsingContext),
+    ExitPipeline(WebViewId, PipelineId, DiscardBrowsingContext),
     /// Notifies the script that the whole thread should be closed.
     ExitScriptThread,
     /// Sends a DOM event.
