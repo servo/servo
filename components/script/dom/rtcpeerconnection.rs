@@ -8,7 +8,6 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use script_bindings::weakref::WeakReferenceable;
 use servo_media::ServoMedia;
 use servo_media::streams::MediaStreamType;
 use servo_media::streams::registry::MediaStreamId;
@@ -790,8 +789,6 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         RTCRtpTransceiver::new(&self.global(), init.direction, CanGc::note())
     }
 }
-
-impl WeakReferenceable for RTCPeerConnection {}
 
 impl Convert<RTCSessionDescriptionInit> for SessionDescription {
     fn convert(self) -> RTCSessionDescriptionInit {
