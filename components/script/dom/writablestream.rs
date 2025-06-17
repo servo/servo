@@ -667,7 +667,6 @@ impl WritableStream {
         // Signal abort on stream.[[controller]].[[abortController]] with reason.
         self.get_controller()
             .expect("Stream must have a controller.")
-            .abort_controller()
             .signal_abort(cx, provided_reason, realm, can_gc);
 
         // Let state be stream.[[state]].

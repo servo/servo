@@ -341,17 +341,19 @@ pub struct WritableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-stream>
     stream: MutNullableDom<WritableStream>,
 
-    /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller>
-    abort_controller: Dom<AbortController>,
+    /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-abortcontroller>
+    abort_controller: DomRoot<AbortController>,
 }
 
 impl WritableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller-from-underlying-sink>
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(
+        global: &GlobalScope,
         underlying_sink_type: UnderlyingSinkType,
         strategy_hwm: f64,
         strategy_size: Rc<QueuingStrategySize>,
+        can_gc: CanGc,
     ) -> WritableStreamDefaultController {
         WritableStreamDefaultController {
             reflector_: Reflector::new(),
@@ -362,9 +364,11 @@ impl WritableStreamDefaultController {
             strategy_hwm,
             strategy_size: RefCell::new(Some(strategy_size)),
             started: Default::default(),
-            abort_controller: Dom::from_ref(&AbortController::new_inherited(
-                &AbortSignal::new_inherited(),
-            )),
+            abort_controller: AbortController::new_with_proto(
+                global,
+                None,
+                can_gc,
+            ),
         }
     }
 
@@ -378,9 +382,11 @@ impl WritableStreamDefaultController {
     ) -> DomRoot<WritableStreamDefaultController> {
         reflect_dom_object(
             Box::new(WritableStreamDefaultController::new_inherited(
+                global,
                 underlying_sink_type,
                 strategy_hwm,
                 strategy_size,
+                can_gc,
             )),
             global,
             can_gc,
@@ -396,10 +402,15 @@ impl WritableStreamDefaultController {
         self.underlying_sink_obj.set(*this_object);
     }
 
-    /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-abortcontroller>
-    pub(crate) fn abort_controller(&self) -> DomRoot<AbortController> {
-        // The abort controller getter steps are to return this’s [[abortController]].
-        self.abort_controller.as_rooted()
+    pub(crate) fn signal_abort(
+        &self,
+        cx: SafeJSContext,
+        reason: SafeHandleValue,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
+        self.abort_controller
+            .signal_abort(cx, reason, realm, can_gc);
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-clear-algorithms>

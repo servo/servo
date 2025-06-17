@@ -24,7 +24,7 @@ pub(crate) struct AbortController {
 
 impl AbortController {
     /// <https://dom.spec.whatwg.org/#dom-abortcontroller-abortcontroller>
-    pub(crate) fn new_inherited(signal: &AbortSignal) -> AbortController {
+    fn new_inherited(signal: &AbortSignal) -> AbortController {
         // Note: continuation of the constructor steps.
 
         // Set this’s signal to signal.
@@ -35,7 +35,7 @@ impl AbortController {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-abortcontroller-abortcontroller>
-    fn new_with_proto(
+    pub(crate) fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
