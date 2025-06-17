@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::cell::RefCell;
-use std::ffi::{CString, c_char};
 use std::fs;
 use std::os::raw::c_void;
 use std::path::PathBuf;
@@ -10,7 +9,7 @@ use std::ptr::NonNull;
 use std::rc::Rc;
 
 use dpi::PhysicalSize;
-use log::{debug, error, info, warn};
+use log::{debug, info, warn};
 use ohos_abilitykit_sys::runtime::application_context;
 use ohos_window_manager_sys::display_manager;
 use raw_window_handle::{

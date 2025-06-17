@@ -307,7 +307,7 @@ impl FontList {
     fn detect_installed_font_families() -> Vec<FontFamily> {
         let mut families = enumerate_font_files()
             .inspect_err(|e| error!("Failed to enumerate font files due to `{e:?}`"))
-            .map(|font_files| parse_font_filenames(font_files))
+            .map(parse_font_filenames)
             .unwrap_or_else(|_| FontList::fallback_font_families());
         families.extend(Self::hardcoded_font_families());
         families
