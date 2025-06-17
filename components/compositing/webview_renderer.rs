@@ -279,13 +279,14 @@ impl WebViewRenderer {
     }
 
     /// Sets or unsets the animations-running flag for the given pipeline. Returns
-    /// true if the [`WebViewRenderer`]'s overall animating state changed.
+    /// true if the pipeline has started animating.
     pub(crate) fn change_pipeline_running_animations_state(
         &mut self,
         pipeline_id: PipelineId,
         animation_state: AnimationState,
     ) -> bool {
         let pipeline_details = self.ensure_pipeline_details(pipeline_id);
+        let was_animating = pipeline_details.animating();
         match animation_state {
             AnimationState::AnimationsPresent => {
                 pipeline_details.animations_running = true;
@@ -300,23 +301,38 @@ impl WebViewRenderer {
                 pipeline_details.animation_callbacks_running = false;
             },
         }
-        self.update_animation_state()
+        let started_animating = !was_animating && pipeline_details.animating();
+
+        self.update_animation_state();
+
+        // It's important that an animation tick is triggered even if the
+        // WebViewRenderer's overall animation state hasn't changed. It's possible that
+        // the WebView was animating, but not producing new display lists. In that case,
+        // no repaint will happen and thus no repaint will trigger the next animation tick.
+        started_animating
     }
 
     /// Sets or unsets the throttled flag for the given pipeline. Returns
-    /// true if the [`WebViewRenderer`]'s overall animating state changed.
+    /// true if the pipeline has started animating.
     pub(crate) fn set_throttled(&mut self, pipeline_id: PipelineId, throttled: bool) -> bool {
-        self.ensure_pipeline_details(pipeline_id).throttled = throttled;
+        let pipeline_details = self.ensure_pipeline_details(pipeline_id);
+        let was_animating = pipeline_details.animating();
+        pipeline_details.throttled = throttled;
+        let started_animating = !was_animating && pipeline_details.animating();
 
         // Throttling a pipeline can cause it to be taken into the "not-animating" state.
-        self.update_animation_state()
+        self.update_animation_state();
+
+        // It's important that an animation tick is triggered even if the
+        // WebViewRenderer's overall animation state hasn't changed. It's possible that
+        // the WebView was animating, but not producing new display lists. In that case,
+        // no repaint will happen and thus no repaint will trigger the next animation tick.
+        started_animating
     }
 
-    pub(crate) fn update_animation_state(&mut self) -> bool {
-        let animating = self.pipelines.values().any(PipelineDetails::animating);
-        let old_animating = std::mem::replace(&mut self.animating, animating);
-        self.webview.set_animating(self.animating);
-        old_animating != self.animating
+    fn update_animation_state(&mut self) {
+        self.animating = self.pipelines.values().any(PipelineDetails::animating);
+        self.webview.set_animating(self.animating());
     }
 
     /// On a Window refresh tick (e.g. vsync)
