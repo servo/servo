@@ -17,6 +17,14 @@ on:
         default: 20
         required: false
         type: number
+      wpt:
+        default: true
+        required: false
+        type: boolean
+      webdriver:
+        default: false
+        required: false
+        type: boolean
 
 env:
   RUST_BACKTRACE: 1
@@ -29,6 +37,7 @@ env:
 
 jobs:
   chunks:
+    if: ${{ inputs.wpt }}
     name: Generate chunks array
     runs-on: ubuntu-22.04
     outputs:
@@ -101,11 +110,74 @@ jobs:
           name: wpt-full-logs-linux-${{ matrix.chunk_id }}
           path: wpt-full-logs/*/
 
+  webdriver-test:
+    if: ${{ inputs.webdriver }}
+    name: Webdriver Test
+    strategy:
+      fail-fast: false
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        if: github.event_name != 'pull_request_target'
+      - uses: actions/checkout@v4
+        if: github.event_name == 'pull_request_target'
+        with:
+          ref: refs/pull/${{ github.event.number }}/head
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.profile }}-binary-linux
+          path: ${{ inputs.profile }}-binary-linux
+      - name: unPackage binary
+        run: tar -xzf ${{ inputs.profile }}-binary-linux/target.tar.gz
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+      - name: Bootstrap dependencies
+        run: |
+          sudo apt update
+          sudo apt install -qy --no-install-recommends mesa-vulkan-drivers fonts-noto-cjk
+          ./mach bootstrap --skip-lints
+      - name: Sync from upstream WPT
+        if: ${{ inputs.wpt-sync-from-upstream }}
+        run: |
+          ./mach update-wpt --sync --patch
+      - name: Run tests
+        run: |
+          mkdir -p wpt-filtered-logs/linux
+          mkdir -p wpt-full-logs/linux
+          xvfb-run ./mach test-wpt \
+            ./tests/wpt/tests/webdriver/tests/classic/ \
+            --${{ inputs.profile }} \
+            --timeout-multiplier 2 \
+            $WPT_ALWAYS_SUCCEED_ARG \
+            ${{ inputs.wpt-args }} \
+            --pref=dom_testing_html_input_element_select_files_enabled \
+            --product servodriver \
+            --log-raw wpt-full-logs/linux/raw/webdriver.log \
+            --log-wptreport wpt-full-logs/linux/wptreport/webdriver.json \
+            --log-raw-unexpected wpt-filtered-logs/linux/webdriver.log \
+            --filter-intermittents wpt-filtered-logs/linux/webdriver.json \
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+      - name: Archive results (filtered)
+        uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: wpt-filtered-logs-linux-webdriver
+          path: wpt-filtered-logs/*/
+      - name: Archive results (full)
+        uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: wpt-full-logs-linux-webdriver
+          path: wpt-full-logs/*/
+
   report-test-results:
     name: Process WPT Results
     runs-on: ubuntu-latest
     if: ${{ always() }}
-    needs: linux-wpt
+    needs:
+      - linux-wpt
+      - webdriver-test
     steps:
       - name: Merge logs (full)
         uses: actions/upload-artifact/merge@v4

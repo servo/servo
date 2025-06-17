@@ -35,6 +35,7 @@ class JobConfig(object):
     name: str
     workflow: Workflow = Workflow.LINUX
     wpt: bool = False
+    webdriver: bool = False
     profile: str = "release"
     unit_tests: bool = False
     build_libservo: bool = False
@@ -83,6 +84,8 @@ class JobConfig(object):
             modifier.append("WPT")
         if self.bencher:
             modifier.append("Bencher")
+        if self.webdriver:
+            modifier.append("WebDriver")
         if modifier:
             self.name += " (" + ", ".join(modifier) + ")"
 
@@ -129,6 +132,8 @@ def handle_modifier(config: JobConfig, s: str) -> Optional[JobConfig]:
         config.bencher = True
     elif "wpt" in s:
         config.wpt = True
+    if "webdriver" in s or "wb" in s:
+        config.webdriver = True
     config.update_name()
     return config
 
@@ -216,6 +221,7 @@ class TestParser(unittest.TestCase):
                         "build_libservo": False,
                         "workflow": "linux",
                         "wpt": False,
+                        "webdriver": False,
                         "wpt_args": "",
                         "build_args": "",
                     }
@@ -234,6 +240,7 @@ class TestParser(unittest.TestCase):
                         "number_of_wpt_chunks": 20,
                         "workflow": "linux",
                         "wpt": True,
+                        "webdriver": False,
                         "profile": "release",
                         "unit_tests": True,
                         "build_libservo": False,
@@ -246,6 +253,7 @@ class TestParser(unittest.TestCase):
                         "number_of_wpt_chunks": 20,
                         "workflow": "macos",
                         "wpt": False,
+                        "webdriver": False,
                         "profile": "release",
                         "unit_tests": True,
                         "build_libservo": False,
@@ -258,6 +266,7 @@ class TestParser(unittest.TestCase):
                         "number_of_wpt_chunks": 20,
                         "workflow": "windows",
                         "wpt": False,
+                        "webdriver": False,
                         "profile": "release",
                         "unit_tests": True,
                         "build_libservo": False,
@@ -270,6 +279,7 @@ class TestParser(unittest.TestCase):
                         "number_of_wpt_chunks": 20,
                         "workflow": "android",
                         "wpt": False,
+                        "webdriver": False,
                         "profile": "release",
                         "unit_tests": False,
                         "build_libservo": False,
@@ -282,6 +292,7 @@ class TestParser(unittest.TestCase):
                         "number_of_wpt_chunks": 20,
                         "workflow": "ohos",
                         "wpt": False,
+                        "webdriver": False,
                         "profile": "release",
                         "unit_tests": False,
                         "build_libservo": False,
@@ -294,6 +305,7 @@ class TestParser(unittest.TestCase):
                         "number_of_wpt_chunks": 20,
                         "workflow": "lint",
                         "wpt": False,
+                        "webdriver": False,
                         "profile": "release",
                         "unit_tests": False,
                         "build_libservo": False,
@@ -320,6 +332,7 @@ class TestParser(unittest.TestCase):
                         "build_libservo": False,
                         "workflow": "linux",
                         "wpt": True,
+                        "webdriver": False,
                         "wpt_args": "",
                         "build_args": "",
                     }
