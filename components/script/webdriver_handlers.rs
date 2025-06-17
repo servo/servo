@@ -533,8 +533,9 @@ pub(crate) fn handle_get_browsing_context_id(
                 Err(ErrorStatus::UnsupportedOperation)
             },
             WebDriverFrameId::Element(element_id) => {
-                get_known_element(documents, pipeline, element_id).and_then(|ele| {
-                    ele.downcast::<HTMLIFrameElement>()
+                get_known_element(documents, pipeline, element_id).and_then(|element| {
+                    element
+                        .downcast::<HTMLIFrameElement>()
                         .and_then(|element| element.browsing_context_id())
                         .ok_or(ErrorStatus::NoSuchFrame)
                 })
@@ -595,8 +596,8 @@ pub(crate) fn handle_get_element_in_view_center_point(
 ) {
     reply
         .send(
-            get_known_element(documents, pipeline, element_id).map(|ele| {
-                get_element_in_view_center_point(&ele, can_gc).map(|point| (point.x, point.y))
+            get_known_element(documents, pipeline, element_id).map(|element| {
+                get_element_in_view_center_point(&element, can_gc).map(|point| (point.x, point.y))
             }),
         )
         .unwrap();
@@ -633,7 +634,7 @@ pub(crate) fn handle_find_element_css(
                 document
                     .QuerySelector(DOMString::from(selector))
                     .map_err(|_| ErrorStatus::InvalidSelector)
-                    .map(|ele| ele.map(|x| x.upcast::<Node>().unique_id(pipeline))),
+                    .map(|element| element.map(|x| x.upcast::<Node>().unique_id(pipeline))),
             )
             .unwrap(),
         Err(error) => reply.send(Err(error)).unwrap(),
@@ -674,7 +675,7 @@ pub(crate) fn handle_find_element_tag_name(
                 .GetElementsByTagName(DOMString::from(selector), can_gc)
                 .elements_iter()
                 .next()
-                .map(|ele| ele.upcast::<Node>().unique_id(pipeline))))
+                .map(|element| element.upcast::<Node>().unique_id(pipeline))))
             .unwrap(),
         Err(error) => reply.send(Err(error)).unwrap(),
     }
@@ -753,11 +754,12 @@ pub(crate) fn handle_find_element_element_css(
 ) {
     reply
         .send(
-            get_known_element(documents, pipeline, element_id).and_then(|ele| {
-                ele.upcast::<Node>()
+            get_known_element(documents, pipeline, element_id).and_then(|element| {
+                element
+                    .upcast::<Node>()
                     .query_selector(DOMString::from(selector))
                     .map_err(|_| ErrorStatus::InvalidSelector)
-                    .map(|ele| ele.map(|x| x.upcast::<Node>().unique_id(pipeline)))
+                    .map(|element| element.map(|x| x.upcast::<Node>().unique_id(pipeline)))
             }),
         )
         .unwrap();
@@ -774,8 +776,8 @@ pub(crate) fn handle_find_element_element_link_text(
 ) {
     reply
         .send(
-            get_known_element(documents, pipeline, element_id).and_then(|ele| {
-                first_matching_link(ele.upcast::<Node>(), selector.clone(), partial, can_gc)
+            get_known_element(documents, pipeline, element_id).and_then(|element| {
+                first_matching_link(element.upcast::<Node>(), selector.clone(), partial, can_gc)
             }),
         )
         .unwrap();
@@ -791,8 +793,9 @@ pub(crate) fn handle_find_element_element_tag_name(
 ) {
     reply
         .send(
-            get_known_element(documents, pipeline, element_id).map(|ele| {
-                ele.GetElementsByTagName(DOMString::from(selector), can_gc)
+            get_known_element(documents, pipeline, element_id).map(|element| {
+                element
+                    .GetElementsByTagName(DOMString::from(selector), can_gc)
                     .elements_iter()
                     .next()
                     .map(|x| x.upcast::<Node>().unique_id(pipeline))
@@ -810,8 +813,9 @@ pub(crate) fn handle_find_element_elements_css(
 ) {
     reply
         .send(
-            get_known_element(documents, pipeline, element_id).and_then(|ele| {
-                ele.upcast::<Node>()
+            get_known_element(documents, pipeline, element_id).and_then(|element| {
+                element
+                    .upcast::<Node>()
                     .query_selector_all(DOMString::from(selector))
                     .map_err(|_| ErrorStatus::InvalidSelector)
                     .map(|nodes| {
@@ -836,8 +840,8 @@ pub(crate) fn handle_find_element_elements_link_text(
 ) {
     reply
         .send(
-            get_known_element(documents, pipeline, element_id).and_then(|ele| {
-                all_matching_links(ele.upcast::<Node>(), selector.clone(), partial, can_gc)
+            get_known_element(documents, pipeline, element_id).and_then(|element| {
+                all_matching_links(element.upcast::<Node>(), selector.clone(), partial, can_gc)
             }),
         )
         .unwrap();
@@ -853,8 +857,9 @@ pub(crate) fn handle_find_element_elements_tag_name(
 ) {
     reply
         .send(
-            get_known_element(documents, pipeline, element_id).map(|ele| {
-                ele.GetElementsByTagName(DOMString::from(selector), can_gc)
+            get_known_element(documents, pipeline, element_id).map(|element| {
+                element
+                    .GetElementsByTagName(DOMString::from(selector), can_gc)
                     .elements_iter()
                     .map(|x| x.upcast::<Node>().unique_id(pipeline))
                     .collect::<Vec<String>>()
@@ -872,8 +877,9 @@ pub(crate) fn handle_get_element_shadow_root(
 ) {
     reply
         .send(
-            get_known_element(documents, pipeline, element_id).map(|ele| {
-                ele.GetShadowRoot()
+            get_known_element(documents, pipeline, element_id).map(|element| {
+                element
+                    .GetShadowRoot()
                     .map(|x| x.upcast::<Node>().unique_id(pipeline))
             }),
         )
@@ -891,16 +897,16 @@ pub(crate) fn handle_will_send_keys(
 ) {
     reply
         .send(
-            get_known_element(documents, pipeline, element_id).and_then(|ele| {
+            get_known_element(documents, pipeline, element_id).and_then(|element| {
                 // Step 6: Let file be true if element is input element
                 // in the file upload state, or false otherwise
-                let file_input = ele
+                let file_input = element
                     .downcast::<HTMLInputElement>()
                     .filter(|&input_element| input_element.input_type() == InputType::File);
 
                 // Step 7: If file is false or the session's strict file interactability
                 if file_input.is_none() || strict_file_interactability {
-                    match ele.downcast::<HTMLElement>() {
+                    match element.downcast::<HTMLElement>() {
                         Some(element) => {
                             // Need a way to find if this actually succeeded
                             element.Focus(can_gc);
@@ -969,7 +975,7 @@ pub(crate) fn handle_get_computed_role(
     reply
         .send(
             get_known_element(documents, pipeline, node_id)
-                .map(|ele| ele.GetRole().map(String::from)),
+                .map(|element| element.GetRole().map(String::from)),
         )
         .unwrap();
 }
@@ -1175,9 +1181,9 @@ pub(crate) fn handle_get_rect(
 ) {
     reply
         .send(
-            get_known_element(documents, pipeline, element_id).and_then(|ele| {
+            get_known_element(documents, pipeline, element_id).and_then(|element| {
                 // https://w3c.github.io/webdriver/webdriver-spec.html#dfn-calculate-the-absolute-position
-                match ele.downcast::<HTMLElement>() {
+                match element.downcast::<HTMLElement>() {
                     Some(html_element) => {
                         // Step 1
                         let mut x = 0;
@@ -1221,8 +1227,8 @@ pub(crate) fn handle_get_bounding_client_rect(
 ) {
     reply
         .send(
-            get_known_element(documents, pipeline, element_id).map(|ele| {
-                let rect = ele.GetBoundingClientRect(can_gc);
+            get_known_element(documents, pipeline, element_id).map(|element| {
+                let rect = element.GetBoundingClientRect(can_gc);
                 Rect::new(
                     Point2D::new(rect.X() as f32, rect.Y() as f32),
                     Size2D::new(rect.Width() as f32, rect.Height() as f32),
@@ -1241,15 +1247,19 @@ pub(crate) fn handle_get_text(
     can_gc: CanGc,
 ) {
     reply
-        .send(get_known_element(documents, pipeline, node_id).map(|ele| {
-            ele.downcast::<HTMLElement>()
-                .map(|element| element.InnerText(can_gc).to_string())
-                .unwrap_or_else(|| {
-                    ele.upcast::<Node>()
-                        .GetTextContent()
-                        .map_or("".to_owned(), String::from)
-                })
-        }))
+        .send(
+            get_known_element(documents, pipeline, node_id).map(|element| {
+                element
+                    .downcast::<HTMLElement>()
+                    .map(|htmlelement| htmlelement.InnerText(can_gc).to_string())
+                    .unwrap_or_else(|| {
+                        element
+                            .upcast::<Node>()
+                            .GetTextContent()
+                            .map_or("".to_owned(), String::from)
+                    })
+            }),
+        )
         .unwrap();
 }
 
@@ -1261,7 +1271,8 @@ pub(crate) fn handle_get_name(
 ) {
     reply
         .send(
-            get_known_element(documents, pipeline, node_id).map(|ele| String::from(ele.TagName())),
+            get_known_element(documents, pipeline, node_id)
+                .map(|element| String::from(element.TagName())),
         )
         .unwrap();
 }
@@ -1275,8 +1286,11 @@ pub(crate) fn handle_get_attribute(
 ) {
     reply
         .send(
-            get_known_element(documents, pipeline, node_id)
-                .map(|ele| ele.GetAttribute(DOMString::from(name)).map(String::from)),
+            get_known_element(documents, pipeline, node_id).map(|element| {
+                element
+                    .GetAttribute(DOMString::from(name))
+                    .map(String::from)
+            }),
         )
         .unwrap();
 }
@@ -1291,38 +1305,40 @@ pub(crate) fn handle_get_property(
     can_gc: CanGc,
 ) {
     reply
-        .send(get_known_element(documents, pipeline, node_id).map(|ele| {
-            let document = documents.find_document(pipeline).unwrap();
-            let realm = enter_realm(&*document);
-            let cx = document.window().get_cx();
+        .send(
+            get_known_element(documents, pipeline, node_id).map(|element| {
+                let document = documents.find_document(pipeline).unwrap();
+                let realm = enter_realm(&*document);
+                let cx = document.window().get_cx();
 
-            rooted!(in(*cx) let mut property = UndefinedValue());
-            match unsafe {
-                get_property_jsval(
-                    *cx,
-                    ele.reflector().get_jsobject(),
-                    &name,
-                    property.handle_mut(),
-                )
-            } {
-                Ok(_) => {
-                    match jsval_to_webdriver(
-                        cx,
-                        &ele.global(),
-                        property.handle(),
-                        InRealm::entered(&realm),
-                        can_gc,
-                    ) {
-                        Ok(property) => property,
-                        Err(_) => WebDriverJSValue::Undefined,
-                    }
-                },
-                Err(error) => {
-                    throw_dom_exception(cx, &ele.global(), error, can_gc);
-                    WebDriverJSValue::Undefined
-                },
-            }
-        }))
+                rooted!(in(*cx) let mut property = UndefinedValue());
+                match unsafe {
+                    get_property_jsval(
+                        *cx,
+                        element.reflector().get_jsobject(),
+                        &name,
+                        property.handle_mut(),
+                    )
+                } {
+                    Ok(_) => {
+                        match jsval_to_webdriver(
+                            cx,
+                            &element.global(),
+                            property.handle(),
+                            InRealm::entered(&realm),
+                            can_gc,
+                        ) {
+                            Ok(property) => property,
+                            Err(_) => WebDriverJSValue::Undefined,
+                        }
+                    },
+                    Err(error) => {
+                        throw_dom_exception(cx, &element.global(), error, can_gc);
+                        WebDriverJSValue::Undefined
+                    },
+                }
+            }),
+        )
         .unwrap();
 }
 
@@ -1335,14 +1351,16 @@ pub(crate) fn handle_get_css(
     can_gc: CanGc,
 ) {
     reply
-        .send(get_known_element(documents, pipeline, node_id).map(|ele| {
-            let window = ele.owner_window();
-            String::from(
-                window
-                    .GetComputedStyle(&ele, None)
-                    .GetPropertyValue(DOMString::from(name), can_gc),
-            )
-        }))
+        .send(
+            get_known_element(documents, pipeline, node_id).map(|element| {
+                let window = element.owner_window();
+                String::from(
+                    window
+                        .GetComputedStyle(&element, None)
+                        .GetPropertyValue(DOMString::from(name), can_gc),
+                )
+            }),
+        )
         .unwrap();
 }
 
@@ -1403,15 +1421,15 @@ pub(crate) fn handle_element_click(
     reply
         .send(
             // Step 3
-            get_known_element(documents, pipeline, element_id).and_then(|ele| {
+            get_known_element(documents, pipeline, element_id).and_then(|element| {
                 // Step 4
-                if let Some(input_element) = ele.downcast::<HTMLInputElement>() {
+                if let Some(input_element) = element.downcast::<HTMLInputElement>() {
                     if input_element.input_type() == InputType::File {
                         return Err(ErrorStatus::InvalidArgument);
                     }
                 }
 
-                let Some(container) = get_container(ele.upcast::<Node>()) else {
+                let Some(container) = get_container(element.upcast::<Node>()) else {
                     return Err(ErrorStatus::UnknownError);
                 };
 
@@ -1425,7 +1443,7 @@ pub(crate) fn handle_element_click(
                 // TODO: return error if obscured
 
                 // Step 8
-                match ele.downcast::<HTMLOptionElement>() {
+                match element.downcast::<HTMLOptionElement>() {
                     Some(option_element) => {
                         // Steps 8.2 - 8.4
                         let event_target = container.upcast::<EventTarget>();
@@ -1469,7 +1487,7 @@ pub(crate) fn handle_element_click(
 
                         Ok(None)
                     },
-                    None => Ok(Some(ele.upcast::<Node>().unique_id(pipeline))),
+                    None => Ok(Some(element.upcast::<Node>().unique_id(pipeline))),
                 }
             }),
         )
@@ -1483,7 +1501,10 @@ pub(crate) fn handle_is_enabled(
     reply: IpcSender<Result<bool, ErrorStatus>>,
 ) {
     reply
-        .send(get_known_element(documents, pipeline, element_id).map(|ele| ele.enabled_state()))
+        .send(
+            get_known_element(documents, pipeline, element_id)
+                .map(|element| element.enabled_state()),
+        )
         .unwrap();
 }
 
@@ -1495,12 +1516,12 @@ pub(crate) fn handle_is_selected(
 ) {
     reply
         .send(
-            get_known_element(documents, pipeline, element_id).and_then(|ele| {
-                if let Some(input_element) = ele.downcast::<HTMLInputElement>() {
+            get_known_element(documents, pipeline, element_id).and_then(|element| {
+                if let Some(input_element) = element.downcast::<HTMLInputElement>() {
                     Ok(input_element.Checked())
-                } else if let Some(option_element) = ele.downcast::<HTMLOptionElement>() {
+                } else if let Some(option_element) = element.downcast::<HTMLOptionElement>() {
                     Ok(option_element.Selected())
-                } else if ele.is::<HTMLElement>() {
+                } else if element.is::<HTMLElement>() {
                     Ok(false) // regular elements are not selectable
                 } else {
                     Err(ErrorStatus::UnknownError)
