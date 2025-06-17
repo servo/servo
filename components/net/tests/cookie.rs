@@ -6,6 +6,7 @@ use net::cookie::ServoCookie;
 use net::cookie_storage::CookieStorage;
 use net_traits::CookieSource;
 use servo_url::ServoUrl;
+use time::macros::datetime;
 
 #[test]
 fn test_domain_match() {
@@ -471,5 +472,29 @@ fn test_cookie_eviction_all_nonsecure_new_nonsecure() {
     assert_eq!(
         &r,
         "extra2=bar; extra3=bar; extra4=bar; extra5=bar; foo=bar"
+    );
+}
+
+#[test]
+fn test_parse_date() {
+    assert_eq!(
+        ServoCookie::parse_date("26 Jun 2024 15:35:10 GMT"), // without day of week
+        Some(datetime!(2024-06-26 15:35:10).assume_utc())
+    );
+    assert_eq!(
+        ServoCookie::parse_date("26-Jun-2024 15:35:10 GMT"), // dashed
+        Some(datetime!(2024-06-26 15:35:10).assume_utc())
+    );
+    assert_eq!(
+        ServoCookie::parse_date("26 Jun 2024 15:35:10"), // no GMT
+        Some(datetime!(2024-06-26 15:35:10).assume_utc())
+    );
+    assert_eq!(
+        ServoCookie::parse_date("26 Jun 24 15:35:10 GMT"), // 2-digit year
+        Some(datetime!(2024-06-26 15:35:10).assume_utc())
+    );
+    assert_eq!(
+        ServoCookie::parse_date("26 jun 2024 15:35:10 gmt"), // Lowercase
+        Some(datetime!(2024-06-26 15:35:10).assume_utc())
     );
 }
