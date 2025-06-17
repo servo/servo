@@ -796,6 +796,7 @@ impl CoreResourceManager {
                 cancellation_listener,
                 timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(request.timing_type()))),
                 protocols,
+                websocket_chan: None,
             };
 
             match res_init_ {
