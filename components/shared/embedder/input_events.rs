@@ -86,29 +86,14 @@ impl InputEvent {
 /// which is used for webdriver action synchronization.
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct KeyboardEvent {
-    pub state: KeyState,
-    pub key: Key,
-    pub code: Code,
-    pub location: Location,
-    pub modifiers: Modifiers,
-    pub repeat: bool,
-    pub is_composing: bool,
-    event: ::keyboard_types::KeyboardEvent,
+    pub event: ::keyboard_types::KeyboardEvent,
     webdriver_id: Option<WebDriverMessageId>,
 }
 
 impl KeyboardEvent {
     pub fn new(keyboard_event: ::keyboard_types::KeyboardEvent) -> Self {
-        let event = keyboard_event.clone();
         Self {
-            state: keyboard_event.state,
-            key: keyboard_event.key,
-            code: keyboard_event.code,
-            location: keyboard_event.location,
-            modifiers: keyboard_event.modifiers,
-            repeat: keyboard_event.repeat,
-            is_composing: keyboard_event.is_composing,
-            event,
+            event: keyboard_event,
             webdriver_id: None,
         }
     }
@@ -131,14 +116,6 @@ impl KeyboardEvent {
             repeat,
             is_composing,
         })
-    }
-}
-
-/// Forward to `keyboard_types::ShortcutMatcher`
-pub struct ShortcutMatcher;
-impl ShortcutMatcher {
-    pub fn from_event<T>(event: KeyboardEvent) -> ::keyboard_types::ShortcutMatcher<T> {
-        ::keyboard_types::ShortcutMatcher::from_event(event.event)
     }
 }
 

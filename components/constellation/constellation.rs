@@ -3022,13 +3022,13 @@ where
     }
 
     fn update_active_keybord_modifiers(&mut self, event: &KeyboardEvent) {
-        self.active_keyboard_modifiers = event.modifiers;
+        self.active_keyboard_modifiers = event.event.modifiers;
 
         // `KeyboardEvent::modifiers` contains the pre-existing modifiers before this key was
         // either pressed or released, but `active_keyboard_modifiers` should track the subsequent
         // state. If this event will update that state, we need to ensure that we are tracking what
         // the event changes.
-        let modified_modifier = match event.key {
+        let modified_modifier = match event.event.key {
             Key::Alt => Modifiers::ALT,
             Key::AltGraph => Modifiers::ALT_GRAPH,
             Key::CapsLock => Modifiers::CAPS_LOCK,
@@ -3047,7 +3047,7 @@ where
             Key::Super => Modifiers::META,
             _ => return,
         };
-        match event.state {
+        match event.event.state {
             KeyState::Down => self.active_keyboard_modifiers.insert(modified_modifier),
             KeyState::Up => self.active_keyboard_modifiers.remove(modified_modifier),
         }

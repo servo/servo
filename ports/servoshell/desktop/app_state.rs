@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 use euclid::Vector2D;
-use keyboard_types::{Key, Modifiers};
+use keyboard_types::{Key, Modifiers, ShortcutMatcher};
 use log::{error, info};
 use servo::base::id::WebViewId;
 use servo::config::{opts, pref};
@@ -17,8 +17,8 @@ use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FormControl, GamepadHapticEffectType,
-    KeyboardEvent, LoadStatus, PermissionRequest, Servo, ServoDelegate, ServoError,
-    ShortcutMatcher, SimpleDialog, TouchEventType, WebView, WebViewBuilder, WebViewDelegate,
+    KeyboardEvent, LoadStatus, PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog,
+    TouchEventType, WebView, WebViewBuilder, WebViewDelegate,
 };
 use url::Url;
 
@@ -314,7 +314,7 @@ impl RunningAppState {
     /// Handle servoshell key bindings that may have been prevented by the page in the focused webview.
     fn handle_overridable_key_bindings(&self, webview: ::servo::WebView, event: KeyboardEvent) {
         let origin = webview.rect().min.ceil().to_i32();
-        ShortcutMatcher::from_event(event)
+        ShortcutMatcher::from_event(event.event)
             .shortcut(CMD_OR_CONTROL, '=', || {
                 webview.set_zoom(1.1);
             })
