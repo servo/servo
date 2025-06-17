@@ -21,6 +21,7 @@ use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::network_handler::Cause;
 use crate::protocol::JsonPacketStream;
 
+#[derive(Clone)]
 struct HttpRequest {
     url: String,
     method: Method,
@@ -32,6 +33,7 @@ struct HttpRequest {
     send_time: Duration,
 }
 
+#[derive(Clone)]
 struct HttpResponse {
     headers: Option<HeaderMap>,
     status: HttpStatus,
@@ -40,9 +42,17 @@ struct HttpResponse {
 
 pub struct NetworkEventActor {
     pub name: String,
-    request: HttpRequest,
-    response: HttpResponse,
-    is_xhr: bool,
+    pub request: HttpRequest,
+    pub response: HttpResponse,
+    pub is_xhr: bool,
+    pub response_content: Option<ResponseContentMsg>,
+    pub response_start: Option<ResponseStartMsg>,
+    pub response_cookies: Option<ResponseCookiesMsg>,
+    pub response_headers: Option<ResponseHeadersMsg>,
+    pub request_cookies: Option<RequestCookiesMsg>,
+    pub request_headers: Option<RequestHeadersMsg>,
+    pub total_time: Duration,
+    pub security_state: String,
 }
 
 #[derive(Clone, Serialize)]
@@ -71,7 +81,6 @@ pub struct EventActor {
 #[derive(Serialize)]
 pub struct ResponseCookiesMsg {
     pub cookies: usize,
-    pub response_cookies_available: bool,
 }
 
 #[derive(Serialize)]
@@ -84,7 +93,6 @@ pub struct ResponseStartMsg {
     pub status_text: String,
     pub headers_size: usize,
     pub discard_response_body: bool,
-    pub response_start_available: bool,
 }
 
 #[derive(Serialize)]
@@ -94,7 +102,6 @@ pub struct ResponseContentMsg {
     pub content_size: u32,
     pub transferred_size: u32,
     pub discard_response_body: bool,
-    pub response_content_available: bool,
 }
 
 #[derive(Serialize)]
@@ -102,13 +109,11 @@ pub struct ResponseContentMsg {
 pub struct ResponseHeadersMsg {
     pub headers: usize,
     pub headers_size: usize,
-    pub response_headers_available: bool,
 }
 
 #[derive(Serialize)]
 pub struct RequestCookiesMsg {
     pub cookies: usize,
-    pub request_cookies_available: bool,
 }
 
 #[derive(Serialize)]
@@ -116,7 +121,11 @@ pub struct RequestCookiesMsg {
 pub struct RequestHeadersMsg {
     headers: usize,
     headers_size: usize,
-    request_headers_available: bool,
+}
+
+#[derive(Serialize)]
+struct SecurityInfoUpdateMsg {
+    security_state: String,
 }
 
 #[derive(Serialize)]
@@ -351,27 +360,38 @@ impl Actor for NetworkEventActor {
 
 impl NetworkEventActor {
     pub fn new(name: String) -> NetworkEventActor {
+        let request = HttpRequest {
+            url: String::new(),
+            method: Method::GET,
+            headers: HeaderMap::new(),
+            body: None,
+            started_date_time: SystemTime::now(),
+            time_stamp: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs() as i64,
+            send_time: Duration::ZERO,
+            connect_time: Duration::ZERO,
+        };
+        let response = HttpResponse {
+            headers: None,
+            status: HttpStatus::default(),
+            body: None,
+        };
+
         NetworkEventActor {
             name,
-            request: HttpRequest {
-                url: String::new(),
-                method: Method::GET,
-                headers: HeaderMap::new(),
-                body: None,
-                started_date_time: SystemTime::now(),
-                time_stamp: SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_secs() as i64,
-                send_time: Duration::ZERO,
-                connect_time: Duration::ZERO,
-            },
-            response: HttpResponse {
-                headers: None,
-                status: HttpStatus::default(),
-                body: None,
-            },
+            request: request.clone(),
+            response: response.clone(),
             is_xhr: false,
+            response_content: Some(Self::response_content(&response)),
+            response_start: Some(Self::response_start(&response)),
+            response_cookies: Some(Self::response_cookies(&response)),
+            response_headers: Some(Self::response_headers(&response)),
+            request_cookies: Some(Self::request_cookies(&request)),
+            request_headers: Some(Self::request_headers(&request)),
+            total_time: Self::total_time(&request),
+            security_state: "insecure".to_owned(), // Default security state
         }
     }
 
@@ -432,12 +452,10 @@ impl NetworkEventActor {
         }
     }
 
-    pub fn response_start(&self) -> ResponseStartMsg {
-        // TODO: Send the correct values for all these fields.
-        let h_size_option = self.response.headers.as_ref().map(|headers| headers.len());
-        let h_size = h_size_option.unwrap_or(0);
-        let status = &self.response.status;
-        // TODO: Send the correct values for remoteAddress and remotePort and http_version.
+    pub fn response_start(response: &HttpResponse) -> ResponseStartMsg {
+        let h_size = response.headers.as_ref().map(|h| h.len()).unwrap_or(0);
+        let status = &response.status;
+
         ResponseStartMsg {
             http_version: "HTTP/1.1".to_owned(),
             remote_address: "63.245.217.43".to_owned(),
@@ -446,31 +464,30 @@ impl NetworkEventActor {
             status_text: String::from_utf8_lossy(status.message()).to_string(),
             headers_size: h_size,
             discard_response_body: false,
-            response_start_available: true,
         }
     }
 
-    pub fn response_content(&self) -> ResponseContentMsg {
-        let mut m_string = "".to_owned();
-        if let Some(ref headers) = self.response.headers {
-            m_string = match headers.typed_get::<ContentType>() {
+    pub fn response_content(response: &HttpResponse) -> ResponseContentMsg {
+        let mime_type = if let Some(ref headers) = response.headers {
+            match headers.typed_get::<ContentType>() {
                 Some(ct) => ct.to_string(),
-                _ => "".to_owned(),
-            };
-        }
-        // TODO: Set correct values when response's body is sent to the devtools in http_loader.
+                None => "".to_string(),
+            }
+        } else {
+            "".to_string()
+        };
+
         ResponseContentMsg {
-            mime_type: m_string,
+            mime_type,
             content_size: 0,
             transferred_size: 0,
             discard_response_body: true,
-            response_content_available: false,
         }
     }
 
-    pub fn response_cookies(&self) -> ResponseCookiesMsg {
+    pub fn response_cookies(response: &HttpResponse) -> ResponseCookiesMsg {
         let mut cookies_size = 0;
-        if let Some(ref headers) = self.response.headers {
+        if let Some(ref headers) = response.headers {
             cookies_size = match headers.typed_get::<Cookie>() {
                 Some(ref cookie) => cookie.len(),
                 _ => 0,
@@ -478,14 +495,13 @@ impl NetworkEventActor {
         }
         ResponseCookiesMsg {
             cookies: cookies_size,
-            response_cookies_available: false,
         }
     }
 
-    pub fn response_headers(&self) -> ResponseHeadersMsg {
+    pub fn response_headers(response: &HttpResponse) -> ResponseHeadersMsg {
         let mut headers_size = 0;
         let mut headers_byte_count = 0;
-        if let Some(ref headers) = self.response.headers {
+        if let Some(ref headers) = response.headers {
             headers_size = headers.len();
             for (name, value) in headers.iter() {
                 headers_byte_count += name.as_str().len() + value.len();
@@ -494,153 +510,144 @@ impl NetworkEventActor {
         ResponseHeadersMsg {
             headers: headers_size,
             headers_size: headers_byte_count,
-            response_headers_available: true,
         }
     }
 
-    pub fn request_headers(&self) -> RequestHeadersMsg {
-        let size = self.request.headers.iter().fold(0, |acc, (name, value)| {
+    pub fn request_headers(request: &HttpRequest) -> RequestHeadersMsg {
+        let size = request.headers.iter().fold(0, |acc, (name, value)| {
             acc + name.as_str().len() + value.len()
         });
         RequestHeadersMsg {
-            headers: self.request.headers.len(),
+            headers: request.headers.len(),
             headers_size: size,
-            request_headers_available: true,
         }
     }
 
-    pub fn request_cookies(&self) -> RequestCookiesMsg {
-        let cookies_size = match self.request.headers.typed_get::<Cookie>() {
+    pub fn request_cookies(request: &HttpRequest) -> RequestCookiesMsg {
+        let cookies_size = match request.headers.typed_get::<Cookie>() {
             Some(ref cookie) => cookie.len(),
             _ => 0,
         };
         RequestCookiesMsg {
             cookies: cookies_size,
-            request_cookies_available: true,
         }
     }
 
-    pub fn total_time(&self) -> Duration {
-        self.request.connect_time + self.request.send_time
+    pub fn total_time(request: &HttpRequest) -> Duration {
+        request.connect_time + request.send_time
     }
 
     pub fn resource_updates(&self) -> NetworkEventResource {
         let mut resource_updates = Map::new();
+
         resource_updates.insert(
             "requestCookiesAvailable".to_owned(),
-            serde_json::to_value(self.request_cookies()).unwrap(),
-        ); //check for boolean
+            Value::Bool(self.request_cookies.is_some()),
+        );
 
         resource_updates.insert(
             "requestHeadersAvailable".to_owned(),
-            serde_json::to_value(self.request_cookies()).unwrap(),
-        ); //check for boolean
-
-        resource_updates.insert(
-            "httpVersion".to_owned(),
-            serde_json::to_value(self.request_headers()).unwrap(),
-        ); //http version
-
-        resource_updates.insert(
-            "status".to_owned(),
-            serde_json::to_value(self.response_start()).unwrap(),
-        ); //http status
-
-        resource_updates.insert(
-            "statusText".to_owned(),
-            serde_json::to_value(self.response_start()).unwrap(),
-        ); //http status text
-
-        resource_updates.insert(
-            "earlyHintsStatus".to_owned(),
-            serde_json::to_value(self.response_start()).unwrap(),
-        ); //hmm
-
-        resource_updates.insert(
-            "remoteAddress".to_owned(),
-            serde_json::to_value(self.response_start()).unwrap(),
+            Value::Bool(self.request_headers.is_some()),
         );
-
-        resource_updates.insert(
-            "remotePort".to_owned(),
-            serde_json::to_value(self.response_start()).unwrap(),
-        );
-
-        resource_updates.insert(
-            "mimeType".to_owned(),
-            serde_json::to_value(self.response_start()).unwrap(),
-        ); //mime type
-
-        resource_updates.insert(
-            "waitingTime".to_owned(),
-            serde_json::to_value(self.response_start()).unwrap(),
-        ); // waiting time
-
-        resource_updates.insert(
-            "isResolvedByTRR".to_owned(),
-            serde_json::to_value(self.response_start()).unwrap(),
-        ); // is resolved by TRR
 
         resource_updates.insert(
             "responseHeadersAvailable".to_owned(),
-            serde_json::to_value(self.response_start()).unwrap(),
-        ); // check for boolean
-
+            Value::Bool(self.response_headers.is_some()),
+        );
         resource_updates.insert(
             "responseCookiesAvailable".to_owned(),
-            serde_json::to_value(self.response_start()).unwrap(),
-        ); // check for boolean
-
+            Value::Bool(self.response_cookies.is_some()),
+        );
         resource_updates.insert(
             "responseStartAvailable".to_owned(),
-            serde_json::to_value(self.response_start()).unwrap(),
-        ); // check for boolean
-
-        resource_updates.insert(
-            "totalTime".to_owned(),
-            serde_json::to_value(self.response_start()).unwrap(),
-        ); // total time
-
-        resource_updates.insert(
-            "eventTimingsAvailable".to_owned(),
-            serde_json::to_value(self.response_start()).unwrap(),
-        ); // check for boolean
-
-        resource_updates.insert(
-            "securityState".to_owned(),
-            serde_json::to_value(self.response_start()).unwrap(),
-        ); // security state
-
-        resource_updates.insert(
-            "isRacing".to_owned(),
-            serde_json::to_value(self.response_start()).unwrap(),
-        ); // is racing
-
-        resource_updates.insert(
-            "securityInfoAvailable".to_owned(),
-            serde_json::to_value(self.response_start()).unwrap(),
-        ); // check for boolean
-
-        resource_updates.insert(
-            "contentSize".to_owned(),
-            serde_json::to_value(self.response_start()).unwrap(),
-        ); // content size
-
-        resource_updates.insert(
-            "transferredSize".to_owned(),
-            serde_json::to_value(self.response_start()).unwrap(),
-        ); // transferred size
-
-        resource_updates.insert(
-            "blockedReason".to_owned(),
-            serde_json::to_value(self.response_start()).unwrap(),
-        ); //  blocked reason
-
+            Value::Bool(self.response_start.is_some()),
+        );
         resource_updates.insert(
             "responseContentAvailable".to_owned(),
-            serde_json::to_value(self.response_start()).unwrap(),
-        ); //  check for boolean
+            Value::Bool(self.response_content.is_some()),
+        );
 
+        resource_updates.insert(
+            "totalTime".to_string(),
+            Value::from(self.total_time.as_secs_f64()),
+        );
+
+        resource_updates.insert(
+            "securityState".to_string(),
+            Value::String(self.security_state.clone()),
+        );
+
+        if let Some(ref content) = self.response_content {
+            let content_map = serde_json::to_value(content)
+                .unwrap()
+                .as_object()
+                .unwrap()
+                .clone();
+
+            for (key, value) in content_map {
+                resource_updates.insert(key, value);
+            }
+        }
+
+        if let Some(ref headers) = self.response_headers {
+            let headers_map = serde_json::to_value(headers)
+                .unwrap()
+                .as_object()
+                .unwrap()
+                .clone();
+
+            for (key, value) in headers_map {
+                resource_updates.insert(key, value);
+            }
+        }
+
+        if let Some(ref cookies) = self.response_cookies {
+            let cookies_map = serde_json::to_value(cookies)
+                .unwrap()
+                .as_object()
+                .unwrap()
+                .clone();
+
+            for (key, value) in cookies_map {
+                resource_updates.insert(key, value);
+            }
+        }
+
+        if let Some(ref req_headers) = self.request_headers {
+            let req_headers_map = serde_json::to_value(req_headers)
+                .unwrap()
+                .as_object()
+                .unwrap()
+                .clone();
+
+            for (key, value) in req_headers_map {
+                resource_updates.insert(key, value);
+            }
+        }
+
+        if let Some(ref req_cookies) = self.request_cookies {
+            let req_cookies_map = serde_json::to_value(req_cookies)
+                .unwrap()
+                .as_object()
+                .unwrap()
+                .clone();
+
+            for (key, value) in req_cookies_map {
+                resource_updates.insert(key, value);
+            }
+        }
+
+        if let Some(ref resp_start) = self.response_start {
+            let resp_start_map = serde_json::to_value(resp_start)
+                .unwrap()
+                .as_object()
+                .unwrap()
+                .clone();
+
+            for (key, value) in resp_start_map {
+                resource_updates.insert(key, value);
+            }
+        }
         NetworkEventResource {
             resource_id: 0, // Set to a valid ID if available
             resource_updates,

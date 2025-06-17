@@ -13,18 +13,6 @@ use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::network_event::NetworkEventActor;
 use crate::resource::{ResourceArrayType, ResourceAvailable};
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct EventTimingsUpdateMsg {
-    total_time: u64,
-    event_timings_available: bool,
-}
-
-#[derive(Serialize)]
-struct SecurityInfoUpdateMsg {
-    security_state: String,
-    security_info_available: bool,
-}
 #[derive(Clone, Serialize)]
 pub struct Cause {
     #[serde(rename = "type")]
