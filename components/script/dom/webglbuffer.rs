@@ -202,10 +202,6 @@ impl WebGLBuffer {
         self.droppable.is_marked_for_deletion()
     }
 
-    fn set_marked_for_deletion(&self, marked_for_deletion: bool) {
-        self.droppable.set_marked_for_deletion(marked_for_deletion);
-    }
-
     fn get_attached_counter(&self) -> u32 {
         self.droppable.get_attached_counter()
     }
@@ -241,10 +237,6 @@ impl WebGLBuffer {
             self.target.set(Some(target));
         }
         Ok(())
-    }
-
-    pub(crate) fn is_attached(&self) -> bool {
-        self.droppable.is_attached()
     }
 
     pub(crate) fn increment_attached_counter(&self) {
