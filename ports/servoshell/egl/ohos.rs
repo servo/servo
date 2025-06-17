@@ -173,7 +173,7 @@ impl ServoAction {
                 x,
                 y,
                 pointer_id,
-            } => Self::dispatch_touch_event(&servo, *kind, *x, *y, *pointer_id),
+            } => Self::dispatch_touch_event(servo, *kind, *x, *y, *pointer_id),
             KeyUp(k) => servo.key_up(k.clone()),
             KeyDown(k) => servo.key_down(k.clone()),
             InsertText(text) => servo.ime_insert_text(text.clone()),
@@ -205,7 +205,7 @@ impl ServoAction {
                 if let Some(native_webview_components) =
                     NATIVE_WEBVIEWS.lock().unwrap().get(*arkts_id as usize)
                 {
-                    if (servo.active_webview().id() != native_webview_components.id) {
+                    if servo.active_webview().id() != native_webview_components.id {
                         servo.focus_webview(native_webview_components.id);
                         servo.pause_compositor();
                         let (window_handle, _, coordinates) = simpleservo::get_raw_window_handle(
@@ -239,7 +239,7 @@ impl ServoAction {
                     .lock()
                     .unwrap()
                     .push(NativeWebViewComponents {
-                        id: id,
+                        id,
                         xcomponent: xcomponent.clone(),
                         window: window.clone(),
                     });
@@ -289,7 +289,7 @@ extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window
     let xc_wrapper = XComponentWrapper(xcomponent);
     let window_wrapper = WindowWrapper(window);
 
-    if !SERVO_CHANNEL.get().is_some() {
+    if SERVO_CHANNEL.get().is_none() {
         // Todo: Perhaps it would be better to move this thread into the vsync signal thread.
         // This would allow us to save one thread and the IPC for the vsync signal.
         //
@@ -526,7 +526,7 @@ fn initialize_logging_once() {
     ONCE.call_once(|| {
         let logger: &'static hilog::Logger = &LOGGER;
         let max_level = logger.filter();
-        let r = log::set_logger(logger).and_then(|()| Ok(log::set_max_level(max_level)));
+        let r = log::set_logger(logger).map(|()| log::set_max_level(max_level));
         debug!("Attempted to register the logger: {r:?} and set max level to: {max_level}");
         info!("Servo Register callback called!");
 
