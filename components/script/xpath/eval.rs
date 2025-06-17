@@ -20,6 +20,7 @@ use crate::dom::bindings::xmlname::validate_and_extract;
 use crate::dom::element::Element;
 use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::processinginstruction::ProcessingInstruction;
+use crate::xpath::context::PredicateCtx;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum Error {
@@ -194,7 +195,12 @@ impl Evaluatable for Expr {
 
 impl Evaluatable for PathExpr {
     fn evaluate(&self, context: &EvaluationCtx) -> Result<Value, Error> {
-        let mut current_nodes = vec![context.context_node.clone()];
+        // Use starting_node for absolute/descendant paths, context_node otherwise
+        let mut current_nodes = if self.is_absolute || self.is_descendant {
+            vec![context.starting_node.clone()]
+        } else {
+            vec![context.context_node.clone()]
+        };
 
         // If path starts with '//', add an implicit descendant-or-self::node() step
         if self.is_descendant {
@@ -487,18 +493,36 @@ impl Evaluatable for StepExpr {
 impl Evaluatable for PredicateListExpr {
     fn evaluate(&self, context: &EvaluationCtx) -> Result<Value, Error> {
         if let Some(ref predicate_nodes) = context.predicate_nodes {
-            // Initializing: every node the predicates act on is matched
             let mut matched_nodes: Vec<DomRoot<Node>> = predicate_nodes.clone();
 
-            // apply each predicate to the nodes matched by the previous predicate
             for predicate_expr in &self.predicates {
-                let context_for_predicate =
-                    context.update_predicate_nodes(matched_nodes.iter().map(|n| &**n).collect());
+                let size = matched_nodes.len();
+                let mut new_matched = Vec::new();
 
-                let narrowed_nodes = predicate_expr
-                    .evaluate(&context_for_predicate)
-                    .and_then(try_extract_nodeset)?;
-                matched_nodes = narrowed_nodes;
+                for (i, node) in matched_nodes.iter().enumerate() {
+                    // 1-based position, per XPath spec
+                    let predicate_ctx = EvaluationCtx {
+                        starting_node: context.starting_node.clone(),
+                        context_node: node.clone(),
+                        predicate_nodes: context.predicate_nodes.clone(),
+                        predicate_ctx: Some(PredicateCtx { index: i + 1, size }),
+                    };
+
+                    let eval_result = predicate_expr.expr.evaluate(&predicate_ctx);
+
+                    let keep = match eval_result {
+                        Ok(Value::Number(n)) => (i + 1) as f64 == n,
+                        Ok(Value::Boolean(b)) => b,
+                        Ok(v) => v.boolean(),
+                        Err(_) => false,
+                    };
+
+                    if keep {
+                        new_matched.push(node.clone());
+                    }
+                }
+
+                matched_nodes = new_matched;
                 trace!(
                     "[PredicateListExpr] Predicate {:?} matched nodes {:?}",
                     predicate_expr, matched_nodes
