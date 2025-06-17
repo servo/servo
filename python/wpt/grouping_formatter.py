@@ -116,10 +116,7 @@ class ServoHandler(mozlog.reader.LogHandler):
         self.reset_state()
 
     def reset_state(self):
-        self.number_of_tests = 0
-        self.completed_tests = 0
-        self.need_to_erase_last_line = False
-        self.running_tests: Dict[str, str] = {}
+        self.reset_stats()
         self.test_output = collections.defaultdict(str)
         self.subtest_failures = collections.defaultdict(list)
         self.tests_with_failing_subtests = []
@@ -146,8 +143,14 @@ class ServoHandler(mozlog.reader.LogHandler):
             "PRECONDITION_FAILED": [],
         }
 
+    def reset_stats(self):
+        self.number_of_tests = 0
+        self.completed_tests = 0
+        self.need_to_erase_last_line = False
+        self.running_tests: Dict[str, str] = {}
+
     def suite_start(self, data):
-        self.reset_state()
+        self.reset_stats()
         self.number_of_tests = sum(len(tests) for tests in itervalues(data["tests"]))
         self.suite_start_time = data["time"]
 
@@ -171,6 +174,7 @@ class ServoHandler(mozlog.reader.LogHandler):
 
         had_expected_test_result = self.data_was_for_expected_result(data)
         subtest_failures = self.subtest_failures.pop(test_path, [])
+        test_output = self.test_output.pop(test_path, "")
         if had_expected_test_result and not subtest_failures:
             self.expected[test_status] += 1
             return None
@@ -181,7 +185,7 @@ class ServoHandler(mozlog.reader.LogHandler):
         stack = data.get("stack", None)
         if test_status in ("CRASH", "TIMEOUT"):
             stack = f"\n{stack}" if stack else ""
-            stack = f"{self.test_output[test_path]}{stack}"
+            stack = f"{test_output}{stack}"
 
         result = UnexpectedResult(
             test_path,
