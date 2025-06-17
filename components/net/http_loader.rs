@@ -2,12 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use content_security_policy as csp;
 use std::collections::{HashMap, HashSet};
 use std::iter::FromIterator;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc as StdArc, Condvar, Mutex, RwLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use async_recursion::async_recursion;
+use async_tungstenite::tokio::client_async_tls_with_connector_and_config;
 use base::cross_process_instant::CrossProcessInstant;
 use base::generic_channel;
 use base::id::{BrowsingContextId, HistoryStateId, PipelineId};
@@ -40,9 +43,10 @@ use hyper_serde::Serde;
 use hyper_util::client::legacy::Client;
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
-use log::{debug, error, info, log_enabled, warn};
+use log::{debug, error, info, log_enabled, trace, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::http_status::HttpStatus;
+use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
 use net_traits::pub_domains::reg_suffix;
 use net_traits::request::Origin::Origin as SpecificOrigin;
 use net_traits::request::{
@@ -56,30 +60,41 @@ use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use net_traits::{
     CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, FetchMetadata, NetworkError, RedirectEndValue,
     RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
+    WebSocketNetworkEvent,
 };
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
 use rustc_hash::FxHashMap;
 use servo_arc::Arc;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
+use tokio::net::TcpStream;
 use tokio::sync::mpsc::{
     Receiver as TokioReceiver, Sender as TokioSender, UnboundedReceiver, UnboundedSender, channel,
     unbounded_channel,
 };
+use tokio_rustls::TlsConnector;
 use tokio_stream::wrappers::ReceiverStream;
+use url::Url;
 
 use crate::async_runtime::spawn_task;
-use crate::connector::{CertificateErrorOverrideManager, Connector};
+use crate::connector::{CertificateErrorOverrideManager, Connector, create_tls_config};
 use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::decoder::Decoder;
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::fetch_params::FetchParams;
 use crate::fetch::headers::{SecFetchDest, SecFetchMode, SecFetchSite, SecFetchUser};
-use crate::fetch::methods::{Data, DoneChannel, FetchContext, Target, main_fetch};
+use crate::fetch::methods::{
+    Data, DoneChannel, FetchContext, Target, convert_request_to_csp_request, main_fetch,
+    should_request_be_blocked_by_csp, should_request_be_blocked_due_to_a_bad_port,
+};
+use crate::hosts::replace_host;
 use crate::hsts::HstsList;
 use crate::http_cache::{CacheKey, HttpCache};
 use crate::resource_thread::{AuthCache, AuthCacheEntry};
+use crate::websocket_loader::{
+    create_request, process_ws_response, run_ws_loop, setup_dom_listener,
+};
 
 /// The various states an entry of the HttpCache can be in.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1980,30 +1995,172 @@ async fn http_network_fetch(
 
     let browsing_context_id = request.target_webview_id.map(Into::into);
 
-    let response_future = obtain_response(
-        &context.state.client,
-        &url,
-        &request.method,
-        &mut request.headers,
-        body,
-        request
-            .body
-            .as_ref()
-            .map(|body| body.source_is_null())
-            .unwrap_or(false),
-        &request.pipeline_id,
-        Some(&request_id),
-        request.destination,
-        is_xhr,
-        context,
-        fetch_terminated_sender,
-        browsing_context_id,
-    );
+    let (res, msg) = match &request.mode {
+        RequestMode::WebSocket { protocols } => {
+            // https://fetch.spec.whatwg.org/#websocket-opening-handshake
 
-    // This will only get the headers, the body is read later
-    let (res, msg) = match response_future.await {
-        Ok(wrapped_response) => wrapped_response,
-        Err(error) => return Response::network_error(error),
+            let (resource_event_sender, dom_action_receiver) = {
+                let mut websocket_chan = context.websocket_chan.as_ref().unwrap().lock().unwrap();
+                (websocket_chan.0.clone(), websocket_chan.1.take().unwrap())
+            };
+
+            // FIXME(pylbrecht): apply_hsts_rules()
+
+            let mut req_url = request.url();
+            if req_url.scheme() == "https" {
+                req_url.as_mut_url().set_scheme("wss").unwrap();
+            } else {
+                req_url.as_mut_url().set_scheme("ws").unwrap();
+            };
+            let req_origin = match request.origin {
+                Origin::Client => unreachable!(),
+                Origin::Origin(ref origin) => origin,
+            };
+
+            if should_request_be_blocked_due_to_a_bad_port(&req_url) {
+                let _ = resource_event_sender.send(WebSocketNetworkEvent::Fail);
+                // TODO(pylbrecht): not sure if we should return a network error here, but we
+                // have to early return something.
+                return Response::network_internal_error("port blocked");
+            }
+
+            let Ok(client) = create_request(
+                &req_url,
+                &req_origin.ascii_serialization(),
+                &protocols,
+                &context.state,
+            ) else {
+                let _ = resource_event_sender.send(WebSocketNetworkEvent::Fail);
+                // TODO(pylbrecht): not sure if we should return a network error here, but we
+                // have to early return something.
+                return Response::network_internal_error("cannot create request");
+            };
+
+            trace!("starting WS connection to {}", url);
+
+            let initiated_close = std::sync::Arc::new(AtomicBool::new(false));
+            let dom_receiver = setup_dom_listener(dom_action_receiver, initiated_close.clone());
+
+            let Some(host_str) = client.uri().host() else {
+                let _ = resource_event_sender.send(WebSocketNetworkEvent::Fail);
+                // TODO(pylbrecht): not sure if we should return a network error here, but we
+                // have to early return something.
+                return Response::network_internal_error("no host");
+            };
+            let host = replace_host(host_str);
+            let Ok(mut net_url) = Url::parse(&client.uri().to_string()) else {
+                let _ = resource_event_sender.send(WebSocketNetworkEvent::Fail);
+                // TODO(pylbrecht): not sure if we should return a network error here, but we
+                // have to early return something.
+                return Response::network_internal_error("URL parse error");
+            };
+            let Ok(_) = net_url.set_host(Some(&host)) else {
+                let _ = resource_event_sender.send(WebSocketNetworkEvent::Fail);
+                // TODO(pylbrecht): not sure if we should return a network error here, but we
+                // have to early return something.
+                return Response::network_internal_error("failed to set host in URL");
+            };
+
+            let Some(domain) = net_url.host() else {
+                let _ = resource_event_sender.send(WebSocketNetworkEvent::Fail);
+                // TODO(pylbrecht): not sure if we should return a network error here, but we
+                // have to early return something.
+                return Response::network_internal_error("no host in net_url");
+            };
+            let Some(port) = net_url.port_or_known_default() else {
+                let _ = resource_event_sender.send(WebSocketNetworkEvent::Fail);
+                // TODO(pylbrecht): not sure if we should return a network error here, but we
+                // have to early return something.
+                return Response::network_internal_error("no port");
+            };
+
+            let Ok(socket) = TcpStream::connect((&*domain.to_string(), port)).await else {
+                let _ = resource_event_sender.send(WebSocketNetworkEvent::Fail);
+                // TODO(pylbrecht): not sure if we should return a network error here, but we
+                // have to early return something.
+                return Response::network_internal_error("failed to create socket");
+            };
+
+            let mut tls_config = create_tls_config(
+                context.ca_certificates.clone(),
+                context.ignore_certificate_errors,
+                context.state.override_manager.clone(),
+            );
+            tls_config.alpn_protocols = vec!["http/1.1".to_string().into()];
+            let connector = TlsConnector::from(std::sync::Arc::new(tls_config));
+
+            let (stream, response) = match client_async_tls_with_connector_and_config(
+                client,
+                socket,
+                Some(connector),
+                None,
+            )
+            .await
+            {
+                Ok(handshake_result) => handshake_result,
+                Err(e) => {
+                    let msg = format!("Failed to establish a WebSocket connection: {:?}", e);
+                    warn!("{msg}");
+                    let _ = resource_event_sender.send(WebSocketNetworkEvent::Fail);
+                    // TODO(pylbrecht): not sure if we should return a network error here, but we
+                    // have to early return something.
+                    return Response::network_internal_error(msg);
+                },
+            };
+
+            let protocol_in_use =
+                process_ws_response(&context.state, &response, &url, &protocols).unwrap();
+
+            if !initiated_close.load(Ordering::SeqCst) {
+                if resource_event_sender
+                    .send(WebSocketNetworkEvent::ConnectionEstablished { protocol_in_use })
+                    .is_err()
+                {
+                    todo!("early return");
+                }
+
+                trace!("about to start ws loop for {}", url);
+
+                spawn_task(run_ws_loop(dom_receiver, resource_event_sender, stream));
+            } else {
+                trace!("client closed connection for {}, not running loop", url);
+            }
+            let response = response.map(|r| match r {
+                Some(body) => Full::from(body).map_err(|_| unreachable!()).boxed(),
+                None => http_body_util::Empty::new()
+                    .map_err(|_| unreachable!())
+                    .boxed(),
+            });
+            (Decoder::detect(response, url.is_secure_scheme()), None)
+        },
+        _ => {
+            let response_future = obtain_response(
+                &context.state.client,
+                &url,
+                &request.method,
+                &mut request.headers,
+                body,
+                request
+                    .body
+                    .as_ref()
+                    .map(|body| body.source_is_null())
+                    .unwrap_or(false),
+                &request.pipeline_id,
+                Some(&request_id),
+                request.destination,
+                is_xhr,
+                context,
+                fetch_terminated_sender,
+                browsing_context_id,
+            );
+
+            // This will only get the headers, the body is read later
+            let (res, msg) = match response_future.await {
+                Ok(wrapped_response) => wrapped_response,
+                Err(error) => return Response::network_error(error),
+            };
+            (res, msg)
+        },
     };
 
     if log_enabled!(log::Level::Info) {
