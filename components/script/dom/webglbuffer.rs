@@ -8,6 +8,7 @@ use std::cell::Cell;
 use canvas_traits::webgl::{WebGLBufferId, WebGLCommand, WebGLError, WebGLResult, webgl_channel};
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
+use script_bindings::weakref::WeakRef;
 
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants;
@@ -23,30 +24,111 @@ fn target_is_copy_buffer(target: u32) -> bool {
         target == WebGL2RenderingContextConstants::COPY_WRITE_BUFFER
 }
 
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableWebGLBuffer {
+    #[no_trace]
+    id: WebGLBufferId,
+    marked_for_deletion: Cell<bool>,
+    attached_counter: Cell<u32>,
+    context: WeakRef<WebGLRenderingContext>,
+}
+
+impl DroppableWebGLBuffer {
+    pub(crate) fn new(
+        id: WebGLBufferId,
+        marked_for_deletion: Cell<bool>,
+        attached_counter: Cell<u32>,
+        context: WeakRef<WebGLRenderingContext>,
+    ) -> Self {
+        Self {
+            id,
+            marked_for_deletion,
+            attached_counter,
+            context,
+        }
+    }
+}
+
+impl DroppableWebGLBuffer {
+    pub(crate) fn is_marked_for_deletion(&self) -> bool {
+        self.marked_for_deletion.get()
+    }
+
+    pub(crate) fn set_marked_for_deletion(&self, marked_for_deletion: bool) {
+        self.marked_for_deletion.set(marked_for_deletion);
+    }
+
+    pub(crate) fn get_attached_counter(&self) -> u32 {
+        self.attached_counter.get()
+    }
+
+    pub(crate) fn set_attached_counter(&self, attached_counter: u32) {
+        self.attached_counter.set(attached_counter);
+    }
+
+    pub(crate) fn id(&self) -> WebGLBufferId {
+        self.id
+    }
+
+    pub(crate) fn is_attached(&self) -> bool {
+        self.get_attached_counter() != 0
+    }
+
+    pub(crate) fn is_deleted(&self) -> bool {
+        self.is_marked_for_deletion() && !self.is_attached()
+    }
+
+    pub(crate) fn delete(&self, operation_fallibility: Operation) {
+        assert!(self.is_deleted());
+        let context = self.context.root().unwrap();
+        let cmd = WebGLCommand::DeleteBuffer(self.id);
+        match operation_fallibility {
+            Operation::Fallible => context.send_command_ignored(cmd),
+            Operation::Infallible => context.send_command(cmd),
+        }
+    }
+
+    pub(crate) fn mark_for_deletion(&self, operation_fallibility: Operation) {
+        if self.is_marked_for_deletion() {
+            return;
+        }
+        self.set_marked_for_deletion(true);
+        if self.is_deleted() {
+            self.delete(operation_fallibility);
+        }
+    }
+}
+
+impl Drop for DroppableWebGLBuffer {
+    fn drop(&mut self) {
+        self.mark_for_deletion(Operation::Fallible);
+    }
+}
+
 #[dom_struct]
 pub(crate) struct WebGLBuffer {
     webgl_object: WebGLObject,
-    #[no_trace]
-    id: WebGLBufferId,
     /// The target to which this buffer was bound the first time
     target: Cell<Option<u32>>,
     capacity: Cell<usize>,
-    marked_for_deletion: Cell<bool>,
-    attached_counter: Cell<u32>,
     /// <https://www.khronos.org/registry/OpenGL-Refpages/es2.0/xhtml/glGetBufferParameteriv.xml>
     usage: Cell<u32>,
+    droppable: DroppableWebGLBuffer,
 }
 
 impl WebGLBuffer {
     fn new_inherited(context: &WebGLRenderingContext, id: WebGLBufferId) -> Self {
         Self {
             webgl_object: WebGLObject::new_inherited(context),
-            id,
             target: Default::default(),
             capacity: Default::default(),
-            marked_for_deletion: Default::default(),
-            attached_counter: Default::default(),
             usage: Cell::new(WebGLRenderingContextConstants::STATIC_DRAW),
+            droppable: DroppableWebGLBuffer::new(
+                id,
+                Default::default(),
+                Default::default(),
+                WeakRef::new(context),
+            ),
         }
     }
 
@@ -77,7 +159,7 @@ impl WebGLBuffer {
 
 impl WebGLBuffer {
     pub(crate) fn id(&self) -> WebGLBufferId {
-        self.id
+        self.droppable.id()
     }
 
     pub(crate) fn buffer_data(&self, target: u32, data: &[u8], usage: u32) -> WebGLResult<()> {
@@ -109,31 +191,31 @@ impl WebGLBuffer {
     }
 
     pub(crate) fn mark_for_deletion(&self, operation_fallibility: Operation) {
-        if self.marked_for_deletion.get() {
-            return;
-        }
-        self.marked_for_deletion.set(true);
-        if self.is_deleted() {
-            self.delete(operation_fallibility);
-        }
+        self.droppable.mark_for_deletion(operation_fallibility);
     }
 
     fn delete(&self, operation_fallibility: Operation) {
-        assert!(self.is_deleted());
-        let context = self.upcast::<WebGLObject>().context();
-        let cmd = WebGLCommand::DeleteBuffer(self.id);
-        match operation_fallibility {
-            Operation::Fallible => context.send_command_ignored(cmd),
-            Operation::Infallible => context.send_command(cmd),
-        }
+        self.droppable.delete(operation_fallibility);
     }
 
     pub(crate) fn is_marked_for_deletion(&self) -> bool {
-        self.marked_for_deletion.get()
+        self.droppable.is_marked_for_deletion()
+    }
+
+    fn set_marked_for_deletion(&self, marked_for_deletion: bool) {
+        self.droppable.set_marked_for_deletion(marked_for_deletion);
+    }
+
+    fn get_attached_counter(&self) -> u32 {
+        self.droppable.get_attached_counter()
+    }
+
+    fn set_attached_counter(&self, attached_counter: u32) {
+        self.droppable.set_attached_counter(attached_counter);
     }
 
     pub(crate) fn is_deleted(&self) -> bool {
-        self.marked_for_deletion.get() && !self.is_attached()
+        self.droppable.is_deleted()
     }
 
     pub(crate) fn target(&self) -> Option<u32> {
@@ -162,22 +244,20 @@ impl WebGLBuffer {
     }
 
     pub(crate) fn is_attached(&self) -> bool {
-        self.attached_counter.get() != 0
+        self.droppable.is_attached()
     }
 
     pub(crate) fn increment_attached_counter(&self) {
-        self.attached_counter.set(
-            self.attached_counter
-                .get()
+        self.set_attached_counter(
+            self.get_attached_counter()
                 .checked_add(1)
                 .expect("refcount overflowed"),
         );
     }
 
     pub(crate) fn decrement_attached_counter(&self, operation_fallibility: Operation) {
-        self.attached_counter.set(
-            self.attached_counter
-                .get()
+        self.set_attached_counter(
+            self.get_attached_counter()
                 .checked_sub(1)
                 .expect("refcount underflowed"),
         );
@@ -188,11 +268,5 @@ impl WebGLBuffer {
 
     pub(crate) fn usage(&self) -> u32 {
         self.usage.get()
-    }
-}
-
-impl Drop for WebGLBuffer {
-    fn drop(&mut self) {
-        self.mark_for_deletion(Operation::Fallible);
     }
 }
