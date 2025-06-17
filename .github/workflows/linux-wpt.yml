@@ -147,6 +147,7 @@ jobs:
           xvfb-run ./mach test-wpt \
             ./tests/wpt/tests/webdriver/tests/classic/ \
             --${{ inputs.profile }} \
+            --processes 1 \
             --timeout-multiplier 2 \
             $WPT_ALWAYS_SUCCEED_ARG \
             ${{ inputs.wpt-args }} \
