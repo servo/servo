@@ -31,7 +31,6 @@ use js::typedarray::{
 };
 use net_traits::image_cache::ImageResponse;
 use pixels::{self, PixelFormat};
-use script_bindings::weakref::WeakReferenceable;
 use serde::{Deserialize, Serialize};
 use servo_config::pref;
 use snapshot::Snapshot;
