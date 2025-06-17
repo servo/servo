@@ -3009,6 +3009,22 @@ impl GlobalScope {
             return p;
         }
 
+        // The promise with image bitmap should be fulfilled on the the bitmap task source.
+        let fullfill_promise_on_bitmap_task_source =
+            |promise: &Rc<Promise>, image_bitmap: &ImageBitmap| {
+                let trusted_promise = TrustedPromise::new(promise.clone());
+                let trusted_image_bitmap = Trusted::new(image_bitmap);
+
+                self.task_manager()
+                    .bitmap_task_source()
+                    .queue(task!(resolve_promise: move || {
+                        let promise = trusted_promise.root();
+                        let image_bitmap = trusted_image_bitmap.root();
+
+                        promise.resolve_native(&image_bitmap, CanGc::note());
+                    }));
+            };
+
         // Step 3. Check the usability of the image argument. If this throws an exception or returns bad,
         // then return a promise rejected with an "InvalidStateError" DOMException.
         // Step 6. Switch on image:
@@ -3065,7 +3081,9 @@ impl GlobalScope {
                 // of imageBitmap's bitmap to false.
                 image_bitmap.set_origin_clean(image.same_origin(GlobalScope::entry().origin()));
 
-                p.resolve_native(&image_bitmap, can_gc);
+                // Step 6.5. Queue a global task, using the bitmap task source,
+                // to resolve promise with imageBitmap.
+                fullfill_promise_on_bitmap_task_source(&p, &image_bitmap);
             },
             ImageBitmapSource::HTMLVideoElement(ref video) => {
                 // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
@@ -3103,7 +3121,9 @@ impl GlobalScope {
                 // of imageBitmap's bitmap to false.
                 image_bitmap.set_origin_clean(video.origin_is_clean());
 
-                p.resolve_native(&image_bitmap, can_gc);
+                // Step 6.4. Queue a global task, using the bitmap task source,
+                // to resolve promise with imageBitmap.
+                fullfill_promise_on_bitmap_task_source(&p, &image_bitmap);
             },
             ImageBitmapSource::HTMLCanvasElement(ref canvas) => {
                 // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
@@ -3132,7 +3152,9 @@ impl GlobalScope {
                 // as the origin-clean flag of image's bitmap.
                 image_bitmap.set_origin_clean(canvas.origin_is_clean());
 
-                p.resolve_native(&image_bitmap, can_gc);
+                // Step 6.3. Queue a global task, using the bitmap task source,
+                // to resolve promise with imageBitmap.
+                fullfill_promise_on_bitmap_task_source(&p, &image_bitmap);
             },
             ImageBitmapSource::ImageBitmap(ref bitmap) => {
                 // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
@@ -3161,7 +3183,9 @@ impl GlobalScope {
                 // as the origin-clean flag of image's bitmap.
                 image_bitmap.set_origin_clean(bitmap.origin_is_clean());
 
-                p.resolve_native(&image_bitmap, can_gc);
+                // Step 6.3. Queue a global task, using the bitmap task source,
+                // to resolve promise with imageBitmap.
+                fullfill_promise_on_bitmap_task_source(&p, &image_bitmap);
             },
             ImageBitmapSource::OffscreenCanvas(ref canvas) => {
                 // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
@@ -3190,7 +3214,9 @@ impl GlobalScope {
                 // as the origin-clean flag of image's bitmap.
                 image_bitmap.set_origin_clean(canvas.origin_is_clean());
 
-                p.resolve_native(&image_bitmap, can_gc);
+                // Step 6.3. Queue a global task, using the bitmap task source,
+                // to resolve promise with imageBitmap.
+                fullfill_promise_on_bitmap_task_source(&p, &image_bitmap);
             },
             ImageBitmapSource::Blob(_) => {
                 // TODO: implement support of Blob object as ImageBitmapSource
@@ -3227,7 +3253,9 @@ impl GlobalScope {
 
                 let image_bitmap = ImageBitmap::new(self, bitmap_data, can_gc);
 
-                p.resolve_native(&image_bitmap, can_gc);
+                // Step 6.4. Queue a global task, using the bitmap task source,
+                // to resolve promise with imageBitmap.
+                fullfill_promise_on_bitmap_task_source(&p, &image_bitmap);
             },
             ImageBitmapSource::CSSStyleValue(_) => {
                 // TODO: CSSStyleValue is not part of ImageBitmapSource
