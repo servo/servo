@@ -2025,8 +2025,6 @@ impl CanvasContext for WebGLRenderingContext {
     }
 }
 
-impl WeakReferenceable for WebGLRenderingContext {}
-
 #[cfg(not(feature = "webgl_backtrace"))]
 #[inline]
 pub(crate) fn capture_webgl_backtrace<T: DomObject>(_: &T) -> WebGLCommandBacktrace {
