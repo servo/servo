@@ -79,15 +79,13 @@ impl DroppableWebGLBuffer {
     }
 
     pub(crate) fn delete(&self, operation_fallibility: Operation) {
-        if !self.is_deleted() {
-            warn!("DroppableWebGLBuffer::delete called on a buffer that is not deleted");
-            return;
-        }
-        let context = self.context.root().unwrap();
-        let cmd = WebGLCommand::DeleteBuffer(self.id);
-        match operation_fallibility {
-            Operation::Fallible => context.send_command_ignored(cmd),
-            Operation::Infallible => context.send_command(cmd),
+        assert!(self.is_deleted());
+        if let Some(context) = self.context.root(){
+            let cmd = WebGLCommand::DeleteBuffer(self.id);
+            match operation_fallibility {
+                Operation::Fallible => context.send_command_ignored(cmd),
+                Operation::Infallible => context.send_command(cmd),
+            }
         }
     }
 
