@@ -1862,7 +1862,7 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
             let input = self.unsafe_get().downcast::<HTMLInputElement>().unwrap();
 
             // FIXME: All the non-color and non-text input types currently render as text
-            !matches!(input.input_type(), InputType::Color | InputType::Text)
+            !input.input_type().is_textual_or_password() && input.input_type() != InputType::Color
         } else {
             type_id ==
                 NodeTypeId::Element(ElementTypeId::HTMLElement(

@@ -104,7 +104,8 @@ const DEFAULT_FILE_INPUT_VALUE: &str = "No file chosen";
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 /// Contains reference to text control inner editor and placeholder container element in the UA
-/// shadow tree for `<input type=text>`. The following is the structure of the shadow tree.
+/// shadow tree for `text`, `password`, `url`, `tel`, and `email` input. The following is the
+/// structure of the shadow tree.
 ///
 /// ```
 /// <input type="text">
@@ -115,6 +116,7 @@ const DEFAULT_FILE_INPUT_VALUE: &str = "No file chosen";
 ///         </div>
 /// </input>
 /// ```
+///
 // TODO(stevennovaryo): We are trying to use CSS to mimic Chrome and Firefox's layout for the <input> element.
 //                      But, this could be slower in performance and does have some discrepancies. For example,
 //                      they would try to vertically align <input> text baseline with the baseline of other
@@ -128,7 +130,7 @@ struct InputTypeTextShadowTree {
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-/// Contains references to the elements in the shadow tree for `<input type=range>`.
+/// Contains references to the elements in the shadow tree for `<input type=color>`.
 ///
 /// The shadow tree consists of a single div with the currently selected color as
 /// the background.
@@ -222,7 +224,7 @@ impl InputType {
     // Note that Password is not included here since it is handled
     // slightly differently, with placeholder characters shown rather
     // than the underlying value.
-    fn is_textual(&self) -> bool {
+    pub(crate) fn is_textual(&self) -> bool {
         matches!(
             *self,
             InputType::Date |
@@ -241,7 +243,7 @@ impl InputType {
         )
     }
 
-    fn is_textual_or_password(&self) -> bool {
+    pub(crate) fn is_textual_or_password(&self) -> bool {
         self.is_textual() || *self == InputType::Password
     }
 
@@ -1239,9 +1241,9 @@ impl HTMLInputElement {
         .expect("UA shadow tree was not created")
     }
 
-    fn update_text_shadow_tree_if_needed(&self, can_gc: CanGc) {
-        // Should only do this for `type=text` input.
-        debug_assert_eq!(self.input_type(), InputType::Text);
+    fn update_textual_or_password_shadow_tree(&self, can_gc: CanGc) {
+        // Should only do this for textual or password input.
+        debug_assert!(self.input_type().is_textual_or_password());
 
         let text_shadow_tree = self.text_shadow_tree(can_gc);
         let value = self.Value();
@@ -1254,9 +1256,15 @@ impl HTMLInputElement {
         // This is also used to ensure that the caret will still be rendered when the input is empty.
         // TODO: Could append `<br>` element to prevent collapses and avoid this hack, but we would
         //       need to fix the rendering of caret beforehand.
-        let value_text = match value.is_empty() {
-            false => value,
-            true => "\u{200B}".into(),
+        let value_text = match (value.is_empty(), self.input_type()) {
+            // For a password input, we replace all of the character with its replacement char.
+            (false, InputType::Password) => value
+                .chars()
+                .map(|_| PASSWORD_REPLACEMENT_CHAR)
+                .collect::<String>()
+                .into(),
+            (false, _) => value,
+            (true, _) => "\u{200B}".into(),
         };
 
         // FIXME(stevennovaryo): Refactor this inside a TextControl wrapper
@@ -1270,7 +1278,7 @@ impl HTMLInputElement {
             .SetData(value_text);
     }
 
-    fn update_color_shadow_tree_if_needed(&self, can_gc: CanGc) {
+    fn update_color_shadow_tree(&self, can_gc: CanGc) {
         // Should only do this for `type=color` input.
         debug_assert_eq!(self.input_type(), InputType::Color);
 
@@ -1288,10 +1296,11 @@ impl HTMLInputElement {
             .set_string_attribute(&local_name!("style"), style.into(), can_gc);
     }
 
-    fn update_shadow_tree_if_needed(&self, can_gc: CanGc) {
-        match self.input_type() {
-            InputType::Text => self.update_text_shadow_tree_if_needed(can_gc),
-            InputType::Color => self.update_color_shadow_tree_if_needed(can_gc),
+    fn update_shadow_tree(&self, can_gc: CanGc) {
+        let input_type = self.input_type();
+        match input_type {
+            _ if input_type.is_textual_or_password() => self.update_textual_or_password_shadow_tree(can_gc),
+            InputType::Color => self.update_color_shadow_tree(can_gc),
             _ => {},
         }
     }
@@ -1318,10 +1327,6 @@ impl<'dom> LayoutDom<'dom, HTMLInputElement> {
         unsafe { self.unsafe_get().filelist.get_inner_as_layout() }
     }
 
-    fn placeholder(self) -> &'dom str {
-        unsafe { self.unsafe_get().placeholder.borrow_for_layout() }
-    }
-
     fn input_type(self) -> InputType {
         self.unsafe_get().input_type.get()
     }
@@ -1337,6 +1342,9 @@ impl<'dom> LayoutDom<'dom, HTMLInputElement> {
 }
 
 impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElement> {
+    /// In the past, we are handling the display of <input> element inside the dom tree traversal.
+    /// With the introduction of shadow DOM, these implementations will be replaced one by one
+    /// and these will be obselete,
     fn value_for_layout(self) -> Cow<'dom, str> {
         fn get_raw_attr_value<'dom>(
             input: LayoutDom<'dom, HTMLInputElement>,
@@ -1350,7 +1358,9 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
         }
 
         match self.input_type() {
-            InputType::Checkbox | InputType::Radio | InputType::Image => "".into(),
+            InputType::Checkbox | InputType::Radio | InputType::Image | InputType::Hidden => {
+                "".into()
+            },
             InputType::File => {
                 let filelist = self.get_filelist();
                 match filelist {
@@ -1373,31 +1383,23 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
             InputType::Button => get_raw_attr_value(self, ""),
             InputType::Submit => get_raw_attr_value(self, DEFAULT_SUBMIT_VALUE),
             InputType::Reset => get_raw_attr_value(self, DEFAULT_RESET_VALUE),
-            InputType::Password => {
-                let text = self.get_raw_textinput_value();
-                if !text.is_empty() {
-                    text.chars()
-                        .map(|_| PASSWORD_REPLACEMENT_CHAR)
-                        .collect::<String>()
-                        .into()
-                } else {
-                    self.placeholder().into()
-                }
-            },
-            InputType::Color => {
-                unreachable!("Input type color is explicitly not rendered as text");
-            },
+            // FIXME(#22728): input `type=range` has yet to be implemented.
+            InputType::Range => "".into(),
             _ => {
-                let text = self.get_raw_textinput_value();
-                if !text.is_empty() {
-                    text.into()
-                } else {
-                    self.placeholder().into()
-                }
+                unreachable!("Input with shadow tree should use internal shadow tree for layout");
             },
         }
     }
 
+    /// Textual input, specifically text entry and domain specific input has
+    /// a default preferred size.
+    ///
+    /// <https://html.spec.whatwg.org/#the-input-element-as-a-text-entry-widget>
+    /// <https://html.spec.whatwg.org/#the-input-element-as-domain-specific-widgets>
+    // FIXME(stevennovaryo): Implement the calculation of default preferred size
+    //                       for domain specific input widgets correctly.
+    // FIXME(#4378): Implement the calculation of average character width for
+    //               textual input correctly.
     fn size_for_layout(self) -> u32 {
         self.unsafe_get().size.get()
     }
@@ -2209,7 +2211,7 @@ impl HTMLInputElement {
     // Update the placeholder text in the text shadow tree.
     // To increase the performance, we would only do this when it is necessary.
     fn update_text_shadow_tree_placeholder(&self, can_gc: CanGc) {
-        if self.input_type() != InputType::Text {
+        if !self.input_type().is_textual_or_password() {
             return;
         }
 
@@ -2671,7 +2673,7 @@ impl HTMLInputElement {
 
     fn value_changed(&self, can_gc: CanGc) {
         self.update_related_validity_states(can_gc);
-        self.update_shadow_tree_if_needed(can_gc);
+        self.update_shadow_tree(can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#show-the-picker,-if-applicable>
@@ -3015,7 +3017,7 @@ impl VirtualMethods for HTMLInputElement {
             // WHATWG-specified activation behaviors are handled elsewhere;
             // this is for all the other things a UI click might do
 
-            //TODO: set the editing position for text inputs
+            //TODO(#10083): set the editing position for text inputs
 
             if self.input_type().is_textual_or_password() &&
                 // Check if we display a placeholder. Layout doesn't know about this.

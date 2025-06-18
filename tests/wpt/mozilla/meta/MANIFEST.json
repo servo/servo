@@ -92,78 +92,78 @@
   },
   "reftest": {
    "appearance": {
-    "input-text-definite-width.html": [
-     "fda46f8af9c14cef3911ec809054624204848b9d",
+    "input-textual-definite-width.html": [
+     "59f1797fab3d1889bbcb7863178c6c5ef9e54f19",
      [
-      "appearance/input-text-definite-width.html",
+      "appearance/input-textual-definite-width.html",
       [
        [
-        "/_mozilla/appearance/input-text-definite-width-ref.html",
+        "/_mozilla/appearance/input-textual-definite-width-ref.html",
         "=="
        ]
       ],
       {}
      ]
     ],
-    "input-text-empty.html": [
-     "bd5f5f5a21ec0ce028922a6764de41dc904a1eb1",
+    "input-textual-empty.html": [
+     "c85214b6c681b657a30a06b44670c796cdaeda11",
      [
-      "appearance/input-text-empty.html",
+      "appearance/input-textual-empty.html",
       [
        [
-        "/_mozilla/appearance/input-text-empty-ref.html",
+        "/_mozilla/appearance/input-textual-empty-ref.html",
         "=="
        ]
       ],
       {}
      ]
     ],
-    "input-text-nonempty-placeholder.html": [
-     "e075663cb6ae708b313b3cd5cd69f78c51b4bc1f",
+    "input-textual-nonempty-placeholder.html": [
+     "83670d37e310954e6d3a69114577ff92b4126a98",
      [
-      "appearance/input-text-nonempty-placeholder.html",
+      "appearance/input-textual-nonempty-placeholder.html",
       [
        [
-        "/_mozilla/appearance/input-text-nonempty-placeholder-ref.html",
+        "/_mozilla/appearance/input-textual-nonempty-placeholder-ref.html",
         "=="
        ]
       ],
       {}
      ]
     ],
-    "input-text-overflow.html": [
-     "52db07c0f0274d2b7b086d7017982145c25918da",
+    "input-textual-overflow.html": [
+     "ad1f0aa70285e227153f7d05983b2ef9caa798f9",
      [
-      "appearance/input-text-overflow.html",
+      "appearance/input-textual-overflow.html",
       [
        [
-        "/_mozilla/appearance/input-text-overflow-ref.html",
+        "/_mozilla/appearance/input-textual-overflow-ref.html",
         "=="
        ]
       ],
       {}
      ]
     ],
-    "input-text-placeholder-overflow.html": [
-     "c4d77ae2a22a5b7972f2798b8ca78742b81bacc4",
+    "input-textual-placeholder-overflow.html": [
+     "9bc84f26b8c1ae0718085ddb069889cca2e0322a",
      [
-      "appearance/input-text-placeholder-overflow.html",
+      "appearance/input-textual-placeholder-overflow.html",
       [
        [
-        "/_mozilla/appearance/input-text-placeholder-overflow-ref.html",
+        "/_mozilla/appearance/input-textual-placeholder-overflow-ref.html",
         "=="
        ]
       ],
       {}
      ]
     ],
-    "input-text-placeholder.html": [
-     "d75acade78038b14529135b1d63c0ac5a168a87b",
+    "input-textual-placeholder.html": [
+     "68287721ce67ecece6e746b44fd3fd1d92763085",
      [
-      "appearance/input-text-placeholder.html",
+      "appearance/input-textual-placeholder.html",
       [
        [
-        "/_mozilla/appearance/input-text-placeholder-ref.html",
+        "/_mozilla/appearance/input-textual-placeholder-ref.html",
         "=="
        ]
       ],
@@ -8130,33 +8130,33 @@
     []
    ],
    "appearance": {
-    "input-text-definite-width-ref.html": [
-     "86f7937755750261ed3b06dfe11e78a251b9d175",
+    "input-textual-definite-width-ref.html": [
+     "7a256be23b3c084bb8477d7380a8b1801ec07f05",
      []
     ],
-    "input-text-empty-ref.html": [
-     "437c9988a13e094d870f67c8de0dd0becdeece76",
+    "input-textual-empty-ref.html": [
+     "6cbaa3e40e5a7fa6ea96710f126d6e6d4d4d633e",
      []
     ],
-    "input-text-nonempty-placeholder-ref.html": [
-     "5415dfb2a4a88dc3bfed6ad04e23f288534351e4",
+    "input-textual-nonempty-placeholder-ref.html": [
+     "7a256be23b3c084bb8477d7380a8b1801ec07f05",
      []
     ],
-    "input-text-overflow-ref.html": [
-     "4cece657a2a09cfe3f1d91d49f0c9d76f5714516",
+    "input-textual-overflow-ref.html": [
+     "f8e22c9d11dc68dd244a3fc5b8f5946a707a2660",
      []
     ],
-    "input-text-placeholder-overflow-ref.html": [
-     "0cccfff638c0d8687a3582310c73233b7d883b1a",
+    "input-textual-placeholder-overflow-ref.html": [
+     "ee297a94cacb3838375b94c3a546f288adb464f1",
      []
     ],
-    "input-text-placeholder-ref.html": [
-     "fa5b60bdabdf2b9b818ebe66bfc7f2711173b88b",
+    "input-textual-placeholder-ref.html": [
+     "d30f13a2a1bab16989ec585a57ba7b7bd0b1c329",
      []
     ],
     "supports": {
-     "input-text-ref.css": [
-      "8cf00d493138285e50aa510273abae98c099ae8b",
+     "input-textual-ref.css": [
+      "7cdabb05d5dd7eb39df521fcb5ce24e39fea840f",
       []
      ]
     }
