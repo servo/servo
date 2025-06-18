@@ -21,6 +21,7 @@ use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::network_handler::Cause;
 use crate::protocol::JsonPacketStream;
 
+#[derive(Clone)]
 struct HttpRequest {
     url: String,
     method: Method,
@@ -32,6 +33,7 @@ struct HttpRequest {
     send_time: Duration,
 }
 
+#[derive(Clone)]
 struct HttpResponse {
     headers: Option<HeaderMap>,
     status: HttpStatus,
@@ -40,9 +42,27 @@ struct HttpResponse {
 
 pub struct NetworkEventActor {
     pub name: String,
-    request: HttpRequest,
-    response: HttpResponse,
-    is_xhr: bool,
+    pub request: HttpRequest,
+    pub response: HttpResponse,
+    pub is_xhr: bool,
+    pub response_content: Option<ResponseContentMsg>,
+    pub response_start: Option<ResponseStartMsg>,
+    pub response_cookies: Option<ResponseCookiesMsg>,
+    pub response_headers: Option<ResponseHeadersMsg>,
+    pub request_cookies: Option<RequestCookiesMsg>,
+    pub request_headers: Option<RequestHeadersMsg>,
+    pub total_time: Duration,
+    pub security_state: String,
+    pub event_timing: Option<Timings>,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkEventResource {
+    pub resource_id: u64,
+    pub resource_updates: Map<String, Value>,
+    pub browsing_context_id: u64,
+    pub inner_window_id: u64,
 }
 
 #[derive(Clone, Serialize)]
@@ -336,27 +356,39 @@ impl Actor for NetworkEventActor {
 
 impl NetworkEventActor {
     pub fn new(name: String) -> NetworkEventActor {
+        let request = HttpRequest {
+            url: String::new(),
+            method: Method::GET,
+            headers: HeaderMap::new(),
+            body: None,
+            started_date_time: SystemTime::now(),
+            time_stamp: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs() as i64,
+            send_time: Duration::ZERO,
+            connect_time: Duration::ZERO,
+        };
+        let response = HttpResponse {
+            headers: None,
+            status: HttpStatus::default(),
+            body: None,
+        };
+
         NetworkEventActor {
             name,
-            request: HttpRequest {
-                url: String::new(),
-                method: Method::GET,
-                headers: HeaderMap::new(),
-                body: None,
-                started_date_time: SystemTime::now(),
-                time_stamp: SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_secs() as i64,
-                send_time: Duration::ZERO,
-                connect_time: Duration::ZERO,
-            },
-            response: HttpResponse {
-                headers: None,
-                status: HttpStatus::default(),
-                body: None,
-            },
+            request: request.clone(),
+            response: response.clone(),
             is_xhr: false,
+            response_content: None,
+            response_start: None,
+            response_cookies: None,
+            response_headers: None,
+            request_cookies: None,
+            request_headers: None,
+            total_time: Self::total_time(&request),
+            security_state: "insecure".to_owned(), // Default security state
+            event_timing: None,
         }
     }
 
@@ -417,12 +449,13 @@ impl NetworkEventActor {
         }
     }
 
-    pub fn response_start(&self) -> ResponseStartMsg {
+    #[allow(dead_code)]
+    pub fn response_start(response: &HttpResponse) -> ResponseStartMsg {
         // TODO: Send the correct values for all these fields.
-        let h_size_option = self.response.headers.as_ref().map(|headers| headers.len());
-        let h_size = h_size_option.unwrap_or(0);
-        let status = &self.response.status;
-        // TODO: Send the correct values for remoteAddress and remotePort and http_version.
+        let h_size = response.headers.as_ref().map(|h| h.len()).unwrap_or(0);
+        let status = &response.status;
+
+        // TODO: Send the correct values for remoteAddress and remotePort and http_version
         ResponseStartMsg {
             http_version: "HTTP/1.1".to_owned(),
             remote_address: "63.245.217.43".to_owned(),
@@ -434,26 +467,29 @@ impl NetworkEventActor {
         }
     }
 
-    pub fn response_content(&self) -> ResponseContentMsg {
-        let mut m_string = "".to_owned();
-        if let Some(ref headers) = self.response.headers {
-            m_string = match headers.typed_get::<ContentType>() {
+    #[allow(dead_code)]
+    pub fn response_content(response: &HttpResponse) -> ResponseContentMsg {
+        let mime_type = if let Some(ref headers) = response.headers {
+            match headers.typed_get::<ContentType>() {
                 Some(ct) => ct.to_string(),
-                _ => "".to_owned(),
-            };
-        }
+                None => "".to_string(),
+            }
+        } else {
+            "".to_string()
+        };
         // TODO: Set correct values when response's body is sent to the devtools in http_loader.
         ResponseContentMsg {
-            mime_type: m_string,
+            mime_type,
             content_size: 0,
             transferred_size: 0,
             discard_response_body: true,
         }
     }
 
-    pub fn response_cookies(&self) -> ResponseCookiesMsg {
+    #[allow(dead_code)]
+    pub fn response_cookies(response: &HttpResponse) -> ResponseCookiesMsg {
         let mut cookies_size = 0;
-        if let Some(ref headers) = self.response.headers {
+        if let Some(ref headers) = response.headers {
             cookies_size = match headers.typed_get::<Cookie>() {
                 Some(ref cookie) => cookie.len(),
                 _ => 0,
@@ -464,10 +500,11 @@ impl NetworkEventActor {
         }
     }
 
-    pub fn response_headers(&self) -> ResponseHeadersMsg {
+    #[allow(dead_code)]
+    pub fn response_headers(response: &HttpResponse) -> ResponseHeadersMsg {
         let mut headers_size = 0;
         let mut headers_byte_count = 0;
-        if let Some(ref headers) = self.response.headers {
+        if let Some(ref headers) = response.headers {
             headers_size = headers.len();
             for (name, value) in headers.iter() {
                 headers_byte_count += name.as_str().len() + value.len();
@@ -479,18 +516,20 @@ impl NetworkEventActor {
         }
     }
 
-    pub fn request_headers(&self) -> RequestHeadersMsg {
-        let size = self.request.headers.iter().fold(0, |acc, (name, value)| {
+    #[allow(dead_code)]
+    pub fn request_headers(request: &HttpRequest) -> RequestHeadersMsg {
+        let size = request.headers.iter().fold(0, |acc, (name, value)| {
             acc + name.as_str().len() + value.len()
         });
         RequestHeadersMsg {
-            headers: self.request.headers.len(),
+            headers: request.headers.len(),
             headers_size: size,
         }
     }
 
-    pub fn request_cookies(&self) -> RequestCookiesMsg {
-        let cookies_size = match self.request.headers.typed_get::<Cookie>() {
+    #[allow(dead_code)]
+    pub fn request_cookies(request: &HttpRequest) -> RequestCookiesMsg {
+        let cookies_size = match request.headers.typed_get::<Cookie>() {
             Some(ref cookie) => cookie.len(),
             _ => 0,
         };
@@ -499,7 +538,78 @@ impl NetworkEventActor {
         }
     }
 
-    pub fn total_time(&self) -> Duration {
-        self.request.connect_time + self.request.send_time
+    pub fn total_time(request: &HttpRequest) -> Duration {
+        request.connect_time + request.send_time
+    }
+
+    fn insert_serialized_map<T: Serialize>(map: &mut Map<String, Value>, obj: &Option<T>) {
+        if let Some(value) = obj {
+            if let Ok(Value::Object(serialized)) = serde_json::to_value(value) {
+                for (key, val) in serialized {
+                    map.insert(key, val);
+                }
+            }
+        }
+    }
+
+    pub fn resource_updates(&self) -> NetworkEventResource {
+        let mut resource_updates = Map::new();
+
+        resource_updates.insert(
+            "requestCookiesAvailable".to_owned(),
+            Value::Bool(self.request_cookies.is_some()),
+        );
+
+        resource_updates.insert(
+            "requestHeadersAvailable".to_owned(),
+            Value::Bool(self.request_headers.is_some()),
+        );
+
+        resource_updates.insert(
+            "responseHeadersAvailable".to_owned(),
+            Value::Bool(self.response_headers.is_some()),
+        );
+        resource_updates.insert(
+            "responseCookiesAvailable".to_owned(),
+            Value::Bool(self.response_cookies.is_some()),
+        );
+        resource_updates.insert(
+            "responseStartAvailable".to_owned(),
+            Value::Bool(self.response_start.is_some()),
+        );
+        resource_updates.insert(
+            "responseContentAvailable".to_owned(),
+            Value::Bool(self.response_content.is_some()),
+        );
+
+        resource_updates.insert(
+            "totalTime".to_string(),
+            Value::from(self.total_time.as_secs_f64()),
+        );
+
+        resource_updates.insert(
+            "securityState".to_string(),
+            Value::String(self.security_state.clone()),
+        );
+        resource_updates.insert(
+            "eventTimingsAvailable".to_owned(),
+            Value::Bool(self.event_timing.is_some()),
+        );
+
+        Self::insert_serialized_map(&mut resource_updates, &self.response_content);
+        Self::insert_serialized_map(&mut resource_updates, &self.response_headers);
+        Self::insert_serialized_map(&mut resource_updates, &self.response_cookies);
+        Self::insert_serialized_map(&mut resource_updates, &self.request_headers);
+        Self::insert_serialized_map(&mut resource_updates, &self.request_cookies);
+        Self::insert_serialized_map(&mut resource_updates, &self.response_start);
+        Self::insert_serialized_map(&mut resource_updates, &self.event_timing);
+
+        // TODO: Set the correct values for these fields
+        NetworkEventResource {
+            resource_id: 0,
+            resource_updates,
+            browsing_context_id: 0,
+            inner_window_id: 0,
+        }
     }
 }

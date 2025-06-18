@@ -11,30 +11,8 @@ use serde::Serialize;
 use crate::actor::ActorRegistry;
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::network_event::NetworkEventActor;
-use crate::resource::ResourceAvailable;
+use crate::resource::{ResourceArrayType, ResourceAvailable};
 
-#[derive(Clone, Serialize)]
-struct ResourcesUpdatedArray {
-    updates: Vec<UpdateEntry>,
-}
-
-#[derive(Clone, Serialize)]
-struct UpdateEntry {
-    #[serde(rename = "updateType")]
-    update_type: String,
-    data: serde_json::Value,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct EventTimingsUpdateMsg {
-    total_time: u64,
-}
-
-#[derive(Serialize)]
-struct SecurityInfoUpdateMsg {
-    state: String,
-}
 #[derive(Clone, Serialize)]
 pub struct Cause {
     #[serde(rename = "type")]
@@ -63,9 +41,10 @@ pub(crate) fn handle_network_event(
             let browsing_context_actor =
                 actors.find::<BrowsingContextActor>(&browsing_context_actor_name);
             for stream in &mut connections {
-                browsing_context_actor.resource_available(
+                browsing_context_actor.resource_array(
                     event_actor.clone(),
                     "network-event".to_string(),
+                    ResourceArrayType::Available,
                     stream,
                 );
             }
@@ -76,56 +55,16 @@ pub(crate) fn handle_network_event(
                 let actor = actors.find_mut::<NetworkEventActor>(&netevent_actor_name);
                 // Store the response information in the actor
                 actor.add_response(httpresponse);
-                ResourcesUpdatedArray {
-                    updates: vec![
-                        UpdateEntry {
-                            update_type: "requestHeaders".to_owned(),
-                            data: serde_json::to_value(actor.request_headers()).unwrap(),
-                        },
-                        UpdateEntry {
-                            update_type: "requestCookies".to_owned(),
-                            data: serde_json::to_value(actor.request_cookies()).unwrap(),
-                        },
-                        UpdateEntry {
-                            update_type: "responseStart".to_owned(),
-                            data: serde_json::to_value(actor.response_start()).unwrap(),
-                        },
-                        UpdateEntry {
-                            update_type: "eventTimings".to_owned(),
-                            data: serde_json::to_value(EventTimingsUpdateMsg {
-                                total_time: actor.total_time().as_millis() as u64,
-                            })
-                            .unwrap(),
-                        },
-                        UpdateEntry {
-                            update_type: "securityInfo".to_owned(),
-                            data: serde_json::to_value(SecurityInfoUpdateMsg {
-                                state: "insecure".to_owned(),
-                            })
-                            .unwrap(),
-                        },
-                        UpdateEntry {
-                            update_type: "responseContent".to_owned(),
-                            data: serde_json::to_value(actor.response_content()).unwrap(),
-                        },
-                        UpdateEntry {
-                            update_type: "responseCookies".to_owned(),
-                            data: serde_json::to_value(actor.response_cookies()).unwrap(),
-                        },
-                        UpdateEntry {
-                            update_type: "responseHeaders".to_owned(),
-                            data: serde_json::to_value(actor.response_headers()).unwrap(),
-                        },
-                    ],
-                }
+                actor.resource_updates()
             };
 
             let browsing_context_actor =
                 actors.find::<BrowsingContextActor>(&browsing_context_actor_name);
             for stream in &mut connections {
-                browsing_context_actor.resource_available(
+                browsing_context_actor.resource_array(
                     resource.clone(),
-                    "resources-updated".to_string(),
+                    "network-event".to_string(),
+                    ResourceArrayType::Updated,
                     stream,
                 );
             }
