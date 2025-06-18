@@ -980,6 +980,22 @@ pub(crate) fn handle_get_computed_role(
         .unwrap();
 }
 
+pub(crate) fn handle_get_computed_label(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    node_id: String,
+    reply: IpcSender<Result<Option<String>, ErrorStatus>>,
+) {
+    reply
+        .send(
+            get_known_element(documents, pipeline, node_id)
+                // replace GetRole here with your way of Accessible Name Computation
+                // @sideshowbarker
+                .map(|element| element.GetRole().map(String::from)),
+        )
+        .unwrap();
+}
+
 pub(crate) fn handle_get_page_source(
     documents: &DocumentCollection,
     pipeline: PipelineId,
