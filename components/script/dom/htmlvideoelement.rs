@@ -133,6 +133,9 @@ impl HTMLVideoElement {
         sent_resize
     }
 
+    /// Gets the copy of the video frame at the current playback position,
+    /// if that is available, or else (e.g. when the video is seeking or buffering)
+    /// its previous appearance, if any.
     pub(crate) fn get_current_frame_data(&self) -> Option<Snapshot> {
         let frame = self.htmlmediaelement.get_current_frame();
         if frame.is_some() {
@@ -163,22 +166,31 @@ impl HTMLVideoElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
-    fn fetch_poster_frame(&self, poster_url: &str, can_gc: CanGc) {
-        // Step 1.
+    fn update_poster_frame(&self, poster_url: Option<&str>, can_gc: CanGc) {
+        // Step 1. If there is an existing instance of this algorithm running
+        // for this video element, abort that instance of this algorithm without
+        // changing the poster frame.
         self.generation_id.set(self.generation_id.get() + 1);
 
-        // Step 2.
-        if poster_url.is_empty() {
+        // Step 2. If the poster attribute's value is the empty string or
+        // if the attribute is absent, then there is no poster frame; return.
+        if poster_url.is_none_or(|url| url.is_empty()) {
+            self.htmlmediaelement.set_poster_frame(None);
             return;
         }
 
-        // Step 3.
-        let poster_url = match self.owner_document().url().join(poster_url) {
+        // Step 3. Let url be the result of encoding-parsing a URL given
+        // the poster attribute's value, relative to the element's node
+        // document.
+        // Step 4. If url is failure, then return. There is no poster frame.
+        let poster_url = match self.owner_document().url().join(poster_url.unwrap()) {
             Ok(url) => url,
-            Err(_) => return,
+            Err(_) => {
+                self.htmlmediaelement.set_poster_frame(None);
+                return;
+            },
         };
 
-        // Step 4.
         // We use the image cache for poster frames so we save as much
         // network activity as possible.
         let window = self.owner_window();
@@ -228,7 +240,9 @@ impl HTMLVideoElement {
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
     fn do_fetch_poster_frame(&self, poster_url: ServoUrl, id: PendingImageId, can_gc: CanGc) {
-        // Continuation of step 4.
+        // Step 5. Let request be a new request whose URL is url, client is the element's node
+        // document's relevant settings object, destination is "image", initiator type is "video",
+        // credentials mode is "include", and whose use-URL-credentials flag is set.
         let document = self.owner_document();
         let request = RequestBuilder::new(
             Some(document.webview_id()),
@@ -243,7 +257,8 @@ impl HTMLVideoElement {
         .insecure_requests_policy(document.insecure_requests_policy())
         .has_trustworthy_ancestor_origin(document.has_trustworthy_ancestor_origin())
         .policy_container(document.policy_container().to_owned());
-        // Step 5.
+
+        // Step 6. Fetch request. This must delay the load event of the element's node document.
         // This delay must be independent from the ones created by HTMLMediaElement during
         // its media load algorithm, otherwise a code like
         // <video poster="poster.png"></video>
@@ -264,12 +279,15 @@ impl HTMLVideoElement {
         self.generation_id.get()
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#poster-frame>
     fn process_image_response(&self, response: ImageResponse, can_gc: CanGc) {
+        // Step 7. If an image is thus obtained, the poster frame is that image.
+        // Otherwise, there is no poster frame.
         match response {
             ImageResponse::Loaded(image, url) => {
                 debug!("Loaded poster image for video element: {:?}", url);
                 match image.as_raster_image() {
-                    Some(image) => self.htmlmediaelement.process_poster_image_loaded(image),
+                    Some(image) => self.htmlmediaelement.set_poster_frame(Some(image)),
                     None => warn!("Vector images are not yet supported in video poster"),
                 }
                 LoadBlocker::terminate(&self.load_blocker, can_gc);
@@ -277,6 +295,7 @@ impl HTMLVideoElement {
             ImageResponse::MetadataLoaded(..) => {},
             // The image cache may have loaded a placeholder for an invalid poster url
             ImageResponse::PlaceholderLoaded(..) | ImageResponse::None => {
+                self.htmlmediaelement.set_poster_frame(None);
                 // A failed load should unblock the document load.
                 LoadBlocker::terminate(&self.load_blocker, can_gc);
             },
@@ -340,10 +359,9 @@ impl VirtualMethods for HTMLVideoElement {
 
         if attr.local_name() == &local_name!("poster") {
             if let Some(new_value) = mutation.new_value(attr) {
-                self.fetch_poster_frame(&new_value, CanGc::note())
+                self.update_poster_frame(Some(&new_value), CanGc::note())
             } else {
-                self.htmlmediaelement.clear_current_frame_data();
-                self.htmlmediaelement.set_show_poster(false);
+                self.update_poster_frame(None, CanGc::note())
             }
         };
     }
@@ -521,7 +539,7 @@ impl LayoutHTMLVideoElementHelpers for LayoutDom<'_, HTMLVideoElement> {
         let video = self.unsafe_get();
 
         // Get the current frame being rendered.
-        let current_frame = video.htmlmediaelement.get_current_frame_data();
+        let current_frame = video.htmlmediaelement.get_current_frame_to_present();
 
         // This value represents the natural width and height of the video.
         // It may exist even if there is no current frame (for example, after the
