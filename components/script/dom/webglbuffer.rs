@@ -80,7 +80,7 @@ impl DroppableWebGLBuffer {
 
     pub(crate) fn delete(&self, operation_fallibility: Operation) {
         assert!(self.is_deleted());
-        if let Some(context) = self.context.root(){
+        if let Some(context) = self.context.root() {
             let cmd = WebGLCommand::DeleteBuffer(self.id);
             match operation_fallibility {
                 Operation::Fallible => context.send_command_ignored(cmd),
