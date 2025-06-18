@@ -56,7 +56,7 @@ impl RequestListener {
                 ..Default::default()
             };
 
-            if let Err(_) = structuredclone::read(&global, data, answer.handle_mut()) {
+            if structuredclone::read(&global, data, answer.handle_mut()).is_err() {
                 warn!("Error reading structuredclone data");
             }
 

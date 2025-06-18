@@ -75,7 +75,7 @@ impl OpenRequestListener {
             // FIXME:(rasviitanen) Do step 10.1-10.5
             // connection.dispatch_versionchange(db_version, Some(request_version));
             // Step 10.6
-            open_request.upgrade_db_version(&*connection, request_version, CanGc::note());
+            open_request.upgrade_db_version(&connection, request_version, CanGc::note());
             // Step 11
             (Ok(connection), true)
         } else {
@@ -147,7 +147,7 @@ impl IDBOpenDBRequest {
         // Step 2
         let transaction = IDBTransaction::new(
             &global,
-            &connection,
+            connection,
             IDBTransactionMode::Versionchange,
             &connection.object_stores(),
             can_gc,
@@ -211,7 +211,7 @@ impl IDBOpenDBRequest {
                 // Implementation specific: we fire the success on db here
                 // to make sure the success event occurs after the upgrade event.
                 txn.wait();
-                this.dispatch_success(&*conn);
+                this.dispatch_success(&conn);
             }),
         );
 
@@ -269,10 +269,10 @@ impl IDBOpenDBRequest {
                         let global = request.global();
                         match result {
                             Ok(db) => {
-                                request.dispatch_success(&*db);
+                                request.dispatch_success(&db);
                             },
                             Err(dom_exception) => {
-                                request.set_result(HandleValue::undefined().into());
+                                request.set_result(HandleValue::undefined());
                                 request.set_error(dom_exception, CanGc::note());
                                 let event = Event::new(
                                     &global,
@@ -347,7 +347,7 @@ impl IDBOpenDBRequest {
                 unsafe {
                     result.to_jsval(*cx, result_val.handle_mut());
                 }
-                this.set_result(result_val.handle().into());
+                this.set_result(result_val.handle());
 
                 let event = Event::new(
                     &global,

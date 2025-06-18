@@ -82,7 +82,7 @@ impl IDBTransaction {
         scope: &DOMStringList,
         can_gc: CanGc,
     ) -> DomRoot<IDBTransaction> {
-        let serial_number = IDBTransaction::register_new(&global, connection.get_name());
+        let serial_number = IDBTransaction::register_new(global, connection.get_name());
         reflect_dom_object(
             Box::new(IDBTransaction::new_inherited(
                 connection,
@@ -235,7 +235,7 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
                 None,
                 CanGc::note(),
             );
-            store.set_transaction(&self);
+            store.set_transaction(self);
             Dom::from_ref(&*store)
         });
 

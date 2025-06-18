@@ -124,13 +124,9 @@ impl IDBObjectStore {
         }
 
         let is_valid = |path: &DOMString| {
-            return if path.is_empty() {
-                true
-            } else if is_identifier(&path) {
-                true
-            } else {
+            path.is_empty() ||
+                is_identifier(path) ||
                 path.split(".").all(is_identifier)
-            };
         };
 
         match key_path {
@@ -153,7 +149,7 @@ impl IDBObjectStore {
         seen: Option<Vec<HandleValue>>,
     ) -> Result<IndexedDBKeyType, Error> {
         // Step 1: If seen was not given, then let seen be a new empty set.
-        let _seen = seen.unwrap_or(Vec::new());
+        let _seen = seen.unwrap_or_default();
 
         // Step 2: If seen contains input, then return invalid.
         // FIXME:(rasviitanen)
@@ -230,7 +226,7 @@ impl IDBObjectStore {
             KeyPath::String(path) => {
                 // Step 3
                 let path_as_string = path.to_string();
-                let mut tokenizer = path_as_string.split('.').into_iter().peekable();
+                let mut tokenizer = path_as_string.split('.').peekable();
 
                 while let Some(token) = tokenizer.next() {
                     if target_object.get().is_null() {
@@ -324,6 +320,7 @@ impl IDBObjectStore {
                     unsafe {
                         let prop_name_as_utf16: Vec<u16> =
                             target_object_prop_name.unwrap().encode_utf16().collect();
+                        #[allow(clippy::cast_enum_truncation)]
                         let mut succeeded = ObjectOpResult {
                             code_: ObjectOpResult_SpecialCodes::Uninitialized as usize,
                         };
@@ -335,7 +332,7 @@ impl IDBObjectStore {
                             &mut succeeded,
                         ) {
                             // FIXME:(rasviitanen) Throw/return error
-                            return;
+                            // return;
                         }
                     }
                 }
@@ -458,7 +455,7 @@ impl IDBObjectStore {
             structuredclone::write(cx, value, None).expect("Could not serialize value");
 
         IDBRequest::execute_async(
-            &*self,
+            self,
             AsyncOperation::PutItem(serialized_key, serialized_value.serialized, overwrite),
             None,
             can_gc,
@@ -491,7 +488,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     fn Delete(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
         let serialized_query = IDBObjectStore::convert_value_to_key(cx, query, None);
         serialized_query.and_then(|q| {
-            IDBRequest::execute_async(&*self, AsyncOperation::RemoveItem(q), None, CanGc::note())
+            IDBRequest::execute_async(self, AsyncOperation::RemoveItem(q), None, CanGc::note())
         })
     }
 
@@ -504,7 +501,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     fn Get(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
         let serialized_query = IDBObjectStore::convert_value_to_key(cx, query, None);
         serialized_query.and_then(|q| {
-            IDBRequest::execute_async(&*self, AsyncOperation::GetItem(q), None, CanGc::note())
+            IDBRequest::execute_async(self, AsyncOperation::GetItem(q), None, CanGc::note())
         })
     }
 

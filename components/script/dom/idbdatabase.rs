@@ -159,7 +159,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         Ok(match store_names {
             StringOrStringSequence::String(name) => IDBTransaction::new(
                 &self.global(),
-                &self,
+                self,
                 mode,
                 &DOMStringList::new(self.global().as_window(), vec![name], CanGc::note()),
                 CanGc::note(),
@@ -169,7 +169,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
                 // from the sequence
                 IDBTransaction::new(
                     &self.global(),
-                    &self,
+                    self,
                     mode,
                     &DOMStringList::new(self.global().as_window(), sequence, CanGc::note()),
                     CanGc::note(),
@@ -200,7 +200,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         let key_path = options.keyPath.as_ref();
 
         // Step 5
-        if let Some(ref path) = key_path {
+        if let Some(path) = key_path {
             if !IDBObjectStore::is_valid_key_path(path) {
                 return Err(Error::Syntax);
             }
@@ -221,7 +221,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         let auto_increment = options.autoIncrement;
 
         // Step 8
-        if auto_increment == true {
+        if auto_increment {
             match key_path {
                 Some(StringOrStringSequence::String(path)) => {
                     if path == "" {
