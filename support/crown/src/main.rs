@@ -35,8 +35,6 @@ mod unrooted_must_root;
 #[cfg(feature = "trace_in_no_trace_lint")]
 mod trace_in_no_trace;
 
-mod crown_is_not_used;
-
 struct MyCallbacks;
 
 impl Callbacks for MyCallbacks {
@@ -51,7 +49,6 @@ impl Callbacks for MyCallbacks {
                 return;
             }
 
-            crown_is_not_used::register(lint_store);
             #[cfg(feature = "unrooted_must_root_lint")]
             unrooted_must_root::register(lint_store);
             #[cfg(feature = "trace_in_no_trace_lint")]
