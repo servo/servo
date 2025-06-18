@@ -28,7 +28,7 @@ use js::jsapi::{
     ThrowOnModuleEvaluationFailure, Value,
 };
 use js::jsval::{JSVal, PrivateValue, UndefinedValue};
-use js::rust::wrappers::{JS_GetPendingException, JS_SetPendingException};
+use js::rust::wrappers::{JS_GetModulePrivate, JS_GetPendingException, JS_SetPendingException};
 use js::rust::{
     CompileOptionsWrapper, Handle, HandleObject as RustHandleObject, HandleValue, IntoHandle,
     MutableHandleObject as RustMutableHandleObject, transform_str_to_source_text,
@@ -632,7 +632,11 @@ impl ModuleTree {
                         .unwrap(),
                 );
 
-                let url = ModuleTree::resolve_module_specifier(global, specifier);
+                rooted!(in(*cx) let mut private = UndefinedValue());
+                JS_GetModulePrivate(module_object.get(), private.handle_mut());
+                let private = private.handle().into_handle();
+                let script = module_script_from_reference_private(&private);
+                let url = ModuleTree::resolve_module_specifier(global, script, specifier);
 
                 if url.is_none() {
                     let specifier_error =
@@ -656,14 +660,21 @@ impl ModuleTree {
     /// special meanings in the future.
     /// <https://html.spec.whatwg.org/multipage/#resolve-a-module-specifier>
     #[allow(unsafe_code)]
-    fn resolve_module_specifier(global: &GlobalScope, specifier: DOMString) -> Option<ServoUrl> {
+    fn resolve_module_specifier(
+        global: &GlobalScope,
+        script: Option<&ModuleScript>,
+        specifier: DOMString,
+    ) -> Option<ServoUrl> {
         // TODO: Step 2. If referringScript is not null, then:
         // Step 3. Otherwise:
-        let base_url = global.api_base_url();
+        let base_url = match script {
+            Some(s) => &s.base_url,
+            None => &global.api_base_url(),
+        };
 
         // TODO: We return the url here to keep the origianl behavior. should fix when we implement the full spec.
         // Step 7. Let asURL be the result of resolving a URL-like module specifier given specifier and baseURL.
-        Self::resolve_url_like_module_specifier(&specifier, &base_url)
+        Self::resolve_url_like_module_specifier(&specifier, base_url)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#resolving-a-url-like-module-specifier>
@@ -1336,17 +1347,6 @@ pub(crate) unsafe extern "C" fn host_import_module_dynamically(
     let cx = SafeJSContext::from_ptr(cx);
     let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
     let global_scope = GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
-
-    // Step 2.
-    // Step 3.
-    let mut options = ScriptFetchOptions::default_classic_script(&global_scope);
-
-    // Step 4.
-    let module_data = module_script_from_reference_private(&reference_private);
-    if let Some(data) = module_data {
-        options = data.options.descendant_fetch_options();
-    }
-
     let promise = Promise::new_with_js_promise(Handle::from_raw(promise), cx);
 
     //Step 5 & 6.
@@ -1354,7 +1354,6 @@ pub(crate) unsafe extern "C" fn host_import_module_dynamically(
         &global_scope,
         specifier,
         reference_private,
-        options,
         promise,
         CanGc::note(),
     ) {
@@ -1422,7 +1421,6 @@ fn fetch_an_import_module_script_graph(
     global: &GlobalScope,
     module_request: RawHandle<*mut JSObject>,
     reference_private: RawHandleValue,
-    options: ScriptFetchOptions,
     promise: Rc<Promise>,
     can_gc: CanGc,
 ) -> Result<(), RethrowError> {
@@ -1434,7 +1432,12 @@ fn fetch_an_import_module_script_graph(
             ptr::NonNull::new(GetModuleRequestSpecifier(*cx, module_request)).unwrap(),
         )
     };
-    let url = ModuleTree::resolve_module_specifier(global, specifier);
+    let mut options = ScriptFetchOptions::default_classic_script(&global);
+    let module_data = unsafe { module_script_from_reference_private(&reference_private) };
+    if let Some(data) = module_data {
+        options = data.options.descendant_fetch_options();
+    }
+    let url = ModuleTree::resolve_module_specifier(global, module_data, specifier);
 
     // Step 2.
     if url.is_none() {
@@ -1490,18 +1493,19 @@ fn fetch_an_import_module_script_graph(
 /// <https://html.spec.whatwg.org/multipage/#hostloadimportedmodule>
 unsafe extern "C" fn HostResolveImportedModule(
     cx: *mut JSContext,
-    _reference_private: RawHandleValue,
+    reference_private: RawHandleValue,
     specifier: RawHandle<*mut JSObject>,
 ) -> *mut JSObject {
     let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
     let global_scope = GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof));
 
     // Step 5.
+    let module_data = module_script_from_reference_private(&reference_private);
     let specifier = jsstring_to_str(
         cx,
         ptr::NonNull::new(GetModuleRequestSpecifier(cx, specifier)).unwrap(),
     );
-    let url = ModuleTree::resolve_module_specifier(&global_scope, specifier);
+    let url = ModuleTree::resolve_module_specifier(&global_scope, module_data, specifier);
 
     // Step 6.
     assert!(url.is_some());
