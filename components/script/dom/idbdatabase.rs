@@ -144,7 +144,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         &self,
         store_names: StringOrStringSequence,
         mode: IDBTransactionMode,
-        options: &IDBTransactionOptions,
+        _options: &IDBTransactionOptions,
     ) -> Fallible<DomRoot<IDBTransaction>> {
         // FIXIME:(arihant2math) use options
         // Step 1: Check if upgrade transaction is running

@@ -81,6 +81,7 @@ impl IDBVersionChangeEvent {
 }
 
 impl IDBVersionChangeEventMethods<crate::DomTypeHolder> for IDBVersionChangeEvent {
+    /// <https://w3c.github.io/IndexedDB/#dom-idbversionchangeevent-idbversionchangeevent>
     fn Constructor(
         window: &Window,
         _proto: Option<HandleObject>,

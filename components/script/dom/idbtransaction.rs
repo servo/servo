@@ -36,7 +36,7 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub struct IDBTransaction {
     eventtarget: EventTarget,
-    object_store_names: DomRoot<DOMStringList>,
+    object_store_names: Dom<DOMStringList>,
     mode: IDBTransactionMode,
     db: Dom<IDBDatabase>,
     error: MutNullableDom<DOMException>,
