@@ -28,7 +28,7 @@ use devtools_traits::{
 };
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
 use ipc_channel::ipc::{self, IpcSender};
-use log::trace;
+use log::{trace, warn};
 use resource::ResourceAvailable;
 use serde::Serialize;
 use servo_rand::RngCore;
@@ -252,10 +252,13 @@ impl DevtoolsInstance {
                     console_message,
                     worker_id,
                 )) => self.handle_console_message(pipeline_id, worker_id, console_message),
-                DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ScriptSourceLoaded(
+                DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::CreateSourceActor(
                     pipeline_id,
                     source_info,
-                )) => self.handle_script_source_info(pipeline_id, source_info),
+                )) => self.handle_create_source_actor(pipeline_id, source_info),
+                DevtoolsControlMsg::FromScript(
+                    ScriptToDevtoolsControlMsg::UpdateSourceContent(pipeline_id, source_content),
+                ) => self.handle_update_source_content(pipeline_id, source_content),
                 DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ReportPageError(
                     pipeline_id,
                     page_error,
@@ -515,11 +518,13 @@ impl DevtoolsInstance {
         }
     }
 
-    fn handle_script_source_info(&mut self, pipeline_id: PipelineId, source_info: SourceInfo) {
+    fn handle_create_source_actor(&mut self, pipeline_id: PipelineId, source_info: SourceInfo) {
+        warn!("CreateSourceActor pipeline_id={pipeline_id} source_info={source_info:?}");
         let mut actors = self.actors.lock().unwrap();
 
         let source_actor = SourceActor::new_registered(
             &mut actors,
+            pipeline_id,
             source_info.url,
             source_info.content,
             source_info.content_type.unwrap(),
@@ -564,6 +569,18 @@ impl DevtoolsInstance {
 
             for stream in self.connections.values_mut() {
                 browsing_context.resource_available(&source_form, "source".into(), stream);
+            }
+        }
+    }
+
+    fn handle_update_source_content(&mut self, pipeline_id: PipelineId, source_content: String) {
+        warn!("UpdateSourceContent pipeline_id={pipeline_id} source_content={source_content:?}");
+        let mut actors = self.actors.lock().unwrap();
+
+        for actor_name in actors.source_actor_names_for_pipeline(pipeline_id) {
+            let source_actor: &mut SourceActor = actors.find_mut(&actor_name);
+            if source_actor.content.is_none() {
+                source_actor.content = Some(source_content.clone());
             }
         }
     }

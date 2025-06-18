@@ -10,6 +10,7 @@ use base::id::PipelineId;
 use base64::Engine as _;
 use base64::engine::general_purpose;
 use content_security_policy as csp;
+use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource};
 use encoding_rs::Encoding;
@@ -137,6 +138,8 @@ pub(crate) struct ServoParser {
     #[ignore_malloc_size_of = "Defined in html5ever"]
     #[no_trace]
     prefetch_input: BufferQueue,
+    // TODO: use a faster type for concatenating strings?
+    content_for_devtools: DomRefCell<String>,
 }
 
 pub(crate) struct ElementAttribute {
@@ -472,6 +475,7 @@ impl ServoParser {
             script_created_parser: kind == ParserKind::ScriptCreated,
             prefetch_tokenizer: prefetch::Tokenizer::new(document),
             prefetch_input: BufferQueue::default(),
+            content_for_devtools: DomRefCell::new("".to_owned()),
         }
     }
 
@@ -490,6 +494,13 @@ impl ServoParser {
     }
 
     fn push_tendril_input_chunk(&self, chunk: StrTendril) {
+        if self.document.global().devtools_chan().is_some() {
+            // TODO: append these chunks more efficiently
+            self.content_for_devtools
+                .borrow_mut()
+                .push_str(chunk.as_ref());
+        }
+
         if chunk.is_empty() {
             return;
         }
@@ -687,6 +698,17 @@ impl ServoParser {
         // Steps 3-12 are in another castle, namely finish_load.
         let url = self.tokenizer.url().clone();
         self.document.finish_load(LoadType::PageSource(url), can_gc);
+
+        // Send the source contents to devtools, if needed.
+        if let Some(chan) = self.document.global().devtools_chan() {
+            // FIXME: this seems to run for innerHTML assignments too
+            let content_for_devtools = self.content_for_devtools.take();
+            let pipeline_id = self.document.global().pipeline_id();
+            let _ = chan.send(ScriptToDevtoolsControlMsg::UpdateSourceContent(
+                pipeline_id,
+                content_for_devtools,
+            ));
+        }
     }
 }
 

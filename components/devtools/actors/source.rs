@@ -6,6 +6,7 @@ use std::cell::RefCell;
 use std::collections::BTreeSet;
 use std::net::TcpStream;
 
+use base::id::PipelineId;
 use serde::Serialize;
 use serde_json::{Map, Value};
 use servo_url::ServoUrl;
@@ -103,6 +104,7 @@ impl SourceActor {
 
     pub fn new_registered(
         actors: &mut ActorRegistry,
+        pipeline_id: PipelineId,
         url: ServoUrl,
         content: Option<String>,
         content_type: String,
@@ -111,6 +113,7 @@ impl SourceActor {
 
         let source_actor = SourceActor::new(source_actor_name.clone(), url, content, content_type);
         actors.register(Box::new(source_actor));
+        actors.register_source_actor(pipeline_id, &source_actor_name);
 
         actors.find(&source_actor_name)
     }

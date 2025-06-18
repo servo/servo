@@ -1109,7 +1109,7 @@ impl HTMLScriptElement {
                 content,
                 content_type: Some(content_type.to_string()),
             };
-            let _ = chan.send(ScriptToDevtoolsControlMsg::ScriptSourceLoaded(
+            let _ = chan.send(ScriptToDevtoolsControlMsg::CreateSourceActor(
                 pipeline_id,
                 source_info,
             ));
