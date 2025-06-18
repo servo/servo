@@ -1086,6 +1086,9 @@ impl Handler {
             session.browsing_context_id = BrowsingContextId::from(webview_id);
 
             let msg = EmbedderToConstellationMessage::FocusWebView(webview_id);
+            // Wait for the webview to be focused.
+            // TODO: We will implement the proper synchronization after moving webdriver to embedder.
+            thread::sleep(Duration::from_millis(250));
             self.constellation_chan.send(msg).unwrap();
             Ok(WebDriverResponse::Void)
         } else {
