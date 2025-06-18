@@ -42,7 +42,13 @@ pub enum WebDriverCommandMsg {
     /// Act as if keys were pressed in the browsing context with the given ID.
     SendKeys(BrowsingContextId, Vec<WebDriverInputEvent>),
     /// Act as if keys were pressed or release in the browsing context with the given ID.
-    KeyboardAction(BrowsingContextId, KeyboardEvent),
+    KeyboardAction(
+        BrowsingContextId,
+        KeyboardEvent,
+        // Should never be None.
+        Option<WebDriverMessageId>,
+        IpcSender<WebDriverCommandResponse>,
+    ),
     /// Act as if the mouse was clicked in the browsing context with the given ID.
     MouseButtonAction(
         WebViewId,

@@ -227,6 +227,9 @@ struct Handler {
     current_action_id: Cell<Option<WebDriverMessageId>>,
 
     resize_timeout: u32,
+
+    /// Number of pending actions of which WebDriver is waiting for responses.
+    num_pending_actions: Cell<u32>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -459,7 +462,14 @@ impl Handler {
             id_generator: WebDriverMessageIdGenerator::new(),
             current_action_id: Cell::new(None),
             resize_timeout: 500,
+            num_pending_actions: Cell::new(0),
         }
+    }
+
+    fn increment_num_pending_actions(&self) {
+        // Increase the num_pending_actions by one every time we dispatch non null actions.
+        self.num_pending_actions
+            .set(self.num_pending_actions.get() + 1);
     }
 
     fn focus_webview_id(&self) -> WebDriverResult<WebViewId> {

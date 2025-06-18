@@ -85,7 +85,9 @@ use gleam::gl::RENDERER;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use javascript_evaluator::JavaScriptEvaluator;
-pub use keyboard_types::*;
+pub use keyboard_types::{
+    Code, CompositionEvent, CompositionState, Key, KeyState, Location, Modifiers,
+};
 use layout::LayoutFactoryImpl;
 use log::{Log, Metadata, Record, debug, warn};
 use media::{GlApi, NativeDisplay, WindowGLContext};

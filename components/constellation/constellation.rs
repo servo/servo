@@ -130,9 +130,9 @@ use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
     AnimationState, CompositorHitTestResult, Cursor, EmbedderMsg, EmbedderProxy,
     FocusSequenceNumber, ImeEvent, InputEvent, JSValue, JavaScriptEvaluationError,
-    JavaScriptEvaluationId, MediaSessionActionType, MediaSessionEvent, MediaSessionPlaybackState,
-    MouseButton, MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverCommandMsg,
-    WebDriverCommandResponse, WebDriverLoadStatus,
+    JavaScriptEvaluationId, KeyboardEvent, MediaSessionActionType, MediaSessionEvent,
+    MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent, Theme,
+    ViewportDetails, WebDriverCommandMsg, WebDriverCommandResponse, WebDriverLoadStatus,
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
@@ -141,7 +141,7 @@ use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;
-use keyboard_types::{Key, KeyState, KeyboardEvent, Modifiers};
+use keyboard_types::{Key, KeyState, Modifiers};
 use log::{debug, error, info, trace, warn};
 use media::WindowGLContext;
 use net_traits::pub_domains::reg_host;
@@ -3034,13 +3034,13 @@ where
     }
 
     fn update_active_keybord_modifiers(&mut self, event: &KeyboardEvent) {
-        self.active_keyboard_modifiers = event.modifiers;
+        self.active_keyboard_modifiers = event.event.modifiers;
 
         // `KeyboardEvent::modifiers` contains the pre-existing modifiers before this key was
         // either pressed or released, but `active_keyboard_modifiers` should track the subsequent
         // state. If this event will update that state, we need to ensure that we are tracking what
         // the event changes.
-        let modified_modifier = match event.key {
+        let modified_modifier = match event.event.key {
             Key::Alt => Modifiers::ALT,
             Key::AltGraph => Modifiers::ALT_GRAPH,
             Key::CapsLock => Modifiers::CAPS_LOCK,
@@ -3059,7 +3059,7 @@ where
             Key::Super => Modifiers::META,
             _ => return,
         };
-        match event.state {
+        match event.event.state {
             KeyState::Down => self.active_keyboard_modifiers.insert(modified_modifier),
             KeyState::Up => self.active_keyboard_modifiers.remove(modified_modifier),
         }
@@ -4840,7 +4840,7 @@ where
                             pressed_mouse_buttons: self.pressed_mouse_buttons,
                             active_keyboard_modifiers: event.modifiers,
                             hit_test_result: None,
-                            event: InputEvent::Keyboard(event),
+                            event: InputEvent::Keyboard(KeyboardEvent::new(event)),
                         },
                         WebDriverInputEvent::Composition(event) => ConstellationInputEvent {
                             pressed_mouse_buttons: self.pressed_mouse_buttons,
@@ -4855,7 +4855,14 @@ where
                     }
                 }
             },
-            WebDriverCommandMsg::KeyboardAction(browsing_context_id, event) => {
+            WebDriverCommandMsg::KeyboardAction(
+                browsing_context_id,
+                key_event,
+                msg_id,
+                response_sender,
+            ) => {
+                self.webdriver.input_command_response_sender = Some(response_sender);
+
                 let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
                     Some(browsing_context) => browsing_context.pipeline_id,
                     None => {
@@ -4866,13 +4873,15 @@ where
                     Some(pipeline) => pipeline.event_loop.clone(),
                     None => return warn!("{}: KeyboardAction after closure", pipeline_id),
                 };
+                let event = InputEvent::Keyboard(KeyboardEvent::new(key_event.clone()))
+                    .with_webdriver_message_id(msg_id);
                 let control_msg = ScriptThreadMessage::SendInputEvent(
                     pipeline_id,
                     ConstellationInputEvent {
                         pressed_mouse_buttons: self.pressed_mouse_buttons,
-                        active_keyboard_modifiers: event.modifiers,
+                        active_keyboard_modifiers: key_event.modifiers,
                         hit_test_result: None,
-                        event: InputEvent::Keyboard(event),
+                        event,
                     },
                 );
                 if let Err(e) = event_loop.send(control_msg) {

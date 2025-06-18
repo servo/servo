@@ -25,7 +25,6 @@ use crossbeam_channel::Sender;
 use euclid::{Scale, Size2D};
 use http::{HeaderMap, Method, StatusCode};
 use ipc_channel::ipc::IpcSender;
-pub use keyboard_types::{KeyboardEvent, Modifiers};
 use log::warn;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;

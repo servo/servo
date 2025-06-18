@@ -626,22 +626,14 @@ impl RunningAppState {
     }
 
     pub fn key_down(&self, key: Key) {
-        let key_event = KeyboardEvent {
-            state: KeyState::Down,
-            key,
-            ..KeyboardEvent::default()
-        };
+        let key_event = KeyboardEvent::from_state_and_key(KeyState::Down, key);
         self.active_webview()
             .notify_input_event(InputEvent::Keyboard(key_event));
         self.perform_updates();
     }
 
     pub fn key_up(&self, key: Key) {
-        let key_event = KeyboardEvent {
-            state: KeyState::Up,
-            key,
-            ..KeyboardEvent::default()
-        };
+        let key_event = KeyboardEvent::from_state_and_key(KeyState::Up, key);
         self.active_webview()
             .notify_input_event(InputEvent::Keyboard(key_event));
         self.perform_updates();
@@ -653,22 +645,20 @@ impl RunningAppState {
             return;
         }
         let active_webview = self.active_webview();
-        active_webview.notify_input_event(InputEvent::Keyboard(KeyboardEvent {
-            state: KeyState::Down,
-            key: Key::Process,
-            ..KeyboardEvent::default()
-        }));
+        active_webview.notify_input_event(InputEvent::Keyboard(KeyboardEvent::from_state_and_key(
+            KeyState::Down,
+            Key::Process,
+        )));
         active_webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
             CompositionEvent {
                 state: CompositionState::End,
                 data: text,
             },
         )));
-        active_webview.notify_input_event(InputEvent::Keyboard(KeyboardEvent {
-            state: KeyState::Up,
-            key: Key::Process,
-            ..KeyboardEvent::default()
-        }));
+        active_webview.notify_input_event(InputEvent::Keyboard(KeyboardEvent::from_state_and_key(
+            KeyState::Up,
+            Key::Process,
+        )));
         self.perform_updates();
     }
 

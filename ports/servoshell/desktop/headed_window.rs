@@ -184,16 +184,16 @@ impl Window {
             // no keyboard event is emitted. A dummy event is created in this case.
             (KeyboardEvent::default(), None)
         };
-        event.key = Key::Character(character.to_string());
+        event.event.key = Key::Character(character.to_string());
 
-        if event.state == KeyState::Down {
+        if event.event.state == KeyState::Down {
             // Ensure that when we receive a keyup event from winit, we are able
             // to infer that it's related to this character and set the event
             // properties appropriately.
             if let Some(key_code) = key_code {
                 self.keys_down
                     .borrow_mut()
-                    .insert(key_code, event.key.clone());
+                    .insert(key_code, event.event.key.clone());
             }
         }
 
@@ -223,20 +223,24 @@ impl Window {
             }
         }
 
-        if keyboard_event.state == KeyState::Down && keyboard_event.key == Key::Unidentified {
+        if keyboard_event.event.state == KeyState::Down &&
+            keyboard_event.event.key == Key::Unidentified
+        {
             // If pressed and probably printable, we expect a ReceivedCharacter event.
             // Wait for that to be received and don't queue any event right now.
             self.last_pressed
                 .set(Some((keyboard_event, Some(winit_event.logical_key))));
             return;
-        } else if keyboard_event.state == KeyState::Up && keyboard_event.key == Key::Unidentified {
+        } else if keyboard_event.event.state == KeyState::Up &&
+            keyboard_event.event.key == Key::Unidentified
+        {
             // If release and probably printable, this is following a ReceiverCharacter event.
             if let Some(key) = self.keys_down.borrow_mut().remove(&winit_event.logical_key) {
-                keyboard_event.key = key;
+                keyboard_event.event.key = key;
             }
         }
 
-        if keyboard_event.key != Key::Unidentified {
+        if keyboard_event.event.key != Key::Unidentified {
             self.last_pressed.set(None);
             let xr_poses = self.xr_window_poses.borrow();
             for xr_window_pose in &*xr_poses {
@@ -284,7 +288,7 @@ impl Window {
         };
 
         let mut handled = true;
-        ShortcutMatcher::from_event(key_event.clone())
+        ShortcutMatcher::from_event(key_event.event.clone())
             .shortcut(CMD_OR_CONTROL, 'R', || focused_webview.reload())
             .shortcut(CMD_OR_CONTROL, 'W', || {
                 state.close_webview(focused_webview.id());
@@ -828,14 +832,14 @@ impl servo::webxr::glwindow::GlWindow for XRWindow {
 
 impl XRWindowPose {
     fn handle_xr_translation(&self, input: &KeyboardEvent) {
-        if input.state != KeyState::Down {
+        if input.event.state != KeyState::Down {
             return;
         }
         const NORMAL_TRANSLATE: f32 = 0.1;
         const QUICK_TRANSLATE: f32 = 1.0;
         let mut x = 0.0;
         let mut z = 0.0;
-        match input.key {
+        match input.event.key {
             Key::Character(ref k) => match &**k {
                 "w" => z = -NORMAL_TRANSLATE,
                 "W" => z = -QUICK_TRANSLATE,

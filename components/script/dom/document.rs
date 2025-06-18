@@ -2365,7 +2365,7 @@ impl Document {
     /// The entry point for all key processing for web content
     pub(crate) fn dispatch_key_event(
         &self,
-        keyboard_event: ::keyboard_types::KeyboardEvent,
+        keyboard_event: ::embedder_traits::KeyboardEvent,
         can_gc: CanGc,
     ) {
         let focused = self.get_focused_element();
@@ -2379,19 +2379,19 @@ impl Document {
 
         let keyevent = KeyboardEvent::new(
             &self.window,
-            DOMString::from(keyboard_event.state.to_string()),
+            DOMString::from(keyboard_event.event.state.to_string()),
             true,
             true,
             Some(&self.window),
             0,
-            keyboard_event.key.clone(),
-            DOMString::from(keyboard_event.code.to_string()),
-            keyboard_event.location as u32,
-            keyboard_event.repeat,
-            keyboard_event.is_composing,
-            keyboard_event.modifiers,
+            keyboard_event.event.key.clone(),
+            DOMString::from(keyboard_event.event.code.to_string()),
+            keyboard_event.event.location as u32,
+            keyboard_event.event.repeat,
+            keyboard_event.event.is_composing,
+            keyboard_event.event.modifiers,
             0,
-            keyboard_event.key.legacy_keycode(),
+            keyboard_event.event.key.legacy_keycode(),
             can_gc,
         );
         let event = keyevent.upcast::<Event>();
@@ -2402,9 +2402,9 @@ impl Document {
         // it MUST prevent the respective beforeinput and input
         // (and keypress if supported) events from being generated
         // TODO: keypress should be deprecated and superceded by beforeinput
-        if keyboard_event.state == KeyState::Down &&
-            is_character_value_key(&(keyboard_event.key)) &&
-            !keyboard_event.is_composing &&
+        if keyboard_event.event.state == KeyState::Down &&
+            is_character_value_key(&(keyboard_event.event.key)) &&
+            !keyboard_event.event.is_composing &&
             cancel_state != EventDefault::Prevented
         {
             // https://w3c.github.io/uievents/#keypress-event-order
@@ -2415,13 +2415,13 @@ impl Document {
                 true,
                 Some(&self.window),
                 0,
-                keyboard_event.key.clone(),
-                DOMString::from(keyboard_event.code.to_string()),
-                keyboard_event.location as u32,
-                keyboard_event.repeat,
-                keyboard_event.is_composing,
-                keyboard_event.modifiers,
-                keyboard_event.key.legacy_charcode(),
+                keyboard_event.event.key.clone(),
+                DOMString::from(keyboard_event.event.code.to_string()),
+                keyboard_event.event.location as u32,
+                keyboard_event.event.repeat,
+                keyboard_event.event.is_composing,
+                keyboard_event.event.modifiers,
+                keyboard_event.event.key.legacy_charcode(),
                 0,
                 can_gc,
             );
@@ -2439,8 +2439,8 @@ impl Document {
             // however *when* we do it is up to us.
             // Here, we're dispatching it after the key event so the script has a chance to cancel it
             // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27337
-            if (keyboard_event.key == Key::Enter || keyboard_event.code == Code::Space) &&
-                keyboard_event.state == KeyState::Up
+            if (keyboard_event.event.key == Key::Enter || keyboard_event.event.code == Code::Space) &&
+                keyboard_event.event.state == KeyState::Up
             {
                 if let Some(elem) = target.downcast::<Element>() {
                     elem.upcast::<Node>()
