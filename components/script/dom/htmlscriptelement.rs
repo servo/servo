@@ -49,7 +49,7 @@ use crate::dom::bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElem
 use crate::dom::bindings::codegen::UnionTypes::{
     TrustedScriptOrString, TrustedScriptURLOrUSVString,
 };
-use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
@@ -308,7 +308,7 @@ pub(crate) struct ScriptOrigin {
     fetch_options: ScriptFetchOptions,
     type_: ScriptType,
     unminified_dir: Option<String>,
-    import_map_result: Option<Fallible<ImportMap>>,
+    import_map_result: Fallible<ImportMap>,
 }
 
 impl ScriptOrigin {
@@ -318,7 +318,7 @@ impl ScriptOrigin {
         fetch_options: ScriptFetchOptions,
         type_: ScriptType,
         unminified_dir: Option<String>,
-        import_map_result: Option<Fallible<ImportMap>>,
+        import_map_result: Fallible<ImportMap>,
     ) -> ScriptOrigin {
         ScriptOrigin {
             code: SourceCode::Text(text),
@@ -345,7 +345,7 @@ impl ScriptOrigin {
             fetch_options,
             type_,
             unminified_dir,
-            import_map_result: None,
+            import_map_result: Err(Error::NotFound),
         }
     }
 
@@ -969,7 +969,7 @@ impl HTMLScriptElement {
                         options.clone(),
                         script_type,
                         self.global().unminified_js_dir(),
-                        None,
+                        Err(Error::NotFound),
                     ));
 
                     if was_parser_inserted &&
@@ -1015,12 +1015,12 @@ impl HTMLScriptElement {
                         can_gc,
                     );
                     let result = Ok(ScriptOrigin::internal(
-                        Rc::clone(&text_rc),
+                        text_rc,
                         base_url.clone(),
                         options.clone(),
                         script_type,
                         self.global().unminified_js_dir(),
-                        Some(import_map_result),
+                        import_map_result,
                     ));
 
                     // Step 34.3
@@ -1079,11 +1079,6 @@ impl HTMLScriptElement {
 
             Ok(script) => script,
         };
-
-        if script.type_ == ScriptType::ImportMap && script.import_map_result.is_none() {
-            self.dispatch_error_event(can_gc);
-            return;
-        }
 
         if let Some(chan) = self.global().devtools_chan() {
             let pipeline_id = self.global().pipeline_id();
@@ -1147,9 +1142,7 @@ impl HTMLScriptElement {
             },
             ScriptType::ImportMap => {
                 // Step 6.1 Register an import map given el's relevant global object and el's result.
-                if let Some(import_map_result) = &script.import_map_result {
-                    register_import_map(&self.owner_global(), import_map_result, can_gc);
-                }
+                register_import_map(&self.owner_global(), script.import_map_result, can_gc);
             },
         }
 

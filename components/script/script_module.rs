@@ -989,7 +989,7 @@ impl ModuleOwner {
                                 fetch_options,
                                 ScriptType::Module,
                                 global.unminified_js_dir(),
-                                None,
+                                Err(Error::NotFound),
                             )),
                         },
                     }
@@ -1884,7 +1884,7 @@ pub(crate) struct ImportMap {
 /// <https://html.spec.whatwg.org/multipage/#register-an-import-map>
 pub(crate) fn register_import_map(
     global: &GlobalScope,
-    result: &Fallible<ImportMap>,
+    result: Fallible<ImportMap>,
     can_gc: CanGc,
 ) {
     match result {
@@ -1903,17 +1903,17 @@ pub(crate) fn register_import_map(
 /// <https://html.spec.whatwg.org/multipage/#merge-existing-and-new-import-maps>
 fn merge_existing_and_new_import_maps(
     global: &GlobalScope,
-    new_import_map: &ImportMap,
+    new_import_map: ImportMap,
     can_gc: CanGc,
 ) {
     // Step 1. Let newImportMapScopes be a deep copy of newImportMap's scopes.
-    let new_import_map_scopes = new_import_map.scopes.clone();
+    let new_import_map_scopes = new_import_map.scopes;
 
     // Step 2. Let oldImportMap be global's import map.
     let mut old_import_map = global.import_map().borrow_mut();
 
     // Step 3. Let newImportMapImports be a deep copy of newImportMap's imports.
-    let new_import_map_imports = new_import_map.imports.clone();
+    let new_import_map_imports = new_import_map.imports;
 
     // Step 4. For each scopePrefix → scopeImports of newImportMapScopes:
     for (scope_prefix, scope_imports) in new_import_map_scopes {
@@ -1926,7 +1926,7 @@ fn merge_existing_and_new_import_maps(
             // merging module specifier maps, given scopeImports and oldImportMap's scopes[scopePrefix].
             let merged_module_specifier_map = merge_module_specifier_maps(
                 global,
-                &scope_imports,
+                scope_imports,
                 &old_import_map.scopes[&scope_prefix],
                 can_gc,
             );
@@ -1966,7 +1966,7 @@ fn merge_existing_and_new_import_maps(
     // given newImportMapImports and oldImportMap's imports.
     let merged_module_specifier_map = merge_module_specifier_maps(
         global,
-        &new_import_map_imports,
+        new_import_map_imports,
         &old_import_map.imports,
         can_gc,
     );
@@ -1976,7 +1976,7 @@ fn merge_existing_and_new_import_maps(
 /// <https://html.spec.whatwg.org/multipage/#merge-module-specifier-maps>
 fn merge_module_specifier_maps(
     global: &GlobalScope,
-    new_map: &ModuleSpecifierMap,
+    new_map: ModuleSpecifierMap,
     old_map: &ModuleSpecifierMap,
     _can_gc: CanGc,
 ) -> ModuleSpecifierMap {
@@ -1986,7 +1986,7 @@ fn merge_module_specifier_maps(
     // Step 2. For each specifier → url of newMap:
     for (specifier, url) in new_map {
         // Step 2.1 If specifier exists in oldMap, then:
-        if old_map.contains_key(specifier) {
+        if old_map.contains_key(&specifier) {
             // Step 2.1.1 The user agent may report a warning to the console indicating the ignored rule.
             // They may choose to avoid reporting if the rule is identical to an existing one.
             Console::internal_warn(
@@ -1999,7 +1999,7 @@ fn merge_module_specifier_maps(
         }
 
         // Step 2.2 Set mergedMap[specifier] to url.
-        merged_map.insert(specifier.clone(), url.clone());
+        merged_map.insert(specifier, url);
     }
 
     merged_map
