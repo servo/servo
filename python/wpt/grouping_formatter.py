@@ -117,6 +117,7 @@ class ServoHandler(mozlog.reader.LogHandler):
 
     def reset_state(self):
         self.reset_stats()
+        self.suite_count = 0
         self.test_output = collections.defaultdict(str)
         self.subtest_failures = collections.defaultdict(list)
         self.tests_with_failing_subtests = []
@@ -149,8 +150,12 @@ class ServoHandler(mozlog.reader.LogHandler):
         self.need_to_erase_last_line = False
         self.running_tests: Dict[str, str] = {}
 
+    def any_stable_unexpected(self) -> bool:
+        return any(not unexpected.flaky for unexpected in self.unexpected_results)
+
     def suite_start(self, data):
         self.reset_stats()
+        self.suite_count += 1
         self.number_of_tests = sum(len(tests) for tests in itervalues(data["tests"]))
         self.suite_start_time = data["time"]
 
@@ -175,7 +180,30 @@ class ServoHandler(mozlog.reader.LogHandler):
         had_expected_test_result = self.data_was_for_expected_result(data)
         subtest_failures = self.subtest_failures.pop(test_path, [])
         test_output = self.test_output.pop(test_path, "")
-        if had_expected_test_result and not subtest_failures:
+
+        is_expected = had_expected_test_result and not subtest_failures
+
+        if self.suite_count >= 2:
+            # we assume all next suites are from retry-unexpected
+            # so runs contain only known unexpected results
+            if not is_expected:
+                return UnexpectedResult(
+                    test_path,
+                    test_status,
+                    data.get("expected", test_status),
+                    data.get("message", ""),
+                    data["time"],
+                    "",
+                    subtest_failures,
+                )
+            for unexpected in self.unexpected_results:
+                if unexpected.path == test_path:
+                    unexpected.flaky = True
+                    break
+
+            return None
+
+        if is_expected:
             self.expected[test_status] += 1
             return None
 
@@ -289,10 +317,11 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
 
     def suite_start(self, data):
         ServoHandler.suite_start(self, data)
+        maybe_flakes_msg = " to detect flakes" if self.suite_count >= 2 else ""
         if self.number_of_tests == 0:
-            return "Running tests in %s\n\n" % data["source"]
+            return f"Running tests in {data['source']}{maybe_flakes_msg}\n\n"
         else:
-            return "Running %i tests in %s\n\n" % (self.number_of_tests, data["source"])
+            return f"Running {self.number_of_tests} tests in {data['source']}{maybe_flakes_msg}\n\n"
 
     def test_start(self, data):
         ServoHandler.test_start(self, data)

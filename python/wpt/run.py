@@ -93,6 +93,8 @@ def run_tests(default_binary_path: str, **kwargs):
     filter_intermittents_output = kwargs.pop("filter_intermittents", None)
     unexpected_raw_log_output_file = kwargs.pop("log_raw_unexpected", None)
     raw_log_outputs = kwargs.get("log_raw", [])
+    if filter_intermittents_output and kwargs["retry_unexpected"] <= 0:
+        kwargs["retry_unexpected"] = 1
 
     wptcommandline.check_args(kwargs)
 
@@ -116,41 +118,14 @@ def run_tests(default_binary_path: str, **kwargs):
     logger.add_handler(handler)
 
     wptrunner.run_tests(**kwargs)
-    return_value = 0 if not handler.unexpected_results else 1
+    return_value = int(handler.any_stable_unexpected())
 
     # Filter intermittents if that was specified on the command-line.
-    if handler.unexpected_results and filter_intermittents_output:
-        # Copy the list of unexpected results from the first run, so that we
-        # can access them after the tests are rerun (which changes
-        # `handler.unexpected_results`). After rerunning some tests will be
-        # marked as flaky but otherwise the contents of this original list
-        # won't change.
-        unexpected_results = list(handler.unexpected_results)
-
-        # This isn't strictly necessary since `handler.suite_start()` clears
-        # the state, but make sure that we are starting with a fresh handler.
-        handler.reset_state()
-
-        print(80 * "=")
-        print(f"Rerunning {len(unexpected_results)} tests with unexpected results to detect flaky tests.")
-        unexpected_results_tests = [result.path for result in unexpected_results]
-        kwargs["test_list"] = unexpected_results_tests
-        kwargs["include"] = unexpected_results_tests
-        kwargs["pause_after_test"] = False
-        wptrunner.run_tests(**kwargs)
-
+    if filter_intermittents_output:
         if github_context:
             os.environ["GITHUB_CONTEXT"] = github_context
 
-        # Use the second run to mark tests from the first run as flaky, but
-        # discard the results otherwise.
-        # TODO: It might be a good idea to send the new results to the
-        # dashboard if they were also unexpected.
-        stable_tests = [result.path for result in handler.unexpected_results]
-        for result in unexpected_results:
-            result.flaky = result.path not in stable_tests
-
-        all_filtered = filter_intermittents(unexpected_results, filter_intermittents_output)
+        all_filtered = filter_intermittents(handler.unexpected_results, filter_intermittents_output)
         return_value = 0 if all_filtered else 1
 
     # Write the unexpected-only raw log if that was specified on the command-line.
