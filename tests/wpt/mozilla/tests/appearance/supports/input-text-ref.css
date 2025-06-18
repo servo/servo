@@ -1,6 +1,6 @@
-/* Minimal stylesheet to mimic the appearence of an input type=text specific to Servo.
+/* Minimal stylesheet to mimic the appearence of the textual inputs specific to Servo.
  * This stylesheet is expected to be modified following the development of the
- * Shadow DOM input type=text in Servo.
+ * Shadow DOM textual inputs in Servo.
  */
 
 #input {
