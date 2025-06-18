@@ -342,7 +342,7 @@ pub struct WritableStreamDefaultController {
     stream: MutNullableDom<WritableStream>,
 
     /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-abortcontroller>
-    abort_controller: DomRoot<AbortController>,
+    abort_controller: Dom<AbortController>,
 }
 
 impl WritableStreamDefaultController {
@@ -364,11 +364,7 @@ impl WritableStreamDefaultController {
             strategy_hwm,
             strategy_size: RefCell::new(Some(strategy_size)),
             started: Default::default(),
-            abort_controller: AbortController::new_with_proto(
-                global,
-                None,
-                can_gc,
-            ),
+            abort_controller: Dom::from_ref(&AbortController::new_with_proto(global, None, can_gc)),
         }
     }
 
