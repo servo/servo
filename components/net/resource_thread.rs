@@ -61,7 +61,6 @@ use crate::indexeddb::idb_thread::IndexedDBThreadFactory;
 use crate::protocols::ProtocolRegistry;
 use crate::request_interceptor::RequestInterceptor;
 use crate::storage_thread::StorageThreadFactory;
-use crate::websocket_loader;
 
 /// Load a file with CA certificate and produce a RootCertStore with the results.
 fn load_root_cert_store_from_file(file_path: String) -> io::Result<RootCertStore> {
