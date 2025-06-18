@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Ref, RefCell};
+use std::cell::RefCell;
 use std::collections::BTreeSet;
 use std::net::TcpStream;
 
@@ -14,29 +14,43 @@ use crate::StreamId;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::JsonPacketStream;
 
+/// A `sourceForm` as used in responses to thread `sources` requests.
+///
+/// For now, we also use this for sources in watcher `resource-available-array` messages,
+/// but in Firefox those have extra fields.
+///
+/// <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#loading-script-sources>
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct SourceData {
+pub(crate) struct SourceForm {
     pub actor: String,
     /// URL of the script, or URL of the page for inline scripts.
     pub url: String,
     pub is_black_boxed: bool,
-    pub source_content: String,
 }
 
 #[derive(Serialize)]
 pub(crate) struct SourcesReply {
     pub from: String,
-    pub sources: Vec<SourceData>,
+    pub sources: Vec<SourceForm>,
 }
 
 pub(crate) struct SourceManager {
-    pub source_urls: RefCell<BTreeSet<SourceData>>,
+    source_actor_names: RefCell<BTreeSet<String>>,
 }
 
 #[derive(Clone, Debug)]
 pub struct SourceActor {
+    /// Actor name.
     pub name: String,
+
+    /// URL of the script, or URL of the page for inline scripts.
+    pub url: ServoUrl,
+
+    /// The ‘black-boxed’ flag, which tells the debugger to avoid pausing inside this script.
+    /// <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#black-boxing-sources>
+    pub is_black_boxed: bool,
+
     pub content: String,
     pub content_type: String,
 }
@@ -52,40 +66,56 @@ struct SourceContentReply {
 impl SourceManager {
     pub fn new() -> Self {
         Self {
-            source_urls: RefCell::new(BTreeSet::default()),
+            source_actor_names: RefCell::new(BTreeSet::default()),
         }
     }
 
-    pub fn add_source(&self, url: ServoUrl, source_content: String, actor_name: String) {
-        self.source_urls.borrow_mut().insert(SourceData {
-            actor: actor_name,
-            url: url.to_string(),
-            is_black_boxed: false,
-            source_content,
-        });
+    pub fn add_source(&self, actor_name: &str) {
+        self.source_actor_names
+            .borrow_mut()
+            .insert(actor_name.to_owned());
     }
 
-    pub fn sources(&self) -> Ref<BTreeSet<SourceData>> {
-        self.source_urls.borrow()
+    pub fn source_forms(&self, actors: &ActorRegistry) -> Vec<SourceForm> {
+        self.source_actor_names
+            .borrow()
+            .iter()
+            .map(|actor_name| actors.find::<SourceActor>(actor_name).source_form())
+            .collect()
     }
 }
 
 impl SourceActor {
-    pub fn new(name: String, content: String, content_type: String) -> SourceActor {
+    pub fn new(name: String, url: ServoUrl, content: String, content_type: String) -> SourceActor {
         SourceActor {
             name,
+            url,
             content,
             content_type,
+            is_black_boxed: false,
         }
     }
 
-    pub fn new_source(actors: &mut ActorRegistry, content: String, content_type: String) -> String {
+    pub fn new_registered(
+        actors: &mut ActorRegistry,
+        url: ServoUrl,
+        content: String,
+        content_type: String,
+    ) -> &SourceActor {
         let source_actor_name = actors.new_name("source");
 
-        let source_actor = SourceActor::new(source_actor_name.clone(), content, content_type);
+        let source_actor = SourceActor::new(source_actor_name.clone(), url, content, content_type);
         actors.register(Box::new(source_actor));
 
-        source_actor_name
+        actors.find(&source_actor_name)
+    }
+
+    pub fn source_form(&self) -> SourceForm {
+        SourceForm {
+            actor: self.name.clone(),
+            url: self.url.to_string(),
+            is_black_boxed: self.is_black_boxed,
+        }
     }
 }
 
