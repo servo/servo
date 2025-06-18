@@ -4,10 +4,12 @@
 
 use std::collections::{HashMap, HashSet};
 use std::iter::FromIterator;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc as StdArc, Condvar, Mutex, RwLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use async_recursion::async_recursion;
+use async_tungstenite::tokio::client_async_tls_with_connector_and_config;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{HistoryStateId, PipelineId};
 use crossbeam_channel::Sender;
@@ -39,7 +41,7 @@ use hyper_serde::Serde;
 use hyper_util::client::legacy::Client;
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
-use log::{debug, error, info, log_enabled, warn};
+use log::{debug, error, info, log_enabled, trace, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::http_status::HttpStatus;
 use net_traits::pub_domains::reg_suffix;
@@ -55,16 +57,19 @@ use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use net_traits::{
     CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, FetchMetadata, NetworkError, RedirectEndValue,
     RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
+    WebSocketNetworkEvent,
 };
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
 use servo_arc::Arc;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
+use tokio::net::TcpStream;
 use tokio::sync::mpsc::{
     Receiver as TokioReceiver, Sender as TokioSender, UnboundedReceiver, UnboundedSender, channel,
     unbounded_channel,
 };
 use tokio_stream::wrappers::ReceiverStream;
+use url::Url;
 
 use crate::async_runtime::HANDLE;
 use crate::connector::{CertificateErrorOverrideManager, Connector};
@@ -75,9 +80,13 @@ use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::fetch_params::FetchParams;
 use crate::fetch::headers::{SecFetchDest, SecFetchMode, SecFetchSite, SecFetchUser};
 use crate::fetch::methods::{Data, DoneChannel, FetchContext, Target, main_fetch};
+use crate::hosts::replace_host;
 use crate::hsts::HstsList;
 use crate::http_cache::{CacheKey, HttpCache};
 use crate::resource_thread::{AuthCache, AuthCacheEntry};
+use crate::websocket_loader::{
+    create_request, process_ws_response, run_ws_loop, setup_dom_listener,
+};
 
 /// The various states an entry of the HttpCache can be in.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1888,8 +1897,71 @@ async fn http_network_fetch(
     }
 
     let (res, msg) = match &request.mode {
-        RequestMode::WebSocket { protocols: _ } => {
-            todo!("websocket specific code");
+        RequestMode::WebSocket { protocols } => {
+            // https://fetch.spec.whatwg.org/#websocket-opening-handshake
+
+            let resource_event_sender = context.websocket_chan.unwrap().lock().unwrap().0.clone();
+            let dom_action_receiver = context.websocket_chan.unwrap().lock().unwrap().1;
+
+            // FIXME(pylbrecht): apply_hsts_rules()
+
+            let req_url = request.url();
+            let req_origin = match request.origin {
+                Origin::Client => unreachable!(),
+                Origin::Origin(ref origin) => origin,
+            };
+
+            // FIXME(pylbrecht): should_request_be_blocked_due_to_a_bad_port()
+            // FIXME(pylbrecht): should_request_be_blocked_by_csp()
+
+            let client = create_request(
+                &req_url,
+                &req_origin.ascii_serialization(),
+                &protocols,
+                &context.state,
+            )
+            .unwrap();
+
+            trace!("starting WS connection to {}", url);
+
+            let initiated_close = std::sync::Arc::new(AtomicBool::new(false));
+            let dom_receiver = setup_dom_listener(dom_action_receiver, initiated_close.clone());
+
+            let host_str = client.uri().host().unwrap();
+            let host = replace_host(host_str);
+            let mut net_url = Url::parse(&client.uri().to_string()).unwrap();
+            net_url.set_host(Some(&host)).unwrap();
+
+            let domain = net_url.host().unwrap();
+            let port = net_url.port_or_known_default().unwrap();
+
+            let try_socket = TcpStream::connect((&*domain.to_string(), port)).await;
+            let socket = try_socket.unwrap();
+
+            // FIXME(pylbrecht): provide TlsConnector
+            let (stream, response) =
+                client_async_tls_with_connector_and_config(client, socket, None, None)
+                    .await
+                    .unwrap();
+
+            let protocol_in_use =
+                process_ws_response(&context.state, &response, &url, &protocols).unwrap();
+
+            if !initiated_close.load(Ordering::SeqCst) {
+                if resource_event_sender
+                    .send(WebSocketNetworkEvent::ConnectionEstablished { protocol_in_use })
+                    .is_err()
+                {
+                    todo!("early return");
+                }
+
+                trace!("about to start ws loop for {}", url);
+
+                HANDLE.spawn(run_ws_loop(dom_receiver, resource_event_sender, stream));
+            } else {
+                trace!("client closed connection for {}, not running loop", url);
+            }
+            (Decoder::detect(response, url.is_secure_scheme()), None)
         },
         _ => {
             let response_future = obtain_response(
