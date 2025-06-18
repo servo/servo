@@ -308,7 +308,7 @@ pub(crate) struct ScriptOrigin {
     fetch_options: ScriptFetchOptions,
     type_: ScriptType,
     unminified_dir: Option<String>,
-    import_map_result: Fallible<ImportMap>,
+    import_map: Fallible<ImportMap>,
 }
 
 impl ScriptOrigin {
@@ -318,7 +318,7 @@ impl ScriptOrigin {
         fetch_options: ScriptFetchOptions,
         type_: ScriptType,
         unminified_dir: Option<String>,
-        import_map_result: Fallible<ImportMap>,
+        import_map: Fallible<ImportMap>,
     ) -> ScriptOrigin {
         ScriptOrigin {
             code: SourceCode::Text(text),
@@ -327,7 +327,7 @@ impl ScriptOrigin {
             fetch_options,
             type_,
             unminified_dir,
-            import_map_result,
+            import_map,
         }
     }
 
@@ -345,7 +345,7 @@ impl ScriptOrigin {
             fetch_options,
             type_,
             unminified_dir,
-            import_map_result: Err(Error::NotFound),
+            import_map: Err(Error::NotFound),
         }
     }
 
@@ -964,9 +964,9 @@ impl HTMLScriptElement {
             match script_type {
                 ScriptType::Classic => {
                     let result = Ok(ScriptOrigin::internal(
-                        Rc::clone(&text_rc),
-                        base_url.clone(),
-                        options.clone(),
+                        text_rc,
+                        base_url,
+                        options,
                         script_type,
                         self.global().unminified_js_dir(),
                         Err(Error::NotFound),
@@ -1016,8 +1016,8 @@ impl HTMLScriptElement {
                     );
                     let result = Ok(ScriptOrigin::internal(
                         text_rc,
-                        base_url.clone(),
-                        options.clone(),
+                        base_url,
+                        options,
                         script_type,
                         self.global().unminified_js_dir(),
                         import_map_result,
@@ -1142,7 +1142,7 @@ impl HTMLScriptElement {
             },
             ScriptType::ImportMap => {
                 // Step 6.1 Register an import map given el's relevant global object and el's result.
-                register_import_map(&self.owner_global(), script.import_map_result, can_gc);
+                register_import_map(&self.owner_global(), script.import_map, can_gc);
             },
         }
 
