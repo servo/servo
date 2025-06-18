@@ -20,9 +20,10 @@ use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePixel};
 use servo::{
     Cursor, ImeEvent, InputEvent, Key, KeyState, KeyboardEvent, MouseButton as ServoMouseButton,
-    MouseButtonAction, MouseButtonEvent, MouseMoveEvent, OffscreenRenderingContext,
-    RenderingContext, ScreenGeometry, Theme, TouchEvent, TouchEventType, TouchId,
-    WebRenderDebugOption, WebView, WheelDelta, WheelEvent, WheelMode, WindowRenderingContext,
+    MouseButtonAction, MouseButtonEvent, MouseLeaveEvent, MouseMoveEvent,
+    OffscreenRenderingContext, RenderingContext, ScreenGeometry, Theme, TouchEvent, TouchEventType,
+    TouchId, WebRenderDebugOption, WebView, WheelDelta, WheelEvent, WheelMode,
+    WindowRenderingContext,
 };
 use surfman::{Context, Device};
 use url::Url;
@@ -570,8 +571,22 @@ impl WindowPortsMethods for Window {
                 let mut point = winit_position_to_euclid_point(position).to_f32();
                 point.y -= (self.toolbar_height() * self.hidpi_scale_factor()).0;
 
+                let previous_point = self.webview_relative_mouse_point.get();
+                if webview.rect().contains(point) {
+                    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
+                } else if webview.rect().contains(previous_point) {
+                    webview.notify_input_event(InputEvent::MouseLeave(MouseLeaveEvent::new(
+                        previous_point,
+                    )));
+                }
+
                 self.webview_relative_mouse_point.set(point);
-                webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
+            },
+            WindowEvent::CursorLeft { .. } => {
+                let point = self.webview_relative_mouse_point.get();
+                if webview.rect().contains(point) {
+                    webview.notify_input_event(InputEvent::MouseLeave(MouseLeaveEvent::new(point)));
+                }
             },
             WindowEvent::MouseWheel { delta, phase, .. } => {
                 let (mut dx, mut dy, mode) = match delta {
@@ -592,8 +607,7 @@ impl WindowPortsMethods for Window {
                     z: 0.0,
                     mode,
                 };
-                let pos = self.webview_relative_mouse_point.get();
-                let point = Point2D::new(pos.x, pos.y);
+                let point = self.webview_relative_mouse_point.get();
 
                 // Scroll events snap to the major axis of movement, with vertical
                 // preferred over horizontal.
@@ -608,11 +622,7 @@ impl WindowPortsMethods for Window {
 
                 // Send events
                 webview.notify_input_event(InputEvent::Wheel(WheelEvent::new(delta, point)));
-                webview.notify_scroll_event(
-                    scroll_location,
-                    self.webview_relative_mouse_point.get().to_i32(),
-                    phase,
-                );
+                webview.notify_scroll_event(scroll_location, point.to_i32(), phase);
             },
             WindowEvent::Touch(touch) => {
                 webview.notify_input_event(InputEvent::Touch(TouchEvent::new(

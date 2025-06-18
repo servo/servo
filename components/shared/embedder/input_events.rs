@@ -20,6 +20,7 @@ pub enum InputEvent {
     Keyboard(KeyboardEvent),
     MouseButton(MouseButtonEvent),
     MouseMove(MouseMoveEvent),
+    MouseLeave(MouseLeaveEvent),
     Touch(TouchEvent),
     Wheel(WheelEvent),
     Scroll(ScrollEvent),
@@ -42,6 +43,7 @@ impl InputEvent {
             InputEvent::Keyboard(..) => None,
             InputEvent::MouseButton(event) => Some(event.point),
             InputEvent::MouseMove(event) => Some(event.point),
+            InputEvent::MouseLeave(event) => Some(event.point),
             InputEvent::Touch(event) => Some(event.point),
             InputEvent::Wheel(event) => Some(event.point),
             InputEvent::Scroll(..) => None,
@@ -56,6 +58,7 @@ impl InputEvent {
             InputEvent::Keyboard(event) => event.webdriver_id,
             InputEvent::MouseButton(event) => event.webdriver_id,
             InputEvent::MouseMove(event) => event.webdriver_id,
+            InputEvent::MouseLeave(..) => None,
             InputEvent::Touch(..) => None,
             InputEvent::Wheel(event) => event.webdriver_id,
             InputEvent::Scroll(..) => None,
@@ -76,6 +79,7 @@ impl InputEvent {
             InputEvent::MouseMove(ref mut event) => {
                 event.webdriver_id = webdriver_id;
             },
+            InputEvent::MouseLeave(..) => {},
             InputEvent::Touch(..) => {},
             InputEvent::Wheel(ref mut event) => {
                 event.webdriver_id = webdriver_id;
@@ -211,6 +215,17 @@ impl MouseMoveEvent {
             point,
             webdriver_id: None,
         }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub struct MouseLeaveEvent {
+    pub point: DevicePoint,
+}
+
+impl MouseLeaveEvent {
+    pub fn new(point: DevicePoint) -> Self {
+        Self { point }
     }
 }
 

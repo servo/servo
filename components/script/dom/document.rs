@@ -2113,6 +2113,49 @@ impl Document {
         }
     }
 
+    #[allow(unsafe_code)]
+    pub(crate) fn handle_mouse_leave_event(
+        &self,
+        hit_test_result: Option<CompositorHitTestResult>,
+        pressed_mouse_buttons: u16,
+        can_gc: CanGc,
+    ) {
+        // Ignore all incoming events without a hit test.
+        let Some(hit_test_result) = hit_test_result else {
+            return;
+        };
+
+        self.window()
+            .send_to_embedder(EmbedderMsg::Status(self.webview_id(), None));
+
+        let node = unsafe { node::from_untrusted_node_address(hit_test_result.node) };
+        for element in node
+            .inclusive_ancestors(ShadowIncluding::No)
+            .filter_map(DomRoot::downcast::<Element>)
+        {
+            element.set_hover_state(false);
+            element.set_active_state(false);
+        }
+
+        self.fire_mouse_event(
+            hit_test_result.point_in_viewport,
+            node.upcast(),
+            FireMouseEventType::Out,
+            EventBubbles::Bubbles,
+            EventCancelable::Cancelable,
+            pressed_mouse_buttons,
+            can_gc,
+        );
+        self.handle_mouse_enter_leave_event(
+            hit_test_result.point_in_viewport,
+            FireMouseEventType::Leave,
+            None,
+            node,
+            pressed_mouse_buttons,
+            can_gc,
+        );
+    }
+
     fn handle_mouse_enter_leave_event(
         &self,
         client_point: Point2D<f32>,
