@@ -1091,32 +1091,15 @@ impl HTMLScriptElement {
                 };
 
                 // content_type: https://html.spec.whatwg.org/multipage/#scriptingLanguages
-                (script.url.clone(), content, "text/javascript", true)
+                (script.url.clone(), Some(content), "text/javascript", true)
             } else {
-                // TODO: make the request the same way as in the original request.
-                // TODO: make the request in devtools, only when needed by a devtools client.
-                let request = RequestBuilder::new(
-                    Some(doc.webview_id()),
-                    doc.url(),
-                    self.global().get_referrer(),
-                );
-                let (metadata, content) = load_whole_resource(
-                    request,
-                    &self.global().resource_threads().sender(),
-                    &self.global(),
-                    can_gc,
-                )
-                .expect("FIXME: devtools page request failed");
-
-                // TODO: handle encodings the same way as in HTML, taking <meta charset> into account.
-                let encoding = metadata
-                    .charset
-                    .and_then(|encoding| Encoding::for_label(encoding.as_bytes()))
-                    .expect("FIXME: no character encoding");
-                let (content, _, _) = encoding.decode(&content);
+                // TODO: if needed, fetch the page again, in the same way as in the original request.
+                // Fetch it from cache, even if the original request was non-idempotent (e.g. POST).
+                // If we can’t fetch it from cache, we should probably give up, because with a real
+                // fetch, the server could return a different response.
 
                 // TODO: handle cases where Content-Type is not text/html.
-                (doc.url(), content.into_owned(), "text/html", false)
+                (doc.url(), None, "text/html", false)
             };
 
             let source_info = SourceInfo {

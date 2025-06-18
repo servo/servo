@@ -51,7 +51,7 @@ pub struct SourceActor {
     /// <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#black-boxing-sources>
     pub is_black_boxed: bool,
 
-    pub content: String,
+    pub content: Option<String>,
     pub content_type: String,
 }
 
@@ -86,7 +86,12 @@ impl SourceManager {
 }
 
 impl SourceActor {
-    pub fn new(name: String, url: ServoUrl, content: String, content_type: String) -> SourceActor {
+    pub fn new(
+        name: String,
+        url: ServoUrl,
+        content: Option<String>,
+        content_type: String,
+    ) -> SourceActor {
         SourceActor {
             name,
             url,
@@ -99,7 +104,7 @@ impl SourceActor {
     pub fn new_registered(
         actors: &mut ActorRegistry,
         url: ServoUrl,
-        content: String,
+        content: Option<String>,
         content_type: String,
     ) -> &SourceActor {
         let source_actor_name = actors.new_name("source");
@@ -138,7 +143,12 @@ impl Actor for SourceActor {
                 let reply = SourceContentReply {
                     from: self.name(),
                     content_type: self.content_type.clone(),
-                    source: self.content.clone(),
+                    // TODO: is this correct? Do we instead want to defer response until content is available?
+                    source: self
+                        .content
+                        .as_deref()
+                        .unwrap_or("<!-- not available -->")
+                        .to_owned(),
                 };
                 let _ = stream.write_json_packet(&reply);
                 ActorMessageStatus::Processed

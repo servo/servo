@@ -563,6 +563,6 @@ pub struct SourceInfo {
     pub url: ServoUrl,
     pub external: bool,
     pub worker_id: Option<WorkerId>,
-    pub content: String,
+    pub content: Option<String>,
     pub content_type: Option<String>,
 }

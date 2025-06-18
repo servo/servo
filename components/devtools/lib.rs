@@ -521,7 +521,7 @@ impl DevtoolsInstance {
         let source_actor = SourceActor::new_registered(
             &mut actors,
             source_info.url,
-            source_info.content.clone(),
+            source_info.content,
             source_info.content_type.unwrap(),
         );
         let source_actor_name = source_actor.name.clone();
