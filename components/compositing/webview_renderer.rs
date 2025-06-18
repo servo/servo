@@ -16,8 +16,8 @@ use compositing_traits::{PipelineExitSource, SendableFrameTree, WebViewTrait};
 use constellation_traits::{EmbedderToConstellationMessage, WindowSizeType};
 use embedder_traits::{
     AnimationState, CompositorHitTestResult, InputEvent, MouseButton, MouseButtonAction,
-    MouseButtonEvent, MouseMoveEvent, ShutdownState, TouchEvent, TouchEventResult, TouchEventType,
-    TouchId, ViewportDetails,
+    MouseButtonEvent, MouseMoveEvent, ScrollEvent as EmbedderScrollEvent, ShutdownState,
+    TouchEvent, TouchEventResult, TouchEventType, TouchId, ViewportDetails,
 };
 use euclid::{Box2D, Point2D, Scale, Size2D, Vector2D};
 use fnv::FnvHashSet;
@@ -53,9 +53,9 @@ enum ScrollZoomEvent {
     Scroll(ScrollEvent),
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub(crate) struct ScrollResult {
-    pub pipeline_id: PipelineId,
+    pub hit_test_result: CompositorHitTestResult,
     pub external_scroll_id: ExternalScrollId,
     pub offset: LayoutVector2D,
 }
@@ -902,8 +902,14 @@ impl WebViewRenderer {
                 combined_event.scroll_location,
             )
         });
-        if let Some(scroll_result) = scroll_result {
-            self.send_scroll_positions_to_layout_for_pipeline(scroll_result.pipeline_id);
+        if let Some(scroll_result) = scroll_result.clone() {
+            self.send_scroll_positions_to_layout_for_pipeline(
+                scroll_result.hit_test_result.pipeline_id,
+            );
+            self.dispatch_scroll_event(
+                scroll_result.external_scroll_id,
+                scroll_result.hit_test_result,
+            );
         }
 
         let pinch_zoom_result = match self
@@ -918,8 +924,8 @@ impl WebViewRenderer {
 
     /// Perform a hit test at the given [`DevicePoint`] and apply the [`ScrollLocation`]
     /// scrolling to the applicable scroll node under that point. If a scroll was
-    /// performed, returns the [`PipelineId`] of the node scrolled, the id, and the final
-    /// scroll delta.
+    /// performed, returns the hit test result contains [`PipelineId`] of the node
+    /// scrolled, the id, and the final scroll delta.
     fn scroll_node_at_device_point(
         &mut self,
         cursor: DevicePoint,
@@ -954,22 +960,19 @@ impl WebViewRenderer {
         // This is needed to propagate the scroll events from a pipeline representing an iframe to
         // its ancestor pipelines.
         let mut previous_pipeline_id = None;
-        for CompositorHitTestResult {
-            pipeline_id,
-            scroll_tree_node,
-            ..
-        } in hit_test_results.iter()
-        {
-            let pipeline_details = self.pipelines.get_mut(pipeline_id)?;
-            if previous_pipeline_id.replace(pipeline_id) != Some(pipeline_id) {
+        for hit_test_result in hit_test_results.iter() {
+            let pipeline_details = self.pipelines.get_mut(&hit_test_result.pipeline_id)?;
+            if previous_pipeline_id.replace(&hit_test_result.pipeline_id) !=
+                Some(&hit_test_result.pipeline_id)
+            {
                 let scroll_result = pipeline_details.scroll_tree.scroll_node_or_ancestor(
-                    scroll_tree_node,
+                    &hit_test_result.scroll_tree_node,
                     scroll_location,
                     ScrollType::InputEvents,
                 );
                 if let Some((external_scroll_id, offset)) = scroll_result {
                     return Some(ScrollResult {
-                        pipeline_id: *pipeline_id,
+                        hit_test_result: hit_test_result.clone(),
                         external_scroll_id,
                         offset,
                     });
@@ -977,6 +980,22 @@ impl WebViewRenderer {
             }
         }
         None
+    }
+
+    fn dispatch_scroll_event(
+        &self,
+        external_id: ExternalScrollId,
+        hit_test_result: CompositorHitTestResult,
+    ) {
+        let event = InputEvent::Scroll(EmbedderScrollEvent { external_id });
+        let msg = EmbedderToConstellationMessage::ForwardInputEvent(
+            self.id,
+            event,
+            Some(hit_test_result),
+        );
+        if let Err(e) = self.global.borrow().constellation_sender.send(msg) {
+            warn!("Sending scroll event to constellation failed ({:?}).", e);
+        }
     }
 
     pub(crate) fn pinch_zoom_level(&self) -> Scale<f32, DevicePixel, DevicePixel> {

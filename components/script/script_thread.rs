@@ -1167,6 +1167,9 @@ impl ScriptThread {
                 InputEvent::EditingAction(editing_action_event) => {
                     document.handle_editing_action(editing_action_event, can_gc);
                 },
+                InputEvent::Scroll(scroll_event) => {
+                    document.handle_scroll_event(scroll_event, can_gc);
+                },
             }
         }
         ScriptThread::set_user_interacting(false);
