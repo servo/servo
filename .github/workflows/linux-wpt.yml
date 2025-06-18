@@ -144,7 +144,7 @@ jobs:
         run: |
           mkdir -p wpt-filtered-logs/linux
           mkdir -p wpt-full-logs/linux
-          xvfb-run ./mach test-wpt \
+          ./mach test-wpt \
             ./tests/wpt/tests/webdriver/tests/classic/ \
             --${{ inputs.profile }} \
             --processes 1 \
@@ -153,6 +153,7 @@ jobs:
             ${{ inputs.wpt-args }} \
             --pref=dom_testing_html_input_element_select_files_enabled \
             --product servodriver \
+            --headless \
             --log-raw wpt-full-logs/linux/raw/webdriver.log \
             --log-wptreport wpt-full-logs/linux/wptreport/webdriver.json \
             --log-raw-unexpected wpt-filtered-logs/linux/webdriver.log \
