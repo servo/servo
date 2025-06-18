@@ -51,7 +51,9 @@ use crate::document_loader::LoadType;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::conversions::jsstring_to_str;
-use crate::dom::bindings::error::{Error, ErrorToJsval, report_pending_exception};
+use crate::dom::bindings::error::{
+    Error, ErrorToJsval, report_pending_exception, throw_dom_exception,
+};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, DomObject};
@@ -987,6 +989,7 @@ impl ModuleOwner {
                                 fetch_options,
                                 ScriptType::Module,
                                 global.unminified_js_dir(),
+                                Err(Error::NotFound),
                             )),
                         },
                     }
@@ -1864,14 +1867,142 @@ pub(crate) fn fetch_inline_module_script(
     }
 }
 
-#[derive(Default, JSTraceable)]
+pub(crate) type ModuleSpecifierMap = IndexMap<String, Option<ServoUrl>>;
+pub(crate) type ModuleIntegrityMap = IndexMap<ServoUrl, String>;
+
+/// <https://html.spec.whatwg.org/multipage/#import-map-processing-model>
+#[derive(Default, JSTraceable, MallocSizeOf)]
 pub(crate) struct ImportMap {
     #[no_trace]
-    imports: IndexMap<String, Option<ServoUrl>>,
+    imports: ModuleSpecifierMap,
     #[no_trace]
-    scopes: IndexMap<String, IndexMap<String, Option<ServoUrl>>>,
+    scopes: IndexMap<ServoUrl, ModuleSpecifierMap>,
     #[no_trace]
-    integrity: IndexMap<String, String>,
+    integrity: ModuleIntegrityMap,
+}
+
+/// <https://html.spec.whatwg.org/multipage/#register-an-import-map>
+pub(crate) fn register_import_map(
+    global: &GlobalScope,
+    result: Fallible<ImportMap>,
+    can_gc: CanGc,
+) {
+    match result {
+        Ok(new_import_map) => {
+            // Step 2. Merge existing and new import maps, given global and result's import map.
+            merge_existing_and_new_import_maps(global, new_import_map, can_gc);
+        },
+        Err(exception) => {
+            // Step 1. If result's error to rethrow is not null, then report
+            // an exception given by result's error to rethrow for global and return.
+            throw_dom_exception(GlobalScope::get_cx(), global, exception.clone(), can_gc);
+        },
+    }
+}
+
+/// <https://html.spec.whatwg.org/multipage/#merge-existing-and-new-import-maps>
+fn merge_existing_and_new_import_maps(
+    global: &GlobalScope,
+    new_import_map: ImportMap,
+    can_gc: CanGc,
+) {
+    // Step 1. Let newImportMapScopes be a deep copy of newImportMap's scopes.
+    let new_import_map_scopes = new_import_map.scopes;
+
+    // Step 2. Let oldImportMap be global's import map.
+    let mut old_import_map = global.import_map().borrow_mut();
+
+    // Step 3. Let newImportMapImports be a deep copy of newImportMap's imports.
+    let new_import_map_imports = new_import_map.imports;
+
+    // Step 4. For each scopePrefix → scopeImports of newImportMapScopes:
+    for (scope_prefix, scope_imports) in new_import_map_scopes {
+        // TODO: implement after we complete `resolve_module_specifier`
+        // Step 4.1. For each record of global's resolved module set:
+
+        // Step 4.2 If scopePrefix exists in oldImportMap's scopes
+        if old_import_map.scopes.contains_key(&scope_prefix) {
+            // set oldImportMap's scopes[scopePrefix] to the result of
+            // merging module specifier maps, given scopeImports and oldImportMap's scopes[scopePrefix].
+            let merged_module_specifier_map = merge_module_specifier_maps(
+                global,
+                scope_imports,
+                &old_import_map.scopes[&scope_prefix],
+                can_gc,
+            );
+            old_import_map
+                .scopes
+                .insert(scope_prefix, merged_module_specifier_map);
+        } else {
+            // Step 4.3 Otherwise, set oldImportMap's scopes[scopePrefix] to scopeImports.
+            old_import_map.scopes.insert(scope_prefix, scope_imports);
+        }
+    }
+
+    // Step 5. For each url → integrity of newImportMap's integrity:
+    for (url, integrity) in &new_import_map.integrity {
+        // Step 5.1 If url exists in oldImportMap's integrity, then:
+        if old_import_map.integrity.contains_key(url) {
+            // Step 5.1.1 The user agent may report a warning to the console indicating the ignored rule.
+            // They may choose to avoid reporting if the rule is identical to an existing one.
+            Console::internal_warn(
+                global,
+                DOMString::from(format!("Ignored rule: {url} -> {integrity}.")),
+            );
+            // Step 5.1.2 Continue.
+            continue;
+        }
+
+        // Step 5.2 Set oldImportMap's integrity[url] to integrity.
+        old_import_map
+            .integrity
+            .insert(url.clone(), integrity.clone());
+    }
+
+    // TODO: implement after we complete `resolve_module_specifier`
+    // Step 6. For each record of global's resolved module set:
+
+    // Step 7. Set oldImportMap's imports to the result of merge module specifier maps,
+    // given newImportMapImports and oldImportMap's imports.
+    let merged_module_specifier_map = merge_module_specifier_maps(
+        global,
+        new_import_map_imports,
+        &old_import_map.imports,
+        can_gc,
+    );
+    old_import_map.imports = merged_module_specifier_map;
+}
+
+/// <https://html.spec.whatwg.org/multipage/#merge-module-specifier-maps>
+fn merge_module_specifier_maps(
+    global: &GlobalScope,
+    new_map: ModuleSpecifierMap,
+    old_map: &ModuleSpecifierMap,
+    _can_gc: CanGc,
+) -> ModuleSpecifierMap {
+    // Step 1. Let mergedMap be a deep copy of oldMap.
+    let mut merged_map = old_map.clone();
+
+    // Step 2. For each specifier → url of newMap:
+    for (specifier, url) in new_map {
+        // Step 2.1 If specifier exists in oldMap, then:
+        if old_map.contains_key(&specifier) {
+            // Step 2.1.1 The user agent may report a warning to the console indicating the ignored rule.
+            // They may choose to avoid reporting if the rule is identical to an existing one.
+            Console::internal_warn(
+                global,
+                DOMString::from(format!("Ignored rule: {specifier} -> {url:?}.")),
+            );
+
+            // Step 2.1.2 Continue.
+            continue;
+        }
+
+        // Step 2.2 Set mergedMap[specifier] to url.
+        merged_map.insert(specifier, url);
+    }
+
+    merged_map
 }
 
 /// <https://html.spec.whatwg.org/multipage/#parse-an-import-map-string>
@@ -1893,7 +2024,7 @@ pub(crate) fn parse_an_import_map_string(
     };
 
     // Step 3. Let sortedAndNormalizedImports be an empty ordered map.
-    let mut sorted_and_normalized_imports: IndexMap<String, Option<ServoUrl>> = IndexMap::new();
+    let mut sorted_and_normalized_imports = ModuleSpecifierMap::new();
     // Step 4. If parsed["imports"] exists, then:
     if let Some(imports) = parsed.get("imports") {
         // Step 4.1 If parsed["imports"] is not an ordered map, then throw a TypeError
@@ -1914,8 +2045,7 @@ pub(crate) fn parse_an_import_map_string(
     }
 
     // Step 5. Let sortedAndNormalizedScopes be an empty ordered map.
-    let mut sorted_and_normalized_scopes: IndexMap<String, IndexMap<String, Option<ServoUrl>>> =
-        IndexMap::new();
+    let mut sorted_and_normalized_scopes: IndexMap<ServoUrl, ModuleSpecifierMap> = IndexMap::new();
     // Step 6. If parsed["scopes"] exists, then:
     if let Some(scopes) = parsed.get("scopes") {
         // Step 6.1 If parsed["scopes"] is not an ordered map, then throw a TypeError
@@ -1932,7 +2062,7 @@ pub(crate) fn parse_an_import_map_string(
     }
 
     // Step 7. Let normalizedIntegrity be an empty ordered map.
-    let mut normalized_integrity = IndexMap::new();
+    let mut normalized_integrity = ModuleIntegrityMap::new();
     // Step 8. If parsed["integrity"] exists, then:
     if let Some(integrity) = parsed.get("integrity") {
         // Step 8.1 If parsed["integrity"] is not an ordered map, then throw a TypeError
@@ -1977,9 +2107,9 @@ fn sort_and_normalize_module_specifier_map(
     original_map: &JsonMap<String, JsonValue>,
     base_url: &ServoUrl,
     can_gc: CanGc,
-) -> IndexMap<String, Option<ServoUrl>> {
+) -> ModuleSpecifierMap {
     // Step 1. Let normalized be an empty ordered map.
-    let mut normalized: IndexMap<String, Option<ServoUrl>> = IndexMap::new();
+    let mut normalized = ModuleSpecifierMap::new();
 
     // Step 2. For each specifier_key -> value in originalMap
     for (specifier_key, value) in original_map {
@@ -2060,9 +2190,9 @@ fn sort_and_normalize_scopes(
     original_map: &JsonMap<String, JsonValue>,
     base_url: &ServoUrl,
     can_gc: CanGc,
-) -> Fallible<IndexMap<String, IndexMap<String, Option<ServoUrl>>>> {
+) -> Fallible<IndexMap<ServoUrl, ModuleSpecifierMap>> {
     // Step 1. Let normalized be an empty ordered map.
-    let mut normalized: IndexMap<String, IndexMap<String, Option<ServoUrl>>> = IndexMap::new();
+    let mut normalized: IndexMap<ServoUrl, ModuleSpecifierMap> = IndexMap::new();
 
     // Step 2. For each scopePrefix → potentialSpecifierMap of originalMap:
     for (scope_prefix, potential_specifier_map) in original_map {
@@ -2091,7 +2221,7 @@ fn sort_and_normalize_scopes(
         };
 
         // Step 2.4 Let normalizedScopePrefix be the serialization of scopePrefixURL.
-        let normalized_scope_prefix = scope_prefix_url.into_string();
+        let normalized_scope_prefix = scope_prefix_url;
 
         // Step 2.5 Set normalized[normalizedScopePrefix] to the result of sorting and
         // normalizing a module specifier map given potentialSpecifierMap and baseURL.
@@ -2116,9 +2246,9 @@ fn normalize_module_integrity_map(
     original_map: &JsonMap<String, JsonValue>,
     base_url: &ServoUrl,
     _can_gc: CanGc,
-) -> IndexMap<String, String> {
+) -> ModuleIntegrityMap {
     // Step 1. Let normalized be an empty ordered map.
-    let mut normalized: IndexMap<String, String> = IndexMap::new();
+    let mut normalized = ModuleIntegrityMap::new();
 
     // Step 2. For each key → value of originalMap:
     for (key, value) in original_map {
@@ -2151,7 +2281,7 @@ fn normalize_module_integrity_map(
         };
 
         // Step 2.4 Set normalized[resolvedURL] to value.
-        normalized.insert(resolved_url.into_string(), value.clone());
+        normalized.insert(resolved_url, value.clone());
     }
 
     // Step 3. Return normalized.

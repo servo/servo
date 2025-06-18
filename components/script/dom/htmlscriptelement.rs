@@ -49,7 +49,7 @@ use crate::dom::bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElem
 use crate::dom::bindings::codegen::UnionTypes::{
     TrustedScriptOrString, TrustedScriptURLOrUSVString,
 };
-use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
@@ -76,8 +76,8 @@ use crate::fetch::create_a_potential_cors_request;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::realms::enter_realm;
 use crate::script_module::{
-    ModuleOwner, ScriptFetchOptions, fetch_external_module_script, fetch_inline_module_script,
-    parse_an_import_map_string,
+    ImportMap, ModuleOwner, ScriptFetchOptions, fetch_external_module_script,
+    fetch_inline_module_script, parse_an_import_map_string, register_import_map,
 };
 use crate::script_runtime::CanGc;
 use crate::task_source::{SendableTaskSource, TaskSourceName};
@@ -308,6 +308,7 @@ pub(crate) struct ScriptOrigin {
     fetch_options: ScriptFetchOptions,
     type_: ScriptType,
     unminified_dir: Option<String>,
+    import_map: Fallible<ImportMap>,
 }
 
 impl ScriptOrigin {
@@ -317,6 +318,7 @@ impl ScriptOrigin {
         fetch_options: ScriptFetchOptions,
         type_: ScriptType,
         unminified_dir: Option<String>,
+        import_map: Fallible<ImportMap>,
     ) -> ScriptOrigin {
         ScriptOrigin {
             code: SourceCode::Text(text),
@@ -325,6 +327,7 @@ impl ScriptOrigin {
             fetch_options,
             type_,
             unminified_dir,
+            import_map,
         }
     }
 
@@ -342,6 +345,7 @@ impl ScriptOrigin {
             fetch_options,
             type_,
             unminified_dir,
+            import_map: Err(Error::NotFound),
         }
     }
 
@@ -960,11 +964,12 @@ impl HTMLScriptElement {
             match script_type {
                 ScriptType::Classic => {
                     let result = Ok(ScriptOrigin::internal(
-                        Rc::clone(&text_rc),
-                        base_url.clone(),
-                        options.clone(),
+                        text_rc,
+                        base_url,
+                        options,
                         script_type,
                         self.global().unminified_js_dir(),
+                        Err(Error::NotFound),
                     ));
 
                     if was_parser_inserted &&
@@ -1003,12 +1008,23 @@ impl HTMLScriptElement {
                 ScriptType::ImportMap => {
                     // Step 32.1 Let result be the result of creating an import map
                     // parse result given source text and base URL.
-                    let _result = parse_an_import_map_string(
+                    let import_map_result = parse_an_import_map_string(
                         ModuleOwner::Window(Trusted::new(self)),
-                        text_rc,
+                        Rc::clone(&text_rc),
                         base_url.clone(),
                         can_gc,
                     );
+                    let result = Ok(ScriptOrigin::internal(
+                        text_rc,
+                        base_url,
+                        options,
+                        script_type,
+                        self.global().unminified_js_dir(),
+                        import_map_result,
+                    ));
+
+                    // Step 34.3
+                    self.execute(result, can_gc);
                 },
             }
         }
@@ -1125,8 +1141,8 @@ impl HTMLScriptElement {
                 self.run_a_module_script(&script, false, can_gc);
             },
             ScriptType::ImportMap => {
-                // TODO: Register an import map given el's relevant
-                // global object and el's result.
+                // Step 6.1 Register an import map given el's relevant global object and el's result.
+                register_import_map(&self.owner_global(), script.import_map, can_gc);
             },
         }
 
