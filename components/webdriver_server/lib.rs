@@ -1176,12 +1176,16 @@ impl Handler {
         }
     }
 
-    // https://w3c.github.io/webdriver/#find-element-from-element
+    /// <https://w3c.github.io/webdriver/#find-element-from-element>
     fn handle_find_element_element(
         &self,
         element: &WebElement,
         parameters: &LocatorParameters,
     ) -> WebDriverResult<WebDriverResponse> {
+        // Step 4. If selector is undefined, return error with error code invalid argument.
+        if parameters.value.is_empty() {
+            return Err(WebDriverError::new(ErrorStatus::InvalidArgument, ""));
+        }
         let (sender, receiver) = ipc::channel().unwrap();
 
         match parameters.using {
@@ -1217,24 +1221,30 @@ impl Handler {
                 ));
             },
         }
-
+        // Step 9. If result is empty, return error with error code no such element.
+        // Otherwise, return the first element of result.
         match wait_for_script_response(receiver)? {
-            Ok(value) => {
-                let value_resp = serde_json::to_value(
-                    value.map(|x| serde_json::to_value(WebElement(x)).unwrap()),
-                )?;
-                Ok(WebDriverResponse::Generic(ValueResponse(value_resp)))
+            Ok(value) => match value {
+                Some(value) => {
+                    let value_resp = serde_json::to_value(WebElement(value))?;
+                    Ok(WebDriverResponse::Generic(ValueResponse(value_resp)))
+                },
+                None => Err(WebDriverError::new(ErrorStatus::NoSuchElement, "")),
             },
             Err(error) => Err(WebDriverError::new(error, "")),
         }
     }
 
-    // https://w3c.github.io/webdriver/#find-elements-from-element
+    /// <https://w3c.github.io/webdriver/#find-elements-from-element>
     fn handle_find_elements_from_element(
         &self,
         element: &WebElement,
         parameters: &LocatorParameters,
     ) -> WebDriverResult<WebDriverResponse> {
+        // Step 4. If selector is undefined, return error with error code invalid argument.
+        if parameters.value.is_empty() {
+            return Err(WebDriverError::new(ErrorStatus::InvalidArgument, ""));
+        }
         let (sender, receiver) = ipc::channel().unwrap();
 
         match parameters.using {
