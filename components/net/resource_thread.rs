@@ -355,12 +355,18 @@ impl ResourceChannelManager {
                 FetchChannels::WebSocket {
                     event_sender,
                     action_receiver,
-                } => self.resource_manager.websocket_connect(
-                    request_builder,
-                    event_sender,
-                    action_receiver,
-                    http_state,
-                ),
+                } => {
+                    let cancellation_listener =
+                        self.get_or_create_cancellation_listener(request_builder.id);
+                    self.resource_manager.websocket_connect(
+                        request_builder,
+                        event_sender,
+                        action_receiver,
+                        http_state,
+                        cancellation_listener,
+                        protocols,
+                    )
+                },
                 FetchChannels::Prefetch => self.resource_manager.fetch(
                     request_builder,
                     None,
@@ -837,7 +843,24 @@ impl CoreResourceManager {
         event_sender: IpcSender<WebSocketNetworkEvent>,
         action_receiver: IpcReceiver<WebSocketDomAction>,
         http_state: &Arc<HttpState>,
+        cancellation_listener: Arc<CancellationListener>,
+        protocols: Arc<ProtocolRegistry>,
     ) {
+        let context = FetchContext {
+            state: http_state.clone(),
+            user_agent: servo_config::pref!(user_agent),
+            devtools_chan: None,
+            filemanager: Arc::new(Mutex::new(self.filemanager.clone())),
+            file_token: FileTokenCheck::NotRequired, // FIXME(pylbrecht)
+            request_interceptor: Arc::new(Mutex::new(self.request_interceptor.clone())),
+            cancellation_listener,
+            timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
+                ResourceTimingType::None, // FIXME(pylbrecht)
+            ))),
+            protocols,
+            websocket_chan: Some(Arc::new(Mutex::new((event_sender, action_receiver)))),
+        };
+
         websocket_loader::init(
             request,
             event_sender,
@@ -845,6 +868,7 @@ impl CoreResourceManager {
             http_state.clone(),
             self.ca_certificates.clone(),
             self.ignore_certificate_errors,
+            context,
         );
     }
 }
