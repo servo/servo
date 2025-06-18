@@ -2318,3 +2318,84 @@ fn normalize_specifier_key(
     // step 4. Return specifierKey.
     Some(specifier_key.to_string())
 }
+
+/// <https://html.spec.whatwg.org/multipage/#resolving-an-imports-match>
+///
+/// When the error is thrown, it will terminate the entire resolve a module specifier algorithm
+/// without any further fallbacks.
+pub(crate) fn resolve_imports_match(
+    normalized_specifier: &str,
+    as_url: Option<&ServoUrl>,
+    specifier_map: &ModuleSpecifierMap,
+    _can_gc: CanGc,
+) -> Fallible<Option<ServoUrl>> {
+    // Step 1. For each specifierKey → resolutionResult of specifierMap:
+    for (specifier_key, resolution_result) in specifier_map {
+        // Step 1.1 If specifierKey is normalizedSpecifier, then:
+        if specifier_key == normalized_specifier {
+            if let Some(resolution_result) = resolution_result {
+                // Step 1.1.2 Assert: resolutionResult is a URL.
+                // Step 1.1.3 Return resolutionResult.
+                return Ok(Some(resolution_result.clone()));
+            } else {
+                // Step 1.1.1 If resolutionResult is null, then throw a TypeError.
+                return Err(Error::Type(
+                    "Resolution of specifierKey was blocked by a null entry.".to_owned(),
+                ));
+            }
+        }
+
+        // Step 1.2 If all of the following are true:
+        // - specifierKey ends with U+002F (/)
+        // - specifierKey is a code unit prefix of normalizedSpecifier
+        // - either asURL is null, or asURL is special, then:
+        if specifier_key.ends_with('\u{002f}')
+            && normalized_specifier.starts_with(specifier_key)
+            && (as_url.is_none() || as_url.map(|u| u.is_special_scheme()).unwrap_or_default())
+        {
+            // Step 1.2.1 If resolutionResult is null, then throw a TypeError.
+            // Step 1.2.2 Assert: resolutionResult is a URL.
+            let Some(resolution_result) = resolution_result else {
+                return Err(Error::Type(
+                    "Resolution of specifierKey was blocked by a null entry.".to_owned(),
+                ));
+            };
+
+            // Step 1.2.3 Let afterPrefix be the portion of normalizedSpecifier after the initial specifierKey prefix.
+            let after_prefix = normalized_specifier.strip_prefix(specifier_key).unwrap();
+
+            // Step 1.2.4 Assert: resolutionResult, serialized, ends with U+002F (/), as enforced during parsing.
+            debug_assert!(resolution_result.as_str().ends_with('\u{002f}'));
+
+            // Step 1.2.5 Let url be the result of URL parsing afterPrefix with resolutionResult.
+            let url = ServoUrl::parse_with_base(Some(resolution_result), after_prefix);
+
+            // Step 1.2.6 If url is failure, then throw a TypeError
+            // Step 1.2.7 Assert: url is a URL.
+            let Ok(url) = url else {
+                return Err(Error::Type(
+                    "Resolution of normalizedSpecifier was blocked since
+                    the afterPrefix portion could not be URL-parsed relative to
+                    the resolutionResult mapped to by the specifierKey prefix."
+                        .to_owned(),
+                ));
+            };
+
+            // Step 1.2.8 If the serialization of resolutionResult is not
+            // a code unit prefix of the serialization of url, then throw a TypeError
+            if !url.as_str().starts_with(resolution_result.as_str()) {
+                return Err(Error::Type(
+                    "Resolution of normalizedSpecifier was blocked due to
+                    it backtracking above its prefix specifierKey."
+                        .to_owned(),
+                ));
+            }
+
+            // Step 1.2.9 Return url.
+            return Ok(Some(url));
+        }
+    }
+
+    // Step 2. Return null.
+    Ok(None)
+}
