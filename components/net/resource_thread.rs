@@ -846,29 +846,31 @@ impl CoreResourceManager {
         cancellation_listener: Arc<CancellationListener>,
         protocols: Arc<ProtocolRegistry>,
     ) {
-        let context = FetchContext {
-            state: http_state.clone(),
-            user_agent: servo_config::pref!(user_agent),
-            devtools_chan: None,
-            filemanager: Arc::new(Mutex::new(self.filemanager.clone())),
-            file_token: FileTokenCheck::NotRequired, // FIXME(pylbrecht)
-            request_interceptor: Arc::new(Mutex::new(self.request_interceptor.clone())),
-            cancellation_listener,
-            timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
-                ResourceTimingType::None, // FIXME(pylbrecht)
-            ))),
-            protocols,
-            websocket_chan: Some(Arc::new(Mutex::new((event_sender, action_receiver)))),
-        };
+        let http_state = http_state.clone();
+        let filemanager = self.filemanager.clone();
+        let request_interceptor = self.request_interceptor.clone();
 
-        websocket_loader::init(
-            request,
-            event_sender,
-            action_receiver,
-            http_state.clone(),
-            self.ca_certificates.clone(),
-            self.ignore_certificate_errors,
-            context,
-        );
+        HANDLE.spawn(async move {
+            let context = FetchContext {
+                state: http_state,
+                user_agent: servo_config::pref!(user_agent),
+                devtools_chan: None,
+                filemanager: Arc::new(Mutex::new(filemanager)),
+                file_token: FileTokenCheck::NotRequired, // FIXME(pylbrecht)
+                request_interceptor: Arc::new(Mutex::new(request_interceptor)),
+                cancellation_listener,
+                timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
+                    ResourceTimingType::None, // FIXME(pylbrecht)
+                ))),
+                protocols,
+                websocket_chan: Some(Arc::new(Mutex::new((
+                    event_sender.clone(),
+                    action_receiver,
+                )))),
+            };
+
+            let mut event_sender = event_sender;
+            fetch(request.build(), &mut event_sender, &context).await;
+        });
     }
 }
