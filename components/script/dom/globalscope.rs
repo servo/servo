@@ -3431,15 +3431,30 @@ impl GlobalScope {
         if Some(false) == self.inherited_secure_context {
             return false;
         }
-        if let Some(top_level_creation_url) = self.top_level_creation_url() {
-            if top_level_creation_url.scheme() == "blob" &&
-                Some(true) == self.inherited_secure_context
-            {
-                return true;
-            }
-            return top_level_creation_url.is_potentially_trustworthy();
+        // Step 1. If environment is an environment settings object, then:
+        // Step 1.1. Let global be environment's global object.
+        match self.top_level_creation_url() {
+            None => {
+                // Workers and worklets don't have a top-level creation URL
+                assert!(
+                    self.downcast::<WorkerGlobalScope>().is_some() ||
+                        self.downcast::<WorkletGlobalScope>().is_some()
+                );
+                true
+            },
+            Some(top_level_creation_url) => {
+                assert!(self.downcast::<Window>().is_some());
+                // Step 2. If the result of Is url potentially trustworthy?
+                // given environment's top-level creation URL is "Potentially Trustworthy", then return true.
+                // Step 3. Return false.
+                if top_level_creation_url.scheme() == "blob" &&
+                    Some(true) == self.inherited_secure_context
+                {
+                    return true;
+                }
+                top_level_creation_url.is_potentially_trustworthy()
+            },
         }
-        false
     }
 
     /// <https://www.w3.org/TR/CSP/#get-csp-of-object>
