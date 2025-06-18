@@ -1510,15 +1510,7 @@ impl<'a> TableLayout<'a> {
 
     /// Lay out the table (grid and captions) of this [`TableLayout`] into fragments. This should
     /// only be be called after calling [`TableLayout.compute_measures`].
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(
-            name = "Table::layout",
-            skip_all,
-            fields(servo_profiling = true),
-            level = "trace",
-        )
-    )]
+    #[servo_tracing::instrument(name = "Table::layout", skip_all)]
     fn layout(
         mut self,
         layout_context: &LayoutContext,
@@ -2695,15 +2687,7 @@ impl Table {
 }
 
 impl ComputeInlineContentSizes for Table {
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(
-            name = "Table::compute_inline_content_sizes",
-            skip_all,
-            fields(servo_profiling = true),
-            level = "trace",
-        )
-    )]
+    #[servo_tracing::instrument(name = "Table::compute_inline_content_sizes", skip_all)]
     fn compute_inline_content_sizes(
         &self,
         layout_context: &LayoutContext,

@@ -223,10 +223,7 @@ impl Layout for LayoutThread {
         );
     }
 
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
+    #[servo_tracing::instrument(skip_all)]
     fn add_stylesheet(
         &mut self,
         stylesheet: ServoArc<Stylesheet>,
@@ -246,10 +243,7 @@ impl Layout for LayoutThread {
         }
     }
 
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
+    #[servo_tracing::instrument(skip_all)]
     fn remove_stylesheet(&mut self, stylesheet: ServoArc<Stylesheet>) {
         let guard = stylesheet.shared_lock.read();
         let stylesheet = DocumentStyleSheet(stylesheet.clone());
@@ -258,37 +252,25 @@ impl Layout for LayoutThread {
             .remove_all_web_fonts_from_stylesheet(&stylesheet);
     }
 
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
+    #[servo_tracing::instrument(skip_all)]
     fn query_content_box(&self, node: TrustedNodeAddress) -> Option<UntypedRect<Au>> {
         let node = unsafe { ServoLayoutNode::new(&node) };
         process_content_box_request(node)
     }
 
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
+    #[servo_tracing::instrument(skip_all)]
     fn query_content_boxes(&self, node: TrustedNodeAddress) -> Vec<UntypedRect<Au>> {
         let node = unsafe { ServoLayoutNode::new(&node) };
         process_content_boxes_request(node)
     }
 
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
+    #[servo_tracing::instrument(skip_all)]
     fn query_client_rect(&self, node: TrustedNodeAddress) -> UntypedRect<i32> {
         let node = unsafe { ServoLayoutNode::new(&node) };
         process_client_rect_request(node)
     }
 
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
+    #[servo_tracing::instrument(skip_all)]
     fn query_element_inner_outer_text(
         &self,
         node: script_layout_interface::TrustedNodeAddress,
@@ -297,10 +279,7 @@ impl Layout for LayoutThread {
         get_the_text_steps(node)
     }
 
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
+    #[servo_tracing::instrument(skip_all)]
     fn query_nodes_from_point(
         &self,
         point: UntypedPoint2D<f32>,
@@ -323,19 +302,13 @@ impl Layout for LayoutThread {
         results.iter().map(|result| result.node).collect()
     }
 
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
+    #[servo_tracing::instrument(skip_all)]
     fn query_offset_parent(&self, node: TrustedNodeAddress) -> OffsetParentResponse {
         let node = unsafe { ServoLayoutNode::new(&node) };
         process_offset_parent_query(node).unwrap_or_default()
     }
 
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
+    #[servo_tracing::instrument(skip_all)]
     fn query_resolved_style(
         &self,
         node: TrustedNodeAddress,
@@ -364,10 +337,7 @@ impl Layout for LayoutThread {
         process_resolved_style_request(&shared_style_context, node, &pseudo, &property_id)
     }
 
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
+    #[servo_tracing::instrument(skip_all)]
     fn query_resolved_font_style(
         &self,
         node: TrustedNodeAddress,
@@ -400,19 +370,13 @@ impl Layout for LayoutThread {
         )
     }
 
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
+    #[servo_tracing::instrument(skip_all)]
     fn query_scrolling_area(&self, node: Option<TrustedNodeAddress>) -> UntypedRect<i32> {
         let node = node.map(|node| unsafe { ServoLayoutNode::new(&node) });
         process_node_scroll_area_request(node, self.fragment_tree.borrow().clone())
     }
 
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
+    #[servo_tracing::instrument(skip_all)]
     fn query_text_indext(
         &self,
         node: OpaqueNode,
@@ -612,10 +576,7 @@ impl LayoutThread {
     }
 
     /// The high-level routine that performs layout.
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
+    #[servo_tracing::instrument(skip_all)]
     fn handle_reflow(&mut self, mut reflow_request: ReflowRequest) -> Option<ReflowResult> {
         let document = unsafe { ServoLayoutNode::new(&reflow_request.document) };
         let document = document.as_document().unwrap();
@@ -779,10 +740,7 @@ impl LayoutThread {
             .flush(guards, Some(root_element), Some(snapshot_map));
     }
 
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
+    #[servo_tracing::instrument(skip_all)]
     fn restyle_and_build_trees(
         &self,
         reflow_request: &ReflowRequest,

@@ -426,15 +426,7 @@ struct FlexItemBoxInlineContentSizesInfo {
 }
 
 impl ComputeInlineContentSizes for FlexContainer {
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(
-            name = "FlexContainer::compute_inline_content_sizes",
-            skip_all,
-            fields(servo_profiling = true),
-            level = "trace",
-        )
-    )]
+    #[servo_tracing::instrument(name = "FlexContainer::compute_inline_content_sizes", skip_all)]
     fn compute_inline_content_sizes(
         &self,
         layout_context: &LayoutContext,
@@ -635,14 +627,10 @@ impl FlexContainer {
     }
 
     /// <https://drafts.csswg.org/css-flexbox/#layout-algorithm>
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(
-            name = "FlexContainer::layout",
-            skip_all,
-            fields(servo_profiling = true, self_address = self as *const _ as usize),
-            level = "trace",
-        )
+    #[servo_tracing::instrument(
+        name = "FlexContainer::layout",
+        skip_all,
+        fields(self_address = self as *const _ as usize)
     )]
     pub(crate) fn layout(
         &self,
@@ -1743,18 +1731,13 @@ impl FlexItem<'_> {
     /// From <https://drafts.csswg.org/css-flexbox/#algo-cross-item>:
     /// > performing layout as if it were an in-flow block-level box with the used main
     /// > size and the given available space, treating `auto` as `fit-content`.
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(
-            name = "FlexItem::layout",
-            skip_all,
-            fields(
-                servo_profiling = true,
-                self_address = self as *const _ as usize,
-                box_address = self.box_ as *const _ as usize,
-                for_stretch = non_stretch_layout_result.is_some(),
-            ),
-            level = "trace",
+    #[servo_tracing::instrument(
+        name = "FlexItem::layout",
+        skip_all,
+        fields(
+            self_address = self as *const _ as usize,
+            box_address = self.box_ as *const _ as usize,
+            for_stretch = non_stretch_layout_result.is_some()
         )
     )]
     #[allow(clippy::too_many_arguments)]
@@ -2595,15 +2578,7 @@ impl FlexItemBox {
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(
-            name = "FlexContainer::layout_for_block_content_size",
-            skip_all,
-            fields(servo_profiling = true),
-            level = "trace",
-        )
-    )]
+    #[servo_tracing::instrument(name = "FlexContainer::layout_for_block_content_size", skip_all)]
     fn layout_for_block_content_size(
         &self,
         flex_context: &FlexContext,

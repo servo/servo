@@ -1503,10 +1503,7 @@ impl IOCompositor {
             }))
     }
 
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
+    #[servo_tracing::instrument(skip_all)]
     fn render_inner(&mut self) -> Result<(), UnableToComposite> {
         if let Err(err) = self.rendering_context.make_current() {
             warn!("Failed to make the rendering context current: {:?}", err);
@@ -1660,10 +1657,7 @@ impl IOCompositor {
         Ref::map(self.global.borrow(), |global| &global.compositor_receiver)
     }
 
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
+    #[servo_tracing::instrument(skip_all)]
     pub fn handle_messages(&mut self, mut messages: Vec<CompositorMsg>) {
         // Check for new messages coming from the other threads in the system.
         let mut found_recomposite_msg = false;
@@ -1700,10 +1694,7 @@ impl IOCompositor {
         }
     }
 
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
+    #[servo_tracing::instrument(skip_all)]
     pub fn perform_updates(&mut self) -> bool {
         if self.global.borrow().shutdown_state() == ShutdownState::FinishedShuttingDown {
             return false;

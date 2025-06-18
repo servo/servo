@@ -62,6 +62,7 @@ unicode-script = { workspace = true }
 url = { workspace = true }
 webrender_api = { workspace = true }
 xi-unicode = { workspace = true }
+servo-tracing = { workspace = true }
 
 [dev-dependencies]
 num-traits = { workspace = true }

@@ -268,10 +268,7 @@ impl FontContext {
 
     /// Create a `Font` for use in layout calculations, from a `FontTemplateData` returned by the
     /// cache thread and a `FontDescriptor` which contains the styling parameters.
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
+    #[servo_tracing::instrument(skip_all)]
     fn create_font(
         &self,
         font_template: FontTemplateRef,
