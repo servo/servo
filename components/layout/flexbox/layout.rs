@@ -1732,7 +1732,7 @@ impl FlexItem<'_> {
     /// > performing layout as if it were an in-flow block-level box with the used main
     /// > size and the given available space, treating `auto` as `fit-content`.
     #[servo_tracing::instrument(
-        name = "FlexContainer::layout",
+        name = "FlexItem::layout",
         skip_all,
         fields(
             self_address = self as *const _ as usize,
