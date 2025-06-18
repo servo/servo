@@ -398,6 +398,7 @@ impl WritableStreamDefaultController {
         self.underlying_sink_obj.set(*this_object);
     }
 
+    /// "Signal abort" call from <https://streams.spec.whatwg.org/#writable-stream-abort>
     pub(crate) fn signal_abort(
         &self,
         cx: SafeJSContext,
