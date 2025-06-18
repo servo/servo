@@ -7,7 +7,7 @@ use std::net::TcpStream;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
-use super::source::{SourceData, SourceManager, SourcesReply};
+use super::source::{SourceManager, SourcesReply};
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::JsonPacketStream;
 use crate::{EmptyReplyMsg, StreamId};
@@ -124,17 +124,9 @@ impl Actor for ThreadActor {
             // Client has attached to the thread and wants to load script sources.
             // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#loading-script-sources>
             "sources" => {
-                let sources: Vec<SourceData> = self
-                    .source_manager
-                    .source_urls
-                    .borrow()
-                    .iter()
-                    .cloned()
-                    .collect();
-
                 let msg = SourcesReply {
                     from: self.name(),
-                    sources,
+                    sources: self.source_manager.source_forms(registry),
                 };
                 let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed

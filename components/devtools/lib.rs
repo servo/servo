@@ -43,7 +43,7 @@ use crate::actors::performance::PerformanceActor;
 use crate::actors::preference::PreferenceActor;
 use crate::actors::process::ProcessActor;
 use crate::actors::root::RootActor;
-use crate::actors::source::{SourceActor, SourceData};
+use crate::actors::source::SourceActor;
 use crate::actors::thread::ThreadActor;
 use crate::actors::worker::{WorkerActor, WorkerType};
 use crate::id::IdMap;
@@ -518,11 +518,14 @@ impl DevtoolsInstance {
     fn handle_script_source_info(&mut self, pipeline_id: PipelineId, source_info: SourceInfo) {
         let mut actors = self.actors.lock().unwrap();
 
-        let source_actor_name = SourceActor::new_source(
+        let source_actor = SourceActor::new_registered(
             &mut actors,
+            source_info.url,
             source_info.content.clone(),
             source_info.content_type.unwrap(),
         );
+        let source_actor_name = source_actor.name.clone();
+        let source_form = source_actor.source_form();
 
         if let Some(worker_id) = source_info.worker_id {
             let Some(worker_actor_name) = self.actor_workers.get(&worker_id) else {
@@ -532,23 +535,12 @@ impl DevtoolsInstance {
             let thread_actor_name = actors.find::<WorkerActor>(worker_actor_name).thread.clone();
             let thread_actor = actors.find_mut::<ThreadActor>(&thread_actor_name);
 
-            thread_actor.source_manager.add_source(
-                source_info.url.clone(),
-                source_info.content.clone(),
-                source_actor_name.clone(),
-            );
-
-            let source = SourceData {
-                actor: source_actor_name,
-                url: source_info.url.to_string(),
-                is_black_boxed: false,
-                source_content: source_info.content,
-            };
+            thread_actor.source_manager.add_source(&source_actor_name);
 
             let worker_actor = actors.find::<WorkerActor>(worker_actor_name);
 
             for stream in self.connections.values_mut() {
-                worker_actor.resource_available(&source, "source".into(), stream);
+                worker_actor.resource_available(&source_form, "source".into(), stream);
             }
         } else {
             let Some(browsing_context_id) = self.pipelines.get(&pipeline_id) else {
@@ -565,24 +557,13 @@ impl DevtoolsInstance {
 
             let thread_actor = actors.find_mut::<ThreadActor>(&thread_actor_name);
 
-            thread_actor.source_manager.add_source(
-                source_info.url.clone(),
-                source_info.content.clone(),
-                source_actor_name.clone(),
-            );
-
-            let source = SourceData {
-                actor: source_actor_name,
-                url: source_info.url.to_string(),
-                is_black_boxed: false,
-                source_content: source_info.content,
-            };
+            thread_actor.source_manager.add_source(&source_actor_name);
 
             // Notify browsing context about the new source
             let browsing_context = actors.find::<BrowsingContextActor>(actor_name);
 
             for stream in self.connections.values_mut() {
-                browsing_context.resource_available(&source, "source".into(), stream);
+                browsing_context.resource_available(&source_form, "source".into(), stream);
             }
         }
     }
