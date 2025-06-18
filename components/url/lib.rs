@@ -6,6 +6,7 @@
 #![crate_name = "servo_url"]
 #![crate_type = "rlib"]
 
+pub mod encoding;
 pub mod origin;
 
 use std::collections::hash_map::DefaultHasher;

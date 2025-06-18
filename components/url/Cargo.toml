@@ -12,6 +12,7 @@ name = "servo_url"
 path = "lib.rs"
 
 [dependencies]
+encoding_rs = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
