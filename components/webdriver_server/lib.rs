@@ -464,27 +464,18 @@ impl Handler {
 
     fn focus_webview_id(&self) -> WebDriverResult<WebViewId> {
         debug!("Getting focused context.");
-        let interval = 20;
-        let iterations = 30_000 / interval;
         let (sender, receiver) = ipc::channel().unwrap();
 
-        for _ in 0..iterations {
-            let msg =
-                EmbedderToConstellationMessage::GetFocusTopLevelBrowsingContext(sender.clone());
-            self.constellation_chan.send(msg).unwrap();
-            // Wait until the document is ready before returning the top-level browsing context id.
-            if let Some(x) = receiver.recv().unwrap() {
-                debug!("Focused context is {}", x);
-                return Ok(x);
-            }
-            thread::sleep(Duration::from_millis(interval));
+        let msg = EmbedderToConstellationMessage::GetFocusTopLevelBrowsingContext(sender.clone());
+        self.constellation_chan.send(msg).unwrap();
+        // Wait until the document is ready before returning the top-level browsing context id.
+        match wait_for_script_response(receiver)? {
+            Some(webview_id) => Ok(webview_id),
+            None => Err(WebDriverError::new(
+                ErrorStatus::NoSuchWindow,
+                "No focused webview found",
+            )),
         }
-
-        debug!("Timed out getting focused context.");
-        Err(WebDriverError::new(
-            ErrorStatus::Timeout,
-            "Failed to get window handle",
-        ))
     }
 
     fn session(&self) -> WebDriverResult<&WebDriverSession> {
