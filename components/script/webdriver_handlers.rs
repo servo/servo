@@ -80,35 +80,48 @@ fn get_known_element(
     let doc = documents
         .find_document(pipeline)
         .expect("webdriver_handlers::Document should exists");
+    // Step 1. If not node reference is known with session, session's current browsing context,
+    // and reference return error with error code no such element.
+    if !ScriptThread::has_node_id(pipeline, &node_id) {
+        // If the node is known, but not found in the document, it is stale.
+        return Err(ErrorStatus::NoSuchElement);
+    }
+    // Step 2.Let node be the result of get a node with session,
+    // session's current browsing context, and reference.
+    let node = find_node_by_unique_id_in_document(&doc, node_id);
+
     // Step 3. If node is not null and node does not implement Element
     // return error with error code no such element.
-    find_node_by_unique_id_in_document(&doc, node_id).and_then(|node| {
-        node.downcast::<Element>()
-            .map(DomRoot::from_ref)
-            .ok_or(ErrorStatus::NoSuchElement)
-    })
+    if let Some(ref node) = node {
+        if !node.is::<Element>() {
+            return Err(ErrorStatus::NoSuchElement);
+        }
+    }
+    // Step 4.1. If node is null return error with error code stale element reference.
+    if node.is_none() {
+        return Err(ErrorStatus::StaleElementReference);
+    }
+    // Step 4.2. If node is stale return error with error code stale element reference.
+    // An element is stale if its node document is not the active document
+    // or if it is not connected.
+    let element = DomRoot::from_ref(node.unwrap().downcast::<Element>().unwrap());
+    if !element.owner_document().is_active() || !element.is_connected() {
+        return Err(ErrorStatus::StaleElementReference);
+    }
+    // Step 5. Return success with data node.
+    Ok(element)
 }
 
 // This is also used by `dom/window.rs`
 pub(crate) fn find_node_by_unique_id_in_document(
     document: &Document,
     node_id: String,
-) -> Result<DomRoot<Node>, ErrorStatus> {
+) -> Option<DomRoot<Node>> {
     let pipeline = document.window().pipeline_id();
-    match document
+    document
         .upcast::<Node>()
         .traverse_preorder(ShadowIncluding::Yes)
         .find(|node| node.unique_id(pipeline) == node_id)
-    {
-        Some(node) => Ok(node),
-        None => {
-            if ScriptThread::has_node_id(pipeline, &node_id) {
-                Err(ErrorStatus::StaleElementReference)
-            } else {
-                Err(ErrorStatus::NoSuchElement)
-            }
-        },
-    }
 }
 
 /// <https://w3c.github.io/webdriver/#dfn-link-text-selector>

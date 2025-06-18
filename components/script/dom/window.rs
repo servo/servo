@@ -1439,14 +1439,11 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     fn WebdriverElement(&self, id: DOMString) -> Option<DomRoot<Element>> {
-        find_node_by_unique_id_in_document(&self.Document(), id.into())
-            .ok()
-            .and_then(Root::downcast)
+        find_node_by_unique_id_in_document(&self.Document(), id.into()).and_then(Root::downcast)
     }
 
     fn WebdriverFrame(&self, id: DOMString) -> Option<DomRoot<Element>> {
         find_node_by_unique_id_in_document(&self.Document(), id.into())
-            .ok()
             .and_then(Root::downcast::<HTMLIFrameElement>)
             .map(Root::upcast::<Element>)
     }
@@ -1457,9 +1454,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     fn WebdriverShadowRoot(&self, id: DOMString) -> Option<DomRoot<ShadowRoot>> {
-        find_node_by_unique_id_in_document(&self.Document(), id.into())
-            .ok()
-            .and_then(Root::downcast)
+        find_node_by_unique_id_in_document(&self.Document(), id.into()).and_then(Root::downcast)
     }
 
     // https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle
