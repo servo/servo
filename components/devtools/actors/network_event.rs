@@ -53,7 +53,7 @@ pub struct NetworkEventActor {
     pub request_headers: Option<RequestHeadersMsg>,
     pub total_time: Duration,
     pub security_state: String,
-    pub event_timing: Option<GetEventTimingsReply>,
+    pub event_timing: Option<Timings>,
 }
 
 #[derive(Clone, Serialize)]
@@ -122,11 +122,6 @@ pub struct RequestCookiesMsg {
 pub struct RequestHeadersMsg {
     headers: usize,
     headers_size: usize,
-}
-
-#[derive(Serialize)]
-struct SecurityInfoUpdateMsg {
-    security_state: String,
 }
 
 #[derive(Serialize)]
