@@ -53,6 +53,7 @@ pub struct NetworkEventActor {
     pub request_headers: Option<RequestHeadersMsg>,
     pub total_time: Duration,
     pub security_state: String,
+    pub event_timing: Option<GetEventTimingsReply>,
 }
 
 #[derive(Clone, Serialize)]
@@ -384,14 +385,15 @@ impl NetworkEventActor {
             request: request.clone(),
             response: response.clone(),
             is_xhr: false,
-            response_content: Some(Self::response_content(&response)),
-            response_start: Some(Self::response_start(&response)),
-            response_cookies: Some(Self::response_cookies(&response)),
-            response_headers: Some(Self::response_headers(&response)),
-            request_cookies: Some(Self::request_cookies(&request)),
-            request_headers: Some(Self::request_headers(&request)),
+            response_content: None,
+            response_start: None,
+            response_cookies: None,
+            response_headers: None,
+            request_cookies: None,
+            request_headers: None,
             total_time: Self::total_time(&request),
             security_state: "insecure".to_owned(), // Default security state
+            event_timing: None,
         }
     }
 
@@ -452,10 +454,13 @@ impl NetworkEventActor {
         }
     }
 
+    #[allow(dead_code)]
     pub fn response_start(response: &HttpResponse) -> ResponseStartMsg {
+        // TODO: Send the correct values for all these fields.
         let h_size = response.headers.as_ref().map(|h| h.len()).unwrap_or(0);
         let status = &response.status;
 
+        // TODO: Send the correct values for remoteAddress and remotePort and http_version
         ResponseStartMsg {
             http_version: "HTTP/1.1".to_owned(),
             remote_address: "63.245.217.43".to_owned(),
@@ -467,6 +472,7 @@ impl NetworkEventActor {
         }
     }
 
+    #[allow(dead_code)]
     pub fn response_content(response: &HttpResponse) -> ResponseContentMsg {
         let mime_type = if let Some(ref headers) = response.headers {
             match headers.typed_get::<ContentType>() {
@@ -476,7 +482,7 @@ impl NetworkEventActor {
         } else {
             "".to_string()
         };
-
+        // TODO: Set correct values when response's body is sent to the devtools in http_loader.
         ResponseContentMsg {
             mime_type,
             content_size: 0,
@@ -485,6 +491,7 @@ impl NetworkEventActor {
         }
     }
 
+    #[allow(dead_code)]
     pub fn response_cookies(response: &HttpResponse) -> ResponseCookiesMsg {
         let mut cookies_size = 0;
         if let Some(ref headers) = response.headers {
@@ -498,6 +505,7 @@ impl NetworkEventActor {
         }
     }
 
+    #[allow(dead_code)]
     pub fn response_headers(response: &HttpResponse) -> ResponseHeadersMsg {
         let mut headers_size = 0;
         let mut headers_byte_count = 0;
@@ -513,6 +521,7 @@ impl NetworkEventActor {
         }
     }
 
+    #[allow(dead_code)]
     pub fn request_headers(request: &HttpRequest) -> RequestHeadersMsg {
         let size = request.headers.iter().fold(0, |acc, (name, value)| {
             acc + name.as_str().len() + value.len()
@@ -523,6 +532,7 @@ impl NetworkEventActor {
         }
     }
 
+    #[allow(dead_code)]
     pub fn request_cookies(request: &HttpRequest) -> RequestCookiesMsg {
         let cookies_size = match request.headers.typed_get::<Cookie>() {
             Some(ref cookie) => cookie.len(),
@@ -535,6 +545,16 @@ impl NetworkEventActor {
 
     pub fn total_time(request: &HttpRequest) -> Duration {
         request.connect_time + request.send_time
+    }
+
+    fn insert_serialized_map<T: Serialize>(map: &mut Map<String, Value>, obj: &Option<T>) {
+        if let Some(value) = obj {
+            if let Ok(Value::Object(serialized)) = serde_json::to_value(value) {
+                for (key, val) in serialized {
+                    map.insert(key, val);
+                }
+            }
+        }
     }
 
     pub fn resource_updates(&self) -> NetworkEventResource {
@@ -576,83 +596,25 @@ impl NetworkEventActor {
             "securityState".to_string(),
             Value::String(self.security_state.clone()),
         );
+        resource_updates.insert(
+            "eventTimingsAvailable".to_owned(),
+            Value::Bool(self.event_timing.is_some()),
+        );
 
-        if let Some(ref content) = self.response_content {
-            let content_map = serde_json::to_value(content)
-                .unwrap()
-                .as_object()
-                .unwrap()
-                .clone();
+        Self::insert_serialized_map(&mut resource_updates, &self.response_content);
+        Self::insert_serialized_map(&mut resource_updates, &self.response_headers);
+        Self::insert_serialized_map(&mut resource_updates, &self.response_cookies);
+        Self::insert_serialized_map(&mut resource_updates, &self.request_headers);
+        Self::insert_serialized_map(&mut resource_updates, &self.request_cookies);
+        Self::insert_serialized_map(&mut resource_updates, &self.response_start);
+        Self::insert_serialized_map(&mut resource_updates, &self.event_timing);
 
-            for (key, value) in content_map {
-                resource_updates.insert(key, value);
-            }
-        }
-
-        if let Some(ref headers) = self.response_headers {
-            let headers_map = serde_json::to_value(headers)
-                .unwrap()
-                .as_object()
-                .unwrap()
-                .clone();
-
-            for (key, value) in headers_map {
-                resource_updates.insert(key, value);
-            }
-        }
-
-        if let Some(ref cookies) = self.response_cookies {
-            let cookies_map = serde_json::to_value(cookies)
-                .unwrap()
-                .as_object()
-                .unwrap()
-                .clone();
-
-            for (key, value) in cookies_map {
-                resource_updates.insert(key, value);
-            }
-        }
-
-        if let Some(ref req_headers) = self.request_headers {
-            let req_headers_map = serde_json::to_value(req_headers)
-                .unwrap()
-                .as_object()
-                .unwrap()
-                .clone();
-
-            for (key, value) in req_headers_map {
-                resource_updates.insert(key, value);
-            }
-        }
-
-        if let Some(ref req_cookies) = self.request_cookies {
-            let req_cookies_map = serde_json::to_value(req_cookies)
-                .unwrap()
-                .as_object()
-                .unwrap()
-                .clone();
-
-            for (key, value) in req_cookies_map {
-                resource_updates.insert(key, value);
-            }
-        }
-
-        if let Some(ref resp_start) = self.response_start {
-            let resp_start_map = serde_json::to_value(resp_start)
-                .unwrap()
-                .as_object()
-                .unwrap()
-                .clone();
-
-            for (key, value) in resp_start_map {
-                resource_updates.insert(key, value);
-            }
-        }
+        // TODO: Set the correct values for these fields
         NetworkEventResource {
-            resource_id: 0, // Set to a valid ID if available
+            resource_id: 0,
             resource_updates,
-            browsing_context_id: 0, // Set to a valid ID if available
-            inner_window_id: 0,     // Set to a valid ID if available
+            browsing_context_id: 0,
+            inner_window_id: 0,
         }
     }
 }
