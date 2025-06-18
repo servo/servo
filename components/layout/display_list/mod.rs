@@ -1509,6 +1509,13 @@ impl<'a> BuilderForBoxFragment<'a> {
         };
 
         let size = euclid::Size2D::new(width as i32, height as i32);
+
+        // If the size of the border is zero or the size of the border image is zero, just
+        // don't render anything. Zero-sized gradients cause problems in WebRender.
+        if size.is_empty() || border_image_size.is_empty() {
+            return true;
+        }
+
         let details = BorderDetails::NinePatch(NinePatchBorder {
             source,
             width: size.width,
