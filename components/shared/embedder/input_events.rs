@@ -117,6 +117,14 @@ impl KeyboardEvent {
             is_composing,
         })
     }
+
+    pub fn from_state_and_key(state: KeyState, key: Key) -> Self {
+        Self::new(::keyboard_types::KeyboardEvent {
+            state,
+            key,
+            ..::keyboard_types::KeyboardEvent::default()
+        })
+    }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
