@@ -53,7 +53,7 @@ use crate::http_loader::HttpState;
 /// and `Cookie` headers as appropriate.
 /// Returns an error if any header values are invalid or tungstenite cannot create
 /// the desired request.
-fn create_request(
+pub fn create_request(
     resource_url: &ServoUrl,
     origin: &str,
     protocols: &[String],
@@ -109,7 +109,7 @@ fn create_request(
 /// This ensures that any `Cookie` or HSTS headers are recognized.
 /// Returns an error if the protocol selected by the handshake doesn't
 /// match the list of provided protocols in the original request.
-fn process_ws_response(
+pub fn process_ws_response(
     http_state: &HttpState,
     response: &Response,
     resource_url: &ServoUrl,
@@ -156,7 +156,7 @@ enum DomMsg {
 
 /// Initialize a listener for DOM actions. These are routed from the IPC channel
 /// to a tokio channel that the main WS client task uses to receive them.
-fn setup_dom_listener(
+pub fn setup_dom_listener(
     dom_action_receiver: IpcReceiver<WebSocketDomAction>,
     initiated_close: Arc<AtomicBool>,
 ) -> UnboundedReceiver<DomMsg> {
@@ -198,7 +198,7 @@ fn setup_dom_listener(
 /// closes the connection or an error occurs. Since this is an async
 /// function that uses the select operation, it will run as a task
 /// on the WS tokio runtime.
-async fn run_ws_loop(
+pub async fn run_ws_loop(
     mut dom_receiver: UnboundedReceiver<DomMsg>,
     resource_event_sender: IpcSender<WebSocketNetworkEvent>,
     mut stream: WebSocketStream<ConnectStream>,
