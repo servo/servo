@@ -88,7 +88,7 @@ jobs:
     uses: ./.github/workflows/self-hosted-runner-select.yml
     secrets: inherit
     with:
-      github-hosted-runner-label: macos-13
+      github-hosted-runner-label: macos-15
       self-hosted-image-name: servo-macos13
       force-github-hosted-runner: ${{ inputs.force-github-hosted-runner }}
   runner-timeout:
