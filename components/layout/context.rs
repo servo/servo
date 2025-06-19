@@ -311,6 +311,7 @@ impl LayoutContext<'_> {
                             })
                     })
             },
+            Image::LightDark(..) => unreachable!("light-dark() should be disabled"),
         }
     }
 }
