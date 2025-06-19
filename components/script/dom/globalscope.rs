@@ -389,13 +389,7 @@ pub(crate) struct GlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#import-maps>
     import_map: DomRefCell<ImportMap>,
 
-    /// The resolved module set ensures that module specifier resolution returns the same result when
-    /// called multiple times with the same (referrer, specifier) pair. It does that by ensuring that
-    /// import map rules that impact the specifier in its referrer's scope cannot be defined after its
-    /// initial resolution. For now, only Window global objects have their module set data structures
-    /// modified from the initial empty one.
-    ///
-    /// <https://html.spec.whatwg.org/multipage/#specifier-resolution-record>
+    /// <https://html.spec.whatwg.org/multipage/#resolved-module-set>
     resolved_module_set: DomRefCell<HashSet<ResolvedModule>>,
 }
 
@@ -3779,12 +3773,34 @@ impl GlobalScope {
         }
     }
 
-    pub(crate) fn import_map(&self) -> &DomRefCell<ImportMap> {
-        &self.import_map
+    pub(crate) fn import_map(&self) -> Ref<'_, ImportMap> {
+        self.import_map.borrow()
     }
 
-    pub(crate) fn resolved_module_set(&self) -> &DomRefCell<HashSet<ResolvedModule>> {
-        &self.resolved_module_set
+    pub(crate) fn import_map_mut(&self) -> RefMut<'_, ImportMap> {
+        self.import_map.borrow_mut()
+    }
+
+    pub(crate) fn resolved_module_set(&self) -> Ref<'_, HashSet<ResolvedModule>> {
+        self.resolved_module_set.borrow()
+    }
+
+    pub(crate) fn resolved_module_set_mut(&self) -> RefMut<'_, HashSet<ResolvedModule>> {
+        self.resolved_module_set.borrow_mut()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#add-module-to-resolved-module-set>
+    pub(crate) fn add_module_to_resolved_module_set(
+        &self,
+        base_url: &str,
+        specifier: &str,
+        specifier_url: Option<ServoUrl>,
+    ) {
+        if self.is::<Window>() {
+            let record =
+                ResolvedModule::new(base_url.to_owned(), specifier.to_owned(), specifier_url);
+            self.resolved_module_set.borrow_mut().insert(record);
+        }
     }
 }
 

@@ -671,7 +671,7 @@ impl ModuleTree {
         // Step 5. If settingsObject's global object implements Window, then set importMap to settingsObject's
         // global object's import map.
         let import_map = if global.is::<Window>() {
-            Some(global.import_map().borrow())
+            Some(global.import_map())
         } else {
             None
         };
@@ -734,14 +734,18 @@ impl ModuleTree {
             Some(result) => {
                 // Step 13.1 Add module to resolved module set given settingsObject, serializedBaseURL,
                 // normalizedSpecifier, and asURL.
-                // <https://html.spec.whatwg.org/multipage/#add-module-to-resolved-module-set>
+                global.add_module_to_resolved_module_set(
+                    base_url,
+                    normalized_specifier,
+                    as_url.clone(),
+                );
                 if global.is::<Window>() {
                     let record = ResolvedModule {
                         base_url: base_url.to_owned(),
                         specifier: normalized_specifier.to_owned(),
                         specifier_url: as_url,
                     };
-                    global.resolved_module_set().borrow_mut().insert(record);
+                    global.resolved_module_set_mut().insert(record);
                 }
                 // Step 13.2 Return result.
                 Ok(result)
@@ -1936,10 +1940,27 @@ pub(crate) type ModuleIntegrityMap = IndexMap<ServoUrl, String>;
 /// <https://html.spec.whatwg.org/multipage/#specifier-resolution-record>
 #[derive(Default, Eq, Hash, JSTraceable, MallocSizeOf, PartialEq)]
 pub(crate) struct ResolvedModule {
+    /// <https://html.spec.whatwg.org/multipage/#specifier-resolution-record-serialized-base-url>
     base_url: String,
+    /// <https://html.spec.whatwg.org/multipage/#specifier-resolution-record-specifier>
     specifier: String,
+    /// <https://html.spec.whatwg.org/multipage/#specifier-resolution-record-as-url>
     #[no_trace]
     specifier_url: Option<ServoUrl>,
+}
+
+impl ResolvedModule {
+    pub(crate) fn new(
+        base_url: String,
+        specifier: String,
+        specifier_url: Option<ServoUrl>,
+    ) -> Self {
+        Self {
+            base_url,
+            specifier,
+            specifier_url,
+        }
+    }
 }
 
 /// <https://html.spec.whatwg.org/multipage/#import-map-processing-model>
@@ -1982,12 +2003,12 @@ fn merge_existing_and_new_import_maps(
     let new_import_map_scopes = new_import_map.scopes;
 
     // Step 2. Let oldImportMap be global's import map.
-    let mut old_import_map = global.import_map().borrow_mut();
+    let mut old_import_map = global.import_map_mut();
 
     // Step 3. Let newImportMapImports be a deep copy of newImportMap's imports.
     let mut new_import_map_imports = new_import_map.imports;
 
-    let resolved_module_set = global.resolved_module_set().borrow();
+    let resolved_module_set = global.resolved_module_set();
     // Step 4. For each scopePrefix → scopeImports of newImportMapScopes:
     for (scope_prefix, mut scope_imports) in new_import_map_scopes {
         // Step 4.1. For each record of global's resolved module set:
@@ -2461,6 +2482,7 @@ pub(crate) fn resolve_imports_match(
         if specifier_key == normalized_specifier {
             if let Some(resolution_result) = resolution_result {
                 // Step 1.1.2 Assert: resolutionResult is a URL.
+                // This is checked by Url type already.
                 // Step 1.1.3 Return resolutionResult.
                 return Ok(Some(resolution_result.clone()));
             } else {
