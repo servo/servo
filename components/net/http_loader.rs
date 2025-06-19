@@ -1965,9 +1965,14 @@ async fn http_network_fetch(
                 trace!("client closed connection for {}, not running loop", url);
             }
             let response = response.map(|r| {
-                Full::from(r.unwrap())
-                    .map_err(|_| unreachable!())
-                    .boxed()
+                match r {
+                    Some(body) => Full::from(body)
+                        .map_err(|_| unreachable!())
+                        .boxed(),
+                    None => http_body_util::Empty::new()
+                        .map_err(|_| unreachable!())
+                        .boxed(),
+                }
             });
             (Decoder::detect(response, url.is_secure_scheme()), None)
         },
