@@ -40,6 +40,8 @@ pub fn collect_reports(request: ReporterRequest) {
         report(path!["resident"], resident());
 
         // Memory segments, as reported by the OS.
+        // Notice that the sum of this should be more accurate according to
+        // the manpage of /proc/pid/statm
         for seg in resident_segments() {
             report(path!["resident-according-to-smaps", seg.0], Some(seg.1));
         }
@@ -238,6 +240,7 @@ fn resident_segments() -> Vec<(String, usize)> {
     // For example:
     //
     //   Rss:           132 kB
+    // See https://www.kernel.org/doc/Documentation/filesystems/proc.txt
 
     let f = match File::open("/proc/self/smaps") {
         Ok(f) => BufReader::new(f),
@@ -245,7 +248,7 @@ fn resident_segments() -> Vec<(String, usize)> {
     };
 
     let seg_re = Regex::new(
-        r"^[:xdigit:]+-[:xdigit:]+ (....) [:xdigit:]+ [:xdigit:]+:[:xdigit:]+ \d+ +(.*)",
+        r"^[[:xdigit:]]+-[[:xdigit:]]+ (....) [[:xdigit:]]+ [[:xdigit:]]+:[[:xdigit:]]+ \d+ +(.*)",
     )
     .unwrap();
     let rss_re = Regex::new(r"^Rss: +(\d+) kB").unwrap();
