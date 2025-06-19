@@ -174,16 +174,16 @@ impl HTMLVideoElement {
 
         // Step 2. If the poster attribute's value is the empty string or
         // if the attribute is absent, then there is no poster frame; return.
-        if poster_url.is_none_or(|url| url.is_empty()) {
+        let Some(poster_url) = poster_url.filter(|poster_url| !poster_url.is_empty()) else {
             self.htmlmediaelement.set_poster_frame(None);
             return;
-        }
+        };
 
         // Step 3. Let url be the result of encoding-parsing a URL given
         // the poster attribute's value, relative to the element's node
         // document.
         // Step 4. If url is failure, then return. There is no poster frame.
-        let poster_url = match self.owner_document().url().join(poster_url.unwrap()) {
+        let poster_url = match self.owner_document().encoding_parse_a_url(poster_url) {
             Ok(url) => url,
             Err(_) => {
                 self.htmlmediaelement.set_poster_frame(None);
