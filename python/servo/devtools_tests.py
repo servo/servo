@@ -96,9 +96,9 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.assert_sources_list(1, set([tuple(["data:text/html,<script type=module>;</script>"])]))
 
     def test_source_content_inline_script(self):
-        script_content = "console.log('Hello, world!');"
-        self.run_servoshell(url=f"data:text/html,<script>{script_content}</script>")
-        self.assert_source_content("data:text/html,<script>console.log('Hello, world!');</script>", script_content)
+        script_tag = "<script>console.log('Hello, world!')</script>"
+        self.run_servoshell(url=f"data:text/html,{script_tag}")
+        self.assert_source_content(f"data:text/html,{script_tag}", script_tag)
 
     def test_source_content_external_script(self):
         self.start_web_server(test_dir=os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
