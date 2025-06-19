@@ -654,6 +654,12 @@ impl Servo {
             return;
         }
 
+        // https://github.com/servo/servo/issues/37408
+        if opts::get().webdriver_port.is_some() {
+            log::info!("For WebDriver, do not shutdown when last browsing context closed.");
+            return;
+        }
+
         debug!("Sending Exit message to Constellation");
         self.constellation_proxy
             .send(EmbedderToConstellationMessage::Exit);
@@ -733,6 +739,9 @@ impl Servo {
                         .map(|webview| (webview.id(), webview.viewport_details()));
                     let _ = response_sender.send(webview_id_and_viewport_details);
                 }
+            },
+            EmbedderMsg::OpenNewTopLevelWebview => {
+                self.RunningAppState.new_toplevel_webview();
             },
             EmbedderMsg::WebViewClosed(webview_id) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
