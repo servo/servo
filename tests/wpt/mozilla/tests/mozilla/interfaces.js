@@ -29,6 +29,7 @@ function test_interfaces(interfaceNamesInGlobalScope) {
       "Int8Array",
       "InternalError",
       "Intl",
+      "Iterator",
       "JSON",
       "Map",
       "Math",
