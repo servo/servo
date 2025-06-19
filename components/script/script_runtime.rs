@@ -22,22 +22,24 @@ use background_hang_monitor_api::ScriptHangAnnotation;
 use content_security_policy::CheckResult;
 use js::conversions::jsstr_to_string;
 use js::glue::{
-    CollectServoSizes, CreateJobQueue, DeleteJobQueue, DispatchableRun, JobQueueTraps,
-    RUST_js_GetErrorMessage, SetBuildId, StreamConsumerConsumeChunk,
-    StreamConsumerNoteResponseURLs, StreamConsumerStreamEnd, StreamConsumerStreamError, JS_GetReservedSlot,
+    CollectServoSizes, CreateJobQueue, DeleteJobQueue, DispatchableRun, JS_GetReservedSlot,
+    JobQueueTraps, RUST_js_GetErrorMessage, SetBuildId, StreamConsumerConsumeChunk,
+    StreamConsumerNoteResponseURLs, StreamConsumerStreamEnd, StreamConsumerStreamError,
 };
 use js::jsapi::{
-    AsmJSOption, BuildIdCharVector, ContextOptionsRef,
-    Dispatchable as JSRunnable, Dispatchable_MaybeShuttingDown, GCDescription, GCOptions,
-    GCProgress, GCReason, GetPromiseUserInputEventHandlingState, HandleObject, HandleString, Heap, MutableHandleObject, CompilationType, HandleValue,
+    AsmJSOption, BuildIdCharVector, CompilationType, ContextOptionsRef, Dispatchable as JSRunnable,
+    Dispatchable_MaybeShuttingDown, GCDescription, GCOptions, GCProgress, GCReason,
+    GetPromiseUserInputEventHandlingState, HandleObject, HandleString, HandleValue, Heap,
     InitConsumeStreamCallback, InitDispatchToEventLoop, JS_AddExtraGCRootsTracer,
-    JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback, JS_SetGCCallback,
-    JS_SetGCParameter, JS_SetGlobalJitCompilerOption, JS_SetOffthreadIonCompilationEnabled,
-    JS_SetParallelParsingEnabled, JS_SetSecurityCallbacks, JSContext as RawJSContext, JSGCParamKey,
-    JSGCStatus, JSJitCompilerOption, JSObject, JSSecurityCallbacks, JSTracer, JobQueue, MimeType,
+    JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback, JS_NewObject,
+    JS_SetGCCallback, JS_SetGCParameter, JS_SetGlobalJitCompilerOption,
+    JS_SetOffthreadIonCompilationEnabled, JS_SetParallelParsingEnabled, JS_SetReservedSlot,
+    JS_SetSecurityCallbacks, JSCLASS_RESERVED_SLOTS_MASK, JSCLASS_RESERVED_SLOTS_SHIFT, JSClass,
+    JSClassOps, JSContext as RawJSContext, JSGCParamKey, JSGCStatus, JSJitCompilerOption, JSObject,
+    JSSecurityCallbacks, JSTracer, JobQueue, MimeType, MutableHandleObject,
     PromiseRejectionHandlingState, PromiseUserInputEventHandlingState, RuntimeCode,
     SetDOMCallbacks, SetGCSliceCallback, SetJobQueue, SetPreserveWrapperCallbacks,
-    SetProcessBuildIdOp, SetPromiseRejectionTrackerCallback, StreamConsumer as JSStreamConsumer, JS_NewObject, JSClass, JSCLASS_RESERVED_SLOTS_MASK, JSCLASS_RESERVED_SLOTS_SHIFT, JSClassOps, JS_SetReservedSlot,
+    SetProcessBuildIdOp, SetPromiseRejectionTrackerCallback, StreamConsumer as JSStreamConsumer,
 };
 use js::jsval::{ObjectValue, UndefinedValue};
 use js::panic::wrap_panic;
@@ -243,7 +245,11 @@ const INCUMBENT_SETTING_SLOT: u32 = 0;
 const HOST_DEFINED_DATA_SLOTS: u32 = 1;
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn get_host_defined_data(_: *const c_void, cx: *mut RawJSContext, data: MutableHandleObject) -> bool {
+unsafe extern "C" fn get_host_defined_data(
+    _: *const c_void,
+    cx: *mut RawJSContext,
+    data: MutableHandleObject,
+) -> bool {
     wrap_panic(&mut || {
         let Some(incumbent_global) = GlobalScope::incumbent() else {
             data.set(ptr::null_mut());
@@ -255,7 +261,11 @@ unsafe extern "C" fn get_host_defined_data(_: *const c_void, cx: *mut RawJSConte
         rooted!(in(cx) let result = JS_NewObject(cx, &HOST_DEFINED_DATA_CLASS));
         assert!(!result.is_null());
 
-        JS_SetReservedSlot(*result, INCUMBENT_SETTING_SLOT, &ObjectValue(*incumbent_global.reflector().get_jsobject()));
+        JS_SetReservedSlot(
+            *result,
+            INCUMBENT_SETTING_SLOT,
+            &ObjectValue(*incumbent_global.reflector().get_jsobject()),
+        );
 
         data.set(result.get());
     });
@@ -289,7 +299,11 @@ unsafe extern "C" fn enqueue_promise_job(
         let microtask_queue = &*(extra as *const MicrotaskQueue);
         let global = if !host_defined_data.is_null() {
             let mut incumbent_global = UndefinedValue();
-            JS_GetReservedSlot(host_defined_data.get(), INCUMBENT_SETTING_SLOT, &mut incumbent_global);
+            JS_GetReservedSlot(
+                host_defined_data.get(),
+                INCUMBENT_SETTING_SLOT,
+                &mut incumbent_global,
+            );
             GlobalScope::from_object(incumbent_global.to_object())
         } else {
             let realm = AlreadyInRealm::assert_for_cx(cx);

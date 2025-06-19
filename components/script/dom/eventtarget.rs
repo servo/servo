@@ -18,9 +18,7 @@ use fnv::FnvHasher;
 use js::jsapi::JS::CompileFunction;
 use js::jsapi::{JS_GetFunctionObject, SupportUnscopables};
 use js::jsval::JSVal;
-use js::rust::{
-    CompileOptionsWrapper, HandleObject, transform_u16_to_source_text,
-};
+use js::rust::{CompileOptionsWrapper, HandleObject, transform_u16_to_source_text};
 use libc::c_char;
 use servo_url::ServoUrl;
 use style::str::HTML_SPACE_CHARACTERS;
