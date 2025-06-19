@@ -60,7 +60,7 @@ use net_traits::{
     CoreResourceMsg, CoreResourceThread, FetchResponseListener, IpcSend, ReferrerPolicy,
     ResourceThreads, fetch_async,
 };
-use pixels::PixelFormat;
+use pixels::{CorsStatus, PixelFormat};
 use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
 use script_bindings::interfaces::GlobalScopeHelpers;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -3034,6 +3034,20 @@ impl GlobalScope {
                     }));
             };
 
+        // The promise with "InvalidStateError" DOMException should be rejected
+        // on the the bitmap task source.
+        let reject_promise_on_bitmap_task_source = |promise: &Rc<Promise>| {
+            let trusted_promise = TrustedPromise::new(promise.clone());
+
+            self.task_manager()
+                .bitmap_task_source()
+                .queue(task!(reject_promise: move || {
+                    let promise = trusted_promise.root();
+
+                    promise.reject_error(Error::InvalidState, CanGc::note());
+                }));
+        };
+
         // Step 3. Check the usability of the image argument. If this throws an exception or returns bad,
         // then return a promise rejected with an "InvalidStateError" DOMException.
         // Step 6. Switch on image:
@@ -3227,9 +3241,63 @@ impl GlobalScope {
                 // to resolve promise with imageBitmap.
                 fullfill_promise_on_bitmap_task_source(&p, &image_bitmap);
             },
-            ImageBitmapSource::Blob(_) => {
-                // TODO: implement support of Blob object as ImageBitmapSource
-                p.reject_error(Error::InvalidState, can_gc);
+            ImageBitmapSource::Blob(ref blob) => {
+                // Step 6.1. Let imageData be the result of reading image's data.
+                // If an error occurs during reading of the object, then queue
+                // a global task, using the bitmap task source, to reject promise
+                // with an "InvalidStateError" DOMException and abort these steps.
+                let Ok(bytes) = blob.get_bytes() else {
+                    reject_promise_on_bitmap_task_source(&p);
+                    return p;
+                };
+
+                // Step 6.2. Apply the image sniffing rules to determine the file
+                // format of imageData, with MIME type of image (as given by
+                // image's type attribute) giving the official type.
+                // Step 6.3. If imageData is not in a supported image file format
+                // (e.g., it's not an image at all), or if imageData is corrupted
+                // in some fatal way such that the image dimensions cannot be obtained
+                // (e.g., a vector graphic with no natural size), then queue
+                // a global task, using the bitmap task source, to reject promise
+                // with an "InvalidStateError" DOMException and abort these steps.
+                let Some(img) = pixels::load_from_memory(&bytes, CorsStatus::Safe) else {
+                    reject_promise_on_bitmap_task_source(&p);
+                    return p;
+                };
+
+                let size = Size2D::new(img.metadata.width, img.metadata.height);
+                let format = match img.format {
+                    PixelFormat::BGRA8 => snapshot::PixelFormat::BGRA,
+                    PixelFormat::RGBA8 => snapshot::PixelFormat::RGBA,
+                    pixel_format => {
+                        unimplemented!("unsupported pixel format ({:?})", pixel_format)
+                    },
+                };
+                let alpha_mode = snapshot::AlphaMode::Transparent {
+                    premultiplied: false,
+                };
+
+                let snapshot = Snapshot::from_vec(
+                    size.cast(),
+                    format,
+                    alpha_mode,
+                    img.first_frame().bytes.to_vec(),
+                );
+
+                // Step 6.4. Set imageBitmap's bitmap data to imageData, cropped
+                // to the source rectangle with formatting.
+                let Some(bitmap_data) =
+                    ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
+                else {
+                    reject_promise_on_bitmap_task_source(&p);
+                    return p;
+                };
+
+                let image_bitmap = ImageBitmap::new(self, bitmap_data, can_gc);
+
+                // Step 6.5. Queue a global task, using the bitmap task source,
+                // to resolve promise with imageBitmap.
+                fullfill_promise_on_bitmap_task_source(&p, &image_bitmap);
             },
             ImageBitmapSource::ImageData(ref image_data) => {
                 // Step 6.1. Let buffer be image's data attribute value's [[ViewedArrayBuffer]] internal slot.
