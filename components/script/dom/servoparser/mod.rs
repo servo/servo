@@ -701,13 +701,15 @@ impl ServoParser {
 
         // Send the source contents to devtools, if needed.
         if let Some(chan) = self.document.global().devtools_chan() {
-            // FIXME: this seems to run for innerHTML assignments too
-            let content_for_devtools = self.content_for_devtools.take();
-            let pipeline_id = self.document.global().pipeline_id();
-            let _ = chan.send(ScriptToDevtoolsControlMsg::UpdateSourceContent(
-                pipeline_id,
-                content_for_devtools,
-            ));
+            // Only send the HTML for page load parsing, not things like innerHTML
+            if self.document.has_browsing_context() {
+                let content_for_devtools = self.content_for_devtools.take();
+                let pipeline_id = self.document.global().pipeline_id();
+                let _ = chan.send(ScriptToDevtoolsControlMsg::UpdateSourceContent(
+                    pipeline_id,
+                    content_for_devtools,
+                ));
+            }
         }
     }
 }
