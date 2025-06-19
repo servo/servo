@@ -13,6 +13,11 @@ authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
 edition = "2024"
 publish = false
+# We have yet to decide on a policy for updating the minimum supported rust version.
+# Before increasing this, please open a discussion on zulip explaining the reason
+# why we should consider increasing our minimum supported rust version.
+# Please also note, that the **default** rust version in rust-toolchain.toml may be
+# bumped freely.
 rust-version = "1.85.0"
 
 [workspace.dependencies]
