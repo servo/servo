@@ -8,10 +8,13 @@ use std::collections::HashMap;
 use base::id::{ImageBitmapId, ImageBitmapIndex};
 use constellation_traits::SerializableImageBitmap;
 use dom_struct::dom_struct;
+use euclid::default::{Point2D, Rect, Size2D};
 use snapshot::Snapshot;
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::ImageBitmapMethods;
+use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
+    ImageBitmapMethods, ImageBitmapOptions, ImageOrientation, PremultiplyAlpha, ResizeQuality,
+};
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
@@ -68,8 +71,199 @@ impl ImageBitmap {
 
     /// Return the value of the [`[[Detached]]`](https://html.spec.whatwg.org/multipage/#detached)
     /// internal slot
-    fn is_detached(&self) -> bool {
+    pub(crate) fn is_detached(&self) -> bool {
         self.bitmap_data.borrow().is_none()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#cropped-to-the-source-rectangle-with-formatting>
+    pub(crate) fn crop_and_transform_bitmap_data(
+        input: Snapshot,
+        mut sx: i32,
+        mut sy: i32,
+        sw: Option<i32>,
+        sh: Option<i32>,
+        options: &ImageBitmapOptions,
+    ) -> Option<Snapshot> {
+        let input_size = input.size().to_i32();
+
+        // Step 2. If sx, sy, sw and sh are specified, let sourceRectangle be a rectangle whose corners
+        // are the four points (sx, sy), (sx+sw, sy), (sx+sw, sy+sh), (sx, sy+sh). Otherwise,
+        // let sourceRectangle be a rectangle whose corners are the four points (0, 0), (width of input, 0),
+        // (width of input, height of input), (0, height of input). If either sw or sh are negative,
+        // then the top-left corner of this rectangle will be to the left or above the (sx, sy) point.
+        let sw = sw.map_or(input_size.width, |width| {
+            if width < 0 {
+                sx = sx.saturating_add(width);
+                width.saturating_abs()
+            } else {
+                width
+            }
+        });
+
+        let sh = sh.map_or(input_size.height, |height| {
+            if height < 0 {
+                sy = sy.saturating_add(height);
+                height.saturating_abs()
+            } else {
+                height
+            }
+        });
+
+        let source_rect = Rect::new(Point2D::new(sx, sy), Size2D::new(sw, sh));
+
+        // Whether the byte length of the source bitmap exceeds the supported range.
+        // In the case the source is too large, we should fail, and that is not defined.
+        // <https://github.com/whatwg/html/issues/3323>
+        let Some(source_byte_length) = pixels::compute_rgba8_byte_length_if_within_limit(
+            source_rect.size.width as usize,
+            source_rect.size.height as usize,
+        ) else {
+            log::warn!(
+                "Failed to allocate bitmap of size {:?}, too large",
+                source_rect.size
+            );
+            return None;
+        };
+
+        // Step 3. Let outputWidth be determined as follows:
+        // Step 4. Let outputHeight be determined as follows:
+        let output_size = match (options.resizeWidth, options.resizeHeight) {
+            (Some(width), Some(height)) => Size2D::new(width, height),
+            (Some(width), None) => {
+                let height =
+                    source_rect.size.height as f64 * width as f64 / source_rect.size.width as f64;
+                Size2D::new(width, height.round() as u32)
+            },
+            (None, Some(height)) => {
+                let width =
+                    source_rect.size.width as f64 * height as f64 / source_rect.size.height as f64;
+                Size2D::new(width.round() as u32, height)
+            },
+            (None, None) => source_rect.size.to_u32(),
+        };
+
+        // Whether the byte length of the output bitmap exceeds the supported range.
+        // In the case the output is too large, we should fail, and that is not defined.
+        // <https://github.com/whatwg/html/issues/3323>
+        let Some(output_byte_length) = pixels::compute_rgba8_byte_length_if_within_limit(
+            output_size.width as usize,
+            output_size.height as usize,
+        ) else {
+            log::warn!(
+                "Failed to allocate bitmap of size {:?}, too large",
+                output_size
+            );
+            return None;
+        };
+
+        // TODO: Take into account the image orientation (such as EXIF metadata).
+
+        // Step 5. Place input on an infinite transparent black grid plane, positioned so that
+        // its top left corner is at the origin of the plane, with the x-coordinate increasing to the right,
+        // and the y-coordinate increasing down, and with each pixel in the input image data occupying a cell
+        // on the plane's grid.
+        let input_rect = Rect::new(Point2D::zero(), input_size);
+
+        let input_rect_cropped = source_rect
+            .intersection(&input_rect)
+            .unwrap_or(Rect::zero());
+
+        // Early out for empty tranformations.
+        if input_rect_cropped.is_empty() {
+            return Some(Snapshot::cleared(output_size));
+        }
+
+        // Step 6. Let output be the rectangle on the plane denoted by sourceRectangle.
+        let mut source: Snapshot = Snapshot::from_vec(
+            source_rect.size.cast(),
+            input.format(),
+            input.alpha_mode(),
+            vec![0; source_byte_length],
+        );
+
+        let source_rect_cropped = Rect::new(
+            Point2D::new(
+                input_rect_cropped.origin.x - source_rect.origin.x,
+                input_rect_cropped.origin.y - source_rect.origin.y,
+            ),
+            input_rect_cropped.size,
+        );
+
+        pixels::copy_rgba8_image(
+            input.size(),
+            input_rect_cropped.cast(),
+            input.data(),
+            source.size(),
+            source_rect_cropped.cast(),
+            source.data_mut(),
+        );
+
+        // Step 7. Scale output to the size specified by outputWidth and outputHeight.
+        let mut output = if source.size() != output_size {
+            let quality = match options.resizeQuality {
+                ResizeQuality::Pixelated => pixels::FilterQuality::None,
+                ResizeQuality::Low => pixels::FilterQuality::Low,
+                ResizeQuality::Medium => pixels::FilterQuality::Medium,
+                ResizeQuality::High => pixels::FilterQuality::High,
+            };
+
+            let Some(output_data) =
+                pixels::scale_rgba8_image(source.size(), source.data(), output_size, quality)
+            else {
+                log::warn!(
+                    "Failed to scale the bitmap of size {:?} to required size {:?}",
+                    source.size(),
+                    output_size
+                );
+                return None;
+            };
+
+            debug_assert_eq!(output_data.len(), output_byte_length);
+
+            Snapshot::from_vec(
+                output_size,
+                source.format(),
+                source.alpha_mode(),
+                output_data,
+            )
+        } else {
+            source
+        };
+
+        // Step 8. If the value of the imageOrientation member of options is "flipY",
+        // output must be flipped vertically, disregarding any image orientation metadata
+        // of the source (such as EXIF metadata), if any.
+        if options.imageOrientation == ImageOrientation::FlipY {
+            pixels::flip_y_rgba8_image_inplace(output.size(), output.data_mut());
+        }
+
+        // TODO: Step 9. If image is an img element or a Blob object, let val be the value
+        // of the colorSpaceConversion member of options, and then run these substeps:
+
+        // Step 10. Let val be the value of premultiplyAlpha member of options,
+        // and then run these substeps:
+        // TODO: Preserve the original input pixel format and perform conversion on demand.
+        match options.premultiplyAlpha {
+            PremultiplyAlpha::Default | PremultiplyAlpha::Premultiply => {
+                output.transform(
+                    snapshot::AlphaMode::Transparent {
+                        premultiplied: true,
+                    },
+                    snapshot::PixelFormat::BGRA,
+                );
+            },
+            PremultiplyAlpha::None => {
+                output.transform(
+                    snapshot::AlphaMode::Transparent {
+                        premultiplied: false,
+                    },
+                    snapshot::PixelFormat::BGRA,
+                );
+            },
+        }
+
+        // Step 11. Return output.
+        Some(output)
     }
 }
 
@@ -109,9 +303,9 @@ impl Serializable for ImageBitmap {
     }
 
     fn serialized_storage<'a>(
-        reader: StructuredData<'a, '_>,
+        data: StructuredData<'a, '_>,
     ) -> &'a mut Option<HashMap<ImageBitmapId, Self::Data>> {
-        match reader {
+        match data {
             StructuredData::Reader(r) => &mut r.image_bitmaps,
             StructuredData::Writer(w) => &mut w.image_bitmaps,
         }

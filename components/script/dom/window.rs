@@ -24,7 +24,7 @@ use canvas_traits::webgl::WebGLChan;
 use compositing_traits::CrossProcessCompositorApi;
 use constellation_traits::{
     DocumentState, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptToConstellationChan,
-    ScriptToConstellationMessage, ScrollState, StructuredSerializedData, WindowSizeType,
+    ScriptToConstellationMessage, StructuredSerializedData, WindowSizeType,
 };
 use crossbeam_channel::{Sender, unbounded};
 use cssparser::SourceLocation;
@@ -68,14 +68,14 @@ use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMe
 use script_bindings::interfaces::WindowHelpers;
 use script_bindings::root::Root;
 use script_layout_interface::{
-    FragmentType, Layout, PendingImageState, QueryMsg, Reflow, ReflowGoal, ReflowRequest,
+    FragmentType, Layout, PendingImageState, QueryMsg, ReflowGoal, ReflowRequest,
     TrustedNodeAddress, combine_id_with_fragment_type,
 };
 use script_traits::ScriptThreadMessage;
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
 use servo_config::{opts, pref};
-use servo_geometry::{DeviceIndependentIntRect, MaxRect, f32_rect_to_au_rect};
+use servo_geometry::{DeviceIndependentIntRect, f32_rect_to_au_rect};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::dom::OpaqueNode;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
@@ -136,6 +136,7 @@ use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::history::History;
 use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use crate::dom::htmliframeelement::HTMLIFrameElement;
+use crate::dom::idbfactory::IDBFactory;
 use crate::dom::location::Location;
 use crate::dom::medialist::MediaList;
 use crate::dom::mediaquerylist::{MediaQueryList, MediaQueryListMatchState};
@@ -248,6 +249,7 @@ pub(crate) struct Window {
     document: MutNullableDom<Document>,
     location: MutNullableDom<Location>,
     history: MutNullableDom<History>,
+    indexeddb: MutNullableDom<IDBFactory>,
     custom_element_registry: MutNullableDom<CustomElementRegistry>,
     performance: MutNullableDom<Performance>,
     #[no_trace]
@@ -295,11 +297,6 @@ pub(crate) struct Window {
 
     #[cfg(feature = "bluetooth")]
     bluetooth_extra_permission_data: BluetoothExtraPermissionData,
-
-    /// An enlarged rectangle around the page contents visible in the viewport, used
-    /// to prevent creating display list items for content that is far away from the viewport.
-    #[no_trace]
-    page_clip_rect: Cell<UntypedRect<Au>>,
 
     /// See the documentation for [`LayoutBlocker`]. Essentially, this flag prevents
     /// layouts from happening before the first load event, apart from a few exceptional
@@ -594,7 +591,7 @@ impl Window {
             Entry::Vacant(_) => return,
         };
         for node in nodes.get() {
-            node.dirty(NodeDamage::OtherNodeDamage);
+            node.dirty(NodeDamage::Other);
         }
         match response.response {
             ImageResponse::MetadataLoaded(_) => {},
@@ -617,7 +614,7 @@ impl Window {
             Entry::Vacant(_) => return,
         };
         for node in nodes.get() {
-            node.dirty(NodeDamage::OtherNodeDamage);
+            node.dirty(NodeDamage::Other);
         }
         nodes.remove();
     }
@@ -1101,6 +1098,14 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         self.history.or_init(|| History::new(self, CanGc::note()))
     }
 
+    // https://w3c.github.io/IndexedDB/#factory-interface
+    fn IndexedDB(&self) -> DomRoot<IDBFactory> {
+        self.indexeddb.or_init(|| {
+            let global_scope = self.upcast::<GlobalScope>();
+            IDBFactory::new(global_scope, CanGc::note())
+        })
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-window-customelements
     fn CustomElements(&self) -> DomRoot<CustomElementRegistry> {
         self.custom_element_registry
@@ -1214,7 +1219,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         self.as_global_scope().queue_function_as_microtask(callback);
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-createimagebitmap
+    /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
     fn CreateImageBitmap(
         &self,
         image: ImageBitmapSource,
@@ -1223,7 +1228,30 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     ) -> Rc<Promise> {
         let p = self
             .as_global_scope()
-            .create_image_bitmap(image, options, can_gc);
+            .create_image_bitmap(image, 0, 0, None, None, options, can_gc);
+        p
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
+    fn CreateImageBitmap_(
+        &self,
+        image: ImageBitmapSource,
+        sx: i32,
+        sy: i32,
+        sw: i32,
+        sh: i32,
+        options: &ImageBitmapOptions,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        let p = self.as_global_scope().create_image_bitmap(
+            image,
+            sx,
+            sy,
+            Some(sw),
+            Some(sh),
+            options,
+            can_gc,
+        );
         p
     }
 
@@ -1421,14 +1449,11 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     fn WebdriverElement(&self, id: DOMString) -> Option<DomRoot<Element>> {
-        find_node_by_unique_id_in_document(&self.Document(), id.into())
-            .ok()
-            .and_then(Root::downcast)
+        find_node_by_unique_id_in_document(&self.Document(), id.into()).and_then(Root::downcast)
     }
 
     fn WebdriverFrame(&self, id: DOMString) -> Option<DomRoot<Element>> {
         find_node_by_unique_id_in_document(&self.Document(), id.into())
-            .ok()
             .and_then(Root::downcast::<HTMLIFrameElement>)
             .map(Root::upcast::<Element>)
     }
@@ -1439,9 +1464,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     fn WebdriverShadowRoot(&self, id: DOMString) -> Option<DomRoot<ShadowRoot>> {
-        find_node_by_unique_id_in_document(&self.Document(), id.into())
-            .ok()
-            .and_then(Root::downcast)
+        find_node_by_unique_id_in_document(&self.Document(), id.into()).and_then(Root::downcast)
     }
 
     // https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle
@@ -2079,10 +2102,7 @@ impl Window {
         // TODO(mrobinson, #18709): Add smooth scrolling support to WebRender so that we can
         // properly process ScrollBehavior here.
         self.reflow(
-            ReflowGoal::UpdateScrollNode(ScrollState {
-                scroll_id,
-                scroll_offset: Vector2D::new(-x, -y),
-            }),
+            ReflowGoal::UpdateScrollNode(scroll_id, Vector2D::new(-x, -y)),
             can_gc,
         );
     }
@@ -2125,7 +2145,7 @@ impl Window {
     /// no reflow is performed. If reflow is suppressed, no reflow will be performed for ForDisplay
     /// goals.
     ///
-    /// Returns true if layout actually happened, false otherwise.
+    /// Returns true if layout actually happened and it sent a new display list to the renderer.
     ///
     /// NOTE: This method should almost never be called directly! Layout and rendering updates should
     /// happen as part of the HTML event loop via *update the rendering*.
@@ -2196,9 +2216,6 @@ impl Window {
 
         // Send new document and relevant styles to layout.
         let reflow = ReflowRequest {
-            reflow_info: Reflow {
-                page_clip_rect: self.page_clip_rect.get(),
-            },
             document: document.upcast::<Node>().to_trusted_node_address(),
             dirty_root,
             stylesheets_changed,
@@ -2294,16 +2311,21 @@ impl Window {
         document.update_animations_post_reflow();
         self.update_constellation_epoch();
 
-        true
+        results.built_display_list
     }
 
     /// Reflows the page if it's possible to do so and the page is dirty. Returns true if layout
-    /// actually happened, false otherwise.
+    /// actually happened and produced a new display list, false otherwise.
     ///
     /// NOTE: This method should almost never be called directly! Layout and rendering updates
     /// should happen as part of the HTML event loop via *update the rendering*. Currerntly, the
     /// only exceptions are script queries and scroll requests.
     pub(crate) fn reflow(&self, reflow_goal: ReflowGoal, can_gc: CanGc) -> bool {
+        // Never reflow inactive Documents.
+        if !self.Document().is_fully_active() {
+            return false;
+        }
+
         // Count the pending web fonts before layout, in case a font loads during the layout.
         let waiting_for_web_fonts_to_load = self.font_context.web_fonts_still_loading() != 0;
 
@@ -2482,9 +2504,7 @@ impl Window {
         value: String,
         can_gc: CanGc,
     ) -> Option<ServoArc<Font>> {
-        if !self.layout_reflow(QueryMsg::ResolvedFontStyleQuery, can_gc) {
-            return None;
-        }
+        self.layout_reflow(QueryMsg::ResolvedFontStyleQuery, can_gc);
 
         let document = self.Document();
         let animations = document.animations().sets.clone();
@@ -2504,25 +2524,19 @@ impl Window {
     }
 
     pub(crate) fn content_box_query(&self, node: &Node, can_gc: CanGc) -> Option<UntypedRect<Au>> {
-        if !self.layout_reflow(QueryMsg::ContentBox, can_gc) {
-            return None;
-        }
+        self.layout_reflow(QueryMsg::ContentBox, can_gc);
         self.content_box_query_unchecked(node)
     }
 
     pub(crate) fn content_boxes_query(&self, node: &Node, can_gc: CanGc) -> Vec<UntypedRect<Au>> {
-        if !self.layout_reflow(QueryMsg::ContentBoxes, can_gc) {
-            return vec![];
-        }
+        self.layout_reflow(QueryMsg::ContentBoxes, can_gc);
         self.layout
             .borrow()
             .query_content_boxes(node.to_trusted_node_address())
     }
 
     pub(crate) fn client_rect_query(&self, node: &Node, can_gc: CanGc) -> UntypedRect<i32> {
-        if !self.layout_reflow(QueryMsg::ClientRectQuery, can_gc) {
-            return Rect::zero();
-        }
+        self.layout_reflow(QueryMsg::ClientRectQuery, can_gc);
         self.layout
             .borrow()
             .query_client_rect(node.to_trusted_node_address())
@@ -2535,9 +2549,7 @@ impl Window {
         node: Option<&Node>,
         can_gc: CanGc,
     ) -> UntypedRect<i32> {
-        if !self.layout_reflow(QueryMsg::ScrollingAreaQuery, can_gc) {
-            return Rect::zero();
-        }
+        self.layout_reflow(QueryMsg::ScrollingAreaQuery, can_gc);
         self.layout
             .borrow()
             .query_scrolling_area(node.map(Node::to_trusted_node_address))
@@ -2588,9 +2600,7 @@ impl Window {
         property: PropertyId,
         can_gc: CanGc,
     ) -> DOMString {
-        if !self.layout_reflow(QueryMsg::ResolvedStyleQuery, can_gc) {
-            return DOMString::new();
-        }
+        self.layout_reflow(QueryMsg::ResolvedStyleQuery, can_gc);
 
         let document = self.Document();
         let animations = document.animations().sets.clone();
@@ -2625,10 +2635,7 @@ impl Window {
         node: &Node,
         can_gc: CanGc,
     ) -> (Option<DomRoot<Element>>, UntypedRect<Au>) {
-        if !self.layout_reflow(QueryMsg::OffsetParentQuery, can_gc) {
-            return (None, Rect::zero());
-        }
-
+        self.layout_reflow(QueryMsg::OffsetParentQuery, can_gc);
         let response = self
             .layout
             .borrow()
@@ -2646,9 +2653,7 @@ impl Window {
         point_in_node: UntypedPoint2D<f32>,
         can_gc: CanGc,
     ) -> Option<usize> {
-        if !self.layout_reflow(QueryMsg::TextIndexQuery, can_gc) {
-            return None;
-        }
+        self.layout_reflow(QueryMsg::TextIndexQuery, can_gc);
         self.layout
             .borrow()
             .query_text_indext(node.to_opaque(), point_in_node)
@@ -2818,36 +2823,17 @@ impl Window {
         self.unhandled_resize_event.borrow_mut().take()
     }
 
-    pub(crate) fn set_page_clip_rect_with_new_viewport(&self, viewport: UntypedRect<f32>) -> bool {
-        let rect = f32_rect_to_au_rect(viewport);
-        self.current_viewport.set(rect);
-        // We use a clipping rectangle that is five times the size of the of the viewport,
-        // so that we don't collect display list items for areas too far outside the viewport,
-        // but also don't trigger reflows every time the viewport changes.
-        static VIEWPORT_EXPANSION: f32 = 2.0; // 2 lengths on each side plus original length is 5 total.
-        let proposed_clip_rect = f32_rect_to_au_rect(viewport.inflate(
-            viewport.size.width * VIEWPORT_EXPANSION,
-            viewport.size.height * VIEWPORT_EXPANSION,
-        ));
-        let clip_rect = self.page_clip_rect.get();
-        if proposed_clip_rect == clip_rect {
-            return false;
+    pub(crate) fn set_viewport(&self, new_viewport: UntypedRect<f32>) {
+        let new_viewport = f32_rect_to_au_rect(new_viewport);
+        if new_viewport == self.current_viewport.get() {
+            return;
         }
 
-        let had_clip_rect = clip_rect != MaxRect::max_rect();
-        if had_clip_rect && !should_move_clip_rect(clip_rect, viewport) {
-            return false;
-        }
-
-        self.page_clip_rect.set(proposed_clip_rect);
+        self.current_viewport.set(new_viewport);
 
         // The document needs to be repainted, because the initial containing block
         // is now a different size.
         self.Document().set_needs_paint(true);
-
-        // If we didn't have a clip rect, the previous display doesn't need rebuilding
-        // because it was built for infinite clip (MaxRect::amax_rect()).
-        had_clip_rect
     }
 
     pub(crate) fn suspend(&self, can_gc: CanGc) {
@@ -3117,6 +3103,7 @@ impl Window {
             navigator: Default::default(),
             location: Default::default(),
             history: Default::default(),
+            indexeddb: Default::default(),
             custom_element_registry: Default::default(),
             window_proxy: Default::default(),
             document: Default::default(),
@@ -3133,7 +3120,6 @@ impl Window {
             bluetooth_thread,
             #[cfg(feature = "bluetooth")]
             bluetooth_extra_permission_data: BluetoothExtraPermissionData::new(),
-            page_clip_rect: Cell::new(MaxRect::max_rect()),
             unhandled_resize_event: Default::default(),
             viewport_details: Cell::new(viewport_details),
             current_viewport: Cell::new(initial_viewport.to_untyped()),
@@ -3251,7 +3237,7 @@ fn should_move_clip_rect(clip_rect: UntypedRect<Au>, new_viewport: UntypedRect<f
 fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal) {
     let goal_string = match *reflow_goal {
         ReflowGoal::UpdateTheRendering => "\tFull",
-        ReflowGoal::UpdateScrollNode(_) => "\tUpdateScrollNode",
+        ReflowGoal::UpdateScrollNode(..) => "\tUpdateScrollNode",
         ReflowGoal::LayoutQuery(ref query_msg) => match *query_msg {
             QueryMsg::ContentBox => "\tContentBoxQuery",
             QueryMsg::ContentBoxes => "\tContentBoxesQuery",

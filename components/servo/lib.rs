@@ -85,7 +85,9 @@ use gleam::gl::RENDERER;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use javascript_evaluator::JavaScriptEvaluator;
-pub use keyboard_types::*;
+pub use keyboard_types::{
+    Code, CompositionEvent, CompositionState, Key, KeyState, Location, Modifiers,
+};
 use layout::LayoutFactoryImpl;
 use log::{Log, Metadata, Record, debug, warn};
 use media::{GlApi, NativeDisplay, WindowGLContext};
@@ -135,9 +137,6 @@ pub use crate::webview_delegate::{
 fn webdriver(port: u16, constellation: Sender<EmbedderToConstellationMessage>) {
     webdriver_server::start_server(port, constellation);
 }
-
-#[cfg(not(feature = "webdriver"))]
-fn webdriver(_port: u16, _constellation: Sender<EmbedderToConstellationMessage>) {}
 
 #[cfg(feature = "media-gstreamer")]
 mod media_platform {
@@ -466,12 +465,6 @@ impl Servo {
             builder.user_content_manager,
         );
 
-        if cfg!(feature = "webdriver") {
-            if let Some(port) = opts.webdriver_port {
-                webdriver(port, constellation_chan.clone());
-            }
-        }
-
         // The compositor coordinates with the client window to create the final
         // rendered page and display it somewhere.
         let shutdown_state = Rc::new(Cell::new(ShutdownState::NotShuttingDown));
@@ -548,7 +541,14 @@ impl Servo {
             return false;
         }
 
-        self.compositor.borrow_mut().receive_messages();
+        {
+            let mut compositor = self.compositor.borrow_mut();
+            let mut messages = Vec::new();
+            while let Ok(message) = compositor.receiver().try_recv() {
+                messages.push(message);
+            }
+            compositor.handle_messages(messages);
+        }
 
         // Only handle incoming embedder messages if the compositor hasn't already started shutting down.
         while let Ok(message) = self.embedder_receiver.try_recv() {
@@ -999,7 +999,17 @@ impl Servo {
                     webview.delegate().show_form_control(webview, form_control);
                 }
             },
+            _ => {},
         }
+    }
+
+    pub fn constellation_sender(&self) -> Sender<EmbedderToConstellationMessage> {
+        self.constellation_proxy.sender()
+    }
+
+    pub fn execute_webdriver_command(&self, command: WebDriverCommandMsg) {
+        self.constellation_proxy
+            .send(EmbedderToConstellationMessage::WebDriverCommand(command));
     }
 }
 

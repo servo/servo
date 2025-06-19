@@ -7,7 +7,7 @@
 
 use std::error::Error;
 
-use utils::NOT_SUPPORTED_ERROR;
+use crate::utils::NOT_SUPPORTED_ERROR;
 
 #[derive(Clone, Debug)]
 pub struct BluetoothGATTDescriptor {}

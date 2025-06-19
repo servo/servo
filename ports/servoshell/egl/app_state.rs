@@ -25,6 +25,7 @@ use servo::{
 use url::Url;
 
 use crate::egl::host_trait::HostTrait;
+use crate::output_image::save_output_image_if_necessary;
 use crate::prefs::ServoShellPreferences;
 
 #[derive(Clone, Debug)]
@@ -355,6 +356,15 @@ impl RunningAppState {
         self.inner_mut().webviews.insert(webview.id(), webview);
     }
 
+    /// The focused webview will not be immediately valid via `active_webview()`
+    pub(crate) fn focus_webview(&self, id: WebViewId) {
+        if let Some(webview) = self.inner().webviews.get(&id) {
+            webview.focus();
+        } else {
+            error!("We could not find the webview with this id {id}");
+        }
+    }
+
     fn inner(&self) -> Ref<RunningAppStateInner> {
         self.inner.borrow()
     }
@@ -371,14 +381,14 @@ impl RunningAppState {
         Ok(webview_id)
     }
 
-    fn newest_webview(&self) -> Option<WebView> {
+    pub(crate) fn newest_webview(&self) -> Option<WebView> {
         self.inner()
             .creation_order
             .last()
             .and_then(|id| self.inner().webviews.get(id).cloned())
     }
 
-    fn active_webview(&self) -> WebView {
+    pub(crate) fn active_webview(&self) -> WebView {
         self.inner()
             .focused_webview_id
             .and_then(|id| self.inner().webviews.get(&id).cloned())
@@ -616,22 +626,14 @@ impl RunningAppState {
     }
 
     pub fn key_down(&self, key: Key) {
-        let key_event = KeyboardEvent {
-            state: KeyState::Down,
-            key,
-            ..KeyboardEvent::default()
-        };
+        let key_event = KeyboardEvent::from_state_and_key(KeyState::Down, key);
         self.active_webview()
             .notify_input_event(InputEvent::Keyboard(key_event));
         self.perform_updates();
     }
 
     pub fn key_up(&self, key: Key) {
-        let key_event = KeyboardEvent {
-            state: KeyState::Up,
-            key,
-            ..KeyboardEvent::default()
-        };
+        let key_event = KeyboardEvent::from_state_and_key(KeyState::Up, key);
         self.active_webview()
             .notify_input_event(InputEvent::Keyboard(key_event));
         self.perform_updates();
@@ -643,22 +645,20 @@ impl RunningAppState {
             return;
         }
         let active_webview = self.active_webview();
-        active_webview.notify_input_event(InputEvent::Keyboard(KeyboardEvent {
-            state: KeyState::Down,
-            key: Key::Process,
-            ..KeyboardEvent::default()
-        }));
+        active_webview.notify_input_event(InputEvent::Keyboard(KeyboardEvent::from_state_and_key(
+            KeyState::Down,
+            Key::Process,
+        )));
         active_webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
             CompositionEvent {
                 state: CompositionState::End,
                 data: text,
             },
         )));
-        active_webview.notify_input_event(InputEvent::Keyboard(KeyboardEvent {
-            state: KeyState::Up,
-            key: Key::Process,
-            ..KeyboardEvent::default()
-        }));
+        active_webview.notify_input_event(InputEvent::Keyboard(KeyboardEvent::from_state_and_key(
+            KeyState::Up,
+            Key::Process,
+        )));
         self.perform_updates();
     }
 
@@ -718,8 +718,14 @@ impl RunningAppState {
     pub fn present_if_needed(&self) {
         if self.inner().need_present {
             self.inner_mut().need_present = false;
-            self.active_webview().paint();
+            if !self.active_webview().paint() {
+                return;
+            }
+            save_output_image_if_necessary(&self.servoshell_preferences, &self.rendering_context);
             self.rendering_context.present();
+            if self.servoshell_preferences.exit_after_stable_image {
+                self.request_shutdown();
+            }
         }
     }
 }

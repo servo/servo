@@ -128,24 +128,6 @@ enum PathState<B: Backend> {
     UserSpacePath(B::Path, Option<Transform2D<f32>>),
 }
 
-impl<B: Backend> PathState<B> {
-    fn is_path(&self) -> bool {
-        match *self {
-            PathState::UserSpacePath(..) => true,
-            PathState::UserSpacePathBuilder(..) | PathState::DeviceSpacePathBuilder(..) => false,
-        }
-    }
-
-    fn path(&self) -> &B::Path {
-        match *self {
-            PathState::UserSpacePath(ref p, _) => p,
-            PathState::UserSpacePathBuilder(..) | PathState::DeviceSpacePathBuilder(..) => {
-                panic!("should have called ensure_path")
-            },
-        }
-    }
-}
-
 /// A wrapper around a stored PathBuilder and an optional transformation that should be
 /// applied to any points to ensure they are in the matching device space.
 struct PathBuilderRef<'a, B: Backend> {
@@ -843,7 +825,9 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         self.path_builder().close();
     }
 
-    fn ensure_path(&mut self) {
+    /// Turn the [`Self::path_state`] into a user-space path, returning `None` if the
+    /// path transformation matrix is uninvertible.
+    fn ensure_path(&mut self) -> Option<&B::Path> {
         // If there's no record of any path yet, create a new builder in user-space.
         if self.path_state.is_none() {
             self.path_state = Some(PathState::UserSpacePathBuilder(
@@ -881,15 +865,8 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         // finished path by inverting the initial transformation.
         let new_state = match *self.path_state.as_mut().unwrap() {
             PathState::DeviceSpacePathBuilder(ref mut builder) => {
-                let path = builder.finish();
-                let inverse = match self.drawtarget.get_transform().inverse() {
-                    Some(m) => m,
-                    None => {
-                        warn!("Couldn't invert canvas transformation.");
-                        return;
-                    },
-                };
-                let mut builder = path.transformed_copy_to_builder(&inverse);
+                let inverse = self.drawtarget.get_transform().inverse()?;
+                let mut builder = builder.finish().transformed_copy_to_builder(&inverse);
                 Some(builder.finish())
             },
             PathState::UserSpacePathBuilder(..) | PathState::UserSpacePath(..) => None,
@@ -898,14 +875,10 @@ impl<'a, B: Backend> CanvasData<'a, B> {
             self.path_state = Some(PathState::UserSpacePath(path, None));
         }
 
-        assert!(self.path_state.as_ref().unwrap().is_path())
-    }
-
-    fn path(&self) -> &B::Path {
-        self.path_state
-            .as_ref()
-            .expect("Should have called ensure_path()")
-            .path()
+        match self.path_state.as_ref() {
+            Some(PathState::UserSpacePath(path, _)) => Some(path),
+            _ => unreachable!("Should have been able to successful build path or returned early."),
+        }
     }
 
     pub(crate) fn fill(&mut self) {
@@ -913,9 +886,12 @@ impl<'a, B: Backend> CanvasData<'a, B> {
             return; // Paint nothing if gradient size is zero.
         }
 
-        self.ensure_path();
+        let Some(path) = self.ensure_path().cloned() else {
+            return; // Path is uninvertible.
+        };
+
         self.drawtarget.fill(
-            &self.path().clone(),
+            &path,
             self.state.fill_style.clone(),
             &self.state.draw_options.clone(),
         );
@@ -940,9 +916,12 @@ impl<'a, B: Backend> CanvasData<'a, B> {
             return; // Paint nothing if gradient size is zero.
         }
 
-        self.ensure_path();
+        let Some(path) = self.ensure_path().cloned() else {
+            return; // Path is uninvertible.
+        };
+
         self.drawtarget.stroke(
-            &self.path().clone(),
+            &path,
             self.state.stroke_style.clone(),
             &self.state.stroke_opts,
             &self.state.draw_options,
@@ -965,8 +944,10 @@ impl<'a, B: Backend> CanvasData<'a, B> {
     }
 
     pub(crate) fn clip(&mut self) {
-        self.ensure_path();
-        let path = self.path().clone();
+        let Some(path) = self.ensure_path().cloned() else {
+            return; // Path is uninvertible.
+        };
+
         self.drawtarget.push_clip(&path);
     }
 

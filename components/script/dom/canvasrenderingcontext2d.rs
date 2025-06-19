@@ -140,8 +140,8 @@ impl CanvasContext for CanvasRenderingContext2D {
         self.canvas_state.get_canvas_id()
     }
 
-    fn canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
-        self.canvas.clone()
+    fn canvas(&self) -> Option<HTMLCanvasElementOrOffscreenCanvas> {
+        Some(self.canvas.clone())
     }
 
     fn update_rendering(&self) {
@@ -170,7 +170,7 @@ impl CanvasContext for CanvasRenderingContext2D {
 
     fn mark_as_dirty(&self) {
         if let Some(canvas) = self.canvas.canvas() {
-            canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+            canvas.upcast::<Node>().dirty(NodeDamage::Other);
             canvas.owner_document().add_dirty_2d_canvas(self);
         }
     }

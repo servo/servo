@@ -297,9 +297,8 @@ impl Actor for WatcherActor {
                         },
                         "source" => {
                             let thread_actor = registry.find::<ThreadActor>(&target.thread);
-                            let sources = thread_actor.source_manager.sources();
                             target.resources_available(
-                                sources.iter().collect(),
+                                thread_actor.source_manager.source_forms(registry),
                                 "source".into(),
                                 stream,
                             );
@@ -307,10 +306,9 @@ impl Actor for WatcherActor {
                             for worker_name in &root.workers {
                                 let worker = registry.find::<WorkerActor>(worker_name);
                                 let thread = registry.find::<ThreadActor>(&worker.thread);
-                                let worker_sources = thread.source_manager.sources();
 
                                 worker.resources_available(
-                                    worker_sources.iter().collect(),
+                                    thread.source_manager.source_forms(registry),
                                     "source".into(),
                                     stream,
                                 );

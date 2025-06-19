@@ -1,14 +1,10 @@
 import pytest, asyncio
 
 from webdriver.bidi.modules.script import ContextTarget
-from . import set_simulate_preconnected_peripheral
+from .. import BLUETOOTH_REQUEST_DEVICE_PROMPT_UPDATED_EVENT, TEST_DEVICE_ADDRESS, TEST_DEVICE_NAME, set_simulate_preconnected_peripheral
 from .... import any_string, recursive_compare
 
 pytestmark = pytest.mark.asyncio
-
-TEST_DEVICE_NAME = 'SOME_BL_DEVICE'
-TEST_DEVICE_ADDRESS = '09:09:09:09:09:09'
-BLUETOOTH_REQUEST_DEVICE_PROMPT_UPDATED_EVENT = 'bluetooth.requestDevicePromptUpdated'
 
 
 async def test_simulate_preconnected_peripheral(bidi_session, top_context,

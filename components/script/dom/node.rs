@@ -50,6 +50,7 @@ use style::stylesheets::{Stylesheet, UrlExtraData};
 use uuid::Uuid;
 use xml5ever::{local_name, serialize as xml_serialize};
 
+use super::types::CDATASection;
 use crate::conversions::Convert;
 use crate::document_loader::DocumentLoader;
 use crate::dom::attr::Attr;
@@ -92,7 +93,6 @@ use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator, Se
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlbodyelement::HTMLBodyElement;
 use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutHTMLCanvasElementHelpers};
 use crate::dom::htmlcollection::HTMLCollection;
 use crate::dom::htmlelement::HTMLElement;
@@ -958,8 +958,8 @@ impl Node {
         let in_quirks_mode = document.quirks_mode() == QuirksMode::Quirks;
         let is_root = self.downcast::<Element>().is_some_and(|e| e.is_root());
         let is_body_element = self
-            .downcast::<HTMLBodyElement>()
-            .is_some_and(|e| e.is_the_html_body_element());
+            .downcast::<HTMLElement>()
+            .is_some_and(|e| e.is_body_element());
 
         // "4. If the element is the root element and document is not in quirks mode
         // return max(viewport scrolling area width/height, viewport width/height)."
@@ -1443,12 +1443,8 @@ impl Node {
     }
 
     pub(crate) fn style(&self, can_gc: CanGc) -> Option<Arc<ComputedValues>> {
-        if !self
-            .owner_window()
-            .layout_reflow(QueryMsg::StyleQuery, can_gc)
-        {
-            return None;
-        }
+        self.owner_window()
+            .layout_reflow(QueryMsg::StyleQuery, can_gc);
         self.style_data
             .borrow()
             .as_ref()
@@ -1583,6 +1579,7 @@ pub(crate) unsafe fn from_untrusted_node_address(candidate: UntrustedNodeAddress
 pub(crate) trait LayoutNodeHelpers<'dom> {
     fn type_id_for_layout(self) -> NodeTypeId;
 
+    fn parent_node_ref(self) -> Option<LayoutDom<'dom, Node>>;
     fn composed_parent_node_ref(self) -> Option<LayoutDom<'dom, Node>>;
     fn first_child_ref(self) -> Option<LayoutDom<'dom, Node>>;
     fn last_child_ref(self) -> Option<LayoutDom<'dom, Node>>;
@@ -1645,7 +1642,7 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
 impl<'dom> LayoutDom<'dom, Node> {
     #[inline]
     #[allow(unsafe_code)]
-    fn parent_node_ref(self) -> Option<LayoutDom<'dom, Node>> {
+    pub(crate) fn parent_node_ref(self) -> Option<LayoutDom<'dom, Node>> {
         unsafe { self.unsafe_get().parent_node.get_inner_as_layout() }
     }
 }
@@ -1659,6 +1656,12 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     #[inline]
     fn is_element_for_layout(&self) -> bool {
         (*self).is::<Element>()
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    fn parent_node_ref(self) -> Option<LayoutDom<'dom, Node>> {
+        unsafe { self.unsafe_get().parent_node.get_inner_as_layout() }
     }
 
     #[inline]
@@ -3473,16 +3476,18 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
         let mut children = self.children().enumerate().peekable();
         while let Some((_, node)) = children.next() {
             if let Some(text) = node.downcast::<Text>() {
+                if text.is::<CDATASection>() {
+                    continue;
+                }
                 let cdata = text.upcast::<CharacterData>();
                 let mut length = cdata.Length();
                 if length == 0 {
                     Node::remove(&node, self, SuppressObserver::Unsuppressed, can_gc);
                     continue;
                 }
-                while children
-                    .peek()
-                    .is_some_and(|(_, sibling)| sibling.is::<Text>())
-                {
+                while children.peek().is_some_and(|(_, sibling)| {
+                    sibling.is::<Text>() && !sibling.is::<CDATASection>()
+                }) {
                     let (index, sibling) = children.next().unwrap();
                     sibling
                         .ranges()
@@ -3922,9 +3927,9 @@ impl VirtualMethods for Node {
 #[derive(Clone, Copy, MallocSizeOf, PartialEq)]
 pub(crate) enum NodeDamage {
     /// The node's `style` attribute changed.
-    NodeStyleDamaged,
+    Style,
     /// Other parts of a node changed; attributes, text content, etc.
-    OtherNodeDamage,
+    Other,
 }
 
 pub(crate) enum ChildrenMutation<'a> {

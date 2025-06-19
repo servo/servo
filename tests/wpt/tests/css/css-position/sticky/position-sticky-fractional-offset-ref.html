@@ -4,8 +4,15 @@
     width: 100px;
     height: 100px;
     overflow-y: scroll;
-    background: lightgreen;
+    /**
+     * The scroll container background color can affect whether we use light
+     * or dark scrollbars. Use the same color as the test to ensure they match
+     **/
+    background: red;
     display: inline-block;
+  }
+  .container div {
+    background: lightgreen;
   }
 </style>
 

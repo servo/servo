@@ -60,6 +60,7 @@
 
   // Defaults.
   test_valid_prelude('@function --foo(--x : 10px)');
+  test_valid_prelude('@function --foo(--x type(*): 10px)');
   test_valid_prelude('@function --foo(--x <length>: 10px)');
   test_valid_prelude('@function --foo(--x <length>: 10px, --y)');
   test_valid_prelude('@function --foo(--x, --y <length>: 10px)');
@@ -69,10 +70,15 @@
   // a default, even though there's no way to actually call --foo()
   // with just --y:
   test_valid_prelude('@function --foo(--x:1px, --y, --z:2px)');
-  // The value does not have to match the type during @function parsing:
-  test_valid_prelude('@function --foo(--x <angle>: 10px)');
 
   test_invalid_prelude('@function --foo(--x: 10px !important)');
+
+  // Default type mismatch.
+  test_invalid_prelude('@function --foo(--x <length>: 10deg)');
+  test_invalid_prelude('@function --foo(--x <angle>: 10px)');
+  test_invalid_prelude('@function --foo(--x <color>: 10px)');
+  test_invalid_prelude('@function --foo(--x type(<color>+): red 5)');
+  test_invalid_prelude('@function --foo(--x type(auto | none): thing)');
 
   // Lists.
   test_valid_prelude('@function --foo(--x <length>#)');

@@ -10,6 +10,7 @@ use crate::dom::bindings::codegen::Bindings::AbortControllerBinding::AbortContro
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
+use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext};
 
 /// <https://dom.spec.whatwg.org/#abortcontroller>
@@ -23,23 +24,27 @@ pub(crate) struct AbortController {
 
 impl AbortController {
     /// <https://dom.spec.whatwg.org/#dom-abortcontroller-abortcontroller>
-    fn new_inherited() -> AbortController {
-        // The new AbortController() constructor steps are:
-        // Let signal be a new AbortSignal object.
+    fn new_inherited(signal: &AbortSignal) -> AbortController {
+        // Note: continuation of the constructor steps.
+
         // Set this’s signal to signal.
         AbortController {
             reflector_: Reflector::new(),
-            signal: Dom::from_ref(&AbortSignal::new_inherited()),
+            signal: Dom::from_ref(signal),
         }
     }
 
-    fn new_with_proto(
+    /// <https://dom.spec.whatwg.org/#dom-abortcontroller-abortcontroller>
+    pub(crate) fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
     ) -> DomRoot<AbortController> {
+        // The new AbortController() constructor steps are:
+        // Let signal be a new AbortSignal object.
+        let signal = AbortSignal::new_with_proto(global, None, can_gc);
         reflect_dom_object_with_proto(
-            Box::new(AbortController::new_inherited()),
+            Box::new(AbortController::new_inherited(&signal)),
             global,
             proto,
             can_gc,
@@ -47,9 +52,21 @@ impl AbortController {
     }
 
     /// <https://dom.spec.whatwg.org/#abortcontroller-signal-abort>
-    fn signal_abort(&self, cx: JSContext, reason: HandleValue, can_gc: CanGc) {
+    pub(crate) fn signal_abort(
+        &self,
+        cx: JSContext,
+        reason: HandleValue,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
         // signal abort on controller’s signal with reason if it is given.
-        self.signal.signal_abort(cx, reason, can_gc);
+        self.signal.signal_abort(cx, reason, realm, can_gc);
+    }
+
+    /// <https://dom.spec.whatwg.org/#abortcontroller-signal>
+    pub(crate) fn signal(&self) -> DomRoot<AbortSignal> {
+        // The signal getter steps are to return this’s signal.
+        self.signal.as_rooted()
     }
 }
 
@@ -64,10 +81,10 @@ impl AbortControllerMethods<crate::DomTypeHolder> for AbortController {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-abortcontroller-abort>
-    fn Abort(&self, cx: JSContext, reason: HandleValue, can_gc: CanGc) {
+    fn Abort(&self, cx: JSContext, reason: HandleValue, realm: InRealm, can_gc: CanGc) {
         // The abort(reason) method steps are
         // to signal abort on this with reason if it is given.
-        self.signal_abort(cx, reason, can_gc);
+        self.signal_abort(cx, reason, realm, can_gc);
     }
 
     /// <https://dom.spec.whatwg.org/#dom-abortcontroller-signal>

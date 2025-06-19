@@ -4,7 +4,10 @@
 
 //! Defines data structures which are consumed by the Compositor.
 
+use std::collections::HashMap;
+
 use base::id::ScrollTreeNodeId;
+use bitflags::bitflags;
 use embedder_traits::Cursor;
 use euclid::SideOffsets2D;
 use malloc_size_of_derive::MallocSizeOf;
@@ -18,25 +21,29 @@ use webrender_api::{
     StickyOffsetBounds, TransformStyle,
 };
 
-/// The scroll sensitivity of a scroll node in a particular axis ie whether it can be scrolled due to
-/// input events and script events or only script events.
+/// A scroll type, describing whether what kind of action originated this scroll request.
+/// This is a bitflag as it is also used to track what kinds of [`ScrollType`]s scroll
+/// nodes are sensitive to.
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
-pub enum ScrollSensitivity {
-    /// This node can be scrolled by input and script events.
-    ScriptAndInputEvents,
-    /// This node can only be scrolled by script events.
-    Script,
-    /// This node cannot be scrolled.
-    None,
+pub struct ScrollType(u8);
+
+bitflags! {
+    impl ScrollType: u8 {
+        /// This node can be scrolled by input events or an input event originated this
+        /// scroll.
+        const InputEvents = 1 << 0;
+        /// This node can be scrolled by script events or script originated this scroll.
+        const Script = 1 << 1;
+    }
 }
 
 /// Convert [Overflow] to [ScrollSensitivity].
-impl From<Overflow> for ScrollSensitivity {
+impl From<Overflow> for ScrollType {
     fn from(overflow: Overflow) -> Self {
         match overflow {
-            Overflow::Hidden => ScrollSensitivity::Script,
-            Overflow::Scroll | Overflow::Auto => ScrollSensitivity::ScriptAndInputEvents,
-            Overflow::Visible | Overflow::Clip => ScrollSensitivity::None,
+            Overflow::Hidden => ScrollType::Script,
+            Overflow::Scroll | Overflow::Auto => ScrollType::Script | ScrollType::InputEvents,
+            Overflow::Visible | Overflow::Clip => ScrollType::empty(),
         }
     }
 }
@@ -44,8 +51,8 @@ impl From<Overflow> for ScrollSensitivity {
 /// The [ScrollSensitivity] of particular node in the vertical and horizontal axes.
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub struct AxesScrollSensitivity {
-    pub x: ScrollSensitivity,
-    pub y: ScrollSensitivity,
+    pub x: ScrollType,
+    pub y: ScrollType,
 }
 
 /// Information that Servo keeps alongside WebRender display items
@@ -104,6 +111,74 @@ pub struct ScrollableNodeInfo {
 
     /// The current offset of this scroll node.
     pub offset: LayoutVector2D,
+}
+
+impl ScrollableNodeInfo {
+    fn scroll_to_offset(
+        &mut self,
+        new_offset: LayoutVector2D,
+        context: ScrollType,
+    ) -> Option<LayoutVector2D> {
+        if !self.scroll_sensitivity.x.contains(context) &&
+            !self.scroll_sensitivity.y.contains(context)
+        {
+            return None;
+        }
+
+        let scrollable_size = self.scrollable_size();
+        let original_layer_scroll_offset = self.offset;
+
+        if scrollable_size.width > 0. && self.scroll_sensitivity.x.contains(context) {
+            self.offset.x = new_offset.x.min(0.0).max(-scrollable_size.width);
+        }
+
+        if scrollable_size.height > 0. && self.scroll_sensitivity.y.contains(context) {
+            self.offset.y = new_offset.y.min(0.0).max(-scrollable_size.height);
+        }
+
+        if self.offset != original_layer_scroll_offset {
+            Some(self.offset)
+        } else {
+            None
+        }
+    }
+
+    fn scroll_to_webrender_location(
+        &mut self,
+        scroll_location: ScrollLocation,
+        context: ScrollType,
+    ) -> Option<LayoutVector2D> {
+        if !self.scroll_sensitivity.x.contains(context) &&
+            !self.scroll_sensitivity.y.contains(context)
+        {
+            return None;
+        }
+
+        let delta = match scroll_location {
+            ScrollLocation::Delta(delta) => delta,
+            ScrollLocation::Start => {
+                if self.offset.y.round() >= 0.0 {
+                    // Nothing to do on this layer.
+                    return None;
+                }
+
+                self.offset.y = 0.0;
+                return Some(self.offset);
+            },
+            ScrollLocation::End => {
+                let end_pos = -self.scrollable_size().height;
+                if self.offset.y.round() <= end_pos {
+                    // Nothing to do on this layer.
+                    return None;
+                }
+
+                self.offset.y = end_pos;
+                return Some(self.offset);
+            },
+        };
+
+        self.scroll_to_offset(self.offset + delta, context)
+    }
 }
 
 impl ScrollableNodeInfo {
@@ -178,65 +253,14 @@ impl ScrollTreeNode {
     pub fn scroll(
         &mut self,
         scroll_location: ScrollLocation,
+        context: ScrollType,
     ) -> Option<(ExternalScrollId, LayoutVector2D)> {
-        let info = match self.info {
-            SpatialTreeNodeInfo::Scroll(ref mut info) => info,
-            _ => return None,
-        };
-
-        if info.scroll_sensitivity.x != ScrollSensitivity::ScriptAndInputEvents &&
-            info.scroll_sensitivity.y != ScrollSensitivity::ScriptAndInputEvents
-        {
+        let SpatialTreeNodeInfo::Scroll(ref mut info) = self.info else {
             return None;
-        }
-
-        let delta = match scroll_location {
-            ScrollLocation::Delta(delta) => delta,
-            ScrollLocation::Start => {
-                if info.offset.y.round() >= 0.0 {
-                    // Nothing to do on this layer.
-                    return None;
-                }
-
-                info.offset.y = 0.0;
-                return Some((info.external_id, info.offset));
-            },
-            ScrollLocation::End => {
-                let end_pos = -info.scrollable_size().height;
-                if info.offset.y.round() <= end_pos {
-                    // Nothing to do on this layer.
-                    return None;
-                }
-
-                info.offset.y = end_pos;
-                return Some((info.external_id, info.offset));
-            },
         };
 
-        let scrollable_size = info.scrollable_size();
-        let original_layer_scroll_offset = info.offset;
-
-        if scrollable_size.width > 0. &&
-            info.scroll_sensitivity.x == ScrollSensitivity::ScriptAndInputEvents
-        {
-            info.offset.x = (info.offset.x + delta.x)
-                .min(0.0)
-                .max(-scrollable_size.width);
-        }
-
-        if scrollable_size.height > 0. &&
-            info.scroll_sensitivity.y == ScrollSensitivity::ScriptAndInputEvents
-        {
-            info.offset.y = (info.offset.y + delta.y)
-                .min(0.0)
-                .max(-scrollable_size.height);
-        }
-
-        if info.offset != original_layer_scroll_offset {
-            Some((info.external_id, info.offset))
-        } else {
-            None
-        }
+        info.scroll_to_webrender_location(scroll_location, context)
+            .map(|location| (info.external_id, location))
     }
 }
 
@@ -300,38 +324,59 @@ impl ScrollTree {
         &mut self,
         scroll_node_id: &ScrollTreeNodeId,
         scroll_location: ScrollLocation,
+        context: ScrollType,
     ) -> Option<(ExternalScrollId, LayoutVector2D)> {
         let parent = {
             let node = &mut self.get_node_mut(scroll_node_id);
-            let result = node.scroll(scroll_location);
+            let result = node.scroll(scroll_location, context);
             if result.is_some() {
                 return result;
             }
             node.parent
         };
 
-        parent.and_then(|parent| self.scroll_node_or_ancestor(&parent, scroll_location))
+        parent.and_then(|parent| self.scroll_node_or_ancestor(&parent, scroll_location, context))
     }
 
     /// Given an [`ExternalScrollId`] and an offset, update the scroll offset of the scroll node
     /// with the given id.
-    pub fn set_scroll_offsets_for_node_with_external_scroll_id(
+    pub fn set_scroll_offset_for_node_with_external_scroll_id(
         &mut self,
         external_scroll_id: ExternalScrollId,
         offset: LayoutVector2D,
-    ) -> bool {
+        context: ScrollType,
+    ) -> Option<LayoutVector2D> {
+        self.nodes.iter_mut().find_map(|node| match node.info {
+            SpatialTreeNodeInfo::Scroll(ref mut scroll_info)
+                if scroll_info.external_id == external_scroll_id =>
+            {
+                scroll_info.scroll_to_offset(offset, context)
+            },
+            _ => None,
+        })
+    }
+
+    /// Given a set of all scroll offsets coming from the Servo renderer, update all of the offsets
+    /// for nodes that actually exist in this tree.
+    pub fn set_all_scroll_offsets(&mut self, offsets: &HashMap<ExternalScrollId, LayoutVector2D>) {
         for node in self.nodes.iter_mut() {
-            match node.info {
-                SpatialTreeNodeInfo::Scroll(ref mut scroll_info)
-                    if scroll_info.external_id == external_scroll_id =>
-                {
-                    scroll_info.offset = offset;
-                    return true;
-                },
-                _ => {},
+            if let SpatialTreeNodeInfo::Scroll(ref mut scroll_info) = node.info {
+                if let Some(offset) = offsets.get(&scroll_info.external_id) {
+                    scroll_info.offset = *offset;
+                }
             }
         }
-        false
+    }
+
+    /// Collect all of the scroll offsets of the scrolling nodes of this tree into a
+    /// [`HashMap`] which can be applied to another tree.
+    pub fn scroll_offsets(&self) -> HashMap<ExternalScrollId, LayoutVector2D> {
+        HashMap::from_iter(self.nodes.iter().filter_map(|node| match node.info {
+            SpatialTreeNodeInfo::Scroll(ref scroll_info) => {
+                Some((scroll_info.external_id, scroll_info.offset))
+            },
+            _ => None,
+        }))
     }
 }
 

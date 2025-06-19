@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, Ref, RefCell};
 use std::collections::HashMap;
 use std::env;
 use std::fs::create_dir_all;
@@ -15,10 +15,13 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::id::{PipelineId, WebViewId};
 use base::{Epoch, WebRenderEpochToU16};
 use bitflags::bitflags;
-use compositing_traits::display_list::{CompositorDisplayListInfo, HitTestInfo, ScrollTree};
+use compositing_traits::display_list::{
+    CompositorDisplayListInfo, HitTestInfo, ScrollTree, ScrollType,
+};
 use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::{
-    CompositionPipeline, CompositorMsg, ImageUpdate, SendableFrameTree, WebViewTrait,
+    CompositionPipeline, CompositorMsg, ImageUpdate, PipelineExitSource, SendableFrameTree,
+    WebViewTrait,
 };
 use constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
 use crossbeam_channel::{Receiver, Sender};
@@ -28,7 +31,6 @@ use embedder_traits::{
     TouchEventType, UntrustedNodeAddress, ViewportDetails, WheelDelta, WheelEvent, WheelMode,
 };
 use euclid::{Point2D, Rect, Scale, Size2D, Transform3D, Vector2D};
-use fnv::FnvHashMap;
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use libc::c_void;
 use log::{debug, info, trace, warn};
@@ -46,10 +48,10 @@ use webrender_api::units::{
 };
 use webrender_api::{
     self, BuiltDisplayList, DirtyRect, DisplayListPayload, DocumentId, Epoch as WebRenderEpoch,
-    ExternalScrollId, FontInstanceFlags, FontInstanceKey, FontInstanceOptions, FontKey,
-    HitTestFlags, PipelineId as WebRenderPipelineId, PropertyBinding, ReferenceFrameKind,
-    RenderReasons, SampledScrollOffset, ScrollLocation, SpaceAndClipInfo, SpatialId,
-    SpatialTreeItemKey, TransformStyle,
+    FontInstanceFlags, FontInstanceKey, FontInstanceOptions, FontKey, HitTestFlags,
+    PipelineId as WebRenderPipelineId, PropertyBinding, ReferenceFrameKind, RenderReasons,
+    SampledScrollOffset, ScrollLocation, SpaceAndClipInfo, SpatialId, SpatialTreeItemKey,
+    TransformStyle,
 };
 
 use crate::InitialCompositorState;
@@ -225,6 +227,10 @@ pub(crate) struct PipelineDetails {
 
     /// The paint metric status of the first contentful paint.
     pub first_contentful_paint_metric: PaintMetricState,
+
+    /// Which parts of Servo have reported that this `Pipeline` has exited. Only when all
+    /// have done so will it be discarded.
+    pub exited: PipelineExitSource,
 }
 
 impl PipelineDetails {
@@ -254,30 +260,14 @@ impl PipelineDetails {
             scroll_tree: ScrollTree::default(),
             first_paint_metric: PaintMetricState::Waiting,
             first_contentful_paint_metric: PaintMetricState::Waiting,
+            exited: PipelineExitSource::empty(),
         }
     }
 
     fn install_new_scroll_tree(&mut self, new_scroll_tree: ScrollTree) {
-        let old_scroll_offsets: FnvHashMap<ExternalScrollId, LayoutVector2D> = self
-            .scroll_tree
-            .nodes
-            .drain(..)
-            .filter_map(|node| match (node.external_id(), node.offset()) {
-                (Some(external_id), Some(offset)) => Some((external_id, offset)),
-                _ => None,
-            })
-            .collect();
-
+        let old_scroll_offsets = self.scroll_tree.scroll_offsets();
         self.scroll_tree = new_scroll_tree;
-        for node in self.scroll_tree.nodes.iter_mut() {
-            match node.external_id() {
-                Some(external_id) => match old_scroll_offsets.get(&external_id) {
-                    Some(new_offset) => node.set_offset(*new_offset),
-                    None => continue,
-                },
-                _ => continue,
-            };
-        }
+        self.scroll_tree.set_all_scroll_offsets(&old_scroll_offsets);
     }
 }
 
@@ -370,21 +360,33 @@ impl ServoRenderer {
             .send_transaction(self.webrender_document, transaction);
     }
 
-    pub(crate) fn update_cursor(&mut self, pos: DevicePoint, result: &CompositorHitTestResult) {
-        self.cursor_pos = pos;
-
-        let cursor = match result.cursor {
-            Some(cursor) if cursor != self.cursor => cursor,
-            _ => return,
-        };
-
-        let Some(webview_id) = self
+    pub(crate) fn update_cursor_from_hittest(
+        &mut self,
+        pos: DevicePoint,
+        result: &CompositorHitTestResult,
+    ) {
+        if let Some(webview_id) = self
             .pipeline_to_webview_map
             .get(&result.pipeline_id)
-            .cloned()
-        else {
+            .copied()
+        {
+            self.update_cursor(pos, webview_id, result.cursor);
+        } else {
             warn!("Couldn't update cursor for non-WebView-associated pipeline");
-            return;
+        };
+    }
+
+    pub(crate) fn update_cursor(
+        &mut self,
+        pos: DevicePoint,
+        webview_id: WebViewId,
+        cursor: Option<Cursor>,
+    ) {
+        self.cursor_pos = pos;
+
+        let cursor = match cursor {
+            Some(cursor) if cursor != self.cursor => cursor,
+            _ => return,
         };
 
         self.cursor = cursor;
@@ -620,15 +622,14 @@ impl IOCompositor {
                 }
             },
 
-            CompositorMsg::PipelineExited(webview_id, pipeline_id, sender) => {
+            CompositorMsg::PipelineExited(webview_id, pipeline_id, pipeline_exit_source) => {
                 debug!(
                     "Compositor got pipeline exited: {:?} {:?}",
                     webview_id, pipeline_id
                 );
                 if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
-                    webview_renderer.remove_pipeline(pipeline_id);
+                    webview_renderer.pipeline_exited(pipeline_id, pipeline_exit_source);
                 }
-                let _ = sender.send(());
             },
 
             CompositorMsg::NewWebRenderFrameReady(_document_id, recomposite_needed) => {
@@ -642,7 +643,9 @@ impl IOCompositor {
                         .borrow()
                         .hit_test_at_point(point, details_for_pipeline);
                     if let Ok(result) = result {
-                        self.global.borrow_mut().update_cursor(point, &result);
+                        self.global
+                            .borrow_mut()
+                            .update_cursor_from_hittest(point, &result);
                     }
                 }
 
@@ -673,7 +676,7 @@ impl IOCompositor {
                 let point = dppx.transform_point(Point2D::new(x, y));
                 webview_renderer.dispatch_point_input_event(
                     InputEvent::MouseButton(MouseButtonEvent::new(action, button, point))
-                        .with_webdriver_message_id(Some(message_id)),
+                        .with_webdriver_message_id(message_id),
                 );
             },
 
@@ -686,27 +689,34 @@ impl IOCompositor {
                 let point = dppx.transform_point(Point2D::new(x, y));
                 webview_renderer.dispatch_point_input_event(
                     InputEvent::MouseMove(MouseMoveEvent::new(point))
-                        .with_webdriver_message_id(Some(message_id)),
+                        .with_webdriver_message_id(message_id),
                 );
             },
 
-            CompositorMsg::WebDriverWheelScrollEvent(webview_id, x, y, delta_x, delta_y) => {
+            CompositorMsg::WebDriverWheelScrollEvent(webview_id, x, y, dx, dy, message_id) => {
                 let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     warn!("Handling input event for unknown webview: {webview_id}");
                     return;
                 };
+                // The sign of wheel delta value definition in uievent
+                // is inverted compared to `winit`s wheel delta. Hence,
+                // here we invert the sign to mimic wheel scroll
+                // implementation in `headed_window.rs`.
+                let dx = -dx;
+                let dy = -dy;
                 let delta = WheelDelta {
-                    x: delta_x,
-                    y: delta_y,
+                    x: dx,
+                    y: dy,
                     z: 0.0,
                     mode: WheelMode::DeltaPixel,
                 };
                 let dppx = webview_renderer.device_pixels_per_page_pixel();
                 let point = dppx.transform_point(Point2D::new(x, y));
-                let scroll_delta =
-                    dppx.transform_vector(Vector2D::new(delta_x as f32, delta_y as f32));
-                webview_renderer
-                    .dispatch_point_input_event(InputEvent::Wheel(WheelEvent { delta, point }));
+                let scroll_delta = dppx.transform_vector(Vector2D::new(dx as f32, dy as f32));
+                webview_renderer.dispatch_point_input_event(
+                    InputEvent::Wheel(WheelEvent::new(delta, point))
+                        .with_webdriver_message_id(message_id),
+                );
                 webview_renderer.on_webdriver_wheel_action(scroll_delta, point);
             },
 
@@ -717,7 +727,7 @@ impl IOCompositor {
                 self.global.borrow_mut().send_transaction(txn);
             },
 
-            CompositorMsg::SendScrollNode(webview_id, pipeline_id, point, external_scroll_id) => {
+            CompositorMsg::SendScrollNode(webview_id, pipeline_id, offset, external_scroll_id) => {
                 let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     return;
                 };
@@ -728,23 +738,25 @@ impl IOCompositor {
                     return;
                 };
 
-                let offset = LayoutVector2D::new(point.x, point.y);
-                if !pipeline_details
+                let Some(offset) = pipeline_details
                     .scroll_tree
-                    .set_scroll_offsets_for_node_with_external_scroll_id(
+                    .set_scroll_offset_for_node_with_external_scroll_id(
                         external_scroll_id,
-                        -offset,
+                        offset,
+                        ScrollType::Script,
                     )
-                {
-                    warn!("Could not scroll not with id: {external_scroll_id:?}");
+                else {
+                    // The renderer should be fully up-to-date with script at this point and script
+                    // should never try to scroll to an invalid location.
+                    warn!("Could not scroll node with id: {external_scroll_id:?}");
                     return;
-                }
+                };
 
                 let mut txn = Transaction::new();
                 txn.set_scroll_offsets(
                     external_scroll_id,
                     vec![SampledScrollOffset {
-                        offset,
+                        offset: -offset,
                         generation: 0,
                     }],
                 );
@@ -992,15 +1004,14 @@ impl IOCompositor {
     /// compositor no longer does any WebRender frame generation.
     fn handle_browser_message_while_shutting_down(&mut self, msg: CompositorMsg) {
         match msg {
-            CompositorMsg::PipelineExited(webview_id, pipeline_id, sender) => {
+            CompositorMsg::PipelineExited(webview_id, pipeline_id, pipeline_exit_source) => {
                 debug!(
                     "Compositor got pipeline exited: {:?} {:?}",
                     webview_id, pipeline_id
                 );
                 if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
-                    webview_renderer.remove_pipeline(pipeline_id);
+                    webview_renderer.pipeline_exited(pipeline_id, pipeline_exit_source);
                 }
-                let _ = sender.send(());
             },
             CompositorMsg::GenerateImageKey(sender) => {
                 let _ = sender.send(self.global.borrow().webrender_api.generate_image_key());
@@ -1490,10 +1501,7 @@ impl IOCompositor {
             }))
     }
 
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
+    #[servo_tracing::instrument(skip_all)]
     fn render_inner(&mut self) -> Result<(), UnableToComposite> {
         if let Err(err) = self.rendering_context.make_current() {
             warn!("Failed to make the rendering context current: {:?}", err);
@@ -1642,50 +1650,49 @@ impl IOCompositor {
         );
     }
 
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
-    pub fn receive_messages(&mut self) {
+    /// Get the message receiver for this [`IOCompositor`].
+    pub fn receiver(&self) -> Ref<Receiver<CompositorMsg>> {
+        Ref::map(self.global.borrow(), |global| &global.compositor_receiver)
+    }
+
+    #[servo_tracing::instrument(skip_all)]
+    pub fn handle_messages(&mut self, mut messages: Vec<CompositorMsg>) {
         // Check for new messages coming from the other threads in the system.
-        let mut compositor_messages = vec![];
         let mut found_recomposite_msg = false;
-        while let Ok(msg) = self.global.borrow_mut().compositor_receiver.try_recv() {
-            match msg {
+        messages.retain(|message| {
+            match message {
                 CompositorMsg::NewWebRenderFrameReady(..) if found_recomposite_msg => {
                     // Only take one of duplicate NewWebRendeFrameReady messages, but do subtract
                     // one frame from the pending frames.
                     self.pending_frames -= 1;
+                    false
                 },
                 CompositorMsg::NewWebRenderFrameReady(..) => {
                     found_recomposite_msg = true;
-                    compositor_messages.push(msg);
+
+                    // Process all pending events
+                    // FIXME: Shouldn't `webview_frame_ready` be stored globally and why can't `pending_frames`
+                    // be used here?
+                    self.webview_renderers.iter().for_each(|webview| {
+                        webview.dispatch_pending_point_input_events();
+                        webview.webrender_frame_ready.set(true);
+                    });
+
+                    true
                 },
-                _ => compositor_messages.push(msg),
+                _ => true,
             }
-        }
+        });
 
-        if found_recomposite_msg {
-            // Process all pending events
-            self.webview_renderers.iter().for_each(|webview| {
-                webview.dispatch_pending_point_input_events();
-                webview.webrender_frame_ready.set(true);
-            });
-        }
-
-        for msg in compositor_messages {
-            self.handle_browser_message(msg);
-
+        for message in messages {
+            self.handle_browser_message(message);
             if self.global.borrow().shutdown_state() == ShutdownState::FinishedShuttingDown {
                 return;
             }
         }
     }
 
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
+    #[servo_tracing::instrument(skip_all)]
     pub fn perform_updates(&mut self) -> bool {
         if self.global.borrow().shutdown_state() == ShutdownState::FinishedShuttingDown {
             return false;

@@ -97,8 +97,10 @@ mod from_compositor {
                 InputEvent::Keyboard(..) => target_variant!("Keyboard"),
                 InputEvent::MouseButton(..) => target_variant!("MouseButton"),
                 InputEvent::MouseMove(..) => target_variant!("MouseMove"),
+                InputEvent::MouseLeave(..) => target_variant!("MouseLeave"),
                 InputEvent::Touch(..) => target_variant!("Touch"),
                 InputEvent::Wheel(..) => target_variant!("Wheel"),
+                InputEvent::Scroll(..) => target_variant!("Scroll"),
             }
         }
     }
@@ -245,6 +247,7 @@ mod from_script {
                 Self::FinishJavaScriptEvaluation(..) => {
                     target_variant!("FinishJavaScriptEvaluation")
                 },
+                Self::WebDriverCommand(..) => target_variant!("WebDriverCommand"),
             }
         }
     }

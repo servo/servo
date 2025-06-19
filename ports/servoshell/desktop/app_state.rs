@@ -7,19 +7,19 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
 
-use euclid::{Point2D, Vector2D};
-use image::{DynamicImage, ImageFormat};
-use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
+use crossbeam_channel::Receiver;
+use euclid::Vector2D;
+use keyboard_types::{Key, Modifiers, ShortcutMatcher};
 use log::{error, info};
 use servo::base::id::WebViewId;
-use servo::config::pref;
+use servo::config::{opts, pref};
 use servo::ipc_channel::ipc::IpcSender;
 use servo::webrender_api::ScrollLocation;
-use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
+use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FormControl, GamepadHapticEffectType,
-    LoadStatus, PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog, TouchEventType,
-    WebView, WebViewBuilder, WebViewDelegate,
+    KeyboardEvent, LoadStatus, PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog,
+    TouchEventType, WebDriverCommandMsg, WebView, WebViewBuilder, WebViewDelegate,
 };
 use url::Url;
 
@@ -28,6 +28,7 @@ use super::dialog::Dialog;
 use super::gamepad::GamepadSupport;
 use super::keyutils::CMD_OR_CONTROL;
 use super::window_trait::{LINE_HEIGHT, WindowPortsMethods};
+use crate::output_image::save_output_image_if_necessary;
 use crate::prefs::ServoShellPreferences;
 
 pub(crate) enum AppState {
@@ -44,6 +45,9 @@ pub(crate) struct RunningAppState {
     /// The preferences for this run of servoshell. This is not mutable, so doesn't need to
     /// be stored inside the [`RunningAppStateInner`].
     servoshell_preferences: ServoShellPreferences,
+    /// A [`Receiver`] for receiving commands from a running WebDriver server, if WebDriver
+    /// was enabled.
+    webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
     inner: RefCell<RunningAppStateInner>,
 }
 
@@ -88,11 +92,13 @@ impl RunningAppState {
         servo: Servo,
         window: Rc<dyn WindowPortsMethods>,
         servoshell_preferences: ServoShellPreferences,
+        webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
     ) -> RunningAppState {
         servo.set_delegate(Rc::new(ServoShellServoDelegate));
         RunningAppState {
             servo,
             servoshell_preferences,
+            webdriver_receiver,
             inner: RefCell::new(RunningAppStateInner {
                 webviews: HashMap::default(),
                 creation_order: Default::default(),
@@ -132,36 +138,19 @@ impl RunningAppState {
         &self.servo
     }
 
+    pub(crate) fn webdriver_receiver(&self) -> Option<&Receiver<WebDriverCommandMsg>> {
+        self.webdriver_receiver.as_ref()
+    }
+
+    pub(crate) fn forward_webdriver_command(&self, command: WebDriverCommandMsg) {
+        self.servo().execute_webdriver_command(command);
+    }
+
     pub(crate) fn hidpi_scale_factor_changed(&self) {
         let inner = self.inner();
         let new_scale_factor = inner.window.hidpi_scale_factor();
         for webview in inner.webviews.values() {
             webview.set_hidpi_scale_factor(new_scale_factor);
-        }
-    }
-
-    pub(crate) fn save_output_image_if_necessary(&self) {
-        let Some(output_path) = self.servoshell_preferences.output_image_path.as_ref() else {
-            return;
-        };
-
-        let inner = self.inner();
-        let size = inner.window.rendering_context().size2d().to_i32();
-        let viewport_rect = DeviceIntRect::from_origin_and_size(Point2D::origin(), size);
-        let Some(image) = inner
-            .window
-            .rendering_context()
-            .read_to_image(viewport_rect)
-        else {
-            error!("Failed to read output image.");
-            return;
-        };
-
-        let image_format = ImageFormat::from_path(output_path).unwrap_or(ImageFormat::Png);
-        if let Err(error) =
-            DynamicImage::ImageRgba8(image).save_with_format(output_path, image_format)
-        {
-            error!("Failed to save {output_path}: {error}.");
         }
     }
 
@@ -181,7 +170,10 @@ impl RunningAppState {
 
         // This needs to be done before presenting(), because `ReneringContext::read_to_image` reads
         // from the back buffer.
-        self.save_output_image_if_necessary();
+        save_output_image_if_necessary(
+            &self.servoshell_preferences,
+            &self.inner().window.rendering_context(),
+        );
 
         let mut inner_mut = self.inner_mut();
         inner_mut.window.rendering_context().present();
@@ -283,6 +275,10 @@ impl RunningAppState {
             .collect()
     }
 
+    pub fn webview_by_id(&self, id: WebViewId) -> Option<WebView> {
+        self.inner().webviews.get(&id).cloned()
+    }
+
     pub fn handle_gamepad_events(&self) {
         let Some(active_webview) = self.focused_webview() else {
             return;
@@ -336,7 +332,7 @@ impl RunningAppState {
     /// Handle servoshell key bindings that may have been prevented by the page in the focused webview.
     fn handle_overridable_key_bindings(&self, webview: ::servo::WebView, event: KeyboardEvent) {
         let origin = webview.rect().min.ceil().to_i32();
-        ShortcutMatcher::from_event(event)
+        ShortcutMatcher::from_event(event.event)
             .shortcut(CMD_OR_CONTROL, '=', || {
                 webview.set_zoom(1.1);
             })
@@ -477,9 +473,13 @@ impl WebViewDelegate for RunningAppState {
             .build();
 
         webview.notify_theme_change(self.inner().window.theme());
-        webview.focus();
-        webview.raise_to_top(true);
-
+        // When WebDriver is enabled, do not focus and raise the WebView to the top,
+        // as that is what the specification expects. Otherwise, we would like `window.open()`
+        // to create a new foreground tab
+        if opts::get().webdriver_port.is_none() {
+            webview.focus();
+            webview.raise_to_top(true);
+        }
         self.add(webview.clone());
         Some(webview)
     }

@@ -1,4 +1,4 @@
-name: "test-jobs"
+name: test-jobs
 on:
   pull_request:
 
@@ -25,11 +25,12 @@ jobs:
     if: contains(fromJSON(needs.decision.outputs.test_jobs), 'affected_tests')
     uses: ./.github/workflows/safari-wptrunner.yml
     with:
-      artifact-name: "safari-preview-affected-tests"
+      artifact-name: safari-preview-affected-tests-with-changes
+      merged-artifact-name: safari-preview-affected-tests
       safari-technology-preview: true
       safaridriver-diagnose: false
       fetch-depth: 2
-      extra-options: "--affected ${{ github.sha }}^1"
+      extra-options: --affected ${{ github.sha }}^1
 
   affected_without_changes_safari_preview:
     name: "affected tests without changes: Safari Technology Preview"
@@ -38,11 +39,12 @@ jobs:
     uses: ./.github/workflows/safari-wptrunner.yml
     with:
       artifact-name: safari-preview-affected-tests-without-changes
+      merged-artifact-name: safari-preview-affected-tests-without-changes
       safari-technology-preview: true
       safaridriver-diagnose: false
       fetch-depth: 2
-      test-rev: "HEAD^1"
-      extra-options: "--affected ${{ github.sha }}"
+      test-rev: HEAD^1
+      extra-options: --affected ${{ github.sha }}
 
   infrastructure_mac:
     name: "infrastructure/ tests: macOS"

@@ -19,7 +19,6 @@ use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use actors::source::SourceData;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::{
@@ -44,6 +43,7 @@ use crate::actors::performance::PerformanceActor;
 use crate::actors::preference::PreferenceActor;
 use crate::actors::process::ProcessActor;
 use crate::actors::root::RootActor;
+use crate::actors::source::SourceActor;
 use crate::actors::thread::ThreadActor;
 use crate::actors::worker::{WorkerActor, WorkerType};
 use crate::id::IdMap;
@@ -478,18 +478,21 @@ impl DevtoolsInstance {
         request_id: String,
         network_event: NetworkEvent,
     ) {
-        let console_actor_name = match self.find_console_actor(pipeline_id, None) {
-            Some(name) => name,
-            None => return,
-        };
         let netevent_actor_name = self.find_network_event_actor(request_id);
+
+        let Some(id) = self.pipelines.get(&pipeline_id) else {
+            return;
+        };
+        let Some(browsing_context_actor_name) = self.browsing_contexts.get(id) else {
+            return;
+        };
 
         handle_network_event(
             Arc::clone(&self.actors),
-            console_actor_name,
             netevent_actor_name,
             connections,
             network_event,
+            browsing_context_actor_name.to_string(),
         )
     }
 
@@ -515,28 +518,29 @@ impl DevtoolsInstance {
     fn handle_script_source_info(&mut self, pipeline_id: PipelineId, source_info: SourceInfo) {
         let mut actors = self.actors.lock().unwrap();
 
+        let source_actor = SourceActor::new_registered(
+            &mut actors,
+            source_info.url,
+            source_info.content.clone(),
+            source_info.content_type.unwrap(),
+        );
+        let source_actor_name = source_actor.name.clone();
+        let source_form = source_actor.source_form();
+
         if let Some(worker_id) = source_info.worker_id {
             let Some(worker_actor_name) = self.actor_workers.get(&worker_id) else {
                 return;
             };
 
             let thread_actor_name = actors.find::<WorkerActor>(worker_actor_name).thread.clone();
-
             let thread_actor = actors.find_mut::<ThreadActor>(&thread_actor_name);
-            thread_actor
-                .source_manager
-                .add_source(source_info.url.clone());
 
-            let source = SourceData {
-                actor: thread_actor_name.clone(),
-                url: source_info.url.to_string(),
-                is_black_boxed: false,
-            };
+            thread_actor.source_manager.add_source(&source_actor_name);
 
             let worker_actor = actors.find::<WorkerActor>(worker_actor_name);
 
             for stream in self.connections.values_mut() {
-                worker_actor.resource_available(&source, "source".into(), stream);
+                worker_actor.resource_available(&source_form, "source".into(), stream);
             }
         } else {
             let Some(browsing_context_id) = self.pipelines.get(&pipeline_id) else {
@@ -546,27 +550,20 @@ impl DevtoolsInstance {
                 return;
             };
 
-            let thread_actor_name = actors
-                .find::<BrowsingContextActor>(actor_name)
-                .thread
-                .clone();
+            let thread_actor_name = {
+                let browsing_context = actors.find::<BrowsingContextActor>(actor_name);
+                browsing_context.thread.clone()
+            };
 
             let thread_actor = actors.find_mut::<ThreadActor>(&thread_actor_name);
-            thread_actor
-                .source_manager
-                .add_source(source_info.url.clone());
 
-            let source = SourceData {
-                actor: thread_actor_name.clone(),
-                url: source_info.url.to_string(),
-                is_black_boxed: false,
-            };
+            thread_actor.source_manager.add_source(&source_actor_name);
 
             // Notify browsing context about the new source
             let browsing_context = actors.find::<BrowsingContextActor>(actor_name);
 
             for stream in self.connections.values_mut() {
-                browsing_context.resource_available(&source, "source".into(), stream);
+                browsing_context.resource_available(&source_form, "source".into(), stream);
             }
         }
     }

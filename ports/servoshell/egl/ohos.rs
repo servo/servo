@@ -6,8 +6,9 @@
 use std::cell::RefCell;
 use std::mem::MaybeUninit;
 use std::os::raw::c_void;
+use std::rc::Rc;
 use std::sync::mpsc::{Receiver, Sender};
-use std::sync::{LazyLock, Once, OnceLock, mpsc};
+use std::sync::{LazyLock, Mutex, Once, OnceLock, mpsc};
 use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
@@ -23,7 +24,7 @@ use ohos_ime_sys::types::InputMethod_EnterKeyType;
 use servo::style::Zero;
 use servo::{
     AlertResponse, EventLoopWaker, InputMethodType, LoadStatus, MediaSessionPlaybackState,
-    PermissionRequest, SimpleDialog, WebView,
+    PermissionRequest, SimpleDialog, WebView, WebViewId,
 };
 use xcomponent_sys::{
     OH_NativeXComponent, OH_NativeXComponent_Callback, OH_NativeXComponent_GetKeyEvent,
@@ -45,12 +46,8 @@ mod simpleservo;
 #[derive(Debug)]
 pub struct InitOpts {
     pub url: String,
-    pub device_type: String,
-    pub os_full_name: String,
     /// Path to application data bundled with the servo app, e.g. web-pages.
     pub resource_dir: String,
-    pub cache_dir: String,
-    pub display_density: f64,
     pub commandline_args: String,
 }
 
@@ -69,9 +66,11 @@ fn call(action: ServoAction) -> Result<(), CallError> {
 }
 
 #[repr(transparent)]
-struct XComponentWrapper(*mut OH_NativeXComponent);
+#[derive(Clone)]
+pub(crate) struct XComponentWrapper(*mut OH_NativeXComponent);
 #[repr(transparent)]
-struct WindowWrapper(*mut c_void);
+#[derive(Clone)]
+pub(crate) struct WindowWrapper(*mut c_void);
 unsafe impl Send for XComponentWrapper {}
 unsafe impl Send for WindowWrapper {}
 
@@ -84,7 +83,6 @@ pub(super) enum TouchEventType {
     Unknown,
 }
 
-#[derive(Debug)]
 pub(super) enum ServoAction {
     WakeUp,
     LoadUrl(String),
@@ -108,6 +106,8 @@ pub(super) enum ServoAction {
         width: i32,
         height: i32,
     },
+    FocusWebview(u32),
+    NewWebview(XComponentWrapper, WindowWrapper),
 }
 
 /// Queue length for the thread-safe function to submit URL updates to ArkTS
@@ -123,9 +123,25 @@ const PROMPT_QUEUE_SIZE: usize = 4;
 static SET_URL_BAR_CB: OnceLock<
     ThreadsafeFunction<String, (), String, false, false, UPDATE_URL_QUEUE_SIZE>,
 > = OnceLock::new();
+static TERMINATE_CALLBACK: OnceLock<ThreadsafeFunction<(), (), (), false, false, 1>> =
+    OnceLock::new();
 static PROMPT_TOAST: OnceLock<
     ThreadsafeFunction<String, (), String, false, false, PROMPT_QUEUE_SIZE>,
 > = OnceLock::new();
+
+/// Storing webview related items
+struct NativeWebViewComponents {
+    /// The id of the related webview
+    id: WebViewId,
+    /// The XComponentWrapper for the above webview
+    xcomponent: XComponentWrapper,
+    /// The WindowWrapper for the above webview
+    window: WindowWrapper,
+}
+
+/// Currently we do not support different contexts for different windows but we might want to change tabs.
+/// For this we store the window context for every tab and change the compositor by hand.
+static NATIVE_WEBVIEWS: Mutex<Vec<NativeWebViewComponents>> = Mutex::new(Vec::new());
 
 impl ServoAction {
     fn dispatch_touch_event(
@@ -145,7 +161,7 @@ impl ServoAction {
     }
 
     // todo: consider making this take `self`, so we don't need to needlessly clone.
-    fn do_action(&self, servo: &RunningAppState) {
+    fn do_action(&self, servo: &Rc<RunningAppState>) {
         use ServoAction::*;
         match self {
             WakeUp => servo.perform_updates(),
@@ -185,6 +201,56 @@ impl ServoAction {
                 servo.present_if_needed();
             },
             Resize { width, height } => servo.resize(Coordinates::new(0, 0, *width, *height)),
+            FocusWebview(arkts_id) => {
+                if let Some(native_webview_components) =
+                    NATIVE_WEBVIEWS.lock().unwrap().get(*arkts_id as usize)
+                {
+                    if servo.active_webview().id() != native_webview_components.id {
+                        servo.focus_webview(native_webview_components.id);
+                        servo.pause_compositor();
+                        let (window_handle, _, coordinates) = simpleservo::get_raw_window_handle(
+                            native_webview_components.xcomponent.0,
+                            native_webview_components.window.0,
+                        );
+                        servo.resume_compositor(window_handle, coordinates);
+                        let url = servo
+                            .active_webview()
+                            .url()
+                            .map(|u| u.to_string())
+                            .unwrap_or(String::from("about:blank"));
+                        SET_URL_BAR_CB
+                            .get()
+                            .map(|f| f.call(url, ThreadsafeFunctionCallMode::Blocking));
+                    }
+                } else {
+                    error!("Could not find webview to focus");
+                }
+            },
+            NewWebview(xcomponent, window) => {
+                servo.pause_compositor();
+                servo.new_toplevel_webview("about:blank".parse().unwrap());
+                let (window_handle, _, coordinates) =
+                    simpleservo::get_raw_window_handle(xcomponent.0, window.0);
+
+                servo.resume_compositor(window_handle, coordinates);
+                let webview = servo.newest_webview().expect("There should always be one");
+                let id = webview.id();
+                NATIVE_WEBVIEWS
+                    .lock()
+                    .unwrap()
+                    .push(NativeWebViewComponents {
+                        id,
+                        xcomponent: xcomponent.clone(),
+                        window: window.clone(),
+                    });
+                let url = webview
+                    .url()
+                    .map(|u| u.to_string())
+                    .unwrap_or(String::from("about:blank"));
+                SET_URL_BAR_CB
+                    .get()
+                    .map(|f| f.call(url, ThreadsafeFunctionCallMode::Blocking));
+            },
         };
     }
 }
@@ -223,50 +289,64 @@ extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window
     let xc_wrapper = XComponentWrapper(xcomponent);
     let window_wrapper = WindowWrapper(window);
 
-    // Todo: Perhaps it would be better to move this thread into the vsync signal thread.
-    // This would allow us to save one thread and the IPC for the vsync signal.
-    //
-    // Each thread will send its id via the channel
-    let _main_surface_thread = thread::spawn(move || {
-        let (tx, rx): (Sender<ServoAction>, Receiver<ServoAction>) = mpsc::channel();
+    if SERVO_CHANNEL.get().is_none() {
+        // Todo: Perhaps it would be better to move this thread into the vsync signal thread.
+        // This would allow us to save one thread and the IPC for the vsync signal.
+        //
+        // Each thread will send its id via the channel
+        let _main_surface_thread = thread::spawn(move || {
+            let (tx, rx): (Sender<ServoAction>, Receiver<ServoAction>) = mpsc::channel();
 
-        SERVO_CHANNEL
-            .set(tx.clone())
-            .expect("Servo channel already initialized");
+            SERVO_CHANNEL
+                .set(tx.clone())
+                .expect("Servo channel already initialized");
 
-        let wakeup = Box::new(WakeupCallback::new(tx));
-        let callbacks = Box::new(HostCallbacks::new());
+            let wakeup = Box::new(WakeupCallback::new(tx));
+            let callbacks = Box::new(HostCallbacks::new());
 
-        let xc = xc_wrapper;
-        let window = window_wrapper;
-        let init_opts = if let Ok(ServoAction::Initialize(init_opts)) = rx.recv() {
-            init_opts
-        } else {
-            panic!("Servos GL thread received another event before it was initialized")
-        };
-        let servo = simpleservo::init(*init_opts, window.0, xc.0, wakeup, callbacks)
-            .expect("Servo initialization failed");
+            let xc = xc_wrapper;
+            let window = window_wrapper;
 
-        info!("Surface created!");
-        let native_vsync =
-            ohos_vsync::NativeVsync::new("ServoVsync").expect("Failed to create NativeVsync");
-        // get_period() returns an error - perhaps we need to wait until the first callback?
-        // info!("Native vsync period is {} nanoseconds", native_vsync.get_period().unwrap());
-        unsafe {
-            native_vsync
-                .request_raw_callback_with_self(Some(on_vsync_cb))
-                .expect("Failed to request vsync callback")
-        }
-        info!("Enabled Vsync!");
+            let init_opts = if let Ok(ServoAction::Initialize(init_opts)) = rx.recv() {
+                init_opts
+            } else {
+                panic!("Servos GL thread received another event before it was initialized")
+            };
+            let servo = simpleservo::init(*init_opts, window.0, xc.0, wakeup, callbacks)
+                .expect("Servo initialization failed");
 
-        while let Ok(action) = rx.recv() {
-            trace!("Wakeup message received!");
-            action.do_action(&servo);
-        }
+            NATIVE_WEBVIEWS
+                .lock()
+                .unwrap()
+                .push(NativeWebViewComponents {
+                    id: servo.active_webview().id(),
+                    xcomponent: xc,
+                    window,
+                });
 
-        info!("Sender disconnected - Terminating main surface thread");
-    });
+            info!("Surface created!");
+            let native_vsync =
+                ohos_vsync::NativeVsync::new("ServoVsync").expect("Failed to create NativeVsync");
+            // get_period() returns an error - perhaps we need to wait until the first callback?
+            // info!("Native vsync period is {} nanoseconds", native_vsync.get_period().unwrap());
+            unsafe {
+                native_vsync
+                    .request_raw_callback_with_self(Some(on_vsync_cb))
+                    .expect("Failed to request vsync callback")
+            }
+            info!("Enabled Vsync!");
 
+            while let Ok(action) = rx.recv() {
+                trace!("Wakeup message received!");
+                action.do_action(&servo);
+            }
+
+            info!("Sender disconnected - Terminating main surface thread");
+        });
+    } else {
+        call(ServoAction::NewWebview(xc_wrapper, window_wrapper))
+            .expect("Could not create new webview");
+    }
     info!("Returning from on_surface_created_cb");
 }
 
@@ -446,7 +526,7 @@ fn initialize_logging_once() {
     ONCE.call_once(|| {
         let logger: &'static hilog::Logger = &LOGGER;
         let max_level = logger.filter();
-        let r = log::set_logger(logger).and_then(|()| Ok(log::set_max_level(max_level)));
+        let r = log::set_logger(logger).map(|()| log::set_max_level(max_level));
         debug!("Attempted to register the logger: {r:?} and set max level to: {max_level}");
         info!("Servo Register callback called!");
 
@@ -601,6 +681,15 @@ pub fn register_url_callback(callback: Function<String, ()>) -> napi_ohos::Resul
     })
 }
 
+#[napi(js_name = "registerTerminateCallback")]
+pub fn register_terminate_callback(callback: Function<(), ()>) -> napi_ohos::Result<()> {
+    let tsfn_builder = callback.build_threadsafe_function();
+    let function = tsfn_builder.max_queue_size::<1>().build()?;
+    TERMINATE_CALLBACK
+        .set(function)
+        .map_err(|_| napi_ohos::Error::from_reason("Failed to set terminate function"))
+}
+
 #[napi]
 pub fn register_prompt_toast_callback(callback: Function<String, ()>) -> napi_ohos::Result<()> {
     debug!("register_prompt_toast_callback called!");
@@ -615,10 +704,6 @@ pub fn register_prompt_toast_callback(callback: Function<String, ()>) -> napi_oh
 #[napi]
 pub fn init_servo(init_opts: InitOpts) -> napi_ohos::Result<()> {
     info!("Servo is being initialised with the following Options: ");
-    info!(
-        "Device Type: {}, DisplayDensity: {}",
-        init_opts.device_type, init_opts.display_density
-    );
     info!("Initial URL: {}", init_opts.url);
     let channel = if let Some(channel) = SERVO_CHANNEL.get() {
         channel
@@ -642,6 +727,12 @@ pub fn init_servo(init_opts: InitOpts) -> napi_ohos::Result<()> {
         .send(ServoAction::Initialize(Box::new(init_opts)))
         .expect("Failed to connect to servo GL thread");
     Ok(())
+}
+
+#[napi]
+fn focus_webview(id: u32) {
+    debug!("Focusing webview {id} from napi");
+    call(ServoAction::FocusWebview(id)).expect("Could not focus webview");
 }
 
 struct OhosImeOptions {
@@ -778,6 +869,17 @@ impl HostTrait for HostCallbacks {
                 response_sender,
             } => {
                 debug!("SimpleDialog::Alert");
+
+                // forward it to tracing
+                #[cfg(feature = "tracing-hitrace")]
+                {
+                    if message.contains("TESTCASE_PROFILING") {
+                        if let Some((tag, number)) = message.rsplit_once(":") {
+                            hitrace::trace_metric_str(tag, number.parse::<i64>().unwrap_or(-1));
+                        }
+                    }
+                }
+
                 // TODO: Indicate that this message is untrusted, and what origin it came from.
                 self.show_alert(message);
                 response_sender.send(AlertResponse::Ok)
@@ -850,7 +952,13 @@ impl HostTrait for HostCallbacks {
         // todo: should we tell the vsync thread that it should perform updates?
     }
 
-    fn on_shutdown_complete(&self) {}
+    fn on_shutdown_complete(&self) {
+        if let Some(terminate_fn) = TERMINATE_CALLBACK.get() {
+            terminate_fn.call((), ThreadsafeFunctionCallMode::Blocking);
+        } else {
+            error!("Could not shut down despite servo shutting down");
+        }
+    }
 
     /// Shows the Inputmethod
     ///

@@ -31,7 +31,8 @@ use dom_struct::dom_struct;
 use embedder_traits::{
     AllowOrDeny, AnimationState, CompositorHitTestResult, ContextMenuResult, EditingActionEvent,
     EmbedderMsg, FocusSequenceNumber, ImeEvent, InputEvent, LoadStatus, MouseButton,
-    MouseButtonAction, MouseButtonEvent, TouchEvent, TouchEventType, TouchId, WheelEvent,
+    MouseButtonAction, MouseButtonEvent, ScrollEvent, TouchEvent, TouchEventType, TouchId,
+    UntrustedNodeAddress, WheelEvent,
 };
 use encoding_rs::{Encoding, UTF_8};
 use euclid::default::{Point2D, Rect, Size2D};
@@ -54,7 +55,7 @@ use profile_traits::ipc as profile_ipc;
 use profile_traits::time::TimerMetadataFrameType;
 use regex::bytes::Regex;
 use script_bindings::interfaces::DocumentHelpers;
-use script_layout_interface::{PendingRestyle, TrustedNodeAddress};
+use script_layout_interface::{PendingRestyle, TrustedNodeAddress, node_id_from_scroll_id};
 use script_traits::{ConstellationInputEvent, DocumentActivity, ProgressiveWebMetricType};
 use servo_arc::Arc;
 use servo_config::pref;
@@ -145,7 +146,6 @@ use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmlareaelement::HTMLAreaElement;
 use crate::dom::htmlbaseelement::HTMLBaseElement;
-use crate::dom::htmlbodyelement::HTMLBodyElement;
 use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlembedelement::HTMLEmbedElement;
@@ -211,15 +211,6 @@ use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
 use crate::timers::OneshotTimerCallback;
-
-/// The number of times we are allowed to see spurious `requestAnimationFrame()` calls before
-/// falling back to fake ones.
-///
-/// A spurious `requestAnimationFrame()` call is defined as one that does not change the DOM.
-const SPURIOUS_ANIMATION_FRAME_THRESHOLD: u8 = 5;
-
-/// The amount of time between fake `requestAnimationFrame()`s.
-const FAKE_REQUEST_ANIMATION_FRAME_DELAY: u64 = 16;
 
 pub(crate) enum TouchEventResult {
     Processed(bool),
@@ -940,7 +931,7 @@ impl Document {
 
         // FIXME(emilio): This is very inefficient, ideally the flag above would
         // be enough and incremental layout could figure out from there.
-        node.dirty(NodeDamage::OtherNodeDamage);
+        node.dirty(NodeDamage::Other);
     }
 
     /// Remove any existing association between the provided id and any elements in this document.
@@ -1516,7 +1507,7 @@ impl Document {
             .upcast::<Node>()
             .traverse_preorder(ShadowIncluding::Yes)
         {
-            node.dirty(NodeDamage::OtherNodeDamage)
+            node.dirty(NodeDamage::Other)
         }
     }
 
@@ -2122,6 +2113,49 @@ impl Document {
         }
     }
 
+    #[allow(unsafe_code)]
+    pub(crate) fn handle_mouse_leave_event(
+        &self,
+        hit_test_result: Option<CompositorHitTestResult>,
+        pressed_mouse_buttons: u16,
+        can_gc: CanGc,
+    ) {
+        // Ignore all incoming events without a hit test.
+        let Some(hit_test_result) = hit_test_result else {
+            return;
+        };
+
+        self.window()
+            .send_to_embedder(EmbedderMsg::Status(self.webview_id(), None));
+
+        let node = unsafe { node::from_untrusted_node_address(hit_test_result.node) };
+        for element in node
+            .inclusive_ancestors(ShadowIncluding::No)
+            .filter_map(DomRoot::downcast::<Element>)
+        {
+            element.set_hover_state(false);
+            element.set_active_state(false);
+        }
+
+        self.fire_mouse_event(
+            hit_test_result.point_in_viewport,
+            node.upcast(),
+            FireMouseEventType::Out,
+            EventBubbles::Bubbles,
+            EventCancelable::Cancelable,
+            pressed_mouse_buttons,
+            can_gc,
+        );
+        self.handle_mouse_enter_leave_event(
+            hit_test_result.point_in_viewport,
+            FireMouseEventType::Leave,
+            None,
+            node,
+            pressed_mouse_buttons,
+            can_gc,
+        );
+    }
+
     fn handle_mouse_enter_leave_event(
         &self,
         client_point: Point2D<f32>,
@@ -2212,9 +2246,13 @@ impl Document {
             EventCancelable::Cancelable,
             Some(&self.window),
             0i32,
-            Finite::wrap(event.delta.x),
-            Finite::wrap(event.delta.y),
-            Finite::wrap(event.delta.z),
+            // winit defines positive wheel delta values as revealing more content left/up.
+            // https://docs.rs/winit-gtk/latest/winit/event/enum.MouseScrollDelta.html
+            // This is the opposite of wheel delta in uievents
+            // https://w3c.github.io/uievents/#dom-wheeleventinit-deltaz
+            Finite::wrap(-event.delta.x),
+            Finite::wrap(-event.delta.y),
+            Finite::wrap(-event.delta.z),
             event.delta.mode as u32,
             can_gc,
         );
@@ -2337,10 +2375,44 @@ impl Document {
         }
     }
 
+    #[allow(unsafe_code)]
+    pub(crate) fn handle_scroll_event(&self, event: ScrollEvent, can_gc: CanGc) {
+        // <https://drafts.csswg.org/cssom-view/#scrolling-events>
+        // If target is a Document, fire an event named scroll that bubbles at target.
+        if event.external_id.is_root() {
+            let Some(document) = self
+                .node
+                .inclusive_ancestors(ShadowIncluding::No)
+                .filter_map(DomRoot::downcast::<Document>)
+                .next()
+            else {
+                return;
+            };
+            DomRoot::upcast::<EventTarget>(document)
+                .fire_bubbling_event(Atom::from("scroll"), can_gc);
+        } else {
+            // Otherwise, fire an event named scroll at target.
+            let Some(node_id) = node_id_from_scroll_id(event.external_id.0 as usize) else {
+                return;
+            };
+            let node = unsafe {
+                node::from_untrusted_node_address(UntrustedNodeAddress::from_id(node_id))
+            };
+            let Some(element) = node
+                .inclusive_ancestors(ShadowIncluding::No)
+                .filter_map(DomRoot::downcast::<Element>)
+                .next()
+            else {
+                return;
+            };
+            DomRoot::upcast::<EventTarget>(element).fire_event(Atom::from("scroll"), can_gc);
+        }
+    }
+
     /// The entry point for all key processing for web content
     pub(crate) fn dispatch_key_event(
         &self,
-        keyboard_event: ::keyboard_types::KeyboardEvent,
+        keyboard_event: ::embedder_traits::KeyboardEvent,
         can_gc: CanGc,
     ) {
         let focused = self.get_focused_element();
@@ -2354,19 +2426,19 @@ impl Document {
 
         let keyevent = KeyboardEvent::new(
             &self.window,
-            DOMString::from(keyboard_event.state.to_string()),
+            DOMString::from(keyboard_event.event.state.to_string()),
             true,
             true,
             Some(&self.window),
             0,
-            keyboard_event.key.clone(),
-            DOMString::from(keyboard_event.code.to_string()),
-            keyboard_event.location as u32,
-            keyboard_event.repeat,
-            keyboard_event.is_composing,
-            keyboard_event.modifiers,
+            keyboard_event.event.key.clone(),
+            DOMString::from(keyboard_event.event.code.to_string()),
+            keyboard_event.event.location as u32,
+            keyboard_event.event.repeat,
+            keyboard_event.event.is_composing,
+            keyboard_event.event.modifiers,
             0,
-            keyboard_event.key.legacy_keycode(),
+            keyboard_event.event.key.legacy_keycode(),
             can_gc,
         );
         let event = keyevent.upcast::<Event>();
@@ -2377,9 +2449,9 @@ impl Document {
         // it MUST prevent the respective beforeinput and input
         // (and keypress if supported) events from being generated
         // TODO: keypress should be deprecated and superceded by beforeinput
-        if keyboard_event.state == KeyState::Down &&
-            is_character_value_key(&(keyboard_event.key)) &&
-            !keyboard_event.is_composing &&
+        if keyboard_event.event.state == KeyState::Down &&
+            is_character_value_key(&(keyboard_event.event.key)) &&
+            !keyboard_event.event.is_composing &&
             cancel_state != EventDefault::Prevented
         {
             // https://w3c.github.io/uievents/#keypress-event-order
@@ -2390,13 +2462,13 @@ impl Document {
                 true,
                 Some(&self.window),
                 0,
-                keyboard_event.key.clone(),
-                DOMString::from(keyboard_event.code.to_string()),
-                keyboard_event.location as u32,
-                keyboard_event.repeat,
-                keyboard_event.is_composing,
-                keyboard_event.modifiers,
-                keyboard_event.key.legacy_charcode(),
+                keyboard_event.event.key.clone(),
+                DOMString::from(keyboard_event.event.code.to_string()),
+                keyboard_event.event.location as u32,
+                keyboard_event.event.repeat,
+                keyboard_event.event.is_composing,
+                keyboard_event.event.modifiers,
+                keyboard_event.event.key.legacy_charcode(),
                 0,
                 can_gc,
             );
@@ -2414,8 +2486,8 @@ impl Document {
             // however *when* we do it is up to us.
             // Here, we're dispatching it after the key event so the script has a chance to cancel it
             // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27337
-            if (keyboard_event.key == Key::Enter || keyboard_event.code == Code::Space) &&
-                keyboard_event.state == KeyState::Up
+            if (keyboard_event.event.key == Key::Enter || keyboard_event.event.code == Code::Space) &&
+                keyboard_event.event.state == KeyState::Up
             {
                 if let Some(elem) = target.downcast::<Element>() {
                     elem.upcast::<Node>()
@@ -2499,12 +2571,11 @@ impl Document {
     }
 
     pub(crate) fn get_body_attribute(&self, local_name: &LocalName) -> DOMString {
-        match self
-            .GetBody()
-            .and_then(DomRoot::downcast::<HTMLBodyElement>)
-        {
-            Some(ref body) => body.upcast::<Element>().get_string_attribute(local_name),
-            None => DOMString::new(),
+        match self.GetBody() {
+            Some(ref body) if body.is_body_element() => {
+                body.upcast::<Element>().get_string_attribute(local_name)
+            },
+            _ => DOMString::new(),
         }
     }
 
@@ -2514,10 +2585,7 @@ impl Document {
         value: DOMString,
         can_gc: CanGc,
     ) {
-        if let Some(ref body) = self
-            .GetBody()
-            .and_then(DomRoot::downcast::<HTMLBodyElement>)
-        {
+        if let Some(ref body) = self.GetBody().filter(|elem| elem.is_body_element()) {
             let body = body.upcast::<Element>();
             let value = body.parse_attribute(&ns!(), local_name, value);
             body.set_attribute(local_name, value, can_gc);
@@ -2550,7 +2618,7 @@ impl Document {
         //
         // FIXME(emilio): Use the DocumentStylesheetSet invalidation stuff.
         if let Some(element) = self.GetDocumentElement() {
-            element.upcast::<Node>().dirty(NodeDamage::NodeStyleDamaged);
+            element.upcast::<Node>().dirty(NodeDamage::Style);
         }
     }
 
@@ -2563,27 +2631,26 @@ impl Document {
     /// <https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe>
     pub(crate) fn request_animation_frame(&self, callback: AnimationFrameCallback) -> u32 {
         let ident = self.animation_frame_ident.get() + 1;
-
         self.animation_frame_ident.set(ident);
-        self.animation_frame_list
-            .borrow_mut()
-            .push_back((ident, Some(callback)));
 
-        // If we are running 'fake' animation frames, we unconditionally
-        // set up a one-shot timer for script to execute the rAF callbacks.
-        if self.is_faking_animation_frames() && !self.window().throttled() {
-            self.schedule_fake_animation_frame();
-        } else if !self.running_animation_callbacks.get() {
-            // No need to send a `ChangeRunningAnimationsState` if we're running animation callbacks:
-            // we're guaranteed to already be in the "animation callbacks present" state.
-            //
-            // This reduces CPU usage by avoiding needless thread wakeups in the common case of
-            // repeated rAF.
+        let had_animation_frame_callbacks;
+        {
+            let mut animation_frame_list = self.animation_frame_list.borrow_mut();
+            had_animation_frame_callbacks = !animation_frame_list.is_empty();
+            animation_frame_list.push_back((ident, Some(callback)));
+        }
 
-            let event = ScriptToConstellationMessage::ChangeRunningAnimationsState(
-                AnimationState::AnimationCallbacksPresent,
+        // No need to send a `ChangeRunningAnimationsState` if we're running animation callbacks:
+        // we're guaranteed to already be in the "animation callbacks present" state.
+        //
+        // This reduces CPU usage by avoiding needless thread wakeups in the common case of
+        // repeated rAF.
+        if !self.running_animation_callbacks.get() && !had_animation_frame_callbacks {
+            self.window().send_to_constellation(
+                ScriptToConstellationMessage::ChangeRunningAnimationsState(
+                    AnimationState::AnimationCallbacksPresent,
+                ),
             );
-            self.window().send_to_constellation(event);
         }
 
         ident
@@ -2597,23 +2664,11 @@ impl Document {
         }
     }
 
-    fn schedule_fake_animation_frame(&self) {
-        warn!("Scheduling fake animation frame. Animation frames tick too fast.");
-        let callback = FakeRequestAnimationFrameCallback {
-            document: Trusted::new(self),
-        };
-        self.global().schedule_callback(
-            OneshotTimerCallback::FakeRequestAnimationFrame(callback),
-            Duration::from_millis(FAKE_REQUEST_ANIMATION_FRAME_DELAY),
-        );
-    }
-
     /// <https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks>
     pub(crate) fn run_the_animation_frame_callbacks(&self, can_gc: CanGc) {
         let _realm = enter_realm(self);
 
         self.running_animation_callbacks.set(true);
-        let was_faking_animation_frames = self.is_faking_animation_frames();
         let timing = self.global().performance().Now();
 
         let num_callbacks = self.animation_frame_list.borrow().len();
@@ -2623,68 +2678,12 @@ impl Document {
                 callback.call(self, *timing, can_gc);
             }
         }
-
         self.running_animation_callbacks.set(false);
-        let callbacks_did_not_trigger_reflow = self.needs_reflow().is_none();
-        let is_empty = self.animation_frame_list.borrow().is_empty();
 
-        if !is_empty && callbacks_did_not_trigger_reflow && !was_faking_animation_frames {
-            // If the rAF callbacks did not mutate the DOM, then the impending
-            // reflow call as part of *update the rendering* will not do anything
-            // and therefore no new frame will be sent to the compositor.
-            // If this happens, the compositor will not tick the animation
-            // and the next rAF will never be called! When this happens
-            // for several frames, then the spurious rAF detection below
-            // will kick in and use a timer to tick the callbacks. However,
-            // for the interim frames where we are deciding whether this rAF
-            // is considered spurious, we need to ensure that the layout
-            // and compositor *do* tick the animation.
-            self.set_needs_paint(true);
-        }
-
-        // Update the counter of spurious animation frames.
-        let spurious_frames = self.spurious_animation_frames.get();
-        if callbacks_did_not_trigger_reflow {
-            if spurious_frames < SPURIOUS_ANIMATION_FRAME_THRESHOLD {
-                self.spurious_animation_frames.set(spurious_frames + 1);
-            }
-        } else {
-            self.spurious_animation_frames.set(0);
-        }
-
-        // Only send the animation change state message after running any callbacks.
-        // This means that if the animation callback adds a new callback for
-        // the next frame (which is the common case), we won't send a NoAnimationCallbacksPresent
-        // message quickly followed by an AnimationCallbacksPresent message.
-        //
-        // If this frame was spurious and we've seen too many spurious frames in a row, tell the
-        // constellation to stop giving us video refresh callbacks, to save energy. (A spurious
-        // animation frame is one in which the callback did not mutate the DOM—that is, an
-        // animation frame that wasn't actually used for animation.)
-        let just_crossed_spurious_animation_threshold =
-            !was_faking_animation_frames && self.is_faking_animation_frames();
-        if is_empty || just_crossed_spurious_animation_threshold {
-            if !is_empty {
-                // We just realized that we need to stop requesting compositor's animation ticks
-                // due to spurious animation frames, but we still have rAF callbacks queued. Since
-                // `is_faking_animation_frames` would not have been true at the point where these
-                // new callbacks were registered, the one-shot timer will not have been setup in
-                // `request_animation_frame()`. Since we stop the compositor ticks below, we need
-                // to expliclty trigger a OneshotTimerCallback for these queued callbacks.
-                self.schedule_fake_animation_frame();
-            }
-            let event = ScriptToConstellationMessage::ChangeRunningAnimationsState(
-                AnimationState::NoAnimationCallbacksPresent,
-            );
-            self.window().send_to_constellation(event);
-        }
-
-        // If we were previously faking animation frames, we need to re-enable video refresh
-        // callbacks when we stop seeing spurious animation frames.
-        if was_faking_animation_frames && !self.is_faking_animation_frames() && !is_empty {
+        if self.animation_frame_list.borrow().is_empty() {
             self.window().send_to_constellation(
                 ScriptToConstellationMessage::ChangeRunningAnimationsState(
-                    AnimationState::AnimationCallbacksPresent,
+                    AnimationState::NoAnimationCallbacksPresent,
                 ),
             );
         }
@@ -3673,7 +3672,9 @@ impl Document {
         // Step 5. Return the result of applying the URL parser to url, with baseURL and encoding.
         url::Url::options()
             .base_url(Some(base_url.as_url()))
-            .encoding_override(Some(&|s| encoding.encode(s).0))
+            .encoding_override(Some(&|input| {
+                servo_url::encoding::encode_as_url_query_string(input, encoding)
+            }))
             .parse(url)
             .map(ServoUrl::from)
     }
@@ -3866,7 +3867,9 @@ impl Document {
                 containing_class,
                 field,
                 can_gc,
-            )?;
+            )?
+            .as_ref()
+            .to_owned();
         }
         // Step 5: If lineFeed is true, append U+000A LINE FEED to string.
         if line_feed {
@@ -4713,12 +4716,6 @@ impl Document {
     fn decr_ignore_opens_during_unload_counter(&self) {
         self.ignore_opens_during_unload_counter
             .set(self.ignore_opens_during_unload_counter.get() - 1);
-    }
-
-    /// Whether we've seen so many spurious animation frames (i.e. animation frames that didn't
-    /// mutate the DOM) that we've decided to fall back to fake ones.
-    fn is_faking_animation_frames(&self) -> bool {
-        self.spurious_animation_frames.get() >= SPURIOUS_ANIMATION_FRAME_THRESHOLD
     }
 
     // https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen
@@ -6213,15 +6210,15 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         self.set_body_attribute(&local_name!("text"), value, can_gc)
     }
 
-    #[allow(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter>
-    fn NamedGetter(&self, name: DOMString) -> Option<NamedPropertyValue> {
+    fn NamedGetter(&self, name: DOMString, can_gc: CanGc) -> Option<NamedPropertyValue> {
         if name.is_empty() {
             return None;
         }
         let name = Atom::from(name);
 
-        // Step 1.
+        // Step 1. Let elements be the list of named elements with the name name that are in a document tree
+        // with the Document as their root.
         let elements_with_name = self.get_elements_with_name(&name);
         let name_iter = elements_with_name
             .iter()
@@ -6232,10 +6229,14 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             .filter(|elem| is_named_element_with_id_attribute(elem));
         let mut elements = name_iter.chain(id_iter);
 
-        let first = elements.next()?;
+        // Step 2. If elements has only one element, and that element is an iframe element,
+        // and that iframe element's content navigable is not null, then return the active
+        // WindowProxy of the element's content navigable.
 
-        if elements.next().is_none() {
-            // Step 2.
+        // NOTE: We have to check if all remaining elements are equal to the first, since
+        // the same element may appear in both lists.
+        let first = elements.next()?;
+        if elements.all(|other| first == other) {
             if let Some(nested_window_proxy) = first
                 .downcast::<HTMLIFrameElement>()
                 .and_then(|iframe| iframe.GetContentWindow())
@@ -6243,11 +6244,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 return Some(NamedPropertyValue::WindowProxy(nested_window_proxy));
             }
 
-            // Step 3.
+            // Step 3. Otherwise, if elements has only one element, return that element.
             return Some(NamedPropertyValue::Element(DomRoot::from_ref(first)));
         }
 
-        // Step 4.
+        // Step 4. Otherwise, return an HTMLCollection rooted at the Document node,
+        // whose filter matches only named elements with the name name.
         #[derive(JSTraceable, MallocSizeOf)]
         struct DocumentNamedGetter {
             #[no_trace]
@@ -6278,7 +6280,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             self.window(),
             self.upcast(),
             Box::new(DocumentNamedGetter { name }),
-            CanGc::note(),
+            can_gc,
         );
         Some(NamedPropertyValue::HTMLCollection(collection))
     }
@@ -6756,27 +6758,6 @@ pub enum FocusInitiator {
 pub(crate) enum FocusEventType {
     Focus, // Element gained focus. Doesn't bubble.
     Blur,  // Element lost focus. Doesn't bubble.
-}
-
-/// A fake `requestAnimationFrame()` callback—"fake" because it is not triggered by the video
-/// refresh but rather a simple timer.
-///
-/// If the page is observed to be using `requestAnimationFrame()` for non-animation purposes (i.e.
-/// without mutating the DOM), then we fall back to simple timeouts to save energy over video
-/// refresh.
-#[derive(JSTraceable, MallocSizeOf)]
-pub(crate) struct FakeRequestAnimationFrameCallback {
-    /// The document.
-    #[ignore_malloc_size_of = "non-owning"]
-    document: Trusted<Document>,
-}
-
-impl FakeRequestAnimationFrameCallback {
-    pub(crate) fn invoke(self, can_gc: CanGc) {
-        // TODO: Once there is a more generic mechanism to trigger `update_the_rendering` when
-        // not driven by the compositor, it should be used here.
-        with_script_thread(|script_thread| script_thread.update_the_rendering(true, can_gc))
-    }
 }
 
 /// This is a temporary workaround to update animated images,

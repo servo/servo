@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="match" href="from-scale-zero-ref.html">
+  <title>Scoped view-transition from scale 0</title>
+  <!-- TODO update link -->
+  <link rel="help" href="https://www.w3.org/TR/css-view-transitions-2/">
+  <!-- Accommodate pixel rounding for wide gamut-->
+  <meta name="fuzzy" content="maxDifference=0-1; totalPixels=0-10000">
+</head>
+<script src="/common/reftest-wait.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<style>
+  #target {
+    background-color: blue;
+    height: 100px;
+    width: 100px;
+    position: relative;
+    view-transition-name: target;
+    z-index: 1;
+  }
+  .collapsed {
+    transform: scale(0);
+  }
+
+  ::view-transition-old(target) {
+    animation: -ua-view-transition-fade-out 1s -0.5s linear paused;
+  }
+
+  ::view-transition-new(target) {
+    animation: -ua-view-transition-fade-in 1s -0.5s linear paused;
+  }
+</style>
+<body>
+  <div id="target" class="collapsed"></div>
+</body>
+<script>
+  failIfNot(Element.prototype.startViewTransition,
+            "Missing element.startViewTransition");
+
+  window.onload = async () => {
+    const target = document.getElementById('target');
+    await waitForCompositorReady();
+    const vt = target.startViewTransition(() => {
+      target.classList.toggle('collapsed');
+    });
+    await vt.ready;
+    requestAnimationFrame(takeScreenshot);
+  };
+</script>
+</html>

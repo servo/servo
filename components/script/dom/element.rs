@@ -360,7 +360,7 @@ impl Element {
         // NodeStyleDamaged, but I'm preserving existing behavior.
         restyle.hint.insert(RestyleHint::RESTYLE_SELF);
 
-        if damage == NodeDamage::OtherNodeDamage {
+        if damage == NodeDamage::Other {
             doc.note_node_with_dirty_descendants(self.upcast());
             restyle.damage = RestyleDamage::reconstruct();
         }
@@ -674,7 +674,7 @@ impl Element {
         shadow_root.bind_to_tree(&bind_context, can_gc);
 
         let node = self.upcast::<Node>();
-        node.dirty(NodeDamage::OtherNodeDamage);
+        node.dirty(NodeDamage::Other);
         node.rev_version();
 
         Ok(shadow_root)
@@ -861,8 +861,14 @@ pub(crate) fn get_attr_for_layout<'dom>(
 
 pub(crate) trait LayoutElementHelpers<'dom> {
     fn attrs(self) -> &'dom [LayoutDom<'dom, Attr>];
-    fn has_class_for_layout(self, name: &AtomIdent, case_sensitivity: CaseSensitivity) -> bool;
+    fn has_class_or_part_for_layout(
+        self,
+        name: &AtomIdent,
+        attr_name: &LocalName,
+        case_sensitivity: CaseSensitivity,
+    ) -> bool;
     fn get_classes_for_layout(self) -> Option<&'dom [Atom]>;
+    fn get_parts_for_layout(self) -> Option<&'dom [Atom]>;
 
     fn synthesize_presentational_hints_for_legacy_attributes<V>(self, hints: &mut V)
     where
@@ -905,8 +911,13 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     }
 
     #[inline]
-    fn has_class_for_layout(self, name: &AtomIdent, case_sensitivity: CaseSensitivity) -> bool {
-        get_attr_for_layout(self, &ns!(), &local_name!("class")).is_some_and(|attr| {
+    fn has_class_or_part_for_layout(
+        self,
+        name: &AtomIdent,
+        attr_name: &LocalName,
+        case_sensitivity: CaseSensitivity,
+    ) -> bool {
+        get_attr_for_layout(self, &ns!(), attr_name).is_some_and(|attr| {
             attr.to_tokens()
                 .unwrap()
                 .iter()
@@ -917,6 +928,11 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     #[inline]
     fn get_classes_for_layout(self) -> Option<&'dom [Atom]> {
         get_attr_for_layout(self, &ns!(), &local_name!("class"))
+            .map(|attr| attr.to_tokens().unwrap())
+    }
+
+    fn get_parts_for_layout(self) -> Option<&'dom [Atom]> {
+        get_attr_for_layout(self, &ns!(), &local_name!("part"))
             .map(|attr| attr.to_tokens().unwrap())
     }
 
@@ -1987,6 +2003,16 @@ impl Element {
 
     pub(crate) fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         self.get_attribute(&ns!(), &local_name!("class"))
+            .is_some_and(|attr| {
+                attr.value()
+                    .as_tokens()
+                    .iter()
+                    .any(|atom| case_sensitivity.eq_atom(name, atom))
+            })
+    }
+
+    pub(crate) fn is_part(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
+        self.get_attribute(&ns!(), &LocalName::from("part"))
             .is_some_and(|attr| {
                 attr.value()
                     .as_tokens()
@@ -3246,13 +3272,13 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 1. Let compliantHTML be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML,
         // this's relevant global object, html, "Element setHTMLUnsafe", and "script".
-        let html = DOMString::from(TrustedHTML::get_trusted_script_compliant_string(
+        let html = TrustedHTML::get_trusted_script_compliant_string(
             &self.owner_global(),
             html,
             "Element",
             "setHTMLUnsafe",
             can_gc,
-        )?);
+        )?;
         // Step 2. Let target be this's template contents if this is a template element; otherwise this.
         let target = if let Some(template) = self.downcast::<HTMLTemplateElement>() {
             DomRoot::upcast(template.Content(can_gc))
@@ -3303,13 +3329,13 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 1: Let compliantString be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML,
         // this's relevant global object, the given value, "Element innerHTML", and "script".
-        let value = DOMString::from(TrustedHTML::get_trusted_script_compliant_string(
+        let value = TrustedHTML::get_trusted_script_compliant_string(
             &self.owner_global(),
             value.convert(),
             "Element",
             "innerHTML",
             can_gc,
-        )?);
+        )?;
         // https://github.com/w3c/DOM-Parsing/issues/1
         let target = if let Some(template) = self.downcast::<HTMLTemplateElement>() {
             // Step 4: If context is a template element, then set context to
@@ -3361,13 +3387,13 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 1: Let compliantString be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML,
         // this's relevant global object, the given value, "Element outerHTML", and "script".
-        let value = DOMString::from(TrustedHTML::get_trusted_script_compliant_string(
+        let value = TrustedHTML::get_trusted_script_compliant_string(
             &self.owner_global(),
             value.convert(),
             "Element",
             "outerHTML",
             can_gc,
-        )?);
+        )?;
         let context_document = self.owner_document();
         let context_node = self.upcast::<Node>();
         // Step 2: Let parent be this's parent.
@@ -3577,13 +3603,13 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 1: Let compliantString be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML,
         // this's relevant global object, string, "Element insertAdjacentHTML", and "script".
-        let text = DOMString::from(TrustedHTML::get_trusted_script_compliant_string(
+        let text = TrustedHTML::get_trusted_script_compliant_string(
             &self.owner_global(),
             text,
             "Element",
             "insertAdjacentHTML",
             can_gc,
-        )?);
+        )?;
         let position = position.parse::<AdjacentPosition>()?;
 
         // Step 2: Let context be null.
@@ -4051,6 +4077,13 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         rooted!(in(*cx) let slottable = Slottable(Dom::from_ref(self.upcast::<Node>())));
         slottable.find_a_slot(true)
     }
+
+    /// <https://drafts.csswg.org/css-shadow-parts/#dom-element-part>
+    fn Part(&self) -> DomRoot<DOMTokenList> {
+        self.ensure_rare_data()
+            .part
+            .or_init(|| DOMTokenList::new(self, &local_name!("part"), None, CanGc::note()))
+    }
 }
 
 impl VirtualMethods for Element {
@@ -4175,7 +4208,7 @@ impl VirtualMethods for Element {
                 // FIXME(emilio): This is pretty dubious, and should be done in
                 // the relevant super-classes.
                 if attr.namespace() == &ns!() && attr.local_name() == &local_name!("src") {
-                    node.dirty(NodeDamage::OtherNodeDamage);
+                    node.dirty(NodeDamage::Other);
                 }
             },
         };
@@ -4190,7 +4223,10 @@ impl VirtualMethods for Element {
         match *name {
             local_name!("id") => AttrValue::from_atomic(value.into()),
             local_name!("name") => AttrValue::from_atomic(value.into()),
-            local_name!("class") => AttrValue::from_serialized_tokenlist(value.into()),
+            local_name!("class") | local_name!("part") => {
+                AttrValue::from_serialized_tokenlist(value.into())
+            },
+            local_name!("exportparts") => AttrValue::from_shadow_parts(value.into()),
             _ => self
                 .super_type()
                 .unwrap()
@@ -4286,20 +4322,20 @@ impl VirtualMethods for Element {
         let flags = self.selector_flags.get();
         if flags.intersects(ElementSelectorFlags::HAS_SLOW_SELECTOR) {
             // All children of this node need to be restyled when any child changes.
-            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+            self.upcast::<Node>().dirty(NodeDamage::Other);
         } else {
             if flags.intersects(ElementSelectorFlags::HAS_SLOW_SELECTOR_LATER_SIBLINGS) {
                 if let Some(next_child) = mutation.next_child() {
                     for child in next_child.inclusively_following_siblings() {
                         if child.is::<Element>() {
-                            child.dirty(NodeDamage::OtherNodeDamage);
+                            child.dirty(NodeDamage::Other);
                         }
                     }
                 }
             }
             if flags.intersects(ElementSelectorFlags::HAS_EDGE_CHILD_SELECTOR) {
                 if let Some(child) = mutation.modified_edge_element() {
-                    child.dirty(NodeDamage::OtherNodeDamage);
+                    child.dirty(NodeDamage::Other);
                 }
             }
         }
@@ -4564,8 +4600,8 @@ impl SelectorsElement for SelectorWrapper<'_> {
             .is_some_and(|atom| case_sensitivity.eq_atom(id, atom))
     }
 
-    fn is_part(&self, _name: &AtomIdent) -> bool {
-        false
+    fn is_part(&self, name: &AtomIdent) -> bool {
+        Element::is_part(self, name, CaseSensitivity::CaseSensitive)
     }
 
     fn imported_part(&self, _: &AtomIdent) -> Option<AtomIdent> {
@@ -4881,7 +4917,7 @@ impl Element {
 
     pub(crate) fn set_focus_state(&self, value: bool) {
         self.set_state(ElementState::FOCUS, value);
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        self.upcast::<Node>().dirty(NodeDamage::Other);
     }
 
     pub(crate) fn hover_state(&self) -> bool {
@@ -4923,7 +4959,7 @@ impl Element {
     pub(crate) fn set_placeholder_shown_state(&self, value: bool) {
         if self.placeholder_shown_state() != value {
             self.set_state(ElementState::PLACEHOLDER_SHOWN, value);
-            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+            self.upcast::<Node>().dirty(NodeDamage::Other);
         }
     }
 

@@ -41,6 +41,7 @@ use crate::HasParent;
 use crate::document_loader::LoadType;
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -48,7 +49,7 @@ use crate::dom::bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElem
 use crate::dom::bindings::codegen::UnionTypes::{
     TrustedScriptOrString, TrustedScriptURLOrUSVString,
 };
-use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
@@ -75,7 +76,8 @@ use crate::fetch::create_a_potential_cors_request;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::realms::enter_realm;
 use crate::script_module::{
-    ModuleOwner, ScriptFetchOptions, fetch_external_module_script, fetch_inline_module_script,
+    ImportMap, ModuleOwner, ScriptFetchOptions, fetch_external_module_script,
+    fetch_inline_module_script, parse_an_import_map_string, register_import_map,
 };
 use crate::script_runtime::CanGc;
 use crate::task_source::{SendableTaskSource, TaskSourceName};
@@ -206,6 +208,9 @@ pub(crate) struct HTMLScriptElement {
     /// Unique id for each script element
     #[ignore_malloc_size_of = "Defined in uuid"]
     id: ScriptId,
+
+    /// <https://w3c.github.io/trusted-types/dist/spec/#htmlscriptelement-script-text>
+    script_text: DomRefCell<DOMString>,
 }
 
 impl HTMLScriptElement {
@@ -224,6 +229,7 @@ impl HTMLScriptElement {
             parser_document: Dom::from_ref(document),
             preparation_time_document: MutNullableDom::new(None),
             line_number: creator.return_line_number(),
+            script_text: DomRefCell::new(DOMString::new()),
         }
     }
 
@@ -302,6 +308,7 @@ pub(crate) struct ScriptOrigin {
     fetch_options: ScriptFetchOptions,
     type_: ScriptType,
     unminified_dir: Option<String>,
+    import_map: Fallible<ImportMap>,
 }
 
 impl ScriptOrigin {
@@ -311,6 +318,7 @@ impl ScriptOrigin {
         fetch_options: ScriptFetchOptions,
         type_: ScriptType,
         unminified_dir: Option<String>,
+        import_map: Fallible<ImportMap>,
     ) -> ScriptOrigin {
         ScriptOrigin {
             code: SourceCode::Text(text),
@@ -319,6 +327,7 @@ impl ScriptOrigin {
             fetch_options,
             type_,
             unminified_dir,
+            import_map,
         }
     }
 
@@ -336,6 +345,7 @@ impl ScriptOrigin {
             fetch_options,
             type_,
             unminified_dir,
+            import_map: Err(Error::NotFound),
         }
     }
 
@@ -649,6 +659,29 @@ fn fetch_a_classic_script(
 }
 
 impl HTMLScriptElement {
+    /// <https://w3c.github.io/trusted-types/dist/spec/#setting-slot-values-from-parser>
+    pub(crate) fn set_initial_script_text(&self) {
+        *self.script_text.borrow_mut() = self.text();
+    }
+
+    /// <https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-prepare-the-script-text>
+    fn prepare_the_script_text(&self, can_gc: CanGc) -> Fallible<()> {
+        // Step 1. If script’s script text value is not equal to its child text content,
+        // set script’s script text to the result of executing
+        // Get Trusted Type compliant string, with the following arguments:
+        if self.script_text.borrow().clone() != self.text() {
+            *self.script_text.borrow_mut() = TrustedScript::get_trusted_script_compliant_string(
+                &self.owner_global(),
+                self.Text(),
+                "HTMLScriptElement",
+                "text",
+                can_gc,
+            )?;
+        }
+
+        Ok(())
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#prepare-the-script-element>
     pub(crate) fn prepare(&self, can_gc: CanGc) {
         // Step 1. If el's already started is true, then return.
@@ -672,9 +705,14 @@ impl HTMLScriptElement {
             self.non_blocking.set(true);
         }
 
-        // Step 5. Let source text be el's child text content.
+        // Step 5. Execute the Prepare the script text algorithm on el.
+        // If that algorithm threw an error, then return.
+        if self.prepare_the_script_text(can_gc).is_err() {
+            return;
+        }
+        // Step 5a. Let source text be el’s script text value.
+        let text = self.script_text.borrow().clone();
         // Step 6. If el has no src attribute, and source text is the empty string, then return.
-        let text = self.text();
         if text.is_empty() && !element.has_attribute(&local_name!("src")) {
             return;
         }
@@ -926,11 +964,12 @@ impl HTMLScriptElement {
             match script_type {
                 ScriptType::Classic => {
                     let result = Ok(ScriptOrigin::internal(
-                        Rc::clone(&text_rc),
-                        base_url.clone(),
-                        options.clone(),
+                        text_rc,
+                        base_url,
+                        options,
                         script_type,
                         self.global().unminified_js_dir(),
+                        Err(Error::NotFound),
                     ));
 
                     if was_parser_inserted &&
@@ -967,8 +1006,25 @@ impl HTMLScriptElement {
                     );
                 },
                 ScriptType::ImportMap => {
-                    // TODO: Let result be the result of creating an import map
+                    // Step 32.1 Let result be the result of creating an import map
                     // parse result given source text and base URL.
+                    let import_map_result = parse_an_import_map_string(
+                        ModuleOwner::Window(Trusted::new(self)),
+                        Rc::clone(&text_rc),
+                        base_url.clone(),
+                        can_gc,
+                    );
+                    let result = Ok(ScriptOrigin::internal(
+                        text_rc,
+                        base_url,
+                        options,
+                        script_type,
+                        self.global().unminified_js_dir(),
+                        import_map_result,
+                    ));
+
+                    // Step 34.3
+                    self.execute(result, can_gc);
                 },
             }
         }
@@ -1013,7 +1069,6 @@ impl HTMLScriptElement {
         }
 
         // TODO: Step 3. Unblock rendering on el.
-
         let mut script = match result {
             // Step 4. If el's result is null, then fire an event named error at el, and return.
             Err(e) => {
@@ -1027,10 +1082,22 @@ impl HTMLScriptElement {
 
         if let Some(chan) = self.global().devtools_chan() {
             let pipeline_id = self.global().pipeline_id();
+
+            // TODO: https://github.com/servo/servo/issues/36874
+            let content = match &script.code {
+                SourceCode::Text(text) => text.to_string(),
+                SourceCode::Compiled(compiled) => compiled.original_text.to_string(),
+            };
+
+            // https://html.spec.whatwg.org/multipage/#scriptingLanguages
+            let content_type = Some("text/javascript".to_string());
+
             let source_info = SourceInfo {
                 url: script.url.clone(),
                 external: script.external,
                 worker_id: None,
+                content,
+                content_type,
             };
             let _ = chan.send(ScriptToDevtoolsControlMsg::ScriptSourceLoaded(
                 pipeline_id,
@@ -1074,8 +1141,8 @@ impl HTMLScriptElement {
                 self.run_a_module_script(&script, false, can_gc);
             },
             ScriptType::ImportMap => {
-                // TODO: Register an import map given el's relevant
-                // global object and el's result.
+                // Step 6.1 Register an import map given el's relevant global object and el's result.
+                register_import_map(&self.owner_global(), script.import_map, can_gc);
             },
         }
 
@@ -1246,6 +1313,10 @@ impl HTMLScriptElement {
                     return Some(ScriptType::Module);
                 }
 
+                if ty.to_ascii_lowercase().trim_matches(HTML_SPACE_CHARACTERS) == "importmap" {
+                    return Some(ScriptType::ImportMap);
+                }
+
                 if SCRIPT_JS_MIMES
                     .contains(&ty.to_ascii_lowercase().trim_matches(HTML_SPACE_CHARACTERS))
                 {
@@ -1384,7 +1455,11 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
             local_name,
             can_gc,
         )?;
-        element.set_attribute(local_name, AttrValue::String(value), can_gc);
+        element.set_attribute(
+            local_name,
+            AttrValue::String(value.as_ref().to_owned()),
+            can_gc,
+        );
         Ok(())
     }
 
@@ -1472,9 +1547,9 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
             "innerText",
             can_gc,
         )?;
+        *self.script_text.borrow_mut() = value.clone();
         // Step 3: Run set the inner text steps with this and value.
-        self.upcast::<HTMLElement>()
-            .set_inner_text(DOMString::from(value), can_gc);
+        self.upcast::<HTMLElement>().set_inner_text(value, can_gc);
         Ok(())
     }
 
@@ -1495,9 +1570,9 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
             can_gc,
         )?;
         // Step 2: Set this's script text value to the given value.
-        // TODO: Implement for https://w3c.github.io/trusted-types/dist/spec/#prepare-script-text
+        *self.script_text.borrow_mut() = value.clone();
         // Step 3: String replace all with the given value within this.
-        Node::string_replace_all(DOMString::from(value), self.upcast::<Node>(), can_gc);
+        Node::string_replace_all(value, self.upcast::<Node>(), can_gc);
         Ok(())
     }
 
@@ -1521,10 +1596,9 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
             can_gc,
         )?;
         // Step 2: Set this's script text value to value.
-        // TODO: Implement for https://w3c.github.io/trusted-types/dist/spec/#prepare-script-text
+        *self.script_text.borrow_mut() = value.clone();
         // Step 3: Run set text content with this and value.
-        self.upcast::<Node>()
-            .SetTextContent(Some(DOMString::from(value)), can_gc);
+        self.upcast::<Node>().SetTextContent(Some(value), can_gc);
         Ok(())
     }
 

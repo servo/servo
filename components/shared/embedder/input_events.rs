@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use keyboard_types::{CompositionEvent, KeyboardEvent};
+use keyboard_types::{Code, CompositionEvent, Key, KeyState, Location, Modifiers};
 use log::error;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
+use webrender_api::ExternalScrollId;
 use webrender_api::units::DevicePoint;
 
 use crate::WebDriverMessageId;
@@ -19,8 +20,10 @@ pub enum InputEvent {
     Keyboard(KeyboardEvent),
     MouseButton(MouseButtonEvent),
     MouseMove(MouseMoveEvent),
+    MouseLeave(MouseLeaveEvent),
     Touch(TouchEvent),
     Wheel(WheelEvent),
+    Scroll(ScrollEvent),
 }
 
 /// An editing action that should be performed on a `WebView`.
@@ -40,8 +43,10 @@ impl InputEvent {
             InputEvent::Keyboard(..) => None,
             InputEvent::MouseButton(event) => Some(event.point),
             InputEvent::MouseMove(event) => Some(event.point),
+            InputEvent::MouseLeave(event) => Some(event.point),
             InputEvent::Touch(event) => Some(event.point),
             InputEvent::Wheel(event) => Some(event.point),
+            InputEvent::Scroll(..) => None,
         }
     }
 
@@ -50,11 +55,13 @@ impl InputEvent {
             InputEvent::EditingAction(..) => None,
             InputEvent::Gamepad(..) => None,
             InputEvent::Ime(..) => None,
-            InputEvent::Keyboard(..) => None,
+            InputEvent::Keyboard(event) => event.webdriver_id,
             InputEvent::MouseButton(event) => event.webdriver_id,
             InputEvent::MouseMove(event) => event.webdriver_id,
+            InputEvent::MouseLeave(..) => None,
             InputEvent::Touch(..) => None,
-            InputEvent::Wheel(..) => None,
+            InputEvent::Wheel(event) => event.webdriver_id,
+            InputEvent::Scroll(..) => None,
         }
     }
 
@@ -63,18 +70,69 @@ impl InputEvent {
             InputEvent::EditingAction(..) => {},
             InputEvent::Gamepad(..) => {},
             InputEvent::Ime(..) => {},
-            InputEvent::Keyboard(..) => {},
+            InputEvent::Keyboard(ref mut event) => {
+                event.webdriver_id = webdriver_id;
+            },
             InputEvent::MouseButton(ref mut event) => {
                 event.webdriver_id = webdriver_id;
             },
             InputEvent::MouseMove(ref mut event) => {
                 event.webdriver_id = webdriver_id;
             },
+            InputEvent::MouseLeave(..) => {},
             InputEvent::Touch(..) => {},
-            InputEvent::Wheel(..) => {},
+            InputEvent::Wheel(ref mut event) => {
+                event.webdriver_id = webdriver_id;
+            },
+            InputEvent::Scroll(..) => {},
         };
 
         self
+    }
+}
+
+/// Recreate KeyboardEvent from keyboard_types to pair it with webdriver_id,
+/// which is used for webdriver action synchronization.
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct KeyboardEvent {
+    pub event: ::keyboard_types::KeyboardEvent,
+    webdriver_id: Option<WebDriverMessageId>,
+}
+
+impl KeyboardEvent {
+    pub fn new(keyboard_event: ::keyboard_types::KeyboardEvent) -> Self {
+        Self {
+            event: keyboard_event,
+            webdriver_id: None,
+        }
+    }
+
+    pub fn new_without_event(
+        state: KeyState,
+        key: Key,
+        code: Code,
+        location: Location,
+        modifiers: Modifiers,
+        repeat: bool,
+        is_composing: bool,
+    ) -> Self {
+        Self::new(::keyboard_types::KeyboardEvent {
+            state,
+            key,
+            code,
+            location,
+            modifiers,
+            repeat,
+            is_composing,
+        })
+    }
+
+    pub fn from_state_and_key(state: KeyState, key: Key) -> Self {
+        Self::new(::keyboard_types::KeyboardEvent {
+            state,
+            key,
+            ..::keyboard_types::KeyboardEvent::default()
+        })
     }
 }
 
@@ -160,6 +218,17 @@ impl MouseMoveEvent {
     }
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub struct MouseLeaveEvent {
+    pub point: DevicePoint,
+}
+
+impl MouseLeaveEvent {
+    pub fn new(point: DevicePoint) -> Self {
+        Self { point }
+    }
+}
+
 /// The type of input represented by a multi-touch event.
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub enum TouchEventType {
@@ -180,6 +249,7 @@ pub enum TouchEventType {
 pub struct TouchId(pub i32);
 
 /// An ID for a sequence of touch events between a `Down` and the `Up` or `Cancel` event.
+/// The ID is the same for all events between `Down` and `Up` or `Cancel`
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct TouchSequenceId(u32);
@@ -275,6 +345,22 @@ pub struct WheelDelta {
 pub struct WheelEvent {
     pub delta: WheelDelta,
     pub point: DevicePoint,
+    webdriver_id: Option<WebDriverMessageId>,
+}
+
+impl WheelEvent {
+    pub fn new(delta: WheelDelta, point: DevicePoint) -> Self {
+        WheelEvent {
+            delta,
+            point,
+            webdriver_id: None,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub struct ScrollEvent {
+    pub external_id: ExternalScrollId,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

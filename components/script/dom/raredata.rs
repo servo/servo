@@ -11,6 +11,7 @@ use crate::dom::bindings::root::{Dom, MutNullableDom};
 use crate::dom::customelementregistry::{
     CustomElementDefinition, CustomElementReaction, CustomElementState,
 };
+use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::elementinternals::ElementInternals;
 use crate::dom::htmlslotelement::SlottableData;
 use crate::dom::intersectionobserver::IntersectionObserverRegistration;
@@ -76,4 +77,10 @@ pub(crate) struct ElementRareData {
     /// > which is initialized to an empty list. This list holds IntersectionObserverRegistration records, which have:
     pub(crate) registered_intersection_observers: Vec<IntersectionObserverRegistration>,
     pub(crate) cryptographic_nonce: String,
+
+    /// <https://drafts.csswg.org/css-shadow-parts/#element-forwarded-part-name-list>
+    pub(crate) forwarded_part_names: Vec<(String, String)>,
+
+    /// <https://drafts.csswg.org/css-shadow-parts/#dom-element-part>
+    pub(crate) part: MutNullableDom<DOMTokenList>,
 }

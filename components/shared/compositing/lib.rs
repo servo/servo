@@ -28,6 +28,7 @@ pub mod viewport_description;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
+use bitflags::bitflags;
 use display_list::CompositorDisplayListInfo;
 use embedder_traits::{CompositorHitTestResult, ScreenGeometry};
 use euclid::default::Size2D as UntypedSize2D;
@@ -35,7 +36,7 @@ use ipc_channel::ipc::{self, IpcSharedMemory};
 use profile_traits::mem::{OpaqueSender, ReportsChan};
 use serde::{Deserialize, Serialize};
 use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize};
-use webrender_api::units::{DevicePoint, LayoutPoint, TexelRect};
+use webrender_api::units::{DevicePoint, LayoutVector2D, TexelRect};
 use webrender_api::{
     BuiltDisplayList, BuiltDisplayListDescriptor, ExternalImage, ExternalImageData,
     ExternalImageHandler, ExternalImageId, ExternalImageSource, ExternalScrollId,
@@ -96,12 +97,11 @@ pub enum CompositorMsg {
     /// the frame is ready. It contains a bool to indicate if it needs to composite and the
     /// `DocumentId` of the new frame.
     NewWebRenderFrameReady(DocumentId, bool),
-    /// A pipeline was shut down.
-    // This message acts as a synchronization point between the constellation,
-    // when it shuts down a pipeline, to the compositor; when the compositor
-    // sends a reply on the IpcSender, the constellation knows it's safe to
-    // tear down the other threads associated with this pipeline.
-    PipelineExited(WebViewId, PipelineId, IpcSender<()>),
+    /// Script or the Constellation is notifying the renderer that a Pipeline has finished
+    /// shutting down. The renderer will not discard the Pipeline until both report that
+    /// they have fully shut it down, to avoid recreating it due to any subsequent
+    /// messages.
+    PipelineExited(WebViewId, PipelineId, PipelineExitSource),
     /// The load of a page has completed
     LoadComplete(WebViewId),
     /// WebDriver mouse button event
@@ -111,12 +111,12 @@ pub enum CompositorMsg {
         MouseButton,
         f32,
         f32,
-        WebDriverMessageId,
+        Option<WebDriverMessageId>,
     ),
     /// WebDriver mouse move event
-    WebDriverMouseMoveEvent(WebViewId, f32, f32, WebDriverMessageId),
+    WebDriverMouseMoveEvent(WebViewId, f32, f32, Option<WebDriverMessageId>),
     // Webdriver wheel scroll event
-    WebDriverWheelScrollEvent(WebViewId, f32, f32, f64, f64),
+    WebDriverWheelScrollEvent(WebViewId, f32, f32, f64, f64, Option<WebDriverMessageId>),
 
     /// Inform WebRender of the existence of this pipeline.
     SendInitialTransaction(WebRenderPipelineId),
@@ -124,7 +124,7 @@ pub enum CompositorMsg {
     SendScrollNode(
         WebViewId,
         WebRenderPipelineId,
-        LayoutPoint,
+        LayoutVector2D,
         ExternalScrollId,
     ),
     /// Inform WebRender of a new display list for the given pipeline.
@@ -232,7 +232,7 @@ impl CrossProcessCompositorApi {
         &self,
         webview_id: WebViewId,
         pipeline_id: WebRenderPipelineId,
-        point: LayoutPoint,
+        point: LayoutVector2D,
         scroll_id: ExternalScrollId,
     ) {
         if let Err(e) = self.0.send(CompositorMsg::SendScrollNode(
@@ -561,4 +561,16 @@ pub trait WebViewTrait {
     fn id(&self) -> WebViewId;
     fn screen_geometry(&self) -> Option<ScreenGeometry>;
     fn set_animating(&self, new_value: bool);
+}
+
+/// What entity is reporting that a `Pipeline` has exited. Only when all have
+/// done this will the renderer discard its details.
+#[derive(Clone, Copy, Default, Deserialize, PartialEq, Serialize)]
+pub struct PipelineExitSource(u8);
+
+bitflags! {
+    impl PipelineExitSource: u8 {
+        const Script = 1 << 0;
+        const Constellation = 1 << 1;
+    }
 }

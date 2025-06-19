@@ -2,14 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::UnsafeCell;
+use std::cell::RefCell;
 use std::cmp::{Ordering, PartialOrd};
 use std::iter;
 
 use dom_struct::dom_struct;
 use js::jsapi::JSTracer;
 use js::rust::HandleObject;
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 
 use crate::dom::abstractrange::{AbstractRange, BoundaryPoint, bp_position};
 use crate::dom::bindings::cell::DomRefCell;
@@ -1194,14 +1193,15 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
     }
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct WeakRangeVec {
-    cell: UnsafeCell<WeakRefVec<Range>>,
+    cell: RefCell<WeakRefVec<Range>>,
 }
 
 impl Default for WeakRangeVec {
     fn default() -> Self {
         WeakRangeVec {
-            cell: UnsafeCell::new(WeakRefVec::new()),
+            cell: RefCell::new(WeakRefVec::new()),
         }
     }
 }
@@ -1210,7 +1210,7 @@ impl Default for WeakRangeVec {
 impl WeakRangeVec {
     /// Whether that vector of ranges is empty.
     pub(crate) fn is_empty(&self) -> bool {
-        unsafe { (*self.cell.get()).is_empty() }
+        self.cell.borrow().is_empty()
     }
 
     /// Used for steps 2.1-2. when inserting a node.
@@ -1235,58 +1235,59 @@ impl WeakRangeVec {
 
         let offset = context.index();
         let parent = context.parent;
-        unsafe {
-            let ranges = &mut *self.cell.get();
+        let ranges = &mut *self.cell.borrow_mut();
 
-            ranges.update(|entry| {
-                let range = entry.root().unwrap();
-                if range.start().node() == parent || range.end().node() == parent {
-                    entry.remove();
-                }
-                if range.start().node() == child {
-                    range.report_change();
-                    range.start().set(context.parent, offset);
-                }
-                if range.end().node() == child {
-                    range.report_change();
-                    range.end().set(context.parent, offset);
-                }
-            });
+        ranges.update(|entry| {
+            let range = entry.root().unwrap();
+            if range.start().node() == parent || range.end().node() == parent {
+                entry.remove();
+            }
+            if range.start().node() == child {
+                range.report_change();
+                range.start().set(context.parent, offset);
+            }
+            if range.end().node() == child {
+                range.report_change();
+                range.end().set(context.parent, offset);
+            }
+        });
 
-            (*context.parent.ranges().cell.get()).extend(ranges.drain(..));
-        }
+        context
+            .parent
+            .ranges()
+            .cell
+            .borrow_mut()
+            .extend(ranges.drain(..));
     }
 
-    /// Used for steps 7.1-2. when normalizing a node.
+    /// Used for steps 6.1-2. when normalizing a node.
     /// <https://dom.spec.whatwg.org/#dom-node-normalize>
     pub(crate) fn drain_to_preceding_text_sibling(&self, node: &Node, sibling: &Node, length: u32) {
         if self.is_empty() {
             return;
         }
 
-        unsafe {
-            let ranges = &mut *self.cell.get();
+        let ranges = &mut *self.cell.borrow_mut();
 
-            ranges.update(|entry| {
-                let range = entry.root().unwrap();
-                if range.start().node() == sibling || range.end().node() == sibling {
-                    entry.remove();
-                }
-                if range.start().node() == node {
-                    range.report_change();
-                    range.start().set(sibling, range.start_offset() + length);
-                }
-                if range.end().node() == node {
-                    range.report_change();
-                    range.end().set(sibling, range.end_offset() + length);
-                }
-            });
+        ranges.update(|entry| {
+            let range = entry.root().unwrap();
+            if range.start().node() == sibling || range.end().node() == sibling {
+                entry.remove();
+            }
+            if range.start().node() == node {
+                range.report_change();
+                range.start().set(sibling, range.start_offset() + length);
+            }
+            if range.end().node() == node {
+                range.report_change();
+                range.end().set(sibling, range.end_offset() + length);
+            }
+        });
 
-            (*sibling.ranges().cell.get()).extend(ranges.drain(..));
-        }
+        sibling.ranges().cell.borrow_mut().extend(ranges.drain(..));
     }
 
-    /// Used for steps 7.3-4. when normalizing a node.
+    /// Used for steps 6.3-4. when normalizing a node.
     /// <https://dom.spec.whatwg.org/#dom-node-normalize>
     pub(crate) fn move_to_text_child_at(
         &self,
@@ -1295,43 +1296,42 @@ impl WeakRangeVec {
         child: &Node,
         new_offset: u32,
     ) {
-        unsafe {
-            let child_ranges = &mut *child.ranges().cell.get();
+        let child_ranges = child.ranges();
+        let mut child_ranges = child_ranges.cell.borrow_mut();
 
-            (*self.cell.get()).update(|entry| {
-                let range = entry.root().unwrap();
+        self.cell.borrow_mut().update(|entry| {
+            let range = entry.root().unwrap();
 
-                let node_is_start = range.start().node() == node;
-                let node_is_end = range.end().node() == node;
+            let node_is_start = range.start().node() == node;
+            let node_is_end = range.end().node() == node;
 
-                let move_start = node_is_start && range.start_offset() == offset;
-                let move_end = node_is_end && range.end_offset() == offset;
+            let move_start = node_is_start && range.start_offset() == offset;
+            let move_end = node_is_end && range.end_offset() == offset;
 
-                let remove_from_node =
-                    move_start && (move_end || !node_is_end) || move_end && !node_is_start;
+            let remove_from_node =
+                move_start && (move_end || !node_is_end) || move_end && !node_is_start;
 
-                let already_in_child = range.start().node() == child || range.end().node() == child;
-                let push_to_child = !already_in_child && (move_start || move_end);
+            let already_in_child = range.start().node() == child || range.end().node() == child;
+            let push_to_child = !already_in_child && (move_start || move_end);
 
-                if remove_from_node {
-                    let ref_ = entry.remove();
-                    if push_to_child {
-                        child_ranges.push(ref_);
-                    }
-                } else if push_to_child {
-                    child_ranges.push(WeakRef::new(&range));
+            if remove_from_node {
+                let ref_ = entry.remove();
+                if push_to_child {
+                    child_ranges.push(ref_);
                 }
+            } else if push_to_child {
+                child_ranges.push(WeakRef::new(&range));
+            }
 
-                if move_start {
-                    range.report_change();
-                    range.start().set(child, new_offset);
-                }
-                if move_end {
-                    range.report_change();
-                    range.end().set(child, new_offset);
-                }
-            });
-        }
+            if move_start {
+                range.report_change();
+                range.start().set(child, new_offset);
+            }
+            if move_end {
+                range.report_change();
+                range.end().set(child, new_offset);
+            }
+        });
     }
 
     /// Used for steps 8-11. when replacing character data.
@@ -1360,109 +1360,93 @@ impl WeakRangeVec {
         offset: u32,
         sibling: &Node,
     ) {
-        unsafe {
-            let sibling_ranges = &mut *sibling.ranges().cell.get();
+        let sibling_ranges = sibling.ranges();
+        let mut sibling_ranges = sibling_ranges.cell.borrow_mut();
 
-            (*self.cell.get()).update(|entry| {
-                let range = entry.root().unwrap();
-                let start_offset = range.start_offset();
-                let end_offset = range.end_offset();
+        self.cell.borrow_mut().update(|entry| {
+            let range = entry.root().unwrap();
+            let start_offset = range.start_offset();
+            let end_offset = range.end_offset();
 
-                let node_is_start = range.start().node() == node;
-                let node_is_end = range.end().node() == node;
+            let node_is_start = range.start().node() == node;
+            let node_is_end = range.end().node() == node;
 
-                let move_start = node_is_start && start_offset > offset;
-                let move_end = node_is_end && end_offset > offset;
+            let move_start = node_is_start && start_offset > offset;
+            let move_end = node_is_end && end_offset > offset;
 
-                let remove_from_node =
-                    move_start && (move_end || !node_is_end) || move_end && !node_is_start;
+            let remove_from_node =
+                move_start && (move_end || !node_is_end) || move_end && !node_is_start;
 
-                let already_in_sibling =
-                    range.start().node() == sibling || range.end().node() == sibling;
-                let push_to_sibling = !already_in_sibling && (move_start || move_end);
+            let already_in_sibling =
+                range.start().node() == sibling || range.end().node() == sibling;
+            let push_to_sibling = !already_in_sibling && (move_start || move_end);
 
-                if remove_from_node {
-                    let ref_ = entry.remove();
-                    if push_to_sibling {
-                        sibling_ranges.push(ref_);
-                    }
-                } else if push_to_sibling {
-                    sibling_ranges.push(WeakRef::new(&range));
+            if remove_from_node {
+                let ref_ = entry.remove();
+                if push_to_sibling {
+                    sibling_ranges.push(ref_);
                 }
+            } else if push_to_sibling {
+                sibling_ranges.push(WeakRef::new(&range));
+            }
 
-                if move_start {
-                    range.report_change();
-                    range.start().set(sibling, start_offset - offset);
-                }
-                if move_end {
-                    range.report_change();
-                    range.end().set(sibling, end_offset - offset);
-                }
-            });
-        }
+            if move_start {
+                range.report_change();
+                range.start().set(sibling, start_offset - offset);
+            }
+            if move_end {
+                range.report_change();
+                range.end().set(sibling, end_offset - offset);
+            }
+        });
     }
 
     /// Used for steps 7.4-5. when splitting a text node.
     /// <https://dom.spec.whatwg.org/#concept-text-split>
     pub(crate) fn increment_at(&self, node: &Node, offset: u32) {
-        unsafe {
-            (*self.cell.get()).update(|entry| {
-                let range = entry.root().unwrap();
-                if range.start().node() == node && offset == range.start_offset() {
-                    range.report_change();
-                    range.start().set_offset(offset + 1);
-                }
-                if range.end().node() == node && offset == range.end_offset() {
-                    range.report_change();
-                    range.end().set_offset(offset + 1);
-                }
-            });
-        }
+        self.cell.borrow_mut().update(|entry| {
+            let range = entry.root().unwrap();
+            if range.start().node() == node && offset == range.start_offset() {
+                range.report_change();
+                range.start().set_offset(offset + 1);
+            }
+            if range.end().node() == node && offset == range.end_offset() {
+                range.report_change();
+                range.end().set_offset(offset + 1);
+            }
+        });
     }
 
     fn map_offset_above<F: FnMut(u32) -> u32>(&self, node: &Node, offset: u32, mut f: F) {
-        unsafe {
-            (*self.cell.get()).update(|entry| {
-                let range = entry.root().unwrap();
-                let start_offset = range.start_offset();
-                if range.start().node() == node && start_offset > offset {
-                    range.report_change();
-                    range.start().set_offset(f(start_offset));
-                }
-                let end_offset = range.end_offset();
-                if range.end().node() == node && end_offset > offset {
-                    range.report_change();
-                    range.end().set_offset(f(end_offset));
-                }
-            });
-        }
+        self.cell.borrow_mut().update(|entry| {
+            let range = entry.root().unwrap();
+            let start_offset = range.start_offset();
+            if range.start().node() == node && start_offset > offset {
+                range.report_change();
+                range.start().set_offset(f(start_offset));
+            }
+            let end_offset = range.end_offset();
+            if range.end().node() == node && end_offset > offset {
+                range.report_change();
+                range.end().set_offset(f(end_offset));
+            }
+        });
     }
 
     pub(crate) fn push(&self, ref_: WeakRef<Range>) {
-        unsafe {
-            (*self.cell.get()).push(ref_);
-        }
+        self.cell.borrow_mut().push(ref_);
     }
 
     fn remove(&self, range: &Range) -> WeakRef<Range> {
-        unsafe {
-            let ranges = &mut *self.cell.get();
-            let position = ranges.iter().position(|ref_| ref_ == range).unwrap();
-            ranges.swap_remove(position)
-        }
-    }
-}
-
-#[allow(unsafe_code)]
-impl MallocSizeOf for WeakRangeVec {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        unsafe { (*self.cell.get()).size_of(ops) }
+        let mut ranges = self.cell.borrow_mut();
+        let position = ranges.iter().position(|ref_| ref_ == range).unwrap();
+        ranges.swap_remove(position)
     }
 }
 
 #[allow(unsafe_code)]
 unsafe impl JSTraceable for WeakRangeVec {
     unsafe fn trace(&self, _: *mut JSTracer) {
-        (*self.cell.get()).retain_alive()
+        self.cell.borrow_mut().retain_alive()
     }
 }

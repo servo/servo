@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::RefCell;
-use std::mem;
 
 use dom_struct::dom_struct;
 use js::jsapi::{ExceptionStackBehavior, Heap, JS_SetPendingException};
@@ -17,18 +16,23 @@ use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::dom::readablestream::PipeTo;
+use crate::realms::InRealm;
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+
+impl js::gc::Rootable for AbortAlgorithm {}
 
 /// <https://dom.spec.whatwg.org/#abortcontroller-api-integration>
 /// TODO: implement algorithms at call point,
 /// in order to integrate the abort signal with its various use cases.
-#[derive(JSTraceable, MallocSizeOf)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[allow(dead_code)]
-enum AbortAlgorithm {
+pub(crate) enum AbortAlgorithm {
     /// <https://dom.spec.whatwg.org/#add-an-event-listener>
     DomEventLister,
     /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
-    StreamPiping,
+    StreamPiping(PipeTo),
     /// <https://fetch.spec.whatwg.org/#dom-global-fetch>
     Fetch,
 }
@@ -47,7 +51,7 @@ pub(crate) struct AbortSignal {
 }
 
 impl AbortSignal {
-    pub(crate) fn new_inherited() -> AbortSignal {
+    fn new_inherited() -> AbortSignal {
         AbortSignal {
             eventtarget: EventTarget::new_inherited(),
             abort_reason: Default::default(),
@@ -55,8 +59,7 @@ impl AbortSignal {
         }
     }
 
-    #[allow(dead_code)]
-    fn new_with_proto(
+    pub(crate) fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -70,7 +73,15 @@ impl AbortSignal {
     }
 
     /// <https://dom.spec.whatwg.org/#abortsignal-signal-abort>
-    pub(crate) fn signal_abort(&self, cx: JSContext, reason: HandleValue, can_gc: CanGc) {
+    pub(crate) fn signal_abort(
+        &self,
+        cx: SafeJSContext,
+        reason: HandleValue,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
+        let global = self.global();
+
         // If signal is aborted, then return.
         if self.Aborted() {
             return;
@@ -84,7 +95,7 @@ impl AbortSignal {
         } else {
             // otherwise to a new "AbortError" DOMException.
             rooted!(in(*cx) let mut rooted_error = UndefinedValue());
-            Error::Abort.to_jsval(cx, &self.global(), rooted_error.handle_mut(), can_gc);
+            Error::Abort.to_jsval(cx, &global, rooted_error.handle_mut(), can_gc);
             self.abort_reason.set(rooted_error.get())
         }
 
@@ -93,23 +104,60 @@ impl AbortSignal {
         // TODO: #36936
 
         // Run the abort steps for signal.
-        self.run_the_abort_steps(can_gc);
+        self.run_the_abort_steps(cx, &global, realm, can_gc);
 
         // For each dependentSignal of dependentSignalsToAbort, run the abort steps for dependentSignal.
         // TODO: #36936
     }
 
+    /// <https://dom.spec.whatwg.org/#abortsignal-add>
+    pub(crate) fn add(&self, algorithm: &AbortAlgorithm) {
+        // If signal is aborted, then return.
+        if self.aborted() {
+            return;
+        }
+
+        // Append algorithm to signal’s abort algorithms.
+        self.abort_algorithms.borrow_mut().push(algorithm.clone());
+    }
+
+    /// Run a specific abort algorithm.
+    pub(crate) fn run_abort_algorithm(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        algorithm: &AbortAlgorithm,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
+        match algorithm {
+            AbortAlgorithm::StreamPiping(pipe) => {
+                rooted!(in(*cx) let mut reason = UndefinedValue());
+                reason.set(self.abort_reason.get());
+                pipe.abort_with_reason(cx, global, reason.handle(), realm, can_gc);
+            },
+            _ => {
+                // TODO: match on variant and implement algo steps.
+                // See the various items of #34866
+            },
+        }
+    }
+
     /// <https://dom.spec.whatwg.org/#run-the-abort-steps>
-    fn run_the_abort_steps(&self, can_gc: CanGc) {
+    fn run_the_abort_steps(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
         // For each algorithm of signal’s abort algorithms: run algorithm.
-        let algos = mem::take(&mut *self.abort_algorithms.borrow_mut());
-        for _algo in algos {
-            // TODO: match on variant and implement algo steps.
-            // See the various items of #34866
+        for algo in self.abort_algorithms.borrow().iter() {
+            self.run_abort_algorithm(cx, global, algo, realm, can_gc);
         }
 
         // Empty signal’s abort algorithms.
-        // Done above with `take`.
+        self.abort_algorithms.borrow_mut().clear();
 
         // Fire an event named abort at signal.
         self.upcast::<EventTarget>()
@@ -117,7 +165,7 @@ impl AbortSignal {
     }
 
     /// <https://dom.spec.whatwg.org/#abortsignal-aborted>
-    fn aborted(&self) -> bool {
+    pub(crate) fn aborted(&self) -> bool {
         // An AbortSignal object is aborted when its abort reason is not undefined.
         !self.abort_reason.get().is_undefined()
     }
@@ -131,7 +179,7 @@ impl AbortSignalMethods<crate::DomTypeHolder> for AbortSignal {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-abortsignal-reason>
-    fn Reason(&self, _cx: JSContext, mut rval: MutableHandleValue) {
+    fn Reason(&self, _cx: SafeJSContext, mut rval: MutableHandleValue) {
         // The reason getter steps are to return this’s abort reason.
         rval.set(self.abort_reason.get());
     }

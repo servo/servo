@@ -109,15 +109,7 @@ impl StackingContextTreeClipStore {
         }
     }
 
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(
-            name = "StackingContextClipStore::add_for_basic_shape",
-            skip_all,
-            fields(servo_profiling = true),
-            level = "trace",
-        )
-    )]
+    #[servo_tracing::instrument(name = "StackingContextClipStore::add_for_basic_shape", skip_all)]
     fn add_for_basic_shape(
         &mut self,
         shape: BasicShape,

@@ -11,7 +11,7 @@ typedef HTMLImageElement HTMLOrSVGImageElement;
 typedef (HTMLOrSVGImageElement or
          HTMLVideoElement or
          HTMLCanvasElement or
-         /*ImageBitmap or*/
+         ImageBitmap or
          OffscreenCanvas or
          /*VideoFrame or*/
          /*CSSImageValue*/ CSSStyleValue) CanvasImageSource;

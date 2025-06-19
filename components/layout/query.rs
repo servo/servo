@@ -37,11 +37,12 @@ use style::values::generics::font::LineHeight;
 use style::values::generics::position::AspectRatio;
 use style::values::specified::GenericGridTemplateComponent;
 use style::values::specified::box_::DisplayInside;
+use style::values::specified::text::TextTransformCase;
 use style_traits::{ParsingMode, ToCss};
 
 use crate::ArcRefCell;
 use crate::dom::NodeExt;
-use crate::flow::inline::construct::{TextTransformation, WhitespaceCollapse};
+use crate::flow::inline::construct::{TextTransformation, WhitespaceCollapse, capitalize_string};
 use crate::fragment_tree::{
     BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo,
 };
@@ -92,7 +93,7 @@ pub fn process_node_scroll_area_request(
             .first()
             .map(Fragment::scrolling_area)
             .unwrap_or_default(),
-        None => tree.get_scrolling_area_for_viewport(),
+        None => tree.scrollable_overflow(),
     };
 
     Rect::new(
@@ -777,11 +778,17 @@ fn rendered_text_collection_steps(
                 // rules are slightly modified: collapsible spaces at the end of lines are always
                 // collapsed, but they are only removed if the line is the last line of the block,
                 // or it ends with a br element. Soft hyphens should be preserved.
-                let mut transformed_text: String = TextTransformation::new(
-                    with_white_space_rules_applied,
-                    style.clone_text_transform().case(),
-                )
-                .collect();
+                let text_transform = style.clone_text_transform().case();
+                let mut transformed_text: String =
+                    TextTransformation::new(with_white_space_rules_applied, text_transform)
+                        .collect();
+
+                // Since iterator for capitalize not doing anything, we must handle it outside here
+                // FIXME: This assumes the element always start at a word boundary. But can fail:
+                // a<span style="text-transform: capitalize">b</span>c
+                if TextTransformCase::Capitalize == text_transform {
+                    transformed_text = capitalize_string(&transformed_text, true);
+                }
 
                 let is_preformatted_element =
                     white_space_collapse == WhiteSpaceCollapseValue::Preserve;

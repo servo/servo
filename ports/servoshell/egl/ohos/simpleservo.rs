@@ -10,6 +10,8 @@ use std::rc::Rc;
 
 use dpi::PhysicalSize;
 use log::{debug, info, warn};
+use ohos_abilitykit_sys::runtime::application_context;
+use ohos_window_manager_sys::display_manager;
 use raw_window_handle::{
     DisplayHandle, OhosDisplayHandle, OhosNdkWindowHandle, RawDisplayHandle, RawWindowHandle,
     WindowHandle,
@@ -23,6 +25,60 @@ use crate::egl::ohos::InitOpts;
 use crate::egl::ohos::resources::ResourceReaderInstance;
 use crate::prefs::{ArgumentParsingResult, parse_command_line_arguments};
 
+pub(crate) fn get_raw_window_handle(
+    xcomponent: *mut OH_NativeXComponent,
+    window: *mut c_void,
+) -> (RawWindowHandle, euclid::default::Size2D<i32>, Coordinates) {
+    let window_size = unsafe { super::get_xcomponent_size(xcomponent, window) }
+        .expect("Could not get native window size");
+    let (x, y) = unsafe { super::get_xcomponent_offset(xcomponent, window) }
+        .expect("Could not get native window offset");
+    let coordinates = Coordinates::new(x, y, window_size.width, window_size.height);
+    let native_window = NonNull::new(window).expect("Could not get native window");
+    let window_handle = RawWindowHandle::OhosNdk(OhosNdkWindowHandle::new(native_window));
+    (window_handle, window_size, coordinates)
+}
+
+#[derive(Debug)]
+struct NativeValues {
+    cache_dir: String,
+    display_density: f32,
+    device_type: ohos_deviceinfo::OhosDeviceType,
+    os_full_name: String,
+}
+
+/// Gets the resource and cache directory from the native c methods.
+fn get_native_values() -> NativeValues {
+    let cache_dir = {
+        const BUFFER_SIZE: i32 = 100;
+        let mut buffer: Vec<u8> = Vec::with_capacity(BUFFER_SIZE as usize);
+        let mut write_length = 0;
+        unsafe {
+            application_context::OH_AbilityRuntime_ApplicationContextGetCacheDir(
+                buffer.as_mut_ptr().cast(),
+                BUFFER_SIZE,
+                &mut write_length,
+            )
+            .expect("Call to cache dir failed");
+            buffer.set_len(write_length as usize);
+            String::from_utf8(buffer).expect("UTF-8")
+        }
+    };
+    let display_density = unsafe {
+        let mut density: f32 = 0_f32;
+        display_manager::OH_NativeDisplayManager_GetDefaultDisplayDensityPixels(&mut density)
+            .expect("Could not get displaydensity");
+        density
+    };
+
+    NativeValues {
+        cache_dir,
+        display_density,
+        device_type: ohos_deviceinfo::get_device_type(),
+        os_full_name: String::from(ohos_deviceinfo::get_os_full_name().unwrap_or("Undefined")),
+    }
+}
+
 /// Initialize Servo. At that point, we need a valid GL context.
 /// In the future, this will be done in multiple steps.
 pub fn init(
@@ -34,6 +90,12 @@ pub fn init(
 ) -> Result<Rc<RunningAppState>, &'static str> {
     info!("Entered simpleservo init function");
     crate::init_crypto();
+
+    let native_values = get_native_values();
+    info!("Device Type {:?}", native_values.device_type);
+    info!("OS Full Name {:?}", native_values.os_full_name);
+    info!("ResourceDir {:?}", options.resource_dir);
+
     let resource_dir = PathBuf::from(&options.resource_dir).join("servo");
     debug!("Resources are located at: {:?}", resource_dir);
     resources::set(Box::new(ResourceReaderInstance::new(resource_dir.clone())));
@@ -49,7 +111,7 @@ pub fn init(
     );
     debug!("Servo commandline args: {:?}", args);
 
-    let config_dir = PathBuf::from(&options.cache_dir).join("servo");
+    let config_dir = PathBuf::from(&native_values.cache_dir).join("servo");
     debug!("Configs are located at: {:?}", config_dir);
     let _ = crate::prefs::DEFAULT_CONFIG_DIR
         .set(config_dir.clone())
@@ -94,19 +156,12 @@ pub fn init(
     #[cfg(target_env = "ohos")]
     crate::egl::ohos::set_log_filter(servoshell_preferences.log_filter.as_deref());
 
-    let Ok(window_size) = (unsafe { super::get_xcomponent_size(xcomponent, native_window) }) else {
-        return Err("Failed to get xcomponent size");
-    };
-    let Ok((x, y)) = (unsafe { super::get_xcomponent_offset(xcomponent, native_window) }) else {
-        return Err("Failed to get xcomponent offset");
-    };
-    let coordinates = Coordinates::new(x, y, window_size.width, window_size.height);
+    let (window_handle, window_size, coordinates) =
+        get_raw_window_handle(xcomponent, native_window);
 
     let display_handle = RawDisplayHandle::Ohos(OhosDisplayHandle::new());
     let display_handle = unsafe { DisplayHandle::borrow_raw(display_handle) };
 
-    let native_window = NonNull::new(native_window).expect("Could not get native window");
-    let window_handle = RawWindowHandle::OhosNdk(OhosNdkWindowHandle::new(native_window));
     let window_handle = unsafe { WindowHandle::borrow_raw(window_handle) };
 
     let rendering_context = Rc::new(
@@ -133,7 +188,7 @@ pub fn init(
 
     let app_state = RunningAppState::new(
         Some(options.url),
-        options.display_density as f32,
+        native_values.display_density as f32,
         rendering_context,
         servo,
         window_callbacks,

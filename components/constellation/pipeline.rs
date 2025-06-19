@@ -385,41 +385,20 @@ impl Pipeline {
         pipeline
     }
 
-    /// A normal exit of the pipeline, which waits for the compositor,
-    /// and delegates layout shutdown to the script thread.
-    pub fn exit(&self, discard_bc: DiscardBrowsingContext) {
-        debug!("pipeline {:?} exiting", self.id);
-
-        // The compositor wants to know when pipelines shut down too.
-        // It may still have messages to process from these other threads
-        // before they can be safely shut down.
-        // It's OK for the constellation to block on the compositor,
-        // since the compositor never blocks on the constellation.
-        if let Ok((sender, receiver)) = ipc::channel() {
-            self.compositor_proxy.send(CompositorMsg::PipelineExited(
-                self.webview_id,
-                self.id,
-                sender,
-            ));
-            if let Err(e) = receiver.recv() {
-                warn!("Sending exit message failed ({:?}).", e);
-            }
-        }
+    /// Let the `ScriptThread` for this [`Pipeline`] know that it has exited. If the `ScriptThread` hasn't
+    /// panicked and is still alive, it will send a `PipelineExited` message back to the `Constellation`
+    /// when it finishes cleaning up.
+    pub fn send_exit_message_to_script(&self, discard_bc: DiscardBrowsingContext) {
+        debug!("{:?} Sending exit message to script", self.id);
 
         // Script thread handles shutting down layout, and layout handles shutting down the painter.
         // For now, if the script thread has failed, we give up on clean shutdown.
-        let msg = ScriptThreadMessage::ExitPipeline(self.id, discard_bc);
-        if let Err(e) = self.event_loop.send(msg) {
-            warn!("Sending script exit message failed ({}).", e);
-        }
-    }
-
-    /// A forced exit of the shutdown, which does not wait for the compositor,
-    /// or for the script thread to shut down layout.
-    pub fn force_exit(&self, discard_bc: DiscardBrowsingContext) {
-        let msg = ScriptThreadMessage::ExitPipeline(self.id, discard_bc);
-        if let Err(e) = self.event_loop.send(msg) {
-            warn!("Sending script exit message failed ({}).", e);
+        if let Err(error) = self.event_loop.send(ScriptThreadMessage::ExitPipeline(
+            self.webview_id,
+            self.id,
+            discard_bc,
+        )) {
+            warn!("Sending script exit message failed ({error}).");
         }
     }
 

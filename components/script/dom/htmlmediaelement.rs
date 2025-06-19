@@ -170,7 +170,8 @@ pub(crate) struct MediaFrameRenderer {
     old_frame: Option<ImageKey>,
     very_old_frame: Option<ImageKey>,
     current_frame_holder: Option<FrameHolder>,
-    show_poster: bool,
+    /// <https://html.spec.whatwg.org/multipage/#poster-frame>
+    poster_frame: Option<MediaFrame>,
 }
 
 impl MediaFrameRenderer {
@@ -182,29 +183,23 @@ impl MediaFrameRenderer {
             old_frame: None,
             very_old_frame: None,
             current_frame_holder: None,
-            show_poster: false,
+            poster_frame: None,
         }
     }
 
-    fn render_poster_frame(&mut self, image: Arc<RasterImage>) {
-        if let Some(image_key) = image.id {
-            self.current_frame = Some(MediaFrame {
+    fn set_poster_frame(&mut self, image: Option<Arc<RasterImage>>) {
+        self.poster_frame = image.and_then(|image| {
+            image.id.map(|image_key| MediaFrame {
                 image_key,
                 width: image.metadata.width as i32,
                 height: image.metadata.height as i32,
-            });
-            self.show_poster = true;
-        }
+            })
+        });
     }
 }
 
 impl VideoFrameRenderer for MediaFrameRenderer {
     fn render(&mut self, frame: VideoFrame) {
-        // Don't render new frames if the poster should be shown
-        if self.show_poster {
-            return;
-        }
-
         let mut updates = vec![];
 
         if let Some(old_image_key) = mem::replace(&mut self.very_old_frame, self.old_frame.take()) {
@@ -520,6 +515,10 @@ impl HTMLMediaElement {
         }
     }
 
+    pub(crate) fn network_state(&self) -> NetworkState {
+        self.network_state.get()
+    }
+
     pub(crate) fn get_ready_state(&self) -> ReadyState {
         self.ready_state.get()
     }
@@ -726,7 +725,7 @@ impl HTMLMediaElement {
                 self.paused.set(false);
                 // Step 2
                 if self.show_poster.get() {
-                    self.set_show_poster(false);
+                    self.show_poster.set(false);
                     self.time_marches_on();
                 }
                 // Step 3
@@ -749,7 +748,7 @@ impl HTMLMediaElement {
         self.network_state.set(NetworkState::NoSource);
 
         // Step 2.
-        self.set_show_poster(true);
+        self.show_poster.set(true);
 
         // Step 3.
         self.delay_load_event(true, can_gc);
@@ -1077,7 +1076,7 @@ impl HTMLMediaElement {
                     this.network_state.set(NetworkState::NoSource);
 
                     // Step 4.
-                    this.set_show_poster(true);
+                    this.show_poster.set(true);
 
                     // Step 5.
                     this.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::note());
@@ -1194,8 +1193,8 @@ impl HTMLMediaElement {
                 self.fulfill_in_flight_play_promises(|| ());
             }
 
-            // Step 6.7.
-            if !self.seeking.get() {
+            // Step 6.7. If seeking is true, set it to false.
+            if self.seeking.get() {
                 self.seeking.set(false);
             }
 
@@ -1294,7 +1293,7 @@ impl HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#dom-media-seek
     fn seek(&self, time: f64, _approximate_for_speed: bool) {
         // Step 1.
-        self.set_show_poster(false);
+        self.show_poster.set(false);
 
         // Step 2.
         if self.ready_state.get() == ReadyState::HaveNothing {
@@ -1399,19 +1398,14 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
-    pub(crate) fn process_poster_image_loaded(&self, image: Arc<RasterImage>) {
-        if !self.show_poster.get() {
-            return;
-        }
+    pub(crate) fn set_poster_frame(&self, image: Option<Arc<RasterImage>>) {
+        let queue_postershown_event = pref!(media_testing_enabled) && image.is_some();
 
-        // Step 6.
-        self.handle_resize(Some(image.metadata.width), Some(image.metadata.height));
-        self.video_renderer
-            .lock()
-            .unwrap()
-            .render_poster_frame(image);
+        self.video_renderer.lock().unwrap().set_poster_frame(image);
 
-        if pref!(media_testing_enabled) {
+        self.upcast::<Node>().dirty(NodeDamage::Other);
+
+        if queue_postershown_event {
             self.owner_global()
                 .task_manager()
                 .media_element_task_source()
@@ -2084,7 +2078,7 @@ impl HTMLMediaElement {
             warn!("Could not render media controls {:?}", e);
         }
 
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        self.upcast::<Node>().dirty(NodeDamage::Other);
     }
 
     fn remove_controls(&self, can_gc: CanGc) {
@@ -2093,6 +2087,7 @@ impl HTMLMediaElement {
         }
     }
 
+    /// Gets the video frame at the current playback position.
     pub(crate) fn get_current_frame(&self) -> Option<VideoFrame> {
         self.video_renderer
             .lock()
@@ -2102,8 +2097,21 @@ impl HTMLMediaElement {
             .map(|holder| holder.get_frame())
     }
 
-    pub(crate) fn get_current_frame_data(&self) -> Option<MediaFrame> {
-        self.video_renderer.lock().unwrap().current_frame
+    /// Gets the current frame of the video element to present, if any.
+    /// <https://html.spec.whatwg.org/multipage/#the-video-element:the-video-element-7>
+    pub(crate) fn get_current_frame_to_present(&self) -> Option<MediaFrame> {
+        let (current_frame, poster_frame) = {
+            let renderer = self.video_renderer.lock().unwrap();
+            (renderer.current_frame, renderer.poster_frame)
+        };
+
+        // If the show poster flag is set (or there is no current video frame to
+        // present) AND there is a poster frame, present that.
+        if (self.show_poster.get() || current_frame.is_none()) && poster_frame.is_some() {
+            return poster_frame;
+        }
+
+        current_frame
     }
 
     pub(crate) fn clear_current_frame_data(&self) {
@@ -2114,7 +2122,7 @@ impl HTMLMediaElement {
     fn handle_resize(&self, width: Option<u32>, height: Option<u32>) {
         if let Some(video_elem) = self.downcast::<HTMLVideoElement>() {
             video_elem.resize(width, height);
-            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+            self.upcast::<Node>().dirty(NodeDamage::Other);
         }
     }
 
@@ -2147,13 +2155,6 @@ impl HTMLMediaElement {
 
     pub(crate) fn set_duration(&self, duration: f64) {
         self.duration.set(duration);
-    }
-
-    /// Sets a new value for the show_poster propperty. Updates video_rederer
-    /// with the new value.
-    pub(crate) fn set_show_poster(&self, show_poster: bool) {
-        self.show_poster.set(show_poster);
-        self.video_renderer.lock().unwrap().show_poster = show_poster;
     }
 
     pub(crate) fn reset(&self) {
@@ -2374,7 +2375,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
 
             // Step 6.2.
             if self.show_poster.get() {
-                self.set_show_poster(false);
+                self.show_poster.set(false);
                 self.time_marches_on();
             }
 

@@ -7,7 +7,7 @@ use std::net::TcpStream;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
-use super::source::{Source, SourcesReply};
+use super::source::{SourceManager, SourcesReply};
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::JsonPacketStream;
 use crate::{EmptyReplyMsg, StreamId};
@@ -52,14 +52,14 @@ struct ThreadInterruptedReply {
 
 pub struct ThreadActor {
     pub name: String,
-    pub source_manager: Source,
+    pub source_manager: SourceManager,
 }
 
 impl ThreadActor {
     pub fn new(name: String) -> ThreadActor {
         ThreadActor {
             name: name.clone(),
-            source_manager: Source::new(name),
+            source_manager: SourceManager::new(),
         }
     }
 }
@@ -126,12 +126,11 @@ impl Actor for ThreadActor {
             "sources" => {
                 let msg = SourcesReply {
                     from: self.name(),
-                    sources: vec![], // TODO: Add sources for the debugger here
+                    sources: self.source_manager.source_forms(registry),
                 };
                 let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
-
             _ => ActorMessageStatus::Ignored,
         })
     }

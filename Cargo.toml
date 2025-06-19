@@ -36,7 +36,7 @@ bluetooth_traits = { path = "components/shared/bluetooth" }
 byteorder = "1.5"
 canvas_traits = { path = "components/shared/canvas" }
 cbc = "0.1.2"
-cfg-if = "1.0.0"
+cfg-if = "1.0.1"
 chrono = { version = "0.4", features = ["serde"] }
 cipher = { version = "0.4.4", features = ["alloc"] }
 compositing_traits = { path = "components/shared/compositing" }
@@ -83,7 +83,7 @@ icu_segmenter = "1.5.0"
 image = "0.24"
 imsz = "0.2"
 indexmap = { version = "2.9.0", features = ["std"] }
-ipc-channel = "0.19"
+ipc-channel = "0.20"
 itertools = "0.14"
 js = { package = "mozjs", git = "https://github.com/servo/mozjs" }
 keyboard-types = "0.7"
@@ -112,6 +112,7 @@ rand_core = "0.6"
 rand_isaac = "0.3"
 raw-window-handle = "0.6"
 rayon = "1"
+read-fonts = "0.29.2"
 regex = "1.11"
 resvg = "0.45.0"
 rustls = { version = "0.23", default-features = false, features = ["logging", "std", "tls12"] }
@@ -221,6 +222,7 @@ codegen-units = 1
 # html5ever = { path = "../html5ever/html5ever" }
 # markup5ever = { path = "../html5ever/markup5ever" }
 # xml5ever = { path = "../html5ever/xml5ever" }
+# web_atoms = { path = "../html5ever/web_atoms" }
 #
 # Or for Stylo:
 #
@@ -248,4 +250,3 @@ codegen-units = 1
 #
 # [patch."https://github.com/servo/rust-content-security-policy"]
 # content-security-policy = { path = "../rust-content-security-policy/" }
-# content-security-policy = { git = "https://github.com/timvdlippe/rust-content-security-policy/", branch = "fix-report-checks", features = ["serde"] }

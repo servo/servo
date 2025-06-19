@@ -672,7 +672,7 @@ where
 
 /// Given a string and whether the start of the string represents a word boundary, create a copy of
 /// the string with letters after word boundaries capitalized.
-fn capitalize_string(string: &str, allow_word_at_start: bool) -> String {
+pub(crate) fn capitalize_string(string: &str, allow_word_at_start: bool) -> String {
     let mut output_string = String::new();
     output_string.reserve(string.len());
 

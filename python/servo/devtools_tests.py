@@ -24,6 +24,7 @@ from threading import Thread
 from typing import Optional
 import unittest
 
+from servo.command_base import BuildType
 
 # Set this to true to log requests in the internal web servers.
 LOG_REQUESTS = False
@@ -32,6 +33,7 @@ LOG_REQUESTS = False
 class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
     # /path/to/servo/python/servo
     script_path = None
+    build_type: Optional[BuildType] = None
 
     def __init__(self, methodName="runTest"):
         super().__init__(methodName)
@@ -60,6 +62,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
                             f"{self.base_url}/classic.js",
                             f"{self.base_url}/test.html",
                             "https://servo.org/js/load-table.js",
+                            f"{self.base_url}/test.html",
                         ]
                     ),
                     tuple([f"{self.base_url}/worker.js"]),
@@ -91,6 +94,17 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
     def test_sources_list_with_data_inline_module_script(self):
         self.run_servoshell(url="data:text/html,<script type=module>;</script>")
         self.assert_sources_list(1, set([tuple(["data:text/html,<script type=module>;</script>"])]))
+
+    def test_source_content_inline_script(self):
+        script_content = "console.log('Hello, world!');"
+        self.run_servoshell(url=f"data:text/html,<script>{script_content}</script>")
+        self.assert_source_content("data:text/html,<script>console.log('Hello, world!');</script>", script_content)
+
+    def test_source_content_external_script(self):
+        self.start_web_server(test_dir=os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
+        self.run_servoshell(url=f'data:text/html,<script src="{self.base_url}/classic.js"></script>')
+        expected_content = 'console.log("external classic");\n'
+        self.assert_source_content(f"{self.base_url}/classic.js", expected_content)
 
     # Sets `base_url` and `web_server` and `web_server_thread`.
     def start_web_server(self, *, test_dir=None):
@@ -124,7 +138,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         # Run servoshell.
         if url is None:
             url = f"{self.base_url}/test.html"
-        self.servoshell = subprocess.Popen(["target/release/servo", "--devtools=6080", url])
+        self.servoshell = subprocess.Popen([f"target/{self.build_type.directory_name()}/servo", "--devtools=6080", url])
 
         # FIXME: Don’t do this
         time.sleep(1)
@@ -145,7 +159,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         if self.base_url is not None:
             self.base_url = None
 
-    def assert_sources_list(self, expected_targets: int, expected_urls_by_target: set[tuple[str]]):
+    def _setup_devtools_client(self, expected_targets=1):
         client = RDPClient()
         client.connect("127.0.0.1", 6080)
         root = RootActor(client)
@@ -179,6 +193,11 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         result: Optional[Exception] = done.result(1)
         if result:
             raise result
+
+        return client, watcher, targets
+
+    def assert_sources_list(self, expected_targets: int, expected_urls_by_target: set[tuple[str]]):
+        client, watcher, targets = self._setup_devtools_client(expected_targets)
         done = Future()
         # NOTE: breaks if two targets have the same list of source urls.
         # This should really be a multiset, but Python does not have multisets.
@@ -212,9 +231,49 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(actual_urls_by_target, expected_urls_by_target)
         client.disconnect()
 
+    def assert_source_content(self, source_url: str, expected_content: str):
+        client, watcher, targets = self._setup_devtools_client()
 
-def run_tests(script_path):
+        done = Future()
+        source_actors = {}
+
+        def on_source_resource(data):
+            for [resource_type, sources] in data["array"]:
+                try:
+                    self.assertEqual(resource_type, "source")
+                    for source in sources:
+                        if source["url"] == source_url:
+                            source_actors[source_url] = source["actor"]
+                            done.set_result(None)
+                except Exception as e:
+                    done.set_result(e)
+
+        for target in targets:
+            client.add_event_listener(
+                target["actor"],
+                Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
+                on_source_resource,
+            )
+        watcher.watch_resources([Resources.SOURCE])
+
+        result: Optional[Exception] = done.result(1)
+        if result:
+            raise result
+
+        # We found at least one source with the given url.
+        self.assertIn(source_url, source_actors)
+        source_actor = source_actors[source_url]
+
+        response = client.send_receive({"to": source_actor, "type": "source"})
+
+        self.assertEqual(response["source"], expected_content)
+
+        client.disconnect()
+
+
+def run_tests(script_path, build_type: BuildType):
     DevtoolsTests.script_path = script_path
+    DevtoolsTests.build_type = build_type
     verbosity = 1 if logging.getLogger().level >= logging.WARN else 2
     suite = unittest.TestLoader().loadTestsFromTestCase(DevtoolsTests)
     return unittest.TextTestRunner(verbosity=verbosity).run(suite).wasSuccessful()

@@ -11,6 +11,7 @@
 pub mod wrapper_traits;
 
 use std::any::Any;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicIsize, AtomicU64, Ordering};
 
@@ -19,7 +20,7 @@ use atomic_refcell::AtomicRefCell;
 use base::Epoch;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use compositing_traits::CrossProcessCompositorApi;
-use constellation_traits::{LoadData, ScrollState};
+use constellation_traits::LoadData;
 use embedder_traits::{Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::default::{Point2D, Rect};
 use fnv::FnvHashMap;
@@ -48,8 +49,8 @@ use style::properties::PropertyId;
 use style::properties::style_structs::Font;
 use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
 use style::stylesheets::Stylesheet;
-use webrender_api::ImageKey;
-use webrender_api::units::DeviceIntSize;
+use webrender_api::units::{DeviceIntSize, LayoutVector2D};
+use webrender_api::{ExternalScrollId, ImageKey};
 
 pub trait GenericLayoutDataTrait: Any + MallocSizeOfTrait {
     fn as_any(&self) -> &dyn Any;
@@ -245,7 +246,10 @@ pub trait Layout {
     );
 
     /// Set the scroll states of this layout after a compositor scroll.
-    fn set_scroll_offsets(&mut self, scroll_states: &[ScrollState]);
+    fn set_scroll_offsets_from_renderer(
+        &mut self,
+        scroll_states: &HashMap<ExternalScrollId, LayoutVector2D>,
+    );
 
     fn query_content_box(&self, node: TrustedNodeAddress) -> Option<Rect<Au>>;
     fn query_content_boxes(&self, node: TrustedNodeAddress) -> Vec<Rect<Au>>;
@@ -333,7 +337,7 @@ pub enum ReflowGoal {
 
     /// Tells layout about a single new scrolling offset from the script. The rest will
     /// remain untouched and layout won't forward this back to script.
-    UpdateScrollNode(ScrollState),
+    UpdateScrollNode(ExternalScrollId, LayoutVector2D),
 }
 
 impl ReflowGoal {
@@ -341,7 +345,7 @@ impl ReflowGoal {
     /// be present or false if it only needs stacking-relative positions.
     pub fn needs_display_list(&self) -> bool {
         match *self {
-            ReflowGoal::UpdateTheRendering | ReflowGoal::UpdateScrollNode(_) => true,
+            ReflowGoal::UpdateTheRendering | ReflowGoal::UpdateScrollNode(..) => true,
             ReflowGoal::LayoutQuery(ref querymsg) => match *querymsg {
                 QueryMsg::ElementInnerOuterTextQuery |
                 QueryMsg::InnerWindowDimensionsQuery |
@@ -363,7 +367,7 @@ impl ReflowGoal {
     /// false if a layout_thread display list is sufficient.
     pub fn needs_display(&self) -> bool {
         match *self {
-            ReflowGoal::UpdateTheRendering | ReflowGoal::UpdateScrollNode(_) => true,
+            ReflowGoal::UpdateTheRendering | ReflowGoal::UpdateScrollNode(..) => true,
             ReflowGoal::LayoutQuery(ref querymsg) => match *querymsg {
                 QueryMsg::NodesFromPointQuery |
                 QueryMsg::TextIndexQuery |
@@ -382,13 +386,6 @@ impl ReflowGoal {
     }
 }
 
-/// Information needed for a reflow.
-#[derive(Debug)]
-pub struct Reflow {
-    ///  A clipping rectangle for the page, an enlarged rectangle containing the viewport.
-    pub page_clip_rect: Rect<Au>,
-}
-
 #[derive(Clone, Debug, MallocSizeOf)]
 pub struct IFrameSize {
     pub browsing_context_id: BrowsingContextId,
@@ -401,6 +398,8 @@ pub type IFrameSizes = FnvHashMap<BrowsingContextId, IFrameSize>;
 /// Information derived from a layout pass that needs to be returned to the script thread.
 #[derive(Debug, Default)]
 pub struct ReflowResult {
+    /// Whether or not this reflow produced a display list.
+    pub built_display_list: bool,
     /// The list of images that were encountered that are in progress.
     pub pending_images: Vec<PendingImage>,
     /// The list of vector images that were encountered that still need to be rasterized.
@@ -416,8 +415,6 @@ pub struct ReflowResult {
 /// Information needed for a script-initiated reflow.
 #[derive(Debug)]
 pub struct ReflowRequest {
-    /// General reflow data.
-    pub reflow_info: Reflow,
     /// The document node.
     pub document: TrustedNodeAddress,
     /// The dirty root from which to restyle.

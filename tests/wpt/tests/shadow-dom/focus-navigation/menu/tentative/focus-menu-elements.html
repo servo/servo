@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<link rel="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<link rel=help href=https://open-ui.org/components/menu.explainer>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src='../../resources/shadow-dom.js'></script>
+<script src="../../resources/focus-utils.js"></script>
+
+<menubar>
+  <menuitem id="A" command="toggle-menu" commandfor="more">More commands</menuitem>
+  <menuitem id="B">Command B</menuitem>
+  <menuitem id="C">Command C</menuitem>
+</menubar>
+
+<menulist id="more">
+ <menuitem id="A1">Command A1</menuitem>
+ <menuitem id="A2">Command A2</menuitem>
+</menulist>
+
+<script>
+
+promise_test(async () => {
+  let elements = [
+    'A',
+    'B',
+    'C',
+  ];
+
+  await assert_focus_navigation_bidirectional(elements);
+}, 'Should focus on menuitems in menubar only.');
+
+</script>

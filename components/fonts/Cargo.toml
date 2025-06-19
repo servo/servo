@@ -39,6 +39,7 @@ net_traits = { workspace = true }
 num-traits = { workspace = true }
 parking_lot = { workspace = true }
 profile_traits = { workspace = true }
+read-fonts = { workspace = true }
 range = { path = "../range" }
 serde = { workspace = true }
 servo_arc = { workspace = true }
@@ -52,6 +53,7 @@ unicode-properties = { workspace = true }
 unicode-script = { workspace = true }
 url = { workspace = true }
 webrender_api = { workspace = true }
+servo-tracing = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 byteorder = { workspace = true }

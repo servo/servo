@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use keyboard_types::{Code, Key, KeyState, KeyboardEvent, Location, Modifiers};
+use keyboard_types::{Code, Key, KeyState, Location, Modifiers};
+use servo::KeyboardEvent;
 use winit::event::{ElementState, KeyEvent};
 use winit::keyboard::{
     Key as WinitKey, KeyCode, KeyLocation as WinitKeyLocation, ModifiersState, NamedKey,
@@ -583,13 +584,13 @@ fn keyboard_modifiers_from_winit_modifiers(mods: ModifiersState) -> Modifiers {
 }
 
 pub fn keyboard_event_from_winit(key_event: &KeyEvent, state: ModifiersState) -> KeyboardEvent {
-    KeyboardEvent {
-        state: KeyState::from_winit_key_event(key_event),
-        key: Key::from_winit_key_event(key_event),
-        code: Code::from_winit_key_event(key_event),
-        location: Location::from_winit_key_event(key_event),
-        modifiers: keyboard_modifiers_from_winit_modifiers(state),
-        repeat: false,
-        is_composing: false,
-    }
+    KeyboardEvent::new_without_event(
+        KeyState::from_winit_key_event(key_event),
+        Key::from_winit_key_event(key_event),
+        Code::from_winit_key_event(key_event),
+        Location::from_winit_key_event(key_event),
+        keyboard_modifiers_from_winit_modifiers(state),
+        false,
+        false,
+    )
 }

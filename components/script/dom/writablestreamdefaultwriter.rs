@@ -238,6 +238,7 @@ impl WritableStreamDefaultWriter {
         cx: SafeJSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
+        realm: InRealm,
         can_gc: CanGc,
     ) -> Rc<Promise> {
         // Let stream be writer.[[stream]].
@@ -247,7 +248,7 @@ impl WritableStreamDefaultWriter {
         };
 
         // Return ! WritableStreamAbort(stream, reason).
-        stream.abort(cx, global, reason, can_gc)
+        stream.abort(cx, global, reason, realm, can_gc)
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-writer-close>
@@ -468,7 +469,7 @@ impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStream
         }
 
         // Return ! WritableStreamDefaultWriterAbort(this, reason).
-        self.abort(cx, &global, reason, can_gc)
+        self.abort(cx, &global, reason, realm, can_gc)
     }
 
     /// <https://streams.spec.whatwg.org/#default-writer-close>

@@ -29,9 +29,10 @@ use crossbeam_channel::Sender;
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
+use euclid::default::Size2D;
 use http::HeaderMap;
 use hyper_serde::Serde;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
 use js::jsapi::{
@@ -59,10 +60,12 @@ use net_traits::{
     CoreResourceMsg, CoreResourceThread, FetchResponseListener, IpcSend, ReferrerPolicy,
     ResourceThreads, fetch_async,
 };
+use pixels::PixelFormat;
 use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
 use script_bindings::interfaces::GlobalScopeHelpers;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
-use timers::{TimerEventId, TimerEventRequest, TimerSource};
+use snapshot::Snapshot;
+use timers::{TimerEventRequest, TimerId};
 use url::Origin;
 use uuid::Uuid;
 #[cfg(feature = "webgpu")]
@@ -104,6 +107,7 @@ use crate::dom::bindings::weakref::{DOMTracker, WeakRef};
 use crate::dom::blob::Blob;
 use crate::dom::broadcastchannel::BroadcastChannel;
 use crate::dom::crypto::Crypto;
+use crate::dom::csppolicyviolationreport::CSPViolationReportBuilder;
 use crate::dom::dedicatedworkerglobalscope::{
     DedicatedWorkerControlMsg, DedicatedWorkerGlobalScope,
 };
@@ -117,7 +121,7 @@ use crate::dom::htmlscriptelement::{ScriptId, SourceCode};
 use crate::dom::imagebitmap::ImageBitmap;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::messageport::MessagePort;
-use crate::dom::node::Node;
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::Performance;
 use crate::dom::performanceobserver::VALID_ENTRY_TYPES;
@@ -139,14 +143,17 @@ use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoop
 use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
 use crate::network_listener::{NetworkListener, PreInvoke};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
-use crate::script_module::{DynamicModuleList, ModuleScript, ModuleTree, ScriptFetchOptions};
+use crate::script_module::{
+    DynamicModuleList, ImportMap, ModuleScript, ModuleTree, ScriptFetchOptions,
+};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, ThreadSafeJSContext};
 use crate::script_thread::{ScriptThread, with_script_thread};
-use crate::security_manager::{CSPViolationReportBuilder, CSPViolationReportTask};
+use crate::security_manager::CSPViolationReportTask;
 use crate::task_manager::TaskManager;
 use crate::task_source::SendableTaskSource;
 use crate::timers::{
     IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback,
+    TimerEventId, TimerSource,
 };
 use crate::unminify::unminified_path;
 
@@ -375,6 +382,12 @@ pub(crate) struct GlobalScope {
     #[ignore_malloc_size_of = "Rc<T> is hard"]
     notification_permission_request_callback_map:
         DomRefCell<HashMap<String, Rc<NotificationPermissionCallback>>>,
+
+    /// An import map allows control over module specifier resolution.
+    /// For now, only Window global objects have their import map modified from the initial empty one.
+    ///
+    /// <https://html.spec.whatwg.org/multipage/#import-maps>
+    import_map: DomRefCell<ImportMap>,
 }
 
 /// A wrapper for glue-code between the ipc router and the event-loop.
@@ -776,6 +789,7 @@ impl GlobalScope {
             byte_length_queuing_strategy_size_function: OnceCell::new(),
             count_queuing_strategy_size_function: OnceCell::new(),
             notification_permission_request_callback_map: Default::default(),
+            import_map: Default::default(),
         }
     }
 
@@ -2480,10 +2494,10 @@ impl GlobalScope {
     /// Schedule a [`TimerEventRequest`] on this [`GlobalScope`]'s [`timers::TimerScheduler`].
     /// Every Worker has its own scheduler, which handles events in the Worker event loop,
     /// but `Window`s use a shared scheduler associated with their [`ScriptThread`].
-    pub(crate) fn schedule_timer(&self, request: TimerEventRequest) {
+    pub(crate) fn schedule_timer(&self, request: TimerEventRequest) -> Option<TimerId> {
         match self.downcast::<WorkerGlobalScope>() {
-            Some(worker_global) => worker_global.timer_scheduler().schedule_timer(request),
-            _ => with_script_thread(|script_thread| script_thread.schedule_timer(request)),
+            Some(worker_global) => Some(worker_global.timer_scheduler().schedule_timer(request)),
+            _ => with_script_thread(|script_thread| Some(script_thread.schedule_timer(request))),
         }
     }
 
@@ -2929,7 +2943,11 @@ impl GlobalScope {
         is_js_evaluation_allowed == CheckResult::Allowed
     }
 
-    pub(crate) fn should_navigation_request_be_blocked(&self, load_data: &LoadData) -> bool {
+    pub(crate) fn should_navigation_request_be_blocked(
+        &self,
+        load_data: &LoadData,
+        element: Option<&Element>,
+    ) -> bool {
         let Some(csp_list) = self.get_csp_list() else {
             return false;
         };
@@ -2951,69 +2969,312 @@ impl GlobalScope {
         let (result, violations) =
             csp_list.should_navigation_request_be_blocked(&request, NavigationCheckType::Other);
 
-        self.report_csp_violations(violations, None);
+        self.report_csp_violations(violations, element);
 
         result == CheckResult::Blocked
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn create_image_bitmap(
         &self,
         image: ImageBitmapSource,
+        sx: i32,
+        sy: i32,
+        sw: Option<i32>,
+        sh: Option<i32>,
         options: &ImageBitmapOptions,
         can_gc: CanGc,
     ) -> Rc<Promise> {
         let in_realm_proof = AlreadyInRealm::assert::<crate::DomTypeHolder>();
         let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
+
+        // Step 1. If either sw or sh is given and is 0, then return a promise rejected with a RangeError.
+        if sw.is_some_and(|w| w == 0) {
+            p.reject_error(
+                Error::Range("'sw' must be a non-zero value".to_owned()),
+                can_gc,
+            );
+            return p;
+        }
+
+        if sh.is_some_and(|h| h == 0) {
+            p.reject_error(
+                Error::Range("'sh' must be a non-zero value".to_owned()),
+                can_gc,
+            );
+            return p;
+        }
+
+        // Step 2. If either options's resizeWidth or options's resizeHeight is present and is 0,
+        // then return a promise rejected with an "InvalidStateError" DOMException.
         if options.resizeWidth.is_some_and(|w| w == 0) {
             p.reject_error(Error::InvalidState, can_gc);
             return p;
         }
 
-        if options.resizeHeight.is_some_and(|w| w == 0) {
+        if options.resizeHeight.is_some_and(|h| h == 0) {
             p.reject_error(Error::InvalidState, can_gc);
             return p;
         }
 
+        // The promise with image bitmap should be fulfilled on the the bitmap task source.
+        let fullfill_promise_on_bitmap_task_source =
+            |promise: &Rc<Promise>, image_bitmap: &ImageBitmap| {
+                let trusted_promise = TrustedPromise::new(promise.clone());
+                let trusted_image_bitmap = Trusted::new(image_bitmap);
+
+                self.task_manager()
+                    .bitmap_task_source()
+                    .queue(task!(resolve_promise: move || {
+                        let promise = trusted_promise.root();
+                        let image_bitmap = trusted_image_bitmap.root();
+
+                        promise.resolve_native(&image_bitmap, CanGc::note());
+                    }));
+            };
+
+        // Step 3. Check the usability of the image argument. If this throws an exception or returns bad,
+        // then return a promise rejected with an "InvalidStateError" DOMException.
+        // Step 6. Switch on image:
         match image {
-            ImageBitmapSource::HTMLCanvasElement(ref canvas) => {
-                // https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument
-                if !canvas.is_valid() {
+            ImageBitmapSource::HTMLImageElement(ref image) => {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                if !image.is_usable().is_ok_and(|u| u) {
                     p.reject_error(Error::InvalidState, can_gc);
                     return p;
                 }
 
-                match canvas.get_image_data() {
-                    Some(snapshot) => {
-                        let image_bitmap = ImageBitmap::new(self, snapshot, can_gc);
-                        image_bitmap.set_origin_clean(canvas.origin_is_clean());
-                        p.resolve_native(&(image_bitmap), can_gc);
+                // If no ImageBitmap object can be constructed, then the promise is rejected instead.
+                let Some(img) = image.image_data() else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                // TODO: Support vector HTMLImageElement.
+                let Some(img) = img.as_raster_image() else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let size = Size2D::new(img.metadata.width, img.metadata.height);
+                let format = match img.format {
+                    PixelFormat::BGRA8 => snapshot::PixelFormat::BGRA,
+                    PixelFormat::RGBA8 => snapshot::PixelFormat::RGBA,
+                    pixel_format => {
+                        unimplemented!("unsupported pixel format ({:?})", pixel_format)
                     },
-                    None => p.reject_error(Error::InvalidState, can_gc),
+                };
+                let alpha_mode = snapshot::AlphaMode::Transparent {
+                    premultiplied: false,
+                };
+
+                let snapshot = Snapshot::from_shared_memory(
+                    size.cast(),
+                    format,
+                    alpha_mode,
+                    IpcSharedMemory::from_bytes(img.first_frame().bytes),
+                );
+
+                // Step 6.3. Set imageBitmap's bitmap data to a copy of image's media data,
+                // cropped to the source rectangle with formatting.
+                let Some(bitmap_data) =
+                    ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
+                else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let image_bitmap = ImageBitmap::new(self, bitmap_data, can_gc);
+                // Step 6.4. If image is not origin-clean, then set the origin-clean flag
+                // of imageBitmap's bitmap to false.
+                image_bitmap.set_origin_clean(image.same_origin(GlobalScope::entry().origin()));
+
+                // Step 6.5. Queue a global task, using the bitmap task source,
+                // to resolve promise with imageBitmap.
+                fullfill_promise_on_bitmap_task_source(&p, &image_bitmap);
+            },
+            ImageBitmapSource::HTMLVideoElement(ref video) => {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                if !video.is_usable() {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
                 }
-                p
+
+                // Step 6.1. If image's networkState attribute is NETWORK_EMPTY, then return
+                // a promise rejected with an "InvalidStateError" DOMException.
+                if video.is_network_state_empty() {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                }
+
+                // If no ImageBitmap object can be constructed, then the promise is rejected instead.
+                let Some(snapshot) = video.get_current_frame_data() else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                // Step 6.2. Set imageBitmap's bitmap data to a copy of the frame at the current
+                // playback position, at the media resource's natural width and natural height
+                // (i.e., after any aspect-ratio correction has been applied),
+                // cropped to the source rectangle with formatting.
+                let Some(bitmap_data) =
+                    ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
+                else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let image_bitmap = ImageBitmap::new(self, bitmap_data, can_gc);
+                // Step 6.3. If image is not origin-clean, then set the origin-clean flag
+                // of imageBitmap's bitmap to false.
+                image_bitmap.set_origin_clean(video.origin_is_clean());
+
+                // Step 6.4. Queue a global task, using the bitmap task source,
+                // to resolve promise with imageBitmap.
+                fullfill_promise_on_bitmap_task_source(&p, &image_bitmap);
+            },
+            ImageBitmapSource::HTMLCanvasElement(ref canvas) => {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                if canvas.get_size().is_empty() {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                }
+
+                // If no ImageBitmap object can be constructed, then the promise is rejected instead.
+                let Some(snapshot) = canvas.get_image_data() else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                // Step 6.1. Set imageBitmap's bitmap data to a copy of image's bitmap data,
+                // cropped to the source rectangle with formatting.
+                let Some(bitmap_data) =
+                    ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
+                else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let image_bitmap = ImageBitmap::new(self, bitmap_data, can_gc);
+                // Step 6.2. Set the origin-clean flag of the imageBitmap's bitmap to the same value
+                // as the origin-clean flag of image's bitmap.
+                image_bitmap.set_origin_clean(canvas.origin_is_clean());
+
+                // Step 6.3. Queue a global task, using the bitmap task source,
+                // to resolve promise with imageBitmap.
+                fullfill_promise_on_bitmap_task_source(&p, &image_bitmap);
+            },
+            ImageBitmapSource::ImageBitmap(ref bitmap) => {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                if bitmap.is_detached() {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                }
+
+                // If no ImageBitmap object can be constructed, then the promise is rejected instead.
+                let Some(snapshot) = bitmap.bitmap_data().clone() else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                // Step 6.1. Set imageBitmap's bitmap data to a copy of image's bitmap data,
+                // cropped to the source rectangle with formatting.
+                let Some(bitmap_data) =
+                    ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
+                else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let image_bitmap = ImageBitmap::new(self, bitmap_data, can_gc);
+                // Step 6.2. Set the origin-clean flag of imageBitmap's bitmap to the same value
+                // as the origin-clean flag of image's bitmap.
+                image_bitmap.set_origin_clean(bitmap.origin_is_clean());
+
+                // Step 6.3. Queue a global task, using the bitmap task source,
+                // to resolve promise with imageBitmap.
+                fullfill_promise_on_bitmap_task_source(&p, &image_bitmap);
             },
             ImageBitmapSource::OffscreenCanvas(ref canvas) => {
-                // https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument
-                if !canvas.is_valid() {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                if canvas.get_size().is_empty() {
                     p.reject_error(Error::InvalidState, can_gc);
                     return p;
                 }
 
-                match canvas.get_image_data() {
-                    Some(snapshot) => {
-                        let image_bitmap = ImageBitmap::new(self, snapshot, can_gc);
-                        image_bitmap.set_origin_clean(canvas.origin_is_clean());
-                        p.resolve_native(&(image_bitmap), can_gc);
-                    },
-                    None => p.reject_error(Error::InvalidState, can_gc),
-                }
-                p
+                // If no ImageBitmap object can be constructed, then the promise is rejected instead.
+                let Some(snapshot) = canvas.get_image_data() else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                // Step 6.1. Set imageBitmap's bitmap data to a copy of image's bitmap data,
+                // cropped to the source rectangle with formatting.
+                let Some(bitmap_data) =
+                    ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
+                else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let image_bitmap = ImageBitmap::new(self, bitmap_data, can_gc);
+                // Step 6.2. Set the origin-clean flag of the imageBitmap's bitmap to the same value
+                // as the origin-clean flag of image's bitmap.
+                image_bitmap.set_origin_clean(canvas.origin_is_clean());
+
+                // Step 6.3. Queue a global task, using the bitmap task source,
+                // to resolve promise with imageBitmap.
+                fullfill_promise_on_bitmap_task_source(&p, &image_bitmap);
             },
-            _ => {
+            ImageBitmapSource::Blob(_) => {
+                // TODO: implement support of Blob object as ImageBitmapSource
+                p.reject_error(Error::InvalidState, can_gc);
+            },
+            ImageBitmapSource::ImageData(ref image_data) => {
+                // Step 6.1. Let buffer be image's data attribute value's [[ViewedArrayBuffer]] internal slot.
+                // Step 6.2. If IsDetachedBuffer(buffer) is true, then return a promise rejected
+                // with an "InvalidStateError" DOMException.
+                if image_data.is_detached() {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                }
+
+                let alpha_mode = snapshot::AlphaMode::Transparent {
+                    premultiplied: false,
+                };
+
+                let snapshot = Snapshot::from_shared_memory(
+                    image_data.get_size().cast(),
+                    snapshot::PixelFormat::RGBA,
+                    alpha_mode,
+                    image_data.to_shared_memory(),
+                );
+
+                // Step 6.3. Set imageBitmap's bitmap data to image's image data,
+                // cropped to the source rectangle with formatting.
+                let Some(bitmap_data) =
+                    ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
+                else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let image_bitmap = ImageBitmap::new(self, bitmap_data, can_gc);
+
+                // Step 6.4. Queue a global task, using the bitmap task source,
+                // to resolve promise with imageBitmap.
+                fullfill_promise_on_bitmap_task_source(&p, &image_bitmap);
+            },
+            ImageBitmapSource::CSSStyleValue(_) => {
+                // TODO: CSSStyleValue is not part of ImageBitmapSource
+                // <https://html.spec.whatwg.org/multipage/#imagebitmapsource>
                 p.reject_error(Error::NotSupported, can_gc);
-                p
             },
         }
+
+        // Step 7. Return promise.
+        p
     }
 
     pub(crate) fn fire_timer(&self, handle: TimerEventId, can_gc: CanGc) {
@@ -3477,11 +3738,10 @@ impl GlobalScope {
                 // Step 3.1: If target is not null, and global is a Window,
                 // and target’s shadow-including root is not global’s associated Document, set target to null.
                 if let Some(window) = self.downcast::<Window>() {
-                    if !window
-                        .Document()
-                        .upcast::<Node>()
-                        .is_shadow_including_inclusive_ancestor_of(event_target.upcast())
-                    {
+                    // If a node is connected, its owner document is always the shadow-including root.
+                    // If it isn't connected, then it also doesn't have a corresponding document, hence
+                    // it can't be this document.
+                    if event_target.upcast::<Node>().owner_document() != window.Document() {
                         return None;
                     }
                 }
@@ -3507,6 +3767,10 @@ impl GlobalScope {
                 .dom_manipulation_task_source()
                 .queue(task);
         }
+    }
+
+    pub(crate) fn import_map(&self) -> &DomRefCell<ImportMap> {
+        &self.import_map
     }
 }
 

@@ -1,0 +1,35 @@
+<!doctype html>
+<title>Nested View Transitions: nested position with borders (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+
+<style>
+body {
+  background: pink;
+}
+#clipper {
+  view-transition-group: contain;
+  view-transition-name: clipper;
+
+  border-width: 6px 10px 16px 20px;
+  border-style: solid;
+  border-color: green;
+
+  height: 200px;
+  width: 200px;
+}
+
+.item {
+  view-transition-name: item;
+  background: blue;
+  position: relative;
+
+  width: 100px;
+  height: 100px;
+  border: 1px solid black;
+}
+
+</style>
+
+<div id=clipper>
+  <div class=item></div>
+</div>

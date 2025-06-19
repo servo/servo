@@ -27,6 +27,7 @@ use crate::dom::messageport::MessagePort;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestreamdefaultcontroller::{EnqueuedValue, QueueWithSizes, ValueWithSize};
+use crate::dom::types::{AbortController, AbortSignal};
 use crate::dom::writablestream::WritableStream;
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
@@ -339,15 +340,20 @@ pub struct WritableStreamDefaultController {
 
     /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-stream>
     stream: MutNullableDom<WritableStream>,
+
+    /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-abortcontroller>
+    abort_controller: Dom<AbortController>,
 }
 
 impl WritableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller-from-underlying-sink>
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(
+        global: &GlobalScope,
         underlying_sink_type: UnderlyingSinkType,
         strategy_hwm: f64,
         strategy_size: Rc<QueuingStrategySize>,
+        can_gc: CanGc,
     ) -> WritableStreamDefaultController {
         WritableStreamDefaultController {
             reflector_: Reflector::new(),
@@ -358,6 +364,7 @@ impl WritableStreamDefaultController {
             strategy_hwm,
             strategy_size: RefCell::new(Some(strategy_size)),
             started: Default::default(),
+            abort_controller: Dom::from_ref(&AbortController::new_with_proto(global, None, can_gc)),
         }
     }
 
@@ -371,9 +378,11 @@ impl WritableStreamDefaultController {
     ) -> DomRoot<WritableStreamDefaultController> {
         reflect_dom_object(
             Box::new(WritableStreamDefaultController::new_inherited(
+                global,
                 underlying_sink_type,
                 strategy_hwm,
                 strategy_size,
+                can_gc,
             )),
             global,
             can_gc,
@@ -387,6 +396,18 @@ impl WritableStreamDefaultController {
     /// Setting the JS object after the heap has settled down.
     pub(crate) fn set_underlying_sink_this_object(&self, this_object: SafeHandleObject) {
         self.underlying_sink_obj.set(*this_object);
+    }
+
+    /// "Signal abort" call from <https://streams.spec.whatwg.org/#writable-stream-abort>
+    pub(crate) fn signal_abort(
+        &self,
+        cx: SafeJSContext,
+        reason: SafeHandleValue,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
+        self.abort_controller
+            .signal_abort(cx, reason, realm, can_gc);
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-clear-algorithms>
@@ -1084,5 +1105,11 @@ impl WritableStreamDefaultControllerMethods<crate::DomTypeHolder>
 
         // Perform ! WritableStreamDefaultControllerError(this, e).
         self.error(&stream, cx, e, &global, can_gc);
+    }
+
+    /// <https://streams.spec.whatwg.org/#ws-default-controller-signal>
+    fn Signal(&self) -> DomRoot<AbortSignal> {
+        // Return this.[[abortController]]’s signal.
+        self.abort_controller.signal()
     }
 }

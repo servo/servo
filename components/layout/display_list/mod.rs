@@ -1100,12 +1100,7 @@ impl<'a> BuilderForBoxFragment<'a> {
 
     fn build(&mut self, builder: &mut DisplayListBuilder, section: StackingContextSection) {
         if self.is_hit_test_for_scrollable_overflow {
-            self.build_hit_test(
-                builder,
-                self.fragment
-                    .reachable_scrollable_overflow_region()
-                    .to_webrender(),
-            );
+            self.build_hit_test(builder, self.fragment.scrollable_overflow().to_webrender());
             return;
         }
 
@@ -1514,6 +1509,13 @@ impl<'a> BuilderForBoxFragment<'a> {
         };
 
         let size = euclid::Size2D::new(width as i32, height as i32);
+
+        // If the size of the border is zero or the size of the border image is zero, just
+        // don't render anything. Zero-sized gradients cause problems in WebRender.
+        if size.is_empty() || border_image_size.is_empty() {
+            return true;
+        }
+
         let details = BorderDetails::NinePatch(NinePatchBorder {
             source,
             width: size.width,

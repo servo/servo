@@ -61,15 +61,7 @@ static TEXT_SHAPING_PERFORMANCE_COUNTER: AtomicUsize = AtomicUsize::new(0);
 // resources needed by the graphics layer to draw glyphs.
 
 pub trait PlatformFontMethods: Sized {
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(
-            name = "PlatformFontMethods::new_from_template",
-            skip_all,
-            fields(servo_profiling = true),
-            level = "trace",
-        )
-    )]
+    #[servo_tracing::instrument(name = "PlatformFontMethods::new_from_template", skip_all)]
     fn new_from_template(
         template: FontTemplateRef,
         pt_size: Option<Au>,
@@ -143,7 +135,7 @@ pub trait FontTableMethods {
     fn buffer(&self) -> &[u8];
 }
 
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub struct FontMetrics {
     pub underline_size: Au,
     pub underline_offset: Au,

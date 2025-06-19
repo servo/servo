@@ -276,14 +276,9 @@ impl IndependentNonReplacedContents {
         }
     }
 
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(
-            name = "IndependentNonReplacedContents::layout_with_caching",
-            skip_all,
-            fields(servo_profiling = true),
-            level = "trace",
-        )
+    #[servo_tracing::instrument(
+        name = "IndependentNonReplacedContents::layout_with_caching",
+        skip_all
     )]
     #[allow(clippy::too_many_arguments)]
     pub fn layout(

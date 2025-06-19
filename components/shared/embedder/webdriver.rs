@@ -42,7 +42,13 @@ pub enum WebDriverCommandMsg {
     /// Act as if keys were pressed in the browsing context with the given ID.
     SendKeys(BrowsingContextId, Vec<WebDriverInputEvent>),
     /// Act as if keys were pressed or release in the browsing context with the given ID.
-    KeyboardAction(BrowsingContextId, KeyboardEvent),
+    KeyboardAction(
+        BrowsingContextId,
+        KeyboardEvent,
+        // Should never be None.
+        Option<WebDriverMessageId>,
+        IpcSender<WebDriverCommandResponse>,
+    ),
     /// Act as if the mouse was clicked in the browsing context with the given ID.
     MouseButtonAction(
         WebViewId,
@@ -50,7 +56,8 @@ pub enum WebDriverCommandMsg {
         MouseButton,
         f32,
         f32,
-        WebDriverMessageId,
+        // Should never be None.
+        Option<WebDriverMessageId>,
         IpcSender<WebDriverCommandResponse>,
     ),
     /// Act as if the mouse was moved in the browsing context with the given ID.
@@ -58,11 +65,23 @@ pub enum WebDriverCommandMsg {
         WebViewId,
         f32,
         f32,
-        WebDriverMessageId,
+        // None if it's not the last `perform_pointer_move` since we only
+        // expect one response from constellation for each tick actions.
+        Option<WebDriverMessageId>,
         IpcSender<WebDriverCommandResponse>,
     ),
     /// Act as if the mouse wheel is scrolled in the browsing context given the given ID.
-    WheelScrollAction(WebViewId, f32, f32, f64, f64),
+    WheelScrollAction(
+        WebViewId,
+        f32,
+        f32,
+        f64,
+        f64,
+        // None if it's not the last `perform_wheel_scroll` since we only
+        // expect one response from constellation for each tick actions.
+        Option<WebDriverMessageId>,
+        IpcSender<WebDriverCommandResponse>,
+    ),
     /// Set the window size.
     SetWindowSize(WebViewId, DeviceIntSize, IpcSender<Size2D<f32, CSSPixel>>),
     /// Take a screenshot of the window.
@@ -84,6 +103,10 @@ pub enum WebDriverCommandMsg {
     CloseWebView(WebViewId),
     /// Focus the webview associated with the provided id.
     FocusWebView(WebViewId),
+    /// Check whether top-level browsing context is open.
+    IsWebViewOpen(WebViewId, IpcSender<bool>),
+    /// Check whether browsing context is open.
+    IsBrowsingContextOpen(BrowsingContextId, IpcSender<bool>),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -94,7 +117,7 @@ pub enum WebDriverScriptCommand {
             serialize_with = "::hyper_serde::serialize"
         )]
         Cookie<'static>,
-        IpcSender<Result<(), WebDriverCookieError>>,
+        IpcSender<Result<(), ErrorStatus>>,
     ),
     DeleteCookies(IpcSender<Result<(), ErrorStatus>>),
     DeleteCookie(String, IpcSender<Result<(), ErrorStatus>>),
@@ -134,8 +157,11 @@ pub enum WebDriverScriptCommand {
     ElementClick(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     GetActiveElement(IpcSender<Option<String>>),
     GetComputedRole(String, IpcSender<Result<Option<String>, ErrorStatus>>),
-    GetCookie(String, IpcSender<Vec<Serde<Cookie<'static>>>>),
-    GetCookies(IpcSender<Vec<Serde<Cookie<'static>>>>),
+    GetCookie(
+        String,
+        IpcSender<Result<Vec<Serde<Cookie<'static>>>, ErrorStatus>>,
+    ),
+    GetCookies(IpcSender<Result<Vec<Serde<Cookie<'static>>>, ErrorStatus>>),
     GetElementAttribute(
         String,
         String,
@@ -163,12 +189,6 @@ pub enum WebDriverScriptCommand {
     GetTitle(IpcSender<String>),
     /// Match the element type before sending the event for webdriver `element send keys`.
     WillSendKeys(String, String, bool, IpcSender<Result<bool, ErrorStatus>>),
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub enum WebDriverCookieError {
-    InvalidDomain,
-    UnableToSetCookie,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

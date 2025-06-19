@@ -20,9 +20,10 @@ use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePixel};
 use servo::{
     Cursor, ImeEvent, InputEvent, Key, KeyState, KeyboardEvent, MouseButton as ServoMouseButton,
-    MouseButtonAction, MouseButtonEvent, MouseMoveEvent, OffscreenRenderingContext,
-    RenderingContext, ScreenGeometry, Theme, TouchEvent, TouchEventType, TouchId,
-    WebRenderDebugOption, WebView, WheelDelta, WheelEvent, WheelMode, WindowRenderingContext,
+    MouseButtonAction, MouseButtonEvent, MouseLeaveEvent, MouseMoveEvent,
+    OffscreenRenderingContext, RenderingContext, ScreenGeometry, Theme, TouchEvent, TouchEventType,
+    TouchId, WebRenderDebugOption, WebView, WheelDelta, WheelEvent, WheelMode,
+    WindowRenderingContext,
 };
 use surfman::{Context, Device};
 use url::Url;
@@ -184,16 +185,16 @@ impl Window {
             // no keyboard event is emitted. A dummy event is created in this case.
             (KeyboardEvent::default(), None)
         };
-        event.key = Key::Character(character.to_string());
+        event.event.key = Key::Character(character.to_string());
 
-        if event.state == KeyState::Down {
+        if event.event.state == KeyState::Down {
             // Ensure that when we receive a keyup event from winit, we are able
             // to infer that it's related to this character and set the event
             // properties appropriately.
             if let Some(key_code) = key_code {
                 self.keys_down
                     .borrow_mut()
-                    .insert(key_code, event.key.clone());
+                    .insert(key_code, event.event.key.clone());
             }
         }
 
@@ -223,20 +224,24 @@ impl Window {
             }
         }
 
-        if keyboard_event.state == KeyState::Down && keyboard_event.key == Key::Unidentified {
+        if keyboard_event.event.state == KeyState::Down &&
+            keyboard_event.event.key == Key::Unidentified
+        {
             // If pressed and probably printable, we expect a ReceivedCharacter event.
             // Wait for that to be received and don't queue any event right now.
             self.last_pressed
                 .set(Some((keyboard_event, Some(winit_event.logical_key))));
             return;
-        } else if keyboard_event.state == KeyState::Up && keyboard_event.key == Key::Unidentified {
+        } else if keyboard_event.event.state == KeyState::Up &&
+            keyboard_event.event.key == Key::Unidentified
+        {
             // If release and probably printable, this is following a ReceiverCharacter event.
             if let Some(key) = self.keys_down.borrow_mut().remove(&winit_event.logical_key) {
-                keyboard_event.key = key;
+                keyboard_event.event.key = key;
             }
         }
 
-        if keyboard_event.key != Key::Unidentified {
+        if keyboard_event.event.key != Key::Unidentified {
             self.last_pressed.set(None);
             let xr_poses = self.xr_window_poses.borrow();
             for xr_window_pose in &*xr_poses {
@@ -284,7 +289,7 @@ impl Window {
         };
 
         let mut handled = true;
-        ShortcutMatcher::from_event(key_event.clone())
+        ShortcutMatcher::from_event(key_event.event.clone())
             .shortcut(CMD_OR_CONTROL, 'R', || focused_webview.reload())
             .shortcut(CMD_OR_CONTROL, 'W', || {
                 state.close_webview(focused_webview.id());
@@ -566,8 +571,22 @@ impl WindowPortsMethods for Window {
                 let mut point = winit_position_to_euclid_point(position).to_f32();
                 point.y -= (self.toolbar_height() * self.hidpi_scale_factor()).0;
 
+                let previous_point = self.webview_relative_mouse_point.get();
+                if webview.rect().contains(point) {
+                    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
+                } else if webview.rect().contains(previous_point) {
+                    webview.notify_input_event(InputEvent::MouseLeave(MouseLeaveEvent::new(
+                        previous_point,
+                    )));
+                }
+
                 self.webview_relative_mouse_point.set(point);
-                webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
+            },
+            WindowEvent::CursorLeft { .. } => {
+                let point = self.webview_relative_mouse_point.get();
+                if webview.rect().contains(point) {
+                    webview.notify_input_event(InputEvent::MouseLeave(MouseLeaveEvent::new(point)));
+                }
             },
             WindowEvent::MouseWheel { delta, phase, .. } => {
                 let (mut dx, mut dy, mode) = match delta {
@@ -588,8 +607,7 @@ impl WindowPortsMethods for Window {
                     z: 0.0,
                     mode,
                 };
-                let pos = self.webview_relative_mouse_point.get();
-                let point = Point2D::new(pos.x, pos.y);
+                let point = self.webview_relative_mouse_point.get();
 
                 // Scroll events snap to the major axis of movement, with vertical
                 // preferred over horizontal.
@@ -603,12 +621,8 @@ impl WindowPortsMethods for Window {
                 let phase = winit_phase_to_touch_event_type(phase);
 
                 // Send events
-                webview.notify_input_event(InputEvent::Wheel(WheelEvent { delta, point }));
-                webview.notify_scroll_event(
-                    scroll_location,
-                    self.webview_relative_mouse_point.get().to_i32(),
-                    phase,
-                );
+                webview.notify_input_event(InputEvent::Wheel(WheelEvent::new(delta, point)));
+                webview.notify_scroll_event(scroll_location, point.to_i32(), phase);
             },
             WindowEvent::Touch(touch) => {
                 webview.notify_input_event(InputEvent::Touch(TouchEvent::new(
@@ -828,14 +842,14 @@ impl servo::webxr::glwindow::GlWindow for XRWindow {
 
 impl XRWindowPose {
     fn handle_xr_translation(&self, input: &KeyboardEvent) {
-        if input.state != KeyState::Down {
+        if input.event.state != KeyState::Down {
             return;
         }
         const NORMAL_TRANSLATE: f32 = 0.1;
         const QUICK_TRANSLATE: f32 = 1.0;
         let mut x = 0.0;
         let mut z = 0.0;
-        match input.key {
+        match input.event.key {
             Key::Character(ref k) => match &**k {
                 "w" => z = -NORMAL_TRANSLATE,
                 "W" => z = -QUICK_TRANSLATE,

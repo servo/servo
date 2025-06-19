@@ -216,11 +216,15 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
     }
 
     fn has_part_attr(&self) -> bool {
-        false
+        self.element
+            .get_attr_for_layout(&ns!(), &local_name!("part"))
+            .is_some()
     }
 
     fn exports_any_part(&self) -> bool {
-        false
+        self.element
+            .get_attr_for_layout(&ns!(), &local_name!("exportparts"))
+            .is_some()
     }
 
     fn style_attribute(&self) -> Option<ArcBorrow<StyleLocked<PropertyDeclarationBlock>>> {
@@ -290,6 +294,32 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
         for attr in self.element.attrs() {
             callback(style::values::GenericAtomIdent::cast(attr.local_name()))
         }
+    }
+
+    fn each_part<F>(&self, mut callback: F)
+    where
+        F: FnMut(&AtomIdent),
+    {
+        if let Some(parts) = self.element.get_parts_for_layout() {
+            for part in parts {
+                callback(AtomIdent::cast(part))
+            }
+        }
+    }
+
+    fn each_exported_part<F>(&self, name: &AtomIdent, callback: F)
+    where
+        F: FnMut(&AtomIdent),
+    {
+        let Some(exported_parts) = self
+            .element
+            .get_attr_for_layout(&ns!(), &local_name!("exportparts"))
+        else {
+            return;
+        };
+        exported_parts
+            .as_shadow_parts()
+            .for_each_exported_part(AtomIdent::cast(name), callback);
     }
 
     fn has_dirty_descendants(&self) -> bool {
@@ -728,17 +758,26 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
     }
 
     #[inline]
-    fn is_part(&self, _name: &AtomIdent) -> bool {
-        false
+    fn is_part(&self, name: &AtomIdent) -> bool {
+        self.element.has_class_or_part_for_layout(
+            name,
+            &local_name!("part"),
+            CaseSensitivity::CaseSensitive,
+        )
     }
 
-    fn imported_part(&self, _: &AtomIdent) -> Option<AtomIdent> {
-        None
+    fn imported_part(&self, name: &AtomIdent) -> Option<AtomIdent> {
+        self.element
+            .get_attr_for_layout(&ns!(), &local_name!("exportparts"))?
+            .as_shadow_parts()
+            .imported_part(name)
+            .map(|import| AtomIdent::new(import.clone()))
     }
 
     #[inline]
     fn has_class(&self, name: &AtomIdent, case_sensitivity: CaseSensitivity) -> bool {
-        self.element.has_class_for_layout(name, case_sensitivity)
+        self.element
+            .has_class_or_part_for_layout(name, &local_name!("class"), case_sensitivity)
     }
 
     fn is_html_slot_element(&self) -> bool {

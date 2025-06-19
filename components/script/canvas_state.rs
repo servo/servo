@@ -55,6 +55,7 @@ use crate::dom::element::{Element, cors_setting_for_element};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::htmlvideoelement::HTMLVideoElement;
+use crate::dom::imagebitmap::ImageBitmap;
 use crate::dom::imagedata::ImageData;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::offscreencanvas::OffscreenCanvas;
@@ -319,6 +320,7 @@ impl CanvasState {
             },
             CanvasImageSource::HTMLVideoElement(video) => video.origin_is_clean(),
             CanvasImageSource::HTMLCanvasElement(canvas) => canvas.origin_is_clean(),
+            CanvasImageSource::ImageBitmap(bitmap) => bitmap.origin_is_clean(),
             CanvasImageSource::OffscreenCanvas(canvas) => canvas.origin_is_clean(),
             CanvasImageSource::CSSStyleValue(_) => true,
         }
@@ -458,6 +460,15 @@ impl CanvasState {
                 }
 
                 self.draw_html_canvas_element(canvas, htmlcanvas, sx, sy, sw, sh, dx, dy, dw, dh)
+            },
+            CanvasImageSource::ImageBitmap(ref bitmap) => {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                if bitmap.is_detached() {
+                    return Err(Error::InvalidState);
+                }
+
+                self.draw_image_bitmap(bitmap, htmlcanvas, sx, sy, sw, sh, dx, dy, dw, dh);
+                Ok(())
             },
             CanvasImageSource::OffscreenCanvas(ref canvas) => {
                 // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
@@ -726,6 +737,52 @@ impl CanvasState {
         ));
         self.mark_as_dirty(canvas);
         Ok(())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage>
+    #[allow(clippy::too_many_arguments)]
+    fn draw_image_bitmap(
+        &self,
+        bitmap: &ImageBitmap,
+        canvas: Option<&HTMLCanvasElement>,
+        sx: f64,
+        sy: f64,
+        sw: Option<f64>,
+        sh: Option<f64>,
+        dx: f64,
+        dy: f64,
+        dw: Option<f64>,
+        dh: Option<f64>,
+    ) {
+        let Some(snapshot) = bitmap.bitmap_data().clone() else {
+            return;
+        };
+
+        // Step 4. Establish the source and destination rectangles.
+        let bitmap_size = snapshot.size();
+        let dw = dw.unwrap_or(bitmap_size.width as f64);
+        let dh = dh.unwrap_or(bitmap_size.height as f64);
+        let sw = sw.unwrap_or(bitmap_size.width as f64);
+        let sh = sh.unwrap_or(bitmap_size.height as f64);
+
+        let (source_rect, dest_rect) =
+            self.adjust_source_dest_rects(bitmap_size, sx, sy, sw, sh, dx, dy, dw, dh);
+
+        // Step 5. If one of the sw or sh arguments is zero, then return. Nothing is painted.
+        if !is_rect_valid(source_rect) || !is_rect_valid(dest_rect) {
+            return;
+        }
+
+        let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
+
+        self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
+            snapshot.as_ipc(),
+            dest_rect,
+            source_rect,
+            smoothing_enabled,
+        ));
+
+        self.mark_as_dirty(canvas);
     }
 
     pub(crate) fn mark_as_dirty(&self, canvas: Option<&HTMLCanvasElement>) {
@@ -1062,6 +1119,14 @@ impl CanvasState {
                 }
 
                 canvas.get_image_data().ok_or(Error::InvalidState)?
+            },
+            CanvasImageSource::ImageBitmap(ref bitmap) => {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                if bitmap.is_detached() {
+                    return Err(Error::InvalidState);
+                }
+
+                bitmap.bitmap_data().clone().ok_or(Error::InvalidState)?
             },
             CanvasImageSource::OffscreenCanvas(ref canvas) => {
                 // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>

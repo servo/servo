@@ -35,7 +35,7 @@ pub(crate) trait CanvasContext {
 
     fn context_id(&self) -> Self::ID;
 
-    fn canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas;
+    fn canvas(&self) -> Option<HTMLCanvasElementOrOffscreenCanvas>;
 
     fn resize(&self);
 
@@ -49,19 +49,26 @@ pub(crate) trait CanvasContext {
     }
 
     fn size(&self) -> Size2D<u32> {
-        self.canvas().size()
+        self.canvas()
+            .map(|canvas| canvas.size())
+            .unwrap_or_default()
     }
 
     fn mark_as_dirty(&self) {
-        if let HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) = &self.canvas() {
-            canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        if let Some(HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas)) = &self.canvas()
+        {
+            canvas.upcast::<Node>().dirty(NodeDamage::Other);
         }
     }
 
     fn update_rendering(&self) {}
 
     fn onscreen(&self) -> bool {
-        match self.canvas() {
+        let Some(canvas) = self.canvas() else {
+            return false;
+        };
+
+        match canvas {
             HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
                 canvas.upcast::<Node>().is_connected()
             },
@@ -112,9 +119,9 @@ impl CanvasContext for RenderingContext {
 
     fn context_id(&self) -> Self::ID {}
 
-    fn canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
+    fn canvas(&self) -> Option<HTMLCanvasElementOrOffscreenCanvas> {
         match self {
-            RenderingContext::Placeholder(context) => (*context.context().unwrap()).canvas(),
+            RenderingContext::Placeholder(offscreen_canvas) => offscreen_canvas.context()?.canvas(),
             RenderingContext::Context2d(context) => context.canvas(),
             RenderingContext::WebGL(context) => context.canvas(),
             RenderingContext::WebGL2(context) => context.canvas(),
@@ -140,8 +147,8 @@ impl CanvasContext for RenderingContext {
 
     fn get_image_data(&self) -> Option<Snapshot> {
         match self {
-            RenderingContext::Placeholder(context) => {
-                (*context.context().unwrap()).get_image_data()
+            RenderingContext::Placeholder(offscreen_canvas) => {
+                offscreen_canvas.context()?.get_image_data()
             },
             RenderingContext::Context2d(context) => context.get_image_data(),
             RenderingContext::WebGL(context) => context.get_image_data(),
@@ -153,9 +160,9 @@ impl CanvasContext for RenderingContext {
 
     fn origin_is_clean(&self) -> bool {
         match self {
-            RenderingContext::Placeholder(context) => {
-                (*context.context().unwrap()).origin_is_clean()
-            },
+            RenderingContext::Placeholder(offscreen_canvas) => offscreen_canvas
+                .context()
+                .is_none_or(|context| context.origin_is_clean()),
             RenderingContext::Context2d(context) => context.origin_is_clean(),
             RenderingContext::WebGL(context) => context.origin_is_clean(),
             RenderingContext::WebGL2(context) => context.origin_is_clean(),
@@ -166,7 +173,10 @@ impl CanvasContext for RenderingContext {
 
     fn size(&self) -> Size2D<u32> {
         match self {
-            RenderingContext::Placeholder(context) => (*context.context().unwrap()).size(),
+            RenderingContext::Placeholder(offscreen_canvas) => offscreen_canvas
+                .context()
+                .map(|context| context.size())
+                .unwrap_or_default(),
             RenderingContext::Context2d(context) => context.size(),
             RenderingContext::WebGL(context) => context.size(),
             RenderingContext::WebGL2(context) => context.size(),
@@ -177,7 +187,11 @@ impl CanvasContext for RenderingContext {
 
     fn mark_as_dirty(&self) {
         match self {
-            RenderingContext::Placeholder(context) => (*context.context().unwrap()).mark_as_dirty(),
+            RenderingContext::Placeholder(offscreen_canvas) => {
+                if let Some(context) = offscreen_canvas.context() {
+                    context.mark_as_dirty()
+                }
+            },
             RenderingContext::Context2d(context) => context.mark_as_dirty(),
             RenderingContext::WebGL(context) => context.mark_as_dirty(),
             RenderingContext::WebGL2(context) => context.mark_as_dirty(),
@@ -188,8 +202,10 @@ impl CanvasContext for RenderingContext {
 
     fn update_rendering(&self) {
         match self {
-            RenderingContext::Placeholder(context) => {
-                (*context.context().unwrap()).update_rendering()
+            RenderingContext::Placeholder(offscreen_canvas) => {
+                if let Some(context) = offscreen_canvas.context() {
+                    context.update_rendering()
+                }
             },
             RenderingContext::Context2d(context) => context.update_rendering(),
             RenderingContext::WebGL(context) => context.update_rendering(),
@@ -201,7 +217,9 @@ impl CanvasContext for RenderingContext {
 
     fn onscreen(&self) -> bool {
         match self {
-            RenderingContext::Placeholder(context) => (*context.context().unwrap()).onscreen(),
+            RenderingContext::Placeholder(offscreen_canvas) => offscreen_canvas
+                .context()
+                .is_some_and(|context| context.onscreen()),
             RenderingContext::Context2d(context) => context.onscreen(),
             RenderingContext::WebGL(context) => context.onscreen(),
             RenderingContext::WebGL2(context) => context.onscreen(),
@@ -227,7 +245,7 @@ impl CanvasContext for OffscreenRenderingContext {
 
     fn context_id(&self) -> Self::ID {}
 
-    fn canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
+    fn canvas(&self) -> Option<HTMLCanvasElementOrOffscreenCanvas> {
         match self {
             OffscreenRenderingContext::Context2d(context) => context.canvas(),
         }

@@ -309,15 +309,16 @@ impl RTCPeerConnection {
                 event.upcast::<Event>().fire(self.upcast(), can_gc);
             },
             _ => {
-                let channel = if let Some(channel) = self.data_channels.borrow().get(&channel_id) {
-                    DomRoot::from_ref(&**channel)
-                } else {
-                    warn!(
-                        "Got an event for an unregistered data channel {:?}",
-                        channel_id
-                    );
-                    return;
-                };
+                let channel: DomRoot<RTCDataChannel> =
+                    if let Some(channel) = self.data_channels.borrow().get(&channel_id) {
+                        DomRoot::from_ref(&**channel)
+                    } else {
+                        warn!(
+                            "Got an event for an unregistered data channel {:?}",
+                            channel_id
+                        );
+                        return;
+                    };
 
                 match event {
                     DataChannelEvent::Open => channel.on_open(can_gc),

@@ -195,6 +195,10 @@ impl Snapshot<Data> {
         &self.data
     }
 
+    pub fn data_mut(&mut self) -> &mut [u8] {
+        &mut self.data
+    }
+
     /// Convert inner data of snapshot to target format and alpha mode.
     /// If data is already in target format and alpha mode no work will be done.
     pub fn transform(&mut self, target_alpha_mode: AlphaMode, target_format: PixelFormat) {

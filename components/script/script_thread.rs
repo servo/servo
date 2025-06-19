@@ -36,10 +36,10 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::id::{BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, WebViewId};
 use canvas_traits::webgl::WebGLPipeline;
 use chrono::{DateTime, Local};
-use compositing_traits::CrossProcessCompositorApi;
+use compositing_traits::{CompositorMsg, CrossProcessCompositorApi, PipelineExitSource};
 use constellation_traits::{
     JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptToConstellationChan,
-    ScriptToConstellationMessage, ScrollState, StructuredSerializedData, WindowSizeType,
+    ScriptToConstellationMessage, StructuredSerializedData, WindowSizeType,
 };
 use content_security_policy::{self as csp};
 use crossbeam_channel::unbounded;
@@ -95,11 +95,12 @@ use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::dom::OpaqueNode;
 use style::thread_state::{self, ThreadState};
 use stylo_atoms::Atom;
-use timers::{TimerEventRequest, TimerScheduler};
+use timers::{TimerEventRequest, TimerId, TimerScheduler};
 use url::Position;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPUDevice, WebGPUMsg};
-use webrender_api::units::DevicePixel;
+use webrender_api::ExternalScrollId;
+use webrender_api::units::{DevicePixel, LayoutVector2D};
 
 use crate::document_collection::DocumentCollection;
 use crate::document_loader::DocumentLoader;
@@ -339,6 +340,18 @@ pub struct ScriptThread {
     /// The screen coordinates where the primary mouse button was pressed.
     #[no_trace]
     relative_mouse_down_point: Cell<Point2D<f32, DevicePixel>>,
+
+    /// The [`TimerId`] of the scheduled ScriptThread-only animation tick timer, if any.
+    /// This may be non-`None` when rAF callbacks do not trigger display list creation. In
+    /// that case the compositor will never trigger a new animation tick because it's
+    /// dependent on the rendering of a new WebRender frame.
+    #[no_trace]
+    scheduled_script_thread_animation_timer: RefCell<Option<TimerId>>,
+
+    /// A flag that lets the [`ScriptThread`]'s main loop know that the
+    /// [`Self::scheduled_script_thread_animation_timer`] timer fired and it should
+    /// trigger an animation tick "update the rendering" call.
+    should_trigger_script_thread_animation_tick: Arc<AtomicBool>,
 }
 
 struct BHMExitSignal {
@@ -554,8 +567,8 @@ impl ScriptThread {
     }
 
     /// Schedule a [`TimerEventRequest`] on this [`ScriptThread`]'s [`TimerScheduler`].
-    pub(crate) fn schedule_timer(&self, request: TimerEventRequest) {
-        self.timer_scheduler.borrow_mut().schedule_timer(request);
+    pub(crate) fn schedule_timer(&self, request: TimerEventRequest) -> TimerId {
+        self.timer_scheduler.borrow_mut().schedule_timer(request)
     }
 
     // https://html.spec.whatwg.org/multipage/#await-a-stable-state
@@ -614,7 +627,7 @@ impl ScriptThread {
                     if let Some(window) = trusted_global.root().downcast::<Window>() {
                         // Step 5: If the result of should navigation request of type be blocked by
                         // Content Security Policy? given request and cspNavigationType is "Blocked", then return. [CSP]
-                        if trusted_global.root().should_navigation_request_be_blocked(&load_data) {
+                        if trusted_global.root().should_navigation_request_be_blocked(&load_data, None) {
                             return;
                         }
                         if ScriptThread::check_load_origin(&load_data.load_origin, &window.get_url().origin()) {
@@ -966,6 +979,8 @@ impl ScriptThread {
             inherited_secure_context: state.inherited_secure_context,
             layout_factory,
             relative_mouse_down_point: Cell::new(Point2D::zero()),
+            scheduled_script_thread_animation_timer: Default::default(),
+            should_trigger_script_thread_animation_tick: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -1112,6 +1127,14 @@ impl ScriptThread {
                         can_gc,
                     );
                 },
+                InputEvent::MouseLeave(_) => {
+                    self.topmost_mouse_over_target.take();
+                    document.handle_mouse_leave_event(
+                        event.hit_test_result,
+                        event.pressed_mouse_buttons,
+                        can_gc,
+                    );
+                },
                 InputEvent::Touch(touch_event) => {
                     let touch_result =
                         document.handle_touch_event(touch_event, event.hit_test_result, can_gc);
@@ -1152,6 +1175,9 @@ impl ScriptThread {
                 InputEvent::EditingAction(editing_action_event) => {
                     document.handle_editing_action(editing_action_event, can_gc);
                 },
+                InputEvent::Scroll(scroll_event) => {
+                    document.handle_scroll_event(scroll_event, can_gc);
+                },
             }
         }
         ScriptThread::set_user_interacting(false);
@@ -1174,8 +1200,33 @@ impl ScriptThread {
     ///
     /// Attempt to update the rendering and then do a microtask checkpoint if rendering was actually
     /// updated.
-    pub(crate) fn update_the_rendering(&self, requested_by_compositor: bool, can_gc: CanGc) {
+    pub(crate) fn update_the_rendering(&self, requested_by_renderer: bool, can_gc: CanGc) {
         *self.last_render_opportunity_time.borrow_mut() = Some(Instant::now());
+
+        // If the ScriptThread animation timer fired, this is an animation tick.
+        let mut is_animation_tick = requested_by_renderer;
+        if self
+            .should_trigger_script_thread_animation_tick
+            .load(Ordering::Relaxed)
+        {
+            self.should_trigger_script_thread_animation_tick
+                .store(false, Ordering::Relaxed);
+            *self.scheduled_script_thread_animation_timer.borrow_mut() = None;
+            is_animation_tick = true;
+        }
+
+        // If this is an animation tick, cancel any upcoming ScriptThread-based animation timer.
+        // This tick serves the purpose and we to limit animation ticks if some are coming from
+        // the renderer.
+        if requested_by_renderer {
+            if let Some(timer_id) = self
+                .scheduled_script_thread_animation_timer
+                .borrow_mut()
+                .take()
+            {
+                self.timer_scheduler.borrow_mut().cancel_timer(timer_id);
+            }
+        }
 
         if !self.can_continue_running_inner() {
             return;
@@ -1196,7 +1247,7 @@ impl ScriptThread {
         // If we aren't explicitly running rAFs, this update wasn't requested by the compositor,
         // and we are running animations, then wait until the compositor tells us it is time to
         // update the rendering via a TickAllAnimations message.
-        if !requested_by_compositor && any_animations_running {
+        if !is_animation_tick && any_animations_running {
             return;
         }
 
@@ -1220,6 +1271,7 @@ impl ScriptThread {
         // steps per doc in docs. Currently `<iframe>` resizing depends on a parent being able to
         // queue resize events on a child and have those run in the same call to this method, so
         // that needs to be sorted out to fix this.
+        let mut saw_any_reflows = false;
         for pipeline_id in documents_in_order.iter() {
             let document = self
                 .documents
@@ -1268,7 +1320,7 @@ impl ScriptThread {
             // > 14. For each doc of docs, run the animation frame callbacks for doc, passing
             // > in the relative high resolution time given frameTimestamp and doc's
             // > relevant global object as the timestamp.
-            if requested_by_compositor {
+            if is_animation_tick {
                 document.run_the_animation_frame_callbacks(can_gc);
             }
 
@@ -1307,10 +1359,10 @@ impl ScriptThread {
 
             // > Step 22: For each doc of docs, update the rendering or user interface of
             // > doc and its node navigable to reflect the current state.
-            let window = document.window();
-            if document.is_fully_active() {
-                window.reflow(ReflowGoal::UpdateTheRendering, can_gc);
-            }
+            saw_any_reflows = document
+                .window()
+                .reflow(ReflowGoal::UpdateTheRendering, can_gc) ||
+                saw_any_reflows;
 
             // TODO: Process top layer removals according to
             // https://drafts.csswg.org/css-position-4/#process-top-layer-removals.
@@ -1324,6 +1376,13 @@ impl ScriptThread {
         // the microtask checkpoint above and we should spin the event loop one more
         // time to resolve them.
         self.schedule_rendering_opportunity_if_necessary();
+
+        // If this was a animation update request, then potentially schedule a new
+        // animation update in the case that the compositor might not do it due to
+        // not receiving any display lists.
+        if is_animation_tick {
+            self.schedule_script_thread_animation_tick_if_necessary(saw_any_reflows);
+        }
     }
 
     // If there are any pending reflows and we are not having rendering opportunities
@@ -1366,6 +1425,54 @@ impl ScriptThread {
             .task_manager()
             .rendering_task_source()
             .queue_unconditionally(task!(update_the_rendering: move || { }));
+    }
+
+    /// The renderer triggers animation ticks based on the arrival and painting of new
+    /// display lists. In the case that a `WebView` is animating or has a
+    /// requestAnimationFrame callback, it may be that an animation tick reflow does
+    /// not change anything and thus does not send a new display list to the renderer.
+    /// If that's the case, we need to schedule a ScriptThread-based animation update
+    /// (to avoid waking the renderer up).
+    fn schedule_script_thread_animation_tick_if_necessary(&self, saw_any_reflows: bool) {
+        if saw_any_reflows {
+            return;
+        }
+
+        // Always schedule a ScriptThread-based animation tick, unless none of the
+        // documents are active and have animations running and/or rAF callbacks.
+        if !self.documents.borrow().iter().any(|(_, document)| {
+            document.is_fully_active() &&
+                !document.window().throttled() &&
+                (document.animations().running_animation_count() != 0 ||
+                    document.has_active_request_animation_frame_callbacks())
+        }) {
+            return;
+        }
+
+        /// The amount of time between ScriptThread animation ticks when nothing is
+        /// changing. In order to be more efficient, only tick at around 30 frames a
+        /// second, which also gives time for any renderer ticks to come in and cancel
+        /// this tick. A renderer tick might happen for a variety of reasons, such as a
+        /// Pipeline in another ScriptThread producing a display list.
+        const SCRIPT_THREAD_ANIMATION_TICK_DELAY: u64 = 30;
+
+        debug!("Scheduling ScriptThread animation frame.");
+        let trigger_script_thread_animation =
+            self.should_trigger_script_thread_animation_tick.clone();
+        let timer_id = self.schedule_timer(TimerEventRequest {
+            callback: Box::new(move || {
+                trigger_script_thread_animation.store(true, Ordering::Relaxed);
+            }),
+            duration: Duration::from_millis(SCRIPT_THREAD_ANIMATION_TICK_DELAY),
+        });
+
+        let mut scheduled_script_thread_animation_timer =
+            self.scheduled_script_thread_animation_timer.borrow_mut();
+        assert!(
+            scheduled_script_thread_animation_timer.is_none(),
+            "Should never schedule a new timer when one is already scheduled."
+        );
+        *scheduled_script_thread_animation_timer = Some(timer_id);
     }
 
     /// Handle incoming messages from other tasks and the task queue.
@@ -1509,10 +1616,12 @@ impl ScriptThread {
                         return false;
                     },
                     MixedMessage::FromConstellation(ScriptThreadMessage::ExitPipeline(
+                        webview_id,
                         pipeline_id,
                         discard_browsing_context,
                     )) => {
                         self.handle_exit_pipeline_msg(
+                            webview_id,
                             pipeline_id,
                             discard_browsing_context,
                             can_gc,
@@ -1626,6 +1735,12 @@ impl ScriptThread {
                 },
                 ScriptThreadEventCategory::ConstellationMsg => time_profile!(
                     ProfilerCategory::ScriptConstellationMsg,
+                    None,
+                    profiler_chan,
+                    f
+                ),
+                ScriptThreadEventCategory::DatabaseAccessEvent => time_profile!(
+                    ProfilerCategory::ScriptDatabaseAccessEvent,
                     None,
                     profiler_chan,
                     f
@@ -1874,9 +1989,16 @@ impl ScriptThread {
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg)
             },
             ScriptThreadMessage::Reload(pipeline_id) => self.handle_reload(pipeline_id, can_gc),
-            ScriptThreadMessage::ExitPipeline(pipeline_id, discard_browsing_context) => {
-                self.handle_exit_pipeline_msg(pipeline_id, discard_browsing_context, can_gc)
-            },
+            ScriptThreadMessage::ExitPipeline(
+                webview_id,
+                pipeline_id,
+                discard_browsing_context,
+            ) => self.handle_exit_pipeline_msg(
+                webview_id,
+                pipeline_id,
+                discard_browsing_context,
+                can_gc,
+            ),
             ScriptThreadMessage::PaintMetric(
                 pipeline_id,
                 metric_type,
@@ -1915,7 +2037,11 @@ impl ScriptThread {
         }
     }
 
-    fn handle_set_scroll_states(&self, pipeline_id: PipelineId, scroll_states: Vec<ScrollState>) {
+    fn handle_set_scroll_states(
+        &self,
+        pipeline_id: PipelineId,
+        scroll_states: HashMap<ExternalScrollId, LayoutVector2D>,
+    ) {
         let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
             warn!("Received scroll states for closed pipeline {pipeline_id}");
             return;
@@ -1925,16 +2051,15 @@ impl ScriptThread {
             ScriptThreadEventCategory::SetScrollState,
             Some(pipeline_id),
             || {
-                window.layout_mut().set_scroll_offsets(&scroll_states);
+                window
+                    .layout_mut()
+                    .set_scroll_offsets_from_renderer(&scroll_states);
 
                 let mut scroll_offsets = HashMap::new();
-                for scroll_state in scroll_states.into_iter() {
-                    let scroll_offset = scroll_state.scroll_offset;
-                    if scroll_state.scroll_id.is_root() {
+                for (scroll_id, scroll_offset) in scroll_states.into_iter() {
+                    if scroll_id.is_root() {
                         window.update_viewport_for_scroll(-scroll_offset.x, -scroll_offset.y);
-                    } else if let Some(node_id) =
-                        node_id_from_scroll_id(scroll_state.scroll_id.0 as usize)
-                    {
+                    } else if let Some(node_id) = node_id_from_scroll_id(scroll_id.0 as usize) {
                         scroll_offsets.insert(OpaqueNode(node_id), -scroll_offset);
                     }
                 }
@@ -2179,6 +2304,7 @@ impl ScriptThread {
                     selector,
                     partial,
                     reply,
+                    can_gc,
                 )
             },
             WebDriverScriptCommand::FindElementTagName(selector, reply) => {
@@ -2205,6 +2331,7 @@ impl ScriptThread {
                     selector,
                     partial,
                     reply,
+                    can_gc,
                 )
             },
             WebDriverScriptCommand::FindElementsTagName(selector, reply) => {
@@ -2237,6 +2364,7 @@ impl ScriptThread {
                 selector,
                 partial,
                 reply,
+                can_gc,
             ),
             WebDriverScriptCommand::FindElementElementTagName(selector, element_id, reply) => {
                 webdriver_handlers::handle_find_element_element_tag_name(
@@ -2269,6 +2397,7 @@ impl ScriptThread {
                 selector,
                 partial,
                 reply,
+                can_gc,
             ),
             WebDriverScriptCommand::FindElementElementsTagName(selector, element_id, reply) => {
                 webdriver_handlers::handle_find_element_elements_tag_name(
@@ -2362,7 +2491,7 @@ impl ScriptThread {
                 )
             },
             WebDriverScriptCommand::GetElementText(node_id, reply) => {
-                webdriver_handlers::handle_get_text(&documents, pipeline_id, node_id, reply)
+                webdriver_handlers::handle_get_text(&documents, pipeline_id, node_id, reply, can_gc)
             },
             WebDriverScriptCommand::GetElementInViewCenterPoint(node_id, reply) => {
                 webdriver_handlers::handle_get_element_in_view_center_point(
@@ -2451,7 +2580,7 @@ impl ScriptThread {
     fn handle_viewport(&self, id: PipelineId, rect: Rect<f32>) {
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
-            document.window().set_page_clip_rect_with_new_viewport(rect);
+            document.window().set_viewport(rect);
             return;
         }
         let loads = self.incomplete_loads.borrow();
@@ -2872,6 +3001,7 @@ impl ScriptThread {
     /// Handles a request to exit a pipeline and shut down layout.
     fn handle_exit_pipeline_msg(
         &self,
+        webview_id: WebViewId,
         id: PipelineId,
         discard_bc: DiscardBrowsingContext,
         can_gc: CanGc,
@@ -2929,6 +3059,15 @@ impl ScriptThread {
             .send((id, ScriptToConstellationMessage::PipelineExited))
             .ok();
 
+        self.compositor_api
+            .sender()
+            .send(CompositorMsg::PipelineExited(
+                webview_id,
+                id,
+                PipelineExitSource::Script,
+            ))
+            .ok();
+
         debug!("{id}: Finished pipeline exit");
     }
 
@@ -2936,24 +3075,29 @@ impl ScriptThread {
     fn handle_exit_script_thread_msg(&self, can_gc: CanGc) {
         debug!("Exiting script thread.");
 
-        let mut pipeline_ids = Vec::new();
-        pipeline_ids.extend(
+        let mut webview_and_pipeline_ids = Vec::new();
+        webview_and_pipeline_ids.extend(
             self.incomplete_loads
                 .borrow()
                 .iter()
                 .next()
-                .map(|load| load.pipeline_id),
+                .map(|load| (load.webview_id, load.pipeline_id)),
         );
-        pipeline_ids.extend(
+        webview_and_pipeline_ids.extend(
             self.documents
                 .borrow()
                 .iter()
                 .next()
-                .map(|(pipeline_id, _)| pipeline_id),
+                .map(|(pipeline_id, document)| (document.webview_id(), pipeline_id)),
         );
 
-        for pipeline_id in pipeline_ids {
-            self.handle_exit_pipeline_msg(pipeline_id, DiscardBrowsingContext::Yes, can_gc);
+        for (webview_id, pipeline_id) in webview_and_pipeline_ids {
+            self.handle_exit_pipeline_msg(
+                webview_id,
+                pipeline_id,
+                DiscardBrowsingContext::Yes,
+                can_gc,
+            );
         }
 
         self.background_hang_monitor.unregister();
