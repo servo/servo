@@ -12,14 +12,14 @@ use std::time::Instant;
 use std::{env, fs};
 
 use ::servo::ServoBuilder;
-use crossbeam_channel::Receiver;
+use crossbeam_channel::{Receiver, unbounded};
 use log::{info, trace, warn};
 use net::protocols::ProtocolRegistry;
 use servo::config::opts::Opts;
 use servo::config::prefs::Preferences;
 use servo::servo_url::ServoUrl;
 use servo::user_content_manager::{UserContentManager, UserScript};
-use servo::{EmbedderMsg, EventLoopWaker, WebDriverCommandMsg};
+use servo::{EventLoopWaker, WebDriverCommandMsg};
 use url::Url;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
@@ -49,7 +49,7 @@ pub struct App {
     t_start: Instant,
     t: Instant,
     state: AppState,
-    webdriver_receiver: Option<Receiver<EmbedderMsg>>,
+    webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
 
     // This is the last field of the struct to ensure that windows are dropped *after* all other
     // references to the relevant rendering contexts have been destroyed.
@@ -157,16 +157,20 @@ impl App {
         let servo = servo_builder.build();
         servo.setup_logging();
 
-        // Init webdriver server here before servo is moved
+        // Initialize WebDriver server here before `servo` is moved.
         if let Some(port) = self.opts.webdriver_port {
-            let (embedder_proxy, receiver) =
-                webdriver_server::create_embedder_channel(self.waker.clone());
+            let (embedder_sender, receiver) = unbounded();
             self.webdriver_receiver = Some(receiver);
 
-            // TODO: Remove this channel from webdriver once
-            // we move all webdriver events to embedder
+            // TODO: WebDriver will no longer need this channel once all WebDriver
+            // commands are executed via the Servo API.
             let constellation_sender = servo.constellation_sender();
-            webdriver_server::start_server(port, constellation_sender, embedder_proxy);
+            webdriver_server::start_server(
+                port,
+                constellation_sender,
+                embedder_sender,
+                self.waker.clone(),
+            );
         }
 
         let running_state = Rc::new(RunningAppState::new(
@@ -323,43 +327,35 @@ impl App {
 
         while let Ok(msg) = webdriver_receiver.try_recv() {
             match msg {
-                EmbedderMsg::WebDriverCommand(msg) => {
-                    match msg {
-                        WebDriverCommandMsg::IsWebViewOpen(webview_id, sender) => {
-                            let context = running_state.webview_by_id(webview_id);
-                            sender.send(context.is_some()).unwrap();
-                        },
-                        webdriver_msg @ WebDriverCommandMsg::IsBrowsingContextOpen(..) => {
-                            self.forward_webdriver_command(webdriver_msg);
-                        },
-                        WebDriverCommandMsg::CloseWebView(webview_id) => {
-                            running_state.close_webview(webview_id);
-                        },
-                        WebDriverCommandMsg::GetWindowSize(..) |
-                        WebDriverCommandMsg::FocusWebView(..) |
-                        WebDriverCommandMsg::LoadUrl(..) |
-                        WebDriverCommandMsg::ScriptCommand(..) |
-                        WebDriverCommandMsg::SendKeys(..) |
-                        WebDriverCommandMsg::KeyboardAction(..) |
-                        WebDriverCommandMsg::MouseButtonAction(..) |
-                        WebDriverCommandMsg::MouseMoveAction(..) |
-                        WebDriverCommandMsg::WheelScrollAction(..) |
-                        WebDriverCommandMsg::SetWindowSize(..) |
-                        WebDriverCommandMsg::TakeScreenshot(..) |
-                        WebDriverCommandMsg::NewWebView(..) |
-                        WebDriverCommandMsg::Refresh(..) => {
-                            warn!(
-                                "WebDriverCommand {:?} is still not moved from constellation to embedder",
-                                msg
-                            );
-                        },
-                    };
+                WebDriverCommandMsg::IsWebViewOpen(webview_id, sender) => {
+                    let context = running_state.webview_by_id(webview_id);
+                    sender.send(context.is_some()).unwrap();
                 },
-                _ => {
-                    // Webdriver receiver should only receive WebDriverCommand messages.
-                    unreachable!("WebDriver message should be WebDriverCommand, got: {msg:?}");
+                webdriver_msg @ WebDriverCommandMsg::IsBrowsingContextOpen(..) => {
+                    self.forward_webdriver_command(webdriver_msg);
                 },
-            }
+                WebDriverCommandMsg::CloseWebView(webview_id) => {
+                    running_state.close_webview(webview_id);
+                },
+                WebDriverCommandMsg::GetWindowSize(..) |
+                WebDriverCommandMsg::FocusWebView(..) |
+                WebDriverCommandMsg::LoadUrl(..) |
+                WebDriverCommandMsg::ScriptCommand(..) |
+                WebDriverCommandMsg::SendKeys(..) |
+                WebDriverCommandMsg::KeyboardAction(..) |
+                WebDriverCommandMsg::MouseButtonAction(..) |
+                WebDriverCommandMsg::MouseMoveAction(..) |
+                WebDriverCommandMsg::WheelScrollAction(..) |
+                WebDriverCommandMsg::SetWindowSize(..) |
+                WebDriverCommandMsg::TakeScreenshot(..) |
+                WebDriverCommandMsg::NewWebView(..) |
+                WebDriverCommandMsg::Refresh(..) => {
+                    warn!(
+                        "WebDriverCommand {:?} is still not moved from constellation to embedder",
+                        msg
+                    );
+                },
+            };
         }
     }
 

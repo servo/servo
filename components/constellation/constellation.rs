@@ -4537,7 +4537,7 @@ where
         // and pass the event to that script thread.
         match msg {
             WebDriverCommandMsg::CloseWebView(..) => {
-                unreachable!("Moved to embedder");
+                unreachable!("This command should be send directly to the embedder.");
             },
             WebDriverCommandMsg::NewWebView(
                 originating_webview_id,
@@ -4576,7 +4576,7 @@ where
                 self.handle_focus_web_view(webview_id);
             },
             WebDriverCommandMsg::IsWebViewOpen(..) => {
-                unreachable!("Moved to embedder");
+                unreachable!("This command should be send directly to the embedder.");
             },
             WebDriverCommandMsg::IsBrowsingContextOpen(browsing_context_id, response_sender) => {
                 let is_open = self.browsing_contexts.contains_key(&browsing_context_id);
