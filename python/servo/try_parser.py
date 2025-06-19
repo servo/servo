@@ -234,13 +234,14 @@ class TestParser(unittest.TestCase):
         )
 
     def test_empty(self):
+        self.maxDiff = None
         self.assertDictEqual(
             json.loads(Config("").to_json()),
             {
                 "fail_fast": False,
                 "matrix": [
                     {
-                        "name": "Linux (Unit Tests, WPT, Bencher)",
+                        "name": "Linux (Unit Tests, WPT, Bencher, WebDriver)",
                         "number_of_wpt_chunks": 20,
                         "workflow": "linux",
                         "wpt": True,
