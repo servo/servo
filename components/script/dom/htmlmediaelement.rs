@@ -170,7 +170,7 @@ pub(crate) struct MediaFrameRenderer {
     old_frame: Option<ImageKey>,
     very_old_frame: Option<ImageKey>,
     current_frame_holder: Option<FrameHolder>,
-    // <https://html.spec.whatwg.org/multipage/#poster-frame>
+    /// <https://html.spec.whatwg.org/multipage/#poster-frame>
     poster_frame: Option<MediaFrame>,
 }
 
@@ -2087,7 +2087,7 @@ impl HTMLMediaElement {
         }
     }
 
-    // Gets the video frame at the current playback position.
+    /// Gets the video frame at the current playback position.
     pub(crate) fn get_current_frame(&self) -> Option<VideoFrame> {
         self.video_renderer
             .lock()
