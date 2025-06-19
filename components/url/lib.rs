@@ -107,12 +107,12 @@ impl ServoUrl {
     /// <https://url.spec.whatwg.org/#special-scheme>
     pub fn is_special_scheme(&self) -> bool {
         let scheme = self.scheme();
-        scheme == "ftp"
-            || scheme == "file"
-            || scheme == "http"
-            || scheme == "https"
-            || scheme == "ws"
-            || scheme == "wss"
+        scheme == "ftp" ||
+            scheme == "file" ||
+            scheme == "http" ||
+            scheme == "https" ||
+            scheme == "ws" ||
+            scheme == "wss"
     }
 
     pub fn as_str(&self) -> &str {

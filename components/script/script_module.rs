@@ -636,9 +636,9 @@ impl ModuleTree {
                 JS_GetModulePrivate(module_object.get(), private.handle_mut());
                 let private = private.handle().into_handle();
                 let script = module_script_from_reference_private(&private);
-                let url = ModuleTree::resolve_module_specifier(global, script, specifier);
+                let url = ModuleTree::resolve_module_specifier(global, script, specifier, can_gc);
 
-                if url.is_none() {
+                if url.is_err() {
                     let specifier_error =
                         gen_type_error(global, "Wrong module specifier".to_owned(), can_gc);
 
@@ -652,29 +652,97 @@ impl ModuleTree {
         Ok(specifier_urls)
     }
 
-    /// The following module specifiers are allowed by the spec:
-    ///  - a valid absolute URL
-    ///  - a valid relative URL that starts with "/", "./" or "../"
-    ///
-    /// Bareword module specifiers are currently disallowed as these may be given
-    /// special meanings in the future.
     /// <https://html.spec.whatwg.org/multipage/#resolve-a-module-specifier>
     #[allow(unsafe_code)]
     fn resolve_module_specifier(
         global: &GlobalScope,
         script: Option<&ModuleScript>,
         specifier: DOMString,
-    ) -> Option<ServoUrl> {
-        // TODO: Step 2. If referringScript is not null, then:
-        // Step 3. Otherwise:
-        let base_url = match script {
-            Some(s) => &s.base_url,
-            None => &global.api_base_url(),
+        can_gc: CanGc,
+    ) -> Fallible<ServoUrl> {
+        // Step 1~3 to get settingsObject and baseURL
+        let script_global = script.and_then(|s| s.owner.as_ref().map(|o| o.global()));
+        let (global, base_url): (&GlobalScope, &ServoUrl) = match script {
+            Some(s) => (script_global.as_ref().map_or(global, |g| g), &s.base_url),
+            None => (global, &global.api_base_url()),
         };
 
-        // TODO: We return the url here to keep the origianl behavior. should fix when we implement the full spec.
+        // Step 4. Let importMap be an empty import map.
+        // Step 5. If settingsObject's global object implements Window, then set importMap to settingsObject's
+        // global object's import map.
+        let import_map = if global.is::<Window>() {
+            Some(global.import_map().borrow())
+        } else {
+            None
+        };
+
         // Step 7. Let asURL be the result of resolving a URL-like module specifier given specifier and baseURL.
-        Self::resolve_url_like_module_specifier(&specifier, base_url)
+        let as_url = Self::resolve_url_like_module_specifier(&specifier, base_url);
+        // Step 6. Let serializedBaseURL be baseURL, serialized.
+        let base_url = base_url.as_str();
+        // Step 8. Let normalizedSpecifier be the serialization of asURL, if asURL is non-null;
+        // otherwise, specifier.
+        let normalized_specifier = match &as_url {
+            Some(url) => url.as_str(),
+            None => &specifier,
+        };
+
+        // Step 9. Let result be a URL-or-null, initially null.
+        let mut result = None;
+        if let Some(map) = import_map {
+            // Step 10. For each scopePrefix → scopeImports of importMap's scopes:
+            for (prefix, imports) in &map.scopes {
+                // Step 10.1 If scopePrefix is serializedBaseURL, or if scopePrefix ends with U+002F (/)
+                // and scopePrefix is a code unit prefix of serializedBaseURL, then:
+                let prefix = prefix.as_str();
+                if prefix == base_url ||
+                    (prefix.starts_with(base_url) && prefix.ends_with('\u{002f}'))
+                {
+                    // Step 10.1.1 Let scopeImportsMatch be the result of resolving an imports match
+                    // given normalizedSpecifier, asURL, and scopeImports.
+                    // Step 10.1.2 If scopeImportsMatch is not null, then set result to scopeImportsMatch,
+                    // and break.
+                    result = resolve_imports_match(
+                        normalized_specifier,
+                        as_url.as_ref(),
+                        imports,
+                        can_gc,
+                    )?;
+                    break;
+                }
+            }
+
+            // Step 11. If result is null, set result to the result of resolving an imports match given
+            // normalizedSpecifier, asURL, and importMap's imports.
+            if result.is_none() {
+                result = resolve_imports_match(
+                    normalized_specifier,
+                    as_url.as_ref(),
+                    &map.imports,
+                    can_gc,
+                )?;
+            }
+        }
+
+        // Step 12. If result is null, set it to asURL.
+        if result.is_none() {
+            result = as_url.clone();
+        }
+
+        // Step 13. If result is not null, then:
+        match result {
+            Some(result) => {
+                // Step 13.1 Add module to resolved module set given settingsObject, serializedBaseURL,
+                // normalizedSpecifier, and asURL.
+                // TODO:
+                // Step 13.2 Return result.
+                Ok(result)
+            },
+            None => Err(Error::Type(
+                "Specifier was a bare specifier, but was not remapped to anything by importMap."
+                    .to_owned(),
+            )),
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#resolving-a-url-like-module-specifier>
@@ -1437,10 +1505,10 @@ fn fetch_an_import_module_script_graph(
     if let Some(data) = module_data {
         options = data.options.descendant_fetch_options();
     }
-    let url = ModuleTree::resolve_module_specifier(global, module_data, specifier);
+    let url = ModuleTree::resolve_module_specifier(global, module_data, specifier, can_gc);
 
     // Step 2.
-    if url.is_none() {
+    if url.is_err() {
         let specifier_error = gen_type_error(global, "Wrong module specifier".to_owned(), can_gc);
         return Err(specifier_error);
     }
@@ -1505,10 +1573,11 @@ unsafe extern "C" fn HostResolveImportedModule(
         cx,
         ptr::NonNull::new(GetModuleRequestSpecifier(cx, specifier)).unwrap(),
     );
-    let url = ModuleTree::resolve_module_specifier(&global_scope, module_data, specifier);
+    let url =
+        ModuleTree::resolve_module_specifier(&global_scope, module_data, specifier, CanGc::note());
 
     // Step 6.
-    assert!(url.is_some());
+    assert!(url.is_ok());
 
     let parsed_url = url.unwrap();
 
@@ -2335,9 +2404,9 @@ pub(crate) fn resolve_imports_match(
         // - specifierKey ends with U+002F (/)
         // - specifierKey is a code unit prefix of normalizedSpecifier
         // - either asURL is null, or asURL is special, then:
-        if specifier_key.ends_with('\u{002f}')
-            && normalized_specifier.starts_with(specifier_key)
-            && (as_url.is_none() || as_url.map(|u| u.is_special_scheme()).unwrap_or_default())
+        if specifier_key.ends_with('\u{002f}') &&
+            normalized_specifier.starts_with(specifier_key) &&
+            (as_url.is_none() || as_url.map(|u| u.is_special_scheme()).unwrap_or_default())
         {
             // Step 1.2.1 If resolutionResult is null, then throw a TypeError.
             // Step 1.2.2 Assert: resolutionResult is a URL.

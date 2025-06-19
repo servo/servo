@@ -763,8 +763,8 @@ impl HTMLScriptElement {
         }
 
         // Step 19. CSP.
-        if !element.has_attribute(&local_name!("src"))
-            && doc.should_elements_inline_type_behavior_be_blocked(
+        if !element.has_attribute(&local_name!("src")) &&
+            doc.should_elements_inline_type_behavior_be_blocked(
                 element,
                 csp::InlineCheckType::Script,
                 &text,
@@ -902,9 +902,9 @@ impl HTMLScriptElement {
             // Step 31.11. Switch on el's type:
             match script_type {
                 ScriptType::Classic => {
-                    let kind = if element.has_attribute(&local_name!("defer"))
-                        && was_parser_inserted
-                        && !asynch
+                    let kind = if element.has_attribute(&local_name!("defer")) &&
+                        was_parser_inserted &&
+                        !asynch
                     {
                         // Step 33.4: classic, has src, has defer, was parser-inserted, is not async.
                         ExternalScriptKind::Deferred
@@ -974,11 +974,10 @@ impl HTMLScriptElement {
                         Err(Error::NotFound),
                     ));
 
-                    if was_parser_inserted
-                        && doc
-                            .get_current_parser()
-                            .is_some_and(|parser| parser.script_nesting_level() <= 1)
-                        && doc.get_script_blocking_stylesheets_count() > 0
+                    if was_parser_inserted &&
+                        doc.get_current_parser()
+                            .is_some_and(|parser| parser.script_nesting_level() <= 1) &&
+                        doc.get_script_blocking_stylesheets_count() > 0
                     {
                         // Step 34.2: classic, has no src, was parser-inserted, is blocked on stylesheet.
                         doc.set_pending_parsing_blocking_script(self, Some(result));
@@ -1038,8 +1037,8 @@ impl HTMLScriptElement {
             .parser_document
             .window()
             .local_script_source()
-            .is_none()
-            || !script.external
+            .is_none() ||
+            !script.external
         {
             return;
         }
@@ -1478,9 +1477,8 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-script-async
     fn Async(&self) -> bool {
-        self.non_blocking.get()
-            || self
-                .upcast::<Element>()
+        self.non_blocking.get() ||
+            self.upcast::<Element>()
                 .has_attribute(&local_name!("async"))
     }
 
