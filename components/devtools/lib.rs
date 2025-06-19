@@ -28,7 +28,7 @@ use devtools_traits::{
 };
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
 use ipc_channel::ipc::{self, IpcSender};
-use log::{trace, warn};
+use log::trace;
 use resource::ResourceAvailable;
 use serde::Serialize;
 use servo_rand::RngCore;
