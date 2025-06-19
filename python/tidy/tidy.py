@@ -24,7 +24,7 @@ import toml
 import wpt.manifestupdate
 
 from .licenseck import APACHE, COPYRIGHT, MPL, OLD_MPL, licenses_toml
-from .linting_report import LintingReportManager
+from .linting_report import GitHubAnnotationManager
 
 TOPDIR = os.path.abspath(os.path.dirname(sys.argv[0]))
 WPT_PATH = os.path.join(".", "tests", "wpt")
@@ -983,7 +983,7 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
 
 
 def scan(only_changed_files=False, progress=False, github_annotations=False):
-    report_manager = LintingReportManager("test-tidy", 10)
+    github_annotation_manager = GitHubAnnotationManager("test-tidy")
     # check config file for errors
     config_errors = check_config_file(CONFIG_FILE_PATH)
     # check directories contain expected files
@@ -1020,10 +1020,10 @@ def scan(only_changed_files=False, progress=False, github_annotations=False):
         )
 
         if github_annotations:
-            report_manager.append_annotation(error[2], error[2], error[0], error[1])
+            github_annotation_manager.emit_annotation(error[2], error[2], error[0], error[1])
 
     if github_annotations:
-        report_manager.emit_github_annotations()
+        print(github_annotation_manager)
     return int(error is not None)
 
 

@@ -19,7 +19,7 @@ from mach.decorators import (
     CommandArgument,
     CommandProvider,
 )
-from tidy.linting_report import LintingReportManager
+from tidy.linting_report import GitHubAnnotationManager
 
 from servo.command_base import CommandBase, call, cd
 
@@ -129,18 +129,19 @@ class MachCommands(CommandBase):
             if "--message-format=json" not in params:
                 params.insert(0, "--message-format=json")
 
-            report_manager = LintingReportManager("clippy", 10)
+            github_annotation_manager = GitHubAnnotationManager("clippy")
 
-            retcode = self.run_cargo_build_like_command("clippy", params, env=env, capture_output=True, **kwargs)
-
-            if retcode != 0 and self.last_output:
-                try:
-                    data = [json.loads(line) for line in self.last_output.splitlines() if line.strip()]
-                    report_manager.filter_clippy_log(data)
-                    report_manager.emit_github_annotations()
-                except json.JSONDecodeError:
-                    return retcode
-            return retcode
+            results = self.run_cargo_build_like_command("clippy", params, env=env, capture_output=True, **kwargs)
+            if results.returncode == 0:
+                return 0
+            try:
+                github_annotation_manager.emit_annotations_for_clippy(
+                    [json.loads(line) for line in results.stdout.splitlines() if line.strip()]
+                )
+                print(github_annotation_manager)
+            except json.JSONDecodeError:
+                pass
+            return results.returncode
         return self.run_cargo_build_like_command("clippy", params, env=env, **kwargs)
 
     @Command("grep", description="`git grep` for selected directories.", category="devenv")

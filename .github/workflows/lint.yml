@@ -43,7 +43,7 @@ jobs:
         run: |
           sudo apt update
           ./mach bootstrap
-      - name: Run Clippy Lint
+      - name: Clippy
         run: |
           ./mach clippy --use-crown --locked --github-annotations
       - name: Tidy

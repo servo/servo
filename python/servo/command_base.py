@@ -855,10 +855,7 @@ class CommandBase(object):
         env["PYTHON3"] = "python"
 
         if capture_output:
-            output = subprocess.run(["cargo", command] + args + cargo_args, env=env, capture_output=capture_output)
-
-            self.last_output = output.stdout.decode("utf-8").strip()
-            return output.returncode
+            return subprocess.run(["cargo", command] + args + cargo_args, env=env, capture_output=capture_output)
 
         return call(["cargo", command] + args + cargo_args, env=env, verbose=verbose)
 
