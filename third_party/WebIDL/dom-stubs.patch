@@ -1,0 +1,20 @@
+diff --git a/third_party/WebIDL/WebIDL.py b/third_party/WebIDL/WebIDL.py
+index 40e118e378..437e3640a6 100644
+--- a/third_party/WebIDL/WebIDL.py
++++ b/third_party/WebIDL/WebIDL.py
+@@ -5938,6 +5938,7 @@ class IDLAttribute(IDLInterfaceMember):
+             or identifier == "BinaryName"
+             or identifier == "NonEnumerable"
+             or identifier == "BindingTemplate"
++            or identifier == "Unimplemented"
+         ):
+             # Known attributes that we don't need to do anything with here
+             pass
+@@ -7017,6 +7018,7 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
+             or identifier == "NonEnumerable"
+             or identifier == "Unexposed"
+             or identifier == "WebExtensionStub"
++            or identifier == "Unimplemented"
+         ):
+             # Known attributes that we don't need to do anything with here
+             pass
