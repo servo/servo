@@ -138,8 +138,9 @@ pub(crate) struct ServoParser {
     #[ignore_malloc_size_of = "Defined in html5ever"]
     #[no_trace]
     prefetch_input: BufferQueue,
+    // The whole input as a string, if needed for the devtools Sources panel.
     // TODO: use a faster type for concatenating strings?
-    content_for_devtools: DomRefCell<String>,
+    content_for_devtools: Option<DomRefCell<String>>,
 }
 
 pub(crate) struct ElementAttribute {
@@ -460,6 +461,13 @@ impl ServoParser {
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(document: &Document, tokenizer: Tokenizer, kind: ParserKind) -> Self {
+        // Store the whole input for the devtools Sources panel, if the devtools server is running
+        // and we are parsing for a document load (not just things like innerHTML).
+        // TODO: check if a devtools client is actually connected and/or wants the sources?
+        let content_for_devtools = (document.global().devtools_chan().is_some() &&
+            document.has_browsing_context())
+        .then_some(DomRefCell::new(String::new()));
+
         ServoParser {
             reflector: Reflector::new(),
             document: Dom::from_ref(document),
@@ -475,7 +483,7 @@ impl ServoParser {
             script_created_parser: kind == ParserKind::ScriptCreated,
             prefetch_tokenizer: prefetch::Tokenizer::new(document),
             prefetch_input: BufferQueue::default(),
-            content_for_devtools: DomRefCell::new("".to_owned()),
+            content_for_devtools,
         }
     }
 
@@ -494,11 +502,13 @@ impl ServoParser {
     }
 
     fn push_tendril_input_chunk(&self, chunk: StrTendril) {
-        if self.document.global().devtools_chan().is_some() {
+        if let Some(mut content_for_devtools) = self
+            .content_for_devtools
+            .as_ref()
+            .map(|content| content.borrow_mut())
+        {
             // TODO: append these chunks more efficiently
-            self.content_for_devtools
-                .borrow_mut()
-                .push_str(chunk.as_ref());
+            content_for_devtools.push_str(chunk.as_ref());
         }
 
         if chunk.is_empty() {
@@ -700,16 +710,18 @@ impl ServoParser {
         self.document.finish_load(LoadType::PageSource(url), can_gc);
 
         // Send the source contents to devtools, if needed.
-        if let Some(chan) = self.document.global().devtools_chan() {
-            // Only send the HTML for page load parsing, not things like innerHTML
-            if self.document.has_browsing_context() {
-                let content_for_devtools = self.content_for_devtools.take();
-                let pipeline_id = self.document.global().pipeline_id();
-                let _ = chan.send(ScriptToDevtoolsControlMsg::UpdateSourceContent(
-                    pipeline_id,
-                    content_for_devtools,
-                ));
-            }
+        if let Some(content_for_devtools) = self
+            .content_for_devtools
+            .as_ref()
+            .map(|content| content.take())
+        {
+            let global = self.document.global();
+            let chan = global.devtools_chan().expect("Guaranteed by new");
+            let pipeline_id = self.document.global().pipeline_id();
+            let _ = chan.send(ScriptToDevtoolsControlMsg::UpdateSourceContent(
+                pipeline_id,
+                content_for_devtools,
+            ));
         }
     }
 }
