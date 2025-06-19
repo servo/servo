@@ -3672,7 +3672,9 @@ impl Document {
         // Step 5. Return the result of applying the URL parser to url, with baseURL and encoding.
         url::Url::options()
             .base_url(Some(base_url.as_url()))
-            .encoding_override(Some(&|s| encoding.encode(s).0))
+            .encoding_override(Some(&|input| {
+                servo_url::encoding::encode_as_url_query_string(input, encoding)
+            }))
             .parse(url)
             .map(ServoUrl::from)
     }

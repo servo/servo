@@ -7174,6 +7174,7 @@ dependencies = [
 name = "servo_url"
 version = "0.0.1"
 dependencies = [
+ "encoding_rs",
  "malloc_size_of_derive",
  "serde",
  "servo_arc",
