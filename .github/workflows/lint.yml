@@ -77,4 +77,4 @@ jobs:
         run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
       - name: Compile libservo with MSRV
         run: |
-          cargo +${MINIMUM_SUPPORTED_RUST_VERSION} build -p libservo --locked
+          cargo +${MINIMUM_SUPPORTED_RUST_VERSION} check -p libservo --locked
