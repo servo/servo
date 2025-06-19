@@ -11,7 +11,7 @@ mod capabilities;
 
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
-use std::collections::{BTreeMap, HashMap, VecDeque};
+use std::collections::{BTreeMap, HashMap};
 use std::io::Cursor;
 use std::net::{SocketAddr, SocketAddrV4};
 use std::time::Duration;

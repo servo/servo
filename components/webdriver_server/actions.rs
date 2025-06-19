@@ -386,7 +386,6 @@ impl Handler {
         let session = self.session().unwrap();
 
         let mut input_state_table = session.input_state_table.borrow_mut();
-        let mut input_cancel_list = session.input_cancel_list.borrow_mut();
         let pointer_input_state = match input_state_table.get_mut(source_id).unwrap() {
             InputSourceState::Pointer(pointer_input_state) => pointer_input_state,
             _ => unreachable!(),
