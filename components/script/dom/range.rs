@@ -1260,7 +1260,7 @@ impl WeakRangeVec {
             .extend(ranges.drain(..));
     }
 
-    /// Used for steps 7.1-2. when normalizing a node.
+    /// Used for steps 6.1-2. when normalizing a node.
     /// <https://dom.spec.whatwg.org/#dom-node-normalize>
     pub(crate) fn drain_to_preceding_text_sibling(&self, node: &Node, sibling: &Node, length: u32) {
         if self.is_empty() {
@@ -1287,7 +1287,7 @@ impl WeakRangeVec {
         sibling.ranges().cell.borrow_mut().extend(ranges.drain(..));
     }
 
-    /// Used for steps 7.3-4. when normalizing a node.
+    /// Used for steps 6.3-4. when normalizing a node.
     /// <https://dom.spec.whatwg.org/#dom-node-normalize>
     pub(crate) fn move_to_text_child_at(
         &self,
