@@ -31,7 +31,7 @@ static WHEELSCROLL_INTERVAL: u64 = 17;
 // In the spec, `action item` refers to a plain JSON object.
 // However, we use the name ActionItem here
 // to be consistent with type names from webdriver crate.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub(crate) enum ActionItem {
     Null(NullActionItem),
     Key(KeyActionItem),
@@ -222,7 +222,6 @@ impl Handler {
                 },
                 ActionItem::Key(KeyActionItem::Key(KeyAction::Down(keydown_action))) => {
                     self.dispatch_keydown_action(input_id, keydown_action);
-
                     // Step 9. If subtype is "keyDown", append a copy of action
                     // object with the subtype property changed to "keyUp" to
                     // input state's input cancel list.
@@ -230,11 +229,12 @@ impl Handler {
                         .unwrap()
                         .input_cancel_list
                         .borrow_mut()
-                        .push(ActionItem::Key(KeyActionItem::Key(KeyAction::Up(
-                            KeyUpAction {
+                        .push((
+                            input_id.clone(),
+                            ActionItem::Key(KeyActionItem::Key(KeyAction::Up(KeyUpAction {
                                 value: keydown_action.value.clone(),
-                            },
-                        ))));
+                            }))),
+                        ));
                 },
                 ActionItem::Key(KeyActionItem::Key(KeyAction::Up(keyup_action))) => {
                     self.dispatch_keyup_action(input_id, keyup_action);
@@ -246,18 +246,22 @@ impl Handler {
                     pointer_down_action,
                 ))) => {
                     self.dispatch_pointerdown_action(input_id, pointer_down_action);
-
                     // Step 10. If subtype is "pointerDown", append a copy of action
                     // object with the subtype property changed to "pointerUp" to
                     // input state's input cancel list.
-                    self.session().unwrap().input_cancel_list.borrow_mut().push(
-                        ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Up(
-                            PointerUpAction {
-                                button: pointer_down_action.button,
-                                ..Default::default()
-                            },
-                        ))),
-                    );
+                    self.session()
+                        .unwrap()
+                        .input_cancel_list
+                        .borrow_mut()
+                        .push((
+                            input_id.clone(),
+                            ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Up(
+                                PointerUpAction {
+                                    button: pointer_down_action.button,
+                                    ..Default::default()
+                                },
+                            ))),
+                        ));
                 },
                 ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Move(
                     pointer_move_action,
