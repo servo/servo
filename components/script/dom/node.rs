@@ -50,6 +50,7 @@ use style::stylesheets::{Stylesheet, UrlExtraData};
 use uuid::Uuid;
 use xml5ever::{local_name, serialize as xml_serialize};
 
+use super::types::CDATASection;
 use crate::conversions::Convert;
 use crate::document_loader::DocumentLoader;
 use crate::dom::attr::Attr;
@@ -3458,16 +3459,18 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
         let mut children = self.children().enumerate().peekable();
         while let Some((_, node)) = children.next() {
             if let Some(text) = node.downcast::<Text>() {
+                if text.is::<CDATASection>() {
+                    continue;
+                }
                 let cdata = text.upcast::<CharacterData>();
                 let mut length = cdata.Length();
                 if length == 0 {
                     Node::remove(&node, self, SuppressObserver::Unsuppressed, can_gc);
                     continue;
                 }
-                while children
-                    .peek()
-                    .is_some_and(|(_, sibling)| sibling.is::<Text>())
-                {
+                while children.peek().is_some_and(|(_, sibling)| {
+                    sibling.is::<Text>() && !sibling.is::<CDATASection>()
+                }) {
                     let (index, sibling) = children.next().unwrap();
                     sibling
                         .ranges()
