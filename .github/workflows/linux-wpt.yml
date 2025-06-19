@@ -149,7 +149,7 @@ jobs:
             --${{ inputs.profile }} \
             --processes 1 \
             --timeout-multiplier 2 \
-            $WPT_ALWAYS_SUCCEED_ARG \
+            --always-succeed \
             ${{ inputs.wpt-args }} \
             --pref=dom_testing_html_input_element_select_files_enabled \
             --product servodriver \
