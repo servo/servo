@@ -88,7 +88,7 @@ fn get_known_shadow_root(
 ) -> Result<DomRoot<ShadowRoot>, ErrorStatus> {
     let doc = documents
         .find_document(pipeline)
-        .expect("webdriver_handlers::Document should exists");
+        .ok_or(ErrorStatus::NoSuchWindow)?;
     // Step 1. If not node reference is known with session, session's current browsing context,
     // and reference return error with error code no such shadow root.
     if !ScriptThread::has_node_id(pipeline, &node_id) {
@@ -108,14 +108,14 @@ fn get_known_shadow_root(
     }
 
     // Step 4.1. If node is null return error with error code detached shadow root.
-    if node.is_none() {
+    let Some(node) = node else {
         return Err(ErrorStatus::DetachedShadowRoot);
-    }
+    };
 
     // Step 4.2. If node is detached return error with error code detached shadow root.
     // A shadow root is detached if its node document is not the active document
     // or if the element node referred to as its host is stale.
-    let shadow_root = DomRoot::from_ref(node.unwrap().downcast::<ShadowRoot>().unwrap());
+    let shadow_root = DomRoot::downcast::<ShadowRoot>(node).unwrap();
     if !shadow_root.owner_document().is_active() {
         return Err(ErrorStatus::DetachedShadowRoot);
     }
@@ -136,7 +136,7 @@ fn get_known_element(
 ) -> Result<DomRoot<Element>, ErrorStatus> {
     let doc = documents
         .find_document(pipeline)
-        .expect("webdriver_handlers::Document should exists");
+        .ok_or(ErrorStatus::NoSuchWindow)?;
     // Step 1. If not node reference is known with session, session's current browsing context,
     // and reference return error with error code no such element.
     if !ScriptThread::has_node_id(pipeline, &node_id) {
@@ -154,11 +154,11 @@ fn get_known_element(
         }
     }
     // Step 4.1. If node is null return error with error code stale element reference.
-    if node.is_none() {
+    let Some(node) = node else {
         return Err(ErrorStatus::StaleElementReference);
-    }
+    };
     // Step 4.2. If node is stale return error with error code stale element reference.
-    let element = DomRoot::from_ref(node.unwrap().downcast::<Element>().unwrap());
+    let element = DomRoot::downcast::<Element>(node).unwrap();
     if is_stale(&element) {
         return Err(ErrorStatus::StaleElementReference);
     }
