@@ -32,7 +32,6 @@ use embedder_traits::EmbedderMsg;
 use euclid::default::Size2D;
 use http::HeaderMap;
 use hyper_serde::Serde;
-use indexmap::IndexSet;
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};

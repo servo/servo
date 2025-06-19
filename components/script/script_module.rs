@@ -22,7 +22,7 @@ use js::jsapi::{
     GetModuleResolveHook, GetRequestedModuleSpecifier, GetRequestedModulesCount,
     Handle as RawHandle, HandleObject, HandleValue as RawHandleValue, Heap,
     JS_ClearPendingException, JS_DefineProperty4, JS_IsExceptionPending, JS_NewStringCopyN,
-    JSAutoRealm, JSContext, JSObject, JSPROP_ENUMERATE, JSRuntime, JSString, ModuleErrorBehaviour,
+    JSAutoRealm, JSContext, JSObject, JSPROP_ENUMERATE, JSRuntime, ModuleErrorBehaviour,
     ModuleEvaluate, ModuleLink, MutableHandleValue, SetModuleDynamicImportHook,
     SetModuleMetadataHook, SetModulePrivate, SetModuleResolveHook, SetScriptPrivateReferenceHooks,
     ThrowOnModuleEvaluationFailure, Value,
@@ -1999,7 +1999,7 @@ fn merge_existing_and_new_import_maps(
                 (record.base_url.starts_with(prefix) && prefix.ends_with('\u{002f}'))
             {
                 // For each specifierKey → resolutionResult of scopeImports:
-                scope_imports.retain(|key, _| {
+                scope_imports.retain(|key, val| {
                     // If specifierKey is record's specifier, or if all of the following conditions are true:
                     // specifierKey ends with U+002F (/);
                     // specifierKey is a code unit prefix of record's specifier;
@@ -2018,7 +2018,7 @@ fn merge_existing_and_new_import_maps(
                         // They may choose to avoid reporting if the rule is identical to an existing one.
                         Console::internal_warn(
                             global,
-                            DOMString::from(format!("Ignored rule: {key}.")),
+                            DOMString::from(format!("Ignored rule: {key} -> {val:?}.")),
                         );
                         // Remove scopeImports[specifierKey].
                         false
@@ -2071,14 +2071,14 @@ fn merge_existing_and_new_import_maps(
     // Step 6. For each record of global's resolved module set:
     for record in resolved_module_set.iter() {
         // For each specifier → url of newImportMapImports:
-        new_import_map_imports.retain(|specifier, _| {
+        new_import_map_imports.retain(|specifier, val| {
             // If specifier starts with record's specifier, then:
             if specifier.starts_with(&record.specifier) {
                 // The user agent may report a warning to the console indicating the ignored rule.
                 // They may choose to avoid reporting if the rule is identical to an existing one.
                 Console::internal_warn(
                     global,
-                    DOMString::from(format!("Ignored rule: {specifier}.")),
+                    DOMString::from(format!("Ignored rule: {specifier} -> {val:?}.")),
                 );
                 // Remove newImportMapImports[specifier].
                 false
