@@ -164,10 +164,10 @@ impl App {
 
             // TODO: WebDriver will no longer need this channel once all WebDriver
             // commands are executed via the Servo API.
-            let constellation_sender = servo.constellation_sender();
+            let constellation_sender_deprecated = servo.constellation_sender();
             webdriver_server::start_server(
                 port,
-                constellation_sender,
+                constellation_sender_deprecated,
                 embedder_sender,
                 self.waker.clone(),
             );

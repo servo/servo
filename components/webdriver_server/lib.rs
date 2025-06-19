@@ -124,11 +124,15 @@ fn cookie_msg_to_cookie(cookie: cookie::Cookie) -> Cookie {
 
 pub fn start_server(
     port: u16,
-    constellation_chan: Sender<EmbedderToConstellationMessage>,
+    constellation_chan_deprecated: Sender<EmbedderToConstellationMessage>,
     embedder_sender: Sender<WebDriverCommandMsg>,
     event_loop_waker: Box<dyn EventLoopWaker>,
 ) {
-    let handler = Handler::new(constellation_chan, embedder_sender, event_loop_waker);
+    let handler = Handler::new(
+        constellation_chan_deprecated,
+        embedder_sender,
+        event_loop_waker,
+    );
     thread::Builder::new()
         .name("WebDriverHttpServer".to_owned())
         .spawn(move || {
