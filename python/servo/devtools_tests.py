@@ -24,6 +24,7 @@ from threading import Thread
 from typing import Optional
 import unittest
 
+from servo.command_base import BuildType
 
 # Set this to true to log requests in the internal web servers.
 LOG_REQUESTS = False
@@ -32,6 +33,7 @@ LOG_REQUESTS = False
 class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
     # /path/to/servo/python/servo
     script_path = None
+    build_type: Optional[BuildType] = None
 
     def __init__(self, methodName="runTest"):
         super().__init__(methodName)
@@ -136,7 +138,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         # Run servoshell.
         if url is None:
             url = f"{self.base_url}/test.html"
-        self.servoshell = subprocess.Popen(["target/release/servo", "--devtools=6080", url])
+        self.servoshell = subprocess.Popen([f"target/{self.build_type.directory_name()}/servo", "--devtools=6080", url])
 
         # FIXME: Don’t do this
         time.sleep(1)
@@ -269,8 +271,9 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         client.disconnect()
 
 
-def run_tests(script_path):
+def run_tests(script_path, build_type: BuildType):
     DevtoolsTests.script_path = script_path
+    DevtoolsTests.build_type = build_type
     verbosity = 1 if logging.getLogger().level >= logging.WARN else 2
     suite = unittest.TestLoader().loadTestsFromTestCase(DevtoolsTests)
     return unittest.TextTestRunner(verbosity=verbosity).run(suite).wasSuccessful()

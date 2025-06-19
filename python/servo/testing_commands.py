@@ -344,9 +344,10 @@ class MachCommands(CommandBase):
         return 0 if passed else 1
 
     @Command("test-devtools", description="Run tests for devtools.", category="testing")
-    def test_devtools(self):
+    @CommandBase.common_command_arguments(build_type=True)
+    def test_devtools(self, build_type: BuildType, **kwargs):
         print("Running devtools tests...")
-        passed = servo.devtools_tests.run_tests(SCRIPT_PATH)
+        passed = servo.devtools_tests.run_tests(SCRIPT_PATH, build_type)
         return 0 if passed else 1
 
     @Command(
