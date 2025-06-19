@@ -124,9 +124,7 @@ impl IDBObjectStore {
         }
 
         let is_valid = |path: &DOMString| {
-            path.is_empty() ||
-                is_identifier(path) ||
-                path.split(".").all(is_identifier)
+            path.is_empty() || is_identifier(path) || path.split(".").all(is_identifier)
         };
 
         match key_path {
