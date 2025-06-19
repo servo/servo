@@ -696,7 +696,7 @@ impl ModuleTree {
                 // and scopePrefix is a code unit prefix of serializedBaseURL, then:
                 let prefix = prefix.as_str();
                 if prefix == base_url ||
-                    (prefix.starts_with(base_url) && prefix.ends_with('\u{002f}'))
+                    (base_url.starts_with(prefix) && prefix.ends_with('\u{002f}'))
                 {
                     // Step 10.1.1 Let scopeImportsMatch be the result of resolving an imports match
                     // given normalizedSpecifier, asURL, and scopeImports.
@@ -734,7 +734,15 @@ impl ModuleTree {
             Some(result) => {
                 // Step 13.1 Add module to resolved module set given settingsObject, serializedBaseURL,
                 // normalizedSpecifier, and asURL.
-                // TODO:
+                // <https://html.spec.whatwg.org/multipage/webappapis.html#add-module-to-resolved-module-set>
+                if global.is::<Window>() {
+                    let record = ResolvedModule {
+                        base_url: base_url.to_owned(),
+                        specifier: normalized_specifier.to_owned(),
+                        specifier_url: as_url,
+                    };
+                    global.resolved_module_set().borrow_mut().insert(record);
+                }
                 // Step 13.2 Return result.
                 Ok(result)
             },
@@ -1925,6 +1933,15 @@ pub(crate) fn fetch_inline_module_script(
 pub(crate) type ModuleSpecifierMap = IndexMap<String, Option<ServoUrl>>;
 pub(crate) type ModuleIntegrityMap = IndexMap<ServoUrl, String>;
 
+/// <https://html.spec.whatwg.org/multipage/webappapis.html#specifier-resolution-record>
+#[derive(Default, JSTraceable, MallocSizeOf, Eq, PartialEq, Hash)]
+pub(crate) struct ResolvedModule {
+    base_url: String,
+    specifier: String,
+    #[no_trace]
+    specifier_url: Option<ServoUrl>,
+}
+
 /// <https://html.spec.whatwg.org/multipage/#import-map-processing-model>
 #[derive(Default, JSTraceable, MallocSizeOf)]
 pub(crate) struct ImportMap {
@@ -1968,12 +1985,49 @@ fn merge_existing_and_new_import_maps(
     let mut old_import_map = global.import_map().borrow_mut();
 
     // Step 3. Let newImportMapImports be a deep copy of newImportMap's imports.
-    let new_import_map_imports = new_import_map.imports;
+    let mut new_import_map_imports = new_import_map.imports;
 
+    let resolved_module_set = global.resolved_module_set().borrow();
     // Step 4. For each scopePrefix → scopeImports of newImportMapScopes:
-    for (scope_prefix, scope_imports) in new_import_map_scopes {
-        // TODO: implement after we complete `resolve_module_specifier`
+    for (scope_prefix, mut scope_imports) in new_import_map_scopes {
         // Step 4.1. For each record of global's resolved module set:
+        for record in resolved_module_set.iter() {
+            // If scopePrefix is record's serialized base URL, or if scopePrefix ends with
+            // U+002F (/) and scopePrefix is a code unit prefix of record's serialized base URL, then:
+            let prefix = scope_prefix.as_str();
+            if prefix == record.base_url ||
+                (record.base_url.starts_with(prefix) && prefix.ends_with('\u{002f}'))
+            {
+                // For each specifierKey → resolutionResult of scopeImports:
+                scope_imports.retain(|key, _| {
+                    // If specifierKey is record's specifier, or if all of the following conditions are true:
+                    // specifierKey ends with U+002F (/);
+                    // specifierKey is a code unit prefix of record's specifier;
+                    // either record's specifier as a URL is null or is special,
+                    if *key == record.specifier ||
+                        (key.ends_with('\u{002f}') &&
+                            record.specifier.starts_with(key) &&
+                            (record.specifier_url.is_none() ||
+                                record
+                                    .specifier_url
+                                    .as_ref()
+                                    .map(|u| u.is_special_scheme())
+                                    .unwrap_or_default()))
+                    {
+                        // The user agent may report a warning to the console indicating the ignored rule.
+                        // They may choose to avoid reporting if the rule is identical to an existing one.
+                        Console::internal_warn(
+                            global,
+                            DOMString::from(format!("Ignored rule: {key}.")),
+                        );
+                        // Remove scopeImports[specifierKey].
+                        false
+                    } else {
+                        true
+                    }
+                })
+            }
+        }
 
         // Step 4.2 If scopePrefix exists in oldImportMap's scopes
         if old_import_map.scopes.contains_key(&scope_prefix) {
@@ -2014,8 +2068,25 @@ fn merge_existing_and_new_import_maps(
             .insert(url.clone(), integrity.clone());
     }
 
-    // TODO: implement after we complete `resolve_module_specifier`
     // Step 6. For each record of global's resolved module set:
+    for record in resolved_module_set.iter() {
+        // For each specifier → url of newImportMapImports:
+        new_import_map_imports.retain(|specifier, _| {
+            // If specifier starts with record's specifier, then:
+            if specifier.starts_with(&record.specifier) {
+                // The user agent may report a warning to the console indicating the ignored rule.
+                // They may choose to avoid reporting if the rule is identical to an existing one.
+                Console::internal_warn(
+                    global,
+                    DOMString::from(format!("Ignored rule: {specifier}.")),
+                );
+                // Remove newImportMapImports[specifier].
+                false
+            } else {
+                true
+            }
+        });
+    }
 
     // Step 7. Set oldImportMap's imports to the result of merge module specifier maps,
     // given newImportMapImports and oldImportMap's imports.

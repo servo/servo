@@ -4,7 +4,7 @@
 
 use std::cell::{Cell, OnceCell, Ref};
 use std::collections::hash_map::Entry;
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::ops::Index;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -32,6 +32,7 @@ use embedder_traits::EmbedderMsg;
 use euclid::default::Size2D;
 use http::HeaderMap;
 use hyper_serde::Serde;
+use indexmap::IndexSet;
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
@@ -144,7 +145,7 @@ use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
 use crate::network_listener::{NetworkListener, PreInvoke};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_module::{
-    DynamicModuleList, ImportMap, ModuleScript, ModuleTree, ScriptFetchOptions,
+    DynamicModuleList, ImportMap, ModuleScript, ModuleTree, ResolvedModule, ScriptFetchOptions,
 };
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, ThreadSafeJSContext};
 use crate::script_thread::{ScriptThread, with_script_thread};
@@ -388,6 +389,15 @@ pub(crate) struct GlobalScope {
     ///
     /// <https://html.spec.whatwg.org/multipage/#import-maps>
     import_map: DomRefCell<ImportMap>,
+
+    /// The resolved module set ensures that module specifier resolution returns the same result when
+    /// called multiple times with the same (referrer, specifier) pair. It does that by ensuring that
+    /// import map rules that impact the specifier in its referrer's scope cannot be defined after its
+    /// initial resolution. For now, only Window global objects have their module set data structures
+    /// modified from the initial empty one.
+    ///
+    /// <https://html.spec.whatwg.org/multipage/webappapis.html#specifier-resolution-record>
+    resolved_module_set: DomRefCell<HashSet<ResolvedModule>>,
 }
 
 /// A wrapper for glue-code between the ipc router and the event-loop.
@@ -790,6 +800,7 @@ impl GlobalScope {
             count_queuing_strategy_size_function: OnceCell::new(),
             notification_permission_request_callback_map: Default::default(),
             import_map: Default::default(),
+            resolved_module_set: Default::default(),
         }
     }
 
@@ -3771,6 +3782,10 @@ impl GlobalScope {
 
     pub(crate) fn import_map(&self) -> &DomRefCell<ImportMap> {
         &self.import_map
+    }
+
+    pub(crate) fn resolved_module_set(&self) -> &DomRefCell<HashSet<ResolvedModule>> {
+        &self.resolved_module_set
     }
 }
 
