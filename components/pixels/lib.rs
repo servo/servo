@@ -16,6 +16,8 @@ use ipc_channel::ipc::IpcSharedMemory;
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
+mod unpremultiplytable;
+use unpremultiplytable::UNPREMULTIPLY_TABLE;
 use webrender_api::ImageKey;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
@@ -367,25 +369,16 @@ pub fn detect_image_format(buffer: &[u8]) -> Result<ImageFormat, &str> {
 
 pub fn unmultiply_inplace<const SWAP_RB: bool>(pixels: &mut [u8]) {
     for rgba in pixels.chunks_mut(4) {
-        let a = rgba[3] as u32;
-        let mut b = rgba[2] as u32;
-        let mut g = rgba[1] as u32;
-        let mut r = rgba[0] as u32;
+        let a = rgba[3] as usize;
 
-        if a > 0 {
-            r = r * 255 / a;
-            g = g * 255 / a;
-            b = b * 255 / a;
-
-            if SWAP_RB {
-                rgba[2] = r as u8;
-                rgba[1] = g as u8;
-                rgba[0] = b as u8;
-            } else {
-                rgba[2] = b as u8;
-                rgba[1] = g as u8;
-                rgba[0] = r as u8;
-            }
+        if SWAP_RB {
+            rgba[0] = UNPREMULTIPLY_TABLE[256 * a + rgba[2] as usize];
+            rgba[1] = UNPREMULTIPLY_TABLE[256 * a + rgba[1] as usize];
+            rgba[2] = UNPREMULTIPLY_TABLE[256 * a + rgba[0] as usize];
+        } else {
+            rgba[0] = UNPREMULTIPLY_TABLE[256 * a + rgba[0] as usize];
+            rgba[1] = UNPREMULTIPLY_TABLE[256 * a + rgba[1] as usize];
+            rgba[2] = UNPREMULTIPLY_TABLE[256 * a + rgba[2] as usize];
         }
     }
 }
