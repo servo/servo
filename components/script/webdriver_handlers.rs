@@ -79,6 +79,7 @@ fn is_stale(element: &Element) -> bool {
     !element.owner_document().is_active() || !element.is_connected()
 }
 
+#[allow(dead_code)]
 /// <https://w3c.github.io/webdriver/#dfn-get-a-known-shadow-root>
 fn get_known_shadow_root(
     documents: &DocumentCollection,
