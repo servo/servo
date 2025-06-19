@@ -380,6 +380,7 @@ class OpenHarmonyTarget(CrossBuildTarget):
         env["HOST_CXXFLAGS"] = ""
         ohos_cflags = [
             "-D__MUSL__",
+            "-DMDB_USE_ROBUST=0",
             f" --target={clang_target_triple}",
             f" --sysroot={ohos_sysroot_posix}",
             "-Wno-error=unused-command-line-argument",

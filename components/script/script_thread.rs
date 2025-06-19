@@ -1739,6 +1739,12 @@ impl ScriptThread {
                     profiler_chan,
                     f
                 ),
+                ScriptThreadEventCategory::DatabaseAccessEvent => time_profile!(
+                    ProfilerCategory::ScriptDatabaseAccessEvent,
+                    None,
+                    profiler_chan,
+                    f
+                ),
                 ScriptThreadEventCategory::DevtoolsMsg => {
                     time_profile!(ProfilerCategory::ScriptDevtoolsMsg, None, profiler_chan, f)
                 },
