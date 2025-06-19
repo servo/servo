@@ -395,7 +395,7 @@ pub(crate) struct GlobalScope {
     /// initial resolution. For now, only Window global objects have their module set data structures
     /// modified from the initial empty one.
     ///
-    /// <https://html.spec.whatwg.org/multipage/webappapis.html#specifier-resolution-record>
+    /// <https://html.spec.whatwg.org/multipage/#specifier-resolution-record>
     resolved_module_set: DomRefCell<HashSet<ResolvedModule>>,
 }
 

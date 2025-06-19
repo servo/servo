@@ -734,7 +734,7 @@ impl ModuleTree {
             Some(result) => {
                 // Step 13.1 Add module to resolved module set given settingsObject, serializedBaseURL,
                 // normalizedSpecifier, and asURL.
-                // <https://html.spec.whatwg.org/multipage/webappapis.html#add-module-to-resolved-module-set>
+                // <https://html.spec.whatwg.org/multipage/#add-module-to-resolved-module-set>
                 if global.is::<Window>() {
                     let record = ResolvedModule {
                         base_url: base_url.to_owned(),
@@ -1933,8 +1933,8 @@ pub(crate) fn fetch_inline_module_script(
 pub(crate) type ModuleSpecifierMap = IndexMap<String, Option<ServoUrl>>;
 pub(crate) type ModuleIntegrityMap = IndexMap<ServoUrl, String>;
 
-/// <https://html.spec.whatwg.org/multipage/webappapis.html#specifier-resolution-record>
-#[derive(Default, JSTraceable, MallocSizeOf, Eq, PartialEq, Hash)]
+/// <https://html.spec.whatwg.org/multipage/#specifier-resolution-record>
+#[derive(Default, Eq, Hash, JSTraceable, MallocSizeOf, PartialEq)]
 pub(crate) struct ResolvedModule {
     base_url: String,
     specifier: String,
