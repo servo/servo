@@ -114,7 +114,7 @@ def run_tests(default_binary_path: str, **kwargs):
     else:
         logger = wptrunner.setup_logging(kwargs, {"servo": sys.stdout})
 
-    handler = ServoHandler()
+    handler = ServoHandler(flakes_detection=kwargs["retry_unexpected"] >= 1)
     logger.add_handler(handler)
 
     wptrunner.run_tests(**kwargs)
