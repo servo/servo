@@ -146,11 +146,12 @@ impl Actor for SourceActor {
                 let reply = SourceContentReply {
                     from: self.name(),
                     content_type: self.content_type.clone(),
-                    // TODO: is this correct? Do we instead want to defer response until content is available?
+                    // TODO: do we want to wait instead of giving up immediately, in cases where the content could
+                    // become available later (e.g. after a fetch)?
                     source: self
                         .content
                         .as_deref()
-                        .unwrap_or("<!-- not available -->")
+                        .unwrap_or("<!-- not available; please reload! -->")
                         .to_owned(),
                 };
                 let _ = stream.write_json_packet(&reply);

@@ -519,7 +519,6 @@ impl DevtoolsInstance {
     }
 
     fn handle_create_source_actor(&mut self, pipeline_id: PipelineId, source_info: SourceInfo) {
-        warn!("CreateSourceActor pipeline_id={pipeline_id} source_info={source_info:?}");
         let mut actors = self.actors.lock().unwrap();
 
         let source_actor = SourceActor::new_registered(
@@ -574,7 +573,6 @@ impl DevtoolsInstance {
     }
 
     fn handle_update_source_content(&mut self, pipeline_id: PipelineId, source_content: String) {
-        warn!("UpdateSourceContent pipeline_id={pipeline_id} source_content={source_content:?}");
         let mut actors = self.actors.lock().unwrap();
 
         for actor_name in actors.source_actor_names_for_pipeline(pipeline_id) {
