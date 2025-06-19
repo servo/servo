@@ -5,7 +5,7 @@
     req.open("GET", "empty.html");
     req.send(null);
     req.onreadystatechange = () => {
-        if (req.readyState == 4)
+        if (req.readyState == XMLHttpRequest.DONE)
             console.log(req.responseXML);
     };
 </script>
