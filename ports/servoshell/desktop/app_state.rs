@@ -19,8 +19,10 @@ use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FormControl, GamepadHapticEffectType,
     KeyboardEvent, LoadStatus, PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog,
-    WebDriverCommandMsg, WebView, WebViewBuilder, WebViewDelegate,
+    WebDriverCommandMsg, WebDriverCommandResponse, WebDriverLoadStatus, WebView, WebViewBuilder,
+    WebViewDelegate,
 };
+use style_traits::CSSPixel;
 use url::Url;
 
 use super::app::PumpResult;
@@ -37,6 +39,14 @@ pub(crate) enum AppState {
     ShuttingDown,
 }
 
+/// Holds the senders for the WebDriver server.
+#[derive(Clone, Default)]
+struct WebDriverSenders {
+    pub load_status_sender: Option<(WebViewId, IpcSender<WebDriverLoadStatus>)>,
+    pub _size_sender: Option<IpcSender<euclid::Size2D<f32, CSSPixel>>>,
+    pub _input_command_response_sender: Option<IpcSender<WebDriverCommandResponse>>,
+}
+
 pub(crate) struct RunningAppState {
     /// A handle to the Servo instance of the [`RunningAppState`]. This is not stored inside
     /// `inner` so that we can keep a reference to Servo in order to spin the event loop,
@@ -48,6 +58,7 @@ pub(crate) struct RunningAppState {
     /// A [`Receiver`] for receiving commands from a running WebDriver server, if WebDriver
     /// was enabled.
     webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
+    webdriver_senders: RefCell<WebDriverSenders>,
     inner: RefCell<RunningAppStateInner>,
 }
 
@@ -99,6 +110,7 @@ impl RunningAppState {
             servo,
             servoshell_preferences,
             webdriver_receiver,
+            webdriver_senders: RefCell::default(),
             inner: RefCell::new(RunningAppStateInner {
                 webviews: HashMap::default(),
                 creation_order: Default::default(),
@@ -112,7 +124,13 @@ impl RunningAppState {
         }
     }
 
-    pub(crate) fn new_toplevel_webview(self: &Rc<Self>, url: Url) {
+    pub(crate) fn create_and_focus_toplevel_webview(self: &Rc<Self>, url: Url) {
+        let webview = self.create_toplevel_webview(url);
+        webview.focus();
+        webview.raise_to_top(true);
+    }
+
+    pub(crate) fn create_toplevel_webview(self: &Rc<Self>, url: Url) -> WebView {
         let webview = WebViewBuilder::new(self.servo())
             .url(url)
             .hidpi_scale_factor(self.inner().window.hidpi_scale_factor())
@@ -120,10 +138,8 @@ impl RunningAppState {
             .build();
 
         webview.notify_theme_change(self.inner().window.theme());
-        webview.focus();
-        webview.raise_to_top(true);
-
-        self.add(webview);
+        self.add(webview.clone());
+        webview
     }
 
     pub(crate) fn inner(&self) -> Ref<RunningAppStateInner> {
@@ -382,6 +398,14 @@ impl RunningAppState {
                 webview.notify_scroll_event(location, origin);
             });
     }
+
+    pub(crate) fn set_load_status_sender(
+        &self,
+        webview_id: WebViewId,
+        sender: IpcSender<WebDriverLoadStatus>,
+    ) {
+        self.webdriver_senders.borrow_mut().load_status_sender = Some((webview_id, sender));
+    }
 }
 
 struct ServoShellServoDelegate;
@@ -507,8 +531,13 @@ impl WebViewDelegate for RunningAppState {
         self.inner().window.set_cursor(cursor);
     }
 
-    fn notify_load_status_changed(&self, _webview: servo::WebView, _status: LoadStatus) {
+    fn notify_load_status_changed(&self, webview: servo::WebView, status: LoadStatus) {
         self.inner_mut().need_update = true;
+        if let Some((id, ref sender)) = self.webdriver_senders.borrow().load_status_sender {
+            if id == webview.id() && status == LoadStatus::Complete {
+                let _ = sender.send(WebDriverLoadStatus::Complete);
+            }
+        };
     }
 
     fn notify_fullscreen_state_changed(&self, _webview: servo::WebView, fullscreen_state: bool) {

@@ -4542,38 +4542,8 @@ where
             WebDriverCommandMsg::CloseWebView(..) => {
                 unreachable!("This command should be send directly to the embedder.");
             },
-            WebDriverCommandMsg::NewWebView(
-                originating_webview_id,
-                response_sender,
-                load_status_sender,
-            ) => {
-                let (embedder_sender, receiver) = match ipc::channel() {
-                    Ok(result) => result,
-                    Err(error) => return warn!("Failed to create channel: {error:?}"),
-                };
-                self.embedder_proxy.send(EmbedderMsg::AllowOpeningWebView(
-                    originating_webview_id,
-                    embedder_sender,
-                ));
-                let (new_webview_id, viewport_details) = match receiver.recv() {
-                    Ok(Some((new_webview_id, viewport_details))) => {
-                        (new_webview_id, viewport_details)
-                    },
-                    Ok(None) => return warn!("Embedder refused to allow opening webview"),
-                    Err(error) => return warn!("Failed to receive webview id: {error:?}"),
-                };
-                self.handle_new_top_level_browsing_context(
-                    ServoUrl::parse_with_base(None, "about:blank").expect("Infallible parse"),
-                    new_webview_id,
-                    viewport_details,
-                    Some(load_status_sender),
-                );
-                if let Err(error) = response_sender.send(new_webview_id) {
-                    error!(
-                        "WebDriverCommandMsg::NewWebView: IPC error when sending new_webview_id \
-                        to webdriver server: {error}"
-                    );
-                }
+            WebDriverCommandMsg::NewWebView(..) => {
+                unreachable!("This command should be send directly to the embedder.");
             },
             WebDriverCommandMsg::FocusWebView(webview_id) => {
                 self.handle_focus_web_view(webview_id);

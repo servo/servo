@@ -661,7 +661,7 @@ impl Servo {
         self.compositor.borrow_mut().deinit();
     }
 
-    fn get_webview_handle(&self, id: WebViewId) -> Option<WebView> {
+    pub fn get_webview_handle(&self, id: WebViewId) -> Option<WebView> {
         self.webviews
             .borrow()
             .get(&id)

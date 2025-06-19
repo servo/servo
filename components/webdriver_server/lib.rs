@@ -1078,9 +1078,7 @@ impl Handler {
         );
         // Step 5. Create a new top-level browsing context by running the window open steps.
         // This MUST be done without invoking the focusing steps.
-        self.constellation_chan
-            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
-            .unwrap();
+        self.send_message_to_embedder(cmd_msg)?;
 
         let mut handle = self.session.as_ref().unwrap().id.to_string();
         if let Ok(new_webview_id) = receiver.recv() {

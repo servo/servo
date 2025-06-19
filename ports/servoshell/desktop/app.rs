@@ -178,7 +178,7 @@ impl App {
             self.servoshell_preferences.clone(),
             webdriver_receiver,
         ));
-        running_state.new_toplevel_webview(self.initial_url.clone().into_url());
+        running_state.create_and_focus_toplevel_webview(self.initial_url.clone().into_url());
 
         if let Some(ref mut minibrowser) = self.minibrowser {
             minibrowser.update(window.winit_window().unwrap(), &running_state, "init");
@@ -306,7 +306,7 @@ impl App {
                 },
                 MinibrowserEvent::NewWebView => {
                     minibrowser.update_location_dirty(false);
-                    state.new_toplevel_webview(Url::parse("servo:newtab").unwrap());
+                    state.create_and_focus_toplevel_webview(Url::parse("servo:newtab").unwrap());
                 },
                 MinibrowserEvent::CloseWebView(id) => {
                     minibrowser.update_location_dirty(false);
@@ -334,6 +334,20 @@ impl App {
                 webdriver_msg @ WebDriverCommandMsg::IsBrowsingContextOpen(..) => {
                     running_state.forward_webdriver_command(webdriver_msg);
                 },
+                WebDriverCommandMsg::NewWebView(
+                    _origin_webview_id,
+                    response_sender,
+                    load_status_sender,
+                ) => {
+                    let new_webview =
+                        running_state.create_toplevel_webview(Url::parse("servo:newtab").unwrap());
+
+                    response_sender
+                        .send(new_webview.id())
+                        .expect("Failed to send response of new webview id to webdriver");
+
+                    running_state.set_load_status_sender(new_webview.id(), load_status_sender);
+                },
                 WebDriverCommandMsg::CloseWebView(webview_id) => {
                     running_state.close_webview(webview_id);
                 },
@@ -348,7 +362,6 @@ impl App {
                 WebDriverCommandMsg::WheelScrollAction(..) |
                 WebDriverCommandMsg::SetWindowSize(..) |
                 WebDriverCommandMsg::TakeScreenshot(..) |
-                WebDriverCommandMsg::NewWebView(..) |
                 WebDriverCommandMsg::Refresh(..) => {
                     warn!(
                         "WebDriverCommand {:?} is still not moved from constellation to embedder",
