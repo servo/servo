@@ -22,7 +22,7 @@ use crate::network_handler::Cause;
 use crate::protocol::JsonPacketStream;
 
 #[derive(Clone)]
-struct HttpRequest {
+pub struct HttpRequest {
     url: String,
     method: Method,
     headers: HeaderMap,
@@ -34,7 +34,7 @@ struct HttpRequest {
 }
 
 #[derive(Clone)]
-struct HttpResponse {
+pub struct HttpResponse {
     headers: Option<HeaderMap>,
     status: HttpStatus,
     body: Option<Vec<u8>>,
@@ -177,7 +177,7 @@ struct GetResponseCookiesReply {
 }
 
 #[derive(Serialize)]
-struct Timings {
+pub struct Timings {
     blocked: u32,
     dns: u32,
     connect: u64,
