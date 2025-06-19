@@ -75,20 +75,7 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 COPY --from=servo_fetcher /data/servo /data/servo
 
 # ideally this should be a no-op: Todo: investigate the layer and see if it is.
-# RUN ./mach bootstrap --skip-platform
+RUN ./mach bootstrap --skip-platform
 
 # Create a layer which prefetches git dependencies
 RUN cargo +1.85.0 update -p mozjs && git checkout Cargo.lock
-
-########################################################################################
-# Cache Layers #########################################################################
-# Below we define several `servo_cooked` layers, which are intended as the final
-# artifacts for use in CI, with prebuilt servo.
-# Build by running `docker build --target servo_cooked_XXX -t servo_ci_XXX:latest
-# Note: The max layer size is 10GiB
-########################################################################################
-
-
-FROM servo_base AS servo_cooked_dev
-# debuinfo is a major driver of target dir size, so we disable it in CI, since we don't need it for this job.
-RUN RUSTFLAGS="-C debuginfo=0" cargo +1.85.0 build  -p libservo --locked --no-default-features
