@@ -43,16 +43,7 @@ FROM base_with_cc AS rust_toolchain
 ARG RUST_VERSION=1.85.0
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
         | sh -s -- -y --default-toolchain ${RUST_VERSION} \
-        --profile=minimal
-
-##### FETCH SERVO ####################################################################
-FROM base_fetcher AS servo_fetcher
-
-
-RUN mkdir -p /data/servo/servo
-# Clone servo, ignoring the history.
-RUN cd /data/servo && git clone https://github.com/servo/servo.git --depth 1
-WORKDIR /data/servo/servo
+        --profile=default
 
 ##### END FETCH SERVO #################################################################
 
@@ -72,10 +63,7 @@ COPY --from=rust_toolchain /root/.rustup /root/.rustup
 COPY --from=uv /root/.local/bin/uv /root/.local/bin/uvx /root/.cargo/bin/
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-COPY --from=servo_fetcher /data/servo /data/servo
-
-# ideally this should be a no-op: Todo: investigate the layer and see if it is.
-RUN ./mach bootstrap --skip-platform
-
-# Create a layer which prefetches git dependencies
-RUN cargo +1.85.0 update -p mozjs && git checkout Cargo.lock
+# For our MSRV CI builds we need less dependencies, and smaller images mean faster builds.
+# If servo fails to build, run ./mach bootstrap and investigate which additional dependency needs to be
+# installed.
+# RUN ./mach bootstrap --skip-platform
