@@ -247,8 +247,8 @@ class AndroidTarget(CrossBuildTarget):
         #
         # Also worth remembering: autoconf uses C for its configuration,
         # even for C++ builds, so the C flags need to line up with the C++ flags.
-        env["TARGET_CFLAGS"] = "--target=" + android_toolchain_name
-        env["TARGET_CXXFLAGS"] = "--target=" + android_toolchain_name
+        env["TARGET_CFLAGS"] = env.get("TARGET_CFLAGS", "") + " " + "--target=" + android_toolchain_name
+        env["TARGET_CXXFLAGS"] = env.get("TARGET_CXXFLAGS", "") + " " + "--target=" + android_toolchain_name
 
         # These two variables are needed for the mozjs compilation.
         env["ANDROID_API_LEVEL"] = android_api
@@ -388,9 +388,10 @@ class OpenHarmonyTarget(CrossBuildTarget):
         if clang_target_triple.startswith("armv7-"):
             ohos_cflags.extend(["-march=armv7-a", "-mfloat-abi=softfp", "-mtune=generic-armv7-a", "-mthumb"])
         ohos_cflags_str = " ".join(ohos_cflags)
-        env["TARGET_CFLAGS"] = ohos_cflags_str
-        env["TARGET_CPPFLAGS"] = "-D__MUSL__"
-        env["TARGET_CXXFLAGS"] = ohos_cflags_str
+
+        env["TARGET_CFLAGS"] = env.get("TARGET_CFLAGS", "") + " " + ohos_cflags_str
+        env["TARGET_CPPFLAGS"] = env.get("TARGET_CPPFLAGS", "") + " " + "-D__MUSL__"
+        env["TARGET_CXXFLAGS"] = env.get("TARGET_CXXFLAGS", "") + " " + ohos_cflags_str
 
         # CMake related flags
         env["CMAKE"] = ndk_root.joinpath("build-tools", "cmake", "bin", "cmake").as_posix()
