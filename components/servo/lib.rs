@@ -1008,9 +1008,7 @@ impl Servo {
     }
 
     pub fn execute_webdriver_command(&self, command: WebDriverCommandMsg) {
-        let _ = self
-            .constellation_proxy
-            .sender()
+        self.constellation_proxy
             .send(EmbedderToConstellationMessage::WebDriverCommand(command));
     }
 }

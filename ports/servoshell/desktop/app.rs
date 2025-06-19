@@ -12,7 +12,7 @@ use std::time::Instant;
 use std::{env, fs};
 
 use ::servo::ServoBuilder;
-use crossbeam_channel::{Receiver, unbounded};
+use crossbeam_channel::unbounded;
 use log::{info, trace, warn};
 use net::protocols::ProtocolRegistry;
 use servo::config::opts::Opts;
@@ -49,7 +49,6 @@ pub struct App {
     t_start: Instant,
     t: Instant,
     state: AppState,
-    webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
 
     // This is the last field of the struct to ensure that windows are dropped *after* all other
     // references to the relevant rendering contexts have been destroyed.
@@ -94,7 +93,6 @@ impl App {
             t_start: t,
             t,
             state: AppState::Initializing,
-            webdriver_receiver: None,
         }
     }
 
@@ -158,9 +156,8 @@ impl App {
         servo.setup_logging();
 
         // Initialize WebDriver server here before `servo` is moved.
-        if let Some(port) = self.opts.webdriver_port {
-            let (embedder_sender, receiver) = unbounded();
-            self.webdriver_receiver = Some(receiver);
+        let webdriver_receiver = self.opts.webdriver_port.map(|port| {
+            let (embedder_sender, embedder_receiver) = unbounded();
 
             // TODO: WebDriver will no longer need this channel once all WebDriver
             // commands are executed via the Servo API.
@@ -171,12 +168,15 @@ impl App {
                 embedder_sender,
                 self.waker.clone(),
             );
-        }
+
+            embedder_receiver
+        });
 
         let running_state = Rc::new(RunningAppState::new(
             servo,
             window.clone(),
             self.servoshell_preferences.clone(),
+            webdriver_receiver,
         ));
         running_state.new_toplevel_webview(self.initial_url.clone().into_url());
 
@@ -317,11 +317,11 @@ impl App {
     }
 
     fn handle_webdriver_messages(&mut self) {
-        let Some(webdriver_receiver) = self.webdriver_receiver.as_ref() else {
+        let AppState::Running(running_state) = &self.state else {
             return;
         };
 
-        let AppState::Running(running_state) = &self.state else {
+        let Some(webdriver_receiver) = running_state.webdriver_receiver() else {
             return;
         };
 
@@ -332,7 +332,7 @@ impl App {
                     sender.send(context.is_some()).unwrap();
                 },
                 webdriver_msg @ WebDriverCommandMsg::IsBrowsingContextOpen(..) => {
-                    self.forward_webdriver_command(webdriver_msg);
+                    running_state.forward_webdriver_command(webdriver_msg);
                 },
                 WebDriverCommandMsg::CloseWebView(webview_id) => {
                     running_state.close_webview(webview_id);
@@ -357,14 +357,6 @@ impl App {
                 },
             };
         }
-    }
-
-    fn forward_webdriver_command(&self, command: WebDriverCommandMsg) {
-        let AppState::Running(state) = &self.state else {
-            return;
-        };
-
-        state.servo().execute_webdriver_command(command);
     }
 }
 
