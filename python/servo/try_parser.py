@@ -132,7 +132,7 @@ def handle_modifier(config: JobConfig, s: str) -> Optional[JobConfig]:
         config.bencher = True
     elif "wpt" in s:
         config.wpt = True
-    if "webdriver" in s or "wb" in s:
+    if "webdriver" in s:
         config.webdriver = True
     config.update_name()
     return config
@@ -169,7 +169,7 @@ class Config(object):
                 words.extend(["linux-wpt"])
                 continue  # skip over keyword
             if word == "full":
-                words.extend(["linux-unit-tests", "linux-wpt", "linux-bencher"])
+                words.extend(["linux-unit-tests", "linux-wpt", "linux-bencher", "linux-webdriver"])
                 words.extend(["macos-unit-tests", "windows-unit-tests", "android", "ohos", "lint"])
                 continue  # skip over keyword
             if word == "bencher":
@@ -179,6 +179,9 @@ class Config(object):
                 words.extend(["linux-production-bencher", "macos-production-bencher", "windows-production-bencher"])
                 words.extend(["ohos-production-bencher"])
                 continue  # skip over keyword
+            if word == "wb":
+                words.extend(["linux-webdriver"])
+                continue
             job = handle_preset(word)
             job = handle_modifier(job, word)
             if job is None:
@@ -240,7 +243,7 @@ class TestParser(unittest.TestCase):
                         "number_of_wpt_chunks": 20,
                         "workflow": "linux",
                         "wpt": True,
-                        "webdriver": False,
+                        "webdriver": True,
                         "profile": "release",
                         "unit_tests": True,
                         "build_libservo": False,
@@ -332,7 +335,7 @@ class TestParser(unittest.TestCase):
                         "build_libservo": False,
                         "workflow": "linux",
                         "wpt": True,
-                        "webdriver": False,
+                        "webdriver": True,
                         "wpt_args": "",
                         "build_args": "",
                     }
