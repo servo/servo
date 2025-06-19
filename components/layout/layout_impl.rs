@@ -1180,7 +1180,6 @@ impl LayoutThread {
             helper: PostCompositeQueryHelper,
         ) -> T,
     ) -> T {
-        // println!("Processing post composite query");
         let stacking_context_tree = self.stacking_context_tree.borrow();
 
         let helper = PostCompositeQueryHelper::new(
@@ -1466,9 +1465,7 @@ impl ReflowPhases {
                 QueryMsg::ContentBox |
                 QueryMsg::ContentBoxes |
                 QueryMsg::ResolvedStyleQuery |
-                QueryMsg::ScrollingAreaOrOffsetQuery => {
-                    Self::StackingContextTreeConstruction
-                },
+                QueryMsg::ScrollingAreaOrOffsetQuery => Self::StackingContextTreeConstruction,
                 QueryMsg::ClientRectQuery |
                 QueryMsg::ElementInnerOuterTextQuery |
                 QueryMsg::InnerWindowDimensionsQuery |

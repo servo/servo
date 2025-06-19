@@ -201,6 +201,7 @@ impl StackingContextTree {
     fn push_reference_frame(
         &mut self,
         origin: LayoutPoint,
+        frame_origin_for_query: LayoutPoint,
         parent_scroll_node_id: &ScrollTreeNodeId,
         transform_style: wr::TransformStyle,
         transform: LayoutTransform,
@@ -210,6 +211,7 @@ impl StackingContextTree {
             Some(parent_scroll_node_id),
             SpatialTreeNodeInfo::ReferenceFrame(ReferenceFrameNodeInfo {
                 origin,
+                frame_origin_for_query,
                 transform_style,
                 transform,
                 kind,
@@ -994,8 +996,11 @@ impl BoxFragment {
             return;
         }
 
+        let frame_origin_for_query = self.cumulative_border_box_rect().origin.to_webrender();
+
         let new_spatial_id = stacking_context_tree.push_reference_frame(
             reference_frame_data.origin.to_webrender(),
+            frame_origin_for_query,
             &containing_block.scroll_node_id,
             self.style.get_box().transform_style.to_webrender(),
             reference_frame_data.transform,

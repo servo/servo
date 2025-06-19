@@ -88,6 +88,8 @@ pub struct StickyNodeInfo {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ReferenceFrameNodeInfo {
     pub origin: LayoutPoint,
+    /// Origin of this frame relative to the document for bounding box queries.
+    pub frame_origin_for_query: LayoutPoint,
     pub transform_style: TransformStyle,
     pub transform: LayoutTransform,
     pub kind: ReferenceFrameKind,
@@ -539,6 +541,7 @@ impl CompositorDisplayListInfo {
             None,
             SpatialTreeNodeInfo::ReferenceFrame(ReferenceFrameNodeInfo {
                 origin: Default::default(),
+                frame_origin_for_query: Default::default(),
                 transform_style: TransformStyle::Flat,
                 transform: LayoutTransform::identity(),
                 kind: ReferenceFrameKind::default(),
