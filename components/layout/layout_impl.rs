@@ -81,9 +81,10 @@ use webrender_api::{ExternalScrollId, HitTestFlags};
 use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
 use crate::display_list::{DisplayListBuilder, StackingContextTree};
 use crate::query::{
-    get_the_text_steps, process_client_rect_request, process_content_box_request,
-    process_content_boxes_request, process_node_scroll_area_request, process_offset_parent_query,
-    process_resolved_font_style_query, process_resolved_style_request, process_text_index_request,
+    PostCompositeQueryHelper, get_the_text_steps, process_client_rect_request,
+    process_content_box_request, process_content_boxes_request, process_node_scroll_area_request,
+    process_offset_parent_query, process_resolved_font_style_query, process_resolved_style_request,
+    process_text_index_request,
 };
 use crate::traversal::{RecalcStyle, compute_damage_and_repair_style};
 use crate::{BoxTree, FragmentTree};
@@ -253,16 +254,26 @@ impl Layout for LayoutThread {
             .remove_all_web_fonts_from_stylesheet(&stylesheet);
     }
 
+    /// Return a node's bounding box in physical coordinates corresponding to it's Document
+    /// viewport coordinate space. Variation of [`LayoutThread::query_content_boxes`]
+    /// that returns union of it.
+    ///
+    /// Part of <https://drafts.csswg.org/cssom-view-1/#element-get-the-bounding-box>
+    /// TODO(stevennovaryo): Rename and parameterize the function, allowing padding area
+    ///                      query and possibly, query without consideration of transform.
     #[servo_tracing::instrument(skip_all)]
     fn query_content_box(&self, node: TrustedNodeAddress) -> Option<UntypedRect<Au>> {
         let node = unsafe { ServoLayoutNode::new(&node) };
-        process_content_box_request(node)
+        self.process_post_composite_query(node, process_content_box_request)
     }
 
+    /// boxes are in in physical coordinates and correspond to it's Document
+    ///
+    /// Part of <https://drafts.csswg.org/cssom-view-1/#element-get-the-bounding-box>
     #[servo_tracing::instrument(skip_all)]
     fn query_content_boxes(&self, node: TrustedNodeAddress) -> Vec<UntypedRect<Au>> {
         let node = unsafe { ServoLayoutNode::new(&node) };
-        process_content_boxes_request(node)
+        self.process_post_composite_query(node, process_content_boxes_request)
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -1159,6 +1170,27 @@ impl LayoutThread {
         self.stylist
             .force_stylesheet_origins_dirty(sheet_origins_affected_by_device_change);
     }
+
+    /// Main entry point for queries that require [PostCompositeQueryHelper].
+    fn process_post_composite_query<T>(
+        &self,
+        node: ServoLayoutNode<'_>,
+        process_query_internals: fn(
+            node: ServoLayoutNode<'_>,
+            helper: PostCompositeQueryHelper,
+        ) -> T,
+    ) -> T {
+        // println!("Processing post composite query");
+        let stacking_context_tree = self.stacking_context_tree.borrow();
+
+        let helper = PostCompositeQueryHelper::new(
+            stacking_context_tree
+                .as_ref()
+                .map(|tree| &tree.compositor_info.scroll_tree),
+        );
+
+        process_query_internals(node, helper)
+    }
 }
 
 fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
@@ -1431,12 +1463,13 @@ impl ReflowPhases {
                 QueryMsg::NodesFromPointQuery => {
                     Self::StackingContextTreeConstruction | Self::DisplayListConstruction
                 },
-                QueryMsg::ResolvedStyleQuery | QueryMsg::ScrollingAreaOrOffsetQuery => {
+                QueryMsg::ContentBox |
+                QueryMsg::ContentBoxes |
+                QueryMsg::ResolvedStyleQuery |
+                QueryMsg::ScrollingAreaOrOffsetQuery => {
                     Self::StackingContextTreeConstruction
                 },
                 QueryMsg::ClientRectQuery |
-                QueryMsg::ContentBox |
-                QueryMsg::ContentBoxes |
                 QueryMsg::ElementInnerOuterTextQuery |
                 QueryMsg::InnerWindowDimensionsQuery |
                 QueryMsg::OffsetParentQuery |
