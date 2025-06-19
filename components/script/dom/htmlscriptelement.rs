@@ -1297,6 +1297,10 @@ impl HTMLScriptElement {
                     return Some(ScriptType::Module);
                 }
 
+                if ty.to_ascii_lowercase().trim_matches(HTML_SPACE_CHARACTERS) == "importmap" {
+                    return Some(ScriptType::ImportMap);
+                }
+
                 if SCRIPT_JS_MIMES
                     .contains(&ty.to_ascii_lowercase().trim_matches(HTML_SPACE_CHARACTERS))
                 {
