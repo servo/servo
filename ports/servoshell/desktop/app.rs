@@ -12,13 +12,14 @@ use std::time::Instant;
 use std::{env, fs};
 
 use ::servo::ServoBuilder;
+use crossbeam_channel::unbounded;
 use log::{info, trace, warn};
 use net::protocols::ProtocolRegistry;
-use servo::EventLoopWaker;
 use servo::config::opts::Opts;
 use servo::config::prefs::Preferences;
 use servo::servo_url::ServoUrl;
 use servo::user_content_manager::{UserContentManager, UserScript};
+use servo::{EventLoopWaker, WebDriverCommandMsg};
 use url::Url;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
@@ -154,10 +155,28 @@ impl App {
         let servo = servo_builder.build();
         servo.setup_logging();
 
+        // Initialize WebDriver server here before `servo` is moved.
+        let webdriver_receiver = self.opts.webdriver_port.map(|port| {
+            let (embedder_sender, embedder_receiver) = unbounded();
+
+            // TODO: WebDriver will no longer need this channel once all WebDriver
+            // commands are executed via the Servo API.
+            let constellation_sender_deprecated = servo.constellation_sender();
+            webdriver_server::start_server(
+                port,
+                constellation_sender_deprecated,
+                embedder_sender,
+                self.waker.clone(),
+            );
+
+            embedder_receiver
+        });
+
         let running_state = Rc::new(RunningAppState::new(
             servo,
             window.clone(),
             self.servoshell_preferences.clone(),
+            webdriver_receiver,
         ));
         running_state.new_toplevel_webview(self.initial_url.clone().into_url());
 
@@ -294,6 +313,49 @@ impl App {
                     state.close_webview(id);
                 },
             }
+        }
+    }
+
+    fn handle_webdriver_messages(&mut self) {
+        let AppState::Running(running_state) = &self.state else {
+            return;
+        };
+
+        let Some(webdriver_receiver) = running_state.webdriver_receiver() else {
+            return;
+        };
+
+        while let Ok(msg) = webdriver_receiver.try_recv() {
+            match msg {
+                WebDriverCommandMsg::IsWebViewOpen(webview_id, sender) => {
+                    let context = running_state.webview_by_id(webview_id);
+                    sender.send(context.is_some()).unwrap();
+                },
+                webdriver_msg @ WebDriverCommandMsg::IsBrowsingContextOpen(..) => {
+                    running_state.forward_webdriver_command(webdriver_msg);
+                },
+                WebDriverCommandMsg::CloseWebView(webview_id) => {
+                    running_state.close_webview(webview_id);
+                },
+                WebDriverCommandMsg::GetWindowSize(..) |
+                WebDriverCommandMsg::FocusWebView(..) |
+                WebDriverCommandMsg::LoadUrl(..) |
+                WebDriverCommandMsg::ScriptCommand(..) |
+                WebDriverCommandMsg::SendKeys(..) |
+                WebDriverCommandMsg::KeyboardAction(..) |
+                WebDriverCommandMsg::MouseButtonAction(..) |
+                WebDriverCommandMsg::MouseMoveAction(..) |
+                WebDriverCommandMsg::WheelScrollAction(..) |
+                WebDriverCommandMsg::SetWindowSize(..) |
+                WebDriverCommandMsg::TakeScreenshot(..) |
+                WebDriverCommandMsg::NewWebView(..) |
+                WebDriverCommandMsg::Refresh(..) => {
+                    warn!(
+                        "WebDriverCommand {:?} is still not moved from constellation to embedder",
+                        msg
+                    );
+                },
+            };
         }
     }
 }
@@ -434,6 +496,9 @@ impl ApplicationHandler<WakerEvent> for App {
 
         // Consume and handle any events from the Minibrowser.
         self.handle_servoshell_ui_events();
+
+        // Consume and handle any events from the WebDriver.
+        self.handle_webdriver_messages();
 
         self.handle_events_with_winit(event_loop, window);
     }

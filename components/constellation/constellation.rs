@@ -4536,8 +4536,8 @@ where
         // Find the script channel for the given parent pipeline,
         // and pass the event to that script thread.
         match msg {
-            WebDriverCommandMsg::CloseWebView(webview_id) => {
-                self.handle_close_top_level_browsing_context(webview_id);
+            WebDriverCommandMsg::CloseWebView(..) => {
+                unreachable!("This command should be send directly to the embedder.");
             },
             WebDriverCommandMsg::NewWebView(
                 originating_webview_id,
@@ -4575,9 +4575,8 @@ where
             WebDriverCommandMsg::FocusWebView(webview_id) => {
                 self.handle_focus_web_view(webview_id);
             },
-            WebDriverCommandMsg::IsWebViewOpen(webview_id, response_sender) => {
-                let is_open = self.webviews.get(webview_id).is_some();
-                let _ = response_sender.send(is_open);
+            WebDriverCommandMsg::IsWebViewOpen(..) => {
+                unreachable!("This command should be send directly to the embedder.");
             },
             WebDriverCommandMsg::IsBrowsingContextOpen(browsing_context_id, response_sender) => {
                 let is_open = self.browsing_contexts.contains_key(&browsing_context_id);
