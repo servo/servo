@@ -1508,7 +1508,7 @@ fn fetch_an_import_module_script_graph(
             ptr::NonNull::new(GetModuleRequestSpecifier(*cx, module_request)).unwrap(),
         )
     };
-    let mut options = ScriptFetchOptions::default_classic_script(&global);
+    let mut options = ScriptFetchOptions::default_classic_script(global);
     let module_data = unsafe { module_script_from_reference_private(&reference_private) };
     if let Some(data) = module_data {
         options = data.options.descendant_fetch_options();
