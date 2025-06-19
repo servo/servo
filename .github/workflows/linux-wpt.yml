@@ -17,10 +17,6 @@ on:
         default: 20
         required: false
         type: number
-      wpt:
-        default: true
-        required: false
-        type: boolean
       webdriver:
         default: false
         required: false
@@ -33,11 +29,16 @@ env:
   INTERMITTENT_TRACKER_DASHBOARD_SECRET: ${{ !inputs.wpt-sync-from-upstream && secrets.INTERMITTENT_TRACKER_DASHBOARD_SECRET || '' }}
   INTERMITTENT_TRACKER_DASHBOARD_SECRET_PROD: ${{ !inputs.wpt-sync-from-upstream && secrets.INTERMITTENT_TRACKER_DASHBOARD_SECRET_PROD || '' }}
   INTERMITTENT_TRACKER_DASHBOARD_SECRET_STAGING: ${{ !inputs.wpt-sync-from-upstream && secrets.INTERMITTENT_TRACKER_DASHBOARD_SECRET_STAGING || '' }}
-  WPT_ALWAYS_SUCCEED_ARG: "${{ inputs.wpt-sync-from-upstream && '--always-succeed' || '' }}"
+  WPT_ALWAYS_SUCCEED_ARG: "${{ inputs.wpt-sync-from-upstream && '--always-succeed' || inputs.webdriver && '--always-succeed' || '' }}"
+  FILE_PREFIX: ${{ inputs.webdriver && 'wb' || 'wpt' }}
+  WEBDRIVER_ARG: "${{ inputs.webdriver && 
+      './tests/wpt/tests/webdriver/tests/classic/ \
+      --pref=dom_testing_html_input_element_select_files_enabled \
+      --product servodriver \
+      --headless' || '' }}"
 
 jobs:
   chunks:
-    if: ${{ inputs.wpt }}
     name: Generate chunks array
     runs-on: ubuntu-22.04
     outputs:
@@ -84,16 +85,17 @@ jobs:
           ./mach update-wpt --sync --patch
       - name: Run tests
         run: |
-          mkdir -p wpt-filtered-logs/linux
-          mkdir -p wpt-full-logs/linux
+          mkdir -p $FILE_PREFIX-filtered-logs/linux
+          mkdir -p $FILE_PREFIX-full-logs/linux
           ./mach test-wpt \
+            $WEBDRIVER_ARG \
             $WPT_ALWAYS_SUCCEED_ARG \
             --${{ inputs.profile }} --processes $(nproc) --timeout-multiplier 2 \
             --total-chunks ${{ inputs.number-of-wpt-chunks }} --this-chunk ${{ matrix.chunk_id }} \
-            --log-raw wpt-full-logs/linux/raw/${{ matrix.chunk_id }}.log \
-            --log-wptreport wpt-full-logs/linux/wptreport/${{ matrix.chunk_id }}.json \
-            --log-raw-unexpected wpt-filtered-logs/linux/${{ matrix.chunk_id }}.log \
-            --filter-intermittents wpt-filtered-logs/linux/${{ matrix.chunk_id }}.json \
+            --log-raw $FILE_PREFIX-full-logs/linux/raw/${{ matrix.chunk_id }}.log \
+            --log-wptreport $FILE_PREFIX-full-logs/linux/wptreport/${{ matrix.chunk_id }}.json \
+            --log-raw-unexpected $FILE_PREFIX-filtered-logs/linux/${{ matrix.chunk_id }}.log \
+            --filter-intermittents $FILE_PREFIX-filtered-logs/linux/${{ matrix.chunk_id }}.json \
             ${{ inputs.wpt-args }}
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
@@ -101,105 +103,40 @@ jobs:
         uses: actions/upload-artifact@v4
         if: ${{ always() }}
         with:
-          name: wpt-filtered-logs-linux-${{ matrix.chunk_id }}
-          path: wpt-filtered-logs/*/
+          name: ${{ env.FILE_PREFIX }}-filtered-logs-linux-${{ matrix.chunk_id }}
+          path: ${{ env.FILE_PREFIX }}-filtered-logs/*/
       - name: Archive results (full)
         uses: actions/upload-artifact@v4
         if: ${{ always() }}
         with:
-          name: wpt-full-logs-linux-${{ matrix.chunk_id }}
-          path: wpt-full-logs/*/
-
-  webdriver-test:
-    if: ${{ inputs.webdriver }}
-    name: Webdriver Test
-    strategy:
-      fail-fast: false
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-        if: github.event_name != 'pull_request_target'
-      - uses: actions/checkout@v4
-        if: github.event_name == 'pull_request_target'
-        with:
-          ref: refs/pull/${{ github.event.number }}/head
-      - uses: actions/download-artifact@v4
-        with:
-          name: ${{ inputs.profile }}-binary-linux
-          path: ${{ inputs.profile }}-binary-linux
-      - name: unPackage binary
-        run: tar -xzf ${{ inputs.profile }}-binary-linux/target.tar.gz
-      - name: Setup Python
-        uses: ./.github/actions/setup-python
-      - name: Bootstrap dependencies
-        run: |
-          sudo apt update
-          sudo apt install -qy --no-install-recommends mesa-vulkan-drivers fonts-noto-cjk
-          ./mach bootstrap --skip-lints
-      - name: Sync from upstream WPT
-        if: ${{ inputs.wpt-sync-from-upstream }}
-        run: |
-          ./mach update-wpt --sync --patch
-      - name: Run tests
-        run: |
-          mkdir -p wpt-filtered-logs/linux
-          mkdir -p wpt-full-logs/linux
-          ./mach test-wpt \
-            ./tests/wpt/tests/webdriver/tests/classic/ \
-            --${{ inputs.profile }} \
-            --processes 1 \
-            --timeout-multiplier 2 \
-            --always-succeed \
-            ${{ inputs.wpt-args }} \
-            --pref=dom_testing_html_input_element_select_files_enabled \
-            --product servodriver \
-            --headless \
-            --log-raw wpt-full-logs/linux/raw/webdriver.log \
-            --log-wptreport wpt-full-logs/linux/wptreport/webdriver.json \
-            --log-raw-unexpected wpt-filtered-logs/linux/webdriver.log \
-            --filter-intermittents wpt-filtered-logs/linux/webdriver.json \
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-      - name: Archive results (filtered)
-        uses: actions/upload-artifact@v4
-        if: ${{ always() }}
-        with:
-          name: wpt-filtered-logs-linux-webdriver
-          path: wpt-filtered-logs/*/
-      - name: Archive results (full)
-        uses: actions/upload-artifact@v4
-        if: ${{ always() }}
-        with:
-          name: wpt-full-logs-linux-webdriver
-          path: wpt-full-logs/*/
+          name: ${{ env.FILE_PREFIX }}-full-logs-linux-${{ matrix.chunk_id }}
+          path: ${{ env.FILE_PREFIX }}-full-logs/*/
 
   report-test-results:
     name: Process WPT Results
     runs-on: ubuntu-latest
     if: ${{ always() }}
-    needs:
-      - linux-wpt
-      - webdriver-test
+    needs: linux-wpt
     steps:
       - name: Merge logs (full)
         uses: actions/upload-artifact/merge@v4
         with:
-          name: wpt-full-logs-linux
-          pattern: wpt-full-logs-linux-*
+          name: ${{ env.FILE_PREFIX }}-full-logs-linux
+          pattern: ${{ env.FILE_PREFIX }}-full-logs-linux-*
           delete-merged: true
       # This job needs to be last. If no filtered results were uploaded, it will fail, but we want to merge other archives in that case.
       - name: Merge logs (filtered)
         uses: actions/upload-artifact/merge@v4
         with:
-          name: wpt-filtered-logs-linux
-          pattern: wpt-filtered-logs-linux-*
+          name: ${{ env.FILE_PREFIX }}-filtered-logs-linux
+          pattern: ${{ env.FILE_PREFIX }}-filtered-logs-linux-*
           delete-merged: true
       - uses: actions/checkout@v4
         if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
       - uses: actions/download-artifact@v4
         if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
         with:
-          name: wpt-filtered-logs-linux
+          name: ${{ env.FILE_PREFIX }}-filtered-logs-linux
           path: results
       - name: Report results
         if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
