@@ -1347,17 +1347,12 @@ impl Handler {
         self.browsing_context_script_command(cmd)?;
         match wait_for_script_response(receiver)? {
             Ok(value) => {
-                if value.is_none() {
-                    return Err(WebDriverError::new(
-                        ErrorStatus::NoSuchShadowRoot,
-                        "No shadow root found for the element",
-                    ));
-                }
-                let value_resp = serde_json::to_value(
-                    value.map(|x| serde_json::to_value(WebElement(x)).unwrap()),
-                )?;
-                let shadow_root_value = json!({ SHADOW_ROOT_IDENTIFIER: value_resp });
-                Ok(WebDriverResponse::Generic(ValueResponse(shadow_root_value)))
+                let Some(value) = value else {
+                    return Err(WebDriverError::new(ErrorStatus::NoSuchShadowRoot, ""));
+                };
+                Ok(WebDriverResponse::Generic(ValueResponse(
+                    json!({ SHADOW_ROOT_IDENTIFIER: value }),
+                )))
             },
             Err(error) => Err(WebDriverError::new(error, "")),
         }
