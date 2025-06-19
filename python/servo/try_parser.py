@@ -336,7 +336,7 @@ class TestParser(unittest.TestCase):
                         "build_libservo": False,
                         "workflow": "linux",
                         "wpt": True,
-                        "webdriver": True,
+                        "webdriver": False,
                         "wpt_args": "",
                         "build_args": "",
                     }
