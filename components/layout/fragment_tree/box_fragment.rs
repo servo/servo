@@ -4,6 +4,7 @@
 
 use app_units::{Au, MAX_AU, MIN_AU};
 use atomic_refcell::AtomicRefCell;
+use base::id::ScrollTreeNodeId;
 use base::print_tree::PrintTree;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
@@ -103,6 +104,10 @@ pub(crate) struct BoxFragment {
 
     /// Additional information of from layout that could be used by Javascripts and devtools.
     pub specific_layout_info: Option<SpecificLayoutInfo>,
+
+    /// The lowest scroll tree node that would affect this fragment's border. It is used to
+    /// calculate the post composite queries (e.g., bounding box query).
+    pub scroll_tree_node_id_for_query: AtomicRefCell<Option<ScrollTreeNodeId>>,
 }
 
 impl BoxFragment {
@@ -133,6 +138,7 @@ impl BoxFragment {
             resolved_sticky_insets: AtomicRefCell::default(),
             background_mode: BackgroundMode::Normal,
             specific_layout_info,
+            scroll_tree_node_id_for_query: AtomicRefCell::default(),
         }
     }
 

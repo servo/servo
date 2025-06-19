@@ -6,7 +6,9 @@
 use std::rc::Rc;
 
 use app_units::Au;
-use euclid::default::{Point2D, Rect};
+use base::id::ScrollTreeNodeId;
+use compositing_traits::display_list::ScrollTree;
+use euclid::default::{Point2D, Rect, Vector2D};
 use euclid::{SideOffsets2D, Size2D};
 use itertools::Itertools;
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
@@ -37,6 +39,7 @@ use style::values::specified::GenericGridTemplateComponent;
 use style::values::specified::box_::DisplayInside;
 use style::values::specified::text::TextTransformCase;
 use style_traits::{ParsingMode, ToCss};
+use webrender_api::units::LayoutVector2D;
 
 use crate::ArcRefCell;
 use crate::dom::NodeExt;
@@ -46,7 +49,68 @@ use crate::fragment_tree::{
 };
 use crate::taffy::SpecificTaffyGridInfo;
 
-pub fn process_content_box_request(node: ServoLayoutNode<'_>) -> Option<Rect<Au>> {
+/// Specific helper for post composite query, query that requires the consideration of transform,
+/// mapping of coordinates, scroll offset, etc. It provide some encapsulation of borrowed structures
+/// required in these kind of queries and some useful utilities of it.
+pub(crate) struct PostCompositeQueryHelper<'dom> {
+    scroll_tree: Option<&'dom ScrollTree>,
+}
+
+impl<'dom> PostCompositeQueryHelper<'dom> {
+    pub fn new(scroll_tree: Option<&'dom ScrollTree>) -> Self {
+        PostCompositeQueryHelper { scroll_tree }
+    }
+
+    fn retrieve_box_fragment(fragment: &Fragment) -> Option<&ArcRefCell<BoxFragment>> {
+        match fragment {
+            Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => Some(box_fragment),
+            _ => None,
+        }
+    }
+
+    fn get_scroll_node_id_for_query(&self, node: ServoLayoutNode<'_>) -> Option<ScrollTreeNodeId> {
+        let fragments = node.fragments_for_pseudo(None);
+        let box_fragment = fragments
+            .first()
+            .and_then(PostCompositeQueryHelper::retrieve_box_fragment)?
+            .borrow();
+        *box_fragment.scroll_tree_node_id_for_query.borrow()
+    }
+
+    /// Get a scroll node that would represents this [ServoLayoutNode]'s transform and
+    /// calculate its transfrom from its root scroll node to the scroll node.
+    fn layout_node_to_root_transform(&self, node: ServoLayoutNode<'_>) -> Option<Vector2D<Au>> {
+        let scroll_tree_node_id = self.get_scroll_node_id_for_query(node)?;
+
+        // MYNOTES: this is temporary, we should not return Au here
+        let translate = Some(self.scroll_node_to_root_transform(&scroll_tree_node_id));
+        translate.map(|t| Vector2D::new(Au::from_f32_px(t.x), Au::from_f32_px(t.y)))
+    }
+
+    /// Traverse a scroll node to its root to calculate the transform.
+    fn scroll_node_to_root_transform(&self, node_id: &ScrollTreeNodeId) -> LayoutVector2D {
+        if let Some(scroll_tree) = self.scroll_tree {
+            let cur_node = scroll_tree.get_node(node_id);
+
+            let mut cur_transform = cur_node.offset().unwrap_or_default();
+
+            if let Some(parent_id) = cur_node.parent {
+                let ancestors_transform = self.scroll_node_to_root_transform(&parent_id);
+                cur_transform = ancestors_transform + cur_transform;
+            }
+            // println!("scroll_node_to_root_transform {node_id:?} {cur_transform:?}");
+
+            cur_transform
+        } else {
+            Default::default()
+        }
+    }
+}
+
+pub(crate) fn process_content_box_request(
+    node: ServoLayoutNode<'_>,
+    helper: PostCompositeQueryHelper<'_>,
+) -> Option<Rect<Au>> {
     let rects: Vec<_> = node
         .fragments_for_pseudo(None)
         .iter()
@@ -55,17 +119,33 @@ pub fn process_content_box_request(node: ServoLayoutNode<'_>) -> Option<Rect<Au>
     if rects.is_empty() {
         return None;
     }
+    let transform = helper
+        .layout_node_to_root_transform(node)
+        .unwrap_or_default();
+    // println!("Results {rects:?} {transform:?}");
 
-    Some(rects.iter().fold(Rect::zero(), |unioned_rect, rect| {
-        rect.to_untyped().union(&unioned_rect)
-    }))
+    Some(
+        rects
+            .iter()
+            .fold(Rect::zero(), |unioned_rect, rect| {
+                rect.to_untyped().union(&unioned_rect)
+            })
+            .translate(transform),
+    )
 }
 
-pub fn process_content_boxes_request(node: ServoLayoutNode<'_>) -> Vec<Rect<Au>> {
+pub(crate) fn process_content_boxes_request(
+    node: ServoLayoutNode<'_>,
+    helper: PostCompositeQueryHelper<'_>,
+) -> Vec<Rect<Au>> {
+    let transform = helper
+        .layout_node_to_root_transform(node)
+        .unwrap_or_default();
+
     node.fragments_for_pseudo(None)
         .iter()
         .filter_map(Fragment::cumulative_border_box_rect)
-        .map(|rect| rect.to_untyped())
+        .map(|rect| rect.to_untyped().translate(transform))
         .collect()
 }
 
