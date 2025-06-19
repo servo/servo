@@ -465,7 +465,7 @@ impl UserAgentPlatform {
             },
             UserAgentPlatform::Android => {
                 format!(
-                    "Mozilla/5.0 (Android; Mobile; rv:128.0) Servo/{SERVO_VERSION} Firefox/128.0"
+                    "Mozilla/5.0 (Android 10; Mobile; rv:128.0) Servo/{SERVO_VERSION} Firefox/128.0"
                 )
             },
             UserAgentPlatform::OpenHarmony => format!(
