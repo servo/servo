@@ -74,7 +74,7 @@ pub struct FetchContext {
         Arc<
             Mutex<(
                 IpcSender<WebSocketNetworkEvent>,
-                IpcReceiver<WebSocketDomAction>,
+                Option<IpcReceiver<WebSocketDomAction>>,
             )>,
         >,
     >,

@@ -149,7 +149,7 @@ pub fn process_ws_response(
 }
 
 #[derive(Debug)]
-enum DomMsg {
+pub(crate) enum DomMsg {
     Send(Message),
     Close(Option<(u16, String)>),
 }

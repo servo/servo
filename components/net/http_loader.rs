@@ -1913,8 +1913,11 @@ async fn http_network_fetch(
         RequestMode::WebSocket { protocols } => {
             // https://fetch.spec.whatwg.org/#websocket-opening-handshake
 
-            let resource_event_sender = context.websocket_chan.unwrap().lock().unwrap().0.clone();
-            let dom_action_receiver = context.websocket_chan.unwrap().lock().unwrap().1;
+            let (resource_event_sender, dom_action_receiver) = {
+                let mut websocket_chan = context.websocket_chan.as_ref().unwrap().lock().unwrap();
+                (websocket_chan.0.clone(),
+                 websocket_chan.1.take().unwrap())
+            };
 
             // FIXME(pylbrecht): apply_hsts_rules()
 
@@ -1974,6 +1977,11 @@ async fn http_network_fetch(
             } else {
                 trace!("client closed connection for {}, not running loop", url);
             }
+            let response = response.map(|r| {
+                Full::from(r.unwrap())
+                    .map_err(|_| unreachable!())
+                    .boxed()
+            });
             (Decoder::detect(response, url.is_secure_scheme()), None)
         },
         _ => {

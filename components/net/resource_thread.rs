@@ -864,7 +864,7 @@ impl CoreResourceManager {
                 protocols,
                 websocket_chan: Some(Arc::new(Mutex::new((
                     event_sender.clone(),
-                    action_receiver,
+                    Some(action_receiver),
                 )))),
             };
 
