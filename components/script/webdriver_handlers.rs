@@ -25,6 +25,7 @@ use net_traits::CoreResourceMsg::{
     DeleteCookie, DeleteCookies, GetCookiesDataForUrl, SetCookieForUrl,
 };
 use net_traits::IpcSend;
+use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::conversions::is_array_like;
 use servo_url::ServoUrl;
 use webdriver::common::{WebElement, WebFrame, WebWindow};
@@ -64,12 +65,68 @@ use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::nodelist::NodeList;
+use crate::dom::types::ShadowRoot;
 use crate::dom::window::Window;
 use crate::dom::xmlserializer::XMLSerializer;
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::script_thread::ScriptThread;
+
+fn is_stale(element: &Element) -> bool {
+    // An element is stale if its node document is not the active document
+    // or if it is not connected.
+    !element.owner_document().is_active() || !element.is_connected()
+}
+
+#[allow(dead_code)]
+/// <https://w3c.github.io/webdriver/#dfn-get-a-known-shadow-root>
+fn get_known_shadow_root(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    node_id: String,
+) -> Result<DomRoot<ShadowRoot>, ErrorStatus> {
+    let doc = documents
+        .find_document(pipeline)
+        .ok_or(ErrorStatus::NoSuchWindow)?;
+    // Step 1. If not node reference is known with session, session's current browsing context,
+    // and reference return error with error code no such shadow root.
+    if !ScriptThread::has_node_id(pipeline, &node_id) {
+        return Err(ErrorStatus::NoSuchShadowRoot);
+    }
+
+    // Step 2. Let node be the result of get a node with session,
+    // session's current browsing context, and reference.
+    let node = find_node_by_unique_id_in_document(&doc, node_id);
+
+    // Step 3. If node is not null and node does not implement ShadowRoot
+    // return error with error code no such shadow root.
+    if let Some(ref node) = node {
+        if !node.is::<ShadowRoot>() {
+            return Err(ErrorStatus::NoSuchShadowRoot);
+        }
+    }
+
+    // Step 4.1. If node is null return error with error code detached shadow root.
+    let Some(node) = node else {
+        return Err(ErrorStatus::DetachedShadowRoot);
+    };
+
+    // Step 4.2. If node is detached return error with error code detached shadow root.
+    // A shadow root is detached if its node document is not the active document
+    // or if the element node referred to as its host is stale.
+    let shadow_root = DomRoot::downcast::<ShadowRoot>(node).unwrap();
+    if !shadow_root.owner_document().is_active() {
+        return Err(ErrorStatus::DetachedShadowRoot);
+    }
+
+    let host = shadow_root.Host();
+    if is_stale(&host) {
+        return Err(ErrorStatus::DetachedShadowRoot);
+    }
+    // Step 5. Return success with data node.
+    Ok(shadow_root)
+}
 
 /// <https://w3c.github.io/webdriver/#dfn-get-a-known-element>
 fn get_known_element(
@@ -79,11 +136,10 @@ fn get_known_element(
 ) -> Result<DomRoot<Element>, ErrorStatus> {
     let doc = documents
         .find_document(pipeline)
-        .expect("webdriver_handlers::Document should exists");
+        .ok_or(ErrorStatus::NoSuchWindow)?;
     // Step 1. If not node reference is known with session, session's current browsing context,
     // and reference return error with error code no such element.
     if !ScriptThread::has_node_id(pipeline, &node_id) {
-        // If the node is known, but not found in the document, it is stale.
         return Err(ErrorStatus::NoSuchElement);
     }
     // Step 2.Let node be the result of get a node with session,
@@ -98,14 +154,12 @@ fn get_known_element(
         }
     }
     // Step 4.1. If node is null return error with error code stale element reference.
-    if node.is_none() {
+    let Some(node) = node else {
         return Err(ErrorStatus::StaleElementReference);
-    }
+    };
     // Step 4.2. If node is stale return error with error code stale element reference.
-    // An element is stale if its node document is not the active document
-    // or if it is not connected.
-    let element = DomRoot::from_ref(node.unwrap().downcast::<Element>().unwrap());
-    if !element.owner_document().is_active() || !element.is_connected() {
+    let element = DomRoot::downcast::<Element>(node).unwrap();
+    if is_stale(&element) {
         return Err(ErrorStatus::StaleElementReference);
     }
     // Step 5. Return success with data node.
