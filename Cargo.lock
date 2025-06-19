@@ -2494,7 +2494,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0176e0459c2e4a1fe232f984bca6890e681076abb9934f6cea7c326f3fc47818"
 dependencies = [
  "libc",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",,
 ]
 
 [[package]]
@@ -4313,7 +4313,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "07033963ba89ebaf1584d767badaa2e8fcec21aedea6b8c0346d487d49c28667"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -6653,7 +6653,7 @@ dependencies = [
 [[package]]
 name = "selectors"
 version = "0.28.0"
-source = "git+https://github.com/stevennovaryo/stylo?branch=input-text-internal-pseudo-selector#80ec17c7160f734accf64d114e63967b4cbffe6a"
+source = "git+https://github.com/stevennovaryo/stylo?branch=input-text-internal-pseudo-selector#615ba6c2cea34be67e76fc10784a34bebc22505b"
 dependencies = [
  "bitflags 2.9.1",
  "cssparser",
@@ -6948,7 +6948,7 @@ dependencies = [
 [[package]]
 name = "servo_arc"
 version = "0.4.1"
-source = "git+https://github.com/stevennovaryo/stylo?branch=input-text-internal-pseudo-selector#80ec17c7160f734accf64d114e63967b4cbffe6a"
+source = "git+https://github.com/stevennovaryo/stylo?branch=input-text-internal-pseudo-selector#615ba6c2cea34be67e76fc10784a34bebc22505b"
 dependencies = [
  "serde",
  "stable_deref_trait",
@@ -7409,7 +7409,7 @@ dependencies = [
 [[package]]
 name = "stylo"
 version = "0.3.0"
-source = "git+https://github.com/stevennovaryo/stylo?branch=input-text-internal-pseudo-selector#80ec17c7160f734accf64d114e63967b4cbffe6a"
+source = "git+https://github.com/stevennovaryo/stylo?branch=input-text-internal-pseudo-selector#615ba6c2cea34be67e76fc10784a34bebc22505b"
 dependencies = [
  "app_units",
  "arrayvec",
@@ -7467,7 +7467,7 @@ dependencies = [
 [[package]]
 name = "stylo_atoms"
 version = "0.3.0"
-source = "git+https://github.com/stevennovaryo/stylo?branch=input-text-internal-pseudo-selector#80ec17c7160f734accf64d114e63967b4cbffe6a"
+source = "git+https://github.com/stevennovaryo/stylo?branch=input-text-internal-pseudo-selector#615ba6c2cea34be67e76fc10784a34bebc22505b"
 dependencies = [
  "string_cache",
  "string_cache_codegen",
@@ -7476,12 +7476,12 @@ dependencies = [
 [[package]]
 name = "stylo_config"
 version = "0.3.0"
-source = "git+https://github.com/stevennovaryo/stylo?branch=input-text-internal-pseudo-selector#80ec17c7160f734accf64d114e63967b4cbffe6a"
+source = "git+https://github.com/stevennovaryo/stylo?branch=input-text-internal-pseudo-selector#615ba6c2cea34be67e76fc10784a34bebc22505b"
 
 [[package]]
 name = "stylo_derive"
 version = "0.3.0"
-source = "git+https://github.com/stevennovaryo/stylo?branch=input-text-internal-pseudo-selector#80ec17c7160f734accf64d114e63967b4cbffe6a"
+source = "git+https://github.com/stevennovaryo/stylo?branch=input-text-internal-pseudo-selector#615ba6c2cea34be67e76fc10784a34bebc22505b"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -7493,7 +7493,7 @@ dependencies = [
 [[package]]
 name = "stylo_dom"
 version = "0.3.0"
-source = "git+https://github.com/stevennovaryo/stylo?branch=input-text-internal-pseudo-selector#80ec17c7160f734accf64d114e63967b4cbffe6a"
+source = "git+https://github.com/stevennovaryo/stylo?branch=input-text-internal-pseudo-selector#615ba6c2cea34be67e76fc10784a34bebc22505b"
 dependencies = [
  "bitflags 2.9.1",
  "stylo_malloc_size_of",
@@ -7502,7 +7502,7 @@ dependencies = [
 [[package]]
 name = "stylo_malloc_size_of"
 version = "0.3.0"
-source = "git+https://github.com/stevennovaryo/stylo?branch=input-text-internal-pseudo-selector#80ec17c7160f734accf64d114e63967b4cbffe6a"
+source = "git+https://github.com/stevennovaryo/stylo?branch=input-text-internal-pseudo-selector#615ba6c2cea34be67e76fc10784a34bebc22505b"
 dependencies = [
  "app_units",
  "cssparser",
@@ -7519,12 +7519,12 @@ dependencies = [
 [[package]]
 name = "stylo_static_prefs"
 version = "0.3.0"
-source = "git+https://github.com/stevennovaryo/stylo?branch=input-text-internal-pseudo-selector#80ec17c7160f734accf64d114e63967b4cbffe6a"
+source = "git+https://github.com/stevennovaryo/stylo?branch=input-text-internal-pseudo-selector#615ba6c2cea34be67e76fc10784a34bebc22505b"
 
 [[package]]
 name = "stylo_traits"
 version = "0.3.0"
-source = "git+https://github.com/stevennovaryo/stylo?branch=input-text-internal-pseudo-selector#80ec17c7160f734accf64d114e63967b4cbffe6a"
+source = "git+https://github.com/stevennovaryo/stylo?branch=input-text-internal-pseudo-selector#615ba6c2cea34be67e76fc10784a34bebc22505b"
 dependencies = [
  "app_units",
  "bitflags 2.9.1",
@@ -7933,7 +7933,7 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 [[package]]
 name = "to_shmem"
 version = "0.2.0"
-source = "git+https://github.com/stevennovaryo/stylo?branch=input-text-internal-pseudo-selector#80ec17c7160f734accf64d114e63967b4cbffe6a"
+source = "git+https://github.com/stevennovaryo/stylo?branch=input-text-internal-pseudo-selector#615ba6c2cea34be67e76fc10784a34bebc22505b"
 dependencies = [
  "cssparser",
  "servo_arc",
@@ -7946,7 +7946,7 @@ dependencies = [
 [[package]]
 name = "to_shmem_derive"
 version = "0.1.0"
-source = "git+https://github.com/stevennovaryo/stylo?branch=input-text-internal-pseudo-selector#80ec17c7160f734accf64d114e63967b4cbffe6a"
+source = "git+https://github.com/stevennovaryo/stylo?branch=input-text-internal-pseudo-selector#615ba6c2cea34be67e76fc10784a34bebc22505b"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -9279,7 +9279,7 @@ version = "0.48.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "677d2418bec65e3338edb076e806bc1ec15693c5d0104683f2efe857f61056a9"
 dependencies = [
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",,
 ]
 
 [[package]]
