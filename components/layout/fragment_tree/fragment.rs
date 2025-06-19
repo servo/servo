@@ -205,8 +205,7 @@ impl Fragment {
     pub(crate) fn cumulative_border_box_rect(&self) -> Option<PhysicalRect<Au>> {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                let fragment = fragment.borrow();
-                Some(fragment.offset_by_containing_block(&fragment.border_rect()))
+                Some(fragment.borrow().cumulative_border_box_rect())
             },
             Fragment::Positioning(fragment) => {
                 let fragment = fragment.borrow();

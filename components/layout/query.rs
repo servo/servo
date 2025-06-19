@@ -7,14 +7,15 @@ use std::rc::Rc;
 
 use app_units::Au;
 use base::id::ScrollTreeNodeId;
-use compositing_traits::display_list::ScrollTree;
-use euclid::default::{Point2D, Rect, Vector2D};
-use euclid::{SideOffsets2D, Size2D};
+use compositing_traits::display_list::{ScrollTree, SpatialTreeNodeInfo};
+use euclid::default::{Point2D, Rect};
+use euclid::{SideOffsets2D, Size2D, Transform3D};
 use itertools::Itertools;
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use layout_api::{LayoutElementType, LayoutNodeType, OffsetParentResponse};
 use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
+use servo_geometry::{au_rect_to_f32_rect, f32_rect_to_au_rect};
 use servo_url::ServoUrl;
 use style::computed_values::display::T as Display;
 use style::computed_values::position::T as Position;
@@ -39,7 +40,7 @@ use style::values::specified::GenericGridTemplateComponent;
 use style::values::specified::box_::DisplayInside;
 use style::values::specified::text::TextTransformCase;
 use style_traits::{ParsingMode, ToCss};
-use webrender_api::units::LayoutVector2D;
+use webrender_api::units::LayoutTransform;
 
 use crate::ArcRefCell;
 use crate::dom::NodeExt;
@@ -47,6 +48,7 @@ use crate::flow::inline::construct::{TextTransformation, WhitespaceCollapse, cap
 use crate::fragment_tree::{
     BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo,
 };
+use crate::style_ext::TransformExt;
 use crate::taffy::SpecificTaffyGridInfo;
 
 /// Specific helper for post composite query, query that requires the consideration of transform,
@@ -79,30 +81,62 @@ impl<'dom> PostCompositeQueryHelper<'dom> {
 
     /// Get a scroll node that would represents this [ServoLayoutNode]'s transform and
     /// calculate its transfrom from its root scroll node to the scroll node.
-    fn layout_node_to_root_transform(&self, node: ServoLayoutNode<'_>) -> Option<Vector2D<Au>> {
+    fn layout_node_to_root_transform(&self, node: ServoLayoutNode<'_>) -> Option<LayoutTransform> {
         let scroll_tree_node_id = self.get_scroll_node_id_for_query(node)?;
 
-        // MYNOTES: this is temporary, we should not return Au here
-        let translate = Some(self.scroll_node_to_root_transform(&scroll_tree_node_id));
-        translate.map(|t| Vector2D::new(Au::from_f32_px(t.x), Au::from_f32_px(t.y)))
+        Some(self.scroll_node_to_root_transform(&scroll_tree_node_id))
     }
 
     /// Traverse a scroll node to its root to calculate the transform.
-    fn scroll_node_to_root_transform(&self, node_id: &ScrollTreeNodeId) -> LayoutVector2D {
+    // TODO(stevennovaryo): Add caching mechanism for this.
+    fn scroll_node_to_root_transform(&self, node_id: &ScrollTreeNodeId) -> LayoutTransform {
         if let Some(scroll_tree) = self.scroll_tree {
             let cur_node = scroll_tree.get_node(node_id);
 
-            let mut cur_transform = cur_node.offset().unwrap_or_default();
+            // FIXME(stevennovaryo): Ideally we should optimize the computation of simpler
+            //                       transformation like translate as it could be done
+            //                       in smaller amount of operation compared to a normal
+            //                       matrix multiplication.
+            let node_transform = match &cur_node.info {
+                // To apply a transformation we need to make sure the rectangle's
+                // coordinate space is the same as reference frame's coordinate space.
+                // TODO(stevennovaryo): we are ignoring scaling (or zoom) consideration
+                //                      in transforming the coordinate space, since we are
+                //                      yet to implement it anyway.
+                SpatialTreeNodeInfo::ReferenceFrame(info) => info.transform.change_basis(
+                    info.frame_origin_for_query.x,
+                    info.frame_origin_for_query.y,
+                    0.0,
+                ),
+                SpatialTreeNodeInfo::Scroll(info) => {
+                    Transform3D::translation(-info.offset.x, -info.offset.y, 0.0)
+                },
+                SpatialTreeNodeInfo::Sticky(_) => Default::default(),
+            };
 
-            if let Some(parent_id) = cur_node.parent {
-                let ancestors_transform = self.scroll_node_to_root_transform(&parent_id);
-                cur_transform = ancestors_transform + cur_transform;
+            match cur_node.parent {
+                // If a node is not a root, accumulate the transforms.
+                Some(parent_id) => {
+                    let ancestors_transform = self.scroll_node_to_root_transform(&parent_id);
+                    node_transform.then(&ancestors_transform)
+                },
+                None => node_transform,
             }
-            // println!("scroll_node_to_root_transform {node_id:?} {cur_transform:?}");
-
-            cur_transform
         } else {
             Default::default()
+        }
+    }
+
+    fn apply_post_composite_transform(
+        rect_to_transform: Rect<Au>,
+        transform: LayoutTransform,
+    ) -> Rect<Au> {
+        let layout_rect_union = au_rect_to_f32_rect(rect_to_transform).cast_unit();
+
+        if let Some(transformed_rect) = transform.outer_transformed_rect(&layout_rect_union) {
+            f32_rect_to_au_rect(transformed_rect.to_untyped())
+        } else {
+            rect_to_transform
         }
     }
 }
@@ -119,34 +153,38 @@ pub(crate) fn process_content_box_request(
     if rects.is_empty() {
         return None;
     }
-    let transform = helper
-        .layout_node_to_root_transform(node)
-        .unwrap_or_default();
-    // println!("Results {rects:?} {transform:?}");
+    let rect_union = rects.iter().fold(Rect::zero(), |unioned_rect, rect| {
+        rect.to_untyped().union(&unioned_rect)
+    });
 
-    Some(
-        rects
-            .iter()
-            .fold(Rect::zero(), |unioned_rect, rect| {
-                rect.to_untyped().union(&unioned_rect)
-            })
-            .translate(transform),
-    )
+    let maybe_transform = helper.layout_node_to_root_transform(node);
+
+    match maybe_transform {
+        Some(transform) => Some(PostCompositeQueryHelper::apply_post_composite_transform(
+            rect_union, transform,
+        )),
+        None => Some(rect_union),
+    }
 }
 
 pub(crate) fn process_content_boxes_request(
     node: ServoLayoutNode<'_>,
     helper: PostCompositeQueryHelper<'_>,
 ) -> Vec<Rect<Au>> {
-    let transform = helper
-        .layout_node_to_root_transform(node)
-        .unwrap_or_default();
-
-    node.fragments_for_pseudo(None)
+    let fragments = node.fragments_for_pseudo(None);
+    let content_boxes = fragments
         .iter()
         .filter_map(Fragment::cumulative_border_box_rect)
-        .map(|rect| rect.to_untyped().translate(transform))
-        .collect()
+        .map(|rect| rect.to_untyped());
+
+    let maybe_transform = helper.layout_node_to_root_transform(node);
+
+    match maybe_transform {
+        Some(transform) => content_boxes
+            .map(|rect| PostCompositeQueryHelper::apply_post_composite_transform(rect, transform))
+            .collect(),
+        None => content_boxes.collect(),
+    }
 }
 
 pub fn process_client_rect_request(node: ServoLayoutNode<'_>) -> Rect<i32> {
