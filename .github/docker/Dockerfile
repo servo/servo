@@ -21,12 +21,9 @@ RUN apt-get update && \
 
 FROM base_with_cc AS base
 # Install the remaining dependencies in a new stage, so that `cargo install` can run in parallel
-
-# gstreamer1.0-plugins-good libgstreamer-plugins-good1.0-dev \
-  #        gstreamer1.0-plugins-bad libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-ugly \
-  #        gstreamer1.0-plugins-base libgstreamer-plugins-base1.0-dev gstreamer1.0-libav \
-  #        libgstrtspserver-1.0-dev gstreamer1.0-tools
-
+# For our MSRV CI builds we need less dependencies, and smaller images mean faster builds.
+# If servo fails to build, check ./mach bootstrap and investigate which additional dependency needs to be
+# installed. The smaller the subset we install here, the smaller the resulting image -> faster image pulls
 RUN apt-get update && \
     apt-get -y install --no-install-recommends \
         libdbus-1-dev libfreetype6-dev libgl1-mesa-dri libgles2-mesa-dev \
@@ -38,6 +35,19 @@ RUN apt-get update && \
 
 RUN mkdir -p /data/servo/servo
 
+##### FETCH SERVO ####################################################################
+FROM base_fetcher AS servo_fetcher
+
+
+RUN mkdir -p /data/servo/servo
+# Todo: Add arg with commit here, so we can easily update servo
+# Clone servo, ignoring the history.
+RUN cd /data/servo && git clone https://github.com/servo/servo.git --depth 1
+WORKDIR /data/servo/servo
+
+##### END FETCH SERVO #################################################################
+
+
 FROM base_with_cc AS rust_toolchain
 # Should match the Rust MSRV!
 ARG RUST_VERSION=1.85.0
@@ -45,7 +55,6 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
         | sh -s -- -y --default-toolchain ${RUST_VERSION} \
         --profile=default
 
-##### END FETCH SERVO #################################################################
 
 FROM base_fetcher AS uv
 
@@ -55,15 +64,20 @@ RUN mkdir -p "$HOME/.local/bin" \
         -LsSf https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-installer.sh | sh
 
 FROM base AS servo_base
-
-WORKDIR /data/servo/servo
-
 COPY --from=rust_toolchain /root/.cargo /root/.cargo
 COPY --from=rust_toolchain /root/.rustup /root/.rustup
-COPY --from=uv /root/.local/bin/uv /root/.local/bin/uvx /root/.cargo/bin/
 ENV PATH="/root/.cargo/bin:${PATH}"
+COPY --from=uv /root/.local/bin/uv /root/.local/bin/uvx /root/.cargo/bin/
 
-# For our MSRV CI builds we need less dependencies, and smaller images mean faster builds.
-# If servo fails to build, run ./mach bootstrap and investigate which additional dependency needs to be
-# installed.
-# RUN ./mach bootstrap --skip-platform
+##### Pre-run cargo check ####################################################################
+FROM servo_base AS servo_check_cook
+
+COPY --from=servo_fetcher /data/servo/servo /data/servo/servo
+WORKDIR /data/servo/servo
+# Run cargo check once, so we can use incremental cargo check in CI
+RUN cargo check --locked -p libservo
+
+FROM servo_base AS final
+# Add the target directory to the image, so we can do incremental checks in CI.
+# Trade-off image size (longer image download) for faster / incremental cargo check in CI
+COPY --from=servo_check_cook /data/servo/servo/target /data/servo/target
