@@ -2356,24 +2356,14 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-insert>
-    fn insert(
+    fn insert_impl(
         node: &Node,
         parent: &Node,
         child: Option<&Node>,
         suppress_observers: SuppressObserver,
+        new_nodes: &[&Node],
         can_gc: CanGc,
     ) {
-        debug_assert!(child.is_none_or(|child| Some(parent) == child.GetParentNode().as_deref()));
-
-        // Step 1. Let nodes be node’s children, if node is a DocumentFragment node; otherwise « node ».
-        rooted_vec!(let mut new_nodes);
-        let new_nodes = if let NodeTypeId::DocumentFragment(_) = node.type_id() {
-            new_nodes.extend(node.children().map(|node| Dom::from_ref(&*node)));
-            new_nodes.r()
-        } else {
-            from_ref(&node)
-        };
-
         // Step 2. Let count be nodes’s size.
         let count = new_nodes.len();
 
@@ -2542,6 +2532,26 @@ impl Node {
 
         parent_document.remove_script_and_layout_blocker();
         from_document.remove_script_and_layout_blocker();
+    }
+
+    /// <https://dom.spec.whatwg.org/#concept-node-insert>
+    fn insert(
+        node: &Node,
+        parent: &Node,
+        child: Option<&Node>,
+        suppress_observers: SuppressObserver,
+        can_gc: CanGc,
+    ) {
+        debug_assert!(child.is_none_or(|child| Some(parent) == child.GetParentNode().as_deref()));
+
+        // Step 1. Let nodes be node’s children, if node is a DocumentFragment node; otherwise « node ».
+        if let NodeTypeId::DocumentFragment(_) = node.type_id() {
+            rooted_vec!(let mut new_nodes);
+            new_nodes.extend(node.children().map(|node| Dom::from_ref(&*node)));
+            Node::insert_impl(node, parent, child, suppress_observers, new_nodes.r(), can_gc);
+        } else {
+            Node::insert_impl(node, parent, child, suppress_observers, from_ref(&node), can_gc);
+        }
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-replace-all>
