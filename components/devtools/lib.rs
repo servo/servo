@@ -29,7 +29,7 @@ use devtools_traits::{
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
 use ipc_channel::ipc::{self, IpcSender};
 use log::trace;
-use resource::ResourceAvailable;
+use resource::{ResourceArrayType, ResourceAvailable};
 use serde::Serialize;
 use servo_rand::RngCore;
 
@@ -540,7 +540,12 @@ impl DevtoolsInstance {
             let worker_actor = actors.find::<WorkerActor>(worker_actor_name);
 
             for stream in self.connections.values_mut() {
-                worker_actor.resource_available(&source_form, "source".into(), stream);
+                worker_actor.resource_array(
+                    &source_form,
+                    "source".into(),
+                    ResourceArrayType::Available,
+                    stream,
+                );
             }
         } else {
             let Some(browsing_context_id) = self.pipelines.get(&pipeline_id) else {
@@ -563,7 +568,12 @@ impl DevtoolsInstance {
             let browsing_context = actors.find::<BrowsingContextActor>(actor_name);
 
             for stream in self.connections.values_mut() {
-                browsing_context.resource_available(&source_form, "source".into(), stream);
+                browsing_context.resource_array(
+                    &source_form,
+                    "source".into(),
+                    ResourceArrayType::Available,
+                    stream,
+                );
             }
         }
     }

@@ -146,8 +146,9 @@ class MachCommands(CommandBase):
         # Gather Cargo build timings (https://doc.rust-lang.org/cargo/reference/timings.html).
         opts = ["--timings"] + opts
 
+        crown_enabled = "enabled" if kwargs.get("use_crown", False) else "disabled (no JS garbage collection linting)"
+        print(f"Building `{build_type.directory_name()}` build with crown {crown_enabled}.")
         if very_verbose:
-            print(["Calling", "cargo", "build"] + opts)
             for key in env:
                 print((key, env[key]))
 

@@ -156,20 +156,6 @@ impl Snapshot<Data> {
         }
     }
 
-    pub fn from_shared_memory(
-        size: Size2D<u32>,
-        format: PixelFormat,
-        alpha_mode: AlphaMode,
-        ism: IpcSharedMemory,
-    ) -> Self {
-        Self {
-            size,
-            data: Data::Owned(ism.to_vec()),
-            format,
-            alpha_mode,
-        }
-    }
-
     // TODO: https://github.com/servo/servo/issues/36594
     /*
     /// # Safety

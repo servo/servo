@@ -17,7 +17,7 @@ use cssparser::color::clamp_unit_f32;
 use cssparser::{Parser, ParserInput};
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use euclid::vec2;
-use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::{self, IpcSender};
 use net_traits::image_cache::{ImageCache, ImageResponse};
 use net_traits::request::CorsSettings;
 use pixels::PixelFormat;
@@ -358,11 +358,11 @@ impl CanvasState {
             premultiplied: false,
         };
 
-        Some(snapshot::Snapshot::from_shared_memory(
+        Some(snapshot::Snapshot::from_vec(
             size.cast(),
             format,
             alpha_mode,
-            IpcSharedMemory::from_bytes(img.first_frame().bytes),
+            img.first_frame().bytes.to_vec(),
         ))
     }
 

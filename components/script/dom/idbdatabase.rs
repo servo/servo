@@ -85,7 +85,7 @@ impl IDBDatabase {
 
     pub fn object_stores(&self) -> DomRoot<DOMStringList> {
         DOMStringList::new(
-            self.global().as_window(),
+            &self.global(),
             self.object_store_names.borrow().clone(),
             CanGc::note(),
         )
@@ -161,7 +161,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
                 &self.global(),
                 self,
                 mode,
-                &DOMStringList::new(self.global().as_window(), vec![name], CanGc::note()),
+                &DOMStringList::new(&self.global(), vec![name], CanGc::note()),
                 CanGc::note(),
             ),
             StringOrStringSequence::StringSequence(sequence) => {
@@ -171,7 +171,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
                     &self.global(),
                     self,
                     mode,
-                    &DOMStringList::new(self.global().as_window(), sequence, CanGc::note()),
+                    &DOMStringList::new(&self.global(), sequence, CanGc::note()),
                     CanGc::note(),
                 )
             },
@@ -343,7 +343,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
     fn ObjectStoreNames(&self) -> DomRoot<DOMStringList> {
         // FIXME: (arihant2math) Sort the list of names, as per spec
         DOMStringList::new(
-            self.global().as_window(),
+            &self.global(),
             self.object_store_names.borrow().clone(),
             CanGc::note(),
         )

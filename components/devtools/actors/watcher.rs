@@ -32,7 +32,7 @@ use crate::actors::watcher::thread_configuration::{
     ThreadConfigurationActor, ThreadConfigurationActorMsg,
 };
 use crate::protocol::JsonPacketStream;
-use crate::resource::ResourceAvailable;
+use crate::resource::{ResourceArrayType, ResourceAvailable};
 use crate::{EmptyReplyMsg, StreamId, WorkerActor};
 
 pub mod network_parent;
@@ -292,14 +292,20 @@ impl Actor for WatcherActor {
                                     title: Some(target.title.borrow().clone()),
                                     url: Some(target.url.borrow().clone()),
                                 };
-                                target.resource_available(event, "document-event".into(), stream);
+                                target.resource_array(
+                                    event,
+                                    "document-event".into(),
+                                    ResourceArrayType::Available,
+                                    stream,
+                                );
                             }
                         },
                         "source" => {
                             let thread_actor = registry.find::<ThreadActor>(&target.thread);
-                            target.resources_available(
+                            target.resources_array(
                                 thread_actor.source_manager.source_forms(registry),
                                 "source".into(),
+                                ResourceArrayType::Available,
                                 stream,
                             );
 
@@ -307,9 +313,10 @@ impl Actor for WatcherActor {
                                 let worker = registry.find::<WorkerActor>(worker_name);
                                 let thread = registry.find::<ThreadActor>(&worker.thread);
 
-                                worker.resources_available(
+                                worker.resources_array(
                                     thread.source_manager.source_forms(registry),
                                     "source".into(),
+                                    ResourceArrayType::Available,
                                     stream,
                                 );
                             }

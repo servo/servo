@@ -183,6 +183,12 @@ impl ImageData {
         let ptr: *const [u8] = internal_data.as_slice() as *const _;
         &*ptr
     }
+
+    #[allow(unsafe_code)]
+    pub(crate) fn to_vec(&self) -> Vec<u8> {
+        // This is safe because we copy the slice content
+        unsafe { self.as_slice() }.to_vec()
+    }
 }
 
 impl ImageDataMethods<crate::DomTypeHolder> for ImageData {

@@ -35,6 +35,7 @@ pub(crate) fn make_marker<'dom>(
         Image::CrossFade(..) |
         Image::PaintWorklet(..) |
         Image::None => None,
+        Image::LightDark(..) => unreachable!("light-dark() should be disabled"),
     };
     let content = marker_image().or_else(|| {
         Some(vec![PseudoElementContentItem::Text(
