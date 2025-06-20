@@ -1022,8 +1022,6 @@ def scan(only_changed_files=False, progress=False, github_annotations=False):
         if github_annotations:
             github_annotation_manager.emit_annotation(error[2], error[2], error[0], error[1])
 
-    if github_annotations:
-        print(github_annotation_manager)
     return int(error is not None)
 
 

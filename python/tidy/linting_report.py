@@ -8,7 +8,7 @@
 # except according to those terms.
 
 from dataclasses import dataclass
-from typing import Any, List, Literal, NotRequired
+from typing import Any, Literal, NotRequired
 
 
 @dataclass
@@ -33,7 +33,6 @@ class GitHubAnnotationManager:
             "warning": "warning",
             "error": "error",
         }
-        self.annotations: List[GithubAnnotation] = []
         self.total_count: int = 0
 
     def clean_path(self, path: str):
@@ -75,7 +74,16 @@ class GitHubAnnotationManager:
             annotation["column_start"] = column_start
             annotation["column_end"] = column_end
 
-        self.annotations.append(annotation)
+        line_info = f"line={annotation['line_start']},endLine={annotation['line_end']},title={annotation['title']}"
+
+        column_info = ""
+        if "column_end" in annotation and "column_start" in annotation:
+            column_info = f"col={annotation['column_start']},endColumn={annotation['column_end']},"
+
+        print(
+            f"::{annotation['level']} file={annotation['file_name']},{column_info}{line_info}::{annotation['message']}"
+        )
+
         self.total_count += 1
 
     def emit_annotations_for_clippy(self, data: list[dict[str, Any]]):
@@ -106,19 +114,3 @@ class GitHubAnnotationManager:
                 primary_span["column_start"],
                 primary_span["column_end"],
             )
-
-    def __str__(self) -> str:
-        lines = []
-        for annotation in self.annotations:
-            line_info = f"line={annotation['line_start']},endLine={annotation['line_end']},title={annotation['title']}"
-
-            column_info = ""
-            if "column_end" in annotation and "column_start" in annotation:
-                column_info = f"col={annotation['column_start']},endColumn={annotation['column_end']},"
-
-            lines.append(
-                f"::{annotation['level']} file={annotation['file_name']},"
-                f"{column_info}{line_info}"
-                f"::{annotation['message']}"
-            )
-        return "\n".join(lines)

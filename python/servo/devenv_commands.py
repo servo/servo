@@ -138,7 +138,6 @@ class MachCommands(CommandBase):
                 github_annotation_manager.emit_annotations_for_clippy(
                     [json.loads(line) for line in results.stdout.splitlines() if line.strip()]
                 )
-                print(github_annotation_manager)
             except json.JSONDecodeError:
                 pass
             return results.returncode
