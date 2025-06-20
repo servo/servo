@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use net_traits::IpcSend;
-use net_traits::indexeddb_thread::{IndexedDBThreadMsg, IndexedDBThreadReturnType, SyncOperation};
+use net_traits::indexeddb_thread::{IndexedDBThreadMsg, SyncOperation};
 use profile_traits::ipc;
 use stylo_atoms::Atom;
 
@@ -178,7 +178,8 @@ impl IDBTransaction {
             .send(IndexedDBThreadMsg::Sync(upgrade_version_operation))
             .unwrap();
         // Wait for the version to be updated
-        receiver.recv().unwrap();
+        // TODO(jdm): This returns a Result; what do we do with an error?
+        let _ = receiver.recv().unwrap();
     }
 
     fn dispatch_complete(&self) {
@@ -260,7 +261,7 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
         let result = receiver.recv().unwrap();
 
         // Step 2
-        if let IndexedDBThreadReturnType::Commit(Err(_result)) = result {
+        if let Err(_result) = result {
             // FIXME:(rasviitanen) also support Unknown error
             return Err(Error::QuotaExceeded);
         }
