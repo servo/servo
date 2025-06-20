@@ -52,6 +52,7 @@ jobs:
     with:
       workflow: ${{ matrix.workflow }}
       wpt: ${{ matrix.wpt }}
+      webdriver: ${{ matrix.webdriver }}
       profile: ${{ matrix.profile }}
       unit-tests: ${{ matrix.unit_tests }}
       build-libservo: ${{ matrix.build_libservo }}
