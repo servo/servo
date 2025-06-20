@@ -435,7 +435,7 @@ impl ScriptThreadFactory for ScriptThread {
 
                 let mut failsafe = ScriptMemoryFailsafe::new(&script_thread);
 
-                script_thread.pre_page_load(in_progress_load);
+                script_thread.initiate_load_based_on_url(in_progress_load);
 
                 memory_profiler_sender.run_with_memory_reporting(
                     || {
@@ -2534,7 +2534,6 @@ impl ScriptThread {
         } = new_layout_info;
 
         // Kick off the fetch for the new resource.
-        let url = load_data.url.clone();
         let new_load = InProgressLoad::new(
             new_pipeline_id,
             browsing_context_id,
@@ -2546,12 +2545,17 @@ impl ScriptThread {
             origin,
             load_data,
         );
-        if url.as_str() == "about:blank" {
-            self.start_page_load_about_blank(new_load);
-        } else if url.as_str() == "about:srcdoc" {
-            self.page_load_about_srcdoc(new_load);
+        self.initiate_load_based_on_url(new_load);
+    }
+
+    fn initiate_load_based_on_url(&self, load: InProgressLoad) {
+        let url = load.load_data.url.as_str();
+        if url == "about:blank" {
+            self.start_page_load_about_blank(load);
+        } else if url == "about:srcdoc" {
+            self.page_load_about_srcdoc(load);
         } else {
-            self.pre_page_load(new_load);
+            self.pre_page_load(load);
         }
     }
 

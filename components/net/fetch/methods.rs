@@ -867,6 +867,7 @@ async fn scheme_fetch(
 
     let scheme = url.scheme();
     match scheme {
+        "about" if url.path() == "srcdoc" => unreachable!(),
         "about" if url.path() == "blank" => create_blank_reply(url, request.timing_type()),
         "about" if url.path() == "memory" => create_about_memory(url, request.timing_type()),
 
