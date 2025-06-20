@@ -79,7 +79,7 @@ impl IDBObjectStore {
             name: DomRefCell::new(name),
             key_path,
 
-            index_names: DOMStringList::new(global.as_window(), Vec::new(), can_gc),
+            index_names: DOMStringList::new(global, Vec::new(), can_gc),
             transaction: Default::default(),
             // FIXME:(arihant2math)
             auto_increment: false,
