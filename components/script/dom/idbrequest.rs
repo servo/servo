@@ -244,8 +244,8 @@ impl IDBRequest {
 
 impl IDBRequestMethods<crate::DomTypeHolder> for IDBRequest {
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbrequest-result
-    fn Result(&self, _cx: SafeJSContext, _val: js::rust::MutableHandle<'_, js::jsapi::Value>) {
-        self.result.get();
+    fn Result(&self, _cx: SafeJSContext, mut val: js::rust::MutableHandle<'_, js::jsapi::Value>) {
+        val.set(self.result.get());
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbrequest-error
