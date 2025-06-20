@@ -6,19 +6,6 @@ use ipc_channel::ipc::IpcSender;
 use serde::{Deserialize, Serialize};
 use servo_url::origin::ImmutableOrigin;
 
-#[derive(Debug, Deserialize, Serialize)]
-pub enum IndexedDBThreadReturnType {
-    Open(Option<u64>),
-    NextSerialNumber(u64),
-    StartTransaction(Result<(), ()>),
-    Commit(Result<(), ()>),
-    Version(u64),
-    CreateObjectStore(Option<String>),
-    UpgradeVersion(Result<u64, ()>),
-    KVResult(Option<Vec<u8>>),
-    Exit,
-}
-
 // https://www.w3.org/TR/IndexedDB-2/#enumdef-idbtransactionmode
 #[derive(Debug, Deserialize, Serialize)]
 pub enum IndexedDBTxnMode {
@@ -72,7 +59,7 @@ pub enum AsyncOperation {
 pub enum SyncOperation {
     // Upgrades the version of the database
     UpgradeVersion(
-        IpcSender<IndexedDBThreadReturnType>,
+        IpcSender<Result<u64, ()>>,
         ImmutableOrigin,
         String, // Database
         u64,    // Serial number for the transaction
@@ -88,7 +75,7 @@ pub enum SyncOperation {
 
     // Commits changes of a transaction to the database
     Commit(
-        IpcSender<IndexedDBThreadReturnType>,
+        IpcSender<Result<(), ()>>,
         ImmutableOrigin,
         String, // Database
         u64,    // Transaction serial number
@@ -155,7 +142,7 @@ pub enum SyncOperation {
     ),
 
     /// Send a reply when done cleaning up thread resources and then shut it down
-    Exit(IpcSender<IndexedDBThreadReturnType>),
+    Exit(IpcSender<()>),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
