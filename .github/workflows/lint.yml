@@ -53,7 +53,7 @@ jobs:
     name: Minimum supported Rust version check
     runs-on: ubuntu-22.04
     container:
-      image: 'ghcr.io/jschwe/servo_msrv_ci:latest'
+      image: 'ghcr.io/jschwe/servo_msrv_ci:0.1'
       env:
         # This version should be kept in sync with the `rust-version` in our
         # workspace Cargo.toml. Changes should be discussed on zulip.
@@ -72,6 +72,11 @@ jobs:
           fetch-depth: 1
       - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
         run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
+      - name: Check for dockerenv file
+        run: | 
+          ls /.dockerenv
+          ls -l /data/servo
+          ls -l /root/.rustup/toolchains
       - name: Compile libservo with MSRV
         # /data/servo/target is part of the image, meaning we can do an incremental check here in CI
         # if we re-use the image.
