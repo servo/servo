@@ -283,7 +283,11 @@ pub(crate) struct GlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#concept-environment-creation-url>
     #[no_trace]
-    creation_url: Option<ServoUrl>,
+    creation_url: ServoUrl,
+
+    /// <https://html.spec.whatwg.org/multipage/#concept-environment-top-level-creation-url>
+    #[no_trace]
+    top_level_creation_url: Option<ServoUrl>,
 
     /// A map for storing the previous permission state read results.
     permission_state_invocation_results: DomRefCell<HashMap<PermissionName, PermissionState>>,
@@ -740,7 +744,8 @@ impl GlobalScope {
         script_to_constellation_chan: ScriptToConstellationChan,
         resource_threads: ResourceThreads,
         origin: MutableOrigin,
-        creation_url: Option<ServoUrl>,
+        creation_url: ServoUrl,
+        top_level_creation_url: Option<ServoUrl>,
         microtask_queue: Rc<MicrotaskQueue>,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
@@ -769,6 +774,7 @@ impl GlobalScope {
             timers: OnceCell::default(),
             origin,
             creation_url,
+            top_level_creation_url,
             permission_state_invocation_results: Default::default(),
             microtask_queue,
             list_auto_close_worker: Default::default(),
@@ -2474,8 +2480,13 @@ impl GlobalScope {
     }
 
     /// Get the creation_url for this global scope
-    pub(crate) fn creation_url(&self) -> &Option<ServoUrl> {
+    pub(crate) fn creation_url(&self) -> &ServoUrl {
         &self.creation_url
+    }
+
+    /// Get the top_level_creation_url for this global scope
+    pub(crate) fn top_level_creation_url(&self) -> &Option<ServoUrl> {
+        &self.top_level_creation_url
     }
 
     pub(crate) fn image_cache(&self) -> Arc<dyn ImageCache> {
@@ -3525,13 +3536,30 @@ impl GlobalScope {
         if Some(false) == self.inherited_secure_context {
             return false;
         }
-        if let Some(creation_url) = self.creation_url() {
-            if creation_url.scheme() == "blob" && Some(true) == self.inherited_secure_context {
-                return true;
-            }
-            return creation_url.is_potentially_trustworthy();
+        // Step 1. If environment is an environment settings object, then:
+        // Step 1.1. Let global be environment's global object.
+        match self.top_level_creation_url() {
+            None => {
+                // Workers and worklets don't have a top-level creation URL
+                assert!(
+                    self.downcast::<WorkerGlobalScope>().is_some() ||
+                        self.downcast::<WorkletGlobalScope>().is_some()
+                );
+                true
+            },
+            Some(top_level_creation_url) => {
+                assert!(self.downcast::<Window>().is_some());
+                // Step 2. If the result of Is url potentially trustworthy?
+                // given environment's top-level creation URL is "Potentially Trustworthy", then return true.
+                // Step 3. Return false.
+                if top_level_creation_url.scheme() == "blob" &&
+                    Some(true) == self.inherited_secure_context
+                {
+                    return true;
+                }
+                top_level_creation_url.is_potentially_trustworthy()
+            },
         }
-        false
     }
 
     /// <https://www.w3.org/TR/CSP/#get-csp-of-object>

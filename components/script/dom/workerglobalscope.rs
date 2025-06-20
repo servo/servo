@@ -171,6 +171,7 @@ impl WorkerGlobalScope {
                 init.resource_threads,
                 MutableOrigin::new(init.origin),
                 init.creation_url,
+                None,
                 runtime.microtask_queue.clone(),
                 #[cfg(feature = "webgpu")]
                 gpu_id_hub,
