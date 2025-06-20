@@ -805,7 +805,6 @@ dependencies = [
  "range",
  "raqote",
  "servo_arc",
- "snapshot",
  "stylo",
  "unicode-script",
  "webrender_api",
@@ -826,7 +825,6 @@ dependencies = [
  "serde_bytes",
  "servo_config",
  "servo_malloc_size_of",
- "snapshot",
  "stylo",
  "webrender_api",
  "webxr-api",
@@ -1215,11 +1213,11 @@ dependencies = [
  "log",
  "malloc_size_of_derive",
  "net_traits",
+ "pixels",
  "profile_traits",
  "serde",
  "servo_malloc_size_of",
  "servo_url",
- "snapshot",
  "strum",
  "strum_macros",
  "uuid",
@@ -6650,7 +6648,6 @@ dependencies = [
  "servo_rand",
  "servo_url",
  "smallvec",
- "snapshot",
  "strum",
  "strum_macros",
  "stylo",
@@ -7424,18 +7421,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dd538fb6910ac1099850255cf94a94df6551fbdd602454387d0adb2d1ca6dead"
 dependencies = [
  "serde",
-]
-
-[[package]]
-name = "snapshot"
-version = "0.0.1"
-dependencies = [
- "euclid",
- "ipc-channel",
- "malloc_size_of_derive",
- "pixels",
- "serde",
- "servo_malloc_size_of",
 ]
 
 [[package]]
@@ -8987,7 +8972,6 @@ dependencies = [
  "itertools 0.14.0",
  "log",
  "pixels",
- "snapshot",
  "surfman",
  "webrender",
  "webrender_api",
@@ -9005,9 +8989,9 @@ dependencies = [
  "euclid",
  "ipc-channel",
  "log",
+ "pixels",
  "serde",
  "servo_config",
- "snapshot",
  "webgpu_traits",
  "webrender",
  "webrender_api",
@@ -9022,9 +9006,9 @@ dependencies = [
  "arrayvec",
  "base",
  "ipc-channel",
+ "pixels",
  "serde",
  "servo_malloc_size_of",
- "snapshot",
  "webrender_api",
  "wgpu-core",
  "wgpu-types",

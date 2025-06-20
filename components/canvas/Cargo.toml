@@ -28,7 +28,6 @@ pixels = { path = "../pixels" }
 range = { path = "../range" }
 raqote = "0.8.5"
 servo_arc = { workspace = true }
-snapshot = { workspace = true }
 stylo = { workspace = true }
 unicode-script = { workspace = true }
 webrender_api = { workspace = true }

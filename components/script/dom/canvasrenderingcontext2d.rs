@@ -6,10 +6,10 @@ use canvas_traits::canvas::{Canvas2dMsg, CanvasId, CanvasMsg, FromScriptMsg};
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use ipc_channel::ipc::IpcSender;
+use pixels::Snapshot;
 use profile_traits::ipc;
 use script_bindings::inheritance::Castable;
 use servo_url::ServoUrl;
-use snapshot::Snapshot;
 use webrender_api::ImageKey;
 
 use crate::canvas_context::{CanvasContext, CanvasHelpers, LayoutCanvasRenderingContextHelpers};

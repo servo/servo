@@ -9,7 +9,7 @@ use base::id::{ImageBitmapId, ImageBitmapIndex};
 use constellation_traits::SerializableImageBitmap;
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
-use snapshot::Snapshot;
+use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
@@ -246,18 +246,18 @@ impl ImageBitmap {
         match options.premultiplyAlpha {
             PremultiplyAlpha::Default | PremultiplyAlpha::Premultiply => {
                 output.transform(
-                    snapshot::AlphaMode::Transparent {
+                    SnapshotAlphaMode::Transparent {
                         premultiplied: true,
                     },
-                    snapshot::PixelFormat::BGRA,
+                    SnapshotPixelFormat::BGRA,
                 );
             },
             PremultiplyAlpha::None => {
                 output.transform(
-                    snapshot::AlphaMode::Transparent {
+                    SnapshotAlphaMode::Transparent {
                         premultiplied: false,
                     },
-                    snapshot::PixelFormat::BGRA,
+                    SnapshotPixelFormat::BGRA,
                 );
             },
         }

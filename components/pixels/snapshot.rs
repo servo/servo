@@ -7,18 +7,19 @@ use std::ops::{Deref, DerefMut};
 use euclid::default::Size2D;
 use ipc_channel::ipc::IpcSharedMemory;
 use malloc_size_of_derive::MallocSizeOf;
-use pixels::Multiply;
 use serde::{Deserialize, Serialize};
 
+use crate::{Multiply, transform_inplace};
+
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
-pub enum PixelFormat {
+pub enum SnapshotPixelFormat {
     #[default]
     RGBA,
     BGRA,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
-pub enum AlphaMode {
+pub enum SnapshotAlphaMode {
     /// Internal data is opaque (alpha is cleared to 1)
     Opaque,
     /// Internal data should be threated as opaque (does not mean it actually is)
@@ -27,7 +28,7 @@ pub enum AlphaMode {
     Transparent { premultiplied: bool },
 }
 
-impl Default for AlphaMode {
+impl Default for SnapshotAlphaMode {
     fn default() -> Self {
         Self::Transparent {
             premultiplied: true,
@@ -35,43 +36,46 @@ impl Default for AlphaMode {
     }
 }
 
-impl AlphaMode {
+impl SnapshotAlphaMode {
     pub const fn is_premultiplied(&self) -> bool {
         match self {
-            AlphaMode::Opaque => true,
-            AlphaMode::AsOpaque { premultiplied } => *premultiplied,
-            AlphaMode::Transparent { premultiplied } => *premultiplied,
+            SnapshotAlphaMode::Opaque => true,
+            SnapshotAlphaMode::AsOpaque { premultiplied } => *premultiplied,
+            SnapshotAlphaMode::Transparent { premultiplied } => *premultiplied,
         }
     }
 
     pub const fn is_opaque(&self) -> bool {
-        matches!(self, AlphaMode::Opaque | AlphaMode::AsOpaque { .. })
+        matches!(
+            self,
+            SnapshotAlphaMode::Opaque | SnapshotAlphaMode::AsOpaque { .. }
+        )
     }
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
-pub enum Data {
+pub enum SnapshotData {
     // TODO: https://github.com/servo/servo/issues/36594
     //IPC(IpcSharedMemory),
     Owned(Vec<u8>),
 }
 
-impl Deref for Data {
+impl Deref for SnapshotData {
     type Target = [u8];
 
     fn deref(&self) -> &Self::Target {
         match &self {
             //Data::IPC(ipc_shared_memory) => ipc_shared_memory,
-            Data::Owned(items) => items,
+            SnapshotData::Owned(items) => items,
         }
     }
 }
 
-impl DerefMut for Data {
+impl DerefMut for SnapshotData {
     fn deref_mut(&mut self) -> &mut Self::Target {
         match self {
             //Data::IPC(ipc_shared_memory) => unsafe { ipc_shared_memory.deref_mut() },
-            Data::Owned(items) => items,
+            SnapshotData::Owned(items) => items,
         }
     }
 }
@@ -86,14 +90,14 @@ pub type IpcSnapshot = Snapshot<IpcSharedMemory>;
 /// Inspired by snapshot for concept in WebGPU spec:
 /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-get-a-copy-of-the-image-contents-of-a-context>
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
-pub struct Snapshot<T = Data> {
+pub struct Snapshot<T = SnapshotData> {
     size: Size2D<u32>,
     /// internal data (can be any format it will be converted on use if needed)
     data: T,
     /// RGBA/BGRA (reflect internal data)
-    format: PixelFormat,
+    format: SnapshotPixelFormat,
     /// How to treat alpha channel
-    alpha_mode: AlphaMode,
+    alpha_mode: SnapshotAlphaMode,
 }
 
 impl<T> Snapshot<T> {
@@ -101,11 +105,11 @@ impl<T> Snapshot<T> {
         self.size
     }
 
-    pub const fn format(&self) -> PixelFormat {
+    pub const fn format(&self) -> SnapshotPixelFormat {
         self.format
     }
 
-    pub const fn alpha_mode(&self) -> AlphaMode {
+    pub const fn alpha_mode(&self) -> SnapshotAlphaMode {
         self.alpha_mode
     }
 
@@ -118,13 +122,13 @@ impl<T> Snapshot<T> {
     }
 }
 
-impl Snapshot<Data> {
+impl Snapshot<SnapshotData> {
     pub fn empty() -> Self {
         Self {
             size: Size2D::zero(),
-            data: Data::Owned(vec![]),
-            format: PixelFormat::RGBA,
-            alpha_mode: AlphaMode::Transparent {
+            data: SnapshotData::Owned(vec![]),
+            format: SnapshotPixelFormat::RGBA,
+            alpha_mode: SnapshotAlphaMode::Transparent {
                 premultiplied: true,
             },
         }
@@ -134,9 +138,9 @@ impl Snapshot<Data> {
     pub fn cleared(size: Size2D<u32>) -> Self {
         Self {
             size,
-            data: Data::Owned(vec![0; size.area() as usize * 4]),
-            format: PixelFormat::RGBA,
-            alpha_mode: AlphaMode::Transparent {
+            data: SnapshotData::Owned(vec![0; size.area() as usize * 4]),
+            format: SnapshotPixelFormat::RGBA,
+            alpha_mode: SnapshotAlphaMode::Transparent {
                 premultiplied: true,
             },
         }
@@ -144,13 +148,13 @@ impl Snapshot<Data> {
 
     pub fn from_vec(
         size: Size2D<u32>,
-        format: PixelFormat,
-        alpha_mode: AlphaMode,
+        format: SnapshotPixelFormat,
+        alpha_mode: SnapshotAlphaMode,
         data: Vec<u8>,
     ) -> Self {
         Self {
             size,
-            data: Data::Owned(data),
+            data: SnapshotData::Owned(data),
             format,
             alpha_mode,
         }
@@ -187,11 +191,15 @@ impl Snapshot<Data> {
 
     /// Convert inner data of snapshot to target format and alpha mode.
     /// If data is already in target format and alpha mode no work will be done.
-    pub fn transform(&mut self, target_alpha_mode: AlphaMode, target_format: PixelFormat) {
+    pub fn transform(
+        &mut self,
+        target_alpha_mode: SnapshotAlphaMode,
+        target_format: SnapshotPixelFormat,
+    ) {
         let swap_rb = target_format != self.format;
         let multiply = match (self.alpha_mode, target_alpha_mode) {
-            (AlphaMode::Opaque, _) => Multiply::None,
-            (alpha_mode, AlphaMode::Opaque) => {
+            (SnapshotAlphaMode::Opaque, _) => Multiply::None,
+            (alpha_mode, SnapshotAlphaMode::Opaque) => {
                 if alpha_mode.is_premultiplied() {
                     Multiply::UnMultiply
                 } else {
@@ -199,11 +207,12 @@ impl Snapshot<Data> {
                 }
             },
             (
-                AlphaMode::Transparent { premultiplied } | AlphaMode::AsOpaque { premultiplied },
-                AlphaMode::Transparent {
+                SnapshotAlphaMode::Transparent { premultiplied } |
+                SnapshotAlphaMode::AsOpaque { premultiplied },
+                SnapshotAlphaMode::Transparent {
                     premultiplied: target_premultiplied,
                 } |
-                AlphaMode::AsOpaque {
+                SnapshotAlphaMode::AsOpaque {
                     premultiplied: target_premultiplied,
                 },
             ) => {
@@ -216,9 +225,9 @@ impl Snapshot<Data> {
                 }
             },
         };
-        let clear_alpha = !matches!(self.alpha_mode, AlphaMode::Opaque) &&
-            matches!(target_alpha_mode, AlphaMode::Opaque);
-        pixels::transform_inplace(self.data.deref_mut(), multiply, swap_rb, clear_alpha);
+        let clear_alpha = !matches!(self.alpha_mode, SnapshotAlphaMode::Opaque) &&
+            matches!(target_alpha_mode, SnapshotAlphaMode::Opaque);
+        transform_inplace(self.data.deref_mut(), multiply, swap_rb, clear_alpha);
         self.alpha_mode = target_alpha_mode;
         self.format = target_format;
     }
@@ -232,7 +241,7 @@ impl Snapshot<Data> {
         } = self;
         let data = match data {
             //Data::IPC(ipc_shared_memory) => ipc_shared_memory,
-            Data::Owned(items) => IpcSharedMemory::from_bytes(&items),
+            SnapshotData::Owned(items) => IpcSharedMemory::from_bytes(&items),
         };
         Snapshot {
             size,
@@ -244,7 +253,7 @@ impl Snapshot<Data> {
 
     pub fn to_vec(self) -> Vec<u8> {
         match self.data {
-            Data::Owned(data) => data,
+            SnapshotData::Owned(data) => data,
         }
     }
 }
@@ -271,7 +280,7 @@ impl Snapshot<IpcSharedMemory> {
         }
     }
     */
-    pub fn to_owned(self) -> Snapshot<Data> {
+    pub fn to_owned(self) -> Snapshot<SnapshotData> {
         let Snapshot {
             size,
             data,
@@ -280,7 +289,7 @@ impl Snapshot<IpcSharedMemory> {
         } = self;
         Snapshot {
             size,
-            data: Data::Owned(data.to_vec()),
+            data: SnapshotData::Owned(data.to_vec()),
             format,
             alpha_mode,
         }

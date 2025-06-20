@@ -8,9 +8,9 @@ use std::str::FromStr;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use ipc_channel::ipc::{IpcBytesReceiver, IpcSender};
 use malloc_size_of_derive::MallocSizeOf;
+use pixels::IpcSnapshot;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
-use snapshot::IpcSnapshot;
 use style::color::AbsoluteColor;
 use style::properties::style_structs::Font as FontStyleStruct;
 

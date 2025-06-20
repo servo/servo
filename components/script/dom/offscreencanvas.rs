@@ -7,7 +7,7 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use js::rust::{HandleObject, HandleValue};
-use snapshot::Snapshot;
+use pixels::Snapshot;
 
 use crate::canvas_context::{CanvasContext, OffscreenRenderingContext};
 use crate::dom::bindings::cell::{DomRefCell, Ref};

@@ -30,10 +30,9 @@ use js::typedarray::{
     TypedArrayElementCreator, Uint32Array,
 };
 use net_traits::image_cache::ImageResponse;
-use pixels::{self, PixelFormat};
+use pixels::{self, PixelFormat, Snapshot, SnapshotPixelFormat};
 use serde::{Deserialize, Serialize};
 use servo_config::pref;
-use snapshot::Snapshot;
 use webrender_api::ImageKey;
 
 use crate::canvas_context::CanvasContext;
@@ -586,8 +585,8 @@ impl WebGLRenderingContext {
                 let snapshot = snapshot.as_ipc();
                 let size = snapshot.size().cast();
                 let format = match snapshot.format() {
-                    snapshot::PixelFormat::RGBA => PixelFormat::RGBA8,
-                    snapshot::PixelFormat::BGRA => PixelFormat::BGRA8,
+                    SnapshotPixelFormat::RGBA => PixelFormat::RGBA8,
+                    SnapshotPixelFormat::BGRA => PixelFormat::BGRA8,
                 };
                 let premultiply = snapshot.alpha_mode().is_premultiplied();
                 TexPixels::new(snapshot.to_ipc_shared_memory(), size, format, premultiply)
@@ -666,8 +665,8 @@ impl WebGLRenderingContext {
                     let snapshot = snapshot.as_ipc();
                     let size = snapshot.size().cast();
                     let format = match snapshot.format() {
-                        snapshot::PixelFormat::RGBA => PixelFormat::RGBA8,
-                        snapshot::PixelFormat::BGRA => PixelFormat::BGRA8,
+                        SnapshotPixelFormat::RGBA => PixelFormat::RGBA8,
+                        SnapshotPixelFormat::BGRA => PixelFormat::BGRA8,
                     };
                     let premultiply = snapshot.alpha_mode().is_premultiplied();
                     TexPixels::new(snapshot.to_ipc_shared_memory(), size, format, premultiply)
@@ -687,8 +686,8 @@ impl WebGLRenderingContext {
                 let snapshot = snapshot.as_ipc();
                 let size = snapshot.size().cast();
                 let format: PixelFormat = match snapshot.format() {
-                    snapshot::PixelFormat::RGBA => PixelFormat::RGBA8,
-                    snapshot::PixelFormat::BGRA => PixelFormat::BGRA8,
+                    SnapshotPixelFormat::RGBA => PixelFormat::RGBA8,
+                    SnapshotPixelFormat::BGRA => PixelFormat::BGRA8,
                 };
                 let premultiply = snapshot.alpha_mode().is_premultiplied();
                 TexPixels::new(snapshot.to_ipc_shared_memory(), size, format, premultiply)
@@ -1996,7 +1995,7 @@ impl CanvasContext for WebGLRenderingContext {
         let (data, alpha_mode) = receiver.recv().unwrap();
         Some(Snapshot::from_vec(
             size.cast(),
-            snapshot::PixelFormat::RGBA,
+            SnapshotPixelFormat::RGBA,
             alpha_mode,
             data.to_vec(),
         ))

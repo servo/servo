@@ -18,10 +18,10 @@ compositing_traits = { workspace = true }
 euclid = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
+pixels = { path = "../pixels" }
 serde = { workspace = true, features = ["serde_derive"] }
 servo_config = { path = "../config" }
 webgpu_traits = { workspace = true }
-snapshot = { workspace = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
 wgpu-core = { workspace = true, features = ["serde", "wgsl"] }
