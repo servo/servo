@@ -58,6 +58,7 @@ use crate::dom::performance::Performance;
 use crate::dom::promise::Promise;
 use crate::dom::trustedscripturl::TrustedScriptURL;
 use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
+use crate::dom::types::ImageBitmap;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::{base64_atob, base64_btoa};
@@ -465,9 +466,16 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         options: &ImageBitmapOptions,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let p = self
-            .upcast::<GlobalScope>()
-            .create_image_bitmap(image, 0, 0, None, None, options, can_gc);
+        let p = ImageBitmap::create_image_bitmap(
+            self.upcast(),
+            image,
+            0,
+            0,
+            None,
+            None,
+            options,
+            can_gc,
+        );
         p
     }
 
@@ -482,7 +490,8 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         options: &ImageBitmapOptions,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let p = self.upcast::<GlobalScope>().create_image_bitmap(
+        let p = ImageBitmap::create_image_bitmap(
+            self.upcast(),
             image,
             sx,
             sy,
