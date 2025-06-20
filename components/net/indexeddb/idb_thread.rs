@@ -15,10 +15,9 @@ use net_traits::indexeddb_thread::{
 };
 use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
+use uuid::Uuid;
 
-use crate::indexeddb::engines::{
-    HeedEngine, KvsEngine, KvsOperation, KvsTransaction, SanitizedName,
-};
+use crate::indexeddb::engines::{HeedEngine, KvsEngine, KvsOperation, KvsTransaction};
 use crate::resource_thread::CoreResourceThreadPool;
 
 pub trait IndexedDBThreadFactory {
@@ -58,10 +57,8 @@ impl IndexedDBDescription {
     fn as_path(&self) -> PathBuf {
         let mut path = PathBuf::new();
 
-        let sanitized_origin = SanitizedName::new(self.origin.ascii_serialization());
-        let sanitized_name = SanitizedName::new(self.name.clone());
-        path.push(sanitized_origin.to_string());
-        path.push(sanitized_name.to_string());
+        path.push(self.origin.ascii_serialization());
+        path.push(self.name.clone());
 
         path
     }
@@ -89,7 +86,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
     fn queue_operation(
         &mut self,
         sender: IpcSender<Option<Vec<u8>>>,
-        store_name: SanitizedName,
+        store_name: Uuid,
         serial_number: u64,
         mode: IndexedDBTxnMode,
         operation: AsyncOperation,
@@ -125,14 +122,14 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         }
     }
 
-    fn has_key_generator(&self, store_name: SanitizedName) -> bool {
+    fn has_key_generator(&self, store_name: Uuid) -> bool {
         self.engine.has_key_generator(store_name)
     }
 
     fn create_object_store(
         &mut self,
         sender: IpcSender<Result<(), ()>>,
-        store_name: SanitizedName,
+        store_name: Uuid,
         auto_increment: bool,
     ) {
         self.engine.create_store(store_name, auto_increment);
@@ -140,11 +137,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         let _ = sender.send(Ok(()));
     }
 
-    fn delete_object_store(
-        &mut self,
-        sender: IpcSender<Result<(), ()>>,
-        store_name: SanitizedName,
-    ) {
+    fn delete_object_store(&mut self, sender: IpcSender<Result<(), ()>>, store_name: Uuid) {
         self.engine.delete_store(store_name);
 
         let _ = sender.send(Ok(()));
@@ -154,6 +147,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
 struct IndexedDBManager {
     port: IpcReceiver<IndexedDBThreadMsg>,
     idb_base_dir: PathBuf,
+    uuid_map: HashMap<String, Uuid>,
     databases: HashMap<IndexedDBDescription, IndexedDBEnvironment<HeedEngine>>,
     thread_pool: Arc<CoreResourceThreadPool>,
 }
@@ -169,6 +163,7 @@ impl IndexedDBManager {
         IndexedDBManager {
             port,
             idb_base_dir,
+            uuid_map: HashMap::new(),
             databases: HashMap::new(),
             thread_pool: Arc::new(CoreResourceThreadPool::new(
                 thread_count,
@@ -211,7 +206,7 @@ impl IndexedDBManager {
                     mode,
                     operation,
                 ) => {
-                    let store_name = SanitizedName::new(store_name);
+                    let store_name = self.get_uuid(store_name);
                     if let Some(db) = self.get_database_mut(origin, db_name) {
                         // Queues an operation for a transaction without starting it
                         db.queue_operation(sender, store_name, txn, mode, operation);
@@ -222,6 +217,10 @@ impl IndexedDBManager {
                 },
             }
         }
+    }
+
+    fn get_uuid(&mut self, name: String) -> Uuid {
+        *self.uuid_map.entry(name).or_insert_with(Uuid::new_v4)
     }
 
     fn get_database(
@@ -306,7 +305,7 @@ impl IndexedDBManager {
                 }
             },
             SyncOperation::HasKeyGenerator(sender, origin, db_name, store_name) => {
-                let store_name = SanitizedName::new(store_name);
+                let store_name = self.get_uuid(store_name);
                 let result = self
                     .get_database(origin, db_name)
                     .map(|db| db.has_key_generator(store_name))
@@ -338,13 +337,13 @@ impl IndexedDBManager {
                 store_name,
                 auto_increment,
             ) => {
-                let store_name = SanitizedName::new(store_name);
+                let store_name = self.get_uuid(store_name);
                 if let Some(db) = self.get_database_mut(origin, db_name) {
                     db.create_object_store(sender, store_name, auto_increment);
                 }
             },
             SyncOperation::DeleteObjectStore(sender, origin, db_name, store_name) => {
-                let store_name = SanitizedName::new(store_name);
+                let store_name = self.get_uuid(store_name);
                 if let Some(db) = self.get_database_mut(origin, db_name) {
                     db.delete_object_store(sender, store_name);
                 }
