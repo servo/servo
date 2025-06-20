@@ -11,12 +11,11 @@ use crate::dom::bindings::codegen::Bindings::IDBVersionChangeEventBinding::{
 };
 use crate::dom::bindings::import::module::HandleObject;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -46,6 +45,7 @@ impl IDBVersionChangeEvent {
     ) -> DomRoot<IDBVersionChangeEvent> {
         Self::new_with_proto(
             global,
+            None,
             type_,
             bool::from(bubbles),
             bool::from(cancelable),
@@ -55,8 +55,10 @@ impl IDBVersionChangeEvent {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn new_with_proto(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
@@ -64,12 +66,13 @@ impl IDBVersionChangeEvent {
         new_version: Option<u64>,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
-        let ev = reflect_dom_object(
+        let ev = reflect_dom_object_with_proto(
             Box::new(IDBVersionChangeEvent::new_inherited(
                 old_version,
                 new_version,
             )),
             global,
+            proto,
             can_gc,
         );
         {
@@ -83,14 +86,15 @@ impl IDBVersionChangeEvent {
 impl IDBVersionChangeEventMethods<crate::DomTypeHolder> for IDBVersionChangeEvent {
     /// <https://w3c.github.io/IndexedDB/#dom-idbversionchangeevent-idbversionchangeevent>
     fn Constructor(
-        window: &Window,
-        _proto: Option<HandleObject>,
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
         can_gc: CanGc,
         type_: DOMString,
         init: &IDBVersionChangeEventInit,
     ) -> DomRoot<Self> {
         Self::new_with_proto(
-            &window.global(),
+            global,
+            proto,
             Atom::from(type_),
             init.parent.bubbles,
             init.parent.cancelable,
