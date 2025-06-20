@@ -989,7 +989,10 @@ impl Handler {
 
         match parameters.using {
             LocatorStrategy::CSSSelector => {
-                let cmd = WebDriverScriptCommand::FindElementCSS(parameters.value.clone(), sender);
+                let cmd = WebDriverScriptCommand::FindElementCSSSelector(
+                    parameters.value.clone(),
+                    sender,
+                );
                 self.browsing_context_script_command(cmd)?;
             },
             LocatorStrategy::LinkText | LocatorStrategy::PartialLinkText => {
@@ -1187,7 +1190,10 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         match parameters.using {
             LocatorStrategy::CSSSelector => {
-                let cmd = WebDriverScriptCommand::FindElementsCSS(parameters.value.clone(), sender);
+                let cmd = WebDriverScriptCommand::FindElementsCSSSelector(
+                    parameters.value.clone(),
+                    sender,
+                );
                 self.browsing_context_script_command(cmd)?;
             },
             LocatorStrategy::LinkText | LocatorStrategy::PartialLinkText => {
@@ -1236,7 +1242,7 @@ impl Handler {
 
         match parameters.using {
             LocatorStrategy::CSSSelector => {
-                let cmd = WebDriverScriptCommand::FindElementElementCSS(
+                let cmd = WebDriverScriptCommand::FindElementElementCSSSelector(
                     parameters.value.clone(),
                     element.to_string(),
                     sender,
@@ -1295,7 +1301,7 @@ impl Handler {
 
         match parameters.using {
             LocatorStrategy::CSSSelector => {
-                let cmd = WebDriverScriptCommand::FindElementElementsCSS(
+                let cmd = WebDriverScriptCommand::FindElementElementsCSSSelector(
                     parameters.value.clone(),
                     element.to_string(),
                     sender,
@@ -1355,7 +1361,7 @@ impl Handler {
 
         match parameters.using {
             LocatorStrategy::CSSSelector => {
-                let cmd = WebDriverScriptCommand::FindShadowElementsCSS(
+                let cmd = WebDriverScriptCommand::FindShadowElementsCSSSelector(
                     parameters.value.clone(),
                     shadow_root.to_string(),
                     sender,

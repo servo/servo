@@ -688,7 +688,7 @@ fn retrieve_document_and_check_root_existence(
     }
 }
 
-pub(crate) fn handle_find_element_css(
+pub(crate) fn handle_find_element_css_selector(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     selector: String,
@@ -747,7 +747,7 @@ pub(crate) fn handle_find_element_tag_name(
     }
 }
 
-pub(crate) fn handle_find_elements_css(
+pub(crate) fn handle_find_elements_css_selector(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     selector: String,
@@ -811,7 +811,7 @@ pub(crate) fn handle_find_elements_tag_name(
     }
 }
 
-pub(crate) fn handle_find_element_element_css(
+pub(crate) fn handle_find_element_element_css_selector(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
@@ -870,7 +870,7 @@ pub(crate) fn handle_find_element_element_tag_name(
         .unwrap();
 }
 
-pub(crate) fn handle_find_element_elements_css(
+pub(crate) fn handle_find_element_elements_css_selector(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
@@ -935,7 +935,7 @@ pub(crate) fn handle_find_element_elements_tag_name(
 }
 
 /// <https://w3c.github.io/webdriver/#find-elements-from-shadow-root>
-pub(crate) fn handle_find_shadow_elements_css(
+pub(crate) fn handle_find_shadow_elements_css_selector(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     shadow_root_id: String,
