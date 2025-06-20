@@ -2276,8 +2276,8 @@ impl ScriptThread {
             WebDriverScriptCommand::DeleteCookie(name, reply) => {
                 webdriver_handlers::handle_delete_cookie(&documents, pipeline_id, name, reply)
             },
-            WebDriverScriptCommand::FindElementCSS(selector, reply) => {
-                webdriver_handlers::handle_find_element_css(
+            WebDriverScriptCommand::FindElementCSSSelector(selector, reply) => {
+                webdriver_handlers::handle_find_element_css_selector(
                     &documents,
                     pipeline_id,
                     selector,
@@ -2303,8 +2303,8 @@ impl ScriptThread {
                     can_gc,
                 )
             },
-            WebDriverScriptCommand::FindElementsCSS(selector, reply) => {
-                webdriver_handlers::handle_find_elements_css(
+            WebDriverScriptCommand::FindElementsCSSSelector(selector, reply) => {
+                webdriver_handlers::handle_find_elements_css_selector(
                     &documents,
                     pipeline_id,
                     selector,
@@ -2330,8 +2330,8 @@ impl ScriptThread {
                     can_gc,
                 )
             },
-            WebDriverScriptCommand::FindElementElementCSS(selector, element_id, reply) => {
-                webdriver_handlers::handle_find_element_element_css(
+            WebDriverScriptCommand::FindElementElementCSSSelector(selector, element_id, reply) => {
+                webdriver_handlers::handle_find_element_element_css_selector(
                     &documents,
                     pipeline_id,
                     element_id,
@@ -2363,8 +2363,8 @@ impl ScriptThread {
                     can_gc,
                 )
             },
-            WebDriverScriptCommand::FindElementElementsCSS(selector, element_id, reply) => {
-                webdriver_handlers::handle_find_element_elements_css(
+            WebDriverScriptCommand::FindElementElementsCSSSelector(selector, element_id, reply) => {
+                webdriver_handlers::handle_find_element_elements_css_selector(
                     &documents,
                     pipeline_id,
                     element_id,
@@ -2394,6 +2394,40 @@ impl ScriptThread {
                     selector,
                     reply,
                     can_gc,
+                )
+            },
+            WebDriverScriptCommand::FindShadowElementsCSSSelector(
+                selector,
+                shadow_root_id,
+                reply,
+            ) => webdriver_handlers::handle_find_shadow_elements_css_selector(
+                &documents,
+                pipeline_id,
+                shadow_root_id,
+                selector,
+                reply,
+            ),
+            WebDriverScriptCommand::FindShadowElementsLinkText(
+                selector,
+                shadow_root_id,
+                partial,
+                reply,
+            ) => webdriver_handlers::handle_find_shadow_elements_link_text(
+                &documents,
+                pipeline_id,
+                shadow_root_id,
+                selector,
+                partial,
+                reply,
+                can_gc,
+            ),
+            WebDriverScriptCommand::FindShadowElementsTagName(selector, shadow_root_id, reply) => {
+                webdriver_handlers::handle_find_shadow_elements_tag_name(
+                    &documents,
+                    pipeline_id,
+                    shadow_root_id,
+                    selector,
+                    reply,
                 )
             },
             WebDriverScriptCommand::GetElementShadowRoot(element_id, reply) => {

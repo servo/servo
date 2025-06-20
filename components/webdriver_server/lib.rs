@@ -989,7 +989,10 @@ impl Handler {
 
         match parameters.using {
             LocatorStrategy::CSSSelector => {
-                let cmd = WebDriverScriptCommand::FindElementCSS(parameters.value.clone(), sender);
+                let cmd = WebDriverScriptCommand::FindElementCSSSelector(
+                    parameters.value.clone(),
+                    sender,
+                );
                 self.browsing_context_script_command(cmd)?;
             },
             LocatorStrategy::LinkText | LocatorStrategy::PartialLinkText => {
@@ -1187,7 +1190,10 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         match parameters.using {
             LocatorStrategy::CSSSelector => {
-                let cmd = WebDriverScriptCommand::FindElementsCSS(parameters.value.clone(), sender);
+                let cmd = WebDriverScriptCommand::FindElementsCSSSelector(
+                    parameters.value.clone(),
+                    sender,
+                );
                 self.browsing_context_script_command(cmd)?;
             },
             LocatorStrategy::LinkText | LocatorStrategy::PartialLinkText => {
@@ -1236,7 +1242,7 @@ impl Handler {
 
         match parameters.using {
             LocatorStrategy::CSSSelector => {
-                let cmd = WebDriverScriptCommand::FindElementElementCSS(
+                let cmd = WebDriverScriptCommand::FindElementElementCSSSelector(
                     parameters.value.clone(),
                     element.to_string(),
                     sender,
@@ -1295,7 +1301,7 @@ impl Handler {
 
         match parameters.using {
             LocatorStrategy::CSSSelector => {
-                let cmd = WebDriverScriptCommand::FindElementElementsCSS(
+                let cmd = WebDriverScriptCommand::FindElementElementsCSSSelector(
                     parameters.value.clone(),
                     element.to_string(),
                     sender,
@@ -1338,6 +1344,90 @@ impl Handler {
                 )))
             },
             Err(error) => Err(WebDriverError::new(error, "")),
+        }
+    }
+
+    /// <https://w3c.github.io/webdriver/#find-elements-from-shadow-root>
+    fn handle_find_elements_from_shadow_root(
+        &self,
+        shadow_root: &ShadowRoot,
+        parameters: &LocatorParameters,
+    ) -> WebDriverResult<WebDriverResponse> {
+        // Step 4. If selector is undefined, return error with error code invalid argument.
+        if parameters.value.is_empty() {
+            return Err(WebDriverError::new(ErrorStatus::InvalidArgument, ""));
+        }
+        let (sender, receiver) = ipc::channel().unwrap();
+
+        match parameters.using {
+            LocatorStrategy::CSSSelector => {
+                let cmd = WebDriverScriptCommand::FindShadowElementsCSSSelector(
+                    parameters.value.clone(),
+                    shadow_root.to_string(),
+                    sender,
+                );
+                self.browsing_context_script_command(cmd)?;
+            },
+            LocatorStrategy::LinkText | LocatorStrategy::PartialLinkText => {
+                let cmd = WebDriverScriptCommand::FindShadowElementsLinkText(
+                    parameters.value.clone(),
+                    shadow_root.to_string(),
+                    parameters.using == LocatorStrategy::PartialLinkText,
+                    sender,
+                );
+                self.browsing_context_script_command(cmd)?;
+            },
+            LocatorStrategy::TagName => {
+                let cmd = WebDriverScriptCommand::FindShadowElementsTagName(
+                    parameters.value.clone(),
+                    shadow_root.to_string(),
+                    sender,
+                );
+                self.browsing_context_script_command(cmd)?;
+            },
+            _ => {
+                return Err(WebDriverError::new(
+                    ErrorStatus::UnsupportedOperation,
+                    "Unsupported locator strategy",
+                ));
+            },
+        }
+
+        match wait_for_script_response(receiver)? {
+            Ok(value) => {
+                let resp_value: Vec<Value> = value
+                    .into_iter()
+                    .map(|x| serde_json::to_value(WebElement(x)).unwrap())
+                    .collect();
+                Ok(WebDriverResponse::Generic(ValueResponse(
+                    serde_json::to_value(resp_value)?,
+                )))
+            },
+            Err(error) => Err(WebDriverError::new(error, "")),
+        }
+    }
+
+    /// <https://w3c.github.io/webdriver/#find-element-from-shadow-root>
+    fn handle_find_element_from_shadow_root(
+        &self,
+        shadow_root: &ShadowRoot,
+        parameters: &LocatorParameters,
+    ) -> WebDriverResult<WebDriverResponse> {
+        let res = self.handle_find_elements_from_shadow_root(shadow_root, parameters)?;
+        // Step 9. If result is empty, return error with error code no such element.
+        // Otherwise, return the first element of result.
+        if let WebDriverResponse::Generic(ValueResponse(values)) = res {
+            let arr = values.as_array().unwrap();
+            if let Some(first) = arr.first() {
+                Ok(WebDriverResponse::Generic(ValueResponse(first.clone())))
+            } else {
+                Err(WebDriverError::new(ErrorStatus::NoSuchElement, ""))
+            }
+        } else {
+            Err(WebDriverError::new(
+                ErrorStatus::UnknownError,
+                "Unexpected response",
+            ))
         }
     }
 
@@ -2163,6 +2253,12 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             },
             WebDriverCommand::FindElementElements(ref element, ref parameters) => {
                 self.handle_find_elements_from_element(element, parameters)
+            },
+            WebDriverCommand::FindShadowRootElements(ref shadow_root, ref parameters) => {
+                self.handle_find_elements_from_shadow_root(shadow_root, parameters)
+            },
+            WebDriverCommand::FindShadowRootElement(ref shadow_root, ref parameters) => {
+                self.handle_find_element_from_shadow_root(shadow_root, parameters)
             },
             WebDriverCommand::GetShadowRoot(element) => self.handle_get_shadow_root(element),
             WebDriverCommand::GetNamedCookie(name) => self.handle_get_cookie(name),

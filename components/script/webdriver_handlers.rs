@@ -79,7 +79,6 @@ fn is_stale(element: &Element) -> bool {
     !element.owner_document().is_active() || !element.is_connected()
 }
 
-#[allow(dead_code)]
 /// <https://w3c.github.io/webdriver/#dfn-get-a-known-shadow-root>
 fn get_known_shadow_root(
     documents: &DocumentCollection,
@@ -689,7 +688,7 @@ fn retrieve_document_and_check_root_existence(
     }
 }
 
-pub(crate) fn handle_find_element_css(
+pub(crate) fn handle_find_element_css_selector(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     selector: String,
@@ -748,7 +747,7 @@ pub(crate) fn handle_find_element_tag_name(
     }
 }
 
-pub(crate) fn handle_find_elements_css(
+pub(crate) fn handle_find_elements_css_selector(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     selector: String,
@@ -812,7 +811,7 @@ pub(crate) fn handle_find_elements_tag_name(
     }
 }
 
-pub(crate) fn handle_find_element_element_css(
+pub(crate) fn handle_find_element_element_css_selector(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
@@ -871,7 +870,7 @@ pub(crate) fn handle_find_element_element_tag_name(
         .unwrap();
 }
 
-pub(crate) fn handle_find_element_elements_css(
+pub(crate) fn handle_find_element_elements_css_selector(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
@@ -930,6 +929,85 @@ pub(crate) fn handle_find_element_elements_tag_name(
                     .elements_iter()
                     .map(|x| x.upcast::<Node>().unique_id(pipeline))
                     .collect::<Vec<String>>()
+            }),
+        )
+        .unwrap();
+}
+
+/// <https://w3c.github.io/webdriver/#find-elements-from-shadow-root>
+pub(crate) fn handle_find_shadow_elements_css_selector(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    shadow_root_id: String,
+    selector: String,
+    reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+) {
+    reply
+        .send(
+            get_known_shadow_root(documents, pipeline, shadow_root_id).and_then(|shadow_root| {
+                shadow_root
+                    .upcast::<Node>()
+                    .query_selector_all(DOMString::from(selector))
+                    .map_err(|_| ErrorStatus::InvalidSelector)
+                    .map(|nodes| {
+                        nodes
+                            .iter()
+                            .map(|x| x.upcast::<Node>().unique_id(pipeline))
+                            .collect()
+                    })
+            }),
+        )
+        .unwrap();
+}
+
+pub(crate) fn handle_find_shadow_elements_link_text(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    shadow_root_id: String,
+    selector: String,
+    partial: bool,
+    reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    can_gc: CanGc,
+) {
+    reply
+        .send(
+            get_known_shadow_root(documents, pipeline, shadow_root_id).and_then(|shadow_root| {
+                all_matching_links(
+                    shadow_root.upcast::<Node>(),
+                    selector.clone(),
+                    partial,
+                    can_gc,
+                )
+            }),
+        )
+        .unwrap();
+}
+
+pub(crate) fn handle_find_shadow_elements_tag_name(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    shadow_root_id: String,
+    selector: String,
+    reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+) {
+    // According to spec, we should use `getElementsByTagName`. But it is wrong, as only
+    // Document and Element implement this method. So we use `querySelectorAll` instead.
+    // But we should not return InvalidSelector error if the selector is not valid,
+    // as `getElementsByTagName` won't.
+    // See https://github.com/w3c/webdriver/issues/1903
+    reply
+        .send(
+            get_known_shadow_root(documents, pipeline, shadow_root_id).map(|shadow_root| {
+                shadow_root
+                    .upcast::<Node>()
+                    .query_selector_all(DOMString::from(selector))
+                    .map(|nodes| {
+                        nodes
+                            .iter()
+                            .map(|x| x.upcast::<Node>().unique_id(pipeline))
+                            .collect()
+                    })
+                    .unwrap_or_default()
             }),
         )
         .unwrap();
