@@ -2,10 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#[cfg(not(windows))]
-use std::env;
 use std::ffi::OsStr;
-use std::process;
+use std::{env, process};
 
 #[cfg(any(
     target_os = "macos",
@@ -142,10 +140,11 @@ pub fn content_process_sandbox_profile() {
 }
 
 #[cfg(any(
+    target_os = "windows",
     target_os = "android",
     target_env = "ohos",
     target_arch = "arm",
-    all(target_arch = "aarch64", not(target_os = "windows"))
+    target_arch = "aarch64"
 ))]
 pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, Error> {
     use ipc_channel::ipc::{IpcOneShotServer, IpcSender};
@@ -238,13 +237,12 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, Error
     Ok(process)
 }
 
-#[cfg(any(target_os = "windows", target_os = "ios"))]
+#[cfg(target_os = "ios")]
 pub fn spawn_multiprocess(_content: UnprivilegedContent) -> Result<Process, Error> {
-    log::error!("Multiprocess is not supported on Windows or iOS.");
+    log::error!("Multiprocess is not supported on iOS.");
     process::exit(1);
 }
 
-#[cfg(not(windows))]
 fn setup_common<C: CommandMethods>(command: &mut C, token: String) {
     C::arg(command, "--content-process");
     C::arg(command, token);
