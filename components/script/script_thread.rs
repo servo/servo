@@ -2409,6 +2409,38 @@ impl ScriptThread {
                     can_gc,
                 )
             },
+            WebDriverScriptCommand::FindShadowElementsCSS(selector, shadow_root_id, reply) => {
+                webdriver_handlers::handle_find_shadow_elements_css(
+                    &documents,
+                    pipeline_id,
+                    shadow_root_id,
+                    selector,
+                    reply,
+                )
+            },
+            WebDriverScriptCommand::FindShadowElementsLinkText(
+                selector,
+                shadow_root_id,
+                partial,
+                reply,
+            ) => webdriver_handlers::handle_find_shadow_elements_link_text(
+                &documents,
+                pipeline_id,
+                shadow_root_id,
+                selector,
+                partial,
+                reply,
+                can_gc,
+            ),
+            WebDriverScriptCommand::FindShadowElementsTagName(selector, shadow_root_id, reply) => {
+                webdriver_handlers::handle_find_shadow_elements_tag_name(
+                    &documents,
+                    pipeline_id,
+                    shadow_root_id,
+                    selector,
+                    reply,
+                )
+            },
             WebDriverScriptCommand::GetElementShadowRoot(element_id, reply) => {
                 webdriver_handlers::handle_get_element_shadow_root(
                     &documents,
