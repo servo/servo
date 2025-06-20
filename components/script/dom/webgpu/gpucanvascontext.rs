@@ -8,7 +8,7 @@ use std::cell::RefCell;
 use arrayvec::ArrayVec;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self};
-use snapshot::Snapshot;
+use pixels::Snapshot;
 use webgpu_traits::{
     ContextConfiguration, PRESENTATION_BUFFER_COUNT, WebGPU, WebGPUContextId, WebGPURequest,
     WebGPUTexture,

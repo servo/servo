@@ -17,6 +17,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use log::warn;
 use net_traits::ResourceThreads;
+use pixels::Snapshot;
 use style::color::AbsoluteColor;
 use style::properties::style_structs::Font as FontStyleStruct;
 use webrender_api::ImageKey;
@@ -420,7 +421,7 @@ impl Canvas<'_> {
         &mut self,
         read_rect: Option<Rect<u32>>,
         canvas_size: Option<Size2D<u32>>,
-    ) -> snapshot::Snapshot {
+    ) -> Snapshot {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.read_pixels(read_rect, canvas_size),
         }

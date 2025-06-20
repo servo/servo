@@ -34,7 +34,7 @@ use half::f16;
 use ipc_channel::ipc::IpcSharedMemory;
 use itertools::Itertools;
 use log::{debug, error, trace, warn};
-use pixels::{self, PixelFormat, unmultiply_inplace};
+use pixels::{self, PixelFormat, SnapshotAlphaMode, unmultiply_inplace};
 use surfman::chains::{PreserveBuffer, SwapChains, SwapChainsAPI};
 use surfman::{
     self, Adapter, Connection, Context, ContextAttributeFlags, ContextAttributes, Device,
@@ -1215,8 +1215,8 @@ impl WebGLImpl {
                     )
                 };
                 let alpha_mode = match (attributes.alpha, attributes.premultiplied_alpha) {
-                    (true, premultiplied) => snapshot::AlphaMode::Transparent { premultiplied },
-                    (false, _) => snapshot::AlphaMode::Opaque,
+                    (true, premultiplied) => SnapshotAlphaMode::Transparent { premultiplied },
+                    (false, _) => SnapshotAlphaMode::Opaque,
                 };
                 sender
                     .send((IpcSharedMemory::from_bytes(&pixels), alpha_mode))

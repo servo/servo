@@ -19,10 +19,10 @@ use net_traits::{
     FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError, ResourceFetchTiming,
     ResourceTimingType,
 };
+use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use script_layout_interface::{HTMLMediaData, MediaMetadata};
 use servo_media::player::video::VideoFrame;
 use servo_url::ServoUrl;
-use snapshot::Snapshot;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
 use crate::document_loader::{LoadBlocker, LoadType};
@@ -146,13 +146,13 @@ impl HTMLVideoElement {
             Some(frame) => {
                 let size = Size2D::new(frame.get_width() as u32, frame.get_height() as u32);
                 if !frame.is_gl_texture() {
-                    let alpha_mode = snapshot::AlphaMode::Transparent {
+                    let alpha_mode = SnapshotAlphaMode::Transparent {
                         premultiplied: false,
                     };
 
                     Some(Snapshot::from_vec(
                         size.cast(),
-                        snapshot::PixelFormat::BGRA,
+                        SnapshotPixelFormat::BGRA,
                         alpha_mode,
                         frame.get_data().to_vec(),
                     ))

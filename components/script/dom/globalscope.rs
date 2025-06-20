@@ -60,11 +60,10 @@ use net_traits::{
     CoreResourceMsg, CoreResourceThread, FetchResponseListener, IpcSend, ReferrerPolicy,
     ResourceThreads, fetch_async,
 };
-use pixels::{CorsStatus, PixelFormat};
+use pixels::{CorsStatus, PixelFormat, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
 use script_bindings::interfaces::GlobalScopeHelpers;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
-use snapshot::Snapshot;
 use timers::{TimerEventRequest, TimerId};
 use url::Origin;
 use uuid::Uuid;
@@ -3084,13 +3083,13 @@ impl GlobalScope {
 
                 let size = Size2D::new(img.metadata.width, img.metadata.height);
                 let format = match img.format {
-                    PixelFormat::BGRA8 => snapshot::PixelFormat::BGRA,
-                    PixelFormat::RGBA8 => snapshot::PixelFormat::RGBA,
+                    PixelFormat::BGRA8 => SnapshotPixelFormat::BGRA,
+                    PixelFormat::RGBA8 => SnapshotPixelFormat::RGBA,
                     pixel_format => {
                         unimplemented!("unsupported pixel format ({:?})", pixel_format)
                     },
                 };
-                let alpha_mode = snapshot::AlphaMode::Transparent {
+                let alpha_mode = SnapshotAlphaMode::Transparent {
                     premultiplied: false,
                 };
 
@@ -3278,13 +3277,13 @@ impl GlobalScope {
 
                 let size = Size2D::new(img.metadata.width, img.metadata.height);
                 let format = match img.format {
-                    PixelFormat::BGRA8 => snapshot::PixelFormat::BGRA,
-                    PixelFormat::RGBA8 => snapshot::PixelFormat::RGBA,
+                    PixelFormat::BGRA8 => SnapshotPixelFormat::BGRA,
+                    PixelFormat::RGBA8 => SnapshotPixelFormat::RGBA,
                     pixel_format => {
                         unimplemented!("unsupported pixel format ({:?})", pixel_format)
                     },
                 };
-                let alpha_mode = snapshot::AlphaMode::Transparent {
+                let alpha_mode = SnapshotAlphaMode::Transparent {
                     premultiplied: false,
                 };
 
@@ -3319,13 +3318,13 @@ impl GlobalScope {
                     return p;
                 }
 
-                let alpha_mode = snapshot::AlphaMode::Transparent {
+                let alpha_mode = SnapshotAlphaMode::Transparent {
                     premultiplied: false,
                 };
 
                 let snapshot = Snapshot::from_vec(
                     image_data.get_size().cast(),
-                    snapshot::PixelFormat::RGBA,
+                    SnapshotPixelFormat::RGBA,
                     alpha_mode,
                     image_data.to_vec(),
                 );

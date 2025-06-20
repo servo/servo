@@ -113,7 +113,6 @@ servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }
 servo_rand = { path = "../rand" }
 servo_url = { path = "../url" }
-snapshot = { workspace = true }
 smallvec = { workspace = true, features = ["union"] }
 strum = { workspace = true }
 strum_macros = { workspace = true }

@@ -12,8 +12,8 @@ use compositing_traits::{WebrenderExternalImageApi, WebrenderImageSource};
 use euclid::default::Size2D;
 use ipc_channel::ipc::IpcSender;
 use log::{error, warn};
+use pixels::{IpcSnapshot, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use serde::{Deserialize, Serialize};
-use snapshot::{IpcSnapshot, Snapshot};
 use webgpu_traits::{
     ContextConfiguration, Error, PRESENTATION_BUFFER_COUNT, WebGPUContextId, WebGPUMsg,
 };
@@ -375,16 +375,16 @@ impl crate::WGPU {
             .and_then(|swap_chain| swap_chain.data.as_ref())
         {
             let format = match context_data.image_desc.0.format {
-                ImageFormat::RGBA8 => snapshot::PixelFormat::RGBA,
-                ImageFormat::BGRA8 => snapshot::PixelFormat::BGRA,
+                ImageFormat::RGBA8 => SnapshotPixelFormat::RGBA,
+                ImageFormat::BGRA8 => SnapshotPixelFormat::BGRA,
                 _ => unimplemented!(),
             };
             let alpha_mode = if context_data.image_desc.0.is_opaque() {
-                snapshot::AlphaMode::AsOpaque {
+                SnapshotAlphaMode::AsOpaque {
                     premultiplied: false,
                 }
             } else {
-                snapshot::AlphaMode::Transparent {
+                SnapshotAlphaMode::Transparent {
                     premultiplied: true,
                 }
             };

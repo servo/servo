@@ -28,10 +28,10 @@ log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 net_traits = { workspace = true }
+pixels = { path = "../../pixels" }
 profile_traits = { workspace = true }
 serde = { workspace = true }
 servo_url = { path = "../../url" }
-snapshot = { workspace = true }
 strum = { workspace = true }
 strum_macros = { workspace = true }
 uuid = { workspace = true }

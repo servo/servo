@@ -29,7 +29,6 @@ ipc-channel = { workspace = true }
 itertools = { workspace = true }
 log = { workspace = true }
 pixels = { path = "../pixels" }
-snapshot = { workspace = true }
 surfman = { workspace = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }

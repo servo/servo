@@ -14,9 +14,9 @@ use std::path::PathBuf;
 use base::id::{BlobId, DomExceptionId, DomPointId, ImageBitmapId};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::filemanager_thread::RelativePos;
+use pixels::Snapshot;
 use serde::{Deserialize, Serialize};
 use servo_url::ImmutableOrigin;
-use snapshot::Snapshot;
 use strum::EnumIter;
 use uuid::Uuid;
 
