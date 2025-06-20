@@ -31,9 +31,9 @@ use std::marker::PhantomData;
 use std::{mem, ptr};
 
 use js::jsapi::{JSObject, JSTracer};
+use layout_api::TrustedNodeAddress;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 pub(crate) use script_bindings::root::*;
-use script_layout_interface::TrustedNodeAddress;
 use style::thread_state;
 
 use crate::dom::bindings::conversions::DerivedFrom;

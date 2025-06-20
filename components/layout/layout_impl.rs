@@ -24,6 +24,10 @@ use fonts::{FontContext, FontContextWebFontMethods};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
+use layout_api::{
+    Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType, OffsetParentResponse, ReflowGoal,
+    ReflowRequest, ReflowResult, TrustedNodeAddress,
+};
 use log::{debug, error, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
@@ -35,10 +39,6 @@ use profile_traits::time::{
 use profile_traits::{path, time_profile};
 use rayon::ThreadPool;
 use script::layout_dom::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
-use script_layout_interface::{
-    Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType, OffsetParentResponse, ReflowGoal,
-    ReflowRequest, ReflowResult, TrustedNodeAddress,
-};
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter, ScriptThreadMessage};
 use servo_arc::Arc as ServoArc;
 use servo_config::opts::{self, DebugOptions};
@@ -271,10 +271,7 @@ impl Layout for LayoutThread {
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn query_element_inner_outer_text(
-        &self,
-        node: script_layout_interface::TrustedNodeAddress,
-    ) -> String {
+    fn query_element_inner_outer_text(&self, node: layout_api::TrustedNodeAddress) -> String {
         let node = unsafe { ServoLayoutNode::new(&node) };
         get_the_text_steps(node)
     }

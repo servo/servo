@@ -9,11 +9,9 @@ use app_units::Au;
 use euclid::default::{Point2D, Rect};
 use euclid::{SideOffsets2D, Size2D};
 use itertools::Itertools;
+use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
+use layout_api::{LayoutElementType, LayoutNodeType, OffsetParentResponse};
 use script::layout_dom::ServoLayoutNode;
-use script_layout_interface::wrapper_traits::{
-    LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
-};
-use script_layout_interface::{LayoutElementType, LayoutNodeType, OffsetParentResponse};
 use servo_arc::Arc as ServoArc;
 use servo_url::ServoUrl;
 use style::computed_values::display::T as Display;

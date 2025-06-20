@@ -9,15 +9,15 @@ use euclid::Size2D;
 use fnv::FnvHashMap;
 use fonts::FontContext;
 use fxhash::FxHashMap;
+use layout_api::{
+    IFrameSizes, ImageAnimationState, PendingImage, PendingImageState, PendingRasterizationImage,
+};
 use net_traits::image_cache::{
     Image as CachedImage, ImageCache, ImageCacheResult, ImageOrMetadataAvailable, PendingImageId,
     UsePlaceholder,
 };
 use parking_lot::{Mutex, RwLock};
 use pixels::RasterImage;
-use script_layout_interface::{
-    IFrameSizes, ImageAnimationState, PendingImage, PendingImageState, PendingRasterizationImage,
-};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::context::SharedStyleContext;
 use style::dom::OpaqueNode;

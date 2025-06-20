@@ -8,15 +8,15 @@ use std::marker::PhantomData;
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use base::id::{BrowsingContextId, PipelineId};
 use html5ever::{local_name, ns};
+use layout_api::wrapper_traits::{
+    LayoutDataTrait, LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
+};
+use layout_api::{
+    GenericLayoutDataTrait, LayoutElementType, LayoutNodeType as ScriptLayoutNodeType,
+};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::Image;
 use script::layout_dom::ServoLayoutNode;
-use script_layout_interface::wrapper_traits::{
-    LayoutDataTrait, LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
-};
-use script_layout_interface::{
-    GenericLayoutDataTrait, LayoutElementType, LayoutNodeType as ScriptLayoutNodeType,
-};
 use servo_arc::Arc as ServoArc;
 use style::context::SharedStyleContext;
 use style::properties::ComputedValues;

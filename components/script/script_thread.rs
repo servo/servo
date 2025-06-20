@@ -69,6 +69,7 @@ use js::jsapi::{
 };
 use js::jsval::UndefinedValue;
 use js::rust::ParentRuntime;
+use layout_api::{LayoutConfig, LayoutFactory, ReflowGoal, ScriptThreadFactory};
 use media::WindowGLContext;
 use metrics::MAX_TASK_NS;
 use net_traits::image_cache::{ImageCache, ImageCacheResponseMessage};
@@ -83,7 +84,6 @@ use percent_encoding::percent_decode;
 use profile_traits::mem::{ProcessReports, ReportsChan, perform_memory_report};
 use profile_traits::time::ProfilerCategory;
 use profile_traits::time_profile;
-use script_layout_interface::{LayoutConfig, LayoutFactory, ReflowGoal, ScriptThreadFactory};
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
     NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptThreadMessage, UpdatePipelineIdReason,
