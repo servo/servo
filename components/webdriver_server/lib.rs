@@ -55,7 +55,7 @@ use webdriver::command::{
     SwitchToFrameParameters, SwitchToWindowParameters, TimeoutsParameters, WebDriverCommand,
     WebDriverExtensionCommand, WebDriverMessage, WindowRectParameters,
 };
-use webdriver::common::{Cookie, Date, LocatorStrategy, Parameters, WebElement};
+use webdriver::common::{Cookie, Date, LocatorStrategy, Parameters, ShadowRoot, WebElement};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 use webdriver::httpapi::WebDriverExtensionRoute;
 use webdriver::response::{
@@ -1351,7 +1351,7 @@ impl Handler {
                     return Err(WebDriverError::new(ErrorStatus::NoSuchShadowRoot, ""));
                 };
                 Ok(WebDriverResponse::Generic(ValueResponse(
-                    json!({ SHADOW_ROOT_IDENTIFIER: value }),
+                    serde_json::to_value(ShadowRoot(value))?,
                 )))
             },
             Err(error) => Err(WebDriverError::new(error, "")),
