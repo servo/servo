@@ -67,15 +67,20 @@ impl IndexedDBKeyRange {
     }
 }
 
-// Operations that are not executed instantly, but rather added to a
-// queue that is eventually run.
 #[derive(Debug, Deserialize, Serialize)]
-pub enum AsyncOperation {
+pub enum AsyncReadOnlyOperation {
     /// Gets the value associated with the given key in the associated idb data
     GetItem(
         IndexedDBKeyType, // Key
     ),
 
+    Count(
+        IndexedDBKeyType, // Key
+    ),
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum AsyncReadWriteOperation {
     /// Sets the value of the given key in the associated idb data
     PutItem(
         IndexedDBKeyType, // Key
@@ -87,10 +92,14 @@ pub enum AsyncOperation {
     RemoveItem(
         IndexedDBKeyType, // Key
     ),
+}
 
-    Count(
-        IndexedDBKeyType, // Key
-    ),
+// Operations that are not executed instantly, but rather added to a
+// queue that is eventually run.
+#[derive(Debug, Deserialize, Serialize)]
+pub enum AsyncOperation {
+    ReadOnly(AsyncReadOnlyOperation),
+    ReadWrite(AsyncReadWriteOperation),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
