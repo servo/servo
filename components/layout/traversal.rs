@@ -104,8 +104,7 @@ pub(crate) fn compute_damage_and_repair_style_inner(
     node: ServoLayoutNode<'_>,
     parent_restyle_damage: RestyleDamage,
 ) -> RestyleDamage {
-    let original_damage;
-    let damage;
+    let element_damage;
 
     {
         let mut element_data = node
@@ -114,28 +113,28 @@ pub(crate) fn compute_damage_and_repair_style_inner(
             .element_data
             .borrow_mut();
 
-        original_damage = std::mem::take(&mut element_data.damage);
-        damage = original_damage | parent_restyle_damage;
+        element_damage = std::mem::take(&mut element_data.damage);
 
         if let Some(ref style) = element_data.styles.primary {
             if style.get_box().display == Display::None {
-                return damage;
+                return element_damage | parent_restyle_damage;
             }
         }
     }
 
-    let mut propagated_damage = damage;
+    let element_and_parent_damage = element_damage | parent_restyle_damage;
+    let mut damage_from_children = RestyleDamage::empty();
     for child in iter_child_nodes(node) {
         if child.is_element() {
-            propagated_damage |= compute_damage_and_repair_style_inner(context, child, damage);
+            damage_from_children |=
+                compute_damage_and_repair_style_inner(context, child, element_and_parent_damage);
         }
     }
 
-    if !propagated_damage.contains(RestyleDamage::REBUILD_BOX) &&
-        !original_damage.contains(RestyleDamage::REBUILD_BOX)
-    {
+    let damage_for_parent = damage_from_children | element_and_parent_damage;
+    if !damage_for_parent.contains(RestyleDamage::RELAYOUT) && !element_damage.is_empty() {
         node.repair_style(context);
     }
 
-    propagated_damage
+    damage_for_parent
 }
