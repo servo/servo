@@ -7,6 +7,7 @@
 use std::collections::HashMap;
 
 use base::id::ScrollTreeNodeId;
+use base::print_tree::PrintTree;
 use bitflags::bitflags;
 use embedder_traits::Cursor;
 use euclid::SideOffsets2D;
@@ -262,6 +263,51 @@ impl ScrollTreeNode {
         info.scroll_to_webrender_location(scroll_location, context)
             .map(|location| (info.external_id, location))
     }
+
+    pub fn debug_print(&self, print_tree: &mut PrintTree, node_index: usize) {
+        match &self.info {
+            SpatialTreeNodeInfo::ReferenceFrame(info) => {
+                print_tree.new_level(format!(
+                    "Reference Frame({node_index}): webrender_id={:?}\
+                        \norigin: {:?}\
+                        \ntransform_style: {:?}\
+                        \ntransform: {:?}\
+                        \nkind: {:?}",
+                    self.webrender_id, info.origin, info.transform_style, info.transform, info.kind,
+                ));
+            },
+            SpatialTreeNodeInfo::Scroll(info) => {
+                print_tree.new_level(format!(
+                    "Scroll Frame({node_index}): webrender_id={:?}\
+                        \nexternal_id: {:?}\
+                        \ncontent_rect: {:?}\
+                        \nclip_rect: {:?}\
+                        \nscroll_sensitivity: {:?}\
+                        \noffset: {:?}",
+                    self.webrender_id,
+                    info.external_id,
+                    info.content_rect,
+                    info.clip_rect,
+                    info.scroll_sensitivity,
+                    info.offset,
+                ));
+            },
+            SpatialTreeNodeInfo::Sticky(info) => {
+                print_tree.new_level(format!(
+                    "Sticky Frame({node_index}): webrender_id={:?}\
+                        \nframe_rect: {:?}\
+                        \nmargins: {:?}\
+                        \nhorizontal_offset_bounds: {:?}\
+                        \nvertical_offset_bounds: {:?}",
+                    self.webrender_id,
+                    info.frame_rect,
+                    info.margins,
+                    info.horizontal_offset_bounds,
+                    info.vertical_offset_bounds,
+                ));
+            },
+        };
+    }
 }
 
 /// A tree of spatial nodes, which mirrors the spatial nodes in the WebRender
@@ -377,6 +423,61 @@ impl ScrollTree {
             },
             _ => None,
         }))
+    }
+}
+
+/// In order to pretty print the [ScrollTree] structure, we are converting
+/// the node list inside the tree to be a adjacency list. The adjacency list
+/// then is used for the [ScrollTree::debug_print_traversal] of the tree.
+///
+/// This preprocessing helps decouples print logic a lot from its construction.
+type AdjacencyListForPrint = Vec<Vec<ScrollTreeNodeId>>;
+
+/// Implementation of [ScrollTree] that is related to debugging.
+// FIXME: probably we could have a universal trait for this. Especially for
+//        structures that utilizes PrintTree.
+impl ScrollTree {
+    fn nodes_in_adjacency_list(&self) -> AdjacencyListForPrint {
+        let mut adjacency_list: AdjacencyListForPrint = vec![Default::default(); self.nodes.len()];
+
+        for (node_index, node) in self.nodes.iter().enumerate() {
+            let current_id = ScrollTreeNodeId { index: node_index };
+            if let Some(parent_id) = node.parent {
+                adjacency_list[parent_id.index].push(current_id);
+            }
+        }
+
+        adjacency_list
+    }
+
+    fn debug_print_traversal(
+        &self,
+        print_tree: &mut PrintTree,
+        current_id: &ScrollTreeNodeId,
+        adjacency_list: &[Vec<ScrollTreeNodeId>],
+    ) {
+        for node_id in &adjacency_list[current_id.index] {
+            self.nodes[node_id.index].debug_print(print_tree, node_id.index);
+            self.debug_print_traversal(print_tree, node_id, adjacency_list);
+        }
+        print_tree.end_level();
+    }
+
+    /// Print the [ScrollTree]. Particularly, we are printing the node in
+    /// preorder traversal. The order of the nodes will depends of the
+    /// index of a node in the [ScrollTree] which corresponds to the
+    /// declarations of the nodes.
+    // TODO(stevennovaryo): add information about which fragment that
+    //                      defines this node.
+    pub fn debug_print(&self) {
+        let mut print_tree = PrintTree::new("Scroll Tree".to_owned());
+
+        let adj_list = self.nodes_in_adjacency_list();
+        let root_id = ScrollTreeNodeId { index: 0 };
+
+        self.nodes[root_id.index].debug_print(&mut print_tree, root_id.index);
+        self.debug_print_traversal(&mut print_tree, &root_id, &adj_list);
+        print_tree.end_level();
     }
 }
 

@@ -110,6 +110,9 @@ pub struct DebugOptions {
     /// Print the stacking context tree after each layout.
     pub dump_stacking_context_tree: bool,
 
+    /// Print the scroll tree after each layout.
+    pub dump_scroll_tree: bool,
+
     /// Print the display list after each layout.
     pub dump_display_list: bool,
 
@@ -156,6 +159,7 @@ impl DebugOptions {
                 "dump-flow-tree" => self.dump_flow_tree = true,
                 "dump-rule-tree" => self.dump_rule_tree = true,
                 "dump-style-tree" => self.dump_style_tree = true,
+                "dump-scroll-tree" => self.dump_scroll_tree = true,
                 "gc-profile" => self.gc_profile = true,
                 "profile-script-events" => self.profile_script_events = true,
                 "relayout-event" => self.relayout_event = true,
