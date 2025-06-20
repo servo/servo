@@ -4,10 +4,12 @@
 
 use std::collections::{HashMap, HashSet};
 use std::iter::FromIterator;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc as StdArc, Condvar, Mutex, RwLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use async_recursion::async_recursion;
+use async_tungstenite::tokio::client_async_tls_with_connector_and_config;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{HistoryStateId, PipelineId};
 use crossbeam_channel::Sender;
@@ -39,7 +41,7 @@ use hyper_serde::Serde;
 use hyper_util::client::legacy::Client;
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
-use log::{debug, error, info, log_enabled, warn};
+use log::{debug, error, info, log_enabled, trace, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::http_status::HttpStatus;
 use net_traits::pub_domains::reg_suffix;
@@ -55,16 +57,19 @@ use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use net_traits::{
     CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, FetchMetadata, NetworkError, RedirectEndValue,
     RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
+    WebSocketNetworkEvent,
 };
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
 use servo_arc::Arc;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
+use tokio::net::TcpStream;
 use tokio::sync::mpsc::{
     Receiver as TokioReceiver, Sender as TokioSender, UnboundedReceiver, UnboundedSender, channel,
     unbounded_channel,
 };
 use tokio_stream::wrappers::ReceiverStream;
+use url::Url;
 
 use crate::async_runtime::HANDLE;
 use crate::connector::{CertificateErrorOverrideManager, Connector};
@@ -75,9 +80,13 @@ use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::fetch_params::FetchParams;
 use crate::fetch::headers::{SecFetchDest, SecFetchMode, SecFetchSite, SecFetchUser};
 use crate::fetch::methods::{Data, DoneChannel, FetchContext, Target, main_fetch};
+use crate::hosts::replace_host;
 use crate::hsts::HstsList;
 use crate::http_cache::{CacheKey, HttpCache};
 use crate::resource_thread::{AuthCache, AuthCacheEntry};
+use crate::websocket_loader::{
+    create_request, process_ws_response, run_ws_loop, setup_dom_listener,
+};
 
 /// The various states an entry of the HttpCache can be in.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -274,8 +283,8 @@ fn is_schemelessy_same_site(site_a: &ImmutableOrigin, site_b: &ImmutableOrigin) 
         let host_b_reg = reg_suffix(&host_b);
 
         // Step 2.2-2.3
-        (site_a.host() == site_b.host() && host_a_reg.is_empty()) ||
-            (host_a_reg == host_b_reg && !host_a_reg.is_empty())
+        (site_a.host() == site_b.host() && host_a_reg.is_empty())
+            || (host_a_reg == host_b_reg && !host_a_reg.is_empty())
     } else {
         // Step 3
         false
@@ -791,11 +800,11 @@ pub async fn http_fetch(
             // nothing to do, since actual_response is a function on response
 
             // Subsubstep 3
-            if (res.response_type == ResponseType::Opaque && request.mode != RequestMode::NoCors) ||
-                (res.response_type == ResponseType::OpaqueRedirect &&
-                    request.redirect_mode != RedirectMode::Manual) ||
-                (res.url_list.len() > 1 && request.redirect_mode != RedirectMode::Follow) ||
-                res.is_network_error()
+            if (res.response_type == ResponseType::Opaque && request.mode != RequestMode::NoCors)
+                || (res.response_type == ResponseType::OpaqueRedirect
+                    && request.redirect_mode != RedirectMode::Manual)
+                || (res.url_list.len() > 1 && request.redirect_mode != RedirectMode::Follow)
+                || res.is_network_error()
             {
                 return Response::network_error(NetworkError::Internal("Request failed".into()));
             }
@@ -811,11 +820,11 @@ pub async fn http_fetch(
         if cors_preflight_flag {
             let method_cache_match = cache.match_method(request, request.method.clone());
 
-            let method_mismatch = !method_cache_match &&
-                (!is_cors_safelisted_method(&request.method) || request.use_cors_preflight);
+            let method_mismatch = !method_cache_match
+                && (!is_cors_safelisted_method(&request.method) || request.use_cors_preflight);
             let header_mismatch = request.headers.iter().any(|(name, value)| {
-                !cache.match_header(request, name) &&
-                    !is_cors_safelisted_request_header(&name, &value)
+                !cache.match_header(request, name)
+                    && !is_cors_safelisted_request_header(&name, &value)
             });
 
             // Sub-substep 1
@@ -1067,8 +1076,8 @@ pub async fn http_redirect_fetch(
 
     // Step 11: If internalResponse’s status is not 303, request’s body is non-null, and request’s
     // body’s source is null, then return a network error.
-    if response.actual_response().status != StatusCode::SEE_OTHER &&
-        request.body.as_ref().is_some_and(|b| b.source_is_null())
+    if response.actual_response().status != StatusCode::SEE_OTHER
+        && request.body.as_ref().is_some_and(|b| b.source_is_null())
     {
         return Response::network_error(NetworkError::Internal("Request body is not done".into()));
     }
@@ -1079,11 +1088,11 @@ pub async fn http_redirect_fetch(
         .status
         .try_code()
         .is_some_and(|code| {
-            ((code == StatusCode::MOVED_PERMANENTLY || code == StatusCode::FOUND) &&
-                request.method == Method::POST) ||
-                (code == StatusCode::SEE_OTHER &&
-                    request.method != Method::HEAD &&
-                    request.method != Method::GET)
+            ((code == StatusCode::MOVED_PERMANENTLY || code == StatusCode::FOUND)
+                && request.method == Method::POST)
+                || (code == StatusCode::SEE_OTHER
+                    && request.method != Method::HEAD
+                    && request.method != Method::GET)
         })
     {
         // Step 12.1
@@ -1249,8 +1258,8 @@ async fn http_network_or_cache_fetch(
 
     // Step 8.11: If httpRequest’s referrer is a URL, then:
     match http_request.referrer {
-        Referrer::ReferrerUrl(ref http_request_referrer) |
-        Referrer::Client(ref http_request_referrer) => {
+        Referrer::ReferrerUrl(ref http_request_referrer)
+        | Referrer::Client(ref http_request_referrer) => {
             // Step 8.11.1: Let referrerValue be httpRequest’s referrer, serialized and isomorphic
             // encoded.
             if let Ok(referer) = http_request_referrer.to_string().parse::<Referer>() {
@@ -1373,9 +1382,9 @@ async fn http_network_or_cache_fetch(
             }
 
             // Substep 5
-            if authentication_fetch_flag &&
-                authorization_value.is_none() &&
-                has_credentials(&current_url)
+            if authentication_fetch_flag
+                && authorization_value.is_none()
+                && has_credentials(&current_url)
             {
                 authorization_value = Some(Authorization::basic(
                     current_url.username(),
@@ -1445,9 +1454,9 @@ async fn http_network_or_cache_fetch(
                         (CacheMode::OnlyIfCached, &RequestMode::SameOrigin) => {
                             (Some(response_from_cache.response), false)
                         },
-                        (CacheMode::OnlyIfCached, _) |
-                        (CacheMode::NoStore, _) |
-                        (CacheMode::Reload, _) => (None, false),
+                        (CacheMode::OnlyIfCached, _)
+                        | (CacheMode::NoStore, _)
+                        | (CacheMode::Reload, _) => (None, false),
                         (_, _) => (
                             Some(response_from_cache.response),
                             response_from_cache.needs_validation,
@@ -1615,9 +1624,9 @@ async fn http_network_or_cache_fetch(
 
     // FIXME: The spec doesn't tell us to do this *here*, but if we don't do it then
     // tests fail. Where should we do it instead? See also #33615
-    if http_request.response_tainting != ResponseTainting::CorsTainting &&
-        cross_origin_resource_policy_check(http_request, &response) ==
-            CrossOriginResourcePolicy::Blocked
+    if http_request.response_tainting != ResponseTainting::CorsTainting
+        && cross_origin_resource_policy_check(http_request, &response)
+            == CrossOriginResourcePolicy::Blocked
     {
         return Response::network_error(NetworkError::Internal(
             "Cross-origin resource policy check failed".into(),
@@ -1796,9 +1805,9 @@ fn cross_origin_resource_policy_check(
     // Step 5
     if let Origin::Origin(ref request_origin) = request.origin {
         let schemeless_same_origin = is_schemelessy_same_site(request_origin, &current_url_origin);
-        if schemeless_same_origin &&
-            (request_origin.scheme() == Some("https") ||
-                response.https_state == HttpsState::None)
+        if schemeless_same_origin
+            && (request_origin.scheme() == Some("https")
+                || response.https_state == HttpsState::None)
         {
             return CrossOriginResourcePolicy::Allowed;
         }
@@ -1887,30 +1896,102 @@ async fn http_network_fetch(
         let _ = fetch_terminated_sender.send(false);
     }
 
-    let response_future = obtain_response(
-        &context.state.client,
-        &url,
-        &request.method,
-        &mut request.headers,
-        body,
-        request
-            .body
-            .as_ref()
-            .map(|body| body.source_is_null())
-            .unwrap_or(false),
-        &request.pipeline_id,
-        request_id.as_deref(),
-        is_xhr,
-        context,
-        fetch_terminated_sender,
-    );
+    let (res, msg) = match &request.mode {
+        RequestMode::WebSocket { protocols } => {
+            // https://fetch.spec.whatwg.org/#websocket-opening-handshake
+
+            let resource_event_sender = context.websocket_chan.unwrap().lock().unwrap().0.clone();
+            let dom_action_receiver = context.websocket_chan.unwrap().lock().unwrap().1;
+
+            // FIXME(pylbrecht): apply_hsts_rules()
+
+            let req_url = request.url();
+            let req_origin = match request.origin {
+                Origin::Client => unreachable!(),
+                Origin::Origin(ref origin) => origin,
+            };
+
+            // FIXME(pylbrecht): should_request_be_blocked_due_to_a_bad_port()
+            // FIXME(pylbrecht): should_request_be_blocked_by_csp()
+
+            let client = create_request(
+                &req_url,
+                &req_origin.ascii_serialization(),
+                &protocols,
+                &context.state,
+            )
+            .unwrap();
+
+            trace!("starting WS connection to {}", url);
+
+            let initiated_close = std::sync::Arc::new(AtomicBool::new(false));
+            let dom_receiver = setup_dom_listener(dom_action_receiver, initiated_close.clone());
+
+            let host_str = client.uri().host().unwrap();
+            let host = replace_host(host_str);
+            let mut net_url = Url::parse(&client.uri().to_string()).unwrap();
+            net_url.set_host(Some(&host)).unwrap();
+
+            let domain = net_url.host().unwrap();
+            let port = net_url.port_or_known_default().unwrap();
+
+            let try_socket = TcpStream::connect((&*domain.to_string(), port)).await;
+            let socket = try_socket.unwrap();
+
+            // FIXME(pylbrecht): provide TlsConnector
+            let (stream, response) =
+                client_async_tls_with_connector_and_config(client, socket, None, None)
+                    .await
+                    .unwrap();
+
+            let protocol_in_use =
+                process_ws_response(&context.state, &response, &url, &protocols).unwrap();
+
+            if !initiated_close.load(Ordering::SeqCst) {
+                if resource_event_sender
+                    .send(WebSocketNetworkEvent::ConnectionEstablished { protocol_in_use })
+                    .is_err()
+                {
+                    todo!("early return");
+                }
+
+                trace!("about to start ws loop for {}", url);
+
+                HANDLE.spawn(run_ws_loop(dom_receiver, resource_event_sender, stream));
+            } else {
+                trace!("client closed connection for {}, not running loop", url);
+            }
+            (Decoder::detect(response, url.is_secure_scheme()), None)
+        },
+        _ => {
+            let response_future = obtain_response(
+                &context.state.client,
+                &url,
+                &request.method,
+                &mut request.headers,
+                body,
+                request
+                    .body
+                    .as_ref()
+                    .map(|body| body.source_is_null())
+                    .unwrap_or(false),
+                &request.pipeline_id,
+                request_id.as_deref(),
+                is_xhr,
+                context,
+                fetch_terminated_sender,
+            );
+
+            // This will only get the headers, the body is read later
+            let (res, msg) = match response_future.await {
+                Ok(wrapped_response) => wrapped_response,
+                Err(error) => return Response::network_error(error),
+            };
+            (res, msg)
+        },
+    };
 
     let pipeline_id = request.pipeline_id;
-    // This will only get the headers, the body is read later
-    let (res, msg) = match response_future.await {
-        Ok(wrapped_response) => wrapped_response,
-        Err(error) => return Response::network_error(error),
-    };
 
     if log_enabled!(log::Level::Info) {
         debug!("{:?} response for {}", res.version(), url);
@@ -2233,10 +2314,10 @@ async fn cors_preflight_fetch(
         // Substep 5
         if methods
             .iter()
-            .all(|m| *m.as_str() != *request.method.as_ref()) &&
-            !is_cors_safelisted_method(&request.method) &&
-            (request.credentials_mode == CredentialsMode::Include ||
-                methods.iter().all(|m| m.as_ref() != "*"))
+            .all(|m| *m.as_str() != *request.method.as_ref())
+            && !is_cors_safelisted_method(&request.method)
+            && (request.credentials_mode == CredentialsMode::Include
+                || methods.iter().all(|m| m.as_ref() != "*"))
         {
             return Response::network_error(NetworkError::Internal(
                 "CORS method check failed".into(),
@@ -2250,8 +2331,8 @@ async fn cors_preflight_fetch(
 
         // Substep 6
         if request.headers.iter().any(|(name, _)| {
-            is_cors_non_wildcard_request_header_name(name) &&
-                header_names.iter().all(|hn| hn != name)
+            is_cors_non_wildcard_request_header_name(name)
+                && header_names.iter().all(|hn| hn != name)
         }) {
             return Response::network_error(NetworkError::Internal(
                 "CORS authorization check failed".into(),
@@ -2264,9 +2345,9 @@ async fn cors_preflight_fetch(
         let header_names_set: HashSet<&HeaderName> = HashSet::from_iter(header_names.iter());
         let header_names_contains_star = header_names.iter().any(|hn| hn.as_str() == "*");
         for unsafe_name in unsafe_names.iter() {
-            if !header_names_set.contains(unsafe_name) &&
-                (request.credentials_mode == CredentialsMode::Include ||
-                    !header_names_contains_star)
+            if !header_names_set.contains(unsafe_name)
+                && (request.credentials_mode == CredentialsMode::Include
+                    || !header_names_contains_star)
             {
                 return Response::network_error(NetworkError::Internal(
                     "CORS headers check failed".into(),
@@ -2312,8 +2393,8 @@ fn cors_check(request: &Request, response: &Response) -> Result<(), ()> {
     let origin = origin.ok_or(())?;
 
     // Step 3
-    if request.credentials_mode != CredentialsMode::Include &&
-        origin == AccessControlAllowOrigin::ANY
+    if request.credentials_mode != CredentialsMode::Include
+        && origin == AccessControlAllowOrigin::ANY
     {
         return Ok(());
     }
@@ -2354,22 +2435,22 @@ fn has_credentials(url: &ServoUrl) -> bool {
 }
 
 fn is_no_store_cache(headers: &HeaderMap) -> bool {
-    headers.contains_key(header::IF_MODIFIED_SINCE) |
-        headers.contains_key(header::IF_NONE_MATCH) |
-        headers.contains_key(header::IF_UNMODIFIED_SINCE) |
-        headers.contains_key(header::IF_MATCH) |
-        headers.contains_key(header::IF_RANGE)
+    headers.contains_key(header::IF_MODIFIED_SINCE)
+        | headers.contains_key(header::IF_NONE_MATCH)
+        | headers.contains_key(header::IF_UNMODIFIED_SINCE)
+        | headers.contains_key(header::IF_MATCH)
+        | headers.contains_key(header::IF_RANGE)
 }
 
 /// <https://fetch.spec.whatwg.org/#redirect-status>
 fn is_redirect_status(status: StatusCode) -> bool {
     matches!(
         status,
-        StatusCode::MOVED_PERMANENTLY |
-            StatusCode::FOUND |
-            StatusCode::SEE_OTHER |
-            StatusCode::TEMPORARY_REDIRECT |
-            StatusCode::PERMANENT_REDIRECT
+        StatusCode::MOVED_PERMANENTLY
+            | StatusCode::FOUND
+            | StatusCode::SEE_OTHER
+            | StatusCode::TEMPORARY_REDIRECT
+            | StatusCode::PERMANENT_REDIRECT
     )
 }
 
@@ -2452,8 +2533,8 @@ fn append_a_request_origin_header(request: &mut Request) {
 
     // Step 3. If request’s response tainting is "cors" or request’s mode is "websocket",
     //         then append (`Origin`, serializedOrigin) to request’s header list.
-    if request.response_tainting == ResponseTainting::CorsTainting ||
-        matches!(request.mode, RequestMode::WebSocket { .. })
+    if request.response_tainting == ResponseTainting::CorsTainting
+        || matches!(request.mode, RequestMode::WebSocket { .. })
     {
         request.headers.typed_insert(serialized_origin);
     }
@@ -2466,9 +2547,9 @@ fn append_a_request_origin_header(request: &mut Request) {
                     // Set serializedOrigin to `null`.
                     serialized_origin = headers::Origin::NULL;
                 },
-                ReferrerPolicy::NoReferrerWhenDowngrade |
-                ReferrerPolicy::StrictOrigin |
-                ReferrerPolicy::StrictOriginWhenCrossOrigin => {
+                ReferrerPolicy::NoReferrerWhenDowngrade
+                | ReferrerPolicy::StrictOrigin
+                | ReferrerPolicy::StrictOriginWhenCrossOrigin => {
                     // If request’s origin is a tuple origin, its scheme is "https", and
                     // request’s current URL’s scheme is not "https", then set serializedOrigin to `null`.
                     if let ImmutableOrigin::Tuple(scheme, _, _) = &request_origin {
