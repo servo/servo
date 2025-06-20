@@ -13,7 +13,7 @@ use js::jsapi::JSObject;
 use script_layout_interface::wrapper_traits::{
     LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
-use script_layout_interface::{LayoutNodeType, StyleData};
+use script_layout_interface::{LayoutDamage, LayoutNodeType, StyleData};
 use selectors::Element as _;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::bloom::{BLOOM_HASH_MASK, BloomFilter};
@@ -28,10 +28,10 @@ use style::bloom::each_relevant_element_hash;
 use style::context::SharedStyleContext;
 use style::data::ElementData;
 use style::dom::{DomChildren, LayoutIterator, TDocument, TElement, TNode, TShadowRoot};
-use style::properties::PropertyDeclarationBlock;
+use style::properties::{ComputedValues, PropertyDeclarationBlock};
 use style::selector_parser::{
-    AttrValue as SelectorAttrValue, Lang, NonTSPseudoClass, PseudoElement, SelectorImpl,
-    extended_filtering,
+    AttrValue as SelectorAttrValue, Lang, NonTSPseudoClass, PseudoElement, RestyleDamage,
+    SelectorImpl, extended_filtering,
 };
 use style::shared_lock::Locked as StyleLocked;
 use style::stylesheets::scope_rule::ImplicitScopeRoot;
@@ -555,6 +555,10 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
                 assigned_nodes.len(),
             )
         }
+    }
+
+    fn compute_layout_damage(_old: &ComputedValues, _new: &ComputedValues) -> RestyleDamage {
+        RestyleDamage::from_bits_retain(LayoutDamage::REBUILD_BOX.bits())
     }
 }
 
