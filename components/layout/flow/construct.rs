@@ -5,6 +5,7 @@
 use std::borrow::Cow;
 use std::convert::TryFrom;
 
+use layout_api::LayoutDamage;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use servo_arc::Arc;
 use style::properties::ComputedValues;
@@ -63,6 +64,7 @@ struct BlockLevelJob<'dom> {
     box_slot: BoxSlot<'dom>,
     propagated_data: PropagatedBoxTreeData,
     kind: BlockLevelCreator,
+    damage: LayoutDamage,
 }
 
 enum BlockLevelCreator {
@@ -167,7 +169,6 @@ impl BlockContainer {
         is_list_item: bool,
     ) -> BlockContainer {
         let mut builder = BlockContainerBuilder::new(context, info, propagated_data);
-
         if is_list_item {
             if let Some((marker_info, marker_contents)) = crate::lists::make_marker(context, info) {
                 match marker_info.style.clone_list_style_position() {
@@ -300,12 +301,12 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
                 self.push_block_level_job_for_inline_formatting_context(inline_formatting_context);
             }
 
-            self.block_level_boxes.push(BlockLevelJob {
-                info: table_info,
-                box_slot: BoxSlot::dummy(),
-                kind: BlockLevelCreator::AnonymousTable { table_block },
-                propagated_data: self.propagated_data,
-            });
+            self.block_level_boxes.push(BlockLevelJob::new(
+                table_info,
+                BoxSlot::dummy(),
+                self.propagated_data,
+                BlockLevelCreator::AnonymousTable { table_block },
+            ));
         }
 
         // If the last element in the anonymous table content is whitespace, that
@@ -446,15 +447,15 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
                 .pseudo_element_box_slot(PseudoElement::Marker),
         };
 
-        self.block_level_boxes.push(BlockLevelJob {
-            info: marker_info.clone(),
+        self.block_level_boxes.push(BlockLevelJob::new(
+            marker_info.clone(),
             box_slot,
-            kind: BlockLevelCreator::OutsideMarker {
+            self.propagated_data,
+            BlockLevelCreator::OutsideMarker {
                 contents,
                 list_item_style,
             },
-            propagated_data: self.propagated_data,
-        });
+        ));
     }
 
     fn handle_inline_level_element(
@@ -577,12 +578,12 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
                 }
             },
         };
-        self.block_level_boxes.push(BlockLevelJob {
-            info: info.clone(),
+        self.block_level_boxes.push(BlockLevelJob::new(
+            info.clone(),
             box_slot,
-            kind,
             propagated_data,
-        });
+            kind,
+        ));
 
         // Any block also counts as the first line for the purposes of text indent. Even if
         // they don't actually indent.
@@ -614,12 +615,12 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
             contents,
             display_inside,
         };
-        self.block_level_boxes.push(BlockLevelJob {
-            info: info.clone(),
+        self.block_level_boxes.push(BlockLevelJob::new(
+            info.clone(),
             box_slot,
+            self.propagated_data,
             kind,
-            propagated_data: self.propagated_data,
-        });
+        ));
     }
 
     fn handle_float_element(
@@ -647,12 +648,12 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
             contents,
             display_inside,
         };
-        self.block_level_boxes.push(BlockLevelJob {
-            info: info.clone(),
+        self.block_level_boxes.push(BlockLevelJob::new(
+            info.clone(),
             box_slot,
+            self.propagated_data,
             kind,
-            propagated_data: self.propagated_data,
-        });
+        ));
     }
 
     fn push_block_level_job_for_inline_formatting_context(
@@ -669,25 +670,56 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
             })
             .clone();
 
-        self.block_level_boxes.push(BlockLevelJob {
+        self.block_level_boxes.push(BlockLevelJob::new(
             info,
             // FIXME(nox): We should be storing this somewhere.
-            box_slot: BoxSlot::dummy(),
-            kind: BlockLevelCreator::SameFormattingContextBlock(
+            BoxSlot::dummy(),
+            self.propagated_data,
+            BlockLevelCreator::SameFormattingContextBlock(
                 IntermediateBlockContainer::InlineFormattingContext(
                     BlockContainer::InlineFormattingContext(inline_formatting_context),
                 ),
             ),
-            propagated_data: self.propagated_data,
-        });
+        ));
 
         self.have_already_seen_first_line_for_text_indent = true;
     }
 }
 
-impl BlockLevelJob<'_> {
+impl<'dom> BlockLevelJob<'dom> {
+    fn new(
+        info: NodeAndStyleInfo<'dom>,
+        box_slot: BoxSlot<'dom>,
+        propagated_data: PropagatedBoxTreeData,
+        kind: BlockLevelCreator,
+    ) -> Self {
+        let damage = info.restyle_damage();
+        Self {
+            info,
+            box_slot,
+            propagated_data,
+            kind,
+            damage,
+        }
+    }
     fn finish(self, context: &LayoutContext) -> ArcRefCell<BlockLevelBox> {
         let info = &self.info;
+
+        // If this `BlockLevelBox` is undamaged and it has been laid out before, reuse
+        // the old one, while being sure to clear the layout cache.
+        if !self.damage.has_box_damage() {
+            if let Some(block_level_box) = match self.box_slot.slot.as_ref() {
+                Some(box_slot) => match &*box_slot.borrow() {
+                    Some(LayoutBox::BlockLevel(block_level_box)) => Some(block_level_box.clone()),
+                    _ => None,
+                },
+                None => None,
+            } {
+                block_level_box.borrow().invalidate_cached_fragment();
+                return block_level_box;
+            }
+        }
+
         let block_level_box = match self.kind {
             BlockLevelCreator::SameFormattingContextBlock(intermediate_block_container) => {
                 let contents = intermediate_block_container.finish(context, info);
