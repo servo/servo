@@ -51,6 +51,10 @@ use js::rust::{
     CustomAutoRooter, CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleObject,
     MutableHandleValue,
 };
+use layout_api::{
+    FragmentType, Layout, PendingImageState, QueryMsg, ReflowGoal, ReflowRequest,
+    TrustedNodeAddress, combine_id_with_fragment_type,
+};
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
 use net_traits::ResourceThreads;
@@ -67,10 +71,6 @@ use script_bindings::codegen::GenericBindings::NavigatorBinding::NavigatorMethod
 use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMethods;
 use script_bindings::interfaces::WindowHelpers;
 use script_bindings::root::Root;
-use script_layout_interface::{
-    FragmentType, Layout, PendingImageState, QueryMsg, ReflowGoal, ReflowRequest,
-    TrustedNodeAddress, combine_id_with_fragment_type,
-};
 use script_traits::ScriptThreadMessage;
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;

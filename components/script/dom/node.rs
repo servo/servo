@@ -23,15 +23,15 @@ use html5ever::serialize::HtmlSerializer;
 use html5ever::{Namespace, Prefix, QualName, ns, serialize as html_serialize};
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
+use layout_api::{
+    GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType, QueryMsg,
+    SVGSVGData, StyleData, TrustedNodeAddress,
+};
 use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::image_cache::Image;
 use pixels::ImageMetadata;
 use script_bindings::codegen::InheritTypes::DocumentFragmentTypeId;
-use script_layout_interface::{
-    GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType, QueryMsg,
-    SVGSVGData, StyleData, TrustedNodeAddress,
-};
 use script_traits::DocumentActivity;
 use selectors::matching::{
     MatchingContext, MatchingForInvalidation, MatchingMode, NeedsSelectorFlags,

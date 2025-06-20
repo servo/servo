@@ -6,9 +6,9 @@ use std::vec::IntoIter;
 
 use app_units::Au;
 use fonts::FontMetrics;
+use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::ServoLayoutNode;
-use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use servo_arc::Arc as ServoArc;
 use style::properties::ComputedValues;
 

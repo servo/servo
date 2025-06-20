@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use bitflags::bitflags;
+use layout_api::combine_id_with_fragment_type;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
-use script_layout_interface::combine_id_with_fragment_type;
 use style::dom::OpaqueNode;
 use style::selector_parser::PseudoElement;
 

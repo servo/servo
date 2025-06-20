@@ -10,14 +10,14 @@ use std::fmt;
 use base::id::{BrowsingContextId, PipelineId};
 use fonts_traits::ByteIndex;
 use html5ever::{local_name, ns};
-use net_traits::image_cache::Image;
-use pixels::ImageMetadata;
-use range::Range;
-use script_layout_interface::wrapper_traits::{LayoutDataTrait, LayoutNode, ThreadSafeLayoutNode};
-use script_layout_interface::{
+use layout_api::wrapper_traits::{LayoutDataTrait, LayoutNode, ThreadSafeLayoutNode};
+use layout_api::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutNodeType, SVGSVGData, StyleData,
     TrustedNodeAddress,
 };
+use net_traits::image_cache::Image;
+use pixels::ImageMetadata;
+use range::Range;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use style;

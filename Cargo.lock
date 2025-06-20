@@ -1175,6 +1175,7 @@ dependencies = [
  "gaol",
  "ipc-channel",
  "keyboard-types",
+ "layout_api",
  "log",
  "media",
  "net",
@@ -1182,7 +1183,6 @@ dependencies = [
  "parking_lot",
  "profile",
  "profile_traits",
- "script_layout_interface",
  "script_traits",
  "serde",
  "servo-tracing",
@@ -4314,6 +4314,7 @@ dependencies = [
  "icu_segmenter",
  "ipc-channel",
  "itertools 0.14.0",
+ "layout_api",
  "log",
  "malloc_size_of_derive",
  "net_traits",
@@ -4325,7 +4326,6 @@ dependencies = [
  "range",
  "rayon",
  "script",
- "script_layout_interface",
  "script_traits",
  "selectors",
  "servo-tracing",
@@ -4344,6 +4344,39 @@ dependencies = [
  "url",
  "webrender_api",
  "xi-unicode",
+]
+
+[[package]]
+name = "layout_api"
+version = "0.0.1"
+dependencies = [
+ "app_units",
+ "atomic_refcell",
+ "base",
+ "compositing_traits",
+ "constellation_traits",
+ "embedder_traits",
+ "euclid",
+ "fnv",
+ "fonts",
+ "fonts_traits",
+ "fxhash",
+ "html5ever",
+ "ipc-channel",
+ "libc",
+ "malloc_size_of_derive",
+ "net_traits",
+ "pixels",
+ "profile_traits",
+ "range",
+ "script_traits",
+ "selectors",
+ "serde",
+ "servo_arc",
+ "servo_malloc_size_of",
+ "servo_url",
+ "stylo",
+ "webrender_api",
 ]
 
 [[package]]
@@ -4453,6 +4486,7 @@ dependencies = [
  "ipc-channel",
  "keyboard-types",
  "layout",
+ "layout_api",
  "libservo",
  "log",
  "media",
@@ -4465,7 +4499,6 @@ dependencies = [
  "rayon",
  "rustls",
  "script",
- "script_layout_interface",
  "script_traits",
  "serde",
  "servo-media",
@@ -6613,6 +6646,7 @@ dependencies = [
  "itertools 0.14.0",
  "jstraceable_derive",
  "keyboard-types",
+ "layout_api",
  "libc",
  "log",
  "malloc_size_of_derive",
@@ -6634,7 +6668,6 @@ dependencies = [
  "range",
  "regex",
  "script_bindings",
- "script_layout_interface",
  "script_traits",
  "selectors",
  "serde",
@@ -6711,39 +6744,6 @@ dependencies = [
  "tracing",
  "webxr-api",
  "xml5ever",
-]
-
-[[package]]
-name = "script_layout_interface"
-version = "0.0.1"
-dependencies = [
- "app_units",
- "atomic_refcell",
- "base",
- "compositing_traits",
- "constellation_traits",
- "embedder_traits",
- "euclid",
- "fnv",
- "fonts",
- "fonts_traits",
- "fxhash",
- "html5ever",
- "ipc-channel",
- "libc",
- "malloc_size_of_derive",
- "net_traits",
- "pixels",
- "profile_traits",
- "range",
- "script_traits",
- "selectors",
- "serde",
- "servo_arc",
- "servo_malloc_size_of",
- "servo_url",
- "stylo",
- "webrender_api",
 ]
 
 [[package]]

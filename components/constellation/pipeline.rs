@@ -30,6 +30,7 @@ use fonts::{SystemFontServiceProxy, SystemFontServiceProxySender};
 use ipc_channel::Error;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
+use layout_api::{LayoutFactory, ScriptThreadFactory};
 use log::{debug, error, warn};
 use media::WindowGLContext;
 use net::image_cache::ImageCacheImpl;
@@ -38,7 +39,6 @@ use net_traits::image_cache::ImageCache;
 use profile::system_reporter;
 use profile_traits::mem::{ProfilerMsg, Reporter};
 use profile_traits::{mem as profile_mem, time};
-use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
 use script_traits::{
     DiscardBrowsingContext, DocumentActivity, InitialScriptState, NewLayoutInfo,
     ScriptThreadMessage,

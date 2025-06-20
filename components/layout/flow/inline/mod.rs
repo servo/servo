@@ -83,6 +83,7 @@ use bitflags::bitflags;
 use construct::InlineFormattingContextBuilder;
 use fonts::{ByteIndex, FontMetrics, GlyphStore};
 use inline_box::{InlineBox, InlineBoxContainerState, InlineBoxIdentifier, InlineBoxes};
+use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use line::{
     AbsolutelyPositionedLineItem, AtomicLineItem, FloatLineItem, LineItem, LineItemLayout,
     TextRunLineItem,
@@ -91,7 +92,6 @@ use line_breaker::LineBreaker;
 use malloc_size_of_derive::MallocSizeOf;
 use range::Range;
 use script::layout_dom::ServoLayoutNode;
-use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use servo_arc::Arc;
 use style::Zero;
 use style::computed_values::text_wrap_mode::T as TextWrapMode;

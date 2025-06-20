@@ -142,6 +142,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use keyboard_types::{Key, KeyState, Modifiers};
+use layout_api::{LayoutFactory, ScriptThreadFactory};
 use log::{debug, error, info, trace, warn};
 use media::WindowGLContext;
 use net_traits::pub_domains::reg_host;
@@ -150,7 +151,6 @@ use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use net_traits::{self, IpcSend, ReferrerPolicy, ResourceThreads};
 use profile_traits::mem::ProfilerMsg;
 use profile_traits::{mem, time};
-use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, ProgressiveWebMetricType,
     ScriptThreadMessage, UpdatePipelineIdReason,
