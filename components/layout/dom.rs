@@ -12,7 +12,7 @@ use layout_api::wrapper_traits::{
     LayoutDataTrait, LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
 use layout_api::{
-    GenericLayoutDataTrait, LayoutElementType, LayoutNodeType as ScriptLayoutNodeType,
+    GenericLayoutDataTrait, LayoutDamage, LayoutElementType, LayoutNodeType as ScriptLayoutNodeType,
 };
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::Image;
@@ -20,7 +20,7 @@ use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
 use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
-use style::selector_parser::PseudoElement;
+use style::selector_parser::{PseudoElement, RestyleDamage};
 
 use crate::cell::ArcRefCell;
 use crate::flexbox::FlexLevelBox;
@@ -160,7 +160,6 @@ pub struct BoxSlot<'dom> {
 /// A mutable reference to a `LayoutBox` stored in a DOM element.
 impl BoxSlot<'_> {
     pub(crate) fn new(slot: ArcRefCell<Option<LayoutBox>>) -> Self {
-        *slot.borrow_mut() = None;
         let slot = Some(slot);
         Self {
             slot,
@@ -216,6 +215,7 @@ pub(crate) trait NodeExt<'dom> {
     fn invalidate_cached_fragment(&self);
 
     fn repair_style(&self, context: &SharedStyleContext);
+    fn take_restyle_damage(&self) -> LayoutDamage;
 }
 
 impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
@@ -403,5 +403,13 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
                 layout_object.repair_style(context, self, &node.style(context));
             }
         }
+    }
+
+    fn take_restyle_damage(&self) -> LayoutDamage {
+        let damage = self
+            .style_data()
+            .map(|style_data| std::mem::take(&mut style_data.element_data.borrow_mut().damage))
+            .unwrap_or_else(RestyleDamage::reconstruct);
+        LayoutDamage::from_bits_retain(damage.bits())
     }
 }

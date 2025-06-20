@@ -689,6 +689,22 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
 impl BlockLevelJob<'_> {
     fn finish(self, context: &LayoutContext) -> ArcRefCell<BlockLevelBox> {
         let info = &self.info;
+
+        // If this `BlockLevelBox` is undamaged and it has been laid out before, reuse
+        // the old one, while being sure to clear the layout cache.
+        if !info.damage.has_box_damage() {
+            if let Some(block_level_box) = match self.box_slot.slot.as_ref() {
+                Some(box_slot) => match &*box_slot.borrow() {
+                    Some(LayoutBox::BlockLevel(block_level_box)) => Some(block_level_box.clone()),
+                    _ => None,
+                },
+                None => None,
+            } {
+                block_level_box.borrow().invalidate_cached_fragment();
+                return block_level_box;
+            }
+        }
+
         let block_level_box = match self.kind {
             BlockLevelCreator::SameFormattingContextBlock(intermediate_block_container) => {
                 let contents = intermediate_block_container.finish(context, info);

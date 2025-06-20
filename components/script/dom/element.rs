@@ -23,6 +23,7 @@ use html5ever::{LocalName, Namespace, Prefix, QualName, local_name, namespace_pr
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::HandleObject;
+use layout_api::LayoutDamage;
 use net_traits::ReferrerPolicy;
 use net_traits::request::CorsSettings;
 use selectors::Element as SelectorsElement;
@@ -358,9 +359,18 @@ impl Element {
         // NodeStyleDamaged, but I'm preserving existing behavior.
         restyle.hint.insert(RestyleHint::RESTYLE_SELF);
 
-        if damage == NodeDamage::Other {
-            doc.note_node_with_dirty_descendants(self.upcast());
-            restyle.damage = RestyleDamage::reconstruct();
+        match damage {
+            NodeDamage::Style => {},
+            NodeDamage::ContentOrHeritage => {
+                doc.note_node_with_dirty_descendants(self.upcast());
+                restyle
+                    .damage
+                    .insert(LayoutDamage::recollect_box_tree_children());
+            },
+            NodeDamage::Other => {
+                doc.note_node_with_dirty_descendants(self.upcast());
+                restyle.damage.insert(RestyleDamage::reconstruct());
+            },
         }
     }
 

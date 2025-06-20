@@ -139,7 +139,11 @@ fn construct_for_root_element(
     context: &LayoutContext,
     root_element: ServoLayoutNode<'_>,
 ) -> Vec<ArcRefCell<BlockLevelBox>> {
-    let info = NodeAndStyleInfo::new(root_element, root_element.style(&context.style_context));
+    let info = NodeAndStyleInfo::new(
+        root_element,
+        root_element.style(&context.style_context),
+        root_element.take_restyle_damage(),
+    );
     let box_style = info.style.get_box();
 
     let display_inside = match Display::from(box_style.display) {
@@ -376,7 +380,13 @@ impl<'dom> IncrementalBoxTreeUpdate<'dom> {
     fn update_from_dirty_root(&self, context: &LayoutContext) {
         let contents = ReplacedContents::for_element(self.node, context)
             .map_or_else(|| NonReplacedContents::OfElement.into(), Contents::Replaced);
-        let info = NodeAndStyleInfo::new(self.node, self.primary_style.clone());
+
+        let info = NodeAndStyleInfo::new(
+            self.node,
+            self.primary_style.clone(),
+            self.node.take_restyle_damage(),
+        );
+
         let out_of_flow_absolutely_positioned_box = ArcRefCell::new(
             AbsolutelyPositionedBox::construct(context, &info, self.display_inside, contents),
         );
@@ -426,6 +436,14 @@ impl<'dom> IncrementalBoxTreeUpdate<'dom> {
         let mut invalidate_start_point = self.node;
         while let Some(parent_node) = invalidate_start_point.parent_node() {
             parent_node.invalidate_cached_fragment();
+
+            // Box tree reconstruction doesn't need to involve these ancestors, so their
+            // damage isn't useful for us.
+            //
+            // TODO: This isn't going to be good enough for incremental fragment tree
+            // reconstruction, as fragment tree damage might extend further up the tree.
+            parent_node.take_restyle_damage();
+
             invalidate_start_point = parent_node;
         }
     }
