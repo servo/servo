@@ -1059,6 +1059,8 @@ def scan(only_changed_files=False, progress=False):
     colorama.init()
     error = None
     for error in errors:
+        if not isinstance(error, (list, tuple)) or len(error) != 3:
+            continue
         print(
             "\r  | "
             + f"{colorama.Fore.BLUE}{error[0]}{colorama.Style.RESET_ALL}:"
