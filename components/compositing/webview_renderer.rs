@@ -432,7 +432,10 @@ impl WebViewRenderer {
                 InputEvent::Touch(ref mut touch_event) => {
                     touch_event.init_sequence_id(self.touch_handler.current_sequence_id);
                 },
-                InputEvent::MouseButton(_) | InputEvent::MouseMove(_) | InputEvent::Wheel(_) => {
+                InputEvent::MouseButton(_) |
+                InputEvent::MouseLeave(_) |
+                InputEvent::MouseMove(_) |
+                InputEvent::Wheel(_) => {
                     self.global
                         .borrow_mut()
                         .update_cursor_from_hittest(point, &result);
