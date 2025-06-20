@@ -66,22 +66,13 @@ impl ActiveBufferMapping {
 #[dom_struct]
 pub(crate) struct GPUBuffer {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "defined in webgpu"]
-    #[no_trace]
-    channel: WebGPU,
     label: DomRefCell<USVString>,
-    #[no_trace]
-    buffer: WebGPUBuffer,
     device: Dom<GPUDevice>,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-size>
     size: GPUSize64,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-usage>
     usage: GPUFlagsConstant,
-    /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-pending_map-slot>
-    #[ignore_malloc_size_of = "promises are hard"]
-    pending_map: DomRefCell<Option<Rc<Promise>>>,
-    /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapping-slot>
-    mapping: DomRefCell<Option<ActiveBufferMapping>>,
+    droppable: DroppableGPUBuffer,
 }
 
 impl GPUBuffer {
@@ -96,14 +87,16 @@ impl GPUBuffer {
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
-            channel,
             label: DomRefCell::new(label),
             device: Dom::from_ref(device),
-            buffer,
-            pending_map: DomRefCell::new(None),
             size,
             usage,
-            mapping: DomRefCell::new(mapping),
+            droppable: DroppableGPUBuffer::new(
+                channel,
+                buffer,
+                DomRefCell::new(None),
+                DomRefCell::new(mapping),
+            ),
         }
     }
 
@@ -131,7 +124,7 @@ impl GPUBuffer {
 
 impl GPUBuffer {
     pub(crate) fn id(&self) -> WebGPUBuffer {
-        self.buffer
+        self.droppable.buffer
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer>
@@ -182,62 +175,16 @@ impl GPUBuffer {
     }
 }
 
-impl Drop for GPUBuffer {
-    fn drop(&mut self) {
-        self.Destroy()
-    }
-}
-
 impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
     #[allow(unsafe_code)]
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap>
     fn Unmap(&self) {
-        // Step 1
-        if let Some(promise) = self.pending_map.borrow_mut().take() {
-            promise.reject_error(Error::Abort, CanGc::note());
-        }
-        // Step 2
-        let mut mapping = self.mapping.borrow_mut().take();
-        let mapping = if let Some(mapping) = mapping.as_mut() {
-            mapping
-        } else {
-            return;
-        };
-
-        // Step 3
-        mapping.data.clear_views();
-        // Step 5&7
-        if let Err(e) = self.channel.0.send(WebGPURequest::UnmapBuffer {
-            buffer_id: self.id().0,
-            mapping: if mapping.mode >= GPUMapModeConstants::WRITE {
-                Some(Mapping {
-                    data: IpcSharedMemory::from_bytes(mapping.data.data()),
-                    range: mapping.range.clone(),
-                    mode: HostMap::Write,
-                })
-            } else {
-                None
-            },
-        }) {
-            warn!("Failed to send Buffer unmap ({:?}) ({})", self.buffer.0, e);
-        }
+        self.droppable.unmap()
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-destroy>
     fn Destroy(&self) {
-        // Step 1
-        self.Unmap();
-        // Step 2
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::DestroyBuffer(self.buffer.0))
-        {
-            warn!(
-                "Failed to send WebGPURequest::DestroyBuffer({:?}) ({})",
-                self.buffer.0, e
-            );
-        };
+        self.droppable.destroy()
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapasync>
@@ -251,12 +198,12 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
     ) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp, can_gc);
         // Step 2
-        if self.pending_map.borrow().is_some() {
+        if self.droppable.pending_map.borrow().is_some() {
             promise.reject_error(Error::Operation, can_gc);
             return promise;
         }
         // Step 4
-        *self.pending_map.borrow_mut() = Some(promise.clone());
+        *self.droppable.pending_map.borrow_mut() = Some(promise.clone());
         // Step 5
         let host_map = match mode {
             GPUMapModeConstants::READ => HostMap::Read,
@@ -276,17 +223,22 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             self,
             self.global().task_manager().dom_manipulation_task_source(),
         );
-        if let Err(e) = self.channel.0.send(WebGPURequest::BufferMapAsync {
-            sender,
-            buffer_id: self.buffer.0,
-            device_id: self.device.id().0,
-            host_map,
-            offset,
-            size,
-        }) {
+        if let Err(e) = self
+            .droppable
+            .channel
+            .0
+            .send(WebGPURequest::BufferMapAsync {
+                sender,
+                buffer_id: self.droppable.buffer.0,
+                device_id: self.device.id().0,
+                host_map,
+                offset,
+                size,
+            })
+        {
             warn!(
                 "Failed to send BufferMapAsync ({:?}) ({})",
-                self.buffer.0, e
+                self.droppable.buffer.0, e
             );
             self.map_failure(&promise, can_gc);
             return promise;
@@ -310,7 +262,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             self.size.saturating_sub(offset)
         };
         // Step 2: validation
-        let mut mapping = self.mapping.borrow_mut();
+        let mut mapping = self.droppable.mapping.borrow_mut();
         let mapping = mapping.as_mut().ok_or(Error::Operation)?;
 
         let valid = offset % wgpu_types::MAP_ALIGNMENT == 0 &&
@@ -355,9 +307,9 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapstate>
     fn MapState(&self) -> GPUBufferMapState {
         // Step 1&2&3
-        if self.mapping.borrow().is_some() {
+        if self.droppable.mapping.borrow().is_some() {
             GPUBufferMapState::Mapped
-        } else if self.pending_map.borrow().is_some() {
+        } else if self.droppable.pending_map.borrow().is_some() {
             GPUBufferMapState::Pending
         } else {
             GPUBufferMapState::Unmapped
@@ -367,7 +319,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
 
 impl GPUBuffer {
     fn map_failure(&self, p: &Rc<Promise>, can_gc: CanGc) {
-        let mut pending_map = self.pending_map.borrow_mut();
+        let mut pending_map = self.droppable.pending_map.borrow_mut();
         // Step 1
         if pending_map.as_ref() != Some(p) {
             assert!(p.is_rejected());
@@ -386,7 +338,7 @@ impl GPUBuffer {
     }
 
     fn map_success(&self, p: &Rc<Promise>, wgpu_mapping: Mapping, can_gc: CanGc) {
-        let mut pending_map = self.pending_map.borrow_mut();
+        let mut pending_map = self.droppable.pending_map.borrow_mut();
 
         // Step 1
         if pending_map.as_ref() != Some(p) {
@@ -415,7 +367,7 @@ impl GPUBuffer {
                 // Step 5
                 mapping.data.load(&wgpu_mapping.data);
                 // Step 6
-                self.mapping.borrow_mut().replace(mapping);
+                self.droppable.mapping.borrow_mut().replace(mapping);
                 // Step 7
                 pending_map.take();
                 p.resolve_native(&(), can_gc);
@@ -435,5 +387,94 @@ impl RoutedPromiseListener<Result<Mapping, BufferAccessError>> for GPUBuffer {
             Ok(mapping) => self.map_success(promise, mapping, can_gc),
             Err(_) => self.map_failure(promise, can_gc),
         }
+    }
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+pub(crate) struct DroppableGPUBuffer {
+    #[ignore_malloc_size_of = "defined in webgpu"]
+    #[no_trace]
+    pub(crate) channel: WebGPU,
+    #[no_trace]
+    pub(crate) buffer: WebGPUBuffer,
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-pending_map-slot>
+    #[ignore_malloc_size_of = "promises are hard"]
+    pub(crate) pending_map: DomRefCell<Option<Rc<Promise>>>,
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapping-slot>
+    pub(crate) mapping: DomRefCell<Option<ActiveBufferMapping>>,
+}
+
+impl DroppableGPUBuffer {
+    pub(crate) fn new(
+        channel: WebGPU,
+        buffer: WebGPUBuffer,
+        pending_map: DomRefCell<Option<Rc<Promise>>>,
+        mapping: DomRefCell<Option<ActiveBufferMapping>>,
+    ) -> Self {
+        Self {
+            channel,
+            buffer,
+            pending_map,
+            mapping,
+        }
+    }
+}
+
+impl DroppableGPUBuffer {
+    #[allow(unsafe_code)]
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap>
+    pub(crate) fn unmap(&self) {
+        // Step 1
+        if let Some(promise) = self.pending_map.borrow_mut().take() {
+            promise.reject_error(Error::Abort, CanGc::note());
+        }
+        // Step 2
+        let mut mapping = self.mapping.borrow_mut().take();
+        let mapping = if let Some(mapping) = mapping.as_mut() {
+            mapping
+        } else {
+            return;
+        };
+
+        // Step 3
+        mapping.data.clear_views();
+        // Step 5&7
+        if let Err(e) = self.channel.0.send(WebGPURequest::UnmapBuffer {
+            buffer_id: self.buffer.0,
+            mapping: if mapping.mode >= GPUMapModeConstants::WRITE {
+                Some(Mapping {
+                    data: IpcSharedMemory::from_bytes(mapping.data.data()),
+                    range: mapping.range.clone(),
+                    mode: HostMap::Write,
+                })
+            } else {
+                None
+            },
+        }) {
+            warn!("Failed to send Buffer unmap ({:?}) ({})", self.buffer.0, e);
+        }
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-destroy>
+    pub(crate) fn destroy(&self) {
+        // Step 1
+        self.unmap();
+        // Step 2
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::DestroyBuffer(self.buffer.0))
+        {
+            warn!(
+                "Failed to send WebGPURequest::DestroyBuffer({:?}) ({})",
+                self.buffer.0, e
+            );
+        };
+    }
+}
+
+impl Drop for DroppableGPUBuffer {
+    fn drop(&mut self) {
+        self.destroy()
     }
 }
