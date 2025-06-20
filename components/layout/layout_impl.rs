@@ -840,8 +840,8 @@ impl LayoutThread {
         let mut damage =
             compute_damage_and_repair_style(layout_context.shared_context(), root_node);
         if viewport_changed {
-            damage = RestyleDamage::REBUILD_BOX;
-        } else if !damage.contains(RestyleDamage::REBUILD_BOX) {
+            damage = RestyleDamage::RELAYOUT;
+        } else if !damage.contains(RestyleDamage::RELAYOUT) {
             layout_context.style_context.stylist.rule_tree().maybe_gc();
             return damage;
         }
