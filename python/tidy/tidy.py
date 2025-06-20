@@ -1046,10 +1046,13 @@ def scan(only_changed_files=False, progress=False):
 
     jobs = [
         # check directories contain expected files
-        (check_directory_files, (config["check_ext"])),
+        (check_directory_files, (config["check_ext"],)),
         (check_ruff_lints, ()),
         (run_cargo_deny_lints, ()),
-        (run_wpt_lints, (only_changed_files)),
+        (
+            run_wpt_lints,
+            (only_changed_files,),
+        ),
     ]
 
     all_results = parallel_queue(jobs)
@@ -1059,8 +1062,6 @@ def scan(only_changed_files=False, progress=False):
     colorama.init()
     error = None
     for error in errors:
-        if not isinstance(error, (list, tuple)) or len(error) != 3:
-            continue
         print(
             "\r  | "
             + f"{colorama.Fore.BLUE}{error[0]}{colorama.Style.RESET_ALL}:"
