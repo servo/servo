@@ -32,7 +32,7 @@ use embedder_traits::EmbedderMsg;
 use euclid::default::Size2D;
 use http::HeaderMap;
 use hyper_serde::Serde;
-use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
 use js::jsapi::{
@@ -3069,11 +3069,11 @@ impl GlobalScope {
                     premultiplied: false,
                 };
 
-                let snapshot = Snapshot::from_shared_memory(
+                let snapshot = Snapshot::from_vec(
                     size.cast(),
                     format,
                     alpha_mode,
-                    IpcSharedMemory::from_bytes(img.first_frame().bytes),
+                    img.first_frame().bytes.to_vec(),
                 );
 
                 // Step 6.3. Set imageBitmap's bitmap data to a copy of image's media data,
@@ -3244,11 +3244,11 @@ impl GlobalScope {
                     premultiplied: false,
                 };
 
-                let snapshot = Snapshot::from_shared_memory(
+                let snapshot = Snapshot::from_vec(
                     image_data.get_size().cast(),
                     snapshot::PixelFormat::RGBA,
                     alpha_mode,
-                    image_data.to_shared_memory(),
+                    image_data.to_vec(),
                 );
 
                 // Step 6.3. Set imageBitmap's bitmap data to image's image data,
