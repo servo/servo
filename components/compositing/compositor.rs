@@ -28,7 +28,7 @@ use crossbeam_channel::{Receiver, Sender};
 use dpi::PhysicalSize;
 use embedder_traits::{
     CompositorHitTestResult, Cursor, InputEvent, MouseButtonEvent, MouseMoveEvent, ShutdownState,
-    TouchEventType, UntrustedNodeAddress, ViewportDetails, WheelDelta, WheelEvent, WheelMode,
+    UntrustedNodeAddress, ViewportDetails, WheelDelta, WheelEvent, WheelMode,
 };
 use euclid::{Point2D, Rect, Scale, Size2D, Transform3D, Vector2D};
 use ipc_channel::ipc::{self, IpcSharedMemory};
@@ -1833,10 +1833,9 @@ impl IOCompositor {
         webview_id: WebViewId,
         scroll_location: ScrollLocation,
         cursor: DeviceIntPoint,
-        event_type: TouchEventType,
     ) {
         if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
-            webview_renderer.notify_scroll_event(scroll_location, cursor, event_type);
+            webview_renderer.notify_scroll_event(scroll_location, cursor);
         }
     }
 

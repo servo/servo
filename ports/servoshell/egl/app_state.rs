@@ -481,11 +481,8 @@ impl RunningAppState {
     pub fn scroll_start(&self, dx: f32, dy: f32, x: i32, y: i32) {
         let delta = Vector2D::new(dx, dy);
         let scroll_location = ScrollLocation::Delta(delta);
-        self.active_webview().notify_scroll_event(
-            scroll_location,
-            Point2D::new(x, y),
-            TouchEventType::Down,
-        );
+        self.active_webview()
+            .notify_scroll_event(scroll_location, Point2D::new(x, y));
         self.perform_updates();
     }
 
@@ -495,11 +492,8 @@ impl RunningAppState {
     pub fn scroll(&self, dx: f32, dy: f32, x: i32, y: i32) {
         let delta = Vector2D::new(dx, dy);
         let scroll_location = ScrollLocation::Delta(delta);
-        self.active_webview().notify_scroll_event(
-            scroll_location,
-            Point2D::new(x, y),
-            TouchEventType::Move,
-        );
+        self.active_webview()
+            .notify_scroll_event(scroll_location, Point2D::new(x, y));
         self.perform_updates();
     }
 
@@ -510,11 +504,8 @@ impl RunningAppState {
     pub fn scroll_end(&self, dx: f32, dy: f32, x: i32, y: i32) {
         let delta = Vector2D::new(dx, dy);
         let scroll_location = ScrollLocation::Delta(delta);
-        self.active_webview().notify_scroll_event(
-            scroll_location,
-            Point2D::new(x, y),
-            TouchEventType::Up,
-        );
+        self.active_webview()
+            .notify_scroll_event(scroll_location, Point2D::new(x, y));
         self.perform_updates();
     }
 

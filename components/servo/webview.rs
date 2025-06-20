@@ -14,7 +14,7 @@ use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
     Cursor, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus, MediaSessionActionType,
-    ScreenGeometry, Theme, TouchEventType, ViewportDetails,
+    ScreenGeometry, Theme, ViewportDetails,
 };
 use euclid::{Point2D, Scale, Size2D};
 use servo_geometry::DeviceIndependentPixel;
@@ -434,18 +434,11 @@ impl WebView {
             ))
     }
 
-    pub fn notify_scroll_event(
-        &self,
-        location: ScrollLocation,
-        point: DeviceIntPoint,
-        touch_event_action: TouchEventType,
-    ) {
-        self.inner().compositor.borrow_mut().notify_scroll_event(
-            self.id(),
-            location,
-            point,
-            touch_event_action,
-        );
+    pub fn notify_scroll_event(&self, location: ScrollLocation, point: DeviceIntPoint) {
+        self.inner()
+            .compositor
+            .borrow_mut()
+            .notify_scroll_event(self.id(), location, point);
     }
 
     pub fn notify_input_event(&self, event: InputEvent) {

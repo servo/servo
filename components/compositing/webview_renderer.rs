@@ -799,21 +799,11 @@ impl WebViewRenderer {
         &mut self,
         scroll_location: ScrollLocation,
         cursor: DeviceIntPoint,
-        event_type: TouchEventType,
     ) {
         if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
-
-        match event_type {
-            TouchEventType::Move => self.on_scroll_window_event(scroll_location, cursor),
-            TouchEventType::Up | TouchEventType::Cancel => {
-                self.on_scroll_window_event(scroll_location, cursor);
-            },
-            TouchEventType::Down => {
-                self.on_scroll_window_event(scroll_location, cursor);
-            },
-        }
+        self.on_scroll_window_event(scroll_location, cursor);
     }
 
     fn on_scroll_window_event(&mut self, scroll_location: ScrollLocation, cursor: DeviceIntPoint) {

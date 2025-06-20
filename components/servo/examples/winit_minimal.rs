@@ -165,7 +165,6 @@ impl ApplicationHandler<WakerEvent> for App {
                         webview.notify_scroll_event(
                             ScrollLocation::Delta(moved_by),
                             DeviceIntPoint::new(10, 10),
-                            TouchEventType::Down,
                         );
                     }
                 }
