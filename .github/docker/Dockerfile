@@ -72,12 +72,15 @@ COPY --from=uv /root/.local/bin/uv /root/.local/bin/uvx /root/.cargo/bin/
 ##### Pre-run cargo check ####################################################################
 FROM servo_base AS servo_check_cook
 
-COPY --from=servo_fetcher /data/servo/servo /data/servo/servo
-WORKDIR /data/servo/servo
+COPY --from=servo_fetcher /data/servo/servo /__w/servo/servo
+WORKDIR /__w/servo/servo
 # Run cargo check once, so we can use incremental cargo check in CI
-RUN cargo check --locked -p libservo
+RUN mkdir -p /data/servo/target \
+    && rm -f rust-toolchain.toml \
+    && cargo check --locked -p libservo --target-dir /data/servo/target
+
 
 FROM servo_base AS final
 # Add the target directory to the image, so we can do incremental checks in CI.
 # Trade-off image size (longer image download) for faster / incremental cargo check in CI
-COPY --from=servo_check_cook /data/servo/servo/target /data/servo/target
+COPY --from=servo_check_cook /data/servo/target /data/servo/target

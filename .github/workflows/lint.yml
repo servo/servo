@@ -76,4 +76,6 @@ jobs:
         # /data/servo/target is part of the image, meaning we can do an incremental check here in CI
         # if we re-use the image.
         run: |
+          # We don't want to download useless components like rust-src
+          rm -f rust-toolchain.toml
           cargo +${MINIMUM_SUPPORTED_RUST_VERSION} check -p libservo --locked --target-dir /data/servo/target
