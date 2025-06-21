@@ -43,9 +43,45 @@ jobs:
         run: |
           sudo apt update
           ./mach bootstrap
-      # TODO: Do GitHub anotaions
+      # TODO: Do GitHub annotations
       - name: Clippy
         run: |
           ./mach clippy --use-crown --locked -- -- --deny warnings
       - name: Tidy
         run: ./mach test-tidy --no-progress --all
+
+  msrv_check:
+    name: Minimum supported Rust version check
+    runs-on: ubuntu-22.04
+    container:
+      image: 'ghcr.io/jschwe/servo_msrv_ci:0.1'
+      env:
+        # This version should be kept in sync with the `rust-version` in our
+        # workspace Cargo.toml. Changes should be discussed on zulip.
+        MINIMUM_SUPPORTED_RUST_VERSION: "1.85.0"
+    steps:
+      - uses: actions/checkout@v4
+        if: github.event_name != 'pull_request_target'
+        with:
+          fetch-depth: 1
+      # This is necessary to checkout the pull request if this run was triggered via a
+      # `pull_request_target` event.
+      - uses: actions/checkout@v4
+        if: github.event_name == 'pull_request_target'
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+      - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
+        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
+      - name: Check for dockerenv file
+        run: | 
+          ls /.dockerenv
+          ls -l /data/servo
+          ls -l /root/.rustup/toolchains
+      - name: Compile libservo with MSRV
+        # /data/servo/target is part of the image, meaning we can do an incremental check here in CI
+        # if we re-use the image.
+        run: |
+          # We don't want to download useless components like rust-src
+          rm -f rust-toolchain.toml
+          cargo +${MINIMUM_SUPPORTED_RUST_VERSION} check -p libservo --locked --target-dir /data/servo/target
