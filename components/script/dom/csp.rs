@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use content_security_policy::{PolicyDisposition, Violation, ViolationResource};
+use content_security_policy::{CheckResult, PolicyDisposition, Violation, ViolationResource};
 use js::rust::describe_scripted_caller;
 
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -84,4 +84,28 @@ pub(crate) fn report_csp_violations(
             .dom_manipulation_task_source()
             .queue(task);
     }
+}
+
+pub(crate) fn is_js_evaluation_allowed(global: &GlobalScope, source: &str) -> bool {
+    let Some(csp_list) = global.get_csp_list() else {
+        return true;
+    };
+
+    let (is_js_evaluation_allowed, violations) = csp_list.is_js_evaluation_allowed(source);
+
+    report_csp_violations(global, violations, None);
+
+    is_js_evaluation_allowed == CheckResult::Allowed
+}
+
+pub(crate) fn is_wasm_evaluation_allowed(global: &GlobalScope) -> bool {
+    let Some(csp_list) = global.get_csp_list() else {
+        return true;
+    };
+
+    let (is_wasm_evaluation_allowed, violations) = csp_list.is_wasm_evaluation_allowed();
+
+    report_csp_violations(global, violations, None);
+
+    is_wasm_evaluation_allowed == CheckResult::Allowed
 }

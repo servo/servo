@@ -2936,18 +2936,6 @@ impl GlobalScope {
         }))
     }
 
-    pub(crate) fn is_js_evaluation_allowed(&self, source: &str) -> bool {
-        let Some(csp_list) = self.get_csp_list() else {
-            return true;
-        };
-
-        let (is_js_evaluation_allowed, violations) = csp_list.is_js_evaluation_allowed(source);
-
-        report_csp_violations(self, violations, None);
-
-        is_js_evaluation_allowed == CheckResult::Allowed
-    }
-
     pub(crate) fn should_navigation_request_be_blocked(
         &self,
         load_data: &LoadData,

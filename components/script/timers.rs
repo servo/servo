@@ -26,6 +26,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::Dom;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::csp::is_js_evaluation_allowed;
 use crate::dom::document::{ImageAnimationUpdateCallback, RefreshRedirectDue};
 use crate::dom::eventsource::EventSourceTimeoutCallback;
 use crate::dom::globalscope::GlobalScope;
@@ -426,7 +427,7 @@ impl JsTimers {
     ) -> i32 {
         let callback = match callback {
             TimerCallback::StringTimerCallback(code_str) => {
-                if global.is_js_evaluation_allowed(code_str.as_ref()) {
+                if is_js_evaluation_allowed(global, code_str.as_ref()) {
                     InternalTimerCallback::StringTimerCallback(code_str)
                 } else {
                     return 0;
