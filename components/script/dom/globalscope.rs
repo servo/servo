@@ -18,13 +18,10 @@ use base::id::{
     ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
 };
 use constellation_traits::{
-    BlobData, BlobImpl, BroadcastMsg, FileBlob, LoadData, LoadOrigin, MessagePortImpl,
-    MessagePortMsg, PortMessageTask, ScriptToConstellationChan, ScriptToConstellationMessage,
+    BlobData, BlobImpl, BroadcastMsg, FileBlob, MessagePortImpl, MessagePortMsg, PortMessageTask,
+    ScriptToConstellationChan, ScriptToConstellationMessage,
 };
-use content_security_policy::{
-    CheckResult, CspList, Destination, Initiator, NavigationCheckType, ParserMetadata,
-    PolicyDisposition, PolicySource, Request,
-};
+use content_security_policy::{CspList, PolicyDisposition, PolicySource};
 use crossbeam_channel::Sender;
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
@@ -62,7 +59,6 @@ use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_tim
 use script_bindings::interfaces::GlobalScopeHelpers;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use timers::{TimerEventRequest, TimerId};
-use url::Origin;
 use uuid::Uuid;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{DeviceLostReason, WebGPUDevice};
@@ -100,11 +96,9 @@ use crate::dom::bindings::weakref::{DOMTracker, WeakRef};
 use crate::dom::blob::Blob;
 use crate::dom::broadcastchannel::BroadcastChannel;
 use crate::dom::crypto::Crypto;
-use crate::dom::csp::report_csp_violations;
 use crate::dom::dedicatedworkerglobalscope::{
     DedicatedWorkerControlMsg, DedicatedWorkerGlobalScope,
 };
-use crate::dom::element::Element;
 use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventsource::EventSource;
@@ -2934,37 +2928,6 @@ impl GlobalScope {
             callback,
             pipeline: self.pipeline_id(),
         }))
-    }
-
-    pub(crate) fn should_navigation_request_be_blocked(
-        &self,
-        load_data: &LoadData,
-        element: Option<&Element>,
-    ) -> bool {
-        let Some(csp_list) = self.get_csp_list() else {
-            return false;
-        };
-        let request = Request {
-            url: load_data.url.clone().into_url(),
-            origin: match &load_data.load_origin {
-                LoadOrigin::Script(immutable_origin) => immutable_origin.clone().into_url_origin(),
-                _ => Origin::new_opaque(),
-            },
-            // TODO: populate this field correctly
-            redirect_count: 0,
-            destination: Destination::None,
-            initiator: Initiator::None,
-            nonce: "".to_owned(),
-            integrity_metadata: "".to_owned(),
-            parser_metadata: ParserMetadata::None,
-        };
-        // TODO: set correct navigation check type for form submission if applicable
-        let (result, violations) =
-            csp_list.should_navigation_request_be_blocked(&request, NavigationCheckType::Other);
-
-        report_csp_violations(self, violations, element);
-
-        result == CheckResult::Blocked
     }
 
     pub(crate) fn fire_timer(&self, handle: TimerEventId, can_gc: CanGc) {
