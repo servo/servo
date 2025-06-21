@@ -19,6 +19,7 @@ use crate::conversions::Convert;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::csp::report_csp_violations;
 use crate::dom::csppolicyviolationreport::{
     CSPReportUriViolationReport, SecurityPolicyViolationReport,
 };
@@ -206,7 +207,7 @@ impl FetchResponseListener for CSPReportUriFetchListener {
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
         let global = &self.resource_timing_global();
-        global.report_csp_violations(violations, None);
+        report_csp_violations(global, violations, None);
     }
 }
 

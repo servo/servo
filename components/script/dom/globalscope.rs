@@ -23,7 +23,7 @@ use constellation_traits::{
 };
 use content_security_policy::{
     CheckResult, CspList, Destination, Initiator, NavigationCheckType, ParserMetadata,
-    PolicyDisposition, PolicySource, Request, Violation, ViolationResource,
+    PolicyDisposition, PolicySource, Request,
 };
 use crossbeam_channel::Sender;
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
@@ -43,8 +43,7 @@ use js::panic::maybe_resume_unwind;
 use js::rust::wrappers::{JS_ExecuteScript, JS_GetScriptPrivate};
 use js::rust::{
     CompileOptionsWrapper, CustomAutoRooter, CustomAutoRooterGuard, HandleValue,
-    MutableHandleValue, ParentRuntime, Runtime, describe_scripted_caller, get_object_class,
-    transform_str_to_source_text,
+    MutableHandleValue, ParentRuntime, Runtime, get_object_class, transform_str_to_source_text,
 };
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use net_traits::blob_url_store::{BlobBuf, get_blob_origin};
@@ -101,7 +100,7 @@ use crate::dom::bindings::weakref::{DOMTracker, WeakRef};
 use crate::dom::blob::Blob;
 use crate::dom::broadcastchannel::BroadcastChannel;
 use crate::dom::crypto::Crypto;
-use crate::dom::csppolicyviolationreport::CSPViolationReportBuilder;
+use crate::dom::csp::report_csp_violations;
 use crate::dom::dedicatedworkerglobalscope::{
     DedicatedWorkerControlMsg, DedicatedWorkerGlobalScope,
 };
@@ -113,7 +112,6 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::htmlscriptelement::{ScriptId, SourceCode};
 use crate::dom::messageport::MessagePort;
-use crate::dom::node::{Node, NodeTraits};
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::Performance;
 use crate::dom::performanceobserver::VALID_ENTRY_TYPES;
@@ -141,7 +139,6 @@ use crate::script_module::{
 };
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, ThreadSafeJSContext};
 use crate::script_thread::{ScriptThread, with_script_thread};
-use crate::security_manager::CSPViolationReportTask;
 use crate::task_manager::TaskManager;
 use crate::task_source::SendableTaskSource;
 use crate::timers::{
@@ -2946,7 +2943,7 @@ impl GlobalScope {
 
         let (is_js_evaluation_allowed, violations) = csp_list.is_js_evaluation_allowed(source);
 
-        self.report_csp_violations(violations, None);
+        report_csp_violations(self, violations, None);
 
         is_js_evaluation_allowed == CheckResult::Allowed
     }
@@ -2977,7 +2974,7 @@ impl GlobalScope {
         let (result, violations) =
             csp_list.should_navigation_request_be_blocked(&request, NavigationCheckType::Other);
 
-        self.report_csp_violations(violations, element);
+        report_csp_violations(self, violations, element);
 
         result == CheckResult::Blocked
     }
@@ -3419,76 +3416,6 @@ impl GlobalScope {
             return worker.TrustedTypes(can_gc);
         }
         unreachable!();
-    }
-
-    /// <https://www.w3.org/TR/CSP/#report-violation>
-    #[allow(unsafe_code)]
-    pub(crate) fn report_csp_violations(
-        &self,
-        violations: Vec<Violation>,
-        element: Option<&Element>,
-    ) {
-        let scripted_caller =
-            unsafe { describe_scripted_caller(*GlobalScope::get_cx()) }.unwrap_or_default();
-        for violation in violations {
-            let (sample, resource) = match violation.resource {
-                ViolationResource::Inline { sample } => (sample, "inline".to_owned()),
-                ViolationResource::Url(url) => (None, url.into()),
-                ViolationResource::TrustedTypePolicy { sample } => {
-                    (Some(sample), "trusted-types-policy".to_owned())
-                },
-                ViolationResource::TrustedTypeSink { sample } => {
-                    (Some(sample), "trusted-types-sink".to_owned())
-                },
-                ViolationResource::Eval { sample } => (sample, "eval".to_owned()),
-                ViolationResource::WasmEval => (None, "wasm-eval".to_owned()),
-            };
-            let report = CSPViolationReportBuilder::default()
-                .resource(resource)
-                .sample(sample)
-                .effective_directive(violation.directive.name)
-                .original_policy(violation.policy.to_string())
-                .report_only(violation.policy.disposition == PolicyDisposition::Report)
-                .source_file(scripted_caller.filename.clone())
-                .line_number(scripted_caller.line)
-                .column_number(scripted_caller.col + 1)
-                .build(self);
-            // Step 1: Let global be violation’s global object.
-            // We use `self` as `global`;
-            // Step 2: Let target be violation’s element.
-            let target = element.and_then(|event_target| {
-                // Step 3.1: If target is not null, and global is a Window,
-                // and target’s shadow-including root is not global’s associated Document, set target to null.
-                if let Some(window) = self.downcast::<Window>() {
-                    // If a node is connected, its owner document is always the shadow-including root.
-                    // If it isn't connected, then it also doesn't have a corresponding document, hence
-                    // it can't be this document.
-                    if event_target.upcast::<Node>().owner_document() != window.Document() {
-                        return None;
-                    }
-                }
-                Some(event_target)
-            });
-            let target = match target {
-                // Step 3.2: If target is null:
-                None => {
-                    // Step 3.2.2: If target is a Window, set target to target’s associated Document.
-                    if let Some(window) = self.downcast::<Window>() {
-                        Trusted::new(window.Document().upcast())
-                    } else {
-                        // Step 3.2.1: Set target to violation’s global object.
-                        Trusted::new(self.upcast())
-                    }
-                },
-                Some(event_target) => Trusted::new(event_target.upcast()),
-            };
-            // Step 3: Queue a task to run the following steps:
-            let task =
-                CSPViolationReportTask::new(Trusted::new(self), target, report, violation.policy);
-            self.task_manager()
-                .dom_manipulation_task_source()
-                .queue(task);
-        }
     }
 
     pub(crate) fn import_map(&self) -> Ref<'_, ImportMap> {

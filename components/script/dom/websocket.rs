@@ -38,6 +38,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString, is_token};
 use crate::dom::blob::Blob;
 use crate::dom::closeevent::CloseEvent;
+use crate::dom::csp::report_csp_violations;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -471,7 +472,7 @@ struct ReportCSPViolationTask {
 impl TaskOnce for ReportCSPViolationTask {
     fn run_once(self) {
         let global = self.websocket.root().global();
-        global.report_csp_violations(self.violations, None);
+        report_csp_violations(&global, self.violations, None);
     }
 }
 
