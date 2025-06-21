@@ -10,7 +10,6 @@ use std::time::{Duration, Instant};
 use std::{f64, mem};
 
 use compositing_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
-use content_security_policy as csp;
 use dom_struct::dom_struct;
 use embedder_traits::{MediaPositionState, MediaSessionEvent, MediaSessionPlaybackState};
 use euclid::default::Size2D;
@@ -74,7 +73,7 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
-use crate::dom::csp::report_csp_violations;
+use crate::dom::csp::{Violation, report_csp_violations};
 use crate::dom::document::Document;
 use crate::dom::element::{
     AttributeMutation, Element, ElementCreator, cors_setting_for_element,
@@ -3168,7 +3167,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         network_listener::submit_timing(self, CanGc::note())
     }
 
-    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
         report_csp_violations(global, violations, None);
     }

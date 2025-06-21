@@ -10,7 +10,6 @@ use std::sync::Arc;
 use std::{char, mem};
 
 use app_units::{AU_PER_PX, Au};
-use content_security_policy as csp;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::Point2D;
@@ -60,7 +59,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::csp::report_csp_violations;
+use crate::dom::csp::{Violation, report_csp_violations};
 use crate::dom::document::{Document, determine_policy_for_token};
 use crate::dom::element::{
     AttributeMutation, CustomElementCreationMode, Element, ElementCreator, LayoutElementHelpers,
@@ -296,7 +295,7 @@ impl FetchResponseListener for ImageContext {
         network_listener::submit_timing(self, CanGc::note())
     }
 
-    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
         report_csp_violations(global, violations, None);
     }
