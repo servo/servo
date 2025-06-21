@@ -108,6 +108,56 @@ pub(crate) fn should_elements_inline_type_behavior_be_blocked(
     result == CheckResult::Blocked
 }
 
+/// <https://w3c.github.io/trusted-types/dist/spec/#should-block-create-policy>
+pub(crate) fn is_trusted_type_policy_creation_allowed(
+    global: &GlobalScope,
+    policy_name: String,
+    created_policy_names: Vec<String>,
+) -> bool {
+    let Some(csp_list) = global.get_csp_list() else {
+        return false;
+    };
+
+    let (allowed_by_csp, violations) =
+        csp_list.is_trusted_type_policy_creation_allowed(policy_name, created_policy_names);
+
+    report_csp_violations(global, violations, None);
+
+    allowed_by_csp == CheckResult::Allowed
+}
+
+/// <https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-does-sink-type-require-trusted-types>
+pub(crate) fn does_sink_type_require_trusted_types(
+    global: &GlobalScope,
+    sink_group: &str,
+    include_report_only_policies: bool,
+) -> bool {
+    let Some(csp_list) = global.get_csp_list() else {
+        return false;
+    };
+
+    csp_list.does_sink_type_require_trusted_types(sink_group, include_report_only_policies)
+}
+
+/// <https://w3c.github.io/trusted-types/dist/spec/#should-block-sink-type-mismatch>
+pub(crate) fn should_sink_type_mismatch_violation_be_blocked_by_csp(
+    global: &GlobalScope,
+    sink: &str,
+    sink_group: &str,
+    source: &str,
+) -> bool {
+    let Some(csp_list) = global.get_csp_list() else {
+        return false;
+    };
+
+    let (allowed_by_csp, violations) =
+        csp_list.should_sink_type_mismatch_violation_be_blocked_by_csp(sink, sink_group, source);
+
+    report_csp_violations(global, violations, None);
+
+    allowed_by_csp == CheckResult::Blocked
+}
+
 /// Used to determine which inline check to run
 pub use content_security_policy::Violation;
 
