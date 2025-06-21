@@ -662,8 +662,16 @@ impl ModuleTree {
     ) -> Fallible<ServoUrl> {
         // Step 1~3 to get settingsObject and baseURL
         let script_global = script.and_then(|s| s.owner.as_ref().map(|o| o.global()));
+        // Step 1. Let settingsObject and baseURL be null.
         let (global, base_url): (&GlobalScope, &ServoUrl) = match script {
+            // Step 2. If referringScript is not null, then:
+            // Set settingsObject to referringScript's settings object.
+            // Set baseURL to referringScript's base URL.
             Some(s) => (script_global.as_ref().map_or(global, |g| g), &s.base_url),
+            // Step 3. Otherwise:
+            // Set settingsObject to the current settings object.
+            // Set baseURL to settingsObject's API base URL.
+            // FIXME(#37553): Is this the correct current settings object?
             None => (global, &global.api_base_url()),
         };
 
@@ -676,10 +684,10 @@ impl ModuleTree {
             None
         };
 
+        // Step 6. Let serializedBaseURL be baseURL, serialized.
+        let serialized_base_url = base_url.as_str();
         // Step 7. Let asURL be the result of resolving a URL-like module specifier given specifier and baseURL.
         let as_url = Self::resolve_url_like_module_specifier(&specifier, base_url);
-        // Step 6. Let serializedBaseURL be baseURL, serialized.
-        let base_url = base_url.as_str();
         // Step 8. Let normalizedSpecifier be the serialization of asURL, if asURL is non-null;
         // otherwise, specifier.
         let normalized_specifier = match &as_url {
@@ -695,8 +703,8 @@ impl ModuleTree {
                 // Step 10.1 If scopePrefix is serializedBaseURL, or if scopePrefix ends with U+002F (/)
                 // and scopePrefix is a code unit prefix of serializedBaseURL, then:
                 let prefix = prefix.as_str();
-                if prefix == base_url ||
-                    (base_url.starts_with(prefix) && prefix.ends_with('\u{002f}'))
+                if prefix == serialized_base_url ||
+                    (serialized_base_url.starts_with(prefix) && prefix.ends_with('\u{002f}'))
                 {
                     // Step 10.1.1 Let scopeImportsMatch be the result of resolving an imports match
                     // given normalizedSpecifier, asURL, and scopeImports.
@@ -735,21 +743,15 @@ impl ModuleTree {
                 // Step 13.1 Add module to resolved module set given settingsObject, serializedBaseURL,
                 // normalizedSpecifier, and asURL.
                 global.add_module_to_resolved_module_set(
-                    base_url,
+                    serialized_base_url,
                     normalized_specifier,
                     as_url.clone(),
                 );
-                if global.is::<Window>() {
-                    let record = ResolvedModule {
-                        base_url: base_url.to_owned(),
-                        specifier: normalized_specifier.to_owned(),
-                        specifier_url: as_url,
-                    };
-                    global.resolved_module_set_mut().insert(record);
-                }
                 // Step 13.2 Return result.
                 Ok(result)
             },
+            // Step 14. Throw a TypeError indicating that specifier was a bare specifier,
+            // but was not remapped to anything by importMap.
             None => Err(Error::Type(
                 "Specifier was a bare specifier, but was not remapped to anything by importMap."
                     .to_owned(),
@@ -2510,7 +2512,9 @@ pub(crate) fn resolve_imports_match(
             };
 
             // Step 1.2.3 Let afterPrefix be the portion of normalizedSpecifier after the initial specifierKey prefix.
-            let after_prefix = normalized_specifier.strip_prefix(specifier_key).unwrap();
+            let after_prefix = normalized_specifier
+                .strip_prefix(specifier_key)
+                .expect("specifier_key should be the prefix of normalized_specifier");
 
             // Step 1.2.4 Assert: resolutionResult, serialized, ends with U+002F (/), as enforced during parsing.
             debug_assert!(resolution_result.as_str().ends_with('\u{002f}'));

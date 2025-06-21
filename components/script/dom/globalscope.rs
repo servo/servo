@@ -3796,9 +3796,15 @@ impl GlobalScope {
         specifier: &str,
         specifier_url: Option<ServoUrl>,
     ) {
+        // Step 1. Let global be settingsObject's global object.
+        // Step 2. If global does not implement Window, then return.
         if self.is::<Window>() {
+            // Step 3. Let record be a new specifier resolution record, with serialized base URL
+            // set to serializedBaseURL, specifier set to normalizedSpecifier, and specifier as
+            // a URL set to asURL.
             let record =
                 ResolvedModule::new(base_url.to_owned(), specifier.to_owned(), specifier_url);
+            // Step 4. Append record to global's resolved module set.
             self.resolved_module_set.borrow_mut().insert(record);
         }
     }
