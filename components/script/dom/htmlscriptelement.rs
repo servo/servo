@@ -12,7 +12,6 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 use base::id::{PipelineId, WebViewId};
-use content_security_policy as csp;
 use devtools_traits::{ScriptToDevtoolsControlMsg, SourceInfo};
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
@@ -58,7 +57,10 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::NoTrace;
-use crate::dom::csp::{report_csp_violations, should_elements_inline_type_behavior_be_blocked};
+use crate::dom::csp::{
+    InlineCheckType, Violation, report_csp_violations,
+    should_elements_inline_type_behavior_be_blocked,
+};
 use crate::dom::document::Document;
 use crate::dom::element::{
     AttributeMutation, Element, ElementCreator, cors_setting_for_element,
@@ -558,7 +560,7 @@ impl FetchResponseListener for ClassicContext {
         network_listener::submit_timing(self, CanGc::note())
     }
 
-    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
         let elem = self.elem.root();
         report_csp_violations(global, violations, Some(elem.upcast::<Element>()));
@@ -769,7 +771,7 @@ impl HTMLScriptElement {
             should_elements_inline_type_behavior_be_blocked(
                 &doc.global(),
                 element,
-                csp::InlineCheckType::Script,
+                InlineCheckType::Script,
                 &text,
             )
         {

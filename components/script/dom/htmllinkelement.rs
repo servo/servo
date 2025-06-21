@@ -8,7 +8,6 @@ use std::default::Default;
 use std::str::FromStr;
 
 use base::id::WebViewId;
-use content_security_policy as csp;
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use html5ever::{LocalName, Prefix, local_name, ns};
@@ -39,7 +38,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::csp::report_csp_violations;
+use crate::dom::csp::{Violation, report_csp_violations};
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
@@ -1017,7 +1016,7 @@ impl FetchResponseListener for PrefetchContext {
         submit_timing(self, CanGc::note())
     }
 
-    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
         report_csp_violations(global, violations, None);
     }
@@ -1091,7 +1090,7 @@ impl FetchResponseListener for PreloadContext {
         submit_timing(self, CanGc::note())
     }
 
-    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
         report_csp_violations(global, violations, None);
     }
