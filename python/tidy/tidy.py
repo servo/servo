@@ -13,18 +13,20 @@ import glob
 import io
 import itertools
 import json
+import multiprocessing
 import os
+import queue  # for queue.Empty
 import re
 import subprocess
 import sys
+from multiprocessing import Process, Queue
 from typing import Any, Dict, List
 
 import colorama
 import toml
-
 import wpt.manifestupdate
 
-from .licenseck import OLD_MPL, MPL, APACHE, COPYRIGHT, licenses_toml
+from .licenseck import APACHE, COPYRIGHT, MPL, OLD_MPL, licenses_toml
 
 TOPDIR = os.path.abspath(os.path.dirname(sys.argv[0]))
 WPT_PATH = os.path.join(".", "tests", "wpt")
@@ -957,6 +959,49 @@ We only expect files with {ext} extensions in {dir_name}""".format(**details)
                 yield (filename, 1, message)
 
 
+def do_job(tasks_to_accomplish, tasks_that_are_done):
+    while True:
+        try:
+            task = tasks_to_accomplish.get_nowait()
+        except queue.Empty:
+            break
+        else:
+            gen_fn, args = task
+
+            try:
+                result = list(gen_fn(*args))
+                tasks_that_are_done.put(result)
+            except Exception as e:
+                tasks_that_are_done.put([f"Error from multiprocess: {e} from {gen_fn.__name__}"])
+    return True
+
+
+def parallel_queue(jobs: List[List[str]]):
+    # Initialize Parallel
+    tasks_to_accomplish = Queue()
+    tasks_that_are_done = Queue()
+    num_of_core = multiprocessing.cpu_count()
+
+    for job in jobs:
+        tasks_to_accomplish.put(job)
+
+    processes = []
+    for _ in range(num_of_core):
+        p = Process(target=do_job, args=(tasks_to_accomplish, tasks_that_are_done))
+        processes.append(p)
+        p.start()
+
+    for p in processes:
+        p.join()
+
+    # Collect all generator results
+    all_results = []
+    while not tasks_that_are_done.empty():
+        all_results.append(tasks_that_are_done.get())
+
+    return all_results
+
+
 def collect_errors_for_files(files_to_check, checking_functions, line_checking_functions, print_text=True):
     (has_element, files_to_check) = is_iter_empty(files_to_check)
     if not has_element:
@@ -985,8 +1030,6 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
 def scan(only_changed_files=False, progress=False):
     # check config file for errors
     config_errors = check_config_file(CONFIG_FILE_PATH)
-    # check directories contain expected files
-    directory_errors = check_directory_files(config["check_ext"])
     # standard checks
     files_to_check = filter_files(".", only_changed_files, progress)
     checking_functions = (check_webidl_spec,)
@@ -1001,12 +1044,20 @@ def scan(only_changed_files=False, progress=False):
     )
     file_errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
 
-    python_errors = check_ruff_lints()
-    cargo_lock_errors = run_cargo_deny_lints()
-    wpt_errors = run_wpt_lints(only_changed_files)
+    jobs = [
+        # check directories contain expected files
+        (check_directory_files, (config["check_ext"],)),
+        (check_ruff_lints, ()),
+        (run_cargo_deny_lints, ()),
+        (
+            run_wpt_lints,
+            (only_changed_files,),
+        ),
+    ]
 
-    # chain all the iterators
-    errors = itertools.chain(config_errors, directory_errors, file_errors, python_errors, wpt_errors, cargo_lock_errors)
+    all_results = parallel_queue(jobs)
+
+    errors = itertools.chain(config_errors, file_errors, *all_results)
 
     colorama.init()
     error = None
