@@ -10,8 +10,9 @@ use heed::{Database, Env, EnvOpenOptions};
 use log::warn;
 use net_traits::indexeddb_thread::{AsyncOperation, IndexedDBTxnMode};
 use tokio::sync::oneshot;
+use uuid::Uuid;
 
-use super::{KvsEngine, KvsTransaction, SanitizedName};
+use super::{KvsEngine, KvsTransaction};
 use crate::resource_thread::CoreResourceThreadPool;
 
 type HeedDatabase = Database<Bytes, Bytes>;
@@ -27,7 +28,7 @@ struct Store {
 
 pub struct HeedEngine {
     heed_env: Arc<Env>,
-    open_stores: Arc<RwLock<HashMap<SanitizedName, Store>>>,
+    open_stores: Arc<RwLock<HashMap<Uuid, Store>>>,
     read_pool: Arc<CoreResourceThreadPool>,
     write_pool: Arc<CoreResourceThreadPool>,
 }
@@ -61,7 +62,7 @@ impl HeedEngine {
 }
 
 impl KvsEngine for HeedEngine {
-    fn create_store(&self, store_name: SanitizedName, auto_increment: bool) {
+    fn create_store(&self, store_name: Uuid, auto_increment: bool) {
         let mut write_txn = self
             .heed_env
             .write_txn()
@@ -85,7 +86,7 @@ impl KvsEngine for HeedEngine {
             .insert(store_name, store);
     }
 
-    fn delete_store(&self, store_name: SanitizedName) {
+    fn delete_store(&self, store_name: Uuid) {
         // TODO: Actually delete store instead of just clearing it
         let mut write_txn = self
             .heed_env
@@ -100,7 +101,7 @@ impl KvsEngine for HeedEngine {
         open_stores.retain(|key, _| key != &store_name);
     }
 
-    fn close_store(&self, store_name: SanitizedName) {
+    fn close_store(&self, store_name: Uuid) {
         // FIXME: (arihant2math) unused
         // FIXME:(arihant2math) return error if no store ...
         let mut open_stores = self.open_stores.write().unwrap();
@@ -237,7 +238,7 @@ impl KvsEngine for HeedEngine {
         rx
     }
 
-    fn has_key_generator(&self, store_name: SanitizedName) -> bool {
+    fn has_key_generator(&self, store_name: Uuid) -> bool {
         let has_generator = self
             .open_stores
             .read()
