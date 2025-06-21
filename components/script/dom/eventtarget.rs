@@ -11,7 +11,6 @@ use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
-use content_security_policy as csp;
 use deny_public_fields::DenyPublicFields;
 use dom_struct::dom_struct;
 use fnv::FnvHasher;
@@ -56,6 +55,7 @@ use crate::dom::bindings::reflector::{
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::HashMapTracedValues;
+use crate::dom::csp::{InlineCheckType, should_elements_inline_type_behavior_be_blocked};
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::errorevent::ErrorEvent;
@@ -556,12 +556,12 @@ impl EventTarget {
     ) {
         if let Some(element) = self.downcast::<Element>() {
             let doc = element.owner_document();
-            if doc.should_elements_inline_type_behavior_be_blocked(
+            if should_elements_inline_type_behavior_be_blocked(
+                &doc.global(),
                 element.upcast(),
-                csp::InlineCheckType::ScriptAttribute,
+                InlineCheckType::ScriptAttribute,
                 source,
-            ) == csp::CheckResult::Blocked
-            {
+            ) {
                 return;
             }
         };
