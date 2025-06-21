@@ -37,7 +37,8 @@ class Item:
     def from_result(cls, result: dict, title: Optional[str] = None, print_stack=True):
         expected = result["expected"]
         actual = result["actual"]
-        title = title if title else f"`{result['path']}`"
+        subsuite = f"{result['subsuite']}: " if result.get("subsuite", "") else ""
+        title = title if title else f"{subsuite}`{result['path']}`"
         if expected != actual:
             title = f"{actual} [expected {expected}] {title}"
         else:

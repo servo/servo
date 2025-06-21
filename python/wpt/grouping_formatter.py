@@ -34,6 +34,7 @@ class UnexpectedSubtestResult:
 @dataclass
 class UnexpectedResult:
     path: str
+    subsuite: str
     actual: str
     expected: str
     message: str
@@ -112,14 +113,17 @@ class ServoHandler(mozlog.reader.LogHandler):
     """LogHandler designed to collect unexpected results for use by
     script or by the ServoFormatter output formatter."""
 
-    def __init__(self):
+    def __init__(self, flakes_detection=False):
+        """
+        Flake detection assumes first suite is actual run
+        and rest of the suites are retry-unexpected for flakes detection.
+        """
+        self.flakes_detection = flakes_detection
         self.reset_state()
 
     def reset_state(self):
-        self.number_of_tests = 0
-        self.completed_tests = 0
-        self.need_to_erase_last_line = False
-        self.running_tests: Dict[str, str] = {}
+        self.reset_stats()
+        self.suite_count = 0
         self.test_output = collections.defaultdict(str)
         self.subtest_failures = collections.defaultdict(list)
         self.tests_with_failing_subtests = []
@@ -146,8 +150,21 @@ class ServoHandler(mozlog.reader.LogHandler):
             "PRECONDITION_FAILED": [],
         }
 
+    def reset_stats(self):
+        self.number_of_tests = 0
+        self.completed_tests = 0
+        self.need_to_erase_last_line = False
+        self.running_tests: Dict[str, str] = {}
+
+    def any_stable_unexpected(self) -> bool:
+        return any(not unexpected.flaky for unexpected in self.unexpected_results)
+
     def suite_start(self, data):
-        self.reset_state()
+        if self.flakes_detection:
+            self.reset_stats()
+        else:
+            self.reset_state()
+        self.suite_count += 1
         self.number_of_tests = sum(len(tests) for tests in itervalues(data["tests"]))
         self.suite_start_time = data["time"]
 
@@ -167,11 +184,37 @@ class ServoHandler(mozlog.reader.LogHandler):
         self.completed_tests += 1
         test_status = data["status"]
         test_path = data["test"]
+        test_subsuite = data["subsuite"]
         del self.running_tests[data["thread"]]
 
         had_expected_test_result = self.data_was_for_expected_result(data)
         subtest_failures = self.subtest_failures.pop(test_path, [])
-        if had_expected_test_result and not subtest_failures:
+        test_output = self.test_output.pop(test_path, "")
+
+        is_expected = had_expected_test_result and not subtest_failures
+
+        if self.suite_count >= 2:
+            # we assume all next suites are from retry-unexpected
+            # so runs contain only known unexpected results
+            if not is_expected:
+                return UnexpectedResult(
+                    test_path,
+                    test_subsuite,
+                    test_status,
+                    data.get("expected", test_status),
+                    data.get("message", ""),
+                    data["time"],
+                    "",
+                    subtest_failures,
+                )
+            for unexpected in self.unexpected_results:
+                if unexpected.path == test_path:
+                    unexpected.flaky = True
+                    break
+
+            return None
+
+        if is_expected:
             self.expected[test_status] += 1
             return None
 
@@ -181,10 +224,11 @@ class ServoHandler(mozlog.reader.LogHandler):
         stack = data.get("stack", None)
         if test_status in ("CRASH", "TIMEOUT"):
             stack = f"\n{stack}" if stack else ""
-            stack = f"{self.test_output[test_path]}{stack}"
+            stack = f"{test_output}{stack}"
 
         result = UnexpectedResult(
             test_path,
+            test_subsuite,
             test_status,
             data.get("expected", test_status),
             data.get("message", ""),
@@ -285,10 +329,11 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
 
     def suite_start(self, data):
         ServoHandler.suite_start(self, data)
+        maybe_flakes_msg = " to detect flakes" if self.suite_count >= 2 else ""
         if self.number_of_tests == 0:
-            return "Running tests in %s\n\n" % data["source"]
+            return f"Running tests in {data['source']}{maybe_flakes_msg}\n\n"
         else:
-            return "Running %i tests in %s\n\n" % (self.number_of_tests, data["source"])
+            return f"Running {self.number_of_tests} tests in {data['source']}{maybe_flakes_msg}\n\n"
 
     def test_start(self, data):
         ServoHandler.test_start(self, data)
