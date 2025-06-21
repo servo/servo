@@ -17,6 +17,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::csp::report_csp_violations;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::trustedhtml::TrustedHTML;
 use crate::dom::trustedscript::TrustedScript;
@@ -66,7 +67,7 @@ impl TrustedTypePolicyFactory {
             (CheckResult::Allowed, Vec::new())
         };
 
-        global.report_csp_violations(violations, None);
+        report_csp_violations(global, violations, None);
 
         // Step 2: If allowedByCSP is "Blocked", throw a TypeError and abort further steps.
         if allowed_by_csp == CheckResult::Blocked {
@@ -229,7 +230,7 @@ impl TrustedTypePolicyFactory {
                     .should_sink_type_mismatch_violation_be_blocked_by_csp(
                         sink, sink_group, &input,
                     );
-                global.report_csp_violations(violations, None);
+                report_csp_violations(global, violations, None);
                 // Step 6.2: If disposition is “Allowed”, return stringified input and abort further steps.
                 if disposition == CheckResult::Allowed {
                     Ok(input)

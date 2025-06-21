@@ -31,6 +31,7 @@ use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::RootedTraceableBox;
+use crate::dom::csp::report_csp_violations;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::headers::Guard;
 use crate::dom::performanceresourcetiming::InitiatorType;
@@ -313,7 +314,7 @@ impl FetchResponseListener for FetchContext {
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
         let global = &self.resource_timing_global();
-        global.report_csp_violations(violations, None);
+        report_csp_violations(global, violations, None);
     }
 }
 

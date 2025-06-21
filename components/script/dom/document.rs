@@ -125,6 +125,7 @@ use crate::dom::cdatasection::CDATASection;
 use crate::dom::clipboardevent::{ClipboardEvent, ClipboardEventType};
 use crate::dom::comment::Comment;
 use crate::dom::compositionevent::CompositionEvent;
+use crate::dom::csp::report_csp_violations;
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::customelementregistry::CustomElementDefinition;
 use crate::dom::customevent::CustomEvent;
@@ -4325,7 +4326,7 @@ impl Document {
             },
         };
 
-        self.global().report_csp_violations(violations, Some(el));
+        report_csp_violations(&self.global(), violations, Some(el));
 
         result
     }
