@@ -4,7 +4,6 @@
 
 use std::cell::Cell;
 
-use content_security_policy as csp;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use js::rust::HandleObject;
@@ -20,6 +19,7 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::csp::{InlineCheckType, should_elements_inline_type_behavior_be_blocked};
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, ElementCreator};
@@ -103,12 +103,12 @@ impl HTMLStyleElement {
         // Step 5: If the Should element's inline behavior be blocked by Content Security Policy? algorithm
         // returns "Blocked" when executed upon the style element, "style",
         // and the style element's child text content, then return. [CSP]
-        if doc.should_elements_inline_type_behavior_be_blocked(
+        if should_elements_inline_type_behavior_be_blocked(
+            &self.owner_global(),
             self.upcast(),
-            csp::InlineCheckType::Style,
+            InlineCheckType::Style,
             &node.child_text_content(),
-        ) == csp::CheckResult::Blocked
-        {
+        ) {
             return;
         }
 
