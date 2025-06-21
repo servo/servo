@@ -4,9 +4,11 @@
 
 use constellation_traits::{LoadData, LoadOrigin};
 use content_security_policy::{
-    CheckResult, Destination, Initiator, NavigationCheckType, Origin, ParserMetadata,
-    PolicyDisposition, Request, Violation, ViolationResource,
+    CheckResult, CspList, Destination, Initiator, NavigationCheckType, Origin, ParserMetadata,
+    PolicyDisposition, PolicySource, Request, Violation, ViolationResource,
 };
+use http::HeaderMap;
+use hyper_serde::Serde;
 use js::rust::describe_scripted_caller;
 
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -146,4 +148,37 @@ pub(crate) fn should_navigation_request_be_blocked(
     report_csp_violations(global, violations, element);
 
     result == CheckResult::Blocked
+}
+
+/// <https://www.w3.org/TR/CSP/#initialize-document-csp>
+pub(crate) fn parse_csp_list_from_metadata(headers: &Option<Serde<HeaderMap>>) -> Option<CspList> {
+    // TODO: Implement step 1 (local scheme special case)
+    let headers = headers.as_ref()?;
+    let mut csp = headers.get_all("content-security-policy").iter();
+    // This silently ignores the CSP if it contains invalid Unicode.
+    // We should probably report an error somewhere.
+    let c = csp.next().and_then(|c| c.to_str().ok())?;
+    let mut csp_list = CspList::parse(c, PolicySource::Header, PolicyDisposition::Enforce);
+    for c in csp {
+        let c = c.to_str().ok()?;
+        csp_list.append(CspList::parse(
+            c,
+            PolicySource::Header,
+            PolicyDisposition::Enforce,
+        ));
+    }
+    let csp_report = headers
+        .get_all("content-security-policy-report-only")
+        .iter();
+    // This silently ignores the CSP if it contains invalid Unicode.
+    // We should probably report an error somewhere.
+    for c in csp_report {
+        let c = c.to_str().ok()?;
+        csp_list.append(CspList::parse(
+            c,
+            PolicySource::Header,
+            PolicyDisposition::Report,
+        ));
+    }
+    Some(csp_list)
 }
