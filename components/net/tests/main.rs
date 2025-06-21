@@ -6,6 +6,7 @@
 #![allow(dead_code)]
 
 mod cookie;
+mod cookie_dateparser;
 mod cookie_http_state;
 mod data_loader;
 mod fetch;

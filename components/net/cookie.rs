@@ -15,6 +15,8 @@ use net_traits::pub_domains::is_pub_domain;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 
+use crate::cookie_dateparser::extract_expiry;
+
 /// A stored cookie that wraps the definition in cookie-rs. This is used to implement
 /// various behaviours defined in the spec that rely on an associated request URL,
 /// which cookie-rs and hyper's header parsing do not support.
@@ -38,7 +40,16 @@ impl ServoCookie {
         request: &ServoUrl,
         source: CookieSource,
     ) -> Option<ServoCookie> {
-        let cookie = Cookie::parse(cookie_str).ok()?;
+        let mut cookie = Cookie::parse(cookie_str.clone()).ok()?;
+
+        // If Cookie::parse fails to parse the expiry date, fallback to parse
+        // the expiry date again with the more relaxed parsing algorithm
+        // from RFC6265.
+        // <https://datatracker.ietf.org/doc/html/rfc6265#section-5.1.1>
+        if cookie.expires_datetime().is_none() {
+            cookie.set_expires(extract_expiry(&cookie_str));
+        }
+
         ServoCookie::new_wrapped(cookie, request, source)
     }
 
