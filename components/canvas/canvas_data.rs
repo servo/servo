@@ -766,14 +766,14 @@ impl<'a, B: Backend> CanvasData<'a, B> {
                 new_draw_target.fill_rect(
                     &draw_rect,
                     self.state.fill_style.clone(),
-                    Some(&self.state.draw_options),
+                    &self.state.draw_options,
                 );
             });
         } else {
             self.drawtarget.fill_rect(
                 &draw_rect,
                 self.state.fill_style.clone(),
-                Some(&self.state.draw_options),
+                &self.state.draw_options,
             );
         }
     }
