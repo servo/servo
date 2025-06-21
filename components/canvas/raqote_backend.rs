@@ -559,7 +559,7 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
         &mut self,
         rect: &Rect<f32>,
         pattern: <RaqoteBackend as Backend>::Pattern<'_>,
-        draw_options: Option<&<RaqoteBackend as Backend>::DrawOptions>,
+        draw_options: &<RaqoteBackend as Backend>::DrawOptions,
     ) {
         let mut pb = raqote::PathBuilder::new();
         pb.rect(
@@ -568,18 +568,8 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
             rect.size.width,
             rect.size.height,
         );
-        let draw_options = if let Some(options) = draw_options {
-            *options
-        } else {
-            raqote::DrawOptions::new()
-        };
 
-        <Self as GenericDrawTarget<RaqoteBackend>>::fill(
-            self,
-            &pb.finish(),
-            pattern,
-            &draw_options,
-        );
+        <Self as GenericDrawTarget<RaqoteBackend>>::fill(self, &pb.finish(), pattern, draw_options);
     }
     fn get_size(&self) -> Size2D<i32> {
         Size2D::new(self.width(), self.height())
