@@ -2,7 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use content_security_policy::{CheckResult, PolicyDisposition, Violation, ViolationResource};
+use constellation_traits::{LoadData, LoadOrigin};
+use content_security_policy::{
+    CheckResult, Destination, Initiator, NavigationCheckType, Origin, ParserMetadata,
+    PolicyDisposition, Request, Violation, ViolationResource,
+};
 use js::rust::describe_scripted_caller;
 
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -86,6 +90,7 @@ pub(crate) fn report_csp_violations(
     }
 }
 
+/// <https://www.w3.org/TR/CSP/#can-compile-strings>
 pub(crate) fn is_js_evaluation_allowed(global: &GlobalScope, source: &str) -> bool {
     let Some(csp_list) = global.get_csp_list() else {
         return true;
@@ -98,6 +103,7 @@ pub(crate) fn is_js_evaluation_allowed(global: &GlobalScope, source: &str) -> bo
     is_js_evaluation_allowed == CheckResult::Allowed
 }
 
+/// <https://www.w3.org/TR/CSP/#can-compile-wasm-bytes>
 pub(crate) fn is_wasm_evaluation_allowed(global: &GlobalScope) -> bool {
     let Some(csp_list) = global.get_csp_list() else {
         return true;
@@ -108,4 +114,36 @@ pub(crate) fn is_wasm_evaluation_allowed(global: &GlobalScope) -> bool {
     report_csp_violations(global, violations, None);
 
     is_wasm_evaluation_allowed == CheckResult::Allowed
+}
+
+/// <https://www.w3.org/TR/CSP/#should-block-navigation-request>
+pub(crate) fn should_navigation_request_be_blocked(
+    global: &GlobalScope,
+    load_data: &LoadData,
+    element: Option<&Element>,
+) -> bool {
+    let Some(csp_list) = global.get_csp_list() else {
+        return false;
+    };
+    let request = Request {
+        url: load_data.url.clone().into_url(),
+        origin: match &load_data.load_origin {
+            LoadOrigin::Script(immutable_origin) => immutable_origin.clone().into_url_origin(),
+            _ => Origin::new_opaque(),
+        },
+        // TODO: populate this field correctly
+        redirect_count: 0,
+        destination: Destination::None,
+        initiator: Initiator::None,
+        nonce: "".to_owned(),
+        integrity_metadata: "".to_owned(),
+        parser_metadata: ParserMetadata::None,
+    };
+    // TODO: set correct navigation check type for form submission if applicable
+    let (result, violations) =
+        csp_list.should_navigation_request_be_blocked(&request, NavigationCheckType::Other);
+
+    report_csp_violations(global, violations, element);
+
+    result == CheckResult::Blocked
 }

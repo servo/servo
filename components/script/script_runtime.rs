@@ -71,9 +71,7 @@ use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::trace_roots;
 use crate::dom::bindings::utils::DOM_CALLBACKS;
 use crate::dom::bindings::{principals, settings_stack};
-use crate::dom::csp::{
-    is_js_evaluation_allowed, is_wasm_evaluation_allowed,
-};
+use crate::dom::csp::{is_js_evaluation_allowed, is_wasm_evaluation_allowed};
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
