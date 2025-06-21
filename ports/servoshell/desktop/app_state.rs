@@ -112,7 +112,15 @@ impl RunningAppState {
         }
     }
 
-    pub(crate) fn new_toplevel_webview(self: &Rc<Self>, url: Url) {
+    pub(crate) fn new_toplevel_webview(self: &Rc<Self>, url: Url) -> WebViewId {
+        self.new_toplevel_webview_with_focus(url, true)
+    }
+
+    pub(crate) fn new_toplevel_webview_with_focus(
+        self: &Rc<Self>,
+        url: Url,
+        focus: bool,
+    ) -> WebViewId {
         let webview = WebViewBuilder::new(self.servo())
             .url(url)
             .hidpi_scale_factor(self.inner().window.hidpi_scale_factor())
@@ -120,10 +128,14 @@ impl RunningAppState {
             .build();
 
         webview.notify_theme_change(self.inner().window.theme());
-        webview.focus();
-        webview.raise_to_top(true);
+        if focus {
+            webview.focus();
+            webview.raise_to_top(true);
+        }
 
+        let webview_id = webview.id();
         self.add(webview);
+        webview_id
     }
 
     pub(crate) fn inner(&self) -> Ref<RunningAppStateInner> {

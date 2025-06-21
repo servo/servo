@@ -186,6 +186,14 @@ mod media_platform {
     }
 }
 
+/// Holds the senders for the WebDriver server.
+#[derive(Clone, Default)]
+struct WebDriverSenders {
+    pub load_status_sender: Option<(WebViewId, IpcSender<WebDriverLoadStatus>)>,
+    pub _size_sender: Option<IpcSender<euclid::Size2D<f32, style_traits::CSSPixel>>>,
+    pub _input_command_response_sender: Option<IpcSender<WebDriverCommandResponse>>,
+}
+
 /// The in-process interface to Servo.
 ///
 /// It does everything necessary to render the web, primarily
@@ -199,6 +207,7 @@ pub struct Servo {
     compositor: Rc<RefCell<IOCompositor>>,
     constellation_proxy: ConstellationProxy,
     embedder_receiver: Receiver<EmbedderMsg>,
+    webdriver_senders: RefCell<WebDriverSenders>,
     /// A struct that tracks ongoing JavaScript evaluations and is responsible for
     /// calling the callback when the evaluation is complete.
     javascript_evaluator: Rc<RefCell<JavaScriptEvaluator>>,
@@ -497,6 +506,7 @@ impl Servo {
             ))),
             constellation_proxy,
             embedder_receiver,
+            webdriver_senders: RefCell::default(),
             shutdown_state,
             webviews: Default::default(),
             servo_errors: ServoErrorChannel::default(),
@@ -661,7 +671,7 @@ impl Servo {
         self.compositor.borrow_mut().deinit();
     }
 
-    fn get_webview_handle(&self, id: WebViewId) -> Option<WebView> {
+    pub fn get_webview_handle(&self, id: WebViewId) -> Option<WebView> {
         self.webviews
             .borrow()
             .get(&id)
@@ -797,6 +807,13 @@ impl Servo {
             EmbedderMsg::NotifyLoadStatusChanged(webview_id, load_status) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview.set_load_status(load_status);
+                    if let Some((id, ref sender)) =
+                        self.webdriver_senders.borrow().load_status_sender
+                    {
+                        if id == webview_id && load_status == LoadStatus::Complete {
+                            let _ = sender.send(WebDriverLoadStatus::Complete);
+                        }
+                    };
                 }
             },
             EmbedderMsg::HistoryChanged(webview_id, urls, current_index) => {
@@ -1010,6 +1027,14 @@ impl Servo {
     pub fn execute_webdriver_command(&self, command: WebDriverCommandMsg) {
         self.constellation_proxy
             .send(EmbedderToConstellationMessage::WebDriverCommand(command));
+    }
+
+    pub fn set_load_status_sender(
+        &self,
+        webview_id: WebViewId,
+        sender: IpcSender<WebDriverLoadStatus>,
+    ) {
+        self.webdriver_senders.borrow_mut().load_status_sender = Some((webview_id, sender));
     }
 }
 

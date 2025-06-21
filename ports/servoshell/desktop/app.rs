@@ -334,6 +334,24 @@ impl App {
                 webdriver_msg @ WebDriverCommandMsg::IsBrowsingContextOpen(..) => {
                     running_state.forward_webdriver_command(webdriver_msg);
                 },
+                WebDriverCommandMsg::NewWebView(
+                    _origin_webview_id,
+                    response_sender,
+                    load_status_sender,
+                ) => {
+                    let new_webview_id = running_state.new_toplevel_webview_with_focus(
+                        Url::parse("servo:newtab").unwrap(),
+                        false,
+                    );
+
+                    response_sender
+                        .send(new_webview_id)
+                        .expect("Failed to send response of new webview id to webdriver");
+
+                    running_state
+                        .servo()
+                        .set_load_status_sender(new_webview_id, load_status_sender);
+                },
                 WebDriverCommandMsg::CloseWebView(webview_id) => {
                     running_state.close_webview(webview_id);
                 },
@@ -348,7 +366,6 @@ impl App {
                 WebDriverCommandMsg::WheelScrollAction(..) |
                 WebDriverCommandMsg::SetWindowSize(..) |
                 WebDriverCommandMsg::TakeScreenshot(..) |
-                WebDriverCommandMsg::NewWebView(..) |
                 WebDriverCommandMsg::Refresh(..) => {
                     warn!(
                         "WebDriverCommand {:?} is still not moved from constellation to embedder",
