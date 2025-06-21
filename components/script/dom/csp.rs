@@ -91,17 +91,14 @@ pub(crate) fn should_elements_inline_type_behavior_be_blocked(
     type_: InlineCheckType,
     source: &str,
 ) -> bool {
-    let (result, violations) = match global.get_csp_list() {
-        None => {
-            return false;
-        },
-        Some(csp_list) => {
-            let element = CspElement {
-                nonce: el.nonce_value_if_nonceable().map(Cow::Owned),
-            };
-            csp_list.should_elements_inline_type_behavior_be_blocked(&element, type_, source)
-        },
+    let Some(csp_list) = global.get_csp_list() else {
+        return false;
     };
+    let element = CspElement {
+        nonce: el.nonce_value_if_nonceable().map(Cow::Owned),
+    };
+    let (result, violations) =
+        csp_list.should_elements_inline_type_behavior_be_blocked(&element, type_, source);
 
     report_csp_violations(global, violations, Some(el));
 
@@ -115,7 +112,7 @@ pub(crate) fn is_trusted_type_policy_creation_allowed(
     created_policy_names: Vec<String>,
 ) -> bool {
     let Some(csp_list) = global.get_csp_list() else {
-        return false;
+        return true;
     };
 
     let (allowed_by_csp, violations) =
