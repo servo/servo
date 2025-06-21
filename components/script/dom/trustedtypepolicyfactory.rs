@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::cell::RefCell;
 
-use content_security_policy::CheckResult;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, QualName, local_name, ns};
 use js::jsval::NullValue;
@@ -17,7 +16,10 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::csp::report_csp_violations;
+use crate::dom::csp::{
+    does_sink_type_require_trusted_types, is_trusted_type_policy_creation_allowed,
+    should_sink_type_mismatch_violation_be_blocked_by_csp,
+};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::trustedhtml::TrustedHTML;
 use crate::dom::trustedscript::TrustedScript;
@@ -58,19 +60,14 @@ impl TrustedTypePolicyFactory {
     ) -> Fallible<DomRoot<TrustedTypePolicy>> {
         // Step 1: Let allowedByCSP be the result of executing Should Trusted Type policy creation be blocked by
         // Content Security Policy? algorithm with global, policyName and factory’s created policy names value.
-        let (allowed_by_csp, violations) = if let Some(csp_list) = global.get_csp_list() {
-            csp_list.is_trusted_type_policy_creation_allowed(
-                policy_name.clone(),
-                self.policy_names.borrow().clone(),
-            )
-        } else {
-            (CheckResult::Allowed, Vec::new())
-        };
-
-        report_csp_violations(global, violations, None);
+        let allowed_by_csp = is_trusted_type_policy_creation_allowed(
+            global,
+            policy_name.clone(),
+            self.policy_names.borrow().clone(),
+        );
 
         // Step 2: If allowedByCSP is "Blocked", throw a TypeError and abort further steps.
-        if allowed_by_csp == CheckResult::Blocked {
+        if !allowed_by_csp {
             return Err(Error::Type("Not allowed by CSP".to_string()));
         }
 
@@ -199,13 +196,9 @@ impl TrustedTypePolicyFactory {
         sink_group: &str,
         can_gc: CanGc,
     ) -> Fallible<DOMString> {
-        let csp_list = match global.get_csp_list() {
-            None => return Ok(input),
-            Some(csp_list) => csp_list,
-        };
         // Step 2: Let requireTrustedTypes be the result of executing Does sink type require trusted types?
         // algorithm, passing global, sinkGroup, and true.
-        let require_trusted_types = csp_list.does_sink_type_require_trusted_types(sink_group, true);
+        let require_trusted_types = does_sink_type_require_trusted_types(global, sink_group, true);
         // Step 3: If requireTrustedTypes is false, return stringified input and abort these steps.
         if !require_trusted_types {
             return Ok(input);
@@ -226,13 +219,11 @@ impl TrustedTypePolicyFactory {
                 // Step 6.1: Let disposition be the result of executing Should sink type mismatch violation
                 // be blocked by Content Security Policy? algorithm, passing global,
                 // stringified input as source, sinkGroup and sink.
-                let (disposition, violations) = csp_list
-                    .should_sink_type_mismatch_violation_be_blocked_by_csp(
-                        sink, sink_group, &input,
-                    );
-                report_csp_violations(global, violations, None);
+                let is_blocked = should_sink_type_mismatch_violation_be_blocked_by_csp(
+                    global, sink, sink_group, &input,
+                );
                 // Step 6.2: If disposition is “Allowed”, return stringified input and abort further steps.
-                if disposition == CheckResult::Allowed {
+                if !is_blocked {
                     Ok(input)
                 } else {
                     // Step 6.3: Throw a TypeError and abort further steps.
