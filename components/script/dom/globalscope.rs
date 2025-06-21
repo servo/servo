@@ -21,13 +21,11 @@ use constellation_traits::{
     BlobData, BlobImpl, BroadcastMsg, FileBlob, MessagePortImpl, MessagePortMsg, PortMessageTask,
     ScriptToConstellationChan, ScriptToConstellationMessage,
 };
-use content_security_policy::{CspList, PolicyDisposition, PolicySource};
+use content_security_policy::CspList;
 use crossbeam_channel::Sender;
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
-use http::HeaderMap;
-use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
@@ -2509,41 +2507,6 @@ impl GlobalScope {
             return worker.policy_container().to_owned();
         }
         unreachable!();
-    }
-
-    /// <https://www.w3.org/TR/CSP/#initialize-document-csp>
-    pub(crate) fn parse_csp_list_from_metadata(
-        headers: &Option<Serde<HeaderMap>>,
-    ) -> Option<CspList> {
-        // TODO: Implement step 1 (local scheme special case)
-        let headers = headers.as_ref()?;
-        let mut csp = headers.get_all("content-security-policy").iter();
-        // This silently ignores the CSP if it contains invalid Unicode.
-        // We should probably report an error somewhere.
-        let c = csp.next().and_then(|c| c.to_str().ok())?;
-        let mut csp_list = CspList::parse(c, PolicySource::Header, PolicyDisposition::Enforce);
-        for c in csp {
-            let c = c.to_str().ok()?;
-            csp_list.append(CspList::parse(
-                c,
-                PolicySource::Header,
-                PolicyDisposition::Enforce,
-            ));
-        }
-        let csp_report = headers
-            .get_all("content-security-policy-report-only")
-            .iter();
-        // This silently ignores the CSP if it contains invalid Unicode.
-        // We should probably report an error somewhere.
-        for c in csp_report {
-            let c = c.to_str().ok()?;
-            csp_list.append(CspList::parse(
-                c,
-                PolicySource::Header,
-                PolicyDisposition::Report,
-            ));
-        }
-        Some(csp_list)
     }
 
     /// Get the [base url](https://html.spec.whatwg.org/multipage/#api-base-url)
