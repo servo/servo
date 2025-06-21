@@ -47,7 +47,7 @@ enum ScrollZoomEvent {
     /// A pinch zoom event that magnifies the view by the given factor.
     PinchZoom(f32),
     /// A zoom event that magnifies the view by the factor parsed from meta tag.
-    ViewportZoom(f32),
+    ViewportInitialZoom(f32),
     /// A scroll event that scrolls the scroll node at the given location by the
     /// given amount.
     Scroll(ScrollEvent),
@@ -849,12 +849,14 @@ impl WebViewRenderer {
 
         // Batch up all scroll events into one, or else we'll do way too much painting.
         let mut combined_scroll_event: Option<ScrollEvent> = None;
-        let mut combined_magnification = 1.0;
+        let mut combined_magnification = self.pinch_zoom_level().get();
         for scroll_event in self.pending_scroll_zoom_events.drain(..) {
             match scroll_event {
-                ScrollZoomEvent::PinchZoom(magnification) |
-                ScrollZoomEvent::ViewportZoom(magnification) => {
+                ScrollZoomEvent::PinchZoom(magnification) => {
                     combined_magnification *= magnification
+                },
+                ScrollZoomEvent::ViewportInitialZoom(magnification) => {
+                    combined_magnification = magnification
                 },
                 ScrollZoomEvent::Scroll(scroll_event_info) => {
                     let combined_event = match combined_scroll_event.as_mut() {
@@ -912,9 +914,7 @@ impl WebViewRenderer {
             );
         }
 
-        let pinch_zoom_result = match self
-            .set_pinch_zoom_level(self.pinch_zoom_level().get() * combined_magnification)
-        {
+        let pinch_zoom_result = match self.set_pinch_zoom_level(combined_magnification) {
             true => PinchZoomResult::DidPinchZoom,
             false => PinchZoomResult::DidNotPinchZoom,
         };
@@ -1109,7 +1109,7 @@ impl WebViewRenderer {
 
     pub fn set_viewport_description(&mut self, viewport_description: ViewportDescription) {
         self.pending_scroll_zoom_events
-            .push(ScrollZoomEvent::ViewportZoom(
+            .push(ScrollZoomEvent::ViewportInitialZoom(
                 viewport_description
                     .clone()
                     .clamp_zoom(viewport_description.initial_scale.get()),
