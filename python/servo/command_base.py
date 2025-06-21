@@ -10,8 +10,6 @@
 from __future__ import annotations
 
 import contextlib
-from enum import Enum
-from typing import Any, Dict, List, Optional
 import functools
 import gzip
 import itertools
@@ -24,24 +22,23 @@ import sys
 import tarfile
 import urllib
 import zipfile
-
 from dataclasses import dataclass
+from enum import Enum
 from errno import ENOENT as NO_SUCH_FILE_OR_DIRECTORY
 from glob import glob
 from os import path
 from subprocess import PIPE
+from typing import Any, Dict, List, Optional
 from xml.etree.ElementTree import XML
 
 import toml
-
 from mach.decorators import CommandArgument, CommandArgumentGroup
 from mach.registrar import Registrar
 
-from servo.platform.build_target import BuildTarget, AndroidTarget, OpenHarmonyTarget
-from servo.util import download_file, get_default_cache_dir
-
 import servo.platform
 import servo.util as util
+from servo.platform.build_target import AndroidTarget, BuildTarget, OpenHarmonyTarget
+from servo.util import download_file, get_default_cache_dir
 
 from python.servo.platform.build_target import SanitizerKind
 
@@ -804,6 +801,7 @@ class CommandBase(object):
         with_debug_assertions=False,
         with_frame_pointer=False,
         use_crown=False,
+        capture_output=False,
         target_override: Optional[str] = None,
         **_kwargs,
     ):
@@ -875,6 +873,9 @@ class CommandBase(object):
         # mozjs gets its Python from `env['PYTHON3']`, which defaults to `python3`,
         # but uv venv on Windows only provides a `python`, not `python3`.
         env["PYTHON3"] = "python"
+
+        if capture_output:
+            return subprocess.run(["cargo", command] + args + cargo_args, env=env, capture_output=capture_output)
 
         return call(["cargo", command] + args + cargo_args, env=env, verbose=verbose)
 

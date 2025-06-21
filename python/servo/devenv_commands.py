@@ -7,20 +7,21 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-from os import path, listdir, getcwd
-
+import json
 import signal
 import subprocess
 import sys
 import tempfile
+from os import getcwd, listdir, path
 
 from mach.decorators import (
+    Command,
     CommandArgument,
     CommandProvider,
-    Command,
 )
+from tidy.linting_report import GitHubAnnotationManager
 
-from servo.command_base import CommandBase, cd, call
+from servo.command_base import CommandBase, call, cd
 
 
 @CommandProvider
@@ -108,8 +109,14 @@ class MachCommands(CommandBase):
 
     @Command("clippy", description='Run "cargo clippy"', category="devenv")
     @CommandArgument("params", default=None, nargs="...", help="Command-line arguments to be passed through to clippy")
+    @CommandArgument(
+        "--github-annotations",
+        default=False,
+        action="store_true",
+        help="Emit the clippy warnings in the Github Actions annotations format",
+    )
     @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
-    def cargo_clippy(self, params, **kwargs):
+    def cargo_clippy(self, params, github_annotations=False, **kwargs):
         if not params:
             params = []
 
@@ -117,6 +124,23 @@ class MachCommands(CommandBase):
         self.ensure_clobbered()
         env = self.build_env()
         env["RUSTC"] = "rustc"
+
+        if github_annotations:
+            if "--message-format=json" not in params:
+                params.insert(0, "--message-format=json")
+
+            github_annotation_manager = GitHubAnnotationManager("clippy")
+
+            results = self.run_cargo_build_like_command("clippy", params, env=env, capture_output=True, **kwargs)
+            if results.returncode == 0:
+                return 0
+            try:
+                github_annotation_manager.emit_annotations_for_clippy(
+                    [json.loads(line) for line in results.stdout.splitlines() if line.strip()]
+                )
+            except json.JSONDecodeError:
+                pass
+            return results.returncode
         return self.run_cargo_build_like_command("clippy", params, env=env, **kwargs)
 
     @Command("grep", description="`git grep` for selected directories.", category="devenv")

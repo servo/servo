@@ -43,9 +43,8 @@ jobs:
         run: |
           sudo apt update
           ./mach bootstrap
-      # TODO: Do GitHub anotaions
       - name: Clippy
         run: |
-          ./mach clippy --use-crown --locked -- -- --deny warnings
+          ./mach clippy --use-crown --locked --github-annotations -- -- --deny warnings
       - name: Tidy
-        run: ./mach test-tidy --no-progress --all
+        run: ./mach test-tidy --no-progress --all --github-annotations
