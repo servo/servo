@@ -4,7 +4,7 @@
 
 use std::cell::{Cell, OnceCell, Ref};
 use std::collections::hash_map::Entry;
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::ops::Index;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -137,7 +137,7 @@ use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
 use crate::network_listener::{NetworkListener, PreInvoke};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_module::{
-    DynamicModuleList, ImportMap, ModuleScript, ModuleTree, ScriptFetchOptions,
+    DynamicModuleList, ImportMap, ModuleScript, ModuleTree, ResolvedModule, ScriptFetchOptions,
 };
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, ThreadSafeJSContext};
 use crate::script_thread::{ScriptThread, with_script_thread};
@@ -385,6 +385,9 @@ pub(crate) struct GlobalScope {
     ///
     /// <https://html.spec.whatwg.org/multipage/#import-maps>
     import_map: DomRefCell<ImportMap>,
+
+    /// <https://html.spec.whatwg.org/multipage/#resolved-module-set>
+    resolved_module_set: DomRefCell<HashSet<ResolvedModule>>,
 }
 
 /// A wrapper for glue-code between the ipc router and the event-loop.
@@ -789,6 +792,7 @@ impl GlobalScope {
             count_queuing_strategy_size_function: OnceCell::new(),
             notification_permission_request_callback_map: Default::default(),
             import_map: Default::default(),
+            resolved_module_set: Default::default(),
         }
     }
 
@@ -3487,8 +3491,40 @@ impl GlobalScope {
         }
     }
 
-    pub(crate) fn import_map(&self) -> &DomRefCell<ImportMap> {
-        &self.import_map
+    pub(crate) fn import_map(&self) -> Ref<'_, ImportMap> {
+        self.import_map.borrow()
+    }
+
+    pub(crate) fn import_map_mut(&self) -> RefMut<'_, ImportMap> {
+        self.import_map.borrow_mut()
+    }
+
+    pub(crate) fn resolved_module_set(&self) -> Ref<'_, HashSet<ResolvedModule>> {
+        self.resolved_module_set.borrow()
+    }
+
+    pub(crate) fn resolved_module_set_mut(&self) -> RefMut<'_, HashSet<ResolvedModule>> {
+        self.resolved_module_set.borrow_mut()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#add-module-to-resolved-module-set>
+    pub(crate) fn add_module_to_resolved_module_set(
+        &self,
+        base_url: &str,
+        specifier: &str,
+        specifier_url: Option<ServoUrl>,
+    ) {
+        // Step 1. Let global be settingsObject's global object.
+        // Step 2. If global does not implement Window, then return.
+        if self.is::<Window>() {
+            // Step 3. Let record be a new specifier resolution record, with serialized base URL
+            // set to serializedBaseURL, specifier set to normalizedSpecifier, and specifier as
+            // a URL set to asURL.
+            let record =
+                ResolvedModule::new(base_url.to_owned(), specifier.to_owned(), specifier_url);
+            // Step 4. Append record to global's resolved module set.
+            self.resolved_module_set.borrow_mut().insert(record);
+        }
     }
 }
 

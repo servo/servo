@@ -105,6 +105,17 @@ impl ServoUrl {
         scheme == "about" || scheme == "blob" || scheme == "data"
     }
 
+    /// <https://url.spec.whatwg.org/#special-scheme>
+    pub fn is_special_scheme(&self) -> bool {
+        let scheme = self.scheme();
+        scheme == "ftp" ||
+            scheme == "file" ||
+            scheme == "http" ||
+            scheme == "https" ||
+            scheme == "ws" ||
+            scheme == "wss"
+    }
+
     pub fn as_str(&self) -> &str {
         self.0.as_str()
     }
