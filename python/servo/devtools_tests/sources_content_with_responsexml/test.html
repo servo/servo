@@ -1,0 +1,11 @@
+<!doctype html><meta charset=utf-8>
+<script>
+    const req = new XMLHttpRequest;
+    req.responseType = "document";
+    req.open("GET", "empty.html");
+    req.send(null);
+    req.onreadystatechange = () => {
+        if (req.readyState == XMLHttpRequest.DONE)
+            console.log(req.responseXML);
+    };
+</script>

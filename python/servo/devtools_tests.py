@@ -96,15 +96,50 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.assert_sources_list(1, set([tuple(["data:text/html,<script type=module>;</script>"])]))
 
     def test_source_content_inline_script(self):
-        script_content = "console.log('Hello, world!');"
-        self.run_servoshell(url=f"data:text/html,<script>{script_content}</script>")
-        self.assert_source_content("data:text/html,<script>console.log('Hello, world!');</script>", script_content)
+        script_tag = "<script>console.log('Hello, world!')</script>"
+        self.run_servoshell(url=f"data:text/html,{script_tag}")
+        self.assert_source_content(f"data:text/html,{script_tag}", script_tag)
 
     def test_source_content_external_script(self):
         self.start_web_server(test_dir=os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
         self.run_servoshell(url=f'data:text/html,<script src="{self.base_url}/classic.js"></script>')
         expected_content = 'console.log("external classic");\n'
         self.assert_source_content(f"{self.base_url}/classic.js", expected_content)
+
+    def test_source_content_html_file(self):
+        self.start_web_server(test_dir=self.get_test_path("sources"))
+        self.run_servoshell()
+        expected_content = open(self.get_test_path("sources/test.html")).read()
+        self.assert_source_content(f"{self.base_url}/test.html", expected_content)
+
+    # Test case that uses innerHTML and would actually need the HTML parser
+    # (innerHTML has a fast path for values that don’t contain b'&' | b'\0' | b'<' | b'\r')
+    def test_source_content_inline_script_with_inner_html(self):
+        script_tag = '<div id="el"></div><script>el.innerHTML="<p>test"</script>'
+        self.run_servoshell(url=f"data:text/html,{script_tag}")
+        self.assert_source_content(f"data:text/html,{script_tag}", script_tag)
+
+    # Test case that uses outerHTML and would actually need the HTML parser
+    # (innerHTML has a fast path for values that don’t contain b'&' | b'\0' | b'<' | b'\r')
+    def test_source_content_inline_script_with_outer_html(self):
+        script_tag = '<div id="el"></div><script>el.outerHTML="<p>test"</script>'
+        self.run_servoshell(url=f"data:text/html,{script_tag}")
+        self.assert_source_content(f"data:text/html,{script_tag}", script_tag)
+
+    # Test case that uses DOMParser and would actually need the HTML parser
+    # (innerHTML has a fast path for values that don’t contain b'&' | b'\0' | b'<' | b'\r')
+    def test_source_content_inline_script_with_domparser(self):
+        script_tag = '<script>(new DOMParser).parseFromString("<p>test","text/html")</script>'
+        self.run_servoshell(url=f"data:text/html,{script_tag}")
+        self.assert_source_content(f"data:text/html,{script_tag}", script_tag)
+
+    # Test case that uses XMLHttpRequest#responseXML and would actually need the HTML parser
+    # (innerHTML has a fast path for values that don’t contain b'&' | b'\0' | b'<' | b'\r')
+    def test_source_content_inline_script_with_responsexml(self):
+        self.start_web_server(test_dir=self.get_test_path("sources_content_with_responsexml"))
+        self.run_servoshell()
+        expected_content = open(self.get_test_path("sources_content_with_responsexml/test.html")).read()
+        self.assert_source_content(f"{self.base_url}/test.html", expected_content)
 
     # Sets `base_url` and `web_server` and `web_server_thread`.
     def start_web_server(self, *, test_dir=None):
@@ -269,6 +304,9 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response["source"], expected_content)
 
         client.disconnect()
+
+    def get_test_path(self, path: str) -> str:
+        return os.path.join(DevtoolsTests.script_path, os.path.join("devtools_tests", path))
 
 
 def run_tests(script_path, build_type: BuildType):
