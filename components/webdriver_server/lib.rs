@@ -218,8 +218,6 @@ impl WebDriverSession {
     }
 }
 
-/// The `Handler` for the WebDriver server.
-/// Currently, only 1 session is supported.
 struct Handler {
     /// The threaded receiver on which we can block for a load-status.
     /// It will receive messages sent on the load_status_sender,
@@ -1751,22 +1749,21 @@ impl Handler {
         self.verify_browsing_context_is_open(session.browsing_context_id)?;
 
         // TODO: Step 2. User prompts. No user prompt implemented yet.
-        // TODO: Step 3. Skip for now because webdriver holds only one session.
+
+        // Skip: Step 3. We don't support "browsing context input state map" yet.
+
         // TODO: Step 4. Actions options are not used yet.
-        // TODO: Step 5. Skip for now because webdriver holds only one session.
+
+        // Step 5. Not needed because "In a session that is only a HTTP session
+        // only one command can run at a time, so this will never block."
 
         // Step 6. Let undo actions be input cancel list in reverse order.
         let mut input_cancel_list = session.input_cancel_list.borrow_mut();
         let undo_actions: ActionsByTick = input_cancel_list
             .drain(..)
             .rev()
-            .map(|action| {
-                let mut map = HashMap::new();
-                map.insert(action.0, action.1);
-                map
-            })
+            .map(|(id, action_item)| HashMap::from([(id, action_item)]))
             .collect();
-
         // Step 7. Dispatch undo actions with current browsing context.
         if let Err(err) = self.dispatch_actions(undo_actions, session.browsing_context_id) {
             return Err(WebDriverError::new(err, "Failed to dispatch undo actions"));
