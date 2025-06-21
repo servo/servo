@@ -12,7 +12,6 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::{fmt, mem};
 
-use content_security_policy as csp;
 use cssparser::{Parser as CssParser, ParserInput as CssParserInput, match_ignore_ascii_case};
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
@@ -99,6 +98,7 @@ use crate::dom::bindings::xmlname::{
 };
 use crate::dom::characterdata::CharacterData;
 use crate::dom::create::create_element;
+use crate::dom::csp::{InlineCheckType, should_elements_inline_type_behavior_be_blocked};
 use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReaction, CustomElementState,
     is_valid_custom_element_name,
@@ -2263,12 +2263,12 @@ impl Element {
                     // Content Security Policy? algorithm returns "Blocked" when executed
                     // upon the attribute's element, "style attribute", and the attribute's value,
                     // then the style rules defined in the attribute's value must not be applied to the element. [CSP]
-                    if doc.should_elements_inline_type_behavior_be_blocked(
+                    if should_elements_inline_type_behavior_be_blocked(
+                        &self.owner_global(),
                         self,
-                        csp::InlineCheckType::StyleAttribute,
+                        InlineCheckType::StyleAttribute,
                         source,
-                    ) == csp::CheckResult::Blocked
-                    {
+                    ) {
                         return;
                     }
                     Arc::new(doc.style_shared_lock().wrap(parse_style_attribute(

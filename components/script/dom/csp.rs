@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
+
 use constellation_traits::{LoadData, LoadOrigin};
 use content_security_policy::{
-    CheckResult, CspList, Destination, Initiator, NavigationCheckType, Origin, ParserMetadata,
-    PolicyDisposition, PolicySource, Request, Violation, ViolationResource,
+    CheckResult, CspList, Destination, Element as CspElement, Initiator, NavigationCheckType,
+    Origin, ParserMetadata, PolicyDisposition, PolicySource, Request, Violation, ViolationResource,
 };
 use http::HeaderMap;
 use hyper_serde::Serde;
@@ -146,6 +148,33 @@ pub(crate) fn should_navigation_request_be_blocked(
         csp_list.should_navigation_request_be_blocked(&request, NavigationCheckType::Other);
 
     report_csp_violations(global, violations, element);
+
+    result == CheckResult::Blocked
+}
+
+/// Used to determine which inline check to run
+pub use content_security_policy::InlineCheckType;
+
+/// <https://www.w3.org/TR/CSP/#should-block-inline>
+pub(crate) fn should_elements_inline_type_behavior_be_blocked(
+    global: &GlobalScope,
+    el: &Element,
+    type_: InlineCheckType,
+    source: &str,
+) -> bool {
+    let (result, violations) = match global.get_csp_list() {
+        None => {
+            return false;
+        },
+        Some(csp_list) => {
+            let element = CspElement {
+                nonce: el.nonce_value_if_nonceable().map(Cow::Owned),
+            };
+            csp_list.should_elements_inline_type_behavior_be_blocked(&element, type_, source)
+        },
+    };
+
+    report_csp_violations(global, violations, Some(el));
 
     result == CheckResult::Blocked
 }
