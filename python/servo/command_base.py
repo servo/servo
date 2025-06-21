@@ -250,7 +250,6 @@ class CommandBase(object):
         self.context = context
         self.enable_media = False
         self.features = []
-        self.last_output = None
 
         # Default to native build target. This will later be overriden
         # by `configure_build_target`

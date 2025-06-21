@@ -27,12 +27,6 @@ class GitHubAnnotationManager:
     def __init__(self, annotation_prefix: str, limit: int = 10):
         self.annotation_prefix: str = annotation_prefix
         self.limit: int = limit
-        self.severenty_map: dict[str, Literal["notice", "warning", "error"]] = {
-            "help": "notice",
-            "note": "notice",
-            "warning": "warning",
-            "error": "error",
-        }
         self.total_count: int = 0
 
     def clean_path(self, path: str):
@@ -47,22 +41,19 @@ class GitHubAnnotationManager:
         message: str,
         file_name: str,
         line_start: int,
-        line_end: int = None,
-        annotation_level: str = None,
-        column_start: int = None,
-        column_end: int = None,
+        line_end: int | None = None,
+        annotation_level: str = "error",
+        column_start: int | None = None,
+        column_end: int | None = None,
     ):
         if self.total_count >= self.limit:
             return
-
-        if annotation_level is None:
-            annotation_level = "error"
 
         if line_end is None:
             line_end = line_start
 
         annotation: GithubAnnotation = {
-            "title": f"{self.annotation_prefix}: {title}",
+            "title": f"{self.annotation_prefix}: {self.escape(title)}",
             "message": self.escape(message),
             "file_name": self.clean_path(file_name),
             "line_start": line_start,
@@ -87,6 +78,13 @@ class GitHubAnnotationManager:
         self.total_count += 1
 
     def emit_annotations_for_clippy(self, data: list[dict[str, Any]]):
+        severenty_map: dict[str, Literal["notice", "warning", "error"]] = {
+            "help": "notice",
+            "note": "notice",
+            "warning": "warning",
+            "error": "error",
+        }
+
         for item in data:
             if self.total_count >= self.limit:
                 break
@@ -96,13 +94,13 @@ class GitHubAnnotationManager:
                 continue
 
             spans = message.get("spans") or []
-            primary_span = next((s for s in spans if s.get("is_primary")), None)
+            primary_span = next((span for span in spans if span.get("is_primary")), None)
             if not primary_span:
                 continue
 
-            annotation_level = self.severenty_map.get(message.get("level"), "error")
-            title = self.escape(message.get("message", ""))
-            rendered_message = self.escape(message.get("rendered", ""))
+            annotation_level = severenty_map.get(message.get("level"), "error")
+            title = message.get("message", "")
+            rendered_message = message.get("rendered", "")
 
             self.emit_annotation(
                 title,
