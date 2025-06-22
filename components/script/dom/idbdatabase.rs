@@ -213,8 +213,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
             .iter()
             .any(|store_name| store_name.to_string() == name.to_string())
         {
-            // TODO: Add constraint as an dom exception and throw that instead
-            return Err(Error::InvalidState);
+            return Err(Error::Constraint);
         }
 
         // Step 7
