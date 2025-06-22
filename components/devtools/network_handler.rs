@@ -31,20 +31,28 @@ pub(crate) fn handle_network_event(
     let mut actors = actors.lock().unwrap();
     match network_event {
         NetworkEvent::HttpRequest(httprequest) => {
-            // Scope mutable borrow
-            let event_actor = {
+            let (event_actor, resource_updates) = {
                 let actor = actors.find_mut::<NetworkEventActor>(&netevent_actor_name);
                 actor.add_request(httprequest);
-                actor.event_actor()
+                (actor.event_actor(), actor.resource_updates())
             };
 
             let browsing_context_actor =
                 actors.find::<BrowsingContextActor>(&browsing_context_actor_name);
             for stream in &mut connections {
+                // Notify that a new network event has started
                 browsing_context_actor.resource_array(
                     event_actor.clone(),
                     "network-event".to_string(),
                     ResourceArrayType::Available,
+                    stream,
+                );
+
+                // Also push initial resource update (request headers, cookies)
+                browsing_context_actor.resource_array(
+                    resource_updates.clone(),
+                    "network-event".to_string(),
+                    ResourceArrayType::Updated,
                     stream,
                 );
             }
