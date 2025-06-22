@@ -2309,13 +2309,13 @@ dependencies = [
 
 [[package]]
 name = "fontsan"
-version = "0.5.2"
-source = "git+https://github.com/servo/fontsan#c0d0b5333117901e1c31bc3c502c384115b93e6f"
+version = "0.6.0"
+source = "git+https://github.com/servo/fontsan#63f3cde9224b5988163e52c6669143f98d71b030"
 dependencies = [
  "cc",
  "glob",
  "libc",
- "miniz-sys",
+ "libz-sys",
 ]
 
 [[package]]
@@ -4786,16 +4786,6 @@ name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
-
-[[package]]
-name = "miniz-sys"
-version = "0.1.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e9e3ae51cea1576ceba0dde3d484d30e6e5b86dee0b2d412fe3a16a15c98202"
-dependencies = [
- "cc",
- "libc",
-]
 
 [[package]]
 name = "miniz_oxide"
