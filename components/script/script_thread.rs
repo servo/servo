@@ -118,7 +118,7 @@ use crate::dom::bindings::root::{
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::{HashMapTracedValues, JSTraceable};
-use crate::dom::csp::{CspReporting, Violation, report_csp_violations};
+use crate::dom::csp::{CspReporting, GlobalCspReporting, Violation};
 use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReactionStack,
 };
@@ -3849,7 +3849,7 @@ impl ScriptThread {
     fn handle_csp_violations(&self, id: PipelineId, _: RequestId, violations: Vec<Violation>) {
         if let Some(global) = self.documents.borrow().find_global(id) {
             // TODO(https://github.com/w3c/webappsec-csp/issues/687): Update after spec is resolved
-            report_csp_violations(&global, violations, None);
+            global.report_csp_violations(violations, None);
         }
     }
 

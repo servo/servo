@@ -57,7 +57,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::NoTrace;
-use crate::dom::csp::{CspReporting, InlineCheckType, Violation, report_csp_violations};
+use crate::dom::csp::{CspReporting, GlobalCspReporting, InlineCheckType, Violation};
 use crate::dom::document::Document;
 use crate::dom::element::{
     AttributeMutation, Element, ElementCreator, cors_setting_for_element,
@@ -560,7 +560,7 @@ impl FetchResponseListener for ClassicContext {
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
         let elem = self.elem.root();
-        report_csp_violations(global, violations, Some(elem.upcast::<Element>()));
+        global.report_csp_violations(violations, Some(elem.upcast::<Element>()));
     }
 }
 

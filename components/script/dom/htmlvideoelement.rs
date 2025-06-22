@@ -33,7 +33,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::csp::{Violation, report_csp_violations};
+use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::globalscope::GlobalScope;
@@ -465,7 +465,7 @@ impl FetchResponseListener for PosterFrameFetchContext {
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
-        report_csp_violations(global, violations, None);
+        global.report_csp_violations(violations, None);
     }
 }
 

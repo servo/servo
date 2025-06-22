@@ -59,7 +59,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::csp::{Violation, report_csp_violations};
+use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::{Document, determine_policy_for_token};
 use crate::dom::element::{
     AttributeMutation, CustomElementCreationMode, Element, ElementCreator, LayoutElementHelpers,
@@ -297,7 +297,7 @@ impl FetchResponseListener for ImageContext {
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
-        report_csp_violations(global, violations, None);
+        global.report_csp_violations(violations, None);
     }
 }
 

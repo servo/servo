@@ -8,7 +8,6 @@
 
 use std::sync::Arc;
 
-use content_security_policy as csp;
 use net_traits::image_cache::{ImageCache, PendingImageId};
 use net_traits::request::{Destination, RequestBuilder as FetchRequestInit, RequestId};
 use net_traits::{
@@ -20,7 +19,7 @@ use servo_url::ServoUrl;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::csp::report_csp_violations;
+use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::{Node, NodeTraits};
@@ -80,9 +79,9 @@ impl FetchResponseListener for LayoutImageContext {
         network_listener::submit_timing(self, CanGc::note())
     }
 
-    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
-        report_csp_violations(global, violations, None);
+        global.report_csp_violations(violations, None);
     }
 }
 

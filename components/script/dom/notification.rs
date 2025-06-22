@@ -53,7 +53,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::to_frozen_array;
-use crate::dom::csp::{Violation, report_csp_violations};
+use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::permissions::{PermissionAlgorithm, Permissions, descriptor_permission_state};
@@ -794,7 +794,7 @@ impl FetchResponseListener for ResourceFetchListener {
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
-        report_csp_violations(global, violations, None);
+        global.report_csp_violations(violations, None);
     }
 }
 

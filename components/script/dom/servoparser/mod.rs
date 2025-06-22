@@ -56,7 +56,7 @@ use crate::dom::bindings::settings_stack::is_execution_stack_empty;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::characterdata::CharacterData;
 use crate::dom::comment::Comment;
-use crate::dom::csp::{Violation, parse_csp_list_from_metadata, report_csp_violations};
+use crate::dom::csp::{GlobalCspReporting, Violation, parse_csp_list_from_metadata};
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documenttype::DocumentType;
@@ -1112,7 +1112,7 @@ impl FetchResponseListener for ParserContext {
         let document = &parser.document;
         let global = &document.global();
         // TODO(https://github.com/w3c/webappsec-csp/issues/687): Update after spec is resolved
-        report_csp_violations(global, violations, None);
+        global.report_csp_violations(violations, None);
     }
 }
 
