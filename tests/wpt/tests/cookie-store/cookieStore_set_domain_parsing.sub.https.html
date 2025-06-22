@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+  </head>
+  <body>
+    <script>
+    promise_test(async () => {
+      const childUrl = new URL("resources/domain_parsing-child.sub.https.html?test=IDNA", document.location);
+      childUrl.host = "{{hosts[][élève]}}";
+      const childWindow = window.open(childUrl.href);
+      await fetch_tests_from_window(childWindow);
+    }, "cookieStore.set with domain on IDNA host");
+
+    promise_test(async () => {
+      const childUrl = new URL("https://127.0.0.1:8444/cookie-store/resources/domain_parsing-child.sub.https.html?test=IP");
+      const childWindow = window.open(childUrl.href);
+      await fetch_tests_from_window(childWindow);
+    }, "cookieStore.set with domain on IP host");
+
+    promise_test(async () => {
+      const childUrl = new URL("resources/domain_parsing-child.sub.https.html?test=uppercase", document.location);
+      const childWindow = window.open(childUrl.href);
+      await fetch_tests_from_window(childWindow);
+    }, "cookieStore.set with mixed casing domain");
+    </script>
+  </body>
+</html>

@@ -25,9 +25,8 @@ body {
   contain: layout;
 }
 
-/* Keep the animation running for 30s to screenshot pseudo DOM */
 ::view-transition-new(root), ::view-transition-old(root) {
-  animation-duration: 30s;
+  animation-play-state: paused;
 }
 
 ::view-transition-new(target) {

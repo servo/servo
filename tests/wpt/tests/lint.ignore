@@ -667,6 +667,8 @@ AHEM SYSTEM FONT: css/css-fonts/font-size-adjust-014-ref.html
 AHEM SYSTEM FONT: css/css-fonts/font-size-adjust-metrics-override.html
 AHEM SYSTEM FONT: css/css-fonts/font-size-adjust-metrics-override-ref.html
 AHEM SYSTEM FONT: css/css-fonts/line-gap-override.html
+AHEM SYSTEM FONT: css/css-fonts/matching/font-unicode-presented-as-emoji-outline.html
+AHEM SYSTEM FONT: css/css-fonts/matching/font-unicode-presented-as-emoji-outline-ref.html
 AHEM SYSTEM FONT: css/css-fonts/parsing/font-size-adjust-computed.html
 AHEM SYSTEM FONT: css/css-fonts/size-adjust-unicode-range-system-fallback.html
 AHEM SYSTEM FONT: css/css-overflow/line-clamp/block-ellipsis-010.html

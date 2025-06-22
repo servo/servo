@@ -5,6 +5,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
 <script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
 <script src="/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js"></script>
 <script src="/speculation-rules/prerender/resources/utils.js"></script>
 <script src="/speculation-rules/resources/utils.js"></script>
@@ -18,7 +19,7 @@ setup(() => assertSpeculationRulesIsSupported());
 promise_test(async t => {
   const agent = await spawnWindow(t);
 
-  const finalUrl = agent.getExecutorURL({  hostname: PREFETCH_PROXY_BYPASS_HOST, page: 2 });
+  const finalUrl = agent.getExecutorURL({  hostname: get_host_info().NOTSAMESITE_HOST, page: 2 });
   const nextUrl = new URL("/common/redirect.py?location=" + encodeURIComponent(finalUrl), document.baseURI);
   await agent.forceSpeculationRules({
       tag: 'tag1',

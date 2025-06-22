@@ -164,7 +164,7 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data, subsuite
 
     # Always enable ViewTransitions long callback timeout to avoid erroneous
     # failures due to implicit timeout within the API.
-    blink_features = ['ViewTransitionLongCallbackTimeoutForTesting']
+    blink_features = ['ViewTransitionLongCallbackTimeoutForTesting', 'NoFontAntialiasing']
 
     if kwargs["enable_mojojs"]:
         blink_features.extend(['MojoJS', 'MojoJSTest'])

@@ -62,7 +62,7 @@ function add_link(id, url) {
 
 // "id" is the id of the link that we need to hover on in order
 // to start the prefetch
-async function start_non_eager_prefetch_on_hover(id) {
+async function start_non_immediate_prefetch_on_hover(id) {
   let target = document.getElementById(id);
 
   test_driver.set_test_context(window.opener);
@@ -72,7 +72,7 @@ async function start_non_eager_prefetch_on_hover(id) {
 
 // "id" is the id of the link that we need to press on in order
 // to start the prefetch
-async function start_non_eager_prefetch_on_pointerdown(id) {
+async function start_non_immediate_prefetch_on_pointerdown(id) {
   let target = document.getElementById(id);
 
   test_driver.set_test_context(window.opener);

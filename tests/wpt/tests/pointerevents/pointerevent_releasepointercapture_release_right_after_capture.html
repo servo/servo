@@ -3,6 +3,9 @@
     <head>
         <title>Release pointer capture right after setpointercapture</title>
         <meta name="viewport" content="width=device-width">
+        <meta name="variant" content="?mouse">
+        <meta name="variant" content="?pen">
+        <meta name="variant" content="?touch">
         <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
@@ -11,6 +14,8 @@
         <script src="/resources/testdriver-vendor.js"></script>
         <script src="pointerevent_support.js"></script>
         <script type="text/javascript">
+            const pointer_type = location.search.substring(1);
+
             var actions_promise;
             var detected_pointertypes = {};
             add_completion_callback(showPointerTypes);
@@ -48,6 +53,7 @@
 
                 // Inject mouse inputs.
                 actions_promise = new test_driver.Actions()
+                    .addPointer("TestPointer", pointer_type)
                     .pointerMove(0, 0, {origin: target0})
                     .pointerDown()
                     .pointerMove(10, 10, {origin: target0})
@@ -66,8 +72,8 @@
             </ol>
         </h4>
         <br>
-        <div id="target0" touch-action:none></div>
-        <div id="target1" touch-action:none></div>
+        <div id="target0" style="touch-action:none"></div>
+        <div id="target1"></div>
         <div id="complete-notice">
             <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
         </div>

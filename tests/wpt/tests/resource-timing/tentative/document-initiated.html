@@ -2,11 +2,8 @@
 <head>
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
-
-  <!-- Helper Functions for getting ResourceID -->
-  <script src="../resources/get-resourceID.js"></script>
-  <!-- Responsible for testing Initiator Attribute -->
   <script src="../resources/test-initiator.js"></script>
+  <script src="/common/get-host-info.sub.js"></script>
 
   <!-- Empty Blocking Script -->
   <script src="../resources/empty.js?blocking"></script>
@@ -42,20 +39,31 @@
   <iframe src="../resources/green.html"></iframe>
 
   <script>
+
+    function waitForLoad(obj) {
+      return new Promise(resolve => {
+        obj.addEventListener("load", resolve, { once: true });
+      });
+    }
+
     // Load arbitrary stylesheet with inline script
     const link = document.createElement("link");
     link.rel = "stylesheet";
     link.href = "../resources/empty_style.css?inline-script";
     document.head.appendChild(link);
-
     // Load arbitrary image with inline script
     const img = document.createElement("img");
     img.src = "/images/blue.png?inline-script";
     document.body.appendChild(img);
 
+    const host_info = get_host_info();
+    const expectedInitiatorUrl = host_info["ORIGIN"] + "/resource-timing/tentative/document-initiated.html";
+
     // Testing Initiator of all the resources loaded
     promise_test(async (t) => {
-      const expectedInitiator = await getDocumentResourceID();
+      await waitForLoad(link);
+      await waitForLoad(img);
+
       const resources = [
         "empty.js?blocking",
         "empty.js?preload",
@@ -66,13 +74,37 @@
         "blue.png?inline-style",
         "Ahem.ttf",
         "blue.png?using-Img-tag",
-        "green.html",
+        /*        "green.html",
+        TODO(guohuideng@microsoft.com): report initiator for iframe element.
+        */
         "empty_style.css?inline-script",
         "blue.png?inline-script",
       ];
       for (const resource of resources) {
-        await testResourceInitiator(resource, expectedInitiator);
+        await testResourceInitiatorUrl(resource, expectedInitiatorUrl);
       }
-    }, "Ensure initiator Attribute matches with Document ResourceID");
+    }, "initiatorUrl by main html file");
+
+    // Finally, test with the case document.write().
+    promise_test(async (t) => {
+      document.open();
+      document.write('<img id="img_written" src="/images/blue.png?inline-script-doc-write">');
+      document.close();
+      await waitForLoad(document.getElementById("img_written"));
+      await testResourceInitiatorUrl("blue.png?inline-script-doc-write", expectedInitiatorUrl);
+
+      document.open();
+      document.write('<link id="css_written" rel="stylesheet" href="../resources/empty_style.css?inline-script-doc-write">');
+      document.close();
+      await waitForLoad(document.getElementById("css_written"));
+      await testResourceInitiatorUrl("empty_style.css?inline-script-doc-write", expectedInitiatorUrl);
+
+      document.open();
+      document.write('<script id="script_written" src="../resources/empty.js?doc-write"><\/script>');
+      document.close();
+      await waitForLoad(document.getElementById("script_written"));
+      await testResourceInitiatorUrl("empty.js?doc-write", expectedInitiatorUrl);
+    }, "initiatorUrl for resource by document.write()");
+
   </script>
 </body>

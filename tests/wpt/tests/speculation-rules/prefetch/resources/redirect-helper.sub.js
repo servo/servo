@@ -35,10 +35,12 @@ async function prepare(t, prefetchTiming) {
 
   let prefetchInitialUrl;
   if (prefetchTiming === 'redirect-received-after-navigation-start') {
-    // Because `forceSinglePrefetch()` waits for 2 seconds, we put 4-second
+    // Because `forceSinglePrefetch()` waits for 2 seconds, we put 2.5-second
     // delay here to make the redirect response is received after `navigate()`
-    // below.
-    prefetchInitialUrl = new URL('/common/slow-redirect.py?delay=4',
+    // below. (In Chromium, the delay cannot go above 3 seconds, since more than
+    // 1 second with no response causes a timeout that falls back to
+    // non-prefetch.)
+    prefetchInitialUrl = new URL('/common/slow-redirect.py?delay=2.5',
                                  prefetchInitialOrigin);
     prefetchInitialUrl.searchParams.set('location', prefetchFinalUrl);
   } else {

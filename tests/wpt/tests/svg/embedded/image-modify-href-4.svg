@@ -16,15 +16,15 @@
       const doc = document.implementation.createDocument(SVG_NS, "svg");
 
       const image = doc.createElementNS(SVG_NS, "image");
+      image.addEventListener('load', function() {
+        takeScreenshot();
+      });
       image.setAttribute("width", 100);
       image.setAttribute("height", 100);
       image.setAttribute("href", "reference/green-rect-100x100.svg");
       doc.documentElement.appendChild(image);
 
       document.documentElement.appendChild(document.adoptNode(image));
-
-      await waitForAtLeastOneFrame();
-      takeScreenshot();
     }
   </script>
 </svg>

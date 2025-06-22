@@ -1,0 +1,28 @@
+<html lang="en">
+   <head>
+      <meta charset="UTF-8" />
+      <title>CSS Text level 4 Test: text-wrap-style should allow in-line SVGs</title>
+      <link rel="author" title="Yulun Wu">
+      <link rel="help" href="https://www.w3.org/TR/css-text-4/#text-wrap-style">
+      <link rel="stylesheet" type="text/css" href="/fonts/ahem.css"/>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <style>
+         div {
+         display: flex;
+         }
+         a {
+         font-family: "Ahem";
+         font-size: 12px;
+         text-wrap: auto;
+         }
+      </style>
+   </head>
+   <div>
+      <a>
+         This text passes if the svg is not wrapped to a second line.
+         <svg class="arrow" viewBox="0 0 12 12" width="12" height="12">
+            <path d="m6 9 6-6H0Z"></path>
+         </svg>
+      </a>
+   </div>
+</html>
