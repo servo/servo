@@ -4,7 +4,7 @@
 <link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
 <link rel="author" href="mailto:khushalsagar@chromium.org">
 <link rel="match" href="fractional-translation-from-transform-ref.html">
-<meta name="fuzzy" content="maxDifference=0-100; totalPixels=0-10">
+<meta name="fuzzy" content="maxDifference=0-64; totalPixels=0-8">
 <script src="/common/reftest-wait.js"></script>
 <style>
 body {
@@ -36,17 +36,16 @@ body {
   view-transition-name: noncomposited;
 }
 
-/* Keep the animation running for 300s to screenshot pseudo DOM */
 ::view-transition-new(root), ::view-transition-old(root) {
-  animation-duration: 300s;
+  animation-play-state: paused;
 }
 
-::view-transition-new(composited), {
+::view-transition-new(composited),
 ::view-transition-new(noncomposited) {
   opacity: 1;
   animation: unset;
 }
-::view-transition-old(composited), {
+::view-transition-old(composited),
 ::view-transition-old(noncomposited) {
   opacity: 0;
   animation: unset;

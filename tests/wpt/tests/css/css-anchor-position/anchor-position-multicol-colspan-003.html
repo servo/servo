@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/425569859">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="writing-mode:vertical-rl; position:relative;">
+  <div style="columns:5; gap:0; inline-size:100px; background:red;">
+    <div style="position:relative; block-size:70px;">
+      <div style="block-size:30px; background:green;"></div>
+      <div style="anchor-name:--a; position:absolute; inline-size:100%; block-size:40px; background:green;"></div>
+    </div>
+    <div style="block-size:30px; background:green;"></div>
+    <div style="column-span:all; block-size:20px; border-inline-start:20px solid green; border-inline-end:20px solid green;"></div>
+    <div style="block-size:60px; background:green;"></div>
+    <div style="block-size:180px;"></div>
+    <div style="block-size:60px; background:green;"></div>
+  </div>
+  <div style="position:absolute; position-anchor:--a; position-area:block-end center; inline-size:100%; block-size:80px; background:green;"></div>
+</div>

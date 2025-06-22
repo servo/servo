@@ -252,10 +252,13 @@ impl DevtoolsInstance {
                     console_message,
                     worker_id,
                 )) => self.handle_console_message(pipeline_id, worker_id, console_message),
-                DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ScriptSourceLoaded(
+                DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::CreateSourceActor(
                     pipeline_id,
                     source_info,
-                )) => self.handle_script_source_info(pipeline_id, source_info),
+                )) => self.handle_create_source_actor(pipeline_id, source_info),
+                DevtoolsControlMsg::FromScript(
+                    ScriptToDevtoolsControlMsg::UpdateSourceContent(pipeline_id, source_content),
+                ) => self.handle_update_source_content(pipeline_id, source_content),
                 DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ReportPageError(
                     pipeline_id,
                     page_error,
@@ -515,13 +518,14 @@ impl DevtoolsInstance {
         }
     }
 
-    fn handle_script_source_info(&mut self, pipeline_id: PipelineId, source_info: SourceInfo) {
+    fn handle_create_source_actor(&mut self, pipeline_id: PipelineId, source_info: SourceInfo) {
         let mut actors = self.actors.lock().unwrap();
 
         let source_actor = SourceActor::new_registered(
             &mut actors,
+            pipeline_id,
             source_info.url,
-            source_info.content.clone(),
+            source_info.content,
             source_info.content_type.unwrap(),
         );
         let source_actor_name = source_actor.name.clone();
@@ -574,6 +578,17 @@ impl DevtoolsInstance {
                     ResourceArrayType::Available,
                     stream,
                 );
+            }
+        }
+    }
+
+    fn handle_update_source_content(&mut self, pipeline_id: PipelineId, source_content: String) {
+        let mut actors = self.actors.lock().unwrap();
+
+        for actor_name in actors.source_actor_names_for_pipeline(pipeline_id) {
+            let source_actor: &mut SourceActor = actors.find_mut(&actor_name);
+            if source_actor.content.is_none() {
+                source_actor.content = Some(source_content.clone());
             }
         }
     }

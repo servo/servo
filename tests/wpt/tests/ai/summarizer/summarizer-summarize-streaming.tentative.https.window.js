@@ -21,8 +21,12 @@ promise_test(async t => {
 
 promise_test(async (t) => {
   const summarizer = await createSummarizer();
+  const stream = summarizer.summarizeStreaming(kTestPrompt);
+
   summarizer.destroy();
-  assert_throws_dom('InvalidStateError', () => summarizer.summarizeStreaming(kTestPrompt));
+
+  await promise_rejects_dom(
+    t, 'AbortError', stream.pipeTo(new WritableStream()));
 }, 'Summarizer.summarizeStreaming() fails after destroyed');
 
 promise_test(async t => {

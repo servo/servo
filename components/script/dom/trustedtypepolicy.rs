@@ -5,7 +5,6 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::jsapi::JSObject;
 use js::rust::HandleValue;
 use strum_macros::IntoStaticStr;
 
@@ -82,13 +81,11 @@ impl TrustedTypePolicy {
     pub(crate) fn get_trusted_type_policy_value(
         &self,
         expected_type: TrustedType,
-        cx: JSContext,
         input: DOMString,
         arguments: Vec<HandleValue>,
         throw_if_missing: bool,
         can_gc: CanGc,
     ) -> Fallible<Option<DOMString>> {
-        rooted!(in(*cx) let this_object: *mut JSObject);
         // Step 1: Let functionName be a function name for the given trustedTypeName, based on the following table:
         match expected_type {
             TrustedType::TrustedHTML => match &self.create_html {
@@ -97,15 +94,9 @@ impl TrustedTypePolicy {
                 // Step 2: Let function be policy’s options[functionName].
                 Some(callback) => {
                     // Step 4: Let policyValue be the result of invoking function with value as a first argument,
-                    // items of arguments as subsequent arguments, and callback **this** value set to null,
+                    // items of arguments as subsequent arguments, and callback **this** value set to undefined,
                     // rethrowing any exceptions.
-                    callback.Call_(
-                        &this_object.handle(),
-                        input,
-                        arguments,
-                        ExceptionHandling::Rethrow,
-                        can_gc,
-                    )
+                    callback.Call__(input, arguments, ExceptionHandling::Rethrow, can_gc)
                 },
             },
             TrustedType::TrustedScript => match &self.create_script {
@@ -114,15 +105,9 @@ impl TrustedTypePolicy {
                 // Step 2: Let function be policy’s options[functionName].
                 Some(callback) => {
                     // Step 4: Let policyValue be the result of invoking function with value as a first argument,
-                    // items of arguments as subsequent arguments, and callback **this** value set to null,
+                    // items of arguments as subsequent arguments, and callback **this** value set to undefined,
                     // rethrowing any exceptions.
-                    callback.Call_(
-                        &this_object.handle(),
-                        input,
-                        arguments,
-                        ExceptionHandling::Rethrow,
-                        can_gc,
-                    )
+                    callback.Call__(input, arguments, ExceptionHandling::Rethrow, can_gc)
                 },
             },
             TrustedType::TrustedScriptURL => match &self.create_script_url {
@@ -131,16 +116,10 @@ impl TrustedTypePolicy {
                 // Step 2: Let function be policy’s options[functionName].
                 Some(callback) => {
                     // Step 4: Let policyValue be the result of invoking function with value as a first argument,
-                    // items of arguments as subsequent arguments, and callback **this** value set to null,
+                    // items of arguments as subsequent arguments, and callback **this** value set to undefined,
                     // rethrowing any exceptions.
                     callback
-                        .Call_(
-                            &this_object.handle(),
-                            input,
-                            arguments,
-                            ExceptionHandling::Rethrow,
-                            can_gc,
-                        )
+                        .Call__(input, arguments, ExceptionHandling::Rethrow, can_gc)
                         .map(|result| result.map(|str| DOMString::from(str.as_ref())))
                 },
             },
@@ -158,10 +137,9 @@ impl TrustedTypePolicy {
     /// to the relevant callbacks.
     ///
     /// <https://w3c.github.io/trusted-types/dist/spec/#create-a-trusted-type-algorithm>
-    pub(crate) fn create_trusted_type<R, TrustedTypeCallback>(
+    fn create_trusted_type<R, TrustedTypeCallback>(
         &self,
         expected_type: TrustedType,
-        cx: JSContext,
         input: DOMString,
         arguments: Vec<HandleValue>,
         trusted_type_creation_callback: TrustedTypeCallback,
@@ -174,7 +152,7 @@ impl TrustedTypePolicy {
         // Step 1: Let policyValue be the result of executing Get Trusted Type policy value
         // with the same arguments as this algorithm and additionally true as throwIfMissing.
         let policy_value =
-            self.get_trusted_type_policy_value(expected_type, cx, input, arguments, true, can_gc);
+            self.get_trusted_type_policy_value(expected_type, input, arguments, true, can_gc);
         match policy_value {
             // Step 2: If the algorithm threw an error, rethrow the error and abort the following steps.
             Err(error) => Err(error),
@@ -201,14 +179,13 @@ impl TrustedTypePolicyMethods<crate::DomTypeHolder> for TrustedTypePolicy {
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicy-createhtml>
     fn CreateHTML(
         &self,
-        cx: JSContext,
+        _cx: JSContext,
         input: DOMString,
         arguments: Vec<HandleValue>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<TrustedHTML>> {
         self.create_trusted_type(
             TrustedType::TrustedHTML,
-            cx,
             input,
             arguments,
             |data_string| TrustedHTML::new(data_string, &self.global(), can_gc),
@@ -218,14 +195,13 @@ impl TrustedTypePolicyMethods<crate::DomTypeHolder> for TrustedTypePolicy {
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicy-createscript>
     fn CreateScript(
         &self,
-        cx: JSContext,
+        _cx: JSContext,
         input: DOMString,
         arguments: Vec<HandleValue>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<TrustedScript>> {
         self.create_trusted_type(
             TrustedType::TrustedScript,
-            cx,
             input,
             arguments,
             |data_string| TrustedScript::new(data_string, &self.global(), can_gc),
@@ -235,14 +211,13 @@ impl TrustedTypePolicyMethods<crate::DomTypeHolder> for TrustedTypePolicy {
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicy-createscripturl>
     fn CreateScriptURL(
         &self,
-        cx: JSContext,
+        _cx: JSContext,
         input: DOMString,
         arguments: Vec<HandleValue>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<TrustedScriptURL>> {
         self.create_trusted_type(
             TrustedType::TrustedScriptURL,
-            cx,
             input,
             arguments,
             |data_string| TrustedScriptURL::new(data_string, &self.global(), can_gc),

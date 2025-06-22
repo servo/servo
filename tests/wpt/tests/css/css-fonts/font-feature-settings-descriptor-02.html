@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>CSS Test: font-feature-settings descriptor</title>
+<link rel="author" title="Sejal Anand" href="mailto:sejalanand@microsoft.com">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-feature-settings-prop">
+<link rel="match" href="font-feature-settings-descriptor-02-ref.html">
+<meta name="assert" content="Ligature features should be handled with font-feature-settings defined as font-face rule.">
+<style>
+  @font-face {
+    font-family: "liga";
+    src: url('support/fonts/LigatureSymbolsWithSpaces.woff');
+    font-feature-settings: "liga" off;
+  }
+  .ligaOFF {
+    font-family: liga;
+  }
+</style>
+<body>
+ <p>Test passes if below line does not have a graph symbol.</p>
+ <div class="ligaOFF">
+  <span>This paragraph demonstrates the liga descriptor disabled through the @font-face rule.</span>
+ </div>
+</body>
+</html>

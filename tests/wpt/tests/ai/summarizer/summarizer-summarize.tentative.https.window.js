@@ -15,15 +15,23 @@ promise_test(async (t) => {
 
 promise_test(async (t) => {
   const summarizer = await createSummarizer();
-  const result = await summarizer.summarize(kTestPrompt, { context: ' ' });
+  const result = await summarizer.summarize(kTestPrompt, {context: ' '});
   assert_not_equals(result, '');
 }, 'Summarizer.summarize() with a whitespace context returns an empty result');
 
-promise_test(async (t) => {
-  const summarizer = await createSummarizer();
-  summarizer.destroy();
-  await promise_rejects_dom(t, 'InvalidStateError', summarizer.summarize(kTestPrompt));
-}, 'Summarizer.summarize() fails after destroyed');
+promise_test(async t => {
+  await testDestroy(t, createSummarizer, {}, [
+    summarizer => summarizer.summarize(kTestPrompt),
+    summarizer => summarizer.measureInputUsage(kTestPrompt),
+  ]);
+}, 'Calling Summarizer.destroy() aborts calls to summarize and measureInputUsage.');
+
+promise_test(async t => {
+  await testCreateAbort(t, createSummarizer, {}, [
+    summarizer => summarizer.summarize(kTestPrompt),
+    summarizer => summarizer.measureInputUsage(kTestPrompt),
+  ]);
+}, 'Summarizer.create()\'s abort signal destroys its Summarizer after creation.');
 
 promise_test(async () => {
   const summarizer = await createSummarizer();
@@ -34,8 +42,6 @@ promise_test(async () => {
 
 promise_test(async () => {
   const summarizer = await createSummarizer();
-  await Promise.all([
-    summarizer.summarize(kTestPrompt),
-    summarizer.summarize(kTestPrompt)
-  ]);
+  await Promise.all(
+      [summarizer.summarize(kTestPrompt), summarizer.summarize(kTestPrompt)]);
 }, 'Multiple Summarizer.summarize() calls are resolved successfully');

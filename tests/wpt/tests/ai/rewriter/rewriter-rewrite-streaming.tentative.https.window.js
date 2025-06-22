@@ -21,9 +21,12 @@ promise_test(async () => {
 
 promise_test(async (t) => {
   const rewriter = await createRewriter();
+  const stream = rewriter.rewriteStreaming(kTestPrompt);
+
   rewriter.destroy();
-  assert_throws_dom(
-    'InvalidStateError', () => rewriter.rewriteStreaming(kTestPrompt));
+
+  await promise_rejects_dom(
+    t, 'AbortError', stream.pipeTo(new WritableStream()));
 }, 'Rewriter.rewriteStreaming() fails after destroyed');
 
 promise_test(async t => {

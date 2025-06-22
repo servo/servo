@@ -8,6 +8,7 @@
 #divWithFontSizeSet, #parentDiv {
     font-size: 10px;
     line-height: 20px;
+    color: blue;
 }
 </style>
 
@@ -154,15 +155,15 @@ test_computed_value('<color>', '#badbee', 'rgb(186, 219, 238)');
 test_computed_value('<color>', '#badbee33', 'rgba(186, 219, 238, 0.2)');
 test_computed_value('<color>', 'tomato', 'rgb(255, 99, 71)');
 test_computed_value('<color>', 'plum', 'rgb(221, 160, 221)');
-test_computed_value('<color>', 'currentcolor', 'currentcolor');
+test_computed_value('<color>', 'currentcolor', 'rgb(0, 0, 255)');
 test_computed_value('<color>', 'color-mix(in srgb, black, white)', 'color(srgb 0.5 0.5 0.5)');
-test_computed_value('<color>', 'color-mix(in srgb, currentcolor, red)', 'color-mix(in srgb, currentcolor, rgb(255, 0, 0))');
-test_computed_value('<color>', 'color-mix(in srgb, currentcolor, #ffffff 70%)', 'color-mix(in srgb, currentcolor 30%, rgb(255, 255, 255))');
-test_computed_value('<color>', 'color-mix(in srgb, currentcolor 20%, #ffffff 20%)', 'color-mix(in srgb, currentcolor 20%, rgb(255, 255, 255) 20%)');
-test_computed_value('<color>', 'light-dark(currentcolor, red)', 'currentcolor');
+test_computed_value('<color>', 'color-mix(in srgb, currentcolor, red)', 'color(srgb 0.5 0 0.5)');
+test_computed_value('<color>', 'color-mix(in srgb, currentcolor, #ffffff 70%)', 'color(srgb 0.7 0.7 1)');
+test_computed_value('<color>', 'color-mix(in srgb, currentcolor 20%, #ffffff 20%)', 'color(srgb 0.5 0.5 1 / 0.4)');
+test_computed_value('<color>', 'light-dark(currentcolor, red)', 'rgb(0, 0, 255)');
 test_computed_value('<color>', 'light-dark(lime, red)', 'rgb(0, 255, 0)');
 test_computed_value('<color>', 'color(from lime srgb g g g)', 'color(srgb 1 1 1)');
-test_computed_value('<color>', 'color(from currentcolor srgb b g r)', 'color(from currentcolor srgb b g r)');
+test_computed_value('<color>', 'color(from currentcolor srgb b g r)', 'color(srgb 1 0 0)');
 test_computed_value('<color>', 'color(srgb 1 1 1 / calc(NaN))', 'color(srgb 1 1 1 / 0)');
 
 // Custom ident values that look like color keywords should not be converted.

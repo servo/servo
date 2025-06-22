@@ -12,10 +12,9 @@
     await setupShardedServerState();
     const expectedCookieAndValue1 = "auth_cookie=abcdef0123";
     const expectedCookieAndAttributes1 = `${expectedCookieAndValue1};Domain=${location.hostname};Path=/device-bound-session-credentials`;
-    addCookieAndSessionCleanup(t, expectedCookieAndAttributes1);
     const expectedCookieAndValue2 = "other_cookie=ghijkl4567";
     const expectedCookieAndAttributes2 = `${expectedCookieAndValue2};Domain=${location.hostname};Path=/device-bound-session-credentials`;
-    addCookieAndSessionCleanup(t, expectedCookieAndAttributes2);
+    addCookieAndSessionCleanup(t);
 
     // Configure server to configure cookies for next two created sessions.
     configureServer({

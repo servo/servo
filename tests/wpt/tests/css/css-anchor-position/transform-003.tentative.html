@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>Anchor-positioned element with transformed anchor. Using position-area and transformed containing block</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#determining-position">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width:100px; height:96px; background:red; border-top:2px solid green; border-bottom:2px solid green;">
+  <div style="height:6px;"></div>
+  <div style="padding-left:200px; padding-top:96px;">
+    <div style="transform:scale(2);">
+      <div style="width:25px; height:12px; transform:translate(-100px, -48px) scale(2); transform-origin:0 0; anchor-name:--a; background:green;"></div>
+    </div>
+    <div style="position:absolute; position-anchor:--a; position-area:block-end center; width:100%; height:48px; background:green;"></div>
+  </div>
+</div>

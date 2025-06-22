@@ -113,14 +113,16 @@ test(function() {
           assert_equals(element.nodeType, Node.ELEMENT_NODE)
           assert_equals(element.ownerDocument, doc)
           var qualified = String(qualifiedName), names = []
-          if (qualified.indexOf(":") >= 0) {
-            names = qualified.split(":", 2)
+          var firstColonIndex = qualified.indexOf(":")
+          if (firstColonIndex >= 0) {
+            names.push(qualified.substring(0, firstColonIndex));
+            names.push(qualified.substring(firstColonIndex + 1));
           } else {
             names = [null, qualified]
           }
-          assert_equals(element.prefix, names[0])
-          assert_equals(element.localName, names[1])
-          assert_equals(element.namespaceURI, namespace === undefined ? null : namespace)
+          assert_equals(element.prefix, names[0], 'element.prefix')
+          assert_equals(element.localName, names[1], 'element.localName')
+          assert_equals(element.namespaceURI, namespace === undefined || namespace === "" ? null : namespace, 'element.namespaceURI')
         }
         if (!doctype) {
           assert_equals(doc.doctype, null)

@@ -55,42 +55,48 @@ subsetTestByKey('afterResponse', promise_test, async t => {
 
 subsetTestByKey('waitingForResponse', promise_test, async t => {
   const agent = await spawnWindow(t);
-  const landingUrl = agent.getExecutorURL({executor: 'slow-executor.py', delay: '4', page: 2});
+  const landingUrl = agent.getExecutorURL({executor: 'slow-executor.py', delay: '3', page: 2});
   await agent.forceSinglePrefetch(landingUrl, {}, /*wait_for_completion=*/false);
-  await new Promise(resolve => t.step_timeout(resolve, 1000));
+
+  // Chromium, at least, will give up the prefetch if the response head doesn't
+  // come back within 1 second of navigation. So since the server will take
+  // 3 seconds to respond, we wait 2.5 seconds before navigating, to ensure the
+  // response comes back within about 0.5 seconds.
+  await new Promise(resolve => t.step_timeout(resolve, 2_500));
 
   await agent.navigate(landingUrl);
   assert_prefetched(await agent.getRequestHeaders(), `${landingUrl} should have been prefetched.`);
 
-  // We should have to wait for this response. While timing is going to be
-  // somewhat variable here, it's probably wrong for the response to seem
-  // to take less than 1 second (since we only waited for 1 second).
-  // Regardless, these events should be normally ordered.
+  // Unlike the `afterResponse` test, we expect delays between `requestStart`
+  // and `responseStart` here. If our timing was perfect and server round-trips
+  // were instantaneous, that delay would be 0.5 seconds. To give ourselves a
+  // bit of wiggle room, instead we assert that it's at least 0.1 seconds.
   const [entry] = await agent.execute_script(
       () => performance.getEntriesByType('navigation'));
-  assert_less_than_equal(entry.connectEnd, entry.requestStart);
-  assert_less_than_equal(entry.requestStart + 1000, entry.responseStart);
-  assert_greater_than(entry.responseStart, 1000);
+  assert_less_than_equal(entry.connectEnd, entry.requestStart, "connectEnd must be before requestStart");
+  assert_greater_than(entry.responseStart, entry.requestStart + 100, "responseStart must be > 100 ms after requestStart");
 }, "PerformanceNavigationTiming data should show noticeable TTFB if the response is slow");
 
 subsetTestByKey('waitingForRedirect', promise_test, async t => {
   const agent = await spawnWindow(t);
   const landingUrl = agent.getExecutorURL({page: 2});
-  const slowRedirectUrl = new URL(`/common/slow-redirect.py?delay=4&location=${encodeURIComponent(landingUrl)}`, document.baseURI);
+  const slowRedirectUrl = new URL(`/common/slow-redirect.py?delay=3&location=${encodeURIComponent(landingUrl)}`, document.baseURI);
   await agent.forceSinglePrefetch(slowRedirectUrl, {}, /*wait_for_completion=*/false);
-  await new Promise(resolve => t.step_timeout(resolve, 1000));
+
+  // Considerations here are the same as for `waitingForResponse`.
+  await new Promise(resolve => t.step_timeout(resolve, 2_500));
 
   await agent.navigate(slowRedirectUrl, {expectedDestinationUrl: landingUrl});
   assert_prefetched(await agent.getRequestHeaders(), `${landingUrl} should have been prefetched.`);
 
-  // We should have to wait for this response. While timing is going to be
-  // somewhat variable here, it's probably wrong for the response to seem
-  // to take less than 1 second (since we only waited for 1 second).
-  // Regardless, these events should be normally ordered.
+  // As in `waitingForResponse`, we expect at least 0.1 seconds TTFB. Unlike in
+  // that test, the delta isn't captured by `requestStart` vs. `responseStart`,
+  // because these stats only measure the final request/response pair, which is
+  // not delayed.
   const [entry] = await agent.execute_script(
       () => performance.getEntriesByType('navigation'));
-  assert_less_than_equal(entry.connectEnd, entry.requestStart);
-  assert_less_than_equal(entry.requestStart, entry.responseStart);
-  assert_greater_than(entry.responseStart, 1000);
+  assert_less_than_equal(entry.connectEnd, entry.requestStart, "connectEnd must be before requestStart");
+  assert_less_than_equal(entry.requestStart, entry.responseStart, "requestStart must be before responseStart");
+  assert_greater_than(entry.connectEnd, 100, "connectEnd must be > 100 ms");
 }, "PerformanceNavigationTiming data should show noticeable TTFB if the response is slow");
 </script>

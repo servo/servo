@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>SVGAnimatedAngle, initial values</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/initial-value-helper.js"></script>
+<script>
+assert_initial_values([
+  { interface: 'SVGMarkerElement', attributes: [ 'orientAngle' ],
+    orientAngle: { initial: '0', valid: '90deg' } },
+], { mapProperty: { orientAngle: 'orient' },
+     getValue: function(value) { return value.valueAsString } });
+</script>

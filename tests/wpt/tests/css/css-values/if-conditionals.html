@@ -574,6 +574,9 @@
   test_if_with_custom_properties('if(style(--time <= 1000ms): true_value; else: false_value)',
                                   [['--time', '1s']],
                                   'true_value');
+  test_if_with_custom_properties('if(style(var(--time) <= 1000ms): true_value; else: false_value)',
+                                  [['--time', '1s']],
+                                  'true_value');
   test_if_with_custom_properties('if(style(--x <= 1000ms): true_value; else: false_value)',
                                   [['--x', '1s']],
                                   'true_value');

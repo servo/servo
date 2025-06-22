@@ -1,0 +1,125 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="variant" content="?Shift">
+<meta name="variant" content="?Control">
+<meta name="variant" content="?Alt">
+<meta name="variant" content="?Meta">
+<title>Test modifiers of pointer boundary events which are caused by a layout change</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+#target, #container {
+  margin: 0;
+  padding: 0;
+  height: 3em;
+}
+</style>
+<script>
+"use strict";
+
+const testingModifierName = location.search.substring(1);
+const testingModifierKey = (() => {
+  switch (testingModifierName) {
+    case "Shift":
+      return "\uE008";
+    case "Control":
+      return "\uE009";
+    case "Alt":
+      return "\uE00A";
+    case "Meta":
+      return "\uE053";
+  }
+})();
+const testingModifierDOMName = (() => {
+  switch (testingModifierName) {
+    case "Shift":
+      return "shiftKey";
+    case "Control":
+      return "ctrlKey";
+    case "Alt":
+      return "altKey";
+    case "Meta":
+      return "metaKey";
+  }
+})();
+
+addEventListener("load", () => {
+  const initialPosition = document.getElementById("init");
+  const container = document.getElementById("container");
+  const target = document.getElementById("target");
+
+  function waitForTick() {
+    return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  }
+
+  promise_test(async t => {
+    // First, move over the target
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: initialPosition})
+      .keyDown(testingModifierKey)
+      .pointerMove(0, 0, {origin: target})
+      .send();
+    t.add_cleanup(async () => {
+      await new test_driver.Actions()
+        .keyUp(testingModifierKey)
+        .send();
+    });
+    await waitForTick();
+    // Listen to boundary events
+    const events = {};
+    for (const type of ["pointerover", "pointerout"]) {
+      container.addEventListener(type, event => events[type] = event, {once: true});
+    }
+    target.remove(); // Now, the pointer is over the container
+    await waitForTick();
+    container.appendChild(target); // Now, the pointer is over the target
+    await waitForTick();
+    for (const type of ["pointerover", "pointerout"]) {
+      test(() => {
+        assert_true(events[type][testingModifierDOMName]);
+      }, `${t.name}: ${testingModifierDOMName} of ${type} should be true`);
+    }
+  }, `Test ${testingModifierDOMName} of pointer boundary events (modifiers are changed before move)`);
+
+  promise_test(async t => {
+    // First, move over the target
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: initialPosition})
+      .pointerMove(0, 0, {origin: target})
+      .keyDown(testingModifierKey)
+      .send();
+    t.add_cleanup(async () => {
+      await new test_driver.Actions()
+        .keyUp(testingModifierKey)
+        .send();
+    });
+    await waitForTick();
+    // Listen to boundary events
+    const events = {};
+    for (const type of ["pointerover", "pointerout"]) {
+      container.addEventListener(type, event => events[type] = event, {once: true});
+    }
+    target.remove(); // Now, the pointer is over the container
+    await waitForTick();
+    container.appendChild(target); // Now, the pointer is over the target
+    await waitForTick();
+    for (const type of ["pointerover", "pointerout"]) {
+      test(() => {
+        assert_true(events[type][testingModifierDOMName]);
+      }, `${t.name}: ${testingModifierDOMName} of ${type} should be true`);
+    }
+  }, `Test ${testingModifierDOMName} of pointer boundary events (modifiers are changed after move)`);
+}, {once: true});
+</script>
+</head>
+<body>
+  <div id="init">Initial position</div>
+  <div id="container"><div id="target"></div></div>
+</body>
+</html>

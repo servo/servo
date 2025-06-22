@@ -1,0 +1,48 @@
+<!doctype html>
+<!--
+The soft navigation version of the identically named test in
+/largest-contentful-paint/element-only-when-fully-active.html
+Notes:
+ - Triggers trivial soft navigation with same page contents as original test.
+-->
+<meta charset="utf-8" />
+<title>
+  Largest Contentful Paint after soft navigation: element is only exposed for fully active
+  documents.
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+<script>
+  function clickHandler() {
+    document.body.innerHTML = `<iframe src="/largest-contentful-paint/resources/iframe-stores-entry.html" id="ifr"></iframe>`;
+    history.pushState({}, "", "/test");
+  }
+</script>
+<body>
+  <div id="click-target" onclick="clickHandler()">Click!</div>
+</body>
+<script>
+  setup({ hide_test_state: true });
+  let t = async_test(
+    "Only expose element attribute for fully active documents (after soft navigation)",
+  );
+  const softNavigationPromise = SoftNavigationTestHelper.getPerformanceEntries(
+    /*type=*/ "largest-contentful-paint",
+    /*include_soft_navigation=*/ true,
+    /*min_entries=*/ 1,
+  );
+  if (test_driver) {
+    test_driver.click(document.getElementById("click-target"));
+  }
+  window.triggerTest = t.step_func_done(async (entry) => {
+    assert_not_equals(entry.element, null);
+    assert_equals(entry.element.innerHTML, "Text");
+    const iframe = document.getElementById("ifr");
+    iframe.remove();
+    assert_equals(entry.element, null);
+    await softNavigationPromise;
+  });
+</script>

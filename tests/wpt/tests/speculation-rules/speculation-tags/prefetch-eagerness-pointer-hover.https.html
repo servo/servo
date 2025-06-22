@@ -34,7 +34,7 @@ promise_test(async t => {
   }, [linkId, nextUrl]);
 
   await agent.execute_script(async (linkId) => {
-    await start_non_eager_prefetch_on_hover(linkId);
+    await start_non_immediate_prefetch_on_hover(linkId);
   }, [linkId]);
 
   // TODO(crbug.com/381687257): Remove this when 0ms hover trigger is supported.

@@ -1,0 +1,67 @@
+<!doctype html>
+<!--
+The soft navigation version of the identically named test in
+/largest-contentful-paint/iframe-content-not-observed.html
+Notes:
+- This test almost triggers a soft navigation except that the
+  contents inside the iframe don't count, even though it's same-origin.
+  This is actually just like LCP, and we also test that the iframe content
+  doesn't generate a soft LCP entry either.
+-->
+<meta charset="utf-8" />
+<title>
+  Largest Contentful Paint and soft navigation: do NOT observe elements from same-origin iframes
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+<script>
+  function clickHandler() {
+    document.body.innerHTML = `<iframe src='/largest-contentful-paint/resources/iframe-with-content.html'></iframe>`;
+    history.pushState({}, "", "/test");
+  }
+</script>
+<body>
+  <div id="click-target" onclick="clickHandler()">Click!</div>
+</body>
+<script>
+  promise_test(async (t) => {
+    assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+    const helper = new SoftNavigationTestHelper(t);
+    const lcpEntries = await helper.getBufferedPerformanceEntriesWithTimeout(
+      /*type=*/ "largest-contentful-paint",
+      /*includeSoftNavigationObservations=*/ false,
+      /*minNumEntries=*/ 1,
+    );
+    assert_equals(lcpEntries.length, 1);
+    assert_equals(lcpEntries[0].id, "click-target", "The first entry should be the button");
+
+    const softNavigationPromise = SoftNavigationTestHelper.getPerformanceEntries(
+      /*type=*/ "soft-navigation",
+      /*includeSoftNavigationObservations=*/ true,
+      /*minNumEntries=*/ 1,
+    ).then((entries) => {
+      assert_unreached("Should not have received a soft navigation entry!");
+    });
+    const softLcpPromise = SoftNavigationTestHelper.getPerformanceEntries(
+      /*type=*/ "largest-contentful-paint",
+      /*includeSoftNavigationObservations=*/ true,
+      /*minNumEntries=*/ 1,
+    ).then((entries) => {
+      assert_unreached("Should not have received an a soft LCP entry!");
+    });
+
+    if (test_driver) {
+      test_driver.click(document.getElementById("click-target"));
+    }
+
+    // If neither the soft navigation nor the soft LCP are received within 3 seconds, we're ok.
+    await Promise.race([
+      softNavigationPromise,
+      softLcpPromise,
+      new Promise((resolve) => t.step_timeout(resolve(), 2000)),
+    ]);
+  }, "Element in child iframe is not observed for lcp or soft navigation, even if same-origin.");
+</script>

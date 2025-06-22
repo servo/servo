@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<head>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shaping">
+<link rel="match" href="corner-shape-backdrop-filter-ref.html">
+<meta name="fuzzy" content="maxDifference=0-64;totalPixels=0-360">
+<style>
+    .target {
+        width: 200px;
+        height: 200px;
+        corner-shape: squircle scoop notch bevel;
+        border-radius: 40%;
+    }
+
+    .backdrop {
+        background: rgba(0 128 0 / 50%);
+        backdrop-filter: brightness(0);
+    }
+
+</style>
+</head>
+<body>
+    <div class="target backdrop"></div>
+</body>

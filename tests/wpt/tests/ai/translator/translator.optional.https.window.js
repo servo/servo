@@ -109,41 +109,31 @@ promise_test(async t => {
 }, 'Aborting Translator.translate().');
 
 promise_test(async t => {
-  const translator =
-      await createTranslator({sourceLanguage: 'en', targetLanguage: 'ja'});
+  await testDestroy(
+    t, createTranslator, { sourceLanguage: 'en', targetLanguage: 'ja' }, [
+    translator => translator.translate(kTestPrompt),
+    translator => translator.measureInputUsage(kTestPrompt),
+  ]);
+}, 'Calling Translator.destroy() aborts calls to write and measureInputUsage.');
 
-  const text = 'this string is in English';
-  const promises =
-      [translator.translate(text), translator.measureInputUsage(text)];
+promise_test(async (t) => {
+  const translator =
+    await createTranslator({ sourceLanguage: 'en', targetLanguage: 'ja' });
+  const stream = translator.translateStreaming(kTestPrompt);
 
   translator.destroy();
 
-  promises.push(translator.translate(text), translator.measureInputUsage(text));
-
-  for (const promise of promises) {
-    await promise_rejects_dom(t, 'AbortError', promise);
-  }
-}, 'Calling Translator.destroy() aborts calls to translate and measureInputUsage.');
+  await promise_rejects_dom(
+    t, 'AbortError', stream.pipeTo(new WritableStream()));
+}, 'Translator.translateStreaming() fails after destroyed');
 
 promise_test(async t => {
-  const controller = new AbortController();
-  const translator = await createTranslator(
-      {sourceLanguage: 'en', targetLanguage: 'ja', signal: controller.signal});
-
-  const text = 'this string is in English';
-  const promises =
-      [translator.translate(text), translator.measureInputUsage(text)];
-
-  const error = new Error('The create abort signal was aborted.');
-  controller.abort(error);
-
-  promises.push(translator.translate(text), translator.measureInputUsage(text));
-
-  for (const promise of promises) {
-    await promise_rejects_exactly(t, error, promise);
-  }
+  await testCreateAbort(
+    t, createTranslator, { sourceLanguage: 'en', targetLanguage: 'ja' }, [
+    translator => translator.translate(kTestPrompt),
+    translator => translator.measureInputUsage(kTestPrompt),
+  ]);
 }, 'Translator.create()\'s abort signal destroys its Translator after creation.');
-
 
 promise_test(async t => {
   await testMonitor(

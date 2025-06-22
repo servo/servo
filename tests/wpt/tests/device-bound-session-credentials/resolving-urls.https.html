@@ -12,7 +12,7 @@
     await setupShardedServerState();
     const expectedCookieAndValue = "auth_cookie=abcdef0123";
     const expectedCookieAndAttributes = `${expectedCookieAndValue};Domain=${location.hostname};Path=/device-bound-session-credentials`;
-    addCookieAndSessionCleanup(t, expectedCookieAndAttributes);
+    addCookieAndSessionCleanup(t);
 
     // Configure server to use the absolute URL for refresh instead of a relative URL.
     configureServer({ refreshUrl });

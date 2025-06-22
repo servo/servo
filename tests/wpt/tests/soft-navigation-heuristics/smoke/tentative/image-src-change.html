@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+
+<button id="navigateButton">Click here!</button>
+<img id="testImage" height="256" width="256" src="/images/lcp-256x256.png" elementtiming="test-image"></img>
+
+<script>
+  async function waitForImageRender() {
+    let entries = await new Promise(resolve => {
+      new PerformanceObserver((list, observer) => {
+        resolve(list.getEntries());
+        observer.disconnect();
+      }).observe({type: 'element', buffered: true});
+    });
+    assert_equals(
+        entries.length, 1, 'Expected exactly one ElementTiming entry');
+    assert_equals(
+        entries[0].identifier, 'test-image', 'Unexpected ElementTiming entry.');
+  }
+
+  async function runTest(t, url, newImageSrc) {
+    navigateButton.addEventListener("click", () => {
+      history.pushState({}, '', url);
+      testImage.src = newImageSrc;
+    }, {once: true});
+
+    const softNavPromise = SoftNavigationTestHelper.getPerformanceEntries(
+      /*type=*/ "soft-navigation",
+      /*include_soft_navigation_observations=*/ false,
+      /*min_num_entries=*/ 1,
+    );
+
+    if (test_driver) {
+      test_driver.click(navigateButton);
+    }
+
+    const helper = new SoftNavigationTestHelper(t);
+    const entries = await helper.withTimeoutMessage(
+        softNavPromise, "Soft navigation entry never arrived.", 3000);
+    assert_equals(entries.length, 1, 'Expected exactly one soft navigation.');
+    assert_true(
+        entries[0].name.endsWith(url),
+        'Unexpected Soft Navigation URL.');
+  }
+
+  // Wait for the image to initially load and make its way through the image
+  // timing pipeline before changing its source.
+  promise_setup(waitForImageRender);
+
+  promise_test(async t => {
+    const url = '/image-src-change-1';
+    const src = 'soft-navigation-heuristics/resources/images/lcp-256x256-alt-1.png';
+    return runTest(t, url, src);
+  }, 'Soft Navigation Detection supports HTMLImageElment.src');
+
+  promise_test(async t => {
+    const url =  '/image-src-change-2';
+    const src = 'soft-navigation-heuristics/resources/images/lcp-256x256-alt-2.png';
+    return runTest(t, url, src);
+  }, 'Soft Navigation Detection supports a multiple soft navigations setting HTMLImageElment.src');
+
+  promise_test(async t => {
+    const url = '/image-src-change-3';
+    // base64 encoded /images/lcp-16x16.png.
+    const src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAArElEQVR4AZTQgQaEQBCA4b9pturiHPcu9/4PdMCp2trJybKwbMVi8Jn9TcXHeAdegWFn2HgE+o0+4Ix2O+ba6Na28V53Oi+3NI2XWxo1Lej2+QOiRgw13KKF3UDaHTW1yXmJWNI0i5zrzieNm7WgU8nxjmEWCXKlJOn9+CHqdkUt3x1LkkYnibsvatwkeXdB40bJuwuaatX8gukmucZ9NS8paOpR8pKCRv97DgBllRV8uazI0wAAAABJRU5ErkJggg==';
+    return runTest(t, url, src);
+  }, 'Soft Navigation Detection supports a setting HTMLImageElment.src to a data URI');
+
+  promise_test(async t => {
+    const url = '/image-src-change-1';
+    const src = 'soft-navigation-heuristics/resources/images/lcp-256x256-alt-1.png';
+    return runTest(t, url, src);
+  }, 'Soft Navigation Detection supports a setting HTMLImageElment.src to a previous value');
+</script>

@@ -1,5 +1,7 @@
 <!doctype html>
 <meta name="timeout" content="long">
+<meta name="variant" content="?reporting=false">
+<meta name="variant" content="?reporting=true">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
@@ -9,6 +11,8 @@
 
 <body>
 <script>
+  const params = new URLSearchParams(location.search);
+  const with_reporting = params.get('reporting') === "true";
   const {ORIGIN} = get_host_info();
   const getAbsoluteUrl = url => {
     return new URL(url, window.location.href).href;
@@ -191,7 +195,7 @@
 
       // Execute code directly from the iframe.
       const ctx = new RemoteContext(iframe_uuid);
-      const result = await ctx.execute_script(async (test_case) => {
+      const result = await ctx.execute_script(async (test_case, with_reporting) => {
         window.ran = false;
 
         // Always set up report observer to catch any unexpected reports
@@ -242,6 +246,14 @@
       assert_equals(result.ran, test_case.expected.ran, "Ran");
       if (test_case.policy_violation) {
         assert_not_equals(result.body, null, "Expected a policy violation report");
+        let report_body = {};
+        if (with_reporting) {
+          report_body = await report_observed_promise;
+        }
+        return { body: report_body, ran: window.ran };
+      }, [test_case, with_reporting]);
+      assert_equals(result.ran, test_case.expected.ran);
+      if (with_reporting && test_case.policy_violation) {
         assert_equals(result.body.blockedURL, test_case.expected.blocked);
         assert_true(result.body.documentURL.endsWith(iframe_url));
         assert_equals(result.body.destination, "script");
@@ -249,7 +261,7 @@
       } else {
         assert_equals(result.body, null, "No policy violation report should be observed");
       }
-      if (test_case.endpoints && test_case.policy_violation) {
+      if (with_reporting && test_case.endpoints && test_case.policy_violation) {
         if (test_case.add_blocking_header) {
           await check_report(reporting_endpoint, reporting_uuid_1, iframe_url, test_case.url, !test_case.add_blocking_header);
           await check_report(reporting_endpoint, reporting_uuid_2, iframe_url, test_case.url, !test_case.add_blocking_header);

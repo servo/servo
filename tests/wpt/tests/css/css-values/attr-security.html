@@ -17,6 +17,7 @@
   }
   div {
     --condition-val: 3;
+    --str: text;
     --true: true;
     --some-string: attr(data-foo);
     --some-string-list: "https://does-not-exist2.test/404.png" attr(data-foo);
@@ -244,4 +245,28 @@
               `image-set(if(style(--condition-val: if(style(--true): attr(data-foo type(*));)): url(https://does-not-exist.test/404.png);))`,
               '3',
               'image-set(url(https://does-not-exist.test/404.png))');
+    test_attr('--x',
+              `image-set(if(style(--condition-val >= attr(data-foo type(*))): url(https://does-not-exist.test/404.png);))`,
+              '3',
+              'image-set(url(https://does-not-exist.test/404.png))');
+    test_attr('background-image',
+              `image-set(
+                if(style(--condition-val >= attr(data-foo type(*))): url(https://does-not-exist.test/404.png);))`,
+              '3',
+              'none');
+    test_attr('background-image',
+              `image-set(
+                if(style(--condition-val < attr(data-foo type(*))): url(https://does-not-exist.test/404.png);))`,
+              '3',
+              'none');
+    test_attr('background-image',
+              `image-set(
+                if(style(--str < attr(data-foo type(*))): url(https://does-not-exist.test/404.png);))`,
+              '3',
+              'none');
+    test_attr('background-image',
+              `image-set(
+                if(style(--condition-val < attr(data-foo type(*))): url(https://does-not-exist.test/404.png);))`,
+              'text',
+              'none');
 </script>

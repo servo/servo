@@ -10,7 +10,7 @@
 
   promise_test(async t => {
     let agent = await spawnWindow(t);
-    let nextUrl = agent.getExecutorURL({ hostname: PREFETCH_PROXY_BYPASS_HOST, page: 2 });
+    let nextUrl = agent.getExecutorURL({ hostname: CROSS_ORIGIN_HOST_THAT_WORKS_WITH_ACIWCO, page: 2 });
     await agent.forceSinglePrefetch(nextUrl, { requires: ["anonymous-client-ip-when-cross-origin"] });
     await agent.navigate(nextUrl);
 

@@ -6,6 +6,7 @@ use std::cell::RefCell;
 use std::collections::BTreeSet;
 use std::net::TcpStream;
 
+use base::id::PipelineId;
 use serde::Serialize;
 use serde_json::{Map, Value};
 use servo_url::ServoUrl;
@@ -51,7 +52,7 @@ pub struct SourceActor {
     /// <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#black-boxing-sources>
     pub is_black_boxed: bool,
 
-    pub content: String,
+    pub content: Option<String>,
     pub content_type: String,
 }
 
@@ -86,7 +87,12 @@ impl SourceManager {
 }
 
 impl SourceActor {
-    pub fn new(name: String, url: ServoUrl, content: String, content_type: String) -> SourceActor {
+    pub fn new(
+        name: String,
+        url: ServoUrl,
+        content: Option<String>,
+        content_type: String,
+    ) -> SourceActor {
         SourceActor {
             name,
             url,
@@ -98,14 +104,16 @@ impl SourceActor {
 
     pub fn new_registered(
         actors: &mut ActorRegistry,
+        pipeline_id: PipelineId,
         url: ServoUrl,
-        content: String,
+        content: Option<String>,
         content_type: String,
     ) -> &SourceActor {
         let source_actor_name = actors.new_name("source");
 
         let source_actor = SourceActor::new(source_actor_name.clone(), url, content, content_type);
         actors.register(Box::new(source_actor));
+        actors.register_source_actor(pipeline_id, &source_actor_name);
 
         actors.find(&source_actor_name)
     }
@@ -138,7 +146,13 @@ impl Actor for SourceActor {
                 let reply = SourceContentReply {
                     from: self.name(),
                     content_type: self.content_type.clone(),
-                    source: self.content.clone(),
+                    // TODO: do we want to wait instead of giving up immediately, in cases where the content could
+                    // become available later (e.g. after a fetch)?
+                    source: self
+                        .content
+                        .as_deref()
+                        .unwrap_or("<!-- not available; please reload! -->")
+                        .to_owned(),
                 };
                 let _ = stream.write_json_packet(&reply);
                 ActorMessageStatus::Processed

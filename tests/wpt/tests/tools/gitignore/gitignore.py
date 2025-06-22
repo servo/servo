@@ -169,7 +169,7 @@ class PathFilter:
         if invert:
             # For exclude rules, we attach the rules to all preceeding patterns, so
             # that we can match patterns out of order and check if they were later
-            # overriden by an exclude rule
+            # overridden by an exclude rule
             assert not literal
             rule = cast(Tuple[bool, Pattern[bytes]], rule)
             if not dir_only:

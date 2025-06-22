@@ -171,7 +171,6 @@ impl TrustedTypePolicyFactory {
         let arguments = vec![trusted_type_name_value.handle(), sink_value.handle()];
         let policy_value = default_policy.get_trusted_type_policy_value(
             expected_type,
-            cx,
             input,
             arguments,
             false,

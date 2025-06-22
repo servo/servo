@@ -5,6 +5,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="RTCPeerConnection-helper.js"></script>
+<script src="third_party/sdp/sdp.js"></script>
 <script>
 'use strict';
 
@@ -327,4 +328,105 @@ for (const options of [{}, {negotiated: true, id: 0}]) {
     }, 'Calling send() when data channel is in closing state should succeed');
   */
 }
+
+  promise_test(async t => {
+    // This test uses some bundle shenanigans to cause packet loss
+    // The intent is to create a situation where a small message is received
+    // when there is a partially received large message, and check whether
+    // that small message is misinterpreted as part of the large message
+    // instead of its own thing.
+    const pc1 = new RTCPeerConnection({bundlePolicy: 'balanced'});
+    const pc2 = new RTCPeerConnection();
+    pc1.addTransceiver('audio');
+    pc1.addTransceiver('video');
+    const channel1 = pc1.createDataChannel('foo', {id: 1, ordered: false, negotiated: true});
+    const channel2 = pc2.createDataChannel('foo', {id: 1, ordered: false, negotiated: true});
+    const channel1Open = new Promise(r => channel1.onopen = r);
+    const channel2Open = new Promise(r => channel2.onopen = r);
+    exchangeIceCandidates(pc1, pc2);
+
+    const size = 1024*1024*5;
+    const bigMessage = 'a'.repeat(size);
+    const smallMessage = 'boom';
+    const numLittle = 1000;
+
+    const receivedMessages = new Promise((resolve, reject) => {
+      let littleReceived = 0;
+      let bigReceived = false;
+      channel2.onmessage = ({data}) => {
+        try {
+          if (data.length == size) {
+            assert_false(bigReceived, 'Only received big message once');
+            bigReceived = true;
+            assert_equals(data, bigMessage, 'Big message has correct contents');
+          } else if (data.length == smallMessage.length) {
+            littleReceived++;
+            assert_equals(data, smallMessage, 'Small message has correct contents');
+            assert_less_than_equal(littleReceived, numLittle, 'Got no more than expected small messages');
+          } else {
+            assert_true(false, `Message was an expected size (got ${data.length}, last bytes are ${data.slice(-20)})`);
+          }
+
+          if (littleReceived == 1000 && bigReceived) {
+            resolve();
+          }
+        } catch (e) {
+          reject(e);
+        }
+      };
+    });
+
+    function rebundleMids(offer, mids) {
+      // Disable any existing groups
+      let sdp = offer.sdp.replaceAll('a=group:BUNDLE','a=moop:BUNGLE');
+      sdp = sdp.replaceAll('a=msid-semantic:', 'a=msid-pedantic:');
+      // Create group attrs for the mids we want
+      const midsString = mids.join(' ');
+      sdp = sdp.replace('\r\nm=', `\r\na=group:BUNDLE ${midsString}\r\na=msid-semantic:WMS *\r\nm=`);
+      return {type: 'offer', sdp};
+    }
+
+    await pc1.setLocalDescription();
+    let offer = pc1.localDescription;
+
+    // offer should have three separate transports, one for each mid
+    const sections = SDPUtils.splitSections(offer.sdp);
+    assert_equals(sections.length, 4);
+    const mids = sections.slice(1).map(section => SDPUtils.getMid(section));
+    assert_equals(mids.length, 3);
+
+    // Cause the DataChannel msection to be bundled with the audio msection
+    await pc2.setRemoteDescription(rebundleMids(offer, [mids[0], mids[2]]));
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+    await channel1Open;
+    await channel2Open;
+
+    channel1.send(bigMessage);
+
+    // Send until we're almost done with the first (big) message
+    channel1.bufferedAmountLowThreshold = 20000;
+    await new Promise(r => channel1.onbufferedamountlow = r);
+
+    // Ok, now for the shenanigans
+    let reoffer = await pc1.createOffer();
+    // Make pc2 _think_ the datachannel is now bundled with the video msection,
+    // so it will discard the packets
+    await pc2.setRemoteDescription(rebundleMids(reoffer, [mids[1], mids[2]]));
+    await pc2.setLocalDescription();
+
+    for (let i = 0; i < numLittle; i++) {
+      channel1.send('boom');
+    }
+
+    // Now, put it back the way it is supposed to be
+    await pc1.setLocalDescription();
+    reoffer = pc1.localDescription;
+    await pc2.setRemoteDescription(rebundleMids(reoffer, [mids[0], mids[2]]));
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+    await receivedMessages;
+  }, `Sending multiple messages simultaneously in unordered mode works reliably`);
+
+
 </script>

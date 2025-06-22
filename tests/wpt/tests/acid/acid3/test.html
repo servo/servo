@@ -928,7 +928,6 @@
       test('<div>');
       test('0div');
       test('di v');
-      test('di<v');
       test('-div');
       test('.div');
       return 2;
@@ -948,12 +947,10 @@
       test('<div>', null, 5);
       test('0div', null, 5);
       test('di v', null, 5);
-      test('di<v', null, 5);
       test('-div', null, 5);
       test('.div', null, 5);
       test('<div>', "http://example.com/", 5);
       test('0div', "http://example.com/", 5);
-      test('di<v', "http://example.com/", 5);
       test('-div', "http://example.com/", 5);
       test('.div', "http://example.com/", 5);
       //test(':div', null, 14);
@@ -975,7 +972,7 @@
       // check that exceptions that are thrown are DOMException objects
       var message = "";
       try {
-        document.implementation.createDocumentType('a:', '', ''); /* doesn't contain an illegal character; is malformed */
+        document.implementation.createDocumentType('a>', '', ''); /* doesn't contain an illegal character; is malformed */
         message = "failed to raise exception";
       } catch (e) {
         /*if (e.code != e.NAMESPACE_ERR)

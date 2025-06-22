@@ -9,11 +9,13 @@
     overflow: auto;
   }
   #anchor {
+    anchor-name: --a;
     background: green;
     width: 200px;
     height: 100px;
   }
   #anchored {
+    position-anchor: --a;
     position-area: bottom;
     margin: 0;
     padding: 0;
@@ -28,7 +30,7 @@
 <div id="scroller">
   <div class="filler"></div>
   <div id="anchor" popovertarget="anchored"></div>
-  <div id="anchored" anchor="anchor" popover></div>
+  <div id="anchored" popover></div>
   <div class="filler"></div>
   <div class="filler"></div>
 </div>

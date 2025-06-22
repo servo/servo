@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+
+  .grid-container {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(5, 1fr);
+
+    gap: 10px;
+    width: 140px;
+    height: 140px;
+  }
+
+  .subgrid {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-template-rows: subgrid;
+
+    background: red;
+    grid-column: 2 / -2;
+    grid-row: 2 / -2;
+  }
+
+  .item {
+    background: purple;
+  }
+
+  .col-gap-1 {
+    background: skyblue;
+    position: absolute;
+    height: 140px;
+    width: 10px;
+    left: 20px;
+    top: 0px;
+  }
+
+  .col-gap-2 {
+    position: absolute;
+    height: 140px;
+    width: 10px;
+    left: 50px;
+    top: 0px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px
+  }
+
+  .col-gap-a {
+    background: skyblue;
+    height: 25px;
+  }
+
+  .col-gap-b {
+    background: green;
+    height: 80px;
+    z-index: 1;
+  }
+
+  .col-gap-c {
+    background: skyblue;
+    height: 25px;
+  }
+
+  .col-gap-3 {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    height: 140px;
+    width: 10px;
+    left: 80px;
+    top: 0px;
+    gap: 5px
+  }
+
+  .col-gap-4 {
+    background: skyblue;
+    position: absolute;
+    height: 140px;
+    width: 10px;
+    left: 110px;
+    top: 0px;
+  }
+
+  .row-gap-1 {
+    background: cornflowerblue;
+    position: absolute;
+    top: 20px;
+    left: 0px;
+    width: 140px;
+    height: 10px;
+  }
+
+  .row-gap-2 {
+    position: absolute;
+    width: 140px;
+    height: 10px;
+    left: 0px;
+    top: 50px;
+    display: flex;
+    flex-direction: row;
+    gap: 5px;
+  }
+
+  .row-gap-a {
+    background: cornflowerblue;
+    width: 25px;
+  }
+
+  .row-gap-b {
+    background: blue;
+    width: 80px;
+  }
+
+  .row-gap-c {
+    background: cornflowerblue;
+    width: 25px;
+  }
+
+  .row-gap-3 {
+    position: absolute;
+    width: 140px;
+    height: 10px;
+    left: 0px;
+    top: 80px;
+    display: flex;
+    flex-direction: row;
+    gap: 5px;
+  }
+
+  .row-gap-4 {
+    background: cornflowerblue;
+    position: absolute;
+    top: 110px;
+    left: 0px;
+    width: 140px;
+    height: 10px;
+  }
+</style>
+<div class="grid-container">
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+
+  <div class="subgrid"> </div>
+</div>
+
+<div class="col-gap-1"></div>
+<div class="col-gap-2">
+  <div class="col-gap-a"></div>
+  <div class="col-gap-b"></div>
+  <div class="col-gap-c"></div>
+</div>
+<div class="col-gap-3">
+  <div class="col-gap-a"></div>
+  <div class="col-gap-b"></div>
+  <div class="col-gap-c"></div>
+</div>
+<div class="col-gap-4"> </div>
+
+<div class="row-gap-1"></div>
+<div class="row-gap-2">
+  <div class="row-gap-a"></div>
+  <div class="row-gap-b"></div>
+  <div class="row-gap-c"></div>
+</div>
+<div class="row-gap-3">
+  <div class="row-gap-a"></div>
+  <div class="row-gap-b"></div>
+  <div class="row-gap-c"></div>
+</div>
+<div class="row-gap-4"></div>

@@ -4,8 +4,15 @@
 
 // Resolved URL to find this script.
 const SR_PREFETCH_UTILS_URL = new URL(document.currentScript.src, document.baseURI);
-// Hostname for cross origin urls.
-const PREFETCH_PROXY_BYPASS_HOST = "{{hosts[alt][]}}";
+
+// If (and only if) you are writing a test that depends on
+// `requires: ["anonymous-client-ip-when-cross-origin"]`, then you must use this
+// host as the cross-origin host. (If you need a generic cross-origin host, use
+// `get_host_info().NOTSAMESITE_HOST` or similar instead.)
+//
+// TODO(domenic): document in the web platform tests server infrastructure that
+// such a host must exist, and possibly separate it from `{{hosts[alt][]}}`.
+const CROSS_ORIGIN_HOST_THAT_WORKS_WITH_ACIWCO = "{{hosts[alt][]}}";
 
 class PrefetchAgent extends RemoteContext {
   constructor(uuid, t) {
@@ -178,7 +185,7 @@ function insertDocumentRule(predicate, extra_options={}) {
   insertSpeculationRules({
     prefetch: [{
       source: 'document',
-      eagerness: 'eager',
+      eagerness: 'immediate',
       where: predicate,
       ...extra_options
     }]

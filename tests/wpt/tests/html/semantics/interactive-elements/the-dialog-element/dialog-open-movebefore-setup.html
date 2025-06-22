@@ -1,0 +1,43 @@
+<!doctype html>
+<title>moveBefore should not re-run dialog setup steps</title>
+<link rel="author" title="Keith Cirkel" href="mailto:wpt@keithcirkel.co.uk" />
+<link rel="help" href="https://github.com/whatwg/html/pull/11326#discussion_r2104180451" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<div id="new_parent"></div>
+<dialog id="dialog" closedby="closerequest"></dialog>
+<dialog id="second_dialog" closedby="closerequest"></dialog>
+
+<script>
+  promise_test(async t => {
+    // Show both dialogs in a specific order so that `second_dialog` is at the
+    // end of the "open dialog list".
+
+    dialog.show();
+    // Ensure a user activation happens between each dialog show so that they
+    // are in discrete closewatcher groups.
+    await test_driver.bless();
+    assert_true(navigator.userActivation.isActive, "document now active");
+    second_dialog.show();
+
+    assert_true(dialog.open, "the first dialog is open");
+    assert_true(dialog.open, "the second dialog is open");
+
+    new_parent.moveBefore(dialog, null);
+
+    assert_true(dialog.open, "the first dialog is still open");
+    assert_true(dialog.open, "the second dialog is still open");
+
+    // Press escape to close only the top-most open dialog:
+    const ESC = '\uE00C';
+    await test_driver.send_keys(document.documentElement, ESC);
+
+    // The dialog that closed should have been second_dialog, because
+    assert_true(dialog.open, "the first open dialog remains open");
+    assert_false(second_dialog.open, "the second open dialog is now closed");
+  }, "reparenting a dialog should not cause it to move in the open dialogs list");
+</script>

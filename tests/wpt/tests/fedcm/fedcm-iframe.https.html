@@ -20,7 +20,7 @@ const localhostBaseURL = "http://localhost:" + host.HTTP_PORT + basePath;
 
 async function createIframeAndWaitForMessage(test, iframeUrl, setPermissionPolicy, style = "") {
     const messageWatcher = new EventWatcher(test, window, "message");
-    var iframe = document.createElement("iframe");
+    let iframe = document.createElement("iframe");
     iframe.src = iframeUrl;
     if (setPermissionPolicy) {
       iframe.allow = "identity-credentials-get";

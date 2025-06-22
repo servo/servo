@@ -1,4 +1,4 @@
-var num_overridden = 0;
+let num_overridden = 0;
 
 self.addEventListener('fetch', event => {
   const url = event.request.url;

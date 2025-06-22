@@ -1,77 +1,114 @@
-<!doctype html>
-<html>
-    <head>
-        <title>setPointerCapture() to the element which already captured the pointer</title>
-        <meta name="viewport" content="width=device-width">
-        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
-        <script src="/resources/testharness.js"></script>
-        <script src="/resources/testharnessreport.js"></script>
-        <script src="/resources/testdriver.js"></script>
-        <script src="/resources/testdriver-actions.js"></script>
-        <script src="/resources/testdriver-vendor.js"></script>
-        <script src="pointerevent_support.js"></script>
-        <script type="text/javascript">
-            var actions_promise;
-            var detected_pointertypes = {};
-            add_completion_callback(showPointerTypes);
-            var test_setPointerCapture = async_test("setPointerCapture: set to the element which already captured the pointer");
-            var got_pointer_capture = false;
+<!DOCTYPE HTML>
+<title>Repeated setPointerCapture calls on the capturing element</title>
+<meta name="variant" content="?mouse">
+<meta name="variant" content="?pen">
+<meta name="variant" content="?touch">
+<link rel="help" href="https://github.com/w3c/pointerevents/issues/534">
+<meta name="viewport" content="width=device-width">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="pointerevent_support.js"></script>
 
-            function run() {
-                var target0 = document.getElementById("target0");
-                var target1 = document.getElementById("target1");
+<style>
+  div {
+    width: 50px;
+    height: 50px;
+    touch-action: none;
+    user-select: none;
+  }
+</style>
 
-                on_event(target0, "pointerdown", function (event) {
-                    detected_pointertypes[event.pointerType] = true;
-                    target0.setPointerCapture(event.pointerId);
-                });
+<div id="target"></div>
+<div id="other"></div>
+<div id="done"></div>
 
-                on_event(target0, "gotpointercapture", function (event) {
-                    test_setPointerCapture.step(function () {
-                        assert_equals(got_pointer_capture, false, "Target0 should receive gotpointercapture at the first time it captured the pointer");
-                        assert_equals(target0.hasPointerCapture(event.pointerId), true, "Target 0 received gotpointercapture, target0.hasPointerCapture should be true");
-                    });
-                    got_pointer_capture = true;
+<script>
+  'use strict';
+  const pointer_type = location.search.substring(1);
 
-                    target0.setPointerCapture(event.pointerId);
-                    test_setPointerCapture.step(function () {
-                        assert_equals(target0.hasPointerCapture(event.pointerId), true, "Set capture to target0, target0.hasPointerCapture should be true");
-                        assert_equals(target1.hasPointerCapture(event.pointerId), false, "Set capture to target0, target1.hasPointerCapture should be false");
-                    });
-                });
+  const target = document.getElementById("target");
+  const other = document.getElementById("other");
+  const done = document.getElementById("done");
 
-                on_event(target0, "pointerup", function (event) {
-                    // Make sure the test finishes after all the input actions are completed.
-                    actions_promise.then( () => {
-                        test_setPointerCapture.done();
-                    });
-                });
+  let event_log = [];
+  function logEvent(e) {
+    if (e.type === "pointermove" && e.buttons == 0) {
+      // Move events w/o button pressed are irrelevant, and could be noisy too.
+      return;
+    }
+    event_log.push(e.type + "@" + e.target.id);
+  }
 
-                // Inject mouse inputs.
-                actions_promise = new test_driver.Actions()
-                    .pointerMove(0, 0, {origin: target0})
-                    .pointerDown()
-                    .pointerMove(10, 10, {origin: target0})
-                    .pointerUp()
-                    .send();
-            }
-        </script>
-    </head>
-    <body onload="run()">
-        <h1>Pointer Event: setPointerCapture to the element which already captured the pointer</h1>
-        <h4>Test Description:
-            When the setPointerCapture method is invoked, if the target element had already captured the pointer, it should not trigger any gotpointercapture or lostpointercapture event
-            <ol>
-                <li>Press and hold left mouse button over black box
-                <li>Move mouse and release mouse button
-            </ol>
-        </h4>
-        <br>
-        <div id="target0" touch-action:none></div>
-        <div id="target1" touch-action:none></div>
-        <div id="complete-notice">
-            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
-        </div>
-        <div id="log"></div>
-    </body>
-</html>
+  const logged_events = [
+    "pointerdown", "pointermove", "pointerup", "gotpointercapture", "lostpointercapture"
+  ];
+  logged_events.forEach(ename => {
+    [target, other].forEach(div => div.addEventListener(ename, logEvent));
+  });
+
+  target.addEventListener("pointerdown", e => {
+    other.setPointerCapture(e.pointerId);
+  });
+
+  const expected_events = [
+    "pointerdown@target", "gotpointercapture@other",
+    "pointermove@other", "pointerup@other",
+    "lostpointercapture@other"
+  ];
+
+  promise_test(async () => {
+    event_log = [];
+
+    target.addEventListener("pointermove", e => {
+      target.setPointerCapture(e.pointerId);
+    });
+
+    let done_click_promise = getEvent("click", done);
+
+    let actions = new test_driver.Actions()
+        .addPointer("TestPointer", pointer_type)
+        .pointerMove(0, 0, {origin: target})
+        .pointerDown()
+        .pointerMove(10, 10, {origin: target})
+        .pointerUp()
+        .pointerMove(0, 0, {origin: done})
+        .pointerDown()
+        .pointerUp();
+
+    await actions.send();
+    await done_click_promise;
+
+    assert_array_equals(event_log, expected_events, "events received");
+  }, "A repeated setPointerCapture call does not redispatch capture events");
+
+  promise_test(async () => {
+    event_log = [];
+
+    target.addEventListener("pointermove", e => {
+      try {
+        // Pick a non-existent random pointerId to force this call to fail.
+        other.setPointerCapture(e.pointerId + 4321);
+      } catch (error) {}
+    });
+
+    let done_click_promise = getEvent("click", done);
+
+    let actions = new test_driver.Actions()
+        .addPointer("TestPointer", pointer_type)
+        .pointerMove(0, 0, {origin: target})
+        .pointerDown()
+        .pointerMove(10, 10, {origin: target})
+        .pointerUp()
+        .pointerMove(0, 0, {origin: done})
+        .pointerDown()
+        .pointerUp();
+
+    await actions.send();
+    await done_click_promise;
+
+    assert_array_equals(event_log, expected_events, "events received");
+  }, "A failed setPointerCapture call does not affect existing capture");
+</script>

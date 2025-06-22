@@ -10,10 +10,10 @@ use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
 
 use base::cross_process_instant::CrossProcessInstant;
+use base::id::PipelineId;
 use log::debug;
 use serde_json::{Map, Value};
 
-/// General actor system infrastructure.
 use crate::StreamId;
 
 #[derive(PartialEq)]
@@ -58,6 +58,10 @@ pub struct ActorRegistry {
     new_actors: RefCell<Vec<Box<dyn Actor + Send>>>,
     old_actors: RefCell<Vec<String>>,
     script_actors: RefCell<HashMap<String, String>>,
+
+    /// Lookup table for SourceActor names associated with a given PipelineId.
+    source_actor_names: RefCell<HashMap<PipelineId, Vec<String>>>,
+
     shareable: Option<Arc<Mutex<ActorRegistry>>>,
     next: Cell<u32>,
     start_stamp: CrossProcessInstant,
@@ -71,6 +75,7 @@ impl ActorRegistry {
             new_actors: RefCell::new(vec![]),
             old_actors: RefCell::new(vec![]),
             script_actors: RefCell::new(HashMap::new()),
+            source_actor_names: RefCell::new(HashMap::new()),
             shareable: None,
             next: Cell::new(0),
             start_stamp: CrossProcessInstant::now(),
@@ -214,5 +219,21 @@ impl ActorRegistry {
     pub fn drop_actor_later(&self, name: String) {
         let mut actors = self.old_actors.borrow_mut();
         actors.push(name);
+    }
+
+    pub fn register_source_actor(&self, pipeline_id: PipelineId, actor_name: &str) {
+        self.source_actor_names
+            .borrow_mut()
+            .entry(pipeline_id)
+            .or_default()
+            .push(actor_name.to_owned());
+    }
+
+    pub fn source_actor_names_for_pipeline(&mut self, pipeline_id: PipelineId) -> Vec<String> {
+        if let Some(source_actor_names) = self.source_actor_names.borrow_mut().get(&pipeline_id) {
+            return source_actor_names.clone();
+        }
+
+        vec![]
     }
 }

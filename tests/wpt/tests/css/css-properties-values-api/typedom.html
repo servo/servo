@@ -106,15 +106,19 @@ function verify_computed_type(name, value, expected) {
 }
 
 // Verifies that the property 'name' shows up on iteration, that it's reified
-// to the specified type, and that the string representation is equal to 'value'.
-function verify_computed_iteration_type(name, value, type) {
+// to the specified type, and that the string representation is equal to 'computed'.
+function verify_computed_iteration_type(name, value, type, computed) {
+    if (!computed) {
+        computed = value;
+    }
+
     target.attributeStyleMap.set(name, value);
     let result = Array.from(target.computedStyleMap()).filter(e => e[0] == name)[0];
     assert_equals(result.length, 2);
     let iter_value = result[1];
     assert_equals(iter_value.length, 1);
     assert_true(iter_value[0] instanceof type);
-    assert_equals(iter_value[0].toString(), value);
+    assert_equals(iter_value[0].toString(), computed);
 }
 
 // Run the same test twice: once for each StylePropertyMap.
@@ -955,7 +959,7 @@ test(function(){
 }, 'Computed <custom-ident> is reified as CSSKeywordValue by iterator');
 
 test(function(){
-    verify_computed_iteration_type(generate_property('<image>'), 'url(\"a\")', CSSImageValue);
+    verify_computed_iteration_type(generate_property('<image>'), 'url(\"a\")', CSSImageValue, `url(\"${new URL("a", document.baseURI)}\")`);
 }, 'Computed <image> is reified as CSSImageValue by iterator');
 
 test(function(){

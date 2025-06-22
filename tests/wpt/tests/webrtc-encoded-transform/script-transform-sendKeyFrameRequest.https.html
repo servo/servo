@@ -95,8 +95,8 @@ promise_test(async (test) => {
 
   receiverPc.getTransceivers()[0].stop();
 
-  assert_equals(await sendKeyFrameRequest(receiver.transform.port), 'failure: InvalidStateError');
-}, 'sendKeyFrameRequest rejects when the receiver is stopped');
+  assert_equals(await sendKeyFrameRequest(receiver.transform.port), 'success');
+}, 'sendKeyFrameRequest does not rejects when the receiver is stopped');
 
 // Testing that sendKeyFrameRequest actually results in the sending of keyframe
 // requests is effectively impossible, because there is no API to expose the

@@ -1,0 +1,75 @@
+<!doctype html>
+<!--
+The soft navigation version of the identically named test in
+/largest-contentful-paint/background-image-set-image.html
+Notes:
+ - Triggers trivial soft navigation with same page contents as original test.
+-->
+<title>Background image-set images should be LCP candidates after soft navigation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+<script>
+  function clickHandler() {
+    document.body.innerHTML = `
+      <style>
+        .background {
+          width: calc(100vw - 40px);
+          height: calc(100vw - 40px);
+          max-width: 100px;
+          max-height: 100px;
+          background: #eee image-set("/images/lcp-100x50.png" type("image/png")) center center no-repeat;
+          background-size: cover;
+        }
+      </style>
+      <div class="background"></div>
+      <p>fallback</p>`;
+    history.pushState({}, "", "/test");
+  }
+</script>
+<body>
+  <div id="click-target" onclick="clickHandler()">Click!</div>
+</body>
+<script>
+  promise_test(async (t) => {
+    assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+    const helper = new SoftNavigationTestHelper(t);
+    const lcpEntries = await helper.getBufferedPerformanceEntriesWithTimeout(
+      /*type=*/ "largest-contentful-paint",
+      /*includeSoftNavigationObservations=*/ false,
+      /*minNumEntries=*/ 1,
+    );
+    assert_equals(lcpEntries.length, 1);
+    assert_equals(lcpEntries[0].id, "click-target", "The first entry should be the button");
+
+    const softLcpPromise = new Promise((resolve) => {
+      new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          if (entry.url.includes("lcp-100x50")) {
+            resolve(entry.url);
+            return;
+          }
+        }
+      }).observe({
+        type: "largest-contentful-paint",
+        includeSoftNavigationObservations: true,
+        buffered: true,
+      });
+    });
+    if (test_driver) {
+      test_driver.click(document.getElementById("click-target"));
+    }
+    await helper.withTimeoutMessage(
+      softLcpPromise,
+      "Timed out waiting for LCP entry for background image-set image.",
+      /*timeoutMs=*/ 3000,
+    );
+    assert_equals(
+      1,
+      performance.getEntriesByType("soft-navigation").length,
+      "There should be one soft navigation entry.",
+    );
+  }, "Background image-set images should be eligible for LCP candidates after soft navigation.");
+</script>

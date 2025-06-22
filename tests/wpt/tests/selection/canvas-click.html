@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Clicking on a text-selectable canvas should not select it</title>
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.com" title="Mozilla">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1969829">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  :root { user-select: none }
+  canvas {
+    user-select: text;
+    outline: 2px solid hotpink;
+    background-color: green;
+    width: 200px;
+    height: 200px;
+  }
+</style>
+Clicking the green square should not select it.<br>
+<canvas></canvas>
+<script>
+promise_test(async function() {
+  await test_driver.click(document.querySelector("canvas"));
+  assert_true(getSelection().isCollapsed, "Clicking a canvas shouldn't generate a non-collapsed selection");
+});
+</script>
