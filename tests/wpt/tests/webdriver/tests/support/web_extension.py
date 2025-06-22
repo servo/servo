@@ -8,7 +8,9 @@ EXTENSION_DATA = {
         "path": get_extension_path("firefox/unpacked/"),
         "archivePath": get_extension_path("firefox/signed.xpi"),
         "archivePathInvalid": get_extension_path("firefox/invalid.xpi"),
+        "archivePathUnsigned": get_extension_path("firefox/unsigned.xpi"),
         "base64": get_base64_for_extension_file("firefox/signed.xpi"),
+        "base64Unsigned": get_base64_for_extension_file("firefox/unsigned.xpi"),
     },
     "chrome": {
         "id": None,

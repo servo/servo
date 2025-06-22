@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow Ref: scroll-target-group property with viewport scroller</title>
+<style>
+  #wrapper {
+    position: fixed;
+  }
+
+  #scroller {
+    overflow: auto;
+    height: 130px;
+    width: 100px;
+  }
+
+  .item {
+    width: 100px;
+    height: 300px;
+    background-color: blue;
+    margin: 5px;
+  }
+
+  a {
+    color: red;
+  }
+
+  #targetCurrent {
+    color: green;
+  }
+</style>
+<div id="wrapper">
+  <a href="#target1">t1</a>
+  <a id="targetCurrent" href="#target2">t2</a>
+  <a href="#target3">t3</a>
+  <a href="#target4">t4</a>
+</div>
+<div class="item" id="target1"></div>
+<div class="item" id="target2"></div>
+<div class="item" id="target3"></div>
+<div class="item" id="target4"></div>
+<script>
+  document.documentElement.scrollTop = 250;
+</script>

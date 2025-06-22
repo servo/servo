@@ -3,6 +3,9 @@
   xmlns="http://www.w3.org/2000/svg"
   xmlns:xlink="http://www.w3.org/1999/xlink"
   xmlns:html="http://www.w3.org/1999/xhtml">
+  <metadata>
+    <meta name="fuzzy" content="0-50;4900"/>
+  </metadata>
   <g id="testmeta">
     <title>Test of 'pathLength' on shapes.</title>
     <html:link rel="author"

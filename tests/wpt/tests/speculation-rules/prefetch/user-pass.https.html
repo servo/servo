@@ -4,6 +4,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
 <script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
 <script src="../resources/utils.js"></script>
 <script src="resources/utils.sub.js"></script>
 
@@ -22,9 +23,9 @@
     assert_equals(request_credentials.username, credentials.username);
     assert_equals(request_credentials.password, credentials.password);
 
-    let host = cross_origin ? { hostname: PREFETCH_PROXY_BYPASS_HOST } : {};
+    let host = cross_origin ? { hostname: get_host_info().NOTSAMESITE_HOST } : {};
     let nextUrl = agent.getExecutorURL({ page: 2, executor, ...host });
-    await agent.forceSinglePrefetch(nextUrl, { requires: ["anonymous-client-ip-when-cross-origin"] });
+    await agent.forceSinglePrefetch(nextUrl);
     await agent.navigate(nextUrl);
 
     let requestHeaders = await agent.getRequestHeaders();
@@ -32,14 +33,11 @@
     if (cross_origin) {
       assert_equals(request_credentials.username, undefined);
       assert_equals(request_credentials.password, undefined);
-
-      assert_prefetched_anonymous_client_ip(requestHeaders);
     }
     else {
       assert_equals(request_credentials.username, credentials.username);
       assert_equals(request_credentials.password, credentials.password);
-
-      assert_prefetched(await agent.getRequestHeaders());
     }
+    assert_prefetched(requestHeaders);
   }, "test www-authenticate basic does not forward credentials to cross-origin pages.");
 </script>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>CSS Test: font-feature-settings descriptor</title>
+<style>
+  @font-face {
+    font-family: "liga1";
+    src: url('support/fonts/LigatureSymbolsWithSpaces.woff');
+  }
+  .ligaOFF {
+    font-family: liga1;
+    font-feature-settings: "liga" off;
+  }
+</style>
+<body>
+ <p>Test passes if below line does not have a graph symbol.</p>
+ <div class="ligaOFF">
+  <span>This paragraph demonstrates the liga descriptor disabled through the @font-face rule.</span>
+</body>
+</html>

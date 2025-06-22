@@ -47,7 +47,7 @@ def get_route_builder_func(report):
 
         wave_handler = WaveHandler(wave_server)
         builder.add_handler("*", web_root + "*", wave_handler)
-        # serving wave specifc testharnessreport.js
+        # serving wave specific testharnessreport.js
         file_path = os.path.join(wpt.localpaths.repo_root, "tools/wave/resources/testharnessreport.js")
         builder.add_static(
             file_path,

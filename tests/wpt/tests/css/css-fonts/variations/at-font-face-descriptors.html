@@ -75,10 +75,10 @@
             { value: "100 a",                   isValid: false, description: "Extra content after value" },
 
             // Single value, calc
-            { value: "calc(100.5)",             isValid: true,  expectedValue: "100.5", description: "Simple calc value" },
-            { value: "calc(1001)",              isValid: true, description: "Out-of-range simple calc value (should be clamped)" },
-            { value: "calc(100.5*3 + 50.5)",    isValid: true,  expectedValue: "352", description: "Valid calc expression" },
-            { value: "calc(100.5*3 + 800)",     isValid: true, description: "Valid calc expression with out-of-range value (should be clamped)", expectedValue: "calc(1101.5)", },
+            { value: "calc(100.5)",             isValid: true,  expectedValue: "calc(100.5)", description: "Simple calc value" },
+            { value: "calc(1001)",              isValid: true, description: "Out-of-range simple calc value" },
+            { value: "calc(100.5*3 + 50.5)",    isValid: true,  expectedValue: "calc(352)", description: "Valid calc expression" },
+            { value: "calc(100.5*3 + 800)",     isValid: true,  expectedValue: "calc(1101.5)", description: "Valid calc expression with out-of-range value" },
             { value: "calc(100.5px + 50.5px)",  isValid: false, description: "Valid calc expression with units" },
 
             // Value range
@@ -86,9 +86,9 @@
             { value: "500 500",                         isValid: true,  expectedValue: "500", description: "Simple range with equal upper and lower bounds" },
             { value: "0.9 100",                         isValid: false, description: "Lower bound out of range" },
             { value: "100 1001",                        isValid: false, description: "Upper bound out of range" },
-            { value: "calc(100 + 100) 400",             isValid: true,  expectedValue: "200 400", description: "Lower bound calc()" },
-            { value: "200 calc(200 + 200)",             isValid: true,  expectedValue: "200 400", description: "Upper bound calc()" },
-            { value: "calc(100 + 100) calc(200 + 200)", isValid: true,  expectedValue: "200 400", description: "Both bounds are calc()" },
+            { value: "calc(100 + 100) 400",             isValid: true,  expectedValue: "calc(200) 400", description: "Lower bound calc()" },
+            { value: "200 calc(200 + 200)",             isValid: true,  expectedValue: "200 calc(400)", description: "Upper bound calc()" },
+            { value: "calc(100 + 100) calc(200 + 200)", isValid: true,  expectedValue: "calc(200) calc(400)", description: "Both bounds are calc()" },
             { value: "400 200",                         isValid: true,  expectedValue: "400 200", description: "Bounds out of order are valid" },
             { value: "100 200 300",                     isValid: false, description: "Extra content after upper bound" },
         ]);
@@ -118,8 +118,8 @@
             { value: "100% a",                  isValid: false, description:"Extra content after value" },
 
             // Single value, calc
-            { value: "calc(200.5%)",            isValid: true,  expectedValue: "200.5%", description: "Simple calc value" },
-            { value: "calc(50%*2 - 20%)",       isValid: true,  expectedValue: "80%", description: "Valid calc expression" },
+            { value: "calc(200.5%)",            isValid: true,  expectedValue: "calc(200.5%)", description: "Simple calc value" },
+            { value: "calc(50%*2 - 20%)",       isValid: true,  expectedValue: "calc(80%)", description: "Valid calc expression" },
             { value: "calc(-100%)",             isValid: true,  description: "Negative calc value (to be clamped)" },
             { value: "calc(50% - 50%*2)",       isValid: true,  expectedValue: "calc(-50%)", description: "Negative calc expression (to be clamped)" },
             { value: "calc(100)",               isValid: false, description: "Unit-less calc value" },
@@ -129,9 +129,9 @@
             { value: "100% 200%",                       isValid: true,  description: "Simple range" },
             { value: "100% 100%",                       isValid: true,  expectedValue: "100%", description: "Simple range with equal upper and lower bounds" },
             { value: "-100% 100%",                      isValid: false, description: "Lower bound out of range" },
-            { value: "calc(10% + 10%) 30%",             isValid: true,  expectedValue: "20% 30%", description: "Lower bound calc()" },
-            { value: "10% calc(10% + 10%)",             isValid: true,  expectedValue: "10% 20%", description: "Upper bound calc()" },
-            { value: "calc(10% + 10%) calc(20% + 20%)", isValid: true,  expectedValue: "20% 40%", description: "Both bounds are calc()" },
+            { value: "calc(10% + 10%) 30%",             isValid: true,  expectedValue: "calc(20%) 30%", description: "Lower bound calc()" },
+            { value: "10% calc(10% + 10%)",             isValid: true,  expectedValue: "10% calc(20%)", description: "Upper bound calc()" },
+            { value: "calc(10% + 10%) calc(20% + 20%)", isValid: true,  expectedValue: "calc(20%) calc(40%)", description: "Both bounds are calc()" },
             { value: "200% 100%",                       isValid: true,  expectedValue: "200% 100%", description: "Bounds out of order" },
             { value: "100% 200% 300%",                  isValid: false, description: "Extra content after upper bound" },
         ]);

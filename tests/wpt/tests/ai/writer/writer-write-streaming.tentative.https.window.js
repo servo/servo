@@ -21,8 +21,12 @@ promise_test(async () => {
 
 promise_test(async (t) => {
   const writer = await createWriter();
+  const stream = writer.writeStreaming(kTestPrompt);
+
   writer.destroy();
-  assert_throws_dom('InvalidStateError', () => writer.writeStreaming(kTestPrompt));
+
+  await promise_rejects_dom(
+    t, 'AbortError', stream.pipeTo(new WritableStream()));
 }, 'Writer.writeStreaming() fails after destroyed');
 
 promise_test(async t => {

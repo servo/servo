@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+
+<html>
+
+<title>Tests that when an anchor name is mutated, the anchor-positioned element adjusts to the new anchor</title>
+
+<link rel="author" href="mailto:kiet.ho@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#name">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/rendering-utils.js"></script>
+
+<style>
+    .containing-block {
+        position: relative;
+        width: 300px;
+        height: 300px;
+
+        border: 1px black solid;
+    }
+
+    .cell {
+        width: 100px;
+        height: 100px;
+    }
+
+    #anchor-1 {
+        position: absolute;
+        top: 0;
+        left: 0;
+
+        background: green;
+    }
+
+    #anchor-2 {
+        position: absolute;
+        top: 100px;
+        left: 0;
+
+        background: blue;
+    }
+
+    .anchor {
+        anchor-name: --anchor;
+    }
+
+    #anchor-positioned {
+        background: orange;
+
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+
+    .positioned-using-anchor-function-explicit-name {
+        position: absolute;
+        top: anchor(--anchor bottom) !important;
+        left: anchor(--anchor right) !important;
+    }
+
+    .positioned-using-anchor-function-implicit-name {
+        position: absolute;
+        position-anchor: --anchor;
+
+        top: anchor(bottom) !important;
+        left: anchor(right) !important;
+    }
+
+    .positioned-using-position-area {
+        position: absolute;
+        position-anchor: --anchor;
+
+        position-area: bottom right;
+    }
+</style>
+
+<body>
+    <main id="main">
+    </main>
+
+    <template id="test-template">
+        <div class="containing-block">
+            <div class="cell" id="anchor-1"></div>
+            <div class="cell" id="anchor-2"></div>
+            <div class="cell" id="anchor-positioned"></div>
+        </div>
+    </template>
+
+    <script>
+        function inflate(t, template_element) {
+            const main_element = document.getElementById("main");
+
+            t.add_cleanup(() => main_element.replaceChildren());
+            main_element.append(template_element.content.cloneNode(true));
+        }
+
+        const test_template = document.getElementById("test-template");
+
+        const positioning_methods = [
+            "positioned-using-anchor-function-explicit-name",
+            "positioned-using-anchor-function-implicit-name",
+            "positioned-using-position-area"
+        ]
+
+        for (let positioning_method of positioning_methods) {
+            promise_test(async (t) => {
+                inflate(t, test_template);
+
+                const anchor1 = document.getElementById("anchor-1");
+                const anchorPositioned = document.getElementById("anchor-positioned");
+
+                anchorPositioned.classList.add(positioning_method);
+
+                // Here, anchorPositioned should be at the default location (top-left of containing block)
+                // This is because the anchor elements don't have an anchor name yet.
+                assert_equals(anchorPositioned.offsetTop, 0);
+                assert_equals(anchorPositioned.offsetLeft, 0);
+
+                anchor1.classList.add("anchor");
+
+                // Here, anchorPositioned should be bottom-right of anchor1
+                assert_equals(anchorPositioned.offsetTop, 100);
+                assert_equals(anchorPositioned.offsetLeft, 100);
+            }, `Tests when an anchor-name is added later ${positioning_method}`);
+
+            promise_test(async (t) => {
+                inflate(t, test_template);
+
+                const anchor1 = document.getElementById("anchor-1");
+                const anchorPositioned = document.getElementById("anchor-positioned");
+
+                anchor1.classList.add("anchor");
+                anchorPositioned.classList.add(positioning_method);
+
+                // Here, anchorPositioned should be bottom-right of anchor1
+                assert_equals(anchorPositioned.offsetTop, 100);
+                assert_equals(anchorPositioned.offsetLeft, 100);
+
+                anchor1.classList.remove("anchor");
+
+                // Here, anchorPositioned should be at the default location (top-left of containing block)
+                // This is because the anchor elements don't have an anchor name.
+                assert_equals(anchorPositioned.offsetTop, 0);
+                assert_equals(anchorPositioned.offsetLeft, 0);
+            }, `Tests when an anchor-name is removed later ${positioning_method}`);
+
+            promise_test(async (t) => {
+                inflate(t, test_template);
+
+                const anchor1 = document.getElementById("anchor-1");
+                const anchor2 = document.getElementById("anchor-2");
+                const anchorPositioned = document.getElementById("anchor-positioned");
+
+                anchor1.classList.add("anchor");
+                anchorPositioned.classList.add(positioning_method);
+
+                // Here, anchorPositioned should be bottom-right of anchor1
+                assert_equals(anchorPositioned.offsetTop, 100);
+                assert_equals(anchorPositioned.offsetLeft, 100);
+
+                anchor1.classList.remove("anchor");
+                anchor2.classList.add("anchor");
+
+                // Here, anchorPositioned should be bottom-right of anchor2
+                assert_equals(anchorPositioned.offsetTop, 200);
+                assert_equals(anchorPositioned.offsetLeft, 100);
+            }, `Tests when an anchor-name moves from one element to another ${positioning_method}`);
+
+            promise_test(async (t) => {
+                inflate(t, test_template);
+
+                const anchor1 = document.getElementById("anchor-1");
+                const anchor2 = document.getElementById("anchor-2");
+                const anchorPositioned = document.getElementById("anchor-positioned");
+
+                anchor1.classList.add("anchor");
+                anchorPositioned.classList.add(positioning_method);
+
+                // Here, anchorPositioned should be bottom-right of anchor1
+                assert_equals(anchorPositioned.offsetTop, 100);
+                assert_equals(anchorPositioned.offsetLeft, 100);
+
+                anchor2.classList.add("anchor");
+
+                // Here, anchorPositioned should be bottom-right of anchor2
+                assert_equals(anchorPositioned.offsetTop, 200);
+                assert_equals(anchorPositioned.offsetLeft, 100);
+            }, `Tests when a new anchor candidate is added (which wins out previous anchor) ${positioning_method}`);
+
+
+            promise_test(async (t) => {
+                inflate(t, test_template);
+
+                const anchor1 = document.getElementById("anchor-1");
+                const anchor2 = document.getElementById("anchor-2");
+                const anchorPositioned = document.getElementById("anchor-positioned");
+
+                anchor2.classList.add("anchor");
+                anchorPositioned.classList.add(positioning_method);
+
+                // Here, anchorPositioned should be bottom-right of anchor2
+                assert_equals(anchorPositioned.offsetTop, 200);
+                assert_equals(anchorPositioned.offsetLeft, 100);
+
+                anchor1.classList.add("anchor");
+
+                // Here, anchorPositioned should be bottom-right of anchor2
+                assert_equals(anchorPositioned.offsetTop, 200);
+                assert_equals(anchorPositioned.offsetLeft, 100);
+            }, `Tests when a new anchor candidate is added (which loses out previous anchor) ${positioning_method}`);
+        }
+    </script>
+
+</body>
+
+</html>

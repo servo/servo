@@ -43,6 +43,16 @@ test_serialization(
     'calc(0.5)',
     '0.5'
 );
+test_serialization(
+    'calc(0.5 * progress(200px, 0px, 100px))',
+    'calc(0.5)',
+    '0.5'
+);
+test_serialization(
+    'calc(0.5 * progress(-100px, 0px, 100px))',
+    'calc(0)',
+    '0'
+);
 test_specified_serialization(
     'width',
     'calc(50px * progress(100px, 0px, 100px))',
