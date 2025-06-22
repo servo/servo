@@ -16,6 +16,10 @@ typedef (HTMLOrSVGImageElement or
          /*VideoFrame or*/
          /*CSSImageValue*/ CSSStyleValue) CanvasImageSource;
 
+enum PredefinedColorSpace { "srgb"/*, "display-p3"*/ };
+
+enum CanvasColorType { "unorm8", "float16" };
+
 enum CanvasFillRule { "nonzero", "evenodd" };
 
 [Exposed=Window]
@@ -250,17 +254,28 @@ interface CanvasPattern {
   //undefined setTransform(optional DOMMatrix2DInit transform = {});
 };
 
+// TODO: Float16Array
+typedef Uint8ClampedArray ImageDataArray;
+
+enum ImageDataPixelFormat { "rgba-unorm8"/*, "rgba-float16"*/ };
+
+dictionary ImageDataSettings {
+  PredefinedColorSpace colorSpace;
+  ImageDataPixelFormat pixelFormat = "rgba-unorm8";
+};
+
 [Exposed=(Window,Worker),
  Serializable]
 interface ImageData {
-  [Throws] constructor(unsigned long sw, unsigned long sh/*, optional ImageDataSettings settings = {}*/);
-  [Throws] constructor(Uint8ClampedArray data, unsigned long sw, optional unsigned long sh
-              /*, optional ImageDataSettings settings = {}*/);
+  [Throws] constructor(unsigned long sw, unsigned long sh, optional ImageDataSettings settings = {});
+  [Throws] constructor(ImageDataArray data, unsigned long sw,
+                       optional unsigned long sh, optional ImageDataSettings settings = {});
 
   readonly attribute unsigned long width;
   readonly attribute unsigned long height;
-  [Throws] readonly attribute Uint8ClampedArray data;
-  //readonly attribute PredefinedColorSpace colorSpace;
+  [Throws] readonly attribute ImageDataArray data;
+  readonly attribute ImageDataPixelFormat pixelFormat;
+  readonly attribute PredefinedColorSpace colorSpace;
 };
 
 [Exposed=(Window,Worker)]
