@@ -5,6 +5,8 @@
 use std::borrow::Cow;
 
 use constellation_traits::{LoadData, LoadOrigin};
+/// Used to determine which inline check to run
+pub use content_security_policy::InlineCheckType;
 use content_security_policy::{
     CheckResult, CspList, Destination, Element as CspElement, Initiator, NavigationCheckType,
     Origin, ParserMetadata, PolicyDisposition, PolicySource, Request, ViolationResource,
@@ -23,136 +25,175 @@ use crate::dom::node::{Node, NodeTraits};
 use crate::dom::window::Window;
 use crate::security_manager::CSPViolationReportTask;
 
-/// <https://www.w3.org/TR/CSP/#can-compile-strings>
-pub(crate) fn is_js_evaluation_allowed(global: &GlobalScope, source: &str) -> bool {
-    let Some(csp_list) = global.get_csp_list() else {
-        return true;
-    };
-
-    let (is_js_evaluation_allowed, violations) = csp_list.is_js_evaluation_allowed(source);
-
-    report_csp_violations(global, violations, None);
-
-    is_js_evaluation_allowed == CheckResult::Allowed
+pub(crate) trait CspReporting {
+    fn is_js_evaluation_allowed(&self, global: &GlobalScope, source: &str) -> bool;
+    fn is_wasm_evaluation_allowed(&self, global: &GlobalScope) -> bool;
+    fn should_navigation_request_be_blocked(
+        &self,
+        global: &GlobalScope,
+        load_data: &LoadData,
+        element: Option<&Element>,
+    ) -> bool;
+    fn should_elements_inline_type_behavior_be_blocked(
+        &self,
+        global: &GlobalScope,
+        el: &Element,
+        type_: InlineCheckType,
+        source: &str,
+    ) -> bool;
+    fn is_trusted_type_policy_creation_allowed(
+        &self,
+        global: &GlobalScope,
+        policy_name: String,
+        created_policy_names: Vec<String>,
+    ) -> bool;
+    fn does_sink_type_require_trusted_types(
+        &self,
+        sink_group: &str,
+        include_report_only_policies: bool,
+    ) -> bool;
+    fn should_sink_type_mismatch_violation_be_blocked_by_csp(
+        &self,
+        global: &GlobalScope,
+        sink: &str,
+        sink_group: &str,
+        source: &str,
+    ) -> bool;
 }
 
-/// <https://www.w3.org/TR/CSP/#can-compile-wasm-bytes>
-pub(crate) fn is_wasm_evaluation_allowed(global: &GlobalScope) -> bool {
-    let Some(csp_list) = global.get_csp_list() else {
-        return true;
-    };
+impl CspReporting for Option<CspList> {
+    /// <https://www.w3.org/TR/CSP/#can-compile-strings>
+    fn is_js_evaluation_allowed(&self, global: &GlobalScope, source: &str) -> bool {
+        let Some(csp_list) = self else {
+            return true;
+        };
 
-    let (is_wasm_evaluation_allowed, violations) = csp_list.is_wasm_evaluation_allowed();
+        let (is_js_evaluation_allowed, violations) = csp_list.is_js_evaluation_allowed(source);
 
-    report_csp_violations(global, violations, None);
+        report_csp_violations(global, violations, None);
 
-    is_wasm_evaluation_allowed == CheckResult::Allowed
-}
+        is_js_evaluation_allowed == CheckResult::Allowed
+    }
 
-/// <https://www.w3.org/TR/CSP/#should-block-navigation-request>
-pub(crate) fn should_navigation_request_be_blocked(
-    global: &GlobalScope,
-    load_data: &LoadData,
-    element: Option<&Element>,
-) -> bool {
-    let Some(csp_list) = global.get_csp_list() else {
-        return false;
-    };
-    let request = Request {
-        url: load_data.url.clone().into_url(),
-        origin: match &load_data.load_origin {
-            LoadOrigin::Script(immutable_origin) => immutable_origin.clone().into_url_origin(),
-            _ => Origin::new_opaque(),
-        },
-        // TODO: populate this field correctly
-        redirect_count: 0,
-        destination: Destination::None,
-        initiator: Initiator::None,
-        nonce: "".to_owned(),
-        integrity_metadata: "".to_owned(),
-        parser_metadata: ParserMetadata::None,
-    };
-    // TODO: set correct navigation check type for form submission if applicable
-    let (result, violations) =
-        csp_list.should_navigation_request_be_blocked(&request, NavigationCheckType::Other);
+    /// <https://www.w3.org/TR/CSP/#can-compile-wasm-bytes>
+    fn is_wasm_evaluation_allowed(&self, global: &GlobalScope) -> bool {
+        let Some(csp_list) = self else {
+            return true;
+        };
 
-    report_csp_violations(global, violations, element);
+        let (is_wasm_evaluation_allowed, violations) = csp_list.is_wasm_evaluation_allowed();
 
-    result == CheckResult::Blocked
-}
+        report_csp_violations(global, violations, None);
 
-/// Used to determine which inline check to run
-pub use content_security_policy::InlineCheckType;
+        is_wasm_evaluation_allowed == CheckResult::Allowed
+    }
 
-/// <https://www.w3.org/TR/CSP/#should-block-inline>
-pub(crate) fn should_elements_inline_type_behavior_be_blocked(
-    global: &GlobalScope,
-    el: &Element,
-    type_: InlineCheckType,
-    source: &str,
-) -> bool {
-    let Some(csp_list) = global.get_csp_list() else {
-        return false;
-    };
-    let element = CspElement {
-        nonce: el.nonce_value_if_nonceable().map(Cow::Owned),
-    };
-    let (result, violations) =
-        csp_list.should_elements_inline_type_behavior_be_blocked(&element, type_, source);
+    /// <https://www.w3.org/TR/CSP/#should-block-navigation-request>
+    fn should_navigation_request_be_blocked(
+        &self,
+        global: &GlobalScope,
+        load_data: &LoadData,
+        element: Option<&Element>,
+    ) -> bool {
+        let Some(csp_list) = self else {
+            return false;
+        };
+        let request = Request {
+            url: load_data.url.clone().into_url(),
+            origin: match &load_data.load_origin {
+                LoadOrigin::Script(immutable_origin) => immutable_origin.clone().into_url_origin(),
+                _ => Origin::new_opaque(),
+            },
+            // TODO: populate this field correctly
+            redirect_count: 0,
+            destination: Destination::None,
+            initiator: Initiator::None,
+            nonce: "".to_owned(),
+            integrity_metadata: "".to_owned(),
+            parser_metadata: ParserMetadata::None,
+        };
+        // TODO: set correct navigation check type for form submission if applicable
+        let (result, violations) =
+            csp_list.should_navigation_request_be_blocked(&request, NavigationCheckType::Other);
 
-    report_csp_violations(global, violations, Some(el));
+        report_csp_violations(global, violations, element);
 
-    result == CheckResult::Blocked
-}
+        result == CheckResult::Blocked
+    }
 
-/// <https://w3c.github.io/trusted-types/dist/spec/#should-block-create-policy>
-pub(crate) fn is_trusted_type_policy_creation_allowed(
-    global: &GlobalScope,
-    policy_name: String,
-    created_policy_names: Vec<String>,
-) -> bool {
-    let Some(csp_list) = global.get_csp_list() else {
-        return true;
-    };
+    /// <https://www.w3.org/TR/CSP/#should-block-inline>
+    fn should_elements_inline_type_behavior_be_blocked(
+        &self,
+        global: &GlobalScope,
+        el: &Element,
+        type_: InlineCheckType,
+        source: &str,
+    ) -> bool {
+        let Some(csp_list) = self else {
+            return false;
+        };
+        let element = CspElement {
+            nonce: el.nonce_value_if_nonceable().map(Cow::Owned),
+        };
+        let (result, violations) =
+            csp_list.should_elements_inline_type_behavior_be_blocked(&element, type_, source);
 
-    let (allowed_by_csp, violations) =
-        csp_list.is_trusted_type_policy_creation_allowed(policy_name, created_policy_names);
+        report_csp_violations(global, violations, Some(el));
 
-    report_csp_violations(global, violations, None);
+        result == CheckResult::Blocked
+    }
 
-    allowed_by_csp == CheckResult::Allowed
-}
+    /// <https://w3c.github.io/trusted-types/dist/spec/#should-block-create-policy>
+    fn is_trusted_type_policy_creation_allowed(
+        &self,
+        global: &GlobalScope,
+        policy_name: String,
+        created_policy_names: Vec<String>,
+    ) -> bool {
+        let Some(csp_list) = self else {
+            return true;
+        };
 
-/// <https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-does-sink-type-require-trusted-types>
-pub(crate) fn does_sink_type_require_trusted_types(
-    global: &GlobalScope,
-    sink_group: &str,
-    include_report_only_policies: bool,
-) -> bool {
-    let Some(csp_list) = global.get_csp_list() else {
-        return false;
-    };
+        let (allowed_by_csp, violations) =
+            csp_list.is_trusted_type_policy_creation_allowed(policy_name, created_policy_names);
 
-    csp_list.does_sink_type_require_trusted_types(sink_group, include_report_only_policies)
-}
+        report_csp_violations(global, violations, None);
 
-/// <https://w3c.github.io/trusted-types/dist/spec/#should-block-sink-type-mismatch>
-pub(crate) fn should_sink_type_mismatch_violation_be_blocked_by_csp(
-    global: &GlobalScope,
-    sink: &str,
-    sink_group: &str,
-    source: &str,
-) -> bool {
-    let Some(csp_list) = global.get_csp_list() else {
-        return false;
-    };
+        allowed_by_csp == CheckResult::Allowed
+    }
 
-    let (allowed_by_csp, violations) =
-        csp_list.should_sink_type_mismatch_violation_be_blocked_by_csp(sink, sink_group, source);
+    /// <https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-does-sink-type-require-trusted-types>
+    fn does_sink_type_require_trusted_types(
+        &self,
+        sink_group: &str,
+        include_report_only_policies: bool,
+    ) -> bool {
+        let Some(csp_list) = self else {
+            return false;
+        };
 
-    report_csp_violations(global, violations, None);
+        csp_list.does_sink_type_require_trusted_types(sink_group, include_report_only_policies)
+    }
 
-    allowed_by_csp == CheckResult::Blocked
+    /// <https://w3c.github.io/trusted-types/dist/spec/#should-block-sink-type-mismatch>
+    fn should_sink_type_mismatch_violation_be_blocked_by_csp(
+        &self,
+        global: &GlobalScope,
+        sink: &str,
+        sink_group: &str,
+        source: &str,
+    ) -> bool {
+        let Some(csp_list) = self else {
+            return false;
+        };
+
+        let (allowed_by_csp, violations) = csp_list
+            .should_sink_type_mismatch_violation_be_blocked_by_csp(sink, sink_group, source);
+
+        report_csp_violations(global, violations, None);
+
+        allowed_by_csp == CheckResult::Blocked
+    }
 }
 
 /// Used to determine which inline check to run

@@ -98,7 +98,7 @@ use crate::dom::bindings::xmlname::{
 };
 use crate::dom::characterdata::CharacterData;
 use crate::dom::create::create_element;
-use crate::dom::csp::{InlineCheckType, should_elements_inline_type_behavior_be_blocked};
+use crate::dom::csp::{CspReporting, InlineCheckType};
 use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReaction, CustomElementState,
     is_valid_custom_element_name,
@@ -2259,16 +2259,20 @@ impl Element {
                 } else {
                     let win = self.owner_window();
                     let source = &**attr.value();
+                    let global = &self.owner_global();
                     // However, if the Should element's inline behavior be blocked by
                     // Content Security Policy? algorithm returns "Blocked" when executed
                     // upon the attribute's element, "style attribute", and the attribute's value,
                     // then the style rules defined in the attribute's value must not be applied to the element. [CSP]
-                    if should_elements_inline_type_behavior_be_blocked(
-                        &self.owner_global(),
-                        self,
-                        InlineCheckType::StyleAttribute,
-                        source,
-                    ) {
+                    if global
+                        .get_csp_list()
+                        .should_elements_inline_type_behavior_be_blocked(
+                            global,
+                            self,
+                            InlineCheckType::StyleAttribute,
+                            source,
+                        )
+                    {
                         return;
                     }
                     Arc::new(doc.style_shared_lock().wrap(parse_style_attribute(

@@ -71,7 +71,7 @@ use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::trace_roots;
 use crate::dom::bindings::utils::DOM_CALLBACKS;
 use crate::dom::bindings::{principals, settings_stack};
-use crate::dom::csp::{is_js_evaluation_allowed, is_wasm_evaluation_allowed};
+use crate::dom::csp::CspReporting;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -388,9 +388,11 @@ unsafe extern "C" fn content_security_policy_allows(
                     sample if !sample.is_null() => &jsstr_to_string(*cx, *sample),
                     _ => "",
                 };
-                is_js_evaluation_allowed(global, source)
+                global
+                    .get_csp_list()
+                    .is_js_evaluation_allowed(global, source)
             },
-            RuntimeCode::WASM => is_wasm_evaluation_allowed(global),
+            RuntimeCode::WASM => global.get_csp_list().is_wasm_evaluation_allowed(global),
         };
     });
     allowed

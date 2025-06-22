@@ -57,10 +57,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::NoTrace;
-use crate::dom::csp::{
-    InlineCheckType, Violation, report_csp_violations,
-    should_elements_inline_type_behavior_be_blocked,
-};
+use crate::dom::csp::{CspReporting, InlineCheckType, Violation, report_csp_violations};
 use crate::dom::document::Document;
 use crate::dom::element::{
     AttributeMutation, Element, ElementCreator, cors_setting_for_element,
@@ -766,14 +763,18 @@ impl HTMLScriptElement {
             return;
         }
 
+        let global = &doc.global();
+
         // Step 19. CSP.
         if !element.has_attribute(&local_name!("src")) &&
-            should_elements_inline_type_behavior_be_blocked(
-                &doc.global(),
-                element,
-                InlineCheckType::Script,
-                &text,
-            )
+            global
+                .get_csp_list()
+                .should_elements_inline_type_behavior_be_blocked(
+                    global,
+                    element,
+                    InlineCheckType::Script,
+                    &text,
+                )
         {
             warn!("Blocking inline script due to CSP");
             return;

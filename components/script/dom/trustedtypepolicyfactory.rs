@@ -16,10 +16,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::csp::{
-    does_sink_type_require_trusted_types, is_trusted_type_policy_creation_allowed,
-    should_sink_type_mismatch_violation_be_blocked_by_csp,
-};
+use crate::dom::csp::CspReporting;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::trustedhtml::TrustedHTML;
 use crate::dom::trustedscript::TrustedScript;
@@ -60,11 +57,13 @@ impl TrustedTypePolicyFactory {
     ) -> Fallible<DomRoot<TrustedTypePolicy>> {
         // Step 1: Let allowedByCSP be the result of executing Should Trusted Type policy creation be blocked by
         // Content Security Policy? algorithm with global, policyName and factory’s created policy names value.
-        let allowed_by_csp = is_trusted_type_policy_creation_allowed(
-            global,
-            policy_name.clone(),
-            self.policy_names.borrow().clone(),
-        );
+        let allowed_by_csp = global
+            .get_csp_list()
+            .is_trusted_type_policy_creation_allowed(
+                global,
+                policy_name.clone(),
+                self.policy_names.borrow().clone(),
+            );
 
         // Step 2: If allowedByCSP is "Blocked", throw a TypeError and abort further steps.
         if !allowed_by_csp {
@@ -198,7 +197,9 @@ impl TrustedTypePolicyFactory {
     ) -> Fallible<DOMString> {
         // Step 2: Let requireTrustedTypes be the result of executing Does sink type require trusted types?
         // algorithm, passing global, sinkGroup, and true.
-        let require_trusted_types = does_sink_type_require_trusted_types(global, sink_group, true);
+        let require_trusted_types = global
+            .get_csp_list()
+            .does_sink_type_require_trusted_types(sink_group, true);
         // Step 3: If requireTrustedTypes is false, return stringified input and abort these steps.
         if !require_trusted_types {
             return Ok(input);
@@ -219,9 +220,11 @@ impl TrustedTypePolicyFactory {
                 // Step 6.1: Let disposition be the result of executing Should sink type mismatch violation
                 // be blocked by Content Security Policy? algorithm, passing global,
                 // stringified input as source, sinkGroup and sink.
-                let is_blocked = should_sink_type_mismatch_violation_be_blocked_by_csp(
-                    global, sink, sink_group, &input,
-                );
+                let is_blocked = global
+                    .get_csp_list()
+                    .should_sink_type_mismatch_violation_be_blocked_by_csp(
+                        global, sink, sink_group, &input,
+                    );
                 // Step 6.2: If disposition is “Allowed”, return stringified input and abort further steps.
                 if !is_blocked {
                     Ok(input)

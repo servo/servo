@@ -55,7 +55,7 @@ use crate::dom::bindings::reflector::{
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::HashMapTracedValues;
-use crate::dom::csp::{InlineCheckType, should_elements_inline_type_behavior_be_blocked};
+use crate::dom::csp::{CspReporting, InlineCheckType};
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::errorevent::ErrorEvent;
@@ -556,12 +556,16 @@ impl EventTarget {
     ) {
         if let Some(element) = self.downcast::<Element>() {
             let doc = element.owner_document();
-            if should_elements_inline_type_behavior_be_blocked(
-                &doc.global(),
-                element.upcast(),
-                InlineCheckType::ScriptAttribute,
-                source,
-            ) {
+            let global = &doc.global();
+            if global
+                .get_csp_list()
+                .should_elements_inline_type_behavior_be_blocked(
+                    global,
+                    element.upcast(),
+                    InlineCheckType::ScriptAttribute,
+                    source,
+                )
+            {
                 return;
             }
         };

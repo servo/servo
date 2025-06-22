@@ -118,7 +118,7 @@ use crate::dom::bindings::root::{
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::{HashMapTracedValues, JSTraceable};
-use crate::dom::csp::{Violation, report_csp_violations, should_navigation_request_be_blocked};
+use crate::dom::csp::{CspReporting, Violation, report_csp_violations};
 use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReactionStack,
 };
@@ -622,9 +622,10 @@ impl ScriptThread {
                 let task = task!(navigate_javascript: move || {
                     // Important re security. See https://github.com/servo/servo/issues/23373
                     if let Some(window) = trusted_global.root().downcast::<Window>() {
+                        let global = &trusted_global.root();
                         // Step 5: If the result of should navigation request of type be blocked by
                         // Content Security Policy? given request and cspNavigationType is "Blocked", then return. [CSP]
-                        if should_navigation_request_be_blocked(&trusted_global.root(), &load_data, None) {
+                        if global.get_csp_list().should_navigation_request_be_blocked(global, &load_data, None) {
                             return;
                         }
                         if ScriptThread::check_load_origin(&load_data.load_origin, &window.get_url().origin()) {
