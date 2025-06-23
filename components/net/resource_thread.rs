@@ -526,7 +526,7 @@ where
     };
 
     serde_json::to_writer_pretty(&mut file, data).expect("Could not serialize to file");
-    trace!("successfully wrote to {}", display);
+    trace!("successfully wrote to {display}");
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
