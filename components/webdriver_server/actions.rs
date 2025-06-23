@@ -327,6 +327,22 @@ impl Handler {
     fn dispatch_keyup_action(&self, source_id: &str, action: &KeyUpAction) {
         let session = self.session().unwrap();
 
+        // Remove the last matching keyUp from `[input_cancel_list]` due to bugs in spec
+        // See https://github.com/w3c/webdriver/issues/1905 &&
+        // https://github.com/servo/servo/issues/37579#issuecomment-2990762713
+        {
+            let mut input_cancel_list = session.input_cancel_list.borrow_mut();
+            if let Some(pos) = input_cancel_list.iter().rposition(|(id, item)| {
+                id == source_id &&
+                    matches!(item,
+                        ActionItem::Key(KeyActionItem::Key(KeyAction::Up(KeyUpAction { value })))
+                    if *value == action.value )
+            }) {
+                info!("dispatch_keyup_action: removing last matching keyup from input_cancel_list");
+                input_cancel_list.remove(pos);
+            }
+        }
+
         let raw_key = action.value.chars().next().unwrap();
         let mut input_state_table = session.input_state_table.borrow_mut();
         let key_input_state = match input_state_table.get_mut(source_id).unwrap() {
@@ -395,6 +411,24 @@ impl Handler {
             return;
         }
         pointer_input_state.pressed.remove(&action.button);
+
+        // Remove matching pointerUp(must be unique) from `[input_cancel_list]` due to bugs in spec
+        // See https://github.com/w3c/webdriver/issues/1905 &&
+        // https://github.com/servo/servo/issues/37579#issuecomment-2990762713
+        {
+            let mut input_cancel_list = session.input_cancel_list.borrow_mut();
+            if let Some(pos) = input_cancel_list.iter().position(|(id, item)| {
+                id == source_id &&
+                    matches!(item, ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Up(
+                    PointerUpAction { button, .. },
+                ))) if *button == action.button )
+            }) {
+                info!(
+                    "dispatch_pointerup_action: removing matching pointerup from input_cancel_list"
+                );
+                input_cancel_list.remove(pos);
+            }
+        }
 
         self.increment_num_pending_actions();
         let msg_id = self.current_action_id.get();
