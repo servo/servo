@@ -209,7 +209,6 @@ pub(crate) trait GenericPathBuilder<B: Backend> {
         self.line_to(arc.from());
 
         if sweep.radians.abs() < 1e-3 {
-            self.move_to(arc.from());
             return;
         }
 
