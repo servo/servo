@@ -12,7 +12,6 @@ use chrono::{Local, LocalResult, TimeZone};
 use devtools_traits::{HttpRequest as DevtoolsHttpRequest, HttpResponse as DevtoolsHttpResponse};
 use headers::{ContentType, Cookie, HeaderMapExt};
 use http::{HeaderMap, Method, header};
-use net_traits::http_status::HttpStatus;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -20,25 +19,6 @@ use crate::StreamId;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::network_handler::Cause;
 use crate::protocol::JsonPacketStream;
-
-#[derive(Clone)]
-pub struct HttpRequest {
-    url: String,
-    method: Method,
-    headers: HeaderMap,
-    body: Option<Vec<u8>>,
-    started_date_time: SystemTime,
-    time_stamp: i64,
-    connect_time: Duration,
-    send_time: Duration,
-}
-
-#[derive(Clone)]
-pub struct HttpResponse {
-    headers: Option<HeaderMap>,
-    status: HttpStatus,
-    body: Option<Vec<u8>>,
-}
 
 pub struct NetworkEventActor {
     pub name: String,
@@ -60,7 +40,6 @@ pub struct NetworkEventActor {
     pub total_time: Duration,
     pub security_state: String,
     pub event_timing: Option<Timings>,
-
 }
 
 #[derive(Clone, Serialize)]
@@ -234,7 +213,8 @@ impl Actor for NetworkEventActor {
                 if let Some(ref headers_map) = self.request_headers_raw {
                     for (name, value) in headers_map.iter() {
                         let value = &value.to_str().unwrap().to_string();
-                        raw_headers_string = raw_headers_string + name.as_str() + ":" + value + "\r\n";
+                        raw_headers_string =
+                            raw_headers_string + name.as_str() + ":" + value + "\r\n";
                         headers_size += name.as_str().len() + value.len();
                         headers.push(Header {
                             name: name.as_str().to_owned(),
@@ -242,7 +222,7 @@ impl Actor for NetworkEventActor {
                         });
                     }
                 }
-                
+
                 let msg = GetRequestHeadersReply {
                     from: self.name(),
                     headers,
@@ -331,16 +311,14 @@ impl Actor for NetworkEventActor {
             },
             "getEventTimings" => {
                 // TODO: This is a fake timings msg
-                let timings_obj = self.event_timing
-                    .clone()
-                    .unwrap_or(Timings {
-                        blocked: 0,
-                        dns: 0,
-                        connect: self.total_time.as_millis() as u64 /2,
-                        send: self.total_time.as_millis() as u64 / 2,
-                        wait: 0,
-                        receive: 0,
-                    });
+                let timings_obj = self.event_timing.clone().unwrap_or(Timings {
+                    blocked: 0,
+                    dns: 0,
+                    connect: self.total_time.as_millis() as u64 / 2,
+                    send: self.total_time.as_millis() as u64 / 2,
+                    wait: 0,
+                    receive: 0,
+                });
                 // Might use the one on self
                 let total = timings_obj.connect + timings_obj.send;
                 // TODO: Send the correct values for all these fields.
@@ -369,7 +347,7 @@ impl Actor for NetworkEventActor {
 }
 
 impl NetworkEventActor {
-   pub fn new(name: String) -> NetworkEventActor {
+    pub fn new(name: String) -> NetworkEventActor {
         NetworkEventActor {
             name,
             is_xhr: false,
@@ -396,84 +374,39 @@ impl NetworkEventActor {
         }
     }
 
-
     pub fn add_request(&mut self, request: DevtoolsHttpRequest) {
         self.is_xhr = request.is_xhr;
 
-        let cookies_size = match request.headers.typed_get::<Cookie>() {
-            Some(cookie) => cookie.len(),
-            _ => 0,
-        };
-        self.request_cookies = Some(RequestCookiesMsg { cookies: cookies_size });
+        // let cookies_size = match request.headers.typed_get::<Cookie>() {
+        //     Some(cookie) => cookie.len(),
+        //     _ => 0,
+        // };
+        // self.request_cookies = Some(RequestCookiesMsg { cookies: cookies_size });
 
-        let headers_size = request.headers.iter().fold(0, |acc, (name, value)| {
-            acc + name.as_str().len() + value.len()
-        });
-        self.request_headers = Some(RequestHeadersMsg {
-            headers: request.headers.len(),
-            headers_size,
-        });
+        // let headers_size = request.headers.iter().fold(0, |acc, (name, value)| {
+        //     acc + name.as_str().len() + value.len()
+        // });
+        // self.request_headers = Some(RequestHeadersMsg {
+        //     headers: request.headers.len(),
+        //     headers_size,
+        // });
 
-        self.total_time = request.connect_time + request.send_time;
+        self.request_cookies = Some(Self::request_cookies(&request));
+        self.request_headers = Some(Self::request_headers(&request));
+        self.total_time = Self::total_time(&request);
         self.request_url = request.url.to_string();
         self.request_method = request.method;
         self.request_started = request.started_date_time;
         self.request_time_stamp = request.time_stamp;
         self.request_body = request.body.clone();
         self.request_headers_raw = Some(request.headers.clone());
-
-        
     }
 
     pub fn add_response(&mut self, response: DevtoolsHttpResponse) {
-        let headers = &response.headers;
-        // response_headers
-        let mut header_count = 0;
-        let mut header_size = 0;
-        if let Some(ref headers) = self.response_headers_raw {
-            for (name, value) in headers.iter() {
-                header_count += 1;
-                header_size += name.as_str().len() + value.len();
-            }
-        }
-        self.response_headers = Some(ResponseHeadersMsg {
-            headers: header_count,
-            headers_size: header_size,
-        });
-
-        // response_cookies
-        let cookies_size = match headers.as_ref().and_then(|h| h.typed_get::<Cookie>()) {
-            Some(cookie) => cookie.len(),
-            _ => 0,
-        };
-
-        self.response_cookies = Some(ResponseCookiesMsg {
-            cookies: cookies_size,
-        });
-
-        // response_start
-        self.response_start = Some(ResponseStartMsg {
-            http_version: "HTTP/1.1".to_owned(),
-            remote_address: "63.245.217.43".to_owned(), // TODO
-            remote_port: 443,
-            status: response.status.code().to_string(),
-            status_text: String::from_utf8_lossy(response.status.message()).to_string(),
-            headers_size: header_count,
-            discard_response_body: false,
-        });
-
-        // response_content
-        let mime_type = headers
-            .as_ref()
-            .and_then(|h| h.typed_get::<ContentType>())
-            .map(|ct| ct.to_string())
-            .unwrap_or_default();
-        self.response_content = Some(ResponseContentMsg {
-            mime_type,
-            content_size: 0, // TODO
-            transferred_size: 0,
-            discard_response_body: true,
-        });
+        self.response_headers = Some(Self::response_headers(&response));
+        self.response_cookies = Some(Self::response_cookies(&response));
+        self.response_start = Some(Self::response_start(&response));
+        self.response_content = Some(Self::response_content(&response));
         self.response_body = response.body.clone();
         self.response_headers_raw = response.headers.clone();
     }
@@ -513,6 +446,96 @@ impl NetworkEventActor {
                 loading_document_uri: None, // Set if available
             },
         }
+    }
+
+    pub fn response_start(response: &DevtoolsHttpResponse) -> ResponseStartMsg {
+        // TODO: Send the correct values for all these fields.
+        let h_size = response.headers.as_ref().map(|h| h.len()).unwrap_or(0);
+        let status = &response.status;
+
+        // TODO: Send the correct values for remoteAddress and remotePort and http_version
+        ResponseStartMsg {
+            http_version: "HTTP/1.1".to_owned(),
+            remote_address: "63.245.217.43".to_owned(),
+            remote_port: 443,
+            status: status.code().to_string(),
+            status_text: String::from_utf8_lossy(status.message()).to_string(),
+            headers_size: h_size,
+            discard_response_body: false,
+        }
+    }
+
+    pub fn response_content(response: &DevtoolsHttpResponse) -> ResponseContentMsg {
+        let mime_type = response
+            .headers
+            .as_ref()
+            .and_then(|h| h.typed_get::<ContentType>())
+            .map(|ct| ct.to_string())
+            .unwrap_or_default();
+
+        // TODO: Set correct values when response's body is sent to the devtools in http_loader.
+        ResponseContentMsg {
+            mime_type,
+            content_size: 0,
+            transferred_size: 0,
+            discard_response_body: true,
+        }
+    }
+
+    pub fn response_cookies(response: &DevtoolsHttpResponse) -> ResponseCookiesMsg {
+        let cookies_size = response
+            .headers
+            .as_ref()
+            .and_then(|h| h.typed_get::<Cookie>())
+            .map(|c| c.len())
+            .unwrap_or(0);
+        ResponseCookiesMsg {
+            cookies: cookies_size,
+        }
+    }
+
+    pub fn response_headers(response: &DevtoolsHttpResponse) -> ResponseHeadersMsg {
+        let mut header_size = 0;
+        let mut headers_byte_count = 0;
+        if let Some(ref headers) = response.headers {
+            for (name, value) in headers.iter() {
+                header_size += 1;
+                headers_byte_count += name.as_str().len() + value.len();
+            }
+        }
+        ResponseHeadersMsg {
+            headers: header_size,
+            headers_size: headers_byte_count,
+        }
+    }
+
+    pub fn request_headers(request: &DevtoolsHttpRequest) -> RequestHeadersMsg {
+        let size = request.headers.iter().fold(0, |acc, (name, value)| {
+            acc + name.as_str().len() + value.len()
+        });
+        RequestHeadersMsg {
+            headers: request.headers.len(),
+            headers_size: size,
+        }
+    }
+
+    pub fn request_cookies(request: &DevtoolsHttpRequest) -> RequestCookiesMsg {
+        // let cookies_size = match request.headers.typed_get::<Cookie>() {
+        //     Some(cookie) => cookie.len(),
+        //     _ => 0,
+        // };
+        let cookies_size = request
+            .headers
+            .typed_get::<Cookie>()
+            .map(|c| c.len())
+            .unwrap_or(0);
+        RequestCookiesMsg {
+            cookies: cookies_size,
+        }
+    }
+
+    pub fn total_time(request: &DevtoolsHttpRequest) -> Duration {
+        request.connect_time + request.send_time
     }
 
     fn insert_serialized_map<T: Serialize>(map: &mut Map<String, Value>, obj: &Option<T>) {
