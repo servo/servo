@@ -7,16 +7,21 @@ use std::rc::Rc;
 use constellation_traits::ScriptToConstellationMessage;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use net_traits::{CoreResourceMsg, IpcSend};
 use profile_traits::mem::MemoryReportResult;
+use script_bindings::inheritance::Castable;
 use script_bindings::interfaces::ServoInternalsHelpers;
 use script_bindings::script_runtime::JSContext;
+use script_bindings::str::ByteString;
 
 use crate::dom::bindings::codegen::Bindings::ServoInternalsBinding::ServoInternalsMethods;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::dom::window::Window;
 use crate::realms::{AlreadyInRealm, InRealm};
 use crate::routed_promise::{RoutedPromiseListener, route_promise};
 use crate::script_runtime::CanGc;
@@ -55,6 +60,14 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
         }
         promise
     }
+
+    /// <https://servo.org/internal-no-spec>
+    fn AllowCertOverride(&self, cert: ByteString) {
+        let _ = self
+            .global()
+            .resource_threads()
+            .send(CoreResourceMsg::OverrideCert(cert.to_vec()));
+    }
 }
 
 impl RoutedPromiseListener<MemoryReportResult> for ServoInternals {
@@ -73,7 +86,11 @@ impl ServoInternalsHelpers for ServoInternals {
             let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
             let global_scope = GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
             let url = global_scope.get_url();
-            url.scheme() == "about" && url.as_str() != "about:blank"
+            let is_safe_about_url = url.scheme() == "about" && url.as_str() != "about:blank";
+            let is_internal_document = global_scope
+                .downcast::<Window>()
+                .is_some_and(|window| window.Document().is_internal_content());
+            is_safe_about_url || is_internal_document
         }
     }
 }
