@@ -517,11 +517,8 @@ impl Handler {
     }
 
     fn focus_webview_id(&self) -> WebDriverResult<WebViewId> {
-        debug!("Getting focused context.");
         let (sender, receiver) = ipc::channel().unwrap();
-
-        let msg = EmbedderToConstellationMessage::GetFocusTopLevelBrowsingContext(sender.clone());
-        self.constellation_chan.send(msg).unwrap();
+        self.send_message_to_embedder(WebDriverCommandMsg::GetFocusedWebView(sender.clone()))?;
         // Wait until the document is ready before returning the top-level browsing context id.
         match wait_for_script_response(receiver)? {
             Some(webview_id) => Ok(webview_id),
@@ -807,9 +804,7 @@ impl Handler {
 
         self.verify_top_level_browsing_context_is_open(webview_id)?;
 
-        let _ = self
-            .embedder_sender
-            .send(WebDriverCommandMsg::GetWindowSize(webview_id, sender));
+        self.send_message_to_embedder(WebDriverCommandMsg::GetWindowSize(webview_id, sender))?;
 
         let window_size = wait_for_script_response(receiver)?;
         let window_size_response = WindowRectResponse {
@@ -843,21 +838,21 @@ impl Handler {
         // return error with error code no such window.
         self.verify_top_level_browsing_context_is_open(webview_id)?;
 
-        let _ = self
-            .embedder_sender
-            .send(WebDriverCommandMsg::SetWindowSize(
-                webview_id,
-                size.to_i32(),
-                sender.clone(),
-            ));
+        self.send_message_to_embedder(WebDriverCommandMsg::SetWindowSize(
+            webview_id,
+            size.to_i32(),
+            sender.clone(),
+        ))?;
 
         let timeout = self.resize_timeout;
         let embedder_sender = self.embedder_sender.clone();
+        let wakeer = self.event_loop_waker.clone();
         thread::spawn(move || {
             // On timeout, we send a GetWindowSize message to the constellation,
             // which will give the current window size.
             thread::sleep(Duration::from_millis(timeout as u64));
             let _ = embedder_sender.send(WebDriverCommandMsg::GetWindowSize(webview_id, sender));
+            wakeer.wake();
         });
 
         let window_size = wait_for_script_response(receiver)?;
@@ -1142,7 +1137,7 @@ impl Handler {
             session.browsing_context_id = BrowsingContextId::from(webview_id);
 
             let msg = WebDriverCommandMsg::FocusWebView(webview_id);
-            let _ = self.embedder_sender.send(msg);
+            self.send_message_to_embedder(msg)?;
             Ok(WebDriverResponse::Void)
         } else {
             Err(WebDriverError::new(

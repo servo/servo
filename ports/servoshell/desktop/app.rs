@@ -377,6 +377,10 @@ impl App {
                     }
                 },
                 WebDriverCommandMsg::GetViewportSize(..) => {},
+                WebDriverCommandMsg::GetFocusedWebView(sender) => {
+                    let focused_webview = running_state.focused_webview();
+                    sender.send(focused_webview.map(|w| w.id())).unwrap();
+                },
                 WebDriverCommandMsg::LoadUrl(..) |
                 WebDriverCommandMsg::ScriptCommand(..) |
                 WebDriverCommandMsg::SendKeys(..) |

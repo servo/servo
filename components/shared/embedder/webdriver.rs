@@ -109,6 +109,8 @@ pub enum WebDriverCommandMsg {
     CloseWebView(WebViewId),
     /// Focus the webview associated with the provided id.
     FocusWebView(WebViewId),
+    /// Get focused webview.
+    GetFocusedWebView(IpcSender<Option<WebViewId>>),
     /// Check whether top-level browsing context is open.
     IsWebViewOpen(WebViewId, IpcSender<bool>),
     /// Check whether browsing context is open.

@@ -4738,6 +4738,9 @@ where
                     response_sender,
                 ));
             },
+            _ => {
+                warn!("Unhandled WebDriver command: {:?}", msg);
+            },
         }
     }
 
