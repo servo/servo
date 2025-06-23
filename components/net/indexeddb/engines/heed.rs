@@ -72,6 +72,8 @@ impl KvsEngine for HeedEngine {
             .create_database(&mut write_txn, Some(&*store_name.to_string()))
             .expect("Failed to create idb store");
 
+        write_txn.commit().expect("Failed to commit transaction");
+
         let key_generator = { if auto_increment { Some(0) } else { None } };
 
         let store = Store {
@@ -96,6 +98,8 @@ impl KvsEngine for HeedEngine {
             .create_database(&mut write_txn, Some(&*store_name.to_string()))
             .expect("Failed to create idb store");
         store.clear(&mut write_txn).expect("Could not clear store");
+        write_txn.commit().expect("Failed to commit transaction");
+
         let mut open_stores = self.open_stores.write().unwrap();
         open_stores.retain(|key, _| key != &store_name);
     }
