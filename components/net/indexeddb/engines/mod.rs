@@ -57,12 +57,18 @@ pub struct KvsTransaction {
 }
 
 pub trait KvsEngine {
-    fn create_store(&self, store_name: SanitizedName, auto_increment: bool);
+    type Error;
 
-    fn delete_store(&self, store_name: SanitizedName);
+    fn create_store(
+        &self,
+        store_name: SanitizedName,
+        auto_increment: bool,
+    ) -> Result<(), Self::Error>;
+
+    fn delete_store(&self, store_name: SanitizedName) -> Result<(), Self::Error>;
 
     #[expect(dead_code)]
-    fn close_store(&self, store_name: SanitizedName);
+    fn close_store(&self, store_name: SanitizedName) -> Result<(), Self::Error>;
 
     fn process_transaction(
         &self,

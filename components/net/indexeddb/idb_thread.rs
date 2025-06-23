@@ -135,9 +135,13 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         store_name: SanitizedName,
         auto_increment: bool,
     ) {
-        self.engine.create_store(store_name, auto_increment);
+        let result = self.engine.create_store(store_name, auto_increment);
 
-        let _ = sender.send(Ok(()));
+        if result.is_ok() {
+            let _ = sender.send(Ok(()));
+        } else {
+            let _ = sender.send(Err(()));
+        }
     }
 
     fn delete_object_store(
@@ -145,9 +149,13 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         sender: IpcSender<Result<(), ()>>,
         store_name: SanitizedName,
     ) {
-        self.engine.delete_store(store_name);
+        let result = self.engine.delete_store(store_name);
 
-        let _ = sender.send(Ok(()));
+        if result.is_ok() {
+            let _ = sender.send(Ok(()));
+        } else {
+            let _ = sender.send(Err(()));
+        }
     }
 }
 
