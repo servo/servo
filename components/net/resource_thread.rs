@@ -517,10 +517,6 @@ pub fn write_json_to_file<T>(data: &T, config_dir: &Path, filename: &str)
 where
     T: Serialize,
 {
-    let json_encoded: String = match serde_json::to_string_pretty(&data) {
-        Ok(d) => d,
-        Err(_) => return,
-    };
     let path = config_dir.join(filename);
     let display = path.display();
 
@@ -529,10 +525,8 @@ where
         Ok(file) => file,
     };
 
-    match file.write_all(json_encoded.as_bytes()) {
-        Err(why) => panic!("couldn't write to {}: {}", display, why),
-        Ok(_) => trace!("successfully wrote to {}", display),
-    }
+    serde_json::to_writer_pretty(&mut file, data).expect("Could not serialize to file");
+    trace!("successfully wrote to {}", display);
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
