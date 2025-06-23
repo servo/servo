@@ -376,24 +376,10 @@ impl NetworkEventActor {
 
     pub fn add_request(&mut self, request: DevtoolsHttpRequest) {
         self.is_xhr = request.is_xhr;
-
-        // let cookies_size = match request.headers.typed_get::<Cookie>() {
-        //     Some(cookie) => cookie.len(),
-        //     _ => 0,
-        // };
-        // self.request_cookies = Some(RequestCookiesMsg { cookies: cookies_size });
-
-        // let headers_size = request.headers.iter().fold(0, |acc, (name, value)| {
-        //     acc + name.as_str().len() + value.len()
-        // });
-        // self.request_headers = Some(RequestHeadersMsg {
-        //     headers: request.headers.len(),
-        //     headers_size,
-        // });
-
         self.request_cookies = Some(Self::request_cookies(&request));
         self.request_headers = Some(Self::request_headers(&request));
         self.total_time = Self::total_time(&request);
+        self.event_timing = Some(Self::event_timing(&request));
         self.request_url = request.url.to_string();
         self.request_method = request.method;
         self.request_started = request.started_date_time;
@@ -520,10 +506,6 @@ impl NetworkEventActor {
     }
 
     pub fn request_cookies(request: &DevtoolsHttpRequest) -> RequestCookiesMsg {
-        // let cookies_size = match request.headers.typed_get::<Cookie>() {
-        //     Some(cookie) => cookie.len(),
-        //     _ => 0,
-        // };
         let cookies_size = request
             .headers
             .typed_get::<Cookie>()
@@ -536,6 +518,17 @@ impl NetworkEventActor {
 
     pub fn total_time(request: &DevtoolsHttpRequest) -> Duration {
         request.connect_time + request.send_time
+    }
+
+    pub fn event_timing(request: &DevtoolsHttpRequest) -> Timings {
+        Timings {
+            blocked: 0,
+            dns: 0,
+            connect: request.connect_time.as_millis() as u64,
+            send: request.send_time.as_millis() as u64,
+            wait: 0,
+            receive: 0,
+        }
     }
 
     fn insert_serialized_map<T: Serialize>(map: &mut Map<String, Value>, obj: &Option<T>) {
