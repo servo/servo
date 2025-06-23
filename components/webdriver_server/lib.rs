@@ -64,7 +64,7 @@ use webdriver::response::{
 };
 use webdriver::server::{self, Session, SessionTeardownKind, WebDriverHandler};
 
-use crate::actions::{ActionItem, ActionsByTick, InputSourceState, PointerInputState};
+use crate::actions::{ActionItem, InputSourceState, PointerInputState};
 
 #[derive(Default)]
 pub struct WebDriverMessageIdGenerator {
@@ -1759,16 +1759,13 @@ impl Handler {
 
         // Step 6. Let undo actions be input cancel list in reverse order.
 
-        let undo_actions: ActionsByTick = {
-            // Drop the mut borrow ASAP to avoid "already borrowed: BorrowMutError",
-            // as `dispatch_actions` later may also MutBorrow `input_cancel_list`
-            let mut input_cancel_list = session.input_cancel_list.borrow_mut();
-            input_cancel_list
-                .drain(..)
-                .rev()
-                .map(|(id, action_item)| HashMap::from([(id, action_item)]))
-                .collect()
-        };
+        let undo_actions = session
+            .input_cancel_list
+            .borrow_mut()
+            .drain(..)
+            .rev()
+            .map(|(id, action_item)| HashMap::from([(id, action_item)]))
+            .collect();
         // Step 7. Dispatch undo actions with current browsing context.
         if let Err(err) = self.dispatch_actions(undo_actions, session.browsing_context_id) {
             return Err(WebDriverError::new(err, "Failed to dispatch undo actions"));
