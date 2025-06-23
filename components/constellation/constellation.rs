@@ -4545,8 +4545,8 @@ where
             WebDriverCommandMsg::NewWebView(..) => {
                 unreachable!("This command should be send directly to the embedder.");
             },
-            WebDriverCommandMsg::FocusWebView(webview_id) => {
-                self.handle_focus_web_view(webview_id);
+            WebDriverCommandMsg::FocusWebView(..) => {
+                unreachable!("This command should be send directly to the embedder.");
             },
             WebDriverCommandMsg::IsWebViewOpen(..) => {
                 unreachable!("This command should be send directly to the embedder.");

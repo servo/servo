@@ -351,8 +351,16 @@ impl App {
                 WebDriverCommandMsg::CloseWebView(webview_id) => {
                     running_state.close_webview(webview_id);
                 },
-                WebDriverCommandMsg::GetWindowSize(..) |
-                WebDriverCommandMsg::FocusWebView(..) |
+                WebDriverCommandMsg::FocusWebView(webview_id) => {
+                    if let Some(webview) = running_state.webview_by_id(webview_id) {
+                        webview.focus();
+                    } else {
+                        warn!("Tried to focus a webview that does not exist: {webview_id}");
+                        //TODO: send a response to the WebDriver
+                    }
+                },
+                WebDriverCommandMsg::GetWindowSize(..) => {},
+                WebDriverCommandMsg::SetWindowSize(..) => {},
                 WebDriverCommandMsg::LoadUrl(..) |
                 WebDriverCommandMsg::ScriptCommand(..) |
                 WebDriverCommandMsg::SendKeys(..) |
@@ -360,7 +368,6 @@ impl App {
                 WebDriverCommandMsg::MouseButtonAction(..) |
                 WebDriverCommandMsg::MouseMoveAction(..) |
                 WebDriverCommandMsg::WheelScrollAction(..) |
-                WebDriverCommandMsg::SetWindowSize(..) |
                 WebDriverCommandMsg::TakeScreenshot(..) |
                 WebDriverCommandMsg::Refresh(..) => {
                     warn!(

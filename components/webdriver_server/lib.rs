@@ -1143,8 +1143,8 @@ impl Handler {
             session.webview_id = webview_id;
             session.browsing_context_id = BrowsingContextId::from(webview_id);
 
-            let msg = EmbedderToConstellationMessage::FocusWebView(webview_id);
-            self.constellation_chan.send(msg).unwrap();
+            let msg = WebDriverCommandMsg::FocusWebView(webview_id);
+            let _ = self.embedder_sender.send(msg);
             Ok(WebDriverResponse::Void)
         } else {
             Err(WebDriverError::new(
