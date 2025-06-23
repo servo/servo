@@ -7,6 +7,8 @@ use std::borrow::Cow;
 use constellation_traits::{LoadData, LoadOrigin};
 /// Used to determine which inline check to run
 pub use content_security_policy::InlineCheckType;
+/// Used to report CSP violations in Fetch handlers
+pub use content_security_policy::Violation;
 use content_security_policy::{
     CheckResult, CspList, Destination, Element as CspElement, Initiator, NavigationCheckType,
     Origin, ParserMetadata, PolicyDisposition, PolicySource, Request, ViolationResource,
@@ -195,9 +197,6 @@ impl CspReporting for Option<CspList> {
         allowed_by_csp == CheckResult::Blocked
     }
 }
-
-/// Used to determine which inline check to run
-pub use content_security_policy::Violation;
 
 pub(crate) trait GlobalCspReporting {
     fn report_csp_violations(&self, violations: Vec<Violation>, element: Option<&Element>);
