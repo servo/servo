@@ -1,186 +1,147 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>
-      Test Constructor: Convolver
-    </title>
+    <title>ConvolverNode Constructor</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <script src="/webaudio/resources/audit-util.js"></script>
-    <script src="/webaudio/resources/audit.js"></script>
-    <script src="/webaudio/resources/audionodeoptions.js"></script>
   </head>
   <body>
-    <script id="layout-test-code">
-      let context;
+    <script>
+      const context = new AudioContext();
 
-      let audit = Audit.createTaskRunner();
+      test(() => {
+        assert_throws_js(
+            TypeError,
+            () => new ConvolverNode(),
+            'new ConvolverNode() without context must throw TypeError');
 
-      audit.define('initialize', (task, should) => {
-        context = initializeContext(should);
-        task.done();
-      });
+        assert_throws_js(
+            TypeError,
+            () => new DynamicsCompressorNode(1),
+            'new DynamicsCompressorNode(1) must throw TypeError');
 
-      audit.define('invalid constructor', (task, should) => {
-        testInvalidConstructor(should, 'ConvolverNode', context);
-        task.done();
-      });
+        assert_throws_js(
+            TypeError,
+            () => new DynamicsCompressorNode(context, 42),
+            'new DynamicsCompressorNode(context, 42) must throw TypeError');
+      }, 'ConvolverNode: invalid constructor throws TypeError');
 
-      audit.define('default constructor', (task, should) => {
-        let prefix = 'node0';
-        let node = testDefaultConstructor(should, 'ConvolverNode', context, {
-          prefix: prefix,
-          numberOfInputs: 1,
-          numberOfOutputs: 1,
-          channelCount: 2,
-          channelCountMode: 'clamped-max',
-          channelInterpretation: 'speakers'
-        });
+      test(() => {
+        const prefix = 'node0';
+        const node = new ConvolverNode(context);
 
-        testDefaultAttributes(
-            should, node, prefix,
-            [{name: 'normalize', value: true}, {name: 'buffer', value: null}]);
+        assert_equals(node.numberOfInputs, 1, `${prefix}.numberOfInputs`);
+        assert_equals(node.numberOfOutputs, 1, `${prefix}.numberOfOutputs`);
+        assert_equals(node.channelCount, 2, `${prefix}.channelCount`);
+        assert_equals(
+            node.channelCountMode, 'clamped-max', `${prefix}.channelCountMode`);
+        assert_equals(
+            node.channelInterpretation, 'speakers',
+            `${prefix}.channelInterpretation`);
 
-        task.done();
-      });
+        assert_equals(node.normalize, true, `${prefix}.normalize`);
+        assert_equals(node.buffer, null, `${prefix}.buffer`);
+      }, 'ConvolverNode: default constructor and attributes');
 
-      audit.define('test AudioNodeOptions', (task, should) => {
-        // Can't use testAudioNodeOptions because the constraints for this node
-        // are not supported there.
-        let node;
+      test(() => {
+        const attributeTests = [
+          {
+            attribute: 'channelCount',
+            testOptions: [
+              {value: 1},
+              {value: 2},
+              {value: 0, error: 'NotSupportedError'},
+              {value: 3, error: 'NotSupportedError'},
+              {value: 99, error: 'NotSupportedError'}
+            ]
+          },
+          {
+            attribute: 'channelCountMode',
+            testOptions: [
+              {value: 'clamped-max'},
+              {value: 'explicit'},
+              {value: 'max', error: 'NotSupportedError'},
+              {value: 'foobar', error: TypeError}
+            ]
+          },
+          {
+            attribute: 'channelInterpretation',
+            testOptions: [
+              {value: 'speakers'},
+              {value: 'discrete'},
+              {value: 'foobar', error: TypeError}
+            ]
+          }
+        ];
 
-        // An array of tests.
-        [{
-          // Test that we can set the channel count to 1 or 2 and that other
-          // channel counts throw an error.
-          attribute: 'channelCount',
-          tests: [
-            {value: 1}, {value: 2}, {value: 0, error: 'NotSupportedError'},
-            {value: 3, error: 'NotSupportedError'},
-            {value: 99, error: 'NotSupportedError'}
-          ]
-        },
-         {
-           // Test channelCountMode.  A mode of "max" is illegal, but others are
-           // ok.  But also throw an error of unknown values.
-           attribute: 'channelCountMode',
-           tests: [
-             {value: 'clamped-max'}, {value: 'explicit'},
-             {value: 'max', error: 'NotSupportedError'},
-             {value: 'foobar', error: TypeError}
-           ]
-         },
-         {
-           // Test channelInterpretation can be set for valid values and an
-           // error is thrown for others.
-           attribute: 'channelInterpretation',
-           tests: [
-             {value: 'speakers'}, {value: 'discrete'},
-             {value: 'foobar', error: TypeError}
-           ]
-         }].forEach(entry => {
-          entry.tests.forEach(testItem => {
-            let options = {};
-            options[entry.attribute] = testItem.value;
+        for (const attributeTest of attributeTests) {
+          for (const testOption of attributeTest.testOptions) {
+            const options = {};
+            options[attributeTest.attribute] = testOption.value;
 
-            const testFunction = () => {
-              node = new ConvolverNode(context, options);
-            };
-            const testDescription =
-                `new ConvolverNode(c, ${JSON.stringify(options)})`;
+            const desc =
+                `new ConvolverNode(context, ${JSON.stringify(options)})`;
+            const createNode = () => new ConvolverNode(context, options);
 
-            if (testItem.error) {
-              testItem.error === TypeError
-              ? should(testFunction, testDescription).throw(TypeError)
-              : should(testFunction, testDescription)
-                  .throw(DOMException, 'NotSupportedError');
+            if (testOption.error) {
+              if (typeof testOption.error === 'string') {
+                assert_throws_dom(testOption.error, createNode, desc);
+              } else {
+                assert_throws_js(testOption.error, createNode, desc);
+              }
             } else {
-              should(testFunction, testDescription).notThrow();
-              should(node[entry.attribute], `node.${entry.attribute}`)
-                  .beEqualTo(options[entry.attribute]);
+              const node = createNode();
+              assert_equals(
+                  node[attributeTest.attribute], testOption.value,
+                  `node.${attributeTest.attribute} == ${testOption.value}`);
             }
-          });
-        });
+          }
+        }
+      }, 'ConvolverNode constructor: AudioNodeOptions are correctly handled');
 
-        task.done();
-      });
+      test(() => {
+        const options = {buffer: null};
+        const node = new ConvolverNode(context, options);
+        assert_equals(node.buffer, null, 'node1.buffer');
+      }, 'ConvolverNode: nullable buffer');
 
-      audit.define('nullable buffer', (task, should) => {
-        let node;
-        let options = {buffer: null};
+      test(() => {
+        const invalidSampleRate = context.sampleRate / 2;
+        const buffer = context.createBuffer(1, 1, invalidSampleRate);
+        const options = {buffer};
 
-        should(
-            () => {
-              node = new ConvolverNode(context, options);
+        assert_throws_dom(
+            'NotSupportedError', () => {
+              new ConvolverNode(context, options);
             },
-            'node1 = new ConvolverNode(c, ' + JSON.stringify(options))
-            .notThrow();
+            `new ConvolverNode(context, { buffer: <invalid sample rate> })`);
+      }, 'ConvolverNode: illegal sample rate buffer throws NotSupportedError');
 
-        should(node.buffer, 'node1.buffer').beEqualTo(null);
+      test(() => {
+        const buf = context.createBuffer(1, 1, context.sampleRate);
+        const options = {buffer: buf, disableNormalization: false};
 
-        task.done();
-      });
-      audit.define('illegal sample-rate', (task, should) => {
-        let node;
-        let options = {buffer: context.createBuffer(1, 1, context.sampleRate / 2)};
+        const node1 = new ConvolverNode(context, options);
 
-        should(
-            () => {
-              node = new ConvolverNode(context, options);
-            },
-            'node1 = new ConvolverNode(c, ' + JSON.stringify(options))
-            .throw(DOMException, 'NotSupportedError');
-
-        task.done();
-      });
-
-      audit.define('construct with options', (task, should) => {
-        let buf = context.createBuffer(1, 1, context.sampleRate);
-        let options = {buffer: buf, disableNormalization: false};
-
-        let message =
-            'node = new ConvolverNode(c, ' + JSON.stringify(options) + ')';
-
-        let node;
-        should(() => {
-          node = new ConvolverNode(context, options);
-        }, message).notThrow();
-
-        should(node instanceof ConvolverNode, 'node1 instanceOf ConvolverNode')
-            .beEqualTo(true);
-        should(node.buffer === options.buffer, 'node1.buffer === <buf>')
-            .beEqualTo(true);
-        should(node.normalize, 'node1.normalize')
-            .beEqualTo(!options.disableNormalization);
+        assert_true(node1 instanceof ConvolverNode,
+            'node1 instanceOf ConvolverNode');
+        assert_equals(node1.buffer, options.buffer, 'node1.buffer === <buf>');
+        assert_equals(
+            node1.normalize, !options.disableNormalization, 'node1.normalize');
 
         options.buffer = null;
         options.disableNormalization = true;
-
-        message =
-            'node2 = new ConvolverNode(, ' + JSON.stringify(options) + ')';
-
-        should(() => {
-          node = new ConvolverNode(context, options);
-        }, message).notThrow();
-        should(node.buffer, 'node2.buffer').beEqualTo(null);
-        should(node.normalize, 'node2.normalize')
-            .beEqualTo(!options.disableNormalization);
+        const node2 = new ConvolverNode(context, options);
+        assert_equals(node2.buffer, null, 'node2.buffer');
+        assert_equals(
+            node2.normalize, !options.disableNormalization, 'node2.normalize');
 
         options.disableNormalization = false;
-        message = 'node3 = new ConvolverNode(context, ' +
-            JSON.stringify(options) + ')';
-
-        should(() => {
-          node = new ConvolverNode(context, options);
-        }, message).notThrow();
-        should(node.buffer, 'node3.buffer').beEqualTo(null);
-        should(node.normalize, 'node3.normalize')
-            .beEqualTo(!options.disableNormalization);
-
-        task.done();
-      });
-
-      audit.run();
+        const node3 = new ConvolverNode(context, options);
+        assert_equals(node3.buffer, null, 'node3.buffer');
+        assert_equals(
+            node3.normalize, !options.disableNormalization, 'node3.normalize');
+      }, 'ConvolverNode: construct with buffer and normalization options');
     </script>
   </body>
 </html>

@@ -69,6 +69,7 @@ use js::jsapi::{
 };
 use js::jsval::UndefinedValue;
 use js::rust::ParentRuntime;
+use layout_api::{LayoutConfig, LayoutFactory, ReflowGoal, ScriptThreadFactory};
 use media::WindowGLContext;
 use metrics::MAX_TASK_NS;
 use net_traits::image_cache::{ImageCache, ImageCacheResponseMessage};
@@ -83,16 +84,12 @@ use percent_encoding::percent_decode;
 use profile_traits::mem::{ProcessReports, ReportsChan, perform_memory_report};
 use profile_traits::time::ProfilerCategory;
 use profile_traits::time_profile;
-use script_layout_interface::{
-    LayoutConfig, LayoutFactory, ReflowGoal, ScriptThreadFactory, node_id_from_scroll_id,
-};
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
     NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptThreadMessage, UpdatePipelineIdReason,
 };
 use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
-use style::dom::OpaqueNode;
 use style::thread_state::{self, ThreadState};
 use stylo_atoms::Atom;
 use timers::{TimerEventRequest, TimerId, TimerScheduler};
@@ -2054,16 +2051,6 @@ impl ScriptThread {
                 window
                     .layout_mut()
                     .set_scroll_offsets_from_renderer(&scroll_states);
-
-                let mut scroll_offsets = HashMap::new();
-                for (scroll_id, scroll_offset) in scroll_states.into_iter() {
-                    if scroll_id.is_root() {
-                        window.update_viewport_for_scroll(-scroll_offset.x, -scroll_offset.y);
-                    } else if let Some(node_id) = node_id_from_scroll_id(scroll_id.0 as usize) {
-                        scroll_offsets.insert(OpaqueNode(node_id), -scroll_offset);
-                    }
-                }
-                window.set_scroll_offsets(scroll_offsets)
             },
         )
     }
@@ -2289,8 +2276,8 @@ impl ScriptThread {
             WebDriverScriptCommand::DeleteCookie(name, reply) => {
                 webdriver_handlers::handle_delete_cookie(&documents, pipeline_id, name, reply)
             },
-            WebDriverScriptCommand::FindElementCSS(selector, reply) => {
-                webdriver_handlers::handle_find_element_css(
+            WebDriverScriptCommand::FindElementCSSSelector(selector, reply) => {
+                webdriver_handlers::handle_find_element_css_selector(
                     &documents,
                     pipeline_id,
                     selector,
@@ -2316,8 +2303,8 @@ impl ScriptThread {
                     can_gc,
                 )
             },
-            WebDriverScriptCommand::FindElementsCSS(selector, reply) => {
-                webdriver_handlers::handle_find_elements_css(
+            WebDriverScriptCommand::FindElementsCSSSelector(selector, reply) => {
+                webdriver_handlers::handle_find_elements_css_selector(
                     &documents,
                     pipeline_id,
                     selector,
@@ -2343,8 +2330,8 @@ impl ScriptThread {
                     can_gc,
                 )
             },
-            WebDriverScriptCommand::FindElementElementCSS(selector, element_id, reply) => {
-                webdriver_handlers::handle_find_element_element_css(
+            WebDriverScriptCommand::FindElementElementCSSSelector(selector, element_id, reply) => {
+                webdriver_handlers::handle_find_element_element_css_selector(
                     &documents,
                     pipeline_id,
                     element_id,
@@ -2376,8 +2363,8 @@ impl ScriptThread {
                     can_gc,
                 )
             },
-            WebDriverScriptCommand::FindElementElementsCSS(selector, element_id, reply) => {
-                webdriver_handlers::handle_find_element_elements_css(
+            WebDriverScriptCommand::FindElementElementsCSSSelector(selector, element_id, reply) => {
+                webdriver_handlers::handle_find_element_elements_css_selector(
                     &documents,
                     pipeline_id,
                     element_id,
@@ -2407,6 +2394,40 @@ impl ScriptThread {
                     selector,
                     reply,
                     can_gc,
+                )
+            },
+            WebDriverScriptCommand::FindShadowElementsCSSSelector(
+                selector,
+                shadow_root_id,
+                reply,
+            ) => webdriver_handlers::handle_find_shadow_elements_css_selector(
+                &documents,
+                pipeline_id,
+                shadow_root_id,
+                selector,
+                reply,
+            ),
+            WebDriverScriptCommand::FindShadowElementsLinkText(
+                selector,
+                shadow_root_id,
+                partial,
+                reply,
+            ) => webdriver_handlers::handle_find_shadow_elements_link_text(
+                &documents,
+                pipeline_id,
+                shadow_root_id,
+                selector,
+                partial,
+                reply,
+                can_gc,
+            ),
+            WebDriverScriptCommand::FindShadowElementsTagName(selector, shadow_root_id, reply) => {
+                webdriver_handlers::handle_find_shadow_elements_tag_name(
+                    &documents,
+                    pipeline_id,
+                    shadow_root_id,
+                    selector,
+                    reply,
                 )
             },
             WebDriverScriptCommand::GetElementShadowRoot(element_id, reply) => {
@@ -2580,7 +2601,7 @@ impl ScriptThread {
     fn handle_viewport(&self, id: PipelineId, rect: Rect<f32>) {
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
-            document.window().set_viewport(rect);
+            document.window().set_viewport_size(rect.size);
             return;
         }
         let loads = self.incomplete_loads.borrow();
@@ -3394,6 +3415,11 @@ impl ScriptThread {
             incomplete.parent_info,
             incomplete.viewport_details,
             origin.clone(),
+            final_url.clone(),
+            // TODO(37417): Set correct top-level URL here. Currently, we only specify the
+            // url of the current window. However, in case this is an iframe, we should
+            // pass in the URL from the frame that includes the iframe (which potentially
+            // is another nested iframe in a frame).
             final_url.clone(),
             incomplete.navigation_start,
             self.webgl_chan.as_ref().map(|chan| chan.channel()),

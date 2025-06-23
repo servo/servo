@@ -1,0 +1,26 @@
+<!doctype HTML>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<div id="div1">
+  <template shadowrootmode="open">
+    <div id="div2">some text</div>
+  </template>
+</div>
+<script>
+  const selection = document.getSelection();
+  const div1 = document.getElementById("div1");
+  const div2 = div1.shadowRoot.getElementById("div2");
+  generateShadowRootClickSequence = () => new test_driver.Actions()
+    .pointerMove(div2.offsetLeft, div2.offsetTop)
+    .pointerDown()
+    .pointerUp()
+
+  promise_test(async () => {
+    await generateShadowRootClickSequence().send();
+    selection.extend(div2.firstChild, 9); // select "some text"
+    assert_equals(selection.toString(), "some text");
+  }, 'Extend selection in shadow tree');
+</script>

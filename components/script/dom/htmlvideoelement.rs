@@ -10,6 +10,7 @@ use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
+use layout_api::{HTMLMediaData, MediaMetadata};
 use net_traits::image_cache::{
     ImageCache, ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable, ImageResponse,
     PendingImageId, UsePlaceholder,
@@ -19,10 +20,9 @@ use net_traits::{
     FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError, ResourceFetchTiming,
     ResourceTimingType,
 };
-use script_layout_interface::{HTMLMediaData, MediaMetadata};
+use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use servo_media::player::video::VideoFrame;
 use servo_url::ServoUrl;
-use snapshot::Snapshot;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
 use crate::document_loader::{LoadBlocker, LoadType};
@@ -146,13 +146,13 @@ impl HTMLVideoElement {
             Some(frame) => {
                 let size = Size2D::new(frame.get_width() as u32, frame.get_height() as u32);
                 if !frame.is_gl_texture() {
-                    let alpha_mode = snapshot::AlphaMode::Transparent {
+                    let alpha_mode = SnapshotAlphaMode::Transparent {
                         premultiplied: false,
                     };
 
                     Some(Snapshot::from_vec(
                         size.cast(),
-                        snapshot::PixelFormat::BGRA,
+                        SnapshotPixelFormat::BGRA,
                         alpha_mode,
                         frame.get_data().to_vec(),
                     ))

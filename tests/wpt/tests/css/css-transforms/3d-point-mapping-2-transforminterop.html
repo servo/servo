@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<title>More point mapping through 3D transform hierarchies</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style type="text/css" media="screen">
+  body {
+    margin: 0;
+    border: 1px solid black;
+  }
+
+  .test {
+    display: inline-block;
+    height: 200px;
+    width: 200px;
+    border: 1px solid black;
+    margin: 20px;
+  }
+
+  #box1, #box5, #box9 {
+    height: 140px;
+    width: 140px;
+    margin: 20px;
+    background-color: #DDD;
+    border: 1px solid black;
+    box-sizing: border-box;
+    perspective: 400px;
+  }
+
+  #box2, #box6, #box10 {
+    position: relative;
+    height: 100px;
+    width: 100px;
+    padding: 20px;
+    margin: 20px;
+    border: 1px solid black;
+    background-color: #81AA8A;
+    transform-style: preserve-3d;
+    transform: rotateY(-30deg);
+    box-sizing: border-box;
+  }
+
+  #box3 {
+    position: relative;
+    height: 100px;
+    width: 100px;
+    padding: 20px;
+    margin: 20px;
+    border: 1px solid black;
+    background-color: #81AA8A;
+    transform-style: preserve-3d;
+    box-sizing: border-box;
+  }
+
+  #box4, #box8, #box12 {
+    height: 90px;
+    width: 90px;
+    background-color: blue;
+    border: 1px solid black;
+    box-sizing: border-box;
+    transform: rotateY(30deg);
+  }
+
+  #box7 {
+    position: relative;
+    padding-left: 20px;
+    height: 100px;
+    width: 100px;
+    box-sizing: border-box;
+    background-color: #DDD;
+    border: 1px solid black;
+  }
+
+  #box11 {
+    padding-left: 20px;
+    height: 100px;
+    width: 100px;
+    box-sizing: border-box;
+    background-color: #DDD;
+    border: 1px solid black;
+  }
+
+  [id^="box"]:hover {
+    outline: 3px solid orange;
+  }
+</style>
+
+<body>
+
+<div class="test">
+  <!-- preserve-3d element with no transform-->
+  <div id="box1">
+    <div id="box2">
+      <div id="box3">
+        <div id="box4">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="test">
+  <!-- layer with no transform-->
+  <div id="box5">
+    <div id="box6">
+      <div id="box7">
+        <div id="box8">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="test">
+  <!-- non-layer with no transform-->
+  <div id="box9">
+    <div id="box10">
+      <div id="box11">
+        <div id="box12">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  class Point {
+    constructor(x, y) {
+      this.x = x;
+      this.y = y;
+    }
+  };
+  // Each test case defines four test points near the corners of an element area.
+  // - Point 1: Top-left
+  // - Point 2: Top-right
+  // - Point 3: Bottom-left
+  // - Point 4: Bottom-right
+  const tests = [{
+    expectedElemId: 'box1',
+      points: [
+        new Point(68, 66), // Hits box1 due to box2's transformation.
+        new Point(175, 45),
+        new Point(62, 155), // Hits box1 due to box2's transformation.
+        new Point(100, 175),
+      ]
+    },
+    {
+      expectedElemId: 'box2',
+      points: [
+        new Point(75, 70),
+        new Point(155, 63),
+        new Point(75, 155),
+        new Point(100, 156), // Hits box2 due to box3 preserving parent's transformed space.
+      ]
+    },
+    {
+      expectedElemId: 'box3',
+      points: [
+        new Point(108, 106),
+        new Point(198, 106),
+        new Point(108, 198),
+        // Bottom-right area is overlapped by box4.
+      ]
+    },
+    {
+      expectedElemId: 'box4',
+      points: [
+        new Point(120, 128), // Hits box3 if box4 were untransformed.
+        new Point(210, 128),
+        new Point(120, 198), // Hits box3 if box4 were untransformed.
+        new Point(210, 215),
+      ]
+    },
+    {
+      expectedElemId: 'box5',
+      points: [
+        new Point(312, 67), // Hits box5 due to box6's transformation.
+        new Point(423, 47),
+        new Point(312, 155), // Hits box5 due to box6's transformation.
+        new Point(331, 175), // Hits box5 due to box7 preserving parent's transformed space.
+      ]
+    },
+    {
+      expectedElemId: 'box6',
+      points: [
+        new Point(328, 86), // Hits box6 due to box7 preserving parent's transformed space.
+        new Point(400, 63),
+        new Point(328, 151), // Hits box6 due to box7 preserving parent's transformed space.
+        // The bottom-right area is overlapped by box7.
+      ]
+    },
+    {
+      expectedElemId: 'box7',
+      points: [
+        new Point(354, 87), // Hits box7 due to box8's transformation.
+        // The top-right area is overlapped by box8.
+        new Point(354, 171), // Hits box7 due to box8's transformation.
+        new Point(421, 185),
+      ]
+    },
+    {
+      expectedElemId: 'box8',
+      points: [
+        new Point(359, 87),
+        new Point(428, 84),
+        new Point(359, 168),
+        new Point(428, 175),
+      ]
+    },
+    {
+      expectedElemId: 'box9',
+      points: [
+        new Point(556, 65), // Hits box9 due to box10's transformation.
+        new Point(669, 46),
+        new Point(556, 157), // Hits box9 due to box10's transformation.
+        new Point(576, 174), // Hits box9 due to box11 preserving parent's transformed space.
+      ]
+    },
+    {
+      expectedElemId: 'box10',
+      points: [
+        new Point(568, 69),
+        new Point(646, 62),
+        new Point(568, 153),
+        new Point(576, 154), // Hits box10 due to box11 preserving parent's transformed space.
+      ]
+    },
+    {
+      expectedElemId: 'box11',
+      points: [
+        new Point(600, 87), // Hits box11 due to box12's transformation.
+        // The top-right area is overlapped by box12.
+        new Point(600, 170),
+        new Point(669, 185),
+      ]
+    },
+    {
+      expectedElemId: 'box12',
+      points: [
+        new Point(605, 87),
+        new Point(673, 85),
+        new Point(605, 170),
+        new Point(675, 175),
+      ]
+    }
+  ];
+
+  tests.forEach(testcase => {
+    test(t => {
+      const expectedElem = document.getElementById(testcase.expectedElemId);
+      for (const point of testcase.points) {
+        const hitElem = document.elementFromPoint(point.x, point.y);
+        assert_equals(hitElem, expectedElem,
+          `point (${point.x}, ${point.y}) is inside element ${testcase.expectedElemId}`);
+      }
+    }, `${document.title}, hittesting ${testcase.expectedElemId})`);
+  });
+</script>
+
+</html>

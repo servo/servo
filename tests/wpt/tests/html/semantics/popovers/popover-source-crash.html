@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+
+<button popovertarget=auto></button>
+<div popover=auto id=auto></div>
+<div popover=hint id=hint></div>
+
+<script>
+const button = document.querySelector('button');
+document.querySelector('#auto').showPopover({source: button});
+document.querySelector('#hint').showPopover({source: button});
+</script>

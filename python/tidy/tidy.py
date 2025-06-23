@@ -28,6 +28,8 @@ import wpt.manifestupdate
 
 from .licenseck import APACHE, COPYRIGHT, MPL, OLD_MPL, licenses_toml
 
+from .linting_report import GitHubAnnotationManager
+
 TOPDIR = os.path.abspath(os.path.dirname(sys.argv[0]))
 WPT_PATH = os.path.join(".", "tests", "wpt")
 CONFIG_FILE_PATH = os.path.join(".", "servo-tidy.toml")
@@ -1027,7 +1029,8 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
                     yield (filename,) + error
 
 
-def scan(only_changed_files=False, progress=False):
+def scan(only_changed_files=False, progress=False, github_annotations=False):
+    github_annotation_manager = GitHubAnnotationManager("test-tidy")
     # check config file for errors
     config_errors = check_config_file(CONFIG_FILE_PATH)
     # standard checks
@@ -1068,6 +1071,9 @@ def scan(only_changed_files=False, progress=False):
             + f"{colorama.Fore.YELLOW}{error[1]}{colorama.Style.RESET_ALL}: "
             + f"{colorama.Fore.RED}{error[2]}{colorama.Style.RESET_ALL}"
         )
+
+        if github_annotations:
+            github_annotation_manager.emit_annotation(error[2], error[2], error[0], error[1])
 
     return int(error is not None)
 

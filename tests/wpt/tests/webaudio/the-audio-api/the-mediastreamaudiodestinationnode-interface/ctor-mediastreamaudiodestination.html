@@ -1,64 +1,62 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>
-      Test Constructor: MediaStreamAudioDestinationNode
-    </title>
+    <title>MediaStreamAudioDestinationNode Constructor</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <script src="/webaudio/resources/audit-util.js"></script>
-    <script src="/webaudio/resources/audit.js"></script>
-    <script src="/webaudio/resources/audionodeoptions.js"></script>
   </head>
   <body>
-    <script id="layout-test-code">
-      let context = new AudioContext();
+    <script>
+      let context;
 
-      let audit = Audit.createTaskRunner();
-
-      audit.define('initialize', (task, should) => {
+      test(t => {
+        assert_not_equals(
+            typeof AudioContext, "undefined",
+            "AudioContext should be defined");
         // Need AudioContext, not OfflineAudioContext, for these tests.
-        should(() => {
-          context = new AudioContext();
-        }, 'context = new AudioContext()').notThrow();
-        task.done();
-      });
+        context = new AudioContext();
+      }, 'AudioContext can be created without throwing');
 
-      audit.define('invalid constructor', (task, should) => {
-        testInvalidConstructor(
-            should, 'MediaStreamAudioDestinationNode', context);
-        task.done();
-      });
+      test(t => {
+        assert_throws_js(
+            TypeError,
+            () => {
+              new MediaStreamAudioDestinationNode();
+            },
+            'no arguments throws TypeError');
 
-      audit.define('default constructor', (task, should) => {
-        let prefix = 'node0';
-        let node = testDefaultConstructor(
-            should, 'MediaStreamAudioDestinationNode', context, {
-              prefix: prefix,
-              numberOfInputs: 1,
-              numberOfOutputs: 0,
-              channelCount: 2,
-              channelCountMode: 'explicit',
-              channelInterpretation: 'speakers'
-            });
+          assert_throws_js(TypeError, () => {
+            new MediaStreamAudioDestinationNode(1);
+          }, 'invalid context argument throws');
 
-        testDefaultAttributes(should, node, prefix, []);
+          assert_throws_js(TypeError, () => {
+            new MediaStreamAudioDestinationNode(context, 42);
+          }, 'invalid options argument throws');
 
-        task.done();
-      });
+      }, 'MediaStreamAudioDestinationNode: invalid constructor cases');
 
-      audit.define('test AudioNodeOptions', (task, should) => {
-        testAudioNodeOptions(
-            should, context, 'MediaStreamAudioDestinationNode', {
-              channelCount: {
-                // An arbitrary but valid, non-default count for this node.
-                value: 7
-              }
-            });
-        task.done();
-      });
+      test(t => {
+        const node = new MediaStreamAudioDestinationNode(context);
 
-      audit.run();
+        assert_true(node instanceof MediaStreamAudioDestinationNode);
+        assert_equals(node.numberOfInputs, 1);
+        assert_equals(node.numberOfOutputs, 0);
+        assert_equals(node.channelCount, 2);
+        assert_equals(node.channelCountMode, 'explicit');
+        assert_equals(node.channelInterpretation, 'speakers');
+      }, 'MediaStreamAudioDestinationNode: default constructor behavior');
+
+      test(t => {
+        const node = new MediaStreamAudioDestinationNode(context, {
+          // An arbitrary but valid, non-default count for this node.
+          channelCount: 7
+        });
+
+        assert_equals(
+            node.channelCount, 7, 'channelCount should be set to 7');
+        assert_equals(node.channelCountMode, 'explicit');
+        assert_equals(node.channelInterpretation, 'speakers');
+      }, 'MediaStreamAudioDestinationNode applies channelCount from options');
     </script>
   </body>
 </html>

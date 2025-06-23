@@ -19,15 +19,23 @@ promise_test(async (t) => {
 
 promise_test(async (t) => {
   const writer = await createWriter();
-  const result = await writer.write(kTestPrompt, { context: ' ' });
+  const result = await writer.write(kTestPrompt, {context: ' '});
   assert_not_equals(result, '');
 }, 'Writer.write() with a whitespace context returns a non-empty result');
 
-promise_test(async (t) => {
-  const writer = await createWriter();
-  writer.destroy();
-  await promise_rejects_dom(t, 'InvalidStateError', writer.write(kTestPrompt));
-}, 'Writer.write() fails after destroyed');
+promise_test(async t => {
+  await testDestroy(t, createWriter, {}, [
+    writer => writer.write(kTestPrompt),
+    writer => writer.measureInputUsage(kTestPrompt),
+  ]);
+}, 'Calling Writer.destroy() aborts calls to write and measureInputUsage.');
+
+promise_test(async t => {
+  await testCreateAbort(t, createWriter, {}, [
+    writer => writer.write(kTestPrompt),
+    writer => writer.measureInputUsage(kTestPrompt),
+  ]);
+}, 'Writer.create()\'s abort signal destroys its Writer after creation.');
 
 promise_test(async () => {
   const writer = await createWriter();

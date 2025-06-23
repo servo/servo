@@ -7,7 +7,7 @@ use crate::canvas_context::CanvasContext;
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
 use canvas_traits::canvas::Canvas2dMsg;
 use dom_struct::dom_struct;
-use snapshot::Snapshot;
+use pixels::Snapshot;
 
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
     CanvasDirection, CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,

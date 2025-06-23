@@ -7,7 +7,7 @@
 <script src="helper.js" type="module"></script>
 
 <script type="module">
-  import { expireCookie, documentHasCookie, waitForCookie, addCookieAndSessionCleanup, configureServer, setupShardedServerState } from "./helper.js";
+  import { expireCookie, documentHasCookie, waitForCookie, addCookieAndSessionCleanup, configureServer, setupShardedServerState, postJson } from "./helper.js";
 
   promise_test(async t => {
     await setupShardedServerState();
@@ -76,4 +76,40 @@
     const headers = new Headers(await response.json());
     assert_equals(headers.get("secure-session-skipped"), null);
   }, "Cross-site redirects do not send debug header");
+
+  promise_test(async t => {
+    await setupShardedServerState();
+    const expectedCookieAndValue1 = "auth_cookie=abcdef0123";
+    const expectedCookieAndAttributes1 = `${expectedCookieAndValue1};Domain=${location.hostname};Path=/device-bound-session-credentials`;
+    const expectedCookieAndValue2 = "other_cookie=ghijkl4567";
+    const expectedCookieAndAttributes2 = `${expectedCookieAndValue2};Domain=${location.hostname};Path=/device-bound-session-credentials`;
+    addCookieAndSessionCleanup(t);
+
+    // Configure server to configure cookies for next two created sessions.
+    configureServer({
+      cookieDetailsForNextRegisteredSessions: [[{ nameAndValue: expectedCookieAndValue1 }], [{ nameAndValue: expectedCookieAndValue2 }]]
+    });
+
+    // Prompt starting one session, and wait until registration completes.
+    const loginResponse = await postJson('login.py', { numSessions: 2 });
+    assert_equals(loginResponse.status, 200);
+    await waitForCookie(expectedCookieAndValue1, /*expectCookie=*/true);
+    await waitForCookie(expectedCookieAndValue2, /*expectCookie=*/true);
+
+    // Configure server to fail to refresh
+    configureServer({ refreshEndpointUnavailable: true });
+
+    // Expire the cookie. The server will attempt a refresh, but fail.
+    expireCookie(expectedCookieAndAttributes1);
+    expireCookie(expectedCookieAndAttributes2);
+    assert_false(documentHasCookie(expectedCookieAndValue1));
+    assert_false(documentHasCookie(expectedCookieAndValue2));
+
+    const response = await fetch('reflect_headers.py');
+    assert_equals(response.status, 200);
+    assert_false(documentHasCookie(expectedCookieAndValue1));
+    assert_false(documentHasCookie(expectedCookieAndValue2));
+    const headers = new Headers(await response.json());
+    assert_equals(headers.get("secure-session-skipped"), "server_error;session_identifier=\"0\", server_error;session_identifier=\"1\"");
+  }, "Two failing sessions both set debug header");
 </script>

@@ -8,8 +8,8 @@
 use arrayvec::ArrayVec;
 use base::id::PipelineId;
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
+use pixels::IpcSnapshot;
 use serde::{Deserialize, Serialize};
-use snapshot::IpcSnapshot;
 use webrender_api::ImageKey;
 use webrender_api::units::DeviceIntSize;
 use wgpu_core::Label;

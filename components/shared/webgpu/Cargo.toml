@@ -16,8 +16,8 @@ arrayvec = { workspace = true }
 base = { workspace = true }
 ipc-channel = { workspace = true }
 malloc_size_of = { workspace = true }
+pixels = { path = "../../pixels" }
 serde = { workspace = true }
 webrender_api = { workspace = true }
 wgpu-core = { workspace = true, features = ["serde", "wgsl"] }
 wgpu-types = { workspace = true }
-snapshot = { workspace = true }

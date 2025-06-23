@@ -10,10 +10,8 @@ use atomic_refcell::{AtomicRef, AtomicRefMut};
 use embedder_traits::UntrustedNodeAddress;
 use html5ever::{LocalName, Namespace, local_name, ns};
 use js::jsapi::JSObject;
-use script_layout_interface::wrapper_traits::{
-    LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
-};
-use script_layout_interface::{LayoutNodeType, StyleData};
+use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
+use layout_api::{LayoutNodeType, StyleData};
 use selectors::Element as _;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::bloom::{BLOOM_HASH_MASK, BloomFilter};

@@ -16,6 +16,7 @@ use content_security_policy as csp;
 use devtools_traits::{ScriptToDevtoolsControlMsg, SourceInfo};
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
+use html5ever::serialize::TraversalScope;
 use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use ipc_channel::ipc;
 use js::jsval::UndefinedValue;
@@ -27,7 +28,7 @@ use net_traits::request::{
     RequestBuilder, RequestId,
 };
 use net_traits::{
-    FetchMetadata, FetchResponseListener, Metadata, NetworkError, ResourceFetchTiming,
+    FetchMetadata, FetchResponseListener, IpcSend, Metadata, NetworkError, ResourceFetchTiming,
     ResourceTimingType,
 };
 use servo_config::pref;
@@ -72,7 +73,7 @@ use crate::dom::trustedscript::TrustedScript;
 use crate::dom::trustedscripturl::TrustedScriptURL;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
-use crate::fetch::create_a_potential_cors_request;
+use crate::fetch::{create_a_potential_cors_request, load_whole_resource};
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::realms::enter_realm;
 use crate::script_module::{
@@ -856,7 +857,9 @@ impl HTMLScriptElement {
             credentials_mode: module_credentials_mode,
         };
 
-        // TODO: Step 30. Environment settings object.
+        // Step 30. Let settings object be el's node document's relevant settings object.
+        // This is done by passing ModuleOwner in step 31.11 and step 32.2.
+        // What we actually need is global's import map eventually.
 
         let base_url = doc.base_url();
         if let Some(src) = element.get_attribute(&ns!(), &local_name!("src")) {
@@ -1083,23 +1086,32 @@ impl HTMLScriptElement {
         if let Some(chan) = self.global().devtools_chan() {
             let pipeline_id = self.global().pipeline_id();
 
-            // TODO: https://github.com/servo/servo/issues/36874
-            let content = match &script.code {
-                SourceCode::Text(text) => text.to_string(),
-                SourceCode::Compiled(compiled) => compiled.original_text.to_string(),
-            };
+            let (url, content, content_type, is_external) = if script.external {
+                let content = match &script.code {
+                    SourceCode::Text(text) => text.to_string(),
+                    SourceCode::Compiled(compiled) => compiled.original_text.to_string(),
+                };
 
-            // https://html.spec.whatwg.org/multipage/#scriptingLanguages
-            let content_type = Some("text/javascript".to_string());
+                // content_type: https://html.spec.whatwg.org/multipage/#scriptingLanguages
+                (script.url.clone(), Some(content), "text/javascript", true)
+            } else {
+                // TODO: if needed, fetch the page again, in the same way as in the original request.
+                // Fetch it from cache, even if the original request was non-idempotent (e.g. POST).
+                // If we can’t fetch it from cache, we should probably give up, because with a real
+                // fetch, the server could return a different response.
+
+                // TODO: handle cases where Content-Type is not text/html.
+                (doc.url(), None, "text/html", false)
+            };
 
             let source_info = SourceInfo {
-                url: script.url.clone(),
-                external: script.external,
+                url,
+                external: is_external,
                 worker_id: None,
                 content,
-                content_type,
+                content_type: Some(content_type.to_string()),
             };
-            let _ = chan.send(ScriptToDevtoolsControlMsg::ScriptSourceLoaded(
+            let _ = chan.send(ScriptToDevtoolsControlMsg::CreateSourceActor(
                 pipeline_id,
                 source_info,
             ));

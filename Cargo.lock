@@ -805,7 +805,6 @@ dependencies = [
  "range",
  "raqote",
  "servo_arc",
- "snapshot",
  "stylo",
  "unicode-script",
  "webrender_api",
@@ -826,7 +825,6 @@ dependencies = [
  "serde_bytes",
  "servo_config",
  "servo_malloc_size_of",
- "snapshot",
  "stylo",
  "webrender_api",
  "webxr-api",
@@ -1070,7 +1068,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "117725a109d387c937a1533ce01b450cbde6b88abceea8473c4d7a85853cda3c"
 dependencies = [
  "lazy_static",
- "windows-sys 0.59.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -1177,6 +1175,7 @@ dependencies = [
  "gaol",
  "ipc-channel",
  "keyboard-types",
+ "layout_api",
  "log",
  "media",
  "net",
@@ -1184,7 +1183,6 @@ dependencies = [
  "parking_lot",
  "profile",
  "profile_traits",
- "script_layout_interface",
  "script_traits",
  "serde",
  "servo-tracing",
@@ -1215,11 +1213,11 @@ dependencies = [
  "log",
  "malloc_size_of_derive",
  "net_traits",
+ "pixels",
  "profile_traits",
  "serde",
  "servo_malloc_size_of",
  "servo_url",
- "snapshot",
  "strum",
  "strum_macros",
  "uuid",
@@ -2061,12 +2059,12 @@ checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 
 [[package]]
 name = "errno"
-version = "0.3.12"
+version = "0.3.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cea14ef9355e3beab063703aa9dab15afd25f0667c341310c1e5274bb1d0da18"
+checksum = "778e2ac28f6c47af28e4907f13ffd1e1ddbd400980a9abd7c8df189bf578a5ad"
 dependencies = [
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -2311,13 +2309,13 @@ dependencies = [
 
 [[package]]
 name = "fontsan"
-version = "0.5.2"
-source = "git+https://github.com/servo/fontsan#c0d0b5333117901e1c31bc3c502c384115b93e6f"
+version = "0.6.0"
+source = "git+https://github.com/servo/fontsan#63f3cde9224b5988163e52c6669143f98d71b030"
 dependencies = [
  "cc",
  "glob",
  "libc",
- "miniz-sys",
+ "libz-sys",
 ]
 
 [[package]]
@@ -2651,7 +2649,7 @@ dependencies = [
  "gobject-sys",
  "libc",
  "system-deps",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -2676,9 +2674,9 @@ dependencies = [
 
 [[package]]
 name = "glib"
-version = "0.20.10"
+version = "0.20.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c501c495842c2b23cdacead803a5a343ca2a5d7a7ddaff14cc5f6cf22cfb92c2"
+checksum = "ffc4b6e352d4716d84d7dde562dd9aee2a7d48beb872dd9ece7f2d1515b2d683"
 dependencies = [
  "bitflags 2.9.1",
  "futures-channel",
@@ -2697,9 +2695,9 @@ dependencies = [
 
 [[package]]
 name = "glib-macros"
-version = "0.20.10"
+version = "0.20.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ebe6dc9ce29887c4b3b74d78d5ba473db160a258ae7ed883d23632ac7fed7bc9"
+checksum = "e8084af62f09475a3f529b1629c10c429d7600ee1398ae12dd3bf175d74e7145"
 dependencies = [
  "heck",
  "proc-macro-crate",
@@ -2824,9 +2822,9 @@ checksum = "71b01d27060ad58be4663b9e4ac9e2d4806918e8876af8912afbddd1a91d5eaa"
 
 [[package]]
 name = "gstreamer"
-version = "0.23.6"
+version = "0.23.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50ab4c88f731596a2511a6f14cabdd666e0d8efab62a1d58e6ddb57faa96e22e"
+checksum = "8757a87f3706560037a01a9f06a59fcc7bdb0864744dcf73546606e60c4316e1"
 dependencies = [
  "cfg-if",
  "futures-channel",
@@ -2934,9 +2932,9 @@ dependencies = [
 
 [[package]]
 name = "gstreamer-gl"
-version = "0.23.6"
+version = "0.23.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34aa19feafc4da2c7635abce0e0768892ff97ad73586bef02d9a60b251d9fe09"
+checksum = "2c5fe4cfc154d1aef2d5bddaf45c8fcb80af5ae4416795650a01c38e01d6d5bd"
 dependencies = [
  "glib",
  "gstreamer",
@@ -3506,7 +3504,7 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "tower-service",
- "webpki-roots 1.0.0",
+ "webpki-roots 1.0.1",
 ]
 
 [[package]]
@@ -4140,7 +4138,7 @@ checksum = "e04d7f318608d35d4b61ddd75cbdaee86b023ebe2bd5a66ee0915f0bf93095a9"
 dependencies = [
  "hermit-abi 0.5.0",
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -4316,6 +4314,7 @@ dependencies = [
  "icu_segmenter",
  "ipc-channel",
  "itertools 0.14.0",
+ "layout_api",
  "log",
  "malloc_size_of_derive",
  "net_traits",
@@ -4327,7 +4326,6 @@ dependencies = [
  "range",
  "rayon",
  "script",
- "script_layout_interface",
  "script_traits",
  "selectors",
  "servo-tracing",
@@ -4346,6 +4344,39 @@ dependencies = [
  "url",
  "webrender_api",
  "xi-unicode",
+]
+
+[[package]]
+name = "layout_api"
+version = "0.0.1"
+dependencies = [
+ "app_units",
+ "atomic_refcell",
+ "base",
+ "compositing_traits",
+ "constellation_traits",
+ "embedder_traits",
+ "euclid",
+ "fnv",
+ "fonts",
+ "fonts_traits",
+ "fxhash",
+ "html5ever",
+ "ipc-channel",
+ "libc",
+ "malloc_size_of_derive",
+ "net_traits",
+ "pixels",
+ "profile_traits",
+ "range",
+ "script_traits",
+ "selectors",
+ "serde",
+ "servo_arc",
+ "servo_malloc_size_of",
+ "servo_url",
+ "stylo",
+ "webrender_api",
 ]
 
 [[package]]
@@ -4403,7 +4434,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "07033963ba89ebaf1584d767badaa2e8fcec21aedea6b8c0346d487d49c28667"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.6",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -4455,6 +4486,7 @@ dependencies = [
  "ipc-channel",
  "keyboard-types",
  "layout",
+ "layout_api",
  "libservo",
  "log",
  "media",
@@ -4467,7 +4499,6 @@ dependencies = [
  "rayon",
  "rustls",
  "script",
- "script_layout_interface",
  "script_traits",
  "serde",
  "servo-media",
@@ -4616,9 +4647,9 @@ dependencies = [
 
 [[package]]
 name = "markup5ever"
-version = "0.16.1"
+version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0a8096766c229e8c88a3900c9b44b7e06aa7f7343cc229158c3e58ef8f9973a"
+checksum = "2e4cd8c02f18a011991a039855480c64d74291c5792fcc160d55d77dc4de4a39"
 dependencies = [
  "log",
  "tendril",
@@ -4755,16 +4786,6 @@ name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
-
-[[package]]
-name = "miniz-sys"
-version = "0.1.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e9e3ae51cea1576ceba0dde3d484d30e6e5b86dee0b2d412fe3a16a15c98202"
-dependencies = [
- "cc",
- "libc",
-]
 
 [[package]]
 name = "miniz_oxide"
@@ -5010,7 +5031,7 @@ dependencies = [
  "tungstenite",
  "url",
  "uuid",
- "webpki-roots 1.0.0",
+ "webpki-roots 1.0.1",
  "webrender_api",
 ]
 
@@ -6463,7 +6484,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -6615,6 +6636,7 @@ dependencies = [
  "itertools 0.14.0",
  "jstraceable_derive",
  "keyboard-types",
+ "layout_api",
  "libc",
  "log",
  "malloc_size_of_derive",
@@ -6636,7 +6658,6 @@ dependencies = [
  "range",
  "regex",
  "script_bindings",
- "script_layout_interface",
  "script_traits",
  "selectors",
  "serde",
@@ -6650,7 +6671,6 @@ dependencies = [
  "servo_rand",
  "servo_url",
  "smallvec",
- "snapshot",
  "strum",
  "strum_macros",
  "stylo",
@@ -6714,39 +6734,6 @@ dependencies = [
  "tracing",
  "webxr-api",
  "xml5ever",
-]
-
-[[package]]
-name = "script_layout_interface"
-version = "0.0.1"
-dependencies = [
- "app_units",
- "atomic_refcell",
- "base",
- "compositing_traits",
- "constellation_traits",
- "embedder_traits",
- "euclid",
- "fnv",
- "fonts",
- "fonts_traits",
- "fxhash",
- "html5ever",
- "ipc-channel",
- "libc",
- "malloc_size_of_derive",
- "net_traits",
- "pixels",
- "profile_traits",
- "range",
- "script_traits",
- "selectors",
- "serde",
- "servo_arc",
- "servo_malloc_size_of",
- "servo_url",
- "stylo",
- "webrender_api",
 ]
 
 [[package]]
@@ -7427,18 +7414,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "snapshot"
-version = "0.0.1"
-dependencies = [
- "euclid",
- "ipc-channel",
- "malloc_size_of_derive",
- "pixels",
- "serde",
- "servo_malloc_size_of",
-]
-
-[[package]]
 name = "socket2"
 version = "0.5.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7865,7 +7840,7 @@ dependencies = [
  "getrandom 0.2.16",
  "once_cell",
  "rustix",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -8987,7 +8962,6 @@ dependencies = [
  "itertools 0.14.0",
  "log",
  "pixels",
- "snapshot",
  "surfman",
  "webrender",
  "webrender_api",
@@ -9005,9 +8979,9 @@ dependencies = [
  "euclid",
  "ipc-channel",
  "log",
+ "pixels",
  "serde",
  "servo_config",
- "snapshot",
  "webgpu_traits",
  "webrender",
  "webrender_api",
@@ -9022,9 +8996,9 @@ dependencies = [
  "arrayvec",
  "base",
  "ipc-channel",
+ "pixels",
  "serde",
  "servo_malloc_size_of",
- "snapshot",
  "webrender_api",
  "wgpu-core",
  "wgpu-types",
@@ -9041,9 +9015,9 @@ dependencies = [
 
 [[package]]
 name = "webpki-roots"
-version = "1.0.0"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2853738d1cc4f2da3a225c18ec6c3721abb31961096e9dbf5ab35fa88b19cfdb"
+checksum = "8782dd5a41a24eed3a4f40b606249b3e236ca61adf1f25ea4d45c73de122b502"
 dependencies = [
  "rustls-pki-types",
 ]
@@ -9298,7 +9272,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -9847,9 +9821,9 @@ dependencies = [
 
 [[package]]
 name = "xcursor"
-version = "0.3.8"
+version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ef33da6b1660b4ddbfb3aef0ade110c8b8a781a3b6382fa5f2b5b040fd55f61"
+checksum = "635887f4315a33cb714eb059bdbd7c1c92bfa71bc5b9d5115460502f788c2ab5"
 
 [[package]]
 name = "xi-unicode"

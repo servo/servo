@@ -4,24 +4,31 @@
 
 use std::cell::{Cell, Ref};
 use std::collections::HashMap;
+use std::rc::Rc;
 
 use base::id::{ImageBitmapId, ImageBitmapIndex};
 use constellation_traits::SerializableImageBitmap;
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
-use snapshot::Snapshot;
+use pixels::{CorsStatus, PixelFormat, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
+use script_bindings::error::Error;
+use script_bindings::realms::{AlreadyInRealm, InRealm};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
-    ImageBitmapMethods, ImageBitmapOptions, ImageOrientation, PremultiplyAlpha, ResizeQuality,
+    ImageBitmapMethods, ImageBitmapOptions, ImageBitmapSource, ImageOrientation, PremultiplyAlpha,
+    ResizeQuality,
 };
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::types::Promise;
 use crate::script_runtime::CanGc;
+use crate::test::TrustedPromise;
 
 #[dom_struct]
 pub(crate) struct ImageBitmap {
@@ -246,24 +253,396 @@ impl ImageBitmap {
         match options.premultiplyAlpha {
             PremultiplyAlpha::Default | PremultiplyAlpha::Premultiply => {
                 output.transform(
-                    snapshot::AlphaMode::Transparent {
+                    SnapshotAlphaMode::Transparent {
                         premultiplied: true,
                     },
-                    snapshot::PixelFormat::BGRA,
+                    SnapshotPixelFormat::BGRA,
                 );
             },
             PremultiplyAlpha::None => {
                 output.transform(
-                    snapshot::AlphaMode::Transparent {
+                    SnapshotAlphaMode::Transparent {
                         premultiplied: false,
                     },
-                    snapshot::PixelFormat::BGRA,
+                    SnapshotPixelFormat::BGRA,
                 );
             },
         }
 
         // Step 11. Return output.
         Some(output)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn create_image_bitmap(
+        global_scope: &GlobalScope,
+        image: ImageBitmapSource,
+        sx: i32,
+        sy: i32,
+        sw: Option<i32>,
+        sh: Option<i32>,
+        options: &ImageBitmapOptions,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        let in_realm_proof = AlreadyInRealm::assert::<crate::DomTypeHolder>();
+        let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
+
+        // Step 1. If either sw or sh is given and is 0, then return a promise rejected with a RangeError.
+        if sw.is_some_and(|w| w == 0) {
+            p.reject_error(
+                Error::Range("'sw' must be a non-zero value".to_owned()),
+                can_gc,
+            );
+            return p;
+        }
+
+        if sh.is_some_and(|h| h == 0) {
+            p.reject_error(
+                Error::Range("'sh' must be a non-zero value".to_owned()),
+                can_gc,
+            );
+            return p;
+        }
+
+        // Step 2. If either options's resizeWidth or options's resizeHeight is present and is 0,
+        // then return a promise rejected with an "InvalidStateError" DOMException.
+        if options.resizeWidth.is_some_and(|w| w == 0) {
+            p.reject_error(Error::InvalidState, can_gc);
+            return p;
+        }
+
+        if options.resizeHeight.is_some_and(|h| h == 0) {
+            p.reject_error(Error::InvalidState, can_gc);
+            return p;
+        }
+
+        // The promise with image bitmap should be fulfilled on the the bitmap task source.
+        let fullfill_promise_on_bitmap_task_source =
+            |promise: &Rc<Promise>, image_bitmap: &ImageBitmap| {
+                let trusted_promise = TrustedPromise::new(promise.clone());
+                let trusted_image_bitmap = Trusted::new(image_bitmap);
+
+                global_scope.task_manager().bitmap_task_source().queue(
+                    task!(resolve_promise: move || {
+                        let promise = trusted_promise.root();
+                        let image_bitmap = trusted_image_bitmap.root();
+
+                        promise.resolve_native(&image_bitmap, CanGc::note());
+                    }),
+                );
+            };
+
+        // The promise with "InvalidStateError" DOMException should be rejected
+        // on the the bitmap task source.
+        let reject_promise_on_bitmap_task_source = |promise: &Rc<Promise>| {
+            let trusted_promise = TrustedPromise::new(promise.clone());
+
+            global_scope
+                .task_manager()
+                .bitmap_task_source()
+                .queue(task!(reject_promise: move || {
+                    let promise = trusted_promise.root();
+
+                    promise.reject_error(Error::InvalidState, CanGc::note());
+                }));
+        };
+
+        // Step 3. Check the usability of the image argument. If this throws an exception or returns bad,
+        // then return a promise rejected with an "InvalidStateError" DOMException.
+        // Step 6. Switch on image:
+        match image {
+            ImageBitmapSource::HTMLImageElement(ref image) => {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                if !image.is_usable().is_ok_and(|u| u) {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                }
+
+                // If no ImageBitmap object can be constructed, then the promise is rejected instead.
+                let Some(img) = image.image_data() else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                // TODO: Support vector HTMLImageElement.
+                let Some(img) = img.as_raster_image() else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let size = Size2D::new(img.metadata.width, img.metadata.height);
+                let format = match img.format {
+                    PixelFormat::BGRA8 => SnapshotPixelFormat::BGRA,
+                    PixelFormat::RGBA8 => SnapshotPixelFormat::RGBA,
+                    pixel_format => {
+                        unimplemented!("unsupported pixel format ({:?})", pixel_format)
+                    },
+                };
+                let alpha_mode = SnapshotAlphaMode::Transparent {
+                    premultiplied: false,
+                };
+
+                let snapshot = Snapshot::from_vec(
+                    size.cast(),
+                    format,
+                    alpha_mode,
+                    img.first_frame().bytes.to_vec(),
+                );
+
+                // Step 6.3. Set imageBitmap's bitmap data to a copy of image's media data,
+                // cropped to the source rectangle with formatting.
+                let Some(bitmap_data) =
+                    ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
+                else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let image_bitmap = Self::new(global_scope, bitmap_data, can_gc);
+                // Step 6.4. If image is not origin-clean, then set the origin-clean flag
+                // of imageBitmap's bitmap to false.
+                image_bitmap.set_origin_clean(image.same_origin(GlobalScope::entry().origin()));
+
+                // Step 6.5. Queue a global task, using the bitmap task source,
+                // to resolve promise with imageBitmap.
+                fullfill_promise_on_bitmap_task_source(&p, &image_bitmap);
+            },
+            ImageBitmapSource::HTMLVideoElement(ref video) => {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                if !video.is_usable() {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                }
+
+                // Step 6.1. If image's networkState attribute is NETWORK_EMPTY, then return
+                // a promise rejected with an "InvalidStateError" DOMException.
+                if video.is_network_state_empty() {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                }
+
+                // If no ImageBitmap object can be constructed, then the promise is rejected instead.
+                let Some(snapshot) = video.get_current_frame_data() else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                // Step 6.2. Set imageBitmap's bitmap data to a copy of the frame at the current
+                // playback position, at the media resource's natural width and natural height
+                // (i.e., after any aspect-ratio correction has been applied),
+                // cropped to the source rectangle with formatting.
+                let Some(bitmap_data) =
+                    ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
+                else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let image_bitmap = Self::new(global_scope, bitmap_data, can_gc);
+                // Step 6.3. If image is not origin-clean, then set the origin-clean flag
+                // of imageBitmap's bitmap to false.
+                image_bitmap.set_origin_clean(video.origin_is_clean());
+
+                // Step 6.4. Queue a global task, using the bitmap task source,
+                // to resolve promise with imageBitmap.
+                fullfill_promise_on_bitmap_task_source(&p, &image_bitmap);
+            },
+            ImageBitmapSource::HTMLCanvasElement(ref canvas) => {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                if canvas.get_size().is_empty() {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                }
+
+                // If no ImageBitmap object can be constructed, then the promise is rejected instead.
+                let Some(snapshot) = canvas.get_image_data() else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                // Step 6.1. Set imageBitmap's bitmap data to a copy of image's bitmap data,
+                // cropped to the source rectangle with formatting.
+                let Some(bitmap_data) =
+                    ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
+                else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let image_bitmap = Self::new(global_scope, bitmap_data, can_gc);
+                // Step 6.2. Set the origin-clean flag of the imageBitmap's bitmap to the same value
+                // as the origin-clean flag of image's bitmap.
+                image_bitmap.set_origin_clean(canvas.origin_is_clean());
+
+                // Step 6.3. Queue a global task, using the bitmap task source,
+                // to resolve promise with imageBitmap.
+                fullfill_promise_on_bitmap_task_source(&p, &image_bitmap);
+            },
+            ImageBitmapSource::ImageBitmap(ref bitmap) => {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                if bitmap.is_detached() {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                }
+
+                // If no ImageBitmap object can be constructed, then the promise is rejected instead.
+                let Some(snapshot) = bitmap.bitmap_data().clone() else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                // Step 6.1. Set imageBitmap's bitmap data to a copy of image's bitmap data,
+                // cropped to the source rectangle with formatting.
+                let Some(bitmap_data) =
+                    ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
+                else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let image_bitmap = Self::new(global_scope, bitmap_data, can_gc);
+                // Step 6.2. Set the origin-clean flag of imageBitmap's bitmap to the same value
+                // as the origin-clean flag of image's bitmap.
+                image_bitmap.set_origin_clean(bitmap.origin_is_clean());
+
+                // Step 6.3. Queue a global task, using the bitmap task source,
+                // to resolve promise with imageBitmap.
+                fullfill_promise_on_bitmap_task_source(&p, &image_bitmap);
+            },
+            ImageBitmapSource::OffscreenCanvas(ref canvas) => {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                if canvas.get_size().is_empty() {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                }
+
+                // If no ImageBitmap object can be constructed, then the promise is rejected instead.
+                let Some(snapshot) = canvas.get_image_data() else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                // Step 6.1. Set imageBitmap's bitmap data to a copy of image's bitmap data,
+                // cropped to the source rectangle with formatting.
+                let Some(bitmap_data) =
+                    ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
+                else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let image_bitmap = Self::new(global_scope, bitmap_data, can_gc);
+                // Step 6.2. Set the origin-clean flag of the imageBitmap's bitmap to the same value
+                // as the origin-clean flag of image's bitmap.
+                image_bitmap.set_origin_clean(canvas.origin_is_clean());
+
+                // Step 6.3. Queue a global task, using the bitmap task source,
+                // to resolve promise with imageBitmap.
+                fullfill_promise_on_bitmap_task_source(&p, &image_bitmap);
+            },
+            ImageBitmapSource::Blob(ref blob) => {
+                // Step 6.1. Let imageData be the result of reading image's data.
+                // If an error occurs during reading of the object, then queue
+                // a global task, using the bitmap task source, to reject promise
+                // with an "InvalidStateError" DOMException and abort these steps.
+                let Ok(bytes) = blob.get_bytes() else {
+                    reject_promise_on_bitmap_task_source(&p);
+                    return p;
+                };
+
+                // Step 6.2. Apply the image sniffing rules to determine the file
+                // format of imageData, with MIME type of image (as given by
+                // image's type attribute) giving the official type.
+                // Step 6.3. If imageData is not in a supported image file format
+                // (e.g., it's not an image at all), or if imageData is corrupted
+                // in some fatal way such that the image dimensions cannot be obtained
+                // (e.g., a vector graphic with no natural size), then queue
+                // a global task, using the bitmap task source, to reject promise
+                // with an "InvalidStateError" DOMException and abort these steps.
+                let Some(img) = pixels::load_from_memory(&bytes, CorsStatus::Safe) else {
+                    reject_promise_on_bitmap_task_source(&p);
+                    return p;
+                };
+
+                let size = Size2D::new(img.metadata.width, img.metadata.height);
+                let format = match img.format {
+                    PixelFormat::BGRA8 => SnapshotPixelFormat::BGRA,
+                    PixelFormat::RGBA8 => SnapshotPixelFormat::RGBA,
+                    pixel_format => {
+                        unimplemented!("unsupported pixel format ({:?})", pixel_format)
+                    },
+                };
+                let alpha_mode = SnapshotAlphaMode::Transparent {
+                    premultiplied: false,
+                };
+
+                let snapshot = Snapshot::from_vec(
+                    size.cast(),
+                    format,
+                    alpha_mode,
+                    img.first_frame().bytes.to_vec(),
+                );
+
+                // Step 6.4. Set imageBitmap's bitmap data to imageData, cropped
+                // to the source rectangle with formatting.
+                let Some(bitmap_data) =
+                    ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
+                else {
+                    reject_promise_on_bitmap_task_source(&p);
+                    return p;
+                };
+
+                let image_bitmap = Self::new(global_scope, bitmap_data, can_gc);
+
+                // Step 6.5. Queue a global task, using the bitmap task source,
+                // to resolve promise with imageBitmap.
+                fullfill_promise_on_bitmap_task_source(&p, &image_bitmap);
+            },
+            ImageBitmapSource::ImageData(ref image_data) => {
+                // Step 6.1. Let buffer be image's data attribute value's [[ViewedArrayBuffer]] internal slot.
+                // Step 6.2. If IsDetachedBuffer(buffer) is true, then return a promise rejected
+                // with an "InvalidStateError" DOMException.
+                if image_data.is_detached() {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                }
+
+                let alpha_mode = SnapshotAlphaMode::Transparent {
+                    premultiplied: false,
+                };
+
+                let snapshot = Snapshot::from_vec(
+                    image_data.get_size().cast(),
+                    SnapshotPixelFormat::RGBA,
+                    alpha_mode,
+                    image_data.to_vec(),
+                );
+
+                // Step 6.3. Set imageBitmap's bitmap data to image's image data,
+                // cropped to the source rectangle with formatting.
+                let Some(bitmap_data) =
+                    ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
+                else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let image_bitmap = Self::new(global_scope, bitmap_data, can_gc);
+
+                // Step 6.4. Queue a global task, using the bitmap task source,
+                // to resolve promise with imageBitmap.
+                fullfill_promise_on_bitmap_task_source(&p, &image_bitmap);
+            },
+            ImageBitmapSource::CSSStyleValue(_) => {
+                // TODO: CSSStyleValue is not part of ImageBitmapSource
+                // <https://html.spec.whatwg.org/multipage/#imagebitmapsource>
+                p.reject_error(Error::NotSupported, can_gc);
+            },
+        }
+
+        // Step 7. Return promise.
+        p
     }
 }
 

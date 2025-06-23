@@ -21,6 +21,7 @@ use http::header::{self, HeaderMap, HeaderValue};
 use ipc_channel::ipc::{self, IpcSharedMemory, channel};
 use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoRealm;
+use layout_api::MediaFrame;
 use media::{GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
 use net_traits::request::{Destination, RequestId};
 use net_traits::{
@@ -32,7 +33,6 @@ use script_bindings::codegen::GenericBindings::TimeRangesBinding::TimeRangesMeth
 use script_bindings::codegen::InheritTypes::{
     ElementTypeId, HTMLElementTypeId, HTMLMediaElementTypeId, NodeTypeId,
 };
-use script_layout_interface::MediaFrame;
 use servo_config::pref;
 use servo_media::player::audio::AudioRenderer;
 use servo_media::player::video::{VideoFrame, VideoFrameRenderer};

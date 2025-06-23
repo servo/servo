@@ -588,7 +588,7 @@ impl WindowPortsMethods for Window {
                     webview.notify_input_event(InputEvent::MouseLeave(MouseLeaveEvent::new(point)));
                 }
             },
-            WindowEvent::MouseWheel { delta, phase, .. } => {
+            WindowEvent::MouseWheel { delta, .. } => {
                 let (mut dx, mut dy, mode) = match delta {
                     MouseScrollDelta::LineDelta(dx, dy) => {
                         (dx as f64, (dy * LINE_HEIGHT) as f64, WheelMode::DeltaLine)
@@ -618,11 +618,10 @@ impl WindowPortsMethods for Window {
                 }
 
                 let scroll_location = ScrollLocation::Delta(Vector2D::new(dx as f32, dy as f32));
-                let phase = winit_phase_to_touch_event_type(phase);
 
                 // Send events
                 webview.notify_input_event(InputEvent::Wheel(WheelEvent::new(delta, point)));
-                webview.notify_scroll_event(scroll_location, point.to_i32(), phase);
+                webview.notify_scroll_event(scroll_location, point.to_i32());
             },
             WindowEvent::Touch(touch) => {
                 webview.notify_input_event(InputEvent::Touch(TouchEvent::new(

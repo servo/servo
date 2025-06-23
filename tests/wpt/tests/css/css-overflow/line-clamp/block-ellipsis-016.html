@@ -3,19 +3,20 @@
 <title>CSS Overflow: soft wrap opportunities created by overflow-wrap are ignored for inserting block-ellipsis</title>
 <link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
 <link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
-<link rel="match" href="reference/block-ellipsis-001-ref.html">
-<meta name="assert" content="The block-ellipsis is placed after the last soft wrap opportunity in the line box that fits the ellipsis. This happens even with text-wrap: nowrap, since that only prevents line wrapping, rather than removing wrap opportunities.">
+<link rel="match" href="reference/block-ellipsis-016-ref.html">
+<meta name="assert" content="The block-ellipsis is placed after the last soft wrap opportunity in the line box that fits the ellipsis. `overflow-wrap: anywhere`, however, does not count as creating soft wrap opportunities. Therefore, if a line with the ellipsis has no breakpoints that would prevent it from overflowing, it gets entirely displaced by the ellipsis.">
 <style>
 .clamp {
-  line-clamp: 2;
-  width: 63.1ch;
+  line-clamp: 3;
+  width: 20.1ch;
   border: 1px solid black;
   font-family: monospace;
-  white-space: pre;
   overflow-wrap: anywhere;
 }
 </style>
-<div class="clamp">This time, Mark, who had always been the center of attention in
-any social gathering, walked into the room uncharacteristically quietly, barely speaking as he settled into a chair.
-
-When asked, he said that he was fine, when he wasn't really fine.</div>
+<div class="clamp">
+  This time, Mark
+  walked in
+  uncharacteristically  <!-- the ellipsis would cause this line to overflow -->
+  quietly.
+</div>

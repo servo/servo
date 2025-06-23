@@ -19,7 +19,7 @@ use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FormControl, GamepadHapticEffectType,
     KeyboardEvent, LoadStatus, PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog,
-    TouchEventType, WebDriverCommandMsg, WebView, WebViewBuilder, WebViewDelegate,
+    WebDriverCommandMsg, WebView, WebViewBuilder, WebViewDelegate,
 };
 use url::Url;
 
@@ -350,36 +350,36 @@ impl RunningAppState {
                     0.0,
                     -self.inner().window.page_height() + 2.0 * LINE_HEIGHT,
                 ));
-                webview.notify_scroll_event(scroll_location, origin, TouchEventType::Move);
+                webview.notify_scroll_event(scroll_location, origin);
             })
             .shortcut(Modifiers::empty(), Key::PageUp, || {
                 let scroll_location = ScrollLocation::Delta(Vector2D::new(
                     0.0,
                     self.inner().window.page_height() - 2.0 * LINE_HEIGHT,
                 ));
-                webview.notify_scroll_event(scroll_location, origin, TouchEventType::Move);
+                webview.notify_scroll_event(scroll_location, origin);
             })
             .shortcut(Modifiers::empty(), Key::Home, || {
-                webview.notify_scroll_event(ScrollLocation::Start, origin, TouchEventType::Move);
+                webview.notify_scroll_event(ScrollLocation::Start, origin);
             })
             .shortcut(Modifiers::empty(), Key::End, || {
-                webview.notify_scroll_event(ScrollLocation::End, origin, TouchEventType::Move);
+                webview.notify_scroll_event(ScrollLocation::End, origin);
             })
             .shortcut(Modifiers::empty(), Key::ArrowUp, || {
                 let location = ScrollLocation::Delta(Vector2D::new(0.0, 3.0 * LINE_HEIGHT));
-                webview.notify_scroll_event(location, origin, TouchEventType::Move);
+                webview.notify_scroll_event(location, origin);
             })
             .shortcut(Modifiers::empty(), Key::ArrowDown, || {
                 let location = ScrollLocation::Delta(Vector2D::new(0.0, -3.0 * LINE_HEIGHT));
-                webview.notify_scroll_event(location, origin, TouchEventType::Move);
+                webview.notify_scroll_event(location, origin);
             })
             .shortcut(Modifiers::empty(), Key::ArrowLeft, || {
                 let location = ScrollLocation::Delta(Vector2D::new(LINE_HEIGHT, 0.0));
-                webview.notify_scroll_event(location, origin, TouchEventType::Move);
+                webview.notify_scroll_event(location, origin);
             })
             .shortcut(Modifiers::empty(), Key::ArrowRight, || {
                 let location = ScrollLocation::Delta(Vector2D::new(-LINE_HEIGHT, 0.0));
-                webview.notify_scroll_event(location, origin, TouchEventType::Move);
+                webview.notify_scroll_event(location, origin);
             });
     }
 }

@@ -7,12 +7,10 @@ use atomic_refcell::AtomicRef;
 use compositing_traits::display_list::AxesScrollSensitivity;
 use euclid::Rect;
 use euclid::default::Size2D as UntypedSize2D;
+use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
+use layout_api::{LayoutElementType, LayoutNodeType};
 use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::ServoLayoutNode;
-use script_layout_interface::wrapper_traits::{
-    LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
-};
-use script_layout_interface::{LayoutElementType, LayoutNodeType};
 use servo_arc::Arc;
 use style::dom::{NodeInfo, TNode};
 use style::properties::ComputedValues;

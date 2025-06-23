@@ -21,10 +21,10 @@ use image::{ColorType, ImageEncoder, ImageError};
 use ipc_channel::ipc::{self as ipcchan};
 use js::error::throw_type_error;
 use js::rust::{HandleObject, HandleValue};
-use script_layout_interface::HTMLCanvasData;
+use layout_api::HTMLCanvasData;
+use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use servo_media::streams::MediaStreamType;
 use servo_media::streams::registry::MediaStreamId;
-use snapshot::Snapshot;
 use style::attr::AttrValue;
 
 use super::node::NodeDamage;
@@ -543,15 +543,15 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         let image_type = EncodedImageType::from(mime_type);
         snapshot.transform(
             if image_type == EncodedImageType::Jpeg {
-                snapshot::AlphaMode::AsOpaque {
+                SnapshotAlphaMode::AsOpaque {
                     premultiplied: true,
                 }
             } else {
-                snapshot::AlphaMode::Transparent {
+                SnapshotAlphaMode::Transparent {
                     premultiplied: false,
                 }
             },
-            snapshot::PixelFormat::RGBA,
+            SnapshotPixelFormat::RGBA,
         );
         let mut url = format!("data:{};base64,", image_type.as_mime_type());
 
@@ -627,8 +627,8 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
                 };
 
                 snapshot.transform(
-                    snapshot::AlphaMode::Transparent{ premultiplied: false },
-                    snapshot::PixelFormat::RGBA
+                    SnapshotAlphaMode::Transparent { premultiplied: false },
+                    SnapshotPixelFormat::RGBA
                 );
 
                 // Step 4.1: If result is non-null, then set result to a serialization of

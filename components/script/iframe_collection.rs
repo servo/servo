@@ -9,7 +9,7 @@ use base::id::BrowsingContextId;
 use constellation_traits::{IFrameSizeMsg, WindowSizeType};
 use embedder_traits::ViewportDetails;
 use fnv::FnvHashMap;
-use script_layout_interface::IFrameSizes;
+use layout_api::IFrameSizes;
 
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};

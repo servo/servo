@@ -11,7 +11,7 @@ use std::thread;
 use ipc_channel::ipc::{self, IpcError, IpcReceiver, IpcSender};
 use log::{debug, warn};
 use net_traits::indexeddb_thread::{
-    AsyncOperation, IndexedDBThreadMsg, IndexedDBThreadReturnType, IndexedDBTxnMode, SyncOperation,
+    AsyncOperation, IndexedDBThreadMsg, IndexedDBTxnMode, SyncOperation,
 };
 use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
@@ -315,9 +315,7 @@ impl IndexedDBManager {
             },
             SyncOperation::Commit(sender, _origin, _db_name, _txn) => {
                 // FIXME:(arihant2math) This does nothing at the moment
-                sender
-                    .send(IndexedDBThreadReturnType::Commit(Err(())))
-                    .expect("Could not send commit status");
+                sender.send(Err(())).expect("Could not send commit status");
             },
             SyncOperation::UpgradeVersion(sender, origin, db_name, _txn, version) => {
                 if let Some(db) = self.get_database_mut(origin, db_name) {
@@ -327,9 +325,7 @@ impl IndexedDBManager {
                 // FIXME:(arihant2math) Get the version from the database instead
                 // We never fail as of now, so we can just return it like this
                 // for now...
-                sender
-                    .send(IndexedDBThreadReturnType::UpgradeVersion(Ok(version)))
-                    .expect("Could not upgrade version");
+                sender.send(Ok(version)).expect("Could not upgrade version");
             },
             SyncOperation::CreateObjectStore(
                 sender,
@@ -367,7 +363,7 @@ impl IndexedDBManager {
             },
             SyncOperation::Exit(sender) => {
                 // FIXME:(rasviitanen) Nothing to do?
-                let _ = sender.send(IndexedDBThreadReturnType::Exit);
+                let _ = sender.send(());
             },
         }
     }

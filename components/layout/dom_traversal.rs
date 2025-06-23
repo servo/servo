@@ -7,12 +7,10 @@ use std::iter::FusedIterator;
 
 use fonts::ByteIndex;
 use html5ever::{LocalName, local_name};
+use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
+use layout_api::{LayoutElementType, LayoutNodeType};
 use range::Range;
 use script::layout_dom::ServoLayoutNode;
-use script_layout_interface::wrapper_traits::{
-    LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
-};
-use script_layout_interface::{LayoutElementType, LayoutNodeType};
 use selectors::Element as SelectorsElement;
 use servo_arc::Arc as ServoArc;
 use style::dom::{NodeInfo, TElement, TNode, TShadowRoot};

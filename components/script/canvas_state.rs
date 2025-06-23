@@ -20,7 +20,7 @@ use euclid::vec2;
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::image_cache::{ImageCache, ImageResponse};
 use net_traits::request::CorsSettings;
-use pixels::PixelFormat;
+use pixels::{PixelFormat, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use profile_traits::ipc as profiled_ipc;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::color::{AbsoluteColor, ColorFlags, ColorSpace};
@@ -330,7 +330,7 @@ impl CanvasState {
         &self,
         url: ServoUrl,
         cors_setting: Option<CorsSettings>,
-    ) -> Option<snapshot::Snapshot> {
+    ) -> Option<Snapshot> {
         let img = match self.request_image_from_cache(url, cors_setting) {
             ImageResponse::Loaded(image, _) => {
                 if let Some(image) = image.as_raster_image() {
@@ -350,15 +350,15 @@ impl CanvasState {
 
         let size = Size2D::new(img.metadata.width, img.metadata.height);
         let format = match img.format {
-            PixelFormat::BGRA8 => snapshot::PixelFormat::BGRA,
-            PixelFormat::RGBA8 => snapshot::PixelFormat::RGBA,
+            PixelFormat::BGRA8 => SnapshotPixelFormat::BGRA,
+            PixelFormat::RGBA8 => SnapshotPixelFormat::RGBA,
             pixel_format => unimplemented!("unsupported pixel format ({:?})", pixel_format),
         };
-        let alpha_mode = snapshot::AlphaMode::Transparent {
+        let alpha_mode = SnapshotAlphaMode::Transparent {
             premultiplied: false,
         };
 
-        Some(snapshot::Snapshot::from_vec(
+        Some(Snapshot::from_vec(
             size.cast(),
             format,
             alpha_mode,
@@ -393,10 +393,10 @@ impl CanvasState {
         self.send_canvas_2d_msg(Canvas2dMsg::GetImageData(rect, canvas_size, sender));
         let mut snapshot = receiver.recv().unwrap().to_owned();
         snapshot.transform(
-            snapshot::AlphaMode::Transparent {
+            SnapshotAlphaMode::Transparent {
                 premultiplied: false,
             },
-            snapshot::PixelFormat::RGBA,
+            SnapshotPixelFormat::RGBA,
         );
         snapshot.to_vec()
     }

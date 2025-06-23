@@ -12,7 +12,7 @@ const remoteBaseURL =
 
 window.onload = async () => {
   const urlParams = new URLSearchParams(window.location.search);
-  var iframe = document.createElement("iframe");
+  let iframe = document.createElement("iframe");
   iframe.src = remoteBaseURL + "fedcm-iframe.html";
   if (urlParams.get("permission") != '0') {
     iframe.allow = "identity-credentials-get";

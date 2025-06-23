@@ -1,0 +1,99 @@
+<!doctype html>
+<!--
+The soft navigation version of the identically named test in
+/largest-contentful-paint/first-paint-equals-lcp-text.html.
+Notes:
+- Awaits trivial soft navigation with same page contents as original test.
+- Since FCP is not implemented for soft navigations, this test actually
+  compares the element timing of the text node to the LCP.
+-->
+<meta charset="utf-8" />
+<title>
+  LargestContentfulPaint after soft navigation compared with FirstPaint and FirstContentfulPaint on
+  single text page.
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+<script>
+  function clickHandler() {
+    document.body.innerHTML = `<p elementtiming=text>Text</p>`;
+    history.pushState({}, "", "/test");
+  }
+</script>
+<body>
+  <div id="click-target" onclick="clickHandler()">Click!</div>
+</body>
+<script>
+  setup({ hide_test_state: true });
+  promise_test(async (t) => {
+    assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+
+    const helper = new SoftNavigationTestHelper(t);
+    const lcpEntries = await helper.getBufferedPerformanceEntriesWithTimeout(
+      /*type=*/ "largest-contentful-paint",
+      /*includeSoftNavigationObservations=*/ false,
+      /*minNumEntries=*/ 1,
+    );
+    assert_equals(lcpEntries.length, 1);
+    assert_equals(lcpEntries[0].id, "click-target", "The first entry should be the button");
+    const beforeLoad = performance.now();
+    const promise = Promise.all([
+      SoftNavigationTestHelper.getPerformanceEntries(
+        /*type=*/ "soft-navigation",
+        /*includeSoftNavigationObservations=*/ true,
+        /*minNumEntries=*/ 1,
+      ),
+      SoftNavigationTestHelper.getPerformanceEntries(
+        /*type=*/ "element",
+        /*includeSoftNavigationObservations=*/ true,
+        /*minNumEntries=*/ 1,
+      ),
+      SoftNavigationTestHelper.getPerformanceEntries(
+        /*type=*/ "largest-contentful-paint",
+        /*includeSoftNavigationObservations=*/ true,
+        /*minNumEntries=*/ 1,
+      ),
+    ]);
+    if (test_driver) {
+      test_driver.click(document.getElementById("click-target"));
+    }
+    const [softNavigationEntries, elementEntries, softLcpEntries] = await helper.withTimeoutMessage(
+      promise,
+      "Failed to get performance entries.",
+    );
+
+    assert_equals(1, softNavigationEntries.length, "There should be one soft navigation entry.");
+    assert_equals(1, elementEntries.length, "There should be one element entry.");
+    assert_equals(1, softLcpEntries.length, "There should be one soft LCP entry.");
+
+    assert_less_than_equal(
+      softNavigationEntries[0].startTime,
+      softLcpEntries[0].startTime,
+      "Soft LCP should be after soft navigation.",
+    );
+    assert_equals(
+      softLcpEntries[0].startTime,
+      elementEntries[0].startTime,
+      "Soft LCP and element entry should be at the same time.",
+    );
+
+    assert_not_equals(
+      lcpEntries[0].navigationId,
+      softNavigationEntries[0].navigationId,
+      "Initial LCP and soft navigation have different navigation ID.",
+    );
+    assert_equals(
+      softNavigationEntries[0].navigationId,
+      softLcpEntries[0].navigationId,
+      "Soft navigation and soft LCP have the same navigation ID.",
+    );
+    assert_equals(
+      softLcpEntries[0].navigationId,
+      elementEntries[0].navigationId,
+      "Soft LCP and element entry have the same navigation ID.",
+    );
+  }, "FCP and LCP after soft navigation are the same when there is a single text element in the page.");
+</script>

@@ -7,8 +7,8 @@ use std::convert::{TryFrom, TryInto};
 use std::iter::repeat;
 
 use atomic_refcell::AtomicRef;
+use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use log::warn;
-use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use servo_arc::Arc;
 use style::properties::ComputedValues;
 use style::properties::style_structs::Font;

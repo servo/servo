@@ -17,9 +17,9 @@ use fonts::{
 };
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use log::warn;
+use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use range::Range;
 use servo_arc::Arc as ServoArc;
-use snapshot::Snapshot;
 use style::color::AbsoluteColor;
 use style::properties::style_structs::Font as FontStyleStruct;
 use unicode_script::Script;
@@ -766,14 +766,14 @@ impl<'a, B: Backend> CanvasData<'a, B> {
                 new_draw_target.fill_rect(
                     &draw_rect,
                     self.state.fill_style.clone(),
-                    Some(&self.state.draw_options),
+                    &self.state.draw_options,
                 );
             });
         } else {
             self.drawtarget.fill_rect(
                 &draw_rect,
                 self.state.fill_style.clone(),
-                Some(&self.state.draw_options),
+                &self.state.draw_options,
             );
         }
     }
@@ -1336,8 +1336,8 @@ impl<'a, B: Backend> CanvasData<'a, B> {
 
         Snapshot::from_vec(
             canvas_size,
-            snapshot::PixelFormat::BGRA,
-            snapshot::AlphaMode::Transparent {
+            SnapshotPixelFormat::BGRA,
+            SnapshotAlphaMode::Transparent {
                 premultiplied: true,
             },
             data,

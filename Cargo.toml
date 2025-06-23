@@ -92,7 +92,7 @@ log = "0.4"
 mach2 = "0.4"
 malloc_size_of = { package = "servo_malloc_size_of", path = "components/malloc_size_of" }
 malloc_size_of_derive = "0.1"
-markup5ever = "0.16.1"
+markup5ever = "0.16.2"
 memmap2 = "0.9.5"
 mime = "0.3.13"
 mime_guess = "2.0.5"
@@ -118,7 +118,7 @@ resvg = "0.45.0"
 rustls = { version = "0.23", default-features = false, features = ["logging", "std", "tls12"] }
 rustls-pemfile = "2.0"
 rustls-pki-types = "1.12"
-script_layout_interface = { path = "components/shared/script_layout" }
+layout_api = { path = "components/shared/layout" }
 script_traits = { path = "components/shared/script" }
 selectors = { git = "https://github.com/servo/stylo", branch = "2025-06-03" }
 serde = "1.0.219"
@@ -131,7 +131,6 @@ servo-tracing = { path = "components/servo_tracing" }
 servo_arc = { git = "https://github.com/servo/stylo", branch = "2025-06-03" }
 smallbitvec = "2.6.0"
 smallvec = "1.15"
-snapshot = { path = "./components/shared/snapshot" }
 static_assertions = "1.1"
 string_cache = "0.8"
 string_cache_codegen = "0.5"

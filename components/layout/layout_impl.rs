@@ -24,6 +24,10 @@ use fonts::{FontContext, FontContextWebFontMethods};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
+use layout_api::{
+    Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType, OffsetParentResponse, ReflowGoal,
+    ReflowRequest, ReflowResult, TrustedNodeAddress,
+};
 use log::{debug, error, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
@@ -35,10 +39,6 @@ use profile_traits::time::{
 use profile_traits::{path, time_profile};
 use rayon::ThreadPool;
 use script::layout_dom::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
-use script_layout_interface::{
-    Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType, OffsetParentResponse, ReflowGoal,
-    ReflowRequest, ReflowResult, TrustedNodeAddress,
-};
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter, ScriptThreadMessage};
 use servo_arc::Arc as ServoArc;
 use servo_config::opts::{self, DebugOptions};
@@ -271,10 +271,7 @@ impl Layout for LayoutThread {
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn query_element_inner_outer_text(
-        &self,
-        node: script_layout_interface::TrustedNodeAddress,
-    ) -> String {
+    fn query_element_inner_outer_text(&self, node: layout_api::TrustedNodeAddress) -> String {
         let node = unsafe { ServoLayoutNode::new(&node) };
         get_the_text_steps(node)
     }
@@ -472,6 +469,14 @@ impl Layout for LayoutThread {
             .scroll_tree
             .set_all_scroll_offsets(scroll_states);
     }
+
+    fn scroll_offset(&self, id: ExternalScrollId) -> Option<LayoutVector2D> {
+        self.stacking_context_tree
+            .borrow_mut()
+            .as_mut()
+            .and_then(|tree| tree.compositor_info.scroll_tree.scroll_offset(id))
+            .map(|scroll_offset| -scroll_offset)
+    }
 }
 
 impl LayoutThread {
@@ -662,6 +667,20 @@ impl LayoutThread {
         if let ReflowGoal::UpdateScrollNode(external_scroll_id, offset) = reflow_request.reflow_goal
         {
             self.set_scroll_offset_from_script(external_scroll_id, offset);
+        }
+
+        if self.debug.dump_scroll_tree {
+            // Print the [ScrollTree], this is done after display list build so we have
+            // the information about webrender id. Whether a scroll tree is initialized
+            // or not depends on the reflow goal.
+            if let Some(tree) = self.stacking_context_tree.borrow().as_ref() {
+                tree.compositor_info.scroll_tree.debug_print();
+            } else {
+                println!(
+                    "Scroll Tree -- reflow {:?}: scroll tree is not initialized yet.",
+                    reflow_request.reflow_goal
+                );
+            }
         }
 
         let pending_images = std::mem::take(&mut *layout_context.pending_images.lock());
@@ -982,7 +1001,7 @@ impl LayoutThread {
             .scroll_tree
             .set_scroll_offset_for_node_with_external_scroll_id(
                 external_scroll_id,
-                offset,
+                -offset,
                 ScrollType::Script,
             )
         {

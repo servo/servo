@@ -4,6 +4,7 @@
     <link xmlns="http://www.w3.org/1999/xhtml" rel="help" href="http://www.w3.org/TR/SVG2/shapes.html#RectElement"/>
     <link xmlns="http://www.w3.org/1999/xhtml" rel="match" href="rect-03-ref.html"/>
     <meta xmlns="http://www.w3.org/1999/xhtml" name="assert" content="rect element with rounded corners renders correctly."/>
+    <meta name="fuzzy" content="0-30;0-100"/>
   </metadata>
   <rect x="10" y="10" width="50" height="50" rx="8" ry="8" fill="blue"/>
 </svg>

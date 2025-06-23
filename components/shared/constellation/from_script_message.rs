@@ -443,7 +443,7 @@ pub struct WorkerGlobalScopeInit {
     /// The origin
     pub origin: ImmutableOrigin,
     /// The creation URL
-    pub creation_url: Option<ServoUrl>,
+    pub creation_url: ServoUrl,
     /// True if secure context
     pub inherited_secure_context: Option<bool>,
 }

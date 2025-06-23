@@ -20,7 +20,7 @@ use glow::{
 };
 use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSender, IpcSharedMemory};
 use malloc_size_of_derive::MallocSizeOf;
-use pixels::PixelFormat;
+use pixels::{PixelFormat, SnapshotAlphaMode};
 use serde::{Deserialize, Serialize};
 use webrender_api::ImageKey;
 use webxr_api::{
@@ -302,7 +302,7 @@ pub enum WebGLCommand {
         Rect<u32>,
         u32,
         u32,
-        IpcSender<(IpcSharedMemory, snapshot::AlphaMode)>,
+        IpcSender<(IpcSharedMemory, SnapshotAlphaMode)>,
     ),
     ReadPixelsPP(Rect<i32>, u32, u32, usize),
     SampleCoverage(f32, bool),

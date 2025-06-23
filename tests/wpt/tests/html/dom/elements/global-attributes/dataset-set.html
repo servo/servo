@@ -34,8 +34,8 @@
         "Setting element.dataset['-foo'] should throw a SYNTAX_ERR");
       test(function() { assert_throws_dom('INVALID_CHARACTER_ERR', function() { testSet('foo\x20', 'dummy') }); },
         "Setting element.dataset['foo\x20'] should throw an INVALID_CHARACTER_ERR");
-      test(function() { assert_throws_dom('INVALID_CHARACTER_ERR', function() { testSet('\u037Efoo', 'dummy') }); },
-        "Setting element.dataset['\u037Efoo'] should throw an INVALID_CHARACTER_ERR");
+      test(function() { assert_true(testSet('\u037Efoo', 'data-\u037Efoo')); },
+        "Setting element.dataset['\u037Efoo'] should not throw.");
       test(function() { assert_true(testSet('\u0BC6foo', 'data-\u0BC6foo')); },
         "Setting element.dataset['\u0BC6foo'] should also change the value of element.getAttribute('\u0BC6foo')");
 

@@ -3,6 +3,9 @@
     <head>
         <title>Element.hasPointerCapture test</title>
         <meta name="viewport" content="width=device-width">
+        <meta name="variant" content="?mouse">
+        <meta name="variant" content="?pen">
+        <meta name="variant" content="?touch">
         <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
@@ -11,6 +14,8 @@
         <script src="/resources/testdriver-vendor.js"></script>
         <script type="text/javascript" src="pointerevent_support.js"></script>
         <script>
+            const pointer_type = location.search.substring(1);
+
             var detected_pointertypes = {};
             add_completion_callback(showPointerTypes);
             var test_pointerEvent = async_test("hasPointerCapture");
@@ -32,8 +37,13 @@
                 on_event(target0, "pointerdown", function (e) {
                     detected_pointertypes[e.pointerType] = true;
                     test_pointerEvent.step(function () {
-                        assert_equals(target0.hasPointerCapture(e.pointerId), false,
-                                      "before target0.setPointerCapture, target0.hasPointerCapture should be false");
+                        if (pointer_type === "pen") {
+                            // Implicit capture for pen is platform-dependent.
+                            return;
+                        }
+                        const expected_default_capture = pointer_type !== "mouse";
+                        assert_equals(target0.hasPointerCapture(e.pointerId), expected_default_capture,
+                                      "before target0.setPointerCapture, target0.hasPointerCapture should be " + expected_default_capture);
                     });
                     target1.setPointerCapture(e.pointerId);
                     test_pointerEvent.step(function () {
@@ -112,6 +122,7 @@
 
                 // Inject mouse inputs.
                 actions_promise = new test_driver.Actions()
+                    .addPointer("TestPointer", pointer_type)
                     .pointerMove(0, 0, {origin: target0})
                     .pointerDown()
                     .pointerMove(0, 10, {origin: target0})
@@ -139,8 +150,8 @@
             </ol>
         </h4>
         <p>
-        <div id="target0" touch-action:none></div>
-        <div id="target1" touch-action:none></div>
+        <div id="target0" style="touch-action:none"></div>
+        <div id="target1"></div>
         <div id="complete-notice">
             <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
         </div>

@@ -432,7 +432,10 @@ impl WebViewRenderer {
                 InputEvent::Touch(ref mut touch_event) => {
                     touch_event.init_sequence_id(self.touch_handler.current_sequence_id);
                 },
-                InputEvent::MouseButton(_) | InputEvent::MouseMove(_) | InputEvent::Wheel(_) => {
+                InputEvent::MouseButton(_) |
+                InputEvent::MouseLeave(_) |
+                InputEvent::MouseMove(_) |
+                InputEvent::Wheel(_) => {
                     self.global
                         .borrow_mut()
                         .update_cursor_from_hittest(point, &result);
@@ -799,21 +802,11 @@ impl WebViewRenderer {
         &mut self,
         scroll_location: ScrollLocation,
         cursor: DeviceIntPoint,
-        event_type: TouchEventType,
     ) {
         if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
-
-        match event_type {
-            TouchEventType::Move => self.on_scroll_window_event(scroll_location, cursor),
-            TouchEventType::Up | TouchEventType::Cancel => {
-                self.on_scroll_window_event(scroll_location, cursor);
-            },
-            TouchEventType::Down => {
-                self.on_scroll_window_event(scroll_location, cursor);
-            },
-        }
+        self.on_scroll_window_event(scroll_location, cursor);
     }
 
     fn on_scroll_window_event(&mut self, scroll_location: ScrollLocation, cursor: DeviceIntPoint) {

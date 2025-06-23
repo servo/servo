@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4 Test: Parsing 'corners' with valid values</title>
+<link rel="author" title="Sebastian Zartner" href="mailto:sebastianzartner@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shaping">
+<meta name="assert" content="This test checks that 'corners' supports a combination of 'border-radius' and 'corner-shape' values.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+
+<script>
+test_valid_value("corners", "round 30%", "30% round");
+test_valid_value("corners", "10px bevel");
+test_valid_value("corners", "round 10% / 2rem squircle", "10% round / 2rem squircle");
+test_valid_value("corners", "notch 10px / squircle 30% 10px / 1rem bevel / 2px round", "10px notch / 30% 10px squircle / 1rem bevel / 2px round");
+test_valid_value("corners", "normal");
+test_valid_value("corners", "4px 2% round");
+test_valid_value("corners", "4px 2% round / bevel 1em / normal", "4px 2% round / 1em bevel / normal");
+test_valid_value("corners", "normal / 1px round / normal / 3% squircle");
+test_valid_value("corners", "normal / superellipse(-0.5) 30% 10px / 10px 1rem notch", "normal / 30% 10px superellipse(-0.5) / 10px 1rem notch");
+</script>

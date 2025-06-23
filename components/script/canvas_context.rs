@@ -5,9 +5,9 @@
 //! Common interfaces for Canvas Contexts
 
 use euclid::default::Size2D;
+use layout_api::HTMLCanvasData;
+use pixels::Snapshot;
 use script_bindings::root::Dom;
-use script_layout_interface::HTMLCanvasData;
-use snapshot::Snapshot;
 use webrender_api::ImageKey;
 
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;

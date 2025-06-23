@@ -58,17 +58,22 @@ for (const options of [{}, {negotiated: true, id: 0}]) {
     }
 
     for (let i = 1; i <= 10; i++) {
-      if ('id' in options) {
-        options.id = i;
+      let optionsCopy = structuredClone(options);
+      if ('id' in optionsCopy) {
+        optionsCopy.id = i;
       }
-      const sender = pc1.createDataChannel(`dc ${i}`, options);
+      const sender = pc1.createDataChannel(`dc ${i}`, optionsCopy);
       const senderOpen = new Promise(r => sender.onopen = r);
       let receiver;
-      if (options.negotiated) {
-        receiver = pc2.createDataChannel(`dc ${i}`, options);
+      if (optionsCopy.negotiated) {
+        receiver = pc2.createDataChannel(`dc ${i}`, optionsCopy);
       } else {
         receiver = (await new Promise(r => pc2.ondatachannel = r)).channel;
       }
+      if (receiver.readyState == 'connecting') {
+        await new Promise(r => receiver.onopen = r);
+      }
+      assert_equals(receiver.readyState, 'open');
       receiver.onmessage = ({data}) => receiver.send(data);
       await senderOpen;
       sender.send(`ping ${i}`);

@@ -35,6 +35,7 @@ icu_locid = { workspace = true }
 icu_segmenter = { workspace = true }
 ipc-channel = { workspace = true }
 itertools = { workspace = true }
+layout_api = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
@@ -45,7 +46,6 @@ profile_traits = { workspace = true }
 range = { path = "../range" }
 rayon = { workspace = true }
 script = { path = "../script" }
-script_layout_interface = { workspace = true }
 script_traits = { workspace = true }
 selectors = { workspace = true }
 servo_arc = { workspace = true }

@@ -93,7 +93,7 @@ pub(crate) trait GenericDrawTarget<B: Backend> {
         &mut self,
         rect: &Rect<f32>,
         pattern: B::Pattern<'_>,
-        draw_options: Option<&B::DrawOptions>,
+        draw_options: &B::DrawOptions,
     );
     fn get_size(&self) -> Size2D<i32>;
     fn get_transform(&self) -> Transform2D<f32>;
