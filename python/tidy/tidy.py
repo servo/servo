@@ -17,6 +17,7 @@ import os
 import re
 import subprocess
 import sys
+import concurrent.futures
 from typing import Any, Dict, List
 
 import colorama
@@ -957,6 +958,28 @@ We only expect files with {ext} extensions in {dir_name}""".format(**details)
                 yield (filename, 1, message)
 
 
+def file_checking(filename, checking_functions, line_checking_functions):
+    if not os.path.exists(filename):
+        return
+    with open(filename, "rb") as f:
+        contents = f.read()
+        if not contents.strip():
+            yield filename, 0, "file is empty"
+            return
+        for check in checking_functions:
+            for error in check(filename, contents):
+                # the result will be: `(filename, line, message)`
+                yield (filename,) + error
+        lines = contents.splitlines(True)
+        for check in line_checking_functions:
+            for error in check(filename, lines):
+                yield (filename,) + error
+
+
+def collect_file_checking(filename, checking_functions, line_checking_functions):
+    return list(file_checking(filename, checking_functions, line_checking_functions))
+
+
 def collect_errors_for_files(files_to_check, checking_functions, line_checking_functions, print_text=True):
     (has_element, files_to_check) = is_iter_empty(files_to_check)
     if not has_element:
@@ -964,22 +987,21 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
     if print_text:
         print("\r ➤  Checking files for tidiness...")
 
-    for filename in files_to_check:
-        if not os.path.exists(filename):
-            continue
-        with open(filename, "rb") as f:
-            contents = f.read()
-            if not contents.strip():
-                yield filename, 0, "file is empty"
-                continue
-            for check in checking_functions:
-                for error in check(filename, contents):
-                    # the result will be: `(filename, line, message)`
-                    yield (filename,) + error
-            lines = contents.splitlines(True)
-            for check in line_checking_functions:
-                for error in check(filename, lines):
-                    yield (filename,) + error
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures_to_errors = {
+            executor.submit(collect_file_checking, filename, checking_functions, line_checking_functions): filename
+            for filename in files_to_check
+        }
+
+        for future in concurrent.futures.as_completed(futures_to_errors):
+            try:
+                lines = future.result()
+            except Exception as exc:
+                print("got error from file checkn conccurent: %s" % exc)
+                sys.exit(1)
+            else:
+                for line in lines:
+                    yield line
 
 
 def scan(only_changed_files=False, progress=False, github_annotations=False):
