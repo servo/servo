@@ -549,7 +549,7 @@ impl ImageCache for ImageCacheImpl {
         let thread_count = thread::available_parallelism()
             .map(|i| i.get())
             .unwrap_or(pref!(threadpools_fallback_worker_num) as usize)
-            .min(pref!(threadpools_async_runtime_workers_max).max(1) as usize);
+            .min(pref!(threadpools_image_cache_workers_max).max(1) as usize);
 
         ImageCacheImpl {
             store: Arc::new(Mutex::new(ImageCacheStore {
