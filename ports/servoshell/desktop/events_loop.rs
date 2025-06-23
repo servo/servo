@@ -93,6 +93,7 @@ impl EventsLoop {
                 app.init(None);
                 loop {
                     self.sleep(flag, condvar);
+                    app.handle_webdriver_messages();
                     if !app.handle_events_with_headless() {
                         break;
                     }

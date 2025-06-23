@@ -316,7 +316,7 @@ impl App {
         }
     }
 
-    fn handle_webdriver_messages(&mut self) {
+    pub fn handle_webdriver_messages(&self) {
         let AppState::Running(running_state) = &self.state else {
             return;
         };
