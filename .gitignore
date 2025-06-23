@@ -71,3 +71,6 @@ support/macos/Brewfile.lock.json
 
 # direnv
 .envrc
+
+# Justfiles
+justfile
