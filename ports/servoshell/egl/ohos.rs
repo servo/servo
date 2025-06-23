@@ -4,6 +4,7 @@
 #![allow(non_snake_case)]
 
 use std::cell::RefCell;
+use std::fs::File;
 use std::mem::MaybeUninit;
 use std::os::raw::c_void;
 use std::rc::Rc;
@@ -26,6 +27,7 @@ use servo::{
     AlertResponse, EventLoopWaker, InputMethodType, LoadStatus, MediaSessionPlaybackState,
     PermissionRequest, SimpleDialog, WebView, WebViewId,
 };
+use simplelog::WriteLogger;
 use xcomponent_sys::{
     OH_NativeXComponent, OH_NativeXComponent_Callback, OH_NativeXComponent_GetKeyEvent,
     OH_NativeXComponent_GetKeyEventAction, OH_NativeXComponent_GetKeyEventCode,
@@ -38,7 +40,9 @@ use xcomponent_sys::{
 
 use super::app_state::{Coordinates, RunningAppState};
 use super::host_trait::HostTrait;
+use crate::egl::ohos::multilogger::MultiLogger;
 
+mod multilogger;
 mod resources;
 mod simpleservo;
 
@@ -507,6 +511,7 @@ static LOGGER: LazyLock<hilog::Logger> = LazyLock::new(|| {
         "servoshell::egl::log",
         // Show JS errors by default.
         "script::dom::bindings::error",
+        "script::dom::console",
         // Show GL errors by default.
         "canvas::webgl_thread",
         "compositing::compositor",
@@ -521,12 +526,32 @@ static LOGGER: LazyLock<hilog::Logger> = LazyLock::new(|| {
     builder.filter_level(LevelFilter::Warn).build()
 });
 
+/// This needs to be called after the crate::prefs::default_config_dir is set
 fn initialize_logging_once() {
     static ONCE: Once = Once::new();
+
     ONCE.call_once(|| {
-        let logger: &'static hilog::Logger = &LOGGER;
-        let max_level = logger.filter();
-        let r = log::set_logger(logger).map(|()| log::set_max_level(max_level));
+        let hilogger: &'static hilog::Logger = &LOGGER;
+        let max_level = hilogger.filter();
+        let mut config_path =
+            crate::prefs::default_config_dir().expect("config_path has to be set");
+        config_path.push("servo.log");
+        let file_logger_config = simplelog::ConfigBuilder::new()
+            .add_filter_allow_str("script::dom::console")
+            //.add_filter_allow_str("servo")
+            //.add_filter_allow_str("servoshell")
+            .build();
+        let log_file = WriteLogger::new(
+            log::LevelFilter::Info,
+            file_logger_config,
+            File::create(config_path).expect("Could not create file"),
+        );
+
+        let r = MultiLogger::init(vec![Box::new(hilogger), log_file], log::Level::Info)
+            .map(|()| log::set_max_level(max_level))
+            .expect("Could not create logger");
+
+        //let r = log::set_logger(combined_logger).map(|()| log::set_max_level(max_level));
         debug!("Attempted to register the logger: {r:?} and set max level to: {max_level}");
         info!("Servo Register callback called!");
 
@@ -640,7 +665,6 @@ fn debug_jsobject(obj: &JsObject, obj_name: &str) -> napi_ohos::Result<()> {
 
 #[module_exports]
 fn init(exports: JsObject, env: Env) -> napi_ohos::Result<()> {
-    initialize_logging_once();
     info!("simpleservo init function called");
     if let Ok(xcomponent) = exports.get_named_property::<JsObject>("__NATIVE_XCOMPONENT_OBJ__") {
         register_xcomponent_callbacks(&env, &xcomponent)?;

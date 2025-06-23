@@ -88,6 +88,7 @@ backtrace = { workspace = true }
 env_filter = "0.1.3"
 euclid = { workspace = true }
 hilog = "0.2.0"
+simplelog = { version = "0.12.2", default-features = false }
 # force inprocess until we add multi-process support for ohos
 ipc-channel = { workspace = true, features = ["force-inprocess"] }
 napi-derive-ohos = "1.0.4"

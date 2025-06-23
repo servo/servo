@@ -122,6 +122,8 @@ pub fn init(
             );
         });
 
+    crate::egl::ohos::initialize_logging_once();
+
     // Ensure cache dir exists before copy `prefs.json`
     let _ = crate::prefs::default_config_dir().inspect(|path| {
         if !path.exists() {
