@@ -64,7 +64,7 @@ use webdriver::response::{
 };
 use webdriver::server::{self, Session, SessionTeardownKind, WebDriverHandler};
 
-use crate::actions::{ActionItem, ActionsByTick, InputSourceState, PointerInputState};
+use crate::actions::{ActionItem, InputSourceState, PointerInputState};
 
 #[derive(Default)]
 pub struct WebDriverMessageIdGenerator {
@@ -1758,8 +1758,10 @@ impl Handler {
         // only one command can run at a time, so this will never block."
 
         // Step 6. Let undo actions be input cancel list in reverse order.
-        let mut input_cancel_list = session.input_cancel_list.borrow_mut();
-        let undo_actions: ActionsByTick = input_cancel_list
+
+        let undo_actions = session
+            .input_cancel_list
+            .borrow_mut()
             .drain(..)
             .rev()
             .map(|(id, action_item)| HashMap::from([(id, action_item)]))
