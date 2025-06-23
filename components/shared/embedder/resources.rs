@@ -109,6 +109,8 @@ pub enum Resource {
     DirectoryListingHTML,
     /// A HTML page that is used for the about:memory url.
     AboutMemoryHTML,
+    /// A HTML page used when loading an image as the top-level content.
+    ImageDocumentHTML,
 }
 
 impl Resource {
@@ -123,6 +125,7 @@ impl Resource {
             Resource::CrashHTML => "crash.html",
             Resource::DirectoryListingHTML => "directory-listing.html",
             Resource::AboutMemoryHTML => "about-memory.html",
+            Resource::ImageDocumentHTML => "image-document.html",
         }
     }
 }
@@ -166,6 +169,9 @@ fn resources_for_tests() -> Box<dyn ResourceReaderMethods + Sync + Send> {
                 },
                 Resource::AboutMemoryHTML => {
                     &include_bytes!("../../../resources/about-memory.html")[..]
+                },
+                Resource::ImageDocumentHTML => {
+                    &include_bytes!("../../../resources/image-document.html")[..]
                 },
             }
             .to_owned()

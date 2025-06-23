@@ -43,7 +43,6 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState,
 };
-use crate::dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
@@ -54,7 +53,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::is_execution_stack_empty;
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::comment::Comment;
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
@@ -63,7 +62,6 @@ use crate::dom::documenttype::DocumentType;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
-use crate::dom::htmlimageelement::HTMLImageElement;
 use crate::dom::htmlinputelement::HTMLInputElement;
 use crate::dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use crate::dom::htmltemplateelement::HTMLTemplateElement;
@@ -940,17 +938,9 @@ impl FetchResponseListener for ParserContext {
         ) {
             (mime::IMAGE, _, _) => {
                 self.is_synthesized_document = true;
-                let page = "<html><body></body></html>".into();
+                let page = resources::read_string(Resource::ImageDocumentHTML);
                 parser.push_string_input_chunk(page);
                 parser.parse_sync(CanGc::note());
-
-                let doc = &parser.document;
-                let doc_body = DomRoot::upcast::<Node>(doc.GetBody().unwrap());
-                let img = HTMLImageElement::new(local_name!("img"), None, doc, None, CanGc::note());
-                img.SetSrc(USVString(self.url.to_string()));
-                doc_body
-                    .AppendChild(&DomRoot::upcast::<Node>(img), CanGc::note())
-                    .expect("Appending failed");
             },
             (mime::TEXT, mime::PLAIN, _) => {
                 // https://html.spec.whatwg.org/multipage/#read-text
