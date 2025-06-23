@@ -64,7 +64,7 @@ impl Console {
     ) {
         let cx = GlobalScope::get_cx();
 
-        let mut log: ConsoleMessageBuilder = Console::build_message(level);
+        let mut log: ConsoleMessageBuilder = Console::build_message(level.clone());
         for message in &messages {
             log.add_argument(console_argument_from_handle_value(cx, *message));
         }
@@ -75,8 +75,12 @@ impl Console {
 
         Console::send_to_devtools(global, log.finish());
 
+        let msgs = stringify_handle_values(&messages);
         // Also log messages to stdout
-        console_messages(global, messages)
+        console_message(global, &msgs);
+
+        // Also output to the logger which will be at script::dom::console
+        log!(level.into(), "{}", &msgs);
     }
 
     fn send_to_devtools(global: &GlobalScope, message: ConsoleMessage) {
@@ -93,7 +97,7 @@ impl Console {
     // Directly logs a DOMString, without processing the message
     pub(crate) fn internal_warn(global: &GlobalScope, message: DOMString) {
         Console::send_string_message(global, LogLevel::Warn, String::from(message.clone()));
-        console_message(global, message);
+        console_message(global, &message);
     }
 }
 
@@ -330,12 +334,7 @@ fn stringify_handle_values(messages: &[HandleValue]) -> DOMString {
     ))
 }
 
-fn console_messages(global: &GlobalScope, messages: Vec<HandleValue>) {
-    let message = stringify_handle_values(&messages);
-    console_message(global, message)
-}
-
-fn console_message(global: &GlobalScope, message: DOMString) {
+fn console_message(global: &GlobalScope, message: &DOMString) {
     with_stderr_lock(move || {
         let prefix = global.current_group_label().unwrap_or_default();
         let message = format!("{}{}", prefix, message);
@@ -392,7 +391,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
             let message = format!("Assertion failed: {}", stringify_handle_values(&messages));
 
             Console::send_string_message(global, LogLevel::Log, message.clone());
-            console_message(global, DOMString::from(message));
+            console_message(global, &DOMString::from(message));
         }
     }
 
@@ -401,7 +400,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
         if let Ok(()) = global.time(label.clone()) {
             let message = format!("{label}: timer started");
             Console::send_string_message(global, LogLevel::Log, message.clone());
-            console_message(global, DOMString::from(message));
+            console_message(global, &DOMString::from(message));
         }
     }
 
@@ -411,7 +410,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
             let message = format!("{label}: {delta}ms {}", stringify_handle_values(&data));
 
             Console::send_string_message(global, LogLevel::Log, message.clone());
-            console_message(global, DOMString::from(message));
+            console_message(global, &DOMString::from(message));
         }
     }
 
@@ -421,7 +420,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
             let message = format!("{label}: {delta}ms");
 
             Console::send_string_message(global, LogLevel::Log, message.clone());
-            console_message(global, DOMString::from(message));
+            console_message(global, &DOMString::from(message));
         }
     }
 
@@ -446,7 +445,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
         let message = format!("{label}: {count}");
 
         Console::send_string_message(global, LogLevel::Log, message.clone());
-        console_message(global, DOMString::from(message));
+        console_message(global, &DOMString::from(message));
     }
 
     /// <https://console.spec.whatwg.org/#countreset>
