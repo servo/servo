@@ -165,14 +165,14 @@ impl IndexedDBManager {
         let thread_count = thread::available_parallelism()
             .map(|i| i.get())
             .unwrap_or(pref!(threadpools_fallback_worker_num) as usize)
-            .min(pref!(threadpools_async_runtime_workers_max).max(1) as usize);
+            .min(pref!(threadpools_indexeddb_workers_max).max(1) as usize);
         IndexedDBManager {
             port,
             idb_base_dir,
             databases: HashMap::new(),
             thread_pool: Arc::new(CoreResourceThreadPool::new(
                 thread_count,
-                "ImageCache".to_string(),
+                "IndexedDB".to_string(),
             )),
         }
     }
