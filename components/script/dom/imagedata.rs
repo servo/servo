@@ -84,6 +84,15 @@ impl ImageData {
     ) -> Fallible<DomRoot<ImageData>> {
         // 1. If source was given:
         let data = if let Some(source) = source {
+            // 1. If settings["pixelFormat"] equals "rgba-unorm8" and source is not a Uint8ClampedArray,
+            // then throw an "InvalidStateError" DOMException.
+            // 2. If settings["pixelFormat"] is "rgba-float16" and source is not a Float16Array,
+            // then throw an "InvalidStateError" DOMException.
+            if !matches!(settings.pixelFormat, ImageDataPixelFormat::Rgba_unorm8) {
+                // we currently support only rgba-unorm8
+                return Err(Error::InvalidState);
+            }
+            // 3. Initialize the data attribute of imageData to source.
             HeapBufferSource::<ClampedU8>::from_view(source)
         } else {
             // 2. Otherwise (source was not given):
@@ -94,12 +103,20 @@ impl ImageData {
                     // The Uint8ClampedArray object must use a new ArrayBuffer for its storage,
                     // and must have a zero byte offset and byte length equal to the length of its storage, in bytes.
                     // The storage ArrayBuffer must have a length of 4 × rows × pixelsPerRow bytes.
+                    // 3. If the storage ArrayBuffer could not be allocated,
+                    // then rethrow the RangeError thrown by JavaScript, and return.
                     create_heap_buffer_source_with_length(
                         GlobalScope::get_cx(),
                         4 * rows * pixels_per_row,
                         can_gc,
                     )?
                 },
+                // 3. Otherwise, if settings["pixelFormat"] is "rgba-float16",
+                // then initialize the data attribute of imageData to a new Float16Array object.
+                // The Float16Array object must use a new ArrayBuffer for its storage,
+                // and must have a zero byte offset and byte length equal to the length of its storage, in bytes.
+                // The storage ArrayBuffer must have a length of 8 × rows × pixelsPerRow bytes.
+                // not implemented yet
             }
         };
         // 3. Initialize the width attribute of imageData to pixelsPerRow.
