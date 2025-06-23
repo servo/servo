@@ -319,13 +319,14 @@ impl IndexedDBManager {
             },
             SyncOperation::UpgradeVersion(sender, origin, db_name, _txn, version) => {
                 if let Some(db) = self.get_database_mut(origin, db_name) {
-                    db.version = version;
-                };
-
-                // FIXME:(arihant2math) Get the version from the database instead
-                // We never fail as of now, so we can just return it like this
-                // for now...
-                sender.send(Ok(version)).expect("Could not upgrade version");
+                    if version > db.version {
+                        db.version = version;
+                    }
+                    // erroring out if the version is not upgraded can be and non-replicable
+                    let _ = sender.send(Ok(db.version));
+                } else {
+                    let _ = sender.send(Err(()));
+                }
             },
             SyncOperation::CreateObjectStore(
                 sender,
