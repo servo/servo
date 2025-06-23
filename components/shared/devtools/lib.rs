@@ -308,6 +308,21 @@ pub enum LogLevel {
     Trace,
 }
 
+impl From<LogLevel> for log::Level {
+    fn from(value: LogLevel) -> Self {
+        match value {
+            LogLevel::Log => log::Level::Info,
+            LogLevel::Clear => log::Level::Info,
+
+            LogLevel::Debug => log::Level::Debug,
+            LogLevel::Info => log::Level::Info,
+            LogLevel::Warn => log::Level::Warn,
+            LogLevel::Error => log::Level::Error,
+            LogLevel::Trace => log::Level::Trace,
+        }
+    }
+}
+
 /// A console message as it is sent from script to the constellation
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
