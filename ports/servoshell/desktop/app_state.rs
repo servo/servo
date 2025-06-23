@@ -15,14 +15,13 @@ use servo::base::id::WebViewId;
 use servo::config::{opts, pref};
 use servo::ipc_channel::ipc::IpcSender;
 use servo::webrender_api::ScrollLocation;
-use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
+use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePixel};
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FormControl, GamepadHapticEffectType,
     KeyboardEvent, LoadStatus, PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog,
     WebDriverCommandMsg, WebDriverCommandResponse, WebDriverLoadStatus, WebView, WebViewBuilder,
     WebViewDelegate,
 };
-use style_traits::CSSPixel;
 use url::Url;
 
 use super::app::PumpResult;
@@ -43,7 +42,7 @@ pub(crate) enum AppState {
 #[derive(Clone, Default)]
 struct WebDriverSenders {
     pub load_status_sender: Option<(WebViewId, IpcSender<WebDriverLoadStatus>)>,
-    pub _size_sender: Option<IpcSender<euclid::Size2D<f32, CSSPixel>>>,
+    pub _size_sender: Option<IpcSender<euclid::Size2D<i32, DevicePixel>>>,
     pub _input_command_response_sender: Option<IpcSender<WebDriverCommandResponse>>,
 }
 

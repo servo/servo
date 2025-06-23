@@ -807,18 +807,16 @@ impl Handler {
 
         self.verify_top_level_browsing_context_is_open(webview_id)?;
 
-        let cmd_msg = WebDriverCommandMsg::GetWindowSize(webview_id, sender);
-
-        self.constellation_chan
-            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
-            .unwrap();
+        let _ = self
+            .embedder_sender
+            .send(WebDriverCommandMsg::GetWindowSize(webview_id, sender));
 
         let window_size = wait_for_script_response(receiver)?;
         let window_size_response = WindowRectResponse {
             x: 0,
             y: 0,
-            width: window_size.width as i32,
-            height: window_size.height as i32,
+            width: window_size.width,
+            height: window_size.height,
         };
         Ok(WebDriverResponse::WindowRect(window_size_response))
     }
@@ -844,30 +842,30 @@ impl Handler {
         // Step 12. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
         self.verify_top_level_browsing_context_is_open(webview_id)?;
-        let cmd_msg = WebDriverCommandMsg::SetWindowSize(webview_id, size.to_i32(), sender.clone());
 
-        self.constellation_chan
-            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
-            .unwrap();
+        let _ = self
+            .embedder_sender
+            .send(WebDriverCommandMsg::SetWindowSize(
+                webview_id,
+                size.to_i32(),
+                sender.clone(),
+            ));
 
         let timeout = self.resize_timeout;
-        let constellation_chan = self.constellation_chan.clone();
+        let embedder_sender = self.embedder_sender.clone();
         thread::spawn(move || {
             // On timeout, we send a GetWindowSize message to the constellation,
             // which will give the current window size.
             thread::sleep(Duration::from_millis(timeout as u64));
-            let cmd_msg = WebDriverCommandMsg::GetWindowSize(webview_id, sender);
-            constellation_chan
-                .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
-                .unwrap();
+            let _ = embedder_sender.send(WebDriverCommandMsg::GetWindowSize(webview_id, sender));
         });
 
         let window_size = wait_for_script_response(receiver)?;
         let window_size_response = WindowRectResponse {
             x: 0,
             y: 0,
-            width: window_size.width as i32,
-            height: window_size.height as i32,
+            width: window_size.width,
+            height: window_size.height,
         };
         Ok(WebDriverResponse::WindowRect(window_size_response))
     }

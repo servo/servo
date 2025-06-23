@@ -354,13 +354,29 @@ impl App {
                 WebDriverCommandMsg::FocusWebView(webview_id) => {
                     if let Some(webview) = running_state.webview_by_id(webview_id) {
                         webview.focus();
+                    }
+
+                    //TODO: send a response to the WebDriver
+                },
+                WebDriverCommandMsg::GetWindowSize(_webview_id, response_sender) => {
+                    if let Some(window) = self.windows.values().next() {
+                        // Send the size back to the WebDriver
+                        if let Err(e) = response_sender.send(window.screen_geometry().size) {
+                            warn!("Failed to send window size: {e}");
+                        }
                     } else {
-                        warn!("Tried to focus a webview that does not exist: {webview_id}");
-                        //TODO: send a response to the WebDriver
+                        warn!("No windows available to get size from");
                     }
                 },
-                WebDriverCommandMsg::GetWindowSize(..) => {},
-                WebDriverCommandMsg::SetWindowSize(..) => {},
+                WebDriverCommandMsg::SetWindowSize(webview_id, size, size_sender) => {
+                    if let Some(webview) = running_state.webview_by_id(webview_id) {
+                        if let Some(window) = self.windows.values().next() {
+                            let size = window.request_resize(&webview, size);
+                            let _ = size_sender.send(size.unwrap_or_default());
+                        }
+                    }
+                },
+                WebDriverCommandMsg::GetViewportSize(..) => {},
                 WebDriverCommandMsg::LoadUrl(..) |
                 WebDriverCommandMsg::ScriptCommand(..) |
                 WebDriverCommandMsg::SendKeys(..) |

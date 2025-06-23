@@ -4555,7 +4555,10 @@ where
                 let is_open = self.browsing_contexts.contains_key(&browsing_context_id);
                 let _ = response_sender.send(is_open);
             },
-            WebDriverCommandMsg::GetWindowSize(webview_id, response_sender) => {
+            WebDriverCommandMsg::GetWindowSize(..) => {
+                unreachable!("This command should be send directly to the embedder.");
+            },
+            WebDriverCommandMsg::GetViewportSize(webview_id, response_sender) => {
                 let browsing_context_id = BrowsingContextId::from(webview_id);
                 let size = self
                     .browsing_contexts
@@ -4564,10 +4567,8 @@ where
                     .unwrap_or_default();
                 let _ = response_sender.send(size);
             },
-            WebDriverCommandMsg::SetWindowSize(webview_id, size, response_sender) => {
-                self.webdriver.resize_channel = Some(response_sender);
-                self.embedder_proxy
-                    .send(EmbedderMsg::ResizeTo(webview_id, size));
+            WebDriverCommandMsg::SetWindowSize(..) => {
+                unreachable!("This command should be send directly to the embedder.");
             },
             WebDriverCommandMsg::LoadUrl(webview_id, url, response_sender) => {
                 let load_data = LoadData::new(
