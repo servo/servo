@@ -1474,6 +1474,9 @@ where
             EmbedderToConstellationMessage::CreateMemoryReport(sender) => {
                 self.mem_profiler_chan.send(ProfilerMsg::Report(sender));
             },
+            EmbedderToConstellationMessage::SetWebDriverResponseSender(sender) => {
+                self.webdriver.input_command_response_sender = Some(sender);
+            },
         }
     }
 
@@ -1856,7 +1859,6 @@ where
                         .send(WebDriverCommandResponse { id: msg_id })
                         .unwrap_or_else(|_| {
                             warn!("Failed to send WebDriverInputComplete {:?}", msg_id);
-                            self.webdriver.input_command_response_sender = None;
                         });
                 } else {
                     warn!("No WebDriver input_command_response_sender");
@@ -4617,14 +4619,7 @@ where
                     }
                 }
             },
-            WebDriverCommandMsg::KeyboardAction(
-                browsing_context_id,
-                key_event,
-                msg_id,
-                response_sender,
-            ) => {
-                self.webdriver.input_command_response_sender = Some(response_sender);
-
+            WebDriverCommandMsg::KeyboardAction(browsing_context_id, key_event, msg_id) => {
                 let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
                     Some(browsing_context) => browsing_context.pipeline_id,
                     None => {
@@ -4650,50 +4645,14 @@ where
                     self.handle_send_error(pipeline_id, e)
                 }
             },
-            WebDriverCommandMsg::MouseButtonAction(
-                webview_id,
-                mouse_event_type,
-                mouse_button,
-                x,
-                y,
-                msg_id,
-                response_sender,
-            ) => {
-                self.webdriver.input_command_response_sender = Some(response_sender);
-
-                self.compositor_proxy
-                    .send(CompositorMsg::WebDriverMouseButtonEvent(
-                        webview_id,
-                        mouse_event_type,
-                        mouse_button,
-                        x,
-                        y,
-                        msg_id,
-                    ));
+            WebDriverCommandMsg::MouseButtonAction(..) => {
+                unreachable!("This command should be send directly to the embedder.");
             },
-            WebDriverCommandMsg::MouseMoveAction(webview_id, x, y, msg_id, response_sender) => {
-                self.webdriver.input_command_response_sender = Some(response_sender);
-
-                self.compositor_proxy
-                    .send(CompositorMsg::WebDriverMouseMoveEvent(
-                        webview_id, x, y, msg_id,
-                    ));
+            WebDriverCommandMsg::MouseMoveAction(..) => {
+                unreachable!("This command should be send directly to the embedder.");
             },
-            WebDriverCommandMsg::WheelScrollAction(
-                webview_id,
-                x,
-                y,
-                delta_x,
-                delta_y,
-                msg_id,
-                response_sender,
-            ) => {
-                self.webdriver.input_command_response_sender = Some(response_sender);
-
-                self.compositor_proxy
-                    .send(CompositorMsg::WebDriverWheelScrollEvent(
-                        webview_id, x, y, delta_x, delta_y, msg_id,
-                    ));
+            WebDriverCommandMsg::WheelScrollAction(..) => {
+                unreachable!("This command should be send directly to the embedder.");
             },
             WebDriverCommandMsg::TakeScreenshot(webview_id, rect, response_sender) => {
                 self.compositor_proxy.send(CompositorMsg::CreatePng(

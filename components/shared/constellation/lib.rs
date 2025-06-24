@@ -20,7 +20,7 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::id::{MessagePortId, PipelineId, WebViewId};
 use embedder_traits::{
     CompositorHitTestResult, Cursor, InputEvent, JavaScriptEvaluationId, MediaSessionActionType,
-    Theme, ViewportDetails, WebDriverCommandMsg,
+    Theme, ViewportDetails, WebDriverCommandMsg, WebDriverCommandResponse,
 };
 pub use from_script_message::*;
 use ipc_channel::ipc::IpcSender;
@@ -97,6 +97,8 @@ pub enum EmbedderToConstellationMessage {
     EvaluateJavaScript(WebViewId, JavaScriptEvaluationId, String),
     /// Create a memory report and return it via the ipc sender
     CreateMemoryReport(IpcSender<MemoryReportResult>),
+    /// Set WebDriver input event handled sender.
+    SetWebDriverResponseSender(IpcSender<WebDriverCommandResponse>),
 }
 
 /// A description of a paint metric that is sent from the Servo renderer to the
