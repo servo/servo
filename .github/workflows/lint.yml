@@ -16,14 +16,14 @@ jobs:
       - uses: actions/checkout@v4
         if: github.event_name != 'pull_request_target'
         with:
-          fetch-depth: 2 # This is necessary for `test-tidy`.
+          fetch-depth: 0 # This is necessary for `test-tidy`.
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
       - uses: actions/checkout@v4
         if: github.event_name == 'pull_request_target'
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 2 # This is necessary for `test-tidy`.
+          fetch-depth: 0 # This is necessary for `test-tidy`.
       - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
         run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
       - name: Setup Python
