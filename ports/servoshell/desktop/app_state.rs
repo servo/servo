@@ -19,7 +19,8 @@ use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FormControl, GamepadHapticEffectType,
     KeyboardEvent, LoadStatus, PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog,
-    WebDriverCommandMsg, WebDriverLoadStatus, WebView, WebViewBuilder, WebViewDelegate,
+    WebDriverCommandMsg, WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus, WebView,
+    WebViewBuilder, WebViewDelegate,
 };
 use url::Url;
 
@@ -42,6 +43,7 @@ pub(crate) enum AppState {
 #[derive(Clone, Default)]
 struct WebDriverSenders {
     pub load_status_senders: HashMap<WebViewId, IpcSender<WebDriverLoadStatus>>,
+    pub script_command_interrupt_sender: Option<IpcSender<WebDriverJSResult>>,
 }
 
 pub(crate) struct RunningAppState {
@@ -406,6 +408,34 @@ impl RunningAppState {
             .load_status_senders
             .insert(webview_id, sender);
     }
+
+    pub(crate) fn set_script_command_interrupt_sender(
+        &self,
+        sender: Option<IpcSender<WebDriverJSResult>>,
+    ) {
+        self.webdriver_senders
+            .borrow_mut()
+            .script_command_interrupt_sender = sender;
+    }
+
+    // From <https://w3c.github.io/webdriver/#dfn-execute-a-function-body>:
+    // > The rules to execute a function body are as follows. The algorithm returns
+    // > an ECMAScript completion record.
+    // >
+    // > If at any point during the algorithm a user prompt appears, immediately return
+    // > Completion { Type: normal, Value: null, Target: empty }, but continue to run the
+    // >  other steps of this algorithm in parallel.
+    fn interrupt_webdriver_script_command(&self) {
+        if let Some(sender) = &self
+            .webdriver_senders
+            .borrow()
+            .script_command_interrupt_sender
+        {
+            sender.send(Ok(WebDriverJSValue::Null)).unwrap_or_else(|err| {
+                info!("Notify dialog appear failed. Maybe the channel to webdriver is closed: {err}");
+            });
+        }
+    }
 }
 
 struct ServoShellServoDelegate;
@@ -452,6 +482,8 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn show_simple_dialog(&self, webview: servo::WebView, dialog: SimpleDialog) {
+        self.interrupt_webdriver_script_command();
+
         if self.servoshell_preferences.headless &&
             self.servoshell_preferences.webdriver_port.is_none()
         {
@@ -468,6 +500,7 @@ impl WebViewDelegate for RunningAppState {
                     response_sender, ..
                 } => response_sender.send(Default::default()),
             };
+
             return;
         }
         let dialog = Dialog::new_simple_dialog(dialog);
