@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::RefCell;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use base::id::PipelineId;
 use serde::Serialize;
@@ -67,6 +67,12 @@ struct SourceContentReply {
 struct GetBreakableLinesReply {
     from: String,
     lines: Vec<usize>,
+}
+
+#[derive(Serialize)]
+struct GetBreakpointPositionsCompressedReply {
+    from: String,
+    positions: BTreeMap<usize, Vec<usize>>,
 }
 
 impl SourceManager {
@@ -175,6 +181,27 @@ impl Actor for SourceActor {
                     // Line numbers are one-based.
                     // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#source-locations>
                     lines: (1..=line_count).collect(),
+                };
+                request.reply_final(&reply)?
+            },
+            // Client wants to know which columns in the line can have breakpoints.
+            // Sent when the user tries to set a breakpoint by clicking a line number in a source.
+            "getBreakpointPositionsCompressed" => {
+                // Tell the client that every column is breakable.
+                // TODO: determine which columns are actually breakable.
+                let mut positions = BTreeMap::default();
+                if let Some(content) = self.content.as_ref() {
+                    for (line_number, line) in content.lines().enumerate() {
+                        // Column numbers are in Unicode scalar values, not UTF-16 code units or grapheme clusters.
+                        let column_count = line.chars().count();
+                        // Line and column numbers are one-based.
+                        // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#source-locations>
+                        positions.insert(line_number + 1, (1..=column_count).collect());
+                    }
+                }
+                let reply = GetBreakpointPositionsCompressedReply {
+                    from: self.name(),
+                    positions,
                 };
                 request.reply_final(&reply)?
             },
