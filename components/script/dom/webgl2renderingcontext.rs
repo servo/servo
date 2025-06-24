@@ -51,7 +51,7 @@ use crate::dom::webgl_validations::WebGLValidator;
 use crate::dom::webgl_validations::tex_image_2d::{
     TexImage2DValidator, TexImage2DValidatorResult, TexStorageValidator, TexStorageValidatorResult,
 };
-use crate::dom::webgl_validations::tex_image_3d::TexImage3DValidator;
+use crate::dom::webgl_validations::tex_image_3d::{TexImage3DValidator, TexImage3DValidatorResult};
 use crate::dom::webglactiveinfo::WebGLActiveInfo;
 use crate::dom::webglbuffer::WebGLBuffer;
 use crate::dom::webglframebuffer::{WebGLFramebuffer, WebGLFramebufferAttachmentRoot};
@@ -3012,8 +3012,6 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             self.base.webgl_error(InvalidOperation);
             return Ok(());
         }
-        // TODO: If srcData is null, a buffer of sufficient size initialized to 0 is passed.
-        // TODO: The combination of internalformat, format, and type must be listed in Table 1 or 2 from man page.
 
         // If type is specified as FLOAT_32_UNSIGNED_INT_24_8_REV, srcData must be null;
         // otherwise, generates an INVALID_OPERATION error.
@@ -3022,31 +3020,44 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             return Ok(());
         }
 
-        if level < 0 || width < 0 || height < 0 || depth < 0 || border != 0 {
+        // TODO: Move to validator
+        if border != 0 {
             self.base.webgl_error(InvalidValue);
             return Ok(());
         }
 
-        match target {
-            constants::TEXTURE_3D | constants::TEXTURE_2D_ARRAY => {},
-            _ => {
-                self.base.webgl_error(InvalidEnum);
-                return Ok(());
-            },
-        }
-
-        let validator = TexImage3DValidator::new(
+        let Ok(TexImage3DValidatorResult {
+            width,
+            height,
+            depth,
+            level,
+            border,
+            texture,
+            target,
+            internal_format,
+            format,
+            data_type,
+        }) = TexImage3DValidator::new(
             &self.base,
             target,
             level,
             internal_format as u32,
             width,
             height,
+            depth,
             border,
             format,
             type_,
         )
-        .validate();
+        .validate()
+        else {
+            return Ok(());
+        };
+        // TODO:
+        // GL_INVALID_OPERATION is generated if a non-zero buffer object name is bound to the GL_PIXEL_UNPACK_BUFFER target and the buffer object's data store is currently mapped.
+        // GL_INVALID_OPERATION is generated if a non-zero buffer object name is bound to the GL_PIXEL_UNPACK_BUFFER target and the data would be unpacked from the buffer object such that the memory reads required would exceed the data store size.
+        // GL_INVALID_OPERATION is generated if a non-zero buffer object name is bound to the GL_PIXEL_UNPACK_BUFFER target and data is not evenly divisible into the number of bytes needed to store in memory a datum indicated by type.
+        // TODO: If srcData is null, a buffer of sufficient size initialized to 0 is passed.
         // TODO: If srcData is non-null, the type of srcData must match the type according to the above table; otherwise, generate an INVALID_OPERATION error.
 
         todo!()
