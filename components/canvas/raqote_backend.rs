@@ -603,31 +603,6 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
     ) {
         self.stroke(path, &source(pattern), stroke_options, draw_options);
     }
-    fn stroke_line(
-        &mut self,
-        start: Point2D<f32>,
-        end: Point2D<f32>,
-        pattern: &<RaqoteBackend as Backend>::Pattern<'_>,
-        stroke_options: &<RaqoteBackend as Backend>::StrokeOptions,
-        draw_options: &<RaqoteBackend as Backend>::DrawOptions,
-    ) {
-        let mut pb = raqote::PathBuilder::new();
-        pb.move_to(start.x, start.y);
-        pb.line_to(end.x, end.y);
-        let mut stroke_options = stroke_options.clone();
-        let cap = match stroke_options.join {
-            raqote::LineJoin::Round => raqote::LineCap::Round,
-            _ => raqote::LineCap::Butt,
-        };
-        stroke_options.cap = cap;
-
-        self.stroke(
-            &pb.finish(),
-            &source(pattern),
-            &stroke_options,
-            draw_options,
-        );
-    }
     fn stroke_rect(
         &mut self,
         rect: &Rect<f32>,
@@ -894,14 +869,14 @@ impl ToRaqoteStyle for CompositionStyle {
 
     fn to_raqote_style(self) -> Self::Target {
         match self {
-            CompositionStyle::SrcIn => raqote::BlendMode::SrcIn,
-            CompositionStyle::SrcOut => raqote::BlendMode::SrcOut,
-            CompositionStyle::SrcOver => raqote::BlendMode::SrcOver,
-            CompositionStyle::SrcAtop => raqote::BlendMode::SrcAtop,
-            CompositionStyle::DestIn => raqote::BlendMode::DstIn,
-            CompositionStyle::DestOut => raqote::BlendMode::DstOut,
-            CompositionStyle::DestOver => raqote::BlendMode::DstOver,
-            CompositionStyle::DestAtop => raqote::BlendMode::DstAtop,
+            CompositionStyle::SourceIn => raqote::BlendMode::SrcIn,
+            CompositionStyle::SourceOut => raqote::BlendMode::SrcOut,
+            CompositionStyle::SourceOver => raqote::BlendMode::SrcOver,
+            CompositionStyle::SourceAtop => raqote::BlendMode::SrcAtop,
+            CompositionStyle::DestinationIn => raqote::BlendMode::DstIn,
+            CompositionStyle::DestinationOut => raqote::BlendMode::DstOut,
+            CompositionStyle::DestinationOver => raqote::BlendMode::DstOver,
+            CompositionStyle::DestinationAtop => raqote::BlendMode::DstAtop,
             CompositionStyle::Copy => raqote::BlendMode::Src,
             CompositionStyle::Lighter => raqote::BlendMode::Add,
             CompositionStyle::Xor => raqote::BlendMode::Xor,
