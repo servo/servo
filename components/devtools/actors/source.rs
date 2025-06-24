@@ -64,6 +64,12 @@ struct SourceContentReply {
     source: String,
 }
 
+#[derive(Serialize)]
+struct GetBreakableLinesReply {
+    from: String,
+    lines: Vec<usize>,
+}
+
 impl SourceManager {
     pub fn new() -> Self {
         Self {
@@ -153,6 +159,24 @@ impl Actor for SourceActor {
                         .as_deref()
                         .unwrap_or("<!-- not available; please reload! -->")
                         .to_owned(),
+                };
+                let _ = stream.write_json_packet(&reply);
+                ActorMessageStatus::Processed
+            },
+            // Client wants to know which lines can have breakpoints.
+            // Sent when opening a source in the Sources panel, and controls whether the line numbers can be clicked.
+            "getBreakableLines" => {
+                // Tell the client that every line is breakable.
+                // TODO: determine which lines are actually breakable.
+                let line_count = self
+                    .content
+                    .as_ref()
+                    .map_or(0, |content| content.lines().count());
+                let reply = GetBreakableLinesReply {
+                    from: self.name(),
+                    // Line numbers are one-based.
+                    // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#source-locations>
+                    lines: (1..=line_count).collect(),
                 };
                 let _ = stream.write_json_packet(&reply);
                 ActorMessageStatus::Processed
