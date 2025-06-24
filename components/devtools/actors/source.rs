@@ -192,11 +192,12 @@ impl Actor for SourceActor {
                 let mut positions = BTreeMap::default();
                 if let Some(content) = self.content.as_ref() {
                     for (line_number, line) in content.lines().enumerate() {
-                        // Column numbers are in Unicode scalar values, not UTF-16 code units or grapheme clusters.
-                        let column_count = line.chars().count();
-                        // Line and column numbers are one-based.
+                        // Column numbers are in UTF-16 code units, not Unicode scalar values or grapheme clusters.
+                        let column_count = line.encode_utf16().count();
+                        // Line number are one-based. Column numbers are zero-based.
+                        // FIXME: the docs say column numbers are one-based, but this appears to be incorrect.
                         // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#source-locations>
-                        positions.insert(line_number + 1, (1..=column_count).collect());
+                        positions.insert(line_number + 1, (0..column_count).collect());
                     }
                 }
                 let reply = GetBreakpointPositionsCompressedReply {
