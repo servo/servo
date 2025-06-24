@@ -703,7 +703,7 @@ impl Handler {
         Ok(WebDriverResponse::DeleteSession)
     }
 
-    // https://w3c.github.io/webdriver/#status
+    /// <https://w3c.github.io/webdriver/#status>
     fn handle_status(&self) -> WebDriverResult<WebDriverResponse> {
         Ok(WebDriverResponse::Generic(ValueResponse(
             if self.session.is_none() {
@@ -714,6 +714,8 @@ impl Handler {
         )))
     }
 
+    /// Send command to Script Thread with session's current browsing context.
+    /// If CHECK_OPEN is true, it would verify the existence of browsing context before sending.  
     fn browsing_context_script_command<const CHECK_OPEN: bool>(
         &self,
         cmd_msg: WebDriverScriptCommand,
@@ -729,6 +731,9 @@ impl Handler {
         Ok(())
     }
 
+    /// Send command to Script Thread with session's current top-level browsing context.
+    /// If CHECK_OPEN is true, it would verify the existence of top-level
+    /// browsing context before sending.
     fn top_level_script_command<const CHECK_OPEN: bool>(
         &self,
         cmd_msg: WebDriverScriptCommand,
