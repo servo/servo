@@ -894,14 +894,14 @@ impl ToRaqoteStyle for CompositionStyle {
 
     fn to_raqote_style(self) -> Self::Target {
         match self {
-            CompositionStyle::SrcIn => raqote::BlendMode::SrcIn,
-            CompositionStyle::SrcOut => raqote::BlendMode::SrcOut,
-            CompositionStyle::SrcOver => raqote::BlendMode::SrcOver,
-            CompositionStyle::SrcAtop => raqote::BlendMode::SrcAtop,
-            CompositionStyle::DestIn => raqote::BlendMode::DstIn,
-            CompositionStyle::DestOut => raqote::BlendMode::DstOut,
-            CompositionStyle::DestOver => raqote::BlendMode::DstOver,
-            CompositionStyle::DestAtop => raqote::BlendMode::DstAtop,
+            CompositionStyle::SourceIn => raqote::BlendMode::SrcIn,
+            CompositionStyle::SourceOut => raqote::BlendMode::SrcOut,
+            CompositionStyle::SourceOver => raqote::BlendMode::SrcOver,
+            CompositionStyle::SourceAtop => raqote::BlendMode::SrcAtop,
+            CompositionStyle::DestinationIn => raqote::BlendMode::DstIn,
+            CompositionStyle::DestinationOut => raqote::BlendMode::DstOut,
+            CompositionStyle::DestinationOver => raqote::BlendMode::DstOver,
+            CompositionStyle::DestinationAtop => raqote::BlendMode::DstAtop,
             CompositionStyle::Copy => raqote::BlendMode::Src,
             CompositionStyle::Lighter => raqote::BlendMode::Add,
             CompositionStyle::Xor => raqote::BlendMode::Xor,

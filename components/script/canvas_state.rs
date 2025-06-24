@@ -1197,8 +1197,8 @@ impl CanvasState {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation
     pub(crate) fn global_composite_operation(&self) -> DOMString {
         match self.state.borrow().global_composition {
-            CompositionOrBlending::Composition(op) => DOMString::from(op.to_str()),
-            CompositionOrBlending::Blending(op) => DOMString::from(op.to_str()),
+            CompositionOrBlending::Composition(op) => DOMString::from(op.to_string()),
+            CompositionOrBlending::Blending(op) => DOMString::from(op.to_string()),
         }
     }
 

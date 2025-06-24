@@ -825,6 +825,7 @@ dependencies = [
  "serde_bytes",
  "servo_config",
  "servo_malloc_size_of",
+ "strum",
  "stylo",
  "webrender_api",
  "webxr-api",
