@@ -49,9 +49,9 @@ use devtools_traits::{
 };
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    CompositorHitTestResult, EmbedderMsg, FocusSequenceNumber, InputEvent,
-    JavaScriptEvaluationError, JavaScriptEvaluationId, MediaSessionActionType, MouseButton,
-    MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverScriptCommand,
+    EmbedderMsg, FocusSequenceNumber, InputEvent, JavaScriptEvaluationError,
+    JavaScriptEvaluationId, MediaSessionActionType, MouseButton, MouseButtonAction,
+    MouseButtonEvent, Theme, ViewportDetails, WebDriverScriptCommand,
 };
 use euclid::Point2D;
 use euclid::default::Rect;
@@ -1021,20 +1021,14 @@ impl ScriptThread {
     fn process_mouse_move_event(
         &self,
         document: &Document,
-        hit_test_result: Option<CompositorHitTestResult>,
-        pressed_mouse_buttons: u16,
+        input_event: &ConstellationInputEvent,
         can_gc: CanGc,
     ) {
         // Get the previous target temporarily
         let prev_mouse_over_target = self.topmost_mouse_over_target.get();
 
         unsafe {
-            document.handle_mouse_move_event(
-                hit_test_result,
-                pressed_mouse_buttons,
-                &self.topmost_mouse_over_target,
-                can_gc,
-            )
+            document.handle_mouse_move_event(input_event, &self.topmost_mouse_over_target, can_gc)
         }
 
         // Short-circuit if nothing changed
@@ -1109,29 +1103,15 @@ impl ScriptThread {
 
             match event.event {
                 InputEvent::MouseButton(mouse_button_event) => {
-                    document.handle_mouse_button_event(
-                        mouse_button_event,
-                        event.hit_test_result,
-                        event.pressed_mouse_buttons,
-                        can_gc,
-                    );
+                    document.handle_mouse_button_event(mouse_button_event, &event, can_gc);
                 },
                 InputEvent::MouseMove(_) => {
                     // The event itself is unecessary here, because the point in the viewport is in the hit test.
-                    self.process_mouse_move_event(
-                        &document,
-                        event.hit_test_result,
-                        event.pressed_mouse_buttons,
-                        can_gc,
-                    );
+                    self.process_mouse_move_event(&document, &event, can_gc);
                 },
                 InputEvent::MouseLeave(_) => {
                     self.topmost_mouse_over_target.take();
-                    document.handle_mouse_leave_event(
-                        event.hit_test_result,
-                        event.pressed_mouse_buttons,
-                        can_gc,
-                    );
+                    document.handle_mouse_leave_event(&event, can_gc);
                 },
                 InputEvent::Touch(touch_event) => {
                     let touch_result =

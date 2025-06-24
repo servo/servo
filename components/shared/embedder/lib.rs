@@ -22,7 +22,7 @@ use std::sync::Arc;
 
 use base::id::{PipelineId, ScrollTreeNodeId, WebViewId};
 use crossbeam_channel::Sender;
-use euclid::{Scale, Size2D};
+use euclid::{Point2D, Scale, Size2D};
 use http::{HeaderMap, Method, StatusCode};
 use ipc_channel::ipc::IpcSender;
 use log::warn;
@@ -770,10 +770,14 @@ pub struct CompositorHitTestResult {
     pub pipeline_id: PipelineId,
 
     /// The hit test point in the item's viewport.
-    pub point_in_viewport: euclid::default::Point2D<f32>,
+    pub point_in_viewport: Point2D<f32, CSSPixel>,
+
+    /// The hit test point relative to the root scroll node content origin / initial
+    /// containing block.
+    pub point_relative_to_initial_containing_block: Point2D<f32, CSSPixel>,
 
     /// The hit test point relative to the item itself.
-    pub point_relative_to_item: euclid::default::Point2D<f32>,
+    pub point_relative_to_item: Point2D<f32, CSSPixel>,
 
     /// The node address of the hit test result.
     pub node: UntrustedNodeAddress,
