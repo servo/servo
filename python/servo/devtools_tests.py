@@ -577,6 +577,20 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         expected_content = open(self.get_test_path("sources_content_with_responsexml/test.html")).read()
         self.assert_source_content(Source("inlineScript", f"{self.base_urls[0]}/test.html"), expected_content)
 
+    def test_source_breakable_lines_and_positions(self):
+        self.start_web_server(test_dir=self.get_test_path("sources_breakable_lines_and_positions"))
+        self.run_servoshell()
+        self.assert_source_breakable_lines_and_positions(
+            Source("inlineScript", f"{self.base_urls[0]}/test.html"),
+            [4, 5, 6, 7],
+            {
+                "4": [4, 12, 20, 28],
+                "5": [15, 23, 31, 39],  # includes 3 surrogate pairs
+                "6": [15, 23, 31, 39],  # includes 1 surrogate pair
+                "7": [0],
+            },
+        )
+
     # Sets `base_url` and `web_server` and `web_server_thread`.
     def start_web_server(self, *, test_dir=None, num_servers=2):
         assert self.base_urls is None and self.web_servers is None and self.web_server_threads is None
@@ -760,6 +774,55 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         response = devtools.client.send_receive({"to": source_actor, "type": "source"})
 
         self.assertEqual(response["source"], expected_content)
+
+        devtools.client.disconnect()
+
+    def assert_source_breakable_lines_and_positions(
+        self,
+        expected_source: Source,
+        expected_breakable_lines: list[int],
+        expected_positions: dict[int, list[int]],
+        *,
+        devtools: Optional[Devtools] = None,
+    ):
+        if devtools is None:
+            devtools = self._setup_devtools_client()
+
+        done = Future()
+        source_actors = {}
+
+        def on_source_resource(data):
+            for [resource_type, sources] in data["array"]:
+                try:
+                    self.assertEqual(resource_type, "source")
+                    for source in sources:
+                        if Source(source["introductionType"], source["url"]) == expected_source:
+                            source_actors[expected_source] = source["actor"]
+                            done.set_result(None)
+                except Exception as e:
+                    done.set_result(e)
+
+        for target in devtools.targets:
+            devtools.client.add_event_listener(
+                target["actor"],
+                Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
+                on_source_resource,
+            )
+        devtools.watcher.watch_resources([Resources.SOURCE])
+
+        result: Optional[Exception] = done.result(1)
+        if result:
+            raise result
+
+        # We found at least one source with the given url.
+        self.assertIn(expected_source, source_actors)
+        source_actor = source_actors[expected_source]
+
+        response = devtools.client.send_receive({"to": source_actor, "type": "getBreakableLines"})
+        self.assertEqual(response["lines"], expected_breakable_lines)
+
+        response = devtools.client.send_receive({"to": source_actor, "type": "getBreakpointPositionsCompressed"})
+        self.assertEqual(response["positions"], expected_positions)
 
         devtools.client.disconnect()
 
