@@ -81,7 +81,7 @@ pub(crate) trait GenericDrawTarget<B: Backend> {
         sigma: f32,
         operator: B::CompositionOp,
     );
-    fn fill(&mut self, path: &B::Path, pattern: B::Pattern<'_>, draw_options: &B::DrawOptions);
+    fn fill(&mut self, path: &B::Path, pattern: &B::Pattern<'_>, draw_options: &B::DrawOptions);
     fn fill_text(
         &mut self,
         text_runs: Vec<TextRun>,
@@ -92,7 +92,7 @@ pub(crate) trait GenericDrawTarget<B: Backend> {
     fn fill_rect(
         &mut self,
         rect: &Rect<f32>,
-        pattern: B::Pattern<'_>,
+        pattern: &B::Pattern<'_>,
         draw_options: &B::DrawOptions,
     );
     fn get_size(&self) -> Size2D<i32>;
@@ -103,7 +103,7 @@ pub(crate) trait GenericDrawTarget<B: Backend> {
     fn stroke(
         &mut self,
         path: &B::Path,
-        pattern: B::Pattern<'_>,
+        pattern: &B::Pattern<'_>,
         stroke_options: &B::StrokeOptions,
         draw_options: &B::DrawOptions,
     );
@@ -111,14 +111,14 @@ pub(crate) trait GenericDrawTarget<B: Backend> {
         &mut self,
         start: Point2D<f32>,
         end: Point2D<f32>,
-        pattern: B::Pattern<'_>,
+        pattern: &B::Pattern<'_>,
         stroke_options: &B::StrokeOptions,
         draw_options: &B::DrawOptions,
     );
     fn stroke_rect(
         &mut self,
         rect: &Rect<f32>,
-        pattern: B::Pattern<'_>,
+        pattern: &B::Pattern<'_>,
         stroke_options: &B::StrokeOptions,
         draw_options: &B::DrawOptions,
     );
