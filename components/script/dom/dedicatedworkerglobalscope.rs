@@ -43,6 +43,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::{CustomTraceable, RootedTraceableBox};
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
+use crate::dom::csp::parse_csp_list_from_metadata;
 use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventtarget::EventTarget;
@@ -479,7 +480,7 @@ impl DedicatedWorkerGlobalScope {
                     Ok((metadata, bytes)) => (metadata, bytes),
                 };
                 scope.set_url(metadata.final_url.clone());
-                scope.set_csp_list(GlobalScope::parse_csp_list_from_metadata(&metadata.headers));
+                scope.set_csp_list(parse_csp_list_from_metadata(&metadata.headers));
                 global_scope.set_https_state(metadata.https_state);
                 let source = String::from_utf8_lossy(&bytes);
                 if let Some(chan) = global_scope.devtools_chan() {

@@ -12,7 +12,6 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 use base::id::{PipelineId, WebViewId};
-use content_security_policy as csp;
 use devtools_traits::{ScriptToDevtoolsControlMsg, SourceInfo};
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
@@ -58,6 +57,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::NoTrace;
+use crate::dom::csp::{CspReporting, GlobalCspReporting, InlineCheckType, Violation};
 use crate::dom::document::Document;
 use crate::dom::element::{
     AttributeMutation, Element, ElementCreator, cors_setting_for_element,
@@ -557,7 +557,7 @@ impl FetchResponseListener for ClassicContext {
         network_listener::submit_timing(self, CanGc::note())
     }
 
-    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
         let elem = self.elem.root();
         global.report_csp_violations(violations, Some(elem.upcast::<Element>()));
@@ -763,13 +763,18 @@ impl HTMLScriptElement {
             return;
         }
 
+        let global = &doc.global();
+
         // Step 19. CSP.
         if !element.has_attribute(&local_name!("src")) &&
-            doc.should_elements_inline_type_behavior_be_blocked(
-                element,
-                csp::InlineCheckType::Script,
-                &text,
-            ) == csp::CheckResult::Blocked
+            global
+                .get_csp_list()
+                .should_elements_inline_type_behavior_be_blocked(
+                    global,
+                    element,
+                    InlineCheckType::Script,
+                    &text,
+                )
         {
             warn!("Blocking inline script due to CSP");
             return;

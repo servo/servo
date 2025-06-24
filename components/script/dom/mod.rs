@@ -263,6 +263,7 @@ pub(crate) mod countqueuingstrategy;
 mod create;
 pub(crate) mod crypto;
 pub(crate) mod cryptokey;
+pub(crate) mod csp;
 pub(crate) mod csppolicyviolationreport;
 pub(crate) mod css;
 pub(crate) mod cssconditionrule;

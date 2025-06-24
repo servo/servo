@@ -41,7 +41,6 @@ use constellation_traits::{
     JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptToConstellationChan,
     ScriptToConstellationMessage, StructuredSerializedData, WindowSizeType,
 };
-use content_security_policy::{self as csp};
 use crossbeam_channel::unbounded;
 use data_url::mime::Mime;
 use devtools_traits::{
@@ -119,6 +118,7 @@ use crate::dom::bindings::root::{
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::{HashMapTracedValues, JSTraceable};
+use crate::dom::csp::{CspReporting, GlobalCspReporting, Violation};
 use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReactionStack,
 };
@@ -622,9 +622,10 @@ impl ScriptThread {
                 let task = task!(navigate_javascript: move || {
                     // Important re security. See https://github.com/servo/servo/issues/23373
                     if let Some(window) = trusted_global.root().downcast::<Window>() {
+                        let global = &trusted_global.root();
                         // Step 5: If the result of should navigation request of type be blocked by
                         // Content Security Policy? given request and cspNavigationType is "Blocked", then return. [CSP]
-                        if trusted_global.root().should_navigation_request_be_blocked(&load_data, None) {
+                        if global.get_csp_list().should_navigation_request_be_blocked(global, &load_data, None) {
                             return;
                         }
                         if ScriptThread::check_load_origin(&load_data.load_origin, &window.get_url().origin()) {
@@ -3845,7 +3846,7 @@ impl ScriptThread {
         }
     }
 
-    fn handle_csp_violations(&self, id: PipelineId, _: RequestId, violations: Vec<csp::Violation>) {
+    fn handle_csp_violations(&self, id: PipelineId, _: RequestId, violations: Vec<Violation>) {
         if let Some(global) = self.documents.borrow().find_global(id) {
             // TODO(https://github.com/w3c/webappsec-csp/issues/687): Update after spec is resolved
             global.report_csp_violations(violations, None);

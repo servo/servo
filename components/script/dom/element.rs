@@ -12,7 +12,6 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::{fmt, mem};
 
-use content_security_policy as csp;
 use cssparser::{Parser as CssParser, ParserInput as CssParserInput, match_ignore_ascii_case};
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
@@ -99,6 +98,7 @@ use crate::dom::bindings::xmlname::{
 };
 use crate::dom::characterdata::CharacterData;
 use crate::dom::create::create_element;
+use crate::dom::csp::{CspReporting, InlineCheckType};
 use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReaction, CustomElementState,
     is_valid_custom_element_name,
@@ -2259,15 +2259,19 @@ impl Element {
                 } else {
                     let win = self.owner_window();
                     let source = &**attr.value();
+                    let global = &self.owner_global();
                     // However, if the Should element's inline behavior be blocked by
                     // Content Security Policy? algorithm returns "Blocked" when executed
                     // upon the attribute's element, "style attribute", and the attribute's value,
                     // then the style rules defined in the attribute's value must not be applied to the element. [CSP]
-                    if doc.should_elements_inline_type_behavior_be_blocked(
-                        self,
-                        csp::InlineCheckType::StyleAttribute,
-                        source,
-                    ) == csp::CheckResult::Blocked
+                    if global
+                        .get_csp_list()
+                        .should_elements_inline_type_behavior_be_blocked(
+                            global,
+                            self,
+                            InlineCheckType::StyleAttribute,
+                            source,
+                        )
                     {
                         return;
                     }

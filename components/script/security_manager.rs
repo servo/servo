@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 use content_security_policy as csp;
 use headers::{ContentType, HeaderMap, HeaderMapExt};
 use net_traits::request::{
-    CredentialsMode, RequestBody, RequestId, create_request_body_with_content,
+    CredentialsMode, Destination, RequestBody, RequestId, create_request_body_with_content,
 };
 use net_traits::{
     FetchMetadata, FetchResponseListener, NetworkError, ResourceFetchTiming, ResourceTimingType,
@@ -19,6 +19,7 @@ use crate::conversions::Convert;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::csppolicyviolationreport::{
     CSPReportUriViolationReport, SecurityPolicyViolationReport,
 };
@@ -110,7 +111,7 @@ impl CSPViolationReportTask {
             let request = create_a_potential_cors_request(
                 None,
                 endpoint.clone(),
-                csp::Destination::Report,
+                Destination::Report,
                 None,
                 None,
                 global.get_referrer(),
@@ -204,7 +205,7 @@ impl FetchResponseListener for CSPReportUriFetchListener {
         submit_timing(self, CanGc::note())
     }
 
-    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
         global.report_csp_violations(violations, None);
     }

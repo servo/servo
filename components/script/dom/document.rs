@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
 use std::cmp::Ordering;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
@@ -22,7 +21,7 @@ use canvas_traits::canvas::CanvasId;
 use canvas_traits::webgl::{self, WebGLContextId, WebGLMsg};
 use chrono::Local;
 use constellation_traits::{NavigationHistoryBehavior, ScriptToConstellationMessage};
-use content_security_policy::{self as csp, CspList, PolicyDisposition};
+use content_security_policy::{CspList, PolicyDisposition};
 use cookie::Cookie;
 use cssparser::match_ignore_ascii_case;
 use data_url::mime::Mime;
@@ -4304,30 +4303,6 @@ impl Document {
 
     pub(crate) fn get_csp_list(&self) -> Option<CspList> {
         self.policy_container.borrow().csp_list.clone()
-    }
-
-    /// <https://www.w3.org/TR/CSP/#should-block-inline>
-    pub(crate) fn should_elements_inline_type_behavior_be_blocked(
-        &self,
-        el: &Element,
-        type_: csp::InlineCheckType,
-        source: &str,
-    ) -> csp::CheckResult {
-        let (result, violations) = match self.get_csp_list() {
-            None => {
-                return csp::CheckResult::Allowed;
-            },
-            Some(csp_list) => {
-                let element = csp::Element {
-                    nonce: el.nonce_value_if_nonceable().map(Cow::Owned),
-                };
-                csp_list.should_elements_inline_type_behavior_be_blocked(&element, type_, source)
-            },
-        };
-
-        self.global().report_csp_violations(violations, Some(el));
-
-        result
     }
 
     /// Prevent any JS or layout from running until the corresponding call to
