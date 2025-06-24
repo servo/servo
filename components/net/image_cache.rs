@@ -36,7 +36,7 @@ use crate::resource_thread::CoreResourceThreadPool;
 // We bake in rippy.png as a fallback, in case the embedder does not provide
 // a rippy resource. this version is 253 bytes large, don't exchange it against
 // something in higher resolution.
-const FALLBACK_RIPPY: &[u8] = include_bytes!("../../resources/rippy.png");
+const FALLBACK_RIPPY: &[u8] = include_bytes!("./resources/rippy.png");
 
 //
 // TODO(gw): Remaining work on image cache:
