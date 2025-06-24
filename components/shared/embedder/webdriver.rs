@@ -32,7 +32,7 @@ pub struct WebDriverMessageId(pub usize);
 pub enum WebDriverCommandMsg {
     /// Get the window size.
     GetWindowSize(WebViewId, IpcSender<Size2D<i32, DevicePixel>>),
-    /// Get the window size.
+    /// Get the viewport size.
     GetViewportSize(WebViewId, IpcSender<Size2D<f32, CSSPixel>>),
     /// Load a URL in the top-level browsing context with the given ID.
     LoadUrl(WebViewId, ServoUrl, IpcSender<WebDriverLoadStatus>),
@@ -100,11 +100,7 @@ pub enum WebDriverCommandMsg {
     /// the provided channels to return the top level browsing context id
     /// associated with the new webview, and a notification when the initial
     /// load is complete.
-    NewWebView(
-        WebViewId,
-        IpcSender<WebViewId>,
-        IpcSender<WebDriverLoadStatus>,
-    ),
+    NewWebView(IpcSender<WebViewId>, IpcSender<WebDriverLoadStatus>),
     /// Close the webview associated with the provided id.
     CloseWebView(WebViewId),
     /// Focus the webview associated with the provided id.

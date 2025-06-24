@@ -15,12 +15,11 @@ use servo::base::id::WebViewId;
 use servo::config::{opts, pref};
 use servo::ipc_channel::ipc::IpcSender;
 use servo::webrender_api::ScrollLocation;
-use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePixel};
+use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FormControl, GamepadHapticEffectType,
     KeyboardEvent, LoadStatus, PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog,
-    WebDriverCommandMsg, WebDriverCommandResponse, WebDriverLoadStatus, WebView, WebViewBuilder,
-    WebViewDelegate,
+    WebDriverCommandMsg, WebDriverLoadStatus, WebView, WebViewBuilder, WebViewDelegate,
 };
 use url::Url;
 
@@ -38,12 +37,11 @@ pub(crate) enum AppState {
     ShuttingDown,
 }
 
-/// Holds the senders for the WebDriver server.
+/// A collection of [`IpcSender`]s that are used to asynchronously communicate
+/// to a WebDriver server with information about application state.
 #[derive(Clone, Default)]
 struct WebDriverSenders {
-    pub load_status_sender: Option<(WebViewId, IpcSender<WebDriverLoadStatus>)>,
-    pub _size_sender: Option<IpcSender<euclid::Size2D<i32, DevicePixel>>>,
-    pub _input_command_response_sender: Option<IpcSender<WebDriverCommandResponse>>,
+    pub load_status_senders: HashMap<WebViewId, IpcSender<WebDriverLoadStatus>>,
 }
 
 pub(crate) struct RunningAppState {
@@ -403,7 +401,10 @@ impl RunningAppState {
         webview_id: WebViewId,
         sender: IpcSender<WebDriverLoadStatus>,
     ) {
-        self.webdriver_senders.borrow_mut().load_status_sender = Some((webview_id, sender));
+        self.webdriver_senders
+            .borrow_mut()
+            .load_status_senders
+            .insert(webview_id, sender);
     }
 }
 
@@ -532,11 +533,17 @@ impl WebViewDelegate for RunningAppState {
 
     fn notify_load_status_changed(&self, webview: servo::WebView, status: LoadStatus) {
         self.inner_mut().need_update = true;
-        if let Some((id, ref sender)) = self.webdriver_senders.borrow().load_status_sender {
-            if id == webview.id() && status == LoadStatus::Complete {
+
+        if status == LoadStatus::Complete {
+            if let Some(sender) = self
+                .webdriver_senders
+                .borrow_mut()
+                .load_status_senders
+                .remove(&webview.id())
+            {
                 let _ = sender.send(WebDriverLoadStatus::Complete);
             }
-        };
+        }
     }
 
     fn notify_fullscreen_state_changed(&self, _webview: servo::WebView, fullscreen_state: bool) {

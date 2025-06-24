@@ -7244,7 +7244,6 @@ dependencies = [
  "serde_json",
  "servo_allocator",
  "sig",
- "stylo_traits",
  "surfman",
  "tokio",
  "tracing",

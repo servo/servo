@@ -846,13 +846,13 @@ impl Handler {
 
         let timeout = self.resize_timeout;
         let embedder_sender = self.embedder_sender.clone();
-        let wakeer = self.event_loop_waker.clone();
+        let waker = self.event_loop_waker.clone();
         thread::spawn(move || {
             // On timeout, we send a GetWindowSize message to the constellation,
             // which will give the current window size.
             thread::sleep(Duration::from_millis(timeout as u64));
             let _ = embedder_sender.send(WebDriverCommandMsg::GetWindowSize(webview_id, sender));
-            wakeer.wake();
+            waker.wake();
         });
 
         let window_size = wait_for_script_response(receiver)?;
@@ -1064,11 +1064,7 @@ impl Handler {
         let session = self.session().unwrap();
         self.verify_top_level_browsing_context_is_open(session.webview_id)?;
 
-        let cmd_msg = WebDriverCommandMsg::NewWebView(
-            session.webview_id,
-            sender,
-            self.load_status_sender.clone(),
-        );
+        let cmd_msg = WebDriverCommandMsg::NewWebView(sender, self.load_status_sender.clone());
         // Step 5. Create a new top-level browsing context by running the window open steps.
         // This MUST be done without invoking the focusing steps.
         self.send_message_to_embedder(cmd_msg)?;

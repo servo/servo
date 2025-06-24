@@ -329,22 +329,21 @@ impl App {
             match msg {
                 WebDriverCommandMsg::IsWebViewOpen(webview_id, sender) => {
                     let context = running_state.webview_by_id(webview_id);
-                    sender.send(context.is_some()).unwrap();
+
+                    if let Err(error) = sender.send(context.is_some()) {
+                        warn!("Failed to send response of IsWebViewOpein: {error}");
+                    }
                 },
                 webdriver_msg @ WebDriverCommandMsg::IsBrowsingContextOpen(..) => {
                     running_state.forward_webdriver_command(webdriver_msg);
                 },
-                WebDriverCommandMsg::NewWebView(
-                    _origin_webview_id,
-                    response_sender,
-                    load_status_sender,
-                ) => {
+                WebDriverCommandMsg::NewWebView(response_sender, load_status_sender) => {
                     let new_webview =
-                        running_state.create_toplevel_webview(Url::parse("servo:newtab").unwrap());
+                        running_state.create_toplevel_webview(Url::parse("auto:blank").unwrap());
 
-                    response_sender
-                        .send(new_webview.id())
-                        .expect("Failed to send response of new webview id to webdriver");
+                    if let Err(error) = response_sender.send(new_webview.id()) {
+                        warn!("Failed to send response of NewWebview: {error}");
+                    }
 
                     running_state.set_load_status_sender(new_webview.id(), load_status_sender);
                 },
@@ -356,30 +355,44 @@ impl App {
                         webview.focus();
                     }
 
-                    //TODO: send a response to the WebDriver
+                    // TODO: send a response to the WebDriver
+                    // so it knows when the focus has finished.
                 },
                 WebDriverCommandMsg::GetWindowSize(_webview_id, response_sender) => {
-                    if let Some(window) = self.windows.values().next() {
-                        // Send the size back to the WebDriver
-                        if let Err(e) = response_sender.send(window.screen_geometry().size) {
-                            warn!("Failed to send window size: {e}");
-                        }
-                    } else {
-                        warn!("No windows available to get size from");
+                    let window = self
+                        .windows
+                        .values()
+                        .next()
+                        .expect("Should have at least one window in servoshell");
+
+                    if let Err(error) = response_sender.send(window.screen_geometry().size) {
+                        warn!("Failed to send response of GetWindowSize: {error}");
                     }
                 },
                 WebDriverCommandMsg::SetWindowSize(webview_id, size, size_sender) => {
-                    if let Some(webview) = running_state.webview_by_id(webview_id) {
-                        if let Some(window) = self.windows.values().next() {
-                            let size = window.request_resize(&webview, size);
-                            let _ = size_sender.send(size.unwrap_or_default());
-                        }
+                    let Some(webview) = running_state.webview_by_id(webview_id) else {
+                        continue;
+                    };
+
+                    let window = self
+                        .windows
+                        .values()
+                        .next()
+                        .expect("Should have at least one window in servoshell");
+
+                    let size = window.request_resize(&webview, size);
+                    if let Err(error) = size_sender.send(size.unwrap_or_default()) {
+                        warn!("Failed to send window size: {error}");
                     }
                 },
-                WebDriverCommandMsg::GetViewportSize(..) => {},
+                webdriver_msg @ WebDriverCommandMsg::GetViewportSize(..) => {
+                    running_state.forward_webdriver_command(webdriver_msg);
+                },
                 WebDriverCommandMsg::GetFocusedWebView(sender) => {
                     let focused_webview = running_state.focused_webview();
-                    sender.send(focused_webview.map(|w| w.id())).unwrap();
+                    if let Err(error) = sender.send(focused_webview.map(|w| w.id())) {
+                        warn!("Failed to send response of GetFocusedWebView: {error}");
+                    };
                 },
                 WebDriverCommandMsg::LoadUrl(..) |
                 WebDriverCommandMsg::ScriptCommand(..) |

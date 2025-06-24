@@ -744,9 +744,8 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd_msg =
             WebDriverCommandMsg::GetViewportSize(self.session.as_ref().unwrap().webview_id, sender);
-        self.constellation_chan
-            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
-            .unwrap();
+        self.send_message_to_embedder(cmd_msg)
+            .map_err(|_| ErrorStatus::UnknownError)?;
 
         let viewport_size = match wait_for_script_response(receiver) {
             Ok(response) => response,
