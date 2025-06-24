@@ -492,12 +492,14 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         // > from left to right (if any), adding to the array, for each glyph, the shape of the glyph
         // > as it is in the inline box, positioned on a coordinate space using CSS pixels with its
         // > origin is at the anchor point.
-        self.drawtarget.fill_text(
-            shaped_runs,
-            start,
-            &self.state.fill_style,
-            &self.state.draw_options,
-        );
+        self.maybe_bound_shape_with_pattern(self.state.fill_style.clone(), |self_| {
+            self_.drawtarget.fill_text(
+                shaped_runs,
+                start,
+                &self_.state.fill_style,
+                &self_.state.draw_options,
+            );
+        });
     }
 
     /// <https://html.spec.whatwg.org/multipage/#text-preparation-algorithm>
@@ -676,19 +678,18 @@ impl<'a, B: Backend> CanvasData<'a, B> {
             return; // Paint nothing if gradient size is zero.
         }
 
-        let draw_rect = self.state.fill_style.draw_rect(rect);
-
         if self.need_to_draw_shadow() {
-            self.draw_with_shadow(&draw_rect, |new_draw_target: &mut B::DrawTarget| {
-                new_draw_target.fill_rect(
-                    &draw_rect,
-                    &self.state.fill_style,
-                    &self.state.draw_options,
-                );
+            self.draw_with_shadow(rect, |new_draw_target: &mut B::DrawTarget| {
+                new_draw_target.fill_rect(rect, &self.state.fill_style, &self.state.draw_options);
             });
         } else {
-            self.drawtarget
-                .fill_rect(&draw_rect, &self.state.fill_style, &self.state.draw_options);
+            self.maybe_bound_shape_with_pattern(self.state.fill_style.clone(), |self_| {
+                self_.drawtarget.fill_rect(
+                    rect,
+                    &self_.state.fill_style,
+                    &self_.state.draw_options,
+                );
+            });
         }
     }
 
@@ -711,12 +712,14 @@ impl<'a, B: Backend> CanvasData<'a, B> {
                 );
             });
         } else {
-            self.drawtarget.stroke_rect(
-                rect,
-                &self.state.stroke_style,
-                &self.state.stroke_opts,
-                &self.state.draw_options,
-            );
+            self.maybe_bound_shape_with_pattern(self.state.stroke_style.clone(), |self_| {
+                self_.drawtarget.stroke_rect(
+                    rect,
+                    &self_.state.stroke_style,
+                    &self_.state.stroke_opts,
+                    &self_.state.draw_options,
+                );
+            })
         }
     }
 
@@ -781,11 +784,13 @@ impl<'a, B: Backend> CanvasData<'a, B> {
             return; // Path is uninvertible.
         };
 
-        self.drawtarget.fill(
-            &path,
-            &self.state.fill_style,
-            &self.state.draw_options.clone(),
-        );
+        self.maybe_bound_shape_with_pattern(self.state.fill_style.clone(), |self_| {
+            self_.drawtarget.fill(
+                &path,
+                &self_.state.fill_style,
+                &self_.state.draw_options.clone(),
+            );
+        })
     }
 
     pub(crate) fn fill_path(&mut self, path_segments: &[PathSegment]) {
@@ -809,12 +814,14 @@ impl<'a, B: Backend> CanvasData<'a, B> {
             return; // Path is uninvertible.
         };
 
-        self.drawtarget.stroke(
-            &path,
-            &self.state.stroke_style,
-            &self.state.stroke_opts,
-            &self.state.draw_options,
-        );
+        self.maybe_bound_shape_with_pattern(self.state.stroke_style.clone(), |self_| {
+            self_.drawtarget.stroke(
+                &path,
+                &self_.state.stroke_style,
+                &self_.state.stroke_opts,
+                &self_.state.draw_options,
+            );
+        })
     }
 
     pub(crate) fn stroke_path(&mut self, path_segments: &[PathSegment]) {
@@ -825,12 +832,14 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         let mut path = B::Path::new();
         path.add_segments(path_segments);
 
-        self.drawtarget.stroke(
-            &path,
-            &self.state.stroke_style,
-            &self.state.stroke_opts,
-            &self.state.draw_options,
-        );
+        self.maybe_bound_shape_with_pattern(self.state.stroke_style.clone(), |self_| {
+            self_.drawtarget.stroke(
+                &path,
+                &self_.state.stroke_style,
+                &self_.state.stroke_opts,
+                &self_.state.draw_options,
+            );
+        })
     }
 
     pub(crate) fn clip(&mut self) {
@@ -1181,6 +1190,29 @@ impl<'a, B: Backend> CanvasData<'a, B> {
             (self.state.shadow_blur / 2.0f64) as f32,
             self.backend.get_composition_op(&self.state.draw_options),
         );
+    }
+
+    /// We need to bound shape on non-repeat (bounded) patterns
+    fn maybe_bound_shape_with_pattern<F>(&mut self, pattern: B::Pattern<'_>, draw_shape: F)
+    where
+        F: FnOnce(&mut Self),
+    {
+        let x_bound = pattern.x_bound();
+        let y_bound = pattern.y_bound();
+        // clear is also unbounded
+        if self.state.draw_options.is_clear() || (x_bound.is_none() && y_bound.is_none()) {
+            draw_shape(self);
+            return;
+        }
+        let rect = Rect::from_size(Size2D::new(
+            x_bound.unwrap_or_else(|| self.drawtarget.get_size().cast().width),
+            y_bound.unwrap_or_else(|| self.drawtarget.get_size().cast().height),
+        ))
+        .cast();
+        let rect = self.get_transform().outer_transformed_rect(&rect);
+        self.drawtarget.push_clip_rect(&rect.round_out().cast());
+        draw_shape(self);
+        self.drawtarget.pop_clip();
     }
 
     /// It reads image data from the canvas
