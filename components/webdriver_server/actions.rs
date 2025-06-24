@@ -764,10 +764,9 @@ impl Handler {
         web_element: &WebElement,
     ) -> Result<(i64, i64), ErrorStatus> {
         let (sender, receiver) = ipc::channel().unwrap();
-        self.browsing_context_script_command(WebDriverScriptCommand::GetElementInViewCenterPoint(
-            web_element.to_string(),
-            sender,
-        ))
+        self.browsing_context_script_command::<false>(
+            WebDriverScriptCommand::GetElementInViewCenterPoint(web_element.to_string(), sender),
+        )
         .unwrap();
         let response = match wait_for_script_response(receiver) {
             Ok(response) => response,

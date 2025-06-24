@@ -3137,7 +3137,10 @@ where
             .send(EmbedderMsg::WebViewClosed(webview_id));
 
         let Some(browsing_context) = browsing_context else {
-            return;
+            return warn!(
+                "fn handle_close_top_level_browsing_context {}: Closing twice",
+                browsing_context_id
+            );
         };
         // https://html.spec.whatwg.org/multipage/#bcg-remove
         let bc_group_id = browsing_context.bc_group_id;
@@ -5523,7 +5526,7 @@ where
         let browsing_context = match self.browsing_contexts.remove(&browsing_context_id) {
             Some(ctx) => ctx,
             None => {
-                warn!("{browsing_context_id}: Closing twice");
+                warn!("fn close_browsing_context: {browsing_context_id}: Closing twice");
                 return None;
             },
         };
@@ -5679,7 +5682,7 @@ where
         // the pipeline.
         let pipeline = match self.pipelines.get(&pipeline_id) {
             Some(pipeline) => pipeline,
-            None => return warn!("{}: Closing twice", pipeline_id),
+            None => return warn!("fn close_pipeline: {pipeline_id}: Closing twice"),
         };
 
         // Remove this pipeline from pending changes if it hasn't loaded yet.
