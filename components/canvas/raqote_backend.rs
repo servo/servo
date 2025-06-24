@@ -603,31 +603,6 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
     ) {
         self.stroke(path, &source(pattern), stroke_options, draw_options);
     }
-    fn stroke_line(
-        &mut self,
-        start: Point2D<f32>,
-        end: Point2D<f32>,
-        pattern: &<RaqoteBackend as Backend>::Pattern<'_>,
-        stroke_options: &<RaqoteBackend as Backend>::StrokeOptions,
-        draw_options: &<RaqoteBackend as Backend>::DrawOptions,
-    ) {
-        let mut pb = raqote::PathBuilder::new();
-        pb.move_to(start.x, start.y);
-        pb.line_to(end.x, end.y);
-        let mut stroke_options = stroke_options.clone();
-        let cap = match stroke_options.join {
-            raqote::LineJoin::Round => raqote::LineCap::Round,
-            _ => raqote::LineCap::Butt,
-        };
-        stroke_options.cap = cap;
-
-        self.stroke(
-            &pb.finish(),
-            &source(pattern),
-            &stroke_options,
-            draw_options,
-        );
-    }
     fn stroke_rect(
         &mut self,
         rect: &Rect<f32>,

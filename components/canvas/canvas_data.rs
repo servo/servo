@@ -23,7 +23,6 @@ use servo_arc::Arc as ServoArc;
 use style::color::AbsoluteColor;
 use style::properties::style_structs::Font as FontStyleStruct;
 use unicode_script::Script;
-use webrender_api::units::RectExt as RectExt_;
 use webrender_api::{ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey};
 
 use crate::backend::{
@@ -793,16 +792,6 @@ impl<'a, B: Backend> CanvasData<'a, B> {
                     &self.state.draw_options,
                 );
             });
-        } else if rect.size.width == 0. || rect.size.height == 0. {
-            let mut stroke_opts = self.state.stroke_opts.clone();
-            stroke_opts.set_line_cap(LineCapStyle::Butt);
-            self.drawtarget.stroke_line(
-                rect.origin,
-                rect.bottom_right(),
-                &self.state.stroke_style,
-                &stroke_opts,
-                &self.state.draw_options,
-            );
         } else {
             self.drawtarget.stroke_rect(
                 rect,

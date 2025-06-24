@@ -107,14 +107,6 @@ pub(crate) trait GenericDrawTarget<B: Backend> {
         stroke_options: &B::StrokeOptions,
         draw_options: &B::DrawOptions,
     );
-    fn stroke_line(
-        &mut self,
-        start: Point2D<f32>,
-        end: Point2D<f32>,
-        pattern: &B::Pattern<'_>,
-        stroke_options: &B::StrokeOptions,
-        draw_options: &B::DrawOptions,
-    );
     fn stroke_rect(
         &mut self,
         rect: &Rect<f32>,
