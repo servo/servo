@@ -715,7 +715,7 @@ impl Handler {
     }
 
     /// Send command to Script Thread with session's current browsing context.
-    /// If CHECK_OPEN is true, it would verify the existence of browsing context before sending.  
+    /// If CHECK_OPEN is true, it would verify the existence of browsing context before sending.
     fn browsing_context_script_command<const CHECK_OPEN: bool>(
         &self,
         cmd_msg: WebDriverScriptCommand,
