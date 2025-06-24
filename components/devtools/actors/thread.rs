@@ -93,6 +93,12 @@ pub enum Location {
     },
 }
 
+#[derive(Serialize)]
+struct GetAvailableEventBreakpointsReply {
+    from: String,
+    value: Vec<()>,
+}
+
 impl Actor for ThreadActor {
     fn name(&self) -> String {
         self.name.clone()
@@ -160,6 +166,18 @@ impl Actor for ThreadActor {
                 let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
+
+            // Client wants to know what Event Listener Breakpoints are available for this thread.
+            "getAvailableEventBreakpoints" => {
+                let msg = GetAvailableEventBreakpointsReply {
+                    from: self.name(),
+                    // TODO: populate this.
+                    value: vec![],
+                };
+                let _ = stream.write_json_packet(&msg);
+                ActorMessageStatus::Processed
+            },
+
             _ => ActorMessageStatus::Ignored,
         })
     }
