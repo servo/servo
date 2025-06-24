@@ -51,6 +51,7 @@ use crate::dom::webgl_validations::WebGLValidator;
 use crate::dom::webgl_validations::tex_image_2d::{
     TexImage2DValidator, TexImage2DValidatorResult, TexStorageValidator, TexStorageValidatorResult,
 };
+use crate::dom::webgl_validations::tex_image_3d::TexImage3DValidator;
 use crate::dom::webglactiveinfo::WebGLActiveInfo;
 use crate::dom::webglbuffer::WebGLBuffer;
 use crate::dom::webglframebuffer::{WebGLFramebuffer, WebGLFramebufferAttachmentRoot};
@@ -3033,6 +3034,19 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                 return Ok(());
             },
         }
+
+        let validator = TexImage3DValidator::new(
+            &self.base,
+            target,
+            level,
+            internal_format as u32,
+            width,
+            height,
+            border,
+            format,
+            type_,
+        )
+        .validate();
         // TODO: If srcData is non-null, the type of srcData must match the type according to the above table; otherwise, generate an INVALID_OPERATION error.
 
         todo!()
