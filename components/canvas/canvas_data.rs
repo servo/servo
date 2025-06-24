@@ -1191,15 +1191,27 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         self.backend.set_global_composition(op, &mut self.state);
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#reset-the-rendering-context-to-its-default-state>
     pub(crate) fn recreate(&mut self, size: Option<Size2D<u64>>) {
         let size = size
             .unwrap_or_else(|| self.drawtarget.get_size().to_u64())
             .max(MIN_WR_IMAGE_SIZE);
+
+        // Step 1. Clear canvas's bitmap to transparent black.
         self.drawtarget = self
             .backend
             .create_drawtarget(Size2D::new(size.width, size.height));
-        self.state = self.backend.new_paint_state();
+
+        // Step 2. Empty the list of subpaths in context's current default path.
+        self.path_state = None;
+
+        // Step 3. Clear the context's drawing state stack.
         self.saved_states.clear();
+
+        // Step 4. Reset everything that drawing state consists of to their
+        // initial values.
+        self.state = self.backend.new_paint_state();
+
         self.update_image_rendering();
     }
 
