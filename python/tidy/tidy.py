@@ -148,12 +148,12 @@ def progress_wrapper(iterator):
 
 
 def git_changes_since_last_merge(path):
-    args = ["git", "log", "-n1", "--committer", "noreply@github.com", "--format=%H"]
+    args = ["git", "merge-base", "origin/main", "HEAD"]
     last_merge = subprocess.check_output(args, universal_newlines=True).strip()
     if not last_merge:
         return
 
-    args = ["git", "diff", "--name-only", last_merge, path]
+    args = ["git", "diff", "--name-only", last_merge, "--", path]
     file_list = normilize_paths(subprocess.check_output(args, universal_newlines=True).splitlines())
 
     return file_list
