@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
+use servo_url::ServoUrl;
 
 use super::source::{SourceManager, SourcesReply};
 use crate::actor::{Actor, ActorError, ActorRegistry};
@@ -60,6 +61,34 @@ impl ThreadActor {
             source_manager: SourceManager::new(),
         }
     }
+}
+
+/// Location inside a source.
+///
+/// This can be in the code for the source itself, or the code of an `eval()` or `new Function()`
+/// called from that source.
+///
+/// <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#source-locations>
+#[derive(Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum Location {
+    Url {
+        url: ServoUrl,
+        line: usize,
+        column: usize,
+    },
+    Eval {
+        eval: Box<Location>,
+        id: String,
+        line: usize,
+        column: usize,
+    },
+    Function {
+        function: Box<Location>,
+        id: String,
+        line: usize,
+        column: usize,
+    },
 }
 
 impl Actor for ThreadActor {
