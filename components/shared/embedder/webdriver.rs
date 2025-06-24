@@ -33,11 +33,15 @@ pub enum WebDriverCommandMsg {
     /// Get the window size.
     GetWindowSize(WebViewId, IpcSender<Size2D<i32, DevicePixel>>),
     /// Get the viewport size.
-    GetViewportSize(WebViewId, IpcSender<Size2D<f32, CSSPixel>>),
+    GetViewportSize(WebViewId, IpcSender<Size2D<u32, DevicePixel>>),
     /// Load a URL in the top-level browsing context with the given ID.
     LoadUrl(WebViewId, ServoUrl, IpcSender<WebDriverLoadStatus>),
     /// Refresh the top-level browsing context with the given ID.
     Refresh(WebViewId, IpcSender<WebDriverLoadStatus>),
+    /// Navigate the webview with the given ID to the previous page in the browsing context's history.
+    GoBack(WebViewId),
+    /// Navigate the webview with the given ID to the next page in the browsing context's history.
+    GoForward(WebViewId),
     /// Pass a webdriver command to the script thread of the current pipeline
     /// of a browsing context.
     ScriptCommand(BrowsingContextId, WebDriverScriptCommand),
