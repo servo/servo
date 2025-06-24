@@ -375,7 +375,7 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
         let mut options = raqote::DrawOptions::new();
         options.blend_mode = raqote::BlendMode::Clear;
         let pattern = Pattern::Color(0, 0, 0, 0);
-        <Self as GenericDrawTarget<RaqoteBackend>>::fill(self, &pb.finish(), pattern, &options);
+        <Self as GenericDrawTarget<RaqoteBackend>>::fill(self, &pb.finish(), &pattern, &options);
     }
     #[allow(unsafe_code)]
     fn copy_surface(
@@ -448,7 +448,12 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
             dest.size.height as f32,
         );
 
-        <Self as GenericDrawTarget<RaqoteBackend>>::fill(self, &pb.finish(), pattern, draw_options);
+        <Self as GenericDrawTarget<RaqoteBackend>>::fill(
+            self,
+            &pb.finish(),
+            &pattern,
+            draw_options,
+        );
     }
     fn draw_surface_with_shadow(
         &self,
@@ -464,13 +469,13 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
     fn fill(
         &mut self,
         path: &<RaqoteBackend as Backend>::Path,
-        pattern: <RaqoteBackend as Backend>::Pattern<'_>,
+        pattern: &<RaqoteBackend as Backend>::Pattern<'_>,
         draw_options: &<RaqoteBackend as Backend>::DrawOptions,
     ) {
         match draw_options.blend_mode {
             raqote::BlendMode::Src => {
                 self.clear(raqote::SolidSource::from_unpremultiplied_argb(0, 0, 0, 0));
-                self.fill(path, &source(&pattern), draw_options);
+                self.fill(path, &source(pattern), draw_options);
             },
             raqote::BlendMode::Clear |
             raqote::BlendMode::SrcAtop |
@@ -479,7 +484,7 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
             raqote::BlendMode::Xor |
             raqote::BlendMode::DstOver |
             raqote::BlendMode::SrcOver => {
-                self.fill(path, &source(&pattern), draw_options);
+                self.fill(path, &source(pattern), draw_options);
             },
             raqote::BlendMode::SrcIn |
             raqote::BlendMode::SrcOut |
@@ -488,7 +493,7 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
                 let mut options = *draw_options;
                 self.push_layer_with_blend(1., options.blend_mode);
                 options.blend_mode = raqote::BlendMode::SrcOver;
-                self.fill(path, &source(&pattern), &options);
+                self.fill(path, &source(pattern), &options);
                 self.pop_layer();
             },
             _ => warn!("unrecognized blend mode: {:?}", draw_options.blend_mode),
@@ -558,7 +563,7 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
     fn fill_rect(
         &mut self,
         rect: &Rect<f32>,
-        pattern: <RaqoteBackend as Backend>::Pattern<'_>,
+        pattern: &<RaqoteBackend as Backend>::Pattern<'_>,
         draw_options: &<RaqoteBackend as Backend>::DrawOptions,
     ) {
         let mut pb = raqote::PathBuilder::new();
@@ -592,17 +597,17 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
     fn stroke(
         &mut self,
         path: &<RaqoteBackend as Backend>::Path,
-        pattern: Pattern<'_>,
+        pattern: &Pattern<'_>,
         stroke_options: &<RaqoteBackend as Backend>::StrokeOptions,
         draw_options: &<RaqoteBackend as Backend>::DrawOptions,
     ) {
-        self.stroke(path, &source(&pattern), stroke_options, draw_options);
+        self.stroke(path, &source(pattern), stroke_options, draw_options);
     }
     fn stroke_line(
         &mut self,
         start: Point2D<f32>,
         end: Point2D<f32>,
-        pattern: <RaqoteBackend as Backend>::Pattern<'_>,
+        pattern: &<RaqoteBackend as Backend>::Pattern<'_>,
         stroke_options: &<RaqoteBackend as Backend>::StrokeOptions,
         draw_options: &<RaqoteBackend as Backend>::DrawOptions,
     ) {
@@ -618,7 +623,7 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
 
         self.stroke(
             &pb.finish(),
-            &source(&pattern),
+            &source(pattern),
             &stroke_options,
             draw_options,
         );
@@ -626,7 +631,7 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
     fn stroke_rect(
         &mut self,
         rect: &Rect<f32>,
-        pattern: <RaqoteBackend as Backend>::Pattern<'_>,
+        pattern: &<RaqoteBackend as Backend>::Pattern<'_>,
         stroke_options: &<RaqoteBackend as Backend>::StrokeOptions,
         draw_options: &<RaqoteBackend as Backend>::DrawOptions,
     ) {
@@ -638,12 +643,7 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
             rect.size.height,
         );
 
-        self.stroke(
-            &pb.finish(),
-            &source(&pattern),
-            stroke_options,
-            draw_options,
-        );
+        self.stroke(&pb.finish(), &source(pattern), stroke_options, draw_options);
     }
     #[allow(unsafe_code)]
     fn bytes(&self) -> Cow<[u8]> {

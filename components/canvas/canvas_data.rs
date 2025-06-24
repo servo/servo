@@ -765,16 +765,13 @@ impl<'a, B: Backend> CanvasData<'a, B> {
             self.draw_with_shadow(&draw_rect, |new_draw_target: &mut B::DrawTarget| {
                 new_draw_target.fill_rect(
                     &draw_rect,
-                    self.state.fill_style.clone(),
+                    &self.state.fill_style,
                     &self.state.draw_options,
                 );
             });
         } else {
-            self.drawtarget.fill_rect(
-                &draw_rect,
-                self.state.fill_style.clone(),
-                &self.state.draw_options,
-            );
+            self.drawtarget
+                .fill_rect(&draw_rect, &self.state.fill_style, &self.state.draw_options);
         }
     }
 
@@ -791,7 +788,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
             self.draw_with_shadow(rect, |new_draw_target: &mut B::DrawTarget| {
                 new_draw_target.stroke_rect(
                     rect,
-                    self.state.stroke_style.clone(),
+                    &self.state.stroke_style,
                     &self.state.stroke_opts,
                     &self.state.draw_options,
                 );
@@ -802,14 +799,14 @@ impl<'a, B: Backend> CanvasData<'a, B> {
             self.drawtarget.stroke_line(
                 rect.origin,
                 rect.bottom_right(),
-                self.state.stroke_style.clone(),
+                &self.state.stroke_style,
                 &stroke_opts,
                 &self.state.draw_options,
             );
         } else {
             self.drawtarget.stroke_rect(
                 rect,
-                self.state.stroke_style.clone(),
+                &self.state.stroke_style,
                 &self.state.stroke_opts,
                 &self.state.draw_options,
             );
@@ -892,7 +889,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
 
         self.drawtarget.fill(
             &path,
-            self.state.fill_style.clone(),
+            &self.state.fill_style,
             &self.state.draw_options.clone(),
         );
     }
@@ -904,11 +901,8 @@ impl<'a, B: Backend> CanvasData<'a, B> {
 
         let path = to_path::<B>(path, self.drawtarget.create_path_builder());
 
-        self.drawtarget.fill(
-            &path,
-            self.state.fill_style.clone(),
-            &self.state.draw_options,
-        );
+        self.drawtarget
+            .fill(&path, &self.state.fill_style, &self.state.draw_options);
     }
 
     pub(crate) fn stroke(&mut self) {
@@ -922,7 +916,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
 
         self.drawtarget.stroke(
             &path,
-            self.state.stroke_style.clone(),
+            &self.state.stroke_style,
             &self.state.stroke_opts,
             &self.state.draw_options,
         );
@@ -937,7 +931,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
 
         self.drawtarget.stroke(
             &path,
-            self.state.stroke_style.clone(),
+            &self.state.stroke_style,
             &self.state.stroke_opts,
             &self.state.draw_options,
         );
