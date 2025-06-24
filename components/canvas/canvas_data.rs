@@ -1210,7 +1210,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         ))
         .cast();
         let rect = self.get_transform().outer_transformed_rect(&rect);
-        self.drawtarget.push_clip_rect(&rect.round_out().cast());
+        self.drawtarget.push_clip_rect(&rect.cast());
         draw_shape(self);
         self.drawtarget.pop_clip();
     }

@@ -98,7 +98,7 @@ pub(crate) trait GenericDrawTarget<B: Backend> {
     fn get_transform(&self) -> Transform2D<f32>;
     fn pop_clip(&mut self);
     fn push_clip(&mut self, path: &B::Path);
-    fn push_clip_rect(&mut self, rect: &Rect<u32>);
+    fn push_clip_rect(&mut self, rect: &Rect<i32>);
     fn set_transform(&mut self, matrix: &Transform2D<f32>);
     fn stroke(
         &mut self,

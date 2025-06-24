@@ -572,8 +572,8 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
     fn push_clip(&mut self, path: &<RaqoteBackend as Backend>::Path) {
         self.push_clip(&path.into());
     }
-    fn push_clip_rect(&mut self, rect: &Rect<u32>) {
-        self.push_clip_rect(rect.to_box2d().cast());
+    fn push_clip_rect(&mut self, rect: &Rect<i32>) {
+        self.push_clip_rect(rect.to_box2d());
     }
     fn set_transform(&mut self, matrix: &Transform2D<f32>) {
         self.set_transform(matrix);
