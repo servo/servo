@@ -141,6 +141,23 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         expected_content = open(self.get_test_path("sources_content_with_responsexml/test.html")).read()
         self.assert_source_content(f"{self.base_url}/test.html", expected_content)
 
+    def test_source_breakable_lines_and_positions(self):
+        self.start_web_server(test_dir=self.get_test_path("sources_breakable_lines_and_positions"))
+        self.run_servoshell()
+        self.assert_source_breakable_lines_and_positions(
+            f"{self.base_url}/test.html",
+            list(range(1, 8)),
+            {
+                "1": list(range(15)),
+                "2": list(range(22)),
+                "3": list(range(8)),
+                "4": list(range(35)),
+                "5": list(range(46)),  # includes 3 surrogate pairs
+                "6": list(range(46)),  # includes 1 surrogate pair
+                "7": list(range(9)),
+            },
+        )
+
     # Sets `base_url` and `web_server` and `web_server_thread`.
     def start_web_server(self, *, test_dir=None):
         if test_dir is None:
@@ -302,6 +319,49 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         response = client.send_receive({"to": source_actor, "type": "source"})
 
         self.assertEqual(response["source"], expected_content)
+
+        client.disconnect()
+
+    def assert_source_breakable_lines_and_positions(
+        self, source_url: str, expected_breakable_lines: list[int], expected_positions: dict[int, list[int]]
+    ):
+        client, watcher, targets = self._setup_devtools_client()
+
+        done = Future()
+        source_actors = {}
+
+        def on_source_resource(data):
+            for [resource_type, sources] in data["array"]:
+                try:
+                    self.assertEqual(resource_type, "source")
+                    for source in sources:
+                        if source["url"] == source_url:
+                            source_actors[source_url] = source["actor"]
+                            done.set_result(None)
+                except Exception as e:
+                    done.set_result(e)
+
+        for target in targets:
+            client.add_event_listener(
+                target["actor"],
+                Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
+                on_source_resource,
+            )
+        watcher.watch_resources([Resources.SOURCE])
+
+        result: Optional[Exception] = done.result(1)
+        if result:
+            raise result
+
+        # We found at least one source with the given url.
+        self.assertIn(source_url, source_actors)
+        source_actor = source_actors[source_url]
+
+        response = client.send_receive({"to": source_actor, "type": "getBreakableLines"})
+        self.assertEqual(response["lines"], expected_breakable_lines)
+
+        response = client.send_receive({"to": source_actor, "type": "getBreakpointPositionsCompressed"})
+        self.assertEqual(response["positions"], expected_positions)
 
         client.disconnect()
 
