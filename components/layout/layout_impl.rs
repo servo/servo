@@ -580,9 +580,44 @@ impl LayoutThread {
         );
     }
 
+    /// In some cases, if a restyle isn't necessary we can skip doing any work for layout
+    /// entirely. This check allows us to return early from layout without doing any work
+    /// at all.
+    fn can_skip_reflow_request_entirely(&self, reflow_request: &ReflowRequest) -> bool {
+        // If a restyle is necessary, restyle and reflow is a necessity.
+        if reflow_request.restyle_reason.needs_restyle() {
+            return false;
+        }
+
+        // If only the fragment tree is required, and it's up-to-date, layout is unnecessary.
+        if !reflow_request.reflow_goal.needs_display() && self.fragment_tree.borrow().is_some() {
+            return true;
+        }
+
+        // If only the stacking context tree is required, and it's up-to-date, layout is unnecessary.
+        if !reflow_request.reflow_goal.needs_display_list() &&
+            self.stacking_context_tree.borrow().is_some() &&
+            !self.need_new_stacking_context_tree.get()
+        {
+            return true;
+        }
+
+        // Otherwise, the only interesting thing is whether the current display list is up-to-date.
+        !self.need_new_display_list.get()
+    }
+
     /// The high-level routine that performs layout.
     #[servo_tracing::instrument(skip_all)]
     fn handle_reflow(&mut self, mut reflow_request: ReflowRequest) -> Option<ReflowResult> {
+        if self.can_skip_reflow_request_entirely(&reflow_request) {
+            if let ReflowGoal::UpdateScrollNode(external_scroll_id, offset) =
+                reflow_request.reflow_goal
+            {
+                self.set_scroll_offset_from_script(external_scroll_id, offset);
+            }
+            return None;
+        }
+
         let document = unsafe { ServoLayoutNode::new(&reflow_request.document) };
         let document = document.as_document().unwrap();
         let Some(root_element) = document.root_element() else {
@@ -602,28 +637,31 @@ impl LayoutThread {
             ua_or_user: &ua_or_user_guard,
         };
 
-        let viewport_changed = self.viewport_did_change(reflow_request.viewport_details);
-        if self.update_device_if_necessary(&reflow_request, viewport_changed, &guards) {
-            if let Some(mut data) = root_element.mutate_data() {
-                data.hint.insert(RestyleHint::recascade_subtree());
-            }
-        }
-
         let mut snapshot_map = SnapshotMap::new();
         let _snapshot_setter = SnapshotSetter::new(&mut reflow_request, &mut snapshot_map);
-        self.prepare_stylist_for_reflow(
-            &reflow_request,
-            document,
-            root_element,
-            &guards,
-            ua_stylesheets,
-            &snapshot_map,
-        );
+        let mut viewport_changed = false;
+        if reflow_request.restyle_reason.needs_restyle() {
+            viewport_changed = self.viewport_did_change(reflow_request.viewport_details);
+            if self.update_device_if_necessary(&reflow_request, viewport_changed, &guards) {
+                if let Some(mut data) = root_element.mutate_data() {
+                    data.hint.insert(RestyleHint::recascade_subtree());
+                }
+            }
 
-        if self.previously_highlighted_dom_node.get() != reflow_request.highlighted_dom_node {
-            // Need to manually force layout to build a new display list regardless of whether the box tree
-            // changed or not.
-            self.need_new_display_list.set(true);
+            self.prepare_stylist_for_reflow(
+                &reflow_request,
+                document,
+                root_element,
+                &guards,
+                ua_stylesheets,
+                &snapshot_map,
+            );
+
+            if self.previously_highlighted_dom_node.get() != reflow_request.highlighted_dom_node {
+                // Need to manually force layout to build a new display list regardless of whether the box tree
+                // changed or not.
+                self.need_new_display_list.set(true);
+            }
         }
 
         let mut layout_context = LayoutContext {
@@ -650,14 +688,17 @@ impl LayoutThread {
             highlighted_dom_node: reflow_request.highlighted_dom_node,
         };
 
-        let damage = self.restyle_and_build_trees(
-            &reflow_request,
-            root_element,
-            rayon_pool,
-            &mut layout_context,
-            viewport_changed,
-        );
-        self.calculate_overflow(damage);
+        let mut damage = RestyleDamage::empty();
+        if reflow_request.restyle_reason.needs_restyle() {
+            damage = self.restyle_and_build_trees(
+                &reflow_request,
+                root_element,
+                rayon_pool,
+                &mut layout_context,
+                viewport_changed,
+            );
+            self.calculate_overflow(damage);
+        };
         self.build_stacking_context_tree(&reflow_request, damage);
         let built_display_list =
             self.build_display_list(&reflow_request, damage, &mut layout_context);

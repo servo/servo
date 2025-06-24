@@ -19,6 +19,7 @@ use app_units::Au;
 use atomic_refcell::AtomicRefCell;
 use base::Epoch;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
+use bitflags::bitflags;
 use compositing_traits::CrossProcessCompositorApi;
 use constellation_traits::LoadData;
 use embedder_traits::{Theme, UntrustedNodeAddress, ViewportDetails};
@@ -28,7 +29,7 @@ use fonts::{FontContext, SystemFontServiceProxy};
 use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
-use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps};
+use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps, malloc_size_of_is_0};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::{ImageCache, PendingImageId};
 use parking_lot::RwLock;
@@ -400,6 +401,29 @@ pub struct IFrameSize {
 
 pub type IFrameSizes = FnvHashMap<BrowsingContextId, IFrameSize>;
 
+bitflags! {
+    /// Conditions which cause a [`Document`] to need to be restyled during reflow, which
+    /// might cause the rest of layout to happen as well.
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub struct RestyleReason: u16 {
+        const StylesheetsChanged = 1 << 0;
+        const DOMChanged = 1 << 1;
+        const PendingRestyles = 1 << 2;
+        const HighlightedDOMNodeChanged = 1 << 3;
+        const ThemeChanged = 1 << 4;
+        const ViewportSizeChanged = 1 << 5;
+        const PaintWorkletLoaded = 1 << 6;
+    }
+}
+
+malloc_size_of_is_0!(RestyleReason);
+
+impl RestyleReason {
+    pub fn needs_restyle(&self) -> bool {
+        !self.is_empty()
+    }
+}
+
 /// Information derived from a layout pass that needs to be returned to the script thread.
 #[derive(Debug, Default)]
 pub struct ReflowResult {
@@ -418,6 +442,8 @@ pub struct ReflowResult {
 /// Information needed for a script-initiated reflow.
 #[derive(Debug)]
 pub struct ReflowRequest {
+    /// Whether or not (and for what reasons) restyle needs to happen.
+    pub restyle_reason: RestyleReason,
     /// The document node.
     pub document: TrustedNodeAddress,
     /// The dirty root from which to restyle.
