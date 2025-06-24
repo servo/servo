@@ -148,10 +148,14 @@ def progress_wrapper(iterator):
 
 
 def git_changes_since_last_merge(path):
-    remotes = subprocess.check_output(["git", "remote"], universal_newlines=True).splitlines()
-    if "upstream" not in remotes:
-        subprocess.check_call(["git", "remote", "add", "upstream", "https://github.com/servo/servo.git"])
-    args = ["git", "merge-base", "upstream/main", "HEAD"]
+    base_branch = "upstream/main"
+    if os.getenv("CI"):
+        base_branch = "origin/main"
+    else:
+        remotes = subprocess.check_output(["git", "remote"], universal_newlines=True).splitlines()
+        if "upstream" not in remotes:
+            subprocess.check_call(["git", "remote", "add", "upstream", "https://github.com/servo/servo.git"])
+    args = ["git", "merge-base", base_branch, "HEAD"]
     last_merge = subprocess.check_output(args, universal_newlines=True).strip()
     if not last_merge:
         return
