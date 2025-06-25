@@ -12,9 +12,10 @@ use std::sync::{Arc, Mutex};
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::PipelineId;
 use log::debug;
-use serde_json::{Map, Value};
+use serde_json::{Map, Value, json};
 
 use crate::StreamId;
+use crate::protocol::JsonPacketStream;
 
 #[derive(PartialEq)]
 pub enum ActorMessageStatus {
@@ -186,7 +187,11 @@ impl ActorRegistry {
         };
 
         match self.actors.get(to) {
-            None => log::warn!("message received for unknown actor \"{}\"", to),
+            None => {
+                // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#packets>
+                let msg = json!({ "from":to, "error":"noSuchActor" });
+                let _ = stream.write_json_packet(&msg);
+            },
             Some(actor) => {
                 let msg_type = msg.get("type").unwrap().as_str().unwrap();
                 if actor.handle_message(self, msg_type, msg, stream, stream_id)? !=
