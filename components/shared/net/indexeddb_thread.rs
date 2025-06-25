@@ -15,19 +15,55 @@ pub enum IndexedDBTxnMode {
 }
 
 // https://www.w3.org/TR/IndexedDB-2/#key-type
-#[derive(Clone, Debug, Deserialize, Serialize)]
+// FIXME:(arihant2math) Ordering needs to completely be reimplemented as per https://www.w3.org/TR/IndexedDB-2/#compare-two-keys
+#[derive(Clone, Debug, Deserialize, Serialize, PartialOrd, PartialEq)]
 pub enum IndexedDBKeyType {
-    Number(Vec<u8>),
-    String(Vec<u8>),
+    Number(f64),
+    String(String),
     Binary(Vec<u8>),
+    // FIXME:(arihant2math) Date should not be stored as a Vec<u8>
     Date(Vec<u8>),
-    // FIXME:(arihant2math) implment Array(),
+    Array(Vec<IndexedDBKeyType>),
+    // FIXME:(arihant2math) implment ArrayBuffer
 }
 
-// https://www.w3.org/TR/IndexedDB-2/#key-range
-#[derive(Clone, Debug, Deserialize, Serialize)]
+// <https://www.w3.org/TR/IndexedDB-2/#key-range>
+#[derive(Clone, Debug, Deserialize, Serialize, Default)]
 #[allow(unused)]
-pub enum IndexedDBKeyRange {}
+pub struct IndexedDBKeyRange {
+    pub lower: Option<IndexedDBKeyType>,
+    pub upper: Option<IndexedDBKeyType>,
+    pub lower_open: bool,
+    pub upper_open: bool,
+}
+
+impl From<IndexedDBKeyType> for IndexedDBKeyRange {
+    fn from(key: IndexedDBKeyType) -> Self {
+        IndexedDBKeyRange {
+            lower: Some(key.clone()),
+            upper: Some(key),
+            ..Default::default()
+        }
+    }
+}
+
+impl IndexedDBKeyRange {
+    // https://www.w3.org/TR/IndexedDB-2/#in
+    pub fn contains(&self, key: &IndexedDBKeyType) -> bool {
+        // A key is in a key range if both of the following conditions are fulfilled:
+        // The lower bound is null, or it is less than key, or it is both equal to key and the lower open flag is unset.
+        // The upper bound is null, or it is greater than key, or it is both equal to key and the upper open flag is unset
+        let lower_bound_condition = self
+            .lower
+            .as_ref()
+            .is_none_or(|lower| lower < key || (!self.lower_open && lower == key));
+        let upper_bound_condition = self
+            .upper
+            .as_ref()
+            .is_none_or(|upper| key < upper || (!self.upper_open && key == upper));
+        lower_bound_condition && upper_bound_condition
+    }
+}
 
 // Operations that are not executed instantly, but rather added to a
 // queue that is eventually run.
