@@ -2007,20 +2007,6 @@ impl Window {
             custom_elements.teardown();
         }
 
-        // The above code may not catch all DOM objects (e.g. DOM
-        // objects removed from the tree that haven't been collected
-        // yet). There should not be any such DOM nodes with layout
-        // data, but if there are, then when they are dropped, they
-        // will attempt to send a message to layout.
-        // This causes memory safety issues, because the DOM node uses
-        // the layout channel from its window, and the window has
-        // already been GC'd.  For nodes which do not have a live
-        // pointer, we can avoid this by GCing now:
-        self.Gc();
-        // but there may still be nodes being kept alive by user
-        // script.
-        // TODO: ensure that this doesn't happen!
-
         self.current_state.set(WindowState::Zombie);
         *self.js_runtime.borrow_mut() = None;
 
