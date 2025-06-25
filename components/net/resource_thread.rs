@@ -789,6 +789,9 @@ impl CoreResourceManager {
             _ => (FileTokenCheck::NotRequired, None),
         };
 
+        let ca_certificates = self.ca_certificates.clone();
+        let ignore_certificate_errors = self.ignore_certificate_errors;
+
         HANDLE.spawn(async move {
             // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
             // todo load context / mimesniff in fetch
@@ -805,6 +808,8 @@ impl CoreResourceManager {
                 timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(request.timing_type()))),
                 protocols,
                 websocket_chan: None,
+                ca_certificates,
+                ignore_certificate_errors,
             };
 
             match res_init_ {
@@ -852,6 +857,9 @@ impl CoreResourceManager {
         let filemanager = self.filemanager.clone();
         let request_interceptor = self.request_interceptor.clone();
 
+        let ca_certificates = self.ca_certificates.clone();
+        let ignore_certificate_errors = self.ignore_certificate_errors;
+
         HANDLE.spawn(async move {
             let context = FetchContext {
                 state: http_state,
@@ -869,6 +877,8 @@ impl CoreResourceManager {
                     event_sender.clone(),
                     Some(action_receiver),
                 )))),
+                ca_certificates,
+                ignore_certificate_errors,
             };
 
             let mut event_sender = event_sender;

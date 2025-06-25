@@ -40,6 +40,7 @@ use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use tokio::sync::mpsc::{UnboundedReceiver as TokioReceiver, UnboundedSender as TokioSender};
 
 use super::fetch_params::FetchParams;
+use crate::connector::CACertificates;
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::headers::determine_nosniff;
 use crate::filemanager_thread::FileManager;
@@ -78,6 +79,8 @@ pub struct FetchContext {
             )>,
         >,
     >,
+    pub ca_certificates: CACertificates,
+    pub ignore_certificate_errors: bool,
 }
 
 #[derive(Default)]
