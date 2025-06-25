@@ -179,6 +179,9 @@ pub(crate) mod codegen {
     pub(crate) mod ConcreteInheritTypes {
         include!(concat!(env!("OUT_DIR"), "/ConcreteInheritTypes.rs"));
     }
+    pub(crate) mod StubbedInterfaces {
+        include!(concat!(env!("OUT_DIR"), "/StubbedInterfaces.rs"));
+    }
     pub(crate) use script_bindings::codegen::{PrototypeList, RegisterBindings};
     #[allow(dead_code)]
     pub(crate) mod UnionTypes {

@@ -52,6 +52,7 @@ webdriver = ["libservo/webdriver"]
 webgl_backtrace = ["libservo/webgl_backtrace"]
 webgpu = ["libservo/webgpu"]
 webxr = ["libservo/webxr"]
+stub-unimplemented-dom-interfaces = ["libservo/stub-unimplemented-dom-interfaces"]
 
 [dependencies]
 cfg-if = { workspace = true }
