@@ -145,7 +145,7 @@ pub(crate) unsafe fn uniform_typed<T>(
 
 /// Set of bitflags for texture unpacking (texImage2d, etc...)
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
-struct TextureUnpacking(u8);
+pub(crate) struct TextureUnpacking(u8);
 
 bitflags! {
     impl TextureUnpacking: u8 {
@@ -329,6 +329,14 @@ impl WebGLRenderingContext {
         self.texture_unpacking_alignment.get()
     }
 
+    pub(crate) fn texture_unpacking_settings(&self) -> TextureUnpacking {
+        self.texture_unpacking_settings.get()
+    }
+
+    pub(crate) fn bound_draw_framebuffer(&self) -> Option<DomRoot<WebGLFramebuffer>> {
+        self.bound_draw_framebuffer.get()
+    }
+
     pub(crate) fn current_vao(&self) -> DomRoot<WebGLVertexArrayObjectOES> {
         self.current_vao.or_init(|| {
             DomRoot::from_ref(
@@ -428,8 +436,8 @@ impl WebGLRenderingContext {
         };
         match self.current_program.get() {
             Some(ref program)
-                if program.id() == location.program_id() &&
-                    program.link_generation() == location.link_generation() => {},
+                if program.id() == location.program_id()
+                    && program.link_generation() == location.link_generation() => {},
             _ => return self.webgl_error(InvalidOperation),
         }
         handle_potential_webgl_error!(self, f(location));
@@ -542,8 +550,8 @@ impl WebGLRenderingContext {
     ) -> bool {
         if self
             .extension_manager
-            .is_filterable(data_type.as_gl_constant()) ||
-            !texture.is_using_linear_filtering()
+            .is_filterable(data_type.as_gl_constant())
+            || !texture.is_using_linear_filtering()
         {
             return true;
         }
@@ -585,13 +593,13 @@ impl WebGLRenderingContext {
     fn validate_stencil_actions(&self, action: u32) -> bool {
         matches!(
             action,
-            0 | constants::KEEP |
-                constants::REPLACE |
-                constants::INCR |
-                constants::DECR |
-                constants::INVERT |
-                constants::INCR_WRAP |
-                constants::DECR_WRAP
+            0 | constants::KEEP
+                | constants::REPLACE
+                | constants::INCR
+                | constants::DECR
+                | constants::INVERT
+                | constants::INCR_WRAP
+                | constants::DECR_WRAP
         )
     }
 
@@ -685,9 +693,9 @@ impl WebGLRenderingContext {
                             },
                         }
                     },
-                    ImageResponse::PlaceholderLoaded(_, _) |
-                    ImageResponse::None |
-                    ImageResponse::MetadataLoaded(_) => return Ok(None),
+                    ImageResponse::PlaceholderLoaded(_, _)
+                    | ImageResponse::None
+                    | ImageResponse::MetadataLoaded(_) => return Ok(None),
                 };
 
                 let size = Size2D::new(img.metadata.width, img.metadata.height);
@@ -779,9 +787,9 @@ impl WebGLRenderingContext {
         // or FLOAT, a Float32Array must be supplied.
         // If the types do not match, an INVALID_OPERATION error is generated.
         let data_type_matches = data.as_ref().is_none_or(|buffer| {
-            Some(data_type.sized_data_type()) ==
-                array_buffer_type_to_sized_type(buffer.get_array_type()) &&
-                data_type.required_webgl_version() <= self.webgl_version()
+            Some(data_type.sized_data_type())
+                == array_buffer_type_to_sized_type(buffer.get_array_type())
+                && data_type.required_webgl_version() <= self.webgl_version()
         });
 
         if !data_type_matches {
@@ -899,10 +907,10 @@ impl WebGLRenderingContext {
         //   - xoffset or yoffset is less than 0
         //   - x offset plus the width is greater than the texture width
         //   - y offset plus the height is greater than the texture height
-        if xoffset < 0 ||
-            (xoffset as u32 + pixels.size().width) > image_info.width() ||
-            yoffset < 0 ||
-            (yoffset as u32 + pixels.size().height) > image_info.height()
+        if xoffset < 0
+            || (xoffset as u32 + pixels.size().width) > image_info.width()
+            || yoffset < 0
+            || (yoffset as u32 + pixels.size().height) > image_info.height()
         {
             return self.webgl_error(InvalidValue);
         }
@@ -914,8 +922,8 @@ impl WebGLRenderingContext {
         }
 
         // See https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.1.6
-        if self.webgl_version() == WebGLVersion::WebGL1 &&
-            data_type != image_info.data_type().unwrap()
+        if self.webgl_version() == WebGLVersion::WebGL1
+            && data_type != image_info.data_type().unwrap()
         {
             return self.webgl_error(InvalidOperation);
         }
@@ -961,13 +969,13 @@ impl WebGLRenderingContext {
         primcount: i32,
     ) -> WebGLResult<()> {
         match mode {
-            constants::POINTS |
-            constants::LINE_STRIP |
-            constants::LINE_LOOP |
-            constants::LINES |
-            constants::TRIANGLE_STRIP |
-            constants::TRIANGLE_FAN |
-            constants::TRIANGLES => {},
+            constants::POINTS
+            | constants::LINE_STRIP
+            | constants::LINE_LOOP
+            | constants::LINES
+            | constants::TRIANGLE_STRIP
+            | constants::TRIANGLE_FAN
+            | constants::TRIANGLES => {},
             _ => {
                 return Err(InvalidEnum);
             },
@@ -1030,13 +1038,13 @@ impl WebGLRenderingContext {
         primcount: i32,
     ) -> WebGLResult<()> {
         match mode {
-            constants::POINTS |
-            constants::LINE_STRIP |
-            constants::LINE_LOOP |
-            constants::LINES |
-            constants::TRIANGLE_STRIP |
-            constants::TRIANGLE_FAN |
-            constants::TRIANGLES => {},
+            constants::POINTS
+            | constants::LINE_STRIP
+            | constants::LINE_LOOP
+            | constants::LINES
+            | constants::TRIANGLE_STRIP
+            | constants::TRIANGLE_FAN
+            | constants::TRIANGLES => {},
             _ => {
                 return Err(InvalidEnum);
             },
@@ -1393,11 +1401,11 @@ impl WebGLRenderingContext {
     ) -> WebGLResult<()> {
         self.validate_ownership(program)?;
 
-        if program.is_deleted() ||
-            !program.is_linked() ||
-            self.context_id() != location.context_id() ||
-            program.id() != location.program_id() ||
-            program.link_generation() != location.link_generation()
+        if program.is_deleted()
+            || !program.is_linked()
+            || self.context_id() != location.context_id()
+            || program.id() != location.program_id()
+            || program.link_generation() != location.link_generation()
         {
             return Err(InvalidOperation);
         }
@@ -1698,10 +1706,10 @@ impl WebGLRenderingContext {
     ) {
         self.with_location(location, |location| {
             match location.type_() {
-                constants::BOOL |
-                constants::INT |
-                constants::SAMPLER_2D |
-                constants::SAMPLER_CUBE => {},
+                constants::BOOL
+                | constants::INT
+                | constants::SAMPLER_2D
+                | constants::SAMPLER_CUBE => {},
                 _ => return Err(InvalidOperation),
             }
 
@@ -2879,10 +2887,10 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         //   - xoffset or yoffset is less than 0
         //   - x offset plus the width is greater than the texture width
         //   - y offset plus the height is greater than the texture height
-        if xoffset < 0 ||
-            (xoffset as u32 + width) > image_info.width() ||
-            yoffset < 0 ||
-            (yoffset as u32 + height) > image_info.height()
+        if xoffset < 0
+            || (xoffset as u32 + width) > image_info.width()
+            || yoffset < 0
+            || (yoffset as u32 + height) > image_info.height()
         {
             self.webgl_error(InvalidValue);
             return;
@@ -2905,11 +2913,11 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn Clear(&self, mask: u32) {
         handle_potential_webgl_error!(self, self.validate_framebuffer(), return);
-        if mask &
-            !(constants::DEPTH_BUFFER_BIT |
-                constants::STENCIL_BUFFER_BIT |
-                constants::COLOR_BUFFER_BIT) !=
-            0
+        if mask
+            & !(constants::DEPTH_BUFFER_BIT
+                | constants::STENCIL_BUFFER_BIT
+                | constants::COLOR_BUFFER_BIT)
+            != 0
         {
             return self.webgl_error(InvalidValue);
         }
@@ -2959,14 +2967,14 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn DepthFunc(&self, func: u32) {
         match func {
-            constants::NEVER |
-            constants::LESS |
-            constants::EQUAL |
-            constants::LEQUAL |
-            constants::GREATER |
-            constants::NOTEQUAL |
-            constants::GEQUAL |
-            constants::ALWAYS => self.send_command(WebGLCommand::DepthFunc(func)),
+            constants::NEVER
+            | constants::LESS
+            | constants::EQUAL
+            | constants::LEQUAL
+            | constants::GREATER
+            | constants::NOTEQUAL
+            | constants::GEQUAL
+            | constants::ALWAYS => self.send_command(WebGLCommand::DepthFunc(func)),
             _ => self.webgl_error(InvalidEnum),
         }
     }
@@ -3273,10 +3281,10 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         let attachment_matches = match attachment {
             // constants::MAX_COLOR_ATTACHMENTS ... gl::COLOR_ATTACHMENT0 |
             // constants::BACK |
-            constants::COLOR_ATTACHMENT0 |
-            constants::DEPTH_STENCIL_ATTACHMENT |
-            constants::DEPTH_ATTACHMENT |
-            constants::STENCIL_ATTACHMENT => true,
+            constants::COLOR_ATTACHMENT0
+            | constants::DEPTH_STENCIL_ATTACHMENT
+            | constants::DEPTH_ATTACHMENT
+            | constants::STENCIL_ATTACHMENT => true,
             _ => false,
         };
         let pname_matches = match pname {
@@ -3289,10 +3297,10 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             // constants::FRAMEBUFFER_ATTACHMENT_RED_SIZE |
             // constants::FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE |
             // constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER |
-            constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME |
-            constants::FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE |
-            constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE |
-            constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL => true,
+            constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME
+            | constants::FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE
+            | constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE
+            | constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL => true,
             _ => false,
         };
 
@@ -3305,15 +3313,15 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             Some(attachment_root) => match attachment_root {
                 WebGLFramebufferAttachmentRoot::Renderbuffer(_) => matches!(
                     pname,
-                    constants::FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE |
-                        constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME
+                    constants::FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE
+                        | constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME
                 ),
                 WebGLFramebufferAttachmentRoot::Texture(_) => matches!(
                     pname,
-                    constants::FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE |
-                        constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME |
-                        constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL |
-                        constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE
+                    constants::FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE
+                        | constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME
+                        | constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL
+                        | constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE
                 ),
             },
             _ => matches!(pname, constants::FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE),
@@ -3372,15 +3380,15 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 
         let pname_matches = matches!(
             pname,
-            constants::RENDERBUFFER_WIDTH |
-                constants::RENDERBUFFER_HEIGHT |
-                constants::RENDERBUFFER_INTERNAL_FORMAT |
-                constants::RENDERBUFFER_RED_SIZE |
-                constants::RENDERBUFFER_GREEN_SIZE |
-                constants::RENDERBUFFER_BLUE_SIZE |
-                constants::RENDERBUFFER_ALPHA_SIZE |
-                constants::RENDERBUFFER_DEPTH_SIZE |
-                constants::RENDERBUFFER_STENCIL_SIZE
+            constants::RENDERBUFFER_WIDTH
+                | constants::RENDERBUFFER_HEIGHT
+                | constants::RENDERBUFFER_INTERNAL_FORMAT
+                | constants::RENDERBUFFER_RED_SIZE
+                | constants::RENDERBUFFER_GREEN_SIZE
+                | constants::RENDERBUFFER_BLUE_SIZE
+                | constants::RENDERBUFFER_ALPHA_SIZE
+                | constants::RENDERBUFFER_DEPTH_SIZE
+                | constants::RENDERBUFFER_STENCIL_SIZE
         );
 
         if !target_matches || !pname_matches {
@@ -3513,12 +3521,12 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         }
 
         match precision_type {
-            constants::LOW_FLOAT |
-            constants::MEDIUM_FLOAT |
-            constants::HIGH_FLOAT |
-            constants::LOW_INT |
-            constants::MEDIUM_INT |
-            constants::HIGH_INT => (),
+            constants::LOW_FLOAT
+            | constants::MEDIUM_FLOAT
+            | constants::HIGH_FLOAT
+            | constants::LOW_INT
+            | constants::MEDIUM_INT
+            | constants::HIGH_INT => (),
             _ => {
                 self.webgl_error(InvalidEnum);
                 return None;
@@ -3693,8 +3701,8 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn Hint(&self, target: u32, mode: u32) {
-        if target != constants::GENERATE_MIPMAP_HINT &&
-            !self.extension_manager.is_hint_target_enabled(target)
+        if target != constants::GENERATE_MIPMAP_HINT
+            && !self.extension_manager.is_hint_target_enabled(target)
         {
             return self.webgl_error(InvalidEnum);
         }
@@ -3937,14 +3945,14 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn StencilFunc(&self, func: u32, ref_: i32, mask: u32) {
         match func {
-            constants::NEVER |
-            constants::LESS |
-            constants::EQUAL |
-            constants::LEQUAL |
-            constants::GREATER |
-            constants::NOTEQUAL |
-            constants::GEQUAL |
-            constants::ALWAYS => self.send_command(WebGLCommand::StencilFunc(func, ref_, mask)),
+            constants::NEVER
+            | constants::LESS
+            | constants::EQUAL
+            | constants::LEQUAL
+            | constants::GREATER
+            | constants::NOTEQUAL
+            | constants::GEQUAL
+            | constants::ALWAYS => self.send_command(WebGLCommand::StencilFunc(func, ref_, mask)),
             _ => self.webgl_error(InvalidEnum),
         }
     }
@@ -3957,14 +3965,14 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         }
 
         match func {
-            constants::NEVER |
-            constants::LESS |
-            constants::EQUAL |
-            constants::LEQUAL |
-            constants::GREATER |
-            constants::NOTEQUAL |
-            constants::GEQUAL |
-            constants::ALWAYS => {
+            constants::NEVER
+            | constants::LESS
+            | constants::EQUAL
+            | constants::LEQUAL
+            | constants::GREATER
+            | constants::NOTEQUAL
+            | constants::GEQUAL
+            | constants::ALWAYS => {
                 self.send_command(WebGLCommand::StencilFuncSeparate(face, func, ref_, mask))
             },
             _ => self.webgl_error(InvalidEnum),
@@ -3988,9 +3996,9 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn StencilOp(&self, fail: u32, zfail: u32, zpass: u32) {
-        if self.validate_stencil_actions(fail) &&
-            self.validate_stencil_actions(zfail) &&
-            self.validate_stencil_actions(zpass)
+        if self.validate_stencil_actions(fail)
+            && self.validate_stencil_actions(zfail)
+            && self.validate_stencil_actions(zpass)
         {
             self.send_command(WebGLCommand::StencilOp(fail, zfail, zpass));
         } else {
@@ -4005,9 +4013,9 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             _ => return self.webgl_error(InvalidEnum),
         }
 
-        if self.validate_stencil_actions(fail) &&
-            self.validate_stencil_actions(zfail) &&
-            self.validate_stencil_actions(zpass)
+        if self.validate_stencil_actions(fail)
+            && self.validate_stencil_actions(zfail)
+            && self.validate_stencil_actions(zpass)
         {
             self.send_command(WebGLCommand::StencilOpSeparate(face, fail, zfail, zpass))
         } else {
@@ -5042,13 +5050,13 @@ impl Textures {
             TexImageTarget::Texture2D => active_unit.tex_2d.get(),
             TexImageTarget::Texture2DArray => active_unit.tex_2d_array.get(),
             TexImageTarget::Texture3D => active_unit.tex_3d.get(),
-            TexImageTarget::CubeMap |
-            TexImageTarget::CubeMapPositiveX |
-            TexImageTarget::CubeMapNegativeX |
-            TexImageTarget::CubeMapPositiveY |
-            TexImageTarget::CubeMapNegativeY |
-            TexImageTarget::CubeMapPositiveZ |
-            TexImageTarget::CubeMapNegativeZ => active_unit.tex_cube_map.get(),
+            TexImageTarget::CubeMap
+            | TexImageTarget::CubeMapPositiveX
+            | TexImageTarget::CubeMapNegativeX
+            | TexImageTarget::CubeMapPositiveY
+            | TexImageTarget::CubeMapNegativeY
+            | TexImageTarget::CubeMapPositiveZ
+            | TexImageTarget::CubeMapNegativeZ => active_unit.tex_cube_map.get(),
         }
     }
 
@@ -5137,6 +5145,10 @@ impl TexPixels {
     pub(crate) fn size(&self) -> Size2D<u32> {
         self.size
     }
+
+    pub(crate) fn premultiplied(&self) -> bool {
+        self.premultiplied
+    }
 }
 
 pub(crate) enum TexSource {
@@ -5213,12 +5225,12 @@ fn array_buffer_type_to_sized_type(type_: Type) -> Option<SizedDataType> {
         Type::Int16 => Some(SizedDataType::Int16),
         Type::Int32 => Some(SizedDataType::Int32),
         Type::Float32 => Some(SizedDataType::Float32),
-        Type::Float16 |
-        Type::Float64 |
-        Type::BigInt64 |
-        Type::BigUint64 |
-        Type::MaxTypedArrayViewType |
-        Type::Int64 |
-        Type::Simd128 => None,
+        Type::Float16
+        | Type::Float64
+        | Type::BigInt64
+        | Type::BigUint64
+        | Type::MaxTypedArrayViewType
+        | Type::Int64
+        | Type::Simd128 => None,
     }
 }
