@@ -121,7 +121,7 @@ class ServoHandler(mozlog.reader.LogHandler):
         self.reset_state()
 
     def reset_state(self):
-        self.reset_stats()
+        self.reset_statistics()
         self.suite_count = 0
         self.test_output = collections.defaultdict(str)
         self.subtest_failures = collections.defaultdict(list)
@@ -149,7 +149,7 @@ class ServoHandler(mozlog.reader.LogHandler):
             "PRECONDITION_FAILED": [],
         }
 
-    def reset_stats(self):
+    def reset_statistics(self):
         self.number_of_tests = 0
         self.completed_tests = 0
         self.need_to_erase_last_line = False
@@ -160,7 +160,7 @@ class ServoHandler(mozlog.reader.LogHandler):
 
     def suite_start(self, data):
         if self.flakes_detection:
-            self.reset_stats()
+            self.reset_statistics()
         else:
             self.reset_state()
         self.suite_count += 1
