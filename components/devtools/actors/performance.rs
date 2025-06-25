@@ -11,8 +11,8 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::protocol::{ActorDescription, JsonPacketStream, Method};
+use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::protocol::{ActorDescription, ActorReplied, JsonPacketStream, Method};
 
 pub struct PerformanceActor {
     name: String,
@@ -67,7 +67,7 @@ impl Actor for PerformanceActor {
         _msg: &Map<String, Value>,
         stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
+    ) -> Result<ActorReplied, ActorError> {
         Ok(match msg_type {
             "connect" => {
                 let msg = ConnectReply {
@@ -82,8 +82,7 @@ impl Actor for PerformanceActor {
                         },
                     },
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
             "canCurrentlyRecord" => {
                 let msg = CanCurrentlyRecordReply {
@@ -93,10 +92,9 @@ impl Actor for PerformanceActor {
                         errors: vec![],
                     },
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
-            _ => ActorMessageStatus::Ignored,
+            _ => return Err(ActorError::UnrecognizedPacketType),
         })
     }
 }

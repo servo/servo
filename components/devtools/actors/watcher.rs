@@ -22,7 +22,7 @@ use self::network_parent::{NetworkParentActor, NetworkParentActorMsg};
 use super::breakpoint::BreakpointListActor;
 use super::thread::ThreadActor;
 use super::worker::WorkerMsg;
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
 use crate::actors::root::RootActor;
 use crate::actors::watcher::target_configuration::{
@@ -31,7 +31,7 @@ use crate::actors::watcher::target_configuration::{
 use crate::actors::watcher::thread_configuration::{
     ThreadConfigurationActor, ThreadConfigurationActorMsg,
 };
-use crate::protocol::JsonPacketStream;
+use crate::protocol::{ActorReplied, JsonPacketStream};
 use crate::resource::{ResourceArrayType, ResourceAvailable};
 use crate::{EmptyReplyMsg, StreamId, WorkerActor};
 
@@ -220,7 +220,7 @@ impl Actor for WatcherActor {
         msg: &Map<String, Value>,
         stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
+    ) -> Result<ActorReplied, ActorError> {
         let target = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
         let root = registry.find::<RootActor>("root");
         Ok(match msg_type {
@@ -252,7 +252,6 @@ impl Actor for WatcherActor {
                     }
                 } else {
                     warn!("Unexpected target_type: {}", target_type);
-                    return Ok(ActorMessageStatus::Ignored);
                 }
 
                 // Messages that contain a `type` field are used to send event callbacks, but they
@@ -260,15 +259,14 @@ impl Actor for WatcherActor {
                 // extra empty packet to the devtools host to inform that we successfully received
                 // and processed the message so that it can continue
                 let msg = EmptyReplyMsg { from: self.name() };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
             "watchResources" => {
                 let Some(resource_types) = msg.get("resourceTypes") else {
-                    return Ok(ActorMessageStatus::Ignored);
+                    return Err(ActorError::MissingParameter);
                 };
                 let Some(resource_types) = resource_types.as_array() else {
-                    return Ok(ActorMessageStatus::Ignored);
+                    return Err(ActorError::BadParameterType);
                 };
 
                 for resource in resource_types {
@@ -324,19 +322,16 @@ impl Actor for WatcherActor {
                         "console-message" | "error-message" => {},
                         _ => warn!("resource {} not handled yet", resource),
                     }
-
-                    let msg = EmptyReplyMsg { from: self.name() };
-                    let _ = stream.write_json_packet(&msg);
                 }
-                ActorMessageStatus::Processed
+                let msg = EmptyReplyMsg { from: self.name() };
+                stream.write_json_packet(&msg)?
             },
             "getParentBrowsingContextID" => {
                 let msg = GetParentBrowsingContextIDReply {
                     from: self.name(),
                     browsing_context_id: target.browsing_context_id.value(),
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
             "getNetworkParentActor" => {
                 let network_parent = registry.find::<NetworkParentActor>(&self.network_parent);
@@ -344,8 +339,7 @@ impl Actor for WatcherActor {
                     from: self.name(),
                     network: network_parent.encodable(),
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
             "getTargetConfigurationActor" => {
                 let target_configuration =
@@ -354,8 +348,7 @@ impl Actor for WatcherActor {
                     from: self.name(),
                     configuration: target_configuration.encodable(),
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
             "getThreadConfigurationActor" => {
                 let thread_configuration =
@@ -364,23 +357,21 @@ impl Actor for WatcherActor {
                     from: self.name(),
                     configuration: thread_configuration.encodable(),
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
             "getBreakpointListActor" => {
                 let breakpoint_list_name = registry.new_name("breakpoint-list");
                 let breakpoint_list = BreakpointListActor::new(breakpoint_list_name.clone());
                 registry.register_later(Box::new(breakpoint_list));
 
-                let _ = stream.write_json_packet(&GetBreakpointListActorReply {
+                stream.write_json_packet(&GetBreakpointListActorReply {
                     from: self.name(),
                     breakpoint_list: GetBreakpointListActorReplyInner {
                         actor: breakpoint_list_name,
                     },
-                });
-                ActorMessageStatus::Processed
+                })?
             },
-            _ => ActorMessageStatus::Ignored,
+            _ => return Err(ActorError::UnrecognizedPacketType),
         })
     }
 }

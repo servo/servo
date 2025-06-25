@@ -18,11 +18,11 @@ use serde::Serialize;
 use serde_json::{self, Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::inspector::node::NodeActor;
 use crate::actors::inspector::style_rule::{AppliedRule, ComputedDeclaration, StyleRuleActor};
 use crate::actors::inspector::walker::{WalkerActor, find_child};
-use crate::protocol::JsonPacketStream;
+use crate::protocol::{ActorReplied, JsonPacketStream};
 
 #[derive(Serialize)]
 struct GetAppliedReply {
@@ -119,14 +119,14 @@ impl Actor for PageStyleActor {
         msg: &Map<String, Value>,
         stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
-        Ok(match msg_type {
-            "getApplied" => self.get_applied(msg, registry, stream)?,
-            "getComputed" => self.get_computed(msg, registry, stream)?,
-            "getLayout" => self.get_layout(msg, registry, stream)?,
+    ) -> Result<ActorReplied, ActorError> {
+        match msg_type {
+            "getApplied" => self.get_applied(msg, registry, stream),
+            "getComputed" => self.get_computed(msg, registry, stream),
+            "getLayout" => self.get_layout(msg, registry, stream),
             "isPositionEditable" => self.is_position_editable(stream),
-            _ => ActorMessageStatus::Ignored,
-        })
+            _ => return Err(ActorError::UnrecognizedPacketType),
+        }
     }
 }
 
@@ -136,8 +136,12 @@ impl PageStyleActor {
         msg: &Map<String, Value>,
         registry: &ActorRegistry,
         stream: &mut TcpStream,
-    ) -> Result<ActorMessageStatus, ()> {
-        let target = msg.get("node").ok_or(())?.as_str().ok_or(())?;
+    ) -> Result<ActorReplied, ActorError> {
+        let target = msg
+            .get("node")
+            .ok_or(ActorError::MissingParameter)?
+            .as_str()
+            .ok_or(ActorError::BadParameterType)?;
         let node = registry.find::<NodeActor>(target);
         let walker = registry.find::<WalkerActor>(&node.walker);
         let entries: Vec<_> = find_child(
@@ -214,8 +218,7 @@ impl PageStyleActor {
             entries,
             from: self.name(),
         };
-        let _ = stream.write_json_packet(&msg);
-        Ok(ActorMessageStatus::Processed)
+        Ok(stream.write_json_packet(&msg)?)
     }
 
     fn get_computed(
@@ -223,8 +226,12 @@ impl PageStyleActor {
         msg: &Map<String, Value>,
         registry: &ActorRegistry,
         stream: &mut TcpStream,
-    ) -> Result<ActorMessageStatus, ()> {
-        let target = msg.get("node").ok_or(())?.as_str().ok_or(())?;
+    ) -> Result<ActorReplied, ActorError> {
+        let target = msg
+            .get("node")
+            .ok_or(ActorError::MissingParameter)?
+            .as_str()
+            .ok_or(ActorError::BadParameterType)?;
         let node_actor = registry.find::<NodeActor>(target);
         let computed = (|| match node_actor
             .style_rules
@@ -249,8 +256,7 @@ impl PageStyleActor {
             computed,
             from: self.name(),
         };
-        let _ = stream.write_json_packet(&msg);
-        Ok(ActorMessageStatus::Processed)
+        Ok(stream.write_json_packet(&msg)?)
     }
 
     fn get_layout(
@@ -258,9 +264,14 @@ impl PageStyleActor {
         msg: &Map<String, Value>,
         registry: &ActorRegistry,
         stream: &mut TcpStream,
-    ) -> Result<ActorMessageStatus, ()> {
-        let target = msg.get("node").ok_or(())?.as_str().ok_or(())?;
-        let (computed_node_sender, computed_node_receiver) = ipc::channel().map_err(|_| ())?;
+    ) -> Result<ActorReplied, ActorError> {
+        let target = msg
+            .get("node")
+            .ok_or(ActorError::MissingParameter)?
+            .as_str()
+            .ok_or(ActorError::BadParameterType)?;
+        let (computed_node_sender, computed_node_receiver) =
+            ipc::channel().map_err(|_| ActorError::Internal)?;
         self.script_chan
             .send(GetLayout(
                 self.pipeline,
@@ -288,7 +299,10 @@ impl PageStyleActor {
             padding_left,
             width,
             height,
-        } = computed_node_receiver.recv().map_err(|_| ())?.ok_or(())?;
+        } = computed_node_receiver
+            .recv()
+            .map_err(|_| ActorError::Internal)?
+            .ok_or(ActorError::Internal)?;
         let msg_auto_margins = msg
             .get("autoMargins")
             .and_then(Value::as_bool)
@@ -333,18 +347,16 @@ impl PageStyleActor {
             width,
             height,
         };
-        let msg = serde_json::to_string(&msg).map_err(|_| ())?;
-        let msg = serde_json::from_str::<Value>(&msg).map_err(|_| ())?;
-        let _ = stream.write_json_packet(&msg);
-        Ok(ActorMessageStatus::Processed)
+        let msg = serde_json::to_string(&msg).map_err(|_| ActorError::Internal)?;
+        let msg = serde_json::from_str::<Value>(&msg).map_err(|_| ActorError::Internal)?;
+        Ok(stream.write_json_packet(&msg)?)
     }
 
-    fn is_position_editable(&self, stream: &mut TcpStream) -> ActorMessageStatus {
+    fn is_position_editable(&self, stream: &mut TcpStream) -> Result<ActorReplied, ActorError> {
         let msg = IsPositionEditableReply {
             from: self.name(),
             value: false,
         };
-        let _ = stream.write_json_packet(&msg);
-        ActorMessageStatus::Processed
+        stream.write_json_packet(&msg)
     }
 }

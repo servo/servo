@@ -8,8 +8,8 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::protocol::JsonPacketStream;
+use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::protocol::{ActorReplied, JsonPacketStream};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -33,18 +33,17 @@ impl Actor for StyleSheetsActor {
         _msg: &Map<String, Value>,
         stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
+    ) -> Result<ActorReplied, ActorError> {
         Ok(match msg_type {
             "getStyleSheets" => {
                 let msg = GetStyleSheetsReply {
                     from: self.name(),
                     style_sheets: vec![],
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
 
-            _ => ActorMessageStatus::Ignored,
+            _ => return Err(ActorError::UnrecognizedPacketType),
         })
     }
 }

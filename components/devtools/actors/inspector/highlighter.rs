@@ -13,8 +13,8 @@ use ipc_channel::ipc::IpcSender;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::protocol::JsonPacketStream;
+use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::protocol::{ActorReplied, JsonPacketStream};
 use crate::{EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
@@ -51,17 +51,15 @@ impl Actor for HighlighterActor {
         msg: &Map<String, Value>,
         stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
+    ) -> Result<ActorReplied, ActorError> {
         Ok(match msg_type {
             "show" => {
                 let Some(node_actor) = msg.get("node") else {
-                    // TODO: send missing parameter error
-                    return Ok(ActorMessageStatus::Ignored);
+                    return Err(ActorError::MissingParameter);
                 };
 
                 let Some(node_actor_name) = node_actor.as_str() else {
-                    // TODO: send invalid parameter error
-                    return Ok(ActorMessageStatus::Ignored);
+                    return Err(ActorError::BadParameterType);
                 };
 
                 if node_actor_name.starts_with("inspector") {
@@ -71,8 +69,7 @@ impl Actor for HighlighterActor {
                         from: self.name(),
                         value: false,
                     };
-                    let _ = stream.write_json_packet(&msg);
-                    return Ok(ActorMessageStatus::Processed);
+                    return Ok(stream.write_json_packet(&msg)?);
                 }
 
                 self.instruct_script_thread_to_highlight_node(
@@ -83,19 +80,17 @@ impl Actor for HighlighterActor {
                     from: self.name(),
                     value: true,
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
 
             "hide" => {
                 self.instruct_script_thread_to_highlight_node(None, registry);
 
                 let msg = EmptyReplyMsg { from: self.name() };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
 
-            _ => ActorMessageStatus::Ignored,
+            _ => return Err(ActorError::UnrecognizedPacketType),
         })
     }
 }

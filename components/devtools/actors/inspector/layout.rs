@@ -11,8 +11,8 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::protocol::JsonPacketStream;
+use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::protocol::{ActorReplied, JsonPacketStream};
 
 #[derive(Serialize)]
 pub struct LayoutInspectorActorMsg {
@@ -52,7 +52,7 @@ impl Actor for LayoutInspectorActor {
         _msg: &Map<String, Value>,
         stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
+    ) -> Result<ActorReplied, ActorError> {
         Ok(match msg_type {
             "getGrids" => {
                 let msg = GetGridsReply {
@@ -60,8 +60,7 @@ impl Actor for LayoutInspectorActor {
                     // TODO: Actually create a list of grids
                     grids: vec![],
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
             "getCurrentFlexbox" => {
                 let msg = GetCurrentFlexboxReply {
@@ -69,12 +68,13 @@ impl Actor for LayoutInspectorActor {
                     // TODO: Create and return the current flexbox object
                     flexbox: None,
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
-            _ => ActorMessageStatus::Ignored,
+            _ => return Err(ActorError::UnrecognizedPacketType),
         })
     }
+
+    fn cleanup(&self, _id: StreamId) {}
 }
 
 impl LayoutInspectorActor {

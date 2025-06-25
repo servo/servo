@@ -15,8 +15,8 @@ use serde_json::{Map, Value};
 use servo_url::ServoUrl;
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::protocol::JsonPacketStream;
+use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::protocol::{ActorReplied, JsonPacketStream};
 use crate::resource::ResourceAvailable;
 
 #[derive(Clone, Copy)]
@@ -73,7 +73,7 @@ impl Actor for WorkerActor {
         _msg: &Map<String, Value>,
         stream: &mut TcpStream,
         stream_id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
+    ) -> Result<ActorReplied, ActorError> {
         Ok(match msg_type {
             "attach" => {
                 let msg = AttachedReply {
@@ -81,9 +81,7 @@ impl Actor for WorkerActor {
                     type_: "attached".to_owned(),
                     url: self.url.as_str().to_owned(),
                 };
-                if stream.write_json_packet(&msg).is_err() {
-                    return Ok(ActorMessageStatus::Processed);
-                }
+                let replied = stream.write_json_packet(&msg)?;
                 self.streams
                     .borrow_mut()
                     .insert(stream_id, stream.try_clone().unwrap());
@@ -91,7 +89,7 @@ impl Actor for WorkerActor {
                 self.script_chan
                     .send(WantsLiveNotifications(TEST_PIPELINE_ID, true))
                     .unwrap();
-                ActorMessageStatus::Processed
+                replied
             },
 
             "connect" => {
@@ -101,8 +99,7 @@ impl Actor for WorkerActor {
                     thread_actor: self.thread.clone(),
                     console_actor: self.console.clone(),
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
 
             "detach" => {
@@ -110,12 +107,11 @@ impl Actor for WorkerActor {
                     from: self.name(),
                     type_: "detached".to_string(),
                 };
-                let _ = stream.write_json_packet(&msg);
                 self.cleanup(stream_id);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
 
-            _ => ActorMessageStatus::Ignored,
+            _ => return Err(ActorError::UnrecognizedPacketType),
         })
     }
 

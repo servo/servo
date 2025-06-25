@@ -6,7 +6,6 @@
 #![allow(dead_code)]
 
 use std::cell::RefCell;
-use std::error::Error;
 use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -21,10 +20,10 @@ use serde::{Serialize, Serializer};
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::framerate::FramerateActor;
 use crate::actors::memory::{MemoryActor, TimelineMemoryReply};
-use crate::protocol::JsonPacketStream;
+use crate::protocol::{ActorReplied, JsonPacketStream};
 
 pub struct TimelineActor {
     name: String,
@@ -196,7 +195,7 @@ impl Actor for TimelineActor {
         msg: &Map<String, Value>,
         stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
+    ) -> Result<ActorReplied, ActorError> {
         Ok(match msg_type {
             "start" => {
                 **self.is_recording.lock().as_mut().unwrap() = true;
@@ -250,8 +249,7 @@ impl Actor for TimelineActor {
                         CrossProcessInstant::now(),
                     ),
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
 
             "stop" => {
@@ -263,7 +261,6 @@ impl Actor for TimelineActor {
                     ),
                 };
 
-                let _ = stream.write_json_packet(&msg);
                 self.script_sender
                     .send(DropTimelineMarkers(
                         self.pipeline_id,
@@ -282,7 +279,7 @@ impl Actor for TimelineActor {
 
                 **self.is_recording.lock().as_mut().unwrap() = false;
                 self.stream.borrow_mut().take();
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
 
             "isRecording" => {
@@ -291,11 +288,10 @@ impl Actor for TimelineActor {
                     value: *self.is_recording.lock().unwrap(),
                 };
 
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
 
-            _ => ActorMessageStatus::Ignored,
+            _ => return Err(ActorError::UnrecognizedPacketType),
         })
     }
 }
@@ -330,7 +326,7 @@ impl Emitter {
         }
     }
 
-    fn send(&mut self, markers: Vec<TimelineMarkerReply>) -> Result<(), Box<dyn Error>> {
+    fn send(&mut self, markers: Vec<TimelineMarkerReply>) -> Result<(), ActorError> {
         let end_time = CrossProcessInstant::now();
         let reply = MarkersEmitterReply {
             type_: "markers".to_owned(),

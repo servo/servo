@@ -28,7 +28,7 @@ use devtools_traits::{
 };
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
 use ipc_channel::ipc::{self, IpcSender};
-use log::trace;
+use log::{trace, warn};
 use resource::{ResourceArrayType, ResourceAvailable};
 use serde::Serialize;
 use servo_rand::RngCore;
@@ -625,8 +625,8 @@ fn allow_devtools_client(stream: &mut TcpStream, embedder: &EmbedderProxy, token
 fn handle_client(actors: Arc<Mutex<ActorRegistry>>, mut stream: TcpStream, stream_id: StreamId) {
     log::info!("Connection established to {}", stream.peer_addr().unwrap());
     let msg = actors.lock().unwrap().find::<RootActor>("root").encodable();
-    if let Err(e) = stream.write_json_packet(&msg) {
-        log::warn!("Error writing response: {:?}", e);
+    if let Err(error) = stream.write_json_packet(&msg) {
+        warn!("Failed to send initial packet from root actor: {error:?}");
         return;
     }
 

@@ -7,7 +7,8 @@ use std::net::TcpStream;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::protocol::ActorReplied;
 
 pub struct ObjectActor {
     pub name: String,
@@ -25,9 +26,9 @@ impl Actor for ObjectActor {
         _: &Map<String, Value>,
         _: &mut TcpStream,
         _: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
+    ) -> Result<ActorReplied, ActorError> {
         // TODO: Handle enumSymbols for console object inspection
-        Ok(ActorMessageStatus::Ignored)
+        Err(ActorError::UnrecognizedPacketType)
     }
 }
 

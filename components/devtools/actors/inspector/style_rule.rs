@@ -17,10 +17,10 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::inspector::node::NodeActor;
 use crate::actors::inspector::walker::WalkerActor;
-use crate::protocol::JsonPacketStream;
+use crate::protocol::{ActorReplied, JsonPacketStream};
 
 const ELEMENT_STYLE_TYPE: u32 = 100;
 
@@ -103,11 +103,15 @@ impl Actor for StyleRuleActor {
         msg: &Map<String, Value>,
         stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
+    ) -> Result<ActorReplied, ActorError> {
         Ok(match msg_type {
             "setRuleText" => {
                 // Parse the modifications sent from the client
-                let mods = msg.get("modifications").ok_or(())?.as_array().ok_or(())?;
+                let mods = msg
+                    .get("modifications")
+                    .ok_or(ActorError::MissingParameter)?
+                    .as_array()
+                    .ok_or(ActorError::BadParameterType)?;
                 let modifications: Vec<_> = mods
                     .iter()
                     .filter_map(|json_mod| {
@@ -125,12 +129,11 @@ impl Actor for StyleRuleActor {
                         registry.actor_to_script(self.node.clone()),
                         modifications,
                     ))
-                    .map_err(|_| ())?;
+                    .map_err(|_| ActorError::Internal)?;
 
-                let _ = stream.write_json_packet(&self.encodable(registry));
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&self.encodable(registry))?
             },
-            _ => ActorMessageStatus::Ignored,
+            _ => return Err(ActorError::UnrecognizedPacketType),
         })
     }
 }

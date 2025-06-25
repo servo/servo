@@ -13,8 +13,8 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::protocol::JsonPacketStream;
+use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::protocol::{ActorReplied, JsonPacketStream};
 
 pub struct CssPropertiesActor {
     name: String,
@@ -43,17 +43,13 @@ impl Actor for CssPropertiesActor {
         _msg: &Map<String, Value>,
         stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
+    ) -> Result<ActorReplied, ActorError> {
         Ok(match msg_type {
-            "getCSSDatabase" => {
-                let _ = stream.write_json_packet(&GetCssDatabaseReply {
-                    from: self.name(),
-                    properties: &self.properties,
-                });
-
-                ActorMessageStatus::Processed
-            },
-            _ => ActorMessageStatus::Ignored,
+            "getCSSDatabase" => stream.write_json_packet(&GetCssDatabaseReply {
+                from: self.name(),
+                properties: &self.properties,
+            })?,
+            _ => return Err(ActorError::UnrecognizedPacketType),
         })
     }
 }

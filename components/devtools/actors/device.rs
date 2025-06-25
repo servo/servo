@@ -8,8 +8,8 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::protocol::{ActorDescription, JsonPacketStream, Method};
+use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::protocol::{ActorDescription, ActorReplied, JsonPacketStream, Method};
 
 #[derive(Serialize)]
 struct GetDescriptionReply {
@@ -51,7 +51,7 @@ impl Actor for DeviceActor {
         _msg: &Map<String, Value>,
         stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
+    ) -> Result<ActorReplied, ActorError> {
         Ok(match msg_type {
             "getDescription" => {
                 let msg = GetDescriptionReply {
@@ -64,11 +64,10 @@ impl Actor for DeviceActor {
                         brand_name: "Servo".to_string(),
                     },
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
 
-            _ => ActorMessageStatus::Ignored,
+            _ => return Err(ActorError::UnrecognizedPacketType),
         })
     }
 }

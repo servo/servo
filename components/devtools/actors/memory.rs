@@ -8,7 +8,8 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::protocol::ActorReplied;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -41,8 +42,8 @@ impl Actor for MemoryActor {
         _msg: &Map<String, Value>,
         _stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
-        Ok(ActorMessageStatus::Ignored)
+    ) -> Result<ActorReplied, ActorError> {
+        Err(ActorError::UnrecognizedPacketType)
     }
 }
 

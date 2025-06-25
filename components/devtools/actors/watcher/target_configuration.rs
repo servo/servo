@@ -13,10 +13,10 @@ use log::warn;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::tab::TabDescriptorActor;
-use crate::protocol::JsonPacketStream;
+use crate::protocol::{ActorReplied, JsonPacketStream};
 use crate::{EmptyReplyMsg, RootActor, StreamId};
 
 #[derive(Serialize)]
@@ -53,15 +53,15 @@ impl Actor for TargetConfigurationActor {
         msg: &Map<String, Value>,
         stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
+    ) -> Result<ActorReplied, ActorError> {
         Ok(match msg_type {
             "updateConfiguration" => {
                 let config = match msg.get("configuration").and_then(|v| v.as_object()) {
                     Some(config) => config,
                     None => {
                         let msg = EmptyReplyMsg { from: self.name() };
-                        let _ = stream.write_json_packet(&msg);
-                        return Ok(ActorMessageStatus::Processed);
+                        // should we send ActorError for None case
+                        return Ok(stream.write_json_packet(&msg)?);
                     },
                 };
                 if let Some(scheme) = config.get("colorSchemeSimulation").and_then(|v| v.as_str()) {
@@ -76,16 +76,17 @@ impl Actor for TargetConfigurationActor {
                         let browsing_context_name = tab_actor.browsing_context();
                         let browsing_context_actor =
                             registry.find::<BrowsingContextActor>(&browsing_context_name);
-                        browsing_context_actor.simulate_color_scheme(theme)?;
+                        browsing_context_actor
+                            .simulate_color_scheme(theme)
+                            .map_err(|_| ActorError::Internal)?;
                     } else {
                         warn!("No active tab for updateConfiguration");
                     }
                 }
                 let msg = EmptyReplyMsg { from: self.name() };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
-            _ => ActorMessageStatus::Ignored,
+            _ => return Err(ActorError::UnrecognizedPacketType),
         })
     }
 }

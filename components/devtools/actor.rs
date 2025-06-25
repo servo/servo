@@ -15,12 +15,29 @@ use log::debug;
 use serde_json::{Map, Value, json};
 
 use crate::StreamId;
-use crate::protocol::JsonPacketStream;
+use crate::protocol::{ActorReplied, JsonPacketStream};
 
-#[derive(PartialEq)]
-pub enum ActorMessageStatus {
-    Processed,
-    Ignored,
+#[derive(Debug)]
+pub enum ActorError {
+    MissingParameter,
+    BadParameterType,
+    UnrecognizedPacketType,
+    Internal,
+}
+
+impl ActorError {
+    pub fn name(&self) -> &'static str {
+        match self {
+            ActorError::MissingParameter => "missingParameter",
+            ActorError::BadParameterType => "badParameterType",
+            ActorError::UnrecognizedPacketType => "unrecognizedPacketType",
+            // The devtools frontend always checks for specific protocol errors by catching a JS exception `e` whose
+            // message contains the error name, and checking `e.message.includes("someErrorName")`. As a result, the
+            // only error name we can safely use for custom errors is the empty string, because any other error name we
+            // use may be a substring of some upstream error name.
+            ActorError::Internal => "",
+        }
+    }
 }
 
 /// A common trait for all devtools actors that encompasses an immutable name
@@ -34,7 +51,7 @@ pub(crate) trait Actor: Any + ActorAsAny {
         msg: &Map<String, Value>,
         stream: &mut TcpStream,
         stream_id: StreamId,
-    ) -> Result<ActorMessageStatus, ()>;
+    ) -> Result<ActorReplied, ActorError>;
     fn name(&self) -> String;
     fn cleanup(&self, _id: StreamId) {}
 }
@@ -194,13 +211,14 @@ impl ActorRegistry {
             },
             Some(actor) => {
                 let msg_type = msg.get("type").unwrap().as_str().unwrap();
-                if actor.handle_message(self, msg_type, msg, stream, stream_id)? !=
-                    ActorMessageStatus::Processed
-                {
-                    let msg = json!({
-                         "from": actor.name(), "error":"unrecognizedPacketType"
-                    });
-                    let _ = stream.write_json_packet(&msg);
+                match actor.handle_message(self, msg_type, msg, stream, stream_id) {
+                    Ok(_replied) => { /* do nothing */ },
+                    Err(error) => {
+                        // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#error-packets>
+                        let _ = stream.write_json_packet(&json!({
+                            "from": actor.name(), "error":error.name()
+                        }));
+                    },
                 }
             },
         }

@@ -5,13 +5,14 @@
 //! Low-level wire protocol implementation. Currently only supports
 //! [JSON packets](https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#json-packets).
 
-use std::error::Error;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 
 use log::debug;
 use serde::Serialize;
 use serde_json::{self, Value};
+
+use crate::actor::ActorError;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -28,34 +29,43 @@ pub struct Method {
     pub response: Value,
 }
 
+/// Value that proves that we replied to the incoming message, so we don’t need
+/// to send any `unrecognizedPacketType` error.
+///
+/// This type can only be constructed in protocol.rs, to ensure that you must
+/// call write_json_packet() to get a value, and it can’t be copied or cloned.
+/// It actually only proves that *some* actor sent a message, not that our own
+/// actor sent a reply, but even this is enough to catch many bugs.
+pub struct ActorReplied(());
+
 pub trait JsonPacketStream {
-    fn write_json_packet<T: Serialize>(&mut self, obj: &T) -> Result<(), Box<dyn Error>>;
+    fn write_json_packet<T: Serialize>(&mut self, obj: &T) -> Result<ActorReplied, ActorError>;
 
     #[allow(dead_code)]
     fn write_merged_json_packet<T: Serialize, U: Serialize>(
         &mut self,
         base: &T,
         extra: &U,
-    ) -> Result<(), Box<dyn Error>>;
+    ) -> Result<ActorReplied, ActorError>;
     fn read_json_packet(&mut self) -> Result<Option<Value>, String>;
 }
 
 impl JsonPacketStream for TcpStream {
-    fn write_json_packet<T: Serialize>(&mut self, obj: &T) -> Result<(), Box<dyn Error>> {
-        let s = serde_json::to_string(obj)?;
+    fn write_json_packet<T: Serialize>(&mut self, obj: &T) -> Result<ActorReplied, ActorError> {
+        let s = serde_json::to_string(obj).map_err(|_| ActorError::Internal)?;
         debug!("<- {}", s);
-        write!(self, "{}:{}", s.len(), s)?;
-        Ok(())
+        write!(self, "{}:{}", s.len(), s).map_err(|_| ActorError::Internal)?;
+        Ok(ActorReplied(()))
     }
 
     fn write_merged_json_packet<T: Serialize, U: Serialize>(
         &mut self,
         base: &T,
         extra: &U,
-    ) -> Result<(), Box<dyn Error>> {
-        let mut obj = serde_json::to_value(base)?;
+    ) -> Result<ActorReplied, ActorError> {
+        let mut obj = serde_json::to_value(base).map_err(|_| ActorError::Internal)?;
         let obj = obj.as_object_mut().unwrap();
-        let extra = serde_json::to_value(extra)?;
+        let extra = serde_json::to_value(extra).map_err(|_| ActorError::Internal)?;
         let extra = extra.as_object().unwrap();
 
         for (key, value) in extra {

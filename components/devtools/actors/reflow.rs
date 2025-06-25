@@ -8,8 +8,9 @@ use std::net::TcpStream;
 
 use serde_json::{Map, Value};
 
-use crate::StreamId;
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::protocol::{ActorReplied, JsonPacketStream};
+use crate::{EmptyReplyMsg, StreamId};
 
 pub struct ReflowActor {
     name: String,
@@ -28,17 +29,20 @@ impl Actor for ReflowActor {
         _registry: &ActorRegistry,
         msg_type: &str,
         _msg: &Map<String, Value>,
-        _stream: &mut TcpStream,
+        stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
+    ) -> Result<ActorReplied, ActorError> {
         Ok(match msg_type {
             "start" => {
                 // TODO: Create an observer on "reflows" events
-                ActorMessageStatus::Processed
+                let msg = EmptyReplyMsg { from: self.name() };
+                stream.write_json_packet(&msg)?
             },
-            _ => ActorMessageStatus::Ignored,
+            _ => return Err(ActorError::UnrecognizedPacketType),
         })
     }
+
+    fn cleanup(&self, _id: StreamId) {}
 }
 
 impl ReflowActor {

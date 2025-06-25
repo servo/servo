@@ -12,9 +12,9 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::root::DescriptorTraits;
-use crate::protocol::JsonPacketStream;
+use crate::protocol::{ActorReplied, JsonPacketStream};
 
 #[derive(Serialize)]
 struct ListWorkersReply {
@@ -51,18 +51,17 @@ impl Actor for ProcessActor {
         _msg: &Map<String, Value>,
         stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
+    ) -> Result<ActorReplied, ActorError> {
         Ok(match msg_type {
             "listWorkers" => {
                 let reply = ListWorkersReply {
                     from: self.name(),
                     workers: vec![],
                 };
-                let _ = stream.write_json_packet(&reply);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&reply)?
             },
 
-            _ => ActorMessageStatus::Ignored,
+            _ => return Err(ActorError::UnrecognizedPacketType),
         })
     }
 }

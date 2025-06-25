@@ -11,8 +11,8 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::protocol::JsonPacketStream;
+use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::protocol::{ActorReplied, JsonPacketStream};
 
 #[derive(Serialize)]
 struct BootstrapState {
@@ -80,15 +80,14 @@ impl Actor for AccessibilityActor {
         _msg: &Map<String, Value>,
         stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
+    ) -> Result<ActorReplied, ActorError> {
         Ok(match msg_type {
             "bootstrap" => {
                 let msg = BootstrapReply {
                     from: self.name(),
                     state: BootstrapState { enabled: false },
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
             "getSimulator" => {
                 // TODO: Create actual simulator
@@ -97,8 +96,7 @@ impl Actor for AccessibilityActor {
                     from: self.name(),
                     simulator: ActorMsg { actor: simulator },
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
             "getTraits" => {
                 let msg = GetTraitsReply {
@@ -107,8 +105,7 @@ impl Actor for AccessibilityActor {
                         tabbing_order: true,
                     },
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
             "getWalker" => {
                 // TODO: Create actual accessible walker
@@ -117,10 +114,9 @@ impl Actor for AccessibilityActor {
                     from: self.name(),
                     walker: ActorMsg { actor: walker },
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
-            _ => ActorMessageStatus::Ignored,
+            _ => return Err(ActorError::UnrecognizedPacketType),
         })
     }
 }

@@ -17,9 +17,9 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::network_handler::Cause;
-use crate::protocol::JsonPacketStream;
+use crate::protocol::{ActorReplied, JsonPacketStream};
 
 #[derive(Clone)]
 pub struct HttpRequest {
@@ -218,7 +218,7 @@ impl Actor for NetworkEventActor {
         _msg: &Map<String, Value>,
         stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
+    ) -> Result<ActorReplied, ActorError> {
         Ok(match msg_type {
             "getRequestHeaders" => {
                 let mut headers = Vec::new();
@@ -239,8 +239,7 @@ impl Actor for NetworkEventActor {
                     header_size: headers_size,
                     raw_headers: raw_headers_string,
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
             "getRequestCookies" => {
                 let mut cookies = Vec::new();
@@ -255,8 +254,7 @@ impl Actor for NetworkEventActor {
                     from: self.name(),
                     cookies,
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
             "getRequestPostData" => {
                 let msg = GetRequestPostDataReply {
@@ -264,34 +262,31 @@ impl Actor for NetworkEventActor {
                     post_data: self.request.body.clone(),
                     post_data_discarded: false,
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
             "getResponseHeaders" => {
-                if let Some(ref response_headers) = self.response.headers {
-                    let mut headers = vec![];
-                    let mut raw_headers_string = "".to_owned();
-                    let mut headers_size = 0;
-                    for (name, value) in response_headers.iter() {
-                        headers.push(Header {
-                            name: name.as_str().to_owned(),
-                            value: value.to_str().unwrap().to_owned(),
-                        });
-                        headers_size += name.as_str().len() + value.len();
-                        raw_headers_string.push_str(name.as_str());
-                        raw_headers_string.push(':');
-                        raw_headers_string.push_str(value.to_str().unwrap());
-                        raw_headers_string.push_str("\r\n");
-                    }
-                    let msg = GetResponseHeadersReply {
-                        from: self.name(),
-                        headers,
-                        header_size: headers_size,
-                        raw_headers: raw_headers_string,
-                    };
-                    let _ = stream.write_json_packet(&msg);
+                let response_headers = self.response.headers.as_ref().unwrap();
+                let mut headers = vec![];
+                let mut raw_headers_string = "".to_owned();
+                let mut headers_size = 0;
+                for (name, value) in response_headers.iter() {
+                    headers.push(Header {
+                        name: name.as_str().to_owned(),
+                        value: value.to_str().unwrap().to_owned(),
+                    });
+                    headers_size += name.as_str().len() + value.len();
+                    raw_headers_string.push_str(name.as_str());
+                    raw_headers_string.push(':');
+                    raw_headers_string.push_str(value.to_str().unwrap());
+                    raw_headers_string.push_str("\r\n");
                 }
-                ActorMessageStatus::Processed
+                let msg = GetResponseHeadersReply {
+                    from: self.name(),
+                    headers,
+                    header_size: headers_size,
+                    raw_headers: raw_headers_string,
+                };
+                stream.write_json_packet(&msg)?
             },
             "getResponseCookies" => {
                 let mut cookies = Vec::new();
@@ -306,8 +301,7 @@ impl Actor for NetworkEventActor {
                     from: self.name(),
                     cookies,
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
             "getResponseContent" => {
                 let msg = GetResponseContentReply {
@@ -315,8 +309,7 @@ impl Actor for NetworkEventActor {
                     content: self.response.body.clone(),
                     content_discarded: self.response.body.is_none(),
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
             "getEventTimings" => {
                 // TODO: This is a fake timings msg
@@ -335,8 +328,7 @@ impl Actor for NetworkEventActor {
                     timings: timings_obj,
                     total_time: total,
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
             "getSecurityInfo" => {
                 // TODO: Send the correct values for securityInfo.
@@ -346,10 +338,9 @@ impl Actor for NetworkEventActor {
                         state: "insecure".to_owned(),
                     },
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
-            _ => ActorMessageStatus::Ignored,
+            _ => return Err(ActorError::UnrecognizedPacketType),
         })
     }
 }

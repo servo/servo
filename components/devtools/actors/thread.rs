@@ -8,8 +8,8 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use super::source::{SourceManager, SourcesReply};
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::protocol::JsonPacketStream;
+use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::protocol::{ActorReplied, JsonPacketStream};
 use crate::{EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
@@ -76,7 +76,7 @@ impl Actor for ThreadActor {
         _msg: &Map<String, Value>,
         stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
+    ) -> Result<ActorReplied, ActorError> {
         Ok(match msg_type {
             "attach" => {
                 let msg = ThreadAttached {
@@ -92,9 +92,8 @@ impl Actor for ThreadActor {
                         type_: "attached".to_owned(),
                     },
                 };
-                let _ = stream.write_json_packet(&msg);
-                let _ = stream.write_json_packet(&EmptyReplyMsg { from: self.name() });
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?;
+                stream.write_json_packet(&EmptyReplyMsg { from: self.name() })?
             },
 
             "resume" => {
@@ -102,9 +101,8 @@ impl Actor for ThreadActor {
                     from: self.name(),
                     type_: "resumed".to_owned(),
                 };
-                let _ = stream.write_json_packet(&msg);
-                let _ = stream.write_json_packet(&EmptyReplyMsg { from: self.name() });
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?;
+                stream.write_json_packet(&EmptyReplyMsg { from: self.name() })?
             },
 
             "interrupt" => {
@@ -112,14 +110,10 @@ impl Actor for ThreadActor {
                     from: self.name(),
                     type_: "interrupted".to_owned(),
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
 
-            "reconfigure" => {
-                let _ = stream.write_json_packet(&EmptyReplyMsg { from: self.name() });
-                ActorMessageStatus::Processed
-            },
+            "reconfigure" => stream.write_json_packet(&EmptyReplyMsg { from: self.name() })?,
 
             // Client has attached to the thread and wants to load script sources.
             // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#loading-script-sources>
@@ -128,10 +122,9 @@ impl Actor for ThreadActor {
                     from: self.name(),
                     sources: self.source_manager.source_forms(registry),
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
-            _ => ActorMessageStatus::Ignored,
+            _ => return Err(ActorError::UnrecognizedPacketType),
         })
     }
 }

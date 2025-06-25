@@ -11,8 +11,9 @@ use ipc_channel::ipc::IpcSender;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::timeline::HighResolutionStamp;
+use crate::protocol::ActorReplied;
 
 pub struct FramerateActor {
     name: String,
@@ -34,8 +35,8 @@ impl Actor for FramerateActor {
         _msg: &Map<String, Value>,
         _stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
-        Ok(ActorMessageStatus::Ignored)
+    ) -> Result<ActorReplied, ActorError> {
+        Err(ActorError::UnrecognizedPacketType)
     }
 }
 

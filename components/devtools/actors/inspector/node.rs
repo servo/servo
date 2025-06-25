@@ -16,9 +16,9 @@ use ipc_channel::ipc::{self, IpcSender};
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::inspector::walker::WalkerActor;
-use crate::protocol::JsonPacketStream;
+use crate::protocol::{ActorReplied, JsonPacketStream};
 use crate::{EmptyReplyMsg, StreamId};
 
 /// Text node type constant. This is defined again to avoid depending on `script`, where it is defined originally.
@@ -118,10 +118,14 @@ impl Actor for NodeActor {
         msg: &Map<String, Value>,
         stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
+    ) -> Result<ActorReplied, ActorError> {
         Ok(match msg_type {
             "modifyAttributes" => {
-                let mods = msg.get("modifications").ok_or(())?.as_array().ok_or(())?;
+                let mods = msg
+                    .get("modifications")
+                    .ok_or(ActorError::MissingParameter)?
+                    .as_array()
+                    .ok_or(ActorError::BadParameterType)?;
                 let modifications: Vec<_> = mods
                     .iter()
                     .filter_map(|json_mod| {
@@ -138,11 +142,10 @@ impl Actor for NodeActor {
                         registry.actor_to_script(self.name()),
                         modifications,
                     ))
-                    .map_err(|_| ())?;
+                    .map_err(|_| ActorError::Internal)?;
 
                 let reply = EmptyReplyMsg { from: self.name() };
-                let _ = stream.write_json_packet(&reply);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&reply)?
             },
 
             "getUniqueSelector" => {
@@ -150,7 +153,10 @@ impl Actor for NodeActor {
                 self.script_chan
                     .send(GetDocumentElement(self.pipeline, tx))
                     .unwrap();
-                let doc_elem_info = rx.recv().map_err(|_| ())?.ok_or(())?;
+                let doc_elem_info = rx
+                    .recv()
+                    .map_err(|_| ActorError::Internal)?
+                    .ok_or(ActorError::Internal)?;
                 let node = doc_elem_info.encode(
                     registry,
                     true,
@@ -163,11 +169,10 @@ impl Actor for NodeActor {
                     from: self.name(),
                     value: node.display_name,
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
 
-            _ => ActorMessageStatus::Ignored,
+            _ => return Err(ActorError::UnrecognizedPacketType),
         })
     }
 }

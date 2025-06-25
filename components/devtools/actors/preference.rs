@@ -10,8 +10,8 @@ use serde_json::{Map, Value};
 use servo_config::pref;
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::protocol::JsonPacketStream;
+use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::protocol::{ActorReplied, JsonPacketStream};
 
 pub struct PreferenceActor {
     name: String,
@@ -35,19 +35,19 @@ impl Actor for PreferenceActor {
         msg: &Map<String, Value>,
         stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
+    ) -> Result<ActorReplied, ActorError> {
         let Some(key) = msg.get("value").and_then(|v| v.as_str()) else {
             warn!("PreferenceActor: handle_message: value is not a string");
-            return Ok(ActorMessageStatus::Ignored);
+            return Err(ActorError::BadParameterType);
         };
 
         // TODO: Map more preferences onto their Servo values.
-        Ok(match key {
+        match key {
             "dom.serviceWorkers.enabled" => {
                 self.write_bool(pref!(dom_serviceworker_enabled), stream)
             },
             _ => self.handle_missing_preference(msg_type, stream),
-        })
+        }
     }
 }
 
@@ -56,17 +56,21 @@ impl PreferenceActor {
         &self,
         msg_type: &str,
         stream: &mut TcpStream,
-    ) -> ActorMessageStatus {
+    ) -> Result<ActorReplied, ActorError> {
         match msg_type {
             "getBoolPref" => self.write_bool(false, stream),
             "getCharPref" => self.write_char("".into(), stream),
             "getIntPref" => self.write_int(0, stream),
             "getFloatPref" => self.write_float(0., stream),
-            _ => ActorMessageStatus::Ignored,
+            _ => Err(ActorError::UnrecognizedPacketType),
         }
     }
 
-    fn write_bool(&self, pref_value: bool, stream: &mut TcpStream) -> ActorMessageStatus {
+    fn write_bool(
+        &self,
+        pref_value: bool,
+        stream: &mut TcpStream,
+    ) -> Result<ActorReplied, ActorError> {
         #[derive(Serialize)]
         struct BoolReply {
             from: String,
@@ -77,11 +81,14 @@ impl PreferenceActor {
             from: self.name.clone(),
             value: pref_value,
         };
-        let _ = stream.write_json_packet(&reply);
-        ActorMessageStatus::Processed
+        stream.write_json_packet(&reply)
     }
 
-    fn write_char(&self, pref_value: String, stream: &mut TcpStream) -> ActorMessageStatus {
+    fn write_char(
+        &self,
+        pref_value: String,
+        stream: &mut TcpStream,
+    ) -> Result<ActorReplied, ActorError> {
         #[derive(Serialize)]
         struct CharReply {
             from: String,
@@ -92,11 +99,14 @@ impl PreferenceActor {
             from: self.name.clone(),
             value: pref_value,
         };
-        let _ = stream.write_json_packet(&reply);
-        ActorMessageStatus::Processed
+        stream.write_json_packet(&reply)
     }
 
-    fn write_int(&self, pref_value: i64, stream: &mut TcpStream) -> ActorMessageStatus {
+    fn write_int(
+        &self,
+        pref_value: i64,
+        stream: &mut TcpStream,
+    ) -> Result<ActorReplied, ActorError> {
         #[derive(Serialize)]
         struct IntReply {
             from: String,
@@ -107,11 +117,14 @@ impl PreferenceActor {
             from: self.name.clone(),
             value: pref_value,
         };
-        let _ = stream.write_json_packet(&reply);
-        ActorMessageStatus::Processed
+        stream.write_json_packet(&reply)
     }
 
-    fn write_float(&self, pref_value: f64, stream: &mut TcpStream) -> ActorMessageStatus {
+    fn write_float(
+        &self,
+        pref_value: f64,
+        stream: &mut TcpStream,
+    ) -> Result<ActorReplied, ActorError> {
         #[derive(Serialize)]
         struct FloatReply {
             from: String,
@@ -122,7 +135,6 @@ impl PreferenceActor {
             from: self.name.clone(),
             value: pref_value,
         };
-        let _ = stream.write_json_packet(&reply);
-        ActorMessageStatus::Processed
+        stream.write_json_packet(&reply)
     }
 }

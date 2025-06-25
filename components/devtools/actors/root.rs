@@ -16,13 +16,13 @@ use serde::Serialize;
 use serde_json::{Map, Value, json};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::device::DeviceActor;
 use crate::actors::performance::PerformanceActor;
 use crate::actors::process::{ProcessActor, ProcessActorMsg};
 use crate::actors::tab::{TabDescriptorActor, TabDescriptorActorMsg};
 use crate::actors::worker::{WorkerActor, WorkerMsg};
-use crate::protocol::{ActorDescription, JsonPacketStream};
+use crate::protocol::{ActorDescription, ActorReplied, JsonPacketStream};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -116,13 +116,6 @@ struct GetProcessResponse {
     process_descriptor: ProcessActorMsg,
 }
 
-#[derive(Serialize)]
-struct ErrorResponse {
-    from: String,
-    error: String,
-    message: String,
-}
-
 pub struct RootActor {
     pub tabs: Vec<String>,
     pub workers: Vec<String>,
@@ -145,22 +138,20 @@ impl Actor for RootActor {
         msg: &Map<String, Value>,
         stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
+    ) -> Result<ActorReplied, ActorError> {
         Ok(match msg_type {
             "connect" => {
                 let message = json!({
                     "from": "root",
                 });
-                let _ = stream.write_json_packet(&message);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&message)?
             },
             "listAddons" => {
                 let actor = ListAddonsReply {
                     from: "root".to_owned(),
                     addons: vec![],
                 };
-                let _ = stream.write_json_packet(&actor);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&actor)?
             },
 
             "listProcesses" => {
@@ -169,8 +160,7 @@ impl Actor for RootActor {
                     from: self.name(),
                     processes: vec![process],
                 };
-                let _ = stream.write_json_packet(&reply);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&reply)?
             },
 
             // TODO: Unexpected message getTarget for process (when inspecting)
@@ -180,8 +170,7 @@ impl Actor for RootActor {
                     from: self.name(),
                     process_descriptor: process,
                 };
-                let _ = stream.write_json_packet(&reply);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&reply)?
             },
 
             "getRoot" => {
@@ -192,8 +181,7 @@ impl Actor for RootActor {
                     device_actor: self.device.clone(),
                     preference_actor: self.preference.clone(),
                 };
-                let _ = stream.write_json_packet(&actor);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&actor)?
             },
 
             "listTabs" => {
@@ -213,8 +201,7 @@ impl Actor for RootActor {
                         })
                         .collect(),
                 };
-                let _ = stream.write_json_packet(&actor);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&actor)?
             },
 
             "listServiceWorkerRegistrations" => {
@@ -222,8 +209,7 @@ impl Actor for RootActor {
                     from: self.name(),
                     registrations: vec![],
                 };
-                let _ = stream.write_json_packet(&reply);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&reply)?
             },
 
             "listWorkers" => {
@@ -235,26 +221,26 @@ impl Actor for RootActor {
                         .map(|name| registry.find::<WorkerActor>(name).encodable())
                         .collect(),
                 };
-                let _ = stream.write_json_packet(&reply);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&reply)?
             },
 
             "getTab" => {
                 let Some(serde_json::Value::Number(browser_id)) = msg.get("browserId") else {
-                    return Ok(ActorMessageStatus::Ignored);
+                    //  is this correct error?
+                    return Err(ActorError::MissingParameter);
                 };
 
                 let browser_id = browser_id.as_u64().unwrap();
                 let Some(tab) = self.get_tab_msg_by_browser_id(registry, browser_id as u32) else {
-                    return Ok(ActorMessageStatus::Ignored);
+                    //  is this correct error?
+                    return Err(ActorError::MissingParameter);
                 };
 
                 let reply = GetTabReply {
                     from: self.name(),
                     tab,
                 };
-                let _ = stream.write_json_packet(&reply);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&reply)?
             },
 
             "protocolDescription" => {
@@ -265,23 +251,10 @@ impl Actor for RootActor {
                         device: DeviceActor::description(),
                     },
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&msg)?
             },
 
-            _ => {
-                let reply = ErrorResponse {
-                    from: self.name(),
-                    error: "unrecognizedPacketType".to_owned(),
-                    message: format!(
-                        "Actor {} does not recognize the packet type '{}'",
-                        self.name(),
-                        msg_type,
-                    ),
-                };
-                let _ = stream.write_json_packet(&reply);
-                ActorMessageStatus::Ignored
-            },
+            _ => return Err(ActorError::UnrecognizedPacketType),
         })
     }
 }

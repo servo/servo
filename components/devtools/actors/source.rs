@@ -12,8 +12,8 @@ use serde_json::{Map, Value};
 use servo_url::ServoUrl;
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::protocol::JsonPacketStream;
+use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::protocol::{ActorReplied, JsonPacketStream};
 
 /// A `sourceForm` as used in responses to thread `sources` requests.
 ///
@@ -139,7 +139,7 @@ impl Actor for SourceActor {
         _msg: &Map<String, Value>,
         stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
+    ) -> Result<ActorReplied, ActorError> {
         Ok(match msg_type {
             // Client has requested contents of the source.
             "source" => {
@@ -154,10 +154,9 @@ impl Actor for SourceActor {
                         .unwrap_or("<!-- not available; please reload! -->")
                         .to_owned(),
                 };
-                let _ = stream.write_json_packet(&reply);
-                ActorMessageStatus::Processed
+                stream.write_json_packet(&reply)?
             },
-            _ => ActorMessageStatus::Ignored,
+            _ => return Err(ActorError::UnrecognizedPacketType),
         })
     }
 }
