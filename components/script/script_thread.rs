@@ -2524,6 +2524,9 @@ impl ScriptThread {
                     can_gc,
                 )
             },
+            WebDriverScriptCommand::GetParentFrameId(reply) => {
+                webdriver_handlers::handle_get_parent_frame_id(&documents, pipeline_id, reply)
+            },
             WebDriverScriptCommand::GetBrowsingContextId(webdriver_frame_id, reply) => {
                 webdriver_handlers::handle_get_browsing_context_id(
                     &documents,
