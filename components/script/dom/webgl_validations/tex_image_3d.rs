@@ -6,6 +6,8 @@ use std::{self, cmp, fmt};
 
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{TexDataType, TexFormat};
+use js::jsapi::Type;
+use js::typedarray::ArrayBufferView;
 
 use super::WebGLValidator;
 use super::tex_image_2d::TexImageValidationError;
@@ -158,6 +160,7 @@ pub(crate) struct TexImage3DValidator<'a> {
     common_validator: CommonTexImage3DValidator<'a>,
     format: u32,
     data_type: u32,
+    data: &'a Option<ArrayBufferView>,
 }
 
 impl<'a> TexImage3DValidator<'a> {
@@ -174,6 +177,7 @@ impl<'a> TexImage3DValidator<'a> {
         border: i32,
         format: u32,
         data_type: u32,
+        data: &'a Option<ArrayBufferView>,
     ) -> Self {
         TexImage3DValidator {
             common_validator: CommonTexImage3DValidator::new(
@@ -188,6 +192,7 @@ impl<'a> TexImage3DValidator<'a> {
             ),
             format,
             data_type,
+            data,
         }
     }
 }
@@ -252,22 +257,9 @@ impl WebGLValidator for TexImage3DValidator<'_> {
             return Err(TexImageValidationError::TextureFormatMismatch);
         }
 
-        // NOTE: In WebGL2 data type check should be done based on the internal
-        // format, but in some functions this validator is called with the
-        // regular unsized format as parameter (eg. TexSubImage2D). For now
-        // it's left here to avoid duplication.
-        match data_type {
-            TexDataType::UnsignedShort4444 | TexDataType::UnsignedShort5551
-                if format != TexFormat::RGBA =>
-            {
-                context.webgl_error(InvalidOperation);
-                return Err(TexImageValidationError::InvalidTypeForFormat);
-            },
-            TexDataType::UnsignedShort565 if format != TexFormat::RGB => {
-                context.webgl_error(InvalidOperation);
-                return Err(TexImageValidationError::InvalidTypeForFormat);
-            },
-            _ => {},
+        if !internal_format.compatible_data_types().contains(&data_type) {
+            context.webgl_error(InvalidOperation);
+            return Err(TexImageValidationError::TextureFormatMismatch);
         }
 
         // GL_INVALID_OPERATION is generated if target is GL_TEXTURE_3D and
@@ -278,6 +270,36 @@ impl WebGLValidator for TexImage3DValidator<'_> {
             context.webgl_error(InvalidOperation);
             return Err(TexImageValidationError::InvalidTypeForFormat);
         }
+
+        // If srcData is non-null, the type of srcData must match the type according to
+        // the above table; otherwise, generate an INVALID_OPERATION error.
+        let element_size = data_type.element_size();
+        let received_size = match self.data {
+            Some(buf) => match buf.get_array_type() {
+                Type::Int8 => 1,
+                Type::Uint8 => 1,
+                Type::Int16 => 2,
+                Type::Uint16 => 2,
+                Type::Int32 => 4,
+                Type::Uint32 => 4,
+                Type::Float32 => 4,
+                _ => {
+                    context.webgl_error(InvalidOperation);
+                    return Err(TexImageValidationError::InvalidTypeForFormat);
+                },
+            },
+            None => element_size,
+        };
+        if received_size != element_size {
+            context.webgl_error(InvalidOperation);
+            return Err(TexImageValidationError::InvalidTypeForFormat);
+        }
+        // TODO:
+        // GL_INVALID_OPERATION is generated if a non-zero buffer object name is bound to the GL_PIXEL_UNPACK_BUFFER target and
+        // the buffer object's data store is currently mapped.
+        // the data would be unpacked from the buffer object such that the memory reads required would exceed the data store size.
+        // data is not evenly divisible into the number of bytes needed to store in memory a datum indicated by type.
+        // TODO: If srcData is null, a buffer of sufficient size initialized to 0 is passed.
 
         Ok(TexImage3DValidatorResult {
             width,
