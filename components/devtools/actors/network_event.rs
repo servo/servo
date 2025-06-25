@@ -22,6 +22,7 @@ use crate::protocol::JsonPacketStream;
 
 pub struct NetworkEventActor {
     pub name: String,
+    pub resource_id: u64,
     pub is_xhr: bool,
     pub request_url: String,
     pub request_method: Method,
@@ -55,6 +56,7 @@ pub struct NetworkEventResource {
 #[serde(rename_all = "camelCase")]
 pub struct EventActor {
     pub actor: String,
+    pub resource_id: u64,
     pub url: String,
     pub method: String,
     pub started_date_time: String,
@@ -340,9 +342,10 @@ impl Actor for NetworkEventActor {
 }
 
 impl NetworkEventActor {
-    pub fn new(name: String) -> NetworkEventActor {
+    pub fn new(name: String, resource_id: u64) -> NetworkEventActor {
         NetworkEventActor {
             name,
+            resource_id,
             is_xhr: false,
             request_url: String::new(),
             request_method: Method::GET,
@@ -414,6 +417,7 @@ impl NetworkEventActor {
 
         EventActor {
             actor: self.name(),
+            resource_id: self.resource_id,
             url: self.request_url.clone(),
             method: format!("{}", self.request_method),
             started_date_time: started_datetime_rfc3339,
@@ -587,7 +591,7 @@ impl NetworkEventActor {
 
         // TODO: Set the correct values for these fields
         NetworkEventResource {
-            resource_id: 0,
+            resource_id: self.resource_id,
             resource_updates,
             browsing_context_id: 0,
             inner_window_id: 0,
