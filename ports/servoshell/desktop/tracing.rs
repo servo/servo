@@ -11,7 +11,7 @@
 ///   - servoshell<winit@NewEvents(WaitCancelled)=off
 ///   - servoshell<winit@RedrawEventsCleared=off
 ///   - servoshell<winit@RedrawRequested=off
-///   - servoshell<winit@UserEvent(WakerEvent)=off
+///   - servoshell<winit@UserEvent(Waker)=off
 ///   - servoshell<winit@WindowEvent(AxisMotion)=off
 ///   - servoshell<winit@WindowEvent(CursorMoved)=off
 macro_rules! trace_winit_event {
@@ -51,7 +51,7 @@ mod from_winit {
                 },
                 Self::WindowEvent { event, .. } => event.log_target(),
                 Self::DeviceEvent { .. } => target!("DeviceEvent"),
-                Self::UserEvent(AppEvent::WakerEvent) => target!("UserEvent(WakerEvent)"),
+                Self::UserEvent(AppEvent::Waker) => target!("UserEvent(Waker)"),
                 Self::UserEvent(AppEvent::Accessibility(..)) => target!("UserEvent(Accessibility)"),
                 Self::Suspended => target!("Suspended"),
                 Self::Resumed => target!("Resumed"),

@@ -242,7 +242,7 @@ impl App {
     /// continue.
     pub fn handle_events_with_headless(&mut self) -> bool {
         let now = Instant::now();
-        let event = winit::event::Event::UserEvent(AppEvent::WakerEvent);
+        let event = winit::event::Event::UserEvent(AppEvent::Waker);
         trace_winit_event!(
             event,
             "@{:?} (+{:?}) {event:?}",
@@ -473,16 +473,17 @@ impl ApplicationHandler<AppEvent> for App {
     }
 
     fn user_event(&mut self, event_loop: &ActiveEventLoop, event: AppEvent) {
-        if let AppEvent::Accessibility(ref e) = event {
-            if let Some(ref mut minibrowser) = self.minibrowser {
-                if minibrowser.handle_accesskit_event(&e.window_event) {
-                    let Some(window) = self.windows.get(&e.window_id) else {
-                        return;
-                    };
-                    window.winit_window().unwrap().request_redraw();
-                    return;
-                }
+        if let AppEvent::Accessibility(ref event) = event {
+            let Some(ref mut minibrowser) = self.minibrowser else {
+                return;
+            };
+            if !minibrowser.handle_accesskit_event(&event.window_event) {
+                return;
             }
+            if let Some(window) = self.windows.get(&event.window_id) {
+                window.winit_window().unwrap().request_redraw();
+            }
+            return;
         }
 
         let now = Instant::now();

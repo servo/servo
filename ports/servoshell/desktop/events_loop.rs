@@ -21,7 +21,7 @@ pub type EventLoopProxy = winit::event_loop::EventLoopProxy<AppEvent>;
 #[derive(Debug)]
 pub enum AppEvent {
     /// Another process or thread has kicked the OS event loop with EventLoopWaker.
-    WakerEvent,
+    Waker,
     Accessibility(accesskit_winit::Event),
 }
 
@@ -78,7 +78,7 @@ impl EventsLoop {
 }
 
 impl EventsLoop {
-    pub fn event_loop_proxy(&self) -> Option<EventLoopProxy> {
+    pub(crate) fn event_loop_proxy(&self) -> Option<EventLoopProxy> {
         match self.0 {
             EventLoop::Winit(ref events_loop) => Some(events_loop.create_proxy()),
             EventLoop::Headless(..) => None,
@@ -144,7 +144,7 @@ impl HeadedEventLoopWaker {
 impl EventLoopWaker for HeadedEventLoopWaker {
     fn wake(&self) {
         // Kick the OS event loop awake.
-        if let Err(err) = self.proxy.lock().unwrap().send_event(AppEvent::WakerEvent) {
+        if let Err(err) = self.proxy.lock().unwrap().send_event(AppEvent::Waker) {
             warn!("Failed to wake up event loop ({}).", err);
         }
     }
