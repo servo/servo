@@ -67,6 +67,8 @@ pub enum Error {
     Operation,
     /// NotAllowedError DOMException
     NotAllowed,
+    /// ConstraintError DOMException
+    Constraint,
 
     /// TypeError JavaScript Error
     Type(String),
