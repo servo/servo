@@ -35,6 +35,7 @@ use embedder_traits::{
 };
 use encoding_rs::{Encoding, UTF_8};
 use euclid::default::{Point2D, Rect, Size2D};
+use fnv::FnvHashMap;
 use html5ever::{LocalName, Namespace, QualName, local_name, ns};
 use hyper_serde::Serde;
 use ipc_channel::ipc;
@@ -380,7 +381,7 @@ pub(crate) struct Document {
     appropriate_template_contents_owner_document: MutNullableDom<Document>,
     /// Information on elements needing restyle to ship over to layout when the
     /// time comes.
-    pending_restyles: DomRefCell<HashMap<Dom<Element>, NoTrace<PendingRestyle>>>,
+    pending_restyles: DomRefCell<FnvHashMap<Dom<Element>, NoTrace<PendingRestyle>>>,
     /// This flag will be true if the `Document` needs to be painted again
     /// during the next full layout attempt due to some external change such as
     /// the web view changing size, or because the previous layout was only for
@@ -4162,7 +4163,7 @@ impl Document {
             current_parser: Default::default(),
             base_element: Default::default(),
             appropriate_template_contents_owner_document: Default::default(),
-            pending_restyles: DomRefCell::new(HashMap::new()),
+            pending_restyles: DomRefCell::new(FnvHashMap::default()),
             needs_paint: Cell::new(false),
             active_touch_points: DomRefCell::new(Vec::new()),
             dom_interactive: Cell::new(Default::default()),
