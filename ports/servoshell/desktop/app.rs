@@ -343,7 +343,7 @@ impl App {
                 },
                 WebDriverCommandMsg::NewWebView(response_sender, load_status_sender) => {
                     let new_webview =
-                        running_state.create_toplevel_webview(Url::parse("auto:blank").unwrap());
+                        running_state.create_toplevel_webview(Url::parse("about:blank").unwrap());
 
                     if let Err(error) = response_sender.send(new_webview.id()) {
                         warn!("Failed to send response of NewWebview: {error}");
