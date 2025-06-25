@@ -343,7 +343,7 @@ impl App {
                 },
                 WebDriverCommandMsg::NewWebView(response_sender, load_status_sender) => {
                     let new_webview =
-                        running_state.create_toplevel_webview(Url::parse("auto:blank").unwrap());
+                        running_state.create_toplevel_webview(Url::parse("about:blank").unwrap());
 
                     if let Err(error) = response_sender.send(new_webview.id()) {
                         warn!("Failed to send response of NewWebview: {error}");
@@ -389,22 +389,54 @@ impl App {
                         warn!("Failed to send window size: {error}");
                     }
                 },
+                WebDriverCommandMsg::GetViewportSize(_webview_id, response_sender) => {
+                    let window = self
+                        .windows
+                        .values()
+                        .next()
+                        .expect("Should have at least one window in servoshell");
+
+                    let size = window.rendering_context().size2d();
+
+                    if let Err(error) = response_sender.send(size) {
+                        warn!("Failed to send response of GetViewportSize: {error}");
+                    }
+                },
                 WebDriverCommandMsg::GetFocusedWebView(sender) => {
                     let focused_webview = running_state.focused_webview();
                     if let Err(error) = sender.send(focused_webview.map(|w| w.id())) {
                         warn!("Failed to send response of GetFocusedWebView: {error}");
                     };
                 },
-                WebDriverCommandMsg::GetViewportSize(..) |
-                WebDriverCommandMsg::LoadUrl(..) |
-                WebDriverCommandMsg::ScriptCommand(..) |
+                WebDriverCommandMsg::LoadUrl(webview_id, url, load_status_sender) => {
+                    if let Some(webview) = running_state.webview_by_id(webview_id) {
+                        webview.load(url.into_url());
+                        running_state.set_load_status_sender(webview_id, load_status_sender);
+                    }
+                },
+                WebDriverCommandMsg::Refresh(webview_id, load_status_sender) => {
+                    if let Some(webview) = running_state.webview_by_id(webview_id) {
+                        webview.reload();
+                        running_state.set_load_status_sender(webview_id, load_status_sender);
+                    }
+                },
+                WebDriverCommandMsg::GoBack(webview_id) => {
+                    if let Some(webview) = running_state.webview_by_id(webview_id) {
+                        webview.go_back(1);
+                    }
+                },
+                WebDriverCommandMsg::GoForward(webview_id) => {
+                    if let Some(webview) = running_state.webview_by_id(webview_id) {
+                        webview.go_forward(1);
+                    }
+                },
                 WebDriverCommandMsg::SendKeys(..) |
                 WebDriverCommandMsg::KeyboardAction(..) |
                 WebDriverCommandMsg::MouseButtonAction(..) |
                 WebDriverCommandMsg::MouseMoveAction(..) |
                 WebDriverCommandMsg::WheelScrollAction(..) |
-                WebDriverCommandMsg::TakeScreenshot(..) |
-                WebDriverCommandMsg::Refresh(..) => {
+                WebDriverCommandMsg::ScriptCommand(..) |
+                WebDriverCommandMsg::TakeScreenshot(..) => {
                     warn!(
                         "WebDriverCommand {:?} is still not moved from constellation to embedder",
                         msg

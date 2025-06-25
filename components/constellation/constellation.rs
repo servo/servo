@@ -4558,53 +4558,17 @@ where
             WebDriverCommandMsg::GetWindowSize(..) => {
                 unreachable!("This command should be send directly to the embedder.");
             },
-            WebDriverCommandMsg::GetViewportSize(webview_id, response_sender) => {
-                let browsing_context_id = BrowsingContextId::from(webview_id);
-                let size = self
-                    .browsing_contexts
-                    .get(&browsing_context_id)
-                    .map(|browsing_context| browsing_context.viewport_details.size)
-                    .unwrap_or_default();
-                let _ = response_sender.send(size);
+            WebDriverCommandMsg::GetViewportSize(..) => {
+                unreachable!("This command should be send directly to the embedder.");
             },
             WebDriverCommandMsg::SetWindowSize(..) => {
                 unreachable!("This command should be send directly to the embedder.");
             },
-            WebDriverCommandMsg::LoadUrl(webview_id, url, response_sender) => {
-                let load_data = LoadData::new(
-                    LoadOrigin::WebDriver,
-                    url,
-                    None,
-                    Referrer::NoReferrer,
-                    ReferrerPolicy::EmptyString,
-                    None,
-                    None,
-                    false,
-                );
-                self.load_url_for_webdriver(
-                    webview_id,
-                    load_data,
-                    response_sender,
-                    NavigationHistoryBehavior::Push,
-                );
+            WebDriverCommandMsg::LoadUrl(..) => {
+                unreachable!("This command should be send directly to the embedder.");
             },
-            WebDriverCommandMsg::Refresh(webview_id, response_sender) => {
-                let browsing_context_id = BrowsingContextId::from(webview_id);
-                let pipeline_id = self
-                    .browsing_contexts
-                    .get(&browsing_context_id)
-                    .expect("Refresh: Browsing context must exist at this point")
-                    .pipeline_id;
-                let load_data = match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => pipeline.load_data.clone(),
-                    None => return warn!("{}: Refresh after closure", pipeline_id),
-                };
-                self.load_url_for_webdriver(
-                    webview_id,
-                    load_data,
-                    response_sender,
-                    NavigationHistoryBehavior::Replace,
-                );
+            WebDriverCommandMsg::Refresh(..) => {
+                unreachable!("This command should be send directly to the embedder.");
             },
             // TODO: This should use the ScriptThreadMessage::EvaluateJavaScript command
             WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd) => {
@@ -4871,38 +4835,6 @@ where
             entries,
             current_index,
         ));
-    }
-
-    #[servo_tracing::instrument(skip_all)]
-    fn load_url_for_webdriver(
-        &mut self,
-        webview_id: WebViewId,
-        load_data: LoadData,
-        response_sender: IpcSender<WebDriverLoadStatus>,
-        history_handling: NavigationHistoryBehavior,
-    ) {
-        let browsing_context_id = BrowsingContextId::from(webview_id);
-        let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
-            Some(browsing_context) => browsing_context.pipeline_id,
-            None => {
-                return warn!(
-                    "{}: Webdriver load for closed browsing context",
-                    browsing_context_id
-                );
-            },
-        };
-
-        if let Some(new_pipeline_id) =
-            self.load_url(webview_id, pipeline_id, load_data, history_handling)
-        {
-            debug!(
-                "Setting up webdriver load notification for {:?}",
-                new_pipeline_id
-            );
-            self.webdriver.load_channel = Some((new_pipeline_id, response_sender));
-        } else {
-            let _ = response_sender.send(WebDriverLoadStatus::Canceled);
-        }
     }
 
     #[servo_tracing::instrument(skip_all)]
