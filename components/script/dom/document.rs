@@ -4214,7 +4214,7 @@ impl Document {
                 DomRefCell::new(AnimationTimeline::new())
             },
             animations: DomRefCell::new(Animations::new()),
-            image_animation_manager: DomRefCell::new(ImageAnimationManager::new()),
+            image_animation_manager: DomRefCell::new(ImageAnimationManager::default()),
             dirty_root: Default::default(),
             declarative_refresh: Default::default(),
             pending_input_events: Default::default(),
@@ -4985,6 +4985,7 @@ impl Document {
         self.animations
             .borrow()
             .do_post_reflow_update(&self.window, self.current_animation_timeline_value());
+        self.image_animation_manager().update_rooted_dom_nodes();
     }
 
     pub(crate) fn cancel_animations_for_node(&self, node: &Node) {
@@ -5023,12 +5024,9 @@ impl Document {
     pub(crate) fn image_animation_manager(&self) -> Ref<ImageAnimationManager> {
         self.image_animation_manager.borrow()
     }
-    pub(crate) fn image_animation_manager_mut(&self) -> RefMut<ImageAnimationManager> {
-        self.image_animation_manager.borrow_mut()
-    }
 
     pub(crate) fn update_animating_images(&self) {
-        let mut image_animation_manager = self.image_animation_manager.borrow_mut();
+        let image_animation_manager = self.image_animation_manager.borrow();
         if !image_animation_manager.image_animations_present() {
             return;
         }
@@ -5036,8 +5034,8 @@ impl Document {
             .update_active_frames(&self.window, self.current_animation_timeline_value());
 
         if !self.animations().animations_present() {
-            let next_scheduled_time =
-                image_animation_manager.next_schedule_time(self.current_animation_timeline_value());
+            let next_scheduled_time = image_animation_manager
+                .next_scheduled_time(self.current_animation_timeline_value());
             // TODO: Once we have refresh signal from the compositor,
             // we should get rid of timer for animated image update.
             if let Some(next_scheduled_time) = next_scheduled_time {

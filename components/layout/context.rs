@@ -55,7 +55,10 @@ pub struct LayoutContext<'a> {
     pub resolved_images_cache:
         Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder), CachedImageOrError>>>,
 
-    pub node_image_animation_map: Arc<RwLock<FxHashMap<OpaqueNode, ImageAnimationState>>>,
+    /// A shared reference to script's map of DOM nodes with animated images. This is used
+    /// to manage image animations in script and inform the script about newly animating
+    /// nodes.
+    pub node_to_animating_image_map: Arc<RwLock<FxHashMap<OpaqueNode, ImageAnimationState>>>,
 
     /// The DOM node that is highlighted by the devtools inspector, if any
     pub highlighted_dom_node: Option<OpaqueNode>,
@@ -153,31 +156,24 @@ impl LayoutContext<'_> {
     }
 
     pub fn handle_animated_image(&self, node: OpaqueNode, image: Arc<RasterImage>) {
-        let mut store = self.node_image_animation_map.write();
+        let mut map = self.node_to_animating_image_map.write();
+        if !image.should_animate() {
+            map.remove(&node);
+            return;
+        }
+        let new_image_animation_state = || {
+            ImageAnimationState::new(
+                image.clone(),
+                self.shared_context().current_time_for_animations,
+            )
+        };
 
-        // 1. first check whether node previously being track for animated image.
-        if let Some(image_state) = store.get(&node) {
-            // a. if the node is not containing the same image as before.
-            if image_state.image_key() != image.id {
-                if image.should_animate() {
-                    // i. Register/Replace tracking item in image_animation_manager.
-                    store.insert(
-                        node,
-                        ImageAnimationState::new(
-                            image,
-                            self.shared_context().current_time_for_animations,
-                        ),
-                    );
-                } else {
-                    // ii. Cancel Action if the node's image is no longer animated.
-                    store.remove(&node);
-                }
-            }
-        } else if image.should_animate() {
-            store.insert(
-                node,
-                ImageAnimationState::new(image, self.shared_context().current_time_for_animations),
-            );
+        let entry = map.entry(node).or_insert_with(new_image_animation_state);
+
+        // If the entry exists, but it is for a different image id, replace it as the image
+        // has changed during this layout.
+        if entry.image.id != image.id {
+            *entry = new_image_animation_state();
         }
     }
 
