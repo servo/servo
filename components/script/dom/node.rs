@@ -82,7 +82,6 @@ use crate::dom::bindings::inheritance::{
     Castable, CharacterDataTypeId, ElementTypeId, EventTargetTypeId, HTMLElementTypeId, NodeTypeId,
     SVGElementTypeId, SVGGraphicsElementTypeId, TextTypeId,
 };
-use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::{DOMString, USVString};
@@ -2547,10 +2546,7 @@ impl Node {
         for node in new_nodes {
             // Step 11.1 For each shadow-including inclusive descendant inclusiveDescendant of node,
             //           in shadow-including tree order, append inclusiveDescendant to staticNodeList.
-            static_node_list.extend(
-                node.traverse_preorder(ShadowIncluding::Yes)
-                    .map(|n| Trusted::new(&*n)),
-            );
+            static_node_list.extend(node.traverse_preorder(ShadowIncluding::Yes));
         }
 
         // We use a delayed task for this step to work around an awkward interaction between
@@ -2563,13 +2559,15 @@ impl Node {
         // 2) post_connection_steps from Node::insert,
         // we use a delayed task that will run as soon as Node::insert removes its
         // script/layout blocker.
-        parent_document.add_delayed_task(task!(PostConnectionSteps: move || {
-            // Step 12. For each node of staticNodeList, if node is connected, then run the
-            //          post-connection steps with node.
-            for node in static_node_list.iter().map(Trusted::root).filter(|n| n.is_connected()) {
-                vtable_for(&node).post_connection_steps();
-            }
-        }));
+        parent_document.add_delayed_task(
+            task!(PostConnectionSteps: |static_node_list: Vec<DomRoot<Node>>| {
+                // Step 12. For each node of staticNodeList, if node is connected, then run the
+                //          post-connection steps with node.
+                for node in static_node_list.iter().filter(|n| n.is_connected()) {
+                    vtable_for(node).post_connection_steps();
+                }
+            }),
+        );
 
         parent_document.remove_script_and_layout_blocker();
         from_document.remove_script_and_layout_blocker();
