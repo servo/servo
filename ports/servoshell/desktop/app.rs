@@ -385,15 +385,13 @@ impl App {
                         warn!("Failed to send window size: {error}");
                     }
                 },
-                webdriver_msg @ WebDriverCommandMsg::GetViewportSize(..) => {
-                    running_state.forward_webdriver_command(webdriver_msg);
-                },
                 WebDriverCommandMsg::GetFocusedWebView(sender) => {
                     let focused_webview = running_state.focused_webview();
                     if let Err(error) = sender.send(focused_webview.map(|w| w.id())) {
                         warn!("Failed to send response of GetFocusedWebView: {error}");
                     };
                 },
+                WebDriverCommandMsg::GetViewportSize(..) |
                 WebDriverCommandMsg::LoadUrl(..) |
                 WebDriverCommandMsg::ScriptCommand(..) |
                 WebDriverCommandMsg::SendKeys(..) |
