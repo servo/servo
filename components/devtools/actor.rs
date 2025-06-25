@@ -197,11 +197,10 @@ impl ActorRegistry {
                 if actor.handle_message(self, msg_type, msg, stream, stream_id)? !=
                     ActorMessageStatus::Processed
                 {
-                    log::warn!(
-                        "unexpected message type \"{}\" found for actor \"{}\"",
-                        msg_type,
-                        to
-                    );
+                    let msg = json!({
+                         "from": actor.name(), "error":"unrecognizedPacketType"
+                    });
+                    let _ = stream.write_json_packet(&msg);
                 }
             },
         }
