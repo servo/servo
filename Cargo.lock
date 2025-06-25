@@ -7139,6 +7139,7 @@ dependencies = [
  "html5ever",
  "indexmap",
  "jstraceable_derive",
+ "keyboard-types",
  "libc",
  "log",
  "malloc_size_of_derive",
