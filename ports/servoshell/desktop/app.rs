@@ -341,10 +341,12 @@ impl App {
                 WebDriverCommandMsg::CloseWebView(webview_id) => {
                     running_state.close_webview(webview_id);
                 },
+                webdriver_msg @ WebDriverCommandMsg::ScriptCommand(..) => {
+                    running_state.forward_webdriver_command(webdriver_msg);
+                },
                 WebDriverCommandMsg::GetWindowSize(..) |
                 WebDriverCommandMsg::FocusWebView(..) |
                 WebDriverCommandMsg::LoadUrl(..) |
-                WebDriverCommandMsg::ScriptCommand(..) |
                 WebDriverCommandMsg::SendKeys(..) |
                 WebDriverCommandMsg::KeyboardAction(..) |
                 WebDriverCommandMsg::MouseButtonAction(..) |
