@@ -61,16 +61,14 @@ impl HeedEngine {
 }
 
 impl KvsEngine for HeedEngine {
-    fn create_store(&self, store_name: SanitizedName, auto_increment: bool) {
-        let mut write_txn = self
-            .heed_env
-            .write_txn()
-            .expect("Could not create idb store writer");
+    type Error = heed::Error;
+
+    fn create_store(&self, store_name: SanitizedName, auto_increment: bool) -> heed::Result<()> {
+        let mut write_txn = self.heed_env.write_txn()?;
         let _ = self.heed_env.clear_stale_readers();
         let new_store: HeedDatabase = self
             .heed_env
-            .create_database(&mut write_txn, Some(&*store_name.to_string()))
-            .expect("Failed to create idb store");
+            .create_database(&mut write_txn, Some(&*store_name.to_string()))?;
 
         write_txn.commit().expect("Failed to commit transaction");
 
@@ -85,30 +83,29 @@ impl KvsEngine for HeedEngine {
             .write()
             .expect("Could not acquire lock on stores")
             .insert(store_name, store);
+        Ok(())
     }
 
-    fn delete_store(&self, store_name: SanitizedName) {
+    fn delete_store(&self, store_name: SanitizedName) -> heed::Result<()> {
         // TODO: Actually delete store instead of just clearing it
-        let mut write_txn = self
-            .heed_env
-            .write_txn()
-            .expect("Could not create idb store writer");
+        let mut write_txn = self.heed_env.write_txn()?;
         let store: HeedDatabase = self
             .heed_env
-            .create_database(&mut write_txn, Some(&*store_name.to_string()))
-            .expect("Failed to create idb store");
-        store.clear(&mut write_txn).expect("Could not clear store");
+            .create_database(&mut write_txn, Some(&*store_name.to_string()))?;
+        store.clear(&mut write_txn)?;
         write_txn.commit().expect("Failed to commit transaction");
 
         let mut open_stores = self.open_stores.write().unwrap();
         open_stores.retain(|key, _| key != &store_name);
+        Ok(())
     }
 
-    fn close_store(&self, store_name: SanitizedName) {
+    fn close_store(&self, store_name: SanitizedName) -> heed::Result<()> {
         // FIXME: (arihant2math) unused
         // FIXME:(arihant2math) return error if no store ...
         let mut open_stores = self.open_stores.write().unwrap();
         open_stores.retain(|key, _| key != &store_name);
+        Ok(())
     }
 
     // Starts a transaction, processes all operations for that transaction,
@@ -162,12 +159,14 @@ impl KvsEngine for HeedEngine {
                 if tx.send(None).is_err() {
                     warn!("IDBTransaction's execution channel is dropped");
                 };
+
+                rtxn.commit().expect("Failed to commit transaction");
             });
         } else {
             self.write_pool.spawn(move || {
                 // Acquiring a writer will block the thread if another `readwrite` transaction is active
                 let env = heed_env;
-                let mut wtxn = env.write_txn().expect("Could not creat idb store writer");
+                let mut wtxn = env.write_txn().expect("Could not create idb store writer");
                 for request in transaction.requests {
                     match request.operation {
                         AsyncOperation::PutItem(key, value, overwrite) => {
