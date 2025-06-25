@@ -21,6 +21,9 @@ on:
       wpt:
         required: false
         type: boolean
+      webdriver:
+        required: false
+        type: boolean
       unit-tests:
         required: false
         type: boolean
@@ -84,6 +87,7 @@ jobs:
               configuration.matrix[0].wpt = Boolean(${{ inputs.wpt }});
               configuration.matrix[0].wpt_args = "${{ inputs.wpt-args }}" || "";
               configuration.matrix[0].build_args = "${{ inputs.build-args }}" || "";
+              configuration.matrix[0].webdriver = "${{ inputs.webdriver }}" || "";
 
               let unit_tests = Boolean(${{ inputs.unit-tests }});
               let profile = '${{ inputs.profile }}';
@@ -109,6 +113,7 @@ jobs:
     with:
       workflow: ${{ matrix.workflow }}
       wpt: ${{ matrix.wpt }}
+      webdriver: ${{ matrix.webdriver }}
       profile: ${{ matrix.profile }}
       unit-tests: ${{ matrix.unit_tests }}
       build-libservo: ${{ matrix.build_libservo }}

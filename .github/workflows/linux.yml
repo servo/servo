@@ -21,6 +21,9 @@ on:
       wpt:
         required: false
         type: boolean
+      webdriver:
+        required: false
+        type: boolean
       number-of-wpt-chunks:
         default: 20
         required: false
@@ -228,6 +231,19 @@ jobs:
       profile: ${{ inputs.profile }}
       wpt-sync-from-upstream: ${{ inputs.wpt-sync-from-upstream }}
       number-of-wpt-chunks: ${{ inputs. number-of-wpt-chunks }}
+    secrets: inherit
+
+  webdriver:
+    if: ${{ inputs.webdriver }}
+    name: Linux WPT
+    needs: ["build"]
+    uses: ./.github/workflows/linux-wpt.yml
+    with:
+      wpt-args: ${{ inputs.wpt-args }}
+      profile: ${{ inputs.profile }}
+      wpt-sync-from-upstream: ${{ inputs.wpt-sync-from-upstream }}
+      number-of-wpt-chunks: 1
+      webdriver: ${{ inputs.webdriver }}
     secrets: inherit
 
   bencher:
