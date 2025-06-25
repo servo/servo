@@ -29,7 +29,9 @@ use winit::window::Window;
 
 use super::app_state::RunningAppState;
 use super::egui_glue::EguiGlow;
+use super::events_loop::EventLoopProxy;
 use super::geometry::winit_position_to_euclid_point;
+use super::headed_window::Window as ServoWindow;
 
 pub struct Minibrowser {
     rendering_context: Rc<OffscreenRenderingContext>,
@@ -76,13 +78,21 @@ impl Drop for Minibrowser {
 
 impl Minibrowser {
     pub fn new(
-        rendering_context: Rc<OffscreenRenderingContext>,
+        window: &ServoWindow,
         event_loop: &ActiveEventLoop,
+        event_loop_proxy: EventLoopProxy,
         initial_url: ServoUrl,
     ) -> Self {
+        let rendering_context = window.offscreen_rendering_context();
         // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
         #[allow(clippy::arc_with_non_send_sync)]
-        let context = EguiGlow::new(event_loop, rendering_context.glow_gl_api(), None);
+        let context = EguiGlow::new(
+            window,
+            event_loop,
+            event_loop_proxy,
+            rendering_context.glow_gl_api(),
+            None,
+        );
 
         // Disable the builtin egui handlers for the Ctrl+Plus, Ctrl+Minus and Ctrl+0
         // shortcuts as they don't work well with servoshell's `device-pixel-ratio` CLI argument.
@@ -488,5 +498,25 @@ impl Minibrowser {
         self.update_location_in_toolbar(state) |
             self.update_load_status(state) |
             self.update_status_text(state)
+    }
+
+    /// Returns true if a redraw is required after handling the provided event.
+    pub(crate) fn handle_accesskit_event(&mut self, event: &accesskit_winit::WindowEvent) -> bool {
+        match event {
+            accesskit_winit::WindowEvent::InitialTreeRequested => {
+                self.context.egui_ctx.enable_accesskit();
+                true
+            },
+            accesskit_winit::WindowEvent::ActionRequested(req) => {
+                self.context
+                    .egui_winit
+                    .on_accesskit_action_request(req.clone());
+                true
+            },
+            accesskit_winit::WindowEvent::AccessibilityDeactivated => {
+                self.context.egui_ctx.disable_accesskit();
+                false
+            },
+        }
     }
 }

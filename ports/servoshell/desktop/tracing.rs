@@ -11,7 +11,7 @@
 ///   - servoshell<winit@NewEvents(WaitCancelled)=off
 ///   - servoshell<winit@RedrawEventsCleared=off
 ///   - servoshell<winit@RedrawRequested=off
-///   - servoshell<winit@UserEvent(WakerEvent)=off
+///   - servoshell<winit@UserEvent(Waker)=off
 ///   - servoshell<winit@WindowEvent(AxisMotion)=off
 ///   - servoshell<winit@WindowEvent(CursorMoved)=off
 macro_rules! trace_winit_event {
@@ -31,7 +31,7 @@ pub(crate) trait LogTarget {
 
 mod from_winit {
     use super::LogTarget;
-    use crate::desktop::events_loop::WakerEvent;
+    use crate::desktop::events_loop::AppEvent;
 
     macro_rules! target {
         ($($name:literal)+) => {
@@ -39,7 +39,7 @@ mod from_winit {
         };
     }
 
-    impl LogTarget for winit::event::Event<WakerEvent> {
+    impl LogTarget for winit::event::Event<AppEvent> {
         fn log_target(&self) -> &'static str {
             use winit::event::StartCause;
             match self {
@@ -51,7 +51,8 @@ mod from_winit {
                 },
                 Self::WindowEvent { event, .. } => event.log_target(),
                 Self::DeviceEvent { .. } => target!("DeviceEvent"),
-                Self::UserEvent(WakerEvent) => target!("UserEvent(WakerEvent)"),
+                Self::UserEvent(AppEvent::Waker) => target!("UserEvent(Waker)"),
+                Self::UserEvent(AppEvent::Accessibility(..)) => target!("UserEvent(Accessibility)"),
                 Self::Suspended => target!("Suspended"),
                 Self::Resumed => target!("Resumed"),
                 Self::AboutToWait => target!("AboutToWait"),
