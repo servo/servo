@@ -262,6 +262,16 @@ impl KvsEngine for HeedEngine {
                                 .expect("Could not get store");
                             // FIXME:(arihant2math) Return count with sender
                         },
+                        AsyncOperation::Clear => {
+                            let stores = stores
+                                .write()
+                                .expect("Could not acquire write lock on stores");
+                            let store = stores
+                                .get(&request.store_name)
+                                .expect("Could not get store");
+                            // FIXME:(arihant2math) Error handling
+                            let _ = store.inner.clear(&mut wtxn);
+                        },
                     }
                 }
 

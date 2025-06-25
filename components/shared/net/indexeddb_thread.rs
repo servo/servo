@@ -77,6 +77,7 @@ pub enum AsyncReadOnlyOperation {
     Count(
         IndexedDBKeyType, // Key
     ),
+    Clear
 }
 
 #[derive(Debug, Deserialize, Serialize)]
