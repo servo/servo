@@ -42,6 +42,7 @@ use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
     CanvasDirection, CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,
     CanvasTextAlign, CanvasTextBaseline, ImageDataMethods,
 };
+use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::DOMMatrix2DInit;
 use crate::dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -51,6 +52,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeStyle};
 use crate::dom::canvaspattern::CanvasPattern;
 use crate::dom::dommatrix::DOMMatrix;
+use crate::dom::dommatrixreadonly::dommatrix2dinit_to_matrix;
 use crate::dom::element::{Element, cors_setting_for_element};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::HTMLCanvasElement;
@@ -1901,21 +1903,55 @@ impl CanvasState {
         DOMMatrix::new(global, true, transform.cast::<f64>().to_3d(), can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform>
     pub(crate) fn set_transform(&self, a: f64, b: f64, c: f64, d: f64, e: f64, f: f64) {
-        if !(a.is_finite() &&
-            b.is_finite() &&
-            c.is_finite() &&
-            d.is_finite() &&
-            e.is_finite() &&
-            f.is_finite())
+        // Step 1. If any of the arguments are infinite or NaN, then return.
+        if !a.is_finite() ||
+            !b.is_finite() ||
+            !c.is_finite() ||
+            !d.is_finite() ||
+            !e.is_finite() ||
+            !f.is_finite()
         {
             return;
         }
 
+        // Step 2. Reset the current transformation matrix to the matrix described by:
         self.state.borrow_mut().transform =
             Transform2D::new(a as f32, b as f32, c as f32, d as f32, e as f32, f as f32);
         self.update_transform()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform-matrix>
+    pub(crate) fn set_transform_(&self, transform: &DOMMatrix2DInit) -> ErrorResult {
+        // Step 1. Let matrix be the result of creating a DOMMatrix from the 2D
+        // dictionary transform.
+        let matrix = dommatrix2dinit_to_matrix(transform)?;
+
+        // Step 2. If one or more of matrix's m11 element, m12 element, m21
+        // element, m22 element, m41 element, or m42 element are infinite or
+        // NaN, then return.
+        if !matrix.m11.is_finite() ||
+            !matrix.m12.is_finite() ||
+            !matrix.m21.is_finite() ||
+            !matrix.m22.is_finite() ||
+            !matrix.m41.is_finite() ||
+            !matrix.m42.is_finite()
+        {
+            return Ok(());
+        }
+
+        // Step 3. Reset the current transformation matrix to matrix.
+        self.state.borrow_mut().transform = Transform2D::new(
+            matrix.m11 as f32,
+            matrix.m12 as f32,
+            matrix.m21 as f32,
+            matrix.m22 as f32,
+            matrix.m41 as f32,
+            matrix.m42 as f32,
+        );
+        self.update_transform();
+        Ok(())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-resettransform
