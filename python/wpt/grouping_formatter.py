@@ -159,7 +159,7 @@ class ServoHandler(mozlog.reader.LogHandler):
         return any(not unexpected.flaky for unexpected in self.unexpected_results)
 
     def suite_start(self, data):
-        if self.flakes_detection:
+        if self.detect_flakes:
             self.reset_statistics()
         else:
             self.reset_state()
