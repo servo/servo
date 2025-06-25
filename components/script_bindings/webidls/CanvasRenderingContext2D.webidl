@@ -60,13 +60,16 @@ interface mixin CanvasTransform {
                  unrestricted double f);
 
   [NewObject] DOMMatrix getTransform();
+  // See https://bugzilla.mozilla.org/show_bug.cgi?id=1020975
+  [Throws]
   undefined setTransform(unrestricted double a,
                     unrestricted double b,
                     unrestricted double c,
                     unrestricted double d,
                     unrestricted double e,
                     unrestricted double f);
-  // void setTransform(optional DOMMatrixInit matrix);
+  [Throws]
+  undefined setTransform(optional DOMMatrix2DInit transform = {});
   undefined resetTransform();
 };
 

@@ -17,6 +17,7 @@ use crate::canvas_state::CanvasState;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
     CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,
 };
+use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::DOMMatrix2DInit;
 use crate::dom::bindings::codegen::Bindings::PaintRenderingContext2DBinding::PaintRenderingContext2DMethods;
 use crate::dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
 use crate::dom::bindings::error::{ErrorResult, Fallible};
@@ -131,10 +132,18 @@ impl PaintRenderingContext2DMethods<crate::DomTypeHolder> for PaintRenderingCont
         self.canvas_state.get_transform(&self.global(), can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform
-    fn SetTransform(&self, a: f64, b: f64, c: f64, d: f64, e: f64, f: f64) {
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform>
+    fn SetTransform(&self, a: f64, b: f64, c: f64, d: f64, e: f64, f: f64) -> ErrorResult {
         self.canvas_state.set_transform(a, b, c, d, e, f);
         self.scale_by_device_pixel_ratio();
+        Ok(())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform-matrix>
+    fn SetTransform_(&self, transform: &DOMMatrix2DInit) -> ErrorResult {
+        self.canvas_state.set_transform_(transform)?;
+        self.scale_by_device_pixel_ratio();
+        Ok(())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-resettransform

@@ -18,6 +18,7 @@ use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
     CanvasDirection, CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,
     CanvasRenderingContext2DMethods, CanvasTextAlign, CanvasTextBaseline,
 };
+use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::DOMMatrix2DInit;
 use crate::dom::bindings::codegen::UnionTypes::{
     HTMLCanvasElementOrOffscreenCanvas, StringOrCanvasGradientOrCanvasPattern,
 };
@@ -235,9 +236,15 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
         self.canvas_state.get_transform(&self.global(), can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform
-    fn SetTransform(&self, a: f64, b: f64, c: f64, d: f64, e: f64, f: f64) {
-        self.canvas_state.set_transform(a, b, c, d, e, f)
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform>
+    fn SetTransform(&self, a: f64, b: f64, c: f64, d: f64, e: f64, f: f64) -> ErrorResult {
+        self.canvas_state.set_transform(a, b, c, d, e, f);
+        Ok(())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform-matrix>
+    fn SetTransform_(&self, transform: &DOMMatrix2DInit) -> ErrorResult {
+        self.canvas_state.set_transform_(transform)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-resettransform
