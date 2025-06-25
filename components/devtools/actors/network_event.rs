@@ -162,7 +162,7 @@ struct GetResponseCookiesReply {
     cookies: Vec<u8>,
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Default, Serialize)]
 pub struct Timings {
     blocked: u32,
     dns: u32,
@@ -207,7 +207,7 @@ impl Actor for NetworkEventActor {
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "getRequestHeaders" => {
-                let mut headers: Vec<Header> = Vec::new();
+                let mut headers = Vec::new();
                 let mut raw_headers_string = "".to_owned();
                 let mut headers_size = 0;
                 if let Some(ref headers_map) = self.request_headers_raw {
@@ -311,14 +311,7 @@ impl Actor for NetworkEventActor {
             },
             "getEventTimings" => {
                 // TODO: This is a fake timings msg
-                let timings_obj = self.event_timing.clone().unwrap_or(Timings {
-                    blocked: 0,
-                    dns: 0,
-                    connect: self.total_time.as_millis() as u64 / 2,
-                    send: self.total_time.as_millis() as u64 / 2,
-                    wait: 0,
-                    receive: 0,
-                });
+                let timings_obj = self.event_timing.clone().unwrap_or_default();
                 // Might use the one on self
                 let total = timings_obj.connect + timings_obj.send;
                 // TODO: Send the correct values for all these fields.
@@ -472,8 +465,7 @@ impl NetworkEventActor {
         let cookies_size = response
             .headers
             .as_ref()
-            .and_then(|h| h.typed_get::<Cookie>())
-            .map(|c| c.len())
+            .map(|headers| headers.get_all("set-cookie").iter().count())
             .unwrap_or(0);
         ResponseCookiesMsg {
             cookies: cookies_size,
