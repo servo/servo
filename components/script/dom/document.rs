@@ -42,7 +42,7 @@ use hyper_serde::Serde;
 use ipc_channel::ipc;
 use js::rust::{HandleObject, HandleValue};
 use keyboard_types::{Code, Key, KeyState, Modifiers};
-use layout_api::{PendingRestyle, TrustedNodeAddress, node_id_from_scroll_id};
+use layout_api::{PendingRestyle, ReflowGoal, TrustedNodeAddress, node_id_from_scroll_id};
 use metrics::{InteractiveFlag, InteractiveWindow, ProgressiveWebMetrics};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
@@ -3495,30 +3495,6 @@ impl Document {
             .or_insert_with(|| Dom::from_ref(context));
     }
 
-    pub(crate) fn flush_dirty_webgl_canvases(&self) {
-        let dirty_context_ids: Vec<_> = self
-            .dirty_webgl_contexts
-            .borrow_mut()
-            .drain()
-            .filter(|(_, context)| context.onscreen())
-            .map(|(id, _)| id)
-            .collect();
-
-        if dirty_context_ids.is_empty() {
-            return;
-        }
-
-        #[allow(unused)]
-        let mut time = 0;
-        let (sender, receiver) = webgl::webgl_channel().unwrap();
-        self.window
-            .webgl_chan()
-            .expect("Where's the WebGL channel?")
-            .send(WebGLMsg::SwapBuffers(dirty_context_ids, sender, time))
-            .unwrap();
-        receiver.recv().unwrap();
-    }
-
     pub(crate) fn add_dirty_2d_canvas(&self, context: &CanvasRenderingContext2D) {
         self.dirty_2d_contexts
             .borrow_mut()
@@ -3526,28 +3502,54 @@ impl Document {
             .or_insert_with(|| Dom::from_ref(context));
     }
 
-    pub(crate) fn flush_dirty_2d_canvases(&self) {
-        self.dirty_2d_contexts
-            .borrow_mut()
-            .drain()
-            .filter(|(_, context)| context.onscreen())
-            .for_each(|(_, context)| context.update_rendering());
-    }
-
     #[cfg(feature = "webgpu")]
     pub(crate) fn webgpu_contexts(&self) -> WebGPUContextsMap {
         self.webgpu_contexts.clone()
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    #[cfg(feature = "webgpu")]
-    pub(crate) fn update_rendering_of_webgpu_canvases(&self) {
+    /// An implementation of step 22 from
+    /// <https://html.spec.whatwg.org/multipage/#update-the-rendering>:
+    ///
+    // > Step 22: For each doc of docs, update the rendering or user interface of
+    // > doc and its node navigable to reflect the current state.
+    //
+    // Returns true if a reflow occured.
+    pub(crate) fn update_the_rendering(&self, can_gc: CanGc) -> bool {
+        self.update_animating_images();
+
+        // All dirty canvases are flushed before updating the rendering.
+        #[cfg(feature = "webgpu")]
         self.webgpu_contexts
             .borrow_mut()
             .iter()
             .filter_map(|(_, context)| context.root())
             .filter(|context| context.onscreen())
             .for_each(|context| context.update_rendering());
+
+        self.dirty_2d_contexts
+            .borrow_mut()
+            .drain()
+            .filter(|(_, context)| context.onscreen())
+            .for_each(|(_, context)| context.update_rendering());
+
+        let dirty_webgl_context_ids: Vec<_> = self
+            .dirty_webgl_contexts
+            .borrow_mut()
+            .drain()
+            .filter(|(_, context)| context.onscreen())
+            .map(|(id, _)| id)
+            .collect();
+        if !dirty_webgl_context_ids.is_empty() {
+            let (sender, receiver) = webgl::webgl_channel().unwrap();
+            self.window
+                .webgl_chan()
+                .expect("Where's the WebGL channel?")
+                .send(WebGLMsg::SwapBuffers(dirty_webgl_context_ids, sender, 0))
+                .unwrap();
+            receiver.recv().unwrap();
+        }
+
+        self.window().reflow(ReflowGoal::UpdateTheRendering, can_gc)
     }
 
     pub(crate) fn id_map(&self) -> Ref<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {
