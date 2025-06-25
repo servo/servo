@@ -122,7 +122,7 @@ class ServoHandler(mozlog.reader.LogHandler):
 
     def reset_state(self):
         self.reset_statistics()
-        self.suite_count = 0
+        self.currently_detecting_flakes = False
         self.test_output = collections.defaultdict(str)
         self.subtest_failures = collections.defaultdict(list)
         self.tests_with_failing_subtests = []
@@ -161,9 +161,14 @@ class ServoHandler(mozlog.reader.LogHandler):
     def suite_start(self, data):
         if self.detect_flakes:
             self.reset_statistics()
+            # If there were any unexpected results and we are starting another suite, assume
+            # that this suite has been launched to detect intermittent tests.
+            # TODO: Support running more than a single suite at once.
+            if self.unexpected_results:
+                self.currently_detecting_flakes = True
         else:
             self.reset_state()
-        self.suite_count += 1
+
         self.number_of_tests = sum(len(tests) for tests in itervalues(data["tests"]))
         self.suite_start_time = data["time"]
 
@@ -189,31 +194,33 @@ class ServoHandler(mozlog.reader.LogHandler):
         subtest_failures = self.subtest_failures.pop(test_path, [])
         test_output = self.test_output.pop(test_path, "")
 
-        is_expected = had_expected_test_result and not subtest_failures
-
-        if self.suite_count >= 2:
-            # we assume all next suites are from retry-unexpected
-            # so runs contain only known unexpected results
-            if not is_expected:
-                return UnexpectedResult(
-                    test_path,
-                    test_status,
-                    data.get("expected", test_status),
-                    data.get("message", ""),
-                    data["time"],
-                    "",
-                    subtest_failures,
-                )
-            for unexpected in self.unexpected_results:
-                if unexpected.path == test_path:
-                    unexpected.flaky = True
-                    break
+        if had_expected_test_result and not subtest_failures:
+            if not self.currently_detecting_flakes:
+                self.expected[test_status] += 1
+            else:
+                # When `retry_unexpected` is passed and we are currently detecting flaky tests
+                # we assume that this suite only runs tests that have already been run and are
+                # in the list of unexpected results.
+                for unexpected in self.unexpected_results:
+                    if unexpected.path == test_path:
+                        unexpected.flaky = True
+                        break
 
             return None
 
-        if is_expected:
-            self.expected[test_status] += 1
-            return None
+        # If we are currently detecting flakes and a test still had an unexpected
+        # result, it's enough to simply return the unexpected result. It isn't
+        # necessary to update any of the test counting data structures.
+        if self.currently_detecting_flakes:
+            return UnexpectedResult(
+                test_path,
+                test_status,
+                data.get("expected", test_status),
+                data.get("message", ""),
+                data["time"],
+                "",
+                subtest_failures,
+            )
 
         # If the test crashed or timed out, we also include any process output,
         # because there is a good chance that the test produced a stack trace
@@ -325,7 +332,7 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
 
     def suite_start(self, data):
         ServoHandler.suite_start(self, data)
-        maybe_flakes_msg = " to detect flakes" if self.suite_count >= 2 else ""
+        maybe_flakes_msg = " to detect flaky tests" if self.currently_detecting_flakes else ""
         if self.number_of_tests == 0:
             return f"Running tests in {data['source']}{maybe_flakes_msg}\n\n"
         else:
