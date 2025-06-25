@@ -14,6 +14,7 @@ use std::sync::{Arc, LazyLock};
 use app_units::Au;
 use base::Epoch;
 use base::id::{PipelineId, WebViewId};
+use bitflags::bitflags;
 use compositing_traits::CrossProcessCompositorApi;
 use compositing_traits::display_list::ScrollType;
 use embedder_traits::{Theme, UntrustedNodeAddress, ViewportDetails};
@@ -25,8 +26,8 @@ use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
 use layout_api::{
-    Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType, OffsetParentResponse, ReflowGoal,
-    ReflowRequest, ReflowResult, TrustedNodeAddress,
+    Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType, OffsetParentResponse, QueryMsg,
+    ReflowGoal, ReflowRequest, ReflowResult, TrustedNodeAddress,
 };
 use log::{debug, error, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
@@ -588,21 +589,31 @@ impl LayoutThread {
         if reflow_request.restyle_reason.needs_restyle() {
             return false;
         }
+        // We always need to at least build a fragment tree.
+        if !self.fragment_tree.borrow().is_none() {
+            return false;
+        }
 
-        // If only the fragment tree is required, and it's up-to-date, layout is unnecessary.
-        if !reflow_request.reflow_goal.needs_display() && self.fragment_tree.borrow().is_some() {
+        // If we have a fragment tree and it's up-to-date and this reflow
+        // doesn't need more reflow results, we can skip the rest of layout.
+        let necessary_phases = ReflowPhases::necessary(&reflow_request.reflow_goal);
+        if necessary_phases.is_empty() {
             return true;
         }
 
-        // If only the stacking context tree is required, and it's up-to-date, layout is unnecessary.
-        if !reflow_request.reflow_goal.needs_display_list() &&
-            self.stacking_context_tree.borrow().is_some() &&
-            !self.need_new_stacking_context_tree.get()
-        {
-            return true;
+        // If only the stacking context tree is required, and it's up-to-date,
+        // layout is unnecessary, otherwise a layout is necessary.
+        if necessary_phases == ReflowPhases::StackingContextTreeConstruction {
+            return self.stacking_context_tree.borrow().is_some() &&
+                !self.need_new_stacking_context_tree.get();
         }
 
-        // Otherwise, the only interesting thing is whether the current display list is up-to-date.
+        // Otherwise, the only interesting thing is whether the current display
+        // list is up-to-date.
+        assert_eq!(
+            necessary_phases,
+            ReflowPhases::StackingContextTreeConstruction | ReflowPhases::DisplayListConstruction
+        );
         !self.need_new_display_list.get()
     }
 
@@ -910,8 +921,8 @@ impl LayoutThread {
     }
 
     fn build_stacking_context_tree(&self, reflow_request: &ReflowRequest, damage: RestyleDamage) {
-        if !reflow_request.reflow_goal.needs_display_list() &&
-            !reflow_request.reflow_goal.needs_display()
+        if !ReflowPhases::necessary(&reflow_request.reflow_goal)
+            .contains(ReflowPhases::StackingContextTreeConstruction)
         {
             return;
         }
@@ -973,7 +984,9 @@ impl LayoutThread {
         damage: RestyleDamage,
         layout_context: &mut LayoutContext<'_>,
     ) -> bool {
-        if !reflow_request.reflow_goal.needs_display() {
+        if !ReflowPhases::necessary(&reflow_request.reflow_goal)
+            .contains(ReflowPhases::DisplayListConstruction)
+        {
             return false;
         }
         let Some(fragment_tree) = &*self.fragment_tree.borrow() else {
@@ -1360,6 +1373,44 @@ impl Drop for SnapshotSetter<'_> {
     fn drop(&mut self) {
         for element in &self.elements_with_snapshot {
             unsafe { element.unset_snapshot_flags() }
+        }
+    }
+}
+
+bitflags! {
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub struct ReflowPhases: u8 {
+        const StackingContextTreeConstruction = 1 << 0;
+        const DisplayListConstruction = 1 << 1;
+    }
+}
+
+impl ReflowPhases {
+    /// Return the necessary phases of layout for the given [`ReflowGoal`]. Note that all
+    /// [`ReflowGoals`] need the basic restyle + box tree layout + fragment tree layout,
+    /// so [`ReflowPhases::empty()`] implies that.
+    fn necessary(reflow_goal: &ReflowGoal) -> Self {
+        match reflow_goal {
+            ReflowGoal::UpdateTheRendering | ReflowGoal::UpdateScrollNode(..) => {
+                Self::StackingContextTreeConstruction | Self::DisplayListConstruction
+            },
+            ReflowGoal::LayoutQuery(query) => match query {
+                QueryMsg::NodesFromPointQuery => {
+                    Self::StackingContextTreeConstruction | Self::DisplayListConstruction
+                },
+                QueryMsg::ResolvedStyleQuery | QueryMsg::ScrollingAreaOrOffsetQuery => {
+                    Self::StackingContextTreeConstruction
+                },
+                QueryMsg::ClientRectQuery |
+                QueryMsg::ContentBox |
+                QueryMsg::ContentBoxes |
+                QueryMsg::ElementInnerOuterTextQuery |
+                QueryMsg::InnerWindowDimensionsQuery |
+                QueryMsg::OffsetParentQuery |
+                QueryMsg::ResolvedFontStyleQuery |
+                QueryMsg::TextIndexQuery |
+                QueryMsg::StyleQuery => Self::empty(),
+            },
         }
     }
 }
