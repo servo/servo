@@ -68,11 +68,12 @@ use tokio::sync::mpsc::{
     Receiver as TokioReceiver, Sender as TokioSender, UnboundedReceiver, UnboundedSender, channel,
     unbounded_channel,
 };
+use tokio_rustls::TlsConnector;
 use tokio_stream::wrappers::ReceiverStream;
 use url::Url;
 
 use crate::async_runtime::HANDLE;
-use crate::connector::{CertificateErrorOverrideManager, Connector};
+use crate::connector::{CertificateErrorOverrideManager, Connector, create_tls_config};
 use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::decoder::Decoder;
@@ -1959,9 +1960,15 @@ async fn http_network_fetch(
             let try_socket = TcpStream::connect((&*domain.to_string(), port)).await;
             let socket = try_socket.unwrap();
 
-            // FIXME(pylbrecht): provide TlsConnector
+            let mut tls_config = create_tls_config(
+                context.ca_certificates.clone(),
+                context.ignore_certificate_errors,
+                context.state.override_manager.clone(),
+            );
+            tls_config.alpn_protocols = vec!["http/1.1".to_string().into()];
+            let connector = TlsConnector::from(std::sync::Arc::new(tls_config));
             let (stream, response) =
-                client_async_tls_with_connector_and_config(client, socket, None, None)
+                client_async_tls_with_connector_and_config(client, socket, Some(connector), None)
                     .await
                     .unwrap();
 
