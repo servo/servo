@@ -112,12 +112,12 @@ class ServoHandler(mozlog.reader.LogHandler):
     """LogHandler designed to collect unexpected results for use by
     script or by the ServoFormatter output formatter."""
 
-    def __init__(self, flakes_detection=False):
+    def __init__(self, detect_flakes=False):
         """
         Flake detection assumes first suite is actual run
         and rest of the suites are retry-unexpected for flakes detection.
         """
-        self.flakes_detection = flakes_detection
+        self.detect_flakes = detect_flakes
         self.reset_state()
 
     def reset_state(self):
