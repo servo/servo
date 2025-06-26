@@ -75,8 +75,8 @@ impl WebGLValidator for CommonTexImage3DValidator<'_> {
         // format.
         let internal_format = match TexFormat::from_gl_constant(self.internal_format) {
             Some(format)
-                if format.required_webgl_version() <= self.context.webgl_version()
-                    && format.usable_as_internal() =>
+                if format.required_webgl_version() <= self.context.webgl_version() &&
+                    format.usable_as_internal() =>
             {
                 format
             },
@@ -86,7 +86,8 @@ impl WebGLValidator for CommonTexImage3DValidator<'_> {
             },
         };
 
-        // GL_INVALID_VALUE is generated if width, height, or depth is less than 0 or greater than GL_MAX_3D_TEXTURE_SIZE.
+        // GL_INVALID_VALUE is generated if width, height, or depth is less than 0 or greater than
+        // GL_MAX_3D_TEXTURE_SIZE.
         if self.width < 0 || self.height < 0 || self.depth < 0 {
             self.context.webgl_error(InvalidValue);
             return Err(TexImageValidationError::NegativeDimension);
@@ -262,8 +263,8 @@ impl WebGLValidator for TexImage3DValidator<'_> {
 
         // GL_INVALID_OPERATION is generated if target is GL_TEXTURE_3D and
         // format is GL_DEPTH_COMPONENT, or GL_DEPTH_STENCIL.
-        if target == TexImageTarget::Texture3D
-            && (format == TexFormat::DepthComponent || format == TexFormat::DepthStencil)
+        if target == TexImageTarget::Texture3D &&
+            (format == TexFormat::DepthComponent || format == TexFormat::DepthStencil)
         {
             context.webgl_error(InvalidOperation);
             return Err(TexImageValidationError::InvalidTypeForFormat);
@@ -292,12 +293,6 @@ impl WebGLValidator for TexImage3DValidator<'_> {
             context.webgl_error(InvalidOperation);
             return Err(TexImageValidationError::InvalidTypeForFormat);
         }
-        // TODO:
-        // GL_INVALID_OPERATION is generated if a non-zero buffer object name is bound to the GL_PIXEL_UNPACK_BUFFER target and
-        // the buffer object's data store is currently mapped.
-        // the data would be unpacked from the buffer object such that the memory reads required would exceed the data store size.
-        // data is not evenly divisible into the number of bytes needed to store in memory a datum indicated by type.
-        // TODO: If srcData is null, a buffer of sufficient size initialized to 0 is passed.
 
         Ok(TexImage3DValidatorResult {
             width,
