@@ -198,10 +198,6 @@ impl SurfacePattern {
         }
     }
 
-    pub fn size(&self) -> Size2D<f32> {
-        self.image.size().cast()
-    }
-
     pub fn repetition(&self) -> &Repetition {
         &self.repeat
     }
