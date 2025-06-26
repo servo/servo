@@ -107,7 +107,7 @@ impl BackgroundHangMonitorRegister for HangMonitorRegister {
                 target_env = "musl"
             )),
         ))]
-        let sampler = crate::sampler_linux::LinuxSampler::new_boxed();
+        let sampler = crate::sampler_backtrace::LinuxSampler::new_boxed();
         #[cfg(any(
             not(feature = "sampler"),
             target_os = "android",
