@@ -385,7 +385,15 @@ impl App {
                         .expect("Should have at least one window in servoshell");
 
                     let size = window.request_resize(&webview, size);
-                    if let Err(error) = size_sender.send(size.unwrap_or_default()) {
+                    if let Some(size) = size {
+                        info!("Embedder: SetWindowSize to {}, {}", size.width, size.height);
+                    } else {
+                        warn!("Embedder: SetWindowSize failed. ");
+                    }
+
+                    if let Err(error) =
+                        size_sender.send(size.unwrap_or(window.screen_geometry().size))
+                    {
                         warn!("Failed to send window size: {error}");
                     }
                 },

@@ -796,12 +796,15 @@ impl Handler {
         )))
     }
 
-    fn handle_window_size(&self) -> WebDriverResult<WebDriverResponse> {
+    /// <https://w3c.github.io/webdriver/#get-window-rect>
+    fn handle_window_size<const CHECK_OPEN: bool>(&self) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
         let webview_id = self.session()?.webview_id;
-
-        self.verify_top_level_browsing_context_is_open(webview_id)?;
-
+        // Step 1. If session's current top-level browsing context is no longer open,
+        // return error with error code no such window.
+        if CHECK_OPEN {
+            self.verify_top_level_browsing_context_is_open(webview_id)?;
+        }
         self.send_message_to_embedder(WebDriverCommandMsg::GetWindowSize(webview_id, sender))?;
 
         let window_size = wait_for_script_response(receiver)?;
@@ -814,46 +817,58 @@ impl Handler {
         Ok(WebDriverResponse::WindowRect(window_size_response))
     }
 
+    /// <https://w3c.github.io/webdriver/#set-window-rect>
     fn handle_set_window_size(
         &self,
         params: &WindowRectParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        let (sender, receiver) = ipc::channel().unwrap();
+        // Step 9 - 10. Input Validation. Already done when deserialize.
 
-        // We don't current allow modifying the window x/y positions, so we can just
-        // return the current window rectangle.
-        if params.width.is_none() || params.height.is_none() {
-            return self.handle_window_size();
-        }
+        // Step 11. In case the Set Window Rect command is partially supported
+        // (i.e. some combinations of arguments are supported but not others),
+        // the implmentation is expected to continue with the remaining steps.
+        // DO NOT return "unsupported operation".
 
-        let width = params.width.unwrap_or(0);
-        let height = params.height.unwrap_or(0);
-        let size = Size2D::new(width as u32, height as u32);
         let webview_id = self.session()?.webview_id;
-        // TODO: Return some other error earlier if the size is invalid.
-
         // Step 12. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
         self.verify_top_level_browsing_context_is_open(webview_id)?;
 
+        // We don't current allow modifying the window x/y positions, so we can just
+        // return the current window rectangle if not changing dimension.
+        if params.width.is_none() && params.height.is_none() {
+            return self.handle_window_size::<false>();
+        }
+        // (TODO) Step 14. Fully exit fullscreen.
+        // (TODO) Step 15. Restore the window.
+        let (sender, receiver) = ipc::channel().unwrap();
+
+        // Step 16 - 17. Set the width/height in CSS pixels.
+        // This should be done as long as one of width/height is not null.
+
+        let (width, height) = if params.width.is_some() && params.height.is_some() {
+            (params.width.unwrap(), params.height.unwrap())
+        } else {
+            let WebDriverResponse::WindowRect(current) = self.handle_window_size::<false>()? else {
+                unreachable!("handle_window_size() must return WindowRect");
+            };
+            (
+                params.width.unwrap_or(current.width),
+                params.height.unwrap_or(current.height),
+            )
+        };
+
         self.send_message_to_embedder(WebDriverCommandMsg::SetWindowSize(
             webview_id,
-            size.to_i32(),
+            Size2D::new(width, height),
             sender.clone(),
         ))?;
 
-        let timeout = self.resize_timeout;
-        let embedder_sender = self.embedder_sender.clone();
-        let waker = self.event_loop_waker.clone();
-        thread::spawn(move || {
-            // On timeout, we send a GetWindowSize message to the constellation,
-            // which will give the current window size.
-            thread::sleep(Duration::from_millis(timeout as u64));
-            let _ = embedder_sender.send(WebDriverCommandMsg::GetWindowSize(webview_id, sender));
-            waker.wake();
-        });
-
         let window_size = wait_for_script_response(receiver)?;
+        info!(
+            "window_size after resizeing: {}, {}",
+            window_size.width, window_size.height
+        );
         let window_size_response = WindowRectResponse {
             x: 0,
             y: 0,
@@ -2233,7 +2248,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::AddCookie(ref parameters) => self.handle_add_cookie(parameters),
             WebDriverCommand::Get(ref parameters) => self.handle_get(parameters),
             WebDriverCommand::GetCurrentUrl => self.handle_current_url(),
-            WebDriverCommand::GetWindowRect => self.handle_window_size(),
+            WebDriverCommand::GetWindowRect => self.handle_window_size::<true>(),
             WebDriverCommand::SetWindowRect(ref size) => self.handle_set_window_size(size),
             WebDriverCommand::IsEnabled(ref element) => self.handle_is_enabled(element),
             WebDriverCommand::IsSelected(ref element) => self.handle_is_selected(element),
