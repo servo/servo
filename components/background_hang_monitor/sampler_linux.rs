@@ -167,17 +167,17 @@ impl Sampler for LinuxSampler {
                 .wait_through_intr()
                 .expect("msg2 failed");
 
-            let mut ns = NativeStack::new();
+            let mut native_stack = NativeStack::new();
             unsafe {
                 backtrace::trace_unsynchronized(|frame| {
                     let ip = frame.ip();
                     let sp = frame.sp();
 
                     //This return value here determines whether we proceed to the next stack frame or not.
-                    ns.process_register(ip, sp).is_ok()
+                    native_stack.process_register(ip, sp).is_ok()
                 })
             };
-            result = Ok(ns);
+            result = Ok(native_stack);
 
             // signal the thread to continue.
             shared_state
