@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::{self, cmp, fmt};
-
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{TexDataType, TexFormat};
 use js::jsapi::Type;
@@ -14,7 +12,7 @@ use super::tex_image_2d::TexImageValidationError;
 use super::types::TexImageTarget;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
-use crate::dom::webgltexture::{ImageInfo, TexCompression, TexCompressionValidation, WebGLTexture};
+use crate::dom::webgltexture::WebGLTexture;
 
 fn log2(n: u32) -> u32 {
     31 - n.leading_zeros()

@@ -158,7 +158,7 @@ impl WebGLTexture {
         } else {
             // This is the first time binding
             let face_count = match target {
-                constants::TEXTURE_2D => 1,
+                constants::TEXTURE_2D | constants::TEXTURE_2D_ARRAY | constants::TEXTURE_3D => 1,
                 constants::TEXTURE_CUBE_MAP => 6,
                 _ => return Err(WebGLError::InvalidEnum),
             };

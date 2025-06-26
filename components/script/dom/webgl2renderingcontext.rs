@@ -2416,6 +2416,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                 constants::BOOL
                 | constants::UNSIGNED_INT
                 | constants::SAMPLER_2D
+                | constants::SAMPLER_2D_ARRAY
+                | constants::SAMPLER_3D
                 | constants::SAMPLER_CUBE => {},
                 _ => return Err(InvalidOperation),
             }
