@@ -38,3 +38,6 @@ Mako == 1.2.2
 
 # For devtools tests.
 geckordp == 1.0.3
+
+# For Python static type checking
+pyrefly == 0.21.0

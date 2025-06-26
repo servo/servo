@@ -17,7 +17,7 @@ import os
 import re
 import subprocess
 import sys
-from typing import Any, Dict, List
+from typing import Any, Dict, Iterator, List, Tuple
 
 import colorama
 import toml
@@ -374,6 +374,53 @@ def check_ruff_lints():
                 error["location"]["row"],
                 f"[{error['code']}] {error['message']} ({error['url']})",
             )
+
+
+def normalize_path(path: str) -> str:
+    abs_path = os.path.abspath(path)
+
+    if abs_path.startswith(TOPDIR):
+        relative = abs_path[len(TOPDIR) :]
+        return f".{relative}"
+
+    return path
+
+
+def split_pyrefly_errors(raw_log: bytes | str) -> Iterator[Tuple[str, int, str]]:
+    if isinstance(raw_log, bytes):
+        raw_log = raw_log.decode("utf-8")
+
+    decoded = raw_log.encode("utf-8").decode("unicode_escape")
+
+    blocks = re.split(r"(?=^ERROR )", decoded, flags=re.MULTILINE)
+
+    for block in blocks:
+        block = block.strip()
+        if not block:
+            continue
+
+        message_match = re.search(r"^ERROR (.*)", block, flags=re.MULTILINE)
+        message = message_match.group(1).strip() if message_match else "<unknown>"
+
+        location_match = re.search(r"-->\s+(.*?):(\d+):\d+", block)
+        if location_match:
+            filename = location_match.group(1).strip()
+            line = int(location_match.group(2))
+        else:
+            filename = "<unknown>"
+            line = 0
+
+        yield normalize_path(filename), line, message
+
+
+def check_pyrefly_type_checking():
+    print("\r ➤  Running `pyrefly` checks...")
+    try:
+        result = subprocess.run(["pyrefly", "check"], capture_output=True)
+    except subprocess.CalledProcessError:
+        pass
+    else:
+        yield from split_pyrefly_errors(result.stdout)
 
 
 def run_cargo_deny_lints():
@@ -1006,8 +1053,11 @@ def scan(only_changed_files=False, progress=False, github_annotations=False):
     cargo_lock_errors = run_cargo_deny_lints()
     wpt_errors = run_wpt_lints(only_changed_files)
 
+    python_type_check = check_pyrefly_type_checking()
     # chain all the iterators
-    errors = itertools.chain(config_errors, directory_errors, file_errors, python_errors, wpt_errors, cargo_lock_errors)
+    errors = itertools.chain(
+        config_errors, directory_errors, file_errors, python_errors, python_type_check, wpt_errors, cargo_lock_errors
+    )
 
     colorama.init()
     error = None
