@@ -50,9 +50,6 @@ mod from_compositor {
         fn log_target(&self) -> &'static str {
             match self {
                 Self::Exit => target!("Exit"),
-                Self::GetFocusTopLevelBrowsingContext(..) => {
-                    target!("GetFocusTopLevelBrowsingContext")
-                },
                 Self::IsReadyToSaveImage(..) => target!("IsReadyToSaveImage"),
                 Self::AllowNavigationResponse(..) => target!("AllowNavigationResponse"),
                 Self::LoadUrl(..) => target!("LoadUrl"),
