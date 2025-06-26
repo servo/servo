@@ -48,7 +48,6 @@ mod from_constellation {
                 Self::SendDisplayList { .. } => target!("SendDisplayList"),
                 Self::HitTest(..) => target!("HitTest"),
                 Self::GenerateImageKey(..) => target!("GenerateImageKey"),
-                Self::AddImage(..) => target!("AddImage"),
                 Self::UpdateImages(..) => target!("UpdateImages"),
                 Self::GenerateFontKeys(..) => target!("GenerateFontKeys"),
                 Self::AddFont(..) => target!("AddFont"),

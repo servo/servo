@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use app_units::Au;
 use canvas_traits::canvas::*;
-use compositing_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
+use compositing_traits::{CrossProcessCompositorApi, SerializableImageData};
 use euclid::default::{Box2D, Point2D, Rect, Size2D, Transform2D, Vector2D};
 use euclid::point2;
 use fonts::{
@@ -431,7 +431,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         };
         let data =
             SerializableImageData::Raw(IpcSharedMemory::from_bytes(draw_target.bytes().as_ref()));
-        compositor_api.update_images(vec![ImageUpdate::AddImage(image_key, descriptor, data)]);
+        compositor_api.update_image(image_key, descriptor, data);
         CanvasData {
             state: backend.new_paint_state(),
             backend,
@@ -1212,11 +1212,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         ));
 
         self.compositor_api
-            .update_images(vec![ImageUpdate::UpdateImage(
-                self.image_key,
-                descriptor,
-                data,
-            )]);
+            .update_image(self.image_key, descriptor, data);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
@@ -1342,8 +1338,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
 
 impl<B: Backend> Drop for CanvasData<'_, B> {
     fn drop(&mut self) {
-        self.compositor_api
-            .update_images(vec![ImageUpdate::DeleteImage(self.image_key)]);
+        self.compositor_api.delete_image(self.image_key);
     }
 }
 

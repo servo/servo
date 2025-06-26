@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex};
 
 use arrayvec::ArrayVec;
 use compositing_traits::{
-    CrossProcessCompositorApi, ImageUpdate, SerializableImageData, WebrenderExternalImageApi,
+    CrossProcessCompositorApi, SerializableImageData, WebrenderExternalImageApi,
     WebrenderImageSource,
 };
 use euclid::default::Size2D;
@@ -310,7 +310,7 @@ impl ContextData {
                 warn!("Unable to send FreeBuffer({:?}) ({:?})", buffer_id, e);
             };
         }
-        compositor_api.update_images(vec![ImageUpdate::DeleteImage(self.image_key)]);
+        compositor_api.delete_image(self.image_key);
     }
 
     /// Returns true if presentation id was updated (was newer)
@@ -421,12 +421,11 @@ impl crate::WGPU {
         };
 
         if needs_image_update {
-            self.compositor_api
-                .update_images(vec![ImageUpdate::UpdateImage(
-                    context_data.image_key,
-                    context_data.image_desc.0,
-                    SerializableImageData::External(context_data.image_data),
-                )]);
+            self.compositor_api.update_image(
+                context_data.image_key,
+                context_data.image_desc.0,
+                SerializableImageData::External(context_data.image_data),
+            );
         }
     }
 
@@ -574,11 +573,11 @@ fn update_wr_image(
                     return;
                 };
                 let old_presentation_buffer = swap_chain.data.replace(presentation_buffer);
-                compositor_api.update_images(vec![ImageUpdate::UpdateImage(
+                compositor_api.update_image(
                     context_data.image_key,
                     context_data.image_desc.0,
                     SerializableImageData::External(context_data.image_data),
-                )]);
+                );
                 if let Some(old_presentation_buffer) = old_presentation_buffer {
                     context_data.unmap_old_buffer(old_presentation_buffer)
                 }

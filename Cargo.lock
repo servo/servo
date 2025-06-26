@@ -1429,6 +1429,7 @@ dependencies = [
  "serde",
  "servo_geometry",
  "servo_malloc_size_of",
+ "smallvec",
  "strum_macros",
  "stylo",
  "stylo_traits",

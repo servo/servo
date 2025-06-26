@@ -200,7 +200,7 @@ impl MediaFrameRenderer {
 
 impl VideoFrameRenderer for MediaFrameRenderer {
     fn render(&mut self, frame: VideoFrame) {
-        let mut updates = vec![];
+        let mut updates = smallvec::smallvec![];
 
         if let Some(old_image_key) = mem::replace(&mut self.very_old_frame, self.old_frame.take()) {
             updates.push(ImageUpdate::DeleteImage(old_image_key));
