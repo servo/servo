@@ -954,7 +954,23 @@ impl WebGL2RenderingContext {
             .extension_manager()
             .effective_type(data_type.as_gl_constant());
 
-        // TODO:send command WebGLCommand::TexImage3D
+        self.base.send_command(WebGLCommand::TexImage3D {
+            target: target.as_gl_constant(),
+            level,
+            internal_format,
+            size: data.size(),
+            depth,
+            format,
+            data_type,
+            effective_data_type,
+            unpacking_alignment,
+            alpha_treatment,
+            y_axis_treatment,
+            pixel_format: data.pixel_format(),
+            data: data.into_shared_memory().into(),
+        });
+        // TODO: Hint/tex_parameter
+
         if let Some(fb) = self.base.bound_draw_framebuffer() {
             fb.invalidate_texture(&*texture);
         }
