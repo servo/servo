@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::mem;
-use std::net::TcpStream;
 
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg;
@@ -13,7 +12,7 @@ use serde_json::{Map, Value};
 use crate::StreamId;
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::timeline::HighResolutionStamp;
-use crate::protocol::ActorReplied;
+use crate::protocol::ClientRequest;
 
 pub struct FramerateActor {
     name: String,
@@ -30,12 +29,12 @@ impl Actor for FramerateActor {
 
     fn handle_message(
         &self,
+        _request: ClientRequest,
         _registry: &ActorRegistry,
         _msg_type: &str,
         _msg: &Map<String, Value>,
-        _stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorReplied, ActorError> {
+    ) -> Result<(), ActorError> {
         Err(ActorError::UnrecognizedPacketType)
     }
 }

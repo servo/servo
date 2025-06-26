@@ -2,14 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::net::TcpStream;
-
 use serde::Serialize;
 use serde_json::{Map, Value};
 
 use super::source::{SourceManager, SourcesReply};
 use crate::actor::{Actor, ActorError, ActorRegistry};
-use crate::protocol::{ActorReplied, JsonPacketStream};
+use crate::protocol::{ClientRequest, JsonPacketStream};
 use crate::{EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
@@ -71,13 +69,13 @@ impl Actor for ThreadActor {
 
     fn handle_message(
         &self,
+        mut request: ClientRequest,
         registry: &ActorRegistry,
         msg_type: &str,
         _msg: &Map<String, Value>,
-        stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorReplied, ActorError> {
-        Ok(match msg_type {
+    ) -> Result<(), ActorError> {
+        match msg_type {
             "attach" => {
                 let msg = ThreadAttached {
                     from: self.name(),
@@ -92,8 +90,8 @@ impl Actor for ThreadActor {
                         type_: "attached".to_owned(),
                     },
                 };
-                stream.write_json_packet(&msg)?;
-                stream.write_json_packet(&EmptyReplyMsg { from: self.name() })?
+                request.write_json_packet(&msg)?;
+                request.reply_final(&EmptyReplyMsg { from: self.name() })?
             },
 
             "resume" => {
@@ -101,8 +99,8 @@ impl Actor for ThreadActor {
                     from: self.name(),
                     type_: "resumed".to_owned(),
                 };
-                stream.write_json_packet(&msg)?;
-                stream.write_json_packet(&EmptyReplyMsg { from: self.name() })?
+                request.write_json_packet(&msg)?;
+                request.reply_final(&EmptyReplyMsg { from: self.name() })?
             },
 
             "interrupt" => {
@@ -110,10 +108,10 @@ impl Actor for ThreadActor {
                     from: self.name(),
                     type_: "interrupted".to_owned(),
                 };
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
 
-            "reconfigure" => stream.write_json_packet(&EmptyReplyMsg { from: self.name() })?,
+            "reconfigure" => request.reply_final(&EmptyReplyMsg { from: self.name() })?,
 
             // Client has attached to the thread and wants to load script sources.
             // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#loading-script-sources>
@@ -122,9 +120,10 @@ impl Actor for ThreadActor {
                     from: self.name(),
                     sources: self.source_manager.source_forms(registry),
                 };
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
             _ => return Err(ActorError::UnrecognizedPacketType),
-        })
+        };
+        Ok(())
     }
 }

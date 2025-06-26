@@ -5,14 +5,12 @@
 //! The layout actor informs the DevTools client of the layout properties of the document, such as
 //! grids or flexboxes. It acts as a placeholder for now.
 
-use std::net::TcpStream;
-
 use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
 use crate::actor::{Actor, ActorError, ActorRegistry};
-use crate::protocol::{ActorReplied, JsonPacketStream};
+use crate::protocol::ClientRequest;
 
 #[derive(Serialize)]
 pub struct LayoutInspectorActorMsg {
@@ -47,20 +45,20 @@ impl Actor for LayoutInspectorActor {
     /// - `getCurrentFlexbox`: Returns the active flexbox, non functional at the moment
     fn handle_message(
         &self,
+        request: ClientRequest,
         _registry: &ActorRegistry,
         msg_type: &str,
         _msg: &Map<String, Value>,
-        stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorReplied, ActorError> {
-        Ok(match msg_type {
+    ) -> Result<(), ActorError> {
+        match msg_type {
             "getGrids" => {
                 let msg = GetGridsReply {
                     from: self.name(),
                     // TODO: Actually create a list of grids
                     grids: vec![],
                 };
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
             "getCurrentFlexbox" => {
                 let msg = GetCurrentFlexboxReply {
@@ -68,10 +66,11 @@ impl Actor for LayoutInspectorActor {
                     // TODO: Create and return the current flexbox object
                     flexbox: None,
                 };
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
             _ => return Err(ActorError::UnrecognizedPacketType),
-        })
+        };
+        Ok(())
     }
 
     fn cleanup(&self, _id: StreamId) {}

@@ -16,7 +16,7 @@ use servo_url::ServoUrl;
 
 use crate::StreamId;
 use crate::actor::{Actor, ActorError, ActorRegistry};
-use crate::protocol::{ActorReplied, JsonPacketStream};
+use crate::protocol::{ClientRequest, JsonPacketStream};
 use crate::resource::ResourceAvailable;
 
 #[derive(Clone, Copy)]
@@ -68,28 +68,27 @@ impl Actor for WorkerActor {
     }
     fn handle_message(
         &self,
+        mut request: ClientRequest,
         _registry: &ActorRegistry,
         msg_type: &str,
         _msg: &Map<String, Value>,
-        stream: &mut TcpStream,
         stream_id: StreamId,
-    ) -> Result<ActorReplied, ActorError> {
-        Ok(match msg_type {
+    ) -> Result<(), ActorError> {
+        match msg_type {
             "attach" => {
                 let msg = AttachedReply {
                     from: self.name(),
                     type_: "attached".to_owned(),
                     url: self.url.as_str().to_owned(),
                 };
-                let replied = stream.write_json_packet(&msg)?;
+                request.write_json_packet(&msg)?;
                 self.streams
                     .borrow_mut()
-                    .insert(stream_id, stream.try_clone().unwrap());
+                    .insert(stream_id, request.try_clone_stream().unwrap());
                 // FIXME: fix messages to not require forging a pipeline for worker messages
                 self.script_chan
                     .send(WantsLiveNotifications(TEST_PIPELINE_ID, true))
                     .unwrap();
-                replied
             },
 
             "connect" => {
@@ -99,7 +98,7 @@ impl Actor for WorkerActor {
                     thread_actor: self.thread.clone(),
                     console_actor: self.console.clone(),
                 };
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
 
             "detach" => {
@@ -108,11 +107,12 @@ impl Actor for WorkerActor {
                     type_: "detached".to_string(),
                 };
                 self.cleanup(stream_id);
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
 
             _ => return Err(ActorError::UnrecognizedPacketType),
-        })
+        };
+        Ok(())
     }
 
     fn cleanup(&self, stream_id: StreamId) {

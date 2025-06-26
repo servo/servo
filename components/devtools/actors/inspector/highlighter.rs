@@ -5,8 +5,6 @@
 //! Handles highlighting selected DOM nodes in the inspector. At the moment it only replies and
 //! changes nothing on Servo's side.
 
-use std::net::TcpStream;
-
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg;
 use ipc_channel::ipc::IpcSender;
@@ -14,7 +12,7 @@ use serde::Serialize;
 use serde_json::{self, Map, Value};
 
 use crate::actor::{Actor, ActorError, ActorRegistry};
-use crate::protocol::{ActorReplied, JsonPacketStream};
+use crate::protocol::{ClientRequest, JsonPacketStream};
 use crate::{EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
@@ -46,13 +44,13 @@ impl Actor for HighlighterActor {
     /// - `hide`: Disables highlighting for the selected node
     fn handle_message(
         &self,
+        mut request: ClientRequest,
         registry: &ActorRegistry,
         msg_type: &str,
         msg: &Map<String, Value>,
-        stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorReplied, ActorError> {
-        Ok(match msg_type {
+    ) -> Result<(), ActorError> {
+        match msg_type {
             "show" => {
                 let Some(node_actor) = msg.get("node") else {
                     return Err(ActorError::MissingParameter);
@@ -69,7 +67,7 @@ impl Actor for HighlighterActor {
                         from: self.name(),
                         value: false,
                     };
-                    return Ok(stream.write_json_packet(&msg)?);
+                    return request.write_json_packet(&msg);
                 }
 
                 self.instruct_script_thread_to_highlight_node(
@@ -80,18 +78,19 @@ impl Actor for HighlighterActor {
                     from: self.name(),
                     value: true,
                 };
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
 
             "hide" => {
                 self.instruct_script_thread_to_highlight_node(None, registry);
 
                 let msg = EmptyReplyMsg { from: self.name() };
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
 
             _ => return Err(ActorError::UnrecognizedPacketType),
-        })
+        };
+        Ok(())
     }
 }
 

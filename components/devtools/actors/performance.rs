@@ -5,14 +5,12 @@
 // TODO: Is this actor still relevant?
 #![allow(dead_code)]
 
-use std::net::TcpStream;
-
 use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
 use crate::actor::{Actor, ActorError, ActorRegistry};
-use crate::protocol::{ActorDescription, ActorReplied, JsonPacketStream, Method};
+use crate::protocol::{ActorDescription, ClientRequest, Method};
 
 pub struct PerformanceActor {
     name: String,
@@ -62,13 +60,13 @@ impl Actor for PerformanceActor {
 
     fn handle_message(
         &self,
+        request: ClientRequest,
         _registry: &ActorRegistry,
         msg_type: &str,
         _msg: &Map<String, Value>,
-        stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorReplied, ActorError> {
-        Ok(match msg_type {
+    ) -> Result<(), ActorError> {
+        match msg_type {
             "connect" => {
                 let msg = ConnectReply {
                     from: self.name(),
@@ -82,7 +80,7 @@ impl Actor for PerformanceActor {
                         },
                     },
                 };
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
             "canCurrentlyRecord" => {
                 let msg = CanCurrentlyRecordReply {
@@ -92,10 +90,11 @@ impl Actor for PerformanceActor {
                         errors: vec![],
                     },
                 };
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
             _ => return Err(ActorError::UnrecognizedPacketType),
-        })
+        };
+        Ok(())
     }
 }
 

@@ -29,7 +29,7 @@ use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::object::ObjectActor;
 use crate::actors::worker::WorkerActor;
-use crate::protocol::{ActorReplied, JsonPacketStream};
+use crate::protocol::{ClientRequest, JsonPacketStream};
 use crate::resource::{ResourceArrayType, ResourceAvailable};
 use crate::{StreamId, UniqueId};
 
@@ -304,13 +304,13 @@ impl Actor for ConsoleActor {
 
     fn handle_message(
         &self,
+        request: ClientRequest,
         registry: &ActorRegistry,
         msg_type: &str,
         msg: &Map<String, Value>,
-        stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorReplied, ActorError> {
-        Ok(match msg_type {
+    ) -> Result<(), ActorError> {
+        match msg_type {
             "clearMessagesCache" => {
                 self.cached_events
                     .borrow_mut()
@@ -369,7 +369,7 @@ impl Actor for ConsoleActor {
                     from: self.name(),
                     messages,
                 };
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
 
             "startListeners" => {
@@ -384,7 +384,7 @@ impl Actor for ConsoleActor {
                         .collect(),
                     traits: StartedListenersTraits,
                 };
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
 
             "stopListeners" => {
@@ -400,7 +400,7 @@ impl Actor for ConsoleActor {
                         .map(|listener| listener.as_str().unwrap().to_owned())
                         .collect(),
                 };
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
 
             //TODO: implement autocompletion like onAutocomplete in
@@ -411,12 +411,12 @@ impl Actor for ConsoleActor {
                     matches: vec![],
                     match_prop: "".to_owned(),
                 };
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
 
             "evaluateJS" => {
                 let msg = self.evaluate_js(registry, msg);
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
 
             "evaluateJSAsync" => {
@@ -427,12 +427,12 @@ impl Actor for ConsoleActor {
                 };
                 // Emit an eager reply so that the client starts listening
                 // for an async event with the resultID
-                let replied = stream.write_json_packet(&early_reply)?;
+                let stream = request.reply(&early_reply)?;
 
                 if msg.get("eager").and_then(|v| v.as_bool()).unwrap_or(false) {
                     // We don't support the side-effect free evaluation that eager evalaution
                     // really needs.
-                    return Ok(replied);
+                    return Ok(());
                 }
 
                 let reply = self.evaluate_js(registry, msg).unwrap();
@@ -448,9 +448,7 @@ impl Actor for ConsoleActor {
                     helper_result: reply.helper_result,
                 };
                 // Send the data from evaluateJS along with a resultID
-                stream.write_json_packet(&msg)?;
-
-                replied
+                stream.write_json_packet(&msg)?
             },
 
             "setPreferences" => {
@@ -458,10 +456,11 @@ impl Actor for ConsoleActor {
                     from: self.name(),
                     updated: vec![],
                 };
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
 
             _ => return Err(ActorError::UnrecognizedPacketType),
-        })
+        };
+        Ok(())
     }
 }

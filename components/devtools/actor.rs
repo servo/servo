@@ -15,7 +15,7 @@ use log::debug;
 use serde_json::{Map, Value, json};
 
 use crate::StreamId;
-use crate::protocol::{ActorReplied, JsonPacketStream};
+use crate::protocol::{ClientRequest, JsonPacketStream};
 
 #[derive(Debug)]
 pub enum ActorError {
@@ -46,12 +46,12 @@ impl ActorError {
 pub(crate) trait Actor: Any + ActorAsAny {
     fn handle_message(
         &self,
+        request: ClientRequest,
         registry: &ActorRegistry,
         msg_type: &str,
         msg: &Map<String, Value>,
-        stream: &mut TcpStream,
         stream_id: StreamId,
-    ) -> Result<ActorReplied, ActorError>;
+    ) -> Result<(), ActorError>;
     fn name(&self) -> String;
     fn cleanup(&self, _id: StreamId) {}
 }
@@ -210,9 +210,18 @@ impl ActorRegistry {
                 let _ = stream.write_json_packet(&msg);
             },
             Some(actor) => {
+                let mut sent = false;
+                let reply = ClientRequest::new(stream, to, &mut sent);
                 let msg_type = msg.get("type").unwrap().as_str().unwrap();
-                match actor.handle_message(self, msg_type, msg, stream, stream_id) {
-                    Ok(_replied) => { /* do nothing */ },
+                match actor.handle_message(reply, self, msg_type, msg, stream_id) {
+                    Ok(()) => {
+                        if !sent {
+                            // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#error-packets>
+                            let _ = stream.write_json_packet(&json!({
+                                "from": actor.name(), "error": "unrecognizedPacketType"
+                            }));
+                        }
+                    },
                     Err(error) => {
                         // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#error-packets>
                         let _ = stream.write_json_packet(&json!({

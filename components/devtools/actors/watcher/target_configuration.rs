@@ -6,7 +6,6 @@
 //! This actor manages the configuration flags that the devtools host can apply to the targets.
 
 use std::collections::HashMap;
-use std::net::TcpStream;
 
 use embedder_traits::Theme;
 use log::warn;
@@ -16,7 +15,7 @@ use serde_json::{Map, Value};
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::tab::TabDescriptorActor;
-use crate::protocol::{ActorReplied, JsonPacketStream};
+use crate::protocol::{ClientRequest, JsonPacketStream};
 use crate::{EmptyReplyMsg, RootActor, StreamId};
 
 #[derive(Serialize)]
@@ -48,20 +47,20 @@ impl Actor for TargetConfigurationActor {
     /// - `updateConfiguration`: Receives new configuration flags from the devtools host.
     fn handle_message(
         &self,
+        mut request: ClientRequest,
         registry: &ActorRegistry,
         msg_type: &str,
         msg: &Map<String, Value>,
-        stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorReplied, ActorError> {
-        Ok(match msg_type {
+    ) -> Result<(), ActorError> {
+        match msg_type {
             "updateConfiguration" => {
                 let config = match msg.get("configuration").and_then(|v| v.as_object()) {
                     Some(config) => config,
                     None => {
                         let msg = EmptyReplyMsg { from: self.name() };
                         // should we send ActorError for None case
-                        return Ok(stream.write_json_packet(&msg)?);
+                        return request.write_json_packet(&msg);
                     },
                 };
                 if let Some(scheme) = config.get("colorSchemeSimulation").and_then(|v| v.as_str()) {
@@ -84,10 +83,11 @@ impl Actor for TargetConfigurationActor {
                     }
                 }
                 let msg = EmptyReplyMsg { from: self.name() };
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
             _ => return Err(ActorError::UnrecognizedPacketType),
-        })
+        };
+        Ok(())
     }
 }
 

@@ -6,7 +6,6 @@
 //! alternative names
 
 use std::collections::HashMap;
-use std::net::TcpStream;
 
 use devtools_traits::CssDatabaseProperty;
 use serde::Serialize;
@@ -14,7 +13,7 @@ use serde_json::{Map, Value};
 
 use crate::StreamId;
 use crate::actor::{Actor, ActorError, ActorRegistry};
-use crate::protocol::{ActorReplied, JsonPacketStream};
+use crate::protocol::{ClientRequest, JsonPacketStream};
 
 pub struct CssPropertiesActor {
     name: String,
@@ -38,19 +37,20 @@ impl Actor for CssPropertiesActor {
     ///   inspector can show the available options
     fn handle_message(
         &self,
+        mut request: ClientRequest,
         _registry: &ActorRegistry,
         msg_type: &str,
         _msg: &Map<String, Value>,
-        stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorReplied, ActorError> {
-        Ok(match msg_type {
-            "getCSSDatabase" => stream.write_json_packet(&GetCssDatabaseReply {
+    ) -> Result<(), ActorError> {
+        match msg_type {
+            "getCSSDatabase" => request.write_json_packet(&GetCssDatabaseReply {
                 from: self.name(),
                 properties: &self.properties,
             })?,
             _ => return Err(ActorError::UnrecognizedPacketType),
-        })
+        };
+        Ok(())
     }
 }
 

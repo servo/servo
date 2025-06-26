@@ -8,7 +8,6 @@
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::iter::once;
-use std::net::TcpStream;
 
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg::{GetLayout, GetSelectors};
@@ -22,7 +21,7 @@ use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::inspector::node::NodeActor;
 use crate::actors::inspector::style_rule::{AppliedRule, ComputedDeclaration, StyleRuleActor};
 use crate::actors::inspector::walker::{WalkerActor, find_child};
-use crate::protocol::{ActorReplied, JsonPacketStream};
+use crate::protocol::ClientRequest;
 
 #[derive(Serialize)]
 struct GetAppliedReply {
@@ -114,18 +113,18 @@ impl Actor for PageStyleActor {
     /// - `isPositionEditable`: Informs whether you can change a style property in the inspector.
     fn handle_message(
         &self,
+        request: ClientRequest,
         registry: &ActorRegistry,
         msg_type: &str,
         msg: &Map<String, Value>,
-        stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorReplied, ActorError> {
+    ) -> Result<(), ActorError> {
         match msg_type {
-            "getApplied" => self.get_applied(msg, registry, stream),
-            "getComputed" => self.get_computed(msg, registry, stream),
-            "getLayout" => self.get_layout(msg, registry, stream),
-            "isPositionEditable" => self.is_position_editable(stream),
-            _ => return Err(ActorError::UnrecognizedPacketType),
+            "getApplied" => self.get_applied(request, msg, registry),
+            "getComputed" => self.get_computed(request, msg, registry),
+            "getLayout" => self.get_layout(request, msg, registry),
+            "isPositionEditable" => self.is_position_editable(request),
+            _ => Err(ActorError::UnrecognizedPacketType),
         }
     }
 }
@@ -133,10 +132,10 @@ impl Actor for PageStyleActor {
 impl PageStyleActor {
     fn get_applied(
         &self,
+        request: ClientRequest,
         msg: &Map<String, Value>,
         registry: &ActorRegistry,
-        stream: &mut TcpStream,
-    ) -> Result<ActorReplied, ActorError> {
+    ) -> Result<(), ActorError> {
         let target = msg
             .get("node")
             .ok_or(ActorError::MissingParameter)?
@@ -218,15 +217,15 @@ impl PageStyleActor {
             entries,
             from: self.name(),
         };
-        Ok(stream.write_json_packet(&msg)?)
+        request.reply_final(&msg)
     }
 
     fn get_computed(
         &self,
+        request: ClientRequest,
         msg: &Map<String, Value>,
         registry: &ActorRegistry,
-        stream: &mut TcpStream,
-    ) -> Result<ActorReplied, ActorError> {
+    ) -> Result<(), ActorError> {
         let target = msg
             .get("node")
             .ok_or(ActorError::MissingParameter)?
@@ -256,15 +255,15 @@ impl PageStyleActor {
             computed,
             from: self.name(),
         };
-        Ok(stream.write_json_packet(&msg)?)
+        request.reply_final(&msg)
     }
 
     fn get_layout(
         &self,
+        request: ClientRequest,
         msg: &Map<String, Value>,
         registry: &ActorRegistry,
-        stream: &mut TcpStream,
-    ) -> Result<ActorReplied, ActorError> {
+    ) -> Result<(), ActorError> {
         let target = msg
             .get("node")
             .ok_or(ActorError::MissingParameter)?
@@ -349,14 +348,14 @@ impl PageStyleActor {
         };
         let msg = serde_json::to_string(&msg).map_err(|_| ActorError::Internal)?;
         let msg = serde_json::from_str::<Value>(&msg).map_err(|_| ActorError::Internal)?;
-        Ok(stream.write_json_packet(&msg)?)
+        request.reply_final(&msg)
     }
 
-    fn is_position_editable(&self, stream: &mut TcpStream) -> Result<ActorReplied, ActorError> {
+    fn is_position_editable(&self, request: ClientRequest) -> Result<(), ActorError> {
         let msg = IsPositionEditableReply {
             from: self.name(),
             value: false,
         };
-        stream.write_json_packet(&msg)
+        request.reply_final(&msg)
     }
 }

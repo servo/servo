@@ -30,7 +30,7 @@ use crate::actors::tab::TabDescriptorActor;
 use crate::actors::thread::ThreadActor;
 use crate::actors::watcher::{SessionContext, SessionContextType, WatcherActor};
 use crate::id::{DevtoolsBrowserId, DevtoolsBrowsingContextId, DevtoolsOuterWindowId, IdMap};
-use crate::protocol::{ActorReplied, JsonPacketStream};
+use crate::protocol::{ClientRequest, JsonPacketStream};
 use crate::resource::ResourceAvailable;
 use crate::{EmptyReplyMsg, StreamId};
 
@@ -166,27 +166,28 @@ impl Actor for BrowsingContextActor {
 
     fn handle_message(
         &self,
+        request: ClientRequest,
         _registry: &ActorRegistry,
         msg_type: &str,
         _msg: &Map<String, Value>,
-        stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorReplied, ActorError> {
-        Ok(match msg_type {
+    ) -> Result<(), ActorError> {
+        match msg_type {
             "listFrames" => {
                 // TODO: Find out what needs to be listed here
                 let msg = EmptyReplyMsg { from: self.name() };
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
             "listWorkers" => {
-                stream.write_json_packet(&ListWorkersReply {
+                request.reply_final(&ListWorkersReply {
                     from: self.name(),
                     // TODO: Find out what needs to be listed here
                     workers: vec![],
                 })?
             },
             _ => return Err(ActorError::UnrecognizedPacketType),
-        })
+        };
+        Ok(())
     }
 
     fn cleanup(&self, id: StreamId) {
@@ -351,8 +352,8 @@ impl BrowsingContextActor {
         *self.title.borrow_mut() = title;
     }
 
-    pub(crate) fn frame_update(&self, stream: &mut TcpStream) {
-        let _ = stream.write_json_packet(&FrameUpdateReply {
+    pub(crate) fn frame_update(&self, request: &mut ClientRequest) {
+        let _ = request.write_json_packet(&FrameUpdateReply {
             from: self.name(),
             type_: "frameUpdate".into(),
             frames: vec![FrameUpdateMsg {

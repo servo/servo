@@ -6,7 +6,6 @@
 
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::net::TcpStream;
 
 use devtools_traits::DevtoolScriptControlMsg;
 use devtools_traits::DevtoolScriptControlMsg::GetRootNode;
@@ -21,7 +20,7 @@ use crate::actors::inspector::highlighter::{HighlighterActor, HighlighterMsg};
 use crate::actors::inspector::node::NodeInfoToProtocol;
 use crate::actors::inspector::page_style::{PageStyleActor, PageStyleMsg};
 use crate::actors::inspector::walker::{WalkerActor, WalkerMsg};
-use crate::protocol::{ActorReplied, JsonPacketStream};
+use crate::protocol::ClientRequest;
 
 pub mod accessibility;
 pub mod css_properties;
@@ -73,15 +72,15 @@ impl Actor for InspectorActor {
 
     fn handle_message(
         &self,
+        request: ClientRequest,
         registry: &ActorRegistry,
         msg_type: &str,
         _msg: &Map<String, Value>,
-        stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorReplied, ActorError> {
+    ) -> Result<(), ActorError> {
         let browsing_context = registry.find::<BrowsingContextActor>(&self.browsing_context);
         let pipeline = browsing_context.active_pipeline_id.get();
-        Ok(match msg_type {
+        match msg_type {
             "getWalker" => {
                 let (tx, rx) = ipc::channel().unwrap();
                 self.script_chan.send(GetRootNode(pipeline, tx)).unwrap();
@@ -121,7 +120,7 @@ impl Actor for InspectorActor {
                         root,
                     },
                 };
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
 
             "getPageStyle" => {
@@ -148,7 +147,7 @@ impl Actor for InspectorActor {
                         ]),
                     },
                 };
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
 
             "supportsHighlighters" => {
@@ -156,7 +155,7 @@ impl Actor for InspectorActor {
                     from: self.name(),
                     value: true,
                 };
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
 
             "getHighlighterByType" => {
@@ -177,9 +176,10 @@ impl Actor for InspectorActor {
                         actor: self.highlighter.borrow().clone().unwrap(),
                     },
                 };
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
             _ => return Err(ActorError::UnrecognizedPacketType),
-        })
+        };
+        Ok(())
     }
 }

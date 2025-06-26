@@ -6,7 +6,7 @@ use serde::Serialize;
 
 use crate::EmptyReplyMsg;
 use crate::actor::{Actor, ActorError};
-use crate::protocol::{ActorReplied, JsonPacketStream};
+use crate::protocol::ClientRequest;
 
 #[derive(Serialize)]
 pub struct BreakpointListActorMsg {
@@ -24,23 +24,24 @@ impl Actor for BreakpointListActor {
 
     fn handle_message(
         &self,
+        request: ClientRequest,
         _registry: &crate::actor::ActorRegistry,
         msg_type: &str,
         _msg: &serde_json::Map<String, serde_json::Value>,
-        stream: &mut std::net::TcpStream,
         _stream_id: crate::StreamId,
-    ) -> Result<ActorReplied, ActorError> {
-        Ok(match msg_type {
+    ) -> Result<(), ActorError> {
+        match msg_type {
             "setBreakpoint" => {
                 let msg = EmptyReplyMsg { from: self.name() };
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
             "setActiveEventBreakpoints" => {
                 let msg = EmptyReplyMsg { from: self.name() };
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
             _ => return Err(ActorError::UnrecognizedPacketType),
-        })
+        };
+        Ok(())
     }
 }
 

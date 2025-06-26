@@ -7,7 +7,6 @@
 //! A group is either the html style attribute or one selector from one stylesheet.
 
 use std::collections::HashMap;
-use std::net::TcpStream;
 
 use devtools_traits::DevtoolScriptControlMsg::{
     GetAttributeStyle, GetComputedStyle, GetDocumentElement, GetStylesheetStyle, ModifyRule,
@@ -20,7 +19,7 @@ use crate::StreamId;
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::inspector::node::NodeActor;
 use crate::actors::inspector::walker::WalkerActor;
-use crate::protocol::{ActorReplied, JsonPacketStream};
+use crate::protocol::ClientRequest;
 
 const ELEMENT_STYLE_TYPE: u32 = 100;
 
@@ -98,13 +97,13 @@ impl Actor for StyleRuleActor {
     ///   when returning the list of rules.
     fn handle_message(
         &self,
+        request: ClientRequest,
         registry: &ActorRegistry,
         msg_type: &str,
         msg: &Map<String, Value>,
-        stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorReplied, ActorError> {
-        Ok(match msg_type {
+    ) -> Result<(), ActorError> {
+        match msg_type {
             "setRuleText" => {
                 // Parse the modifications sent from the client
                 let mods = msg
@@ -131,10 +130,11 @@ impl Actor for StyleRuleActor {
                     ))
                     .map_err(|_| ActorError::Internal)?;
 
-                stream.write_json_packet(&self.encodable(registry))?
+                request.reply_final(&self.encodable(registry))?
             },
             _ => return Err(ActorError::UnrecognizedPacketType),
-        })
+        };
+        Ok(())
     }
 }
 

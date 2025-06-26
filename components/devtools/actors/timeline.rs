@@ -23,7 +23,7 @@ use crate::StreamId;
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::framerate::FramerateActor;
 use crate::actors::memory::{MemoryActor, TimelineMemoryReply};
-use crate::protocol::{ActorReplied, JsonPacketStream};
+use crate::protocol::{ClientRequest, JsonPacketStream};
 
 pub struct TimelineActor {
     name: String,
@@ -190,13 +190,13 @@ impl Actor for TimelineActor {
 
     fn handle_message(
         &self,
+        request: ClientRequest,
         registry: &ActorRegistry,
         msg_type: &str,
         msg: &Map<String, Value>,
-        stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorReplied, ActorError> {
-        Ok(match msg_type {
+    ) -> Result<(), ActorError> {
+        match msg_type {
             "start" => {
                 **self.is_recording.lock().as_mut().unwrap() = true;
 
@@ -210,7 +210,7 @@ impl Actor for TimelineActor {
                     .unwrap();
 
                 //TODO: support multiple connections by using root actor's streams instead.
-                *self.stream.borrow_mut() = stream.try_clone().ok();
+                *self.stream.borrow_mut() = request.try_clone_stream().ok();
 
                 // init memory actor
                 if let Some(with_memory) = msg.get("withMemory") {
@@ -235,7 +235,7 @@ impl Actor for TimelineActor {
                     self.name(),
                     registry.shareable(),
                     registry.start_stamp(),
-                    stream.try_clone().unwrap(),
+                    request.try_clone_stream().unwrap(),
                     self.memory_actor.borrow().clone(),
                     self.framerate_actor.borrow().clone(),
                 );
@@ -249,7 +249,7 @@ impl Actor for TimelineActor {
                         CrossProcessInstant::now(),
                     ),
                 };
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
 
             "stop" => {
@@ -279,7 +279,7 @@ impl Actor for TimelineActor {
 
                 **self.is_recording.lock().as_mut().unwrap() = false;
                 self.stream.borrow_mut().take();
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
 
             "isRecording" => {
@@ -288,11 +288,12 @@ impl Actor for TimelineActor {
                     value: *self.is_recording.lock().unwrap(),
                 };
 
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
 
             _ => return Err(ActorError::UnrecognizedPacketType),
-        })
+        };
+        Ok(())
     }
 }
 

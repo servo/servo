@@ -7,7 +7,6 @@
 
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::net::TcpStream;
 
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg::{GetChildren, GetDocumentElement, ModifyAttribute};
@@ -18,7 +17,7 @@ use serde_json::{self, Map, Value};
 
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::inspector::walker::WalkerActor;
-use crate::protocol::{ActorReplied, JsonPacketStream};
+use crate::protocol::ClientRequest;
 use crate::{EmptyReplyMsg, StreamId};
 
 /// Text node type constant. This is defined again to avoid depending on `script`, where it is defined originally.
@@ -113,13 +112,13 @@ impl Actor for NodeActor {
     /// - `getUniqueSelector`: Returns the display name of this node
     fn handle_message(
         &self,
+        mut request: ClientRequest,
         registry: &ActorRegistry,
         msg_type: &str,
         msg: &Map<String, Value>,
-        stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorReplied, ActorError> {
-        Ok(match msg_type {
+    ) -> Result<(), ActorError> {
+        match msg_type {
             "modifyAttributes" => {
                 let mods = msg
                     .get("modifications")
@@ -134,7 +133,7 @@ impl Actor for NodeActor {
                     .collect();
 
                 let walker = registry.find::<WalkerActor>(&self.walker);
-                walker.new_mutations(stream, &self.name, &modifications);
+                walker.new_mutations(&mut request, &self.name, &modifications);
 
                 self.script_chan
                     .send(ModifyAttribute(
@@ -145,7 +144,7 @@ impl Actor for NodeActor {
                     .map_err(|_| ActorError::Internal)?;
 
                 let reply = EmptyReplyMsg { from: self.name() };
-                stream.write_json_packet(&reply)?
+                request.reply_final(&reply)?
             },
 
             "getUniqueSelector" => {
@@ -169,11 +168,12 @@ impl Actor for NodeActor {
                     from: self.name(),
                     value: node.display_name,
                 };
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
 
             _ => return Err(ActorError::UnrecognizedPacketType),
-        })
+        };
+        Ok(())
     }
 }
 

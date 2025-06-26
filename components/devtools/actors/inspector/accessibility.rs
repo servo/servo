@@ -5,14 +5,12 @@
 //! The Accessibility actor is responsible for the Accessibility tab in the DevTools page. Right
 //! now it is a placeholder for future functionality.
 
-use std::net::TcpStream;
-
 use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
 use crate::actor::{Actor, ActorError, ActorRegistry};
-use crate::protocol::{ActorReplied, JsonPacketStream};
+use crate::protocol::ClientRequest;
 
 #[derive(Serialize)]
 struct BootstrapState {
@@ -75,19 +73,19 @@ impl Actor for AccessibilityActor {
     ///   inspector Walker actor)
     fn handle_message(
         &self,
+        request: ClientRequest,
         registry: &ActorRegistry,
         msg_type: &str,
         _msg: &Map<String, Value>,
-        stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorReplied, ActorError> {
-        Ok(match msg_type {
+    ) -> Result<(), ActorError> {
+        match msg_type {
             "bootstrap" => {
                 let msg = BootstrapReply {
                     from: self.name(),
                     state: BootstrapState { enabled: false },
                 };
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
             "getSimulator" => {
                 // TODO: Create actual simulator
@@ -96,7 +94,7 @@ impl Actor for AccessibilityActor {
                     from: self.name(),
                     simulator: ActorMsg { actor: simulator },
                 };
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
             "getTraits" => {
                 let msg = GetTraitsReply {
@@ -105,7 +103,7 @@ impl Actor for AccessibilityActor {
                         tabbing_order: true,
                     },
                 };
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
             "getWalker" => {
                 // TODO: Create actual accessible walker
@@ -114,10 +112,11 @@ impl Actor for AccessibilityActor {
                     from: self.name(),
                     walker: ActorMsg { actor: walker },
                 };
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
             _ => return Err(ActorError::UnrecognizedPacketType),
-        })
+        };
+        Ok(())
     }
 }
 

@@ -10,7 +10,6 @@
 //! [Firefox JS implementation]: https://searchfox.org/mozilla-central/source/devtools/server/actors/root.js
 
 use std::cell::RefCell;
-use std::net::TcpStream;
 
 use serde::Serialize;
 use serde_json::{Map, Value, json};
@@ -22,7 +21,7 @@ use crate::actors::performance::PerformanceActor;
 use crate::actors::process::{ProcessActor, ProcessActorMsg};
 use crate::actors::tab::{TabDescriptorActor, TabDescriptorActorMsg};
 use crate::actors::worker::{WorkerActor, WorkerMsg};
-use crate::protocol::{ActorDescription, ActorReplied, JsonPacketStream};
+use crate::protocol::{ActorDescription, ClientRequest};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -133,25 +132,25 @@ impl Actor for RootActor {
 
     fn handle_message(
         &self,
+        request: ClientRequest,
         registry: &ActorRegistry,
         msg_type: &str,
         msg: &Map<String, Value>,
-        stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorReplied, ActorError> {
-        Ok(match msg_type {
+    ) -> Result<(), ActorError> {
+        match msg_type {
             "connect" => {
                 let message = json!({
                     "from": "root",
                 });
-                stream.write_json_packet(&message)?
+                request.reply_final(&message)?
             },
             "listAddons" => {
                 let actor = ListAddonsReply {
                     from: "root".to_owned(),
                     addons: vec![],
                 };
-                stream.write_json_packet(&actor)?
+                request.reply_final(&actor)?
             },
 
             "listProcesses" => {
@@ -160,7 +159,7 @@ impl Actor for RootActor {
                     from: self.name(),
                     processes: vec![process],
                 };
-                stream.write_json_packet(&reply)?
+                request.reply_final(&reply)?
             },
 
             // TODO: Unexpected message getTarget for process (when inspecting)
@@ -170,7 +169,7 @@ impl Actor for RootActor {
                     from: self.name(),
                     process_descriptor: process,
                 };
-                stream.write_json_packet(&reply)?
+                request.reply_final(&reply)?
             },
 
             "getRoot" => {
@@ -181,7 +180,7 @@ impl Actor for RootActor {
                     device_actor: self.device.clone(),
                     preference_actor: self.preference.clone(),
                 };
-                stream.write_json_packet(&actor)?
+                request.reply_final(&actor)?
             },
 
             "listTabs" => {
@@ -201,7 +200,7 @@ impl Actor for RootActor {
                         })
                         .collect(),
                 };
-                stream.write_json_packet(&actor)?
+                request.reply_final(&actor)?
             },
 
             "listServiceWorkerRegistrations" => {
@@ -209,7 +208,7 @@ impl Actor for RootActor {
                     from: self.name(),
                     registrations: vec![],
                 };
-                stream.write_json_packet(&reply)?
+                request.reply_final(&reply)?
             },
 
             "listWorkers" => {
@@ -221,7 +220,7 @@ impl Actor for RootActor {
                         .map(|name| registry.find::<WorkerActor>(name).encodable())
                         .collect(),
                 };
-                stream.write_json_packet(&reply)?
+                request.reply_final(&reply)?
             },
 
             "getTab" => {
@@ -240,7 +239,7 @@ impl Actor for RootActor {
                     from: self.name(),
                     tab,
                 };
-                stream.write_json_packet(&reply)?
+                request.reply_final(&reply)?
             },
 
             "protocolDescription" => {
@@ -251,11 +250,12 @@ impl Actor for RootActor {
                         device: DeviceActor::description(),
                     },
                 };
-                stream.write_json_packet(&msg)?
+                request.reply_final(&msg)?
             },
 
             _ => return Err(ActorError::UnrecognizedPacketType),
-        })
+        };
+        Ok(())
     }
 }
 
