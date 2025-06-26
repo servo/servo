@@ -99,29 +99,42 @@ impl JsonPacketStream for TcpStream {
 /// valid reply (see [`Self::is_valid_reply`]).
 ///
 /// It does not currently guarantee anything about messages sent via the [`TcpStream`] released via
-/// [`Self::try_clone_stream`] or the return values of [`Self::reply`] or [`Self::reply_final`].
-pub struct ClientRequest<'req> {
+/// [`Self::try_clone_stream`] or the return value of [`Self::reply`].
+pub struct ClientRequest<'req, 'sent> {
     /// Client stream.
     stream: &'req mut TcpStream,
     /// Expected actor name.
     actor_name: &'req str,
     /// Sent flag, allowing ActorRegistry to check for unhandled requests.
-    sent: &'req mut bool,
+    sent: &'sent mut bool,
 }
 
-impl<'req> ClientRequest<'req> {
-    /// Wrap the given client stream with an expected actor name and a sent flag.
+impl ClientRequest<'_, '_> {
+    /// Run the given handler, with a new request that wraps the given client stream and expected actor name.
     ///
-    /// Clears the sent flag, until the actor sends its reply.
-    pub fn new(client: &'req mut TcpStream, actor_name: &'req str, sent: &'req mut bool) -> Self {
-        *sent = false;
-        Self {
+    /// Returns [`ActorError::UnrecognizedPacketType`] if the actor did not send a reply.
+    pub fn handle<'req>(
+        client: &'req mut TcpStream,
+        actor_name: &'req str,
+        handler: impl FnOnce(ClientRequest<'req, '_>) -> Result<(), ActorError>,
+    ) -> Result<(), ActorError> {
+        let mut sent = false;
+        let request = ClientRequest {
             stream: client,
             actor_name,
-            sent,
+            sent: &mut sent,
+        };
+        handler(request)?;
+
+        if sent {
+            Ok(())
+        } else {
+            Err(ActorError::UnrecognizedPacketType)
         }
     }
+}
 
+impl<'req> ClientRequest<'req, '_> {
     /// Send the given reply to the request being handled.
     ///
     /// If successful, sets the sent flag and returns the underlying stream,
@@ -156,7 +169,7 @@ impl<'req> ClientRequest<'req> {
 }
 
 /// Actors can also send other messages before replying to a request.
-impl JsonPacketStream for ClientRequest<'_> {
+impl JsonPacketStream for ClientRequest<'_, '_> {
     fn write_json_packet<T: Serialize>(&mut self, message: &T) -> Result<(), ActorError> {
         debug_assert!(
             !self.is_valid_reply(message),

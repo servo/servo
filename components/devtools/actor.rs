@@ -210,24 +210,14 @@ impl ActorRegistry {
                 let _ = stream.write_json_packet(&msg);
             },
             Some(actor) => {
-                let mut sent = false;
-                let reply = ClientRequest::new(stream, to, &mut sent);
                 let msg_type = msg.get("type").unwrap().as_str().unwrap();
-                match actor.handle_message(reply, self, msg_type, msg, stream_id) {
-                    Ok(()) => {
-                        if !sent {
-                            // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#error-packets>
-                            let _ = stream.write_json_packet(&json!({
-                                "from": actor.name(), "error": "unrecognizedPacketType"
-                            }));
-                        }
-                    },
-                    Err(error) => {
-                        // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#error-packets>
-                        let _ = stream.write_json_packet(&json!({
-                            "from": actor.name(), "error":error.name()
-                        }));
-                    },
+                if let Err(error) = ClientRequest::handle(stream, to, |req| {
+                    actor.handle_message(req, self, msg_type, msg, stream_id)
+                }) {
+                    // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#error-packets>
+                    let _ = stream.write_json_packet(&json!({
+                        "from": actor.name(), "error": error.name()
+                    }));
                 }
             },
         }
