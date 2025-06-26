@@ -5149,6 +5149,14 @@ impl TexPixels {
     pub(crate) fn premultiplied(&self) -> bool {
         self.premultiplied
     }
+
+    pub(crate) fn pixel_format(&self) -> Option<PixelFormat> {
+        self.pixel_format
+    }
+
+    pub(crate) fn into_shared_memory(self) -> IpcSharedMemory {
+        self.data
+    }
 }
 
 pub(crate) enum TexSource {

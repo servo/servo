@@ -114,7 +114,7 @@ impl WebGLValidator for CommonTexImage3DValidator<'_> {
         }
 
         // GL_INVALID_VALUE is generated if border is not 0 or 1.
-        if self.border != 0 || self.border != 1 {
+        if !(self.border == 0 || self.border == 1) {
             self.context.webgl_error(InvalidValue);
             return Err(TexImageValidationError::InvalidBorder);
         }
