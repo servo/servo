@@ -802,7 +802,7 @@ impl FlexContainer {
 
             if fallback_is_needed {
                 (resolved_align_content, is_safe) = match resolved_align_content {
-                    AlignFlags::STRETCH => (AlignFlags::FLEX_START, true),
+                    AlignFlags::STRETCH => (AlignFlags::FLEX_START, false),
                     AlignFlags::SPACE_BETWEEN => (AlignFlags::FLEX_START, true),
                     AlignFlags::SPACE_AROUND => (AlignFlags::CENTER, true),
                     AlignFlags::SPACE_EVENLY => (AlignFlags::CENTER, true),
