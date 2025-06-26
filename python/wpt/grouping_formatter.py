@@ -112,7 +112,13 @@ class ServoHandler(mozlog.reader.LogHandler):
     """LogHandler designed to collect unexpected results for use by
     script or by the ServoFormatter output formatter."""
 
-    def __init__(self):
+    def __init__(self, detect_flakes=False):
+        """
+        Flake detection assumes first suite is actual run
+        and rest of the suites are retry-unexpected for flakes detection.
+        """
+        self.detect_flakes = detect_flakes
+        self.currently_detecting_flakes = False
         self.reset_state()
 
     def reset_state(self):
@@ -120,6 +126,9 @@ class ServoHandler(mozlog.reader.LogHandler):
         self.completed_tests = 0
         self.need_to_erase_last_line = False
         self.running_tests: Dict[str, str] = {}
+        if self.currently_detecting_flakes:
+            return
+        self.currently_detecting_flakes = False
         self.test_output = collections.defaultdict(str)
         self.subtest_failures = collections.defaultdict(list)
         self.tests_with_failing_subtests = []
@@ -146,8 +155,17 @@ class ServoHandler(mozlog.reader.LogHandler):
             "PRECONDITION_FAILED": [],
         }
 
+    def any_stable_unexpected(self) -> bool:
+        return any(not unexpected.flaky for unexpected in self.unexpected_results)
+
     def suite_start(self, data):
+        # If there were any unexpected results and we are starting another suite, assume
+        # that this suite has been launched to detect intermittent tests.
+        # TODO: Support running more than a single suite at once.
+        if self.unexpected_results:
+            self.currently_detecting_flakes = True
         self.reset_state()
+
         self.number_of_tests = sum(len(tests) for tests in itervalues(data["tests"]))
         self.suite_start_time = data["time"]
 
@@ -171,9 +189,35 @@ class ServoHandler(mozlog.reader.LogHandler):
 
         had_expected_test_result = self.data_was_for_expected_result(data)
         subtest_failures = self.subtest_failures.pop(test_path, [])
+        test_output = self.test_output.pop(test_path, "")
+
         if had_expected_test_result and not subtest_failures:
-            self.expected[test_status] += 1
+            if not self.currently_detecting_flakes:
+                self.expected[test_status] += 1
+            else:
+                # When `retry_unexpected` is passed and we are currently detecting flaky tests
+                # we assume that this suite only runs tests that have already been run and are
+                # in the list of unexpected results.
+                for unexpected in self.unexpected_results:
+                    if unexpected.path == test_path:
+                        unexpected.flaky = True
+                        break
+
             return None
+
+        # If we are currently detecting flakes and a test still had an unexpected
+        # result, it's enough to simply return the unexpected result. It isn't
+        # necessary to update any of the test counting data structures.
+        if self.currently_detecting_flakes:
+            return UnexpectedResult(
+                test_path,
+                test_status,
+                data.get("expected", test_status),
+                data.get("message", ""),
+                data["time"],
+                "",
+                subtest_failures,
+            )
 
         # If the test crashed or timed out, we also include any process output,
         # because there is a good chance that the test produced a stack trace
@@ -181,7 +225,7 @@ class ServoHandler(mozlog.reader.LogHandler):
         stack = data.get("stack", None)
         if test_status in ("CRASH", "TIMEOUT"):
             stack = f"\n{stack}" if stack else ""
-            stack = f"{self.test_output[test_path]}{stack}"
+            stack = f"{test_output}{stack}"
 
         result = UnexpectedResult(
             test_path,
@@ -285,10 +329,11 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
 
     def suite_start(self, data):
         ServoHandler.suite_start(self, data)
+        maybe_flakes_msg = " to detect flaky tests" if self.currently_detecting_flakes else ""
         if self.number_of_tests == 0:
-            return "Running tests in %s\n\n" % data["source"]
+            return f"Running tests in {data['source']}{maybe_flakes_msg}\n\n"
         else:
-            return "Running %i tests in %s\n\n" % (self.number_of_tests, data["source"])
+            return f"Running {self.number_of_tests} tests in {data['source']}{maybe_flakes_msg}\n\n"
 
     def test_start(self, data):
         ServoHandler.test_start(self, data)
