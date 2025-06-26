@@ -5,15 +5,14 @@
 #![allow(unsafe_code)]
 
 use std::cell::UnsafeCell;
-use std::sync::atomic::{AtomicPtr, Ordering};
-use std::{cmp, io, mem, process, ptr, thread};
+use std::{io, mem, process, thread};
 
 use nix::sys::signal::{SaFlags, SigAction, SigHandler, SigSet, Signal, sigaction};
-use unwind_sys::{
-    UNW_ESUCCESS, UNW_REG_IP, UNW_REG_SP, unw_cursor_t, unw_get_reg, unw_init_local, unw_step,
-    unw_tdep_context_t,
-};
 
+// use unwind_sys::{
+//     // UNW_ESUCCESS, UNW_REG_IP, UNW_REG_SP, unw_cursor_t, unw_get_reg, unw_init_local, unw_step,
+//     unw_tdep_context_t,
+// };
 use crate::sampler::{NativeStack, Sampler};
 
 struct UncheckedSyncUnsafeCell<T>(std::cell::UnsafeCell<T>);
@@ -28,7 +27,7 @@ static SHARED_STATE: UncheckedSyncUnsafeCell<SharedState> =
         msg4: None,
     }));
 
-static CONTEXT: AtomicPtr<unw_tdep_context_t> = AtomicPtr::new(ptr::null_mut());
+// static CONTEXT: AtomicPtr<unw_tdep_context_t> = AtomicPtr::new(ptr::null_mut());
 
 type MonitoredThreadId = libc::pid_t;
 
@@ -49,7 +48,7 @@ fn clear_shared_state() {
         shared_state.msg3 = None;
         shared_state.msg4 = None;
     }
-    CONTEXT.store(ptr::null_mut(), Ordering::SeqCst);
+    // CONTEXT.store(ptr::null_mut(), Ordering::SeqCst);
 }
 
 fn reset_shared_state() {
@@ -60,7 +59,7 @@ fn reset_shared_state() {
         shared_state.msg3 = Some(PosixSemaphore::new(0).expect("valid semaphore"));
         shared_state.msg4 = Some(PosixSemaphore::new(0).expect("valid semaphore"));
     }
-    CONTEXT.store(ptr::null_mut(), Ordering::SeqCst);
+    // CONTEXT.store(ptr::null_mut(), Ordering::SeqCst);
 }
 
 struct PosixSemaphore {
@@ -150,39 +149,39 @@ impl LinuxSampler {
     }
 }
 
-enum RegNum {
-    Ip = UNW_REG_IP as isize,
-    Sp = UNW_REG_SP as isize,
-}
+// enum RegNum {
+//     Ip = UNW_REG_IP as isize,
+//     Sp = UNW_REG_SP as isize,
+// }
 
-fn get_register(cursor: *mut unw_cursor_t, num: RegNum) -> Result<u64, i32> {
-    unsafe {
-        let mut val = 0;
-        let ret = unw_get_reg(cursor, num as i32, &mut val);
-        if ret == UNW_ESUCCESS {
-            Ok(val)
-        } else {
-            Err(ret)
-        }
-    }
-}
+// fn get_register(cursor: *mut unw_cursor_t, num: RegNum) -> Result<u64, i32> {
+//     unsafe {
+//         let mut val = 0;
+//         let ret = unw_get_reg(cursor, num as i32, &mut val);
+//         if ret == UNW_ESUCCESS {
+//             Ok(val)
+//         } else {
+//             Err(ret)
+//         }
+//     }
+// }
 
-fn step(cursor: *mut unw_cursor_t) -> Result<bool, i32> {
-    unsafe {
-        // libunwind 1.1 seems to get confused and walks off the end of the stack. The last IP
-        // it reports is 0, so we'll stop if we're there.
-        if get_register(cursor, RegNum::Ip).unwrap_or(1) == 0 {
-            return Ok(false);
-        }
+// fn step(cursor: *mut unw_cursor_t) -> Result<bool, i32> {
+//     unsafe {
+//         // libunwind 1.1 seems to get confused and walks off the end of the stack. The last IP
+//         // it reports is 0, so we'll stop if we're there.
+//         if get_register(cursor, RegNum::Ip).unwrap_or(1) == 0 {
+//             return Ok(false);
+//         }
 
-        let ret = unw_step(cursor);
-        match ret.cmp(&0) {
-            cmp::Ordering::Less => Err(ret),
-            cmp::Ordering::Greater => Ok(true),
-            cmp::Ordering::Equal => Ok(false),
-        }
-    }
-}
+//         let ret = unw_step(cursor);
+//         match ret.cmp(&0) {
+//             cmp::Ordering::Less => Err(ret),
+//             cmp::Ordering::Greater => Ok(true),
+//             cmp::Ordering::Equal => Ok(false),
+//         }
+//     }
+// }
 
 impl Sampler for LinuxSampler {
     #[allow(unsafe_code)]
@@ -216,7 +215,7 @@ impl Sampler for LinuxSampler {
                     let ip = frame.ip();
                     let sp = frame.sp();
 
-                    //This return value here determines whether we go to the next stack frame or not.
+                    //This return value here determines whether we proceed to the next stack frame or not.
                     ns.process_register(ip, sp).is_ok()
                 })
             };
@@ -285,11 +284,11 @@ impl Drop for LinuxSampler {
 extern "C" fn sigprof_handler(
     sig: libc::c_int,
     _info: *mut libc::siginfo_t,
-    ctx: *mut libc::c_void,
+    _ctx: *mut libc::c_void,
 ) {
     assert_eq!(sig, libc::SIGPROF);
     // copy the context.
-    CONTEXT.store(ctx as *mut unw_tdep_context_t, Ordering::SeqCst);
+    // CONTEXT.store(ctx as *mut unw_tdep_context_t, Ordering::SeqCst);
 
     // Safety: non-exclusive reference only
     // since the sampling thread is accessing this concurrently
