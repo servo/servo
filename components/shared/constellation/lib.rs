@@ -39,9 +39,6 @@ use webrender_api::units::LayoutVector2D;
 pub enum EmbedderToConstellationMessage {
     /// Exit the constellation.
     Exit,
-    /// Request that the constellation send the current focused top-level browsing context id,
-    /// over a provided channel.
-    GetFocusTopLevelBrowsingContext(IpcSender<Option<WebViewId>>),
     /// Query the constellation to see if the current compositor output is stable
     IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
     /// Whether to allow script to navigate.
