@@ -19,6 +19,7 @@ import shutil
 import subprocess
 import sys
 import textwrap
+from time import sleep
 from typing import Any
 
 import tidy
@@ -487,6 +488,12 @@ class MachCommands(CommandBase):
     def test_speedometer(self, servo_binary: str, bmf_output: str | None = None):
         return self.speedometer_runner(servo_binary, bmf_output)
 
+    @Command("test-speedometer-ohos", description="Run servo's speedometer on a ohos device", category="testing")
+    @CommandArgument("--bmf-output", default=None, help="Specifcy BMF JSON output file")
+    # This needs to be a separate command because we do not need a binary locally
+    def test_speedometer_ohos(self, bmf_output: str | None = None):
+        return self.speedometer_runner_ohos(bmf_output)
+
     @Command("update-jquery", description="Update the jQuery test suite expected results", category="testing")
     @CommandBase.common_command_arguments(binary_selection=True)
     def update_jquery(self, servo_binary: str):
@@ -621,6 +628,37 @@ class MachCommands(CommandBase):
 
         return check_call([run_file, "|".join(tests), bin_path, base_dir, bmf_output])
 
+    def speedometer_to_bmf(self, speedometer: str, bmf_output: str | None):
+        output = dict()
+
+        def parse_speedometer_result(result):
+            if result["unit"] == "ms":
+                output[f"Speedometer/{result['name']}"] = {
+                    "latency": {  # speedometer has ms we need to convert to ns
+                        "value": float(result["mean"]) * 1000000.0,
+                        "lower_value": float(result["min"]) * 1000000.0,
+                        "upper_value": float(result["max"]) * 1000000.0,
+                    }
+                }
+            elif result["unit"] == "score":
+                output[f"Speedometer/{result['name']}"] = {
+                    "score": {
+                        "value": float(result["mean"]),
+                        "lower_value": float(result["min"]),
+                        "upper_value": float(result["max"]),
+                    }
+                }
+            else:
+                raise "Unknown unit!"
+
+            for child in result["children"]:
+                parse_speedometer_result(child)
+
+        for v in speedometer.values():
+            parse_speedometer_result(v)
+        with open(bmf_output, "w", encoding="utf-8") as f:
+            json.dump(output, f, indent=4)
+
     def speedometer_runner(self, binary: str, bmf_output: str | None):
         speedometer = json.loads(
             subprocess.check_output(
@@ -639,35 +677,69 @@ class MachCommands(CommandBase):
         print(f"Score: {speedometer['Score']['mean']} ± {speedometer['Score']['delta']}")
 
         if bmf_output:
-            output = dict()
+            self.speedometer_to_bmf(speedometer, bmf_output)
 
-            def parse_speedometer_result(result):
-                if result["unit"] == "ms":
-                    output[f"Speedometer/{result['name']}"] = {
-                        "latency": {  # speedometer has ms we need to convert to ns
-                            "value": float(result["mean"]) * 1000.0,
-                            "lower_value": float(result["min"]) * 1000.0,
-                            "upper_value": float(result["max"]) * 1000.0,
-                        }
-                    }
-                elif result["unit"] == "score":
-                    output[f"Speedometer/{result['name']}"] = {
-                        "score": {
-                            "value": float(result["mean"]),
-                            "lower_value": float(result["min"]),
-                            "upper_value": float(result["max"]),
-                        }
-                    }
-                else:
-                    raise ValueError("Unknown unit!")
+    def speedometer_runner_ohos(self, bmf_output: str | None):
+        hdc_path: str = shutil.which("hdc")
+        log_path: str = "/data/app/el2/100/base/org.servo.servo/cache/servo.log"
+        if hdc_path is None:
+            hdc_path = path.join(os.getenv("OHOS_SDK_NATIVE"), "../", "toolchains", "hdc")
 
-                for child in result["children"]:
-                    parse_speedometer_result(child)
+        def read_log_file() -> str:
+            subprocess.call([hdc_path, "file", "recv", log_path])
+            file = ""
+            try:
+                file = open("servo.log")
+            except OSError:
+                return ""
+            return file.read()
 
-            for v in speedometer.values():
-                parse_speedometer_result(v)
-            with open(bmf_output, "w", encoding="utf-8") as f:
-                json.dump(output, f, indent=4)
+        subprocess.call([hdc_path, "shell", "aa", "force-stop", "org.servo.servo"])
+
+        subprocess.call([hdc_path, "shell", "rm", log_path])
+        subprocess.call(
+            [
+                hdc_path,
+                "shell",
+                "aa",
+                "start",
+                "-a",
+                "EntryAbility",
+                "-b",
+                "org.servo.servo",
+                "-U",
+                "https://servospeedometer.netlify.app?headless=1",
+                "--ps",
+                "--log-filter",
+                "script::dom::console",
+                "--psn",
+                "--log-to-file",
+            ]
+        )
+
+        # A current (2025-06-23) run took 3m 49s = 229s. We keep a safety margin
+        # but we will exit earlier if we see "{"
+        # Currently ohos has a bug where the event loop gets stuck. We produce a
+        # touch event every minute to prevent this
+        # See https://github.com/servo/servo/issues/37727
+        whole_file: str = ""
+        for i in range(10):
+            sleep(30)
+            subprocess.call([hdc_path, "shell", "uinput", "-T", "-d", "100", "100"])
+            subprocess.call([hdc_path, "shell", "uinput", "-T", "-u", "105", "105"])
+            whole_file = read_log_file()
+            if "[INFO script::dom::console]" in whole_file:
+                # technically the file could not have been written completely yet
+                # on devices with slow flash, we might want to wait a bit more
+                sleep(2)
+                whole_file = read_log_file()
+                break
+        start_index: int = whole_file.index("[INFO script::dom::console]") + len("[INFO script::dom::console]") + 1
+        json_string = whole_file[start_index:]
+        speedometer = json.loads(json_string)
+        print(f"Score: {speedometer['Score']['mean']} ± {speedometer['Score']['delta']}")
+        if bmf_output:
+            self.speedometer_to_bmf(speedometer, bmf_output)
 
     @Command(
         "update-net-cookies",
