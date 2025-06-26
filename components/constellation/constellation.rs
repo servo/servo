@@ -164,8 +164,6 @@ use style_traits::CSSPixel;
 use webgpu::swapchain::WGPUImageMap;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPU, WebGPURequest};
-#[cfg(feature = "webgpu")]
-use webrender::RenderApi;
 use webrender::RenderApiSender;
 use webrender_api::units::LayoutVector2D;
 use webrender_api::{DocumentId, ExternalScrollId, ImageKey};
@@ -222,9 +220,6 @@ struct MessagePortInfo {
 #[cfg(feature = "webgpu")]
 /// Webrender related objects required by WebGPU threads
 struct WebrenderWGPU {
-    /// Webrender API.
-    webrender_api: RenderApi,
-
     /// List of Webrender external images
     webrender_external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
 
@@ -361,10 +356,6 @@ pub struct Constellation<STF, SWF> {
     /// A channel for the constellation to send messages to the
     /// memory profiler thread.
     mem_profiler_chan: mem::ProfilerChan,
-
-    /// A single WebRender document the constellation operates on.
-    #[cfg(feature = "webgpu")]
-    webrender_document: DocumentId,
 
     /// Webrender related objects required by WebGPU threads
     #[cfg(feature = "webgpu")]
@@ -657,7 +648,6 @@ where
 
                 #[cfg(feature = "webgpu")]
                 let webrender_wgpu = WebrenderWGPU {
-                    webrender_api: state.webrender_api_sender.create_api(),
                     webrender_external_images: state.webrender_external_images,
                     wgpu_image_map: state.wgpu_image_map,
                 };
@@ -704,8 +694,6 @@ where
                     phantom: PhantomData,
                     webdriver: WebDriverData::new(),
                     document_states: HashMap::new(),
-                    #[cfg(feature = "webgpu")]
-                    webrender_document: state.webrender_document,
                     #[cfg(feature = "webgpu")]
                     webrender_wgpu,
                     shutting_down: false,
@@ -2052,8 +2040,7 @@ where
         };
         let webgpu_chan = match browsing_context_group.webgpus.entry(host) {
             Entry::Vacant(v) => start_webgpu_thread(
-                self.webrender_wgpu.webrender_api.create_sender(),
-                self.webrender_document,
+                self.compositor_proxy.cross_process_compositor_api.clone(),
                 self.webrender_wgpu.webrender_external_images.clone(),
                 self.webrender_wgpu.wgpu_image_map.clone(),
             )
