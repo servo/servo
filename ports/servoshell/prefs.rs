@@ -62,6 +62,10 @@ pub(crate) struct ServoShellPreferences {
     /// If a filter is passed, the logger should adjust accordingly.
     #[cfg(target_env = "ohos")]
     pub log_filter: Option<String>,
+
+    /// Log also to a file
+    #[cfg(target_env = "ohos")]
+    pub log_to_file: bool,
 }
 
 impl Default for ServoShellPreferences {
@@ -82,6 +86,8 @@ impl Default for ServoShellPreferences {
             userscripts_directory: None,
             #[cfg(target_env = "ohos")]
             log_filter: None,
+            #[cfg(target_env = "ohos")]
+            log_to_file: false,
         }
     }
 }
@@ -363,6 +369,13 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         "FILTER",
     );
 
+    #[cfg(target_env = "ohos")]
+    opts.optflag(
+        "",
+        "log-to-file",
+        "Also log to a file (/data/app/el2/100/base/org.servo.servo/cache/servo.log)",
+    );
+
     opts.optflag(
         "",
         "enable-experimental-web-platform-features",
@@ -434,6 +447,9 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         log::debug!("Set log_filter to: {:?}", log_filter);
         log_filter
     };
+
+    #[cfg(target_env = "ohos")]
+    let log_to_file = opt_match.opt_present("log-to-file");
 
     let mut debug_options = DebugOptions::default();
     for debug_string in opt_match.opt_strs("Z") {
@@ -648,6 +664,8 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
             .map(PathBuf::from),
         #[cfg(target_env = "ohos")]
         log_filter,
+        #[cfg(target_env = "ohos")]
+        log_to_file,
         ..Default::default()
     };
 

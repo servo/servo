@@ -3681,9 +3681,9 @@ checksum = "dfa686283ad6dd069f105e5ab091b04c62850d3e4cf5d67debad1933f55023df"
 
 [[package]]
 name = "hilog"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e08aa7468a47ecda3066458d5ecc6c8162f7c8b14c3df5f8835e97a11507d4cb"
+checksum = "2cde43461a56942d36c0392c0eb8e108af2fbb48966c145fd126df4ce7b5c6c1"
 dependencies = [
  "arc-swap",
  "env_filter",

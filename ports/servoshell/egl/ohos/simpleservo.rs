@@ -152,6 +152,14 @@ pub fn init(
         },
     };
 
+    if servoshell_preferences.log_to_file {
+        let mut servo_log = PathBuf::from(&native_values.cache_dir);
+        servo_log.push("servo.log");
+        if crate::egl::ohos::LOGGER.set_file_writer(servo_log).is_err() {
+            warn!("Could not set log file");
+        }
+    }
+
     crate::init_tracing(servoshell_preferences.tracing_filter.as_deref());
     #[cfg(target_env = "ohos")]
     crate::egl::ohos::set_log_filter(servoshell_preferences.log_filter.as_deref());
