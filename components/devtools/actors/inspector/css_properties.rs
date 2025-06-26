@@ -13,7 +13,7 @@ use serde_json::{Map, Value};
 
 use crate::StreamId;
 use crate::actor::{Actor, ActorError, ActorRegistry};
-use crate::protocol::{ClientRequest, JsonPacketStream};
+use crate::protocol::ClientRequest;
 
 pub struct CssPropertiesActor {
     name: String,
@@ -37,7 +37,7 @@ impl Actor for CssPropertiesActor {
     ///   inspector can show the available options
     fn handle_message(
         &self,
-        mut request: ClientRequest,
+        request: ClientRequest,
         _registry: &ActorRegistry,
         msg_type: &str,
         _msg: &Map<String, Value>,

@@ -12,7 +12,7 @@ use serde::Serialize;
 use serde_json::{self, Map, Value};
 
 use crate::actor::{Actor, ActorError, ActorRegistry};
-use crate::protocol::{ClientRequest, JsonPacketStream};
+use crate::protocol::ClientRequest;
 use crate::{EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
@@ -44,7 +44,7 @@ impl Actor for HighlighterActor {
     /// - `hide`: Disables highlighting for the selected node
     fn handle_message(
         &self,
-        mut request: ClientRequest,
+        request: ClientRequest,
         registry: &ActorRegistry,
         msg_type: &str,
         msg: &Map<String, Value>,

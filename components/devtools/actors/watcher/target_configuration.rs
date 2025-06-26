@@ -15,7 +15,7 @@ use serde_json::{Map, Value};
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::tab::TabDescriptorActor;
-use crate::protocol::{ClientRequest, JsonPacketStream};
+use crate::protocol::ClientRequest;
 use crate::{EmptyReplyMsg, RootActor, StreamId};
 
 #[derive(Serialize)]
@@ -47,7 +47,7 @@ impl Actor for TargetConfigurationActor {
     /// - `updateConfiguration`: Receives new configuration flags from the devtools host.
     fn handle_message(
         &self,
-        mut request: ClientRequest,
+        request: ClientRequest,
         registry: &ActorRegistry,
         msg_type: &str,
         msg: &Map<String, Value>,
