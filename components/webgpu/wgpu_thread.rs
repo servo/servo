@@ -10,7 +10,9 @@ use std::slice;
 use std::sync::{Arc, Mutex};
 
 use base::id::PipelineId;
-use compositing_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
+use compositing_traits::{
+    CrossProcessCompositorApi, WebrenderExternalImageRegistry, WebrenderImageHandlerType,
+};
 use ipc_channel::ipc::{IpcReceiver, IpcSender, IpcSharedMemory};
 use log::{info, warn};
 use servo_config::pref;
@@ -19,8 +21,7 @@ use webgpu_traits::{
     RenderPassId, ShaderCompilationInfo, WebGPU, WebGPUAdapter, WebGPUContextId, WebGPUDevice,
     WebGPUMsg, WebGPUQueue, WebGPURequest, apply_render_command,
 };
-use webrender::{RenderApi, RenderApiSender};
-use webrender_api::{DocumentId, ExternalImageId};
+use webrender_api::ExternalImageId;
 use wgc::command::{ComputePass, ComputePassDescriptor, RenderPass};
 use wgc::device::{DeviceDescriptor, ImplicitPipelineIds};
 use wgc::id;
@@ -103,8 +104,7 @@ pub(crate) struct WGPU {
     /// because wgpu does not invalidate command encoder object
     /// (this is also reused for invalidation of command buffers)
     error_command_encoders: HashMap<id::CommandEncoderId, String>,
-    pub(crate) webrender_api: Arc<Mutex<RenderApi>>,
-    pub(crate) webrender_document: DocumentId,
+    pub(crate) compositor_api: CrossProcessCompositorApi,
     pub(crate) external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     pub(crate) wgpu_image_map: WGPUImageMap,
     /// Provides access to poller thread
@@ -120,8 +120,7 @@ impl WGPU {
         receiver: IpcReceiver<WebGPURequest>,
         sender: IpcSender<WebGPURequest>,
         script_sender: IpcSender<WebGPUMsg>,
-        webrender_api_sender: RenderApiSender,
-        webrender_document: DocumentId,
+        compositor_api: CrossProcessCompositorApi,
         external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
         wgpu_image_map: WGPUImageMap,
     ) -> Self {
@@ -150,8 +149,7 @@ impl WGPU {
             global,
             devices: Arc::new(Mutex::new(HashMap::new())),
             error_command_encoders: HashMap::new(),
-            webrender_api: Arc::new(Mutex::new(webrender_api_sender.create_api())),
-            webrender_document,
+            compositor_api,
             external_images,
             wgpu_image_map,
             compute_passes: HashMap::new(),
@@ -504,7 +502,7 @@ impl WGPU {
                             .lock()
                             .expect("Lock poisoned?")
                             .next_id(WebrenderImageHandlerType::WebGPU);
-                        let image_key = self.webrender_api.lock().unwrap().generate_image_key();
+                        let image_key = self.compositor_api.generate_image_key().unwrap();
                         let context_id = WebGPUContextId(id.0);
                         if let Err(e) = sender.send((context_id, image_key)) {
                             warn!("Failed to send ExternalImageId to new context ({})", e);
