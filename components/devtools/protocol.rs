@@ -40,13 +40,6 @@ pub struct ActorReplied(());
 
 pub trait JsonPacketStream {
     fn write_json_packet<T: Serialize>(&mut self, obj: &T) -> Result<ActorReplied, ActorError>;
-
-    #[allow(dead_code)]
-    fn write_merged_json_packet<T: Serialize, U: Serialize>(
-        &mut self,
-        base: &T,
-        extra: &U,
-    ) -> Result<ActorReplied, ActorError>;
     fn read_json_packet(&mut self) -> Result<Option<Value>, String>;
 }
 
@@ -56,23 +49,6 @@ impl JsonPacketStream for TcpStream {
         debug!("<- {}", s);
         write!(self, "{}:{}", s.len(), s).map_err(|_| ActorError::Internal)?;
         Ok(ActorReplied(()))
-    }
-
-    fn write_merged_json_packet<T: Serialize, U: Serialize>(
-        &mut self,
-        base: &T,
-        extra: &U,
-    ) -> Result<ActorReplied, ActorError> {
-        let mut obj = serde_json::to_value(base).map_err(|_| ActorError::Internal)?;
-        let obj = obj.as_object_mut().unwrap();
-        let extra = serde_json::to_value(extra).map_err(|_| ActorError::Internal)?;
-        let extra = extra.as_object().unwrap();
-
-        for (key, value) in extra {
-            obj.insert(key.to_owned(), value.to_owned());
-        }
-
-        self.write_json_packet(obj)
     }
 
     fn read_json_packet(&mut self) -> Result<Option<Value>, String> {
