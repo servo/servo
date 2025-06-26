@@ -327,10 +327,6 @@ impl WebGLRenderingContext {
         self.texture_unpacking_alignment.get()
     }
 
-    pub(crate) fn texture_unpacking_settings(&self) -> TextureUnpacking {
-        self.texture_unpacking_settings.get()
-    }
-
     pub(crate) fn bound_draw_framebuffer(&self) -> Option<DomRoot<WebGLFramebuffer>> {
         self.bound_draw_framebuffer.get()
     }
@@ -5163,12 +5159,16 @@ impl TexPixels {
         self.size
     }
 
-    pub(crate) fn premultiplied(&self) -> bool {
-        self.premultiplied
-    }
-
     pub(crate) fn pixel_format(&self) -> Option<PixelFormat> {
         self.pixel_format
+    }
+
+    pub(crate) fn alpha_treatment(&self) -> Option<AlphaTreatment> {
+        self.alpha_treatment
+    }
+
+    pub(crate) fn y_axis_treatment(&self) -> YAxisTreatment {
+        self.y_axis_treatment
     }
 
     pub(crate) fn into_shared_memory(self) -> IpcSharedMemory {
