@@ -217,10 +217,10 @@ codegen-units = 1
 #
 # For html5ever:
 #
-# html5ever = { path = "../html5ever/html5ever" }
-# markup5ever = { path = "../html5ever/markup5ever" }
-# xml5ever = { path = "../html5ever/xml5ever" }
-# web_atoms = { path = "../html5ever/web_atoms" }
+html5ever = { git = "https://github.com/simonwuelker/html5ever", branch = "attach-shadow" }
+markup5ever = { git = "https://github.com/simonwuelker/html5ever", branch = "attach-shadow" }
+xml5ever = { git = "https://github.com/simonwuelker/html5ever", branch = "attach-shadow" }
+web_atoms = { git = "https://github.com/simonwuelker/html5ever", branch = "attach-shadow" }
 #
 # Or for Stylo:
 #

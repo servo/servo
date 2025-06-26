@@ -3728,8 +3728,7 @@ dependencies = [
 [[package]]
 name = "html5ever"
 version = "0.33.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d485f1d312f0938f1d8c175a115a1e9f357f8b63262a043b66ce11e1e48128b"
+source = "git+https://github.com/simonwuelker/html5ever?branch=attach-shadow#37ca1e4029b8cbf1b8335329a29992ec33598159"
 dependencies = [
  "log",
  "mac",
@@ -5026,8 +5025,7 @@ dependencies = [
 [[package]]
 name = "markup5ever"
 version = "0.16.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e4cd8c02f18a011991a039855480c64d74291c5792fcc160d55d77dc4de4a39"
+source = "git+https://github.com/simonwuelker/html5ever?branch=attach-shadow#37ca1e4029b8cbf1b8335329a29992ec33598159"
 dependencies = [
  "log",
  "tendril",
@@ -5037,8 +5035,7 @@ dependencies = [
 [[package]]
 name = "match_token"
 version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69c8968ae498413293a741c58ef9dc583a4d77a3d7eae7f80eedfe3acf667e7f"
+source = "git+https://github.com/simonwuelker/html5ever?branch=attach-shadow#37ca1e4029b8cbf1b8335329a29992ec33598159"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -9350,8 +9347,7 @@ dependencies = [
 [[package]]
 name = "web_atoms"
 version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57ffde1dc01240bdf9992e3205668b235e59421fd085e8a317ed98da0178d414"
+source = "git+https://github.com/simonwuelker/html5ever?branch=attach-shadow#37ca1e4029b8cbf1b8335329a29992ec33598159"
 dependencies = [
  "phf",
  "phf_codegen",
@@ -10620,3 +10616,8 @@ dependencies = [
  "quote",
  "syn",
 ]
+
+[[patch.unused]]
+name = "xml5ever"
+version = "0.23.0"
+source = "git+https://github.com/simonwuelker/html5ever?branch=attach-shadow#37ca1e4029b8cbf1b8335329a29992ec33598159"
