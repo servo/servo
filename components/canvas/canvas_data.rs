@@ -431,7 +431,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         };
         let data =
             SerializableImageData::Raw(IpcSharedMemory::from_bytes(draw_target.bytes().as_ref()));
-        compositor_api.update_image(image_key, descriptor, data);
+        compositor_api.add_image(image_key, descriptor, data);
         CanvasData {
             state: backend.new_paint_state(),
             backend,
