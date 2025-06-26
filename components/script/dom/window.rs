@@ -52,8 +52,9 @@ use js::rust::{
     MutableHandleValue,
 };
 use layout_api::{
-    FragmentType, Layout, PendingImageState, QueryMsg, ReflowGoal, ReflowRequest,
-    ReflowRequestRestyle, RestyleReason, TrustedNodeAddress, combine_id_with_fragment_type,
+    FragmentType, Layout, PendingImage, PendingImageState, PendingRasterizationImage, QueryMsg,
+    ReflowGoal, ReflowRequest, ReflowRequestRestyle, RestyleReason, TrustedNodeAddress,
+    combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
@@ -374,9 +375,6 @@ pub(crate) struct Window {
     /// Indicate whether a SetDocumentStatus message has been sent after a reflow is complete.
     /// It is used to avoid sending idle message more than once, which is unneccessary.
     has_sent_idle_message: Cell<bool>,
-
-    /// Emits notifications when there is a relayout.
-    relayout_event: bool,
 
     /// Unminify Css.
     unminify_css: bool,
@@ -2127,7 +2125,6 @@ impl Window {
     ///
     /// NOTE: This method should almost never be called directly! Layout and rendering updates should
     /// happen as part of the HTML event loop via *update the rendering*.
-    #[allow(unsafe_code)]
     fn force_reflow(&self, reflow_goal: ReflowGoal) -> bool {
         let document = self.Document();
         document.ensure_safe_to_run_script_or_layout();
@@ -2149,11 +2146,6 @@ impl Window {
         } else {
             None
         };
-
-        // On debug mode, print the reflow event information.
-        if self.relayout_event {
-            debug_reflow_events(pipeline_id, &reflow_goal);
-        }
 
         let restyle_reason = document.restyle_reason();
         document.clear_restyle_reasons();
@@ -2182,9 +2174,6 @@ impl Window {
             None
         };
 
-        let highlighted_dom_node = document.highlighted_dom_node().map(|node| node.to_opaque());
-
-        // Send new document and relevant styles to layout.
         let reflow = ReflowRequest {
             document: document.upcast::<Node>().to_trusted_node_address(),
             restyle,
@@ -2196,7 +2185,7 @@ impl Window {
             animations: document.animations().sets.clone(),
             node_to_animating_image_map: document.image_animation_manager().node_to_image_map(),
             theme: self.theme.get(),
-            highlighted_dom_node,
+            highlighted_dom_node: document.highlighted_dom_node().map(|node| node.to_opaque()),
         };
 
         let Some(results) = self.layout.borrow_mut().reflow(reflow) else {
@@ -2208,63 +2197,13 @@ impl Window {
             self.emit_timeline_marker(marker.end());
         }
 
-        for image in results.pending_images {
-            let id = image.id;
-            let node = unsafe { from_untrusted_node_address(image.node) };
-
-            if let PendingImageState::Unrequested(ref url) = image.state {
-                fetch_image_for_layout(url.clone(), &node, id, self.image_cache.clone());
-            }
-
-            let mut images = self.pending_layout_images.borrow_mut();
-            if !images.contains_key(&id) {
-                let trusted_node = Trusted::new(&*node);
-                let sender = self.register_image_cache_listener(id, move |response| {
-                    trusted_node
-                        .root()
-                        .owner_window()
-                        .pending_layout_image_notification(response);
-                });
-
-                self.image_cache.add_listener(ImageLoadListener::new(
-                    sender,
-                    self.pipeline_id(),
-                    id,
-                ));
-            }
-
-            let nodes = images.entry(id).or_default();
-            if !nodes.iter().any(|n| std::ptr::eq(&**n, &*node)) {
-                nodes.push(Dom::from_ref(&*node));
-            }
-        }
-
-        for image in results.pending_rasterization_images {
-            let node = unsafe { from_untrusted_node_address(image.node) };
-
-            let mut images = self.pending_images_for_rasterization.borrow_mut();
-            if !images.contains_key(&(image.id, image.size)) {
-                self.image_cache.add_rasterization_complete_listener(
-                    pipeline_id,
-                    image.id,
-                    image.size,
-                    self.image_cache_sender.clone(),
-                );
-            }
-
-            let nodes = images.entry((image.id, image.size)).or_default();
-            if !nodes.iter().any(|n| std::ptr::eq(&**n, &*node)) {
-                nodes.push(Dom::from_ref(&*node));
-            }
-        }
-
-        let size_messages = self
-            .Document()
+        self.handle_pending_images_post_reflow(
+            results.pending_images,
+            results.pending_rasterization_images,
+        );
+        document
             .iframes_mut()
-            .handle_new_iframe_sizes_after_layout(results.iframe_sizes);
-        if !size_messages.is_empty() {
-            self.send_to_constellation(ScriptToConstellationMessage::IFrameSizes(size_messages));
-        }
+            .handle_new_iframe_sizes_after_layout(self, results.iframe_sizes);
         document.update_animations_post_reflow();
         self.update_constellation_epoch();
 
@@ -2991,6 +2930,61 @@ impl Window {
     pub(crate) fn in_immersive_xr_session(&self) -> bool {
         false
     }
+
+    #[allow(unsafe_code)]
+    fn handle_pending_images_post_reflow(
+        &self,
+        pending_images: Vec<PendingImage>,
+        pending_rasterization_images: Vec<PendingRasterizationImage>,
+    ) {
+        let pipeline_id = self.pipeline_id();
+        for image in pending_images {
+            let id = image.id;
+            let node = unsafe { from_untrusted_node_address(image.node) };
+
+            if let PendingImageState::Unrequested(ref url) = image.state {
+                fetch_image_for_layout(url.clone(), &node, id, self.image_cache.clone());
+            }
+
+            let mut images = self.pending_layout_images.borrow_mut();
+            if !images.contains_key(&id) {
+                let trusted_node = Trusted::new(&*node);
+                let sender = self.register_image_cache_listener(id, move |response| {
+                    trusted_node
+                        .root()
+                        .owner_window()
+                        .pending_layout_image_notification(response);
+                });
+
+                self.image_cache
+                    .add_listener(ImageLoadListener::new(sender, pipeline_id, id));
+            }
+
+            let nodes = images.entry(id).or_default();
+            if !nodes.iter().any(|n| std::ptr::eq(&**n, &*node)) {
+                nodes.push(Dom::from_ref(&*node));
+            }
+        }
+
+        for image in pending_rasterization_images {
+            let node = unsafe { from_untrusted_node_address(image.node) };
+
+            let mut images = self.pending_images_for_rasterization.borrow_mut();
+            if !images.contains_key(&(image.id, image.size)) {
+                self.image_cache.add_rasterization_complete_listener(
+                    pipeline_id,
+                    image.id,
+                    image.size,
+                    self.image_cache_sender.clone(),
+                );
+            }
+
+            let nodes = images.entry((image.id, image.size)).or_default();
+            if !nodes.iter().any(|n| std::ptr::eq(&**n, &*node)) {
+                nodes.push(Dom::from_ref(&*node));
+            }
+        }
+    }
 }
 
 impl Window {
@@ -3022,7 +3016,6 @@ impl Window {
         #[cfg(feature = "webxr")] webxr_registry: Option<webxr_api::Registry>,
         microtask_queue: Rc<MicrotaskQueue>,
         compositor_api: CrossProcessCompositorApi,
-        relayout_event: bool,
         unminify_js: bool,
         unminify_css: bool,
         local_script_source: Option<String>,
@@ -3110,7 +3103,6 @@ impl Window {
             exists_mut_observer: Cell::new(false),
             compositor_api,
             has_sent_idle_message: Cell::new(false),
-            relayout_event,
             unminify_css,
             user_content_manager,
             player_context,
@@ -3196,29 +3188,6 @@ fn should_move_clip_rect(clip_rect: UntypedRect<Au>, new_viewport: UntypedRect<f
         (clip_rect.max_x() - new_viewport.max_x()).abs() <= viewport_scroll_margin.width ||
         (clip_rect.origin.y - new_viewport.origin.y).abs() <= viewport_scroll_margin.height ||
         (clip_rect.max_y() - new_viewport.max_y()).abs() <= viewport_scroll_margin.height
-}
-
-fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal) {
-    let goal_string = match *reflow_goal {
-        ReflowGoal::UpdateTheRendering => "\tFull",
-        ReflowGoal::UpdateScrollNode(..) => "\tUpdateScrollNode",
-        ReflowGoal::LayoutQuery(ref query_msg) => match *query_msg {
-            QueryMsg::ContentBox => "\tContentBoxQuery",
-            QueryMsg::ContentBoxes => "\tContentBoxesQuery",
-            QueryMsg::NodesFromPointQuery => "\tNodesFromPointQuery",
-            QueryMsg::ClientRectQuery => "\tClientRectQuery",
-            QueryMsg::ScrollingAreaOrOffsetQuery => "\tNodeScrollGeometryQuery",
-            QueryMsg::ResolvedStyleQuery => "\tResolvedStyleQuery",
-            QueryMsg::ResolvedFontStyleQuery => "\nResolvedFontStyleQuery",
-            QueryMsg::OffsetParentQuery => "\tOffsetParentQuery",
-            QueryMsg::StyleQuery => "\tStyleQuery",
-            QueryMsg::TextIndexQuery => "\tTextIndexQuery",
-            QueryMsg::ElementInnerOuterTextQuery => "\tElementInnerOuterTextQuery",
-            QueryMsg::InnerWindowDimensionsQuery => "\tInnerWindowDimensionsQuery",
-        },
-    };
-
-    println!("**** pipeline={id}\t{goal_string}");
 }
 
 impl Window {
