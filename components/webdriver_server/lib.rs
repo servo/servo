@@ -862,10 +862,7 @@ impl Handler {
         ))?;
 
         let window_size = wait_for_script_response(receiver)?;
-        info!(
-            "window_size after resizeing: {}, {}",
-            window_size.width, window_size.height
-        );
+        debug!("window_size after resizeing: {window_size:?}",);
         let window_size_response = WindowRectResponse {
             x: 0,
             y: 0,
