@@ -10,9 +10,11 @@ use js::rust::HandleObject;
 use script_bindings::str::DOMString;
 
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::Path2DMethods;
+use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::DOMMatrix2DInit;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::dommatrixreadonly::dommatrix2dinit_to_matrix;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
@@ -48,12 +50,104 @@ impl Path2D {
     pub(crate) fn segments(&self) -> Path {
         self.path.borrow().clone()
     }
+
+    fn has_segments(&self) -> bool {
+        !self.path.borrow().is_empty()
+    }
+
+    fn add_path_(&self, other: &Path2D, transform: &DOMMatrix2DInit) {
+        // Step 1. If the Path@D object path has no subpaths, then return.
+        if !other.has_segments() {
+            return;
+        }
+
+        // Step 2 Let matrix be the result of creating a DOMMatrix from the 2D dictionary transform.
+        let matrix = dommatrix2dinit_to_matrix(transform).unwrap();
+
+        // Step 3. If one or more of matrix's m11 element, m12 element, m21
+        // element, m22 element, m41 element, or m42 element are infinite or
+        // NaN, then return.
+        if !matrix.m11.is_finite() ||
+            !matrix.m12.is_finite() ||
+            !matrix.m21.is_finite() ||
+            !matrix.m22.is_finite() ||
+            !matrix.m41.is_finite() ||
+            !matrix.m42.is_finite()
+        {
+            return;
+        }
+
+        // Step 4. Create a copy of all the subpaths in path. Let c be this copy.
+        let mut c = other.segments();
+
+        // Step 5. Transform all the coordinates and lines in c by the transform matrix matrix.
+        c.iter_mut().for_each(|segment| match *segment {
+            PathSegment::ClosePath => todo!(),
+            PathSegment::MoveTo { x, y } => todo!(),
+            PathSegment::LineTo { x, y } => todo!(),
+            PathSegment::Quadratic { cpx, cpy, x, y } => todo!(),
+            PathSegment::Bezier {
+                cp1x,
+                cp1y,
+                cp2x,
+                cp2y,
+                x,
+                y,
+            } => todo!(),
+            PathSegment::ArcTo {
+                cp1x,
+                cp1y,
+                cp2x,
+                cp2y,
+                radius,
+            } => todo!(),
+            PathSegment::Ellipse {
+                x,
+                y,
+                radius_x,
+                radius_y,
+                rotation,
+                start_angle,
+                end_angle,
+                anticlockwise,
+            } => todo!(),
+            PathSegment::SvgArc {
+                radius_x,
+                radius_y,
+                rotation,
+                large_arc,
+                sweep,
+                x,
+                y,
+            } => todo!(),
+        });
+
+        // Step 6. Let (x, y) be the last point in the last subpath of c
+
+        // Step 7. Add all the subpaths in c to a.
+        if std::ptr::eq(&self.path, &other.path) {
+            // Note: this is not part of the spec, but it is a workaround to
+            // avoids borrow conflict when path is same as other.path
+            self.path.borrow_mut().extend_from_within(..);
+        } else {
+            let mut dest = self.path.borrow_mut();
+            dest.extend(other.path.borrow().iter().copied());
+        }
+    }
 }
 
 impl Path2DMethods<crate::DomTypeHolder> for Path2D {
     /// <https://html.spec.whatwg.org/multipage/#dom-path2d-addpath>
     fn AddPath(&self, other: &Path2D) {
         let other = other.segments();
+        // Step 1. If the Path@D object path has no subpaths, then return.
+        if !other.has_segments() {
+            return;
+        }
+
+        // Step 2 Let matrix be the result of creating a DOMMatrix from the 2D dictionary transform.
+        let matrix = 1;
+
         // Step 7. Add all the subpaths in c to a.
         self.path.borrow_mut().0.extend(other.0);
     }
