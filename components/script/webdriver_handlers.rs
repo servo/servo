@@ -619,7 +619,6 @@ pub(crate) fn handle_get_browsing_context_id(
     reply
         .send(match webdriver_frame_id {
             WebDriverFrameId::Short(id) => {
-                dbg!("Short id:", &id);
                 // Step 5. If id is not a supported property index of window,
                 // return error with error code no such frame.
                 documents
