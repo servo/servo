@@ -8,6 +8,7 @@
 
 #![deny(unsafe_code)]
 
+mod layout_damage;
 pub mod wrapper_traits;
 
 use std::any::Any;
@@ -28,6 +29,7 @@ use fnv::FnvHashMap;
 use fonts::{FontContext, SystemFontServiceProxy};
 use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
+pub use layout_damage::LayoutDamage;
 use libc::c_void;
 use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps, malloc_size_of_is_0};
 use malloc_size_of_derive::MallocSizeOf;
