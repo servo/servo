@@ -68,7 +68,7 @@ use js::jsapi::{
 };
 use js::jsval::UndefinedValue;
 use js::rust::ParentRuntime;
-use layout_api::{LayoutConfig, LayoutFactory, ReflowGoal, ScriptThreadFactory};
+use layout_api::{LayoutConfig, LayoutFactory, ScriptThreadFactory};
 use media::WindowGLContext;
 use metrics::MAX_TASK_NS;
 use net_traits::image_cache::{ImageCache, ImageCacheResponseMessage};
@@ -1328,19 +1328,9 @@ impl ScriptThread {
 
             // TODO: Mark paint timing from https://w3c.github.io/paint-timing.
 
-            // Update the rendering of those does not require a reflow.
-            // e.g. animated images.
-            document.update_animating_images();
-
-            #[cfg(feature = "webgpu")]
-            document.update_rendering_of_webgpu_canvases();
-
             // > Step 22: For each doc of docs, update the rendering or user interface of
             // > doc and its node navigable to reflect the current state.
-            saw_any_reflows = document
-                .window()
-                .reflow(ReflowGoal::UpdateTheRendering, can_gc) ||
-                saw_any_reflows;
+            saw_any_reflows = document.update_the_rendering(can_gc) || saw_any_reflows;
 
             // TODO: Process top layer removals according to
             // https://drafts.csswg.org/css-position-4/#process-top-layer-removals.
