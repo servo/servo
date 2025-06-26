@@ -121,7 +121,12 @@ class ServoHandler(mozlog.reader.LogHandler):
         self.reset_state()
 
     def reset_state(self):
-        self.reset_statistics()
+        self.number_of_tests = 0
+        self.completed_tests = 0
+        self.need_to_erase_last_line = False
+        self.running_tests: Dict[str, str] = {}
+        if self.currently_detecting_flakes:
+            return
         self.currently_detecting_flakes = False
         self.test_output = collections.defaultdict(str)
         self.subtest_failures = collections.defaultdict(list)
@@ -149,25 +154,15 @@ class ServoHandler(mozlog.reader.LogHandler):
             "PRECONDITION_FAILED": [],
         }
 
-    def reset_statistics(self):
-        self.number_of_tests = 0
-        self.completed_tests = 0
-        self.need_to_erase_last_line = False
-        self.running_tests: Dict[str, str] = {}
-
     def any_stable_unexpected(self) -> bool:
         return any(not unexpected.flaky for unexpected in self.unexpected_results)
 
     def suite_start(self, data):
-        if self.detect_flakes:
-            self.reset_statistics()
-            # If there were any unexpected results and we are starting another suite, assume
-            # that this suite has been launched to detect intermittent tests.
-            # TODO: Support running more than a single suite at once.
-            if self.unexpected_results:
-                self.currently_detecting_flakes = True
-        else:
-            self.reset_state()
+        # If there were any unexpected results and we are starting another suite, assume
+        # that this suite has been launched to detect intermittent tests.
+        # TODO: Support running more than a single suite at once.
+        if self.unexpected_results:
+            self.currently_detecting_flakes = True
 
         self.number_of_tests = sum(len(tests) for tests in itervalues(data["tests"]))
         self.suite_start_time = data["time"]
