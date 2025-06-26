@@ -17,6 +17,7 @@ use ipc_channel::ipc::IpcSender;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use pixels::RasterImage;
+use smallvec::SmallVec;
 use strum_macros::IntoStaticStr;
 use style_traits::CSSPixel;
 use webrender_api::DocumentId;
@@ -147,10 +148,8 @@ pub enum CompositorMsg {
     /// Create a new image key. The result will be returned via the
     /// provided channel sender.
     GenerateImageKey(IpcSender<ImageKey>),
-    /// Add an image with the given data and `ImageKey`.
-    AddImage(ImageKey, ImageDescriptor, SerializableImageData),
     /// Perform a resource update operation.
-    UpdateImages(Vec<ImageUpdate>),
+    UpdateImages(SmallVec<[ImageUpdate; 1]>),
 
     /// Generate a new batch of font keys which can be used to allocate
     /// keys asynchronously.
@@ -307,13 +306,24 @@ impl CrossProcessCompositorApi {
         descriptor: ImageDescriptor,
         data: SerializableImageData,
     ) {
-        if let Err(e) = self.0.send(CompositorMsg::AddImage(key, descriptor, data)) {
-            warn!("Error sending image update: {}", e);
-        }
+        self.update_images([ImageUpdate::AddImage(key, descriptor, data)].into());
+    }
+
+    pub fn update_image(
+        &self,
+        key: ImageKey,
+        descriptor: ImageDescriptor,
+        data: SerializableImageData,
+    ) {
+        self.update_images([ImageUpdate::UpdateImage(key, descriptor, data)].into());
+    }
+
+    pub fn delete_image(&self, key: ImageKey) {
+        self.update_images([ImageUpdate::DeleteImage(key)].into());
     }
 
     /// Perform an image resource update operation.
-    pub fn update_images(&self, updates: Vec<ImageUpdate>) {
+    pub fn update_images(&self, updates: SmallVec<[ImageUpdate; 1]>) {
         if let Err(e) = self.0.send(CompositorMsg::UpdateImages(updates)) {
             warn!("error sending image updates: {}", e);
         }

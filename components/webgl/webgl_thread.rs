@@ -23,7 +23,7 @@ use canvas_traits::webgl::{
     WebGLVersion, WebGLVertexArrayId, YAxisTreatment,
 };
 use compositing_traits::{
-    CrossProcessCompositorApi, ImageUpdate, SerializableImageData, WebrenderExternalImageRegistry,
+    CrossProcessCompositorApi, SerializableImageData, WebrenderExternalImageRegistry,
     WebrenderImageHandlerType,
 };
 use euclid::default::Size2D;
@@ -719,8 +719,7 @@ impl WebGLThread {
     fn remove_webgl_context(&mut self, context_id: WebGLContextId) {
         // Release webrender image keys.
         if let Some(info) = self.cached_context_info.remove(&context_id) {
-            self.compositor_api
-                .update_images(vec![ImageUpdate::DeleteImage(info.image_key)]);
+            self.compositor_api.delete_image(info.image_key);
         }
 
         // We need to make the context current so its resources can be disposed of.
@@ -929,11 +928,7 @@ impl WebGLThread {
         let image_data = Self::external_image_data(context_id, image_buffer_kind);
 
         self.compositor_api
-            .update_images(vec![ImageUpdate::UpdateImage(
-                info.image_key,
-                descriptor,
-                image_data,
-            )]);
+            .update_image(info.image_key, descriptor, image_data);
     }
 
     /// Helper function to create a `ImageDescriptor`.
