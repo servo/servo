@@ -16,7 +16,7 @@ mod sampler;
         target_env = "musl"
     ))
 ))]
-mod sampler_backtrace;
+mod sampler_linux;
 #[cfg(all(feature = "sampler", target_os = "macos"))]
 mod sampler_mac;
 #[cfg(all(feature = "sampler", target_os = "windows"))]
