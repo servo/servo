@@ -405,8 +405,8 @@ impl Servo {
             image_handler,
         } = WebGLComm::new(
             rendering_context.clone(),
+            compositor_proxy.cross_process_compositor_api.clone(),
             webrender_api.create_sender(),
-            webrender_document,
             external_images.clone(),
             gl_type,
         );

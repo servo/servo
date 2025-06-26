@@ -22,7 +22,10 @@ use canvas_traits::webgl::{
     WebGLSLVersion, WebGLSamplerId, WebGLSender, WebGLShaderId, WebGLSyncId, WebGLTextureId,
     WebGLVersion, WebGLVertexArrayId, YAxisTreatment,
 };
-use compositing_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
+use compositing_traits::{
+    CrossProcessCompositorApi, ImageUpdate, SerializableImageData, WebrenderExternalImageRegistry,
+    WebrenderImageHandlerType,
+};
 use euclid::default::Size2D;
 use fnv::FnvHashMap;
 use glow::{
@@ -40,11 +43,11 @@ use surfman::{
     self, Adapter, Connection, Context, ContextAttributeFlags, ContextAttributes, Device,
     GLVersion, SurfaceAccess, SurfaceInfo, SurfaceType,
 };
-use webrender::{RenderApi, RenderApiSender, Transaction};
+use webrender::{RenderApi, RenderApiSender};
 use webrender_api::units::DeviceIntSize;
 use webrender_api::{
-    DirtyRect, DocumentId, ExternalImageData, ExternalImageId, ExternalImageType, ImageBufferKind,
-    ImageData, ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey,
+    ExternalImageData, ExternalImageId, ExternalImageType, ImageBufferKind, ImageDescriptor,
+    ImageDescriptorFlags, ImageFormat, ImageKey,
 };
 
 use crate::webgl_limits::GLLimitsDetect;
@@ -202,8 +205,8 @@ pub(crate) struct WebGLThread {
     /// The GPU device.
     device: Device,
     /// Channel used to generate/update or delete `ImageKey`s.
+    compositor_api: CrossProcessCompositorApi,
     webrender_api: RenderApi,
-    webrender_doc: DocumentId,
     /// Map of live WebGLContexts.
     contexts: FnvHashMap<WebGLContextId, GLContextData>,
     /// Cached information for WebGLContexts.
@@ -228,8 +231,8 @@ pub(crate) struct WebGLThread {
 
 /// The data required to initialize an instance of the WebGLThread type.
 pub(crate) struct WebGLThreadInit {
+    pub compositor_api: CrossProcessCompositorApi,
     pub webrender_api_sender: RenderApiSender,
-    pub webrender_doc: DocumentId,
     pub external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     pub sender: WebGLSender<WebGLMsg>,
     pub receiver: WebGLReceiver<WebGLMsg>,
@@ -248,8 +251,8 @@ impl WebGLThread {
     /// Create a new instance of WebGLThread.
     pub(crate) fn new(
         WebGLThreadInit {
+            compositor_api,
             webrender_api_sender,
-            webrender_doc,
             external_images,
             sender,
             receiver,
@@ -265,8 +268,8 @@ impl WebGLThread {
             device: connection
                 .create_device(&adapter)
                 .expect("Couldn't open WebGL device!"),
+            compositor_api,
             webrender_api: webrender_api_sender.create_api(),
-            webrender_doc,
             contexts: Default::default(),
             cached_context_info: Default::default(),
             bound_context_id: None,
@@ -648,8 +651,7 @@ impl WebGLThread {
         );
 
         let image_key = Self::create_wr_external_image(
-            &mut self.webrender_api,
-            self.webrender_doc,
+            &self.compositor_api,
             size.to_i32(),
             has_alpha,
             id,
@@ -717,9 +719,8 @@ impl WebGLThread {
     fn remove_webgl_context(&mut self, context_id: WebGLContextId) {
         // Release webrender image keys.
         if let Some(info) = self.cached_context_info.remove(&context_id) {
-            let mut txn = Transaction::new();
-            txn.delete_image(info.image_key);
-            self.webrender_api.send_transaction(self.webrender_doc, txn)
+            self.compositor_api
+                .update_images(vec![ImageUpdate::DeleteImage(info.image_key)]);
         }
 
         // We need to make the context current so its resources can be disposed of.
@@ -898,8 +899,7 @@ impl WebGLThread {
 
     /// Creates a `webrender_api::ImageKey` that uses shared textures.
     fn create_wr_external_image(
-        webrender_api: &mut RenderApi,
-        webrender_doc: DocumentId,
+        compositor_api: &CrossProcessCompositorApi,
         size: Size2D<i32>,
         alpha: bool,
         context_id: WebGLContextId,
@@ -908,10 +908,8 @@ impl WebGLThread {
         let descriptor = Self::image_descriptor(size, alpha);
         let data = Self::external_image_data(context_id, image_buffer_kind);
 
-        let image_key = webrender_api.generate_image_key();
-        let mut txn = Transaction::new();
-        txn.add_image(image_key, descriptor, data, None);
-        webrender_api.send_transaction(webrender_doc, txn);
+        let image_key = compositor_api.generate_image_key().unwrap();
+        compositor_api.add_image(image_key, descriptor, data);
 
         image_key
     }
@@ -930,9 +928,12 @@ impl WebGLThread {
         let descriptor = Self::image_descriptor(size, has_alpha);
         let image_data = Self::external_image_data(context_id, image_buffer_kind);
 
-        let mut txn = Transaction::new();
-        txn.update_image(info.image_key, descriptor, image_data, &DirtyRect::All);
-        self.webrender_api.send_transaction(self.webrender_doc, txn);
+        self.compositor_api
+            .update_images(vec![ImageUpdate::UpdateImage(
+                info.image_key,
+                descriptor,
+                image_data,
+            )]);
     }
 
     /// Helper function to create a `ImageDescriptor`.
@@ -952,14 +953,14 @@ impl WebGLThread {
     fn external_image_data(
         context_id: WebGLContextId,
         image_buffer_kind: ImageBufferKind,
-    ) -> ImageData {
+    ) -> SerializableImageData {
         let data = ExternalImageData {
             id: ExternalImageId(context_id.0),
             channel_index: 0,
             image_type: ExternalImageType::TextureHandle(image_buffer_kind),
             normalized_uvs: false,
         };
-        ImageData::External(data)
+        SerializableImageData::External(data)
     }
 
     /// Gets the GLSL Version supported by a GLContext.
