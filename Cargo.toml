@@ -76,7 +76,7 @@ http = "1.3"
 http-body-util = "0.1"
 hyper = "1.6"
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "logging", "tls12", "webpki-tokio"] }
-hyper-util = { version = "0.1", features = ["client", "client-legacy", "http2", "tokio"] }
+hyper-util = { version = "0.1", features = ["client", "http2", "tokio"] }
 hyper_serde = { path = "components/hyper_serde" }
 icu_locid = "1.5.0"
 icu_segmenter = "1.5.0"
@@ -130,7 +130,7 @@ servo-media-gstreamer = { git = "https://github.com/servo/media" }
 servo-tracing = { path = "components/servo_tracing" }
 servo_arc = { git = "https://github.com/servo/stylo", branch = "2025-06-03" }
 smallbitvec = "2.6.0"
-smallvec = "1.15"
+smallvec = { version = "1.15", features = ["union"] }
 static_assertions = "1.1"
 string_cache = "0.8"
 string_cache_codegen = "0.5"
@@ -146,7 +146,6 @@ surfman = { git = "https://github.com/servo/surfman", rev = "f7688b4585f9e0b5d4b
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
 taffy = { version = "0.8.3", default-features = false, features = ["detailed_layout_info", "grid", "serde", "std"] }
-thin-vec = "0.2.14"
 tikv-jemalloc-sys = "0.6.0"
 tikv-jemallocator = "0.6.0"
 time = { package = "time", version = "0.3", features = ["large-dates", "local-offset", "serde"] }
