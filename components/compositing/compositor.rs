@@ -336,11 +336,23 @@ impl ServoRenderer {
                     _ => return None,
                 }
 
+                let offset = details
+                    .scroll_tree
+                    .scroll_offset(pipeline_id.root_scroll_id())
+                    .unwrap_or_default();
+                let point_in_initial_containing_block =
+                    (item.point_in_viewport + offset).to_untyped();
+
                 let info = &details.hit_test_items[item.tag.0 as usize];
                 Some(CompositorHitTestResult {
                     pipeline_id,
-                    point_in_viewport: item.point_in_viewport.to_untyped(),
-                    point_relative_to_item: item.point_relative_to_item.to_untyped(),
+                    point_in_viewport: Point2D::from_untyped(item.point_in_viewport.to_untyped()),
+                    point_relative_to_initial_containing_block: Point2D::from_untyped(
+                        point_in_initial_containing_block,
+                    ),
+                    point_relative_to_item: Point2D::from_untyped(
+                        item.point_relative_to_item.to_untyped(),
+                    ),
                     node: UntrustedNodeAddress(info.node as *const c_void),
                     cursor: info.cursor,
                     scroll_tree_node: info.scroll_tree_node,

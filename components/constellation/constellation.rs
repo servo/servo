@@ -4542,41 +4542,11 @@ where
             WebDriverCommandMsg::CloseWebView(..) => {
                 unreachable!("This command should be send directly to the embedder.");
             },
-            WebDriverCommandMsg::NewWebView(
-                originating_webview_id,
-                response_sender,
-                load_status_sender,
-            ) => {
-                let (embedder_sender, receiver) = match ipc::channel() {
-                    Ok(result) => result,
-                    Err(error) => return warn!("Failed to create channel: {error:?}"),
-                };
-                self.embedder_proxy.send(EmbedderMsg::AllowOpeningWebView(
-                    originating_webview_id,
-                    embedder_sender,
-                ));
-                let (new_webview_id, viewport_details) = match receiver.recv() {
-                    Ok(Some((new_webview_id, viewport_details))) => {
-                        (new_webview_id, viewport_details)
-                    },
-                    Ok(None) => return warn!("Embedder refused to allow opening webview"),
-                    Err(error) => return warn!("Failed to receive webview id: {error:?}"),
-                };
-                self.handle_new_top_level_browsing_context(
-                    ServoUrl::parse_with_base(None, "about:blank").expect("Infallible parse"),
-                    new_webview_id,
-                    viewport_details,
-                    Some(load_status_sender),
-                );
-                if let Err(error) = response_sender.send(new_webview_id) {
-                    error!(
-                        "WebDriverCommandMsg::NewWebView: IPC error when sending new_webview_id \
-                        to webdriver server: {error}"
-                    );
-                }
+            WebDriverCommandMsg::NewWebView(..) => {
+                unreachable!("This command should be send directly to the embedder.");
             },
-            WebDriverCommandMsg::FocusWebView(webview_id) => {
-                self.handle_focus_web_view(webview_id);
+            WebDriverCommandMsg::FocusWebView(..) => {
+                unreachable!("This command should be send directly to the embedder.");
             },
             WebDriverCommandMsg::IsWebViewOpen(..) => {
                 unreachable!("This command should be send directly to the embedder.");
@@ -4585,55 +4555,20 @@ where
                 let is_open = self.browsing_contexts.contains_key(&browsing_context_id);
                 let _ = response_sender.send(is_open);
             },
-            WebDriverCommandMsg::GetWindowSize(webview_id, response_sender) => {
-                let browsing_context_id = BrowsingContextId::from(webview_id);
-                let size = self
-                    .browsing_contexts
-                    .get(&browsing_context_id)
-                    .map(|browsing_context| browsing_context.viewport_details.size)
-                    .unwrap_or_default();
-                let _ = response_sender.send(size);
+            WebDriverCommandMsg::GetWindowSize(..) => {
+                unreachable!("This command should be send directly to the embedder.");
             },
-            WebDriverCommandMsg::SetWindowSize(webview_id, size, response_sender) => {
-                self.webdriver.resize_channel = Some(response_sender);
-                self.embedder_proxy
-                    .send(EmbedderMsg::ResizeTo(webview_id, size));
+            WebDriverCommandMsg::GetViewportSize(..) => {
+                unreachable!("This command should be send directly to the embedder.");
             },
-            WebDriverCommandMsg::LoadUrl(webview_id, url, response_sender) => {
-                let load_data = LoadData::new(
-                    LoadOrigin::WebDriver,
-                    url,
-                    None,
-                    Referrer::NoReferrer,
-                    ReferrerPolicy::EmptyString,
-                    None,
-                    None,
-                    false,
-                );
-                self.load_url_for_webdriver(
-                    webview_id,
-                    load_data,
-                    response_sender,
-                    NavigationHistoryBehavior::Push,
-                );
+            WebDriverCommandMsg::SetWindowSize(..) => {
+                unreachable!("This command should be send directly to the embedder.");
             },
-            WebDriverCommandMsg::Refresh(webview_id, response_sender) => {
-                let browsing_context_id = BrowsingContextId::from(webview_id);
-                let pipeline_id = self
-                    .browsing_contexts
-                    .get(&browsing_context_id)
-                    .expect("Refresh: Browsing context must exist at this point")
-                    .pipeline_id;
-                let load_data = match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => pipeline.load_data.clone(),
-                    None => return warn!("{}: Refresh after closure", pipeline_id),
-                };
-                self.load_url_for_webdriver(
-                    webview_id,
-                    load_data,
-                    response_sender,
-                    NavigationHistoryBehavior::Replace,
-                );
+            WebDriverCommandMsg::LoadUrl(..) => {
+                unreachable!("This command should be send directly to the embedder.");
+            },
+            WebDriverCommandMsg::Refresh(..) => {
+                unreachable!("This command should be send directly to the embedder.");
             },
             // TODO: This should use the ScriptThreadMessage::EvaluateJavaScript command
             WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd) => {
@@ -4767,6 +4702,9 @@ where
                     response_sender,
                 ));
             },
+            _ => {
+                warn!("Unhandled WebDriver command: {:?}", msg);
+            },
         }
     }
 
@@ -4897,38 +4835,6 @@ where
             entries,
             current_index,
         ));
-    }
-
-    #[servo_tracing::instrument(skip_all)]
-    fn load_url_for_webdriver(
-        &mut self,
-        webview_id: WebViewId,
-        load_data: LoadData,
-        response_sender: IpcSender<WebDriverLoadStatus>,
-        history_handling: NavigationHistoryBehavior,
-    ) {
-        let browsing_context_id = BrowsingContextId::from(webview_id);
-        let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
-            Some(browsing_context) => browsing_context.pipeline_id,
-            None => {
-                return warn!(
-                    "{}: Webdriver load for closed browsing context",
-                    browsing_context_id
-                );
-            },
-        };
-
-        if let Some(new_pipeline_id) =
-            self.load_url(webview_id, pipeline_id, load_data, history_handling)
-        {
-            debug!(
-                "Setting up webdriver load notification for {:?}",
-                new_pipeline_id
-            );
-            self.webdriver.load_channel = Some((new_pipeline_id, response_sender));
-        } else {
-            let _ = response_sender.send(WebDriverLoadStatus::Canceled);
-        }
     }
 
     #[servo_tracing::instrument(skip_all)]

@@ -18,6 +18,9 @@ pub(crate) mod base {
     pub(crate) use js::panic::maybe_resume_unwind;
     pub(crate) use js::rust::wrappers::Call;
     pub(crate) use js::rust::{HandleObject, HandleValue, MutableHandleObject, MutableHandleValue};
+    pub(crate) use js::typedarray::{
+        ArrayBuffer, ArrayBufferView, Float32Array, Float64Array, Uint8Array, Uint8ClampedArray,
+    };
 
     pub(crate) use crate::callback::{
         CallSetup, CallbackContainer, CallbackFunction, CallbackInterface, CallbackObject,
@@ -83,9 +86,6 @@ pub(crate) mod module {
     pub(crate) use js::rust::{
         CustomAutoRooterGuard, GCMethods, Handle, MutableHandle, get_context_realm,
         get_object_class, get_object_realm,
-    };
-    pub(crate) use js::typedarray::{
-        ArrayBuffer, ArrayBufferView, Float32Array, Float64Array, Uint8Array, Uint8ClampedArray,
     };
     pub(crate) use js::{
         JS_CALLEE, JSCLASS_GLOBAL_SLOT_COUNT, JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL,

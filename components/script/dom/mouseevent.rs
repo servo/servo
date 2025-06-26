@@ -7,10 +7,12 @@ use std::default::Default;
 
 use dom_struct::dom_struct;
 use embedder_traits::CompositorHitTestResult;
-use euclid::default::Point2D;
+use euclid::Point2D;
 use js::rust::HandleObject;
+use keyboard_types::Modifiers;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use servo_config::pref;
+use style_traits::CSSPixel;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::MouseEventBinding;
@@ -33,36 +35,36 @@ use crate::script_runtime::CanGc;
 pub(crate) struct MouseEvent {
     uievent: UIEvent,
 
+    /// The point on the screen of where this [`MouseEvent`] was originally triggered,
+    /// to use during the dispatch phase.
+    ///
+    /// See:
     /// <https://w3c.github.io/uievents/#dom-mouseevent-screenx>
-    screen_x: Cell<i32>,
-
     /// <https://w3c.github.io/uievents/#dom-mouseevent-screeny>
-    screen_y: Cell<i32>,
+    #[no_trace]
+    screen_point: Cell<Point2D<i32, CSSPixel>>,
 
+    /// The point in the viewport of where this [`MouseEvent`] was originally triggered,
+    /// to use during the dispatch phase.
+    ///
+    /// See:
     /// <https://w3c.github.io/uievents/#dom-mouseevent-clientx>
-    client_x: Cell<i32>,
-
     /// <https://w3c.github.io/uievents/#dom-mouseevent-clienty>
-    client_y: Cell<i32>,
+    #[no_trace]
+    client_point: Cell<Point2D<i32, CSSPixel>>,
 
-    page_x: Cell<i32>,
-    page_y: Cell<i32>,
-    x: Cell<i32>,
-    y: Cell<i32>,
-    offset_x: Cell<i32>,
-    offset_y: Cell<i32>,
+    /// The point in the initial containing block of where this [`MouseEvent`] was
+    /// originally triggered to use during the dispatch phase.
+    ///
+    /// See:
+    /// <https://w3c.github.io/uievents/#dom-mouseevent-pagex>
+    /// <https://w3c.github.io/uievents/#dom-mouseevent-pagey>
+    #[no_trace]
+    page_point: Cell<Point2D<i32, CSSPixel>>,
 
-    /// <https://w3c.github.io/uievents/#dom-mouseevent-ctrlkey>
-    ctrl_key: Cell<bool>,
-
-    /// <https://w3c.github.io/uievents/#dom-mouseevent-shiftkey>
-    shift_key: Cell<bool>,
-
-    /// <https://w3c.github.io/uievents/#dom-mouseevent-altkey>
-    alt_key: Cell<bool>,
-
-    /// <https://w3c.github.io/uievents/#dom-mouseevent-metakey>
-    meta_key: Cell<bool>,
+    /// The keyboard modifiers that were active when this mouse event was triggered.
+    #[no_trace]
+    modifiers: Cell<Modifiers>,
 
     /// <https://w3c.github.io/uievents/#dom-mouseevent-button>
     button: Cell<i16>,
@@ -73,27 +75,17 @@ pub(crate) struct MouseEvent {
     /// <https://w3c.github.io/uievents/#dom-mouseevent-relatedtarget>
     related_target: MutNullableDom<EventTarget>,
     #[no_trace]
-    point_in_target: Cell<Option<Point2D<f32>>>,
+    point_in_target: Cell<Option<Point2D<f32, CSSPixel>>>,
 }
 
 impl MouseEvent {
     pub(crate) fn new_inherited() -> MouseEvent {
         MouseEvent {
             uievent: UIEvent::new_inherited(),
-            screen_x: Cell::new(0),
-            screen_y: Cell::new(0),
-            client_x: Cell::new(0),
-            client_y: Cell::new(0),
-            page_x: Cell::new(0),
-            page_y: Cell::new(0),
-            x: Cell::new(0),
-            y: Cell::new(0),
-            offset_x: Cell::new(0),
-            offset_y: Cell::new(0),
-            ctrl_key: Cell::new(false),
-            shift_key: Cell::new(false),
-            alt_key: Cell::new(false),
-            meta_key: Cell::new(false),
+            screen_point: Cell::new(Default::default()),
+            client_point: Cell::new(Default::default()),
+            page_point: Cell::new(Default::default()),
+            modifiers: Cell::new(Modifiers::empty()),
             button: Cell::new(0),
             buttons: Cell::new(0),
             related_target: Default::default(),
@@ -121,18 +113,14 @@ impl MouseEvent {
         cancelable: EventCancelable,
         view: Option<&Window>,
         detail: i32,
-        screen_x: i32,
-        screen_y: i32,
-        client_x: i32,
-        client_y: i32,
-        ctrl_key: bool,
-        alt_key: bool,
-        shift_key: bool,
-        meta_key: bool,
+        screen_point: Point2D<i32, CSSPixel>,
+        client_point: Point2D<i32, CSSPixel>,
+        page_point: Point2D<i32, CSSPixel>,
+        modifiers: Modifiers,
         button: i16,
         buttons: u16,
         related_target: Option<&EventTarget>,
-        point_in_target: Option<Point2D<f32>>,
+        point_in_target: Option<Point2D<f32, CSSPixel>>,
         can_gc: CanGc,
     ) -> DomRoot<MouseEvent> {
         Self::new_with_proto(
@@ -143,14 +131,10 @@ impl MouseEvent {
             cancelable,
             view,
             detail,
-            screen_x,
-            screen_y,
-            client_x,
-            client_y,
-            ctrl_key,
-            alt_key,
-            shift_key,
-            meta_key,
+            screen_point,
+            client_point,
+            page_point,
+            modifiers,
             button,
             buttons,
             related_target,
@@ -168,18 +152,14 @@ impl MouseEvent {
         cancelable: EventCancelable,
         view: Option<&Window>,
         detail: i32,
-        screen_x: i32,
-        screen_y: i32,
-        client_x: i32,
-        client_y: i32,
-        ctrl_key: bool,
-        alt_key: bool,
-        shift_key: bool,
-        meta_key: bool,
+        screen_point: Point2D<i32, CSSPixel>,
+        client_point: Point2D<i32, CSSPixel>,
+        page_point: Point2D<i32, CSSPixel>,
+        modifiers: Modifiers,
         button: i16,
         buttons: u16,
         related_target: Option<&EventTarget>,
-        point_in_target: Option<Point2D<f32>>,
+        point_in_target: Option<Point2D<f32, CSSPixel>>,
         can_gc: CanGc,
     ) -> DomRoot<MouseEvent> {
         let ev = MouseEvent::new_uninitialized_with_proto(window, proto, can_gc);
@@ -189,14 +169,10 @@ impl MouseEvent {
             cancelable,
             view,
             detail,
-            screen_x,
-            screen_y,
-            client_x,
-            client_y,
-            ctrl_key,
-            alt_key,
-            shift_key,
-            meta_key,
+            screen_point,
+            client_point,
+            page_point,
+            modifiers,
             button,
             buttons,
             related_target,
@@ -214,18 +190,14 @@ impl MouseEvent {
         cancelable: EventCancelable,
         view: Option<&Window>,
         detail: i32,
-        screen_x: i32,
-        screen_y: i32,
-        client_x: i32,
-        client_y: i32,
-        ctrl_key: bool,
-        alt_key: bool,
-        shift_key: bool,
-        meta_key: bool,
+        screen_point: Point2D<i32, CSSPixel>,
+        client_point: Point2D<i32, CSSPixel>,
+        page_point: Point2D<i32, CSSPixel>,
+        modifiers: Modifiers,
         button: i16,
         buttons: u16,
         related_target: Option<&EventTarget>,
-        point_in_target: Option<Point2D<f32>>,
+        point_in_target: Option<Point2D<f32, CSSPixel>>,
     ) {
         self.uievent.initialize_ui_event(
             type_,
@@ -235,32 +207,17 @@ impl MouseEvent {
         );
 
         self.uievent.set_detail(detail);
-
-        self.screen_x.set(screen_x);
-        self.screen_y.set(screen_y);
-        self.client_x.set(client_x);
-        self.client_y.set(client_y);
-        self.page_x.set(self.PageX());
-        self.page_y.set(self.PageY());
-
-        // skip setting flags as they are absent
-        self.shift_key.set(shift_key);
-        self.ctrl_key.set(ctrl_key);
-        self.alt_key.set(alt_key);
-        self.meta_key.set(meta_key);
-
+        self.screen_point.set(screen_point);
+        self.client_point.set(client_point);
+        self.page_point.set(page_point);
+        self.modifiers.set(modifiers);
         self.button.set(button);
         self.buttons.set(buttons);
-        // skip step 3: Initialize PointerLock attributes for MouseEvent with event,
-        // as movementX, movementY is absent
-
         self.related_target.set(related_target);
-
-        // below is not in the spec
         self.point_in_target.set(point_in_target);
     }
 
-    pub(crate) fn point_in_target(&self) -> Option<Point2D<f32>> {
+    pub(crate) fn point_in_target(&self) -> Option<Point2D<f32, CSSPixel>> {
         self.point_in_target.get()
     }
 
@@ -270,6 +227,7 @@ impl MouseEvent {
         pressed_mouse_buttons: u16,
         window: &Window,
         hit_test_result: &CompositorHitTestResult,
+        modifiers: Modifiers,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
         let mouse_event_type_string = match event.action {
@@ -278,8 +236,11 @@ impl MouseEvent {
             embedder_traits::MouseButtonAction::Down => "mousedown",
         };
 
-        let client_x = hit_test_result.point_in_viewport.x as i32;
-        let client_y = hit_test_result.point_in_viewport.y as i32;
+        let client_point = hit_test_result.point_in_viewport.to_i32();
+        let page_point = hit_test_result
+            .point_relative_to_initial_containing_block
+            .to_i32();
+
         let click_count = 1;
         let mouse_event = MouseEvent::new(
             window,
@@ -288,14 +249,10 @@ impl MouseEvent {
             EventCancelable::Cancelable,
             Some(window),
             click_count,
-            client_x,
-            client_y,
-            client_x,
-            client_y, // TODO: Get real screen coordinates?
-            false,
-            false,
-            false,
-            false,
+            client_point, // TODO: Get real screen coordinates?
+            client_point,
+            page_point,
+            modifiers,
             event.button.into(),
             pressed_mouse_buttons,
             None,
@@ -321,6 +278,10 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
     ) -> Fallible<DomRoot<MouseEvent>> {
         let bubbles = EventBubbles::from(init.parent.parent.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.parent.parent.cancelable);
+        let page_point = Point2D::new(
+            window.ScrollX() + init.clientX,
+            window.ScrollY() + init.clientY,
+        );
         let event = MouseEvent::new_with_proto(
             window,
             proto,
@@ -329,14 +290,10 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
             cancelable,
             init.parent.parent.view.as_deref(),
             init.parent.parent.detail,
-            init.screenX,
-            init.screenY,
-            init.clientX,
-            init.clientY,
-            init.parent.ctrlKey,
-            init.parent.altKey,
-            init.parent.shiftKey,
-            init.parent.metaKey,
+            Point2D::new(init.screenX, init.screenY),
+            Point2D::new(init.clientX, init.clientY),
+            page_point,
+            init.parent.modifiers(),
             init.button,
             init.buttons,
             init.relatedTarget.as_deref(),
@@ -351,110 +308,128 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
 
     /// <https://w3c.github.io/uievents/#widl-MouseEvent-screenX>
     fn ScreenX(&self) -> i32 {
-        self.screen_x.get()
+        self.screen_point.get().x
     }
 
     /// <https://w3c.github.io/uievents/#widl-MouseEvent-screenY>
     fn ScreenY(&self) -> i32 {
-        self.screen_y.get()
+        self.screen_point.get().y
     }
 
     /// <https://w3c.github.io/uievents/#widl-MouseEvent-clientX>
     fn ClientX(&self) -> i32 {
-        self.client_x.get()
+        self.client_point.get().x
     }
 
     /// <https://w3c.github.io/uievents/#widl-MouseEvent-clientY>
     fn ClientY(&self) -> i32 {
-        self.client_y.get()
+        self.client_point.get().y
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-mouseevent-pagex>
     fn PageX(&self) -> i32 {
+        // The pageX attribute must follow these steps:
+        // > 1. If the event’s dispatch flag is set, return the horizontal coordinate of the
+        // > position where the event occurred relative to the origin of the initial containing
+        // > block and terminate these steps.
         if self.upcast::<Event>().dispatching() {
-            self.page_x.get()
-        } else {
-            self.global().as_window().ScrollX() + self.client_x.get()
+            return self.page_point.get().x;
         }
+
+        // > 2. Let offset be the value of the scrollX attribute of the event’s associated
+        // > Window object, if there is one, or zero otherwise.
+        // > 3. Return the sum of offset and the value of the event’s clientX attribute.
+        self.global().as_window().ScrollX() + self.ClientX()
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-mouseevent-pagey>
     fn PageY(&self) -> i32 {
+        // The pageY attribute must follow these steps:
+        // > 1. If the event’s dispatch flag is set, return the vertical coordinate of the
+        // > position where the event occurred relative to the origin of the initial
+        // > containing block and terminate these steps.
         if self.upcast::<Event>().dispatching() {
-            self.page_y.get()
-        } else {
-            self.global().as_window().ScrollY() + self.client_y.get()
+            return self.page_point.get().y;
         }
+
+        // > 2. Let offset be the value of the scrollY attribute of the event’s associated
+        // > Window object, if there is one, or zero otherwise.
+        // > 3. Return the sum of offset and the value of the event’s clientY attribute.
+        self.global().as_window().ScrollY() + self.ClientY()
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-mouseevent-x>
     fn X(&self) -> i32 {
-        self.client_x.get()
+        self.ClientX()
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-mouseevent-y>
     fn Y(&self) -> i32 {
-        self.client_y.get()
+        self.ClientY()
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-mouseevent-offsetx>
     fn OffsetX(&self, can_gc: CanGc) -> i32 {
+        // > The offsetX attribute must follow these steps:
+        // > 1. If the event’s dispatch flag is set, return the x-coordinate of the position
+        // >    where the event occurred relative to the origin of the padding edge of the
+        // >    target node, ignoring the transforms that apply to the element and its
+        // >    ancestors, and terminate these steps.
         let event = self.upcast::<Event>();
         if event.dispatching() {
-            match event.GetTarget() {
-                Some(target) => {
-                    if let Some(node) = target.downcast::<Node>() {
-                        let rect = node.client_rect(can_gc);
-                        self.client_x.get() - rect.origin.x
-                    } else {
-                        self.offset_x.get()
-                    }
-                },
-                None => self.offset_x.get(),
-            }
-        } else {
-            self.PageX()
+            let Some(target) = event.GetTarget() else {
+                return 0;
+            };
+            let Some(node) = target.downcast::<Node>() else {
+                return 0;
+            };
+            return self.ClientX() - node.client_rect(can_gc).origin.x;
         }
+
+        // > 2. Return the value of the event’s pageX attribute.
+        self.PageX()
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-mouseevent-offsety>
     fn OffsetY(&self, can_gc: CanGc) -> i32 {
+        // > The offsetY attribute must follow these steps:
+        // > 1. If the event’s dispatch flag is set, return the y-coordinate of the
+        // >    position where the event occurred relative to the origin of the padding edge of
+        // >    the target node, ignoring the transforms that apply to the element and its
+        // >    ancestors, and terminate these steps.
         let event = self.upcast::<Event>();
         if event.dispatching() {
-            match event.GetTarget() {
-                Some(target) => {
-                    if let Some(node) = target.downcast::<Node>() {
-                        let rect = node.client_rect(can_gc);
-                        self.client_y.get() - rect.origin.y
-                    } else {
-                        self.offset_y.get()
-                    }
-                },
-                None => self.offset_y.get(),
-            }
-        } else {
-            self.PageY()
+            let Some(target) = event.GetTarget() else {
+                return 0;
+            };
+            let Some(node) = target.downcast::<Node>() else {
+                return 0;
+            };
+            return self.ClientY() - node.client_rect(can_gc).origin.y;
         }
+
+        // 2. Return the value of the event’s pageY attribute.
+        self.PageY()
     }
 
     /// <https://w3c.github.io/uievents/#dom-mouseevent-ctrlkey>
     fn CtrlKey(&self) -> bool {
-        self.ctrl_key.get()
+        self.modifiers.get().contains(Modifiers::CONTROL)
     }
 
     /// <https://w3c.github.io/uievents/#dom-mouseevent-shiftkey>
     fn ShiftKey(&self) -> bool {
-        self.shift_key.get()
+        self.modifiers.get().contains(Modifiers::SHIFT)
     }
 
     /// <https://w3c.github.io/uievents/#dom-mouseevent-altkey>
     fn AltKey(&self) -> bool {
-        self.alt_key.get()
+        self.modifiers.get().contains(Modifiers::ALT)
     }
 
     /// <https://w3c.github.io/uievents/#dom-mouseevent-metakey>
     fn MetaKey(&self) -> bool {
-        self.meta_key.get()
+        self.modifiers.get().contains(Modifiers::META)
     }
 
     /// <https://w3c.github.io/uievents/#dom-mouseevent-button>
@@ -515,14 +490,32 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
             view_arg,
             detail_arg,
         );
-        self.screen_x.set(screen_x_arg);
-        self.screen_y.set(screen_y_arg);
-        self.client_x.set(client_x_arg);
-        self.client_y.set(client_y_arg);
-        self.ctrl_key.set(ctrl_key_arg);
-        self.alt_key.set(alt_key_arg);
-        self.shift_key.set(shift_key_arg);
-        self.meta_key.set(meta_key_arg);
+        self.screen_point
+            .set(Point2D::new(screen_x_arg, screen_y_arg));
+        self.client_point
+            .set(Point2D::new(client_x_arg, client_y_arg));
+
+        let global = self.global();
+        self.page_point.set(Point2D::new(
+            global.as_window().ScrollX() + client_x_arg,
+            global.as_window().ScrollY() + client_y_arg,
+        ));
+
+        let mut modifiers = Modifiers::empty();
+        if ctrl_key_arg {
+            modifiers.insert(Modifiers::CONTROL);
+        }
+        if alt_key_arg {
+            modifiers.insert(Modifiers::ALT);
+        }
+        if shift_key_arg {
+            modifiers.insert(Modifiers::SHIFT);
+        }
+        if meta_key_arg {
+            modifiers.insert(Modifiers::META);
+        }
+        self.modifiers.set(modifiers);
+
         self.button.set(button_arg);
         self.related_target.set(related_target_arg);
     }

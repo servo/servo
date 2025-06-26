@@ -120,6 +120,7 @@ struct DevtoolsInstance {
     actor_workers: HashMap<WorkerId, String>,
     actor_requests: HashMap<String, String>,
     connections: HashMap<StreamId, TcpStream>,
+    next_resource_id: u64,
 }
 
 impl DevtoolsInstance {
@@ -182,6 +183,7 @@ impl DevtoolsInstance {
             actor_requests: HashMap::new(),
             actor_workers: HashMap::new(),
             connections: HashMap::new(),
+            next_resource_id: 1,
         };
 
         thread::Builder::new()
@@ -509,8 +511,10 @@ impl DevtoolsInstance {
                 name.into_mut().clone()
             },
             Vacant(entry) => {
+                let resource_id = self.next_resource_id;
+                self.next_resource_id += 1;
                 let actor_name = actors.new_name("netevent");
-                let actor = NetworkEventActor::new(actor_name.clone());
+                let actor = NetworkEventActor::new(actor_name.clone(), resource_id);
                 entry.insert(actor_name.clone());
                 actors.register(Box::new(actor));
                 actor_name

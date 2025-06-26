@@ -34,13 +34,15 @@ use embedder_traits::{
     UntrustedNodeAddress, WheelEvent,
 };
 use encoding_rs::{Encoding, UTF_8};
-use euclid::default::{Point2D, Rect, Size2D};
+use euclid::Point2D;
+use euclid::default::{Rect, Size2D};
+use fnv::FnvHashMap;
 use html5ever::{LocalName, Namespace, QualName, local_name, ns};
 use hyper_serde::Serde;
 use ipc_channel::ipc;
 use js::rust::{HandleObject, HandleValue};
 use keyboard_types::{Code, Key, KeyState, Modifiers};
-use layout_api::{PendingRestyle, TrustedNodeAddress, node_id_from_scroll_id};
+use layout_api::{PendingRestyle, ReflowGoal, TrustedNodeAddress, node_id_from_scroll_id};
 use metrics::{InteractiveFlag, InteractiveWindow, ProgressiveWebMetrics};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
@@ -49,7 +51,6 @@ use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::{InsecureRequestsPolicy, RequestBuilder};
 use net_traits::response::HttpsState;
 use net_traits::{FetchResponseListener, IpcSend, ReferrerPolicy};
-use num_traits::ToPrimitive;
 use percent_encoding::percent_decode;
 use profile_traits::ipc as profile_ipc;
 use profile_traits::time::TimerMetadataFrameType;
@@ -68,6 +69,7 @@ use style::shared_lock::SharedRwLock as StyleSharedRwLock;
 use style::str::{split_html_space_chars, str_join};
 use style::stylesheet_set::DocumentStylesheetSet;
 use style::stylesheets::{Origin, OriginSet, Stylesheet};
+use style_traits::CSSPixel;
 use stylo_atoms::Atom;
 use url::Host;
 use uuid::Uuid;
@@ -380,7 +382,7 @@ pub(crate) struct Document {
     appropriate_template_contents_owner_document: MutNullableDom<Document>,
     /// Information on elements needing restyle to ship over to layout when the
     /// time comes.
-    pending_restyles: DomRefCell<HashMap<Dom<Element>, NoTrace<PendingRestyle>>>,
+    pending_restyles: DomRefCell<FnvHashMap<Dom<Element>, NoTrace<PendingRestyle>>>,
     /// This flag will be true if the `Document` needs to be painted again
     /// during the next full layout attempt due to some external change such as
     /// the web view changing size, or because the previous layout was only for
@@ -424,7 +426,7 @@ pub(crate) struct Document {
     /// <https://w3c.github.io/uievents/#event-type-dblclick>
     #[ignore_malloc_size_of = "Defined in std"]
     #[no_trace]
-    last_click_info: DomRefCell<Option<(Instant, Point2D<f32>)>>,
+    last_click_info: DomRefCell<Option<(Instant, Point2D<f32, CSSPixel>)>>,
     /// <https://html.spec.whatwg.org/multipage/#ignore-destructive-writes-counter>
     ignore_destructive_writes_counter: Cell<u32>,
     /// <https://html.spec.whatwg.org/multipage/#ignore-opens-during-unload-counter>
@@ -1514,12 +1516,11 @@ impl Document {
     pub(crate) fn handle_mouse_button_event(
         &self,
         event: MouseButtonEvent,
-        hit_test_result: Option<CompositorHitTestResult>,
-        pressed_mouse_buttons: u16,
+        input_event: &ConstellationInputEvent,
         can_gc: CanGc,
     ) {
         // Ignore all incoming events without a hit test.
-        let Some(hit_test_result) = hit_test_result else {
+        let Some(hit_test_result) = &input_event.hit_test_result else {
             return;
         };
 
@@ -1555,9 +1556,10 @@ impl Document {
 
         let dom_event = DomRoot::upcast::<Event>(MouseEvent::for_platform_mouse_event(
             event,
-            pressed_mouse_buttons,
+            input_event.pressed_mouse_buttons,
             &self.window,
-            &hit_test_result,
+            hit_test_result,
+            input_event.active_keyboard_modifiers,
             can_gc,
         ));
 
@@ -1591,23 +1593,13 @@ impl Document {
             if self.focus_transaction.borrow().is_some() {
                 self.commit_focus_transaction(FocusInitiator::Local, can_gc);
             }
-            self.maybe_fire_dblclick(
-                hit_test_result.point_in_viewport,
-                node,
-                pressed_mouse_buttons,
-                can_gc,
-            );
+            self.maybe_fire_dblclick(node, hit_test_result, input_event, can_gc);
         }
 
         // When the contextmenu event is triggered by right mouse button
         // the contextmenu event MUST be dispatched after the mousedown event.
         if let (MouseButtonAction::Down, MouseButton::Right) = (event.action, event.button) {
-            self.maybe_show_context_menu(
-                node.upcast(),
-                pressed_mouse_buttons,
-                hit_test_result.point_in_viewport,
-                can_gc,
-            );
+            self.maybe_show_context_menu(node.upcast(), hit_test_result, input_event, can_gc);
         }
     }
 
@@ -1615,13 +1607,10 @@ impl Document {
     fn maybe_show_context_menu(
         &self,
         target: &EventTarget,
-        pressed_mouse_buttons: u16,
-        client_point: Point2D<f32>,
+        hit_test_result: &CompositorHitTestResult,
+        input_event: &ConstellationInputEvent,
         can_gc: CanGc,
     ) {
-        let client_x = client_point.x.to_i32().unwrap_or(0);
-        let client_y = client_point.y.to_i32().unwrap_or(0);
-
         // <https://w3c.github.io/uievents/#contextmenu>
         let menu_event = PointerEvent::new(
             &self.window,                   // window
@@ -1630,32 +1619,30 @@ impl Document {
             EventCancelable::Cancelable,    // cancelable
             Some(&self.window),             // view
             0,                              // detail
-            client_x,                       // screen_x
-            client_y,                       // screen_y
-            client_x,                       // client_x
-            client_y,                       // client_y
-            false,                          // ctrl_key
-            false,                          // alt_key
-            false,                          // shift_key
-            false,                          // meta_key
-            2i16,                           // button, right mouse button
-            pressed_mouse_buttons,          // buttons
-            None,                           // related_target
-            None,                           // point_in_target
-            PointerId::Mouse as i32,        // pointer_id
-            1,                              // width
-            1,                              // height
-            0.5,                            // pressure
-            0.0,                            // tangential_pressure
-            0,                              // tilt_x
-            0,                              // tilt_y
-            0,                              // twist
-            PI / 2.0,                       // altitude_angle
-            0.0,                            // azimuth_angle
-            DOMString::from("mouse"),       // pointer_type
-            true,                           // is_primary
-            vec![],                         // coalesced_events
-            vec![],                         // predicted_events
+            hit_test_result.point_in_viewport.to_i32(),
+            hit_test_result.point_in_viewport.to_i32(),
+            hit_test_result
+                .point_relative_to_initial_containing_block
+                .to_i32(),
+            input_event.active_keyboard_modifiers,
+            2i16, // button, right mouse button
+            input_event.pressed_mouse_buttons,
+            None,                     // related_target
+            None,                     // point_in_target
+            PointerId::Mouse as i32,  // pointer_id
+            1,                        // width
+            1,                        // height
+            0.5,                      // pressure
+            0.0,                      // tangential_pressure
+            0,                        // tilt_x
+            0,                        // tilt_y
+            0,                        // twist
+            PI / 2.0,                 // altitude_angle
+            0.0,                      // azimuth_angle
+            DOMString::from("mouse"), // pointer_type
+            true,                     // is_primary
+            vec![],                   // coalesced_events
+            vec![],                   // predicted_events
             can_gc,
         );
         let event = menu_event.upcast::<Event>();
@@ -1677,14 +1664,14 @@ impl Document {
 
     fn maybe_fire_dblclick(
         &self,
-        click_pos: Point2D<f32>,
         target: &Node,
-        pressed_mouse_buttons: u16,
+        hit_test_result: &CompositorHitTestResult,
+        input_event: &ConstellationInputEvent,
         can_gc: CanGc,
     ) {
         // https://w3c.github.io/uievents/#event-type-dblclick
         let now = Instant::now();
-
+        let point_in_viewport = hit_test_result.point_in_viewport;
         let opt = self.last_click_info.borrow_mut().take();
 
         if let Some((last_time, last_pos)) = opt {
@@ -1693,7 +1680,7 @@ impl Document {
             let DBL_CLICK_DIST_THRESHOLD = pref!(dom_document_dblclick_dist) as u64;
 
             // Calculate distance between this click and the previous click.
-            let line = click_pos - last_pos;
+            let line = point_in_viewport - last_pos;
             let dist = (line.dot(line) as f64).sqrt();
 
             if now.duration_since(last_time) < DBL_CLICK_TIMEOUT &&
@@ -1701,8 +1688,6 @@ impl Document {
             {
                 // A double click has occurred if this click is within a certain time and dist. of previous click.
                 let click_count = 2;
-                let client_x = click_pos.x as i32;
-                let client_y = click_pos.y as i32;
 
                 let event = MouseEvent::new(
                     &self.window,
@@ -1711,16 +1696,14 @@ impl Document {
                     EventCancelable::Cancelable,
                     Some(&self.window),
                     click_count,
-                    client_x,
-                    client_y,
-                    client_x,
-                    client_y,
-                    false,
-                    false,
-                    false,
-                    false,
+                    point_in_viewport.to_i32(),
+                    point_in_viewport.to_i32(),
+                    hit_test_result
+                        .point_relative_to_initial_containing_block
+                        .to_i32(),
+                    input_event.active_keyboard_modifiers,
                     0i16,
-                    pressed_mouse_buttons,
+                    input_event.pressed_mouse_buttons,
                     None,
                     None,
                     can_gc,
@@ -1734,23 +1717,20 @@ impl Document {
         }
 
         // Update last_click_info with the time and position of the click.
-        *self.last_click_info.borrow_mut() = Some((now, click_pos));
+        *self.last_click_info.borrow_mut() = Some((now, point_in_viewport));
     }
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn fire_mouse_event(
         &self,
-        client_point: Point2D<f32>,
         target: &EventTarget,
         event_name: FireMouseEventType,
         can_bubble: EventBubbles,
         cancelable: EventCancelable,
-        pressed_mouse_buttons: u16,
+        hit_test_result: &CompositorHitTestResult,
+        input_event: &ConstellationInputEvent,
         can_gc: CanGc,
     ) {
-        let client_x = client_point.x.to_i32().unwrap_or(0);
-        let client_y = client_point.y.to_i32().unwrap_or(0);
-
         MouseEvent::new(
             &self.window,
             DOMString::from(event_name.as_str()),
@@ -1758,16 +1738,14 @@ impl Document {
             cancelable,
             Some(&self.window),
             0i32,
-            client_x,
-            client_y,
-            client_x,
-            client_y,
-            false,
-            false,
-            false,
-            false,
+            hit_test_result.point_in_viewport.to_i32(),
+            hit_test_result.point_in_viewport.to_i32(),
+            hit_test_result
+                .point_relative_to_initial_containing_block
+                .to_i32(),
+            input_event.active_keyboard_modifiers,
             0i16,
-            pressed_mouse_buttons,
+            input_event.pressed_mouse_buttons,
             None,
             None,
             can_gc,
@@ -1988,13 +1966,12 @@ impl Document {
     #[allow(unsafe_code)]
     pub(crate) unsafe fn handle_mouse_move_event(
         &self,
-        hit_test_result: Option<CompositorHitTestResult>,
-        pressed_mouse_buttons: u16,
+        input_event: &ConstellationInputEvent,
         prev_mouse_over_target: &MutNullableDom<Element>,
         can_gc: CanGc,
     ) {
         // Ignore all incoming events without a hit test.
-        let Some(hit_test_result) = hit_test_result else {
+        let Some(hit_test_result) = &input_event.hit_test_result else {
             return;
         };
 
@@ -2035,12 +2012,12 @@ impl Document {
                 }
 
                 self.fire_mouse_event(
-                    hit_test_result.point_in_viewport,
                     old_target.upcast(),
                     FireMouseEventType::Out,
                     EventBubbles::Bubbles,
                     EventCancelable::Cancelable,
-                    pressed_mouse_buttons,
+                    hit_test_result,
+                    input_event,
                     can_gc,
                 );
 
@@ -2048,11 +2025,11 @@ impl Document {
                     let event_target = DomRoot::from_ref(old_target.upcast::<Node>());
                     let moving_into = Some(DomRoot::from_ref(new_target.upcast::<Node>()));
                     self.handle_mouse_enter_leave_event(
-                        hit_test_result.point_in_viewport,
-                        FireMouseEventType::Leave,
-                        moving_into,
                         event_target,
-                        pressed_mouse_buttons,
+                        moving_into,
+                        FireMouseEventType::Leave,
+                        hit_test_result,
+                        input_event,
                         can_gc,
                     );
                 }
@@ -2071,12 +2048,12 @@ impl Document {
             }
 
             self.fire_mouse_event(
-                hit_test_result.point_in_viewport,
                 new_target.upcast(),
                 FireMouseEventType::Over,
                 EventBubbles::Bubbles,
                 EventCancelable::Cancelable,
-                pressed_mouse_buttons,
+                hit_test_result,
+                input_event,
                 can_gc,
             );
 
@@ -2085,11 +2062,11 @@ impl Document {
                 .map(|old_target| DomRoot::from_ref(old_target.upcast::<Node>()));
             let event_target = DomRoot::from_ref(new_target.upcast::<Node>());
             self.handle_mouse_enter_leave_event(
-                hit_test_result.point_in_viewport,
-                FireMouseEventType::Enter,
-                moving_from,
                 event_target,
-                pressed_mouse_buttons,
+                moving_from,
+                FireMouseEventType::Enter,
+                hit_test_result,
+                input_event,
                 can_gc,
             );
         }
@@ -2097,12 +2074,12 @@ impl Document {
         // Send mousemove event to topmost target, unless it's an iframe, in which case the
         // compositor should have also sent an event to the inner document.
         self.fire_mouse_event(
-            hit_test_result.point_in_viewport,
             new_target.upcast(),
             FireMouseEventType::Move,
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
-            pressed_mouse_buttons,
+            hit_test_result,
+            input_event,
             can_gc,
         );
 
@@ -2115,12 +2092,11 @@ impl Document {
     #[allow(unsafe_code)]
     pub(crate) fn handle_mouse_leave_event(
         &self,
-        hit_test_result: Option<CompositorHitTestResult>,
-        pressed_mouse_buttons: u16,
+        input_event: &ConstellationInputEvent,
         can_gc: CanGc,
     ) {
         // Ignore all incoming events without a hit test.
-        let Some(hit_test_result) = hit_test_result else {
+        let Some(hit_test_result) = &input_event.hit_test_result else {
             return;
         };
 
@@ -2137,31 +2113,31 @@ impl Document {
         }
 
         self.fire_mouse_event(
-            hit_test_result.point_in_viewport,
             node.upcast(),
             FireMouseEventType::Out,
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
-            pressed_mouse_buttons,
+            hit_test_result,
+            input_event,
             can_gc,
         );
         self.handle_mouse_enter_leave_event(
-            hit_test_result.point_in_viewport,
-            FireMouseEventType::Leave,
-            None,
             node,
-            pressed_mouse_buttons,
+            None,
+            FireMouseEventType::Leave,
+            hit_test_result,
+            input_event,
             can_gc,
         );
     }
 
     fn handle_mouse_enter_leave_event(
         &self,
-        client_point: Point2D<f32>,
-        event_type: FireMouseEventType,
-        related_target: Option<DomRoot<Node>>,
         event_target: DomRoot<Node>,
-        pressed_mouse_buttons: u16,
+        related_target: Option<DomRoot<Node>>,
+        event_type: FireMouseEventType,
+        hit_test_result: &CompositorHitTestResult,
+        input_event: &ConstellationInputEvent,
         can_gc: CanGc,
     ) {
         assert!(matches!(
@@ -2196,12 +2172,12 @@ impl Document {
 
         for target in targets {
             self.fire_mouse_event(
-                client_point,
                 target.upcast(),
                 event_type,
                 EventBubbles::DoesNotBubble,
                 EventCancelable::NotCancelable,
-                pressed_mouse_buttons,
+                hit_test_result,
+                input_event,
                 can_gc,
             );
         }
@@ -3519,30 +3495,6 @@ impl Document {
             .or_insert_with(|| Dom::from_ref(context));
     }
 
-    pub(crate) fn flush_dirty_webgl_canvases(&self) {
-        let dirty_context_ids: Vec<_> = self
-            .dirty_webgl_contexts
-            .borrow_mut()
-            .drain()
-            .filter(|(_, context)| context.onscreen())
-            .map(|(id, _)| id)
-            .collect();
-
-        if dirty_context_ids.is_empty() {
-            return;
-        }
-
-        #[allow(unused)]
-        let mut time = 0;
-        let (sender, receiver) = webgl::webgl_channel().unwrap();
-        self.window
-            .webgl_chan()
-            .expect("Where's the WebGL channel?")
-            .send(WebGLMsg::SwapBuffers(dirty_context_ids, sender, time))
-            .unwrap();
-        receiver.recv().unwrap();
-    }
-
     pub(crate) fn add_dirty_2d_canvas(&self, context: &CanvasRenderingContext2D) {
         self.dirty_2d_contexts
             .borrow_mut()
@@ -3550,28 +3502,54 @@ impl Document {
             .or_insert_with(|| Dom::from_ref(context));
     }
 
-    pub(crate) fn flush_dirty_2d_canvases(&self) {
-        self.dirty_2d_contexts
-            .borrow_mut()
-            .drain()
-            .filter(|(_, context)| context.onscreen())
-            .for_each(|(_, context)| context.update_rendering());
-    }
-
     #[cfg(feature = "webgpu")]
     pub(crate) fn webgpu_contexts(&self) -> WebGPUContextsMap {
         self.webgpu_contexts.clone()
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    #[cfg(feature = "webgpu")]
-    pub(crate) fn update_rendering_of_webgpu_canvases(&self) {
+    /// An implementation of step 22 from
+    /// <https://html.spec.whatwg.org/multipage/#update-the-rendering>:
+    ///
+    // > Step 22: For each doc of docs, update the rendering or user interface of
+    // > doc and its node navigable to reflect the current state.
+    //
+    // Returns true if a reflow occured.
+    pub(crate) fn update_the_rendering(&self, can_gc: CanGc) -> bool {
+        self.update_animating_images();
+
+        // All dirty canvases are flushed before updating the rendering.
+        #[cfg(feature = "webgpu")]
         self.webgpu_contexts
             .borrow_mut()
             .iter()
             .filter_map(|(_, context)| context.root())
             .filter(|context| context.onscreen())
             .for_each(|context| context.update_rendering());
+
+        self.dirty_2d_contexts
+            .borrow_mut()
+            .drain()
+            .filter(|(_, context)| context.onscreen())
+            .for_each(|(_, context)| context.update_rendering());
+
+        let dirty_webgl_context_ids: Vec<_> = self
+            .dirty_webgl_contexts
+            .borrow_mut()
+            .drain()
+            .filter(|(_, context)| context.onscreen())
+            .map(|(id, _)| id)
+            .collect();
+        if !dirty_webgl_context_ids.is_empty() {
+            let (sender, receiver) = webgl::webgl_channel().unwrap();
+            self.window
+                .webgl_chan()
+                .expect("Where's the WebGL channel?")
+                .send(WebGLMsg::SwapBuffers(dirty_webgl_context_ids, sender, 0))
+                .unwrap();
+            receiver.recv().unwrap();
+        }
+
+        self.window().reflow(ReflowGoal::UpdateTheRendering, can_gc)
     }
 
     pub(crate) fn id_map(&self) -> Ref<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {
@@ -4162,7 +4140,7 @@ impl Document {
             current_parser: Default::default(),
             base_element: Default::default(),
             appropriate_template_contents_owner_document: Default::default(),
-            pending_restyles: DomRefCell::new(HashMap::new()),
+            pending_restyles: DomRefCell::new(FnvHashMap::default()),
             needs_paint: Cell::new(false),
             active_touch_points: DomRefCell::new(Vec::new()),
             dom_interactive: Cell::new(Default::default()),
@@ -4213,7 +4191,7 @@ impl Document {
                 DomRefCell::new(AnimationTimeline::new())
             },
             animations: DomRefCell::new(Animations::new()),
-            image_animation_manager: DomRefCell::new(ImageAnimationManager::new()),
+            image_animation_manager: DomRefCell::new(ImageAnimationManager::default()),
             dirty_root: Default::default(),
             declarative_refresh: Default::default(),
             pending_input_events: Default::default(),
@@ -4984,6 +4962,7 @@ impl Document {
         self.animations
             .borrow()
             .do_post_reflow_update(&self.window, self.current_animation_timeline_value());
+        self.image_animation_manager().update_rooted_dom_nodes();
     }
 
     pub(crate) fn cancel_animations_for_node(&self, node: &Node) {
@@ -5022,12 +5001,9 @@ impl Document {
     pub(crate) fn image_animation_manager(&self) -> Ref<ImageAnimationManager> {
         self.image_animation_manager.borrow()
     }
-    pub(crate) fn image_animation_manager_mut(&self) -> RefMut<ImageAnimationManager> {
-        self.image_animation_manager.borrow_mut()
-    }
 
     pub(crate) fn update_animating_images(&self) {
-        let mut image_animation_manager = self.image_animation_manager.borrow_mut();
+        let image_animation_manager = self.image_animation_manager.borrow();
         if !image_animation_manager.image_animations_present() {
             return;
         }
@@ -5035,8 +5011,8 @@ impl Document {
             .update_active_frames(&self.window, self.current_animation_timeline_value());
 
         if !self.animations().animations_present() {
-            let next_scheduled_time =
-                image_animation_manager.next_schedule_time(self.current_animation_timeline_value());
+            let next_scheduled_time = image_animation_manager
+                .next_scheduled_time(self.current_animation_timeline_value());
             // TODO: Once we have refresh signal from the compositor,
             // we should get rid of timer for animated image update.
             if let Some(next_scheduled_time) = next_scheduled_time {

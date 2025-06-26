@@ -2007,20 +2007,6 @@ impl Window {
             custom_elements.teardown();
         }
 
-        // The above code may not catch all DOM objects (e.g. DOM
-        // objects removed from the tree that haven't been collected
-        // yet). There should not be any such DOM nodes with layout
-        // data, but if there are, then when they are dropped, they
-        // will attempt to send a message to layout.
-        // This causes memory safety issues, because the DOM node uses
-        // the layout channel from its window, and the window has
-        // already been GC'd.  For nodes which do not have a live
-        // pointer, we can avoid this by GCing now:
-        self.Gc();
-        // but there may still be nodes being kept alive by user
-        // script.
-        // TODO: ensure that this doesn't happen!
-
         self.current_state.set(WindowState::Zombie);
         *self.js_runtime.borrow_mut() = None;
 
@@ -2187,17 +2173,8 @@ impl Window {
         let document = self.Document();
 
         let stylesheets_changed = document.flush_stylesheets_for_reflow();
-
-        // If this reflow is for display, ensure webgl canvases are composited with
-        // up-to-date contents.
         let for_display = reflow_goal.needs_display();
-        if for_display {
-            document.flush_dirty_webgl_canvases();
-            document.flush_dirty_2d_canvases();
-        }
-
         let pending_restyles = document.drain_pending_restyles();
-
         let dirty_root = document
             .take_dirty_root()
             .filter(|_| !stylesheets_changed)
@@ -2218,9 +2195,7 @@ impl Window {
             pending_restyles,
             animation_timeline_value: document.current_animation_timeline_value(),
             animations: document.animations().sets.clone(),
-            node_to_image_animation_map: document
-                .image_animation_manager_mut()
-                .take_image_animate_set(),
+            node_to_animating_image_map: document.image_animation_manager().node_to_image_map(),
             theme: self.theme.get(),
             highlighted_dom_node,
         };
@@ -2297,9 +2272,6 @@ impl Window {
         if !size_messages.is_empty() {
             self.send_to_constellation(ScriptToConstellationMessage::IFrameSizes(size_messages));
         }
-        document
-            .image_animation_manager_mut()
-            .restore_image_animate_set(results.node_to_image_animation_map);
         document.update_animations_post_reflow();
         self.update_constellation_epoch();
 

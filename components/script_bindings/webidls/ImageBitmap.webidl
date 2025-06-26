@@ -20,7 +20,7 @@ typedef (CanvasImageSource or
          Blob or
          ImageData) ImageBitmapSource;
 
-enum ImageOrientation { "from-image", "flipY" };
+enum ImageOrientation { "from-image", "flipY", "none" };
 enum PremultiplyAlpha { "none", "premultiply", "default" };
 enum ColorSpaceConversion { "none", "default" };
 enum ResizeQuality { "pixelated", "low", "medium", "high" };

@@ -20,7 +20,7 @@ use std::{env, fmt, process, thread};
 use base::id::{BrowsingContextId, WebViewId};
 use base64::Engine;
 use capabilities::ServoCapabilities;
-use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
+use constellation_traits::EmbedderToConstellationMessage;
 use cookie::{CookieBuilder, Expiration};
 use crossbeam_channel::{Receiver, Sender, after, select, unbounded};
 use embedder_traits::{
@@ -517,11 +517,8 @@ impl Handler {
     }
 
     fn focus_webview_id(&self) -> WebDriverResult<WebViewId> {
-        debug!("Getting focused context.");
         let (sender, receiver) = ipc::channel().unwrap();
-
-        let msg = EmbedderToConstellationMessage::GetFocusTopLevelBrowsingContext(sender.clone());
-        self.constellation_chan.send(msg).unwrap();
+        self.send_message_to_embedder(WebDriverCommandMsg::GetFocusedWebView(sender.clone()))?;
         // Wait until the document is ready before returning the top-level browsing context id.
         match wait_for_script_response(receiver)? {
             Some(webview_id) => Ok(webview_id),
@@ -770,9 +767,7 @@ impl Handler {
 
         let cmd_msg =
             WebDriverCommandMsg::LoadUrl(webview_id, url, self.load_status_sender.clone());
-        self.constellation_chan
-            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
-            .unwrap();
+        self.send_message_to_embedder(cmd_msg)?;
 
         self.wait_for_load()
     }
@@ -807,18 +802,14 @@ impl Handler {
 
         self.verify_top_level_browsing_context_is_open(webview_id)?;
 
-        let cmd_msg = WebDriverCommandMsg::GetWindowSize(webview_id, sender);
-
-        self.constellation_chan
-            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
-            .unwrap();
+        self.send_message_to_embedder(WebDriverCommandMsg::GetWindowSize(webview_id, sender))?;
 
         let window_size = wait_for_script_response(receiver)?;
         let window_size_response = WindowRectResponse {
             x: 0,
             y: 0,
-            width: window_size.width as i32,
-            height: window_size.height as i32,
+            width: window_size.width,
+            height: window_size.height,
         };
         Ok(WebDriverResponse::WindowRect(window_size_response))
     }
@@ -844,30 +835,30 @@ impl Handler {
         // Step 12. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
         self.verify_top_level_browsing_context_is_open(webview_id)?;
-        let cmd_msg = WebDriverCommandMsg::SetWindowSize(webview_id, size.to_i32(), sender.clone());
 
-        self.constellation_chan
-            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
-            .unwrap();
+        self.send_message_to_embedder(WebDriverCommandMsg::SetWindowSize(
+            webview_id,
+            size.to_i32(),
+            sender.clone(),
+        ))?;
 
         let timeout = self.resize_timeout;
-        let constellation_chan = self.constellation_chan.clone();
+        let embedder_sender = self.embedder_sender.clone();
+        let waker = self.event_loop_waker.clone();
         thread::spawn(move || {
             // On timeout, we send a GetWindowSize message to the constellation,
             // which will give the current window size.
             thread::sleep(Duration::from_millis(timeout as u64));
-            let cmd_msg = WebDriverCommandMsg::GetWindowSize(webview_id, sender);
-            constellation_chan
-                .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
-                .unwrap();
+            let _ = embedder_sender.send(WebDriverCommandMsg::GetWindowSize(webview_id, sender));
+            waker.wake();
         });
 
         let window_size = wait_for_script_response(receiver)?;
         let window_size_response = WindowRectResponse {
             x: 0,
             y: 0,
-            width: window_size.width as i32,
-            height: window_size.height as i32,
+            width: window_size.width,
+            height: window_size.height,
         };
         Ok(WebDriverResponse::WindowRect(window_size_response))
     }
@@ -909,9 +900,8 @@ impl Handler {
         // Step 1. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
         self.verify_top_level_browsing_context_is_open(webview_id)?;
-        let direction = TraversalDirection::Back(1);
-        let msg = EmbedderToConstellationMessage::TraverseHistory(webview_id, direction);
-        self.constellation_chan.send(msg).unwrap();
+
+        self.send_message_to_embedder(WebDriverCommandMsg::GoBack(webview_id))?;
         Ok(WebDriverResponse::Void)
     }
 
@@ -920,9 +910,8 @@ impl Handler {
         // Step 1. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
         self.verify_top_level_browsing_context_is_open(webview_id)?;
-        let direction = TraversalDirection::Forward(1);
-        let msg = EmbedderToConstellationMessage::TraverseHistory(webview_id, direction);
-        self.constellation_chan.send(msg).unwrap();
+
+        self.send_message_to_embedder(WebDriverCommandMsg::GoForward(webview_id))?;
         Ok(WebDriverResponse::Void)
     }
 
@@ -933,9 +922,7 @@ impl Handler {
         self.verify_top_level_browsing_context_is_open(webview_id)?;
 
         let cmd_msg = WebDriverCommandMsg::Refresh(webview_id, self.load_status_sender.clone());
-        self.constellation_chan
-            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
-            .unwrap();
+        self.send_message_to_embedder(cmd_msg)?;
 
         self.wait_for_load()
     }
@@ -1071,16 +1058,10 @@ impl Handler {
         let session = self.session().unwrap();
         self.verify_top_level_browsing_context_is_open(session.webview_id)?;
 
-        let cmd_msg = WebDriverCommandMsg::NewWebView(
-            session.webview_id,
-            sender,
-            self.load_status_sender.clone(),
-        );
+        let cmd_msg = WebDriverCommandMsg::NewWebView(sender, self.load_status_sender.clone());
         // Step 5. Create a new top-level browsing context by running the window open steps.
         // This MUST be done without invoking the focusing steps.
-        self.constellation_chan
-            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
-            .unwrap();
+        self.send_message_to_embedder(cmd_msg)?;
 
         let mut handle = self.session.as_ref().unwrap().id.to_string();
         if let Ok(new_webview_id) = receiver.recv() {
@@ -1145,8 +1126,8 @@ impl Handler {
             session.webview_id = webview_id;
             session.browsing_context_id = BrowsingContextId::from(webview_id);
 
-            let msg = EmbedderToConstellationMessage::FocusWebView(webview_id);
-            self.constellation_chan.send(msg).unwrap();
+            let msg = WebDriverCommandMsg::FocusWebView(webview_id);
+            self.send_message_to_embedder(msg)?;
             Ok(WebDriverResponse::Void)
         } else {
             Err(WebDriverError::new(
@@ -2367,6 +2348,8 @@ fn webdriver_value_to_js_argument(v: &Value) -> String {
     }
 }
 
+// TODO: This waits for not only the script response
+// need to make another name
 fn wait_for_script_response<T>(receiver: IpcReceiver<T>) -> Result<T, WebDriverError>
 where
     T: for<'de> Deserialize<'de> + Serialize,

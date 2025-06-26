@@ -336,11 +336,11 @@ impl RunningAppState {
             }),
         });
 
-        app_state.new_toplevel_webview(initial_url);
+        app_state.create_and_focus_toplevel_webview(initial_url);
         app_state
     }
 
-    pub(crate) fn new_toplevel_webview(self: &Rc<Self>, url: Url) {
+    pub(crate) fn create_and_focus_toplevel_webview(self: &Rc<Self>, url: Url) {
         let webview = WebViewBuilder::new(&self.servo)
             .url(url)
             .hidpi_scale_factor(self.inner().hidpi_scale_factor)

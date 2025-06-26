@@ -511,7 +511,6 @@ impl Runtime {
         parent: Option<ParentRuntime>,
         networking_task_source: Option<SendableTaskSource>,
     ) -> Runtime {
-        LiveDOMReferences::initialize();
         let (cx, runtime) = if let Some(parent) = parent {
             let runtime = RustRuntime::create_with_parent(parent);
             let cx = runtime.cx();

@@ -644,9 +644,7 @@ impl LayoutThread {
             resolved_images_cache: self.resolved_images_cache.clone(),
             pending_images: Mutex::default(),
             pending_rasterization_images: Mutex::default(),
-            node_image_animation_map: Arc::new(RwLock::new(std::mem::take(
-                &mut reflow_request.node_to_image_animation_map,
-            ))),
+            node_to_animating_image_map: reflow_request.node_to_animating_image_map.clone(),
             iframe_sizes: Mutex::default(),
             use_rayon: rayon_pool.is_some(),
             highlighted_dom_node: reflow_request.highlighted_dom_node,
@@ -687,15 +685,12 @@ impl LayoutThread {
         let pending_rasterization_images =
             std::mem::take(&mut *layout_context.pending_rasterization_images.lock());
         let iframe_sizes = std::mem::take(&mut *layout_context.iframe_sizes.lock());
-        let node_to_image_animation_map =
-            std::mem::take(&mut *layout_context.node_image_animation_map.write());
 
         Some(ReflowResult {
             built_display_list,
             pending_images,
             pending_rasterization_images,
             iframe_sizes,
-            node_to_image_animation_map,
         })
     }
 

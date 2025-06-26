@@ -31,6 +31,7 @@ use libc::c_void;
 use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::{ImageCache, PendingImageId};
+use parking_lot::RwLock;
 use pixels::RasterImage;
 use profile_traits::mem::Report;
 use profile_traits::time;
@@ -412,8 +413,6 @@ pub struct ReflowResult {
     /// to communicate them with the Constellation and also the `Window`
     /// element of their content pages.
     pub iframe_sizes: IFrameSizes,
-    /// The mapping of node to animated image, need to be returned to ImageAnimationManager
-    pub node_to_image_animation_map: FxHashMap<OpaqueNode, ImageAnimationState>,
 }
 
 /// Information needed for a script-initiated reflow.
@@ -440,7 +439,7 @@ pub struct ReflowRequest {
     /// The set of animations for this document.
     pub animations: DocumentAnimationSet,
     /// The set of image animations.
-    pub node_to_image_animation_map: FxHashMap<OpaqueNode, ImageAnimationState>,
+    pub node_to_animating_image_map: Arc<RwLock<FxHashMap<OpaqueNode, ImageAnimationState>>>,
     /// The theme for the window
     pub theme: Theme,
     /// The node highlighted by the devtools, if any

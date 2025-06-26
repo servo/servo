@@ -18,11 +18,13 @@ use bitflags::bitflags;
 use devtools_traits::NodeInfo;
 use dom_struct::dom_struct;
 use embedder_traits::UntrustedNodeAddress;
+use euclid::Point2D;
 use euclid::default::{Rect, Size2D};
 use html5ever::serialize::HtmlSerializer;
 use html5ever::{Namespace, Prefix, QualName, ns, serialize as html_serialize};
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
+use keyboard_types::Modifiers;
 use layout_api::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType, QueryMsg,
     SVGSVGData, StyleData, TrustedNodeAddress,
@@ -479,14 +481,10 @@ impl Node {
             EventCancelable::Cancelable,        // Step 3: cancelable
             Some(&window),                      // Step 7: view
             0,                                  // detail uninitialized
-            0,                                  // coordinates uninitialized
-            0,                                  // coordinates uninitialized
-            0,                                  // coordinates uninitialized
-            0,                                  // coordinates uninitialized
-            false,                              // ctrl_key
-            false,                              // alt_key
-            false,                              // shift_key
-            false,                              // meta_key
+            Point2D::zero(),                    // coordinates uninitialized
+            Point2D::zero(),                    // coordinates uninitialized
+            Point2D::zero(),                    // coordinates uninitialized
+            Modifiers::empty(),                 // empty modifiers
             0,                                  // button, left mouse button
             0,                                  // buttons
             None,                               // related_target

@@ -228,7 +228,7 @@ impl ServoAction {
             },
             NewWebview(xcomponent, window) => {
                 servo.pause_compositor();
-                servo.new_toplevel_webview("about:blank".parse().unwrap());
+                servo.create_and_focus_toplevel_webview("about:blank".parse().unwrap());
                 let (window_handle, _, coordinates) =
                     simpleservo::get_raw_window_handle(xcomponent.0, window.0);
 

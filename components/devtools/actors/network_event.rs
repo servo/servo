@@ -11,7 +11,6 @@ use chrono::{Local, LocalResult, TimeZone};
 use devtools_traits::{HttpRequest as DevtoolsHttpRequest, HttpResponse as DevtoolsHttpResponse};
 use headers::{ContentType, Cookie, HeaderMapExt};
 use http::{HeaderMap, Method, header};
-use net_traits::http_status::HttpStatus;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -20,36 +19,24 @@ use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::network_handler::Cause;
 use crate::protocol::ClientRequest;
 
-#[derive(Clone)]
-pub struct HttpRequest {
-    url: String,
-    method: Method,
-    headers: HeaderMap,
-    body: Option<Vec<u8>>,
-    started_date_time: SystemTime,
-    time_stamp: i64,
-    connect_time: Duration,
-    send_time: Duration,
-}
-
-#[derive(Clone)]
-pub struct HttpResponse {
-    headers: Option<HeaderMap>,
-    status: HttpStatus,
-    body: Option<Vec<u8>>,
-}
-
 pub struct NetworkEventActor {
     pub name: String,
-    pub request: HttpRequest,
-    pub response: HttpResponse,
+    pub resource_id: u64,
     pub is_xhr: bool,
+    pub request_url: String,
+    pub request_method: Method,
+    pub request_started: SystemTime,
+    pub request_time_stamp: i64,
+    pub request_headers_raw: Option<HeaderMap>,
+    pub request_body: Option<Vec<u8>>,
+    pub request_cookies: Option<RequestCookiesMsg>,
+    pub request_headers: Option<RequestHeadersMsg>,
+    pub response_headers_raw: Option<HeaderMap>,
+    pub response_body: Option<Vec<u8>>,
     pub response_content: Option<ResponseContentMsg>,
     pub response_start: Option<ResponseStartMsg>,
     pub response_cookies: Option<ResponseCookiesMsg>,
     pub response_headers: Option<ResponseHeadersMsg>,
-    pub request_cookies: Option<RequestCookiesMsg>,
-    pub request_headers: Option<RequestHeadersMsg>,
     pub total_time: Duration,
     pub security_state: String,
     pub event_timing: Option<Timings>,
@@ -68,6 +55,7 @@ pub struct NetworkEventResource {
 #[serde(rename_all = "camelCase")]
 pub struct EventActor {
     pub actor: String,
+    pub resource_id: u64,
     pub url: String,
     pub method: String,
     pub started_date_time: String,
@@ -175,7 +163,7 @@ struct GetResponseCookiesReply {
     cookies: Vec<u8>,
 }
 
-#[derive(Serialize)]
+#[derive(Clone, Default, Serialize)]
 pub struct Timings {
     blocked: u32,
     dns: u32,
@@ -223,15 +211,19 @@ impl Actor for NetworkEventActor {
                 let mut headers = Vec::new();
                 let mut raw_headers_string = "".to_owned();
                 let mut headers_size = 0;
-                for (name, value) in self.request.headers.iter() {
-                    let value = &value.to_str().unwrap().to_string();
-                    raw_headers_string = raw_headers_string + name.as_str() + ":" + value + "\r\n";
-                    headers_size += name.as_str().len() + value.len();
-                    headers.push(Header {
-                        name: name.as_str().to_owned(),
-                        value: value.to_owned(),
-                    });
+                if let Some(ref headers_map) = self.request_headers_raw {
+                    for (name, value) in headers_map.iter() {
+                        let value = &value.to_str().unwrap().to_string();
+                        raw_headers_string =
+                            raw_headers_string + name.as_str() + ":" + value + "\r\n";
+                        headers_size += name.as_str().len() + value.len();
+                        headers.push(Header {
+                            name: name.as_str().to_owned(),
+                            value: value.to_owned(),
+                        });
+                    }
                 }
+
                 let msg = GetRequestHeadersReply {
                     from: self.name(),
                     headers,
@@ -242,13 +234,13 @@ impl Actor for NetworkEventActor {
             },
             "getRequestCookies" => {
                 let mut cookies = Vec::new();
-
-                for cookie in self.request.headers.get_all(header::COOKIE) {
-                    if let Ok(cookie_value) = String::from_utf8(cookie.as_bytes().to_vec()) {
-                        cookies = cookie_value.into_bytes();
+                if let Some(ref headers) = self.request_headers_raw {
+                    for cookie in headers.get_all(header::COOKIE) {
+                        if let Ok(cookie_value) = String::from_utf8(cookie.as_bytes().to_vec()) {
+                            cookies = cookie_value.into_bytes();
+                        }
                     }
                 }
-
                 let msg = GetRequestCookiesReply {
                     from: self.name(),
                     cookies,
@@ -258,44 +250,49 @@ impl Actor for NetworkEventActor {
             "getRequestPostData" => {
                 let msg = GetRequestPostDataReply {
                     from: self.name(),
-                    post_data: self.request.body.clone(),
-                    post_data_discarded: false,
+                    post_data: self.request_body.clone(),
+                    post_data_discarded: self.request_body.is_none(),
                 };
                 request.reply_final(&msg)?
             },
             "getResponseHeaders" => {
-                let response_headers = self.response.headers.as_ref().unwrap();
-                let mut headers = vec![];
-                let mut raw_headers_string = "".to_owned();
-                let mut headers_size = 0;
-                for (name, value) in response_headers.iter() {
-                    headers.push(Header {
-                        name: name.as_str().to_owned(),
-                        value: value.to_str().unwrap().to_owned(),
-                    });
-                    headers_size += name.as_str().len() + value.len();
-                    raw_headers_string.push_str(name.as_str());
-                    raw_headers_string.push(':');
-                    raw_headers_string.push_str(value.to_str().unwrap());
-                    raw_headers_string.push_str("\r\n");
+                if let Some(ref response_headers) = self.response_headers_raw {
+                    let mut headers = vec![];
+                    let mut raw_headers_string = "".to_owned();
+                    let mut headers_size = 0;
+                    for (name, value) in response_headers.iter() {
+                        headers.push(Header {
+                            name: name.as_str().to_owned(),
+                            value: value.to_str().unwrap().to_owned(),
+                        });
+                        headers_size += name.as_str().len() + value.len();
+                        raw_headers_string.push_str(name.as_str());
+                        raw_headers_string.push(':');
+                        raw_headers_string.push_str(value.to_str().unwrap());
+                        raw_headers_string.push_str("\r\n");
+                    }
+                    let msg = GetResponseHeadersReply {
+                        from: self.name(),
+                        headers,
+                        header_size: headers_size,
+                        raw_headers: raw_headers_string,
+                    };
+                    request.reply_final(&msg)?;
+                } else {
+                    // FIXME: what happens when there are no response headers?
+                    return Err(ActorError::Internal);
                 }
-                let msg = GetResponseHeadersReply {
-                    from: self.name(),
-                    headers,
-                    header_size: headers_size,
-                    raw_headers: raw_headers_string,
-                };
-                request.reply_final(&msg)?
             },
             "getResponseCookies" => {
                 let mut cookies = Vec::new();
                 // TODO: This seems quite broken
-                for cookie in self.request.headers.get_all(header::SET_COOKIE) {
-                    if let Ok(cookie_value) = String::from_utf8(cookie.as_bytes().to_vec()) {
-                        cookies = cookie_value.into_bytes();
+                if let Some(ref headers) = self.response_headers_raw {
+                    for cookie in headers.get_all(header::SET_COOKIE) {
+                        if let Ok(cookie_value) = String::from_utf8(cookie.as_bytes().to_vec()) {
+                            cookies = cookie_value.into_bytes();
+                        }
                     }
                 }
-
                 let msg = GetResponseCookiesReply {
                     from: self.name(),
                     cookies,
@@ -305,21 +302,15 @@ impl Actor for NetworkEventActor {
             "getResponseContent" => {
                 let msg = GetResponseContentReply {
                     from: self.name(),
-                    content: self.response.body.clone(),
-                    content_discarded: self.response.body.is_none(),
+                    content: self.response_body.clone(),
+                    content_discarded: self.response_body.is_none(),
                 };
                 request.reply_final(&msg)?
             },
             "getEventTimings" => {
                 // TODO: This is a fake timings msg
-                let timings_obj = Timings {
-                    blocked: 0,
-                    dns: 0,
-                    connect: self.request.connect_time.as_millis() as u64,
-                    send: self.request.send_time.as_millis() as u64,
-                    wait: 0,
-                    receive: 0,
-                };
+                let timings_obj = self.event_timing.clone().unwrap_or_default();
+                // Might use the one on self
                 let total = timings_obj.connect + timings_obj.send;
                 // TODO: Send the correct values for all these fields.
                 let msg = GetEventTimingsReply {
@@ -346,68 +337,62 @@ impl Actor for NetworkEventActor {
 }
 
 impl NetworkEventActor {
-    pub fn new(name: String) -> NetworkEventActor {
-        let request = HttpRequest {
-            url: String::new(),
-            method: Method::GET,
-            headers: HeaderMap::new(),
-            body: None,
-            started_date_time: SystemTime::now(),
-            time_stamp: SystemTime::now()
+    pub fn new(name: String, resource_id: u64) -> NetworkEventActor {
+        NetworkEventActor {
+            name,
+            resource_id,
+            is_xhr: false,
+            request_url: String::new(),
+            request_method: Method::GET,
+            request_started: SystemTime::now(),
+            request_time_stamp: SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap_or_default()
                 .as_secs() as i64,
-            send_time: Duration::ZERO,
-            connect_time: Duration::ZERO,
-        };
-        let response = HttpResponse {
-            headers: None,
-            status: HttpStatus::default(),
-            body: None,
-        };
-
-        NetworkEventActor {
-            name,
-            request: request.clone(),
-            response: response.clone(),
-            is_xhr: false,
+            request_headers_raw: None,
+            request_body: None,
+            request_cookies: None,
+            request_headers: None,
+            response_headers_raw: None,
+            response_body: None,
             response_content: None,
             response_start: None,
             response_cookies: None,
             response_headers: None,
-            request_cookies: None,
-            request_headers: None,
-            total_time: Self::total_time(&request),
-            security_state: "insecure".to_owned(), // Default security state
+            total_time: Duration::ZERO,
+            security_state: "insecure".to_owned(),
             event_timing: None,
         }
     }
 
     pub fn add_request(&mut self, request: DevtoolsHttpRequest) {
-        request.url.as_str().clone_into(&mut self.request.url);
-
-        self.request.method = request.method.clone();
-        self.request.headers = request.headers.clone();
-        self.request.body = request.body;
-        self.request.started_date_time = request.started_date_time;
-        self.request.time_stamp = request.time_stamp;
-        self.request.connect_time = request.connect_time;
-        self.request.send_time = request.send_time;
         self.is_xhr = request.is_xhr;
+        self.request_cookies = Some(Self::request_cookies(&request));
+        self.request_headers = Some(Self::request_headers(&request));
+        self.total_time = Self::total_time(&request);
+        self.event_timing = Some(Self::event_timing(&request));
+        self.request_url = request.url.to_string();
+        self.request_method = request.method;
+        self.request_started = request.started_date_time;
+        self.request_time_stamp = request.time_stamp;
+        self.request_body = request.body.clone();
+        self.request_headers_raw = Some(request.headers.clone());
     }
 
     pub fn add_response(&mut self, response: DevtoolsHttpResponse) {
-        self.response.headers.clone_from(&response.headers);
-        self.response.status = response.status;
-        self.response.body = response.body;
+        self.response_headers = Some(Self::response_headers(&response));
+        self.response_cookies = Some(Self::response_cookies(&response));
+        self.response_start = Some(Self::response_start(&response));
+        self.response_content = Some(Self::response_content(&response));
+        self.response_body = response.body.clone();
+        self.response_headers_raw = response.headers.clone();
     }
 
     pub fn event_actor(&self) -> EventActor {
         // TODO: Send the correct values for startedDateTime, isXHR, private
 
         let started_datetime_rfc3339 = match Local.timestamp_millis_opt(
-            self.request
-                .started_date_time
+            self.request_started
                 .duration_since(UNIX_EPOCH)
                 .unwrap_or_default()
                 .as_millis() as i64,
@@ -417,7 +402,7 @@ impl NetworkEventActor {
             LocalResult::Ambiguous(date_time, _) => date_time.to_rfc3339().to_string(),
         };
 
-        let cause_type = match self.request.url.as_str() {
+        let cause_type = match self.request_url.as_str() {
             // Adjust based on request data
             url if url.ends_with(".css") => "stylesheet",
             url if url.ends_with(".js") => "script",
@@ -427,10 +412,11 @@ impl NetworkEventActor {
 
         EventActor {
             actor: self.name(),
-            url: self.request.url.clone(),
-            method: format!("{}", self.request.method),
+            resource_id: self.resource_id,
+            url: self.request_url.clone(),
+            method: format!("{}", self.request_method),
             started_date_time: started_datetime_rfc3339,
-            time_stamp: self.request.time_stamp,
+            time_stamp: self.request_time_stamp,
             is_xhr: self.is_xhr,
             private: false,
             cause: Cause {
@@ -440,8 +426,7 @@ impl NetworkEventActor {
         }
     }
 
-    #[allow(dead_code)]
-    pub fn response_start(response: &HttpResponse) -> ResponseStartMsg {
+    pub fn response_start(response: &DevtoolsHttpResponse) -> ResponseStartMsg {
         // TODO: Send the correct values for all these fields.
         let h_size = response.headers.as_ref().map(|h| h.len()).unwrap_or(0);
         let status = &response.status;
@@ -458,16 +443,14 @@ impl NetworkEventActor {
         }
     }
 
-    #[allow(dead_code)]
-    pub fn response_content(response: &HttpResponse) -> ResponseContentMsg {
-        let mime_type = if let Some(ref headers) = response.headers {
-            match headers.typed_get::<ContentType>() {
-                Some(ct) => ct.to_string(),
-                None => "".to_string(),
-            }
-        } else {
-            "".to_string()
-        };
+    pub fn response_content(response: &DevtoolsHttpResponse) -> ResponseContentMsg {
+        let mime_type = response
+            .headers
+            .as_ref()
+            .and_then(|h| h.typed_get::<ContentType>())
+            .map(|ct| ct.to_string())
+            .unwrap_or_default();
+
         // TODO: Set correct values when response's body is sent to the devtools in http_loader.
         ResponseContentMsg {
             mime_type,
@@ -477,38 +460,33 @@ impl NetworkEventActor {
         }
     }
 
-    #[allow(dead_code)]
-    pub fn response_cookies(response: &HttpResponse) -> ResponseCookiesMsg {
-        let mut cookies_size = 0;
-        if let Some(ref headers) = response.headers {
-            cookies_size = match headers.typed_get::<Cookie>() {
-                Some(ref cookie) => cookie.len(),
-                _ => 0,
-            };
-        }
+    pub fn response_cookies(response: &DevtoolsHttpResponse) -> ResponseCookiesMsg {
+        let cookies_size = response
+            .headers
+            .as_ref()
+            .map(|headers| headers.get_all("set-cookie").iter().count())
+            .unwrap_or(0);
         ResponseCookiesMsg {
             cookies: cookies_size,
         }
     }
 
-    #[allow(dead_code)]
-    pub fn response_headers(response: &HttpResponse) -> ResponseHeadersMsg {
-        let mut headers_size = 0;
+    pub fn response_headers(response: &DevtoolsHttpResponse) -> ResponseHeadersMsg {
+        let mut header_size = 0;
         let mut headers_byte_count = 0;
         if let Some(ref headers) = response.headers {
-            headers_size = headers.len();
             for (name, value) in headers.iter() {
+                header_size += 1;
                 headers_byte_count += name.as_str().len() + value.len();
             }
         }
         ResponseHeadersMsg {
-            headers: headers_size,
+            headers: header_size,
             headers_size: headers_byte_count,
         }
     }
 
-    #[allow(dead_code)]
-    pub fn request_headers(request: &HttpRequest) -> RequestHeadersMsg {
+    pub fn request_headers(request: &DevtoolsHttpRequest) -> RequestHeadersMsg {
         let size = request.headers.iter().fold(0, |acc, (name, value)| {
             acc + name.as_str().len() + value.len()
         });
@@ -518,19 +496,30 @@ impl NetworkEventActor {
         }
     }
 
-    #[allow(dead_code)]
-    pub fn request_cookies(request: &HttpRequest) -> RequestCookiesMsg {
-        let cookies_size = match request.headers.typed_get::<Cookie>() {
-            Some(ref cookie) => cookie.len(),
-            _ => 0,
-        };
+    pub fn request_cookies(request: &DevtoolsHttpRequest) -> RequestCookiesMsg {
+        let cookies_size = request
+            .headers
+            .typed_get::<Cookie>()
+            .map(|c| c.len())
+            .unwrap_or(0);
         RequestCookiesMsg {
             cookies: cookies_size,
         }
     }
 
-    pub fn total_time(request: &HttpRequest) -> Duration {
+    pub fn total_time(request: &DevtoolsHttpRequest) -> Duration {
         request.connect_time + request.send_time
+    }
+
+    pub fn event_timing(request: &DevtoolsHttpRequest) -> Timings {
+        Timings {
+            blocked: 0,
+            dns: 0,
+            connect: request.connect_time.as_millis() as u64,
+            send: request.send_time.as_millis() as u64,
+            wait: 0,
+            receive: 0,
+        }
     }
 
     fn insert_serialized_map<T: Serialize>(map: &mut Map<String, Value>, obj: &Option<T>) {
@@ -597,7 +586,7 @@ impl NetworkEventActor {
 
         // TODO: Set the correct values for these fields
         NetworkEventResource {
-            resource_id: 0,
+            resource_id: self.resource_id,
             resource_updates,
             browsing_context_id: 0,
             inner_window_id: 0,
