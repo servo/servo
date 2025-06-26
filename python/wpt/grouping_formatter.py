@@ -118,6 +118,7 @@ class ServoHandler(mozlog.reader.LogHandler):
         and rest of the suites are retry-unexpected for flakes detection.
         """
         self.detect_flakes = detect_flakes
+        self.currently_detecting_flakes = False
         self.reset_state()
 
     def reset_state(self):
@@ -163,6 +164,7 @@ class ServoHandler(mozlog.reader.LogHandler):
         # TODO: Support running more than a single suite at once.
         if self.unexpected_results:
             self.currently_detecting_flakes = True
+        self.reset_state()
 
         self.number_of_tests = sum(len(tests) for tests in itervalues(data["tests"]))
         self.suite_start_time = data["time"]
