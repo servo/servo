@@ -55,14 +55,11 @@ impl Actor for TargetConfigurationActor {
     ) -> Result<(), ActorError> {
         match msg_type {
             "updateConfiguration" => {
-                let config = match msg.get("configuration").and_then(|v| v.as_object()) {
-                    Some(config) => config,
-                    None => {
-                        let msg = EmptyReplyMsg { from: self.name() };
-                        // should we send ActorError for None case
-                        return request.write_json_packet(&msg);
-                    },
-                };
+                let config = msg
+                    .get("configuration")
+                    .ok_or(ActorError::MissingParameter)?
+                    .as_object()
+                    .ok_or(ActorError::BadParameterType)?;
                 if let Some(scheme) = config.get("colorSchemeSimulation").and_then(|v| v.as_str()) {
                     let theme = match scheme {
                         "dark" => Theme::Dark,

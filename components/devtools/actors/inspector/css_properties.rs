@@ -44,7 +44,7 @@ impl Actor for CssPropertiesActor {
         _id: StreamId,
     ) -> Result<(), ActorError> {
         match msg_type {
-            "getCSSDatabase" => request.write_json_packet(&GetCssDatabaseReply {
+            "getCSSDatabase" => request.reply_final(&GetCssDatabaseReply {
                 from: self.name(),
                 properties: &self.properties,
             })?,

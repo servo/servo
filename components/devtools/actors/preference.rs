@@ -34,10 +34,11 @@ impl Actor for PreferenceActor {
         msg: &Map<String, Value>,
         _id: StreamId,
     ) -> Result<(), ActorError> {
-        let Some(key) = msg.get("value").and_then(|v| v.as_str()) else {
-            warn!("PreferenceActor: handle_message: value is not a string");
-            return Err(ActorError::BadParameterType);
-        };
+        let key = msg
+            .get("value")
+            .ok_or(ActorError::MissingParameter)?
+            .as_str()
+            .ok_or(ActorError::BadParameterType)?;
 
         // TODO: Map more preferences onto their Servo values.
         match key {

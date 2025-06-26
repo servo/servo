@@ -315,7 +315,7 @@ impl Actor for ConsoleActor {
                 self.cached_events
                     .borrow_mut()
                     .remove(&self.current_unique_id(registry));
-                // Fixme: This needs to be handled properly
+                // FIXME: need to send a reply here!
                 return Err(ActorError::UnrecognizedPacketType);
             },
 

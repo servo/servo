@@ -67,7 +67,7 @@ impl Actor for HighlighterActor {
                         from: self.name(),
                         value: false,
                     };
-                    return request.write_json_packet(&msg);
+                    return request.reply_final(&msg);
                 }
 
                 self.instruct_script_thread_to_highlight_node(

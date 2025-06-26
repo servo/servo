@@ -14,10 +14,10 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 use servo_url::ServoUrl;
 
-use crate::StreamId;
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::protocol::{ClientRequest, JsonPacketStream};
 use crate::resource::ResourceAvailable;
+use crate::{EmptyReplyMsg, StreamId};
 
 #[derive(Clone, Copy)]
 #[allow(dead_code)]
@@ -81,6 +81,7 @@ impl Actor for WorkerActor {
                     type_: "attached".to_owned(),
                     url: self.url.as_str().to_owned(),
                 };
+                // FIXME: we don’t send an actual reply (message without type), which seems to be a bug?
                 request.write_json_packet(&msg)?;
                 self.streams
                     .borrow_mut()
@@ -98,7 +99,8 @@ impl Actor for WorkerActor {
                     thread_actor: self.thread.clone(),
                     console_actor: self.console.clone(),
                 };
-                request.reply_final(&msg)?
+                // FIXME: we don’t send an actual reply (message without type), which seems to be a bug?
+                request.write_json_packet(&msg)?;
             },
 
             "detach" => {
@@ -107,7 +109,8 @@ impl Actor for WorkerActor {
                     type_: "detached".to_string(),
                 };
                 self.cleanup(stream_id);
-                request.reply_final(&msg)?
+                // FIXME: we don’t send an actual reply (message without type), which seems to be a bug?
+                request.write_json_packet(&msg)?;
             },
 
             _ => return Err(ActorError::UnrecognizedPacketType),

@@ -17,11 +17,16 @@ use serde_json::{Map, Value, json};
 use crate::StreamId;
 use crate::protocol::{ClientRequest, JsonPacketStream};
 
+/// Error replies.
+///
+/// <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#error-packets>
 #[derive(Debug)]
 pub enum ActorError {
     MissingParameter,
     BadParameterType,
     UnrecognizedPacketType,
+    /// Custom errors, not defined in the protocol docs.
+    /// This includes send errors, and errors that prevent Servo from sending a reply.
     Internal,
 }
 
@@ -187,8 +192,8 @@ impl ActorRegistry {
         actor.actor_as_any_mut().downcast_mut::<T>().unwrap()
     }
 
-    /// Attempt to process a message as directed by its `to` property. If the actor is not
-    /// found or does not indicate that it knew how to process the message, ignore the failure.
+    /// Attempt to process a message as directed by its `to` property. If the actor is not found, does not support the
+    /// message, or failed to handle the message, send an error reply instead.
     pub(crate) fn handle_message(
         &mut self,
         msg: &Map<String, Value>,
@@ -206,7 +211,7 @@ impl ActorRegistry {
         match self.actors.get(to) {
             None => {
                 // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#packets>
-                let msg = json!({ "from":to, "error":"noSuchActor" });
+                let msg = json!({ "from": to, "error": "noSuchActor" });
                 let _ = stream.write_json_packet(&msg);
             },
             Some(actor) => {

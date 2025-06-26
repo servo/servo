@@ -63,7 +63,7 @@ struct GetLayoutInspectorReply {
 }
 
 #[derive(Serialize)]
-struct WatchRootNodeReply {
+struct WatchRootNodeNotification {
     #[serde(rename = "type")]
     type_: String,
     from: String,
@@ -93,7 +93,7 @@ struct GetOffsetParentReply {
 }
 
 #[derive(Serialize)]
-struct NewMutationsReply {
+struct NewMutationsNotification {
     from: String,
     #[serde(rename = "type")]
     type_: String,
@@ -262,7 +262,7 @@ impl Actor for WalkerActor {
                 request.reply_final(&msg)?
             },
             "watchRootNode" => {
-                let msg = WatchRootNodeReply {
+                let msg = WatchRootNodeNotification {
                     type_: "root-available".into(),
                     from: self.name(),
                     node: self.root_node.clone(),
@@ -289,7 +289,7 @@ impl WalkerActor {
             let mut mutations = self.mutations.borrow_mut();
             mutations.extend(modifications.iter().cloned().map(|m| (m, target.into())));
         }
-        let _ = request.write_json_packet(&NewMutationsReply {
+        let _ = request.write_json_packet(&NewMutationsNotification {
             from: self.name(),
             type_: "newMutations".into(),
         });

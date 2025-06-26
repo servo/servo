@@ -108,7 +108,8 @@ impl Actor for ThreadActor {
                     from: self.name(),
                     type_: "interrupted".to_owned(),
                 };
-                request.reply_final(&msg)?
+                request.write_json_packet(&msg)?;
+                request.reply_final(&EmptyReplyMsg { from: self.name() })?
             },
 
             "reconfigure" => request.reply_final(&EmptyReplyMsg { from: self.name() })?,

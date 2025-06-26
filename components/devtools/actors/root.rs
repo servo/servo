@@ -224,15 +224,13 @@ impl Actor for RootActor {
             },
 
             "getTab" => {
-                let Some(serde_json::Value::Number(browser_id)) = msg.get("browserId") else {
-                    //  is this correct error?
-                    return Err(ActorError::MissingParameter);
-                };
-
-                let browser_id = browser_id.as_u64().unwrap();
+                let browser_id = msg
+                    .get("browserId")
+                    .ok_or(ActorError::MissingParameter)?
+                    .as_u64()
+                    .ok_or(ActorError::BadParameterType)?;
                 let Some(tab) = self.get_tab_msg_by_browser_id(registry, browser_id as u32) else {
-                    //  is this correct error?
-                    return Err(ActorError::MissingParameter);
+                    return Err(ActorError::Internal);
                 };
 
                 let reply = GetTabReply {
