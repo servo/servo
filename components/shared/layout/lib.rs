@@ -395,17 +395,27 @@ pub struct ReflowResult {
     pub iframe_sizes: IFrameSizes,
 }
 
-/// Information needed for a script-initiated reflow.
+/// Information needed for a script-initiated reflow that requires a restyle
+/// and reconstruction of box and fragment trees.
 #[derive(Debug)]
-pub struct ReflowRequest {
+pub struct ReflowRequestRestyle {
     /// Whether or not (and for what reasons) restyle needs to happen.
-    pub restyle_reason: RestyleReason,
-    /// The document node.
-    pub document: TrustedNodeAddress,
+    pub reason: RestyleReason,
     /// The dirty root from which to restyle.
     pub dirty_root: Option<TrustedNodeAddress>,
     /// Whether the document's stylesheets have changed since the last script reflow.
     pub stylesheets_changed: bool,
+    /// Restyle snapshot map.
+    pub pending_restyles: Vec<(TrustedNodeAddress, PendingRestyle)>,
+}
+
+/// Information needed for a script-initiated reflow.
+#[derive(Debug)]
+pub struct ReflowRequest {
+    /// The document node.
+    pub document: TrustedNodeAddress,
+    /// If a restyle is necessary, all of the informatio needed to do that restyle.
+    pub restyle: Option<ReflowRequestRestyle>,
     /// The current [`ViewportDetails`] to use for this reflow.
     pub viewport_details: ViewportDetails,
     /// The goal of this reflow.
@@ -414,8 +424,6 @@ pub struct ReflowRequest {
     pub dom_count: u32,
     /// The current window origin
     pub origin: ImmutableOrigin,
-    /// Restyle snapshot map.
-    pub pending_restyles: Vec<(TrustedNodeAddress, PendingRestyle)>,
     /// The current animation timeline value.
     pub animation_timeline_value: f64,
     /// The set of animations for this document.
@@ -426,6 +434,14 @@ pub struct ReflowRequest {
     pub theme: Theme,
     /// The node highlighted by the devtools, if any
     pub highlighted_dom_node: Option<OpaqueNode>,
+}
+
+impl ReflowRequest {
+    pub fn stylesheets_changed(&self) -> bool {
+        self.restyle
+            .as_ref()
+            .is_some_and(|restyle| restyle.stylesheets_changed)
+    }
 }
 
 /// A pending restyle.

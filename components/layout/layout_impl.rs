@@ -27,7 +27,7 @@ use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
 use layout_api::{
     Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType, OffsetParentResponse, QueryMsg,
-    ReflowGoal, ReflowRequest, ReflowResult, TrustedNodeAddress,
+    ReflowGoal, ReflowRequest, ReflowRequestRestyle, ReflowResult, TrustedNodeAddress,
 };
 use log::{debug, error, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
@@ -586,7 +586,7 @@ impl LayoutThread {
     /// at all.
     fn can_skip_reflow_request_entirely(&self, reflow_request: &ReflowRequest) -> bool {
         // If a restyle is necessary, restyle and reflow is a necessity.
-        if reflow_request.restyle_reason.needs_restyle() {
+        if reflow_request.restyle.is_some() {
             return false;
         }
         // We always need to at least build a fragment tree.
@@ -649,9 +649,11 @@ impl LayoutThread {
         };
 
         let mut snapshot_map = SnapshotMap::new();
-        let _snapshot_setter = SnapshotSetter::new(&mut reflow_request, &mut snapshot_map);
+        let mut _snapshot_setter = None;
         let mut viewport_changed = false;
-        if reflow_request.restyle_reason.needs_restyle() {
+        if let Some(restyle) = reflow_request.restyle.as_mut() {
+            _snapshot_setter = Some(SnapshotSetter::new(restyle, &mut snapshot_map));
+
             viewport_changed = self.viewport_did_change(reflow_request.viewport_details);
             if self.update_device_if_necessary(&reflow_request, viewport_changed, &guards) {
                 if let Some(mut data) = root_element.mutate_data() {
@@ -683,7 +685,7 @@ impl LayoutThread {
                 &snapshot_map,
                 reflow_request.animation_timeline_value,
                 &reflow_request.animations,
-                match reflow_request.stylesheets_changed {
+                match reflow_request.stylesheets_changed() {
                     true => TraversalFlags::ForCSSRuleChanges,
                     false => TraversalFlags::empty(),
                 },
@@ -700,9 +702,9 @@ impl LayoutThread {
         };
 
         let mut damage = RestyleDamage::empty();
-        if reflow_request.restyle_reason.needs_restyle() {
+        if let Some(restyle) = reflow_request.restyle.as_ref() {
             damage = self.restyle_and_build_trees(
-                &reflow_request,
+                restyle,
                 root_element,
                 rayon_pool,
                 &mut layout_context,
@@ -794,7 +796,7 @@ impl LayoutThread {
             self.have_added_user_agent_stylesheets = true;
         }
 
-        if reflow_request.stylesheets_changed {
+        if reflow_request.stylesheets_changed() {
             self.stylist
                 .force_stylesheet_origins_dirty(Origin::Author.into());
         }
@@ -809,14 +811,14 @@ impl LayoutThread {
     #[servo_tracing::instrument(skip_all)]
     fn restyle_and_build_trees(
         &self,
-        reflow_request: &ReflowRequest,
+        restyle: &ReflowRequestRestyle,
         root_element: ServoLayoutElement<'_>,
         rayon_pool: Option<&ThreadPool>,
         layout_context: &mut LayoutContext<'_>,
         viewport_changed: bool,
     ) -> RestyleDamage {
         let dirty_root = unsafe {
-            ServoLayoutNode::new(&reflow_request.dirty_root.unwrap())
+            ServoLayoutNode::new(&restyle.dirty_root.unwrap())
                 .as_element()
                 .unwrap()
         };
@@ -1330,12 +1332,9 @@ struct SnapshotSetter<'dom> {
 }
 
 impl SnapshotSetter<'_> {
-    fn new(reflow_request: &mut ReflowRequest, snapshot_map: &mut SnapshotMap) -> Self {
-        debug!(
-            "Draining restyles: {}",
-            reflow_request.pending_restyles.len()
-        );
-        let restyles = std::mem::take(&mut reflow_request.pending_restyles);
+    fn new(restyle: &mut ReflowRequestRestyle, snapshot_map: &mut SnapshotMap) -> Self {
+        debug!("Draining restyles: {}", restyle.pending_restyles.len());
+        let restyles = std::mem::take(&mut restyle.pending_restyles);
 
         let elements_with_snapshot: Vec<_> = restyles
             .iter()
