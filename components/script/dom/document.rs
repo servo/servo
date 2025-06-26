@@ -42,7 +42,9 @@ use hyper_serde::Serde;
 use ipc_channel::ipc;
 use js::rust::{HandleObject, HandleValue};
 use keyboard_types::{Code, Key, KeyState, Modifiers};
-use layout_api::{PendingRestyle, ReflowGoal, TrustedNodeAddress, node_id_from_scroll_id};
+use layout_api::{
+    PendingRestyle, ReflowGoal, RestyleReason, TrustedNodeAddress, node_id_from_scroll_id,
+};
 use metrics::{InteractiveFlag, InteractiveWindow, ProgressiveWebMetrics};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
@@ -383,11 +385,11 @@ pub(crate) struct Document {
     /// Information on elements needing restyle to ship over to layout when the
     /// time comes.
     pending_restyles: DomRefCell<FnvHashMap<Dom<Element>, NoTrace<PendingRestyle>>>,
-    /// This flag will be true if the `Document` needs to be painted again
-    /// during the next full layout attempt due to some external change such as
-    /// the web view changing size, or because the previous layout was only for
-    /// layout queries (which do not trigger display).
-    needs_paint: Cell<bool>,
+    /// A collection of reasons that the [`Document`] needs to be restyled at the next
+    /// opportunity for a reflow. If this is empty, then the [`Document`] does not need to
+    /// be restyled.
+    #[no_trace]
+    needs_restyle: Cell<RestyleReason>,
     /// <http://w3c.github.io/touch-events/#dfn-active-touch-point>
     active_touch_points: DomRefCell<Vec<Dom<Touch>>>,
     /// Navigation Timing properties:
@@ -841,32 +843,34 @@ impl Document {
         }
     }
 
-    pub(crate) fn set_needs_paint(&self, value: bool) {
-        self.needs_paint.set(value)
+    pub(crate) fn add_restyle_reason(&self, reason: RestyleReason) {
+        self.needs_restyle.set(self.needs_restyle.get() | reason)
     }
 
-    pub(crate) fn needs_reflow(&self) -> Option<ReflowTriggerCondition> {
+    pub(crate) fn clear_restyle_reasons(&self) {
+        self.needs_restyle.set(RestyleReason::empty());
+    }
+
+    pub(crate) fn restyle_reason(&self) -> RestyleReason {
+        let mut condition = self.needs_restyle.get();
+        if self.stylesheets.borrow().has_changed() {
+            condition.insert(RestyleReason::StylesheetsChanged);
+        }
+
         // FIXME: This should check the dirty bit on the document,
         // not the document element. Needs some layout changes to make
         // that workable.
-        if self.stylesheets.borrow().has_changed() {
-            return Some(ReflowTriggerCondition::StylesheetsChanged);
-        }
-
-        let root = self.GetDocumentElement()?;
-        if root.upcast::<Node>().has_dirty_descendants() {
-            return Some(ReflowTriggerCondition::DirtyDescendants);
+        if let Some(root) = self.GetDocumentElement() {
+            if root.upcast::<Node>().has_dirty_descendants() {
+                condition.insert(RestyleReason::DOMChanged);
+            }
         }
 
         if !self.pending_restyles.borrow().is_empty() {
-            return Some(ReflowTriggerCondition::PendingRestyles);
+            condition.insert(RestyleReason::PendingRestyles);
         }
 
-        if self.needs_paint.get() {
-            return Some(ReflowTriggerCondition::PaintPostponed);
-        }
-
-        None
+        condition
     }
 
     /// Returns the first `base` element in the DOM that has an `href` attribute.
@@ -4141,7 +4145,7 @@ impl Document {
             base_element: Default::default(),
             appropriate_template_contents_owner_document: Default::default(),
             pending_restyles: DomRefCell::new(FnvHashMap::default()),
-            needs_paint: Cell::new(false),
+            needs_restyle: Cell::new(RestyleReason::DOMChanged),
             active_touch_points: DomRefCell::new(Vec::new()),
             dom_interactive: Cell::new(Default::default()),
             dom_content_loaded_event_start: Cell::new(Default::default()),
@@ -5194,9 +5198,10 @@ impl Document {
         self.has_trustworthy_ancestor_origin.get() ||
             self.origin().immutable().is_potentially_trustworthy()
     }
+
     pub(crate) fn highlight_dom_node(&self, node: Option<&Node>) {
         self.highlighted_dom_node.set(node);
-        self.set_needs_paint(true);
+        self.add_restyle_reason(RestyleReason::HighlightedDOMNodeChanged);
     }
 
     pub(crate) fn highlighted_dom_node(&self) -> Option<DomRoot<Node>> {
@@ -6825,14 +6830,6 @@ impl PendingScript {
             .take()
             .map(|result| (DomRoot::from_ref(&*self.element), result))
     }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub(crate) enum ReflowTriggerCondition {
-    StylesheetsChanged,
-    DirtyDescendants,
-    PendingRestyles,
-    PaintPostponed,
 }
 
 fn is_named_element_with_name_attribute(elem: &Element) -> bool {

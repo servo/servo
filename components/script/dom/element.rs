@@ -103,9 +103,7 @@ use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReaction, CustomElementState,
     is_valid_custom_element_name,
 };
-use crate::dom::document::{
-    Document, LayoutDocumentHelpers, ReflowTriggerCondition, determine_policy_for_token,
-};
+use crate::dom::document::{Document, LayoutDocumentHelpers, determine_policy_for_token};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::domrect::DOMRect;
 use crate::dom::domrectlist::DOMRectList;
@@ -4693,10 +4691,7 @@ impl Element {
             .and_then(|data| data.client_rect.as_ref())
             .and_then(|rect| rect.get().ok())
         {
-            if matches!(
-                doc.needs_reflow(),
-                None | Some(ReflowTriggerCondition::PaintPostponed)
-            ) {
+            if doc.restyle_reason().is_empty() {
                 return rect;
             }
         }

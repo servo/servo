@@ -68,7 +68,7 @@ use js::jsapi::{
 };
 use js::jsval::UndefinedValue;
 use js::rust::ParentRuntime;
-use layout_api::{LayoutConfig, LayoutFactory, ScriptThreadFactory};
+use layout_api::{LayoutConfig, LayoutFactory, RestyleReason, ScriptThreadFactory};
 use media::WindowGLContext;
 use metrics::MAX_TASK_NS;
 use net_traits::image_cache::{ImageCache, ImageCacheResponseMessage};
@@ -1374,7 +1374,7 @@ impl ScriptThread {
         let Some((_, document)) = self.documents.borrow().iter().find(|(_, document)| {
             document.is_fully_active() &&
                 !document.window().layout_blocked() &&
-                document.needs_reflow().is_some()
+                !document.restyle_reason().is_empty()
         }) else {
             return;
         };
@@ -3132,7 +3132,7 @@ impl ScriptThread {
     /// page no longer exists.
     fn handle_worklet_loaded(&self, pipeline_id: PipelineId) {
         if let Some(document) = self.documents.borrow().find_document(pipeline_id) {
-            document.set_needs_paint(true)
+            document.add_restyle_reason(RestyleReason::PaintWorkletLoaded);
         }
     }
 

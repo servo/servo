@@ -4722,6 +4722,7 @@ dependencies = [
  "app_units",
  "atomic_refcell",
  "base",
+ "bitflags 2.9.1",
  "compositing_traits",
  "constellation_traits",
  "embedder_traits",

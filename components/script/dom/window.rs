@@ -52,7 +52,7 @@ use js::rust::{
     MutableHandleValue,
 };
 use layout_api::{
-    FragmentType, Layout, PendingImageState, QueryMsg, ReflowGoal, ReflowRequest,
+    FragmentType, Layout, PendingImageState, QueryMsg, ReflowGoal, ReflowRequest, RestyleReason,
     TrustedNodeAddress, combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
@@ -124,7 +124,7 @@ use crate::dom::bluetooth::BluetoothExtraPermissionData;
 use crate::dom::crypto::Crypto;
 use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
 use crate::dom::customelementregistry::CustomElementRegistry;
-use crate::dom::document::{AnimationFrameCallback, Document, ReflowTriggerCondition};
+use crate::dom::document::{AnimationFrameCallback, Document};
 use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventtarget::EventTarget;
@@ -2128,34 +2128,30 @@ impl Window {
     /// NOTE: This method should almost never be called directly! Layout and rendering updates should
     /// happen as part of the HTML event loop via *update the rendering*.
     #[allow(unsafe_code)]
-    fn force_reflow(
-        &self,
-        reflow_goal: ReflowGoal,
-        condition: Option<ReflowTriggerCondition>,
-    ) -> bool {
-        self.Document().ensure_safe_to_run_script_or_layout();
+    fn force_reflow(&self, reflow_goal: ReflowGoal) -> bool {
+        let document = self.Document();
+        document.ensure_safe_to_run_script_or_layout();
 
         // If layouts are blocked, we block all layouts that are for display only. Other
         // layouts (for queries and scrolling) are not blocked, as they do not display
         // anything and script excpects the layout to be up-to-date after they run.
-        let layout_blocked = self.layout_blocker.get().layout_blocked();
         let pipeline_id = self.pipeline_id();
-        if reflow_goal == ReflowGoal::UpdateTheRendering && layout_blocked {
+        if reflow_goal == ReflowGoal::UpdateTheRendering &&
+            self.layout_blocker.get().layout_blocked()
+        {
             debug!("Suppressing pre-load-event reflow pipeline {pipeline_id}");
             return false;
         }
 
-        if condition != Some(ReflowTriggerCondition::PaintPostponed) {
-            debug!(
-                "Invalidating layout cache due to reflow condition {:?}",
-                condition
-            );
+        let restyle_reason = document.restyle_reason();
+        document.clear_restyle_reasons();
+
+        if restyle_reason.needs_restyle() {
+            debug!("Invalidating layout cache due to reflow condition {restyle_reason:?}",);
             // Invalidate any existing cached layout values.
             self.layout_marker.borrow().set(false);
             // Create a new layout caching token.
             *self.layout_marker.borrow_mut() = Rc::new(Cell::new(true));
-        } else {
-            debug!("Not invalidating cached layout values for paint-only reflow.");
         }
 
         debug!("script: performing reflow for goal {reflow_goal:?}");
@@ -2170,10 +2166,7 @@ impl Window {
             debug_reflow_events(pipeline_id, &reflow_goal);
         }
 
-        let document = self.Document();
-
         let stylesheets_changed = document.flush_stylesheets_for_reflow();
-        let for_display = reflow_goal.needs_display();
         let pending_restyles = document.drain_pending_restyles();
         let dirty_root = document
             .take_dirty_root()
@@ -2185,6 +2178,7 @@ impl Window {
 
         // Send new document and relevant styles to layout.
         let reflow = ReflowRequest {
+            restyle_reason,
             document: document.upcast::<Node>().to_trusted_node_address(),
             dirty_root,
             stylesheets_changed,
@@ -2208,12 +2202,6 @@ impl Window {
         if let Some(marker) = marker {
             self.emit_timeline_marker(marker.end());
         }
-
-        // Either this reflow caused new contents to be displayed or on the next
-        // full layout attempt a reflow should be forced in order to update the
-        // visual contents of the page. A case where full display might be delayed
-        // is when reflowing just for the purpose of doing a layout query.
-        document.set_needs_paint(!for_display);
 
         for image in results.pending_images {
             let id = image.id;
@@ -2295,31 +2283,8 @@ impl Window {
 
         self.Document().ensure_safe_to_run_script_or_layout();
 
-        let mut issued_reflow = false;
-        let condition = self.Document().needs_reflow();
         let updating_the_rendering = reflow_goal == ReflowGoal::UpdateTheRendering;
-        let for_display = reflow_goal.needs_display();
-        if !updating_the_rendering || condition.is_some() {
-            debug!("Reflowing document ({:?})", self.pipeline_id());
-            issued_reflow = self.force_reflow(reflow_goal, condition);
-
-            // We shouldn't need a reflow immediately after a completed reflow, unless the reflow didn't
-            // display anything and it wasn't for display. Queries can cause this to happen.
-            if issued_reflow {
-                let condition = self.Document().needs_reflow();
-                let display_is_pending = condition == Some(ReflowTriggerCondition::PaintPostponed);
-                assert!(
-                    condition.is_none() || (display_is_pending && !for_display),
-                    "Needed reflow after reflow: {:?}",
-                    condition
-                );
-            }
-        } else {
-            debug!(
-                "Document ({:?}) doesn't need reflow - skipping it (goal {reflow_goal:?})",
-                self.pipeline_id()
-            );
-        }
+        let issued_reflow = self.force_reflow(reflow_goal);
 
         let document = self.Document();
         let font_face_set = document.Fonts(can_gc);
@@ -2420,7 +2385,6 @@ impl Window {
 
         self.layout_blocker
             .set(LayoutBlocker::FiredLoadEventOrParsingTimerExpired);
-        self.Document().set_needs_paint(true);
 
         // We do this immediately instead of scheduling a future task, because this can
         // happen if parsing is taking a very long time, which means that the
@@ -2777,7 +2741,8 @@ impl Window {
             return;
         }
         self.theme.set(new_theme);
-        self.Document().set_needs_paint(true);
+        self.Document()
+            .add_restyle_reason(RestyleReason::ThemeChanged);
     }
 
     pub(crate) fn get_url(&self) -> ServoUrl {
@@ -2811,7 +2776,14 @@ impl Window {
 
         // The document needs to be repainted, because the initial containing block
         // is now a different size.
-        self.Document().set_needs_paint(true);
+        self.Document()
+            .add_restyle_reason(RestyleReason::ViewportSizeChanged);
+
+        // If viewport units were used, all nodes need to be restyled, because
+        // we currently do not track which ones rely on viewport units.
+        if self.layout().device().used_viewport_units() {
+            self.Document().dirty_all_nodes();
+        }
     }
 
     pub(crate) fn suspend(&self, can_gc: CanGc) {
@@ -2906,6 +2878,18 @@ impl Window {
         );
         self.set_viewport_details(new_size);
 
+        // The document needs to be repainted, because the initial containing
+        // block is now a different size. This should be triggered before the
+        // event is fired below so that any script queries trigger a restyle.
+        self.Document()
+            .add_restyle_reason(RestyleReason::ViewportSizeChanged);
+
+        // If viewport units were used, all nodes need to be restyled, because
+        // we currently do not track which ones rely on viewport units.
+        if self.layout().device().used_viewport_units() {
+            self.Document().dirty_all_nodes();
+        }
+
         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
         if size_type == WindowSizeType::Resize {
             let uievent = UIEvent::new(
@@ -2919,10 +2903,6 @@ impl Window {
             );
             uievent.upcast::<Event>().fire(self.upcast(), can_gc);
         }
-
-        // The document needs to be repainted, because the initial containing block
-        // is now a different size.
-        self.Document().set_needs_paint(true);
 
         true
     }

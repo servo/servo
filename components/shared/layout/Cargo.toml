@@ -13,6 +13,7 @@ path = "lib.rs"
 
 [dependencies]
 base = { workspace = true }
+bitflags = { workspace = true }
 app_units = { workspace = true }
 atomic_refcell = { workspace = true }
 compositing_traits = { workspace = true }
