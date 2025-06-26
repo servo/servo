@@ -938,9 +938,9 @@ parameters! {
 impl TexParameter {
     pub fn required_webgl_version(self) -> WebGLVersion {
         match self {
-            Self::Float(TexParameterFloat::TextureMaxAnisotropyExt)
-            | Self::Int(TexParameterInt::TextureWrapS)
-            | Self::Int(TexParameterInt::TextureWrapT) => WebGLVersion::WebGL1,
+            Self::Float(TexParameterFloat::TextureMaxAnisotropyExt) |
+            Self::Int(TexParameterInt::TextureWrapS) |
+            Self::Int(TexParameterInt::TextureWrapT) => WebGLVersion::WebGL1,
             _ => WebGLVersion::WebGL2,
         }
     }
@@ -1113,11 +1113,11 @@ impl TexFormat {
         let gl_const = self.as_gl_constant();
         matches!(
             gl_const,
-            gl::COMPRESSED_RGB_S3TC_DXT1_EXT
-                | gl::COMPRESSED_RGBA_S3TC_DXT1_EXT
-                | gl::COMPRESSED_RGBA_S3TC_DXT3_EXT
-                | gl::COMPRESSED_RGBA_S3TC_DXT5_EXT
-                | gl_ext_constants::COMPRESSED_RGB_ETC1_WEBGL
+            gl::COMPRESSED_RGB_S3TC_DXT1_EXT |
+                gl::COMPRESSED_RGBA_S3TC_DXT1_EXT |
+                gl::COMPRESSED_RGBA_S3TC_DXT3_EXT |
+                gl::COMPRESSED_RGBA_S3TC_DXT5_EXT |
+                gl_ext_constants::COMPRESSED_RGB_ETC1_WEBGL
         )
     }
 
@@ -1125,15 +1125,15 @@ impl TexFormat {
     pub fn is_sized(&self) -> bool {
         !matches!(
             self,
-            TexFormat::DepthComponent
-                | TexFormat::DepthStencil
-                | TexFormat::Alpha
-                | TexFormat::Red
-                | TexFormat::RG
-                | TexFormat::RGB
-                | TexFormat::RGBA
-                | TexFormat::Luminance
-                | TexFormat::LuminanceAlpha
+            TexFormat::DepthComponent |
+                TexFormat::DepthStencil |
+                TexFormat::Alpha |
+                TexFormat::Red |
+                TexFormat::RG |
+                TexFormat::RGB |
+                TexFormat::RGBA |
+                TexFormat::Luminance |
+                TexFormat::LuminanceAlpha
         )
     }
 
@@ -1307,26 +1307,26 @@ impl TexFormat {
             TexFormat::DepthComponent32f => &[TexDataType::Float][..],
             TexFormat::Depth24Stencil8 => &[TexDataType::UnsignedInt248][..],
             TexFormat::Depth32fStencil8 => &[TexDataType::Float32UnsignedInt248Rev][..],
-            TexFormat::CompressedRgbS3tcDxt1
-            | TexFormat::CompressedRgbaS3tcDxt1
-            | TexFormat::CompressedRgbaS3tcDxt3
-            | TexFormat::CompressedRgbaS3tcDxt5 => &[TexDataType::UnsignedByte][..],
+            TexFormat::CompressedRgbS3tcDxt1 |
+            TexFormat::CompressedRgbaS3tcDxt1 |
+            TexFormat::CompressedRgbaS3tcDxt3 |
+            TexFormat::CompressedRgbaS3tcDxt5 => &[TexDataType::UnsignedByte][..],
             _ => &[][..],
         }
     }
 
     pub fn required_webgl_version(self) -> WebGLVersion {
         match self {
-            TexFormat::DepthComponent
-            | TexFormat::Alpha
-            | TexFormat::RGB
-            | TexFormat::RGBA
-            | TexFormat::Luminance
-            | TexFormat::LuminanceAlpha
-            | TexFormat::CompressedRgbS3tcDxt1
-            | TexFormat::CompressedRgbaS3tcDxt1
-            | TexFormat::CompressedRgbaS3tcDxt3
-            | TexFormat::CompressedRgbaS3tcDxt5 => WebGLVersion::WebGL1,
+            TexFormat::DepthComponent |
+            TexFormat::Alpha |
+            TexFormat::RGB |
+            TexFormat::RGBA |
+            TexFormat::Luminance |
+            TexFormat::LuminanceAlpha |
+            TexFormat::CompressedRgbS3tcDxt1 |
+            TexFormat::CompressedRgbaS3tcDxt1 |
+            TexFormat::CompressedRgbaS3tcDxt3 |
+            TexFormat::CompressedRgbaS3tcDxt5 => WebGLVersion::WebGL1,
             _ => WebGLVersion::WebGL2,
         }
     }
@@ -1354,16 +1354,16 @@ impl TexDataType {
             TexDataType::Byte => SizedDataType::Int8,
             TexDataType::UnsignedByte => SizedDataType::Uint8,
             TexDataType::Short => SizedDataType::Int16,
-            TexDataType::UnsignedShort
-            | TexDataType::UnsignedShort4444
-            | TexDataType::UnsignedShort5551
-            | TexDataType::UnsignedShort565 => SizedDataType::Uint16,
+            TexDataType::UnsignedShort |
+            TexDataType::UnsignedShort4444 |
+            TexDataType::UnsignedShort5551 |
+            TexDataType::UnsignedShort565 => SizedDataType::Uint16,
             TexDataType::Int => SizedDataType::Int32,
-            TexDataType::UnsignedInt
-            | TexDataType::UnsignedInt10f11f11fRev
-            | TexDataType::UnsignedInt2101010Rev
-            | TexDataType::UnsignedInt5999Rev
-            | TexDataType::UnsignedInt248 => SizedDataType::Uint32,
+            TexDataType::UnsignedInt |
+            TexDataType::UnsignedInt10f11f11fRev |
+            TexDataType::UnsignedInt2101010Rev |
+            TexDataType::UnsignedInt5999Rev |
+            TexDataType::UnsignedInt248 => SizedDataType::Uint32,
             TexDataType::HalfFloat => SizedDataType::Uint16,
             TexDataType::Float | TexDataType::Float32UnsignedInt248Rev => SizedDataType::Float32,
         }
@@ -1374,16 +1374,16 @@ impl TexDataType {
         use self::*;
         match *self {
             TexDataType::Byte | TexDataType::UnsignedByte => 1,
-            TexDataType::Short
-            | TexDataType::UnsignedShort
-            | TexDataType::UnsignedShort4444
-            | TexDataType::UnsignedShort5551
-            | TexDataType::UnsignedShort565 => 2,
-            TexDataType::Int
-            | TexDataType::UnsignedInt
-            | TexDataType::UnsignedInt10f11f11fRev
-            | TexDataType::UnsignedInt2101010Rev
-            | TexDataType::UnsignedInt5999Rev => 4,
+            TexDataType::Short |
+            TexDataType::UnsignedShort |
+            TexDataType::UnsignedShort4444 |
+            TexDataType::UnsignedShort5551 |
+            TexDataType::UnsignedShort565 => 2,
+            TexDataType::Int |
+            TexDataType::UnsignedInt |
+            TexDataType::UnsignedInt10f11f11fRev |
+            TexDataType::UnsignedInt2101010Rev |
+            TexDataType::UnsignedInt5999Rev => 4,
             TexDataType::UnsignedInt248 => 4,
             TexDataType::Float => 4,
             TexDataType::HalfFloat => 2,
@@ -1416,12 +1416,12 @@ impl TexDataType {
 
     pub fn required_webgl_version(self) -> WebGLVersion {
         match self {
-            TexDataType::UnsignedByte
-            | TexDataType::UnsignedShort4444
-            | TexDataType::UnsignedShort5551
-            | TexDataType::UnsignedShort565
-            | TexDataType::Float
-            | TexDataType::HalfFloat => WebGLVersion::WebGL1,
+            TexDataType::UnsignedByte |
+            TexDataType::UnsignedShort4444 |
+            TexDataType::UnsignedShort5551 |
+            TexDataType::UnsignedShort565 |
+            TexDataType::Float |
+            TexDataType::HalfFloat => WebGLVersion::WebGL1,
             _ => WebGLVersion::WebGL2,
         }
     }
