@@ -254,7 +254,8 @@ interface CanvasGradient {
 [Exposed=(Window, PaintWorklet, Worker)]
 interface CanvasPattern {
   // opaque object
-  //undefined setTransform(optional DOMMatrix2DInit transform = {});
+  [Throws]
+  undefined setTransform(optional DOMMatrix2DInit transform = {});
 };
 
 // TODO: Float16Array

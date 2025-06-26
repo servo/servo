@@ -121,17 +121,6 @@ pub enum Pattern<'a> {
     Surface(SurfacePattern<'a>),
 }
 
-impl Pattern<'_> {
-    fn set_transform(&mut self, transform: Transform2D<f32>) {
-        match self {
-            Pattern::Surface(pattern) => pattern.set_transform(transform),
-            Pattern::LinearGradient(..) | Pattern::RadialGradient(..) | Pattern::Color(..) => {
-                warn!("transform not supported")
-            },
-        }
-    }
-}
-
 #[derive(Clone)]
 pub struct LinearGradientPattern {
     gradient: raqote::Gradient,
@@ -186,7 +175,12 @@ pub struct SurfacePattern<'a> {
 }
 
 impl<'a> SurfacePattern<'a> {
-    fn new(image: raqote::Image<'a>, filter: raqote::FilterMode, repeat: Repetition) -> Self {
+    fn new(
+        image: raqote::Image<'a>,
+        filter: raqote::FilterMode,
+        repeat: Repetition,
+        transform: Transform2D<f32>,
+    ) -> Self {
         let extend = match repeat {
             Repetition::NoRepeat => raqote::ExtendMode::Pad,
             Repetition::RepeatX | Repetition::RepeatY | Repetition::Repeat => {
@@ -198,11 +192,8 @@ impl<'a> SurfacePattern<'a> {
             filter,
             extend,
             repeat,
-            transform: Transform2D::identity(),
+            transform,
         }
-    }
-    fn set_transform(&mut self, transform: Transform2D<f32>) {
-        self.transform = transform;
     }
     pub fn size(&self) -> Size2D<f32> {
         Size2D::new(self.image.width as f32, self.image.height as f32)
@@ -427,18 +418,19 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
             },
         };
 
-        let mut pattern = Pattern::Surface(SurfacePattern::new(
-            image,
-            filter.to_raqote(),
-            Repetition::NoRepeat,
-        ));
         let transform =
             raqote::Transform::translation(-dest.origin.x as f32, -dest.origin.y as f32)
                 .then_scale(
                     image.width as f32 / dest.size.width as f32,
                     image.height as f32 / dest.size.height as f32,
                 );
-        pattern.set_transform(transform);
+
+        let pattern = Pattern::Surface(SurfacePattern::new(
+            image,
+            filter.to_raqote(),
+            Repetition::NoRepeat,
+            transform,
+        ));
 
         let mut pb = raqote::PathBuilder::new();
         pb.rect(
@@ -809,6 +801,7 @@ impl ToRaqotePattern<'_> for FillOrStrokeStyle {
                     image,
                     raqote::FilterMode::Nearest,
                     repeat,
+                    style.transform,
                 )))
             },
         }
