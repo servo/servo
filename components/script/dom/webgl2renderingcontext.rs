@@ -11,8 +11,8 @@ use std::rc::Rc;
 use bitflags::bitflags;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{
-    AlphaTreatment, GLContextAttributes, InternalFormatParameter, TexDataType, TexFormat,
-    WebGLCommand, WebGLContextId, WebGLResult, WebGLVersion, YAxisTreatment, webgl_channel,
+    GLContextAttributes, InternalFormatParameter, TexDataType, TexFormat, WebGLCommand,
+    WebGLContextId, WebGLResult, WebGLVersion, webgl_channel,
 };
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
@@ -60,8 +60,8 @@ use crate::dom::webglprogram::WebGLProgram;
 use crate::dom::webglquery::WebGLQuery;
 use crate::dom::webglrenderbuffer::WebGLRenderbuffer;
 use crate::dom::webglrenderingcontext::{
-    Operation, TexPixels, TexSource, TextureUnpacking, VertexAttrib, WebGLRenderingContext,
-    uniform_get, uniform_typed,
+    Operation, TexPixels, TexSource, VertexAttrib, WebGLRenderingContext, uniform_get,
+    uniform_typed,
 };
 use crate::dom::webglsampler::{WebGLSampler, WebGLSamplerValue};
 use crate::dom::webglshader::WebGLShader;
@@ -930,20 +930,6 @@ impl WebGL2RenderingContext {
             )
         );
 
-        let settings = self.base.texture_unpacking_settings();
-        let premultiplied = settings.contains(TextureUnpacking::PREMULTIPLY_ALPHA);
-        let alpha_treatment = match (data.premultiplied(), premultiplied) {
-            (true, false) => Some(AlphaTreatment::Unmultiply),
-            (false, true) => Some(AlphaTreatment::Premultiply),
-            _ => None,
-        };
-
-        let y_axis_treatment = if settings.contains(TextureUnpacking::FLIP_Y_AXIS) {
-            YAxisTreatment::Flipped
-        } else {
-            YAxisTreatment::AsIs
-        };
-
         let internal_format = self
             .base
             .extension_manager()
@@ -963,8 +949,8 @@ impl WebGL2RenderingContext {
             data_type,
             effective_data_type,
             unpacking_alignment,
-            alpha_treatment,
-            y_axis_treatment,
+            alpha_treatment: data.alpha_treatment(),
+            y_axis_treatment: data.y_axis_treatment(),
             pixel_format: data.pixel_format(),
             data: data.into_shared_memory().into(),
         });
@@ -3156,7 +3142,13 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                 IpcSharedMemory::from_bytes(&vec![0u8; expected_byte_len as usize])
             },
         };
-        let tex_source = TexPixels::from_array(buff, Size2D::new(width, height));
+        let (alpha_treatment, y_axis_treatment) = self.base.get_current_unpack_state(false);
+        let tex_source = TexPixels::from_array(
+            buff,
+            Size2D::new(width, height),
+            alpha_treatment,
+            y_axis_treatment,
+        );
 
         self.tex_image_3d(
             &texture,
