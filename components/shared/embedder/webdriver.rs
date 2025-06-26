@@ -198,6 +198,7 @@ pub enum WebDriverScriptCommand {
         WebDriverFrameId,
         IpcSender<Result<BrowsingContextId, ErrorStatus>>,
     ),
+    GetParentFrameId(IpcSender<Result<BrowsingContextId, ErrorStatus>>),
     GetUrl(IpcSender<ServoUrl>),
     GetPageSource(IpcSender<Result<String, ErrorStatus>>),
     IsEnabled(String, IpcSender<Result<bool, ErrorStatus>>),
@@ -240,7 +241,6 @@ pub type WebDriverJSResult = Result<WebDriverJSValue, WebDriverJSError>;
 pub enum WebDriverFrameId {
     Short(u16),
     Element(String),
-    Parent,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

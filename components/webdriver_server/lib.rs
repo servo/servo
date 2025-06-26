@@ -1079,33 +1079,62 @@ impl Handler {
         }))
     }
 
+    /// <https://w3c.github.io/webdriver/#dfn-switch-to-frame>
     fn handle_switch_to_frame(
         &mut self,
         parameters: &SwitchToFrameParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        self.verify_top_level_browsing_context_is_open(self.session()?.webview_id)?;
-
         use webdriver::common::FrameId;
         let frame_id = match parameters.id {
+            // id is null
             FrameId::Top => {
-                let session = self.session_mut()?;
-                session.browsing_context_id = BrowsingContextId::from(session.webview_id);
+                let webview_id = self.session()?.webview_id;
+                // Step 1. If session's current top-level browsing context is no longer open,
+                // return error with error code no such window.
+                self.verify_top_level_browsing_context_is_open(webview_id)?;
+                // (SKIP) Step 2. Try to handle any user prompts with session.
+
+                // Step 3. Set the current browsing context with session and
+                // session's current top-level browsing context.
+                self.session_mut()?.browsing_context_id = BrowsingContextId::from(webview_id);
                 return Ok(WebDriverResponse::Void);
             },
-            FrameId::Short(ref x) => WebDriverFrameId::Short(*x),
+            // id is a Number object
+            FrameId::Short(ref x) => {
+                // (Already handled when deserializing in webdriver-crate)
+                // Step 1. If id is less than 0 or greater than 2^16 – 1,
+                // return error with error code invalid argument.
+                WebDriverFrameId::Short(*x)
+            },
             FrameId::Element(ref x) => WebDriverFrameId::Element(x.to_string()),
         };
 
         self.switch_to_frame(frame_id)
     }
 
+    /// <https://w3c.github.io/webdriver/#switch-to-parent-frame>
     fn handle_switch_to_parent_frame(&mut self) -> WebDriverResult<WebDriverResponse> {
         let webview_id = self.session()?.webview_id;
-        self.verify_top_level_browsing_context_is_open(webview_id)?;
-        if self.session()?.browsing_context_id == webview_id {
+        let browsing_context = self.session()?.browsing_context_id;
+        // Step 1. If session's current browsing context is already the top-level browsing context:
+        if browsing_context == webview_id {
+            // Step 1.1. If session's current browsing context is no longer open,
+            // return error with error code no such window.
+            self.verify_browsing_context_is_open(browsing_context)?;
+            // Step 1.2. Return success with data null.
             return Ok(WebDriverResponse::Void);
         }
-        self.switch_to_frame(WebDriverFrameId::Parent)
+        let (sender, receiver) = ipc::channel().unwrap();
+        let cmd = WebDriverScriptCommand::GetParentFrameId(sender);
+        // TODO: Track Parent Browsing Context directly in the session, as expected by Spec.
+        self.browsing_context_script_command::<true>(cmd)?;
+        match wait_for_script_response(receiver)? {
+            Ok(browsing_context_id) => {
+                self.session_mut()?.browsing_context_id = browsing_context_id;
+                Ok(WebDriverResponse::Void)
+            },
+            Err(error) => Err(WebDriverError::new(error, "")),
+        }
     }
 
     // https://w3c.github.io/webdriver/#switch-to-window
@@ -1141,13 +1170,6 @@ impl Handler {
         &mut self,
         frame_id: WebDriverFrameId,
     ) -> WebDriverResult<WebDriverResponse> {
-        if let WebDriverFrameId::Short(_) = frame_id {
-            return Err(WebDriverError::new(
-                ErrorStatus::UnsupportedOperation,
-                "Selecting frame by id not supported",
-            ));
-        }
-
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetBrowsingContextId(frame_id, sender);
         self.browsing_context_script_command::<true>(cmd)?;

@@ -586,6 +586,30 @@ pub(crate) fn handle_execute_async_script(
     }
 }
 
+/// Get BrowsingContextId for <https://w3c.github.io/webdriver/#switch-to-parent-frame>
+pub(crate) fn handle_get_parent_frame_id(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    reply: IpcSender<Result<BrowsingContextId, ErrorStatus>>,
+) {
+    // Step 2. If session's current parent browsing context is no longer open,
+    // return error with error code no such window.
+    reply
+        .send(
+            documents
+                .find_window(pipeline)
+                .and_then(|window| {
+                    window
+                        .window_proxy()
+                        .parent()
+                        .map(|parent| parent.browsing_context_id())
+                })
+                .ok_or(ErrorStatus::NoSuchWindow),
+        )
+        .unwrap();
+}
+
+/// Get the BrowsingContextId for <https://w3c.github.io/webdriver/#dfn-switch-to-frame>
 pub(crate) fn handle_get_browsing_context_id(
     documents: &DocumentCollection,
     pipeline: PipelineId,
@@ -594,9 +618,20 @@ pub(crate) fn handle_get_browsing_context_id(
 ) {
     reply
         .send(match webdriver_frame_id {
-            WebDriverFrameId::Short(_) => {
-                // This isn't supported yet
-                Err(ErrorStatus::UnsupportedOperation)
+            WebDriverFrameId::Short(id) => {
+                // Step 5. If id is not a supported property index of window,
+                // return error with error code no such frame.
+                documents
+                    .find_document(pipeline)
+                    .ok_or(ErrorStatus::NoSuchWindow)
+                    .and_then(|document| {
+                        document
+                            .iframes()
+                            .iter()
+                            .nth(id as usize)
+                            .and_then(|iframe| iframe.browsing_context_id())
+                            .ok_or(ErrorStatus::NoSuchFrame)
+                    })
             },
             WebDriverFrameId::Element(element_id) => {
                 get_known_element(documents, pipeline, element_id).and_then(|element| {
@@ -606,15 +641,6 @@ pub(crate) fn handle_get_browsing_context_id(
                         .ok_or(ErrorStatus::NoSuchFrame)
                 })
             },
-            WebDriverFrameId::Parent => documents
-                .find_window(pipeline)
-                .and_then(|window| {
-                    window
-                        .window_proxy()
-                        .parent()
-                        .map(|parent| parent.browsing_context_id())
-                })
-                .ok_or(ErrorStatus::NoSuchFrame),
         })
         .unwrap();
 }
