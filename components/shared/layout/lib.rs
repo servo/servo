@@ -346,52 +346,6 @@ pub enum ReflowGoal {
     UpdateScrollNode(ExternalScrollId, LayoutVector2D),
 }
 
-impl ReflowGoal {
-    /// Returns true if the given ReflowQuery needs a full, up-to-date display list to
-    /// be present or false if it only needs stacking-relative positions.
-    pub fn needs_display_list(&self) -> bool {
-        match *self {
-            ReflowGoal::UpdateTheRendering | ReflowGoal::UpdateScrollNode(..) => true,
-            ReflowGoal::LayoutQuery(ref querymsg) => match *querymsg {
-                QueryMsg::ElementInnerOuterTextQuery |
-                QueryMsg::InnerWindowDimensionsQuery |
-                QueryMsg::NodesFromPointQuery |
-                QueryMsg::ResolvedStyleQuery |
-                QueryMsg::ScrollingAreaOrOffsetQuery |
-                QueryMsg::TextIndexQuery => true,
-                QueryMsg::ClientRectQuery |
-                QueryMsg::ContentBox |
-                QueryMsg::ContentBoxes |
-                QueryMsg::OffsetParentQuery |
-                QueryMsg::ResolvedFontStyleQuery |
-                QueryMsg::StyleQuery => false,
-            },
-        }
-    }
-
-    /// Returns true if the given ReflowQuery needs its display list send to WebRender or
-    /// false if a layout_thread display list is sufficient.
-    pub fn needs_display(&self) -> bool {
-        match *self {
-            ReflowGoal::UpdateTheRendering | ReflowGoal::UpdateScrollNode(..) => true,
-            ReflowGoal::LayoutQuery(ref querymsg) => match *querymsg {
-                QueryMsg::NodesFromPointQuery |
-                QueryMsg::TextIndexQuery |
-                QueryMsg::ElementInnerOuterTextQuery => true,
-                QueryMsg::ContentBox |
-                QueryMsg::ContentBoxes |
-                QueryMsg::ClientRectQuery |
-                QueryMsg::ScrollingAreaOrOffsetQuery |
-                QueryMsg::ResolvedStyleQuery |
-                QueryMsg::ResolvedFontStyleQuery |
-                QueryMsg::OffsetParentQuery |
-                QueryMsg::InnerWindowDimensionsQuery |
-                QueryMsg::StyleQuery => false,
-            },
-        }
-    }
-}
-
 #[derive(Clone, Debug, MallocSizeOf)]
 pub struct IFrameSize {
     pub browsing_context_id: BrowsingContextId,
