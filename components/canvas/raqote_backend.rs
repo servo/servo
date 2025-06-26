@@ -196,10 +196,6 @@ impl<'a> SurfacePattern<'a> {
         }
     }
 
-    pub fn size(&self) -> Size2D<f32> {
-        Size2D::new(self.image.width as f32, self.image.height as f32)
-    }
-
     pub fn repetition(&self) -> &Repetition {
         &self.repeat
     }
