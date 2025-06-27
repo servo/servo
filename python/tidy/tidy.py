@@ -7,6 +7,7 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+import concurrent.futures
 import configparser
 import fnmatch
 import glob
@@ -17,8 +18,8 @@ import os
 import re
 import subprocess
 import sys
-import concurrent.futures
 from typing import Any, Dict, List
+from multiprocessing import cpu_count
 
 import colorama
 import toml
@@ -960,24 +961,33 @@ We only expect files with {ext} extensions in {dir_name}""".format(**details)
 
 def file_checking(filename, checking_functions, line_checking_functions):
     if not os.path.exists(filename):
-        return
+        return []
     with open(filename, "rb") as f:
         contents = f.read()
+        errors = []
         if not contents.strip():
-            yield filename, 0, "file is empty"
-            return
+            return filename, 0, "file is empty"
         for check in checking_functions:
             for error in check(filename, contents):
                 # the result will be: `(filename, line, message)`
-                yield (filename,) + error
+                errors.append((filename,) + error)
         lines = contents.splitlines(True)
         for check in line_checking_functions:
             for error in check(filename, lines):
-                yield (filename,) + error
+                errors.append((filename,) + error)
+
+        return errors
 
 
 def collect_file_checking(filename, checking_functions, line_checking_functions):
     return list(file_checking(filename, checking_functions, line_checking_functions))
+
+
+def worker(filename, checking_functions, line_checking_functions):
+    try:
+        return file_checking(filename, checking_functions, line_checking_functions)
+    except Exception as e:
+        return [(filename, 0, f"Error checking file: {e}")]
 
 
 def collect_errors_for_files(files_to_check, checking_functions, line_checking_functions, print_text=True):
@@ -987,21 +997,19 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
     if print_text:
         print("\r ➤  Checking files for tidiness...")
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures_to_errors = {
-            executor.submit(collect_file_checking, filename, checking_functions, line_checking_functions): filename
+    with concurrent.futures.ProcessPoolExecutor(max_workers=cpu_count()) as executor:
+        futures = {
+            executor.submit(worker, filename, checking_functions, line_checking_functions): filename
             for filename in files_to_check
         }
 
-        for future in concurrent.futures.as_completed(futures_to_errors):
+        for future in concurrent.futures.as_completed(futures):
             try:
-                lines = future.result()
+                errors = future.result()
+                for error in errors:
+                    yield error
             except Exception as exc:
-                print("got error from file checkn conccurent: %s" % exc)
-                sys.exit(1)
-            else:
-                for line in lines:
-                    yield line
+                pass
 
 
 def scan(only_changed_files=False, progress=False, github_annotations=False):
