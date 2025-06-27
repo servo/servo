@@ -10,7 +10,7 @@ mod actions;
 mod capabilities;
 
 use std::borrow::ToOwned;
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, LazyCell, RefCell};
 use std::collections::{BTreeMap, HashMap};
 use std::io::Cursor;
 use std::net::{SocketAddr, SocketAddrV4};
@@ -464,6 +464,11 @@ impl<'de> Visitor<'de> for TupleVecMapVisitor {
     }
 }
 
+enum VerifyBrowsingContextIsOpen {
+    Yes,
+    No,
+}
+
 impl Handler {
     pub fn new(
         constellation_chan: Sender<EmbedderToConstellationMessage>,
@@ -794,12 +799,15 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#get-window-rect>
-    fn handle_window_size<const CHECK_OPEN: bool>(&self) -> WebDriverResult<WebDriverResponse> {
+    fn handle_window_size(
+        &self,
+        verify: VerifyBrowsingContextIsOpen,
+    ) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
         let webview_id = self.session()?.webview_id;
         // Step 1. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
-        if CHECK_OPEN {
+        if let VerifyBrowsingContextIsOpen::Yes = verify {
             self.verify_top_level_browsing_context_is_open(webview_id)?;
         }
         self.send_message_to_embedder(WebDriverCommandMsg::GetWindowSize(webview_id, sender))?;
@@ -834,7 +842,7 @@ impl Handler {
         // We don't current allow modifying the window x/y positions, so we can just
         // return the current window rectangle if not changing dimension.
         if params.width.is_none() && params.height.is_none() {
-            return self.handle_window_size::<false>();
+            return self.handle_window_size(VerifyBrowsingContextIsOpen::No);
         }
         // (TODO) Step 14. Fully exit fullscreen.
         // (TODO) Step 15. Restore the window.
@@ -843,17 +851,20 @@ impl Handler {
         // Step 16 - 17. Set the width/height in CSS pixels.
         // This should be done as long as one of width/height is not null.
 
-        let (width, height) = if params.width.is_some() && params.height.is_some() {
-            (params.width.unwrap(), params.height.unwrap())
-        } else {
-            let WebDriverResponse::WindowRect(current) = self.handle_window_size::<false>()? else {
+        let current = LazyCell::new(|| {
+            let WebDriverResponse::WindowRect(current) = self
+                .handle_window_size(VerifyBrowsingContextIsOpen::No)
+                .unwrap()
+            else {
                 unreachable!("handle_window_size() must return WindowRect");
             };
-            (
-                params.width.unwrap_or(current.width),
-                params.height.unwrap_or(current.height),
-            )
-        };
+            current
+        });
+
+        let (width, height) = (
+            params.width.unwrap_or(current.width),
+            params.height.unwrap_or(current.height),
+        );
 
         self.send_message_to_embedder(WebDriverCommandMsg::SetWindowSize(
             webview_id,
@@ -2242,7 +2253,9 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::AddCookie(ref parameters) => self.handle_add_cookie(parameters),
             WebDriverCommand::Get(ref parameters) => self.handle_get(parameters),
             WebDriverCommand::GetCurrentUrl => self.handle_current_url(),
-            WebDriverCommand::GetWindowRect => self.handle_window_size::<true>(),
+            WebDriverCommand::GetWindowRect => {
+                self.handle_window_size(VerifyBrowsingContextIsOpen::Yes)
+            },
             WebDriverCommand::SetWindowRect(ref size) => self.handle_set_window_size(size),
             WebDriverCommand::IsEnabled(ref element) => self.handle_is_enabled(element),
             WebDriverCommand::IsSelected(ref element) => self.handle_is_selected(element),
