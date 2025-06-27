@@ -1,4 +1,4 @@
-search-path = ["python", "tests/wpt/tests/tools"]
+search-path = ["python", "tests/wpt/tests"]
 project-includes = ["python/tidy/**/*.py"]
-project-excludes = ["**/venv/**", "**/.venv/**", "tests/wpt/tests/tools/wptrunner/**/*"]
+project-excludes = ["**/venv/**", "**/.venv/**", "tests/wpt/tests/**", "**/*test*.py", "**/tests/**"]
 python-interpreter = "./.venv/bin/python"

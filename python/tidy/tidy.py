@@ -17,7 +17,8 @@ import os
 import re
 import subprocess
 import sys
-from typing import Any, Dict, Iterator, List, Tuple
+from dataclasses import dataclass, field
+from typing import Any, Dict, Generator, Iterator, List, Tuple, cast
 
 import colorama
 import toml
@@ -41,24 +42,27 @@ ERROR_RAW_URL_IN_RUSTDOC = "Found raw link in rustdoc. Please escape it with ang
 sys.path.append(os.path.join(WPT_PATH, "tests"))
 sys.path.append(os.path.join(WPT_PATH, "tests", "tools", "wptrunner"))
 
+
+@dataclass
+class IgnoreConfig:
+    files: list[str] = field(default_factory=lambda: [cast(str, os.path.join(".", "."))])
+    directories: list[str] = field(default_factory=lambda: [cast(str, os.path.join(".", "."))])
+    packages: list[str] = field(default_factory=list)
+
+
+@dataclass
+class Config:
+    skip_check_length: bool = False
+    skip_check_licenses: bool = False
+    check_alphabetical_order: bool = True
+    lint_scripts: list[str] = field(default_factory=list)
+    blocked_packages: dict[str, str] = field(default_factory=dict)
+    ignore: IgnoreConfig = field(default_factory=IgnoreConfig)
+    check_ext: dict[str, str] = field(default_factory=dict)
+
+
 # Default configs
-config = {
-    "skip-check-length": False,
-    "skip-check-licenses": False,
-    "check-alphabetical-order": True,
-    "lint-scripts": [],
-    "blocked-packages": {},
-    "ignore": {
-        "files": [
-            os.path.join(".", "."),  # ignore hidden files
-        ],
-        "directories": [
-            os.path.join(".", "."),  # ignore hidden directories
-        ],
-        "packages": [],
-    },
-    "check_ext": {},
-}
+config = Config()
 
 COMMENTS = [b"// ", b"# ", b" *", b"/* "]
 
@@ -128,6 +132,16 @@ def is_iter_empty(iterator):
         return False, iterator
 
 
+def normalize_path(path: str) -> str:
+    abs_path = os.path.abspath(path)
+
+    if abs_path.startswith(TOPDIR):
+        relative = abs_path[len(TOPDIR) :]
+        return f".{relative}"
+
+    return path
+
+
 def normilize_paths(paths):
     if isinstance(paths, str):
         return os.path.join(*paths.split("/"))
@@ -151,7 +165,7 @@ def git_changes_since_last_merge(path):
     args = ["git", "log", "-n1", "--committer", "noreply@github.com", "--format=%H"]
     last_merge = subprocess.check_output(args, universal_newlines=True).strip()
     if not last_merge:
-        return
+        return []
 
     args = ["git", "diff", "--name-only", last_merge, path]
     file_list = normilize_paths(subprocess.check_output(args, universal_newlines=True).splitlines())
@@ -163,7 +177,7 @@ class FileList(object):
     def __init__(self, directory, only_changed_files=False, exclude_dirs=[], progress=True):
         self.directory = directory
         self.excluded = exclude_dirs
-        self.generator = self._filter_excluded() if exclude_dirs else self._default_walk()
+        self.generator: Generator[str, None, None] = self._filter_excluded() if exclude_dirs else self._default_walk()
         if only_changed_files:
             self.generator = self._git_changed_files()
         if progress:
@@ -197,7 +211,7 @@ class FileList(object):
 
 
 def filter_file(file_name):
-    if any(file_name.startswith(ignored_file) for ignored_file in config["ignore"]["files"]):
+    if any(file_name.startswith(ignored_file) for ignored_file in config.ignore.files):
         return False
     base_name = os.path.basename(file_name)
     if any(fnmatch.fnmatch(base_name, pattern) for pattern in FILE_PATTERNS_TO_IGNORE):
@@ -209,7 +223,7 @@ def filter_files(start_dir, only_changed_files, progress):
     file_iter = FileList(
         start_dir,
         only_changed_files=only_changed_files,
-        exclude_dirs=config["ignore"]["directories"],
+        exclude_dirs=config.ignore.directories,
         progress=progress,
     )
 
@@ -239,7 +253,7 @@ def is_apache_licensed(header):
 
 
 def check_license(file_name, lines):
-    if any(file_name.endswith(ext) for ext in (".toml", ".lock", ".json", ".html")) or config["skip-check-licenses"]:
+    if any(file_name.endswith(ext) for ext in (".toml", ".lock", ".json", ".html")) or config.skip_check_licenses:
         return
 
     if lines[0].startswith(b"#!") and lines[1].strip():
@@ -250,7 +264,7 @@ def check_license(file_name, lines):
     license_block = []
 
     for line in lines:
-        line = line.rstrip(b"\n")
+        line = (line or b"").rstrip(b"\n")
         if not line.strip():
             blank_lines += 1
             if blank_lines >= max_blank_lines:
@@ -276,7 +290,7 @@ def check_modeline(file_name, lines):
 
 
 def check_length(file_name, idx, line):
-    if any(file_name.endswith(ext) for ext in (".lock", ".json", ".html", ".toml")) or config["skip-check-length"]:
+    if any(file_name.endswith(ext) for ext in (".lock", ".json", ".html", ".toml")) or config.skip_check_length:
         return
 
     # Prefer shorter lines when shell scripting.
@@ -376,16 +390,6 @@ def check_ruff_lints():
             )
 
 
-def normalize_path(path: str) -> str:
-    abs_path = os.path.abspath(path)
-
-    if abs_path.startswith(TOPDIR):
-        relative = abs_path[len(TOPDIR) :]
-        return f".{relative}"
-
-    return path
-
-
 def split_pyrefly_errors(raw_log: bytes | str) -> Iterator[Tuple[str, int, str]]:
     if isinstance(raw_log, bytes):
         raw_log = raw_log.decode("utf-8")
@@ -413,7 +417,7 @@ def split_pyrefly_errors(raw_log: bytes | str) -> Iterator[Tuple[str, int, str]]
         yield normalize_path(filename), line, message
 
 
-def check_pyrefly_type_checking():
+def check_pyrefly_type_checking() -> Iterator[Tuple[str, int, str]]:
     print("\r ➤  Running `pyrefly` checks...")
     try:
         result = subprocess.run(["pyrefly", "check"], capture_output=True)
@@ -432,7 +436,7 @@ def run_cargo_deny_lints():
 
     errors = []
     for line in result.stderr.splitlines():
-        error_fields = json.loads(line)["fields"]
+        error_fields = json.loads(str(line))["fields"]
         error_code = error_fields.get("code", "unknown")
         error_severity = error_fields.get("severity", "unknown")
         message = error_fields.get("message", "")
@@ -558,15 +562,15 @@ def check_rust(file_name, lines):
         os.path.join("*", "ports", "servoshell", "embedder.rs"),
         os.path.join("*", "rust_tidy.rs"),  # This is for the tests.
     ]
-    is_panic_not_allowed_rs_file = any([glob.fnmatch.fnmatch(file_name, path) for path in PANIC_NOT_ALLOWED_PATHS])
+    is_panic_not_allowed_rs_file = any([fnmatch.fnmatch(file_name, path) for path in PANIC_NOT_ALLOWED_PATHS])
 
     prev_open_brace = False
     multi_line_string = False
-    prev_mod = {}
+    prev_mod: dict[int, str] = {}
     prev_feature_name = ""
     indent = 0
 
-    check_alphabetical_order = config["check-alphabetical-order"]
+    check_alphabetical_order = config.check_alphabetical_order
     decl_message = "{} is not in alphabetical order"
     decl_expected = "\n\t\033[93mexpected: {}\033[0m"
     decl_found = "\n\t\033[91mfound: {}\033[0m"
@@ -702,6 +706,7 @@ def check_rust(file_name, lines):
             if (idx - 1) < 0 or "#[macro_use]" not in lines[idx - 1].decode("utf-8"):
                 match = line.find(" {")
                 if indent not in prev_mod:
+                    prev_mod = cast(dict[int, str], prev_mod)
                     prev_mod[indent] = ""
                 if match == -1 and not line.endswith(";"):
                     yield (idx + 1, "mod declaration spans multiple lines")
@@ -774,7 +779,7 @@ def check_webidl_spec(file_name, contents):
     yield (0, "No specification link found.")
 
 
-def check_that_manifests_exist():
+def check_that_manifests_exist() -> Iterator[Tuple[str, int, str]]:
     # Determine the metadata and test directories from the configuration file.
     metadata_dirs = []
     config = configparser.ConfigParser()
@@ -786,11 +791,11 @@ def check_that_manifests_exist():
     for directory in metadata_dirs:
         manifest_path = os.path.join(TOPDIR, directory, "MANIFEST.json")
         if not os.path.isfile(manifest_path):
-            yield (WPT_CONFIG_INI_PATH, "", f"Path in config was not found: {manifest_path}")
+            yield (WPT_CONFIG_INI_PATH, 0, f"Path in config was not found: {manifest_path}")
 
 
-def check_that_manifests_are_clean():
-    from wptrunner import wptlogging
+def check_that_manifests_are_clean() -> Iterator[Tuple[str, int, str]]:
+    from tools.wptrunner.wptrunner import wptlogging
 
     print("\r ➤  Checking WPT manifests for cleanliness...")
     output_stream = io.StringIO("")
@@ -799,16 +804,16 @@ def check_that_manifests_are_clean():
         for line in output_stream.getvalue().splitlines():
             if "ERROR" in line:
                 yield (WPT_CONFIG_INI_PATH, 0, line)
-        yield (WPT_CONFIG_INI_PATH, "", "WPT manifest is dirty. Run `./mach update-manifest`.")
+        yield (WPT_CONFIG_INI_PATH, 0, "WPT manifest is dirty. Run `./mach update-manifest`.")
 
 
-def lint_wpt_test_files():
+def lint_wpt_test_files() -> Iterator[Tuple[str, int, str]]:
     from tools.lint import lint
 
     # Override the logging function so that we can collect errors from
     # the lint script, which doesn't allow configuration of the output.
     messages: List[str] = []
-    lint.logger.error = lambda message: messages.append(message)
+    lint.logger.error = lambda message: messages.append(message)  # type: ignore
 
     # We do not lint all WPT-like tests because they do not all currently have
     # lint.ignore files.
@@ -826,10 +831,10 @@ def lint_wpt_test_files():
         if lint.lint(suite_directory, tests_changed, output_format="normal"):
             for message in messages:
                 (filename, message) = message.split(":", maxsplit=1)
-                yield (filename, "", message)
+                yield (filename, 0, message)
 
 
-def run_wpt_lints(only_changed_files: bool):
+def run_wpt_lints(only_changed_files: bool) -> Iterator[Tuple[str, int, str]]:
     if not os.path.exists(WPT_CONFIG_INI_PATH):
         yield (WPT_CONFIG_INI_PATH, 0, f"{WPT_CONFIG_INI_PATH} is required but was not found")
         return
@@ -948,14 +953,12 @@ def check_config_file(config_file, print_text=True):
         if "=" not in line:
             continue
 
-        key = line.split("=")[0].strip()
+        key = line.split("=")[0].strip().replace("-", "_")
 
         # Check for invalid keys inside [configs] and [ignore] table
         if (
-            current_table == "configs"
-            and key not in config
-            or current_table == "ignore"
-            and key not in config["ignore"]
+            (current_table == "configs" and not hasattr(config, key))
+            or (current_table == "ignore" and not hasattr(config.ignore, key))
             # Any key outside of tables
             or current_table == ""
         ):
@@ -969,26 +972,27 @@ def parse_config(config_file):
     exclude = config_file.get("ignore", {})
     # Add list of ignored directories to config
     ignored_directories = [d for p in exclude.get("directories", []) for d in (glob.glob(p) or [p])]
-    config["ignore"]["directories"] += normilize_paths(ignored_directories)
+    config.ignore.directories += normilize_paths(ignored_directories)
     # Add list of ignored files to config
-    config["ignore"]["files"] += normilize_paths(exclude.get("files", []))
+    config.ignore.files += normilize_paths(exclude.get("files", []))
     # Add list of ignored packages to config
-    config["ignore"]["packages"] = exclude.get("packages", [])
+    config.ignore.packages = exclude.get("packages", [])
 
     # Add dict of dir, list of expected ext to config
     dirs_to_check = config_file.get("check_ext", {})
     # Fix the paths (OS-dependent)
     for path, exts in dirs_to_check.items():
-        config["check_ext"][normilize_paths(path)] = exts
+        config.check_ext[normilize_paths(path)] = exts # type: ignore
 
     # Add list of blocked packages
-    config["blocked-packages"] = config_file.get("blocked-packages", {})
+    config.blocked_packages = config_file.get("blocked-packages", {})
 
     # Override default configs
     user_configs = config_file.get("configs", [])
-    for pref in user_configs:
-        if pref in config:
-            config[pref] = user_configs[pref]
+
+    for pref, value in user_configs.items():
+        if hasattr(config, pref.replace("-", "_")):
+            setattr(config, pref.replace("-", "_"), value)
 
 
 def check_directory_files(directories, print_text=True):
@@ -1034,7 +1038,7 @@ def scan(only_changed_files=False, progress=False, github_annotations=False):
     # check config file for errors
     config_errors = check_config_file(CONFIG_FILE_PATH)
     # check directories contain expected files
-    directory_errors = check_directory_files(config["check_ext"])
+    directory_errors = check_directory_files(config.check_ext)
     # standard checks
     files_to_check = filter_files(".", only_changed_files, progress)
     checking_functions = (check_webidl_spec,)

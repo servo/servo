@@ -69,9 +69,7 @@ class GitHubAnnotationManager:
         if annotation.column_end is not None and annotation.column_start is not None:
             column_info = f"col={annotation.column_start},endColumn={annotation.column_end},"
 
-        print(
-            f"::{annotation.level} file={annotation.file_name},{column_info}{line_info}::{annotation.message}"
-        )
+        print(f"::{annotation.level} file={annotation.file_name},{column_info}{line_info}::{annotation.message}")
 
         self.total_count += 1
 
