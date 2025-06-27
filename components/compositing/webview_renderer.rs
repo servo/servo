@@ -339,7 +339,7 @@ impl WebViewRenderer {
     pub(crate) fn on_vsync(&mut self) {
         if let Some(fling_action) = self.touch_handler.on_vsync() {
             self.on_scroll_window_event(
-                ScrollLocation::Delta(fling_action.delta),
+                ScrollLocation::Delta(-fling_action.delta),
                 fling_action.cursor,
             );
         }

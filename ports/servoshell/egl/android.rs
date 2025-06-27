@@ -245,32 +245,6 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_goForward<'local>(
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn Java_org_servo_servoview_JNIServo_scrollStart<'local>(
-    mut env: JNIEnv<'local>,
-    _: JClass<'local>,
-    dx: jint,
-    dy: jint,
-    x: jint,
-    y: jint,
-) {
-    debug!("scrollStart");
-    call(&mut env, |s| s.scroll_start(dx as f32, dy as f32, x, y));
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn Java_org_servo_servoview_JNIServo_scrollEnd<'local>(
-    mut env: JNIEnv<'local>,
-    _: JClass<'local>,
-    dx: jint,
-    dy: jint,
-    x: jint,
-    y: jint,
-) {
-    debug!("scrollEnd");
-    call(&mut env, |s| s.scroll_end(dx as f32, dy as f32, x, y));
-}
-
-#[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_scroll<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
