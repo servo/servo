@@ -295,9 +295,6 @@ pub struct ScriptThread {
     /// Print Progressive Web Metrics to console.
     print_pwm: bool,
 
-    /// Emits notifications when there is a relayout.
-    relayout_event: bool,
-
     /// Unminify Javascript.
     unminify_js: bool,
 
@@ -964,7 +961,6 @@ impl ScriptThread {
             compositor_api: state.compositor_api,
             profile_script_events: opts.debug.profile_script_events,
             print_pwm: opts.print_pwm,
-            relayout_event: opts.debug.relayout_event,
             unminify_js: opts.unminify_js,
             local_script_source: opts.local_script_source.clone(),
             unminify_css: opts.unminify_css,
@@ -3341,7 +3337,6 @@ impl ScriptThread {
             self.webxr_registry.clone(),
             self.microtask_queue.clone(),
             self.compositor_api.clone(),
-            self.relayout_event,
             self.unminify_js,
             self.unminify_css,
             self.local_script_source.clone(),

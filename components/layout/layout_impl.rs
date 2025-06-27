@@ -617,9 +617,28 @@ impl LayoutThread {
         !self.need_new_display_list.get()
     }
 
+    fn maybe_print_reflow_event(&self, reflow_request: &ReflowRequest) {
+        if !self.debug.relayout_event {
+            return;
+        }
+
+        println!(
+            "**** Reflow({}) => {:?}, {:?}",
+            self.id,
+            reflow_request.reflow_goal,
+            reflow_request
+                .restyle
+                .as_ref()
+                .map(|restyle| restyle.reason)
+                .unwrap_or_default()
+        );
+    }
+
     /// The high-level routine that performs layout.
     #[servo_tracing::instrument(skip_all)]
     fn handle_reflow(&mut self, mut reflow_request: ReflowRequest) -> Option<ReflowResult> {
+        self.maybe_print_reflow_event(&reflow_request);
+
         if self.can_skip_reflow_request_entirely(&reflow_request) {
             if let ReflowGoal::UpdateScrollNode(external_scroll_id, offset) =
                 reflow_request.reflow_goal

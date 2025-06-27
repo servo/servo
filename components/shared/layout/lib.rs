@@ -360,7 +360,7 @@ pub type IFrameSizes = FnvHashMap<BrowsingContextId, IFrameSize>;
 bitflags! {
     /// Conditions which cause a [`Document`] to need to be restyled during reflow, which
     /// might cause the rest of layout to happen as well.
-    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
     pub struct RestyleReason: u16 {
         const StylesheetsChanged = 1 << 0;
         const DOMChanged = 1 << 1;
