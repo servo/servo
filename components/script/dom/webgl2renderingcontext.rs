@@ -11,8 +11,8 @@ use std::rc::Rc;
 use bitflags::bitflags;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{
-    GLContextAttributes, InternalFormatParameter, TexDataType, TexFormat, WebGLCommand,
-    WebGLContextId, WebGLResult, WebGLVersion, webgl_channel,
+    AlphaTreatment, GLContextAttributes, InternalFormatParameter, TexDataType, TexFormat,
+    WebGLCommand, WebGLContextId, WebGLResult, WebGLVersion, YAxisTreatment, webgl_channel,
 };
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
@@ -3118,6 +3118,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             return Ok(());
         };
 
+        // TODO: If pixel store parameter constraints are not met, generates an INVALID_OPERATION error.
+
         // If srcData is null, a buffer of sufficient size initialized to 0 is passed.
         let unpacking_alignment = self.base.texture_unpacking_alignment();
         let buff = match *src_data {
@@ -3144,6 +3146,17 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             },
         };
         let (alpha_treatment, y_axis_treatment) = self.base.get_current_unpack_state(false);
+        // If UNPACK_FLIP_Y_WEBGL or UNPACK_PREMULTIPLY_ALPHA_WEBGL is set to true, texImage3D and texSubImage3D
+        // generate an INVALID_OPERATION error if they upload data from a PIXEL_UNPACK_BUFFER or a non-null client
+        // side ArrayBufferView.
+        if let (Some(AlphaTreatment::Premultiply), YAxisTreatment::Flipped) =
+            (alpha_treatment, y_axis_treatment)
+        {
+            if src_data.is_some() {
+                self.base.webgl_error(InvalidOperation);
+                return Ok(());
+            }
+        }
         let tex_source = TexPixels::from_array(
             buff,
             Size2D::new(width, height),
