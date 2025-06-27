@@ -132,6 +132,7 @@ impl WebGLValidator for CommonTexImage3DValidator<'_> {
 }
 
 impl<'a> CommonTexImage3DValidator<'a> {
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         context: &'a WebGLRenderingContext,
         target: u32,
