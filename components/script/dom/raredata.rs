@@ -5,6 +5,7 @@
 use std::rc::Rc;
 
 use euclid::default::Rect;
+use style::selector_parser::PseudoElement;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::root::{Dom, MutNullableDom};
@@ -47,6 +48,13 @@ pub(crate) struct NodeRareData {
 
     /// The live list of children return by .childNodes.
     pub(crate) child_list: MutNullableDom<NodeList>,
+
+    /// Whether this node represent a certain implemented pseudo element.
+    /// Implemented pseudo element is referred as a concrete element within
+    /// an UA widget that will match a certain pseudo selector. An example
+    /// of this is the element representing `::placeholder` selector.
+    #[no_trace]
+    pub(crate) implemented_pseudo_element: Option<PseudoElement>,
 }
 
 #[derive(Default, JSTraceable, MallocSizeOf)]

@@ -8043,6 +8043,7 @@ dependencies = [
  "to_shmem",
  "to_shmem_derive",
  "uluru",
+ "unicode-bidi",
  "url",
  "void",
  "walkdir",
