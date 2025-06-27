@@ -13,11 +13,11 @@ use cookie::Cookie;
 use net_traits::CookieSource;
 use net_traits::pub_domains::is_pub_domain;
 use nom::branch::alt;
-use nom::bytes::complete::{tag, take_while_m_n};
-use nom::character::complete::satisfy;
+use nom::bytes::complete::{tag, take, take_while_m_n};
 use nom::combinator::{opt, recognize};
 use nom::multi::{many0, many1, separated_list1};
 use nom::sequence::{delimited, preceded, terminated, tuple};
+use nom::{AsChar, IResult};
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use time::{Date, Month, OffsetDateTime, Time};
@@ -349,29 +349,58 @@ impl ServoCookie {
         // NOTE: RFC6265 does not explicitly state that the value of the Expires attribute is
         // case-insensitive, but it is a common behaviour in practice.
         let lower_case_string = string.to_lowercase();
-        let string = lower_case_string.as_str();
+        let string_in_bytes = lower_case_string.as_bytes();
+
+        // Helper closures
+        let parse_ascii_u8 =
+            |bytes: &[u8]| -> Option<u8> { std::str::from_utf8(bytes).ok()?.parse::<u8>().ok() };
+        let parse_ascii_i32 =
+            |bytes: &[u8]| -> Option<i32> { std::str::from_utf8(bytes).ok()?.parse::<i32>().ok() };
 
         // Step 1. Using the grammar below, divide the cookie-date into date-tokens.
         // *OCTET
-        let any_octets = |input| Ok(("", input));
+        let any_octets = |input| Ok(("".as_bytes(), input));
         // delimiter = %x09 / %x20-2F / %x3B-40 / %x5B-60 / %x7B-7E
-        let delimiter: fn(&str) -> nom::IResult<&str, char> = |input| {
-            satisfy(
-                |c: char| matches!(c as u8,0x09 | 0x20..=0x2F | 0x3B..=0x40 | 0x5B..=0x60 | 0x7B..=0x7E),
-            )(input)
+        let delimiter: fn(&[u8]) -> IResult<&[u8], u8> = |input| {
+            let (input, bytes) = take(1usize)(input)?;
+            if matches!(bytes[0], 0x09 | 0x20..=0x2F | 0x3B..=0x40 | 0x5B..=0x60 | 0x7B..=0x7E) {
+                Ok((input, bytes[0]))
+            } else {
+                Err(nom::Err::Error(nom::error::Error::new(
+                    input,
+                    nom::error::ErrorKind::Verify,
+                )))
+            }
         };
         // non-delimiter = %x00-08 / %x0A-1F / DIGIT / ":" / ALPHA / %x7F-FF
-        let non_delimiter: fn(&str) -> nom::IResult<&str, char> = |input| {
-            satisfy(|c: char| {
-                matches!(c as u8,
-                    0x00..=0x08 | 0x0A..=0x1F | b'0'..=b'9' | b':' | b'A'..=b'Z' | b'a'..=b'z' | 0x7F..=0xFF)
-            })(input)
+        let non_delimiter: fn(&[u8]) -> IResult<&[u8], u8> = |input| {
+            let (input, bytes) = take(1usize)(input)?;
+            if matches!(bytes[0],
+                0x00..=0x08 | 0x0A..=0x1F | b'0'..=b'9' | b':' | b'A'..=b'Z' | b'a'..=b'z' | 0x7F..=0xFF)
+            {
+                Ok((input, bytes[0]))
+            } else {
+                Err(nom::Err::Error(nom::error::Error::new(
+                    input,
+                    nom::error::ErrorKind::Verify,
+                )))
+            }
         };
         // non-digit = %x00-2F / %x3A-FF
-        let non_digit: fn(&str) -> nom::IResult<&str, char> =
-            |input| satisfy(|c: char| matches!(c as u8, 0x00..=0x2F | 0x3A..=0xFF))(input);
+        let non_digit: fn(&[u8]) -> IResult<&[u8], u8> = |input| {
+            let (input, bytes) = take(1usize)(input)?;
+            if matches!(bytes[0], 0x00..=0x2F | 0x3A..=0xFF) {
+                Ok((input, bytes[0]))
+            } else {
+                Err(nom::Err::Error(nom::error::Error::new(
+                    input,
+                    nom::error::ErrorKind::Verify,
+                )))
+            }
+        };
         // time-field = 1*2DIGIT
-        let time_field = |input| take_while_m_n(1, 2, |c: char| c.is_ascii_digit())(input);
+        let time_field =
+            |input| take_while_m_n(1, 2, |byte: u8| byte.as_char().is_ascii_digit())(input);
         // hms-time = time-field ":" time-field ":" time-field
         let hms_time = |input| {
             tuple((
@@ -385,7 +414,7 @@ impl ServoCookie {
         // year = 2*4DIGIT [ non-digit *OCTET ]
         let year = |input| {
             terminated(
-                take_while_m_n(2, 4, |c: char| c.is_ascii_digit()),
+                take_while_m_n(2, 4, |byte: u8| byte.as_char().is_ascii_digit()),
                 opt(tuple((non_digit, any_octets))),
             )(input)
         };
@@ -414,7 +443,7 @@ impl ServoCookie {
         // day-of-month = 1*2DIGIT [ non-digit *OCTET ]
         let day_of_month = |input| {
             terminated(
-                take_while_m_n(1, 2, |c: char| c.is_ascii_digit()),
+                take_while_m_n(1, 2, |byte: u8| byte.as_char().is_ascii_digit()),
                 opt(tuple((non_digit, any_octets))),
             )(input)
         };
@@ -432,7 +461,7 @@ impl ServoCookie {
         let mut month_value: Option<Month> = None; // Also represents found-month flag.
         let mut year_value: Option<i32> = None; // Also represents found-year flag.
 
-        let (_, date_tokens) = cookie_date(string).ok()?;
+        let (_, date_tokens) = cookie_date(string_in_bytes).ok()?;
         for date_token in date_tokens {
             // Step 2.1. If the found-time flag is not set and the token matches the time production,
             if time_value.is_none() {
@@ -440,11 +469,13 @@ impl ServoCookie {
                     // set the found-time flag and set the hour-value, minute-value, and
                     // second-value to the numbers denoted by the digits in the date-token,
                     // respectively.
-                    time_value = Some((
-                        result.0.parse::<u8>().unwrap(),
-                        result.1.parse::<u8>().unwrap(),
-                        result.2.parse::<u8>().unwrap(),
-                    ));
+                    if let (Some(hour), Some(minute), Some(second)) = (
+                        parse_ascii_u8(result.0),
+                        parse_ascii_u8(result.1),
+                        parse_ascii_u8(result.2),
+                    ) {
+                        time_value = Some((hour, minute, second));
+                    }
                     // Skip the remaining sub-steps and continue to the next date-token.
                     continue;
                 }
@@ -456,7 +487,7 @@ impl ServoCookie {
                 if let Ok((_, result)) = day_of_month(date_token) {
                     // set the found-day-of-month flag and set the day-of-month-value to the number
                     // denoted by the date-token.
-                    day_of_month_value = result.parse::<u8>().ok();
+                    day_of_month_value = parse_ascii_u8(result);
                     // Skip the remaining sub-steps and continue to the next date-token.
                     continue;
                 }
@@ -466,7 +497,7 @@ impl ServoCookie {
             if month_value.is_none() {
                 if let Ok((_, result)) = month(date_token) {
                     // set the found-month flag and set the month-value to the month denoted by the date-token.
-                    month_value = match result {
+                    month_value = match std::str::from_utf8(result).unwrap() {
                         "jan" => Some(Month::January),
                         "feb" => Some(Month::February),
                         "mar" => Some(Month::March),
@@ -490,7 +521,7 @@ impl ServoCookie {
             if year_value.is_none() {
                 if let Ok((_, result)) = year(date_token) {
                     // set the found-year flag and set the year-value to the number denoted by the date-token.
-                    year_value = result.parse::<i32>().ok();
+                    year_value = parse_ascii_i32(result);
                     // Skip the remaining sub-steps and continue to the next date-token.
                     continue;
                 }
