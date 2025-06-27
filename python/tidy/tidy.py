@@ -1003,7 +1003,7 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
         for future in concurrent.futures.as_completed(futures):
             try:
                 errors = future.result()
-            except Exception as exc:
+            except Exception:
                 pass
             else:
                 for error in errors:
