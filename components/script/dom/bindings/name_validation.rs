@@ -4,9 +4,11 @@
 
 //! Functions for validating names
 
-use html5ever::{LocalName, Namespace, Prefix, ns};
+use html5ever::{LocalName, Namespace, Prefix};
 
 use script_bindings::{error::{Error, Fallible}, str::DOMString};
+
+use crate::dom::bindings::xmlname::namespace_from_domstring;
 
 /// See <https://infra.spec.whatwg.org/#xml-namespace>
 const XML_NAMESPACE: &str = "http://www.w3.org/XML/1998/namespace";
@@ -15,7 +17,7 @@ const XML_NAMESPACE: &str = "http://www.w3.org/XML/1998/namespace";
 const XMLNS_NAMESPACE: &str = "http://www.w3.org/2000/xmlns/";
 
 /// See <https://dom.spec.whatwg.org/#valid-namespace-prefix>
-pub(crate) fn is_valid_namespace_prefix(p: &str) -> bool {
+fn is_valid_namespace_prefix(p: &str) -> bool {
     // A string is a valid namespace prefix if its length 
     // is at least 1 and it does not contain ASCII whitespace, 
     // U+0000 NULL, U+002F (/), or U+003E (>). 
@@ -58,7 +60,7 @@ pub(crate) fn is_valid_attribute_local_name(name: &str) -> bool {
 }
 
 /// See <https://dom.spec.whatwg.org/#valid-element-local-name>
-pub(crate) fn is_valid_elelement_local_name(name: &str) -> bool {
+pub(crate) fn is_valid_element_local_name(name: &str) -> bool {
     // Step 1. If name’s length is 0, then return false. 
     if name.is_empty() {
         return false
@@ -132,7 +134,7 @@ pub(crate) fn validate_and_extract(
     context: Context,
 ) -> Fallible<(Namespace, Option<Prefix>, LocalName)> {
     // Step 1. If namespace is the empty string, then set it to null.
-    let namespace = namespace.map_or_else(|| ns!(), Namespace::from);
+    let namespace = namespace_from_domstring(namespace);
 
     // Step 2. Let prefix be null.
     // Step 3. Let localName be qualifiedName.
@@ -171,7 +173,7 @@ pub(crate) fn validate_and_extract(
         //      is not a valid element local name, then 
         //      throw an "InvalidCharacterError" DOMException.
         Context::Element => {
-            if !is_valid_elelement_local_name(local_name) {
+            if !is_valid_element_local_name(local_name) {
                 return Err(Error::InvalidCharacter)
             }
         },

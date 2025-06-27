@@ -112,6 +112,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
 };
 use crate::dom::bindings::error::{Error, ErrorInfo, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
+use crate::dom::bindings::name_validation::{self, is_valid_attribute_local_name, is_valid_element_local_name};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
@@ -120,9 +121,7 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::{HashMapTracedValues, NoTrace};
 #[cfg(feature = "webgpu")]
 use crate::dom::bindings::weakref::WeakRef;
-use crate::dom::bindings::xmlname::{
-    matches_name_production, namespace_from_domstring, validate_and_extract,
-};
+use crate::dom::bindings::xmlname::{matches_name_production, namespace_from_domstring};
 use crate::dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use crate::dom::cdatasection::CDATASection;
 use crate::dom::clipboardevent::{ClipboardEvent, ClipboardEventType};
@@ -5507,8 +5506,9 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         options: StringOrElementCreationOptions,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<Element>> {
-        // Step 1. If localName does not match the Name production, then throw an "InvalidCharacterError" DOMException.
-        if !matches_name_production(&local_name) {
+        // Step 1. If localName is not a valid element local name, 
+        //      then throw an "InvalidCharacterError" DOMException. 
+        if !is_valid_element_local_name(&local_name) {
             debug!("Not a valid element name");
             return Err(Error::InvalidCharacter);
         }
@@ -5549,9 +5549,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         options: StringOrElementCreationOptions,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<Element>> {
-        // Step 1. Let namespace, prefix, and localName be the result of passing namespace and qualifiedName
-        // to validate and extract.
-        let (namespace, prefix, local_name) = validate_and_extract(namespace, &qualified_name)?;
+        // Step 1. Let (namespace, prefix, localName) be the result of 
+        //      validating and extracting namespace and qualifiedName given "element".
+        let context = name_validation::Context::Element;
+        let (namespace, prefix, local_name) = name_validation::validate_and_extract(namespace, &qualified_name, context)?;
 
         // Step 2. Let is be null.
         // Step 3. If options is a dictionary and options["is"] exists, then set is to it.
@@ -5577,9 +5578,9 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
     /// <https://dom.spec.whatwg.org/#dom-document-createattribute>
     fn CreateAttribute(&self, mut local_name: DOMString, can_gc: CanGc) -> Fallible<DomRoot<Attr>> {
-        // Step 1. If localName does not match the Name production in XML,
-        // then throw an "InvalidCharacterError" DOMException.
-        if !matches_name_production(&local_name) {
+        // Step 1. If localName is not a valid attribute local name, 
+        //      then throw an "InvalidCharacterError" DOMException
+        if !is_valid_attribute_local_name(&local_name) {
             debug!("Not a valid element name");
             return Err(Error::InvalidCharacter);
         }
@@ -5608,7 +5609,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         qualified_name: DOMString,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<Attr>> {
-        let (namespace, prefix, local_name) = validate_and_extract(namespace, &qualified_name)?;
+        // Step 1. Let (namespace, prefix, localName) be the result of validating and 
+        //      extracting namespace and qualifiedName given "attribute".
+        let context = name_validation::Context::Attribute;
+        let (namespace, prefix, local_name) = name_validation::validate_and_extract(namespace, &qualified_name, context)?;
         let value = AttrValue::String("".to_owned());
         let qualified_name = LocalName::from(qualified_name);
         Ok(Attr::new(
