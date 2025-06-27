@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::LazyCell;
-
 use app_units::Au;
 use base::id::{BrowsingContextId, PipelineId};
 use data_url::DataUrl;
@@ -231,11 +229,6 @@ impl ReplacedContents {
         }
     }
 
-    fn flow_relative_natural_size(&self, writing_mode: WritingMode) -> LogicalVec2<Option<Au>> {
-        let natural_size = PhysicalSize::new(self.natural_size.width, self.natural_size.height);
-        LogicalVec2::from_physical_size(&natural_size, writing_mode)
-    }
-
     fn inline_size_over_block_size_intrinsic_ratio(
         &self,
         style: &ComputedValues,
@@ -408,12 +401,7 @@ impl ReplacedContents {
                 padding_border_sums,
             )
             .or_else(|| {
-                matches!(self.kind, ReplacedContentKind::Video(_)).then(|| {
-                    let size = Self::default_object_size();
-                    AspectRatio::from_content_ratio(
-                        size.width.to_f32_px() / size.height.to_f32_px(),
-                    )
-                })
+                matches!(self.kind, ReplacedContentKind::Video(_)).then(Self::default_aspect_ratio)
             })
     }
 
@@ -440,18 +428,70 @@ impl ReplacedContents {
         )
     }
 
-    pub(crate) fn default_object_size() -> PhysicalSize<Au> {
-        // FIXME:
-        // https://drafts.csswg.org/css-images/#default-object-size
-        // “If 300px is too wide to fit the device, UAs should use the width of
-        //  the largest rectangle that has a 2:1 ratio and fits the device instead.”
-        // “height of the largest rectangle that has a 2:1 ratio, has a height not greater
-        //  than 150px, and has a width not greater than the device width.”
-        PhysicalSize::new(Au::from_px(300), Au::from_px(150))
+    /// The aspect ratio of the default object sizes.
+    /// <https://drafts.csswg.org/css-images-3/#default-object-size>
+    pub(crate) fn default_aspect_ratio() -> AspectRatio {
+        AspectRatio::from_content_ratio(2.0)
     }
 
-    pub(crate) fn flow_relative_default_object_size(writing_mode: WritingMode) -> LogicalVec2<Au> {
-        LogicalVec2::from_physical_size(&Self::default_object_size(), writing_mode)
+    /// The default object size in the inline axis.
+    /// <https://drafts.csswg.org/css-images-3/#default-object-size>
+    pub(crate) fn default_inline_size(writing_mode: WritingMode) -> Au {
+        if writing_mode.is_horizontal() {
+            Au::from_px(300)
+        } else {
+            Au::from_px(150)
+        }
+    }
+
+    /// The default object size in the block axis.
+    /// <https://drafts.csswg.org/css-images-3/#default-object-size>
+    pub(crate) fn default_block_size(writing_mode: WritingMode) -> Au {
+        if writing_mode.is_horizontal() {
+            Au::from_px(150)
+        } else {
+            Au::from_px(300)
+        }
+    }
+
+    /// The natural size in the inline axis.
+    /// <https://drafts.csswg.org/css-images-3/#natural-dimensions>
+    pub(crate) fn natural_inline_size(&self, writing_mode: WritingMode) -> Option<Au> {
+        if writing_mode.is_horizontal() {
+            self.natural_size.width
+        } else {
+            self.natural_size.height
+        }
+    }
+
+    /// The natural size in the block axis.
+    /// <https://drafts.csswg.org/css-images-3/#natural-dimensions>
+    pub(crate) fn natural_block_size(&self, writing_mode: WritingMode) -> Option<Au> {
+        if writing_mode.is_horizontal() {
+            self.natural_size.height
+        } else {
+            self.natural_size.width
+        }
+    }
+
+    /// The inline size that would result from combining the natural size
+    /// and the default object size, but disregarding the specified size.
+    /// <https://drafts.csswg.org/css-images-3/#natural-dimensions>
+    /// <https://drafts.csswg.org/css-images-3/#default-object-size>
+    /// <https://drafts.csswg.org/css-images-3/#specified-size>
+    pub(crate) fn fallback_inline_size(&self, writing_mode: WritingMode) -> Au {
+        self.natural_inline_size(writing_mode)
+            .unwrap_or_else(|| Self::default_inline_size(writing_mode))
+    }
+
+    /// The block size that would result from combining the natural size
+    /// and the default object size, but disregarding the specified size.
+    /// <https://drafts.csswg.org/css-images-3/#natural-dimensions>
+    /// <https://drafts.csswg.org/css-images-3/#default-object-size>
+    /// <https://drafts.csswg.org/css-images-3/#specified-size>
+    pub(crate) fn fallback_block_size(&self, writing_mode: WritingMode) -> Au {
+        self.natural_block_size(writing_mode)
+            .unwrap_or_else(|| Self::default_block_size(writing_mode))
     }
 
     /// <https://drafts.csswg.org/css2/visudet.html#inline-replaced-width>
@@ -484,23 +524,6 @@ impl ReplacedContents {
         automatic_size: LogicalVec2<Size<Au>>,
         pbm_sums: LogicalVec2<Au>,
     ) -> LogicalVec2<Au> {
-        // <https://drafts.csswg.org/css-images-3/#natural-dimensions>
-        // <https://drafts.csswg.org/css-images-3/#default-object-size>
-        let writing_mode = style.writing_mode;
-        let natural_size = LazyCell::new(|| self.flow_relative_natural_size(writing_mode));
-        let default_object_size =
-            LazyCell::new(|| Self::flow_relative_default_object_size(writing_mode));
-        let get_inline_fallback_size = || {
-            natural_size
-                .inline
-                .unwrap_or_else(|| default_object_size.inline)
-        };
-        let get_block_fallback_size = || {
-            natural_size
-                .block
-                .unwrap_or_else(|| default_object_size.block)
-        };
-
         // <https://drafts.csswg.org/css-sizing-4/#stretch-fit-sizing>
         let inline_stretch_size = Au::zero().max(containing_block.size.inline - pbm_sums.inline);
         let block_stretch_size = containing_block
@@ -509,13 +532,14 @@ impl ReplacedContents {
             .to_definite()
             .map(|block_size| Au::zero().max(block_size - pbm_sums.block));
 
+        let writing_mode = style.writing_mode;
         let resolve_inline_size = |get_block_size: &dyn Fn() -> SizeConstraint| {
             let get_inline_content_size = || {
                 self.content_size(
                     Direction::Inline,
                     preferred_aspect_ratio,
                     get_block_size,
-                    &get_inline_fallback_size,
+                    &|| self.fallback_inline_size(writing_mode),
                 )
                 .into()
             };
@@ -534,7 +558,7 @@ impl ReplacedContents {
                     Direction::Block,
                     preferred_aspect_ratio,
                     get_inline_size,
-                    &get_block_fallback_size,
+                    &|| self.fallback_block_size(writing_mode),
                 )
                 .into()
             };
@@ -558,7 +582,7 @@ impl ReplacedContents {
         //  4. Resolve the final block size, resolving intrinsic keywords by transferring (3).
         let inline_size = resolve_inline_size(&|| {
             SizeConstraint::Definite(resolve_block_size(&|| {
-                SizeConstraint::Definite(get_inline_fallback_size())
+                SizeConstraint::Definite(self.fallback_inline_size(writing_mode))
             }))
         });
         LogicalVec2 {
@@ -579,17 +603,11 @@ impl ComputeInlineContentSizes for ReplacedContents {
         _: &LayoutContext,
         constraint_space: &ConstraintSpace,
     ) -> InlineContentSizesResult {
-        let get_inline_fallback_size = || {
-            let writing_mode = constraint_space.writing_mode;
-            self.flow_relative_natural_size(writing_mode)
-                .inline
-                .unwrap_or_else(|| Self::flow_relative_default_object_size(writing_mode).inline)
-        };
         let inline_content_size = self.content_size(
             Direction::Inline,
             constraint_space.preferred_aspect_ratio,
             &|| constraint_space.block_size,
-            &get_inline_fallback_size,
+            &|| self.fallback_inline_size(constraint_space.writing_mode),
         );
         InlineContentSizesResult {
             sizes: inline_content_size.into(),
