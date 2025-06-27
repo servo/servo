@@ -619,10 +619,9 @@ impl WindowPortsMethods for Window {
                     dy = 0.0;
                 }
 
-                let scroll_location = ScrollLocation::Delta(Vector2D::new(dx as f32, dy as f32));
-
                 // Send events
                 webview.notify_input_event(InputEvent::Wheel(WheelEvent::new(delta, point)));
+                let scroll_location = ScrollLocation::Delta(-Vector2D::new(dx as f32, dy as f32));
                 webview.notify_scroll_event(scroll_location, point.to_i32());
             },
             WindowEvent::Touch(touch) => {

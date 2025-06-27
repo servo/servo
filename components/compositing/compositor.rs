@@ -44,7 +44,7 @@ use style_traits::CSSPixel;
 use webrender::{CaptureBits, RenderApi, Transaction};
 use webrender_api::units::{
     DeviceIntPoint, DeviceIntRect, DevicePixel, DevicePoint, DeviceRect, LayoutPoint, LayoutRect,
-    LayoutSize, LayoutVector2D, WorldPoint,
+    LayoutSize, WorldPoint,
 };
 use webrender_api::{
     self, BuiltDisplayList, DirtyRect, DisplayListPayload, DocumentId, Epoch as WebRenderEpoch,
@@ -714,11 +714,9 @@ impl IOCompositor {
                 // is inverted compared to `winit`s wheel delta. Hence,
                 // here we invert the sign to mimic wheel scroll
                 // implementation in `headed_window.rs`.
-                let dx = -dx;
-                let dy = -dy;
                 let delta = WheelDelta {
-                    x: dx,
-                    y: dy,
+                    x: -dx,
+                    y: -dy,
                     z: 0.0,
                     mode: WheelMode::DeltaPixel,
                 };
@@ -768,7 +766,7 @@ impl IOCompositor {
                 txn.set_scroll_offsets(
                     external_scroll_id,
                     vec![SampledScrollOffset {
-                        offset: -offset,
+                        offset,
                         generation: 0,
                     }],
                 );
@@ -1169,7 +1167,6 @@ impl IOCompositor {
                         continue;
                     };
 
-                    let offset = LayoutVector2D::new(-offset.x, -offset.y);
                     transaction.set_scroll_offsets(
                         external_id,
                         vec![SampledScrollOffset {
@@ -1731,11 +1728,10 @@ impl IOCompositor {
                 self.send_root_pipeline_display_list_in_transaction(&mut transaction);
             }
             for update in scroll_offset_updates {
-                let offset = LayoutVector2D::new(-update.offset.x, -update.offset.y);
                 transaction.set_scroll_offsets(
                     update.external_scroll_id,
                     vec![SampledScrollOffset {
-                        offset,
+                        offset: update.offset,
                         generation: 0,
                     }],
                 );
