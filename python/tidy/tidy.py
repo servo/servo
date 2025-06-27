@@ -18,8 +18,8 @@ import os
 import re
 import subprocess
 import sys
+import multiprocessing
 from typing import Any, Dict, List
-from multiprocessing import cpu_count
 
 import colorama
 import toml
@@ -969,7 +969,6 @@ def file_checking(filename, checking_functions, line_checking_functions):
             return filename, 0, "file is empty"
         for check in checking_functions:
             for error in check(filename, contents):
-                # the result will be: `(filename, line, message)`
                 errors.append((filename,) + error)
         lines = contents.splitlines(True)
         for check in line_checking_functions:
@@ -979,11 +978,7 @@ def file_checking(filename, checking_functions, line_checking_functions):
         return errors
 
 
-def collect_file_checking(filename, checking_functions, line_checking_functions):
-    return list(file_checking(filename, checking_functions, line_checking_functions))
-
-
-def worker(filename, checking_functions, line_checking_functions):
+def file_check_worker(filename, checking_functions, line_checking_functions):
     try:
         return file_checking(filename, checking_functions, line_checking_functions)
     except Exception as e:
@@ -997,19 +992,22 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
     if print_text:
         print("\r ➤  Checking files for tidiness...")
 
-    with concurrent.futures.ProcessPoolExecutor(max_workers=cpu_count()) as executor:
+    number_of_core = multiprocessing.cpu_count()
+
+    with concurrent.futures.ProcessPoolExecutor(max_workers=number_of_core) as executor:
         futures = {
-            executor.submit(worker, filename, checking_functions, line_checking_functions): filename
+            executor.submit(file_check_worker, filename, checking_functions, line_checking_functions): filename
             for filename in files_to_check
         }
 
         for future in concurrent.futures.as_completed(futures):
             try:
                 errors = future.result()
-                for error in errors:
-                    yield error
             except Exception as exc:
                 pass
+            else:
+                for error in errors:
+                    yield error
 
 
 def scan(only_changed_files=False, progress=False, github_annotations=False):
