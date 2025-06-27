@@ -19,7 +19,7 @@ textarea {
   font-size: 0.8333em;
 }
 
-input::-servo-input-color-swatch {
+input::color-swatch {
   width: 100%;
   height: 100%;
   display: inline-block;
