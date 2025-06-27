@@ -2282,9 +2282,7 @@ where
         .map_err(|_| WebDriverError::new(ErrorStatus::NoSuchWindow, ""))
 }
 
-fn unwrap_first_element_response(
-    res: WebDriverResponse,
-) -> WebDriverResult<WebDriverResponse> {
+fn unwrap_first_element_response(res: WebDriverResponse) -> WebDriverResult<WebDriverResponse> {
     if let WebDriverResponse::Generic(ValueResponse(values)) = res {
         let arr = values.as_array().unwrap();
         if let Some(first) = arr.first() {
@@ -2293,9 +2291,6 @@ fn unwrap_first_element_response(
             Err(WebDriverError::new(ErrorStatus::NoSuchElement, ""))
         }
     } else {
-        Err(WebDriverError::new(
-            ErrorStatus::UnknownError,
-            "Unexpected response",
-        ))
+        unreachable!()
     }
 }
