@@ -52,6 +52,7 @@ class IgnoreConfig:
 
 @dataclass
 class Config:
+    key_outside: str = ""
     skip_check_length: bool = False
     skip_check_licenses: bool = False
     check_alphabetical_order: bool = True
