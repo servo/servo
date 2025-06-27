@@ -1068,7 +1068,7 @@ impl HTMLInputElement {
             .unwrap();
         color_value
             .upcast::<Node>()
-            .set_implemented_pseudo_element(PseudoElement::ServoInputColorSwatch);
+            .set_implemented_pseudo_element(PseudoElement::ColorSwatch);
 
         let _ = self
             .shadow_tree
