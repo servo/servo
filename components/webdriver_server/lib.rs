@@ -970,22 +970,11 @@ impl Handler {
         &self,
         parameters: &LocatorParameters,
     ) -> WebDriverResult<WebDriverResponse> {
+        // Step 1 - 9.
         let res = self.handle_find_elements(parameters)?;
-        // Step 9. If result is empty, return error with error code no such element.
+        // Step 10. If result is empty, return error with error code no such element.
         // Otherwise, return the first element of result.
-        if let WebDriverResponse::Generic(ValueResponse(values)) = res {
-            let arr = values.as_array().unwrap();
-            if let Some(first) = arr.first() {
-                Ok(WebDriverResponse::Generic(ValueResponse(first.clone())))
-            } else {
-                Err(WebDriverError::new(ErrorStatus::NoSuchElement, ""))
-            }
-        } else {
-            Err(WebDriverError::new(
-                ErrorStatus::UnknownError,
-                "Unexpected response",
-            ))
-        }
+        unwrap_first_element_response(res)
     }
 
     /// <https://w3c.github.io/webdriver/#close-window>
@@ -1208,22 +1197,11 @@ impl Handler {
         element: &WebElement,
         parameters: &LocatorParameters,
     ) -> WebDriverResult<WebDriverResponse> {
+        // Step 1 - 8.
         let res = self.handle_find_elements_from_element(element, parameters)?;
         // Step 9. If result is empty, return error with error code no such element.
         // Otherwise, return the first element of result.
-        if let WebDriverResponse::Generic(ValueResponse(values)) = res {
-            let arr = values.as_array().unwrap();
-            if let Some(first) = arr.first() {
-                Ok(WebDriverResponse::Generic(ValueResponse(first.clone())))
-            } else {
-                Err(WebDriverError::new(ErrorStatus::NoSuchElement, ""))
-            }
-        } else {
-            Err(WebDriverError::new(
-                ErrorStatus::UnknownError,
-                "Unexpected response",
-            ))
-        }
+        unwrap_first_element_response(res)
     }
 
     /// <https://w3c.github.io/webdriver/#find-elements-from-element>
@@ -1352,22 +1330,11 @@ impl Handler {
         shadow_root: &ShadowRoot,
         parameters: &LocatorParameters,
     ) -> WebDriverResult<WebDriverResponse> {
+        // Step 1 - 8.
         let res = self.handle_find_elements_from_shadow_root(shadow_root, parameters)?;
         // Step 9. If result is empty, return error with error code no such element.
         // Otherwise, return the first element of result.
-        if let WebDriverResponse::Generic(ValueResponse(values)) = res {
-            let arr = values.as_array().unwrap();
-            if let Some(first) = arr.first() {
-                Ok(WebDriverResponse::Generic(ValueResponse(first.clone())))
-            } else {
-                Err(WebDriverError::new(ErrorStatus::NoSuchElement, ""))
-            }
-        } else {
-            Err(WebDriverError::new(
-                ErrorStatus::UnknownError,
-                "Unexpected response",
-            ))
-        }
+        unwrap_first_element_response(res)
     }
 
     fn handle_get_shadow_root(&self, element: WebElement) -> WebDriverResult<WebDriverResponse> {
@@ -2313,4 +2280,22 @@ where
     receiver
         .recv()
         .map_err(|_| WebDriverError::new(ErrorStatus::NoSuchWindow, ""))
+}
+
+fn unwrap_first_element_response(
+    res: WebDriverResponse,
+) -> WebDriverResult<WebDriverResponse> {
+    if let WebDriverResponse::Generic(ValueResponse(values)) = res {
+        let arr = values.as_array().unwrap();
+        if let Some(first) = arr.first() {
+            Ok(WebDriverResponse::Generic(ValueResponse(first.clone())))
+        } else {
+            Err(WebDriverError::new(ErrorStatus::NoSuchElement, ""))
+        }
+    } else {
+        Err(WebDriverError::new(
+            ErrorStatus::UnknownError,
+            "Unexpected response",
+        ))
+    }
 }
