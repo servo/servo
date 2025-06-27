@@ -14,11 +14,11 @@ import glob
 import io
 import itertools
 import json
+import multiprocessing
 import os
 import re
 import subprocess
 import sys
-import multiprocessing
 from typing import Any, Dict, List
 
 import colorama
@@ -960,13 +960,15 @@ We only expect files with {ext} extensions in {dir_name}""".format(**details)
 
 
 def file_checking(filename, checking_functions, line_checking_functions):
+    errors = []
     if not os.path.exists(filename):
-        return []
+        return errors
     with open(filename, "rb") as f:
         contents = f.read()
-        errors = []
+
         if not contents.strip():
-            return filename, 0, "file is empty"
+            errors.append((filename, 0, "file is empty"))
+            return errors
         for check in checking_functions:
             for error in check(filename, contents):
                 errors.append((filename,) + error)
@@ -976,13 +978,6 @@ def file_checking(filename, checking_functions, line_checking_functions):
                 errors.append((filename,) + error)
 
         return errors
-
-
-def file_check_worker(filename, checking_functions, line_checking_functions):
-    try:
-        return file_checking(filename, checking_functions, line_checking_functions)
-    except Exception as e:
-        return [(filename, 0, f"Error checking file: {e}")]
 
 
 def collect_errors_for_files(files_to_check, checking_functions, line_checking_functions, print_text=True):
@@ -996,7 +991,7 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
 
     with concurrent.futures.ProcessPoolExecutor(max_workers=number_of_core) as executor:
         futures = {
-            executor.submit(file_check_worker, filename, checking_functions, line_checking_functions): filename
+            executor.submit(file_checking, filename, checking_functions, line_checking_functions): filename
             for filename in files_to_check
         }
 
