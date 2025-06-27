@@ -52,8 +52,8 @@ use js::rust::{
     MutableHandleValue,
 };
 use layout_api::{
-    FragmentType, Layout, PendingImageState, QueryMsg, ReflowGoal, ReflowRequest, RestyleReason,
-    TrustedNodeAddress, combine_id_with_fragment_type,
+    FragmentType, Layout, PendingImageState, QueryMsg, ReflowGoal, ReflowRequest,
+    ReflowRequestRestyle, RestyleReason, TrustedNodeAddress, combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
@@ -2143,17 +2143,6 @@ impl Window {
             return false;
         }
 
-        let restyle_reason = document.restyle_reason();
-        document.clear_restyle_reasons();
-
-        if restyle_reason.needs_restyle() {
-            debug!("Invalidating layout cache due to reflow condition {restyle_reason:?}",);
-            // Invalidate any existing cached layout values.
-            self.layout_marker.borrow().set(false);
-            // Create a new layout caching token.
-            *self.layout_marker.borrow_mut() = Rc::new(Cell::new(true));
-        }
-
         debug!("script: performing reflow for goal {reflow_goal:?}");
         let marker = if self.need_emit_timeline_marker(TimelineMarkerType::Reflow) {
             Some(TimelineMarker::start("Reflow".to_owned()))
@@ -2166,27 +2155,43 @@ impl Window {
             debug_reflow_events(pipeline_id, &reflow_goal);
         }
 
-        let stylesheets_changed = document.flush_stylesheets_for_reflow();
-        let pending_restyles = document.drain_pending_restyles();
-        let dirty_root = document
-            .take_dirty_root()
-            .filter(|_| !stylesheets_changed)
-            .or_else(|| document.GetDocumentElement())
-            .map(|root| root.upcast::<Node>().to_trusted_node_address());
+        let restyle_reason = document.restyle_reason();
+        document.clear_restyle_reasons();
+        let restyle = if restyle_reason.needs_restyle() {
+            debug!("Invalidating layout cache due to reflow condition {restyle_reason:?}",);
+            // Invalidate any existing cached layout values.
+            self.layout_marker.borrow().set(false);
+            // Create a new layout caching token.
+            *self.layout_marker.borrow_mut() = Rc::new(Cell::new(true));
+
+            let stylesheets_changed = document.flush_stylesheets_for_reflow();
+            let pending_restyles = document.drain_pending_restyles();
+            let dirty_root = document
+                .take_dirty_root()
+                .filter(|_| !stylesheets_changed)
+                .or_else(|| document.GetDocumentElement())
+                .map(|root| root.upcast::<Node>().to_trusted_node_address());
+
+            Some(ReflowRequestRestyle {
+                reason: restyle_reason,
+                dirty_root,
+                stylesheets_changed,
+                pending_restyles,
+            })
+        } else {
+            None
+        };
 
         let highlighted_dom_node = document.highlighted_dom_node().map(|node| node.to_opaque());
 
         // Send new document and relevant styles to layout.
         let reflow = ReflowRequest {
-            restyle_reason,
             document: document.upcast::<Node>().to_trusted_node_address(),
-            dirty_root,
-            stylesheets_changed,
+            restyle,
             viewport_details: self.viewport_details.get(),
             origin: self.origin().immutable().clone(),
             reflow_goal,
             dom_count: document.dom_count(),
-            pending_restyles,
             animation_timeline_value: document.current_animation_timeline_value(),
             animations: document.animations().sets.clone(),
             node_to_animating_image_map: document.image_animation_manager().node_to_image_map(),
