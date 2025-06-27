@@ -369,8 +369,9 @@ impl App {
                     if let Err(error) = response_sender.send(new_webview.id()) {
                         warn!("Failed to send response of NewWebview: {error}");
                     }
-
-                    running_state.set_load_status_sender(new_webview.id(), load_status_sender);
+                    if let Some(load_status_sender) = load_status_sender {
+                        running_state.set_load_status_sender(new_webview.id(), load_status_sender);
+                    }
                 },
                 WebDriverCommandMsg::CloseWebView(webview_id) => {
                     running_state.close_webview(webview_id);
@@ -446,8 +447,10 @@ impl App {
                         warn!("Failed to send response of GetViewportSize: {error}");
                     }
                 },
+                // This is only received when start new session.
                 WebDriverCommandMsg::GetFocusedWebView(sender) => {
                     let focused_webview = running_state.focused_webview();
+
                     if let Err(error) = sender.send(focused_webview.map(|w| w.id())) {
                         warn!("Failed to send response of GetFocusedWebView: {error}");
                     };

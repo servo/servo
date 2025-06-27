@@ -272,7 +272,13 @@ impl RunningAppState {
             Some(last_created_webview) => {
                 last_created_webview.focus();
             },
-            None => self.servo.start_shutting_down(),
+            None if self.servoshell_preferences.webdriver_port.is_none() => {
+                self.servo.start_shutting_down()
+            },
+            None => {
+                // For WebDriver, don't shut down when last webview closed
+                // https://github.com/servo/servo/issues/37408
+            },
         }
     }
 
