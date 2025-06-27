@@ -982,7 +982,7 @@ def parse_config(config_file):
     dirs_to_check = config_file.get("check_ext", {})
     # Fix the paths (OS-dependent)
     for path, exts in dirs_to_check.items():
-        config.check_ext[normilize_paths(path)] = exts # type: ignore
+        config.check_ext[normilize_paths(path)] = exts  # type: ignore
 
     # Add list of blocked packages
     config.blocked_packages = config_file.get("blocked-packages", {})
