@@ -2247,33 +2247,6 @@ impl ScriptThread {
             WebDriverScriptCommand::DeleteCookie(name, reply) => {
                 webdriver_handlers::handle_delete_cookie(&documents, pipeline_id, name, reply)
             },
-            WebDriverScriptCommand::FindElementCSSSelector(selector, reply) => {
-                webdriver_handlers::handle_find_element_css_selector(
-                    &documents,
-                    pipeline_id,
-                    selector,
-                    reply,
-                )
-            },
-            WebDriverScriptCommand::FindElementLinkText(selector, partial, reply) => {
-                webdriver_handlers::handle_find_element_link_text(
-                    &documents,
-                    pipeline_id,
-                    selector,
-                    partial,
-                    reply,
-                    can_gc,
-                )
-            },
-            WebDriverScriptCommand::FindElementTagName(selector, reply) => {
-                webdriver_handlers::handle_find_element_tag_name(
-                    &documents,
-                    pipeline_id,
-                    selector,
-                    reply,
-                    can_gc,
-                )
-            },
             WebDriverScriptCommand::FindElementsCSSSelector(selector, reply) => {
                 webdriver_handlers::handle_find_elements_css_selector(
                     &documents,
@@ -2296,39 +2269,6 @@ impl ScriptThread {
                 webdriver_handlers::handle_find_elements_tag_name(
                     &documents,
                     pipeline_id,
-                    selector,
-                    reply,
-                    can_gc,
-                )
-            },
-            WebDriverScriptCommand::FindElementElementCSSSelector(selector, element_id, reply) => {
-                webdriver_handlers::handle_find_element_element_css_selector(
-                    &documents,
-                    pipeline_id,
-                    element_id,
-                    selector,
-                    reply,
-                )
-            },
-            WebDriverScriptCommand::FindElementElementLinkText(
-                selector,
-                element_id,
-                partial,
-                reply,
-            ) => webdriver_handlers::handle_find_element_element_link_text(
-                &documents,
-                pipeline_id,
-                element_id,
-                selector,
-                partial,
-                reply,
-                can_gc,
-            ),
-            WebDriverScriptCommand::FindElementElementTagName(selector, element_id, reply) => {
-                webdriver_handlers::handle_find_element_element_tag_name(
-                    &documents,
-                    pipeline_id,
-                    element_id,
                     selector,
                     reply,
                     can_gc,
