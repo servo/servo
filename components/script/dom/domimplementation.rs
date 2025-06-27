@@ -68,11 +68,11 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
         sysid: DOMString,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<DocumentType>> {
-        // Step 1. If name is not a valid doctype name, then throw an 
-        //      "InvalidCharacterError" DOMException. 
+        // Step 1. If name is not a valid doctype name, then throw an
+        //      "InvalidCharacterError" DOMException.
         if !is_valid_doctype_name(&qualified_name) {
             debug!("Not a valid doctype name");
-            return Err(Error::InvalidCharacter)
+            return Err(Error::InvalidCharacter);
         }
 
         Ok(DocumentType::new(

@@ -2784,8 +2784,8 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         force: Option<bool>,
         can_gc: CanGc,
     ) -> Fallible<bool> {
-        // Step 1. If qualifiedName is not a valid attribute local name, 
-        //      then throw an "InvalidCharacterError" DOMException. 
+        // Step 1. If qualifiedName is not a valid attribute local name,
+        //      then throw an "InvalidCharacterError" DOMException.
         if !is_valid_attribute_local_name(&name) {
             return Err(Error::InvalidCharacter);
         }
@@ -2828,8 +2828,8 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     /// <https://dom.spec.whatwg.org/#dom-element-setattribute>
     fn SetAttribute(&self, name: DOMString, value: DOMString, can_gc: CanGc) -> ErrorResult {
-        // Step 1. If qualifiedName is not a valid attribute local name, 
-        //      then throw an "InvalidCharacterError" DOMException. 
+        // Step 1. If qualifiedName is not a valid attribute local name,
+        //      then throw an "InvalidCharacterError" DOMException.
         if !is_valid_attribute_local_name(&name) {
             return Err(Error::InvalidCharacter);
         }
@@ -2859,10 +2859,11 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         value: DOMString,
         can_gc: CanGc,
     ) -> ErrorResult {
-        // Step 1. Let (namespace, prefix, localName) be the result of validating and 
+        // Step 1. Let (namespace, prefix, localName) be the result of validating and
         //      extracting namespace and qualifiedName given "element".
         let context = name_validation::Context::Element;
-        let (namespace, prefix, local_name) = name_validation::validate_and_extract(namespace, &qualified_name, context)?;
+        let (namespace, prefix, local_name) =
+            name_validation::validate_and_extract(namespace, &qualified_name, context)?;
         let qualified_name = LocalName::from(qualified_name);
         let value = self.parse_attribute(&namespace, &local_name, value);
         self.set_first_matching_attribute(
