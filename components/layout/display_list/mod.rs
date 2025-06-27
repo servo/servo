@@ -11,9 +11,10 @@ use base::id::ScrollTreeNodeId;
 use clip::{Clip, ClipId};
 use compositing_traits::display_list::{CompositorDisplayListInfo, SpatialTreeNodeInfo};
 use embedder_traits::Cursor;
-use euclid::{Point2D, SideOffsets2D, Size2D, UnknownUnit, Vector2D};
+use euclid::{Point2D, Scale, SideOffsets2D, Size2D, UnknownUnit, Vector2D};
 use fonts::GlyphStore;
 use gradient::WebRenderGradient;
+use layout_api::ReflowRequest;
 use net_traits::image_cache::Image as CachedImage;
 use range::Range as ServoRange;
 use servo_arc::Arc as ServoArc;
@@ -37,7 +38,7 @@ use style::values::generics::NonNegative;
 use style::values::generics::rect::Rect;
 use style::values::specified::text::TextDecorationLine;
 use style::values::specified::ui::CursorKind;
-use style_traits::CSSPixel;
+use style_traits::{CSSPixel as StyloCSSPixel, DevicePixel as StyloDevicePixel};
 use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel, LayoutRect, LayoutSize};
 use webrender_api::{
     self as wr, BorderDetails, BoxShadowClipMode, BuiltDisplayList, ClipChainId, ClipMode,
@@ -47,7 +48,7 @@ use webrender_api::{
 use wr::units::LayoutVector2D;
 
 use crate::cell::ArcRefCell;
-use crate::context::{LayoutContext, ResolvedImage};
+use crate::context::{ImageResolver, ResolvedImage};
 pub use crate::display_list::conversions::ToWebRender;
 use crate::display_list::stacking_context::StackingContextSection;
 use crate::fragment_tree::{
@@ -92,10 +93,6 @@ pub(crate) struct DisplayListBuilder<'a> {
     /// list building functions.
     current_clip_id: ClipId,
 
-    /// A [LayoutContext] used to get information about the device pixel ratio
-    /// and get handles to WebRender images.
-    pub context: &'a LayoutContext<'a>,
-
     /// The [`wr::DisplayListBuilder`] for this Servo [`DisplayListBuilder`].
     pub webrender_display_list_builder: &'a mut wr::DisplayListBuilder,
 
@@ -116,6 +113,12 @@ pub(crate) struct DisplayListBuilder<'a> {
     /// A mapping from [`ClipId`] To WebRender [`ClipChainId`] used when building this WebRender
     /// display list.
     clip_map: Vec<ClipChainId>,
+
+    /// An [`ImageResolver`] to use during display list construction.
+    image_resolver: Arc<ImageResolver>,
+
+    /// The device pixel ratio used for this `Document`'s display list.
+    device_pixel_ratio: Scale<f32, StyloCSSPixel, StyloDevicePixel>,
 }
 
 struct InspectorHighlight {
@@ -132,7 +135,7 @@ struct InspectorHighlight {
 struct HighlightTraversalState {
     /// The smallest rectangle that fully encloses all fragments created by the highlighted
     /// dom node, if any.
-    content_box: euclid::Rect<Au, CSSPixel>,
+    content_box: euclid::Rect<Au, StyloCSSPixel>,
 
     spatial_id: SpatialId,
 
@@ -154,9 +157,11 @@ impl InspectorHighlight {
 
 impl DisplayListBuilder<'_> {
     pub(crate) fn build(
-        context: &LayoutContext,
+        reflow_request: &ReflowRequest,
         stacking_context_tree: &mut StackingContextTree,
         fragment_tree: &FragmentTree,
+        image_resolver: Arc<ImageResolver>,
+        device_pixel_ratio: Scale<f32, StyloCSSPixel, StyloDevicePixel>,
         debug: &DebugOptions,
     ) -> BuiltDisplayList {
         // Build the rest of the display list which inclues all of the WebRender primitives.
@@ -182,14 +187,15 @@ impl DisplayListBuilder<'_> {
             current_scroll_node_id: compositor_info.root_reference_frame_id,
             current_reference_frame_scroll_node_id: compositor_info.root_reference_frame_id,
             current_clip_id: ClipId::INVALID,
-            context,
             webrender_display_list_builder: &mut webrender_display_list_builder,
             compositor_info,
-            inspector_highlight: context
+            inspector_highlight: reflow_request
                 .highlighted_dom_node
                 .map(InspectorHighlight::for_node),
             paint_body_background: true,
             clip_map: Default::default(),
+            image_resolver,
+            device_pixel_ratio,
         };
 
         builder.add_all_spatial_nodes();
@@ -756,7 +762,7 @@ impl Fragment {
 
         let color = parent_style.clone_color();
         let font_metrics = &fragment.font_metrics;
-        let dppx = builder.context.style_context.device_pixel_ratio().get();
+        let dppx = builder.device_pixel_ratio.get();
         let common = builder.common_properties(rect.to_webrender(), &parent_style);
 
         // Shadows. According to CSS-BACKGROUNDS, text shadows render in *reverse* order (front to
@@ -1232,7 +1238,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         let node = self.fragment.base.tag.map(|tag| tag.node);
         // Reverse because the property is top layer first, we want to paint bottom layer first.
         for (index, image) in b.background_image.0.iter().enumerate().rev() {
-            match builder.context.resolve_image(node, image) {
+            match builder.image_resolver.resolve_image(node, image) {
                 Err(_) => {},
                 Ok(ResolvedImage::Gradient(gradient)) => {
                     let intrinsic = NaturalSizes::empty();
@@ -1279,7 +1285,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                     let image_wr_key = match image {
                         CachedImage::Raster(raster_image) => raster_image.id,
                         CachedImage::Vector(vector_image) => {
-                            let scale = builder.context.shared_context().device_pixel_ratio().0;
+                            let scale = builder.device_pixel_ratio.get();
                             let default_size: DeviceIntSize =
                                 Size2D::new(size.width * scale, size.height * scale).to_i32();
                             let layer_size = layer.as_ref().map(|layer| {
@@ -1292,9 +1298,11 @@ impl<'a> BuilderForBoxFragment<'a> {
 
                             node.and_then(|node| {
                                 let size = layer_size.unwrap_or(default_size);
-                                builder
-                                    .context
-                                    .rasterize_vector_image(vector_image.id, size, node)
+                                builder.image_resolver.rasterize_vector_image(
+                                    vector_image.id,
+                                    size,
+                                    node,
+                                )
                             })
                             .and_then(|rasterized_image| rasterized_image.id)
                         },
@@ -1476,7 +1484,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         let mut height = border_image_size.height;
         let node = self.fragment.base.tag.map(|tag| tag.node);
         let source = match builder
-            .context
+            .image_resolver
             .resolve_image(node, &border.border_image_source)
         {
             Err(_) => return false,
