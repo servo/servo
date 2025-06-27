@@ -372,7 +372,7 @@ pub enum WebGLCommand {
         depth: u32,
         format: TexFormat,
         data_type: TexDataType,
-        // FIXME(nox): This should be computed on the WebGL thread.
+        // FIXME: This should be computed on the WebGL thread.
         effective_data_type: u32,
         unpacking_alignment: u32,
         alpha_treatment: Option<AlphaTreatment>,
