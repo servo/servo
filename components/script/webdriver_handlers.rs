@@ -217,25 +217,6 @@ fn all_matching_links(
         .map(|nodes| matching_links(&nodes, link_text, partial, can_gc).collect())
 }
 
-fn first_matching_link(
-    root_node: &Node,
-    link_text: String,
-    partial: bool,
-    can_gc: CanGc,
-) -> Result<Option<String>, ErrorStatus> {
-    // <https://w3c.github.io/webdriver/#dfn-find>
-    // Step 7.2. If a DOMException, SyntaxError, XPathException, or other error occurs
-    // during the execution of the element location strategy, return error invalid selector.
-    root_node
-        .query_selector_all(DOMString::from("a"))
-        .map_err(|_| ErrorStatus::InvalidSelector)
-        .map(|nodes| {
-            matching_links(&nodes, link_text, partial, can_gc)
-                .take(1)
-                .next()
-        })
-}
-
 #[allow(unsafe_code)]
 unsafe fn object_has_to_json_property(
     cx: *mut JSContext,
@@ -714,65 +695,6 @@ fn retrieve_document_and_check_root_existence(
     }
 }
 
-pub(crate) fn handle_find_element_css_selector(
-    documents: &DocumentCollection,
-    pipeline: PipelineId,
-    selector: String,
-    reply: IpcSender<Result<Option<String>, ErrorStatus>>,
-) {
-    match retrieve_document_and_check_root_existence(documents, pipeline) {
-        Ok(document) => reply
-            .send(
-                document
-                    .QuerySelector(DOMString::from(selector))
-                    .map_err(|_| ErrorStatus::InvalidSelector)
-                    .map(|element| element.map(|x| x.upcast::<Node>().unique_id(pipeline))),
-            )
-            .unwrap(),
-        Err(error) => reply.send(Err(error)).unwrap(),
-    }
-}
-
-pub(crate) fn handle_find_element_link_text(
-    documents: &DocumentCollection,
-    pipeline: PipelineId,
-    selector: String,
-    partial: bool,
-    reply: IpcSender<Result<Option<String>, ErrorStatus>>,
-    can_gc: CanGc,
-) {
-    match retrieve_document_and_check_root_existence(documents, pipeline) {
-        Ok(document) => reply
-            .send(first_matching_link(
-                document.upcast::<Node>(),
-                selector.clone(),
-                partial,
-                can_gc,
-            ))
-            .unwrap(),
-        Err(error) => reply.send(Err(error)).unwrap(),
-    }
-}
-
-pub(crate) fn handle_find_element_tag_name(
-    documents: &DocumentCollection,
-    pipeline: PipelineId,
-    selector: String,
-    reply: IpcSender<Result<Option<String>, ErrorStatus>>,
-    can_gc: CanGc,
-) {
-    match retrieve_document_and_check_root_existence(documents, pipeline) {
-        Ok(document) => reply
-            .send(Ok(document
-                .GetElementsByTagName(DOMString::from(selector), can_gc)
-                .elements_iter()
-                .next()
-                .map(|element| element.upcast::<Node>().unique_id(pipeline))))
-            .unwrap(),
-        Err(error) => reply.send(Err(error)).unwrap(),
-    }
-}
-
 pub(crate) fn handle_find_elements_css_selector(
     documents: &DocumentCollection,
     pipeline: PipelineId,
@@ -835,65 +757,6 @@ pub(crate) fn handle_find_elements_tag_name(
             .unwrap(),
         Err(error) => reply.send(Err(error)).unwrap(),
     }
-}
-
-pub(crate) fn handle_find_element_element_css_selector(
-    documents: &DocumentCollection,
-    pipeline: PipelineId,
-    element_id: String,
-    selector: String,
-    reply: IpcSender<Result<Option<String>, ErrorStatus>>,
-) {
-    reply
-        .send(
-            get_known_element(documents, pipeline, element_id).and_then(|element| {
-                element
-                    .upcast::<Node>()
-                    .query_selector(DOMString::from(selector))
-                    .map_err(|_| ErrorStatus::InvalidSelector)
-                    .map(|element| element.map(|x| x.upcast::<Node>().unique_id(pipeline)))
-            }),
-        )
-        .unwrap();
-}
-
-pub(crate) fn handle_find_element_element_link_text(
-    documents: &DocumentCollection,
-    pipeline: PipelineId,
-    element_id: String,
-    selector: String,
-    partial: bool,
-    reply: IpcSender<Result<Option<String>, ErrorStatus>>,
-    can_gc: CanGc,
-) {
-    reply
-        .send(
-            get_known_element(documents, pipeline, element_id).and_then(|element| {
-                first_matching_link(element.upcast::<Node>(), selector.clone(), partial, can_gc)
-            }),
-        )
-        .unwrap();
-}
-
-pub(crate) fn handle_find_element_element_tag_name(
-    documents: &DocumentCollection,
-    pipeline: PipelineId,
-    element_id: String,
-    selector: String,
-    reply: IpcSender<Result<Option<String>, ErrorStatus>>,
-    can_gc: CanGc,
-) {
-    reply
-        .send(
-            get_known_element(documents, pipeline, element_id).map(|element| {
-                element
-                    .GetElementsByTagName(DOMString::from(selector), can_gc)
-                    .elements_iter()
-                    .next()
-                    .map(|x| x.upcast::<Node>().unique_id(pipeline))
-            }),
-        )
-        .unwrap();
 }
 
 pub(crate) fn handle_find_element_elements_css_selector(

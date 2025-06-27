@@ -970,53 +970,11 @@ impl Handler {
         &self,
         parameters: &LocatorParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        // Step 4. If selector is undefined, return error with error code invalid argument.
-        if parameters.value.is_empty() {
-            return Err(WebDriverError::new(ErrorStatus::InvalidArgument, ""));
-        }
-        let (sender, receiver) = ipc::channel().unwrap();
-
-        match parameters.using {
-            LocatorStrategy::CSSSelector => {
-                let cmd = WebDriverScriptCommand::FindElementCSSSelector(
-                    parameters.value.clone(),
-                    sender,
-                );
-                self.browsing_context_script_command::<true>(cmd)?;
-            },
-            LocatorStrategy::LinkText | LocatorStrategy::PartialLinkText => {
-                let cmd = WebDriverScriptCommand::FindElementLinkText(
-                    parameters.value.clone(),
-                    parameters.using == LocatorStrategy::PartialLinkText,
-                    sender,
-                );
-                self.browsing_context_script_command::<true>(cmd)?;
-            },
-            LocatorStrategy::TagName => {
-                let cmd =
-                    WebDriverScriptCommand::FindElementTagName(parameters.value.clone(), sender);
-                self.browsing_context_script_command::<true>(cmd)?;
-            },
-            _ => {
-                return Err(WebDriverError::new(
-                    ErrorStatus::UnsupportedOperation,
-                    "Unsupported locator strategy",
-                ));
-            },
-        }
-
+        // Step 1 - 9.
+        let res = self.handle_find_elements(parameters)?;
         // Step 10. If result is empty, return error with error code no such element.
         // Otherwise, return the first element of result.
-        match wait_for_script_response(receiver)? {
-            Ok(value) => match value {
-                Some(value) => {
-                    let value_resp = serde_json::to_value(WebElement(value)).unwrap();
-                    Ok(WebDriverResponse::Generic(ValueResponse(value_resp)))
-                },
-                None => Err(WebDriverError::new(ErrorStatus::NoSuchElement, "")),
-            },
-            Err(error) => Err(WebDriverError::new(error, "")),
-        }
+        unwrap_first_element_response(res)
     }
 
     /// <https://w3c.github.io/webdriver/#close-window>
@@ -1234,62 +1192,16 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#find-element-from-element>
-    fn handle_find_element_element(
+    fn handle_find_element_from_element(
         &self,
         element: &WebElement,
         parameters: &LocatorParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        // Step 4. If selector is undefined, return error with error code invalid argument.
-        if parameters.value.is_empty() {
-            return Err(WebDriverError::new(ErrorStatus::InvalidArgument, ""));
-        }
-        let (sender, receiver) = ipc::channel().unwrap();
-
-        match parameters.using {
-            LocatorStrategy::CSSSelector => {
-                let cmd = WebDriverScriptCommand::FindElementElementCSSSelector(
-                    parameters.value.clone(),
-                    element.to_string(),
-                    sender,
-                );
-                self.browsing_context_script_command::<true>(cmd)?;
-            },
-            LocatorStrategy::LinkText | LocatorStrategy::PartialLinkText => {
-                let cmd = WebDriverScriptCommand::FindElementElementLinkText(
-                    parameters.value.clone(),
-                    element.to_string(),
-                    parameters.using == LocatorStrategy::PartialLinkText,
-                    sender,
-                );
-                self.browsing_context_script_command::<true>(cmd)?;
-            },
-            LocatorStrategy::TagName => {
-                let cmd = WebDriverScriptCommand::FindElementElementTagName(
-                    parameters.value.clone(),
-                    element.to_string(),
-                    sender,
-                );
-                self.browsing_context_script_command::<true>(cmd)?;
-            },
-            _ => {
-                return Err(WebDriverError::new(
-                    ErrorStatus::UnsupportedOperation,
-                    "Unsupported locator strategy",
-                ));
-            },
-        }
+        // Step 1 - 8.
+        let res = self.handle_find_elements_from_element(element, parameters)?;
         // Step 9. If result is empty, return error with error code no such element.
         // Otherwise, return the first element of result.
-        match wait_for_script_response(receiver)? {
-            Ok(value) => match value {
-                Some(value) => {
-                    let value_resp = serde_json::to_value(WebElement(value))?;
-                    Ok(WebDriverResponse::Generic(ValueResponse(value_resp)))
-                },
-                None => Err(WebDriverError::new(ErrorStatus::NoSuchElement, "")),
-            },
-            Err(error) => Err(WebDriverError::new(error, "")),
-        }
+        unwrap_first_element_response(res)
     }
 
     /// <https://w3c.github.io/webdriver/#find-elements-from-element>
@@ -1418,22 +1330,11 @@ impl Handler {
         shadow_root: &ShadowRoot,
         parameters: &LocatorParameters,
     ) -> WebDriverResult<WebDriverResponse> {
+        // Step 1 - 8.
         let res = self.handle_find_elements_from_shadow_root(shadow_root, parameters)?;
         // Step 9. If result is empty, return error with error code no such element.
         // Otherwise, return the first element of result.
-        if let WebDriverResponse::Generic(ValueResponse(values)) = res {
-            let arr = values.as_array().unwrap();
-            if let Some(first) = arr.first() {
-                Ok(WebDriverResponse::Generic(ValueResponse(first.clone())))
-            } else {
-                Err(WebDriverError::new(ErrorStatus::NoSuchElement, ""))
-            }
-        } else {
-            Err(WebDriverError::new(
-                ErrorStatus::UnknownError,
-                "Unexpected response",
-            ))
-        }
+        unwrap_first_element_response(res)
     }
 
     fn handle_get_shadow_root(&self, element: WebElement) -> WebDriverResult<WebDriverResponse> {
@@ -2255,7 +2156,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::FindElement(ref parameters) => self.handle_find_element(parameters),
             WebDriverCommand::FindElements(ref parameters) => self.handle_find_elements(parameters),
             WebDriverCommand::FindElementElement(ref element, ref parameters) => {
-                self.handle_find_element_element(element, parameters)
+                self.handle_find_element_from_element(element, parameters)
             },
             WebDriverCommand::FindElementElements(ref element, ref parameters) => {
                 self.handle_find_elements_from_element(element, parameters)
@@ -2379,4 +2280,17 @@ where
     receiver
         .recv()
         .map_err(|_| WebDriverError::new(ErrorStatus::NoSuchWindow, ""))
+}
+
+fn unwrap_first_element_response(res: WebDriverResponse) -> WebDriverResult<WebDriverResponse> {
+    if let WebDriverResponse::Generic(ValueResponse(values)) = res {
+        let arr = values.as_array().unwrap();
+        if let Some(first) = arr.first() {
+            Ok(WebDriverResponse::Generic(ValueResponse(first.clone())))
+        } else {
+            Err(WebDriverError::new(ErrorStatus::NoSuchElement, ""))
+        }
+    } else {
+        unreachable!()
+    }
 }
