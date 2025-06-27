@@ -260,4 +260,9 @@ jobs:
           echo "MODEL_NAME=$(hdc bugreport | head -n 20 | grep MarketName | awk '{for (i=2; i<NF; i++) printf $i " "; print $NF}' -)" >> $GITHUB_ENV
       - name: Uploading to bencher.dev
         run: |
-          bencher run --adapter json --file bench.json --project '${{ env.BENCHER_PROJECT }}' --token '${{ secrets.BENCHER_API_TOKEN }}' --github-actions '${{ secrets.GITHUB_TOKEN }}' --testbed="$MODEL_NAME"
+          bencher run --adapter json --file bench.json \
+                      --hash '${{ github.sha }}' \
+                      --project '${{ env.BENCHER_PROJECT }}' \
+                      --token '${{ secrets.BENCHER_API_TOKEN }}' \
+                      --github-actions '${{ secrets.GITHUB_TOKEN }}' \
+                      --testbed="$MODEL_NAME"
