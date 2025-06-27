@@ -145,6 +145,7 @@ pub(crate) mod function;
 pub(crate) mod import;
 pub(crate) mod inheritance;
 pub(crate) mod like;
+pub(crate) mod name_validation;
 pub(crate) mod principals;
 pub(crate) mod proxyhandler;
 pub(crate) mod refcounted;
