@@ -2158,7 +2158,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 let texture = self
                     .textures
                     .active_texture_slot(
-                        WebGL2RenderingContextConstants::TEXTURE_BINDING_2D_ARRAY,
+                        WebGL2RenderingContextConstants::TEXTURE_2D_ARRAY,
                         self.webgl_version(),
                     )
                     .unwrap()
@@ -2170,7 +2170,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 let texture = self
                     .textures
                     .active_texture_slot(
-                        WebGL2RenderingContextConstants::TEXTURE_BINDING_3D,
+                        WebGL2RenderingContextConstants::TEXTURE_3D,
                         self.webgl_version(),
                     )
                     .unwrap()
