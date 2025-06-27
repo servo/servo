@@ -6,6 +6,7 @@ use std::cell::RefCell;
 
 use canvas_traits::canvas::Path;
 use dom_struct::dom_struct;
+use euclid::default::Point2D;
 use js::rust::HandleObject;
 use script_bindings::str::DOMString;
 
@@ -81,45 +82,82 @@ impl Path2D {
         let mut c = other.segments();
 
         // Step 5. Transform all the coordinates and lines in c by the transform matrix matrix.
-        c.iter_mut().for_each(|segment| match *segment {
-            PathSegment::ClosePath => todo!(),
-            PathSegment::MoveTo { x, y } => todo!(),
-            PathSegment::LineTo { x, y } => todo!(),
-            PathSegment::Quadratic { cpx, cpy, x, y } => todo!(),
-            PathSegment::Bezier {
-                cp1x,
-                cp1y,
-                cp2x,
-                cp2y,
-                x,
-                y,
-            } => todo!(),
-            PathSegment::ArcTo {
-                cp1x,
-                cp1y,
-                cp2x,
-                cp2y,
-                radius,
-            } => todo!(),
-            PathSegment::Ellipse {
-                x,
-                y,
-                radius_x,
-                radius_y,
-                rotation,
-                start_angle,
-                end_angle,
-                anticlockwise,
-            } => todo!(),
-            PathSegment::SvgArc {
-                radius_x,
-                radius_y,
-                rotation,
-                large_arc,
-                sweep,
-                x,
-                y,
-            } => todo!(),
+        let apply_matrix_transform = |x: f32, y: f32| -> Point2D<f64> {matrix.transform_point2d(Point2D::new(x.into(), y.into())).unwrap()};
+
+        c.iter_mut().for_each(|segment| {
+            match *segment {
+                PathSegment::ClosePath => todo!(),
+                PathSegment::MoveTo { x, y } => {
+                    let transformed_point = apply_matrix_transform(x, y);
+                    *segment = PathSegment::MoveTo {
+                        x: transformed_point.x as f32,
+                        y: transformed_point.y as f32,
+                    };
+                },
+                PathSegment::LineTo { x, y } => {
+                    let transformed_point = apply_matrix_transform(x, y);
+                    *segment = PathSegment::LineTo { x: transformed_point.x as f32, y: transformed_point.y as f32}
+                },
+                PathSegment::Quadratic { cpx, cpy, x, y } => {
+                    let transformed_cp = apply_matrix_transform(cpx, cpy);
+                    let transformed_point = apply_matrix_transform(x, y);
+                    *segment = PathSegment::Quadratic {
+                        cpx: transformed_cp.x as f32,
+                        cpy: transformed_cp.y as f32,
+                        x: transformed_point.x as f32,
+                        y: transformed_point.y as f32,
+                    }   
+                },
+                PathSegment::Bezier { cp1x, cp1y, cp2x, cp2y, x, y } => {
+                    let transformed_cp1 = apply_matrix_transform(cp1x, cp1y);
+                    let transformed_cp2 = apply_matrix_transform(cp2x, cp2y);
+                    let transformed_point = apply_matrix_transform(x, y);
+                    *segment = PathSegment::Bezier {
+                        cp1x: transformed_cp1.x as f32,
+                        cp1y: transformed_cp1.y as f32,
+                        cp2x: transformed_cp2.x as f32,
+                        cp2y: transformed_cp2.y as f32,
+                        x: transformed_point.x as f32,
+                        y: transformed_point.y as f32
+                    }
+                },
+                PathSegment::ArcTo { cp1x, cp1y, cp2x, cp2y, radius } => {
+                    let transformed_cp1 = apply_matrix_transform(cp1x, cp1y);
+                    let transformed_cp2 = apply_matrix_transform(cp2x, cp2y);
+                    *segment = PathSegment::ArcTo {
+                        cp1x: transformed_cp1.x as f32,
+                        cp1y: transformed_cp1.y as f32,
+                        cp2x: transformed_cp2.x as f32,
+                        cp2y: transformed_cp2.y as f32,
+                        radius,
+                    }
+                },
+                PathSegment::Ellipse { x, y, radius_x, radius_y, rotation, start_angle, end_angle, anticlockwise } => {
+                    let transformed_point = apply_matrix_transform(x, y);
+                    *segment = PathSegment::Ellipse {
+                        x: transformed_point.x as f32,
+                        y: transformed_point.y as f32,
+                        radius_x,
+                        radius_y,
+                        rotation,
+                        start_angle,
+                        end_angle,
+                        anticlockwise,
+                    }
+                },
+                PathSegment::SvgArc { radius_x, radius_y, rotation, large_arc, sweep, x, y } => {
+                    let transformed_point = apply_matrix_transform(x, y);
+                    *segment = PathSegment::SvgArc {
+                        x: transformed_point.x as f32,
+                        y: transformed_point.y as f32,
+                        radius_x,
+                        radius_y,
+                        rotation,
+                        large_arc,
+                        sweep,
+                    }
+                },
+            }
         });
 
         // Step 6. Let (x, y) be the last point in the last subpath of c
