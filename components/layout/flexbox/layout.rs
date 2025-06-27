@@ -2214,12 +2214,30 @@ impl FlexItemBox {
                 .map(|v| Au::zero().max(v - pbm_auto_is_zero.cross)),
         };
 
-        // <https://drafts.csswg.org/css-flexbox/#definite-sizes>
-        // > If a single-line flex container has a definite cross size, the automatic preferred
-        // > outer cross size of any stretched flex items is the flex container’s inner cross size
-        // > (clamped to the flex item’s min and max cross size) and is considered definite.
-        let (preferred_cross_size, min_cross_size, max_cross_size) = content_cross_sizes
-            .resolve_each_extrinsic(Size::FitContent, Au::zero(), stretch_size.cross);
+        let is_table = self.is_table();
+        let tentative_cross_content_size = if cross_axis_is_item_block_axis {
+            self.independent_formatting_context
+                .tentative_block_content_size(preferred_aspect_ratio)
+        } else {
+            None
+        };
+        let (preferred_cross_size, min_cross_size, max_cross_size) =
+            if let Some(cross_content_size) = tentative_cross_content_size {
+                let (preferred, min, max) = content_cross_sizes.resolve_each(
+                    Size::FitContent,
+                    Au::zero,
+                    stretch_size.cross,
+                    || cross_content_size,
+                    is_table,
+                );
+                (Some(preferred), min, max)
+            } else {
+                content_cross_sizes.resolve_each_extrinsic(
+                    Size::FitContent,
+                    Au::zero(),
+                    stretch_size.cross,
+                )
+            };
         let cross_size = SizeConstraint::new(preferred_cross_size, min_cross_size, max_cross_size);
 
         // <https://drafts.csswg.org/css-flexbox/#transferred-size-suggestion>
@@ -2344,7 +2362,7 @@ impl FlexItemBox {
             get_automatic_minimum_size,
             stretch_size.main,
             &main_content_sizes,
-            self.is_table(),
+            is_table,
         );
 
         FlexItem {
