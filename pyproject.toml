@@ -1,5 +1,16 @@
-line-length = 120
+[project]
+name = "servo"
+version = "0.0.1"
+description = "Servo is a prototype web browser engine written in the Rust language. It is currently developed on 64-bit macOS, 64-bit Linux, 64-bit Windows, 64-bit OpenHarmony, and Android."
+readme = "README.md"
+dependencies = []
+requires-python = ">=3.11"
 
+[tool.uv]
+native-tls = true
+
+[tool.ruff]
+line-length = 120
 extend-exclude = [
     # temporary local files
     "target/**",
@@ -12,13 +23,12 @@ extend-exclude = [
     "tests/**",
 ]
 
-[lint]
+[tool.ruff.lint]
 select = [
     "E",
     "W",
     "F",
 ]
-
 ignore = [
     # Trailing whitespace; the standard tidy process will enforce no trailing whitespace
     "W291",
