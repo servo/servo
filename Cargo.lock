@@ -704,7 +704,6 @@ dependencies = [
  "mach2",
  "nix",
  "serde_json",
- "unwind-sys",
 ]
 
 [[package]]
@@ -8955,16 +8954,6 @@ name = "untrusted"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
-
-[[package]]
-name = "unwind-sys"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7a81ba64bc45243d442e9bb2a362f303df152b5078c56ce4a0dc7d813c8df91"
-dependencies = [
- "libc",
- "pkg-config",
-]
 
 [[package]]
 name = "url"
