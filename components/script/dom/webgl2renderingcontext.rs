@@ -902,6 +902,7 @@ impl WebGL2RenderingContext {
         );
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn tex_image_3d(
         &self,
         texture: &WebGLTexture,
@@ -957,7 +958,7 @@ impl WebGL2RenderingContext {
         // TODO: Hint/tex_parameter
 
         if let Some(fb) = self.base.bound_draw_framebuffer() {
-            fb.invalidate_texture(&*texture);
+            fb.invalidate_texture(texture);
         }
     }
 }
@@ -3110,7 +3111,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             border,
             format,
             type_,
-            &*src_data,
+            &src_data,
         )
         .validate()
         else {
@@ -3125,7 +3126,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                 let element_size = data_type.element_size();
                 let components = format.components();
                 let components_per_element = format.components();
-                // FIXME:How to calcuate the right lenght for teximage3d?
+                // FIXME: This is copied from tex_image_2d which is apparently incorrect
                 // NOTE: width and height are positive or zero due to validate()
                 let expected_byte_len = if height == 0 {
                     0
