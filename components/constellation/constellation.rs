@@ -85,6 +85,7 @@
 //! See <https://github.com/servo/servo/issues/14704>
 
 use std::borrow::ToOwned;
+use std::cell::OnceCell;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::marker::PhantomData;
@@ -105,6 +106,7 @@ use base::id::{
 };
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
+use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas_traits::ConstellationCanvasMsg;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use canvas_traits::webgl::WebGLThreads;
@@ -425,10 +427,8 @@ pub struct Constellation<STF, SWF> {
     /// The XR device registry
     webxr_registry: Option<webxr_api::Registry>,
 
-    /// A channel through which messages can be sent to the canvas paint thread.
-    canvas_sender: Sender<ConstellationCanvasMsg>,
-
-    canvas_ipc_sender: IpcSender<CanvasMsg>,
+    /// Lazily initialized channels for canvas paint thread.
+    canvas: OnceCell<(Sender<ConstellationCanvasMsg>, IpcSender<CanvasMsg>)>,
 
     /// Navigation requests from script awaiting approval from the embedder.
     pending_approval_navigations: PendingApprovalNavigations,
@@ -584,8 +584,6 @@ where
         random_pipeline_closure_probability: Option<f32>,
         random_pipeline_closure_seed: Option<usize>,
         hard_fail: bool,
-        canvas_create_sender: Sender<ConstellationCanvasMsg>,
-        canvas_ipc_sender: IpcSender<CanvasMsg>,
     ) -> Sender<EmbedderToConstellationMessage> {
         let (compositor_sender, compositor_receiver) = unbounded();
 
@@ -707,8 +705,7 @@ where
                     }),
                     webgl_threads: state.webgl_threads,
                     webxr_registry: state.webxr_registry,
-                    canvas_sender: canvas_create_sender,
-                    canvas_ipc_sender,
+                    canvas: OnceCell::new(),
                     pending_approval_navigations: HashMap::new(),
                     pressed_mouse_buttons: 0,
                     active_keyboard_modifiers: Modifiers::empty(),
@@ -2665,14 +2662,16 @@ where
             }
         }
 
-        debug!("Exiting Canvas Paint thread.");
-        let (canvas_exit_sender, canvas_exit_receiver) = unbounded();
-        if let Err(e) = self
-            .canvas_sender
-            .send(ConstellationCanvasMsg::Exit(canvas_exit_sender))
-        {
-            warn!("Exit Canvas Paint thread failed ({})", e);
-        }
+        let canvas_exit_receiver = if let Some((canvas_sender, _)) = self.canvas.get() {
+            debug!("Exiting Canvas Paint thread.");
+            let (canvas_exit_sender, canvas_exit_receiver) = unbounded();
+            if let Err(e) = canvas_sender.send(ConstellationCanvasMsg::Exit(canvas_exit_sender)) {
+                warn!("Exit Canvas Paint thread failed ({})", e);
+            }
+            Some(canvas_exit_receiver)
+        } else {
+            None
+        };
 
         debug!("Exiting WebGPU threads.");
         #[cfg(feature = "webgpu")]
@@ -2714,7 +2713,9 @@ where
 
         // Wait for the canvas thread to exit before shutting down the font service, as
         // canvas might still be using the system font service before shutting down.
-        let _ = canvas_exit_receiver.recv();
+        if let Some(canvas_exit_receiver) = canvas_exit_receiver {
+            let _ = canvas_exit_receiver.recv();
+        }
 
         debug!("Exiting the system font service thread.");
         self.system_font_service.exit();
@@ -4493,8 +4494,11 @@ where
         response_sender: IpcSender<(IpcSender<CanvasMsg>, CanvasId, ImageKey)>,
     ) {
         let (canvas_data_sender, canvas_data_receiver) = unbounded();
+        let (canvas_sender, canvas_ipc_sender) = self
+            .canvas
+            .get_or_init(|| self.create_canvas_paint_thread());
 
-        if let Err(e) = self.canvas_sender.send(ConstellationCanvasMsg::Create {
+        if let Err(e) = canvas_sender.send(ConstellationCanvasMsg::Create {
             sender: canvas_data_sender,
             size,
         }) {
@@ -4504,8 +4508,7 @@ where
             Ok(canvas_data) => canvas_data,
             Err(e) => return warn!("Create canvas paint thread id response failed ({})", e),
         };
-        if let Err(e) = response_sender.send((self.canvas_ipc_sender.clone(), canvas_id, image_key))
-        {
+        if let Err(e) = response_sender.send((canvas_ipc_sender.clone(), canvas_id, image_key)) {
             warn!("Create canvas paint thread response failed ({})", e);
         }
     }
@@ -5744,5 +5747,13 @@ where
         )) {
             warn!("Could not sent paint metric event to pipeline: {pipeline_id:?}: {error:?}");
         }
+    }
+
+    fn create_canvas_paint_thread(&self) -> (Sender<ConstellationCanvasMsg>, IpcSender<CanvasMsg>) {
+        CanvasPaintThread::start(
+            self.compositor_proxy.cross_process_compositor_api.clone(),
+            self.system_font_service.clone(),
+            self.public_resource_threads.clone(),
+        )
     }
 }
