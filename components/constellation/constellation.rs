@@ -1451,6 +1451,20 @@ where
             EmbedderToConstellationMessage::CreateMemoryReport(sender) => {
                 self.mem_profiler_chan.send(ProfilerMsg::Report(sender));
             },
+            EmbedderToConstellationMessage::SendImageKeysForPipeline(pipeline_id, image_keys) => {
+                if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
+                    if pipeline
+                        .event_loop
+                        .send(ScriptThreadMessage::SendImageKeysBatch(
+                            pipeline_id,
+                            image_keys,
+                        ))
+                        .is_err()
+                    {
+                        warn!("Could not send image keys to pipeline {:?}", pipeline_id);
+                    }
+                }
+            },
         }
     }
 
