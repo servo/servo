@@ -1057,7 +1057,10 @@ fn validate_and_fixup(dict: &DOMMatrixInit) -> Fallible<(bool, Transform3D<f64>)
     transform.m34 = dict.m34;
     transform.m43 = dict.m43;
     transform.m44 = dict.m44;
-    assert_eq!(is_2d, transform.is_2d());
+
+    // Only `true` value of is_2d is correct
+    // https://github.com/w3c/fxtf-drafts/issues/600
+    // assert_eq!(is_2d, transform.is_2d());
 
     Ok((is_2d, transform))
 }
