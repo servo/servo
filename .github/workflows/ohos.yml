@@ -239,8 +239,6 @@ jobs:
           # If the grep fails, then the trace output for the "page loaded" prompt is missing
           grep 'org\.servo\.servo-.* tracing_mark_write.*PageLoadEndedPrompt' test_output/servo.ftrace
 
-  # speedometer ohos needs the command-line-tools and the repository for mach installed
-  # we require that this runs after test-harmonyos-aarch64 because then we know the binary is installed on the phone
   bench-harmonyos-aarch64:
     name: Benching HarmonyOS aarch64
     continue-on-error: true
