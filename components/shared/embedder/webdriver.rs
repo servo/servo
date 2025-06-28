@@ -134,6 +134,7 @@ pub enum WebDriverScriptCommand {
     FindElementsCSSSelector(String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindElementsLinkText(String, bool, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindElementsTagName(String, IpcSender<Result<Vec<String>, ErrorStatus>>),
+    FindElementsXpathSelector(String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindElementElementsCSSSelector(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindElementElementsLinkText(
         String,

@@ -1172,11 +1172,12 @@ impl Handler {
                     WebDriverScriptCommand::FindElementsTagName(parameters.value.clone(), sender);
                 self.browsing_context_script_command::<true>(cmd)?;
             },
-            _ => {
-                return Err(WebDriverError::new(
-                    ErrorStatus::UnsupportedOperation,
-                    "Unsupported locator strategy",
-                ));
+            LocatorStrategy::XPath => {
+                let cmd = WebDriverScriptCommand::FindElementsXpathSelector(
+                    parameters.value.clone(),
+                    sender,
+                );
+                self.browsing_context_script_command::<true>(cmd)?;
             },
         }
 

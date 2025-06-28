@@ -43,6 +43,9 @@ use crate::dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelec
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLSerializerBinding::XMLSerializerMethods;
+use crate::dom::bindings::codegen::Bindings::XPathResultBinding::{
+    XPathResultConstants, XPathResultMethods,
+};
 use crate::dom::bindings::conversions::{
     ConversionBehavior, ConversionResult, FromJSValConvertible, StringificationBehavior,
     get_property, get_property_jsval, jsid_to_string, jsstring_to_str, root_from_object,
@@ -755,6 +758,73 @@ pub(crate) fn handle_find_elements_tag_name(
                 .map(|x| x.upcast::<Node>().unique_id(pipeline))
                 .collect::<Vec<String>>()))
             .unwrap(),
+        Err(error) => reply.send(Err(error)).unwrap(),
+    }
+}
+
+/// <https://w3c.github.io/webdriver/#xpath>
+pub(crate) fn handle_find_elements_xpath_selector(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    selector: String,
+    reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    can_gc: CanGc,
+) {
+    match retrieve_document_and_check_root_existence(documents, pipeline) {
+        Ok(document) => {
+            // Step 1. Let evaluateResult be the result of calling evaluate,
+            // with arguments selector, start node, null, ORDERED_NODE_SNAPSHOT_TYPE, and null.
+
+            // A snapshot is used to promote operation atomicity.
+            let evaluate_result = match document.Evaluate(
+                DOMString::from(selector),
+                document.upcast::<Node>(),
+                None,
+                XPathResultConstants::ORDERED_NODE_SNAPSHOT_TYPE,
+                None,
+                can_gc,
+            ) {
+                Ok(res) => res,
+                Err(_) => return reply.send(Err(ErrorStatus::InvalidSelector)).unwrap(),
+            };
+            // Step 2. Let index be 0. (Handled altogether in Step 5.)
+
+            // Step 3: Let length be the result of getting the property "snapshotLength"
+            // from evaluateResult.
+
+            // <https://w3c.github.io/webdriver/#dfn-find> always applies
+            // Step 7.2. If a DOMException, SyntaxError, XPathException, or other error occurs
+            // during the execution of the element location strategy, return error invalid selector.
+            let length = match evaluate_result.GetSnapshotLength() {
+                Ok(len) => len,
+                Err(_) => {
+                    return reply.send(Err(ErrorStatus::InvalidSelector)).unwrap();
+                },
+            };
+
+            // Step 4: Prepare result vector
+            let mut result = Vec::new();
+
+            // Step 5: Repeat, while index is less than length:
+            for index in 0..length {
+                let node = match evaluate_result.SnapshotItem(index) {
+                    Ok(node) => node.expect(
+                        "Node should always exist as ORDERED_NODE_SNAPSHOT_TYPE \
+                                gives static result and we verified the length!",
+                    ),
+                    Err(_) => return reply.send(Err(ErrorStatus::InvalidSelector)).unwrap(),
+                };
+
+                // If node is not an Element, return invalid selector
+                if !node.is::<Element>() {
+                    return reply.send(Err(ErrorStatus::InvalidSelector)).unwrap();
+                }
+
+                // Append node's unique id to result
+                result.push(node.unique_id(pipeline));
+            }
+            reply.send(Ok(result)).unwrap();
+        },
         Err(error) => reply.send(Err(error)).unwrap(),
     }
 }

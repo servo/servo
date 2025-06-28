@@ -2270,6 +2270,15 @@ impl ScriptThread {
                     can_gc,
                 )
             },
+            WebDriverScriptCommand::FindElementsXpathSelector(selector, reply) => {
+                webdriver_handlers::handle_find_elements_xpath_selector(
+                    &documents,
+                    pipeline_id,
+                    selector,
+                    reply,
+                    can_gc,
+                )
+            },
             WebDriverScriptCommand::FindElementElementsCSSSelector(selector, element_id, reply) => {
                 webdriver_handlers::handle_find_element_elements_css_selector(
                     &documents,
