@@ -11,7 +11,6 @@ use std::rc::Rc;
 #[cfg(feature = "webgl_backtrace")]
 use backtrace::Backtrace;
 use bitflags::bitflags;
-use pixels::Alpha;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{
     AlphaTreatment, GLContextAttributes, GLLimits, GlType, Parameter, SizedDataType, TexDataType,
@@ -31,7 +30,7 @@ use js::typedarray::{
     TypedArrayElementCreator, Uint32Array,
 };
 use net_traits::image_cache::ImageResponse;
-use pixels::{self, PixelFormat, Snapshot, SnapshotPixelFormat};
+use pixels::{self, Alpha, PixelFormat, Snapshot, SnapshotPixelFormat};
 use serde::{Deserialize, Serialize};
 use servo_config::pref;
 use webrender_api::ImageKey;
@@ -629,7 +628,8 @@ impl WebGLRenderingContext {
                 )
             },
             TexImageSource::ImageData(image_data) => {
-                let (alpha_treatment, y_axis_treatment) = self.get_current_unpack_state(Alpha::NotPremultiplied);
+                let (alpha_treatment, y_axis_treatment) =
+                    self.get_current_unpack_state(Alpha::NotPremultiplied);
 
                 TexPixels::new(
                     image_data.to_shared_memory(),
@@ -694,7 +694,8 @@ impl WebGLRenderingContext {
                 let size = Size2D::new(img.metadata.width, img.metadata.height);
                 let data = IpcSharedMemory::from_bytes(img.first_frame().bytes);
 
-                let (alpha_treatment, y_axis_treatment) = self.get_current_unpack_state(Alpha::NotPremultiplied);
+                let (alpha_treatment, y_axis_treatment) =
+                    self.get_current_unpack_state(Alpha::NotPremultiplied);
 
                 TexPixels::new(data, size, img.format, alpha_treatment, y_axis_treatment)
             },
@@ -4562,7 +4563,8 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 
         let size = Size2D::new(width, height);
 
-        let (alpha_treatment, y_axis_treatment) = self.get_current_unpack_state(Alpha::NotPremultiplied);
+        let (alpha_treatment, y_axis_treatment) =
+            self.get_current_unpack_state(Alpha::NotPremultiplied);
 
         self.tex_image_2d(
             &texture,
@@ -4739,7 +4741,8 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             };
         }
 
-        let (alpha_treatment, y_axis_treatment) = self.get_current_unpack_state(Alpha::NotPremultiplied);
+        let (alpha_treatment, y_axis_treatment) =
+            self.get_current_unpack_state(Alpha::NotPremultiplied);
 
         self.tex_sub_image_2d(
             texture,
