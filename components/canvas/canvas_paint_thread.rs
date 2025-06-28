@@ -182,7 +182,7 @@ impl<'a> CanvasPaintThread<'a> {
                     dest_rect,
                     source_rect,
                     smoothing_enabled,
-                    !snapshot.alpha_mode().is_premultiplied(),
+                    snapshot.alpha_mode().alpha().needs_premulti(),
                 )
             },
             Canvas2dMsg::DrawEmptyImage(image_size, dest_rect, source_rect) => {
@@ -403,7 +403,7 @@ impl Canvas<'_> {
         dest_rect: Rect<f64>,
         source_rect: Rect<f64>,
         smoothing_enabled: bool,
-        is_premultiplied: bool,
+        premultiply: bool,
     ) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.draw_image(
@@ -412,7 +412,7 @@ impl Canvas<'_> {
                 dest_rect,
                 source_rect,
                 smoothing_enabled,
-                is_premultiplied,
+                premultiply,
             ),
         }
     }

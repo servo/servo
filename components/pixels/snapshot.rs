@@ -19,6 +19,41 @@ pub enum SnapshotPixelFormat {
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+pub enum Alpha {
+    Premultiplied,
+    NotPremultiplied,
+    /// This is used for opaque texture
+    /// where you can choose the one that represents less work
+    DontCare,
+}
+
+impl Alpha {
+    pub const fn from_premultiplied(is_premultiplied: bool) -> Self {
+        if is_premultiplied {
+            Self::Premultiplied
+        } else {
+            Self::NotPremultiplied
+        }
+    }
+
+    pub const fn needs_premulti(&self) -> bool {
+        match self {
+            Alpha::Premultiplied => false,
+            Alpha::NotPremultiplied => true,
+            Alpha::DontCare => false,
+        }
+    }
+
+    pub const fn needs_unmulti(&self) -> bool {
+        match self {
+            Alpha::Premultiplied => true,
+            Alpha::NotPremultiplied => false,
+            Alpha::DontCare => false,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum SnapshotAlphaMode {
     /// Internal data is opaque (alpha is cleared to 1)
     Opaque,
@@ -37,19 +72,13 @@ impl Default for SnapshotAlphaMode {
 }
 
 impl SnapshotAlphaMode {
-    pub const fn is_premultiplied(&self) -> bool {
+    /// Returns None if it's opaque (can be considered as or not as premultiplied)
+    pub const fn alpha(&self) -> Alpha {
         match self {
-            SnapshotAlphaMode::Opaque => true,
-            SnapshotAlphaMode::AsOpaque { premultiplied } => *premultiplied,
-            SnapshotAlphaMode::Transparent { premultiplied } => *premultiplied,
+            SnapshotAlphaMode::Opaque => Alpha::DontCare,
+            SnapshotAlphaMode::AsOpaque { premultiplied } => Alpha::from_premultiplied(*premultiplied),
+            SnapshotAlphaMode::Transparent { premultiplied } => Alpha::from_premultiplied(*premultiplied),
         }
-    }
-
-    pub const fn is_opaque(&self) -> bool {
-        matches!(
-            self,
-            SnapshotAlphaMode::Opaque | SnapshotAlphaMode::AsOpaque { .. }
-        )
     }
 }
 
@@ -111,14 +140,6 @@ impl<T> Snapshot<T> {
 
     pub const fn alpha_mode(&self) -> SnapshotAlphaMode {
         self.alpha_mode
-    }
-
-    pub const fn is_premultiplied(&self) -> bool {
-        self.alpha_mode().is_premultiplied()
-    }
-
-    pub const fn is_opaque(&self) -> bool {
-        self.alpha_mode().is_opaque()
     }
 }
 
@@ -200,7 +221,7 @@ impl Snapshot<SnapshotData> {
         let multiply = match (self.alpha_mode, target_alpha_mode) {
             (SnapshotAlphaMode::Opaque, _) => Multiply::None,
             (alpha_mode, SnapshotAlphaMode::Opaque) => {
-                if alpha_mode.is_premultiplied() {
+                if alpha_mode.alpha() == Alpha::Premultiplied {
                     Multiply::UnMultiply
                 } else {
                     Multiply::None
