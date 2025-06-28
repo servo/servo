@@ -390,16 +390,27 @@ impl HTMLCanvasElement {
         &self,
         image_type: &EncodedImageType,
         quality: Option<f64>,
-        snapshot: &Snapshot,
+        mut snapshot: Snapshot,
         encoder: &mut W,
     ) -> Result<(), ImageError> {
         // We can't use self.Width() or self.Height() here, since the size of the canvas
         // may have changed since the snapshot was created. Truncating the dimensions to a
         // u32 can't panic, since the data comes from a canvas which is always smaller than
         // u32::MAX.
-        let canvas_data = snapshot.data();
         let width = snapshot.size().width;
         let height = snapshot.size().height;
+        let (canvas_data, _, _) = snapshot.as_bytes(
+            if *image_type == EncodedImageType::Jpeg {
+                Some(SnapshotAlphaMode::AsOpaque {
+                    premultiplied: true,
+                })
+            } else {
+                Some(SnapshotAlphaMode::Transparent {
+                    premultiplied: false,
+                })
+            },
+            Some(SnapshotPixelFormat::RGBA),
+        );
 
         match image_type {
             EncodedImageType::Png => {
@@ -537,23 +548,12 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
 
         // Step 3: Let file be a serialization of this canvas element's bitmap as a file,
         // passing type and quality if given.
-        let Some(mut snapshot) = self.get_image_data() else {
+        let Some(snapshot) = self.get_image_data() else {
             return Ok(USVString("data:,".into()));
         };
 
         let image_type = EncodedImageType::from(mime_type);
-        snapshot.transform(
-            if image_type == EncodedImageType::Jpeg {
-                SnapshotAlphaMode::AsOpaque {
-                    premultiplied: true,
-                }
-            } else {
-                SnapshotAlphaMode::Transparent {
-                    premultiplied: false,
-                }
-            },
-            SnapshotPixelFormat::RGBA,
-        );
+
         let mut url = format!("data:{};base64,", image_type.as_mime_type());
 
         let mut encoder = base64::write::EncoderStringWriter::from_consumer(
@@ -565,7 +565,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             .encode_for_mime_type(
                 &image_type,
                 Self::maybe_quality(quality),
-                &snapshot,
+                snapshot,
                 &mut encoder,
             )
             .is_err()
@@ -622,15 +622,10 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
                     return error!("Expected blob callback, but found none!");
                 };
 
-                let Some(mut snapshot) = result else {
+                let Some(snapshot) = result else {
                     let _ = callback.Call__(None, ExceptionHandling::Report, CanGc::note());
                     return;
                 };
-
-                snapshot.transform(
-                    SnapshotAlphaMode::Transparent { premultiplied: false },
-                    SnapshotPixelFormat::RGBA
-                );
 
                 // Step 4.1: If result is non-null, then set result to a serialization of
                 // result as a file with type and quality if given.
@@ -639,7 +634,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
                 let mut encoded: Vec<u8> = vec![];
                 let blob_impl;
                 let blob;
-                let result = match this.encode_for_mime_type(&image_type, quality, &snapshot, &mut encoded) {
+                let result = match this.encode_for_mime_type(&image_type, quality, snapshot, &mut encoded) {
                    Ok(..) => {
                        // Step 4.2.1: If result is non-null, then set result to a new Blob
                        // object, created in the relevant realm of this canvas element,

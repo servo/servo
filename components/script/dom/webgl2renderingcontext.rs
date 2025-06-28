@@ -3257,7 +3257,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
         let size = Size2D::new(width, height);
 
-        let (alpha_treatment, y_axis_treatment) = self.base.get_current_unpack_state(Alpha::NotPremultiplied);
+        let (alpha_treatment, y_axis_treatment) =
+            self.base.get_current_unpack_state(Alpha::NotPremultiplied);
 
         self.base.tex_image_2d(
             &texture,

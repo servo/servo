@@ -17,7 +17,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use log::warn;
 use net_traits::ResourceThreads;
-use pixels::Snapshot;
+use pixels::{Snapshot, SnapshotPixelFormat};
 use style::color::AbsoluteColor;
 use style::properties::style_structs::Font as FontStyleStruct;
 use webrender_api::ImageKey;
@@ -175,14 +175,17 @@ impl<'a> CanvasPaintThread<'a> {
                 .canvas(canvas_id)
                 .is_point_in_path_(&path[..], x, y, fill_rule, chan),
             Canvas2dMsg::DrawImage(snapshot, dest_rect, source_rect, smoothing_enabled) => {
-                let snapshot = snapshot.to_owned();
+                let mut snapshot = snapshot.to_owned();
+                let size = snapshot.size();
+                let (data, alpha_mode, _) =
+                    snapshot.as_bytes(None, Some(SnapshotPixelFormat::BGRA));
                 self.canvas(canvas_id).draw_image(
-                    snapshot.data(),
-                    snapshot.size(),
+                    data,
+                    size,
                     dest_rect,
                     source_rect,
                     smoothing_enabled,
-                    snapshot.alpha_mode().alpha().needs_premulti(),
+                    alpha_mode.alpha().needs_premulti(),
                 )
             },
             Canvas2dMsg::DrawEmptyImage(image_size, dest_rect, source_rect) => {
@@ -202,16 +205,18 @@ impl<'a> CanvasPaintThread<'a> {
                 source_rect,
                 smoothing,
             ) => {
-                let image_data = self
+                let mut snapshot = self
                     .canvas(canvas_id)
                     .read_pixels(Some(source_rect.to_u32()), Some(image_size));
+                let (data, alpha_mode, _) =
+                    snapshot.as_bytes(None, Some(SnapshotPixelFormat::BGRA));
                 self.canvas(other_canvas_id).draw_image(
-                    image_data.data(),
+                    data,
                     source_rect.size.to_u32(),
                     dest_rect,
                     source_rect,
                     smoothing,
-                    false,
+                    alpha_mode.alpha().needs_premulti(),
                 );
             },
             Canvas2dMsg::MoveTo(ref point) => self.canvas(canvas_id).move_to(point),
