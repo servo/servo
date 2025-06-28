@@ -862,8 +862,8 @@ impl Handler {
         });
 
         let (width, height) = (
-            params.width.unwrap_or(current.width),
-            params.height.unwrap_or(current.height),
+            params.width.unwrap_or_else(|| current.width),
+            params.height.unwrap_or_else(|| current.height),
         );
 
         self.send_message_to_embedder(WebDriverCommandMsg::SetWindowSize(
