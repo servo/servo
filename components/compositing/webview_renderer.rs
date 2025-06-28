@@ -29,7 +29,7 @@ use webrender_api::units::{
 };
 use webrender_api::{ExternalScrollId, HitTestFlags, ScrollLocation};
 
-use crate::compositor::{HitTestError, PipelineDetails, ServoRenderer};
+use crate::compositor::{PipelineDetails, ServoRenderer};
 use crate::touch::{TouchHandler, TouchMoveAction, TouchMoveAllowed, TouchSequenceState};
 
 #[derive(Clone, Copy)]
@@ -370,13 +370,10 @@ impl WebViewRenderer {
             .hit_test_at_point(point, get_pipeline_details)
         {
             Ok(hit_test_results) => hit_test_results,
-            Err(HitTestError::EpochMismatch) => {
+            Err(_) => {
                 self.pending_point_input_events
                     .borrow_mut()
                     .push_back(event);
-                return false;
-            },
-            _ => {
                 return false;
             },
         };
@@ -418,15 +415,11 @@ impl WebViewRenderer {
 
             // If we can't find a pipeline to send this event to, we cannot continue.
             let get_pipeline_details = |pipeline_id| self.pipelines.get(&pipeline_id);
-            let Ok(result) = self
+            let result = self
                 .global
                 .borrow()
                 .hit_test_at_point(point, get_pipeline_details)
-            else {
-                // Don't need to process pending input events in this frame any more.
-                // TODO: Add multiple retry later if needed.
-                return;
-            };
+                .ok();
 
             match event {
                 InputEvent::Touch(ref mut touch_event) => {
@@ -436,15 +429,19 @@ impl WebViewRenderer {
                 InputEvent::MouseLeave(_) |
                 InputEvent::MouseMove(_) |
                 InputEvent::Wheel(_) => {
-                    self.global
-                        .borrow_mut()
-                        .update_cursor_from_hittest(point, &result);
+                    if let Some(ref result) = result {
+                        self.global
+                            .borrow_mut()
+                            .update_cursor_from_hittest(point, result);
+                    } else {
+                        warn!("Not hit test result.");
+                    }
                 },
                 _ => unreachable!("Unexpected input event type: {event:?}"),
             }
 
             if let Err(error) = self.global.borrow().constellation_sender.send(
-                EmbedderToConstellationMessage::ForwardInputEvent(self.id, event, Some(result)),
+                EmbedderToConstellationMessage::ForwardInputEvent(self.id, event, result),
             ) {
                 warn!("Sending event to constellation failed ({error:?}).");
             }
