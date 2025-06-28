@@ -8,10 +8,8 @@ use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use js::rust::{HandleObject, HandleValue};
 use pixels::Snapshot;
-use script_bindings::root::Root;
 use script_bindings::weakref::WeakRef;
 
-use super::htmlcanvaselement;
 use crate::canvas_context::{CanvasContext, OffscreenRenderingContext};
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::OffscreenCanvasBinding::{
@@ -186,9 +184,9 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         }
 
         if let Some(canvas) = &self.placeholder {
-            canvas
-                .root()
-                .map(|c| c.set_natural_width(value as _, can_gc));
+            if let Some(c) = canvas.root() {
+                c.set_natural_width(value as _, can_gc)
+            };
         }
     }
 
@@ -206,9 +204,9 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         }
 
         if let Some(canvas) = &self.placeholder {
-            canvas
-                .root()
-                .map(|c| c.set_natural_height(value as _, can_gc));
+            if let Some(c) = canvas.root() {
+                c.set_natural_height(value as _, can_gc)
+            };
         }
     }
 }
