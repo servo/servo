@@ -161,7 +161,9 @@ impl ReplacedContents {
         };
 
         if let ReplacedContentKind::Image(Some(Image::Raster(ref image))) = kind {
-            context.handle_animated_image(element.opaque(), image.clone());
+            context
+                .image_resolver
+                .handle_animated_image(element.opaque(), image.clone());
         }
 
         let natural_size = if let Some(naturalc_size_in_dots) = natural_size_in_dots {
@@ -190,7 +192,7 @@ impl ReplacedContents {
         image_url: &ComputedUrl,
     ) -> Option<Self> {
         if let ComputedUrl::Valid(image_url) = image_url {
-            let (image, width, height) = match context.get_or_request_image_or_meta(
+            let (image, width, height) = match context.image_resolver.get_or_request_image_or_meta(
                 element.opaque(),
                 image_url.clone().into(),
                 UsePlaceholder::No,
@@ -323,12 +325,13 @@ impl ReplacedContents {
                 .and_then(|image| match image {
                     Image::Raster(raster_image) => raster_image.id,
                     Image::Vector(vector_image) => {
-                        let scale = layout_context.shared_context().device_pixel_ratio();
+                        let scale = layout_context.style_context.device_pixel_ratio();
                         let width = object_fit_size.width.scale_by(scale.0).to_px();
                         let height = object_fit_size.height.scale_by(scale.0).to_px();
                         let size = Size2D::new(width, height);
                         let tag = self.base_fragment_info.tag?;
                         layout_context
+                            .image_resolver
                             .rasterize_vector_image(vector_image.id, size, tag.node)
                             .and_then(|i| i.id)
                     },
@@ -355,7 +358,7 @@ impl ReplacedContents {
             },
             ReplacedContentKind::IFrame(iframe) => {
                 let size = Size2D::new(rect.size.width.to_f32_px(), rect.size.height.to_f32_px());
-                let hidpi_scale_factor = layout_context.shared_context().device_pixel_ratio();
+                let hidpi_scale_factor = layout_context.style_context.device_pixel_ratio();
 
                 layout_context.iframe_sizes.lock().insert(
                     iframe.browsing_context_id,

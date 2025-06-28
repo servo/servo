@@ -704,7 +704,6 @@ dependencies = [
  "mach2",
  "nix",
  "serde_json",
- "unwind-sys",
 ]
 
 [[package]]
@@ -2652,12 +2651,22 @@ dependencies = [
 [[package]]
 name = "fontsan"
 version = "0.6.0"
-source = "git+https://github.com/servo/fontsan#63f3cde9224b5988163e52c6669143f98d71b030"
+source = "git+https://github.com/servo/fontsan#212f15c9e36f701597847de94e1dafc9636bdf07"
 dependencies = [
  "cc",
+ "fontsan-woff2",
  "glob",
  "libc",
  "libz-sys",
+]
+
+[[package]]
+name = "fontsan-woff2"
+version = "0.1.0"
+source = "git+https://github.com/servo/fontsan#212f15c9e36f701597847de94e1dafc9636bdf07"
+dependencies = [
+ "brotli-decompressor",
+ "cc",
 ]
 
 [[package]]
@@ -4422,9 +4431,9 @@ checksum = "76a49eaebc8750bcba241df1e1e47ebb51b81eb35c65e8f11ffa0aebac353f7f"
 
 [[package]]
 name = "indexmap"
-version = "2.9.0"
+version = "2.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cea70ddb795996207ad57735b50c5982d8844f38ba9ee5f1aedcfb708a2aa11e"
+checksum = "fe4cd85333e22411419a0bcae1297d25e58c9443848b11dc6a86fefe8c78a661"
 dependencies = [
  "equivalent",
  "hashbrown",
@@ -5944,9 +5953,9 @@ checksum = "89d326ae2b2e71f95ca756b7d418c0adcb0018889e73f7eabed59671cb179608"
 
 [[package]]
 name = "ohos-sys-opaque-types"
-version = "0.1.6"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "463c7a72b9abdef3e78d580284cccbef4b1a4a46588d64f02f68d04030a304b9"
+checksum = "a8e3076cb0f4f6c738a2451ff104551b68358abf5fc3cf068216158a040c6fe7"
 
 [[package]]
 name = "ohos-vsync"
@@ -8945,16 +8954,6 @@ name = "untrusted"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
-
-[[package]]
-name = "unwind-sys"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7a81ba64bc45243d442e9bb2a362f303df152b5078c56ce4a0dc7d813c8df91"
-dependencies = [
- "libc",
- "pkg-config",
-]
 
 [[package]]
 name = "url"

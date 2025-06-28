@@ -289,5 +289,13 @@ jobs:
       - name: Combining bencher files
         run: jq --compact-output --slurp add speedometer.json bench.json > combined-bencher.json
       - uses: bencherdev/bencher@main
-      - name: Uploading to bencher
-        run: bencher run --adapter json --file combined-bencher.json --project '${{ env.BENCHER_PROJECT }}' --token '${{ secrets.BENCHER_API_TOKEN }}' --github-actions '${{ secrets.GITHUB_TOKEN }}' --testbed="$MODEL_NAME"
+      - name: Uploading to bencher.dev
+        run: | 
+          bencher run --adapter json \
+                      --file combined-bencher.json \
+                      --project '${{ env.BENCHER_PROJECT }}' \
+                      --hash '${{ github.sha }}' \
+                      --token '${{ secrets.BENCHER_API_TOKEN }}' \
+                      --github-actions '${{ secrets.GITHUB_TOKEN }}' \
+                      --testbed="$MODEL_NAME"
+
