@@ -186,9 +186,9 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         }
 
         if let Some(canvas) = &self.placeholder {
-            if canvas.is_alive() {
-                canvas.root().unwrap().set_natural_width(value as _, can_gc);
-            }
+            canvas
+                .root()
+                .map(|c| c.set_natural_width(value as _, can_gc));
         }
     }
 
@@ -206,12 +206,9 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         }
 
         if let Some(canvas) = &self.placeholder {
-            if canvas.is_alive() {
-                canvas
-                    .root()
-                    .unwrap()
-                    .set_natural_height(value as _, can_gc);
-            }
+            canvas
+                .root()
+                .map(|c| c.set_natural_height(value as _, can_gc));
         }
     }
 }
