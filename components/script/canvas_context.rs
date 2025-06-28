@@ -8,6 +8,7 @@ use euclid::default::Size2D;
 use layout_api::HTMLCanvasData;
 use pixels::Snapshot;
 use script_bindings::root::Dom;
+use script_bindings::weakref::WeakRef;
 use webrender_api::ImageKey;
 
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
@@ -79,9 +80,14 @@ pub(crate) trait CanvasContext {
     }
 }
 
+pub(crate) enum CanvasOrOffscreenCanvas<'a> {
+    Canvas(Option<&'a HTMLCanvasElement>),
+    OffscreenCanvas(Option<&'a WeakRef<HTMLCanvasElement>>),
+}
+
 pub(crate) trait CanvasHelpers {
     fn size(&self) -> Size2D<u32>;
-    fn canvas(&self) -> Option<&HTMLCanvasElement>;
+    fn canvas(&self) -> CanvasOrOffscreenCanvas;
 }
 
 impl CanvasHelpers for HTMLCanvasElementOrOffscreenCanvas {
@@ -94,10 +100,14 @@ impl CanvasHelpers for HTMLCanvasElementOrOffscreenCanvas {
         }
     }
 
-    fn canvas(&self) -> Option<&HTMLCanvasElement> {
+    fn canvas(&self) -> CanvasOrOffscreenCanvas {
         match self {
-            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => Some(canvas),
-            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => canvas.placeholder(),
+            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
+                CanvasOrOffscreenCanvas::Canvas(Some(canvas))
+            },
+            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => {
+                CanvasOrOffscreenCanvas::OffscreenCanvas(canvas.placeholder())
+            },
         }
     }
 }
