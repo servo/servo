@@ -31,6 +31,9 @@ impl Actor for BreakpointListActor {
         _stream_id: crate::StreamId,
     ) -> Result<crate::actor::ActorMessageStatus, ()> {
         Ok(match msg_type {
+            // Client wants to set a breakpoint.
+            // Seems to be infallible, unlike the thread actor’s `setBreakpoint`.
+            // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#breakpoints>
             "setBreakpoint" => {
                 let msg = EmptyReplyMsg { from: self.name() };
                 let _ = stream.write_json_packet(&msg);
