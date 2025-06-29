@@ -531,7 +531,7 @@ pub enum Canvas2dMsg {
         CompositionOptions,
         Transform2D<f32>,
     ),
-    UpdateImage(IpcSender<()>, Epoch),
+    UpdateImage(Epoch),
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
