@@ -10,6 +10,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::{f32, thread};
 
+use base::Epoch;
 use canvas_traits::ConstellationCanvasMsg;
 use canvas_traits::canvas::*;
 use compositing_traits::CrossProcessCompositorApi;
@@ -75,8 +76,8 @@ impl CanvasPaintThread {
                                 Ok(CanvasMsg::Close(canvas_id)) => {
                                     canvas_paint_thread.canvases.remove(&canvas_id);
                                 },
-                                Ok(CanvasMsg::Recreate(size, canvas_id)) => {
-                                    canvas_paint_thread.canvas(canvas_id).recreate(size);
+                                Ok(CanvasMsg::Recreate(size, canvas_id, epoch)) => {
+                                    canvas_paint_thread.canvas(canvas_id).recreate(size, epoch);
                                 },
                                 Err(e) => {
                                     warn!("Error on CanvasPaintThread receive ({})", e);
@@ -283,8 +284,8 @@ impl CanvasPaintThread {
                 self.canvas(canvas_id)
                     .put_image_data(snapshot.to_owned(), rect);
             },
-            Canvas2dMsg::UpdateImage(sender) => {
-                self.canvas(canvas_id).update_image_rendering();
+            Canvas2dMsg::UpdateImage(sender, epoch) => {
+                self.canvas(canvas_id).update_image_rendering(epoch);
                 sender.send(()).unwrap();
             },
             Canvas2dMsg::PopClips(clips) => self.canvas(canvas_id).pop_clips(clips),
@@ -675,26 +676,26 @@ impl Canvas {
         }
     }
 
-    fn update_image_rendering(&mut self) {
+    fn update_image_rendering(&mut self, epoch: Epoch) {
         match self {
             #[cfg(feature = "raqote")]
-            Canvas::Raqote(canvas_data) => canvas_data.update_image_rendering(),
+            Canvas::Raqote(canvas_data) => canvas_data.update_image_rendering(epoch),
             #[cfg(feature = "vello")]
-            Canvas::Vello(canvas_data) => canvas_data.update_image_rendering(),
+            Canvas::Vello(canvas_data) => canvas_data.update_image_rendering(epoch),
             #[cfg(feature = "vello_cpu")]
-            Canvas::VelloCPU(canvas_data) => canvas_data.update_image_rendering(),
+            Canvas::VelloCPU(canvas_data) => canvas_data.update_image_rendering(epoch),
             _ => unreachable!(),
         }
     }
 
-    fn recreate(&mut self, size: Option<Size2D<u64>>) {
+    fn recreate(&mut self, size: Option<Size2D<u64>>, epoch: Epoch) {
         match self {
             #[cfg(feature = "raqote")]
-            Canvas::Raqote(canvas_data) => canvas_data.recreate(size),
+            Canvas::Raqote(canvas_data) => canvas_data.recreate(size, epoch),
             #[cfg(feature = "vello")]
-            Canvas::Vello(canvas_data) => canvas_data.recreate(size),
+            Canvas::Vello(canvas_data) => canvas_data.recreate(size, epoch),
             #[cfg(feature = "vello_cpu")]
-            Canvas::VelloCPU(canvas_data) => canvas_data.recreate(size),
+            Canvas::VelloCPU(canvas_data) => canvas_data.recreate(size, epoch),
             _ => unreachable!(),
         }
     }

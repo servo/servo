@@ -5,6 +5,7 @@
 use std::default::Default;
 use std::str::FromStr;
 
+use base::Epoch;
 use euclid::Angle;
 use euclid::approxeq::ApproxEq;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
@@ -449,7 +450,7 @@ pub struct TextOptions {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum CanvasMsg {
     Canvas2d(Canvas2dMsg, CanvasId),
-    Recreate(Option<Size2D<u64>>, CanvasId),
+    Recreate(Option<Size2D<u64>>, CanvasId, Epoch),
     Close(CanvasId),
 }
 
@@ -530,7 +531,7 @@ pub enum Canvas2dMsg {
         CompositionOptions,
         Transform2D<f64>,
     ),
-    UpdateImage(IpcSender<()>),
+    UpdateImage(IpcSender<()>, Epoch),
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]

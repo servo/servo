@@ -6,6 +6,7 @@ use std::mem;
 use std::sync::Arc;
 
 use app_units::Au;
+use base::Epoch;
 use canvas_traits::canvas::*;
 use compositing_traits::CrossProcessCompositorApi;
 use euclid::default::{Box2D, Point2D, Rect, Size2D, Transform2D, Vector2D};
@@ -119,7 +120,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         let mut draw_target = DrawTarget::new(size.cast());
         let image_key = compositor_api.generate_image_key_blocking().unwrap();
         let (descriptor, data) = draw_target.image_descriptor_and_serializable_data();
-        compositor_api.add_image(image_key, descriptor, data, None);
+        compositor_api.add_image(image_key, descriptor, data, Some(Epoch(0)));
         CanvasData {
             drawtarget: draw_target,
             compositor_api,
@@ -626,7 +627,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#reset-the-rendering-context-to-its-default-state>
-    pub(crate) fn recreate(&mut self, size: Option<Size2D<u64>>) {
+    pub(crate) fn recreate(&mut self, size: Option<Size2D<u64>>, epoch: Epoch) {
         let size = size
             .unwrap_or_else(|| self.drawtarget.get_size().to_u64())
             .max(MIN_WR_IMAGE_SIZE);
@@ -636,11 +637,11 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
             .drawtarget
             .create_similar_draw_target(&Size2D::new(size.width, size.height).cast());
 
-        self.update_image_rendering();
+        self.update_image_rendering(epoch);
     }
 
     /// Update image in WebRender
-    pub(crate) fn update_image_rendering(&mut self) {
+    pub(crate) fn update_image_rendering(&mut self, epoch: Epoch) {
         let (descriptor, data) = {
             #[cfg(feature = "tracing")]
             let _span = tracing::trace_span!(
@@ -652,7 +653,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         };
 
         self.compositor_api
-            .update_image(self.image_key, descriptor, data, None);
+            .update_image(self.image_key, descriptor, data, Some(epoch));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
