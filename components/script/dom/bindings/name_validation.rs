@@ -159,39 +159,28 @@ pub(crate) fn validate_and_extract(
     let namespace = namespace_from_domstring(namespace);
 
     // Step 2. Let prefix be null.
+    let mut prefix = None;
     // Step 3. Let localName be qualifiedName.
+    let mut local_name = qualified_name;
     // Step 4. If qualifiedName contains a U+003A (:):
     //     Step 4.1. Let splitResult be the result of running
     //          strictly split given qualifiedName and U+003A (:).
     //     Step 4.2. Set prefix to splitResult[0].
     //     Step 4.3. Set localName to splitResult[1].
-    let mut split = qualified_name.split(':');
-    // SAFETY: there will be at least one
-    let (prefix, local_name) = {
-        let first = split.next().unwrap();
+    if qualified_name.contains(':') {
+        // SAFETY: We know qualified_name is not empty and contains a colon.
+        let mut split = qualified_name.splitn(2, ':');
+        prefix = split.next();
+        local_name = split.next().unwrap_or("");
+    }
 
-        let mut second = None;
-        while let Some(part) = split.next() {
-            // token has to be a sequence of codepoints, and empty slice does not
-            // count as a sequence of codepoints.
-            if !part.is_empty() {
-                second = Some(part);
-                break;
-            }
+    // Step 5. If prefix is not a valid namespace prefix,
+    // then throw an "InvalidCharacterError" DOMException.
+    if let Some(p) = prefix {
+        if !is_valid_namespace_prefix(p) {
+            return Err(Error::InvalidCharacter);
         }
-
-        match second  {
-            Some(second) => {
-                // Step 5. If prefix is not a valid namespace prefix,
-                // then throw an "InvalidCharacterError" DOMException.
-                if !is_valid_namespace_prefix(first) {
-                    return Err(Error::InvalidCharacter);
-                }
-                (Some(first), second)
-            },
-            None => (None, first),
-        }
-    };
+    }
 
     match context {
         // Step 6. If context is "attribute" and localName
