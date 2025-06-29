@@ -4,7 +4,6 @@
 
 use std::cell::RefCell;
 use std::collections::BTreeSet;
-use std::net::TcpStream;
 
 use base::id::PipelineId;
 use serde::Serialize;
@@ -12,8 +11,8 @@ use serde_json::{Map, Value};
 use servo_url::ServoUrl;
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::protocol::JsonPacketStream;
+use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::protocol::ClientRequest;
 
 /// A `sourceForm` as used in responses to thread `sources` requests.
 ///
@@ -134,13 +133,13 @@ impl Actor for SourceActor {
 
     fn handle_message(
         &self,
+        request: ClientRequest,
         _registry: &ActorRegistry,
         msg_type: &str,
         _msg: &Map<String, Value>,
-        stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
-        Ok(match msg_type {
+    ) -> Result<(), ActorError> {
+        match msg_type {
             // Client has requested contents of the source.
             "source" => {
                 let reply = SourceContentReply {
@@ -154,10 +153,10 @@ impl Actor for SourceActor {
                         .unwrap_or("<!-- not available; please reload! -->")
                         .to_owned(),
                 };
-                let _ = stream.write_json_packet(&reply);
-                ActorMessageStatus::Processed
+                request.reply_final(&reply)?
             },
-            _ => ActorMessageStatus::Ignored,
-        })
+            _ => return Err(ActorError::UnrecognizedPacketType),
+        };
+        Ok(())
     }
 }

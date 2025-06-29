@@ -6,7 +6,6 @@
 #![allow(dead_code)]
 
 use std::cell::RefCell;
-use std::error::Error;
 use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -21,10 +20,10 @@ use serde::{Serialize, Serializer};
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::framerate::FramerateActor;
 use crate::actors::memory::{MemoryActor, TimelineMemoryReply};
-use crate::protocol::JsonPacketStream;
+use crate::protocol::{ClientRequest, JsonPacketStream};
 
 pub struct TimelineActor {
     name: String,
@@ -191,13 +190,13 @@ impl Actor for TimelineActor {
 
     fn handle_message(
         &self,
+        request: ClientRequest,
         registry: &ActorRegistry,
         msg_type: &str,
         msg: &Map<String, Value>,
-        stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
-        Ok(match msg_type {
+    ) -> Result<(), ActorError> {
+        match msg_type {
             "start" => {
                 **self.is_recording.lock().as_mut().unwrap() = true;
 
@@ -211,7 +210,7 @@ impl Actor for TimelineActor {
                     .unwrap();
 
                 //TODO: support multiple connections by using root actor's streams instead.
-                *self.stream.borrow_mut() = stream.try_clone().ok();
+                *self.stream.borrow_mut() = request.try_clone_stream().ok();
 
                 // init memory actor
                 if let Some(with_memory) = msg.get("withMemory") {
@@ -236,7 +235,7 @@ impl Actor for TimelineActor {
                     self.name(),
                     registry.shareable(),
                     registry.start_stamp(),
-                    stream.try_clone().unwrap(),
+                    request.try_clone_stream().unwrap(),
                     self.memory_actor.borrow().clone(),
                     self.framerate_actor.borrow().clone(),
                 );
@@ -250,8 +249,7 @@ impl Actor for TimelineActor {
                         CrossProcessInstant::now(),
                     ),
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                request.reply_final(&msg)?
             },
 
             "stop" => {
@@ -263,7 +261,6 @@ impl Actor for TimelineActor {
                     ),
                 };
 
-                let _ = stream.write_json_packet(&msg);
                 self.script_sender
                     .send(DropTimelineMarkers(
                         self.pipeline_id,
@@ -282,7 +279,7 @@ impl Actor for TimelineActor {
 
                 **self.is_recording.lock().as_mut().unwrap() = false;
                 self.stream.borrow_mut().take();
-                ActorMessageStatus::Processed
+                request.reply_final(&msg)?
             },
 
             "isRecording" => {
@@ -291,12 +288,12 @@ impl Actor for TimelineActor {
                     value: *self.is_recording.lock().unwrap(),
                 };
 
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                request.reply_final(&msg)?
             },
 
-            _ => ActorMessageStatus::Ignored,
-        })
+            _ => return Err(ActorError::UnrecognizedPacketType),
+        };
+        Ok(())
     }
 }
 
@@ -330,7 +327,7 @@ impl Emitter {
         }
     }
 
-    fn send(&mut self, markers: Vec<TimelineMarkerReply>) -> Result<(), Box<dyn Error>> {
+    fn send(&mut self, markers: Vec<TimelineMarkerReply>) -> Result<(), ActorError> {
         let end_time = CrossProcessInstant::now();
         let reply = MarkersEmitterReply {
             type_: "markers".to_owned(),

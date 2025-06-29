@@ -7,7 +7,6 @@
 //! A group is either the html style attribute or one selector from one stylesheet.
 
 use std::collections::HashMap;
-use std::net::TcpStream;
 
 use devtools_traits::DevtoolScriptControlMsg::{
     GetAttributeStyle, GetComputedStyle, GetDocumentElement, GetStylesheetStyle, ModifyRule,
@@ -17,10 +16,10 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::inspector::node::NodeActor;
 use crate::actors::inspector::walker::WalkerActor;
-use crate::protocol::JsonPacketStream;
+use crate::protocol::ClientRequest;
 
 const ELEMENT_STYLE_TYPE: u32 = 100;
 
@@ -98,16 +97,20 @@ impl Actor for StyleRuleActor {
     ///   when returning the list of rules.
     fn handle_message(
         &self,
+        request: ClientRequest,
         registry: &ActorRegistry,
         msg_type: &str,
         msg: &Map<String, Value>,
-        stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
-        Ok(match msg_type {
+    ) -> Result<(), ActorError> {
+        match msg_type {
             "setRuleText" => {
                 // Parse the modifications sent from the client
-                let mods = msg.get("modifications").ok_or(())?.as_array().ok_or(())?;
+                let mods = msg
+                    .get("modifications")
+                    .ok_or(ActorError::MissingParameter)?
+                    .as_array()
+                    .ok_or(ActorError::BadParameterType)?;
                 let modifications: Vec<_> = mods
                     .iter()
                     .filter_map(|json_mod| {
@@ -125,13 +128,13 @@ impl Actor for StyleRuleActor {
                         registry.actor_to_script(self.node.clone()),
                         modifications,
                     ))
-                    .map_err(|_| ())?;
+                    .map_err(|_| ActorError::Internal)?;
 
-                let _ = stream.write_json_packet(&self.encodable(registry));
-                ActorMessageStatus::Processed
+                request.reply_final(&self.encodable(registry))?
             },
-            _ => ActorMessageStatus::Ignored,
-        })
+            _ => return Err(ActorError::UnrecognizedPacketType),
+        };
+        Ok(())
     }
 }
 

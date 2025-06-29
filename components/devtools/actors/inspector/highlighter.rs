@@ -5,16 +5,14 @@
 //! Handles highlighting selected DOM nodes in the inspector. At the moment it only replies and
 //! changes nothing on Servo's side.
 
-use std::net::TcpStream;
-
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg;
 use ipc_channel::ipc::IpcSender;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::protocol::JsonPacketStream;
+use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::protocol::ClientRequest;
 use crate::{EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
@@ -46,22 +44,20 @@ impl Actor for HighlighterActor {
     /// - `hide`: Disables highlighting for the selected node
     fn handle_message(
         &self,
+        request: ClientRequest,
         registry: &ActorRegistry,
         msg_type: &str,
         msg: &Map<String, Value>,
-        stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
-        Ok(match msg_type {
+    ) -> Result<(), ActorError> {
+        match msg_type {
             "show" => {
                 let Some(node_actor) = msg.get("node") else {
-                    // TODO: send missing parameter error
-                    return Ok(ActorMessageStatus::Ignored);
+                    return Err(ActorError::MissingParameter);
                 };
 
                 let Some(node_actor_name) = node_actor.as_str() else {
-                    // TODO: send invalid parameter error
-                    return Ok(ActorMessageStatus::Ignored);
+                    return Err(ActorError::BadParameterType);
                 };
 
                 if node_actor_name.starts_with("inspector") {
@@ -71,8 +67,7 @@ impl Actor for HighlighterActor {
                         from: self.name(),
                         value: false,
                     };
-                    let _ = stream.write_json_packet(&msg);
-                    return Ok(ActorMessageStatus::Processed);
+                    return request.reply_final(&msg);
                 }
 
                 self.instruct_script_thread_to_highlight_node(
@@ -83,20 +78,19 @@ impl Actor for HighlighterActor {
                     from: self.name(),
                     value: true,
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                request.reply_final(&msg)?
             },
 
             "hide" => {
                 self.instruct_script_thread_to_highlight_node(None, registry);
 
                 let msg = EmptyReplyMsg { from: self.name() };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                request.reply_final(&msg)?
             },
 
-            _ => ActorMessageStatus::Ignored,
-        })
+            _ => return Err(ActorError::UnrecognizedPacketType),
+        };
+        Ok(())
     }
 }
 

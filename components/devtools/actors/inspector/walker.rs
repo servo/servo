@@ -5,7 +5,6 @@
 //! The walker actor is responsible for traversing the DOM tree in various ways to create new nodes
 
 use std::cell::RefCell;
-use std::net::TcpStream;
 
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg::{GetChildren, GetDocumentElement};
@@ -14,10 +13,10 @@ use ipc_channel::ipc::{self, IpcSender};
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::inspector::layout::{LayoutInspectorActor, LayoutInspectorActorMsg};
 use crate::actors::inspector::node::{NodeActorMsg, NodeInfoToProtocol};
-use crate::protocol::JsonPacketStream;
+use crate::protocol::{ClientRequest, JsonPacketStream};
 use crate::{EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
@@ -64,7 +63,7 @@ struct GetLayoutInspectorReply {
 }
 
 #[derive(Serialize)]
-struct WatchRootNodeReply {
+struct WatchRootNodeNotification {
     #[serde(rename = "type")]
     type_: String,
     from: String,
@@ -94,7 +93,7 @@ struct GetOffsetParentReply {
 }
 
 #[derive(Serialize)]
-struct NewMutationsReply {
+struct NewMutationsNotification {
     from: String,
     #[serde(rename = "type")]
     type_: String,
@@ -123,24 +122,31 @@ impl Actor for WalkerActor {
     ///   node and its ascendents
     fn handle_message(
         &self,
+        mut request: ClientRequest,
         registry: &ActorRegistry,
         msg_type: &str,
         msg: &Map<String, Value>,
-        stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
-        Ok(match msg_type {
+    ) -> Result<(), ActorError> {
+        match msg_type {
             "children" => {
-                let target = msg.get("node").ok_or(())?.as_str().ok_or(())?;
-                let (tx, rx) = ipc::channel().map_err(|_| ())?;
+                let target = msg
+                    .get("node")
+                    .ok_or(ActorError::MissingParameter)?
+                    .as_str()
+                    .ok_or(ActorError::BadParameterType)?;
+                let (tx, rx) = ipc::channel().map_err(|_| ActorError::Internal)?;
                 self.script_chan
                     .send(GetChildren(
                         self.pipeline,
                         registry.actor_to_script(target.into()),
                         tx,
                     ))
-                    .map_err(|_| ())?;
-                let children = rx.recv().map_err(|_| ())?.ok_or(())?;
+                    .map_err(|_| ActorError::Internal)?;
+                let children = rx
+                    .recv()
+                    .map_err(|_| ActorError::Internal)?
+                    .ok_or(ActorError::Internal)?;
 
                 let msg = ChildrenReply {
                     has_first: true,
@@ -159,20 +165,21 @@ impl Actor for WalkerActor {
                         .collect(),
                     from: self.name(),
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                request.reply_final(&msg)?
             },
             "clearPseudoClassLocks" => {
                 let msg = EmptyReplyMsg { from: self.name() };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                request.reply_final(&msg)?
             },
             "documentElement" => {
-                let (tx, rx) = ipc::channel().map_err(|_| ())?;
+                let (tx, rx) = ipc::channel().map_err(|_| ActorError::Internal)?;
                 self.script_chan
                     .send(GetDocumentElement(self.pipeline, tx))
-                    .map_err(|_| ())?;
-                let doc_elem_info = rx.recv().map_err(|_| ())?.ok_or(())?;
+                    .map_err(|_| ActorError::Internal)?;
+                let doc_elem_info = rx
+                    .recv()
+                    .map_err(|_| ActorError::Internal)?
+                    .ok_or(ActorError::Internal)?;
                 let node = doc_elem_info.encode(
                     registry,
                     true,
@@ -185,8 +192,7 @@ impl Actor for WalkerActor {
                     from: self.name(),
                     node,
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                request.reply_final(&msg)?
             },
             "getLayoutInspector" => {
                 // TODO: Create actual layout inspector actor
@@ -198,8 +204,7 @@ impl Actor for WalkerActor {
                     from: self.name(),
                     actor,
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                request.reply_final(&msg)?
             },
             "getMutations" => {
                 let msg = GetMutationsReply {
@@ -216,20 +221,26 @@ impl Actor for WalkerActor {
                         })
                         .collect(),
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                request.reply_final(&msg)?
             },
             "getOffsetParent" => {
                 let msg = GetOffsetParentReply {
                     from: self.name(),
                     node: None,
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                request.reply_final(&msg)?
             },
             "querySelector" => {
-                let selector = msg.get("selector").ok_or(())?.as_str().ok_or(())?;
-                let node = msg.get("node").ok_or(())?.as_str().ok_or(())?;
+                let selector = msg
+                    .get("selector")
+                    .ok_or(ActorError::MissingParameter)?
+                    .as_str()
+                    .ok_or(ActorError::BadParameterType)?;
+                let node = msg
+                    .get("node")
+                    .ok_or(ActorError::MissingParameter)?
+                    .as_str()
+                    .ok_or(ActorError::BadParameterType)?;
                 let mut hierarchy = find_child(
                     &self.script_chan,
                     self.pipeline,
@@ -239,39 +250,38 @@ impl Actor for WalkerActor {
                     vec![],
                     |msg| msg.display_name == selector,
                 )
-                .map_err(|_| ())?;
+                .map_err(|_| ActorError::Internal)?;
                 hierarchy.reverse();
-                let node = hierarchy.pop().ok_or(())?;
+                let node = hierarchy.pop().ok_or(ActorError::Internal)?;
 
                 let msg = QuerySelectorReply {
                     from: self.name(),
                     node,
                     new_parents: hierarchy,
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                request.reply_final(&msg)?
             },
             "watchRootNode" => {
-                let msg = WatchRootNodeReply {
+                let msg = WatchRootNodeNotification {
                     type_: "root-available".into(),
                     from: self.name(),
                     node: self.root_node.clone(),
                 };
-                let _ = stream.write_json_packet(&msg);
+                let _ = request.write_json_packet(&msg);
 
                 let msg = EmptyReplyMsg { from: self.name() };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                request.reply_final(&msg)?
             },
-            _ => ActorMessageStatus::Ignored,
-        })
+            _ => return Err(ActorError::UnrecognizedPacketType),
+        };
+        Ok(())
     }
 }
 
 impl WalkerActor {
     pub(crate) fn new_mutations(
         &self,
-        stream: &mut TcpStream,
+        request: &mut ClientRequest,
         target: &str,
         modifications: &[AttrModification],
     ) {
@@ -279,7 +289,7 @@ impl WalkerActor {
             let mut mutations = self.mutations.borrow_mut();
             mutations.extend(modifications.iter().cloned().map(|m| (m, target.into())));
         }
-        let _ = stream.write_json_packet(&NewMutationsReply {
+        let _ = request.write_json_packet(&NewMutationsNotification {
             from: self.name(),
             type_: "newMutations".into(),
         });
