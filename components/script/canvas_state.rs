@@ -308,14 +308,12 @@ impl CanvasState {
             return;
         }
 
-        let (sender, receiver) = ipc::channel().unwrap();
         self.ipc_renderer
             .send(CanvasMsg::Canvas2d(
-                Canvas2dMsg::UpdateImage(sender, self.next_epoch()),
+                Canvas2dMsg::UpdateImage(self.next_epoch()),
                 self.canvas_id,
             ))
             .unwrap();
-        receiver.recv().unwrap();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions>

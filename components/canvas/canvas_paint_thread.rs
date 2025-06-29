@@ -284,9 +284,8 @@ impl CanvasPaintThread {
                 self.canvas(canvas_id)
                     .put_image_data(snapshot.to_owned(), rect);
             },
-            Canvas2dMsg::UpdateImage(sender, epoch) => {
+            Canvas2dMsg::UpdateImage(epoch) => {
                 self.canvas(canvas_id).update_image_rendering(epoch);
-                sender.send(()).unwrap();
             },
             Canvas2dMsg::PopClips(clips) => self.canvas(canvas_id).pop_clips(clips),
         }
