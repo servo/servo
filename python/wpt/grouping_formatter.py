@@ -34,6 +34,7 @@ class UnexpectedSubtestResult:
 @dataclass
 class UnexpectedResult:
     path: str
+    subsuite: str
     actual: str
     expected: str
     message: str
@@ -185,6 +186,7 @@ class ServoHandler(mozlog.reader.LogHandler):
         self.completed_tests += 1
         test_status = data["status"]
         test_path = data["test"]
+        test_subsuite = data["subsuite"]
         del self.running_tests[data["thread"]]
 
         had_expected_test_result = self.data_was_for_expected_result(data)
@@ -211,6 +213,7 @@ class ServoHandler(mozlog.reader.LogHandler):
         if self.currently_detecting_flakes:
             return UnexpectedResult(
                 test_path,
+                test_subsuite,
                 test_status,
                 data.get("expected", test_status),
                 data.get("message", ""),
@@ -229,6 +232,7 @@ class ServoHandler(mozlog.reader.LogHandler):
 
         result = UnexpectedResult(
             test_path,
+            test_subsuite,
             test_status,
             data.get("expected", test_status),
             data.get("message", ""),
