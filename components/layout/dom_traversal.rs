@@ -8,7 +8,7 @@ use std::iter::FusedIterator;
 use fonts::ByteIndex;
 use html5ever::{LocalName, local_name};
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
-use layout_api::{LayoutElementType, LayoutNodeType};
+use layout_api::{LayoutDamage, LayoutElementType, LayoutNodeType};
 use range::Range;
 use script::layout_dom::ServoLayoutNode;
 use selectors::Element as SelectorsElement;
@@ -85,6 +85,15 @@ impl<'dom> NodeAndStyleInfo<'dom> {
 
     pub(crate) fn get_selection_range(&self) -> Option<Range<ByteIndex>> {
         self.node.to_threadsafe().selection()
+    }
+
+    pub(crate) fn restyle_damage(&self) -> LayoutDamage {
+        self.node
+            .style_data()
+            .map(|style_data| {
+                LayoutDamage::from_bits_retain(style_data.element_data.borrow().damage.bits())
+            })
+            .unwrap_or_default()
     }
 }
 
@@ -278,6 +287,8 @@ fn traverse_element<'dom>(
             handler.handle_element(&info, display, contents, box_slot);
         },
     }
+
+    element.clear_restyle_damage();
 }
 
 fn traverse_eager_pseudo_element<'dom>(

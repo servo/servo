@@ -142,6 +142,8 @@ fn construct_for_root_element(
     let info = NodeAndStyleInfo::new(root_element, root_element.style(&context.style_context));
     let box_style = info.style.get_box();
 
+    root_element.clear_restyle_damage();
+
     let display_inside = match Display::from(box_style.display) {
         Display::None => {
             root_element.unset_all_boxes();
@@ -426,6 +428,14 @@ impl<'dom> IncrementalBoxTreeUpdate<'dom> {
         let mut invalidate_start_point = self.node;
         while let Some(parent_node) = invalidate_start_point.parent_node() {
             parent_node.invalidate_cached_fragment();
+
+            // Box tree reconstruction doesn't need to involve these ancestors, so their
+            // damage isn't useful for us.
+            //
+            // TODO: This isn't going to be good enough for incremental fragment tree
+            // reconstruction, as fragment tree damage might extend further up the tree.
+            parent_node.clear_restyle_damage();
+
             invalidate_start_point = parent_node;
         }
     }
