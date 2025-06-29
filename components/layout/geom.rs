@@ -1031,29 +1031,50 @@ impl Sizes {
         get_content_size: impl FnOnce() -> ContentSizes,
         is_table: bool,
     ) -> Au {
-        // The provided `get_content_size` is a FnOnce but we may need its result multiple times.
-        // A LazyCell will only invoke it once if needed, and then reuse the result.
-        let content_size = LazyCell::new(get_content_size);
-
         if is_table && axis == Direction::Block {
             // The intrinsic block size of a table already takes sizing properties into account,
             // but it can be a smaller amount if there are collapsed rows.
             // Therefore, disregard sizing properties and just defer to the intrinsic size.
             // This is being discussed in https://github.com/w3c/csswg-drafts/issues/11408
-            return content_size.max_content;
+            return get_content_size().max_content;
         }
-
-        let preferred =
-            self.preferred
-                .resolve_for_preferred(automatic_size, stretch_size, &content_size);
-        let min = self.min.resolve_for_min(
+        let (preferred, min, max) = self.resolve_each(
+            automatic_size,
             get_automatic_minimum_size,
             stretch_size,
-            &content_size,
+            get_content_size,
             is_table,
         );
-        let max = self.max.resolve_for_max(stretch_size, &content_size);
         preferred.clamp_between_extremums(min, max)
+    }
+
+    /// Resolves each of the three sizes into a numerical value, separately.
+    /// - The 1st returned value is the resolved preferred size.
+    /// - The 2nd returned value is the resolved minimum size.
+    /// - The 3rd returned value is the resolved maximum size. `None` means no maximum.
+    #[inline]
+    pub(crate) fn resolve_each(
+        &self,
+        automatic_size: Size<Au>,
+        get_automatic_minimum_size: impl FnOnce() -> Au,
+        stretch_size: Option<Au>,
+        get_content_size: impl FnOnce() -> ContentSizes,
+        is_table: bool,
+    ) -> (Au, Au, Option<Au>) {
+        // The provided `get_content_size` is a FnOnce but we may need its result multiple times.
+        // A LazyCell will only invoke it once if needed, and then reuse the result.
+        let content_size = LazyCell::new(get_content_size);
+        (
+            self.preferred
+                .resolve_for_preferred(automatic_size, stretch_size, &content_size),
+            self.min.resolve_for_min(
+                get_automatic_minimum_size,
+                stretch_size,
+                &content_size,
+                is_table,
+            ),
+            self.max.resolve_for_max(stretch_size, &content_size),
+        )
     }
 
     /// Tries to extrinsically resolve the three sizes into a single [`SizeConstraint`].

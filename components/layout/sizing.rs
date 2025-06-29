@@ -10,10 +10,11 @@ use std::ops::{Add, AddAssign};
 use app_units::Au;
 use malloc_size_of_derive::MallocSizeOf;
 use style::Zero;
+use style::logical_geometry::Direction;
 use style::values::computed::LengthPercentage;
 
 use crate::context::LayoutContext;
-use crate::geom::Size;
+use crate::geom::{Size, SizeConstraint};
 use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, LayoutStyle};
 use crate::{ConstraintSpace, IndefiniteContainingBlock, LogicalVec2};
 
@@ -125,7 +126,8 @@ pub(crate) fn outer_inline(
     is_replaced: bool,
     establishes_containing_block: bool,
     get_preferred_aspect_ratio: impl FnOnce(&LogicalVec2<Au>) -> Option<AspectRatio>,
-    get_content_size: impl FnOnce(&ConstraintSpace) -> InlineContentSizesResult,
+    get_inline_content_size: impl FnOnce(&ConstraintSpace) -> InlineContentSizesResult,
+    get_tentative_block_content_size: impl FnOnce(Option<AspectRatio>) -> Option<ContentSizes>,
 ) -> InlineContentSizesResult {
     let ContentBoxSizesAndPBM {
         content_box_sizes,
@@ -139,6 +141,7 @@ pub(crate) fn outer_inline(
         inline: pbm.padding_border_sums.inline + margin.inline_sum(),
     };
     let style = layout_style.style();
+    let is_table = layout_style.is_table();
     let content_size = LazyCell::new(|| {
         let constraint_space = if establishes_containing_block {
             let available_block_size = containing_block
@@ -153,15 +156,25 @@ pub(crate) fn outer_inline(
             } else {
                 Size::FitContent
             };
-            ConstraintSpace::new(
-                content_box_sizes.block.resolve_extrinsic(
-                    automatic_size,
-                    auto_minimum.block,
-                    available_block_size,
-                ),
-                style.writing_mode,
-                get_preferred_aspect_ratio(&pbm.padding_border_sums),
-            )
+            let aspect_ratio = get_preferred_aspect_ratio(&pbm.padding_border_sums);
+            let block_size =
+                if let Some(block_content_size) = get_tentative_block_content_size(aspect_ratio) {
+                    SizeConstraint::Definite(content_box_sizes.block.resolve(
+                        Direction::Block,
+                        automatic_size,
+                        || auto_minimum.block,
+                        available_block_size,
+                        || block_content_size,
+                        is_table,
+                    ))
+                } else {
+                    content_box_sizes.block.resolve_extrinsic(
+                        automatic_size,
+                        auto_minimum.block,
+                        available_block_size,
+                    )
+                };
+            ConstraintSpace::new(block_size, style.writing_mode, aspect_ratio)
         } else {
             // This assumes that there is no preferred aspect ratio, or that there is no
             // block size constraint to be transferred so the ratio is irrelevant.
@@ -172,7 +185,7 @@ pub(crate) fn outer_inline(
                 None,
             )
         };
-        get_content_size(&constraint_space)
+        get_inline_content_size(&constraint_space)
     });
     let resolve_non_initial = |inline_size, stretch_values| {
         Some(match inline_size {
@@ -246,7 +259,7 @@ pub(crate) fn outer_inline(
 
     // Regardless of their sizing properties, tables are always forced to be at least
     // as big as their min-content size, so floor the minimums.
-    if layout_style.is_table() {
+    if is_table {
         min_min_content.max_assign(content_size.sizes.min_content);
         min_max_content.max_assign(content_size.sizes.min_content);
         min_depends_on_block_constraints |= content_size.depends_on_block_constraints;

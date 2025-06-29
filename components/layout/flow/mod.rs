@@ -534,6 +534,7 @@ fn compute_inline_content_sizes_for_block_level_boxes(
                     |constraint_space| {
                         base.inline_content_sizes(layout_context, constraint_space, contents)
                     },
+                    |_aspect_ratio| None,
                 );
                 // A block in the same BFC can overlap floats, it's not moved next to them,
                 // so we shouldn't add its size to the size of the floats.
