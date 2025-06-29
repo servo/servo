@@ -353,7 +353,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         let draw_target = backend.create_drawtarget(size);
         let image_key = compositor_api.generate_image_key_blocking().unwrap();
         let (descriptor, data) = draw_target.image_descriptor_and_serializable_data();
-        compositor_api.add_image(image_key, descriptor, data);
+        compositor_api.add_image(image_key, descriptor, data, None);
         CanvasData {
             state: backend.new_paint_state(),
             backend,
@@ -1098,7 +1098,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         let (descriptor, data) = self.drawtarget.image_descriptor_and_serializable_data();
 
         self.compositor_api
-            .update_image(self.image_key, descriptor, data);
+            .update_image(self.image_key, descriptor, data, None);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata

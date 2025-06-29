@@ -908,7 +908,7 @@ impl WebGLThread {
         let data = Self::external_image_data(context_id, image_buffer_kind);
 
         let image_key = compositor_api.generate_image_key_blocking().unwrap();
-        compositor_api.add_image(image_key, descriptor, data);
+        compositor_api.add_image(image_key, descriptor, data, None);
 
         image_key
     }
@@ -928,7 +928,7 @@ impl WebGLThread {
         let image_data = Self::external_image_data(context_id, image_buffer_kind);
 
         self.compositor_api
-            .update_image(info.image_key, descriptor, image_data);
+            .update_image(info.image_key, descriptor, image_data, None);
     }
 
     /// Helper function to create a `ImageDescriptor`.
