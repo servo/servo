@@ -169,7 +169,18 @@ pub(crate) fn validate_and_extract(
     // SAFETY: there will be at least one
     let (prefix, local_name) = {
         let first = split.next().unwrap();
-        match split.next() {
+
+        let mut second = None;
+        while let Some(part) = split.next() {
+            // token has to be a sequence of codepoints, and empty slice does not
+            // count as a sequence of codepoints.
+            if !part.is_empty() {
+                second = Some(part);
+                break;
+            }
+        }
+
+        match second  {
             Some(second) => {
                 // Step 5. If prefix is not a valid namespace prefix,
                 // then throw an "InvalidCharacterError" DOMException.
