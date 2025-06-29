@@ -466,7 +466,7 @@ pub enum Canvas2dMsg {
     SetFont(FontStyleStruct),
     SetTextAlign(TextAlign),
     SetTextBaseline(TextBaseline),
-    UpdateImage(IpcSender<()>, Epoch),
+    UpdateImage(Epoch),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

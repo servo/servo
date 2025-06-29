@@ -113,7 +113,7 @@ pub enum WebGLMsg {
     /// The third field contains the time (in ns) when the request
     /// was initiated. The u64 in the second field will be the time the
     /// request is fulfilled
-    SwapBuffers(Vec<(WebGLContextId, Epoch)>, WebGLSender<u64>, u64),
+    SwapBuffers(Vec<(WebGLContextId, Epoch)>, u64),
     /// Frees all resources and closes the thread.
     Exit(IpcSender<()>),
 }
