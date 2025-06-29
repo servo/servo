@@ -2654,19 +2654,23 @@ impl Document {
             .filter(|(_, context)| context.onscreen())
             .for_each(|(_, context)| context.update_rendering());
 
-        let dirty_webgl_context_ids: Vec<_> = self
+        let dirty_webgl_context_ids_and_epochs: Vec<_> = self
             .dirty_webgl_contexts
             .borrow_mut()
             .drain()
             .filter(|(_, context)| context.onscreen())
-            .map(|(id, _)| id)
+            .map(|(id, context)| (id, context.next_epoch()))
             .collect();
-        if !dirty_webgl_context_ids.is_empty() {
+        if !dirty_webgl_context_ids_and_epochs.is_empty() {
             let (sender, receiver) = webgl::webgl_channel().unwrap();
             self.window
                 .webgl_chan()
                 .expect("Where's the WebGL channel?")
-                .send(WebGLMsg::SwapBuffers(dirty_webgl_context_ids, sender, 0))
+                .send(WebGLMsg::SwapBuffers(
+                    dirty_webgl_context_ids_and_epochs,
+                    sender,
+                    0,
+                ))
                 .unwrap();
             receiver.recv().unwrap();
         }

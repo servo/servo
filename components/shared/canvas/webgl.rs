@@ -7,6 +7,7 @@ use std::fmt;
 use std::num::{NonZeroU32, NonZeroU64};
 use std::ops::Deref;
 
+use base::Epoch;
 /// Receiver type used in WebGLCommands.
 pub use base::generic_channel::GenericReceiver as WebGLReceiver;
 /// Sender type used in WebGLCommands.
@@ -94,7 +95,12 @@ pub enum WebGLMsg {
         WebGLSender<Result<WebGLCreateContextResult, String>>,
     ),
     /// Resizes a WebGLContext.
-    ResizeContext(WebGLContextId, Size2D<u32>, WebGLSender<Result<(), String>>),
+    ResizeContext(
+        WebGLContextId,
+        Size2D<u32>,
+        WebGLSender<Result<(), String>>,
+        Epoch,
+    ),
     /// Drops a WebGLContext.
     RemoveContext(WebGLContextId),
     /// Runs a WebGLCommand in a specific WebGLContext.
@@ -107,7 +113,7 @@ pub enum WebGLMsg {
     /// The third field contains the time (in ns) when the request
     /// was initiated. The u64 in the second field will be the time the
     /// request is fulfilled
-    SwapBuffers(Vec<WebGLContextId>, WebGLSender<u64>, u64),
+    SwapBuffers(Vec<(WebGLContextId, Epoch)>, WebGLSender<u64>, u64),
     /// Frees all resources and closes the thread.
     Exit(IpcSender<()>),
 }
@@ -186,9 +192,10 @@ impl WebGLMsgSender {
         &self,
         size: Size2D<u32>,
         sender: WebGLSender<Result<(), String>>,
+        epoch: Epoch,
     ) -> WebGLSendResult {
         self.sender
-            .send(WebGLMsg::ResizeContext(self.ctx_id, size, sender))
+            .send(WebGLMsg::ResizeContext(self.ctx_id, size, sender, epoch))
     }
 
     #[inline]

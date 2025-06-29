@@ -8,6 +8,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::{slice, thread};
 
+use base::Epoch;
 use bitflags::bitflags;
 use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
 use canvas_traits::webgl;
@@ -367,8 +368,8 @@ impl WebGLThread {
                     }))
                     .unwrap();
             },
-            WebGLMsg::ResizeContext(ctx_id, size, sender) => {
-                let _ = sender.send(self.resize_webgl_context(ctx_id, size));
+            WebGLMsg::ResizeContext(ctx_id, size, sender, epoch) => {
+                let _ = sender.send(self.resize_webgl_context(ctx_id, size, epoch));
             },
             WebGLMsg::RemoveContext(ctx_id) => {
                 self.remove_webgl_context(ctx_id);
@@ -669,6 +670,7 @@ impl WebGLThread {
         &mut self,
         context_id: WebGLContextId,
         requested_size: Size2D<u32>,
+        epoch: Epoch,
     ) -> Result<(), String> {
         let data = Self::make_current_if_needed_mut(
             &self.device,
@@ -710,7 +712,7 @@ impl WebGLThread {
             .state
             .requested_flags
             .contains(ContextAttributeFlags::ALPHA);
-        self.update_wr_image_for_context(context_id, size.to_i32(), has_alpha);
+        self.update_wr_image_for_context(context_id, size.to_i32(), has_alpha, epoch);
 
         Ok(())
     }
@@ -765,12 +767,12 @@ impl WebGLThread {
 
     fn handle_swap_buffers(
         &mut self,
-        context_ids: Vec<WebGLContextId>,
+        context_ids: Vec<(WebGLContextId, Epoch)>,
         completed_sender: WebGLSender<u64>,
         _sent_time: u64,
     ) {
         debug!("handle_swap_buffers()");
-        for context_id in context_ids {
+        for (context_id, epoch) in context_ids {
             let data = Self::make_current_if_needed_mut(
                 &self.device,
                 context_id,
@@ -845,7 +847,7 @@ impl WebGLThread {
                 .state
                 .requested_flags
                 .contains(ContextAttributeFlags::ALPHA);
-            self.update_wr_image_for_context(context_id, size, has_alpha);
+            self.update_wr_image_for_context(context_id, size, has_alpha, epoch);
         }
 
         #[allow(unused)]
@@ -908,7 +910,7 @@ impl WebGLThread {
         let data = Self::external_image_data(context_id, image_buffer_kind);
 
         let image_key = compositor_api.generate_image_key_blocking().unwrap();
-        compositor_api.add_image(image_key, descriptor, data, None);
+        compositor_api.add_image(image_key, descriptor, data, Some(Epoch(0)));
 
         image_key
     }
@@ -920,6 +922,7 @@ impl WebGLThread {
         context_id: WebGLContextId,
         size: Size2D<i32>,
         has_alpha: bool,
+        epoch: Epoch,
     ) {
         let info = self.cached_context_info.get(&context_id).unwrap();
         let image_buffer_kind = current_wr_image_buffer_kind(&self.device);
@@ -928,7 +931,7 @@ impl WebGLThread {
         let image_data = Self::external_image_data(context_id, image_buffer_kind);
 
         self.compositor_api
-            .update_image(info.image_key, descriptor, image_data, None);
+            .update_image(info.image_key, descriptor, image_data, Some(epoch));
     }
 
     /// Helper function to create a `ImageDescriptor`.
