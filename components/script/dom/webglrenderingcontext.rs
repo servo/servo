@@ -941,8 +941,8 @@ impl WebGLRenderingContext {
         receiver.recv().unwrap()
     }
 
-    pub(crate) fn layout_handle(&self) -> Option<ImageKey> {
-        Some(self.webrender_image)
+    pub(crate) fn layout_handle(&self) -> Option<(ImageKey, Epoch)> {
+        Some((self.webrender_image, *self.image_epoch.borrow()))
     }
 
     // https://www.khronos.org/registry/webgl/extensions/ANGLE_instanced_arrays/
@@ -4947,7 +4947,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 }
 
 impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, WebGLRenderingContext> {
-    fn canvas_data_source(self) -> Option<ImageKey> {
+    fn canvas_data_source(self) -> Option<(ImageKey, Epoch)> {
         (*self.unsafe_get()).layout_handle()
     }
 }
