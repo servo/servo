@@ -137,6 +137,8 @@ pub enum CompositorMsg {
         display_list_descriptor: BuiltDisplayListDescriptor,
         /// An [ipc::IpcBytesReceiver] used to send the raw data of the display list.
         display_list_receiver: ipc::IpcBytesReceiver,
+        /// Sends message when display list is sent to WR
+        done: ipc::IpcSender<()>,
     },
     /// Perform a hit test operation. The result will be returned via
     /// the provided channel sender.
@@ -254,10 +256,12 @@ impl CrossProcessCompositorApi {
     ) {
         let (display_list_data, display_list_descriptor) = list.into_data();
         let (display_list_sender, display_list_receiver) = ipc::bytes_channel().unwrap();
+        let (sender, receiver) = ipc::channel().unwrap();
         if let Err(e) = self.0.send(CompositorMsg::SendDisplayList {
             webview_id,
             display_list_descriptor,
             display_list_receiver,
+            done: sender,
         }) {
             warn!("Error sending display list: {}", e);
         }
@@ -276,6 +280,9 @@ impl CrossProcessCompositorApi {
         }
         if let Err(error) = display_list_sender.send(&display_list_data.spatial_tree) {
             warn!("Error sending display spatial tree: {error}");
+        }
+        if let Err(error) = receiver.recv() {
+            warn!("Error receiving display list DONE: {error}");
         }
     }
 
