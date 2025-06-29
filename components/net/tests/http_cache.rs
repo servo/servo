@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::id::TEST_PIPELINE_ID;
+use base::id::{TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
 use http::StatusCode;
 use http::header::{EXPIRES, HeaderValue};
 use net::http_cache::HttpCache;
