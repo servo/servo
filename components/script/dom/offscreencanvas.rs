@@ -8,6 +8,7 @@ use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use js::rust::{HandleObject, HandleValue};
 use pixels::Snapshot;
+use script_bindings::weakref::WeakRef;
 
 use crate::canvas_context::{CanvasContext, OffscreenRenderingContext};
 use crate::dom::bindings::cell::{DomRefCell, Ref};
@@ -38,7 +39,7 @@ pub(crate) struct OffscreenCanvas {
     context: DomRefCell<Option<OffscreenRenderingContext>>,
 
     /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-placeholder>
-    placeholder: Option<Dom<HTMLCanvasElement>>,
+    placeholder: Option<WeakRef<HTMLCanvasElement>>,
 }
 
 impl OffscreenCanvas {
@@ -47,12 +48,13 @@ impl OffscreenCanvas {
         height: u64,
         placeholder: Option<&HTMLCanvasElement>,
     ) -> OffscreenCanvas {
+        let placeholder = placeholder.map(WeakRef::new);
         OffscreenCanvas {
             eventtarget: EventTarget::new_inherited(),
             width: Cell::new(width),
             height: Cell::new(height),
             context: DomRefCell::new(None),
-            placeholder: placeholder.map(Dom::from_ref),
+            placeholder,
         }
     }
 
@@ -126,8 +128,8 @@ impl OffscreenCanvas {
         Some(context)
     }
 
-    pub(crate) fn placeholder(&self) -> Option<&HTMLCanvasElement> {
-        self.placeholder.as_deref()
+    pub(crate) fn placeholder(&self) -> Option<&WeakRef<HTMLCanvasElement>> {
+        self.placeholder.as_ref()
     }
 }
 
@@ -182,7 +184,9 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         }
 
         if let Some(canvas) = &self.placeholder {
-            canvas.set_natural_width(value as _, can_gc);
+            if let Some(c) = canvas.root() {
+                c.set_natural_width(value as _, can_gc)
+            };
         }
     }
 
@@ -200,7 +204,9 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         }
 
         if let Some(canvas) = &self.placeholder {
-            canvas.set_natural_height(value as _, can_gc);
+            if let Some(c) = canvas.root() {
+                c.set_natural_height(value as _, can_gc)
+            };
         }
     }
 }
