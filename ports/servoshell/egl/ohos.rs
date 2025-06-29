@@ -101,6 +101,7 @@ pub(super) enum ServoAction {
     ImeDeleteBackward(usize),
     ImeSendEnter,
     Initialize(Box<InitOpts>),
+    DeInit(),
     Vsync,
     Resize {
         width: i32,
@@ -195,6 +196,13 @@ impl ServoAction {
             },
             Initialize(_init_opts) => {
                 panic!("Received Initialize event, even though servo is already initialized")
+            },
+            DeInit() => {
+                info!("deinit function called");
+                let servo_clone = Rc::clone(&servo);
+                if let Some(app_state) = Rc::into_inner(servo_clone) {
+                    app_state.deinit()
+                }
             },
             Vsync => {
                 servo.notify_vsync();
@@ -425,8 +433,12 @@ extern "C" fn on_surface_changed_cb(
     }
 }
 
-extern "C" fn on_surface_destroyed_cb(_component: *mut OH_NativeXComponent, _window: *mut c_void) {
-    error!("on_surface_destroyed_cb is currently not implemented");
+extern "C" fn on_surface_destroyed_cb(
+    xcomponent: *mut OH_NativeXComponent,
+    native_window: *mut c_void,
+) {
+    call(ServoAction::DeInit());
+    debug!("on_surface_changed_cb: xc: {xcomponent:?}, window: {native_window:?}");
 }
 
 extern "C" fn on_dispatch_touch_event_cb(component: *mut OH_NativeXComponent, window: *mut c_void) {
