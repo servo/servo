@@ -10,4 +10,5 @@ pub(crate) trait WebGLValidator {
 }
 
 pub(crate) mod tex_image_2d;
+pub(crate) mod tex_image_3d;
 pub(crate) mod types;
