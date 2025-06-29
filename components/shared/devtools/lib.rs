@@ -108,6 +108,11 @@ pub enum ScriptToDevtoolsControlMsg {
     CreateSourceActor(PipelineId, SourceInfo),
 
     UpdateSourceContent(PipelineId, String),
+
+    WillNavigate {
+        browsing_context_id: BrowsingContextId,
+        url: ServoUrl,
+    },
 }
 
 /// Serialized JS return values
@@ -444,6 +449,7 @@ pub struct HttpRequest {
     pub connect_time: Duration,
     pub send_time: Duration,
     pub is_xhr: bool,
+    pub browsing_context_id: BrowsingContextId,
 }
 
 #[derive(Debug, PartialEq)]
@@ -452,6 +458,7 @@ pub struct HttpResponse {
     pub status: HttpStatus,
     pub body: Option<Vec<u8>>,
     pub pipeline_id: PipelineId,
+    pub browsing_context_id: BrowsingContextId,
 }
 
 #[derive(Debug)]
