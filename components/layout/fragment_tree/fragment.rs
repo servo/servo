@@ -5,6 +5,7 @@
 use std::sync::Arc;
 
 use app_units::Au;
+use base::Epoch;
 use base::id::PipelineId;
 use base::print_tree::PrintTree;
 use euclid::{Point2D, Rect, Size2D, UnknownUnit};
@@ -83,6 +84,7 @@ pub(crate) struct ImageFragment {
     pub rect: PhysicalRect<Au>,
     pub clip: PhysicalRect<Au>,
     pub image_key: Option<ImageKey>,
+    pub image_epoch: Option<Epoch>,
 }
 
 #[derive(MallocSizeOf)]

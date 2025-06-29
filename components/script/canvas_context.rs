@@ -4,6 +4,7 @@
 
 //! Common interfaces for Canvas Contexts
 
+use base::Epoch;
 use euclid::default::Size2D;
 use layout_api::HTMLCanvasData;
 use pixels::Snapshot;
@@ -23,7 +24,7 @@ use crate::dom::types::{
 
 pub(crate) trait LayoutCanvasRenderingContextHelpers {
     /// `None` is rendered as transparent black (cleared canvas)
-    fn canvas_data_source(self) -> Option<ImageKey>;
+    fn canvas_data_source(self) -> Option<(ImageKey, Epoch)>;
 }
 
 pub(crate) trait LayoutHTMLCanvasElementHelpers {
