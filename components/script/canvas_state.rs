@@ -248,6 +248,10 @@ impl CanvasState {
             .unwrap()
     }
 
+    pub(crate) fn current_epoch(&self) -> Epoch {
+        *self.image_epoch.borrow()
+    }
+
     fn next_epoch(&self) -> Epoch {
         self.image_epoch.borrow_mut().next();
         *self.image_epoch.borrow()
