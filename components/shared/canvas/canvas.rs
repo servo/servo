@@ -5,6 +5,7 @@
 use std::default::Default;
 use std::str::FromStr;
 
+use base::Epoch;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use ipc_channel::ipc::{IpcBytesReceiver, IpcSender};
 use malloc_size_of_derive::MallocSizeOf;
@@ -81,7 +82,7 @@ pub struct CanvasId(pub u64);
 pub enum CanvasMsg {
     Canvas2d(Canvas2dMsg, CanvasId),
     FromScript(FromScriptMsg, CanvasId),
-    Recreate(Option<Size2D<u64>>, CanvasId),
+    Recreate(Option<Size2D<u64>>, CanvasId, Epoch),
     Close(CanvasId),
 }
 
@@ -134,7 +135,7 @@ pub enum Canvas2dMsg {
     SetFont(FontStyleStruct),
     SetTextAlign(TextAlign),
     SetTextBaseline(TextBaseline),
-    UpdateImage(IpcSender<()>),
+    UpdateImage(IpcSender<()>, Epoch),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

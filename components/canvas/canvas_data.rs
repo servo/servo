@@ -7,6 +7,7 @@ use std::mem;
 use std::sync::Arc;
 
 use app_units::Au;
+use base::Epoch;
 use canvas_traits::canvas::*;
 use compositing_traits::{CrossProcessCompositorApi, SerializableImageData};
 use euclid::default::{Box2D, Point2D, Rect, Size2D, Transform2D, Vector2D};
@@ -431,7 +432,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         };
         let data =
             SerializableImageData::Raw(IpcSharedMemory::from_bytes(draw_target.bytes().as_ref()));
-        compositor_api.add_image(image_key, descriptor, data, None);
+        compositor_api.add_image(image_key, descriptor, data, Some(Epoch(0)));
         CanvasData {
             state: backend.new_paint_state(),
             backend,
@@ -1175,7 +1176,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#reset-the-rendering-context-to-its-default-state>
-    pub(crate) fn recreate(&mut self, size: Option<Size2D<u64>>) {
+    pub(crate) fn recreate(&mut self, size: Option<Size2D<u64>>, epoch: Epoch) {
         let size = size
             .unwrap_or_else(|| self.drawtarget.get_size().to_u64())
             .max(MIN_WR_IMAGE_SIZE);
@@ -1195,11 +1196,11 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         // initial values.
         self.state = self.backend.new_paint_state();
 
-        self.update_image_rendering();
+        self.update_image_rendering(epoch);
     }
 
     /// Update image in WebRender
-    pub(crate) fn update_image_rendering(&mut self) {
+    pub(crate) fn update_image_rendering(&mut self, epoch: Epoch) {
         let descriptor = ImageDescriptor {
             size: self.drawtarget.get_size().cast_unit(),
             stride: None,
@@ -1212,7 +1213,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         ));
 
         self.compositor_api
-            .update_image(self.image_key, descriptor, data, None);
+            .update_image(self.image_key, descriptor, data, Some(epoch));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
