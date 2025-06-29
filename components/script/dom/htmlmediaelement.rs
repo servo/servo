@@ -224,6 +224,7 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                         current_frame.image_key,
                         descriptor,
                         SerializableImageData::Raw(IpcSharedMemory::from_bytes(&frame.get_data())),
+                        None,
                     ));
                 }
 

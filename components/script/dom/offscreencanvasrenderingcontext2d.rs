@@ -97,6 +97,10 @@ impl CanvasContext for OffscreenCanvasRenderingContext2D {
     fn origin_is_clean(&self) -> bool {
         self.context.origin_is_clean()
     }
+
+    fn image_key(&self) -> Option<webrender_api::ImageKey> {
+        None
+    }
 }
 
 impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>

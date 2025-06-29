@@ -992,6 +992,10 @@ impl CanvasContext for WebGL2RenderingContext {
     fn mark_as_dirty(&self) {
         self.base.mark_as_dirty()
     }
+
+    fn image_key(&self) -> Option<ImageKey> {
+        self.base.image_key()
+    }
 }
 
 impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingContext {

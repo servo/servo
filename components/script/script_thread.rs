@@ -1424,6 +1424,13 @@ impl ScriptThread {
                 )) => {
                     self.set_needs_rendering_update();
                 },
+                MixedMessage::FromConstellation(
+                    ScriptThreadMessage::NoLongerWaitingOnAsychronousImageUpdates(pipeline_id),
+                ) => {
+                    if let Some(document) = self.documents.borrow().find_document(pipeline_id) {
+                        document.handle_no_longer_waiting_on_asynchronous_image_updates();
+                    }
+                },
                 MixedMessage::FromConstellation(ScriptThreadMessage::SendInputEvent(id, event)) => {
                     self.handle_input_event(id, event)
                 },
@@ -1891,6 +1898,7 @@ impl ScriptThread {
             msg @ ScriptThreadMessage::ExitFullScreen(..) |
             msg @ ScriptThreadMessage::SendInputEvent(..) |
             msg @ ScriptThreadMessage::TickAllAnimations(..) |
+            msg @ ScriptThreadMessage::NoLongerWaitingOnAsychronousImageUpdates(..) |
             msg @ ScriptThreadMessage::ExitScriptThread => {
                 panic!("should have handled {:?} already", msg)
             },

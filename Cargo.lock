@@ -1137,6 +1137,7 @@ name = "canvas"
 version = "0.0.1"
 dependencies = [
  "app_units",
+ "base",
  "bytemuck",
  "canvas_traits",
  "compositing_traits",

@@ -6,6 +6,7 @@ use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::{f32, thread};
 
+use base::Epoch;
 use canvas_traits::ConstellationCanvasMsg;
 use canvas_traits::canvas::*;
 use compositing_traits::CrossProcessCompositorApi;
@@ -253,9 +254,8 @@ impl CanvasPaintThread {
                 self.canvas(canvas_id)
                     .put_image_data(snapshot.to_owned(), rect);
             },
-            Canvas2dMsg::UpdateImage(sender) => {
-                self.canvas(canvas_id).update_image_rendering();
-                sender.send(()).unwrap();
+            Canvas2dMsg::UpdateImage(canvas_epoch) => {
+                self.canvas(canvas_id).update_image_rendering(canvas_epoch);
             },
             Canvas2dMsg::PopClips(clips) => self.canvas(canvas_id).pop_clips(clips),
         }
@@ -526,12 +526,12 @@ impl Canvas {
         }
     }
 
-    fn update_image_rendering(&mut self) {
+    fn update_image_rendering(&mut self, canvas_epoch: Option<Epoch>) {
         match self {
             #[cfg(feature = "vello")]
-            Canvas::Vello(canvas_data) => canvas_data.update_image_rendering(),
+            Canvas::Vello(canvas_data) => canvas_data.update_image_rendering(canvas_epoch),
             #[cfg(feature = "vello_cpu")]
-            Canvas::VelloCPU(canvas_data) => canvas_data.update_image_rendering(),
+            Canvas::VelloCPU(canvas_data) => canvas_data.update_image_rendering(canvas_epoch),
         }
     }
 
