@@ -17,7 +17,6 @@ use style::logical_geometry::Direction;
 use style::properties::ComputedValues;
 use style::properties::longhands::align_items::computed_value::T as AlignItems;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
-use style::properties::longhands::flex_direction::computed_value::T as FlexDirection;
 use style::properties::longhands::flex_wrap::computed_value::T as FlexWrap;
 use style::values::computed::LengthPercentage;
 use style::values::generics::flex::GenericFlexBasis as FlexBasis;
@@ -640,9 +639,6 @@ impl FlexContainer {
         depends_on_block_constraints: bool,
         lazy_block_size: &LazySize,
     ) -> CacheableLayoutResult {
-        let depends_on_block_constraints =
-            depends_on_block_constraints || self.config.flex_direction == FlexDirection::Column;
-
         let mut flex_context = FlexContext {
             config: self.config.clone(),
             layout_context,
