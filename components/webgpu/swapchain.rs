@@ -344,6 +344,7 @@ impl crate::WGPU {
             image_key,
             context_data.image_desc.0,
             SerializableImageData::External(context_data.image_data),
+            None,
         );
         assert!(
             self.wgpu_image_map
@@ -425,6 +426,7 @@ impl crate::WGPU {
                 context_data.image_key,
                 context_data.image_desc.0,
                 SerializableImageData::External(context_data.image_data),
+                None,
             );
         }
     }
@@ -577,6 +579,7 @@ fn update_wr_image(
                     context_data.image_key,
                     context_data.image_desc.0,
                     SerializableImageData::External(context_data.image_data),
+                    None,
                 );
                 if let Some(old_presentation_buffer) = old_presentation_buffer {
                     context_data.unmap_old_buffer(old_presentation_buffer)
