@@ -6,6 +6,7 @@
 
 use std::fmt::{Debug, Error, Formatter};
 
+use base::Epoch;
 use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::Sender;
 use embedder_traits::{AnimationState, EventLoopWaker, TouchEventResult};
@@ -268,8 +269,9 @@ impl CrossProcessCompositorApi {
         key: ImageKey,
         descriptor: ImageDescriptor,
         data: SerializableImageData,
+        epoch: Option<Epoch>,
     ) {
-        self.update_images([ImageUpdate::AddImage(key, descriptor, data)].into());
+        self.update_images([ImageUpdate::AddImage(key, descriptor, data, epoch)].into());
     }
 
     pub fn update_image(
@@ -277,8 +279,9 @@ impl CrossProcessCompositorApi {
         key: ImageKey,
         descriptor: ImageDescriptor,
         data: SerializableImageData,
+        epoch: Option<Epoch>,
     ) {
-        self.update_images([ImageUpdate::UpdateImage(key, descriptor, data)].into());
+        self.update_images([ImageUpdate::UpdateImage(key, descriptor, data, epoch)].into());
     }
 
     pub fn delete_image(&self, key: ImageKey) {
@@ -496,11 +499,21 @@ impl ExternalImageHandler for WebrenderExternalImageHandlers {
 /// Serializable image updates that must be performed by WebRender.
 pub enum ImageUpdate {
     /// Register a new image.
-    AddImage(ImageKey, ImageDescriptor, SerializableImageData),
+    AddImage(
+        ImageKey,
+        ImageDescriptor,
+        SerializableImageData,
+        Option<Epoch>,
+    ),
     /// Delete a previously registered image registration.
     DeleteImage(ImageKey),
     /// Update an existing image registration.
-    UpdateImage(ImageKey, ImageDescriptor, SerializableImageData),
+    UpdateImage(
+        ImageKey,
+        ImageDescriptor,
+        SerializableImageData,
+        Option<Epoch>,
+    ),
 }
 
 #[derive(Debug, Deserialize, Serialize)]

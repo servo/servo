@@ -43,7 +43,7 @@ use webrender_api::units::{
 use webrender_api::{
     self, BuiltDisplayList, DirtyRect, DisplayListPayload, DocumentId, Epoch as WebRenderEpoch,
     ExternalScrollId, FontInstanceFlags, FontInstanceKey, FontInstanceOptions, FontKey,
-    FontVariation, HitTestFlags, PipelineId as WebRenderPipelineId, PropertyBinding,
+    FontVariation, HitTestFlags, ImageKey, PipelineId as WebRenderPipelineId, PropertyBinding,
     ReferenceFrameKind, RenderReasons, SampledScrollOffset, ScrollLocation, SpaceAndClipInfo,
     SpatialId, SpatialTreeItemKey, TransformStyle,
 };
@@ -151,6 +151,9 @@ pub struct IOCompositor {
     /// A handle to the memory profiler which will automatically unregister
     /// when it's dropped.
     _mem_profiler_registration: ProfilerRegistration,
+
+    /// Epoch of WebRender's images
+    image_epochs: HashMap<ImageKey, Epoch>,
 }
 
 /// Why we need to be repainted. This is used for debugging.
@@ -332,6 +335,7 @@ impl IOCompositor {
             rendering_context: state.rendering_context,
             pending_frames: 0,
             _mem_profiler_registration: registration,
+            image_epochs: HashMap::new(),
         };
 
         {
@@ -691,11 +695,24 @@ impl IOCompositor {
                 let mut txn = Transaction::new();
                 for update in updates {
                     match update {
-                        ImageUpdate::AddImage(key, desc, data) => {
+                        ImageUpdate::AddImage(key, desc, data, epoch) => {
+                            if let Some(epoch) = epoch {
+                                assert!(self.image_epochs.insert(key, epoch).is_none());
+                            }
                             txn.add_image(key, desc, data.into(), None)
                         },
-                        ImageUpdate::DeleteImage(key) => txn.delete_image(key),
-                        ImageUpdate::UpdateImage(key, desc, data) => {
+                        ImageUpdate::DeleteImage(key) => {
+                            txn.delete_image(key);
+                            self.image_epochs.remove(&key);
+                        },
+                        ImageUpdate::UpdateImage(key, desc, data, epoch) => {
+                            if let Some(epoch) = epoch {
+                                if let Some(compositor_epoch) = self.image_epochs.get_mut(&key) {
+                                    *compositor_epoch = epoch
+                                } else {
+                                    warn!("Received epoch {epoch:?} for unknown image {key:?}");
+                                }
+                            }
                             txn.update_image(key, desc, data.into(), &DirtyRect::All)
                         },
                     }

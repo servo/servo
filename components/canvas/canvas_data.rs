@@ -119,7 +119,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         let mut draw_target = DrawTarget::new(size.cast());
         let image_key = compositor_api.generate_image_key_blocking().unwrap();
         let (descriptor, data) = draw_target.image_descriptor_and_serializable_data();
-        compositor_api.add_image(image_key, descriptor, data);
+        compositor_api.add_image(image_key, descriptor, data, None);
         CanvasData {
             drawtarget: draw_target,
             compositor_api,
@@ -652,7 +652,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         };
 
         self.compositor_api
-            .update_image(self.image_key, descriptor, data);
+            .update_image(self.image_key, descriptor, data, None);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
