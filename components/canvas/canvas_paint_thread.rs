@@ -281,9 +281,8 @@ impl<'a> CanvasPaintThread<'a> {
             Canvas2dMsg::SetTextBaseline(text_baseline) => {
                 self.canvas(canvas_id).set_text_baseline(text_baseline)
             },
-            Canvas2dMsg::UpdateImage(sender, epoch) => {
+            Canvas2dMsg::UpdateImage(epoch) => {
                 self.canvas(canvas_id).update_image_rendering(epoch);
-                sender.send(()).unwrap();
             },
         }
     }
