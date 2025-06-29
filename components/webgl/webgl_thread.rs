@@ -381,8 +381,8 @@ impl WebGLThread {
                 #[cfg(feature = "webxr")]
                 self.handle_webxr_command(_command);
             },
-            WebGLMsg::SwapBuffers(swap_ids, sender, sent_time) => {
-                self.handle_swap_buffers(swap_ids, sender, sent_time);
+            WebGLMsg::SwapBuffers(swap_ids, sent_time) => {
+                self.handle_swap_buffers(swap_ids, sent_time);
             },
             WebGLMsg::Exit(sender) => {
                 // Call remove_context functions in order to correctly delete WebRender image keys.
@@ -765,12 +765,7 @@ impl WebGLThread {
         self.bound_context_id = None;
     }
 
-    fn handle_swap_buffers(
-        &mut self,
-        context_ids: Vec<(WebGLContextId, Epoch)>,
-        completed_sender: WebGLSender<u64>,
-        _sent_time: u64,
-    ) {
+    fn handle_swap_buffers(&mut self, context_ids: Vec<(WebGLContextId, Epoch)>, _sent_time: u64) {
         debug!("handle_swap_buffers()");
         for (context_id, epoch) in context_ids {
             let data = Self::make_current_if_needed_mut(
@@ -852,7 +847,6 @@ impl WebGLThread {
 
         #[allow(unused)]
         let mut end_swap = 0;
-        completed_sender.send(end_swap).unwrap();
     }
 
     /// Which access mode to use
