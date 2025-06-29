@@ -1448,9 +1448,9 @@ impl TreeSink for Sink {
         &self,
         host: &Dom<Node>,
         template: &Dom<Node>,
-        attrs: Vec<Attribute>,
-    ) -> Result<(), String> {
-        attach_declarative_shadow_inner(host, template, attrs)
+        attributes: &[Attribute],
+    ) -> bool {
+        attach_declarative_shadow_inner(host, template, attributes)
     }
 }
 
@@ -1588,15 +1588,11 @@ impl TendrilSink<UTF8> for NetworkSink {
     }
 }
 
-fn attach_declarative_shadow_inner(
-    host: &Node,
-    template: &Node,
-    attrs: Vec<Attribute>,
-) -> Result<(), String> {
+fn attach_declarative_shadow_inner(host: &Node, template: &Node, attributes: &[Attribute]) -> bool {
     let host_element = host.downcast::<Element>().unwrap();
 
     if host_element.shadow_root().is_some() {
-        return Err(String::from("Already in a shadow host"));
+        return false;
     }
 
     let template_element = template.downcast::<HTMLTemplateElement>().unwrap();
@@ -1612,13 +1608,17 @@ fn attach_declarative_shadow_inner(
     let mut delegatesfocus = false;
     let mut serializable = false;
 
-    let attrs: Vec<ElementAttribute> = attrs
-        .clone()
-        .into_iter()
-        .map(|attr| ElementAttribute::new(attr.name, DOMString::from(String::from(attr.value))))
+    let attributes: Vec<ElementAttribute> = attributes
+        .iter()
+        .map(|attr| {
+            ElementAttribute::new(
+                attr.name.clone(),
+                DOMString::from(String::from(attr.value.clone())),
+            )
+        })
         .collect();
 
-    attrs
+    attributes
         .iter()
         .for_each(|attr: &ElementAttribute| match attr.name.local {
             local_name!("shadowrootmode") => {
@@ -1664,8 +1664,8 @@ fn attach_declarative_shadow_inner(
             // Step 8.5. Set shadow’s available to element internals to true.
             shadow_root.set_available_to_element_internals(true);
 
-            Ok(())
+            true
         },
-        Err(_) => Err(String::from("Attaching shadow fails")),
+        Err(_) => false,
     }
 }
