@@ -54,19 +54,17 @@ var testFuncs = {
     reject_async: (promiseFunc, source, t) => {
         return new Promise((resolve, reject) => {
             let taskRan = false;
-            Promise.resolve().then(() => {
-                promiseFunc(source).then(
-                    t.unreached_func('Expected this call to reject'),
-                    () => {
-                        try {
-                            assert_equals(taskRan, true, 'The promise should be rejected asynchronously')
-                            resolve(t);
-                        } catch (err) {
-                            reject(err)
-                        }
-                    },
-                );
-            });
+            promiseFunc(source).then(
+                t.unreached_func('Expected this call to reject'),
+                () => {
+                    try {
+                        assert_equals(taskRan, true, 'The promise should be rejected asynchronously')
+                        resolve(t);
+                    } catch (err) {
+                        reject(err)
+                    }
+                },
+            );
             Promise.resolve().then(() => {
                 taskRan = true;
             });

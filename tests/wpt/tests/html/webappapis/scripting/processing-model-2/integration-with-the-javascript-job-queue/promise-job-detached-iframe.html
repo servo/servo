@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+
+<script>
+function async_iframe_test(f, name) {
+  async_test(t => {
+    const iframe = document.createElement("iframe");
+    iframe.src = "resources/empty.html";
+    document.body.append(iframe);
+
+    iframe.onload = () => {
+      f(t, iframe);
+    };
+  }, name);
+}
+
+async_iframe_test((t, iframe) => {
+  // A promise reaction job is created with the iframe's realm, retrieved
+  // from the onFulfilled callback function.
+  const { p, result } = iframe.contentWindow.eval(`
+const result = { called: false };
+const p = Promise.resolve(1).then(function onFulfilled() {
+result.called = true;
+});
+({ p, result });
+`);
+
+  // The global becomes not-fully-active before the next microtask checkpoint.
+  iframe.remove();
+
+  // Verify the result after the next microtask checkpoint.
+  t.step_timeout(() => {
+    assert_equals(result.called, false);
+    t.done();
+  }, 0);
+}, "Reaction job should be skipped if onFulfilled handler belongs to detached iframe");
+
+async_iframe_test((t, iframe) => {
+  // A promise reaction job is created with the iframe's realm, retrieved
+  // from the onRejected callback function.
+  const { p, result } = iframe.contentWindow.eval(`
+const result = { called: false };
+const p = Promise.reject(1).then(() => {}, function onRejected() {
+result.called = true;
+});
+({ p, result });
+`);
+
+  // The global becomes not-fully-active before the next microtask checkpoint.
+  iframe.remove();
+
+  t.step_timeout(() => {
+    assert_equals(result.called, false);
+    t.done();
+  }, 0);
+}, "Reaction job should be skipped if onRejected handler belongs to detached iframe");
+
+async_iframe_test((t, iframe) => {
+  const p = iframe.contentWindow.eval(`Promise.resolve(1);`);
+
+  iframe.remove();
+
+  let called = false;
+
+  // A promise reaction job is created with the current realm, retrieved
+  // from the onFulfilled callback function.
+  p.then(function onFulfilled() {
+    called = true;
+  });
+
+  t.step_timeout(() => {
+    assert_equals(called, true);
+    t.done();
+  }, 0);
+}, "Reaction job should not be skipped if onFulfilled handler belongs to fully active global");
+
+async_iframe_test((t, iframe) => {
+  const p = iframe.contentWindow.eval(`Promise.reject(1);`);
+
+  iframe.remove();
+
+  let called = false;
+
+  // A promise reaction job is created with the current realm, retrieved
+  // from the onRejected callback function.
+  p.then(() => {}, function onRejected() {
+    called = true;
+  });
+
+  t.step_timeout(() => {
+    assert_equals(called, true);
+    t.done();
+  }, 0);
+}, "Reaction job should not be skipped if onRejected handler belongs to fully active global");
+
+async_iframe_test((t, iframe) => {
+  const p = iframe.contentWindow.eval(`Promise.resolve(1);`);
+
+  iframe.remove();
+
+  let called = false;
+
+  // A thenable job is created with the iframe's realm, retrieved from p.then
+  // function.
+  const p2 = Promise.resolve(p);
+
+  p2.then(function onFulfilled() {
+    called = true;
+  });
+
+  t.step_timeout(() => {
+    assert_equals(called, false);
+    t.done();
+  }, 0);
+}, "Thenable job for fulfilled promise should be skipped if it belongs to detached iframe");
+
+async_iframe_test((t, iframe) => {
+  const p = iframe.contentWindow.eval(`Promise.reject(1);`);
+
+  iframe.remove();
+
+  let called = false;
+
+  // A thenable job is created with the iframe's realm, retrieved from p.then
+  // function.
+  const p2 = Promise.resolve(p);
+
+  p2.then(() => {}, function onRejected() {
+    called = true;
+  });
+
+  t.step_timeout(() => {
+    assert_equals(called, false);
+    t.done();
+  }, 0);
+}, "Thenable job for rejected promise should be skipped if it belongs to detached iframe");
+
+async_iframe_test((t, iframe) => {
+  const p = iframe.contentWindow.eval(`Promise.resolve(1);`);
+
+  iframe.remove();
+
+  let called = false;
+
+  // In contrast to Promise.resolve, Promise.reject doesn't create a thenable
+  // job.
+  const p2 = Promise.reject(p);
+
+  p2.then(() => {}, function onRejected() {
+    called = true;
+  });
+
+  t.step_timeout(() => {
+    assert_equals(called, true);
+    t.done();
+  }, 0);
+}, "No job with detached iframe's realm should be used for Promise.reject on fulfilled promise");
+
+async_iframe_test((t, iframe) => {
+  const p = iframe.contentWindow.eval(`Promise.reject(1);`);
+
+  iframe.remove();
+
+  let called = false;
+
+  // In contrast to Promise.resolve, Promise.reject doesn't create a thenable
+  // job.
+  const p2 = Promise.reject(p);
+
+  p2.then(() => {}, function onRejected() {
+    called = true;
+  });
+
+  t.step_timeout(() => {
+    assert_equals(called, true);
+    t.done();
+  }, 0);
+}, "No job with detached iframe's realm should be used for Promise.reject on rejected promise");
+
+async_iframe_test((t, iframe) => {
+  const p = iframe.contentWindow.eval(`Promise.resolve(1);`);
+
+  iframe.remove();
+
+  let called = false;
+
+  // Promise.prototype.then resolves the result capability's promise with the
+  // handler's return value, and a thenable job is created with the iframe's
+  // realm, retrieved from p.then function.
+  const p2 = Promise.resolve(1).then(() => p);
+
+  p2.then(function onFulfilled() {
+    called = true;
+  });
+
+  t.step_timeout(() => {
+    assert_equals(called, false);
+    t.done();
+  }, 0);
+}, "Thenable job created by reaction job for fulfillment should be skipped if it belongs to detached iframe");
+
+async_iframe_test((t, iframe) => {
+  const p = iframe.contentWindow.eval(`Promise.resolve(1);`);
+
+  iframe.remove();
+
+  let called = false;
+
+  // Promise.prototype.then resolves the result capability's promise with the
+  // handler's return value, and a thenable job is created with the iframe's
+  // realm, retrieved from p.then function.
+  const p2 = Promise.reject(1).then(() => {}, () => p);
+
+  p2.then(function onFulfilled() {
+    called = true;
+  });
+
+  t.step_timeout(() => {
+    assert_equals(called, false);
+    t.done();
+  }, 0);
+}, "Thenable job created by reaction job for rejection should be skipped if it belongs to detached iframe");
+
+async_iframe_test((t, iframe) => {
+  const p = iframe.contentWindow.eval(`Promise.resolve(1);`);
+
+  iframe.remove();
+
+  let called = false;
+
+  // Promise.all internally performs Promise.resolve, and a thenable job
+  // is created with the iframe's realm, retrieved from p.then function.
+  const p2 = Promise.all([p]);
+
+  p2.then(function onFulfilled() {
+    called = true;
+  });
+
+  t.step_timeout(() => {
+    assert_equals(called, false);
+    t.done();
+  }, 0);
+}, "Thenable job created by Promise.all should be skipped if it belongs to detached iframe");
+
+async_iframe_test((t, iframe) => {
+  const p = iframe.contentWindow.eval(`Promise.resolve(1);`);
+
+  iframe.remove();
+
+  let called = false;
+
+  // Promise.allSettled internally performs Promise.resolve, and a thenable job
+  // is created with the iframe's realm, retrieved from p.then function.
+  const p2 = Promise.allSettled([p]);
+
+  p2.then(function onFulfilled() {
+    called = true;
+  });
+
+  t.step_timeout(() => {
+    assert_equals(called, false);
+    t.done();
+  }, 0);
+}, "Thenable job created by Promise.allSettled should be skipped if it belongs to detached iframe");
+
+async_iframe_test((t, iframe) => {
+  const p = iframe.contentWindow.eval(`Promise.resolve(1);`);
+
+  iframe.remove();
+
+  let called = false;
+
+  // Promise.any internally performs Promise.resolve, and a thenable job
+  // is created with the iframe's realm, retrieved from p.then function.
+  const p2 = Promise.any([p]);
+
+  p2.then(function onFulfilled() {
+    called = true;
+  });
+
+  t.step_timeout(() => {
+    assert_equals(called, false);
+    t.done();
+  }, 0);
+}, "Thenable job created by Promise.any should be skipped if it belongs to detached iframe");
+
+async_iframe_test((t, iframe) => {
+  const p = iframe.contentWindow.eval(`Promise.resolve(1);`);
+
+  iframe.remove();
+
+  let called = false;
+
+  // Promise.race internally performs Promise.resolve, and a thenable job
+  // is created with the iframe's realm, retrieved from p.then function.
+  const p2 = Promise.race([p]);
+
+  p2.then(function onFulfilled() {
+    called = true;
+  });
+
+  t.step_timeout(() => {
+    assert_equals(called, false);
+    t.done();
+  }, 0);
+}, "Thenable job created by Promise.race should be skipped if it belongs to detached iframe");
+</script>
+</body>

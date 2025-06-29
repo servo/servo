@@ -1,4 +1,6 @@
 import pytest
+
+from tests.bidi import wait_for_bidi_events
 from webdriver.error import TimeoutException
 from webdriver.bidi.modules.script import ContextTarget
 
@@ -24,9 +26,8 @@ async def test_not_unsubscribed(bidi_session):
 
     await bidi_session.browsing_context.create(type_hint="tab")
 
-    wait = AsyncPoll(bidi_session, timeout=0.5)
     with pytest.raises(TimeoutException):
-        await wait.until(lambda _: len(events) > 0)
+        await wait_for_bidi_events(bidi_session, events, 1, timeout=0.5)
 
     remove_listener()
 
@@ -160,11 +161,7 @@ async def test_navigate_creates_iframes(bidi_session, subscribe_events, top_cont
         context=top_context["context"], url=test_page_multiple_frames, wait="complete"
     )
 
-    wait = AsyncPoll(
-        bidi_session, message="Didn't receive context created events for frames"
-    )
-    await wait.until(lambda _: len(events) >= 2)
-    assert len(events) == 2
+    await wait_for_bidi_events(bidi_session, events, 2)
 
     # Get all browsing contexts from the first tab
     contexts = await bidi_session.browsing_context.get_tree(root=top_context["context"])
@@ -213,11 +210,7 @@ async def test_navigate_creates_nested_iframes(bidi_session, subscribe_events, t
         context=top_context["context"], url=test_page_nested_frames, wait="complete"
     )
 
-    wait = AsyncPoll(
-        bidi_session, message="Didn't receive context created events for frames"
-    )
-    await wait.until(lambda _: len(events) >= 2)
-    assert len(events) == 2
+    await wait_for_bidi_events(bidi_session, events, 2)
 
     # Get all browsing contexts from the first tab
     contexts = await bidi_session.browsing_context.get_tree(root=top_context["context"])
@@ -271,17 +264,15 @@ async def test_subscribe_to_one_context(
     await bidi_session.browsing_context.create(type_hint="tab")
 
     # Make sure we didn't receive the event for the new tab
-    wait = AsyncPoll(bidi_session, timeout=0.5)
     with pytest.raises(TimeoutException):
-        await wait.until(lambda _: len(events) > 0)
+        await wait_for_bidi_events(bidi_session, events, 1, timeout=0.5)
 
     await bidi_session.browsing_context.navigate(
         context=top_context["context"], url=test_page_same_origin_frame, wait="complete"
     )
 
     # Make sure we received the event for the iframe
-    await wait.until(lambda _: len(events) >= 1)
-    assert len(events) == 1
+    await wait_for_bidi_events(bidi_session, events, 1)
 
     remove_listener()
 

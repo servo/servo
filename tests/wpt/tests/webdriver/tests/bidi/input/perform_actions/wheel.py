@@ -4,10 +4,9 @@ from webdriver.bidi.error import MoveTargetOutOfBoundsException, NoSuchFrameExce
 from webdriver.bidi.modules.input import Actions, get_element_origin
 from webdriver.bidi.modules.script import ContextTarget
 
-from tests.support.sync import AsyncPoll
 from tests.support.keys import Keys
-from .. import get_events, get_object_from_context
-from . import get_shadow_root_from_test_page
+from .. import get_events, wait_for_events
+from . import assert_events, get_inview_center_bidi, get_shadow_root_from_test_page
 
 pytestmark = pytest.mark.asyncio
 
@@ -105,11 +104,7 @@ async def test_scroll_iframe(
     )
 
     # Chrome requires some time (~10-20ms) to process the event from the iframe, so we wait for it.
-    async def wait_for_events(_):
-        return len(await get_events(bidi_session, top_context["context"])) > 0
-
-    await AsyncPoll(bidi_session, timeout=0.5, interval=0.01, message='No wheel events emitted').until(wait_for_events)
-    events = await get_events(bidi_session, top_context["context"])
+    events = await wait_for_events(bidi_session, top_context["context"], 1, timeout=0.5, interval=0.02)
 
     assert len(events) == 1
     assert events[0]["type"] == "wheel"
@@ -121,11 +116,9 @@ async def test_scroll_iframe(
 
 @pytest.mark.parametrize("mode", ["open", "closed"])
 @pytest.mark.parametrize("nested", [False, True], ids=["outer", "inner"])
-async def test_scroll_shadow_tree(
-    bidi_session, top_context, get_test_page, mode, nested
-):
+async def test_scroll_shadow_tree(bidi_session, new_tab, get_test_page, mode, nested):
     await bidi_session.browsing_context.navigate(
-        context=top_context["context"],
+        context=new_tab["context"],
         url=get_test_page(
             shadow_doc="""
             <div id="scrollableShadowTree"
@@ -140,28 +133,45 @@ async def test_scroll_shadow_tree(
         wait="complete",
     )
 
-    shadow_root = await get_shadow_root_from_test_page(bidi_session, top_context, nested)
+    shadow_root = await get_shadow_root_from_test_page(bidi_session, new_tab, nested)
 
     # Add a simplified event recorder to track events in the test ShadowRoot.
     scrollable = await bidi_session.script.call_function(
         function_declaration="""shadowRoot => {
-            window.wheelEvents = [];
+            window.allEvents = { events: [] };
+
             const scrollable = shadowRoot.querySelector("#scrollableShadowTree");
-            scrollable.addEventListener("wheel",
-                function(event) {
-                    window.wheelEvents.push({
-                        "deltaX": event.deltaX,
-                        "deltaY": event.deltaY,
-                        "target": event.target.id
-                    });
-                }
-            );
+            scrollable.addEventListener("wheel", event => {
+                const data = {
+                    type: event.type,
+                    pageX: event.pageX,
+                    pageY: event.pageY,
+                    deltaX: event.deltaX,
+                    deltaY: event.deltaY,
+                    deltaZ: event.deltaZ,
+                    target: event.target.id || event.target.localName || event.target.documentElement?.localName,
+                };
+
+                window.allEvents.events.push(data);
+            });
+
+            scrollable.addEventListener("scroll", event => {
+                window.allEvents.events.push({
+                    type: event.type,
+                    target: event.target.id || event.target.localName || event.target.documentElement?.localName,
+                });
+            });
+
             return scrollable;
         }
         """,
         arguments=[shadow_root],
-        target=ContextTarget(top_context["context"]),
+        target=ContextTarget(new_tab["context"]),
         await_promise=False,
+    )
+
+    center = await get_inview_center_bidi(
+        bidi_session, context=new_tab, element=scrollable
     )
 
     actions = Actions()
@@ -174,17 +184,27 @@ async def test_scroll_shadow_tree(
     )
 
     await bidi_session.input.perform_actions(
-        actions=actions, context=top_context["context"]
+        actions=actions, context=new_tab["context"]
     )
 
-    events = await get_object_from_context(
-        bidi_session, top_context["context"], "window.wheelEvents"
-    )
+    expected_events = [
+        {
+            "type": "wheel",
+            "target": "scrollableShadowTreeContent",
+            "deltaX": 5,
+            "deltaY": 10,
+            "deltaZ": 0,
+            "pageX": pytest.approx(center["x"], abs=1.0),
+            "pageY": pytest.approx(center["y"], abs=1.0),
+        },
+        {
+            "type": "scroll",
+            "target": "scrollableShadowTree",
+        },
+    ]
 
-    assert len(events) == 1
-    assert events[0]["deltaX"] >= 5
-    assert events[0]["deltaY"] >= 10
-    assert events[0]["target"] == "scrollableShadowTreeContent"
+    events = await wait_for_events(bidi_session, new_tab["context"], 2, timeout=0.5, interval=0.02)
+    assert_events(events, expected_events)
 
 
 async def test_scroll_with_key_pressed(

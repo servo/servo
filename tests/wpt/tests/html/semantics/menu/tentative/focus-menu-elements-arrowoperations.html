@@ -24,30 +24,52 @@
 <script>
 
 const Enter = '\uE007';
-const Tab = '\uE004';
 const ArrowLeft = '\uE012';
 const ArrowUp = '\uE013';
 const ArrowRight = '\uE014';
 const ArrowDown = '\uE015';
 
 promise_test(async (t) => {
-  await test_driver.send_keys(document.activeElement, Tab);
+  await test_driver.click(btn);
   assert_equals(document.activeElement, btn);
   await test_driver.send_keys(document.activeElement, Enter);
   assert_equals(document.activeElement, btn, 'btn invoked menulist, but focus is still on btn.');
   await test_driver.send_keys(document.activeElement, ArrowDown);
   assert_equals(document.activeElement, A1, 'arrow down moves focus into menulist.');
-  await test_driver.send_keys(document.activeElement, ArrowLeft);
-  assert_equals(document.activeElement, A1, 'arrow left does not change current focused element.');
-  await test_driver.send_keys(document.activeElement, ArrowRight);
-  assert_equals(document.activeElement, A1, 'arrow right does not change current focused element.');
   await test_driver.send_keys(document.activeElement, ArrowDown);
   assert_equals(document.activeElement, A2, 'arrow down changes to next menuitem.');
   await test_driver.send_keys(document.activeElement, ArrowUp);
   assert_equals(document.activeElement, A1, 'arrow up changes to previous menuitem.');
   await test_driver.send_keys(document.activeElement, ArrowUp);
   assert_equals(document.activeElement, A1, 'arrow keys do not loop.');
+
+  list.hidePopover();
+  await test_driver.click(btn);
+  await test_driver.send_keys(document.activeElement, ArrowDown);
+  assert_equals(document.activeElement, A1, 'arrow down moves focus into menulist.');
+  await test_driver.send_keys(document.activeElement, ArrowLeft);
+  assert_equals(document.activeElement, btn, 'arrow left close the menulist and focus on invoker.');
+
+  await test_driver.click(btn);
+  await test_driver.send_keys(document.activeElement, ArrowDown);
+  assert_equals(document.activeElement, A1, 'arrow down moves focus into menulist.');
+  await test_driver.send_keys(document.activeElement, ArrowRight);
+  assert_equals(document.activeElement, btn, 'arrow right close the menulist and focus on invoker.');
 }, 'Should use arrow keys to move between menuitems in menulist.');
+
+promise_test(async (t) => {
+  list.style.display = 'block';
+  await test_driver.click(btn);
+  await test_driver.send_keys(document.activeElement, ArrowDown);
+  assert_equals(document.activeElement, A1, 'arrow down moves focus into menulist.');
+  await test_driver.send_keys(document.activeElement, ArrowDown);
+  assert_equals(document.activeElement, A2, 'arrow down changes to next menuitem.');
+  await test_driver.send_keys(document.activeElement, ArrowUp);
+  assert_equals(document.activeElement, A1, 'arrow up changes to previous menuitem.');
+  await test_driver.send_keys(document.activeElement, ArrowLeft);
+  assert_equals(document.activeElement, btn, 'arrow left moves focus from menulist to invoker.');
+  list.style.display = '';
+}, 'Should use arrow keys to move between menuitems in menulist with display block.');
 
 promise_test(async (t) => {
   await test_driver.click(B1);

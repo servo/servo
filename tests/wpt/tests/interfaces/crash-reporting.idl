@@ -3,11 +3,9 @@
 // (https://github.com/w3c/webref)
 // Source: Crash Reporting (https://wicg.github.io/crash-reporting/)
 
-[Exposed=(Window,Worker)]
-interface CrashReportBody : ReportBody {
-  [Default] object toJSON();
-  readonly attribute DOMString? reason;
-  readonly attribute DOMString? stack;
-  readonly attribute boolean? is_top_level;
-  readonly attribute DocumentVisibilityState? page_visibility;
+dictionary CrashReportBody : ReportBody {
+  DOMString? reason;
+  DOMString? stack;
+  boolean? is_top_level;
+  DocumentVisibilityState? page_visibility;
 };

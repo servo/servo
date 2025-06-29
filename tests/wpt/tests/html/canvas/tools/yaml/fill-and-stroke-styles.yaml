@@ -209,6 +209,11 @@
     css-color-4-rgb-5: {string: 'rgb(0, 0, 0 /)'}
     css-color-4-hsl-4: {string: 'hsl(0 100% 50% /)'}
     css-color-4-hsl-5: {string: 'hsl(0, 100%, 50% /)'}
+    # Malformed functions.
+    css-color-4-rgb-6: {string: 'rgb(from #ffffff r g b) 100%'}
+    css-color-4-rgb-7: {string: 'rgb(from #ffffff r g b) currentColor'}
+    css-color-4-hsl-6: {string: 'hsl(from #ffffff h s l) red'}
+    css-color-4-hsl-7: {string: 'hsl(from #ffffff h s l) /'}
 
 # Implemented as a negative test because we don't know what color it's meant to
 # be.

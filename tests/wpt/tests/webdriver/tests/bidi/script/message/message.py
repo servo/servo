@@ -1,9 +1,8 @@
 import pytest
-from tests.support.sync import AsyncPoll
-
 from webdriver.bidi.modules.script import ContextTarget
 from webdriver.error import TimeoutException
 
+from tests.bidi import wait_for_bidi_events
 
 pytestmark = pytest.mark.asyncio
 
@@ -83,9 +82,8 @@ async def test_subscribe_to_one_context(
     )
 
     # Make sure we didn't receive the event for the new tab
-    wait = AsyncPoll(bidi_session, timeout=0.5)
     with pytest.raises(TimeoutException):
-        await wait.until(lambda _: len(events) > 0)
+        await wait_for_bidi_events(bidi_session, events, 1, timeout=0.5)
 
     await bidi_session.script.call_function(
         raw_result=True,

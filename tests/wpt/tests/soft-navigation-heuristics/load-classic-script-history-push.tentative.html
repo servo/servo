@@ -10,22 +10,18 @@
 <script src="resources/soft-navigation-helper.js"></script>
 </head>
 <body>
-  <main id=main>
   <a id=link>Click me!</a>
+  <main id=main>
   </main>
   <script>
-    const link = document.getElementById("link");
     testSoftNavigation({
-      addContent: async () => {
-        await addImageToMain();
-      },
-      link: link,
-      pushState: async (url) => {
+      testName: "Detect a soft navigation triggered from external classic script",
+      pushState: (url) => {
         const script = document.createElement("script");
         script.src = "resources/history_push.js";
         document.body.appendChild(script);
       },
-      test: "Detect a soft navigation triggered from external classic script"});
+    });
   </script>
 </body>
 </html>

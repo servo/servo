@@ -21,16 +21,12 @@ async def test_classic_switch_to_parent_no_browsing_context(bidi_session, curren
     button = current_session.find.css("#remove-top", all=False)
     button.click()
 
+    # Wait until iframe is gone.
     async def is_frame_removed(_):
         contexts = await bidi_session.browsing_context.get_tree(root=current_session.window_handle)
-        return not contexts[0]["children"]
+        assert not contexts[0]["children"], "iframe that should be closed is still open"
 
-    # Wait until IFrame is gone.
-    wait = AsyncPoll(
-        current_session,
-        timeout=5,
-        message="IFrame that should be closed is still open",
-    )
+    wait = AsyncPoll(current_session)
     await wait.until(is_frame_removed)
 
     with pytest.raises(NoSuchWindowException):

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: elementFromPoint for ::scroll-button is scroller</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+
+  #scroller {
+    margin-top: 100px;
+    width: 600px;
+    height: 300px;
+    overflow: auto;
+    white-space: nowrap;
+  }
+
+  #scroller div {
+    display: inline-block;
+    width: 600px;
+    height: 200px;
+  }
+
+  #scroller::scroll-button(left) {
+    position: absolute;
+    top: 0;
+    left: 0;
+    content: "";
+    width: 100px;
+    height: 20px;
+    display: inline-block;
+  }
+</style>
+<div id="scroller">
+  <div></div>
+  <div></div>
+</div>
+<script>
+  test(() => {
+    assert_equals(document.elementFromPoint(10, 10), scroller);
+  });
+</script>

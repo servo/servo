@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Test caret-shape block color when the overlapping visible character's CSS color property is specified</title>
+<link rel=help href="https://drafts.csswg.org/css-ui/#caret-shape">
+<link rel=match href="caret-shape-block-color-003-ref.tentative.html">
+<meta name="assert"
+  content="Test checks that caret-shape block color has an opacity of 0.5 of the specified value of overlapping visible character's CSS color property">
+<style>
+  div {
+    font-size: 5em;
+  }
+
+  #target {
+    color: blue;
+    caret-shape: block;
+    caret-animation: manual;
+  }
+
+  #target:focus {
+    outline: none;
+  }
+</style>
+<div id="target" contenteditable>abc</div>
+<script>
+  target.focus();
+</script>

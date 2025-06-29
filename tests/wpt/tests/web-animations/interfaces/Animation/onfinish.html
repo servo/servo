@@ -115,5 +115,26 @@ promise_test(async t => {
 }, 'onfinish event is not fired when the animation falls out ' +
    'finished state immediately');
 
+promise_test(async t => {
+  const div = createDiv(t);
+  const animation = div.animate({ opacity: [1, 0]}, 100 * MS_PER_SEC);
+  const restart_after_finish_promise =
+      new Promise(async (resolve) => {
+    let results = [];
+    animation.onfinish = () => {
+      animation.play();
+      animation.ready.then(() => {
+        results.push(animation.ready);
+        resolve(results);
+      });
+    };
+    await animation.ready;
+    results.push(animation.ready);
+    animation.finish();
+  });
+  const results = await restart_after_finish_promise;
+  assert_not_equals(results[0], results[1],
+                    'Play created a new ready promise');
+}, 'Animation can be restarted from the onfinish event');
 </script>
 </body>
