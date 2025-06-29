@@ -261,6 +261,246 @@
                         .simulate_gatt_disconnection(params);
                 },
                 /**
+                 * Simulates a GATT service.
+                 * Matches the `bluetooth.simulateService
+                 * <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulateservice-command>`_
+                 * WebDriver BiDi command.
+                 *
+                 * @example
+                 * await test_driver.bidi.bluetooth.simulate_service({
+                 *     "address": "09:09:09:09:09:09",
+                 *     "uuid": "0000180d-0000-1000-8000-00805f9b34fb",
+                 *     "type": "add"
+                 * });
+                 *
+                 * @param {object} params - Parameters for the command.
+                 * @param {string} params.address - The address of the simulated bluetooth peripheral this service belongs to.
+                 * Matches the
+                 * `bluetooth.SimulateServiceParameters:address <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulateservice-command>`_
+                 * value.
+                 * @param {string} params.uuid - The uuid of the simulated GATT service.
+                 * Matches the
+                 * `bluetooth.SimulateServiceParameters:address <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulateservice-command>`_
+                 * value.
+                 * @param {string} params.type - The type of the GATT service simulation, either "add" or "remove".
+                 * Matches the
+                 * `bluetooth.SimulateServiceParameters:address <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulateservice-command>`_
+                 * value.
+                 * @param {Context} [params.context] The optional context parameter specifies in
+                 * which browsing context the GATT service should be simulated. If not
+                 * provided, the current browsing context is used.
+                 * @returns {Promise} fulfilled after the GATT service
+                 * is simulated, or rejected if the operation fails.
+                 */
+                simulate_service: function(params) {
+                    return window.test_driver_internal.bidi.bluetooth
+                        .simulate_service(params);
+                },
+                /**
+                 * Simulates a GATT characteristic.
+                 * Matches the `bluetooth.simulateCharacteristic
+                 * <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulatecharacteristic-command>`_
+                 * WebDriver BiDi command.
+                 *
+                 * @example
+                 * await test_driver.bidi.bluetooth.simulate_characteristic({
+                 *     "address": "09:09:09:09:09:09",
+                 *    "serviceUuid": "0000180d-0000-1000-8000-00805f9b34fb",
+                 *    "characteristicUuid": "00002a21-0000-1000-8000-00805f9b34fb",
+                 *    "characteristicProperties": {
+                 *      "read": true,
+                 *      "write": true,
+                 *      "notify": true
+                 *    },
+                 *    "type": "add"
+                 * });
+                 *
+                 * @param {object} params - Parameters for the command.
+                 * @param {string} params.address - The address of the simulated bluetooth peripheral the characterisitc belongs to.
+                 * Matches the
+                 * `bluetooth.SimulateCharacteristicParameters:address <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulatecharacteristic-command>`_
+                 * value.
+                 * @param {string} params.serviceUuid - The uuid of the simulated GATT service the characterisitc belongs to.
+                 * Matches the
+                 * `bluetooth.SimulateCharacteristicParameters:address <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulatecharacteristic-command>`_
+                 * value.
+                * @param {string} params.characteristicUuid - The uuid of the simulated GATT characteristic.
+                * Matches the
+                * `bluetooth.SimulateCharacteristicParameters:address <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulatecharacteristic-command>`_
+                * value.
+                * @param {string} params.characteristicProperties - The properties of the simulated GATT characteristic.
+                * Matches the
+                * `bluetooth.SimulateCharacteristicParameters:address <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulatecharacteristic-command>`_
+                * value.
+                * @param {string} params.type - The type of the GATT characterisitc simulation, either "add" or "remove".
+                * Matches the
+                * `bluetooth.SimulateCharacteristicParameters:address <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulatecharacteristic-command>`_
+                * value.
+                * @param {Context} [params.context] The optional context parameter specifies in
+                * which browsing context the GATT characteristic should be simulated. If not
+                * provided, the current browsing context is used.
+                * @returns {Promise} fulfilled after the GATT characteristic
+                * is simulated, or rejected if the operation fails.
+                */
+                simulate_characteristic: function(params) {
+                    return window.test_driver_internal.bidi.bluetooth
+                        .simulate_characteristic(params);
+                },
+                /**
+                 * Simulates a GATT characteristic response.
+                 * Matches the `bluetooth.simulateCharacteristicResponse
+                 * <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulatecharacteristicresponse-command>`_
+                 * WebDriver BiDi command.
+                 *
+                 * @example
+                 * await test_driver.bidi.bluetooth.simulate_characteristic({
+                 *     "address": "09:09:09:09:09:09",
+                 *    "serviceUuid": "0000180d-0000-1000-8000-00805f9b34fb",
+                 *    "characteristicUuid": "00002a21-0000-1000-8000-00805f9b34fb",
+                 *    "type": "read",
+                 *    "code": 0,
+                 *    "data": [1, 2]
+                 * });
+                 *
+                 * @param {object} params - Parameters for the command.
+                 * @param {string} params.address - The address of the simulated
+                 * bluetooth peripheral. Matches the
+                 * `bluetooth.SimulateCharacteristicResponseParameters:address <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulatecharacteristicresponse-command>`_
+                 * value.
+                 * @param {string} params.serviceUuid - The uuid of the simulated GATT service the characterisitc belongs to.
+                 * Matches the
+                 * `bluetooth.SimulateCharacteristicResponseParameters:address <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulatecharacteristicresponse-command>`_
+                 * value.
+                * @param {string} params.characteristicUuid - The uuid of the simulated characteristic.
+                * Matches the
+                * `bluetooth.SimulateCharacteristicResponseParameters:address <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulatecharacteristicresponse-command>`_
+                * value.
+                * @param {string} params.type - The type of the simulated GATT characteristic operation."
+                * Can be "read", "write", "subscribe-to-notifications" or "unsubscribe-from-notifications".
+                * Matches the
+                * `bluetooth.SimulateCharacteristicResponseParameters:address <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulatecharacteristicresponse-command>`_
+                * value.
+                * @param {string} params.code - The simulated GATT characteristic response code.
+                * Matches the
+                * `bluetooth.SimulateCharacteristicResponseParameters:address <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulatecharacteristicresponse-command>`_
+                * value.*
+                * @param {string} params.data - The data along with the simulated GATT characteristic response.
+                * Matches the
+                * `bluetooth.SimulateCharacteristicResponseParameters:address <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulatecharacteristicresponse-command>`_
+                * value.**
+                * @param {Context} [params.context] The optional context parameter specifies in
+                * which browsing context the GATT characteristic belongs to. If not
+                * provided, the current browsing context is used.
+                * @returns {Promise} fulfilled after the GATT characteristic
+                * is simulated, or rejected if the operation fails.
+                */
+                simulate_characteristic_response: function(params) {
+                    return window.test_driver_internal.bidi.bluetooth
+                        .simulate_characteristic_response(params);
+                },
+                /**
+                 * Simulates a GATT descriptor.
+                 * Matches the `bluetooth.simulateDescriptor
+                 * <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulatedescriptor-command>`_
+                 * WebDriver BiDi command.
+                 *
+                 * @example
+                 * await test_driver.bidi.bluetooth.simulate_descriptor({
+                 *     "address": "09:09:09:09:09:09",
+                 *    "serviceUuid": "0000180d-0000-1000-8000-00805f9b34fb",
+                 *    "characteristicUuid": "00002a21-0000-1000-8000-00805f9b34fb",
+                 *    "descriptorUuid": "00002901-0000-1000-8000-00805f9b34fb",
+                 *    "type": "add"
+                 * });
+                 *
+                 * @param {object} params - Parameters for the command.
+                 * @param {string} params.address - The address of the simulated bluetooth peripheral the descriptor belongs to.
+                 * Matches the
+                 * `bluetooth.SimulateDescriptorParameters:address <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulatedescriptor-command>`_
+                 * value.
+                 * @param {string} params.serviceUuid - The uuid of the simulated GATT service the descriptor belongs to.
+                 * Matches the
+                 * `bluetooth.SimulateDescriptorParameters:address <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulatedescriptor-command>`_
+                 * value.
+                * @param {string} params.characteristicUuid - The uuid of the simulated GATT characterisitc the descriptor belongs to.
+                 * Matches the
+                * `bluetooth.SimulateDescriptorParameters:address <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulatedescriptor-command>`_
+                * value.
+                * @param {string} params.descriptorUuid - The uuid of the simulated GATT descriptor.
+                *  Matches the
+                * `bluetooth.SimulateDescriptorParameters:address <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulatedescriptor-command>`_
+                * value.*
+                * @param {string} params.type - The type of the GATT descriptor simulation, either "add" or "remove".
+                * Matches the
+                * `bluetooth.SimulateDescriptorParameters:address <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulatedescriptor-command>`_
+                * value.
+                * @param {Context} [params.context] The optional context parameter specifies in
+                * which browsing context the GATT descriptor should be simulated. If not
+                * provided, the current browsing context is used.
+                * @returns {Promise} fulfilled after the GATT descriptor
+                * is simulated, or rejected if the operation fails.
+                */
+                simulate_descriptor: function(params) {
+                    return window.test_driver_internal.bidi.bluetooth
+                        .simulate_descriptor(params);
+                },
+                /**
+                 * Simulates a GATT descriptor response.
+                 * Matches the `bluetooth.simulateDescriptorResponse
+                 * <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulatedescriptorresponse-command>`_
+                 * WebDriver BiDi command.
+                 *
+                 * @example
+                 * await test_driver.bidi.bluetooth.simulate_descriptor_response({
+                 *     "address": "09:09:09:09:09:09",
+                 *    "serviceUuid": "0000180d-0000-1000-8000-00805f9b34fb",
+                 *    "characteristicUuid": "00002a21-0000-1000-8000-00805f9b34fb",
+                 *    "descriptorUuid": "00002901-0000-1000-8000-00805f9b34fb",
+                 *    "type": "read",
+                 *    "code": 0,
+                 *    "data": [1, 2]
+                 * });
+                 *
+                 * @param {object} params - Parameters for the command.
+                 * @param {string} params.address - The address of the simulated bluetooth peripheral the descriptor belongs to.
+                 * Matches the
+                 * `bluetooth.SimulateDescriptorResponseParameters:address <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulatedescriptorresponse-command>`_
+                 * value.
+                 * @param {string} params.serviceUuid - The uuid of the simulated GATT service the descriptor belongs to.
+                 * Matches the
+                 * `bluetooth.SimulateDescriptorResponseParameters:address <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulatedescriptorresponse-command>`_
+                 * value.
+                 * @param {string} params.characteristicUuid - The uuid of the simulated GATT characterisitc the descriptor belongs to.
+                 * Matches the
+                 * `bluetooth.SimulateDescriptorResponseParameters:address <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulatedescriptorresponse-command>`_
+                 * value.
+                * @param {string} params.descriptorUuid - The uuid of the simulated GATT descriptor.
+                * Matches the
+                * `bluetooth.SimulateDescriptorResponseParameters:address <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulatedescriptorresponse-command>`_
+                * value.
+                * @param {string} params.type - The type of the simulated GATT descriptor operation.
+                * Matches the
+                * `bluetooth.SimulateDescriptorResponseParameters:address <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulatedescriptorresponse-command>`_
+                * value.
+                * @param {string} params.code - The simulated GATT descriptor response code.
+                * Matches the
+                * `bluetooth.SimulateDescriptorResponseParameters:address <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulatedescriptorresponse-command>`_
+                * value.*
+                * @param {string} params.data - The data along with the simulated GATT descriptor response.
+                * Matches the
+                * `bluetooth.SimulateDescriptorResponseParameters:address <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulatedescriptorresponse-command>`_
+                * value.**
+                * @param {Context} [params.context] The optional context parameter specifies in
+                * which browsing context the GATT descriptor belongs to. If not
+                * provided, the current browsing context is used.
+                * @returns {Promise} fulfilled after the GATT descriptor response
+                * is simulated, or rejected if the operation fails.
+                */
+                simulate_descriptor_response: function(params) {
+                    return window.test_driver_internal.bidi.bluetooth
+                        .simulate_descriptor_response(params);
+                },
+                /**
                  * `bluetooth.RequestDevicePromptUpdatedParameters <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-requestdevicepromptupdated-event>`_
                  * event.
                  */
@@ -388,6 +628,140 @@
                             const remove_handler =
                                 window.test_driver_internal.bidi.bluetooth
                                     .gatt_connection_attempted.on(event => {
+                                    resolve(event);
+                                    remove_handler();
+                                });
+                        });
+                    },
+                },
+                /**
+                 * `bluetooth.CharacteristicEventGeneratedParameters <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-characteristiceventgenerated-event>`_
+                 * event.
+                 */
+                characteristic_event_generated: {
+                    /**
+                     * @typedef {object} CharacteristicEventGenerated
+                     * `bluetooth.CharacteristicEventGenerated <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-characteristiceventgenerated-event>`_
+                     * event.
+                     */
+
+                    /**
+                     * Subscribes to the event. Events will be emitted only if
+                     * there is a subscription for the event. This method does
+                     * not add actual listeners. To listen to the event, use the
+                     * `on` or `once` methods. The buffered events will be
+                     * emitted before the command promise is resolved.
+                     *
+                     * @param {object} [params] Parameters for the subscription.
+                     * @param {null|Array.<(Context)>} [params.contexts] The
+                     * optional contexts parameter specifies which browsing
+                     * contexts to subscribe to the event on. It should be
+                     * either an array of Context objects, or null. If null, the
+                     * event will be subscribed to globally. If omitted, the
+                     * event will be subscribed to on the current browsing
+                     * context.
+                     * @returns {Promise<void>} Resolves when the subscription
+                     * is successfully done.
+                     */
+                    subscribe: async function(params = {}) {
+                        assertBidiIsEnabled();
+                        return window.test_driver_internal.bidi.bluetooth
+                            .characteristic_event_generated.subscribe(params);
+                    },
+                    /**
+                     * Adds an event listener for the event.
+                     *
+                     * @param {function(CharacteristicEventGenerated): void} callback The
+                     * callback to be called when the event is emitted. The
+                     * callback is called with the event object as a parameter.
+                     * @returns {function(): void} A function that removes the
+                     * added event listener when called.
+                     */
+                    on: function(callback) {
+                        assertBidiIsEnabled();
+                        return window.test_driver_internal.bidi.bluetooth
+                            .characteristic_event_generated.on(callback);
+                    },
+                    /**
+                     * Adds an event listener for the event that is only called
+                     * once and removed afterward.
+                     *
+                     * @return {Promise<CharacteristicEventGenerated>} The promise which
+                     * is resolved with the event object when the event is emitted.
+                     */
+                    once: function() {
+                        assertBidiIsEnabled();
+                        return new Promise(resolve => {
+                            const remove_handler =
+                                window.test_driver_internal.bidi.bluetooth
+                                    .characteristic_event_generated.on(event => {
+                                    resolve(event);
+                                    remove_handler();
+                                });
+                        });
+                    },
+                },
+                /**
+                 * `bluetooth.DescriptorEventGeneratedParameters <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-descriptoreventgenerated-event>`_
+                 * event.
+                 */
+                descriptor_event_generated: {
+                    /**
+                     * @typedef {object} DescriptorEventGenerated
+                     * `bluetooth.DescriptorEventGenerated <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-descriptoreventgenerated-event>`_
+                     * event.
+                     */
+
+                    /**
+                     * Subscribes to the event. Events will be emitted only if
+                     * there is a subscription for the event. This method does
+                     * not add actual listeners. To listen to the event, use the
+                     * `on` or `once` methods. The buffered events will be
+                     * emitted before the command promise is resolved.
+                     *
+                     * @param {object} [params] Parameters for the subscription.
+                     * @param {null|Array.<(Context)>} [params.contexts] The
+                     * optional contexts parameter specifies which browsing
+                     * contexts to subscribe to the event on. It should be
+                     * either an array of Context objects, or null. If null, the
+                     * event will be subscribed to globally. If omitted, the
+                     * event will be subscribed to on the current browsing
+                     * context.
+                     * @returns {Promise<void>} Resolves when the subscription
+                     * is successfully done.
+                     */
+                    subscribe: async function(params = {}) {
+                        assertBidiIsEnabled();
+                        return window.test_driver_internal.bidi.bluetooth
+                            .descriptor_event_generated.subscribe(params);
+                    },
+                    /**
+                     * Adds an event listener for the event.
+                     *
+                     * @param {function(DescriptorEventGenerated): void} callback The
+                     * callback to be called when the event is emitted. The
+                     * callback is called with the event object as a parameter.
+                     * @returns {function(): void} A function that removes the
+                     * added event listener when called.
+                     */
+                    on: function(callback) {
+                        assertBidiIsEnabled();
+                        return window.test_driver_internal.bidi.bluetooth
+                            .descriptor_event_generated.on(callback);
+                    },
+                    /**
+                     * Adds an event listener for the event that is only called
+                     * once and removed afterward.
+                     *
+                     * @return {Promise<DescriptorEventGenerated>} The promise which
+                     * is resolved with the event object when the event is emitted.
+                     */
+                    once: function() {
+                        assertBidiIsEnabled();
+                        return new Promise(resolve => {
+                            const remove_handler =
+                                window.test_driver_internal.bidi.bluetooth
+                                    .descriptor_event_generated.on(event => {
                                     resolve(event);
                                     remove_handler();
                                 });
@@ -1780,6 +2154,26 @@
                     on() {
                         throw new Error(
                             'bidi.bluetooth.gatt_connection_attempted.on is not implemented by testdriver-vendor.js');
+                    }
+                },
+                characteristic_event_generated: {
+                    async subscribe() {
+                        throw new Error(
+                            'bidi.bluetooth.characteristic_event_generated.subscribe is not implemented by testdriver-vendor.js');
+                    },
+                    on() {
+                        throw new Error(
+                            'bidi.bluetooth.characteristic_event_generated.on is not implemented by testdriver-vendor.js');
+                    }
+                },
+                descriptor_event_generated: {
+                    async subscribe() {
+                        throw new Error(
+                            'bidi.bluetooth.descriptor_event_generated.subscribe is not implemented by testdriver-vendor.js');
+                    },
+                    on() {
+                        throw new Error(
+                            'bidi.bluetooth.descriptor_event_generated.on is not implemented by testdriver-vendor.js');
                     }
                 }
             },

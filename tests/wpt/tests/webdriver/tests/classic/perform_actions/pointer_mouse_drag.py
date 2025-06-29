@@ -39,28 +39,14 @@ def test_drag_and_drop(session,
     assert e["pageX"] == pytest.approx(initial_center["x"] + dx, abs=1.0)
     assert e["pageY"] == pytest.approx(initial_center["y"] + dy, abs=1.0)
 
-    final_rect = None
-
     def check_final_position(_):
-        nonlocal final_rect
+        assert drag_target.rect["x"] == pytest.approx(
+            initial_rect["x"] + dx, abs=1.0), "Dragged element did not reach final x position"
+        assert drag_target.rect["y"] == pytest.approx(
+            initial_rect["y"] + dy, abs=1.0), "Dragged element did not reach final y position"
 
-        final_rect = drag_target.rect
-        return (
-            final_rect["x"] == pytest.approx(
-                initial_rect["x"] + dx, abs=1.0) and
-            final_rect["y"] == pytest.approx(
-                initial_rect["y"] + dy, abs=1.0)
-
-        )
-
-    wait = Poll(
-        session, message="""Dragged element did not reach target position""")
+    wait = Poll(session)
     wait.until(check_final_position)
-
-    assert final_rect["x"] == pytest.approx(
-        initial_rect["x"] + dx, abs=1.0)
-    assert final_rect["y"] == pytest.approx(
-        initial_rect["y"] + dy, abs=1.0)
 
 
 @pytest.mark.parametrize("drag_duration", [0, 300, 800])

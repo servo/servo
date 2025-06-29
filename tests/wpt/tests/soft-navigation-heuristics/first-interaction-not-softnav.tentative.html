@@ -14,23 +14,19 @@
       <p><a id="secondlink">Then click me!</a></p>
     </main>
     <script>
-      const secondlink = document.getElementById("secondlink");
       testSoftNavigation({
-        preTestWork: async () => {
+        testName: "first interaction before a soft navigation",
+        clickTarget: document.getElementById("secondlink"),
+        extraSetup: async (t) => {
           if (test_driver) {
             const firstlink = document.getElementById("firstlink");
             const clickPromise = new Promise((r) => {
-              firstlink.addEventListener("click", r);
+              firstlink.addEventListener("click", r, { once: true });
             });
             test_driver.click(firstlink);
             await clickPromise;
           }
         },
-        addContent: () => {
-          addImageToMain();
-        },
-        link: secondlink,
-        test: "first interaction before a soft navigation",
       });
     </script>
   </body>

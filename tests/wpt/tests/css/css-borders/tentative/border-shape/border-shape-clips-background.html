@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<link rel="match" href="border-shape-clips-background-ref.html">
+<meta name="fuzzy" content="maxDifference=0-32;totalPixels=0-128">
+<style>
+#target {
+    width: 100px;
+    height: 100px;
+    border-shape: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+    stroke: purple;
+    stroke-width: 10px;
+    background: green;
+    border-radius: 10px;
+}
+</style>
+<div id="target"></div>

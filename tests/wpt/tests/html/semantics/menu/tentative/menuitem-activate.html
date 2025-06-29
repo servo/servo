@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<link rel=author href=mailto:dom@chromium.org>
+<link rel=help href=https://open-ui.org/components/menu.explainer>
+
+<menubar>
+ <menuitem id=menubarmenuitem commandfor=mainmenu command=toggle-menu>Open first menu</menuitem>
+</menubar>
+
+<menulist id=mainmenu>
+ <menuitem id=mainmenuitem command=toggle-menu commandfor=submenu>Toggle menu</menuitem>
+ <menuitem id=mainmenuitem2 command=toggle-popover commandfor=popover>Show popover</menuitem>
+</menulist>
+
+<menulist id=submenu>
+ <menuitem>First item!</menuitem>
+</menulist>
+
+<div popover id=popover></div>
+
+<script>
+promise_test(async () => {
+  assert_false(mainmenu.matches(":popover-open"), "mainmenu popover starts closed");
+  await test_driver.click(menubarmenuitem);
+  assert_true(mainmenu.matches(":popover-open"), "mainmenu opens");
+
+  assert_false(submenu.matches(":popover-open"), "submenu popover starts closed");
+  await test_driver.click(mainmenuitem);
+  assert_true(submenu.matches(":popover-open"), "submenu opens");
+
+  // Close the submenu.
+  await test_driver.click(mainmenuitem);
+  assert_false(submenu.matches(":popover-open"), "submenu popover gets closed");
+  assert_true(mainmenu.matches(":popover-open"), "mainmenu still open");
+
+  // Close the mainmenu.
+  await test_driver.click(menubarmenuitem);
+  assert_false(mainmenu.matches(":popover-open"), "mainmenu gets closed");
+}, 'User menuitem activation works with the toggle-menu command');
+
+promise_test(async () => {
+  assert_false(mainmenu.matches(":popover-open"), "mainmenu popover starts closed");
+  await test_driver.click(menubarmenuitem);
+  assert_true(mainmenu.matches(":popover-open"), "mainmenu popover opens");
+
+  assert_false(popover.matches(":popover-open"), "div popover starts closed");
+  await test_driver.click(mainmenuitem2);
+  assert_true(popover.matches(":popover-open"), "div popover opens");
+
+  // Close the popover.
+  await test_driver.click(mainmenuitem2);
+  assert_false(popover.matches(":popover-open"), "div popover gets closed");
+  assert_true(mainmenu.matches(":popover-open"), "mainmenu still open");
+}, 'User menuitem activation works with show-popover command');
+</script>

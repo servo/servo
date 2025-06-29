@@ -18,11 +18,9 @@
     testNavigationApi("Test soft navigation with the Navigation API", e => {
         e.intercept({handler: async () => {
           await addImageToMain();
-          main.appendChild(img);
         }});
         timestamps[counter]["eventEnd"] = performance.now();
       }, link);
   </script>
 </body>
 </html>
-

@@ -2,7 +2,7 @@ import pytest
 from webdriver.bidi.modules.script import ContextTarget
 from webdriver.error import TimeoutException
 
-from tests.support.sync import AsyncPoll
+from tests.bidi import wait_for_bidi_events
 from .. import assert_browsing_context
 
 pytestmark = pytest.mark.asyncio
@@ -24,9 +24,8 @@ async def test_unsubscribe(bidi_session, new_tab):
 
     await bidi_session.browsing_context.close(context=new_tab["context"])
 
-    wait = AsyncPoll(bidi_session, timeout=0.5)
     with pytest.raises(TimeoutException):
-        await wait.until(lambda _: len(events) > 0)
+        await wait_for_bidi_events(bidi_session, events, 1, timeout=0.5)
 
     remove_listener()
 
@@ -72,9 +71,8 @@ async def test_navigate(bidi_session, subscribe_events, new_tab, inline, domain)
     )
 
     # Make sure navigation doesn't cause the context to be destroyed
-    wait = AsyncPoll(bidi_session, timeout=0.5)
     with pytest.raises(TimeoutException):
-        await wait.until(lambda _: len(events) > 0)
+        await wait_for_bidi_events(bidi_session, events, 1, timeout=0.5)
 
     remove_listener()
 
@@ -286,15 +284,13 @@ async def test_subscribe_to_one_context(bidi_session, subscribe_events, new_tab)
     await bidi_session.browsing_context.close(context=another_new_tab["context"])
 
     # Make sure we didn't receive the event for the new tab
-    wait = AsyncPoll(bidi_session, timeout=0.5)
     with pytest.raises(TimeoutException):
-        await wait.until(lambda _: len(events) > 0)
+        await wait_for_bidi_events(bidi_session, events, 1, timeout=0.5)
 
     await bidi_session.browsing_context.close(context=new_tab["context"])
 
     # Make sure we received the event
-    await wait.until(lambda _: len(events) >= 1)
-    assert len(events) == 1
+    await wait_for_bidi_events(bidi_session, events, 1)
 
     remove_listener()
 

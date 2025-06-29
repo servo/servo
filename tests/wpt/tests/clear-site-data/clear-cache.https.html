@@ -111,6 +111,38 @@ promise_test(test => {
     return testCacheClear(test, [TEST_SITE, TEST_SITE_CLEAR, TEST_SITE], assert_not_equals);
 }, "clear all: Clear document in intermediate load");
 
+promise_test(test => {
+    const TEST_SITE = {
+        response: "html_embed_image",
+    };
+    const TEST_SITE_CLEAR = {
+        clear: "cache",
+    };
+    return testCacheClear(test, [TEST_SITE, TEST_SITE_CLEAR, TEST_SITE], assert_not_equals);
+}, "clear cache: Image-Cache gets cleared");
+
+promise_test(test => {
+    const TEST_SITE_INITAL = {
+        response: "html_embed_css",
+    };
+    const TEST_SITE_FINAL = {
+        response: "html_embed_css",
+        clear: "cache",
+    };
+    return testCacheClear(test, [TEST_SITE_INITAL, TEST_SITE_FINAL], assert_not_equals);
+}, "clear cache: CSS-Cache gets cleared");
+
+promise_test(test => {
+    const TEST_SITE_INITAL = {
+        response: "html_embed_js",
+    };
+    const TEST_SITE_FINAL = {
+        response: "html_embed_js",
+        clear: "cache",
+    };
+    return testCacheClear(test, [TEST_SITE_INITAL, TEST_SITE_FINAL], assert_not_equals);
+}, "clear cache: JS-Cache gets cleared");
+
 </script>
 </body>
 </html>

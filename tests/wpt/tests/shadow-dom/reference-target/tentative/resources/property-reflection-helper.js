@@ -139,7 +139,7 @@ function run_test_for_all_reflecting_properties(setup_function, test_function, t
       test_function(setup_function, test_name_suffix, referencing_element_type, referenced_element_type, "anchor", "anchorElement", Behavior.ReflectsHost);
       test_function(setup_function, test_name_suffix, referencing_element_type, referenced_element_type, "commandfor", "commandForElement", Behavior.ReflectsHost);
       test_function(setup_function, test_name_suffix, referencing_element_type, referenced_element_type, "popovertarget", "popoverTargetElement", Behavior.ReflectsHost);
-      test_function(setup_function, test_name_suffix, referencing_element_type, referenced_element_type, "interesttarget", "interestTargetElement", Behavior.ReflectsHost);
+      test_function(setup_function, test_name_suffix, referencing_element_type, referenced_element_type, "interestfor", "interestForElement", Behavior.ReflectsHost);
 
       const expected_htmlFor_property_behavior = (referencing_element_type == "output") ? Behavior.ReflectsHostIDInDOMTokenList : Behavior.ReflectsHostID;
       test_function(setup_function, test_name_suffix, referencing_element_type, referenced_element_type, "for", "htmlFor", expected_htmlFor_property_behavior);

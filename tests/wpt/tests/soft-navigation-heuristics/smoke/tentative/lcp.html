@@ -48,8 +48,7 @@
         }
 
         // Now that we've clicked, we expect to see a soft navigation,
-        // and a soft navigation LCP entry; and since there was already
-        // an LCP entry, we expect two LCP entries.
+        // and a soft navigation LCP entry;
         const results = await Promise.allSettled([
           helper.getBufferedPerformanceEntriesWithTimeout(
             /*type=*/ "soft-navigation",
@@ -57,9 +56,9 @@
             /*min_num_entries=*/ 1,
           ),
           helper.getBufferedPerformanceEntriesWithTimeout(
-            /*type=*/ "largest-contentful-paint",
+            /*type=*/ "interaction-contentful-paint",
             /*include_soft_navigation_observations=*/ true,
-            /*min_num_entries=*/ 2,
+            /*min_num_entries=*/ 1,
           ),
         ]);
 
@@ -80,11 +79,11 @@
         );
 
         // Examine the soft navigation LCP entries.
-        const lcp_including_soft_nav = results[1].value;
+        const icps = results[1].value;
         assert_equals(
-          lcp_including_soft_nav.length,
-          2,
-          "Expecting 2 entries: initial LCP and soft nav LCP.",
+          icps.length,
+          1,
+          "Expecting 1 entry.",
         );
 
         // Now observe the hard navs again. There should only be one entry.
@@ -106,46 +105,17 @@
           "click-target",
           "Hard nav LCP entry is (still) for the click target.",
         );
+
         assert_equals(
-          lcp_including_soft_nav[0].id,
-          "click-target",
-          "First soft nav LCP entry is for the click target.",
-        );
-        assert_equals(
-          lcp_including_soft_nav[1].id,
+          icps[0].id,
           "lcp-img",
-          "Second soft nav LCP entry is for the image.",
+          "Soft nav LCP entry is for the image.",
         );
 
         assert_equals(
-          hard_nav_lcp[0],
-          lcp_including_soft_nav[0],
-          "Hard nav and first soft nav LCP entries are the same entry.",
-        );
-        // Since we don't rust assert_equals fully, we also compare
-        // render time and navigation ID. :-)
-        assert_equals(
-          hard_nav_lcp[0].renderTime,
-          lcp_including_soft_nav[0].renderTime,
-          "Hard nav and first soft nav LCP entries have the same render time.",
-        );
-        assert_equals(
-          hard_nav_lcp[0].navigationId,
-          lcp_including_soft_nav[0].navigationId,
-          "Hard nav and first soft nav LCP entries have the same navigation ID.",
-        );
-
-        // Compare the two soft nav LCP entries, and show that the navigation ID
-        // changes for the second one to be that of the soft navigation entry.
-        assert_not_equals(
-          lcp_including_soft_nav[0].navigationId,
-          lcp_including_soft_nav[1].navigationId,
-          "Soft nav LCP entries have have different navigation IDs.",
-        );
-        assert_equals(
-          lcp_including_soft_nav[1].navigationId,
+          icps[0].navigationId,
           soft_navs[0].navigationId,
-          "Second soft nav LCP entry has the same navigation ID as the soft nav entry.",
+          "Soft nav LCP entry has the same navigation ID as the soft nav entry.",
         );
       }, "Detect soft navigation and LCP after a click.");
     </script>

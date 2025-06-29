@@ -30,7 +30,6 @@ for (const writingMode of ["horizontal-tb", "vertical-lr", "vertical-rl", "sidew
         select.style.writingMode = writingMode;
         this.add_cleanup(() => {
             select.removeAttribute("style");
-            select.value = "";
         });
 
         const elementBox = select.getBoundingClientRect();

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4 Test: Parsing 'border-shape' with computed values</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+
+<div id="target"></div>
+
+<script>
+test_computed_value("border-shape", "none");
+test_computed_value("border-shape", "circle()");
+test_computed_value("border-shape", "polygon(10px 10px, 100px 10px, 10px 100px)");
+test_computed_value("border-shape", "shape(from 0px 0px, hline to 100px, vline to 100px, close)");
+test_computed_value("border-shape", "circle() circle()", "circle()");
+test_computed_value("border-shape", "circle() polygon(10px 10px, 100px 10px, 10px 100px)");
+
+</script>

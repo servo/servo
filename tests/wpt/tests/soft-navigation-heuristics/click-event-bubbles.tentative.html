@@ -10,19 +10,16 @@
 </head>
 <body>
   <main id=main>
-  <a id=link>Click me!</a>
+    <a id=link>Click me!</a>
   </main>
   <script>
-    const link = document.getElementById("link");
-    // Adding a noop event that the "click" would bubble to.
-    document.getElementById("main").addEventListener("click", () => {});
-
     testSoftNavigation({
-      addContent: () => {
-        addTextParagraphToMain("Lorem Ipsum");
+      testName: "Ensure event bubbling works well with soft navigations.",
+      registerRouteChange: (cb) => {
+        // Interact with the link, but observe the event on anscestor
+        document.getElementById("main").addEventListener('click', cb);
       },
-      link: link,
-      test: "Ensure event bubbling works well with soft navigations."});
+    });
   </script>
 </body>
 </html>

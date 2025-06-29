@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>CSS Values: typed arithmetic with custom property and cycle tests</title>
+<link rel="help" href="https://www.w3.org/TR/css-values-4/#calc-type-checking">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@property --length {
+  syntax: "<length>";
+  initial-value: 0px;
+  inherits: false;
+}
+:root {
+  font-size: 228px;
+}
+div {
+  --length: calc(10px * (2em / 1em));
+  font-size: var(--length);
+}
+</style>
+<div id="target"></div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(target).fontSize, "228px");
+  });
+</script>

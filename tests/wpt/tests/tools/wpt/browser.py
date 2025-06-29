@@ -1331,7 +1331,8 @@ class Chrome(ChromeChromiumBase):
             suffix = ""
             if channel in ("beta", "dev", "canary"):
                 suffix = " " + channel.capitalize()
-            return f"/Applications/Google Chrome{suffix}.app/Contents/MacOS/Google Chrome{suffix}"
+            path = f"/Applications/Google Chrome{suffix}.app/Contents/MacOS/Google Chrome{suffix}"
+            return path if os.path.isfile(path) else None
         if uname[0] == "Windows":
             name = "Chrome"
             if channel == "beta":
@@ -1341,7 +1342,7 @@ class Chrome(ChromeChromiumBase):
             path = os.path.expandvars(fr"$PROGRAMFILES\Google\{name}\Application\chrome.exe")
             if channel == "canary":
                 path = os.path.expandvars(r"$LOCALAPPDATA\Google\Chrome SxS\Application\chrome.exe")
-            return path
+            return path if os.path.isfile(path) else None
         self.logger.warning("Unable to find the browser binary.")
         return None
 
@@ -1826,7 +1827,8 @@ class Edge(Browser):
             suffix = ""
             if channel in ("beta", "dev", "canary"):
                 suffix = " " + channel.capitalize()
-            return f"/Applications/Microsoft Edge{suffix}.app/Contents/MacOS/Microsoft Edge{suffix}"
+            path = f"/Applications/Microsoft Edge{suffix}.app/Contents/MacOS/Microsoft Edge{suffix}"
+            return path if os.path.isfile(path) else None
         if self.platform == "win":
             suffix = ""
             if channel in ("beta", "dev"):
@@ -1836,7 +1838,7 @@ class Edge(Browser):
             path = which("msedge.exe", path=os.pathsep.join(winpaths))
             if channel == "canary":
                 path = os.path.expandvars(r"%LOCALAPPDATA%\Microsoft\Edge SxS\Application\msedge.exe")
-            return path
+            return path if os.path.isfile(path) else None
         self.logger.warning("Unable to find the browser binary.")
         return None
 

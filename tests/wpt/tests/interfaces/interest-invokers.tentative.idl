@@ -1,5 +1,5 @@
 interface mixin InterestInvokerElement {
-  [CEReactions,Reflect=interesttarget] attribute Element? interestTargetElement;
+  [CEReactions,Reflect=interestfor] attribute Element? interestForElement;
 };
 
 HTMLAnchorElement includes InterestInvokerElement;

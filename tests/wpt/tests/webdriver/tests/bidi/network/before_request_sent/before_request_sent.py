@@ -4,8 +4,7 @@ import pytest
 
 from webdriver.bidi.modules.script import ContextTarget
 
-from tests.support.sync import AsyncPoll
-
+from tests.bidi import wait_for_bidi_events
 from .. import (
     assert_before_request_sent_event,
     get_network_event_timerange,
@@ -332,10 +331,7 @@ async def test_redirect(bidi_session, wait_for_event, url, fetch, setup_network_
 
     # Wait until we receive two events, one for the initial request and one for
     # the redirection.
-    wait = AsyncPoll(bidi_session, timeout=2)
-    await wait.until(lambda _: len(events) >= 2)
-
-    assert len(events) == 2
+    await wait_for_bidi_events(bidi_session, events, 2)
     expected_request = {"method": "GET", "url": redirect_url}
     assert_before_request_sent_event(
         events[0],
@@ -370,10 +366,7 @@ async def test_redirect_http_equiv(
 
     # Wait until we receive two events, one for the initial request and one for
     # the http-equiv "redirect".
-    wait = AsyncPoll(bidi_session, timeout=2)
-    await wait.until(lambda _: len(events) >= 2)
-
-    assert len(events) == 2
+    await wait_for_bidi_events(bidi_session, events, 2)
     expected_request = {"method": "GET", "url": http_equiv_url}
     assert_before_request_sent_event(
         events[0],

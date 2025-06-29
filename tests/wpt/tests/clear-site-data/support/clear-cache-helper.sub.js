@@ -9,16 +9,16 @@ const subdomainOrigin =
   'https://{{hosts[][www2]}}:{{ports[https][0]}}';
 const crossSiteOrigin =
   'https://{{hosts[alt][]}}:{{ports[https][0]}}';
-const subomdainCrossSiteOrigin =
+const subdomainCrossSiteOrigin =
   'https://{{hosts[alt][www2]}}:{{ports[https][0]}}';
 
 /**
  * Constructs a url for an intermediate "bounce" hop which represents a tracker.
  * @param {string} cacheHelper - Unique uuid for this test
  * @param {*} options - URL generation options.
- * @param {boolean} [options.second_origin = true] - whether domain should be a different origin
+ * @param {boolean} [options.crossSite = false] - whether domain should be a different site
  * @param {boolean} [options.subdomain = false] - whether the domain should start with
- *        a different subdomain
+ *        a different subdomain to make a request cross origin
  * @param {boolean} [options.cache = false] - whether the resource should be cacheable
  * @param {(null|'cache'|'all')} [options.clear] - whether to send the
  *        Clear-Site-Data header.
@@ -31,24 +31,23 @@ const subomdainCrossSiteOrigin =
  */
 function getUrl(cacheHelper, {
     subdomain = false,
-    secondOrigin = false,
+    crossSite = false,
     cache = false,
     clear = null,
     clearFirst = null,
     response = "single_html",
     iframe = null,
 }) {
-    let url = "https://";
-    if (subdomain && secondOrigin) {
-        url += "{{hosts[alt][www2]}}";
-    } else if (subdomain) { // && !second_origin
-        url += "{{hosts[][www2]}}";
-    } else if (secondOrigin) { // && !subdomain
-        url += "{{hosts[alt][]}}";
-    } else { // !second_origin && !subdomain
-        url += "{{hosts[][]}}";
+    let url;
+    if (subdomain && crossSite) {
+        url = subdomainCrossSiteOrigin;
+    } else if (subdomain) { // && !crossSite
+        url = subdomainOrigin;
+    } else if (crossSite) { // && !subdomain
+        url = crossSiteOrigin;
+    } else { // !crossSite && !subdomain
+        url = sameOrigin;
     }
-    url += ":{{ports[https][0]}}";
     url += "/clear-site-data/support/clear-site-data-cache.py";
     url = new URL(url);
     let params = new URLSearchParams();

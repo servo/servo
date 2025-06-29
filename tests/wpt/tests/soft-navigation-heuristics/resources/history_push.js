@@ -1,1 +1,1 @@
-history.pushState({}, '', URL);
+history.pushState({}, '', DEFAULTURL);

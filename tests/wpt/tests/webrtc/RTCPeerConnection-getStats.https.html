@@ -242,6 +242,66 @@
   }, `getStats() audio contains inbound-rtp stats`);
 
   promise_test(async t => {
+    const pc = createPeerConnectionWithCleanup(t);
+    const pc2 = createPeerConnectionWithCleanup(t);
+
+    function check_no_candidate_pair_stats(statsReport) {
+      const candidatePairStats = [...(statsReport).values()].filter(({type}) => type === 'candidate-pair');
+      assert_greater_than_equal(candidatePairStats.length, 0);
+    }
+
+    function check_candidate_pair_stats(statsReport, elapsed_time_ms) {
+      assert_true(!![...statsReport.values()].find(({type}) => type === 'candidate-pair'));
+      const candidatePairStats = [...(statsReport).values()].filter(({type}) => type === 'candidate-pair');
+      assert_greater_than_equal(candidatePairStats.length, 1);
+
+      for (let pairStats of candidatePairStats) {
+        assert_not_equals(pairStats.responsesReceived, null, "responsesReceived should not be null");
+        assert_not_equals(pairStats.totalRoundTripTime, null, "totalRoundTripTime should not be null");
+        assert_not_equals(pairStats.currentRoundTripTime, null, "currentRoundTripTime should not be null");
+
+        assert_greater_than_equal(pairStats.responsesReceived, 0);
+        assert_greater_than_equal(pairStats.totalRoundTripTime, 0);
+        assert_greater_than_equal(pairStats.currentRoundTripTime, 0);
+
+        if (pairStats.responsesReceived < 2) {
+          assert_equals(pairStats.totalRoundTripTime, pairStats.currentRoundTripTime);
+        } else {
+          assert_greater_than_equal(pairStats.totalRoundTripTime, pairStats.currentRoundTripTime);
+        }
+        assert_less_than_equal(pairStats.totalRoundTripTime, elapsed_time_ms)
+      }
+    }
+
+    let [track, mediaStream] = await getTrackFromUserMedia('video');
+    pc.addTrack(track, mediaStream);
+    exchangeIceCandidates(pc, pc2);
+    assert_equals(pc2.getReceivers().length, 0);
+    await exchangeOfferAnswer(pc, pc2);
+
+    assert_equals(pc.getSenders().length, 1);
+    assert_equals(pc2.getReceivers().length, 1);
+    const t0 = performance.now();
+
+    check_no_candidate_pair_stats(await pc.getStats(pc.getSenders()[0].track));
+
+    // Wait for unmute if the track is not already unmuted.
+    // According to spec, it should be muted when being created, but this
+    // is not what this test is testing, so allow it to be unmuted.
+    if (pc2.getReceivers()[0].track.muted) {
+      await new Promise(resolve => {
+        pc2.getReceivers()[0].track.addEventListener('unmute', resolve);
+      });
+    }
+    // wait a bit longer for a few consent messages
+    await new Promise(r => t.step_timeout(r, 8000));
+
+    const t1 = performance.now();
+
+    check_candidate_pair_stats(await pc.getStats(pc.getSenders()[0].track), t1-t0);
+  }, `getStats() audio contains candidate-pair stats`);
+
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
     const [track, mediaStream] = await getTrackFromUserMedia('audio');

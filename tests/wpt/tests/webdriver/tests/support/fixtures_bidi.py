@@ -165,12 +165,15 @@ def wait_for_events(bidi_session, configuration):
             self.events = []
 
         async def get_events(self, predicate, timeout: float = 2.0):
+            async def check_predicate(_):
+                assert predicate(self.events), "Didn't receive expected events"
+
             wait = AsyncPoll(
                 bidi_session,
                 timeout=timeout * configuration["timeout_multiplier"],
-                message="Didn't receive expected events"
             )
-            await wait.until(lambda _: predicate(self.events))
+            await wait.until(check_predicate)
+
             return self.events
 
         def __enter__(self):
@@ -857,8 +860,13 @@ async def setup_blocked_request(
         # Wait for the first blocked request. When testing a navigation where
         # navigate_url is different from blocked_url, non-blocked events will
         # be received before the blocked request.
+        def check_has_blocked_request(_):
+            assert len(events) >= 1, "No BiDi events were received"
+            assert any(
+                e["isBlocked"] is True for e in events), "Not all requests are blocked"
+
         wait = AsyncPoll(bidi_session, timeout=2)
-        await wait.until(lambda _: any(e["isBlocked"] is True for e in events))
+        await wait.until(check_has_blocked_request)
 
         [blocked_event] = [e for e in events if e["isBlocked"] is True]
         request = blocked_event["request"]["request"]

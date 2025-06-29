@@ -8,7 +8,7 @@ export type CredentialMediationRequirement =
   | "silent";
 
 /**
- * @see https://wicg.github.io/digital-credentials/#dom-digitalcredentialrequest
+ * @see https://w3c-fedid.github.io/digital-credentials/#dom-digitalcredentialrequest
  */
 export interface DigitalCredentialGetRequest {
   protocol: string;
@@ -16,7 +16,7 @@ export interface DigitalCredentialGetRequest {
 }
 
 /**
- * @see https://wicg.github.io/digital-credentials/#dom-digitalcredentialrequestoptions
+ * @see https://w3c-fedid.github.io/digital-credentials/#dom-digitalcredentialrequestoptions
  */
 export interface DigitalCredentialRequestOptions {
   /**
@@ -26,7 +26,7 @@ export interface DigitalCredentialRequestOptions {
 }
 
 /**
- * @see https://wicg.github.io/digital-credentials/#extensions-to-credentialrequestoptions
+ * @see https://w3c-fedid.github.io/digital-credentials/#extensions-to-credentialrequestoptions
  */
 export interface CredentialRequestOptions {
   digital: DigitalCredentialRequestOptions;
