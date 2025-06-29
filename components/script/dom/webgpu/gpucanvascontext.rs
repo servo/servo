@@ -230,11 +230,11 @@ impl GPUCanvasContext {
 
 // Internal helper methods
 impl GPUCanvasContext {
-    fn layout_handle(&self) -> Option<ImageKey> {
+    fn layout_handle(&self) -> Option<(ImageKey, Epoch)> {
         if self.drawing_buffer.borrow().cleared {
             None
         } else {
-            Some(self.webrender_image)
+            Some((self.webrender_image, *self.image_epoch.borrow()))
         }
     }
 
@@ -311,7 +311,7 @@ impl CanvasContext for GPUCanvasContext {
 }
 
 impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, GPUCanvasContext> {
-    fn canvas_data_source(self) -> Option<ImageKey> {
+    fn canvas_data_source(self) -> Option<(ImageKey, Epoch)> {
         (*self.unsafe_get()).layout_handle()
     }
 }
