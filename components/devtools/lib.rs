@@ -115,6 +115,7 @@ struct DevtoolsInstance {
     actors: Arc<Mutex<ActorRegistry>>,
     id_map: Arc<Mutex<IdMap>>,
     browsing_contexts: HashMap<BrowsingContextId, String>,
+    sender: Sender<DevtoolsControlMsg>,
     receiver: Receiver<DevtoolsControlMsg>,
     pipelines: HashMap<PipelineId, BrowsingContextId>,
     actor_workers: HashMap<WorkerId, String>,
@@ -179,6 +180,7 @@ impl DevtoolsInstance {
             id_map: Arc::new(Mutex::new(IdMap::default())),
             browsing_contexts: HashMap::new(),
             pipelines: HashMap::new(),
+            sender: sender.clone(),
             receiver,
             actor_requests: HashMap::new(),
             actor_workers: HashMap::new(),
@@ -279,6 +281,13 @@ impl DevtoolsInstance {
 
                     self.handle_console_message(pipeline_id, None, console_message.finish())
                 },
+                DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::WillNavigate {
+                    ..
+                }) => {
+                    // Ignore or log it, since we now emit it early
+                    // Or implement logic here if needed later
+                },
+
                 DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
                     request_id,
                     network_event,
@@ -289,11 +298,7 @@ impl DevtoolsInstance {
                         connections.push(stream.try_clone().unwrap());
                     }
 
-                    let pipeline_id = match network_event {
-                        NetworkEvent::HttpResponse(ref response) => response.pipeline_id,
-                        NetworkEvent::HttpRequest(ref request) => request.pipeline_id,
-                    };
-                    self.handle_network_event(connections, pipeline_id, request_id, network_event);
+                    self.handle_network_event(connections, request_id, network_event);
                 },
                 DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::ServerExitMsg) => break,
             }
@@ -312,6 +317,17 @@ impl DevtoolsInstance {
     }
 
     fn handle_navigate(&self, browsing_context_id: BrowsingContextId, state: NavigationState) {
+        // Emit WillNavigate early
+        let url = match &state {
+            NavigationState::Start(url) => url.clone(),
+            NavigationState::Stop(_, page_info) => page_info.url.clone(),
+        };
+        let _ = self.sender.send(DevtoolsControlMsg::FromScript(
+            ScriptToDevtoolsControlMsg::WillNavigate {
+                browsing_context_id,
+                url,
+            },
+        ));
         let actor_name = self.browsing_contexts.get(&browsing_context_id).unwrap();
         self.actors
             .lock()
@@ -479,25 +495,16 @@ impl DevtoolsInstance {
     fn handle_network_event(
         &mut self,
         connections: Vec<TcpStream>,
-        pipeline_id: PipelineId,
         request_id: String,
         network_event: NetworkEvent,
     ) {
         let netevent_actor_name = self.find_network_event_actor(request_id);
-
-        let Some(id) = self.pipelines.get(&pipeline_id) else {
-            return;
-        };
-        let Some(browsing_context_actor_name) = self.browsing_contexts.get(id) else {
-            return;
-        };
 
         handle_network_event(
             Arc::clone(&self.actors),
             netevent_actor_name,
             connections,
             network_event,
-            browsing_context_actor_name.to_string(),
         )
     }
 

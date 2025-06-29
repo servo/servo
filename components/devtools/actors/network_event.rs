@@ -19,6 +19,7 @@ use crate::StreamId;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::network_handler::Cause;
 use crate::protocol::JsonPacketStream;
+use crate::resource::ResourceAvailable;
 
 pub struct NetworkEventActor {
     pub name: String,
@@ -338,6 +339,12 @@ impl Actor for NetworkEventActor {
             },
             _ => ActorMessageStatus::Ignored,
         })
+    }
+}
+
+impl ResourceAvailable for NetworkEventActor {
+    fn actor_name(&self) -> String {
+        self.name.clone()
     }
 }
 
