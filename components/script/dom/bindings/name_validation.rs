@@ -75,16 +75,12 @@ pub(crate) fn is_valid_element_local_name(name: &str) -> bool {
     }
 
     let mut iter = name.chars();
-
+    
     // SAFETY: we have already checked that the &str is not empty
     let c0 = iter.next().unwrap();
 
     // Step 2. If name’s 0th code point is an ASCII alpha, then:
-    if c0.is_ascii_alphabetic() &&
-    // Step 3. If name’s 0th code point is not U+003A (:), U+005F (_), 
-    // or in the range U+0080 to U+10FFFF, inclusive, then return false. 
-    !matches!(c0, '\u{003A}' | '\u{005F}' | '\u{0080}'..='\u{10FFF}')
-    {
+    if c0.is_ascii_alphabetic() {
         for c in iter {
             // Step 2.1 If name contains ASCII whitespace,
             // U+0000 NULL, U+002F (/), or U+003E (>), then return false.
@@ -95,21 +91,35 @@ pub(crate) fn is_valid_element_local_name(name: &str) -> bool {
                             '\u{0020}' |
                             '\u{0000}' |
                             '\u{002F}' |
-                            '\u{003E}') ||
+                            '\u{003E}') {
+                return false;
+            }
+        }
+        true
+    } 
+    // Step 3. If name’s 0th code point is not U+003A (:), U+005F (_), 
+    // or in the range U+0080 to U+10FFFF, inclusive, then return false. 
+    else if matches!(c0, '\u{003A}' | '\u{005F}' | '\u{0080}'..='\u{10FFF}') {
+        for c in iter {
             // Step 4. If name’s subsequent code points, 
             // if any, are not ASCII alphas, ASCII digits, 
             // U+002D (-), U+002E (.), U+003A (:), U+005F (_), 
             // or in the range U+0080 to U+10FFFF, inclusive, 
             // then return false.
-            !c.is_ascii_alphanumeric() ||
-            !matches!(c, '\u{002D}' | '\u{002E}' | '\u{003A}' | '\u{005F}' | '\u{0080}'..='\u{10FFF}')
+            if !c.is_ascii_alphanumeric() &&
+                !matches!(c, '\u{002D}' |
+                            '\u{002E}' |
+                            '\u{003A}' |
+                            '\u{005F}' |
+                            '\u{0080}'..='\u{10FFF}')
             {
                 return false;
             }
         }
+        true
+    } else {
+        false
     }
-
-    true
 }
 
 /// See <https://dom.spec.whatwg.org/#valid-doctype-name>
