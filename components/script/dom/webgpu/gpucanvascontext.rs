@@ -6,6 +6,7 @@ use std::borrow::Cow;
 use std::cell::RefCell;
 
 use arrayvec::ArrayVec;
+use base::Epoch;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self};
 use pixels::Snapshot;
@@ -74,6 +75,8 @@ pub(crate) struct GPUCanvasContext {
     #[no_trace]
     webrender_image: ImageKey,
     #[no_trace]
+    image_epoch: RefCell<Epoch>,
+    #[no_trace]
     context_id: WebGPUContextId,
     #[ignore_malloc_size_of = "manual writing is hard"]
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-configuration-slot>
@@ -115,6 +118,7 @@ impl GPUCanvasContext {
             channel,
             canvas,
             webrender_image,
+            image_epoch: RefCell::new(Epoch(0)),
             context_id: WebGPUContextId(external_id.0),
             drawing_buffer: RefCell::new(DrawingBuffer {
                 size,
@@ -236,11 +240,14 @@ impl GPUCanvasContext {
 
     fn send_swap_chain_present(&self, texture_id: WebGPUTexture) {
         self.drawing_buffer.borrow_mut().cleared = false;
+        self.image_epoch.borrow_mut().next();
         let encoder_id = self.global().wgpu_id_hub().create_command_encoder_id();
+        let image_epoch = *self.image_epoch.borrow();
         if let Err(e) = self.channel.0.send(WebGPURequest::SwapChainPresent {
             context_id: self.context_id,
             texture_id: texture_id.0,
             encoder_id,
+            image_epoch,
         }) {
             warn!(
                 "Failed to send UpdateWebrenderData({:?}) ({})",
