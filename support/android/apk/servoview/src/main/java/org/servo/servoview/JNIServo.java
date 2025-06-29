@@ -41,11 +41,7 @@ public class JNIServo {
 
     public native void loadUri(String uri);
 
-    public native void scrollStart(int dx, int dy, int x, int y);
-
     public native void scroll(int dx, int dy, int x, int y);
-
-    public native void scrollEnd(int dx, int dy, int x, int y);
 
     public native void touchDown(float x, float y, int pointer_id);
 

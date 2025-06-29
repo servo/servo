@@ -406,7 +406,9 @@ impl TouchHandler {
                     *velocity /= 2.0;
                     // update the touch point every time when panning.
                     touch_sequence.active_touch_points[idx].point = point;
-                    TouchMoveAction::Scroll(delta, point)
+
+                    // Scroll offsets are opposite to the direction of finger motion.
+                    TouchMoveAction::Scroll(-delta, point)
                 } else if delta.x.abs() > TOUCH_PAN_MIN_SCREEN_PX ||
                     delta.y.abs() > TOUCH_PAN_MIN_SCREEN_PX
                 {
@@ -417,7 +419,9 @@ impl TouchHandler {
                     touch_sequence.prevent_click = true;
                     // update the touch point
                     touch_sequence.active_touch_points[idx].point = point;
-                    TouchMoveAction::Scroll(delta, point)
+
+                    // Scroll offsets are opposite to the direction of finger motion.
+                    TouchMoveAction::Scroll(-delta, point)
                 } else {
                     // We don't update the touchpoint, so multiple small moves can
                     // accumulate and merge into a larger move.
@@ -435,8 +439,11 @@ impl TouchHandler {
                     touch_sequence.active_touch_points[idx].point = point;
                     let (d1, c1) = touch_sequence.pinch_distance_and_center();
                     let magnification = d1 / d0;
+
                     let scroll_delta = c1 - c0 * Scale::new(magnification);
-                    TouchMoveAction::Zoom(magnification, scroll_delta)
+
+                    // Scroll offsets are opposite to the direction of finger motion.
+                    TouchMoveAction::Zoom(magnification, -scroll_delta)
                 } else {
                     // We don't update the touchpoint, so multiple small moves can
                     // accumulate and merge into a larger move.

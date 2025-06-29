@@ -474,34 +474,10 @@ impl RunningAppState {
         self.perform_updates();
     }
 
-    /// Start scrolling.
-    /// x/y are scroll coordinates.
-    /// dx/dy are scroll deltas.
-    #[cfg(not(target_env = "ohos"))]
-    pub fn scroll_start(&self, dx: f32, dy: f32, x: i32, y: i32) {
-        let delta = Vector2D::new(dx, dy);
-        let scroll_location = ScrollLocation::Delta(delta);
-        self.active_webview()
-            .notify_scroll_event(scroll_location, Point2D::new(x, y));
-        self.perform_updates();
-    }
-
     /// Scroll.
     /// x/y are scroll coordinates.
     /// dx/dy are scroll deltas.
     pub fn scroll(&self, dx: f32, dy: f32, x: i32, y: i32) {
-        let delta = Vector2D::new(dx, dy);
-        let scroll_location = ScrollLocation::Delta(delta);
-        self.active_webview()
-            .notify_scroll_event(scroll_location, Point2D::new(x, y));
-        self.perform_updates();
-    }
-
-    /// End scrolling.
-    /// x/y are scroll coordinates.
-    /// dx/dy are scroll deltas.
-    #[cfg(not(target_env = "ohos"))]
-    pub fn scroll_end(&self, dx: f32, dy: f32, x: i32, y: i32) {
         let delta = Vector2D::new(dx, dy);
         let scroll_location = ScrollLocation::Delta(delta);
         self.active_webview()
