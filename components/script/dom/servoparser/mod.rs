@@ -231,6 +231,7 @@ impl ServoParser {
             None,
             Default::default(),
             false,
+            None,
             allow_declarative_shadow_roots,
             Some(context_document.insecure_requests_policy()),
             context_document.has_trustworthy_ancestor_or_current_origin(),
