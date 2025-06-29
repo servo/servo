@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::fmt;
 use std::str::FromStr;
 use std::sync::Arc;
 
+use base::Epoch;
 use canvas_traits::canvas::{
     Canvas2dMsg, CanvasId, CanvasMsg, CompositionOrBlending, Direction, FillOrStrokeStyle,
     FillRule, LineCapStyle, LineJoinStyle, LinearGradientStyle, PathSegment, RadialGradientStyle,
@@ -159,6 +160,8 @@ pub(crate) struct CanvasState {
     #[no_trace]
     image_key: ImageKey,
     #[no_trace]
+    image_epoch: RefCell<Epoch>,
+    #[no_trace]
     size: Cell<Size2D<u64>>,
     state: DomRefCell<CanvasContextState>,
     origin_clean: Cell<bool>,
@@ -211,6 +214,7 @@ impl CanvasState {
             missing_image_urls: DomRefCell::new(Vec::new()),
             saved_states: DomRefCell::new(Vec::new()),
             image_key,
+            image_epoch: RefCell::new(Epoch(0)),
             origin,
         }
     }
@@ -245,6 +249,11 @@ impl CanvasState {
             .unwrap()
     }
 
+    fn next_epoch(&self) -> Epoch {
+        self.image_epoch.borrow_mut().next();
+        *self.image_epoch.borrow()
+    }
+
     /// Updates WR image and blocks on completion
     pub(crate) fn update_rendering(&self) {
         if !self.is_paintable() {
@@ -254,7 +263,7 @@ impl CanvasState {
         let (sender, receiver) = ipc::channel().unwrap();
         self.ipc_renderer
             .send(CanvasMsg::Canvas2d(
-                Canvas2dMsg::UpdateImage(sender),
+                Canvas2dMsg::UpdateImage(sender, self.next_epoch()),
                 self.canvas_id,
             ))
             .unwrap();
@@ -271,6 +280,7 @@ impl CanvasState {
             .send(CanvasMsg::Recreate(
                 Some(self.size.get()),
                 self.get_canvas_id(),
+                self.next_epoch(),
             ))
             .unwrap();
     }
@@ -283,7 +293,11 @@ impl CanvasState {
         }
 
         self.ipc_renderer
-            .send(CanvasMsg::Recreate(None, self.get_canvas_id()))
+            .send(CanvasMsg::Recreate(
+                None,
+                self.get_canvas_id(),
+                self.next_epoch(),
+            ))
             .unwrap();
     }
 

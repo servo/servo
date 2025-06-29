@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::thread;
 
+use base::Epoch;
 use canvas_traits::ConstellationCanvasMsg;
 use canvas_traits::canvas::*;
 use compositing_traits::CrossProcessCompositorApi;
@@ -75,8 +76,8 @@ impl<'a> CanvasPaintThread<'a> {
                                 Ok(CanvasMsg::Close(canvas_id)) => {
                                     canvas_paint_thread.canvases.remove(&canvas_id);
                                 },
-                                Ok(CanvasMsg::Recreate(size, canvas_id)) => {
-                                    canvas_paint_thread.canvas(canvas_id).recreate(size);
+                                Ok(CanvasMsg::Recreate(size, canvas_id, epoch)) => {
+                                    canvas_paint_thread.canvas(canvas_id).recreate(size, epoch);
                                 },
                                 Ok(CanvasMsg::FromScript(message, canvas_id)) => match message {
                                     FromScriptMsg::SendPixels(chan) => {
@@ -268,8 +269,8 @@ impl<'a> CanvasPaintThread<'a> {
             Canvas2dMsg::SetTextBaseline(text_baseline) => {
                 self.canvas(canvas_id).set_text_baseline(text_baseline)
             },
-            Canvas2dMsg::UpdateImage(sender) => {
-                self.canvas(canvas_id).update_image_rendering();
+            Canvas2dMsg::UpdateImage(sender, epoch) => {
+                self.canvas(canvas_id).update_image_rendering(epoch);
                 sender.send(()).unwrap();
             },
         }
@@ -600,15 +601,15 @@ impl Canvas<'_> {
         }
     }
 
-    fn update_image_rendering(&mut self) {
+    fn update_image_rendering(&mut self, epoch: Epoch) {
         match self {
-            Canvas::Raqote(canvas_data) => canvas_data.update_image_rendering(),
+            Canvas::Raqote(canvas_data) => canvas_data.update_image_rendering(epoch),
         }
     }
 
-    fn recreate(&mut self, size: Option<Size2D<u64>>) {
+    fn recreate(&mut self, size: Option<Size2D<u64>>, epoch: Epoch) {
         match self {
-            Canvas::Raqote(canvas_data) => canvas_data.recreate(size),
+            Canvas::Raqote(canvas_data) => canvas_data.recreate(size, epoch),
         }
     }
 }
