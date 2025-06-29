@@ -3272,8 +3272,9 @@ impl ScriptThread {
             incomplete.load_data.url, incomplete.pipeline_id
         );
 
-        let origin = if final_url.as_str() == "about:blank" || final_url.as_str() == "about:srcdoc"
-        {
+        let is_initial_about_blank = final_url.as_str() == "about:blank";
+        let is_about_page = is_initial_about_blank || final_url.as_str() == "about:srcdoc";
+        let origin = if is_about_page {
             incomplete.origin.clone()
         } else {
             MutableOrigin::new(final_url.origin())
@@ -3405,7 +3406,11 @@ impl ScriptThread {
             .as_ref()
             .map(|referrer| referrer.clone().into_string());
 
-        let is_initial_about_blank = final_url.as_str() == "about:blank";
+        let about_base_url = if is_about_page {
+            window_proxy.creator_base_url()
+        } else {
+            None
+        };
 
         let document = Document::new(
             &window,
@@ -3422,6 +3427,7 @@ impl ScriptThread {
             Some(metadata.status.raw_code()),
             incomplete.canceller,
             is_initial_about_blank,
+            about_base_url,
             true,
             incomplete.load_data.inherited_insecure_requests_policy,
             incomplete.load_data.has_trustworthy_ancestor_origin,

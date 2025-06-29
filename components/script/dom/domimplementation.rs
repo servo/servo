@@ -177,6 +177,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             None,
             Default::default(),
             false,
+            None,
             self.document.allow_declarative_shadow_roots(),
             Some(self.document.insecure_requests_policy()),
             self.document.has_trustworthy_ancestor_or_current_origin(),
