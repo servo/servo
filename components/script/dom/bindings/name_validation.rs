@@ -200,7 +200,7 @@ pub(crate) fn validate_and_extract(
             }
         },
     }
-
+    
     match prefix {
         // Step 8. If prefix is non-null and namespace is null,
         //      then throw a "NamespaceError" DOMException.
@@ -210,13 +210,14 @@ pub(crate) fn validate_and_extract(
         Some("xml") if *namespace != *XML_NAMESPACE => Err(Error::Namespace),
         // Step 10. If either qualifiedName or prefix is "xmlns" and namespace
         //      is not the XMLNS namespace, then throw a "NamespaceError" DOMException.
-        Some("xmlns") if *namespace != *XMLNS_NAMESPACE => Err(Error::Namespace),
+        p if (qualified_name == "xmlns" || p == Some("xmlns")) && *namespace != *XMLNS_NAMESPACE => Err(Error::Namespace),
         Some(_) if qualified_name == "xmlns" && *namespace != *XMLNS_NAMESPACE => {
             Err(Error::Namespace)
         },
         // Step 11. If namespace is the XMLNS namespace and neither qualifiedName
         //      nor prefix is "xmlns", then throw a "NamespaceError" DOMException.
-        Some(p) if *namespace == *XMLNS_NAMESPACE && qualified_name != "xmlns" && p != "xmlns" => {
+        p if *namespace == *XMLNS_NAMESPACE && 
+            (qualified_name != "xmlns" && p != Some("xmlns"))  => {
             Err(Error::Namespace)
         },
         // Step 12. Return (namespace, prefix, localName).
