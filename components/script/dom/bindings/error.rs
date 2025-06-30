@@ -97,6 +97,7 @@ pub(crate) fn throw_dom_exception(
         Error::NotReadable => DOMErrorName::NotReadableError,
         Error::Operation => DOMErrorName::OperationError,
         Error::NotAllowed => DOMErrorName::NotAllowedError,
+        Error::Constraint => DOMErrorName::ConstraintError,
         Error::Type(message) => unsafe {
             assert!(!JS_IsExceptionPending(*cx));
             throw_type_error(*cx, &message);
