@@ -12,9 +12,7 @@ use script_bindings::inheritance::Castable;
 use servo_url::ServoUrl;
 use webrender_api::ImageKey;
 
-use crate::canvas_context::{
-    CanvasContext, CanvasHelpers, CanvasOrOffscreenCanvas, LayoutCanvasRenderingContextHelpers,
-};
+use crate::canvas_context::{CanvasContext, CanvasHelpers, LayoutCanvasRenderingContextHelpers};
 use crate::canvas_state::CanvasState;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
     CanvasDirection, CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,
@@ -172,21 +170,9 @@ impl CanvasContext for CanvasRenderingContext2D {
     }
 
     fn mark_as_dirty(&self) {
-        match self.canvas.canvas() {
-            CanvasOrOffscreenCanvas::Canvas(htmlcanvas_element) => {
-                if let Some(canvas) = htmlcanvas_element {
-                    canvas.upcast::<Node>().dirty(NodeDamage::Other);
-                    canvas.owner_document().add_dirty_2d_canvas(self);
-                }
-            },
-            CanvasOrOffscreenCanvas::OffscreenCanvas(weak_ref) => {
-                if let Some(weak_ref) = weak_ref {
-                    if let Some(canvas) = weak_ref.root() {
-                        canvas.upcast::<Node>().dirty(NodeDamage::Other);
-                        canvas.owner_document().add_dirty_2d_canvas(self);
-                    }
-                }
-            },
+        if let Some(canvas) = self.canvas.canvas() {
+            canvas.upcast::<Node>().dirty(NodeDamage::Other);
+            canvas.owner_document().add_dirty_2d_canvas(self);
         }
     }
 }
@@ -362,42 +348,15 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-filltext
     fn FillText(&self, text: DOMString, x: f64, y: f64, max_width: Option<f64>, can_gc: CanGc) {
-        match self.canvas.canvas() {
-            CanvasOrOffscreenCanvas::Canvas(canvas) => {
-                self.canvas_state
-                    .fill_text(canvas, text, x, y, max_width, can_gc);
-                self.mark_as_dirty();
-            },
-            CanvasOrOffscreenCanvas::OffscreenCanvas(Some(weak_ref)) => {
-                self.canvas_state.fill_text(
-                    weak_ref.root().as_deref(),
-                    text,
-                    x,
-                    y,
-                    max_width,
-                    can_gc,
-                );
-                self.mark_as_dirty();
-            },
-            CanvasOrOffscreenCanvas::OffscreenCanvas(None) => {},
-        }
+        self.canvas_state
+            .fill_text(self.canvas.canvas(), text, x, y, max_width, can_gc);
+        self.mark_as_dirty();
     }
 
     // https://html.spec.whatwg.org/multipage/#textmetrics
     fn MeasureText(&self, text: DOMString, can_gc: CanGc) -> DomRoot<TextMetrics> {
-        match self.canvas.canvas() {
-            CanvasOrOffscreenCanvas::Canvas(canvas) => {
-                self.canvas_state
-                    .measure_text(&self.global(), canvas, text, can_gc)
-            },
-            CanvasOrOffscreenCanvas::OffscreenCanvas(Some(weak_ref)) => self
-                .canvas_state
-                .measure_text(&self.global(), weak_ref.root().as_deref(), text, can_gc),
-            CanvasOrOffscreenCanvas::OffscreenCanvas(None) => {
-                self.canvas_state
-                    .measure_text(&self.global(), None, text, can_gc)
-            },
-        }
+        self.canvas_state
+            .measure_text(&self.global(), self.canvas.canvas(), text, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
@@ -407,16 +366,8 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
     fn SetFont(&self, value: DOMString, can_gc: CanGc) {
-        match self.canvas.canvas() {
-            CanvasOrOffscreenCanvas::Canvas(canvas) => {
-                self.canvas_state.set_font(canvas, value, can_gc)
-            },
-            CanvasOrOffscreenCanvas::OffscreenCanvas(Some(weak_ref)) => {
-                self.canvas_state
-                    .set_font(weak_ref.root().as_deref(), value, can_gc)
-            },
-            CanvasOrOffscreenCanvas::OffscreenCanvas(None) => {},
-        }
+        self.canvas_state
+            .set_font(self.canvas.canvas(), value, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-textalign
@@ -451,17 +402,8 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
     fn DrawImage(&self, image: CanvasImageSource, dx: f64, dy: f64) -> ErrorResult {
-        match self.canvas.canvas() {
-            CanvasOrOffscreenCanvas::Canvas(canvas) => {
-                self.canvas_state.draw_image(canvas, image, dx, dy)
-            },
-            CanvasOrOffscreenCanvas::OffscreenCanvas(Some(weak_ref)) => self
-                .canvas_state
-                .draw_image(weak_ref.root().as_deref(), image, dx, dy),
-            CanvasOrOffscreenCanvas::OffscreenCanvas(None) => {
-                self.canvas_state.draw_image(None, image, dx, dy)
-            },
-        }
+        self.canvas_state
+            .draw_image(self.canvas.canvas(), image, dx, dy)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
@@ -473,17 +415,8 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
         dw: f64,
         dh: f64,
     ) -> ErrorResult {
-        match self.canvas.canvas() {
-            CanvasOrOffscreenCanvas::Canvas(canvas) => {
-                self.canvas_state.draw_image_(canvas, image, dx, dy, dw, dh)
-            },
-            CanvasOrOffscreenCanvas::OffscreenCanvas(Some(weak_ref)) => self
-                .canvas_state
-                .draw_image_(weak_ref.root().as_deref(), image, dx, dy, dw, dh),
-            CanvasOrOffscreenCanvas::OffscreenCanvas(None) => {
-                self.canvas_state.draw_image_(None, image, dx, dy, dw, dh)
-            },
-        }
+        self.canvas_state
+            .draw_image_(self.canvas.canvas(), image, dx, dy, dw, dh)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
@@ -499,28 +432,8 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
         dw: f64,
         dh: f64,
     ) -> ErrorResult {
-        match self.canvas.canvas() {
-            CanvasOrOffscreenCanvas::Canvas(canvas) => self
-                .canvas_state
-                .draw_image__(canvas, image, sx, sy, sw, sh, dx, dy, dw, dh),
-            CanvasOrOffscreenCanvas::OffscreenCanvas(Some(weak_ref)) => {
-                self.canvas_state.draw_image__(
-                    weak_ref.root().as_deref(),
-                    image,
-                    sx,
-                    sy,
-                    sw,
-                    sh,
-                    dx,
-                    dy,
-                    dw,
-                    dh,
-                )
-            },
-            CanvasOrOffscreenCanvas::OffscreenCanvas(None) => self
-                .canvas_state
-                .draw_image__(None, image, sx, sy, sw, sh, dx, dy, dw, dh),
-        }
+        self.canvas_state
+            .draw_image__(self.canvas.canvas(), image, sx, sy, sw, sh, dx, dy, dw, dh)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-moveto
@@ -592,15 +505,8 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
     fn SetStrokeStyle(&self, value: StringOrCanvasGradientOrCanvasPattern, can_gc: CanGc) {
-        match self.canvas.canvas() {
-            CanvasOrOffscreenCanvas::Canvas(canvas) => {
-                self.canvas_state.set_stroke_style(canvas, value, can_gc)
-            },
-            CanvasOrOffscreenCanvas::OffscreenCanvas(Some(weak_ref)) => self
-                .canvas_state
-                .set_stroke_style(weak_ref.root().as_deref(), value, can_gc),
-            CanvasOrOffscreenCanvas::OffscreenCanvas(None) => {},
-        }
+        self.canvas_state
+            .set_stroke_style(self.canvas.canvas(), value, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
@@ -610,15 +516,8 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
     fn SetFillStyle(&self, value: StringOrCanvasGradientOrCanvasPattern, can_gc: CanGc) {
-        match self.canvas.canvas() {
-            CanvasOrOffscreenCanvas::Canvas(canvas) => {
-                self.canvas_state.set_fill_style(canvas, value, can_gc)
-            },
-            CanvasOrOffscreenCanvas::OffscreenCanvas(Some(weak_ref)) => self
-                .canvas_state
-                .set_fill_style(weak_ref.root().as_deref(), value, can_gc),
-            CanvasOrOffscreenCanvas::OffscreenCanvas(None) => {},
-        }
+        self.canvas_state
+            .set_fill_style(self.canvas.canvas(), value, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
@@ -817,14 +716,7 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor
     fn SetShadowColor(&self, value: DOMString, can_gc: CanGc) {
-        match self.canvas.canvas() {
-            CanvasOrOffscreenCanvas::Canvas(canvas) => {
-                self.canvas_state.set_shadow_color(canvas, value, can_gc)
-            },
-            CanvasOrOffscreenCanvas::OffscreenCanvas(Some(weak_ref)) => self
-                .canvas_state
-                .set_shadow_color(weak_ref.root().as_deref(), value, can_gc),
-            CanvasOrOffscreenCanvas::OffscreenCanvas(None) => {},
-        }
+        self.canvas_state
+            .set_shadow_color(self.canvas.canvas(), value, can_gc)
     }
 }
