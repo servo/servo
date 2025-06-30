@@ -581,7 +581,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
 
         // Step 6
         serialized_query.and_then(|q| {
-            IDBRequest::execute_async(&self, AsyncOperation::Count(q), None, CanGc::note())
+            IDBRequest::execute_async(self, AsyncOperation::Count(q), None, CanGc::note())
         })
     }
 
