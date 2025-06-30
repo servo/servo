@@ -5584,7 +5584,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         // Step 1. If localName is not a valid attribute local name,
         //      then throw an "InvalidCharacterError" DOMException
         if !is_valid_attribute_local_name(&local_name) {
-            debug!("Not a valid element name");
+            debug!("Not a valid attribute name");
             return Err(Error::InvalidCharacter);
         }
         if self.is_html_document {

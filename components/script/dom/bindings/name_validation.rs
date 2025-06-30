@@ -170,7 +170,11 @@ pub(crate) fn validate_and_extract(
     if qualified_name.contains(':') {
         // SAFETY: We know qualified_name is not empty and contains a colon.
         let mut split = qualified_name.splitn(2, ':');
-        prefix = split.next();
+        if let Some(p) = split.next() {
+            if !p.is_empty() {
+                prefix = Some(p);
+            }
+        }
         local_name = split.next().unwrap_or("");
     }
 
@@ -178,6 +182,7 @@ pub(crate) fn validate_and_extract(
     // then throw an "InvalidCharacterError" DOMException.
     if let Some(p) = prefix {
         if !is_valid_namespace_prefix(p) {
+            debug!("Not a valid namespace prefix");
             return Err(Error::InvalidCharacter);
         }
     }
@@ -188,6 +193,7 @@ pub(crate) fn validate_and_extract(
         //      throw an "InvalidCharacterError" DOMException.
         Context::Attribute => {
             if !is_valid_attribute_local_name(local_name) {
+                debug!("Not a valid attribute name");
                 return Err(Error::InvalidCharacter);
             }
         },
@@ -196,6 +202,7 @@ pub(crate) fn validate_and_extract(
         //      throw an "InvalidCharacterError" DOMException.
         Context::Element => {
             if !is_valid_element_local_name(local_name) {
+                debug!("Not a valid element name");
                 return Err(Error::InvalidCharacter);
             }
         },
