@@ -234,7 +234,7 @@ bitflags! {
         /// needs extra work or not
         const HAS_WEIRD_PARSER_INSERTION_MODE = 1 << 11;
 
-        /// Whether this node reside in UA shadow DOM. Element within UA Shadow DOM
+        /// Whether this node resides in UA shadow DOM. Element within UA Shadow DOM
         /// will have a different style computation behavior
         const IS_IN_UA_WIDGET = 1 << 12;
     }
@@ -1563,8 +1563,7 @@ impl Node {
 
     /// We are marking this as an implemented pseudo element.
     pub(crate) fn set_implemented_pseudo_element(&self, pseudo_element: PseudoElement) {
-        // Implemented pseudo element should exist only in
-        // the UA shadow DOM.
+        // Implemented pseudo element should exist only in the UA shadow DOM.
         debug_assert!(self.is_in_ua_widget());
         self.ensure_rare_data().implemented_pseudo_element = Some(pseudo_element);
     }

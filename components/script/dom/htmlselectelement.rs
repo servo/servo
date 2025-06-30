@@ -256,7 +256,6 @@ impl HTMLSelectElement {
 
     fn create_shadow_tree(&self, can_gc: CanGc) {
         let document = self.owner_document();
-        // TODO: Adjust <select> element styling considering
         let root = self.upcast::<Element>().attach_ua_shadow_root(true, can_gc);
 
         let select_box = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);

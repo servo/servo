@@ -2016,7 +2016,8 @@ impl HTMLMediaElement {
             // if we are already showing the controls.
             return;
         }
-        // FIXME: Recheck styling for media element
+        // FIXME(stevennovaryo): Recheck styling of media element to avoid
+        //                       reparsing styles.
         let shadow_root = self
             .upcast::<Element>()
             .attach_ua_shadow_root(false, can_gc);
