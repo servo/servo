@@ -36,7 +36,7 @@ impl Alpha {
         }
     }
 
-    pub const fn needs_premulti(&self) -> bool {
+    pub const fn needs_alpha_multiplication(&self) -> bool {
         match self {
             Alpha::Premultiplied => false,
             Alpha::NotPremultiplied => true,
@@ -44,7 +44,7 @@ impl Alpha {
         }
     }
 
-    pub const fn needs_unmulti(&self) -> bool {
+    pub const fn needs_alpha_unmultiplication(&self) -> bool {
         match self {
             Alpha::Premultiplied => true,
             Alpha::NotPremultiplied => false,

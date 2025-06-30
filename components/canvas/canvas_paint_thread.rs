@@ -185,7 +185,7 @@ impl<'a> CanvasPaintThread<'a> {
                     dest_rect,
                     source_rect,
                     smoothing_enabled,
-                    alpha_mode.alpha().needs_premulti(),
+                    alpha_mode.alpha().needs_alpha_multiplication(),
                 )
             },
             Canvas2dMsg::DrawEmptyImage(image_size, dest_rect, source_rect) => {
@@ -216,7 +216,7 @@ impl<'a> CanvasPaintThread<'a> {
                     dest_rect,
                     source_rect,
                     smoothing,
-                    alpha_mode.alpha().needs_premulti(),
+                    alpha_mode.alpha().needs_alpha_multiplication(),
                 );
             },
             Canvas2dMsg::MoveTo(ref point) => self.canvas(canvas_id).move_to(point),
