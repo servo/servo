@@ -14,6 +14,7 @@ use std::sync::{Arc, Mutex, RwLock, Weak};
 use std::thread;
 use std::time::Duration;
 
+use base::id::CookieStoreId;
 use cookie::Cookie;
 use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
@@ -29,9 +30,10 @@ use net_traits::request::{Destination, RequestBuilder, RequestId};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
 use net_traits::{
-    AsyncRuntime, CookieSource, CoreResourceMsg, CoreResourceThread, CustomResponseMediator,
-    DiscardFetch, FetchChannels, FetchTaskTarget, ResourceFetchTiming, ResourceThreads,
-    ResourceTimingType, WebSocketDomAction, WebSocketNetworkEvent,
+    AsyncRuntime, CookieAsyncResponse, CookieData, CookieRequestId, CookieSource, CoreResourceMsg,
+    CoreResourceThread, CustomResponseMediator, DiscardFetch, FetchChannels, FetchTaskTarget,
+    ResourceFetchTiming, ResourceThreads, ResourceTimingType, WebSocketDomAction,
+    WebSocketNetworkEvent,
 };
 use profile_traits::mem::{
     ProcessReports, ProfilerChan as MemProfilerChan, Report, ReportKind, ReportsChan,
@@ -152,6 +154,7 @@ pub fn new_core_resource_thread(
                 ca_certificates,
                 ignore_certificate_errors,
                 cancellation_listeners: Default::default(),
+                cookie_listeners: Default::default(),
             };
 
             mem_profiler_chan.run_with_memory_reporting(
@@ -179,6 +182,7 @@ struct ResourceChannelManager {
     ca_certificates: CACertificates,
     ignore_certificate_errors: bool,
     cancellation_listeners: HashMap<RequestId, Weak<CancellationListener>>,
+    cookie_listeners: HashMap<CookieStoreId, IpcSender<CookieAsyncResponse>>,
 }
 
 fn create_http_states(
@@ -335,6 +339,26 @@ impl ResourceChannelManager {
         cancellation_listener
     }
 
+    fn send_cookie_response(
+        &self,
+        store_id: CookieStoreId,
+        request_id: CookieRequestId,
+        data: CookieData,
+    ) {
+        let sender = self.cookie_listeners.get(&store_id);
+        if sender.is_none() {
+            warn!(
+                "Async cookie request made for store id that is non-existent {:?}",
+                store_id
+            );
+            return;
+        }
+        let _ = sender.unwrap().send(CookieAsyncResponse {
+            id: request_id,
+            event: data,
+        });
+    }
+
     /// Returns false if the thread should exit.
     fn process_msg(
         &mut self,
@@ -398,6 +422,7 @@ impl ResourceChannelManager {
                     .delete_cookie_with_name(&request, name);
                 return true;
             },
+            CoreResourceMsg::DeleteCookieAsync(_cookie_store_id, _request_id, _url, _name) => {},
             CoreResourceMsg::FetchRedirect(request_builder, res_init, sender) => {
                 let cancellation_listener =
                     self.get_or_create_cancellation_listener(request_builder.id);
@@ -423,12 +448,50 @@ impl ResourceChannelManager {
                     );
                 }
             },
+            CoreResourceMsg::SetCookieForUrlAsync(
+                cookie_store_id,
+                request_id,
+                url,
+                cookie,
+                source,
+            ) => {
+                self.resource_manager.set_cookie_for_url(
+                    &url,
+                    cookie.into_inner().to_owned(),
+                    source,
+                    http_state,
+                );
+                self.send_cookie_response(cookie_store_id, request_id, CookieData::Set(Ok(())));
+            },
             CoreResourceMsg::GetCookiesForUrl(url, consumer, source) => {
                 let mut cookie_jar = http_state.cookie_jar.write().unwrap();
                 cookie_jar.remove_expired_cookies_for_url(&url);
                 consumer
                     .send(cookie_jar.cookies_for_url(&url, source))
                     .unwrap();
+            },
+            CoreResourceMsg::GetCookiesDataForUrlAsync(
+                cookie_store_id,
+                request_id,
+                url,
+                name,
+                source,
+            ) => {
+                let mut cookie_jar = http_state.cookie_jar.write().unwrap();
+                cookie_jar.remove_expired_cookies_for_url(&url);
+                let cookies = cookie_jar
+                    .cookies_data_for_url(&url, source)
+                    .map(Serde)
+                    .collect();
+                self.send_cookie_response(
+                    cookie_store_id,
+                    request_id,
+                    CookieData::Get(cookies, name),
+                );
+            },
+            CoreResourceMsg::NewCookieListener(cookie_store_id, sender, _url) => {
+                // TODO: Use the URL for setting up the actual monitoring
+                self.cookie_listeners.insert(cookie_store_id, sender);
             },
             CoreResourceMsg::NetworkMediator(mediator_chan, origin) => {
                 self.resource_manager

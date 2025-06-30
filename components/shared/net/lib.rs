@@ -10,7 +10,7 @@ use std::sync::{LazyLock, OnceLock};
 use std::thread::{self, JoinHandle};
 
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::HistoryStateId;
+use base::id::{CookieStoreId, HistoryStateId};
 use content_security_policy::{self as csp};
 use cookie::Cookie;
 use crossbeam_channel::{Receiver, Sender, unbounded};
@@ -526,6 +526,13 @@ pub enum CoreResourceMsg {
     SetCookieForUrl(ServoUrl, Serde<Cookie<'static>>, CookieSource),
     /// Store a set of cookies for a given originating URL
     SetCookiesForUrl(ServoUrl, Vec<Serde<Cookie<'static>>>, CookieSource),
+    SetCookieForUrlAsync(
+        CookieStoreId,
+        CookieRequestId,
+        ServoUrl,
+        Serde<Cookie<'static>>,
+        CookieSource,
+    ),
     /// Retrieve the stored cookies for a given URL
     GetCookiesForUrl(ServoUrl, IpcSender<Option<String>>, CookieSource),
     /// Get a cookie by name for a given originating URL
@@ -534,8 +541,17 @@ pub enum CoreResourceMsg {
         IpcSender<Vec<Serde<Cookie<'static>>>>,
         CookieSource,
     ),
+    GetCookiesDataForUrlAsync(
+        CookieStoreId,
+        CookieRequestId,
+        ServoUrl,
+        String,
+        CookieSource,
+    ),
     DeleteCookies(ServoUrl),
     DeleteCookie(ServoUrl, String),
+    DeleteCookieAsync(CookieStoreId, CookieRequestId, ServoUrl, String),
+    NewCookieListener(CookieStoreId, IpcSender<CookieAsyncResponse>, ServoUrl),
     /// Get a history state by a given history state id
     GetHistoryState(HistoryStateId, IpcSender<Option<Vec<u8>>>),
     /// Set a history state for a given history state id
@@ -975,6 +991,37 @@ pub enum CookieSource {
     /// A non-HTTP API
     NonHTTP,
 }
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CookieChange {
+    changed: Vec<Serde<Cookie<'static>>>,
+    deleted: Vec<Serde<Cookie<'static>>>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum CookieData {
+    Change(CookieChange),
+    Get(Vec<Serde<Cookie<'static>>>, String),
+    GetAll(Vec<Serde<Cookie<'static>>>),
+    Set(Result<(), ()>),
+    Delete(Result<(), ()>),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CookieAsyncResponse {
+    pub id: CookieRequestId,
+    pub event: CookieData,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum CookieRequestType {
+    Get(ServoUrl, String),
+    GetAll(ServoUrl),
+    Set(ServoUrl, Serde<Cookie<'static>>),
+    Delete(ServoUrl, Serde<Cookie<'static>>),
+}
+
+pub type CookieRequestId = i64;
 
 /// Network errors that have to be exported out of the loaders
 #[derive(Clone, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]

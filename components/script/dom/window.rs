@@ -127,6 +127,7 @@ use crate::dom::bindings::utils::GlobalStaticData;
 use crate::dom::bindings::weakref::DOMTracker;
 #[cfg(feature = "bluetooth")]
 use crate::dom::bluetooth::BluetoothExtraPermissionData;
+use crate::dom::cookiestore::CookieStore;
 use crate::dom::crypto::Crypto;
 use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
 use crate::dom::customelementregistry::CustomElementRegistry;
@@ -263,6 +264,7 @@ pub(crate) struct Window {
     screen: MutNullableDom<Screen>,
     session_storage: MutNullableDom<Storage>,
     local_storage: MutNullableDom<Storage>,
+    cookie_store: MutNullableDom<CookieStore>,
     status: DomRefCell<DOMString>,
     trusted_types: MutNullableDom<TrustedTypePolicyFactory>,
 
@@ -1064,6 +1066,12 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     fn LocalStorage(&self) -> DomRoot<Storage> {
         self.local_storage
             .or_init(|| Storage::new(self, StorageType::Local, CanGc::note()))
+    }
+
+    // https://wicg.github.io/cookie-store/
+    fn CookieStore(&self) -> DomRoot<CookieStore> {
+        self.cookie_store
+            .or_init(|| CookieStore::new(self, CanGc::note()))
     }
 
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto
@@ -3108,6 +3116,7 @@ impl Window {
             screen: Default::default(),
             session_storage: Default::default(),
             local_storage: Default::default(),
+            cookie_store: Default::default(),
             status: DomRefCell::new(DOMString::new()),
             parent_info,
             dom_static: GlobalStaticData::new(),
