@@ -382,9 +382,9 @@ checksum = "69f7f8c3906b62b754cd5326047894316021dcfe5a194c8ea52bdd94934a3457"
 
 [[package]]
 name = "arkui-sys"
-version = "0.2.4"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06a2620cce8bccefb48eb1d47398e3168c75925c5b9720ad5b45baa6b06ddb20"
+checksum = "3a5671f43f77fbe4590b9a8272347a526e0978807941dd7fc5bc195b90f2cd59"
 dependencies = [
  "ohos-drawing-sys",
  "ohos-sys-opaque-types",
@@ -5928,9 +5928,9 @@ checksum = "e847d268f96c5ad9d03fd6bd303f9529ab3a83019497fa1c1a585aac50c378ec"
 
 [[package]]
 name = "ohos-drawing-sys"
-version = "0.2.2"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a5d8dc258997a3f232936e6818238d81ffb642d5581dcb20991a9964b492e01"
+checksum = "108e4592009963cfa2c744e7529a97b101c6ba83a9421668732bc6f5f59ffa9a"
 dependencies = [
  "ohos-sys-opaque-types",
 ]
@@ -10271,9 +10271,9 @@ dependencies = [
 
 [[package]]
 name = "xcomponent-sys"
-version = "0.3.1"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "01dbe0dd6a365f6de1fb816e8961ad7bf80a152a29d30783cb228e3fa507fe08"
+checksum = "b9e652372b831785d7d215786c83163c9eebb6c96c24e938c7f35d58af03a160"
 dependencies = [
  "arkui-sys",
  "keyboard-types",
