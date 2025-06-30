@@ -370,6 +370,7 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
             .set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, false)
     }
 
+    /// Whether this element should match user and content rules.
     /// We would like to match rules from the same tree in all cases and optimize computation.
     /// UA Widget is an exception since we could have a pseudo element selector inside it.
     #[inline]

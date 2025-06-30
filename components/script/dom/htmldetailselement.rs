@@ -99,7 +99,8 @@ impl HTMLDetailsElement {
 
     fn create_shadow_tree(&self, can_gc: CanGc) {
         let document = self.owner_document();
-        // TODO(stevennovaryo): Reimplement details styling.
+        // TODO(stevennovaryo): Reimplement details styling so that it would not
+        //                      mess the cascading and require some reparsing.
         let root = self
             .upcast::<Element>()
             .attach_ua_shadow_root(false, can_gc);
