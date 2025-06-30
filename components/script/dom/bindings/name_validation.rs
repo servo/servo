@@ -163,28 +163,26 @@ pub(crate) fn validate_and_extract(
     // Step 3. Let localName be qualifiedName.
     let mut local_name = qualified_name;
     // Step 4. If qualifiedName contains a U+003A (:):
-    //     Step 4.1. Let splitResult be the result of running
-    //          strictly split given qualifiedName and U+003A (:).
-    //     Step 4.2. Set prefix to splitResult[0].
-    //     Step 4.3. Set localName to splitResult[1].
-    if qualified_name.contains(':') {
-        // SAFETY: We know qualified_name is not empty and contains a colon.
-        let mut split = qualified_name.splitn(2, ':');
-        if let Some(p) = split.next() {
-            if !p.is_empty() {
-                prefix = Some(p);
+    if let Some(idx) = qualified_name.find(':') {
+        //     Step 4.1. Let splitResult be the result of running
+        //          strictly split given qualifiedName and U+003A (:).
+        let p = &qualified_name[..idx];
+        let local_name_start = (idx + 1).min(qualified_name.len());
+        
+        //     Step 4.2. Set prefix to splitResult[0].
+        if !p.is_empty() {
+            // Step 5. If prefix is not a valid namespace prefix,
+            // then throw an "InvalidCharacterError" DOMException.
+            if !is_valid_namespace_prefix(p) {
+                debug!("Not a valid namespace prefix");
+                return Err(Error::InvalidCharacter);
             }
+            
+            prefix = Some(p);
         }
-        local_name = split.next().unwrap_or("");
-    }
-
-    // Step 5. If prefix is not a valid namespace prefix,
-    // then throw an "InvalidCharacterError" DOMException.
-    if let Some(p) = prefix {
-        if !is_valid_namespace_prefix(p) {
-            debug!("Not a valid namespace prefix");
-            return Err(Error::InvalidCharacter);
-        }
+        
+        //     Step 4.3. Set localName to splitResult[1].
+        local_name = &qualified_name[local_name_start..];
     }
 
     match context {
