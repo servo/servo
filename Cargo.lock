@@ -3722,9 +3722,9 @@ dependencies = [
 
 [[package]]
 name = "hitrace-sys"
-version = "0.1.4"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "503574f5cbf4ac5e16d20369e85e1562a567e77cf45369fb7e8e06a2cfd7934b"
+checksum = "164f0e3568306af8b47c191406743476d9383e49d717960288cdb3469f9b7f54"
 
 [[package]]
 name = "home"
