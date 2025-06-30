@@ -128,8 +128,10 @@ impl OffscreenCanvas {
         Some(context)
     }
 
-    pub(crate) fn placeholder(&self) -> Option<&HTMLCanvasElement> {
-        todo!()
+    pub(crate) fn placeholder(&self) -> Option<DomRoot<HTMLCanvasElement>> {
+        self.placeholder
+            .as_ref()
+            .and_then(|placeholder| placeholder.root())
     }
 }
 
