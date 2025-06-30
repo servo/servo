@@ -48,7 +48,7 @@ impl From<IndexedDBKeyType> for IndexedDBKeyRange {
 }
 
 impl IndexedDBKeyRange {
-    // https://www.w3.org/TR/IndexedDB-2/#in
+    // <https://www.w3.org/TR/IndexedDB-2/#in>
     pub fn contains(&self, key: &IndexedDBKeyType) -> bool {
         // A key is in a key range if both of the following conditions are fulfilled:
         // The lower bound is null, or it is less than key, or it is both equal to key and the lower open flag is unset.
