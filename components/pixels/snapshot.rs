@@ -72,7 +72,6 @@ impl Default for SnapshotAlphaMode {
 }
 
 impl SnapshotAlphaMode {
-    /// Returns None if it's opaque (can be considered as or not as premultiplied)
     pub const fn alpha(&self) -> Alpha {
         match self {
             SnapshotAlphaMode::Opaque => Alpha::DontCare,
