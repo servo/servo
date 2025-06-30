@@ -390,10 +390,7 @@ impl IDBObjectStore {
     /// If writing is true, it then checks if the transaction is a read-only transaction, throwing a "ReadOnlyError" DOMException if so.
     fn check_transaction(&self, writing: bool) -> Fallible<()> {
         // Let transaction be this object store handle's transaction.
-        let transaction = self
-            .transaction
-            .get()
-            .ok_or(Error::TransactionInactive)?;
+        let transaction = self.transaction.get().ok_or(Error::TransactionInactive)?;
 
         // If transaction is not active, throw a "TransactionInactiveError" DOMException.
         if !transaction.is_active() {
@@ -596,7 +593,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
 
         // Step 6
         serialized_query.and_then(|q| {
-            IDBRequest::execute_async(&self, AsyncOperation::Count(q), None, CanGc::note())
+            IDBRequest::execute_async(self, AsyncOperation::Count(q), None, CanGc::note())
         })
     }
 
