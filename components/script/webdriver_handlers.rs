@@ -1014,6 +1014,31 @@ pub(crate) fn handle_find_shadow_elements_tag_name(
         .unwrap();
 }
 
+pub(crate) fn handle_find_shadow_elements_xpath_selector(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    shadow_root_id: String,
+    selector: String,
+    reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    can_gc: CanGc,
+) {
+    reply
+        .send(
+            get_known_shadow_root(documents, pipeline, shadow_root_id).and_then(|shadow_root| {
+                find_elements_xpath_strategy(
+                    &documents
+                        .find_document(pipeline)
+                        .expect("Document existence guaranteed by `get_known_element`"),
+                    shadow_root.upcast::<Node>(),
+                    selector,
+                    pipeline,
+                    can_gc,
+                )
+            }),
+        )
+        .unwrap();
+}
+
 /// <https://www.w3.org/TR/webdriver2/#dfn-get-element-shadow-root>
 pub(crate) fn handle_get_element_shadow_root(
     documents: &DocumentCollection,

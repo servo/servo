@@ -1243,11 +1243,13 @@ impl Handler {
                 );
                 self.browsing_context_script_command::<true>(cmd)?;
             },
-            _ => {
-                return Err(WebDriverError::new(
-                    ErrorStatus::UnsupportedOperation,
-                    "Unsupported locator strategy",
-                ));
+            LocatorStrategy::XPath => {
+                let cmd = WebDriverScriptCommand::FindElementElementsXPathSelector(
+                    parameters.value.clone(),
+                    element.to_string(),
+                    sender,
+                );
+                self.browsing_context_script_command::<true>(cmd)?;
             },
         }
 
@@ -1303,11 +1305,13 @@ impl Handler {
                 );
                 self.browsing_context_script_command::<true>(cmd)?;
             },
-            _ => {
-                return Err(WebDriverError::new(
-                    ErrorStatus::UnsupportedOperation,
-                    "Unsupported locator strategy",
-                ));
+            LocatorStrategy::XPath => {
+                let cmd = WebDriverScriptCommand::FindShadowElementsXPathSelector(
+                    parameters.value.clone(),
+                    shadow_root.to_string(),
+                    sender,
+                );
+                self.browsing_context_script_command::<true>(cmd)?;
             },
         }
 
