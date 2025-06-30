@@ -89,13 +89,12 @@ use crate::dom::bindings::codegen::UnionTypes::{
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
+use crate::dom::bindings::name_validation::{self, is_valid_attribute_local_name};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::bindings::xmlname::{
-    matches_name_production, namespace_from_domstring, validate_and_extract,
-};
+use crate::dom::bindings::xmlname::{matches_name_production, namespace_from_domstring};
 use crate::dom::characterdata::CharacterData;
 use crate::dom::create::create_element;
 use crate::dom::csp::{CspReporting, InlineCheckType};
@@ -2618,6 +2617,7 @@ impl Element {
     }
 }
 
+#[allow(non_snake_case)]
 impl ElementMethods<crate::DomTypeHolder> for Element {
     // https://dom.spec.whatwg.org/#dom-element-namespaceuri
     fn GetNamespaceURI(&self) -> Option<DOMString> {
@@ -2738,8 +2738,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         force: Option<bool>,
         can_gc: CanGc,
     ) -> Fallible<bool> {
-        // Step 1.
-        if !matches_name_production(&name) {
+        // Step 1. If qualifiedName is not a valid attribute local name,
+        //      then throw an "InvalidCharacterError" DOMException.
+        if !is_valid_attribute_local_name(&name) {
             return Err(Error::InvalidCharacter);
         }
 
@@ -2781,9 +2782,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     /// <https://dom.spec.whatwg.org/#dom-element-setattribute>
     fn SetAttribute(&self, name: DOMString, value: DOMString, can_gc: CanGc) -> ErrorResult {
-        // Step 1. If qualifiedName does not match the Name production in XML,
-        // then throw an "InvalidCharacterError" DOMException.
-        if !matches_name_production(&name) {
+        // Step 1. If qualifiedName is not a valid attribute local name,
+        //      then throw an "InvalidCharacterError" DOMException.
+        if !is_valid_attribute_local_name(&name) {
             return Err(Error::InvalidCharacter);
         }
 
@@ -2812,7 +2813,11 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         value: DOMString,
         can_gc: CanGc,
     ) -> ErrorResult {
-        let (namespace, prefix, local_name) = validate_and_extract(namespace, &qualified_name)?;
+        // Step 1. Let (namespace, prefix, localName) be the result of validating and
+        //      extracting namespace and qualifiedName given "element".
+        let context = name_validation::Context::Element;
+        let (namespace, prefix, local_name) =
+            name_validation::validate_and_extract(namespace, &qualified_name, context)?;
         let qualified_name = LocalName::from(qualified_name);
         let value = self.parse_attribute(&namespace, &local_name, value);
         self.set_first_matching_attribute(
