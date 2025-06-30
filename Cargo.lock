@@ -5974,9 +5974,9 @@ checksum = "93e60dacb893ed4eb57e8fd9eff81b8ad0153842661b3093927bdfd861506652"
 
 [[package]]
 name = "ohos-window-manager-sys"
-version = "0.1.0"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f0b36f3adea9bae4251f2c215e5569330a59b1a150d73af3182fe92fb490570"
+checksum = "d316415918856284056449fd8560429a19d20fa1d916d55fd11f8fb6ee7e92fa"
 dependencies = [
  "ohos-sys-opaque-types",
 ]
