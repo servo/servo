@@ -93,7 +93,7 @@ ipc-channel = { workspace = true, features = ["force-inprocess"] }
 napi-derive-ohos = "1.0.4"
 napi-ohos = "1.0.4"
 ohos-ime = "0.4.0"
-ohos-ime-sys = "0.2.0"
+ohos-ime-sys = "0.2.2"
 ohos-deviceinfo = "0.1.0"
 ohos-abilitykit-sys = { version = "0.1.2", features = ["api-14"] }
 ohos-vsync = "0.1.3"
