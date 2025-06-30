@@ -403,7 +403,7 @@ impl App {
                     }
                 },
                 // This is only received when start new session.
-                WebDriverCommandMsg::GetFocusedWebView(sender) => {
+                WebDriverCommandMsg::EnsuredFocusedWebView(sender) => {
                     // This can be called when there is no open webview.
                     // We need to create a new one. See https://github.com/servo/servo/issues/37408
                     let focused_webview =
@@ -412,6 +412,8 @@ impl App {
                                 Url::parse("about:blank").unwrap(),
                             ))
                         } else {
+                            // FIXME: We want to ensure this is never None.
+                            // See https://github.com/servo/servo/pull/37506#issuecomment-2982943374
                             running_state.focused_webview()
                         };
 
