@@ -23,6 +23,7 @@ use js::error::throw_type_error;
 use js::rust::{HandleObject, HandleValue};
 use layout_api::HTMLCanvasData;
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
+use script_bindings::weakref::WeakRef;
 use servo_media::streams::MediaStreamType;
 use servo_media::streams::registry::MediaStreamId;
 use style::attr::AttrValue;
@@ -675,7 +676,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             None,
             self.Width().into(),
             self.Height().into(),
-            Some(&Dom::from_ref(self)),
+            Some(WeakRef::new(self)),
             can_gc,
         );
 
