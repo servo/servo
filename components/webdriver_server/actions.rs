@@ -7,7 +7,6 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use base::id::BrowsingContextId;
-use constellation_traits::EmbedderToConstellationMessage;
 use embedder_traits::{MouseButtonAction, WebDriverCommandMsg, WebDriverScriptCommand};
 use ipc_channel::ipc;
 use keyboard_types::webdriver::KeyInputState;
@@ -178,7 +177,7 @@ impl Handler {
         //
         // Wait for num_pending_actions number of responses
         for _ in 0..self.num_pending_actions.get() {
-            match self.constellation_receiver.recv() {
+            match self.webdriver_response_receiver.recv() {
                 Ok(response) => {
                     let current_waiting_id = self
                         .current_action_id
@@ -316,11 +315,8 @@ impl Handler {
             self.session().unwrap().browsing_context_id,
             keyboard_event,
             msg_id,
-            self.constellation_sender.clone(),
         );
-        self.constellation_chan
-            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
-            .unwrap();
+        let _ = self.send_message_to_embedder(cmd_msg);
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-keyup-action>
@@ -358,11 +354,8 @@ impl Handler {
                 self.session().unwrap().browsing_context_id,
                 keyboard_event,
                 msg_id,
-                self.constellation_sender.clone(),
             );
-            self.constellation_chan
-                .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
-                .unwrap();
+            let _ = self.send_message_to_embedder(cmd_msg);
         }
     }
 
@@ -390,11 +383,8 @@ impl Handler {
             pointer_input_state.x as f32,
             pointer_input_state.y as f32,
             msg_id,
-            self.constellation_sender.clone(),
         );
-        self.constellation_chan
-            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
-            .unwrap();
+        let _ = self.send_message_to_embedder(cmd_msg);
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pointerup-action>
@@ -439,11 +429,8 @@ impl Handler {
             pointer_input_state.x as f32,
             pointer_input_state.y as f32,
             msg_id,
-            self.constellation_sender.clone(),
         );
-        self.constellation_chan
-            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
-            .unwrap();
+        let _ = self.send_message_to_embedder(cmd_msg);
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pointermove-action>
@@ -567,11 +554,8 @@ impl Handler {
                     x as f32,
                     y as f32,
                     msg_id,
-                    self.constellation_sender.clone(),
                 );
-                self.constellation_chan
-                    .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
-                    .unwrap();
+                let _ = self.send_message_to_embedder(cmd_msg);
                 // Step 7.3
                 pointer_input_state.x = x;
                 pointer_input_state.y = y;
@@ -707,11 +691,8 @@ impl Handler {
                 delta_x as f64,
                 delta_y as f64,
                 msg_id,
-                self.constellation_sender.clone(),
             );
-            self.constellation_chan
-                .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
-                .unwrap();
+            let _ = self.send_message_to_embedder(cmd_msg);
 
             curr_delta_x += delta_x;
             curr_delta_y += delta_y;
