@@ -16,8 +16,7 @@ from typing import List, NamedTuple, Optional, Union
 
 import mozlog
 import mozlog.formatters
-
-from wptrunner import wptcommandline, wptrunner # type: ignore
+from wptrunner import wptcommandline, wptrunner
 
 from . import SERVO_ROOT, WPT_PATH, WPT_TOOLS_PATH
 from .grouping_formatter import ServoFormatter, ServoHandler, UnexpectedResult, UnexpectedSubtestResult
@@ -263,6 +262,17 @@ def filter_intermittents(unexpected_results: List[UnexpectedResult], output_path
 
     with open(output_path, "w", encoding="utf-8") as file:
         json.dump([dataclasses.asdict(result) for result in unexpected_results], file)
+
+    return not any([is_stable_and_unexpected(result) for result in unexpected_results])
+
+
+def write_unexpected_only_raw_log(
+    unexpected_results: List[UnexpectedResult], raw_log_file: str, filtered_raw_log_file: str
+):
+    tests = [result.path for result in unexpected_results]
+    print(f"Writing unexpected-only raw log to {filtered_raw_log_file}")
+
+    with open(filtered_raw_log_file, "w", encoding="utf-8") as output:
         with open(raw_log_file) as input:
             for line in input.readlines():
                 data = json.loads(line)

@@ -134,13 +134,7 @@ def is_iter_empty(iterator):
 
 
 def normalize_path(path: str) -> str:
-    abs_path = os.path.abspath(path)
-
-    if abs_path.startswith(TOPDIR):
-        relative = abs_path[len(TOPDIR) :]
-        return f".{relative}"
-
-    return path
+    return os.path.relpath(os.path.abspath(path), TOPDIR)
 
 
 def normilize_paths(paths):
@@ -391,41 +385,35 @@ def check_ruff_lints():
             )
 
 
-def split_pyrefly_errors(raw_log: bytes | str) -> Iterator[Tuple[str, int, str]]:
-    if isinstance(raw_log, bytes):
-        raw_log = raw_log.decode("utf-8")
+@dataclass
+class PyreflyDiagnostic:
+    """
+    Represents a single diagnostic error reported by Pyrefly.
+    """
 
-    decoded = raw_log.encode("utf-8").decode("unicode_escape")
-
-    blocks = re.split(r"(?=^ERROR )", decoded, flags=re.MULTILINE)
-
-    for block in blocks:
-        block = block.strip()
-        if not block:
-            continue
-
-        message_match = re.search(r"^ERROR (.*)", block, flags=re.MULTILINE)
-        message = message_match.group(1).strip() if message_match else "<unknown>"
-
-        location_match = re.search(r"-->\s+(.*?):(\d+):\d+", block)
-        if location_match:
-            filename = location_match.group(1).strip()
-            line = int(location_match.group(2))
-        else:
-            filename = "<unknown>"
-            line = 0
-
-        yield normalize_path(filename), line, message
+    line: int
+    column: int
+    stop_line: int
+    stop_column: int
+    path: str
+    code: int
+    name: str
+    description: str
+    concise_description: str
 
 
 def check_pyrefly_type_checking() -> Iterator[Tuple[str, int, str]]:
     print("\r ➤  Running `pyrefly` checks...")
     try:
-        result = subprocess.run(["pyrefly", "check"], capture_output=True)
+        result = subprocess.run(["pyrefly", "check", "--output-format", "json"], capture_output=True)
+        parsed_json = json.loads(result.stdout)
+        errors = parsed_json.get("errors", [])
     except subprocess.CalledProcessError:
         pass
     else:
-        yield from split_pyrefly_errors(result.stdout)
+        for error in errors:
+            diagnostic: PyreflyDiagnostic = PyreflyDiagnostic(**error)
+            yield normalize_path(diagnostic.path), diagnostic.line, diagnostic.name
 
 
 def run_cargo_deny_lints():
@@ -796,7 +784,7 @@ def check_that_manifests_exist() -> Iterator[Tuple[str, int, str]]:
 
 
 def check_that_manifests_are_clean() -> Iterator[Tuple[str, int, str]]:
-    from wptrunner.wptrunner import wptlogging
+    from wptrunner import wptlogging
 
     print("\r ➤  Checking WPT manifests for cleanliness...")
     output_stream = io.StringIO("")
@@ -809,7 +797,7 @@ def check_that_manifests_are_clean() -> Iterator[Tuple[str, int, str]]:
 
 
 def lint_wpt_test_files() -> Iterator[Tuple[str, int, str]]:
-    from lint import lint
+    from tools.lint import lint
 
     # Override the logging function so that we can collect errors from
     # the lint script, which doesn't allow configuration of the output.
@@ -1086,6 +1074,5 @@ class CargoDenyKrate:
         self.name = crate["name"]
         self.version = crate["version"]
         self.parents = [CargoDenyKrate(parent) for parent in data.get("parents", [])]
-
-    def __str__(self):
-        return f"{self.name}@{self.version}"
+        self.version = crate["version"]
+        self.parents = [CargoDenyKrate(parent) for parent in data.get("parents", [])]

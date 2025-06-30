@@ -265,4 +265,3 @@ class WPTSync:
             # Since the upstreamable changes have now been merged locally, merge the
             # corresponding upstream PR.
             run.add_step(MergePRStep(run.upstream_pr.value(), ["do not merge yet"]))
-

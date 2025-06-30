@@ -416,3 +416,19 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
         if not self.interactive and self.unexpected_results:
             output += "Tests with unexpected results:\n"
             output += "".join([str(result) for result in self.unexpected_results])
+
+        return self.generate_output(text=output, new_display="")
+
+    def process_output(self, data):
+        ServoHandler.process_output(self, data)
+
+    def log(self, data):
+        ServoHandler.log(self, data)
+
+        # We are logging messages that begin with STDERR, because that is how exceptions
+        # in this formatter are indicated.
+        if data["message"].startswith("STDERR"):
+            return self.generate_output(text=data["message"] + "\n")
+
+        if data["level"] in ("CRITICAL", "ERROR"):
+            return self.generate_output(text=data["message"] + "\n")
