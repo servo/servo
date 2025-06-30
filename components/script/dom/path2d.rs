@@ -53,13 +53,28 @@ impl Path2D {
         self.path.borrow().clone()
     }
 
-    fn has_segments(&self) -> bool {
-        !self.path.borrow().is_empty()
+    fn is_path_empty(&self) -> bool {
+        self.path.borrow().is_empty()
     }
 
-    fn add_path_(&self, other: &Path2D, transform: &DOMMatrix2DInit) -> ErrorResult {
-        // Step 1. If the Path@D object path has no subpaths, then return.
-        if !other.has_segments() {
+    fn last_point(path: &[PathSegment]) -> Option<Point2D<f32>> {
+        if path.is_empty() {
+            return None;
+        }
+
+            // already checked if path segments is empty in step 1 so safe to unwrap at this step
+            let (x, y) = match path.last().unwrap() {
+                PathSegment::ClosePath => todo!(),
+                PathSegment::MoveTo { x, y } | PathSegment::LineTo { x, y } | PathSegment::Quadratic { x, y, .. } | PathSegment::Bezier { x, y, ..} | PathSegment::Ellipse { x, y, .. } | PathSegment::SvgArc { x, y, .. } => (x, y),
+                PathSegment::ArcTo { cp1x, cp1y, cp2x, cp2y, radius } => todo!(),
+            };
+
+        Some(Point2D::new(*x, *y))
+    }
+
+    fn add_path(&self, other: &Path2D, transform: &DOMMatrix2DInit) -> ErrorResult {
+        // Step 1. If the Path2D object path has no subpaths, then return.
+        if other.is_path_empty() {
             return Ok(());
         }
 
@@ -91,7 +106,7 @@ impl Path2D {
 
         for segment in c.iter_mut() {
             match *segment {
-                PathSegment::ClosePath => todo!(),
+                PathSegment::ClosePath => {},
                 PathSegment::MoveTo { x, y } => {
                     let transformed_point = apply_matrix_transform(x, y)?;
                     *segment = PathSegment::MoveTo {
@@ -199,6 +214,8 @@ impl Path2D {
         }
 
         // Step 6. Let (x, y) be the last point in the last subpath of c
+        // already checked if path segments is empty in step 1 so safe to unwrap at this step
+        let last_point = Path2D::last_point(&c).unwrap();
 
         // Step 7. Add all the subpaths in c to a.
         if std::ptr::eq(&self.path, &other.path) {
@@ -210,6 +227,9 @@ impl Path2D {
             dest.extend(other.path.borrow().iter().copied());
         }
 
+        // Step 8. Create a new subpath in a with (x, y) as the only point in the subpath.
+        self.push(PathSegment::MoveTo { x: last_point.x, y: last_point.y });
+
         Ok(())
     }
 }
@@ -217,7 +237,7 @@ impl Path2D {
 impl Path2DMethods<crate::DomTypeHolder> for Path2D {
     /// <https://html.spec.whatwg.org/multipage/#dom-path2d-addpath>
     fn AddPath(&self, other: &Path2D, transform: &DOMMatrix2DInit) -> ErrorResult {
-        self.add_path_(other, transform)
+        self.add_path(other, transform)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-closepath>
