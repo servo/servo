@@ -75,7 +75,7 @@ pub(crate) fn is_valid_element_local_name(name: &str) -> bool {
     }
 
     let mut iter = name.chars();
-    
+
     // SAFETY: we have already checked that the &str is not empty
     let c0 = iter.next().unwrap();
 
@@ -84,34 +84,36 @@ pub(crate) fn is_valid_element_local_name(name: &str) -> bool {
         for c in iter {
             // Step 2.1 If name contains ASCII whitespace,
             // U+0000 NULL, U+002F (/), or U+003E (>), then return false.
-            if matches!(c, '\u{0009}' |
-                            '\u{000A}' |
-                            '\u{000C}' |
-                            '\u{000D}' |
-                            '\u{0020}' |
-                            '\u{0000}' |
-                            '\u{002F}' |
-                            '\u{003E}') {
+            if matches!(
+                c,
+                '\u{0009}' |
+                    '\u{000A}' |
+                    '\u{000C}' |
+                    '\u{000D}' |
+                    '\u{0020}' |
+                    '\u{0000}' |
+                    '\u{002F}' |
+                    '\u{003E}'
+            ) {
                 return false;
             }
         }
         true
-    } 
-    // Step 3. If name’s 0th code point is not U+003A (:), U+005F (_), 
-    // or in the range U+0080 to U+10FFFF, inclusive, then return false. 
+    }
+    // Step 3. If name’s 0th code point is not U+003A (:), U+005F (_),
+    // or in the range U+0080 to U+10FFFF, inclusive, then return false.
     else if matches!(c0, '\u{003A}' | '\u{005F}' | '\u{0080}'..='\u{10FFF}') {
         for c in iter {
-            // Step 4. If name’s subsequent code points, 
-            // if any, are not ASCII alphas, ASCII digits, 
-            // U+002D (-), U+002E (.), U+003A (:), U+005F (_), 
-            // or in the range U+0080 to U+10FFFF, inclusive, 
+            // Step 4. If name’s subsequent code points,
+            // if any, are not ASCII alphas, ASCII digits,
+            // U+002D (-), U+002E (.), U+003A (:), U+005F (_),
+            // or in the range U+0080 to U+10FFFF, inclusive,
             // then return false.
             if !c.is_ascii_alphanumeric() &&
-                !matches!(c, '\u{002D}' |
-                            '\u{002E}' |
-                            '\u{003A}' |
-                            '\u{005F}' |
-                            '\u{0080}'..='\u{10FFF}')
+                !matches!(
+                    c,
+                    '\u{002D}' | '\u{002E}' | '\u{003A}' | '\u{005F}' | '\u{0080}'..='\u{10FFF}'
+                )
             {
                 return false;
             }
@@ -143,7 +145,7 @@ pub(crate) fn is_valid_doctype_name(name: &str) -> bool {
 /// Context for [`validate_and_extract`] a namespace and qualified name
 ///
 /// See <https://dom.spec.whatwg.org/#validate-and-extract>
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub(crate) enum Context {
     Attribute,
     Element,
@@ -168,7 +170,7 @@ pub(crate) fn validate_and_extract(
         //          strictly split given qualifiedName and U+003A (:).
         let p = &qualified_name[..idx];
         let local_name_start = (idx + 1).min(qualified_name.len());
-        
+
         //     Step 4.2. Set prefix to splitResult[0].
         if !p.is_empty() {
             // Step 5. If prefix is not a valid namespace prefix,
@@ -177,10 +179,10 @@ pub(crate) fn validate_and_extract(
                 debug!("Not a valid namespace prefix");
                 return Err(Error::InvalidCharacter);
             }
-            
+
             prefix = Some(p);
         }
-        
+
         //     Step 4.3. Set localName to splitResult[1].
         local_name = &qualified_name[local_name_start..];
     }
@@ -205,7 +207,7 @@ pub(crate) fn validate_and_extract(
             }
         },
     }
-    
+
     match prefix {
         // Step 8. If prefix is non-null and namespace is null,
         //      then throw a "NamespaceError" DOMException.
@@ -215,14 +217,19 @@ pub(crate) fn validate_and_extract(
         Some("xml") if *namespace != *XML_NAMESPACE => Err(Error::Namespace),
         // Step 10. If either qualifiedName or prefix is "xmlns" and namespace
         //      is not the XMLNS namespace, then throw a "NamespaceError" DOMException.
-        p if (qualified_name == "xmlns" || p == Some("xmlns")) && *namespace != *XMLNS_NAMESPACE => Err(Error::Namespace),
+        p if (qualified_name == "xmlns" || p == Some("xmlns")) &&
+            *namespace != *XMLNS_NAMESPACE =>
+        {
+            Err(Error::Namespace)
+        },
         Some(_) if qualified_name == "xmlns" && *namespace != *XMLNS_NAMESPACE => {
             Err(Error::Namespace)
         },
         // Step 11. If namespace is the XMLNS namespace and neither qualifiedName
         //      nor prefix is "xmlns", then throw a "NamespaceError" DOMException.
-        p if *namespace == *XMLNS_NAMESPACE && 
-            (qualified_name != "xmlns" && p != Some("xmlns"))  => {
+        p if *namespace == *XMLNS_NAMESPACE &&
+            (qualified_name != "xmlns" && p != Some("xmlns")) =>
+        {
             Err(Error::Namespace)
         },
         // Step 12. Return (namespace, prefix, localName).
