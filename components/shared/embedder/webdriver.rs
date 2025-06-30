@@ -134,6 +134,7 @@ pub enum WebDriverScriptCommand {
     FindElementsCSSSelector(String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindElementsLinkText(String, bool, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindElementsTagName(String, IpcSender<Result<Vec<String>, ErrorStatus>>),
+    FindElementsXpathSelector(String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindElementElementsCSSSelector(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindElementElementsLinkText(
         String,
@@ -142,6 +143,7 @@ pub enum WebDriverScriptCommand {
         IpcSender<Result<Vec<String>, ErrorStatus>>,
     ),
     FindElementElementsTagName(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
+    FindElementElementsXPathSelector(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindShadowElementsCSSSelector(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindShadowElementsLinkText(
         String,
@@ -150,6 +152,7 @@ pub enum WebDriverScriptCommand {
         IpcSender<Result<Vec<String>, ErrorStatus>>,
     ),
     FindShadowElementsTagName(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
+    FindShadowElementsXPathSelector(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     GetElementShadowRoot(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     ElementClick(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     GetActiveElement(IpcSender<Option<String>>),

@@ -43,6 +43,9 @@ use crate::dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelec
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLSerializerBinding::XMLSerializerMethods;
+use crate::dom::bindings::codegen::Bindings::XPathResultBinding::{
+    XPathResultConstants, XPathResultMethods,
+};
 use crate::dom::bindings::conversions::{
     ConversionBehavior, ConversionResult, FromJSValConvertible, StringificationBehavior,
     get_property, get_property_jsval, jsid_to_string, jsstring_to_str, root_from_object,
@@ -759,6 +762,87 @@ pub(crate) fn handle_find_elements_tag_name(
     }
 }
 
+/// <https://w3c.github.io/webdriver/#xpath>
+fn find_elements_xpath_strategy(
+    document: &Document,
+    start_node: &Node,
+    selector: String,
+    pipeline: PipelineId,
+    can_gc: CanGc,
+) -> Result<Vec<String>, ErrorStatus> {
+    // Step 1. Let evaluateResult be the result of calling evaluate,
+    // with arguments selector, start node, null, ORDERED_NODE_SNAPSHOT_TYPE, and null.
+
+    // A snapshot is used to promote operation atomicity.
+    let evaluate_result = match document.Evaluate(
+        DOMString::from(selector),
+        start_node,
+        None,
+        XPathResultConstants::ORDERED_NODE_SNAPSHOT_TYPE,
+        None,
+        can_gc,
+    ) {
+        Ok(res) => res,
+        Err(_) => return Err(ErrorStatus::InvalidSelector),
+    };
+    // Step 2. Let index be 0. (Handled altogether in Step 5.)
+
+    // Step 3: Let length be the result of getting the property "snapshotLength"
+    // from evaluateResult.
+
+    let length = match evaluate_result.GetSnapshotLength() {
+        Ok(len) => len,
+        Err(_) => return Err(ErrorStatus::InvalidSelector),
+    };
+
+    // Step 4: Prepare result vector
+    let mut result = Vec::new();
+
+    // Step 5: Repeat, while index is less than length:
+    for index in 0..length {
+        // Step 5.1. Let node be the result of calling snapshotItem with
+        // evaluateResult as this and index as the argument.
+        let node = match evaluate_result.SnapshotItem(index) {
+            Ok(node) => node.expect(
+                "Node should always exist as ORDERED_NODE_SNAPSHOT_TYPE \
+                                gives static result and we verified the length!",
+            ),
+            Err(_) => return Err(ErrorStatus::InvalidSelector),
+        };
+
+        // Step 5.2. If node is not an element return an error with error code invalid selector.
+        if !node.is::<Element>() {
+            return Err(ErrorStatus::InvalidSelector);
+        }
+
+        // Step 5.3. Append node to result.
+        result.push(node.unique_id(pipeline));
+    }
+    // Step 6. Return success with data result.
+    Ok(result)
+}
+
+pub(crate) fn handle_find_elements_xpath_selector(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    selector: String,
+    reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    can_gc: CanGc,
+) {
+    match retrieve_document_and_check_root_existence(documents, pipeline) {
+        Ok(document) => reply
+            .send(find_elements_xpath_strategy(
+                &document,
+                document.upcast::<Node>(),
+                selector,
+                pipeline,
+                can_gc,
+            ))
+            .unwrap(),
+        Err(error) => reply.send(Err(error)).unwrap(),
+    }
+}
+
 pub(crate) fn handle_find_element_elements_css_selector(
     documents: &DocumentCollection,
     pipeline: PipelineId,
@@ -818,6 +902,31 @@ pub(crate) fn handle_find_element_elements_tag_name(
                     .elements_iter()
                     .map(|x| x.upcast::<Node>().unique_id(pipeline))
                     .collect::<Vec<String>>()
+            }),
+        )
+        .unwrap();
+}
+
+pub(crate) fn handle_find_element_elements_xpath_selector(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    element_id: String,
+    selector: String,
+    reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    can_gc: CanGc,
+) {
+    reply
+        .send(
+            get_known_element(documents, pipeline, element_id).and_then(|element| {
+                find_elements_xpath_strategy(
+                    &documents
+                        .find_document(pipeline)
+                        .expect("Document existence guaranteed by `get_known_element`"),
+                    element.upcast::<Node>(),
+                    selector,
+                    pipeline,
+                    can_gc,
+                )
             }),
         )
         .unwrap();
@@ -897,6 +1006,31 @@ pub(crate) fn handle_find_shadow_elements_tag_name(
                             .collect()
                     })
                     .unwrap_or_default()
+            }),
+        )
+        .unwrap();
+}
+
+pub(crate) fn handle_find_shadow_elements_xpath_selector(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    shadow_root_id: String,
+    selector: String,
+    reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    can_gc: CanGc,
+) {
+    reply
+        .send(
+            get_known_shadow_root(documents, pipeline, shadow_root_id).and_then(|shadow_root| {
+                find_elements_xpath_strategy(
+                    &documents
+                        .find_document(pipeline)
+                        .expect("Document existence guaranteed by `get_known_shadow_root`"),
+                    shadow_root.upcast::<Node>(),
+                    selector,
+                    pipeline,
+                    can_gc,
+                )
             }),
         )
         .unwrap();

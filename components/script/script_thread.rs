@@ -2270,6 +2270,15 @@ impl ScriptThread {
                     can_gc,
                 )
             },
+            WebDriverScriptCommand::FindElementsXpathSelector(selector, reply) => {
+                webdriver_handlers::handle_find_elements_xpath_selector(
+                    &documents,
+                    pipeline_id,
+                    selector,
+                    reply,
+                    can_gc,
+                )
+            },
             WebDriverScriptCommand::FindElementElementsCSSSelector(selector, element_id, reply) => {
                 webdriver_handlers::handle_find_element_elements_css_selector(
                     &documents,
@@ -2303,6 +2312,18 @@ impl ScriptThread {
                     can_gc,
                 )
             },
+            WebDriverScriptCommand::FindElementElementsXPathSelector(
+                selector,
+                element_id,
+                reply,
+            ) => webdriver_handlers::handle_find_element_elements_xpath_selector(
+                &documents,
+                pipeline_id,
+                element_id,
+                selector,
+                reply,
+                can_gc,
+            ),
             WebDriverScriptCommand::FindShadowElementsCSSSelector(
                 selector,
                 shadow_root_id,
@@ -2337,6 +2358,18 @@ impl ScriptThread {
                     reply,
                 )
             },
+            WebDriverScriptCommand::FindShadowElementsXPathSelector(
+                selector,
+                shadow_root_id,
+                reply,
+            ) => webdriver_handlers::handle_find_shadow_elements_xpath_selector(
+                &documents,
+                pipeline_id,
+                shadow_root_id,
+                selector,
+                reply,
+                can_gc,
+            ),
             WebDriverScriptCommand::GetElementShadowRoot(element_id, reply) => {
                 webdriver_handlers::handle_get_element_shadow_root(
                     &documents,
