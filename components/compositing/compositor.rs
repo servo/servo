@@ -789,11 +789,13 @@ impl IOCompositor {
                 )
                 .entered();
 
-                assert!(
-                    self.awaiting_display_list
-                        .replace((built_display_list, display_list_info, webview_id, done))
-                        .is_none()
-                );
+                if self
+                    .awaiting_display_list
+                    .replace((built_display_list, display_list_info, webview_id, done))
+                    .is_some()
+                {
+                    warn!("Skipping display list!")
+                }
                 self.maybe_send_awaiting_display_list();
             },
 
@@ -1003,9 +1005,9 @@ impl IOCompositor {
         self.update_transaction_with_all_scroll_offsets(&mut transaction);
         self.generate_frame(&mut transaction, RenderReasons::SCENE);
         self.global.borrow_mut().send_transaction(transaction);
-        if let Err(error) = done.send(()) {
+        /*if let Err(error) = done.send(()) {
             warn!("ERROR sending DONE for display list: {error:?}");
-        }
+        }*/
     }
 
     /// Handle messages sent to the compositor during the shutdown process. In general,

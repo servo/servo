@@ -268,9 +268,9 @@ impl CrossProcessCompositorApi {
         if let Err(error) = display_list_sender.send(&display_list_data.spatial_tree) {
             warn!("Error sending display spatial tree: {error}");
         }
-        if let Err(error) = receiver.recv() {
+        /*if let Err(error) = receiver.recv() {
             warn!("Error receiving display list DONE: {error}");
-        }
+        }*/
     }
 
     /// Perform a hit test operation. Blocks until the operation is complete and
