@@ -21,5 +21,7 @@ mod sampler_linux;
 mod sampler_mac;
 #[cfg(all(feature = "sampler", target_os = "windows"))]
 mod sampler_windows;
+#[cfg(all(feature = "sampler", target_os = "android"))]
+mod sampler_linux;
 
 pub use self::background_hang_monitor::*;
