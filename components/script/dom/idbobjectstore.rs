@@ -13,6 +13,7 @@ use js::jsapi::{
 };
 use js::jsval::UndefinedValue;
 use js::rust::{HandleValue, MutableHandleValue};
+use log::error;
 use net_traits::IpcSend;
 use net_traits::indexeddb_thread::{
     AsyncOperation, IndexedDBKeyType, IndexedDBThreadMsg, SyncOperation,
@@ -187,7 +188,8 @@ impl IDBObjectStore {
 
                 if IsArrayBufferObject(*object) || JS_IsArrayBufferViewObject(*object) {
                     // FIXME:(arihant2math)
-                    unimplemented!("Array buffers as keys is currently unsupported");
+                    error!("Array buffers as keys is currently unsupported");
+                    return Err(Error::NotSupported);
                 }
 
                 if let ESClass::Array = built_in_class {

@@ -16,7 +16,7 @@ pub enum IndexedDBTxnMode {
 
 // https://www.w3.org/TR/IndexedDB-2/#key-type
 // FIXME:(arihant2math) Ordering needs to completely be reimplemented as per https://www.w3.org/TR/IndexedDB-2/#compare-two-keys
-#[derive(Clone, Debug, Deserialize, Serialize, PartialOrd, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, PartialOrd, Serialize)]
 pub enum IndexedDBKeyType {
     Number(f64),
     String(String),
@@ -28,7 +28,7 @@ pub enum IndexedDBKeyType {
 }
 
 // <https://www.w3.org/TR/IndexedDB-2/#key-range>
-#[derive(Clone, Debug, Deserialize, Serialize, Default)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[allow(unused)]
 pub struct IndexedDBKeyRange {
     pub lower: Option<IndexedDBKeyType>,
@@ -48,11 +48,13 @@ impl From<IndexedDBKeyType> for IndexedDBKeyRange {
 }
 
 impl IndexedDBKeyRange {
-    // https://www.w3.org/TR/IndexedDB-2/#in
+    // <https://www.w3.org/TR/IndexedDB-2/#in>
     pub fn contains(&self, key: &IndexedDBKeyType) -> bool {
         // A key is in a key range if both of the following conditions are fulfilled:
-        // The lower bound is null, or it is less than key, or it is both equal to key and the lower open flag is unset.
-        // The upper bound is null, or it is greater than key, or it is both equal to key and the upper open flag is unset
+        // The lower bound is null, or it is less than key,
+        // or it is both equal to key and the lower open flag is unset.
+        // The upper bound is null, or it is greater than key,
+        // or it is both equal to key and the upper open flag is unset
         let lower_bound_condition = self
             .lower
             .as_ref()
