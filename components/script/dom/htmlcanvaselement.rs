@@ -13,16 +13,12 @@ use constellation_traits::ScriptToConstellationMessage;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use html5ever::{LocalName, Prefix, local_name, ns};
-use image::codecs::jpeg::JpegEncoder;
-use image::codecs::png::PngEncoder;
-use image::codecs::webp::WebPEncoder;
-use image::{ColorType, ImageEncoder, ImageError};
 #[cfg(feature = "webgpu")]
 use ipc_channel::ipc::{self as ipcchan};
 use js::error::throw_type_error;
 use js::rust::{HandleObject, HandleValue};
 use layout_api::HTMLCanvasData;
-use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
+use pixels::{EncodedImageType, Snapshot};
 use script_bindings::weakref::WeakRef;
 use servo_media::streams::MediaStreamType;
 use servo_media::streams::registry::MediaStreamId;
@@ -69,41 +65,6 @@ use crate::script_runtime::{CanGc, JSContext};
 
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
-
-#[derive(PartialEq)]
-enum EncodedImageType {
-    Png,
-    Jpeg,
-    Webp,
-}
-
-impl From<DOMString> for EncodedImageType {
-    // From: https://html.spec.whatwg.org/multipage/#serialising-bitmaps-to-a-file
-    // User agents must support PNG ("image/png"). User agents may support other types.
-    // If the user agent does not support the requested type, then it must create the file using the PNG format.
-    // Anything different than image/jpeg or image/webp is thus treated as PNG.
-    fn from(mime_type: DOMString) -> Self {
-        let mime = mime_type.to_string().to_lowercase();
-        if mime == "image/jpeg" {
-            Self::Jpeg
-        } else if mime == "image/webp" {
-            Self::Webp
-        } else {
-            Self::Png
-        }
-    }
-}
-
-impl EncodedImageType {
-    fn as_mime_type(&self) -> String {
-        match self {
-            Self::Png => "image/png",
-            Self::Jpeg => "image/jpeg",
-            Self::Webp => "image/webp",
-        }
-        .to_owned()
-    }
-}
 
 /// <https://html.spec.whatwg.org/multipage/#htmlcanvaselement>
 #[dom_struct]
@@ -385,68 +346,6 @@ impl HTMLCanvasElement {
             None
         }
     }
-
-    fn encode_for_mime_type<W: std::io::Write>(
-        &self,
-        image_type: &EncodedImageType,
-        quality: Option<f64>,
-        mut snapshot: Snapshot,
-        encoder: &mut W,
-    ) -> Result<(), ImageError> {
-        // We can't use self.Width() or self.Height() here, since the size of the canvas
-        // may have changed since the snapshot was created. Truncating the dimensions to a
-        // u32 can't panic, since the data comes from a canvas which is always smaller than
-        // u32::MAX.
-        let width = snapshot.size().width;
-        let height = snapshot.size().height;
-        let (canvas_data, _, _) = snapshot.as_bytes(
-            if *image_type == EncodedImageType::Jpeg {
-                Some(SnapshotAlphaMode::AsOpaque {
-                    premultiplied: true,
-                })
-            } else {
-                Some(SnapshotAlphaMode::Transparent {
-                    premultiplied: false,
-                })
-            },
-            Some(SnapshotPixelFormat::RGBA),
-        );
-
-        match image_type {
-            EncodedImageType::Png => {
-                // FIXME(nox): https://github.com/image-rs/image-png/issues/86
-                // FIXME(nox): https://github.com/image-rs/image-png/issues/87
-                PngEncoder::new(encoder).write_image(canvas_data, width, height, ColorType::Rgba8)
-            },
-            EncodedImageType::Jpeg => {
-                let jpeg_encoder = if let Some(quality) = quality {
-                    // The specification allows quality to be in [0.0..1.0] but the JPEG encoder
-                    // expects it to be in [1..100]
-                    if (0.0..=1.0).contains(&quality) {
-                        JpegEncoder::new_with_quality(
-                            encoder,
-                            (quality * 100.0).round().clamp(1.0, 100.0) as u8,
-                        )
-                    } else {
-                        JpegEncoder::new(encoder)
-                    }
-                } else {
-                    JpegEncoder::new(encoder)
-                };
-
-                jpeg_encoder.write_image(canvas_data, width, height, ColorType::Rgba8)
-            },
-            EncodedImageType::Webp => {
-                // No quality support because of https://github.com/image-rs/image/issues/1984
-                WebPEncoder::new_lossless(encoder).write_image(
-                    canvas_data,
-                    width,
-                    height,
-                    ColorType::Rgba8,
-                )
-            },
-        }
-    }
 }
 
 impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
@@ -548,11 +447,11 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
 
         // Step 3: Let file be a serialization of this canvas element's bitmap as a file,
         // passing type and quality if given.
-        let Some(snapshot) = self.get_image_data() else {
+        let Some(mut snapshot) = self.get_image_data() else {
             return Ok(USVString("data:,".into()));
         };
 
-        let image_type = EncodedImageType::from(mime_type);
+        let image_type = EncodedImageType::from(mime_type.to_string());
 
         let mut url = format!("data:{};base64,", image_type.as_mime_type());
 
@@ -561,13 +460,8 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             &base64::engine::general_purpose::STANDARD,
         );
 
-        if self
-            .encode_for_mime_type(
-                &image_type,
-                Self::maybe_quality(quality),
-                snapshot,
-                &mut encoder,
-            )
+        if snapshot
+            .encode_for_mime_type(&image_type, Self::maybe_quality(quality), &mut encoder)
             .is_err()
         {
             // Step 4. If file is null, then return "data:,".
@@ -612,7 +506,8 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             .borrow_mut()
             .insert(callback_id, callback);
         let quality = Self::maybe_quality(quality);
-        let image_type = EncodedImageType::from(mime_type);
+        let image_type = EncodedImageType::from(mime_type.to_string());
+
         self.global()
             .task_manager()
             .canvas_blob_task_source()
@@ -622,7 +517,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
                     return error!("Expected blob callback, but found none!");
                 };
 
-                let Some(snapshot) = result else {
+                let Some(mut snapshot) = result else {
                     let _ = callback.Call__(None, ExceptionHandling::Report, CanGc::note());
                     return;
                 };
@@ -634,7 +529,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
                 let mut encoded: Vec<u8> = vec![];
                 let blob_impl;
                 let blob;
-                let result = match this.encode_for_mime_type(&image_type, quality, snapshot, &mut encoded) {
+                let result = match snapshot.encode_for_mime_type(&image_type, quality, &mut encoded) {
                    Ok(..) => {
                        // Step 4.2.1: If result is non-null, then set result to a new Blob
                        // object, created in the relevant realm of this canvas element,
