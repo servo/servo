@@ -143,6 +143,7 @@ pub enum WebDriverScriptCommand {
         IpcSender<Result<Vec<String>, ErrorStatus>>,
     ),
     FindElementElementsTagName(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
+    FindElementElementsXPathSelector(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindShadowElementsCSSSelector(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindShadowElementsLinkText(
         String,

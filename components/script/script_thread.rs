@@ -2312,6 +2312,16 @@ impl ScriptThread {
                     can_gc,
                 )
             },
+            WebDriverScriptCommand::FindElementElementsXPathSelector(selector, element_id, reply) => {
+                webdriver_handlers::handle_find_element_elements_xpath_selector(
+                    &documents,
+                    pipeline_id,
+                    element_id,
+                    selector,
+                    reply,
+                    can_gc,
+                )
+            },
             WebDriverScriptCommand::FindShadowElementsCSSSelector(
                 selector,
                 shadow_root_id,
