@@ -790,9 +790,6 @@ fn find_elements_xpath_strategy(
     // Step 3: Let length be the result of getting the property "snapshotLength"
     // from evaluateResult.
 
-    // <https://w3c.github.io/webdriver/#dfn-find> always applies
-    // Step 7.2. If a DOMException, SyntaxError, XPathException, or other error occurs
-    // during the execution of the element location strategy, return error invalid selector.
     let length = match evaluate_result.GetSnapshotLength() {
         Ok(len) => len,
         Err(_) => return Err(ErrorStatus::InvalidSelector),
@@ -1028,7 +1025,7 @@ pub(crate) fn handle_find_shadow_elements_xpath_selector(
                 find_elements_xpath_strategy(
                     &documents
                         .find_document(pipeline)
-                        .expect("Document existence guaranteed by `get_known_element`"),
+                        .expect("Document existence guaranteed by `get_known_shadow_root`"),
                     shadow_root.upcast::<Node>(),
                     selector,
                     pipeline,
