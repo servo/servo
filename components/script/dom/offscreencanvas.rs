@@ -46,9 +46,8 @@ impl OffscreenCanvas {
     pub(crate) fn new_inherited(
         width: u64,
         height: u64,
-        placeholder: Option<&HTMLCanvasElement>,
+        placeholder: Option<WeakRef<HTMLCanvasElement>>,
     ) -> OffscreenCanvas {
-        let placeholder = placeholder.map(WeakRef::new);
         OffscreenCanvas {
             eventtarget: EventTarget::new_inherited(),
             width: Cell::new(width),
@@ -63,7 +62,7 @@ impl OffscreenCanvas {
         proto: Option<HandleObject>,
         width: u64,
         height: u64,
-        placeholder: Option<&HTMLCanvasElement>,
+        placeholder: Option<WeakRef<HTMLCanvasElement>>,
         can_gc: CanGc,
     ) -> DomRoot<OffscreenCanvas> {
         reflect_dom_object_with_proto(
