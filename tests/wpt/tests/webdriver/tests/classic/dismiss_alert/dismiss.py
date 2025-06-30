@@ -74,12 +74,11 @@ def test_dismiss_prompt(session, inline):
 def test_unexpected_alert(session):
     session.execute_script("setTimeout(function() { alert('Hello'); }, 100);")
 
-    wait = Poll(
-        session,
-        timeout=5,
-        ignored_exceptions=NoSuchAlertException,
-        message="No user prompt with text 'Hello' detected")
-    wait.until(lambda s: s.alert.text == "Hello")
+    def check_alert_text(s):
+        assert s.alert.text == "Hello", "No user prompt with text 'Hello' detected"
+
+    wait = Poll(session, timeout=5, ignored_exceptions=NoSuchAlertException)
+    wait.until(check_alert_text)
 
     response = dismiss_alert(session)
     assert_success(response)

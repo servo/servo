@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>Test decorating box when children has `text-decoration-thickness`</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-3/#decorating-box">
+<link rel="match" href="text-decoration-decorating-box-thickness-001-ref.html">
+<style>
+div {
+  text-decoration: underline;
+  text-decoration-thickness: 10px;
+}
+span {
+  text-decoration-thickness: 1px;
+}
+</style>
+<div>
+  abc
+  <span>x</span>
+  def
+</div>

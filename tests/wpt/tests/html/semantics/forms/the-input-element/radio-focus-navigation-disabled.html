@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<link rel="author" href="mailto:dizhangg@chromium.org">
+<link rel="help" href="http://crbug.com/427520278">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/focus-utils.js"></script>
+
+<form>
+ <label><input type="radio" name="start" id="start">Outside form</label>
+</form>
+<form>
+ <label><input type="radio" name="radio" id="a" disabled checked>disabled checked</label>
+ <label><input type="radio" name="radio" id="b">enabled 1</label>
+ <label><input type="radio" name="radio" id="c">enabled 2</label>
+</form>
+<form>
+ <label><input type="radio" name="end" id="end">Outside form</label>
+</form>
+
+<script>
+
+promise_test(async () => {
+    start.focus();
+    assert_equals(document.activeElement, start);
+    await navigateFocusForward();
+    assert_equals(document.activeElement, b);
+    await navigateFocusForward();
+    assert_equals(document.activeElement, end);
+    await navigateFocusBackward();
+    assert_equals(document.activeElement, c);
+    await navigateFocusBackward();
+    assert_equals(document.activeElement, start);
+}, 'Should be able to tab focus in radio group even when the checked radio button is disabled.');
+</script>

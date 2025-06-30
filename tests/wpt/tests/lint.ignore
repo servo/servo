@@ -830,3 +830,6 @@ SET TIMEOUT: wasm/core/js/harness/testharness.js
 ASSERT_THROWS: wasm/core/js/harness/testharness.js
 GENERATE_TESTS: wasm/core/js/harness/testharness.js
 PROMISE_REJECTS: wasm/core/js/harness/testharness.js
+
+# Legitimate use of test_driver_internal
+TEST DRIVER INTERNAL: resources/testdriver.js

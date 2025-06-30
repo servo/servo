@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Content-Security-Policy Invalid Bytes Parsing Tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./support/helper.sub.js"></script>
+<body>
+<script>
+"use strict";
+
+// Original source: https://github.com/web-platform-tests/wpt/pull/48855
+
+// \x01 - \x08, \x0e, \x0f, \x10 - \x1f, \x7f.
+// In a source expression, non-whitespace characters outside ASCII 0x21-0x7E must be Punycode-encoded, as described in RFC 3492 (https://tools.ietf.org/html/rfc3492), if part of the hostname and percent-encoded, as described in RFC 3986, section 2.1 (http://tools.ietf.org/html/rfc3986#section-2.1), if part of the path.
+
+var EXPECT_BLOCK = true;
+var EXPECT_LOAD = false;
+
+function csp_parsing_test(policy, expectBlock, message) {
+  promise_test(async t => {
+    let iframe = document.createElement("iframe");
+    iframe.src = "/content-security-policy/parsing/support/csp.py?policy=" + encodeURIComponent(policy);
+    document.body.appendChild(iframe);
+
+    let {data} = await new Promise(resolve => window.addEventListener("message", resolve, {once: true}));
+    assert_equals(data, expectBlock ? "error" : "load", "img state is correct");
+  }, message);
+}
+
+// \x01
+csp_parsing_test("img-src 'none'\x01", EXPECT_LOAD, `CSP: "img-src 'none'\\x01" should allow rendering (Invalid directive ignored).`);
+csp_parsing_test("img-src 'none' http\x01", EXPECT_LOAD, `CSP: "img-src 'none' http:\\x01" should allow rendering (Invalid directive ignored).`);
+csp_parsing_test("img-src 'self'\x01", EXPECT_LOAD, `CSP: "img-src 'self'\\x01" should allow rendering (Invalid directive ignored).`);
+csp_parsing_test("img-src 'none'; media-src 'self'\x01", EXPECT_BLOCK, `CSP: "img-src 'none'; media-src 'self'\\x01" should block rendering.`);
+csp_parsing_test("img-src 'self'; media-src 'self'\x01", EXPECT_LOAD, `CSP: "img-src 'self'; media-src 'self'\\x01" should allow rendering.`);
+csp_parsing_test("img-src 'self', img-src 'self'\x01", EXPECT_LOAD, `CSP: "img-src 'self', img-src 'self'\\x01" should allow rendering.`);
+csp_parsing_test("img-src 'none', img-src 'self'\x01", EXPECT_BLOCK, `CSP: "img-src 'none', img-src 'self'\\x01" should block rendering.`);
+csp_parsing_test("img-src 'self', img-src\x01", EXPECT_LOAD, `CSP: "img-src 'self', img-src\\x01" should allow rendering.`);
+csp_parsing_test("img-src 'none', img-src\x01", EXPECT_BLOCK, `CSP: "img-src 'none', img-src\\x01" should block rendering.`);
+
+// \x7f
+csp_parsing_test("img-src 'none'\x7f", EXPECT_LOAD, `CSP: "img-src 'none'\\x7f" should allow rendering (Invalid directive ignored).`);
+csp_parsing_test("img-src 'none' http\x7f", EXPECT_LOAD, `CSP: "img-src 'none' http:\\x7f" should allow rendering (Invalid directive ignored).`);
+csp_parsing_test("img-src 'self'\x7f", EXPECT_LOAD, `CSP: "img-src 'self'\\x7f" should allow rendering (Invalid directive ignored).`);
+csp_parsing_test("img-src 'none'; media-src 'self'\x7f", EXPECT_BLOCK, `CSP: "img-src 'none'; media-src 'self'\\x7f" should block rendering.`);
+csp_parsing_test("img-src 'self'; media-src 'self'\x7f", EXPECT_LOAD, `CSP: "img-src 'self'; media-src 'self'\\x7f" should allow rendering.`);
+csp_parsing_test("img-src 'self', img-src 'self'\x7f", EXPECT_LOAD, `CSP: "img-src 'self', img-src 'self'\\x7f" should allow rendering.`);
+csp_parsing_test("img-src 'none', img-src 'self'\x7f", EXPECT_BLOCK, `CSP: "img-src 'none', img-src 'self'\\x7f" should block rendering.`);
+csp_parsing_test("img-src 'self', img-src\x7f", EXPECT_LOAD, `CSP: "img-src 'self', img-src\\x7f" should allow rendering.`);
+csp_parsing_test("img-src 'none', img-src\x7f", EXPECT_BLOCK, `CSP: "img-src 'none', img-src\\x7f" should block rendering.`);
+</script>
+</body>

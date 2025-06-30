@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="help" src="https://drafts.csswg.org/css-animations-2/#animation-trigger">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="subject"></div>
+    <script>
+      // This test is aimed at environments where the device scale factor is not
+      // 1, i.e. the ratio of physical pixels to CSS pixels isn't 1.
+      promise_test(async (test) => {
+        let trigger = new AnimationTrigger({
+          behavior: "alternate",
+          timeline: new ViewTimeline({
+            subject: document.getElementById('subject'), axis: "y"
+          }),
+          rangeStart: "100px",
+          rangeEnd: "300px"
+        });
+
+        assert_equals(trigger.rangeStart, "100px",
+          "correct range start returned");
+        assert_equals(trigger.rangeEnd, "300px", "correct range end returned");
+      },  "Ranges of triggers created by script are read in CSS pixels");
+    </script>
+  </body>
+</html>

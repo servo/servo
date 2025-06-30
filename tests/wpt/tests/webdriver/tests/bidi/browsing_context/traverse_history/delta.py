@@ -4,8 +4,6 @@ import pytest
 from webdriver import error
 from webdriver.bidi.modules.script import ContextTarget
 
-from tests.support.sync import AsyncPoll
-
 
 pytestmark = pytest.mark.asyncio
 
@@ -33,6 +31,7 @@ async def test_delta_0(
     await bidi_session.browsing_context.traverse_history(
         context=new_tab["context"], delta=0
     )
+
     with pytest.raises(error.TimeoutException):
         await wait_for_not_url(new_tab["context"], pages[1])
 

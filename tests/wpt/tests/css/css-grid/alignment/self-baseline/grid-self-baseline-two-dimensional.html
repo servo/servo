@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link href="/css/support/grid.css" rel="stylesheet">
+<link href="/css/support/alignment.css" rel="stylesheet">
+<link href="/css/support/width-keyword-classes.css" rel="stylesheet">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#baseline-rules">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#alignment">
+<style>
+
+body { margin: 0; }
+.grid {
+   margin: 5px;
+   font: 16px/1 Ahem;
+   -webkit-text-orientation: sideways;
+}
+.font20 { font: 20px/1 Ahem; }
+.font30 { font: 30px/1 Ahem; }
+.font40 { font: 40px/1 Ahem; }
+.font60 { font: 60px/1 Ahem; }
+span {
+   border-width: 2px 5px 8px 4px;
+   border-style: solid;
+   padding: 6px 3px 7px 8px;
+   margin: 10px 6px 4px 12px;
+}
+.grid > span { background-color: grey; }
+.extraTopPadding { padding-top: 30px; }
+.extraBottomPadding { padding-bottom: 30px; }
+.extraLeftPadding { padding-left: 30px; }
+.extraRightPadding { padding-right: 30px; }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.grid')">
+<div id="log"></div>
+
+<p>This test checks that baseline is applied correctly on a grid aling both axis and different writing-modes when using symbolic fonts, which will use middle-baseline.</p>
+
+<div style="position: relative">
+    <div class="grid fit-content itemsBaseline">
+        <span class="firstRowFirstColumn horizontalTB font20 extraTopPadding" data-offset-x="17" data-offset-y="18">X</span>
+        <span class="firstRowSecondColumn horizontalTB font30" data-offset-x="115" data-offset-y="34">X</span>
+        <span class="firstRowThirdColumn horizontalTB font40 extraLeftPadding" data-offset-x="215" data-offset-y="26">X</span>
+        <span class="firstRowFourthColumn horizontalTB font60" data-offset-x="315" data-offset-y="10">X</span>
+        <span class="secondRowFirstColumn horizontalTB font30" data-offset-x="17" data-offset-y="131">A</span>
+        <span class="secondRowSecondColumn horizontalTB font40 extraLeftPadding" data-offset-x="115" data-offset-y="123">A</span>
+        <span class="secondRowThirdColumn horizontalTB font20 extraBottomPadding" data-offset-x="215" data-offset-y="139">A</span>
+        <span class="secondRowFourthColumn horizontalTB font60" data-offset-x="315" data-offset-y="107">A</span>
+        <span class="thirdRowFirstColumn horizontalTB font60 extraBottomPadding" data-offset-x="17" data-offset-y="219">A</span>
+        <span class="thirdRowSecondColumn horizontalTB font20 extraTopPadding" data-offset-x="115" data-offset-y="227">A</span>
+        <span class="thirdRowThirdColumn horizontalTB font40" data-offset-x="215" data-offset-y="235">A</span>
+        <span class="thirdRowFourthColumn horizontalTB font30" data-offset-x="315" data-offset-y="243">A</span>
+        <span class="fourthRowFirstColumn horizontalTB font40" data-offset-x="17" data-offset-y="355">A</span>
+        <span class="fourthRowSecondColumn horizontalTB font60" data-offset-x="115" data-offset-y="339">A</span>
+        <span class="fourthRowThirdColumn horizontalTB font30 extraTopPadding" data-offset-x="215" data-offset-y="339">A</span>
+        <span class="fourthRowFourthColumn horizontalTB font20" data-offset-x="315" data-offset-y="371">A</span>
+    </div>
+</div>
+
+<br clear="all">
+
+<div style="position: relative">
+    <div class="grid fit-content itemsBaseline">
+        <span class="firstRowFirstColumn verticalLR font20" data-offset-x="25" data-offset-y="30">A</span>
+        <span class="firstRowSecondColumn horizontalTB font30 extraTopPadding" data-offset-x="126" data-offset-y="17">A</span>
+        <span class="firstRowThirdColumn verticalLR font40 extraLeftPadding" data-offset-x="224" data-offset-y="10">A</span>
+        <span class="firstRowFourthColumn horizontalTB font60" data-offset-x="324" data-offset-y="17">A</span>
+        <span class="secondRowFirstColumn verticalLR font30 extraTopPadding" data-offset-x="23" data-offset-y="114">A</span>
+        <span class="secondRowSecondColumn horizontalTB font40" data-offset-x="126" data-offset-y="151">A</span>
+        <span class="secondRowThirdColumn verticalLR font20" data-offset-x="250" data-offset-y="148">A</span>
+        <span class="secondRowFourthColumn horizontalTB font60" data-offset-x="324" data-offset-y="135">A</span>
+        <span class="thirdRowFirstColumn verticalLR font60" data-offset-x="17" data-offset-y="235">A</span>
+        <span class="thirdRowSecondColumn horizontalTB font20" data-offset-x="126" data-offset-y="294">A</span>
+        <span class="thirdRowThirdColumn verticalLR font40 extraBottomPadding" data-offset-x="246" data-offset-y="232">A</span>
+        <span class="thirdRowFourthColumn horizontalTB font30 extraTopPadding" data-offset-x="324" data-offset-y="262">A</span>
+        <span class="fourthRowFirstColumn verticalLR font40 extraRightPadding" data-offset-x="21" data-offset-y="353">A</span>
+        <span class="fourthRowSecondColumn horizontalTB font60 extraBottomPadding" data-offset-x="126" data-offset-y="360">A</span>
+        <span class="fourthRowThirdColumn verticalLR font30" data-offset-x="248" data-offset-y="363">A</span>
+        <span class="fourthRowFourthColumn horizontalTB font20" data-offset-x="324" data-offset-y="392">A</span>
+    </div>
+</div>
+
+<br clear="all"/>
+<div style="position: relative">
+    <div class="grid fit-content itemsBaseline">
+        <span class="firstRowFirstColumn verticalLR font20 extraLeftPadding" data-offset-x="17" data-offset-y="30">A</span>
+        <span class="firstRowSecondColumn horizontalTB font30" data-offset-x="149" data-offset-y="41">A</span>
+        <span class="firstRowThirdColumn verticalLR font40 extraRightPadding" data-offset-x="217" data-offset-y="10">A</span>
+        <span class="firstRowFourthColumn horizontalTB font60" data-offset-x="346" data-offset-y="17">A</span>
+        <span class="secondRowFirstColumn horizontalTB font30" data-offset-x="55" data-offset-y="188">A</span>
+        <span class="secondRowSecondColumn verticalLR font40" data-offset-x="129" data-offset-y="157">A</span>
+        <span class="secondRowThirdColumn horizontalTB font20" data-offset-x="237" data-offset-y="196">A</span>
+        <span class="secondRowFourthColumn verticalLR font60 extraBottomPadding" data-offset-x="322" data-offset-y="114">A</span>
+        <span class="thirdRowFirstColumn verticalLR font60 extraBottomPadding" data-offset-x="31" data-offset-y="255">A</span>
+        <span class="thirdRowThirdColumn verticalLR font40 extraTopPadding" data-offset-x="217" data-offset-y="274">A</span>
+        <span class="thirdRowFourthColumn horizontalTB font30" data-offset-x="149" data-offset-y="329">A</span>
+        <span class="fourthRowFirstColumn horizontalTB font40" data-offset-x="346" data-offset-y="321">A</span>
+        <span class="fourthRowSecondColumn verticalLR font60" data-offset-x="31" data-offset-y="398">A</span>
+        <span class="fourthRowThirdColumn horizontalTB font30" data-offset-x="149" data-offset-y="449">A</span>
+        <span class="fourthRowFourthColumn verticalLR font20" data-offset-x="221" data-offset-y="438">A</span>
+    </div>
+</div>
+
+<br clear="all">
+
+<div style="position: relative">
+    <div class="grid fit-content itemsBaseline verticalLR">
+        <span class="firstRowFirstColumn horizontalTB font20" data-offset-x="17" data-offset-y="42">A</span>
+        <span class="firstRowSecondColumn horizontalTB font30" data-offset-x="17" data-offset-y="172">A</span>
+        <span class="firstRowThirdColumn horizontalTB font40 extraRightPadding" data-offset-x="17" data-offset-y="284">A</span>
+        <span class="firstRowFourthColumn horizontalTB font60" data-offset-x="17" data-offset-y="361">A</span>
+        <span class="secondRowFirstColumn horizontalTB font30 extraBottomPadding" data-offset-x="122" data-offset-y="34">A</span>
+        <span class="secondRowSecondColumn horizontalTB font40" data-offset-x="122" data-offset-y="164">A</span>
+        <span class="secondRowThirdColumn horizontalTB font20" data-offset-x="122" data-offset-y="300">A</span>
+        <span class="secondRowFourthColumn horizontalTB font60" data-offset-x="122" data-offset-y="361">A</span>
+        <span class="thirdRowFirstColumn horizontalTB font60" data-offset-x="220" data-offset-y="10">A</span>
+        <span class="thirdRowSecondColumn horizontalTB font20 extraBottomPadding" data-offset-x="220" data-offset-y="180">A</span>
+        <span class="thirdRowThirdColumn horizontalTB font40 extraTopPadding" data-offset-x="220" data-offset-y="260">A</span>
+        <span class="thirdRowFourthColumn horizontalTB font30" data-offset-x="220" data-offset-y="385">A</span>
+        <span class="fourthRowFirstColumn horizontalTB font40 extraRightPadding" data-offset-x="318" data-offset-y="26">A</span>
+        <span class="fourthRowSecondColumn horizontalTB font60 extraTopPadding" data-offset-x="318" data-offset-y="124">A</span>
+        <span class="fourthRowThirdColumn horizontalTB font30" data-offset-x="318" data-offset-y="292">A</span>
+        <span class="fourthRowFourthColumn horizontalTB font20" data-offset-x="318" data-offset-y="393">A</span>
+    </div>
+</div>
+
+<br clear="all">
+
+<div style="position: relative">
+    <div class="grid fit-content itemsBaseline verticalLR">
+        <span class="firstRowFirstColumn verticalLR font20" data-offset-x="21" data-offset-y="73">A</span>
+        <span class="firstRowSecondColumn horizontalTB font30 extraTopPadding" data-offset-x="37" data-offset-y="130">A</span>
+        <span class="firstRowThirdColumn verticalLR font40 extraBottomPadding" data-offset-x="17" data-offset-y="227">A</span>
+        <span class="firstRowFourthColumn horizontalTB font60" data-offset-x="37" data-offset-y="327">A</span>
+        <span class="secondRowFirstColumn verticalLR font30" data-offset-x="135" data-offset-y="63">A</span>
+        <span class="secondRowSecondColumn horizontalTB font40" data-offset-x="153" data-offset-y="146">A</span>
+        <span class="secondRowThirdColumn verticalLR font20" data-offset-x="137" data-offset-y="270">A</span>
+        <span class="secondRowFourthColumn horizontalTB font60" data-offset-x="153" data-offset-y="327">A</span>
+        <span class="thirdRowFirstColumn verticalLR font60 extraBottomPadding" data-offset-x="251" data-offset-y="10">A</span>
+        <span class="thirdRowSecondColumn horizontalTB font20 extraTopPadding" data-offset-x="275" data-offset-y="138">A</span>
+        <span class="thirdRowThirdColumn verticalLR font40" data-offset-x="255" data-offset-y="250">A</span>
+        <span class="thirdRowFourthColumn horizontalTB font30 extraTopPadding" data-offset-x="275" data-offset-y="327">A</span>
+        <span class="fourthRowFirstColumn verticalLR font40" data-offset-x="349" data-offset-y="53">A</span>
+        <span class="fourthRowSecondColumn horizontalTB font60" data-offset-x="369" data-offset-y="130">A</span>
+        <span class="fourthRowThirdColumn verticalLR font30" data-offset-x="351" data-offset-y="260">A</span>
+        <span class="fourthRowFourthColumn horizontalTB font20" data-offset-x="369" data-offset-y="359">A</span>
+    </div>
+</div>
+
+<br clear="all">
+
+<div style="position: relative">
+    <div class="grid fit-content itemsBaseline verticalLR">
+        <span class="firstRowFirstColumn verticalLR font20 extraBottomPadding" data-offset-x="21" data-offset-y="51">A</span>
+        <span class="firstRowSecondColumn horizontalTB font30 extraTopPadding" data-offset-x="37" data-offset-y="181">A</span>
+        <span class="firstRowThirdColumn verticalLR font40" data-offset-x="17" data-offset-y="272">A</span>
+        <span class="firstRowFourthColumn horizontalTB font60" data-offset-x="37" data-offset-y="418">A</span>
+        <span class="secondRowFirstColumn horizontalTB font30" data-offset-x="159" data-offset-y="85">A</span>
+        <span class="secondRowSecondColumn verticalLR font40" data-offset-x="139" data-offset-y="174">A</span>
+        <span class="secondRowThirdColumn horizontalTB font20 extraBottomPadding" data-offset-x="159" data-offset-y="311">A</span>
+        <span class="secondRowFourthColumn verticalLR font60" data-offset-x="135" data-offset-y="391">A</span>
+        <span class="thirdRowFirstColumn verticalLR font60 extraTopPadding" data-offset-x="233" data-offset-y="10">A</span>
+        <span class="thirdRowSecondColumn horizontalTB font20" data-offset-x="257" data-offset-y="213">A</span>
+        <span class="thirdRowThirdColumn verticalLR font40" data-offset-x="237" data-offset-y="272">A</span>
+        <span class="thirdRowFourthColumn horizontalTB font30" data-offset-x="257" data-offset-y="442">A</span>
+        <span class="fourthRowFirstColumn horizontalTB font40" data-offset-x="355" data-offset-y="77">A</span>
+        <span class="fourthRowSecondColumn verticalLR font60" data-offset-x="331" data-offset-y="154">A</span>
+        <span class="fourthRowThirdColumn horizontalTB font30 extraTopPadding" data-offset-x="355" data-offset-y="279">A</span>
+        <span class="fourthRowFourthColumn verticalLR font20" data-offset-x="339" data-offset-y="431">A</span>
+    </div>
+</div>
+
+<br clear="all">
+
+<div style="position: relative">
+    <div class="grid fit-content itemsBaseline verticalRL">
+        <span class="firstRowFirstColumn horizontalTB font20 extraTopPadding" data-offset-x="333" data-offset-y="18">A</span>
+        <span class="firstRowSecondColumn horizontalTB font30" data-offset-x="333" data-offset-y="155">A</span>
+        <span class="firstRowThirdColumn horizontalTB font40" data-offset-x="333" data-offset-y="267">A</span>
+        <span class="firstRowFourthColumn horizontalTB font60 extraBottomPadding" data-offset-x="333" data-offset-y="344">A</span>
+        <span class="secondRowFirstColumn horizontalTB font30" data-offset-x="235" data-offset-y="34">A</span>
+        <span class="secondRowSecondColumn horizontalTB font40 extraTopPadding" data-offset-x="235" data-offset-y="123">A</span>
+        <span class="secondRowThirdColumn horizontalTB font20" data-offset-x="235" data-offset-y="283">A</span>
+        <span class="secondRowFourthColumn horizontalTB font60" data-offset-x="235" data-offset-y="344">A</span>
+        <span class="thirdRowFirstColumn horizontalTB font60 extraLeftPadding" data-offset-x="115" data-offset-y="10">A</span>
+        <span class="thirdRowSecondColumn horizontalTB font20 extraBottomPadding" data-offset-x="115" data-offset-y="163">A</span>
+        <span class="thirdRowThirdColumn horizontalTB font40 extraTopPadding" data-offset-x="115" data-offset-y="243">A</span>
+        <span class="thirdRowFourthColumn horizontalTB font30 extraTopPadding" data-offset-x="115" data-offset-y="344">A</span>
+        <span class="fourthRowFirstColumn horizontalTB font40" data-offset-x="17" data-offset-y="26">A</span>
+        <span class="fourthRowSecondColumn horizontalTB font60 extraTopPadding" data-offset-x="17" data-offset-y="107">A</span>
+        <span class="fourthRowThirdColumn horizontalTB font30" data-offset-x="17" data-offset-y="275">A</span>
+        <span class="fourthRowFourthColumn horizontalTB font20" data-offset-x="17" data-offset-y="376">A</span>
+    </div>
+</div>
+
+<br clear="all">
+
+<div style="position: relative">
+    <div class="grid fit-content itemsBaseline verticalRL">
+        <span class="firstRowFirstColumn verticalLR font20" data-offset-x="315" data-offset-y="73">A</span>
+        <span class="firstRowSecondColumn horizontalTB font30" data-offset-x="311" data-offset-y="162">A</span>
+        <span class="firstRowThirdColumn verticalLR font40 extraTopPadding" data-offset-x="311" data-offset-y="235">A</span>
+        <span class="firstRowFourthColumn horizontalTB font60 extraRightPadding" data-offset-x="311" data-offset-y="336">A</span>
+        <span class="secondRowFirstColumn verticalLR font30" data-offset-x="213" data-offset-y="63">A</span>
+        <span class="secondRowSecondColumn horizontalTB font40 extraTopPadding" data-offset-x="213" data-offset-y="130">A</span>
+        <span class="secondRowThirdColumn verticalLR font20" data-offset-x="215" data-offset-y="279">A</span>
+        <span class="secondRowFourthColumn horizontalTB font60" data-offset-x="213" data-offset-y="336">A</span>
+        <span class="thirdRowFirstColumn verticalLR font60 extraBottomPadding" data-offset-x="115" data-offset-y="10">A</span>
+        <span class="thirdRowSecondColumn horizontalTB font20" data-offset-x="145" data-offset-y="170">A</span>
+        <span class="thirdRowThirdColumn verticalLR font40" data-offset-x="119" data-offset-y="259">A</span>
+        <span class="thirdRowFourthColumn horizontalTB font30" data-offset-x="145" data-offset-y="360">A</span>
+        <span class="fourthRowFirstColumn verticalLR font40 extraTopPadding" data-offset-x="17" data-offset-y="29">A</span>
+        <span class="fourthRowSecondColumn horizontalTB font60" data-offset-x="17" data-offset-y="138">A</span>
+        <span class="fourthRowThirdColumn verticalLR font30 extraBottomPadding" data-offset-x="19" data-offset-y="246">A</span>
+        <span class="fourthRowFourthColumn horizontalTB font20" data-offset-x="17" data-offset-y="368">A</span>
+    </div>
+</div>
+
+<br clear="all">
+
+<div style="position: relative">
+    <div class="grid fit-content itemsBaseline verticalRL">
+        <span class="firstRowFirstColumn verticalLR font20" data-offset-x="315" data-offset-y="50">A</span>
+        <span class="firstRowSecondColumn horizontalTB font30 extraBottomPadding" data-offset-x="311" data-offset-y="202">A</span>
+        <span class="firstRowThirdColumn verticalLR font40" data-offset-x="311" data-offset-y="292">A</span>
+        <span class="firstRowFourthColumn horizontalTB font60" data-offset-x="311" data-offset-y="440">A</span>
+        <span class="secondRowFirstColumn horizontalTB font30 extraBottomPadding" data-offset-x="243" data-offset-y="61">A</span>
+        <span class="secondRowSecondColumn verticalLR font40" data-offset-x="217" data-offset-y="171">A</span>
+        <span class="secondRowThirdColumn horizontalTB font20" data-offset-x="243" data-offset-y="331">A</span>
+        <span class="secondRowFourthColumn verticalLR font60" data-offset-x="213" data-offset-y="413">A</span>
+        <span class="thirdRowFirstColumn verticalLR font60" data-offset-x="115" data-offset-y="10">A</span>
+        <span class="thirdRowSecondColumn horizontalTB font20 extraLeftPadding" data-offset-x="133" data-offset-y="210">A</span>
+        <span class="thirdRowThirdColumn verticalLR font40" data-offset-x="119" data-offset-y="292">A</span>
+        <span class="thirdRowFourthColumn horizontalTB font30" data-offset-x="133" data-offset-y="464">A</span>
+        <span class="fourthRowFirstColumn horizontalTB font40" data-offset-x="37" data-offset-y="53">A</span>
+        <span class="fourthRowSecondColumn verticalLR font60" data-offset-x="17" data-offset-y="151">A</span>
+        <span class="fourthRowThirdColumn horizontalTB font30 extraBottomPadding" data-offset-x="37" data-offset-y="323">A</span>
+        <span class="fourthRowFourthColumn verticalLR font20" data-offset-x="25" data-offset-y="453">A</span>
+    </div>
+</div>
+
+<br clear="all">
+
+<div style="position: relative">
+    <div class="grid fit-content itemsBaseline">
+        <span class="firstRowFirstColumn horizontalTB font20" data-offset-x="17" data-offset-y="42">A<br/>A</span>
+        <span class="firstRowSecondColumn horizontalTB font30" data-offset-x="115" data-offset-y="34">A<br/>A</span>
+        <span class="firstRowThirdColumn horizontalTB font40" data-offset-x="213" data-offset-y="26">A<br/>A</span>
+        <span class="firstRowFourthColumn horizontalTB font60" data-offset-x="291" data-offset-y="10">A<br/>A</span>
+        <span class="secondRowFirstColumn horizontalTB font30" data-offset-x="17" data-offset-y="191">A<br/>A</span>
+        <span class="secondRowSecondColumn horizontalTB font40" data-offset-x="115" data-offset-y="183">A<br/>A</span>
+        <span class="secondRowThirdColumn horizontalTB font20" data-offset-x="213" data-offset-y="199">A<br/>A</span>
+        <span class="secondRowFourthColumn horizontalTB font60" data-offset-x="291" data-offset-y="167">A<br/>A</span>
+        <span class="thirdRowFirstColumn horizontalTB font60" data-offset-x="17" data-offset-y="324">A<br/>A</span>
+        <span class="thirdRowSecondColumn horizontalTB font20" data-offset-x="115" data-offset-y="356">A<br/>A</span>
+        <span class="thirdRowThirdColumn horizontalTB font40 extraBottomPadding" data-offset-x="213" data-offset-y="340">A<br/>A</span>
+        <span class="thirdRowFourthColumn horizontalTB font30" data-offset-x="291" data-offset-y="348">A<br/>A</span>
+        <span class="fourthRowFirstColumn horizontalTB font40 extraBottomPadding" data-offset-x="17" data-offset-y="497">A<br/>A</span>
+        <span class="fourthRowSecondColumn horizontalTB font60" data-offset-x="115" data-offset-y="481">A<br/>A</span>
+        <span class="fourthRowThirdColumn horizontalTB font30" data-offset-x="213" data-offset-y="505">A<br/>A</span>
+        <span class="fourthRowFourthColumn horizontalTB font20" data-offset-x="291" data-offset-y="513">A<br/>A</span>
+    </div>
+</div>
+
+<br clear="all">
+
+<div style="position: relative">
+    <div class="grid fit-content itemsBaseline">
+        <span class="firstRowFirstColumn verticalLR font20 extraLeftPadding" data-offset-x="17" data-offset-y="30">A<br/>A</span>
+        <span class="firstRowSecondColumn horizontalTB font30 extraBottomPadding" data-offset-x="189" data-offset-y="41">A<br/>A</span>
+        <span class="firstRowThirdColumn verticalLR font40" data-offset-x="287" data-offset-y="10">A<br/>A</span>
+        <span class="firstRowFourthColumn horizontalTB font60" data-offset-x="405" data-offset-y="17">A<br/>A</span>
+        <span class="secondRowFirstColumn verticalLR font30 extraTopPadding" data-offset-x="37" data-offset-y="174">A<br/>A</span>
+        <span class="secondRowSecondColumn horizontalTB font40" data-offset-x="189" data-offset-y="211">A<br/>A</span>
+        <span class="secondRowThirdColumn verticalLR font20 extraTopPadding" data-offset-x="291" data-offset-y="184">A<br/>A</span>
+        <span class="secondRowFourthColumn horizontalTB font60 extraLeftPadding" data-offset-x="405" data-offset-y="195">A<br/>A</span>
+        <span class="thirdRowFirstColumn verticalLR font60" data-offset-x="31" data-offset-y="352">A<br/>A</span>
+        <span class="thirdRowSecondColumn horizontalTB font20 extraTopPadding" data-offset-x="189" data-offset-y="387">A<br/>A</span>
+        <span class="thirdRowThirdColumn verticalLR font40" data-offset-x="287" data-offset-y="372">A<br/>A</span>
+        <span class="thirdRowFourthColumn horizontalTB font30" data-offset-x="405" data-offset-y="403">A<br/>A</span>
+        <span class="fourthRowFirstColumn verticalLR font40" data-offset-x="35" data-offset-y="513">A<br/>A</span>
+        <span class="fourthRowSecondColumn horizontalTB font60" data-offset-x="189" data-offset-y="520">A<br/>A</span>
+        <span class="fourthRowThirdColumn verticalLR font30 extraBottomPadding" data-offset-x="289" data-offset-y="500">A<br/>A</span>
+        <span class="fourthRowFourthColumn horizontalTB font20 extraTopPadding" data-offset-x="405" data-offset-y="528">A<br/>A</span>
+    </div>
+</div>
+
+<br clear="all">
+
+<div style="position: relative">
+    <div class="grid fit-content itemsBaseline">
+        <span class="firstRowFirstColumn verticalLR font20 extraTopPadding" data-offset-x="25" data-offset-y="10">A<br/>A</span>
+        <span class="firstRowSecondColumn horizontalTB font30 extraBottomPadding" data-offset-x="199" data-offset-y="45">A<br/>A</span>
+        <span class="firstRowThirdColumn verticalLR font40" data-offset-x="355" data-offset-y="14">A<br/>A</span>
+        <span class="firstRowFourthColumn horizontalTB font60" data-offset-x="497" data-offset-y="21">A<br/>A</span>
+        <span class="secondRowFirstColumn horizontalTB font30" data-offset-x="41" data-offset-y="229">A<br/>A</span>
+        <span class="secondRowSecondColumn verticalLR font40" data-offset-x="179" data-offset-y="198">A<br/>A</span>
+        <span class="secondRowThirdColumn horizontalTB font20 extraTopPadding" data-offset-x="375" data-offset-y="213">A<br/>A</span>
+        <span class="secondRowFourthColumn verticalLR font60" data-offset-x="473" data-offset-y="178">A<br/>A</span>
+        <span class="thirdRowFirstColumn verticalLR font60" data-offset-x="17" data-offset-y="326">A<br/>A</span>
+        <span class="thirdRowSecondColumn horizontalTB font20 extraTopPadding" data-offset-x="199" data-offset-y="361">A<br/>A</span>
+        <span class="thirdRowThirdColumn verticalLR font40 extraLeftPadding" data-offset-x="333" data-offset-y="346">A<br/>A</span>
+        <span class="thirdRowFourthColumn horizontalTB font30 extraTopPadding" data-offset-x="497" data-offset-y="353">A<br/>A</span>
+        <span class="fourthRowFirstColumn horizontalTB font40" data-offset-x="41" data-offset-y="517">A<br/>A</span>
+        <span class="fourthRowSecondColumn verticalLR font60" data-offset-x="175" data-offset-y="474">A<br/>A</span>
+        <span class="fourthRowThirdColumn horizontalTB font30" data-offset-x="375" data-offset-y="525">A<br/>A</span>
+        <span class="fourthRowFourthColumn verticalLR font20" data-offset-x="481" data-offset-y="514">A<br/>A</span>
+    </div>
+</div>
+</body>

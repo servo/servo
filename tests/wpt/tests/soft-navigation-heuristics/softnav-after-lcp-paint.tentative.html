@@ -17,8 +17,10 @@
     </div>
   </main>
   <script>
-    const link = document.getElementById("link");
     testSoftNavigation({
+      testName: "Test that an image LCP followed by a smaller soft navigation LCP"
+        + " properly queues an LCP entry, even when the soft navigation is"
+        + " detected after the LCP.",
       addContent: async () => {
         let lcp_element_painted;
         const lcp_element_paint_promise = new Promise((r) => { lcp_element_painted = r; });
@@ -33,10 +35,7 @@
         // Add a smaller element that gets us over that threshold.
         addTextParagraphToMain("m");
       },
-      link: link,
-      test: "Test that an image LCP followed by a smaller soft navigation LCP"
-        + " properly queues an LCP entry, even when the soft navigation is"
-        + " detected after the LCP."});
+      });
   </script>
 </body>
 </html>

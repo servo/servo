@@ -9,7 +9,8 @@
 @font-face {
     font-family: 'Ahem Crossmark';
     src: url('./resources/AhemCrossmarkSupport.otf');
-    unicode-range: U+274C;
+    unicode-range: U+0020, U+274C; /* include U+0020 to act as "first available font" and
+                                      avoid line-height being derived from fallback */
 }
 .emoji {
     font-family: 'Ahem Crossmark', system-ui;

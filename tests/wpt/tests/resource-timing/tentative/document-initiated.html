@@ -8,7 +8,7 @@
   <!-- Empty Blocking Script -->
   <script src="../resources/empty.js?blocking"></script>
   <!-- Empty Preloaded Script -->
-  <link rel="preload" href="../resources/empty.js?preload" as="script" />
+  <link rel="preload" href="../resources/display_paragraph.js" as="script" />
   <!--  Loading arbitrary Empty Blocking Async Script -->
   <script async src="../resources/empty.js?async"></script>
   <!-- Loading arbitrary Empty Deferred Script -->
@@ -17,6 +17,7 @@
   <script type="module" src="../resources/empty.js?module"></script>
   <!-- Empty Stylesheet -->
   <link rel="stylesheet" href="../resources/empty_style.css?link" />
+  <script src="../resources/display_paragraph.js"></script>
   <!-- Inline Styles -->
   <style>
     body {
@@ -25,7 +26,8 @@
     }
     @font-face {
       font-family: remoteFont;
-      src: url("/fonts/Ahem.ttf");
+      /* This query parameter ensures that the Ahem.ttf is not retrieved from the cache. */
+      src: url("/fonts/Ahem.ttf?initiator-html");
     }
   </style>
 </head>
@@ -39,6 +41,7 @@
   <iframe src="../resources/green.html"></iframe>
 
   <script>
+    display_paragraph();
 
     function waitForLoad(obj) {
       return new Promise(resolve => {
@@ -66,13 +69,13 @@
 
       const resources = [
         "empty.js?blocking",
-        "empty.js?preload",
+        "display_paragraph.js",
         "empty.js?async",
         "empty.js?deferred",
         "empty.js?module",
         "empty_style.css?link",
         "blue.png?inline-style",
-        "Ahem.ttf",
+        "Ahem.ttf?initiator-html",
         "blue.png?using-Img-tag",
         /*        "green.html",
         TODO(guohuideng@microsoft.com): report initiator for iframe element.

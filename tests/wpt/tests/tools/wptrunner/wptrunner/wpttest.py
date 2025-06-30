@@ -131,13 +131,14 @@ class RunInfo(Dict[str, Any]):
 
         if adb_binary:
             self["adb_binary"] = adb_binary
+
         if device_serials:
             # Assume all emulators are identical, so query an arbitrary one.
             self._update_with_emulator_info(device_serials[0])
             self.pop("linux_distro", None)
 
     def _adb_run(self, device_serial, args, **kwargs):
-        adb_binary = self.get("adb_binary", "adb")
+        adb_binary = self.get("adb_binary", os.environ.get("ADB_PATH", "adb"))
         cmd = [adb_binary, "-s", device_serial, *args]
         return subprocess.check_output(cmd, **kwargs)
 
@@ -158,6 +159,11 @@ class RunInfo(Dict[str, Any]):
                     "ro.build.version.release",
                     encoding="utf-8",
                 ),
+                "android_version": self._adb_get_property(
+                    device_serial,
+                    "ro.build.version.sdk",
+                    encoding="utf-8",
+                )
             }
             emulator_info["version"] = emulator_info["os_version"]
 

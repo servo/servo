@@ -264,7 +264,7 @@ def update_properties():
         "asan",
         "tsan",
         "remoteAsyncEvents",
-        "remoteCNM"
+        "remoteCNM",
         "sessionHistoryInParent",
         "subsuite"], {
         "os": ["version"],

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<meta name="timeout" content="long">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/invoker-utils.js"></script>
+<script src="/html/semantics/popovers/resources/popover-utils.js"></script>
+
+<button data-testcase="<button>" interestfor=target>Button</button>
+
+<a data-testcase="<a>" href=foo interestfor=target>Link</a>
+
+<img src="/images/blue.png" usemap="#map">
+<map id=map>
+  <area data-testcase="<area>" interestfor=target href="/" shape=default>
+</map>
+
+<svg viewBox="0 0 100 100" style="width: 100px" xmlns="http://www.w3.org/2000/svg">
+  <a data-testcase="SVG <a>" href=foo interestfor=target>
+    <text x=50 y=90>SVG A</text>
+  </a>
+</svg>
+
+<div id=target popover>Popover</div>
+<button id="otherbutton">Other button</button>
+<button id="another" interestfor=anothertarget>Another Button</button>
+<div id=anothertarget popover>Another Popover</div>
+
+<style>
+  [interestfor] {
+    interest-delay: 0s;
+  }
+  [interestfor].longhide {
+    interest-hide-delay: 10000s;
+  }
+</style>
+
+<script>
+const allInterestForElements = document.querySelectorAll('[data-testcase]');
+assert_true(allInterestForElements.length > 0);
+
+function verifyInterest(onlyElements,description) {
+  if (!(onlyElements instanceof Array)) {
+    onlyElements = [onlyElements];
+  }
+  [...allInterestForElements, another].forEach(el => {
+    const expectInterest = onlyElements.includes(el);
+    assert_equals(el.matches(':has-interest'),expectInterest,`${description}, element ${el.dataset.testcase} should ${expectInterest ? "" : "NOT "}have interest`);
+  })
+}
+allInterestForElements.forEach(el => {
+  const description = el.dataset.testcase;
+  promise_test(async function (t) {
+    t.add_cleanup(() => otherbutton.focus());
+    target.hidePopover(); // Just in case
+    await focusOn(el);
+    assert_equals(document.activeElement,el,'Elements should all be focusable');
+    assert_true(target.matches(':popover-open'),'Focusing should trigger interest');
+    verifyInterest(el,`After show interest in ${description}`);
+    await focusOn(otherbutton);
+    assert_not_equals(document.activeElement,el);
+    assert_false(target.matches(':popover-open'),'Blurring should trigger lose interest');
+    verifyInterest(undefined,`After lose interest in ${description}`);
+  },`Basic keyboard focus behavior, ${description}`);
+
+  promise_test(async function (t) {
+    t.add_cleanup(() => otherbutton.focus());
+    target.hidePopover(); // Just in case
+    await focusOn(el);
+    assert_true(target.matches(':popover-open'),'Focusing should trigger interest');
+    verifyInterest(el,`After show interest in ${description}`);
+    await sendLoseInterestHotkey();
+    assert_false(target.matches(':popover-open'),'Pressing lose interest hot key should trigger lose interest');
+    verifyInterest(undefined,`After lose interest in ${description}`);
+    await focusOn(otherbutton);
+    assert_not_equals(document.activeElement,el);
+    assert_false(target.matches(':popover-open'),'Blurring should do nothing at this point');
+    verifyInterest(undefined,`After blurring ${description}`);
+  },`Lose interest hot key behavior, ${description}`);
+
+  promise_test(async function (t) {
+    t.add_cleanup(() => otherbutton.focus());
+    // Ensure blurring doesn't immediately lose interest:
+    el.classList.add('longhide');
+    t.add_cleanup(() => (el.classList.remove('longhide')));
+    target.hidePopover(); // Just in case
+    await focusOn(el);
+    assert_true(target.matches(':popover-open'),'Focusing should trigger interest');
+    verifyInterest(el,`After show interest in ${description}`);
+    await focusOn(otherbutton);
+    assert_not_equals(document.activeElement,el);
+    assert_true(target.matches(':popover-open'),'Blurring should not immediately lose interest');
+    verifyInterest(el,`After blurring ${description}`);
+    // Send lose interest hot key to the other button (not the invoker):
+    await sendLoseInterestHotkey();
+    assert_false(target.matches(':popover-open'),'Pressing lose interest hot key should trigger lose interest');
+    verifyInterest(undefined,`After lose interest in ${description}`);
+  },`Lose interest hot key behavior with element not focused, ${description}`);
+
+  promise_test(async function (t) {
+    t.add_cleanup(() => otherbutton.focus());
+    target.hidePopover(); // Just in case
+    target.addEventListener('interest', (e) => e.preventDefault(), {once: true});
+    await focusOn(el);
+    assert_false(target.matches(':popover-open'));
+    verifyInterest(undefined,`Nothing has interest, ${description}`);
+  }, `canceling the interest event stops behavior, ${description}`);
+
+  let events = [];
+  function addListeners(t,element) {
+    const signal = t.get_signal();
+    element.addEventListener('interest',(e) => events.push(`${e.target.id} interest`),{signal});
+    element.addEventListener('loseinterest',(e) => events.push(`${e.target.id} loseinterest`),{signal});
+  }
+  promise_test(async function (t) {
+    t.add_cleanup(() => otherbutton.focus());
+    target.hidePopover(); // Just in case
+    anothertarget.hidePopover(); // Just in case
+    events = [];
+    addListeners(t,target);
+    addListeners(t,anothertarget);
+    await focusOn(el);
+    assert_array_equals(events,['target interest'],'first hotkey');
+    verifyInterest(el,`After show interest in ${description}`);
+    await focusOn(another);
+    assert_array_equals(events,['target interest','target loseinterest','anothertarget interest'],
+        'showing interest in another trigger should lose interest in the first, then gain interest in second');
+    verifyInterest(another,`After show interest in ${another.id}`);
+    await sendLoseInterestHotkey();
+    assert_array_equals(events,['target interest','target loseinterest','anothertarget interest','anothertarget loseinterest']);
+    verifyInterest(undefined,`After lose interest in ${another.id}`);
+    assert_false(target.matches(':popover-open'));
+    assert_false(anothertarget.matches(':popover-open'));
+  }, `Showing interest in a second element loses interest in the first, ${description}`);
+
+  promise_test(async function (t) {
+    t.add_cleanup(() => otherbutton.focus());
+    target.hidePopover(); // Just in case
+    anothertarget.hidePopover(); // Just in case
+    events = [];
+    addListeners(t,target);
+    addListeners(t,anothertarget);
+    await focusOn(el);
+    assert_array_equals(events,['target interest'],'setup');
+    verifyInterest(el,`After show interest in ${description}`);
+    const signal = t.get_signal();
+    let shouldCancelLoseInterest = true;
+    target.addEventListener('loseinterest',(e) => {
+      if (shouldCancelLoseInterest) {
+        e.preventDefault();
+      }
+    },{signal});
+    await focusOn(another);
+    assert_array_equals(events,['target interest','target loseinterest','anothertarget interest','target loseinterest'],
+        'the loseinterest listener should fire but get cancelled, anothertarget should still get interest, and that should close the first target popover firing another loseinterest');
+    events = [];
+    verifyInterest([el,another],`${description} should still have interest because loseinterest was cancelled`);
+    assert_false(target.matches(':popover-open'),'anothertarget popover opens, closing target');
+    assert_true(anothertarget.matches(':popover-open'));
+    await sendLoseInterestHotkey();
+    assert_array_equals(events,['anothertarget loseinterest'],'Lose interest hot key on focused element loses just interest in that element');
+    assert_false(target.matches(':popover-open'));
+    assert_false(anothertarget.matches(':popover-open'));
+    shouldCancelLoseInterest = false;
+    await focusOn(el);
+    await sendLoseInterestHotkey();
+    assert_array_equals(events,['anothertarget loseinterest','target loseinterest'],'Now both lost interest');
+    verifyInterest(undefined,`Nothing has interest now`);
+  }, `Cancelling loseinterest caused by keyboard-gained interest cancels interest, ${description}`);
+});
+</script>

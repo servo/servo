@@ -2,8 +2,7 @@ import asyncio
 
 import pytest
 
-from tests.support.sync import AsyncPoll
-
+from tests.bidi import wait_for_bidi_events
 from .. import (
     assert_before_request_sent_event,
     assert_response_event,
@@ -52,8 +51,7 @@ async def test_cors_preflight_request(bidi_session, url, fetch, setup_network_te
         fetch(fetch_url, method="GET", headers={"Content-Type": "custom/type"})
     )
 
-    wait = AsyncPoll(bidi_session, timeout=2)
-    await wait.until(lambda _: len(events) >= 6)
+    await wait_for_bidi_events(bidi_session, events, 6, timeout=2)
 
     # Check that all events for the CORS preflight request are received before
     # receiving events for the actual request
@@ -364,8 +362,8 @@ async def test_event_order_with_redirect(
     network_events = []
     listeners = []
     response_completed_events = []
-    for event in events:
 
+    for event in events:
         async def on_event(method, data, event=event):
             network_events.append({"event": event, "url": data["request"]["url"]})
 
@@ -383,8 +381,7 @@ async def test_event_order_with_redirect(
 
     # Wait until we receive two events, one for the initial request and one for
     # the redirection.
-    wait = AsyncPoll(bidi_session, timeout=2)
-    await wait.until(lambda _: len(response_completed_events) >= 2)
+    await wait_for_bidi_events(bidi_session, response_completed_events, 2, timeout=2)
 
     events_in_expected_order = [
         {"event": "network.beforeRequestSent", "url": redirect_url},

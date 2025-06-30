@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <title>
-  Multi-line row flex fragmentation: row gaps should not be truncated by
-  fragmentainer breaks (similar to flex-item margins).
+  Multi-line row flex fragmentation: row gaps should be truncated by fragmentainer breaks.
 </title>
 <link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
 <link rel="match" href="multi-line-row-flex-fragmentation-065-ref.html">
@@ -26,7 +25,7 @@
     background: cyan;
   }
 </style>
-<p>Flex row gaps should <strong>not</strong> be truncated when a row breaks.</p>
+<p>Flex row gaps <strong>should</strong> be truncated when a row breaks.</p>
 <div class="multicol">
   <div class="flex" style="row-gap:100px;">
     <div></div>

@@ -1,8 +1,8 @@
 import pytest
-from tests.support.sync import AsyncPoll
 from webdriver.error import TimeoutException
 from webdriver.bidi.modules.script import ContextTarget
 
+from tests.bidi import wait_for_bidi_events
 from ... import int_interval
 from .. import assert_navigation_info
 
@@ -34,7 +34,8 @@ async def test_unsubscribe(bidi_session, inline, top_context):
         context=top_context["context"], url=url, wait="complete"
     )
 
-    assert len(events) == 0
+    with pytest.raises(TimeoutException):
+        await wait_for_bidi_events(bidi_session, events, 1, timeout=0.5)
 
     remove_listener()
 
@@ -106,11 +107,7 @@ async def test_iframe(
         context=new_tab["context"], url=test_page_same_origin_frame
     )
 
-    wait = AsyncPoll(
-        bidi_session, message="Didn't receive dom content loaded events for frames"
-    )
-    await wait.until(lambda _: len(events) >= 2)
-    assert len(events) == 2
+    await wait_for_bidi_events(bidi_session, events, 2)
 
     contexts = await bidi_session.browsing_context.get_tree(root=new_tab["context"])
 
@@ -159,9 +156,8 @@ async def test_new_context_not_emitted(bidi_session, subscribe_events,
 
     await bidi_session.browsing_context.create(type_hint=type_hint)
 
-    wait = AsyncPoll(bidi_session, timeout=0.5)
     with pytest.raises(TimeoutException):
-        await wait.until(lambda _: len(events) > 0)
+        await wait_for_bidi_events(bidi_session, events, 1, timeout=0.5)
 
     remove_listener()
 

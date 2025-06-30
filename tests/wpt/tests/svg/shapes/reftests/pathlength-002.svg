@@ -3,9 +3,6 @@
   xmlns="http://www.w3.org/2000/svg"
   xmlns:xlink="http://www.w3.org/1999/xlink"
   xmlns:html="http://www.w3.org/1999/xhtml">
-  <metadata>
-    <meta name="fuzzy" content="0-1;20"/>
-  </metadata>
   <g id="testmeta">
     <title>Test of 'pathLength' on shapes.</title>
     <html:link rel="author"
@@ -14,6 +11,7 @@
     <html:link rel="help"
           href="https://www.w3.org/TR/SVG2/shapes.html#CircleElement"/>
     <html:link rel="match"  href="pathlength-002-ref.svg" />
+    <html:meta name="fuzzy" content="0-1;0-20"/>
   </g>
 
   <g id="test-body-content" style="fill:none;stroke:black;stroke-width:5px">

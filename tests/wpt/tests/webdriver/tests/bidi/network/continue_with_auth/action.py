@@ -3,7 +3,7 @@ import webdriver.bidi.error as error
 from webdriver.bidi.modules.network import AuthCredentials
 from webdriver.error import TimeoutException
 
-from tests.support.sync import AsyncPoll
+from tests.bidi import wait_for_bidi_events
 from .. import (
     assert_response_event,
     AUTH_REQUIRED_EVENT,
@@ -44,9 +44,8 @@ async def test_cancel(
     )
 
     # check no other responseCompleted event was received
-    wait = AsyncPoll(bidi_session, timeout=0.5)
     with pytest.raises(TimeoutException):
-        await wait.until(lambda _: len(events) > 1)
+        await wait_for_bidi_events(bidi_session, events, 2, timeout=0.5)
 
     remove_listener()
 
@@ -73,9 +72,8 @@ async def test_default(
     # prompt and no new network event should be generated.
     await bidi_session.network.continue_with_auth(request=request, action="default")
 
-    wait = AsyncPoll(bidi_session, timeout=0.5)
     with pytest.raises(TimeoutException):
-        await wait.until(lambda _: len(events) > 0)
+        await wait_for_bidi_events(bidi_session, events, 1, timeout=0.5)
 
     remove_listener()
 
@@ -118,9 +116,8 @@ async def test_provideCredentials(
     )
 
     # check no other responseCompleted event was received
-    wait = AsyncPoll(bidi_session, timeout=0.5)
     with pytest.raises(TimeoutException):
-        await wait.until(lambda _: len(events) > 1)
+        await wait_for_bidi_events(bidi_session, events, 2, timeout=0.5)
 
     remove_listener()
 
@@ -174,8 +171,7 @@ async def test_provideCredentials_wrong_credentials(
     )
 
     # check no other responseCompleted event was received
-    wait = AsyncPoll(bidi_session, timeout=0.5)
     with pytest.raises(TimeoutException):
-        await wait.until(lambda _: len(events) > 1)
+        await wait_for_bidi_events(bidi_session, events, 2, timeout=0.5)
 
     remove_listener()

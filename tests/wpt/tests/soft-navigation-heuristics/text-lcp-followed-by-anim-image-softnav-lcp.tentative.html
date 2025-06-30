@@ -18,6 +18,8 @@
   <script>
     const link = document.getElementById("link");
     testSoftNavigation({
+      testName: "Test that a text LCP followup by an animaged image "
+        + " properly queues a soft navigation entry",
       addContent: async () => {
         const main = document.getElementById("main");
         main.removeChild(document.getElementsByTagName("div")[0]);
@@ -27,9 +29,7 @@
         img.setAttribute("elementtiming", "imagelcp");
         main.appendChild(img);
       },
-      link: link,
-      test: "Test that a text LCP followup by an animaged image "
-        + " properly queues a soft navigation entry"});
+    });
   </script>
 </body>
 </html>

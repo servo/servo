@@ -1,7 +1,7 @@
 import pytest
-from tests.support.sync import AsyncPoll
 from webdriver.bidi.modules.script import ContextTarget
 
+from tests.bidi import wait_for_bidi_events
 from ... import any_string, recursive_compare
 
 
@@ -208,8 +208,7 @@ async def test_two_channels(
 
     new_tab = await bidi_session.browsing_context.create(type_hint="tab")
     # Wait for both events
-    wait = AsyncPoll(bidi_session, timeout=0.5)
-    await wait.until(lambda _: len(events) == 2)
+    await wait_for_bidi_events(bidi_session, events, 2, timeout=0.5)
 
     recursive_compare(
         {

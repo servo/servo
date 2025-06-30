@@ -1,5 +1,6 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="timeout" content="long">
 <title>RTCPeerConnection: media flows to a second unidirectional transceiver added through renegotiation.</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -43,7 +44,7 @@
     const {receiver} = recvTransceiver;
     const threshold = 10;
     let inboundStats, timedout = false;
-    t.step_timeout(() => timedout = true, 2000);
+    t.step_timeout(() => timedout = true, 10000);
     while (!timedout) {
       const stats = await receiver.getStats();
       inboundStats = [...stats.values()].find(({type}) => type == "inbound-rtp");

@@ -5,9 +5,12 @@ function testResourceInitiatorUrl(resourceName, expectedUrl) {
         for (const entry of entries) {
           if (entry.name.endsWith(resourceName)) {
             observer.disconnect();
-            assert_equals(entry.initiatorUrl, expectedUrl, `Test ${resourceName} initiatorUrl`);
-            resolve();
-            return;
+            try {
+              assert_equals(entry.initiatorUrl, expectedUrl, `Test ${resourceName} initiatorUrl`);
+              resolve();
+            } catch(error) {
+              reject(error);
+            }
           }
         }
         reject(resourceName + " not found");

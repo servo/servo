@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<title>The ident() function in var()</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#ident">
+<link rel="help" href="https://drafts.csswg.org/css-variables-1/#using-variables">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<div id=target></div>
+
+<style>
+  #target {
+    --myprop3:PASS;
+    --var-with-ident-fn: FAIL1;
+    --var-with-ident-fn: var(ident("--myprop" calc(3 * sign(1em - 1px))), FAIL2);
+  }
+</style>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(target).getPropertyValue('--var-with-ident-fn'), 'PASS');
+  }, 'Referencing a custom property with ident()');
+</script>
+
+<style>
+  #target {
+    --unparsed: ident("x");
+  }
+</style>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(target).getPropertyValue('--unparsed'), 'ident("x")');
+  }, 'ident() remains unresolved on custom properties');
+</script>
+
+<style>
+  #target {
+    --nodash: var(ident("nodash"));
+  }
+</style>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(target).getPropertyValue('--nodash'), '');
+  }, 'ident() causing lookup of invalid custom property');
+</script>
+
+<style>
+  #target {
+    --nodash-fallback: var(ident("nodash"), PASS);
+  }
+</style>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(target).getPropertyValue('--nodash-fallback'), 'PASS');
+  }, 'ident() causing lookup of invalid custom property, fallback');
+</script>
+
+<style>
+  :root {
+    --nodash-fallback-inherit: PASS;
+  }
+  #target {
+    --nodash-fallback-inherit: FAIL;
+    --nodash-fallback-inherit: var(ident("nodash"), inherit);
+  }
+</style>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(target).getPropertyValue('--nodash-fallback-inherit'), 'PASS');
+  }, 'ident() causing lookup of invalid custom property, fallback, CSS-wide keyword');
+</script>

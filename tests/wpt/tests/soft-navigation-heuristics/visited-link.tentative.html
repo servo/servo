@@ -36,21 +36,20 @@
       div.appendChild(text);
       main.appendChild(div);
     }
-    const link = document.getElementById("link");
     testSoftNavigation({
+      testName: "Test that a visited link doesn't trigger LCP after a soft " +
+            "navigation is detected",
       addContent: async () => {
         await visitFakeURLAndAddInvisibleText();
       },
-      link: link,
-      validate: async () => {
+      extraValidations: async (t) => {
         await new Promise(r => step_timeout(r, 100));
-        const postVisitedLcp = await getLcpEntries();
-        assert_not_equals(postVisitedLcp[postVisitedLcp.length - 1].id,
+        const icps = await getBufferedEntries('interaction-contentful-paint');
+        assert_not_equals(icps[icps.length - 1].id,
                           "visited",
-                          "Soft Nav LCP ID should not be visited");
+                          "Soft Nav ICP ID should not be visited");
       },
-      test: "Test that a visited link doesn't trigger LCP after a soft " +
-            "navigation is detected"});
+          });
   </script>
 </body>
 </html>

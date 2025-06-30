@@ -3,8 +3,6 @@ import pytest
 from webdriver.bidi.modules.network import NetworkStringValue
 from webdriver.bidi.modules.script import ContextTarget
 
-from tests.support.sync import AsyncPoll
-
 from .. import (
     RESPONSE_COMPLETED_EVENT,
     RESPONSE_STARTED_EVENT,

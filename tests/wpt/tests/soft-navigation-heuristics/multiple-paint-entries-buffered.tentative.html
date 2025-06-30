@@ -11,33 +11,20 @@
 <script src="resources/soft-navigation-helper.js"></script>
 </head>
 <body>
-  <main id=main>
   <a id=link>Click me!</a>
+  <main id=main>
   </main>
   <script>
-    const link = document.getElementById("link");
-
     testSoftNavigation({
-      addContent: async () => {
-        await addImageToMain();
+      testName: "Test that multiple soft navigation buffer entries",
+      numClicks: 2,
+      extraValidations: async (t) => {
+        const sns = await getBufferedEntries('soft-navigation');
+        assert_equals(sns.length, 2);
+        const icps = await getBufferedEntries('interaction-contentful-paint');
+        assert_equals(icps.length, 2);
       },
-      link: link,
-      clicks: 4,
-      extraValidations: async (entries, options)=>{
-        if (!performance.softNavPaintMetricsSupported) {
-          return;
-        }
-        const paint_entries = await new Promise(resolve => {
-          new PerformanceObserver(list => resolve(list.getEntries())).observe(
-            {type: 'paint', buffered: true,
-             includeSoftNavigationObservations: true});
-          });
-        assert_equals(paint_entries.length, 10);
-      },
-      test: "Test that multiple soft navigation buffer paint entries"});
+    });
   </script>
 </body>
 </html>
-
-
-

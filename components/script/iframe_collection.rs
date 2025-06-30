@@ -6,7 +6,7 @@ use std::cell::Cell;
 use std::default::Default;
 
 use base::id::BrowsingContextId;
-use constellation_traits::{IFrameSizeMsg, WindowSizeType};
+use constellation_traits::{IFrameSizeMsg, ScriptToConstellationMessage, WindowSizeType};
 use embedder_traits::ViewportDetails;
 use fnv::FnvHashMap;
 use layout_api::IFrameSizes;
@@ -15,7 +15,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::node::{Node, ShadowIncluding};
-use crate::dom::types::Document;
+use crate::dom::types::{Document, Window};
 use crate::script_thread::with_script_thread;
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -111,13 +111,14 @@ impl IFrameCollection {
     /// message is only sent when the size actually changes.
     pub(crate) fn handle_new_iframe_sizes_after_layout(
         &mut self,
+        window: &Window,
         new_iframe_sizes: IFrameSizes,
-    ) -> Vec<IFrameSizeMsg> {
+    ) {
         if new_iframe_sizes.is_empty() {
-            return vec![];
+            return;
         }
 
-        new_iframe_sizes
+        let size_messages: Vec<_> = new_iframe_sizes
             .into_iter()
             .filter_map(|(browsing_context_id, iframe_size)| {
                 // Batch resize message to any local `Pipeline`s now, rather than waiting for them
@@ -151,7 +152,11 @@ impl IFrameCollection {
                     type_: size_type,
                 })
             })
-            .collect()
+            .collect();
+
+        if !size_messages.is_empty() {
+            window.send_to_constellation(ScriptToConstellationMessage::IFrameSizes(size_messages));
+        }
     }
 
     pub(crate) fn iter(&self) -> impl Iterator<Item = DomRoot<HTMLIFrameElement>> + use<'_> {

@@ -15,16 +15,15 @@
   <div id=descendent></div>
   </main>
   <script>
-    const link = document.getElementById("link");
     testSoftNavigation({
+      testName: "Test that a soft navigation is detected even when DOM change is "
+        + "done on a main descendent",
       addContent: () => {
         const descendent= document.getElementById("descendent");
         const content = document.createTextNode("Lorem Ipsum");
         descendent.appendChild(content);
       },
-      link: link,
-      test: "Test that a soft navigation is detected even when DOM change is "
-        + "done on a main descendent"});
+    });
   </script>
 </body>
 </html>

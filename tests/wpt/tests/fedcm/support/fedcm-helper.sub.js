@@ -195,6 +195,26 @@ export function fedcm_get_dialog_type_promise(t) {
   });
 }
 
+export async function fedcm_settles_without_dialog(t, cred_promise) {
+  let dialog_promise = fedcm_get_dialog_type_promise(t);
+  let result = await Promise.race([cred_promise, dialog_promise]);
+  // Intentionally pass through any exceptions.
+  if (result instanceof IdentityCredential) {
+    return result;
+  }
+  throw "expected request to finish, got dialog: " + result;
+}
+
+export async function fedcm_expect_dialog(cred_promise, other_promise) {
+  let result = await Promise.race([cred_promise, other_promise]);
+  // If we got an exception, just pass it through, the caller will ensure it is
+  // the right type.
+  if (result instanceof IdentityCredential) {
+    throw "did not expect FedCM request to finish, got token: " + result.token;
+  }
+  return result;
+}
+
 export function fedcm_get_title_promise(t) {
   return new Promise(resolve => {
     async function helper() {
@@ -211,20 +231,11 @@ export function fedcm_get_title_promise(t) {
   });
 }
 
-export function fedcm_select_account_promise(t, account_index) {
-  return new Promise(resolve => {
-    async function helper() {
-      // Try to select the account. If the UI is not up yet, we'll catch an exception
-      // and try again in 100ms.
-      try {
-        await window.test_driver.select_fedcm_account(account_index);
-        resolve();
-      } catch (ex) {
-        t.step_timeout(helper, 100);
-      }
-    }
-    helper();
-  });
+export async function fedcm_select_account_promise(t, account_index) {
+  let type = await fedcm_get_dialog_type_promise(t);
+  if (type != "AccountChooser")
+    throw "Incorrect dialog type: " + type;
+  await window.test_driver.select_fedcm_account(account_index);
 }
 
 export function fedcm_get_and_select_first_account(t, options) {

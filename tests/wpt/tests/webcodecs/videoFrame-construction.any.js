@@ -1003,6 +1003,11 @@ function testAllYUVPixelFormats() {
   for (let yuv of YUVs) {
     test(t => {
       const frame = new VideoFrame(yuv.data, yuv.init);
+      assert_equals(frame.format, yuv.init.format);
+      assert_equals(frame.timestamp, yuv.init.timestamp);
+      // User Agent may choose more optimal coded size allocations.
+      assert_less_than_equal(yuv.init.codedWidth, frame.codedWidth);
+      assert_less_than_equal(yuv.init.codedHeight, frame.codedHeight);
       frame.close();
     }, `Test we can construct a ${yuv.init.format} VideoFrame`);
   }

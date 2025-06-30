@@ -54,20 +54,64 @@ test(() => {
  menubaritem.disabled = false;
  menubaritem.click();
  assert_true(menulist.matches(':popover-open'),
-    'The menulist should be able to open successfully.');
+    'toggle-popover opens the menulist');
 
- menulist.hidePopover();
+ menubaritem.click();
+ assert_false(menulist.matches(':popover-open'),
+    "toggle-popover closes the menulist");
+
+ menubaritem.setAttribute("command", "show-popover");
+ menubaritem.click();
+ assert_true(menulist.matches(':popover-open'),
+    "show-popover shows the menulist");
+
+ menubaritem.setAttribute("command", "hide-popover");
+ menubaritem.click();
+ assert_false(menulist.matches(':popover-open'),
+    "hide-popover hides the menulist");
+}, "Menuitem with toggle-popover, show-popover, hide-popover commands can invoke menulist popover.");
+
+test(() => {
+ menubaritem.setAttribute("command", "toggle-menu");
+ menubaritem.setAttribute("commandfor", "more");
+
+ menubaritem.disabled = true;
+ menubaritem.click();
+ assert_false(menulist.matches(':popover-open'),
+    'The menulist should not open because the menuitem is disabled.');
+
+ menubaritem.disabled = false;
+ menubaritem.click();
+ assert_true(menulist.matches(':popover-open'),
+    'toggle-menu opens the menulist');
+
+ menubaritem.click();
+ assert_false(menulist.matches(':popover-open'),
+    "toggle-menu closes the menulist");
 
  menubaritem.setAttribute("command", "show-menu");
  menubaritem.click();
- assert_true(menulist.matches(':popover-open'));
+ assert_true(menulist.matches(':popover-open'),
+    "show-menu opens the menulist");
 
  menubaritem.setAttribute("command", "hide-menu");
  menubaritem.click();
- assert_false(menulist.matches(':popover-open'));
+ assert_false(menulist.matches(':popover-open'),
+    "hide-menu hides the menulist");
+}, "Menuitem with toggle-menu, show-menu, hide-menu commands can invoke menulist popover.");
+
+test(() => {
+ menubaritem.command = "show-menu";
+ menubaritem.commandForElement = menulist;
+
+ menubaritem.click();
+ assert_true(menulist.matches(':popover-open'),
+    'show-menu opens the menulist.');
 
  menulist.hidePopover();
-}, "Menuitem with valid command/commandfor can invoke menulist popover.");
+ assert_false(menulist.matches(':popover-open'),
+    'The global hidePopover() method hides the menulist');
+}, "hidePopover() on menulist closes the popover.");
 
 test(() => {
  menubaritem.setAttribute("command", "toggle-menu");
@@ -84,7 +128,7 @@ test(() => {
 }, "Menuitem with invalid command/commandfor cannot invoke menulist popover.");
 
 test(() => {
-  checkableMenuitem.command = "show-menu";
+  checkableMenuitem.command = "toggle-menu";
   checkableMenuitem.commandForElement = menulist;
 
   checkableMenuitem.click();
@@ -93,11 +137,10 @@ test(() => {
   assert_true(menulist.matches(":popover-open"),
       "menulist matches :popover-open");
 
-  checkableMenuitem.setAttribute("command", "hide-menu");
   checkableMenuitem.click();
 
   assert_false(checkableMenuitem.checked,
-      "checkable menu item is still checked");
+      "checkable menu item is no longer checked");
   assert_false(menulist.matches(":popover-open"),
       "menulist no longer matches :popover-open");
 }, "Checkable menuitems can still invoke menulist popovers");

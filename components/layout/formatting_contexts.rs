@@ -111,10 +111,10 @@ impl IndependentFormattingContext {
                     },
                     DisplayInside::Table => {
                         let table_grid_style = context
-                            .shared_context()
+                            .style_context
                             .stylist
                             .style_for_anonymous::<ServoLayoutElement>(
-                                &context.shared_context().guards,
+                                &context.style_context.guards,
                                 &PseudoElement::ServoTableGrid,
                                 &node_and_style_info.style,
                             );

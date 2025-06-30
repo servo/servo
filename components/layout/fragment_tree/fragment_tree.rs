@@ -59,6 +59,7 @@ impl FragmentTree {
         let mut animations = layout_context.style_context.animations.sets.write();
         let mut invalid_animating_nodes: FxHashSet<_> = animations.keys().cloned().collect();
         let mut image_animations = layout_context
+            .image_resolver
             .node_to_animating_image_map
             .write()
             .to_owned();

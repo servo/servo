@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+<script>
+  set_prefixed_cookie_via_dom_test({
+    prefix: "__HostHttp-",
+    params: "Secure; Path=/",
+    shouldExistInDOM: false,
+    shouldExistViaHTTP: false,
+    title: "__HostHttp: Does not set via DOM 'Secure; Path=/'"
+  });
+
+  set_prefixed_cookie_via_dom_test({
+    prefix: "__HostHttp-",
+    params: "Secure; Path=/; Domain=" + document.location.hostname,
+    shouldExistInDOM: false,
+    shouldExistViaHTTP: false,
+    title: "__HostHttp: Does not set via DOM with Domain attribute 'Secure; Path=/; Domain=" +
+           document.location.hostname + "'"
+  });
+
+  set_prefixed_cookie_via_http_test({
+    prefix: "__HostHttp-",
+    params: "Secure; Path=/",
+    shouldExistViaHTTP: false,
+    origin: self.origin,
+    title: "__HostHttp: Does not set via HTTP with 'Secure; Path=/'"
+  });
+
+  set_prefixed_cookie_via_http_test({
+    prefix: "__HostHttp-",
+    params: "Secure; Path=/;httponly",
+    shouldExistViaHTTP: true,
+    origin: self.origin,
+    title: "__HostHttp: Set via HTTP with 'Secure; Path=/; httponly'"
+  });
+
+  set_prefixed_cookie_via_http_test({
+    prefix: "__HostHttp-",
+    params: "Secure; Path=/cookies/;httponly",
+    shouldExistViaHTTP: false,
+    origin: self.origin,
+    title: "__HostHttp: Does not set via HTTP with 'Secure; Path=/cookies/; httponly'"
+  });
+
+  set_prefixed_cookie_via_http_test({
+    prefix: "__HostHttp-",
+    params: "Path=/",
+    shouldExistViaHTTP: false,
+    origin: self.origin,
+    title: "__HostHttp: Does not set via HTTP with 'Path=/;' (without Secure)"
+  });
+
+  set_prefixed_cookie_via_http_test({
+    prefix: "__HostHttp-",
+    params: "Secure; Path=/; Domain=" + document.location.hostname,
+    shouldExistViaHTTP: false,
+    origin: self.origin,
+    title: "__HostHttp: Does not set via HTTP with Domain attribute 'Secure; Path=/; Domain=" +
+           document.location.hostname + "'"
+  });
+</script>

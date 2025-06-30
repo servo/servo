@@ -131,28 +131,9 @@ pub enum WebDriverScriptCommand {
     DeleteCookie(String, IpcSender<Result<(), ErrorStatus>>),
     ExecuteScript(String, IpcSender<WebDriverJSResult>),
     ExecuteAsyncScript(String, IpcSender<WebDriverJSResult>),
-    FindElementCSSSelector(String, IpcSender<Result<Option<String>, ErrorStatus>>),
-    FindElementLinkText(String, bool, IpcSender<Result<Option<String>, ErrorStatus>>),
-    FindElementTagName(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     FindElementsCSSSelector(String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindElementsLinkText(String, bool, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindElementsTagName(String, IpcSender<Result<Vec<String>, ErrorStatus>>),
-    FindElementElementCSSSelector(
-        String,
-        String,
-        IpcSender<Result<Option<String>, ErrorStatus>>,
-    ),
-    FindElementElementLinkText(
-        String,
-        String,
-        bool,
-        IpcSender<Result<Option<String>, ErrorStatus>>,
-    ),
-    FindElementElementTagName(
-        String,
-        String,
-        IpcSender<Result<Option<String>, ErrorStatus>>,
-    ),
     FindElementElementsCSSSelector(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindElementElementsLinkText(
         String,

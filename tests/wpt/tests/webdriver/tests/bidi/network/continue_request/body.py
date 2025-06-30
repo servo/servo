@@ -2,8 +2,7 @@ import pytest
 
 from webdriver.bidi.modules.network import NetworkStringValue
 
-from ... import recursive_compare
-from .. import assert_response_event, RESPONSE_COMPLETED_EVENT
+from .. import RESPONSE_COMPLETED_EVENT
 
 pytestmark = pytest.mark.asyncio
 

@@ -1,0 +1,72 @@
+<!doctype html>
+<meta charset="utf-8" />
+<link rel="author" title="Keith Cirkel" href="mailto:keithamus@github.com" >
+<link rel="author" title="Luke Warlow" href="mailto:lwarlow@igalia.com" >
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<button id="buttonInvoker" interestfor="interestee"></button>
+<a id="aInvoker" interestfor="interestee"></a>
+<div id="interestee"></div>
+
+<script>
+  test(function () {
+    assert_equals(buttonInvoker.interestForElement, interestee);
+    assert_equals(aInvoker.interestForElement, interestee);
+  }, "interestForElement reflects interestee HTML element");
+
+  test(function () {
+    const div = document.body.appendChild(document.createElement("div"));
+    buttonInvoker.interestForElement = div;
+    aInvoker.interestForElement = div;
+    assert_equals(buttonInvoker.interestForElement, div);
+    assert_equals(buttonInvoker.getAttribute("interestfor"), "");
+    assert_equals(aInvoker.interestForElement, div);
+    assert_equals(aInvoker.getAttribute("interestfor"), "");
+  }, "interestForElement reflects set value");
+
+  test(function () {
+    const host = document.body.appendChild(document.createElement("div"));
+    const shadow = host.attachShadow({ mode: "open" });
+    const button = shadow.appendChild(document.createElement("button"));
+    button.interestForElement = interestee;
+    assert_equals(button.interestForElement, interestee);
+    assert_equals(buttonInvoker.getAttribute("interestfor"), "");
+  }, "interestForElement reflects set value across shadow root into light dom");
+
+  test(function () {
+    const host = document.body.appendChild(document.createElement("div"));
+    const shadow = host.attachShadow({ mode: "open" });
+    const div = shadow.appendChild(document.createElement("div"));
+    buttonInvoker.interestForElement = div;
+    assert_equals(buttonInvoker.interestForElement, null);
+    assert_equals(buttonInvoker.getAttribute("interestfor"), "");
+  }, "interestForElement does not reflect set value inside shadowroot");
+
+  test(function () {
+    buttonInvoker.setAttribute('interestfor', 'invalid');
+    assert_equals(buttonInvoker.interestForElement, null);
+    assert_equals(buttonInvoker.getAttribute("interestfor"), "invalid");
+    aInvoker.setAttribute('interestfor', 'invalid');
+    assert_equals(aInvoker.interestForElement, null);
+    assert_equals(aInvoker.getAttribute("interestfor"), "invalid");
+  }, "interestForElement does not reflect invalid value");
+
+  test(function () {
+    assert_throws_js(
+      TypeError,
+      function () {
+        buttonInvoker.interestForElement = {};
+      },
+      "interestForElement attribute value must be an instance of Element",
+    );
+    assert_throws_js(
+      TypeError,
+      function () {
+        aInvoker.interestForElement = {};
+      },
+      "interestForElement attribute value must be an instance of Element",
+    );
+  }, "interestForElement throws error on assignment of non Element");
+</script>

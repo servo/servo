@@ -7,17 +7,15 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src="/webaudio/resources/audit-util.js"></script>
-    <script src="/webaudio/resources/audit.js"></script>
     <script src="/webaudio/resources/audiobuffersource-testing.js"></script>
   </head>
   <body>
     <script id="layout-test-code">
-      let audit = Audit.createTaskRunner();
 
       // The following test cases assume an AudioBuffer of length 8 whose PCM
       // data is a linear ramp, 0, 1, 2, 3,...
 
-      let tests = [
+      const tests = [
 
         {
           description:
@@ -121,54 +119,56 @@
 
       ];
 
-      let sampleRate = 44100;
-      let buffer;
-      let bufferFrameLength = 8;
-      let testSpacingFrames = 32;
-      let testSpacingSeconds = testSpacingFrames / sampleRate;
-      let totalRenderLengthFrames = tests.length * testSpacingFrames;
+      const sampleRate = 44100;
+      const bufferFrameLength = 8;
+      const testSpacingFrames = 32;
+      const testSpacingSeconds = testSpacingFrames / sampleRate;
+      const totalRenderLengthFrames = tests.length * testSpacingFrames;
 
-      function runLoopTest(context, testNumber, test) {
-        let source = context.createBufferSource();
+      promise_test(async t => {
+        const context = new OfflineAudioContext(
+            /* channels */ 1,
+            /* length   */ totalRenderLengthFrames,
+            /* rate     */ sampleRate);
 
-        source.buffer = buffer;
-        source.playbackRate.value = test.playbackRate;
+        const buffer = createTestBuffer(context, bufferFrameLength);
 
-        source.connect(context.destination);
+        // Schedule each scenario at a unique, non‑overlapping time offset.
+        tests.forEach((test, index) => {
+          const source = new AudioBufferSourceNode(context);
+          source.buffer = buffer;
+          source.playbackRate.value = test.playbackRate;
+          source.connect(context.destination);
 
-        // Render each test one after the other, spaced apart by
-        // testSpacingSeconds.
-        let startTime = testNumber * testSpacingSeconds;
+          const startTime = index * testSpacingSeconds;
 
-        if (test.offsetFrame == 'none' && test.durationFrames == 'none') {
-          source.start(startTime);
-        } else if (test.durationFrames == 'none') {
-          let offset = test.offsetFrame / context.sampleRate;
-          source.start(startTime, offset);
-        } else {
-          let offset = test.offsetFrame / context.sampleRate;
-          let duration = test.durationFrames / context.sampleRate;
-          source.start(startTime, offset, duration);
-        }
-      }
+          if (test.offsetFrame === 'none' && test.durationFrames === 'none') {
+            source.start(startTime);
+          } else if (test.durationFrames === 'none') {
+            source.start(startTime, test.offsetFrame / sampleRate);
+          } else {
+            source.start(
+              startTime,
+              test.offsetFrame / sampleRate,
+              test.durationFrames / sampleRate);
+          }
+        });
 
-      audit.define(
-          'Tests AudioBufferSourceNode start()', function(task, should) {
-            // Create offline audio context.
-            let context =
-                new OfflineAudioContext(1, totalRenderLengthFrames, sampleRate);
-            buffer = createTestBuffer(context, bufferFrameLength);
+        const rendered = await context.startRendering();
+        const renderedData = rendered.getChannelData(0);
 
-            for (let i = 0; i < tests.length; ++i)
-              runLoopTest(context, i, tests[i]);
+        // Validate every scenario’s rendered segment.
+        tests.forEach((test, index) => {
+          const begin = index * testSpacingFrames;
+          const end   = begin + test.renderFrames;
+          const actual = renderedData.slice(begin, end);
 
-            context.startRendering().then(function(audioBuffer) {
-              checkAllTests(audioBuffer, should);
-              task.done();
-            });
-          });
-
-      audit.run();
+          assert_array_equals(
+            actual,
+            test.expected,
+            `${test.description} – rendered output matches expectation`);
+        });
+      }, 'AudioBufferSourceNode start() – sub‑sample scheduling semantics');
     </script>
   </body>
 </html>

@@ -6,9 +6,9 @@
     <input id="input-disabled" disabled type="file" />
     <input id="text-input" type="text" />
     <script>
-      const allEvents = {events: []};
+      window.allEvents = {events: []};
       const onEvent = (event) => {
-        allEvents.events.push({
+        window.allEvents.events.push({
           type: event.type,
           files: [...event.target.files].map((file) => file.name),
         });

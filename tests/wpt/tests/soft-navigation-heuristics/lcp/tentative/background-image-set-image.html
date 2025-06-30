@@ -34,7 +34,7 @@ Notes:
 </body>
 <script>
   promise_test(async (t) => {
-    assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+    assert_implements(window.InteractionContentfulPaint, "InteractionContentfulPaint is not implemented");
     const helper = new SoftNavigationTestHelper(t);
     const lcpEntries = await helper.getBufferedPerformanceEntriesWithTimeout(
       /*type=*/ "largest-contentful-paint",
@@ -53,9 +53,8 @@ Notes:
           }
         }
       }).observe({
-        type: "largest-contentful-paint",
+        type: "interaction-contentful-paint",
         includeSoftNavigationObservations: true,
-        buffered: true,
       });
     });
     if (test_driver) {

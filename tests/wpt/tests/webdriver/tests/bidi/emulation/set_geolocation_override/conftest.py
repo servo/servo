@@ -22,7 +22,8 @@ async def get_current_geolocation(bidi_session, configuration):
                         {timeout: 500 * multiplier}
                 ))
             """,
-            arguments=[{"type": "number", "value": configuration["timeout_multiplier"]}],
+            arguments=[{"type": "number",
+                        "value": configuration["timeout_multiplier"]}],
             target=ContextTarget(context["context"]),
             await_promise=True,
         )

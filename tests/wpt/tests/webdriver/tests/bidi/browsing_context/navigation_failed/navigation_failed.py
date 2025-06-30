@@ -1,9 +1,8 @@
 import asyncio
 import pytest
-from tests.support.sync import AsyncPoll
-
 from webdriver.error import TimeoutException
 
+from tests.bidi import wait_for_bidi_events
 from .. import assert_navigation_info
 
 
@@ -37,9 +36,8 @@ async def test_unsubscribe(bidi_session, inline, new_tab):
         context=new_tab["context"], url=page_url, wait="none"
     )
 
-    wait = AsyncPoll(bidi_session, timeout=0.5)
     with pytest.raises(TimeoutException):
-        await wait.until(lambda _: len(events) > 0)
+        await wait_for_bidi_events(bidi_session, events, 1, timeout=0.5)
 
     remove_listener()
 
@@ -261,9 +259,7 @@ async def test_with_new_navigation(
         context=new_tab["context"], url=second_url, wait="none"
     )
 
-    wait = AsyncPoll(bidi_session, timeout=1)
-    await wait.until(lambda _: len(events) > 0)
-    assert len(events) == 1
+    await wait_for_bidi_events(bidi_session, events, 1, timeout=1)
 
     # Make sure that the first navigation failed or aborted.
     assert_navigation_info(
@@ -323,9 +319,7 @@ async def test_with_new_navigation_inside_page(
         context=new_tab["context"], url=slow_page_url, wait="none"
     )
 
-    wait = AsyncPoll(bidi_session, timeout=1)
-    await wait.until(lambda _: len(events) > 0)
-    assert len(events) == 1
+    await wait_for_bidi_events(bidi_session, events, 1, timeout=1)
 
     # Make sure that the first navigation failed.
     assert_navigation_info(
@@ -376,9 +370,7 @@ async def test_close_context(
 
     await bidi_session.browsing_context.close(context=new_context["context"])
 
-    wait = AsyncPoll(bidi_session, timeout=1)
-    await wait.until(lambda _: len(events) > 0)
-    assert len(events) == 1
+    await wait_for_bidi_events(bidi_session, events, 1, timeout=1)
 
     # Make sure that the navigation failed.
     assert_navigation_info(
@@ -440,9 +432,7 @@ async def test_close_iframe(
     # Reload the top context to destroy the iframe.
     await bidi_session.browsing_context.reload(context=new_tab["context"], wait="none")
 
-    wait = AsyncPoll(bidi_session, timeout=1)
-    await wait.until(lambda _: len(events) > 0)
-    assert len(events) == 1
+    await wait_for_bidi_events(bidi_session, events, 1, timeout=1)
 
     # Make sure that the iframe navigation failed.
     assert_navigation_info(

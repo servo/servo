@@ -45,7 +45,7 @@ pub struct BoxTree {
 }
 
 impl BoxTree {
-    pub fn construct(context: &LayoutContext, root_element: ServoLayoutNode<'_>) -> Self {
+    pub(crate) fn construct(context: &LayoutContext, root_element: ServoLayoutNode<'_>) -> Self {
         let boxes = construct_for_root_element(context, root_element);
 
         // Zero box for `:root { display: none }`, one for the root element otherwise.
@@ -59,7 +59,7 @@ impl BoxTree {
         // > none, user agents must instead apply the overflow-* values of the first such child
         // > element to the viewport. The element from which the value is propagated must then have a
         // > used overflow value of visible.
-        let root_style = root_element.style(context.shared_context());
+        let root_style = root_element.style(&context.style_context);
 
         let mut viewport_overflow_x = root_style.clone_overflow_x();
         let mut viewport_overflow_y = root_style.clone_overflow_y();
@@ -76,7 +76,7 @@ impl BoxTree {
                     continue;
                 }
 
-                let style = child.style(context.shared_context());
+                let style = child.style(&context.style_context);
                 if !style.get_box().display.is_none() {
                     viewport_overflow_x = style.clone_overflow_x();
                     viewport_overflow_y = style.clone_overflow_y();
@@ -123,7 +123,10 @@ impl BoxTree {
     /// * how intrinsic content sizes are computed eagerly makes it hard
     ///   to update those sizes for ancestors of the node from which we
     ///   made an incremental update.
-    pub fn update(context: &LayoutContext, dirty_root_from_script: ServoLayoutNode<'_>) -> bool {
+    pub(crate) fn update(
+        context: &LayoutContext,
+        dirty_root_from_script: ServoLayoutNode<'_>,
+    ) -> bool {
         let Some(box_tree_update) = IncrementalBoxTreeUpdate::find(dirty_root_from_script) else {
             return false;
         };
@@ -136,7 +139,7 @@ fn construct_for_root_element(
     context: &LayoutContext,
     root_element: ServoLayoutNode<'_>,
 ) -> Vec<ArcRefCell<BlockLevelBox>> {
-    let info = NodeAndStyleInfo::new(root_element, root_element.style(context.shared_context()));
+    let info = NodeAndStyleInfo::new(root_element, root_element.style(&context.style_context));
     let box_style = info.style.get_box();
 
     let display_inside = match Display::from(box_style.display) {
@@ -188,7 +191,7 @@ fn construct_for_root_element(
 }
 
 impl BoxTree {
-    pub fn layout(
+    pub(crate) fn layout(
         &self,
         layout_context: &LayoutContext,
         viewport: UntypedSize2D<Au>,

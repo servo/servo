@@ -11,6 +11,23 @@ def remote_mapping_to_dict(js_object):
     return obj
 
 
+def assert_events(events, expected_events):
+    events_not_seen = events.copy()
+
+    for expected_event in expected_events:
+       match_found = False
+       for event in events_not_seen:
+           # Check that all expected fields are present
+           if all(item in event.items() for item in expected_event.items()):
+               events_not_seen.remove(event)
+               match_found = True
+               break
+       assert match_found, f"Expected event not found: {expected_event}"
+
+    assert len(
+        events_not_seen) == 0, f"Extra events received: {events_not_seen}"
+
+
 async def assert_pointer_events(
     bidi_session, context, expected_events, target, pointer_type
 ):

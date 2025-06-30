@@ -84,3 +84,46 @@ async function testAnimationTrigger(test, scroll_fn, target,
   await scroll_fn();
   await Promise.all(evt_promises);
 }
+
+function computeContainOffset(scroller, subject, pct) {
+  const contain_start = subject.offsetTop + subject.offsetHeight
+    - scroller.offsetTop - scroller.clientHeight;
+  const contain_end = subject.offsetTop - scroller.offsetTop;
+
+  return contain_start + (pct / 100) * (contain_end - contain_start);
+}
+
+function setupAnimationAndTrigger(target, subject, duration) {
+  const animation = new Animation(
+    new KeyframeEffect(
+      target,
+      [
+        { transform: "scale(1)", backgroundColor: "yellow" },
+        { transform: "scale(2)", backgroundColor: "yellow" },
+      ],
+      { duration: duration, fill: "both" }
+    ));
+
+  let trigger = new AnimationTrigger({
+    behavior: "alternate",
+    timeline: new ViewTimeline({ subject: subject, axis: "y" }),
+    rangeStart: "contain 0%",
+    rangeEnd: "contain 100%"
+  });
+
+  trigger.addAnimation(animation);
+}
+
+async function waitForAnimation(targetCurrentTime, animation) {
+  return new Promise(resolve => {
+    function waitForCurrentTime() {
+      if ((targetCurrentTime - animation.currentTime) * animation.playbackRate <= 0) {
+        resolve();
+        return;
+      }
+
+      requestAnimationFrame(waitForCurrentTime);
+    }
+    waitForCurrentTime();
+  });
+}

@@ -16,16 +16,15 @@
     </div>
   </main>
   <script>
-    const link = document.getElementById("link");
     testSoftNavigation({
+      testName: "Test that a text LCP followup by a smaller soft navigation image"
+        + " LCP properly queues an LCP entry",
       addContent: async () => {
         const main = document.getElementById("main");
         main.removeChild(document.getElementsByTagName("div")[0]);
         await addImageToMain();
       },
-      link: link,
-      test: "Test that a text LCP followup by a smaller soft navigation image"
-        + " LCP properly queues an LCP entry"});
+      });
   </script>
 </body>
 </html>

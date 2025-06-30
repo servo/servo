@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<link rel="match" href="border-shape-stroke-ref.html">
+<meta name="fuzzy" content="maxDifference=0-32;totalPixels=0-128">
+<meta name="variant" content="?class=solid">
+<meta name="variant" content="?class=percent">
+<meta name="variant" content="?class=roundjoin">
+<meta name="variant" content="?class=beveljoin">
+<meta name="variant" content="?class=nostroke">
+<style>
+@import "resources/stroke-variants.css";
+
+#target {
+    width: 100px;
+    height: 100px;
+    border-shape: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+    stroke: purple;
+}
+</style>
+<div id="target"></div>
+<script>
+    document.querySelector("#target").classList.add(new URLSearchParams(location.search).get("class"));
+</script>

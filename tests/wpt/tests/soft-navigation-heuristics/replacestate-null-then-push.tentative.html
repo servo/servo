@@ -15,20 +15,14 @@
   <a id=link>Click me!</a>
   </main>
   <script>
-    const link = document.getElementById("link");
     testSoftNavigation({
-      addContent: async (url) => {
-        await addImageToMain();
-        history.pushState({}, '', url);
-      },
-      link: link,
+      testName: "Detect soft navigation with replaceState that has a null URL," +
+            " then pushState with the URL",
       pushState: async (url) =>{
         history.replaceState({}, '');
+        history.pushState({}, '', url);
       },
-      test: "Detect soft navigation with replaceState that has a null URL," +
-            " then pushState with the URL"});
+    });
   </script>
 </body>
 </html>
-
-

@@ -14,17 +14,25 @@
   <a href="empty.html?2" rel=opener target=child id=link>Click me!</a>
   </main>
   <script>
-    promise_test(async t => {
-      const child = window.open("resources/empty.html?1", "child");
-      while (!child.document) {
-        await new Promise(r => t.step_timeout(r, 10));
+    const child = window.open("resources/empty.html?1", "child");
+
+    testSoftNavigation({
+      testName: "Test that a navigated child window doesn't crash",
+      extraSetup: async () => {
+        while (!child.document) {
+          await new Promise(r => t.step_timeout(r, 10));
+        }
+      },
+      // No-op for the main page, so we don't navigate it
+      dontExpectSoftNavs: true,
+      pushState: () => {},
+      addContent: () => {},
+      extraValidations: async (t) => {
+        while (!child.location.href.includes("2")) {
+          await new Promise(r => t.step_timeout(r, 10));
+        }
       }
-      const link = document.getElementById("link");
-      interact(link);
-      while (!child.location.href.includes("2")) {
-        await new Promise(r => t.step_timeout(r, 10));
-      }
-    }, "Test that a navigated child window doesn't crash");
+    });
   </script>
 </body>
 </html>

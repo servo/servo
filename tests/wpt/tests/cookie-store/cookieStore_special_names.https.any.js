@@ -54,6 +54,13 @@
   }, `cookieStore.set with ${prefix} prefix a path option`);
 });
 
+['__HostHttp-', '__hosthttp-', '__Http-', '__http-'].forEach(prefix => {
+  promise_test(async testCase => {
+    await promise_rejects_js(testCase, TypeError,
+        cookieStore.set({ name: `${prefix}cookie-name`, value: 'cookie-value'}));
+  }, `cookieStore.set with ${prefix} prefix rejects`);
+});
+
 promise_test(async testCase => {
     let exceptionThrown = false;
     try {

@@ -207,10 +207,6 @@ test(() => {
     control.i.setValidity(flags, m, document.body);
   }, 'Not a descendant');
 
-  assert_throws_dom('NotFoundError', () => {
-    control.i.setValidity(flags, m, control);
-  }, 'Self');
-
   let notHTMLElement = document.createElementNS('some-random-namespace', 'foo');
   control.appendChild(notHTMLElement);
   assert_throws_js(TypeError, () => {
@@ -233,6 +229,17 @@ test(() => {
   shadow2.appendChild(nestedShadowChild);
   control.i.setValidity(flags, m, nestedShadowChild);
 }, '"anchor" argument of setValidity()');
+
+test(t => {
+  const control = document.createElement('my-control');
+  document.body.appendChild(control);
+  t.add_cleanup(() => control.remove());
+  const flags = {valueMissing: true};
+  const m = 'non-empty message';
+
+  // Self
+  control.i.setValidity(flags, m, control);
+}, '"anchor" argument of setValidity(): passing self');
 
 test(() => {
   const element = new NotFormAssociatedElement();

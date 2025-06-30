@@ -14,8 +14,8 @@
   <p><a id=secondlink>Then click me!</a></p>
   </main>
   <script>
-    const link = document.getElementById("link");
     testSoftNavigation({
+      testName: "Second interaction in the middle of a soft navigation",
       addContent: async () => {
         if (test_driver) {
           const secondlink = document.getElementById("secondlink");
@@ -25,11 +25,9 @@
           test_driver.click(secondlink);
           await clickPromise;
         }
-        addImageToMain();
+        return addImageToMain();
       },
-      link: link,
-      test: "Second interaction in the middle of a soft navigation"});
+    });
   </script>
 </body>
 </html>
-

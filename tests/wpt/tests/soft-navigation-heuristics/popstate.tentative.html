@@ -10,10 +10,8 @@
 <script src="resources/soft-navigation-helper.js"></script>
 </head>
 <body>
+  <a id=link>Click me!</a>
   <main id=main>
-    <div>
-      <a id=link>Click me!</a>
-    </div>
   </main>
   <script>
     // Push state twice, so that history.back() will trigger a popstate event,
@@ -21,30 +19,17 @@
     history.pushState({}, "", "foobar.html");
     history.pushState({}, "", "another_one.html");
 
-    const link = document.getElementById("link");
-    link.addEventListener("click", () => {
-      history.back();
-      timestamps[counter]["eventEnd"] = performance.now();
-    });
     testSoftNavigation({
-      addContent: () => {
-        // Add the content to the main element
-        const main = document.getElementById("main");
-        main.removeChild(document.getElementsByTagName("div")[0]);
-        const div = document.createElement("div");
-        const text = document.createTextNode("Lorem ipsum");
-        div.appendChild(text);
-        div.style="font-size: 3em";
-        main.appendChild(div);
-      },
-      link: link,
       testName: "A soft navigation that uses a same-document initiated popstate"
         + " event is recognized by SoftNavigationHeuristics",
-      eventType: "popstate"});
+      // Test already have a default clock which will call back(), we want
+      // "the event" that triggers navigation to be the popstate event.
+      eventListenerCb: () => history.back(),
+      registerRouteChange: (cb) => addEventListener('popstate', cb),
+      pushState: () => { },
+      // Although we will own the pushState, we need to set the expected URL
+      pushUrl: "foobar.html",
+    });
   </script>
 </body>
 </html>
-
-
-
-

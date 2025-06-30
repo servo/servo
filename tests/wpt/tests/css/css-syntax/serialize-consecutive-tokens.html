@@ -123,4 +123,15 @@ testComments("var(--t1)b", "'a/* unfinished '", "'a/* unfinished 'b");
 testComments("var(--t1)b", "\"a/* unfinished \"", "\"a/* unfinished \"b");
 testComments("var(--t1)b", "'a \" '/* comment */", "'a \" 'b");
 
+test(()=>{
+    const b = document.body;
+    b.style.setProperty("--t1", "a");
+    b.style.setProperty("--t2", "b");
+    b.style.setProperty("--result", "var(--t1)var(--does-not-exist,)var(--t2)");
+    const result = getComputedStyle(b).getPropertyValue("--result");
+    assert_equals(result[0], "a", `Result must start with a`);
+    assert_equals(result[result.length - 1], "b", `Result must end with b`);
+    assert_not_equals(result, "ab", `Result must have a comment between a and b`);
+}, 'Empty fallback between tokens must not disturb comment insertion');
+
 </script>

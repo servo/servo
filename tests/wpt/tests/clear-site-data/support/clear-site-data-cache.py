@@ -3,12 +3,50 @@ Loaded in Step 2/4/Optional 6 (/clear-site-data/clear-cache.https.html)
 Sending Message for Step 3/5/Optional 7 (/clear-site-data/clear-cache.https.html)
 """
 import uuid
+import random
+
+def generate_png(width, height, color=(0, 0, 0)):
+    import zlib
+    import struct
+    def chunk(chunk_type, data):
+        return (
+            struct.pack(">I", len(data)) +
+            chunk_type +
+            data +
+            struct.pack(">I", zlib.crc32(chunk_type + data) & 0xffffffff)
+        )
+
+    # PNG signature
+    png = b"\x89PNG\r\n\x1a\n"
+
+    # IHDR chunk
+    ihdr = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
+    png += chunk(b'IHDR', ihdr)
+
+    # IDAT chunk: RGB pixels
+    row = b'\x00' + bytes(color * width)
+    raw = row * height
+    idat = zlib.compress(raw)
+    png += chunk(b'IDAT', idat)
+
+    # IEND chunk
+    png += chunk(b'IEND', b'')
+    return png
 
 def main(request, response):
     # type of response:
-    #  - "single_html": Main page html file with a different postMessage uuid on each response
-    #  - "json": Json that always responds with a different uuid in a single-element array
-    #  - "html_embed_json": Main page html that embeds a cachable version of the above json
+    # - General purpose: returns random uuid or forwards uuid from iframe
+    #   - "single_html": Main page html file with a different postMessage uuid on each response
+    # - Pages for simple testing normal http cache:
+    #   - "json": Json that always responds with a different uuid in a single-element array
+    #   - "html_embed_json": Main page html that embeds a cachable version of the above json
+    # - Pages for testing specialized caches
+    #   - "image": Image that returns random dimensions up to 1024x1024 each time
+    #   - "html_embed_image": Main page html that embeds a cachable version of the above image
+    #   - "css": Style sheet with random uuid variable
+    #   - "html_embed_css": Main page html that embeds a cachable version of the above css
+    #   - "js": Script that returns a different uuid each time
+    #   - "html_embed_js": Main page html that embeds a cachable version of the above js file
     response_type = request.GET.first(b"response")
 
     cache_helper = request.GET.first(b"cache_helper")
@@ -26,6 +64,12 @@ def main(request, response):
     headers = []
     if response_type == b"json":
         headers += [(b"Content-Type", b"application/json")]
+    elif response_type == b"image":
+        headers += [(b"Content-Type", b"image/png")]
+    elif response_type == b"css":
+        headers += [(b"Content-Type", b"text/css")]
+    elif response_type == b"js":
+        headers += [(b"Content-Type", b"text/javascript")]
     else:
         headers += [(b"Content-Type", b"text/html")]
 
@@ -96,6 +140,63 @@ def main(request, response):
                 {request.url}<br>
                 {url}
             </body>'''
-
+    elif response_type == b"image":
+        # send uniquely sized images, because that info can be retrived from html and definitly using the image cache
+        # helper for below "html_embed_image"
+        content = generate_png(random.randint(1, 1024), random.randint(1, 1024))
+    elif response_type == b"html_embed_image":
+        urls = [request.url_parts.path + "?response=image&cache&cache_helper=" + cache_helper.decode() + "&img=" + str(i) for i in range(2)]
+        content = f'''
+            <!DOCTYPE html>
+            <script>
+                addEventListener("load", () => {{
+                    let img1 = document.getElementById("randomess1");
+                    let img2 = document.getElementById("randomess2");
+                    let id = img1.naturalWidth + "x" + img1.naturalHeight;
+                    id += "-" + img2.naturalWidth + "x" + img2.naturalHeight
+                    window.opener.postMessage(id, "*");
+                    window.close();
+                }})
+            </script>
+            <body>
+                {request.url}<br>
+                <img id="randomess1" src="{urls[0]}"></img><br>
+                <img id="randomess2" src="{urls[1]}"></img><br>
+            </body>'''
+    elif response_type == b"css":
+        # send unique UUID. helper for below "html_embed_css"
+        content = f'''
+        :root {{
+            --uuid: "{uuid.uuid4()}"
+        }}'''
+    elif response_type == b"html_embed_css":
+        url = request.url_parts.path + "?response=css&cache&cache_helper=" + cache_helper.decode()
+        content = f'''
+            <!DOCTYPE html>
+            <link rel="stylesheet" href="{url}">
+            <script>
+                let computed = getComputedStyle(document.documentElement);
+                let uuid = computed.getPropertyValue("--uuid").trim().replaceAll('"', '');
+                window.opener.postMessage(uuid, "*");
+                window.close();
+            </script>
+            <body>
+                {request.url}<br>
+                {url}
+            </body>'''
+    elif response_type == b"js":
+        # send unique UUID. helper for below "html_embed_js"
+        content = f'''
+            window.opener.postMessage("{uuid.uuid4()}", "*");
+            window.close();
+        '''
+    elif response_type == b"html_embed_js":
+        url = request.url_parts.path + "?response=js&cache&cache_helper=" + cache_helper.decode()
+        content = f'''
+            <script src="{url}"></script>
+            <body>
+                {request.url}<br>
+                {url}
+            </body>'''
 
     return 200, headers, content

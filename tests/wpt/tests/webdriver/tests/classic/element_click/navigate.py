@@ -116,7 +116,7 @@ def test_link_from_toplevel_context_with_target(session, inline, target):
         session,
         timeout=5,
         ignored_exceptions=NoSuchElementException,
-        message="Expected element has not been found")
+        message="Expected element '#foo' was not found")
     wait.until(lambda s: s.find.css("#foo"))
 
 
@@ -155,7 +155,7 @@ def test_link_from_nested_context_with_target(session, inline, iframe, target):
         session,
         timeout=5,
         ignored_exceptions=NoSuchElementException,
-        message="Expected element has not been found")
+        message="Expected element '#foo' was not found")
     wait.until(lambda s: s.find.css("#foo"))
 
 

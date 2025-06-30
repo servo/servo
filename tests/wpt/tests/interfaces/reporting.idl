@@ -3,17 +3,13 @@
 // (https://github.com/w3c/webref)
 // Source: Reporting API (https://w3c.github.io/reporting/)
 
-[Exposed=(Window,Worker)]
-interface ReportBody {
-  [Default] object toJSON();
+dictionary ReportBody {
 };
 
-[Exposed=(Window,Worker)]
-interface Report {
-  [Default] object toJSON();
-  readonly attribute DOMString type;
-  readonly attribute DOMString url;
-  readonly attribute ReportBody? body;
+dictionary Report {
+  DOMString type;
+  DOMString url;
+  ReportBody? body;
 };
 
 [Exposed=(Window,Worker)]

@@ -39,7 +39,6 @@
   .label { color: black; font-weight: bold; }
 </style>
 
-<body onload="checkLayout('.test');">
 <div class="wrapper">
   <div class="test" style="align-content: start" title="start">
     <div class="in-flow" data-offset-y="15"></div>
@@ -230,4 +229,8 @@
 
 <p>
   <button onclick="document.querySelector('style[title]').textContent = 'html { font-size: 12px; }'">Show Text</button>
-</body>
+</p>
+
+<script>
+document.fonts.ready.then(() => checkLayout(".test"));
+</script>

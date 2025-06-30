@@ -1,5 +1,6 @@
 from webdriver.bidi.modules.script import ContextTarget
 
+
 async def get_user_context_ids(bidi_session):
     """
     Returns the list of string ids of the current user contexts.

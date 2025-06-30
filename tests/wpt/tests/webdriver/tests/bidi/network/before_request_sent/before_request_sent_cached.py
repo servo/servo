@@ -1,8 +1,8 @@
-import pytest
 import random
 
-from tests.support.sync import AsyncPoll
+import pytest
 
+from tests.bidi import wait_for_bidi_events
 from .. import (
     assert_before_request_sent_event,
     get_cached_url,
@@ -91,9 +91,7 @@ async def test_page_with_cached_link_stylesheet(
     )
 
     # Expect two events, one for the document, one for the stylesheet.
-    wait = AsyncPoll(bidi_session, timeout=2)
-    await wait.until(lambda _: len(events) >= 2)
-    assert len(events) == 2
+    await wait_for_bidi_events(bidi_session, events, 2, timeout=2)
 
     assert_before_request_sent_event(
         events[0],
@@ -110,9 +108,7 @@ async def test_page_with_cached_link_stylesheet(
     )
 
     # Expect two events after reload, for the document and the stylesheet.
-    wait = AsyncPoll(bidi_session, timeout=2)
-    await wait.until(lambda _: len(events) >= 4)
-    assert len(events) == 4
+    await wait_for_bidi_events(bidi_session, events, 4, timeout=2)
 
     assert_before_request_sent_event(
         events[2],
@@ -160,9 +156,7 @@ async def test_page_with_cached_import_stylesheet(
     )
 
     # Expect two events, one for the document, one for the imported stylesheet.
-    wait = AsyncPoll(bidi_session, timeout=2)
-    await wait.until(lambda _: len(events) >= 2)
-    assert len(events) == 2
+    await wait_for_bidi_events(bidi_session, events, 2, timeout=2)
 
     assert_before_request_sent_event(
         events[0],
@@ -179,9 +173,7 @@ async def test_page_with_cached_import_stylesheet(
     )
 
     # Expect two events after reload, for the document and the stylesheet.
-    wait = AsyncPoll(bidi_session, timeout=2)
-    await wait.until(lambda _: len(events) >= 4)
-    assert len(events) == 4
+    await wait_for_bidi_events(bidi_session, events, 4, timeout=2)
 
     assert_before_request_sent_event(
         events[2],
@@ -242,9 +234,7 @@ async def test_page_with_cached_duplicated_stylesheets(
 
     # Expect three events, one for the document, one for the linked stylesheet,
     # one for the imported stylesheet.
-    wait = AsyncPoll(bidi_session, timeout=2)
-    await wait.until(lambda _: len(events) >= 3)
-    assert len(events) == 3
+    await wait_for_bidi_events(bidi_session, events, 3, timeout=2)
 
     assert_before_request_sent_event(
         events[0],
@@ -273,9 +263,7 @@ async def test_page_with_cached_duplicated_stylesheets(
     )
 
     # Expect three events after reload, for the document and the 2 stylesheets.
-    wait = AsyncPoll(bidi_session, timeout=2)
-    await wait.until(lambda _: len(events) >= 6)
-    assert len(events) == 6
+    await wait_for_bidi_events(bidi_session, events, 6, timeout=2)
 
     # Assert only cached events after reload.
     cached_events = events[3:]
@@ -330,9 +318,7 @@ async def test_page_with_cached_script_javascript(
     )
 
     # Expect two events, one for the document and one for the javascript file.
-    wait = AsyncPoll(bidi_session, timeout=2)
-    await wait.until(lambda _: len(events) >= 2)
-    assert len(events) == 2
+    await wait_for_bidi_events(bidi_session, events, 2, timeout=2)
 
     assert_before_request_sent_event(
         events[0],
@@ -349,9 +335,7 @@ async def test_page_with_cached_script_javascript(
     )
 
     # Expect two events, one for the document and one for the javascript file.
-    wait = AsyncPoll(bidi_session, timeout=2)
-    await wait.until(lambda _: len(events) >= 4)
-    assert len(events) == 4
+    await wait_for_bidi_events(bidi_session, events, 4, timeout=2)
 
     assert_before_request_sent_event(
         events[2],
@@ -381,9 +365,7 @@ async def test_page_with_cached_script_javascript(
     # Expect two or three events, one for the document and the rest for javascript files.
     # If the browser uses memory caching there may be only single request for the javascript files,
     # see issue https://github.com/whatwg/html/issues/6110.
-    wait = AsyncPoll(bidi_session, timeout=2)
-    await wait.until(lambda _: len(events) >= 6)
-    assert len(events) >= 6
+    await wait_for_bidi_events(bidi_session, events, 6, timeout=2, equal_check=False)
 
     # Assert only cached events after reload.
     cached_events = events[4:]
@@ -440,9 +422,7 @@ async def test_page_with_cached_javascript_module(
     )
 
     # Expect two events, one for the document and one for the javascript module.
-    wait = AsyncPoll(bidi_session, timeout=2)
-    await wait.until(lambda _: len(events) >= 2)
-    assert len(events) == 2
+    await wait_for_bidi_events(bidi_session, events, 2, timeout=2)
 
     assert_before_request_sent_event(
         events[0],
@@ -459,9 +439,7 @@ async def test_page_with_cached_javascript_module(
     )
 
     # Expect two events, one for the document and one for the javascript module.
-    wait = AsyncPoll(bidi_session, timeout=2)
-    await wait.until(lambda _: len(events) >= 4)
-    assert len(events) == 4
+    await wait_for_bidi_events(bidi_session, events, 4, timeout=2)
 
     assert_before_request_sent_event(
         events[2],
@@ -495,9 +473,7 @@ async def test_page_with_cached_javascript_module(
     )
 
     # Expect two events, one for the document and one for the javascript module.
-    wait = AsyncPoll(bidi_session, timeout=2)
-    await wait.until(lambda _: len(events) >= 6)
-    assert len(events) == 6
+    await wait_for_bidi_events(bidi_session, events, 6, timeout=2)
 
     # Assert only cached events after reload.
     cached_events = events[4:]
@@ -544,9 +520,7 @@ async def test_page_with_cached_image(
     )
 
     # Expect two events, one for the document and one for the image.
-    wait = AsyncPoll(bidi_session, timeout=2)
-    await wait.until(lambda _: len(events) >= 2)
-    assert len(events) == 2
+    await wait_for_bidi_events(bidi_session, events, 2, timeout=2)
 
     assert_before_request_sent_event(
         events[0],
@@ -563,9 +537,7 @@ async def test_page_with_cached_image(
     )
 
     # Expect two events, one for the document and one for the image.
-    wait = AsyncPoll(bidi_session, timeout=2)
-    await wait.until(lambda _: len(events) >= 4)
-    assert len(events) == 4
+    await wait_for_bidi_events(bidi_session, events, 4, timeout=2)
 
     assert_before_request_sent_event(
         events[2],

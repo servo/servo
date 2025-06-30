@@ -27,7 +27,12 @@ interface HighlightRegistry {
 };
 
 partial interface HighlightRegistry {
-  sequence<Highlight> highlightsFromPoint(float x, float y, optional HighlightsFromPointOptions options = {});
+  sequence<HighlightHitResult> highlightsFromPoint(float x, float y, optional HighlightsFromPointOptions options = {});
+};
+
+dictionary HighlightHitResult {
+  Highlight highlight;
+  sequence<AbstractRange> ranges;
 };
 
 dictionary HighlightsFromPointOptions {

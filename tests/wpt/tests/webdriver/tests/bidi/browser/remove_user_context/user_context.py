@@ -1,10 +1,9 @@
 import pytest
 
-import webdriver.bidi.error as error
 from webdriver.error import TimeoutException
 
-from tests.support.sync import AsyncPoll
-from .. import get_user_context_ids
+from tests.bidi import wait_for_bidi_events
+from tests.bidi.browser import get_user_context_ids
 
 USER_PROMPT_OPENED_EVENT = "browsingContext.userPromptOpened"
 
@@ -55,10 +54,7 @@ async def test_remove_context_closes_contexts(
     # destroy user context 1 and wait for context 1 and 2 to be destroyed
     await bidi_session.browser.remove_user_context(user_context=user_context_1)
 
-    wait = AsyncPoll(bidi_session, timeout=2)
-    await wait.until(lambda _: len(events) >= 2)
-
-    assert len(events) == 2
+    await wait_for_bidi_events(bidi_session, events, 2)
     destroyed_contexts = [event["context"] for event in events]
     assert context_1["context"] in destroyed_contexts
     assert context_2["context"] in destroyed_contexts
@@ -66,10 +62,7 @@ async def test_remove_context_closes_contexts(
     # destroy user context 1 and wait for context 3 and 4 to be destroyed
     await bidi_session.browser.remove_user_context(user_context=user_context_2)
 
-    wait = AsyncPoll(bidi_session, timeout=2)
-    await wait.until(lambda _: len(events) >= 4)
-
-    assert len(events) == 4
+    await wait_for_bidi_events(bidi_session, events, 4)
     destroyed_contexts = [event["context"] for event in events]
     assert context_3["context"] in destroyed_contexts
     assert context_4["context"] in destroyed_contexts
@@ -107,8 +100,7 @@ async def test_remove_context_skips_beforeunload_prompt(
 
     await bidi_session.browser.remove_user_context(user_context=user_context)
 
-    wait = AsyncPoll(bidi_session, timeout=0.5)
     with pytest.raises(TimeoutException):
-        await wait.until(lambda _: len(events) > 0)
+        await wait_for_bidi_events(bidi_session, events, 1, timeout=0.5)
 
     remove_listener()

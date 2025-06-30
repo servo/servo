@@ -1,8 +1,8 @@
 import pytest
-from tests.support.sync import AsyncPoll
 from webdriver.error import TimeoutException
-from ..realm_created.realm_created import REALM_CREATED_EVENT
 
+from tests.bidi import wait_for_bidi_events
+from ..realm_created.realm_created import REALM_CREATED_EVENT
 from .. import create_sandbox
 
 
@@ -98,8 +98,7 @@ async def test_sandbox(bidi_session, subscribe_events, new_tab, method):
 
     await bidi_session.browsing_context.close(context=new_tab["context"])
 
-    wait = AsyncPoll(bidi_session, message="Didn't receive realm destroyed events")
-    await wait.until(lambda _: len(destroyed_realm_ids) >= 2)
+    await wait_for_bidi_events(bidi_session, destroyed_realm_ids, 2)
 
     assert sandbox_realm in destroyed_realm_ids
 
@@ -117,7 +116,8 @@ async def test_subscribe_after_sandbox_creation(
     destroyed_realm_ids = []
 
     async def on_event(method, data):
-        destroyed_realm_ids.append(data["realm"])
+        if data["realm"] == sandbox_realm:
+            destroyed_realm_ids.append(data["realm"])
 
     remove_listener = bidi_session.add_event_listener(REALM_DESTROYED_EVENT, on_event)
 
@@ -125,10 +125,7 @@ async def test_subscribe_after_sandbox_creation(
         context=new_tab["context"], url=inline("<div>foo</div>"), wait="complete"
     )
 
-    wait = AsyncPoll(bidi_session, message="Didn't receive realm destroyed events")
-    await wait.until(lambda _: len(destroyed_realm_ids) >= 2)
-
-    assert sandbox_realm in destroyed_realm_ids
+    await wait_for_bidi_events(bidi_session, destroyed_realm_ids, 1)
 
     remove_listener()
 
@@ -187,8 +184,7 @@ async def test_iframe_destroy_parent(
 
     await bidi_session.browsing_context.close(context=new_tab["context"])
 
-    wait = AsyncPoll(bidi_session, message="Didn't receive realm destroyed events")
-    await wait.until(lambda _: len(destroyed_realm_ids) >= 2)
+    await wait_for_bidi_events(bidi_session, destroyed_realm_ids, 2)
 
     assert realm_for_iframe[0]["realm"] in destroyed_realm_ids
     assert realm_for_parent[0]["realm"] in destroyed_realm_ids
@@ -221,9 +217,8 @@ async def test_subscribe_to_one_context(
     )
 
     # Make sure we didn't receive the event for the top context
-    wait = AsyncPoll(bidi_session, timeout=0.5)
     with pytest.raises(TimeoutException):
-        await wait.until(lambda _: len(destroyed_realm_ids) > 0)
+        await wait_for_bidi_events(bidi_session, destroyed_realm_ids, 1, timeout=0.5)
 
     result = await bidi_session.script.get_realms(context=new_tab["context"])
 
@@ -231,8 +226,7 @@ async def test_subscribe_to_one_context(
         context=new_tab["context"], url=inline("<div>foo</div>"), wait="complete"
     )
 
-    wait = AsyncPoll(bidi_session, message="Didn't receive realm destroyed events")
-    await wait.until(lambda _: len(destroyed_realm_ids) >= 1)
+    await wait_for_bidi_events(bidi_session, destroyed_realm_ids, 1)
 
     assert result[0]["realm"] in destroyed_realm_ids
 

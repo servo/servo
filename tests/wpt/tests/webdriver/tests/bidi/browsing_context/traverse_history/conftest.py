@@ -10,13 +10,9 @@ from tests.support.sync import AsyncPoll
 async def wait_for_url(bidi_session, current_url):
     async def wait_for_url(context, target_url, timeout=2):
         async def check_url(_):
-            return await current_url(context) == target_url
+            assert await current_url(context) == target_url, "Expected URL did not load"
 
-        wait = AsyncPoll(
-            bidi_session,
-            timeout=timeout,
-            message="Expected URL did not load"
-        )
+        wait = AsyncPoll(bidi_session, timeout=timeout)
         await wait.until(check_url)
 
     return wait_for_url
@@ -25,14 +21,10 @@ async def wait_for_url(bidi_session, current_url):
 @pytest_asyncio.fixture
 async def wait_for_not_url(bidi_session, current_url):
     async def wait_for_not_url(context, target_url, timeout=2):
-        async def check_url(_):
-            return await current_url(context) != target_url
+        async def check_url_different(_):
+            assert await current_url(context) != target_url, "Expected URL is still loaded"
 
-        wait = AsyncPoll(
-            bidi_session,
-            timeout=timeout,
-            message="Expected URL is still loaded"
-        )
-        await wait.until(check_url)
+        wait = AsyncPoll(bidi_session, timeout=timeout)
+        await wait.until(check_url_different)
 
     return wait_for_not_url

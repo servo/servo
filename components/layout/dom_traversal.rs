@@ -71,7 +71,7 @@ impl<'dom> NodeAndStyleInfo<'dom> {
             .to_threadsafe()
             .as_element()?
             .with_pseudo(pseudo_element_type)?
-            .style(context.shared_context());
+            .style(&context.style_context);
         Some(NodeAndStyleInfo {
             node: self.node,
             pseudo_element_type: Some(pseudo_element_type),
@@ -200,10 +200,8 @@ fn traverse_children_of<'dom>(
     traverse_eager_pseudo_element(PseudoElement::Before, parent_element, context, handler);
 
     if parent_element.is_text_input() {
-        let info = NodeAndStyleInfo::new(
-            parent_element,
-            parent_element.style(context.shared_context()),
-        );
+        let info =
+            NodeAndStyleInfo::new(parent_element, parent_element.style(&context.style_context));
         let node_text_content = parent_element.to_threadsafe().node_text_content();
         if node_text_content.is_empty() {
             // The addition of zero-width space here forces the text input to have an inline formatting
@@ -220,7 +218,7 @@ fn traverse_children_of<'dom>(
     } else {
         for child in iter_child_nodes(parent_element) {
             if child.is_text_node() {
-                let info = NodeAndStyleInfo::new(child, child.style(context.shared_context()));
+                let info = NodeAndStyleInfo::new(child, child.style(&context.style_context));
                 handler.handle_text(&info, child.to_threadsafe().node_text_content());
             } else if child.is_element() {
                 traverse_element(child, context, handler);
@@ -241,7 +239,7 @@ fn traverse_element<'dom>(
     element.unset_pseudo_element_box(PseudoElement::Marker);
 
     let replaced = ReplacedContents::for_element(element, context);
-    let style = element.style(context.shared_context());
+    let style = element.style(&context.style_context);
     match Display::from(style.get_box().display) {
         Display::None => element.unset_all_boxes(),
         Display::Contents => {
@@ -300,7 +298,7 @@ fn traverse_eager_pseudo_element<'dom>(
         return;
     };
 
-    let style = pseudo_element.style(context.shared_context());
+    let style = pseudo_element.style(&context.style_context);
     if style.ineffective_content_property() {
         return;
     }

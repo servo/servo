@@ -16,6 +16,7 @@
   background-color: inherit;
   color: blue;
   animation-duration: 0.321s;
+  animation-delay: 0.05s;
 }
 
 ::view-transition-image-pair(*) {
@@ -39,15 +40,19 @@ promise_test(async () => {
   assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(root)").backgroundColor, "rgb(255, 0, 0)", "group");
   assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(root)").color, "rgb(0, 0, 255)", "group");
   assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(root)").animationDuration, "0.321s", "group");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(root)").animationDelay, "0.05s", "group");
 
   assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(root)").color, "rgb(0, 0, 255)", "wrapper");
   assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(root)").overflowX, "clip", "wrapper");
   assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(root)").animationDuration, "0.321s", "wrapper");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(root)").animationDelay, "0.05s", "wrapper");
 
   assert_equals(getComputedStyle(document.documentElement, "::view-transition-old(root)").overflowX, "clip", "outgoing");
   assert_equals(getComputedStyle(document.documentElement, "::view-transition-old(root)").animationDuration, "0.321s", "outgoing");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-old(root)").animationDelay, "0.05s", "outgoing");
   assert_equals(getComputedStyle(document.documentElement, "::view-transition-new(root)").overflowX, "clip", "incoming");
   assert_equals(getComputedStyle(document.documentElement, "::view-transition-new(root)").animationDuration, "0.321s", "incoming");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-new(root)").animationDelay, "0.05s", "incoming");
 
   await transition.finished;
 }, "style inheritance of pseudo elements");

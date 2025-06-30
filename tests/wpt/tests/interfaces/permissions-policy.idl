@@ -19,14 +19,12 @@ partial interface HTMLIFrameElement {
     [SameObject] readonly attribute PermissionsPolicy permissionsPolicy;
 };
 
-[Exposed=Window]
-interface PermissionsPolicyViolationReportBody : ReportBody {
-  [Default] object toJSON();
-  readonly attribute DOMString featureId;
-  readonly attribute DOMString? sourceFile;
-  readonly attribute long? lineNumber;
-  readonly attribute long? columnNumber;
-  readonly attribute DOMString disposition;
-  readonly attribute DOMString? allowAttribute;
-  readonly attribute DOMString? srcAttribute;
+dictionary PermissionsPolicyViolationReportBody : ReportBody {
+  DOMString featureId;
+  DOMString? sourceFile;
+  long? lineNumber;
+  long? columnNumber;
+  DOMString disposition;
+  DOMString? allowAttribute;
+  DOMString? srcAttribute;
 };

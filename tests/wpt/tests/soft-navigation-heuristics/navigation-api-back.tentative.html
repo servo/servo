@@ -10,11 +10,8 @@
 <script src="resources/soft-navigation-helper.js"></script>
 </head>
 <body>
-  <main id=main>
-    <div>
-      <a id=link>Click me!</a>
-    </div>
-  </main>
+  <a id=link>Click me!</a>
+  <main id=main></main>
   <script>
     window.onload = async () => {
       // Wait for after the load event so that the navigation doesn't get converted
@@ -28,18 +25,13 @@
       await navigation.navigate("foobar.html").finished;
       await navigation.navigate("another.html").committed;
 
-      const link = document.getElementById("link");
       testSoftNavigation({
-        addContent: () => {
-          addTextToDivOnMain();
-        },
-        link: link,
+        testName: "`navigation.back()` properly works with SoftNavigationHeuristics",
         pushState: async () =>{
           await navigation.back().committed;
         },
-        test: "`navigation.back()` properly works with SoftNavigationHeuristics"});
+      });
     };
   </script>
 </body>
 </html>
-

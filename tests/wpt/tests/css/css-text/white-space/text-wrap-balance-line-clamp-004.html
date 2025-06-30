@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en" >
+<meta charset="utf-8">
+<title>CSS test: balancing and line-clamp</title>
+<link rel='author' title='Andreu Botella' href='mailto:abotella@igalia.com'>
+<link rel='help' href='https://drafts.csswg.org/css-overflow-4/#line-clamp'>
+<link rel='help' href='https://drafts.csswg.org/css-text-4/#text-wrap-style'>
+<meta name="assert" content="If the element is affected by line-clamp, the clamping effect is applied first, then the remaining lines are balanced. If the last line is displaced by the line-clamp ellipsis, the content of the previous lines should be balanced into the displaced line if possible, but in this case it isn't.">
+<link rel="match" href="reference/text-wrap-balance-line-clamp-004-ref.html">
+<style>
+div {
+    border: solid;
+    font-family: monospace;
+    margin: 1ch;
+    width: 9.1ch;  /* .1ch to work around browser bugs */
+}
+.test {
+    border-color: blue;
+
+    text-wrap-style: balance;
+    line-clamp: 3;
+    /* This code is unnecessary in any browser that supports the unprefixed version of line-clamp,
+       but neither does it have any detrimental effect,
+       and it broadens the test to browsers that only support the prefixed version */
+
+    -webkit-line-clamp: 3;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.ref {
+    border-color: orange;
+}
+</style>
+
+<p>Test passes if the box with a blue frame is identical to the orange one.
+
+<div class=test>12345678 123456 123456789012 123</div>
+
+<div class=ref>12345678<br>123456<br>…</div>
+
+<!--
+unbalanced layout without clamping:
+    |---------|
+    |12345678 |
+    |123456   |
+    |123456789012
+    |123      |
+    |---------|
+
+unbalanced layout after clamping:
+    |---------|
+    |12345678 |
+    |123456   |
+    |…        |
+    |---------|
+
+There is no way to balance this without changing the number of lines.
+-->

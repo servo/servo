@@ -10,20 +10,14 @@
 <script src="resources/soft-navigation-helper.js"></script>
 </head>
 <body>
+  <a id=link>Click me!</a>
   <main id=main>
-    <div>
-      <a id=link>Click me!</a>
-    </div>
   </main>
   <script>
-    const link = document.getElementById("link");
     testSoftNavigation({
-      addContent: () => {
-        addTextToDivOnMain();
-      },
-      link: link,
-      pushState: (url)=>{location.hash=url;},
-      test: "Location hash changes properly works with SoftNavigationHeuristics"});
+      testName: "Location hash changes properly works with SoftNavigationHeuristics",
+      pushState: (url) => { location.hash = url; },
+    });
   </script>
 </body>
 </html>

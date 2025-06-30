@@ -1,11 +1,21 @@
-import pytest, asyncio
+import json
+import asyncio
 
 from webdriver.bidi.modules.script import ContextTarget
 
 TEST_DEVICE_NAME = 'SOME_BL_DEVICE'
 TEST_DEVICE_ADDRESS = '09:09:09:09:09:09'
+TEST_DEVICE_2_ADDRESS = '10:10:10:10:10:10'
 BLUETOOTH_REQUEST_DEVICE_PROMPT_UPDATED_EVENT = 'bluetooth.requestDevicePromptUpdated'
 BLUETOOTH_GATT_CONNECTION_ATTEMPTED_EVENT = 'bluetooth.gattConnectionAttempted'
+BLUETOOTH_CHARACTERISTIC_EVENT_GENERATED_EVENT = 'bluetooth.characteristicEventGenerated'
+BLUETOOTH_DESCRIPTOR_EVENT_GENERATED_EVENT = 'bluetooth.descriptorEventGenerated'
+HEART_RATE_SERVICE_UUID = '0000180d-0000-1000-8000-00805f9b34fb'
+BATTERY_SERVICE_UUID = '0000180f-0000-1000-8000-00805f9b34fb'
+MEASUREMENT_INTERVAL_CHARACTERISTIC_UUID = '00002a21-0000-1000-8000-00805f9b34fb'
+DATE_TIME_CHARACTERISTIC_UUID = '00002a08-0000-1000-8000-00805f9b34fb'
+CHARACTERISTIC_USER_DESCRIPTION_DESCRIPTOR_UUID = '00002901-0000-1000-8000-00805f9b34fb'
+CLIENT_CHARACTERISTIC_CONFIGURATION_DESCRIPTOR_UUID = '00002902-0000-1000-8000-00805f9b34fb'
 
 
 async def set_simulate_adapter(bidi_session, context, test_page, state):
@@ -34,18 +44,19 @@ async def set_simulate_preconnected_peripheral(bidi_session, context, test_page,
         known_service_uuids=known_service_uuids)
 
 
-def request_device(context, bidi_session):
+def request_device(context, bidi_session, optional_services= []):
     return asyncio.create_task(
         bidi_session.script.call_function(
-            function_declaration="""async (device_name)=>{
-                const device = await navigator.bluetooth.requestDevice({
-                    filters: [{name:device_name}]
-                });
-                return {
+            function_declaration=f"""async (device_name)=>{{
+                const device = await navigator.bluetooth.requestDevice({{
+                    filters: [{{name:device_name}}],
+                    optionalServices: {json.dumps(optional_services)}
+                }});
+                return {{
                     id: device.id,
                     name: device.name,
-                }
-            }
+                }}
+            }}
             """,
             arguments=[{"type": "string", "value": TEST_DEVICE_NAME}],
             target=ContextTarget(context["context"]),
@@ -55,7 +66,7 @@ def request_device(context, bidi_session):
         ))
 
 
-async def setup_granted_device(bidi_session, context, test_page, subscribe_events, wait_for_event):
+async def setup_granted_device(bidi_session, context, test_page, subscribe_events, wait_for_event, optional_services = []):
     await set_simulate_preconnected_peripheral(
         bidi_session,
         context,
@@ -75,7 +86,7 @@ async def setup_granted_device(bidi_session, context, test_page, subscribe_event
 
     # Schedule requesting device via WEB API. It will be blocked on the prompt
     # and resolved after the prompt is addressed.
-    request_device_future = request_device(context, bidi_session)
+    request_device_future = request_device(context, bidi_session, optional_services)
 
     # Wait for the prompt.
     bluetooth_prompt = await bluetooth_prompt_future
@@ -115,3 +126,8 @@ async def create_gatt_connection(bidi_session, context, subscribe_events, wait_f
         context=context["context"],
         address=gatt_connection_attempted_event["address"], code=0x0)
     await gatt_connect_future
+
+
+def remote_array_to_list(remote_array) -> list:
+    assert remote_array["type"] == "array"
+    return [item["value"] for item in remote_array["value"]]

@@ -218,6 +218,87 @@
   </style>
 </template>
 
+<template data-name="CSS-wide keywords are interpreted locally (initial)">
+  <style>
+    @function --f(--c: green) {
+      result: if(style(--c: initial): PASS; else: FAIL);
+    }
+    @function --g() {
+      --c: red;
+      result: --f();
+    }
+    #target {
+      --actual: --g();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="CSS-wide keywords are interpreted locally (inherit)">
+  <style>
+    @function --f(--c: red) {
+      --c: green;
+      result: if(style(--c: inherit): PASS; else: FAIL);
+    }
+    @function --g() {
+      --c: green;
+      result: --f();
+    }
+    #target {
+      --actual: --g();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="CSS-wide keywords are interpreted locally (guaranteed-invalid, initial)">
+  <style>
+    @function --f() {
+      result: if(style(--c: initial): PASS; else: FAIL);
+    }
+    #target {
+      --actual: --f();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="CSS-wide keywords are interpreted locally (guaranteed-invalid, unset)">
+  <style>
+    @function --f() {
+      result: if(style(--c: unset): PASS; else: FAIL);
+    }
+    #target {
+      --actual: --f();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="CSS-wide keywords are interpreted locally (revert)">
+  <style>
+    @function --f() {
+      result: if(style(--c: revert): FAIL; else: PASS);
+    }
+    #target {
+      --actual: --f();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="CSS-wide keywords are interpreted locally (revert-layer)">
+  <style>
+    @function --f() {
+      result: if(style(--c: revert-layer): FAIL; else: PASS);
+    }
+    #target {
+      --actual: --f();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
 <script>
   test_all_templates();
 </script>

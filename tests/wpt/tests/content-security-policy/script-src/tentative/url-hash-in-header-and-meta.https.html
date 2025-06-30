@@ -1,0 +1,99 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Tests for policies provided both in the header and by a meta tag</title>
+  <script src="/common/get-host-info.sub.js"></script>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='support/util.js'></script>
+</head>
+<body>
+  <script nonce="abc">
+    const { ORIGIN, REMOTE_ORIGIN } = get_host_info();
+    const scriptUrl = new URL("./support/externalScript.js", document.location).toString();
+
+    // Some of these tests set CSP in both the header and the meta tag, others
+    // set multiple policies in multiple meta tags.
+
+    promise_test(async t => {
+      const scriptUrlHash = await sha256ofURL(scriptUrl);
+      const headerPolicy = `script-src 'nonce-forinlinescript'`;
+      const metaPolicy = `script-src 'nonce-forinlinescript' 'url-sha256-${scriptUrlHash}'`;
+
+      let frame = document.createElement('iframe');
+      frame.src = `support/iframe_meta.sub.html?pipe=header(Content-Security-Policy,${headerPolicy})&policy=${metaPolicy}&script_url=externalScript.js`;
+      document.body.appendChild(frame);
+
+      const msgEvent = await new Promise(resolve => window.onmessage = resolve);
+      assert_equals(msgEvent.data, 'CSP_VIOLATION');
+    }, "url-hash in meta tag should not relax policy set by header");
+
+    promise_test(async t => {
+      const scriptUrlHash = await sha256ofURL(scriptUrl);
+      const headerPolicy = `script-src 'nonce-forinlinescript' 'url-sha256-${scriptUrlHash}'`;
+      const metaPolicy = `script-src 'nonce-forinlinescript'`;
+
+      let frame = document.createElement('iframe');
+      frame.src = `support/iframe_meta.sub.html?pipe=header(Content-Security-Policy,${headerPolicy})&policy=${metaPolicy}&script_url=externalScript.js`;
+      document.body.appendChild(frame);
+
+      const msgEvent = await new Promise(resolve => window.onmessage = resolve);
+      assert_equals(msgEvent.data, 'CSP_VIOLATION');
+    }, "meta tag can restrict policy set by header");
+
+    promise_test(async t => {
+      const scriptUrlHash = await sha256ofURL(scriptUrl);
+      const headerPolicy = `script-src 'nonce-forinlinescript' 'url-sha256-${scriptUrlHash}'`;
+      const metaPolicy = `script-src 'nonce-forinlinescript' 'url-sha256-${scriptUrlHash}' 'url-sha256-abc'`;
+
+      let frame = document.createElement('iframe');
+      frame.src = `support/iframe_meta.sub.html?pipe=header(Content-Security-Policy,${headerPolicy})&policy=${metaPolicy}&script_url=externalScript.js`;
+      document.body.appendChild(frame);
+
+      const msgEvent = await new Promise(resolve => window.onmessage = resolve);
+      assert_equals(msgEvent.data, 'SCRIPT_RAN');
+    }, "more lax meta tag should still allow script");
+
+    promise_test(async t => {
+      const scriptUrlHash = await sha256ofURL(scriptUrl);
+      const metaPolicy1 = `script-src 'nonce-forinlinescript' 'url-sha256-${scriptUrlHash}'`;
+      const metaPolicy2 = `script-src 'nonce-forinlinescript'`;
+
+      let frame = document.createElement('iframe');
+      frame.src = `support/iframe_meta_multiple.html?pipe=sub&policy1=${metaPolicy1}&policy2=${metaPolicy2}`;
+      document.body.appendChild(frame);
+
+      const msgEvent = await new Promise(resolve => window.onmessage = resolve);
+      assert_equals(msgEvent.data, 'CSP_VIOLATION');
+    }, "multiple meta tags should apply most strict policy - lax first");
+
+    promise_test(async t => {
+      const scriptUrlHash = await sha256ofURL(scriptUrl);
+      const metaPolicy1 = `script-src 'nonce-forinlinescript'`;
+      const metaPolicy2 = `script-src 'nonce-forinlinescript' 'url-sha256-${scriptUrlHash}'`;
+
+      let frame = document.createElement('iframe');
+      frame.src = `support/iframe_meta_multiple.html?pipe=sub&policy1=${metaPolicy1}&policy2=${metaPolicy2}`;
+      document.body.appendChild(frame);
+
+      const msgEvent = await new Promise(resolve => window.onmessage = resolve);
+      assert_equals(msgEvent.data, 'CSP_VIOLATION');
+    }, "multiple meta tags should apply most strict policy - strict first");
+
+    promise_test(async t => {
+      const scriptUrlHash = await sha256ofURL(scriptUrl);
+      const metaPolicy1 = `script-src 'nonce-forinlinescript' 'url-sha256-${scriptUrlHash}' 'url-sha256-abc'`;
+      const metaPolicy2 = `script-src 'nonce-forinlinescript' 'url-sha256-${scriptUrlHash}' 'url-sha256-def'`;
+
+      let frame = document.createElement('iframe');
+      frame.src = `support/iframe_meta_multiple.html?pipe=sub&policy1=${metaPolicy1}&policy2=${metaPolicy2}`;
+      document.body.appendChild(frame);
+
+      const msgEvent = await new Promise(resolve => window.onmessage = resolve);
+      assert_equals(msgEvent.data, 'SCRIPT_RAN');
+    }, "multiple meta tags should apply most strict policy - both lax");
+
+  </script>
+
+</body>
+</html>

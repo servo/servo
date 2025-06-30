@@ -1,4 +1,6 @@
 from typing import Any, Callable, Dict, List, Mapping
+
+from tests.support.sync import AsyncPoll
 from webdriver.bidi.modules.script import ContextTarget
 from webdriver.bidi.undefined import UNDEFINED
 
@@ -231,3 +233,15 @@ def remote_mapping_to_dict(js_object) -> Dict:
             obj[key] = value["value"]
 
     return obj
+
+
+async def wait_for_bidi_events(bidi_session, events, count, timeout=2, equal_check=True):
+    def check_bidi_events(_, events, count):
+        assert len(
+            events) >= count, f"Did not receive at least {count} BiDi event(s)"
+
+    wait = AsyncPoll(bidi_session, timeout=timeout)
+    await wait.until(check_bidi_events, events, count)
+
+    if equal_check:
+        assert len(events) == count, f"Did not receive {count} BiDi event(s)"

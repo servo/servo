@@ -127,12 +127,12 @@ def create_dialog(session):
             }, 0);
             """, args=(dialog_type, text))
 
-        wait = Poll(
-            session,
-            timeout=15,
-            ignored_exceptions=NoSuchAlertException,
-            message="No user prompt with text '{}' detected".format(text))
-        wait.until(lambda s: s.alert.text == text)
+        def check_alert_text(s):
+            assert s.alert.text == text, f"No user prompt with text '{text}' detected"
+
+        wait = Poll(session, timeout=15,
+                    ignored_exceptions=NoSuchAlertException)
+        wait.until(check_alert_text)
 
     return create_dialog
 
