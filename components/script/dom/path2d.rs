@@ -8,10 +8,11 @@ use canvas_traits::canvas::Path;
 use dom_struct::dom_struct;
 use euclid::default::Point2D;
 use js::rust::HandleObject;
+use script_bindings::codegen::GenericBindings::DOMMatrixBinding::DOMMatrix2DInit;
+use script_bindings::error::ErrorResult;
 use script_bindings::str::DOMString;
 
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::Path2DMethods;
-use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::DOMMatrix2DInit;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
@@ -56,14 +57,14 @@ impl Path2D {
         !self.path.borrow().is_empty()
     }
 
-    fn add_path_(&self, other: &Path2D, transform: &DOMMatrix2DInit) {
+    fn add_path_(&self, other: &Path2D, transform: &DOMMatrix2DInit) -> ErrorResult {
         // Step 1. If the Path@D object path has no subpaths, then return.
         if !other.has_segments() {
-            return;
+            return Ok(());
         }
 
         // Step 2 Let matrix be the result of creating a DOMMatrix from the 2D dictionary transform.
-        let matrix = dommatrix2dinit_to_matrix(transform).unwrap();
+        let matrix = dommatrix2dinit_to_matrix(transform)?;
 
         // Step 3. If one or more of matrix's m11 element, m12 element, m21
         // element, m22 element, m41 element, or m42 element are infinite or
@@ -75,55 +76,75 @@ impl Path2D {
             !matrix.m41.is_finite() ||
             !matrix.m42.is_finite()
         {
-            return;
+            return Ok(());
         }
 
         // Step 4. Create a copy of all the subpaths in path. Let c be this copy.
         let mut c = other.segments();
 
         // Step 5. Transform all the coordinates and lines in c by the transform matrix matrix.
-        let apply_matrix_transform = |x: f32, y: f32| -> Point2D<f64> {matrix.transform_point2d(Point2D::new(x.into(), y.into())).unwrap()};
+        let apply_matrix_transform = |x: f32, y: f32| -> Fallible<Point2D<f64>> {
+            matrix
+                .transform_point2d(Point2D::new(x.into(), y.into()))
+                .ok_or(Error::InvalidState)
+        };
 
-        c.iter_mut().for_each(|segment| {
+        for segment in c.iter_mut() {
             match *segment {
                 PathSegment::ClosePath => todo!(),
                 PathSegment::MoveTo { x, y } => {
-                    let transformed_point = apply_matrix_transform(x, y);
+                    let transformed_point = apply_matrix_transform(x, y)?;
                     *segment = PathSegment::MoveTo {
                         x: transformed_point.x as f32,
                         y: transformed_point.y as f32,
                     };
                 },
                 PathSegment::LineTo { x, y } => {
-                    let transformed_point = apply_matrix_transform(x, y);
-                    *segment = PathSegment::LineTo { x: transformed_point.x as f32, y: transformed_point.y as f32}
+                    let transformed_point = apply_matrix_transform(x, y)?;
+                    *segment = PathSegment::LineTo {
+                        x: transformed_point.x as f32,
+                        y: transformed_point.y as f32,
+                    }
                 },
                 PathSegment::Quadratic { cpx, cpy, x, y } => {
-                    let transformed_cp = apply_matrix_transform(cpx, cpy);
-                    let transformed_point = apply_matrix_transform(x, y);
+                    let transformed_cp = apply_matrix_transform(cpx, cpy)?;
+                    let transformed_point = apply_matrix_transform(x, y)?;
                     *segment = PathSegment::Quadratic {
                         cpx: transformed_cp.x as f32,
                         cpy: transformed_cp.y as f32,
                         x: transformed_point.x as f32,
                         y: transformed_point.y as f32,
-                    }   
+                    }
                 },
-                PathSegment::Bezier { cp1x, cp1y, cp2x, cp2y, x, y } => {
-                    let transformed_cp1 = apply_matrix_transform(cp1x, cp1y);
-                    let transformed_cp2 = apply_matrix_transform(cp2x, cp2y);
-                    let transformed_point = apply_matrix_transform(x, y);
+                PathSegment::Bezier {
+                    cp1x,
+                    cp1y,
+                    cp2x,
+                    cp2y,
+                    x,
+                    y,
+                } => {
+                    let transformed_cp1 = apply_matrix_transform(cp1x, cp1y)?;
+                    let transformed_cp2 = apply_matrix_transform(cp2x, cp2y)?;
+                    let transformed_point = apply_matrix_transform(x, y)?;
                     *segment = PathSegment::Bezier {
                         cp1x: transformed_cp1.x as f32,
                         cp1y: transformed_cp1.y as f32,
                         cp2x: transformed_cp2.x as f32,
                         cp2y: transformed_cp2.y as f32,
                         x: transformed_point.x as f32,
-                        y: transformed_point.y as f32
+                        y: transformed_point.y as f32,
                     }
                 },
-                PathSegment::ArcTo { cp1x, cp1y, cp2x, cp2y, radius } => {
-                    let transformed_cp1 = apply_matrix_transform(cp1x, cp1y);
-                    let transformed_cp2 = apply_matrix_transform(cp2x, cp2y);
+                PathSegment::ArcTo {
+                    cp1x,
+                    cp1y,
+                    cp2x,
+                    cp2y,
+                    radius,
+                } => {
+                    let transformed_cp1 = apply_matrix_transform(cp1x, cp1y)?;
+                    let transformed_cp2 = apply_matrix_transform(cp2x, cp2y)?;
                     *segment = PathSegment::ArcTo {
                         cp1x: transformed_cp1.x as f32,
                         cp1y: transformed_cp1.y as f32,
@@ -132,8 +153,17 @@ impl Path2D {
                         radius,
                     }
                 },
-                PathSegment::Ellipse { x, y, radius_x, radius_y, rotation, start_angle, end_angle, anticlockwise } => {
-                    let transformed_point = apply_matrix_transform(x, y);
+                PathSegment::Ellipse {
+                    x,
+                    y,
+                    radius_x,
+                    radius_y,
+                    rotation,
+                    start_angle,
+                    end_angle,
+                    anticlockwise,
+                } => {
+                    let transformed_point = apply_matrix_transform(x, y)?;
                     *segment = PathSegment::Ellipse {
                         x: transformed_point.x as f32,
                         y: transformed_point.y as f32,
@@ -145,8 +175,16 @@ impl Path2D {
                         anticlockwise,
                     }
                 },
-                PathSegment::SvgArc { radius_x, radius_y, rotation, large_arc, sweep, x, y } => {
-                    let transformed_point = apply_matrix_transform(x, y);
+                PathSegment::SvgArc {
+                    radius_x,
+                    radius_y,
+                    rotation,
+                    large_arc,
+                    sweep,
+                    x,
+                    y,
+                } => {
+                    let transformed_point = apply_matrix_transform(x, y)?;
                     *segment = PathSegment::SvgArc {
                         x: transformed_point.x as f32,
                         y: transformed_point.y as f32,
@@ -158,7 +196,7 @@ impl Path2D {
                     }
                 },
             }
-        });
+        }
 
         // Step 6. Let (x, y) be the last point in the last subpath of c
 
@@ -171,23 +209,15 @@ impl Path2D {
             let mut dest = self.path.borrow_mut();
             dest.extend(other.path.borrow().iter().copied());
         }
+
+        Ok(())
     }
 }
 
 impl Path2DMethods<crate::DomTypeHolder> for Path2D {
     /// <https://html.spec.whatwg.org/multipage/#dom-path2d-addpath>
-    fn AddPath(&self, other: &Path2D) {
-        let other = other.segments();
-        // Step 1. If the Path@D object path has no subpaths, then return.
-        if !other.has_segments() {
-            return;
-        }
-
-        // Step 2 Let matrix be the result of creating a DOMMatrix from the 2D dictionary transform.
-        let matrix = 1;
-
-        // Step 7. Add all the subpaths in c to a.
-        self.path.borrow_mut().0.extend(other.0);
+    fn AddPath(&self, other: &Path2D, transform: &DOMMatrix2DInit) -> ErrorResult {
+        self.add_path_(other, transform)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-closepath>
