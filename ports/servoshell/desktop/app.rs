@@ -402,8 +402,19 @@ impl App {
                         warn!("Failed to send response of GetViewportSize: {error}");
                     }
                 },
+                // This is only received when start new session.
                 WebDriverCommandMsg::GetFocusedWebView(sender) => {
-                    let focused_webview = running_state.focused_webview();
+                    // This can be called when there is no open webview.
+                    // We need to create a new one. See https://github.com/servo/servo/issues/37408
+                    let focused_webview =
+                        if running_state.no_open_webview() {
+                            Some(running_state.create_and_focus_toplevel_webview(
+                                Url::parse("about:blank").unwrap(),
+                            ))
+                        } else {
+                            running_state.focused_webview()
+                        };
+
                     if let Err(error) = sender.send(focused_webview.map(|w| w.id())) {
                         warn!("Failed to send response of GetFocusedWebView: {error}");
                     };
