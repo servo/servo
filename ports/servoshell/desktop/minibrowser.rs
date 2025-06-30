@@ -332,7 +332,8 @@ impl Minibrowser {
                                         location_dirty.set(true);
                                     }
                                     if ui.input(|i| {
-                                        i.clone().consume_key(Modifiers::COMMAND, Key::L)
+                                        i.clone().consume_key(Modifiers::COMMAND, Key::L) ||
+                                            i.clone().consume_key(Modifiers::ALT, Key::D)
                                     }) {
                                         location_field.request_focus();
                                         if let Some(mut state) =
