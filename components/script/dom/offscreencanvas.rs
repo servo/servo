@@ -184,10 +184,8 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
             canvas_context.resize();
         }
 
-        if let Some(canvas) = &self.placeholder {
-            if let Some(c) = canvas.root() {
-                c.set_natural_width(value as _, can_gc)
-            };
+        if let Some(canvas) = self.placeholder() {
+            canvas.set_natural_width(value as _, can_gc)
         }
     }
 
@@ -204,10 +202,8 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
             canvas_context.resize();
         }
 
-        if let Some(canvas) = &self.placeholder {
-            if let Some(c) = canvas.root() {
-                c.set_natural_height(value as _, can_gc)
-            };
+        if let Some(canvas) = self.placeholder() {
+            canvas.set_natural_height(value as _, can_gc)
         }
     }
 }
