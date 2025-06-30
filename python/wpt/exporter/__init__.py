@@ -21,7 +21,7 @@ import logging
 import re
 import shutil
 import subprocess
-
+from dataclasses import field
 from typing import Callable, Optional
 
 from .common import (
@@ -34,7 +34,6 @@ from .common import (
     UPSTREAMABLE_PATH,
     wpt_branch_name_from_servo_pr_number,
 )
-
 from .github import GithubRepository, PullRequest
 from .step import (
     AsyncValue,
@@ -58,6 +57,8 @@ class LocalGitRepo:
         self.git_path = shutil.which("git")
 
     def run_without_encoding(self, *args, env: dict = {}):
+        if self.git_path is None:
+            raise RuntimeError("Git executable not found in PATH")
         command_line = [self.git_path] + list(args)
         logging.info("  → Execution (cwd='%s'): %s", self.path, " ".join(command_line))
 
@@ -141,6 +142,12 @@ class WPTSync:
     github_email: str
     github_name: str
     suppress_force_push: bool = False
+
+    servo: GithubRepository = field(init=False)
+    wpt: GithubRepository = field(init=False)
+    downstream_wpt: GithubRepository = field(init=False)
+    local_servo_repo: LocalGitRepo = field(init=False)
+    local_wpt_repo: LocalGitRepo = field(init=False)
 
     def __post_init__(self):
         self.servo = GithubRepository(self, self.servo_repo, "main")
@@ -258,10 +265,4 @@ class WPTSync:
             # Since the upstreamable changes have now been merged locally, merge the
             # corresponding upstream PR.
             run.add_step(MergePRStep(run.upstream_pr.value(), ["do not merge yet"]))
-        else:
-            # If a PR with upstreamable changes is closed without being merged, we
-            # don't want to merge the changes upstream either.
-            run.add_step(ChangePRStep(run.upstream_pr.value(), "closed"))
 
-        # Always clean up our remote branch.
-        run.add_step(RemoveBranchForPRStep(pull_data))

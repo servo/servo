@@ -22,11 +22,11 @@ CERTS_PATH = os.path.join(WPT_TOOLS_PATH, "certs")
 
 sys.path.insert(0, WPT_TOOLS_PATH)
 import localpaths  # noqa: F401,E402
-import wptrunner.wptcommandline  # noqa: E402
+from wptrunner.wptrunner import wptcommandline  # noqa: E402
 
 
 def create_parser():
-    parser = wptrunner.wptcommandline.create_parser()
+    parser = wptcommandline.create_parser()
     parser.add_argument(
         "--rr-chaos", default=False, action="store_true", help="Run under chaos mode in rr until a failure is captured"
     )

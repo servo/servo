@@ -796,7 +796,7 @@ def check_that_manifests_exist() -> Iterator[Tuple[str, int, str]]:
 
 
 def check_that_manifests_are_clean() -> Iterator[Tuple[str, int, str]]:
-    from tools.wptrunner.wptrunner import wptlogging
+    from wptrunner.wptrunner import wptlogging
 
     print("\r ➤  Checking WPT manifests for cleanliness...")
     output_stream = io.StringIO("")
@@ -809,7 +809,7 @@ def check_that_manifests_are_clean() -> Iterator[Tuple[str, int, str]]:
 
 
 def lint_wpt_test_files() -> Iterator[Tuple[str, int, str]]:
-    from tools.lint import lint
+    from lint import lint
 
     # Override the logging function so that we can collect errors from
     # the lint script, which doesn't allow configuration of the output.
