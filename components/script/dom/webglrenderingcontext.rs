@@ -29,7 +29,6 @@ use js::typedarray::{
     ArrayBufferView, CreateWith, Float32, Float32Array, Int32, Int32Array, TypedArray,
     TypedArrayElementCreator, Uint32Array,
 };
-use net_traits::image_cache::ImageResponse;
 use pixels::{self, PixelFormat, Snapshot, SnapshotPixelFormat};
 use serde::{Deserialize, Serialize};
 use servo_config::pref;
@@ -55,9 +54,8 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, DomObject, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomOnceCell, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::element::cors_setting_for_element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
-use crate::dom::htmlcanvaselement::{LayoutCanvasRenderingContextHelpers, utils as canvas_utils};
+use crate::dom::htmlcanvaselement::LayoutCanvasRenderingContextHelpers;
 use crate::dom::node::{Node, NodeDamage, NodeTraits};
 #[cfg(feature = "webxr")]
 use crate::dom::promise::Promise;
@@ -652,50 +650,30 @@ impl WebGLRenderingContext {
                     return Err(Error::Security);
                 }
 
-                let img_url = match image.get_url() {
-                    Some(url) => url,
-                    None => return Ok(None),
+                // Vector images are not currently supported here and there are
+                // some open questions in the specification about how to handle them:
+                // See https://github.com/KhronosGroup/WebGL/issues/1503
+                let Some(snapshot) = image.get_raster_image_data() else {
+                    return Ok(None);
                 };
 
-                let window = match self.canvas {
-                    HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
-                        canvas.owner_window()
-                    },
-                    // This is marked as unreachable as we should have returned already
-                    HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => unreachable!(),
-                };
-                let cors_setting = cors_setting_for_element(image.upcast());
-
-                let img = match canvas_utils::request_image_from_cache(
-                    &window,
-                    img_url,
-                    cors_setting,
-                ) {
-                    ImageResponse::Loaded(image, _) => {
-                        match image.as_raster_image() {
-                            Some(image) => image,
-                            None => {
-                                // Vector images are not currently supported here and there are some open questions
-                                // in the specification about how to handle them:
-                                // See https://github.com/KhronosGroup/WebGL/issues/1503.
-                                warn!(
-                                    "Vector images as are not yet supported as WebGL texture source"
-                                );
-                                return Ok(None);
-                            },
-                        }
-                    },
-                    ImageResponse::PlaceholderLoaded(_, _) |
-                    ImageResponse::None |
-                    ImageResponse::MetadataLoaded(_) => return Ok(None),
+                let snapshot = snapshot.as_ipc();
+                let size = snapshot.size().cast();
+                let format: PixelFormat = match snapshot.format() {
+                    SnapshotPixelFormat::RGBA => PixelFormat::RGBA8,
+                    SnapshotPixelFormat::BGRA => PixelFormat::BGRA8,
                 };
 
-                let size = Size2D::new(img.metadata.width, img.metadata.height);
-                let data = IpcSharedMemory::from_bytes(img.first_frame().bytes);
+                let (alpha_treatment, y_axis_treatment) =
+                    self.get_current_unpack_state(snapshot.alpha_mode().is_premultiplied());
 
-                let (alpha_treatment, y_axis_treatment) = self.get_current_unpack_state(false);
-
-                TexPixels::new(data, size, img.format, alpha_treatment, y_axis_treatment)
+                TexPixels::new(
+                    snapshot.to_ipc_shared_memory(),
+                    size,
+                    format,
+                    alpha_treatment,
+                    y_axis_treatment,
+                )
             },
             // TODO(emilio): Getting canvas data is implemented in CanvasRenderingContext2D,
             // but we need to refactor it moving it to `HTMLCanvasElement` and support
