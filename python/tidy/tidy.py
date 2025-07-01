@@ -989,7 +989,9 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
 
     number_of_core = multiprocessing.cpu_count()
 
-    with concurrent.futures.ProcessPoolExecutor(max_workers=number_of_core) as executor:
+    with concurrent.futures.ProcessPoolExecutor(
+        max_workers=number_of_core, mp_context=multiprocessing.get_context("fork")
+    ) as executor:
         futures = {
             executor.submit(file_checking, filename, checking_functions, line_checking_functions): filename
             for filename in files_to_check
