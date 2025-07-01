@@ -1,8 +1,11 @@
 search-path = [
     "python",
     "tests/wpt/tests",
+    "tests/wpt/tests/tools",
+    "tests/wpt/tests/tools/wptrunner",
+    "tests/wpt/tests/tools/wptserve",
 ]
-project-includes = ["python/tidy/**/*.py"]
+project-includes = ["python/tidy/**/*.py", "python/wpt/**/*.py"]
 project-excludes = [
     "**/venv/**",
     "**/.venv/**",

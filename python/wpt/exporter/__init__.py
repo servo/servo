@@ -265,3 +265,10 @@ class WPTSync:
             # Since the upstreamable changes have now been merged locally, merge the
             # corresponding upstream PR.
             run.add_step(MergePRStep(run.upstream_pr.value(), ["do not merge yet"]))
+        else:
+            # If a PR with upstreamable changes is closed without being merged, we
+            # don't want to merge the changes upstream either.
+            run.add_step(ChangePRStep(run.upstream_pr.value(), "closed"))
+
+        # Always clean up our remote branch.
+        run.add_step(RemoveBranchForPRStep(pull_data))

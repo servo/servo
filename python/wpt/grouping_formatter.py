@@ -181,7 +181,7 @@ class ServoHandler(mozlog.reader.LogHandler):
         self.number_of_tests = sum(len(tests) for tests in itervalues(data["tests"]))
         self.suite_start_time = data["time"]
 
-    def suite_end(self, data):
+    def suite_end(self, data) -> Optional[str]:
         pass
 
     def test_start(self, data) -> Optional[str]:
@@ -193,7 +193,7 @@ class ServoHandler(mozlog.reader.LogHandler):
             return True
         return "known_intermittent" in data and data["status"] in data["known_intermittent"]
 
-    def test_end(self, data: dict) -> Optional[UnexpectedResult]:
+    def test_end(self, data: dict) -> Union[UnexpectedResult, str, None]:
         self.completed_tests += 1
         test_status = data["status"]
         test_path = data["test"]
@@ -276,13 +276,19 @@ class ServoHandler(mozlog.reader.LogHandler):
         if "test" in data:
             self.test_output[data["test"]] += data["data"] + "\n"
 
-    def log(self, _):
+    def log(self, data) -> str | None:
         pass
 
 
 class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
     """Formatter designed to produce unexpected test results grouped
     together in a readable format."""
+
+    current_display: str
+    interactive: bool
+    number_skipped: int
+    move_up: str
+    clear_eol: str
 
     def __init__(self):
         ServoHandler.__init__(self)
@@ -304,12 +310,12 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
             except Exception as exception:
                 sys.stderr.write("GroupingFormatter: Could not get terminal control characters: %s\n" % exception)
 
-    def text_to_erase_display(self):
+    def text_to_erase_display(self) -> str:
         if not self.interactive or not self.current_display:
             return ""
         return (self.move_up + self.clear_eol) * self.current_display.count("\n")
 
-    def generate_output(self, text=None, new_display=None):
+    def generate_output(self, text=None, new_display=None) -> str | None:
         if not self.interactive:
             return text
 
@@ -399,7 +405,7 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
             return "  \u2022 %i tests %s\n" % (len(tests), text)
 
         output += text_for_unexpected_list("crashed unexpectedly", "CRASH")
-        output += text_for_unexpected_list("had errors unexpectedly", "ERROR")
+        output += text_for_unexpected_list("ha -> str | Noned errors unexpectedly", "ERROR")
         output += text_for_unexpected_list("failed unexpectedly", "FAIL")
         output += text_for_unexpected_list("precondition failed unexpectedly", "PRECONDITION_FAILED")
         output += text_for_unexpected_list("timed out unexpectedly", "TIMEOUT")

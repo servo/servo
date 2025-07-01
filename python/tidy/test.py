@@ -9,11 +9,10 @@
 
 import logging
 import os
-from typing import Iterable, Tuple
 import unittest
+from typing import Iterable, Tuple
 
 from . import tidy
-
 
 BASE_PATH = "python/tidy/tests/"
 
@@ -33,8 +32,8 @@ class CheckTidiness(unittest.TestCase):
 
     def test_tidy_config(self):
         errors = tidy.check_config_file(os.path.join(BASE_PATH, "servo-tidy.toml"), print_text=False)
-        self.assertEqual("invalid config key 'key-outside'", next(errors)[2])
-        self.assertEqual("invalid config key 'wrong-key'", next(errors)[2])
+        self.assertEqual("invalid config key 'key_outside'", next(errors)[2])
+        self.assertEqual("invalid config key 'wrong_key'", next(errors)[2])
         self.assertEqual("invalid config table [wrong]", next(errors)[2])
         self.assertEqual("ignored file './fake/file.html' doesn't exist", next(errors)[2])
         self.assertEqual("ignored directory './fake/dir' doesn't exist", next(errors)[2])
