@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::convert::{TryFrom, TryInto};
 use std::iter::repeat;
 
 use atomic_refcell::AtomicRef;
@@ -769,11 +768,10 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                     let new_row_group_index = self.builder.table.row_groups.len() - 1;
                     self.current_row_group_index = Some(new_row_group_index);
 
-                    NonReplacedContents::try_from(contents).unwrap().traverse(
-                        self.context,
-                        info,
-                        self,
-                    );
+                    let Contents::NonReplaced(non_replaced_contents) = contents else {
+                        unreachable!("Replaced should not have a LayoutInternal display type.");
+                    };
+                    non_replaced_contents.traverse(self.context, info, self);
                     self.finish_anonymous_row_if_needed();
 
                     self.current_row_group_index = None;
@@ -787,14 +785,13 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                     self.finish_anonymous_row_if_needed();
 
                     let context = self.context;
-
                     let mut row_builder =
                         TableRowBuilder::new(self, info, self.current_propagated_data);
-                    NonReplacedContents::try_from(contents).unwrap().traverse(
-                        context,
-                        info,
-                        &mut row_builder,
-                    );
+
+                    let Contents::NonReplaced(non_replaced_contents) = contents else {
+                        unreachable!("Replaced should not have a LayoutInternal display type.");
+                    };
+                    non_replaced_contents.traverse(context, info, &mut row_builder);
                     row_builder.finish();
 
                     let row = ArcRefCell::new(TableTrack {
@@ -822,11 +819,10 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                         columns: Vec::new(),
                     };
 
-                    NonReplacedContents::try_from(contents).unwrap().traverse(
-                        self.context,
-                        info,
-                        &mut column_group_builder,
-                    );
+                    let Contents::NonReplaced(non_replaced_contents) = contents else {
+                        unreachable!("Replaced should not have a LayoutInternal display type.");
+                    };
+                    non_replaced_contents.traverse(self.context, info, &mut column_group_builder);
 
                     let first_column = self.builder.table.columns.len();
                     if column_group_builder.columns.is_empty() {
@@ -855,20 +851,17 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                     )));
                 },
                 DisplayLayoutInternal::TableCaption => {
-                    let contents = match contents.try_into() {
-                        Ok(non_replaced_contents) => {
-                            IndependentNonReplacedContents::Flow(BlockFormattingContext::construct(
-                                self.context,
-                                info,
-                                non_replaced_contents,
-                                self.current_propagated_data,
-                                false, /* is_list_item */
-                            ))
-                        },
-                        Err(_replaced) => {
-                            unreachable!("Replaced should not have a LayoutInternal display type.");
-                        },
+                    let Contents::NonReplaced(non_replaced_contents) = contents else {
+                        unreachable!("Replaced should not have a LayoutInternal display type.");
                     };
+                    let contents =
+                        IndependentNonReplacedContents::Flow(BlockFormattingContext::construct(
+                            self.context,
+                            info,
+                            non_replaced_contents,
+                            self.current_propagated_data,
+                            false, /* is_list_item */
+                        ));
 
                     let caption = ArcRefCell::new(TableCaption {
                         context: IndependentFormattingContext {
@@ -1016,20 +1009,17 @@ impl<'dom> TraversalHandler<'dom> for TableRowBuilder<'_, '_, 'dom, '_> {
 
                     let propagated_data =
                         self.propagated_data.disallowing_percentage_table_columns();
-                    let contents = match contents.try_into() {
-                        Ok(non_replaced_contents) => {
-                            BlockFormattingContext::construct(
-                                self.table_traversal.context,
-                                info,
-                                non_replaced_contents,
-                                propagated_data,
-                                false, /* is_list_item */
-                            )
-                        },
-                        Err(_replaced) => {
-                            unreachable!("Replaced should not have a LayoutInternal display type.");
-                        },
+                    let Contents::NonReplaced(non_replaced_contents) = contents else {
+                        unreachable!("Replaced should not have a LayoutInternal display type.");
                     };
+
+                    let contents = BlockFormattingContext::construct(
+                        self.table_traversal.context,
+                        info,
+                        non_replaced_contents,
+                        propagated_data,
+                        false, /* is_list_item */
+                    );
 
                     self.finish_current_anonymous_cell_if_needed();
 
