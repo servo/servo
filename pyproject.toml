@@ -5,9 +5,6 @@ description = "Servo is a prototype web browser engine written in the Rust langu
 readme = "README.md"
 dependencies = []
 
-[tool.uv]
-native-tls = true
-
 [tool.ruff]
 line-length = 120
 extend-exclude = [
