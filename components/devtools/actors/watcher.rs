@@ -79,7 +79,7 @@ impl SessionContext {
                 ("local-storage", false),
                 ("session-storage", false),
                 ("platform-message", false),
-                ("network-event", false),
+                ("network-event", true),
                 ("network-event-stacktrace", false),
                 ("reflow", false),
                 ("stylesheet", false),
@@ -322,6 +322,7 @@ impl Actor for WatcherActor {
                             }
                         },
                         "console-message" | "error-message" => {},
+                        "network-event" => {},
                         _ => warn!("resource {} not handled yet", resource),
                     }
 
@@ -382,6 +383,12 @@ impl Actor for WatcherActor {
             },
             _ => ActorMessageStatus::Ignored,
         })
+    }
+}
+
+impl ResourceAvailable for WatcherActor {
+    fn actor_name(&self) -> String {
+        self.name.clone()
     }
 }
 

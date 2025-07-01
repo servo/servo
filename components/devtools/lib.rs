@@ -498,19 +498,37 @@ impl DevtoolsInstance {
         request_id: String,
         network_event: NetworkEvent,
     ) {
-        let netevent_actor_name = self.find_network_event_actor(request_id);
+        let browsing_context_id = match &network_event {
+            NetworkEvent::HttpRequest(req) => Some(req.browsing_context_id),
+            NetworkEvent::HttpResponse(resp) => Some(resp.browsing_context_id),
+        };
+
+        let watcher_name = browsing_context_id
+            .and_then(|id| self.browsing_contexts.get(&id))
+            .map(|actor_name| {
+                self.actors
+                    .lock()
+                    .unwrap()
+                    .find::<BrowsingContextActor>(actor_name)
+                    .watcher
+                    .clone()
+            });
+
+        let netevent_actor_name =
+            self.find_network_event_actor(request_id, watcher_name.clone().unwrap_or_default());
 
         handle_network_event(
             Arc::clone(&self.actors),
             netevent_actor_name,
             connections,
             network_event,
+            watcher_name.unwrap_or_default(),
         )
     }
 
     // Find the name of NetworkEventActor corresponding to request_id
     // Create a new one if it does not exist, add it to the actor_requests hashmap
-    fn find_network_event_actor(&mut self, request_id: String) -> String {
+    fn find_network_event_actor(&mut self, request_id: String, watcher_name: String) -> String {
         let mut actors = self.actors.lock().unwrap();
         match self.actor_requests.entry(request_id) {
             Occupied(name) => {
@@ -520,7 +538,7 @@ impl DevtoolsInstance {
             Vacant(entry) => {
                 let resource_id = self.next_resource_id;
                 self.next_resource_id += 1;
-                let actor_name = actors.new_name("netevent");
+                let actor_name = watcher_name;
                 let actor = NetworkEventActor::new(actor_name.clone(), resource_id);
                 entry.insert(actor_name.clone());
                 actors.register(Box::new(actor));

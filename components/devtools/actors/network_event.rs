@@ -42,6 +42,7 @@ pub struct NetworkEventActor {
     pub total_time: Duration,
     pub security_state: String,
     pub event_timing: Option<Timings>,
+    pub watcher_name: String,
 }
 
 #[derive(Clone, Serialize)]
@@ -342,12 +343,6 @@ impl Actor for NetworkEventActor {
     }
 }
 
-impl ResourceAvailable for NetworkEventActor {
-    fn actor_name(&self) -> String {
-        self.name.clone()
-    }
-}
-
 impl NetworkEventActor {
     pub fn new(name: String, resource_id: u64) -> NetworkEventActor {
         NetworkEventActor {
@@ -374,6 +369,7 @@ impl NetworkEventActor {
             total_time: Duration::ZERO,
             security_state: "insecure".to_owned(),
             event_timing: None,
+            watcher_name: String::new(),
         }
     }
 

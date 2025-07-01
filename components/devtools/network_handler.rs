@@ -10,6 +10,7 @@ use serde::Serialize;
 
 use crate::actor::ActorRegistry;
 use crate::actors::network_event::NetworkEventActor;
+use crate::actors::watcher::WatcherActor;
 use crate::resource::{ResourceArrayType, ResourceAvailable};
 
 #[derive(Clone, Serialize)]
@@ -25,6 +26,7 @@ pub(crate) fn handle_network_event(
     netevent_actor_name: String,
     mut connections: Vec<TcpStream>,
     network_event: NetworkEvent,
+    watcher_name: String,
 ) {
     let mut actors = actors.lock().unwrap();
     match network_event {
@@ -35,9 +37,10 @@ pub(crate) fn handle_network_event(
             let event_actor = actor.event_actor();
             let resource_updates = actor.resource_updates();
 
+            let watcher_actor = actors.find::<WatcherActor>(&watcher_name);
+
             for stream in &mut connections {
-                // Notify that a new network event has started
-                actor.resource_array(
+                watcher_actor.resource_array(
                     event_actor.clone(),
                     "network-event".to_string(),
                     ResourceArrayType::Available,
@@ -45,22 +48,40 @@ pub(crate) fn handle_network_event(
                 );
 
                 // Also push initial resource update (request headers, cookies)
-                actor.resource_array(
+                watcher_actor.resource_array(
                     resource_updates.clone(),
                     "network-event".to_string(),
                     ResourceArrayType::Updated,
                     stream,
                 );
             }
+            // for stream in &mut connections {
+            //     // Notify that a new network event has started
+            //     actor.resource_array(
+            //         event_actor.clone(),
+            //         "network-event".to_string(),
+            //         ResourceArrayType::Available,
+            //         stream,
+            //     );
+
+            //     // Also push initial resource update (request headers, cookies)
+            //     actor.resource_array(
+            //         resource_updates.clone(),
+            //         "network-event".to_string(),
+            //         ResourceArrayType::Updated,
+            //         stream,
+            //     );
+            // }
         },
         NetworkEvent::HttpResponse(httpresponse) => {
             let actor = actors.find_mut::<NetworkEventActor>(&netevent_actor_name);
             // Store the response information in the actor
             actor.add_response(httpresponse);
             let resource = actor.resource_updates();
+            let watcher_actor = actors.find::<WatcherActor>(&watcher_name);
 
             for stream in &mut connections {
-                actor.resource_array(
+                watcher_actor.resource_array(
                     resource.clone(),
                     "network-event".to_string(),
                     ResourceArrayType::Updated,
