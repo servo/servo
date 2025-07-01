@@ -137,28 +137,41 @@ impl StorageManager {
     fn select_data(
         &self,
         storage_type: StorageType,
-    ) -> &HashMap<String, (usize, BTreeMap<String, String>)> {
+        origin: &str,
+    ) -> Option<&(usize, BTreeMap<String, String>)> {
         match storage_type {
-            StorageType::Session => &self.session_data,
-            StorageType::Local => &self.local_data,
+            StorageType::Session => self.session_data.get(origin),
+            StorageType::Local => self.local_data.get(origin),
         }
     }
 
     fn select_data_mut(
         &mut self,
         storage_type: StorageType,
-    ) -> &mut HashMap<String, (usize, BTreeMap<String, String>)> {
+        origin: &str,
+    ) -> Option<&mut (usize, BTreeMap<String, String>)> {
         match storage_type {
-            StorageType::Session => &mut self.session_data,
-            StorageType::Local => &mut self.local_data,
+            StorageType::Session => self.session_data.get_mut(origin),
+            StorageType::Local => self.local_data.get_mut(origin),
+        }
+    }
+
+    fn ensure_data_mut(
+        &mut self,
+        storage_type: StorageType,
+        origin: &str,
+    ) -> &mut (usize, BTreeMap<String, String>) {
+        match storage_type {
+            StorageType::Session => self.session_data.entry(origin.to_string()).or_default(),
+            StorageType::Local => self.local_data.entry(origin.to_string()).or_default(),
         }
     }
 
     fn length(&self, sender: IpcSender<usize>, storage_type: StorageType, url: ServoUrl) {
         let origin = self.origin_as_string(url);
-        let data = self.select_data(storage_type);
+        let data = self.select_data(storage_type, &origin);
         sender
-            .send(data.get(&origin).map_or(0, |(_, entry)| entry.len()))
+            .send(data.map_or(0, |(_, entry)| entry.len()))
             .unwrap();
     }
 
@@ -170,9 +183,8 @@ impl StorageManager {
         index: u32,
     ) {
         let origin = self.origin_as_string(url);
-        let data = self.select_data(storage_type);
+        let data = self.select_data(storage_type, &origin);
         let key = data
-            .get(&origin)
             .and_then(|(_, entry)| entry.keys().nth(index as usize))
             .cloned();
         sender.send(key).unwrap();
@@ -180,10 +192,8 @@ impl StorageManager {
 
     fn keys(&self, sender: IpcSender<Vec<String>>, storage_type: StorageType, url: ServoUrl) {
         let origin = self.origin_as_string(url);
-        let data = self.select_data(storage_type);
-        let keys = data
-            .get(&origin)
-            .map_or(vec![], |(_, entry)| entry.keys().cloned().collect());
+        let data = self.select_data(storage_type, &origin);
+        let keys = data.map_or(vec![], |(_, entry)| entry.keys().cloned().collect());
 
         sender.send(keys).unwrap();
     }
@@ -203,49 +213,39 @@ impl StorageManager {
         let origin = self.origin_as_string(url);
 
         let (this_storage_size, other_storage_size) = {
-            let local_data = self.select_data(StorageType::Local);
-            let session_data = self.select_data(StorageType::Session);
-            let local_data_size = local_data.get(&origin).map_or(0, |&(total, _)| total);
-            let session_data_size = session_data.get(&origin).map_or(0, |&(total, _)| total);
+            let local_data = self.select_data(StorageType::Local, &origin);
+            let session_data = self.select_data(StorageType::Session, &origin);
+            let local_data_size = local_data.map_or(0, |&(total, _)| total);
+            let session_data_size = session_data.map_or(0, |&(total, _)| total);
             match storage_type {
                 StorageType::Local => (local_data_size, session_data_size),
                 StorageType::Session => (session_data_size, local_data_size),
             }
         };
 
-        let data = self.select_data_mut(storage_type);
-        if !data.contains_key(&origin) {
-            data.insert(origin.clone(), (0, BTreeMap::new()));
+        let &mut (ref mut total, ref mut entry) = self.ensure_data_mut(storage_type, &origin);
+
+        let mut new_total_size = this_storage_size + value.len();
+        if let Some(old_value) = entry.get(&name) {
+            new_total_size -= old_value.len();
+        } else {
+            new_total_size += name.len();
         }
 
-        let message = data
-            .get_mut(&origin)
-            .map(|&mut (ref mut total, ref mut entry)| {
-                let mut new_total_size = this_storage_size + value.len();
-                if let Some(old_value) = entry.get(&name) {
-                    new_total_size -= old_value.len();
-                } else {
-                    new_total_size += name.len();
-                }
-
-                if (new_total_size + other_storage_size) > QUOTA_SIZE_LIMIT {
-                    return Err(());
-                }
-
-                let message =
-                    entry
-                        .insert(name.clone(), value.clone())
-                        .map_or(Ok((true, None)), |old| {
-                            if old == value {
-                                Ok((false, None))
-                            } else {
-                                Ok((true, Some(old)))
-                            }
-                        });
-                *total = new_total_size;
-                message
-            })
-            .unwrap();
+        let message = if (new_total_size + other_storage_size) > QUOTA_SIZE_LIMIT {
+            Err(())
+        } else {
+            *total = new_total_size;
+            entry
+                .insert(name.clone(), value.clone())
+                .map_or(Ok((true, None)), |old| {
+                    if old == value {
+                        Ok((false, None))
+                    } else {
+                        Ok((true, Some(old)))
+                    }
+                })
+        };
         sender.send(message).unwrap();
     }
 
@@ -257,13 +257,9 @@ impl StorageManager {
         name: String,
     ) {
         let origin = self.origin_as_string(url);
-        let data = self.select_data(storage_type);
+        let data = self.select_data(storage_type, &origin);
         sender
-            .send(
-                data.get(&origin)
-                    .and_then(|(_, entry)| entry.get(&name))
-                    .cloned(),
-            )
+            .send(data.and_then(|(_, entry)| entry.get(&name)).cloned())
             .unwrap();
     }
 
@@ -276,33 +272,28 @@ impl StorageManager {
         name: String,
     ) {
         let origin = self.origin_as_string(url);
-        let data = self.select_data_mut(storage_type);
-        let old_value = data
-            .get_mut(&origin)
-            .and_then(|&mut (ref mut total, ref mut entry)| {
-                entry.remove(&name).inspect(|old| {
-                    *total -= name.len() + old.len();
-                })
-            });
+        let data = self.select_data_mut(storage_type, &origin);
+        let old_value = data.and_then(|&mut (ref mut total, ref mut entry)| {
+            entry.remove(&name).inspect(|old| {
+                *total -= name.len() + old.len();
+            })
+        });
         sender.send(old_value).unwrap();
     }
 
     fn clear(&mut self, sender: IpcSender<bool>, storage_type: StorageType, url: ServoUrl) {
         let origin = self.origin_as_string(url);
-        let data = self.select_data_mut(storage_type);
+        let data = self.select_data_mut(storage_type, &origin);
         sender
-            .send(
-                data.get_mut(&origin)
-                    .is_some_and(|&mut (ref mut total, ref mut entry)| {
-                        if !entry.is_empty() {
-                            entry.clear();
-                            *total = 0;
-                            true
-                        } else {
-                            false
-                        }
-                    }),
-            )
+            .send(data.is_some_and(|&mut (ref mut total, ref mut entry)| {
+                if !entry.is_empty() {
+                    entry.clear();
+                    *total = 0;
+                    true
+                } else {
+                    false
+                }
+            }))
             .unwrap();
     }
 
