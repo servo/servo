@@ -265,9 +265,9 @@ checksum = "84521a3cf562bc62942e294181d9eef17eb38ceb8c68677bc49f144e4c3d4f8d"
 
 [[package]]
 name = "android_logger"
-version = "0.15.0"
+version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6f39be698127218cca460cb624878c9aa4e2b47dba3b277963d2bf00bad263b"
+checksum = "dbb4e440d04be07da1f1bf44fb4495ebd58669372fe0cffa6e48595ac5bd88a3"
 dependencies = [
  "android_log-sys",
  "env_filter",
