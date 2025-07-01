@@ -239,6 +239,9 @@ class AndroidTarget(CrossBuildTarget):
 
         env["LIBCLANG_PATH"] = path.join(llvm_toolchain, "lib")
         env["CLANG_PATH"] = to_ndk_bin("clang")
+        env["BINDGEN_EXTRA_CLANG_ARGS"] = (
+            f"--target={android_toolchain_name} --sysroot={path.join(llvm_toolchain, 'sysroot')}"
+        )
 
         # A cheat-sheet for some of the build errors caused by getting the search path wrong...
         #
