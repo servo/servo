@@ -210,7 +210,7 @@ impl VirtualMethods for HTMLTableCellElement {
                     // > the range [0, 65534], and its default value is 1.
                     // Note that rowspan = 0 is not supported in quirks mode.
                     let document = self.upcast::<Node>().owner_doc();
-                    if document.quirks_mode() != QuirksMode::NoQuirks {
+                    if document.quirks_mode() == QuirksMode::Quirks {
                         *value = (*value).clamp(1, 65534);
                     } else {
                         *value = (*value).clamp(0, 65534);
