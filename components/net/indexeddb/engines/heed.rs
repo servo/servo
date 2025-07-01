@@ -8,7 +8,9 @@ use std::sync::{Arc, RwLock};
 use heed::types::*;
 use heed::{Database, Env, EnvOpenOptions};
 use log::warn;
-use net_traits::indexeddb_thread::{AsyncOperation, IndexedDBTxnMode};
+use net_traits::indexeddb_thread::{
+    AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, IndexedDBTxnMode,
+};
 use tokio::sync::oneshot;
 
 use super::{KvsEngine, KvsTransaction, SanitizedName};
@@ -130,7 +132,7 @@ impl KvsEngine for HeedEngine {
                 let rtxn = env.read_txn().expect("Could not create idb store reader");
                 for request in transaction.requests {
                     match request.operation {
-                        AsyncOperation::GetItem(key) => {
+                        AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem(key)) => {
                             let key: Vec<u8> = bincode::serialize(&key).unwrap();
                             let stores = stores
                                 .read()
@@ -146,7 +148,17 @@ impl KvsEngine for HeedEngine {
                                 let _ = request.sender.send(None);
                             }
                         },
-                        _ => {
+                        AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Count(key)) => {
+                            let _key: Vec<u8> = bincode::serialize(&key).unwrap();
+                            let stores = stores
+                                .read()
+                                .expect("Could not acquire read lock on stores");
+                            let _store = stores
+                                .get(&request.store_name)
+                                .expect("Could not get store");
+                            // FIXME:(arihant2math) Return count with sender
+                        },
+                        AsyncOperation::ReadWrite(..) => {
                             // We cannot reach this, as checks are made earlier so that
                             // no modifying requests are executed on readonly transactions
                             unreachable!(
@@ -169,7 +181,11 @@ impl KvsEngine for HeedEngine {
                 let mut wtxn = env.write_txn().expect("Could not create idb store writer");
                 for request in transaction.requests {
                     match request.operation {
-                        AsyncOperation::PutItem(key, value, overwrite) => {
+                        AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem(
+                            key,
+                            value,
+                            overwrite,
+                        )) => {
                             let key: Vec<u8> = bincode::serialize(&key).unwrap();
                             let stores = stores
                                 .write()
@@ -194,7 +210,7 @@ impl KvsEngine for HeedEngine {
                                 let _ = request.sender.send(None);
                             }
                         },
-                        AsyncOperation::GetItem(key) => {
+                        AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem(key)) => {
                             let key: Vec<u8> = bincode::serialize(&key).unwrap();
                             let stores = stores
                                 .read()
@@ -210,7 +226,7 @@ impl KvsEngine for HeedEngine {
                                 let _ = request.sender.send(None);
                             }
                         },
-                        AsyncOperation::RemoveItem(key) => {
+                        AsyncOperation::ReadWrite(AsyncReadWriteOperation::RemoveItem(key)) => {
                             let key: Vec<u8> = bincode::serialize(&key).unwrap();
                             let stores = stores
                                 .write()
@@ -221,7 +237,7 @@ impl KvsEngine for HeedEngine {
                             let result = store.inner.delete(&mut wtxn, &key).ok().and(Some(key));
                             let _ = request.sender.send(result);
                         },
-                        AsyncOperation::Count(key) => {
+                        AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Count(key)) => {
                             let _key: Vec<u8> = bincode::serialize(&key).unwrap();
                             let stores = stores
                                 .read()
