@@ -52,7 +52,7 @@ type OriginEntry = (usize, BTreeMap<String, String>);
 
 struct StorageManager {
     port: IpcReceiver<StorageThreadMsg>,
-    session_data: HashMap<String, OriginEntry>,
+    session_data: HashMap<WebViewId, HashMap<String, OriginEntry>>,
     local_data: HashMap<String, OriginEntry>,
     config_dir: Option<PathBuf>,
 }
@@ -140,11 +140,14 @@ impl StorageManager {
     fn select_data(
         &self,
         storage_type: StorageType,
-        _webview_id: WebViewId,
+        webview_id: WebViewId,
         origin: &str,
     ) -> Option<&OriginEntry> {
         match storage_type {
-            StorageType::Session => self.session_data.get(origin),
+            StorageType::Session => self
+                .session_data
+                .get(&webview_id)
+                .and_then(|origin_map| origin_map.get(origin)),
             StorageType::Local => self.local_data.get(origin),
         }
     }
@@ -152,11 +155,14 @@ impl StorageManager {
     fn select_data_mut(
         &mut self,
         storage_type: StorageType,
-        _webview_id: WebViewId,
+        webview_id: WebViewId,
         origin: &str,
     ) -> Option<&mut OriginEntry> {
         match storage_type {
-            StorageType::Session => self.session_data.get_mut(origin),
+            StorageType::Session => self
+                .session_data
+                .get_mut(&webview_id)
+                .and_then(|origin_map| origin_map.get_mut(origin)),
             StorageType::Local => self.local_data.get_mut(origin),
         }
     }
@@ -164,11 +170,16 @@ impl StorageManager {
     fn ensure_data_mut(
         &mut self,
         storage_type: StorageType,
-        _webview_id: WebViewId,
+        webview_id: WebViewId,
         origin: &str,
     ) -> &mut OriginEntry {
         match storage_type {
-            StorageType::Session => self.session_data.entry(origin.to_string()).or_default(),
+            StorageType::Session => self
+                .session_data
+                .entry(webview_id)
+                .or_default()
+                .entry(origin.to_string())
+                .or_default(),
             StorageType::Local => self.local_data.entry(origin.to_string()).or_default(),
         }
     }
