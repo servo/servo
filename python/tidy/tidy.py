@@ -39,9 +39,6 @@ CARGO_DENY_CONFIG_FILE = os.path.join(TOPDIR, "deny.toml")
 
 ERROR_RAW_URL_IN_RUSTDOC = "Found raw link in rustdoc. Please escape it with angle brackets or use a markdown link."
 
-sys.path.append(os.path.join(WPT_PATH, "tests"))
-sys.path.append(os.path.join(WPT_PATH, "tests", "tools", "wptrunner"))
-
 
 @dataclass
 class IgnoreConfig:
@@ -784,7 +781,7 @@ def check_that_manifests_exist() -> Iterator[Tuple[str, int, str]]:
 
 
 def check_that_manifests_are_clean() -> Iterator[Tuple[str, int, str]]:
-    from wptrunner import wptlogging
+    from tools.wptrunner.wptrunner import wptlogging
 
     print("\r ➤  Checking WPT manifests for cleanliness...")
     output_stream = io.StringIO("")
