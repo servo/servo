@@ -32,7 +32,9 @@ use js::jsval::{NullValue, PrivateValue, UndefinedValue};
 use js::rust::wrappers::{JS_TransplantObject, NewWindowProxy, SetWindowProxy};
 use js::rust::{Handle, MutableHandle, MutableHandleValue, get_object_class};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use net_traits::IpcSend;
 use net_traits::request::Referrer;
+use net_traits::storage_thread::StorageThreadMsg;
 use script_traits::NewLayoutInfo;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -334,8 +336,6 @@ impl WindowProxy {
             theme: window.theme(),
         };
         ScriptThread::process_attach_layout(new_layout_info, document.origin().clone());
-        // TODO: if noopener is false, copy the sessionStorage storage area of the creator origin.
-        // See step 14 of https://html.spec.whatwg.org/multipage/#creating-a-new-browsing-context
         let new_window_proxy = ScriptThread::find_document(response.new_pipeline_id)
             .and_then(|doc| doc.browsing_context())?;
         if name.to_lowercase() != "_blank" {
@@ -343,6 +343,26 @@ impl WindowProxy {
         }
         if noopener {
             new_window_proxy.disown();
+        } else {
+            // After creating a new auxiliary browsing context and document,
+            // the session storage is copied over.
+            // See https://html.spec.whatwg.org/multipage/#the-sessionstorage-attribute
+
+            let (sender, receiver) = ipc::channel().unwrap();
+
+            let msg = StorageThreadMsg::Clone {
+                sender,
+                src: window.window_proxy().webview_id(),
+                dest: response.new_webview_id,
+            };
+
+            document
+                .global()
+                .resource_threads()
+                .sender()
+                .send(msg)
+                .unwrap();
+            receiver.recv().unwrap();
         }
         Some(new_window_proxy)
     }

@@ -100,6 +100,14 @@ impl StorageManager {
                     self.clear(sender, storage_type, webview_id, url);
                     self.save_state()
                 },
+                StorageThreadMsg::Clone {
+                    sender,
+                    src: src_webview_id,
+                    dest: dest_webview_id,
+                } => {
+                    self.clone(src_webview_id, dest_webview_id);
+                    let _ = sender.send(());
+                },
                 StorageThreadMsg::CollectMemoryReport(sender) => {
                     let reports = self.collect_memory_reports();
                     sender.send(ProcessReports::new(reports));
@@ -335,6 +343,16 @@ impl StorageManager {
                 }
             }))
             .unwrap();
+    }
+
+    fn clone(&mut self, src_webview_id: WebViewId, dest_webview_id: WebViewId) {
+        let Some(src_origin_entries) = self.session_data.get(&src_webview_id) else {
+            return;
+        };
+
+        let dest_origin_entries = src_origin_entries.clone();
+        self.session_data
+            .insert(dest_webview_id, dest_origin_entries);
     }
 
     fn origin_as_string(&self, url: ServoUrl) -> String {

@@ -64,6 +64,14 @@ pub enum StorageThreadMsg {
     /// clears the associated storage data by removing all the key/value pairs
     Clear(IpcSender<bool>, StorageType, WebViewId, ServoUrl),
 
+    /// clones all storage data of the given top-level browsing context for a new browsing context.
+    /// should only be used for sessionStorage.
+    Clone {
+        sender: IpcSender<()>,
+        src: WebViewId,
+        dest: WebViewId,
+    },
+
     /// send a reply when done cleaning up thread resources and then shut it down
     Exit(IpcSender<()>),
 
