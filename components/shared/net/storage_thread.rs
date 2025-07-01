@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::id::WebViewId;
 use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
 use profile_traits::mem::ReportsChan;
@@ -18,31 +19,50 @@ pub enum StorageType {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum StorageThreadMsg {
     /// gets the number of key/value pairs present in the associated storage data
-    Length(IpcSender<usize>, StorageType, ServoUrl),
+    Length(IpcSender<usize>, StorageType, WebViewId, ServoUrl),
 
     /// gets the name of the key at the specified index in the associated storage data
-    Key(IpcSender<Option<String>>, StorageType, ServoUrl, u32),
+    Key(
+        IpcSender<Option<String>>,
+        StorageType,
+        WebViewId,
+        ServoUrl,
+        u32,
+    ),
 
     /// Gets the available keys in the associated storage data
-    Keys(IpcSender<Vec<String>>, StorageType, ServoUrl),
+    Keys(IpcSender<Vec<String>>, StorageType, WebViewId, ServoUrl),
 
     /// gets the value associated with the given key in the associated storage data
-    GetItem(IpcSender<Option<String>>, StorageType, ServoUrl, String),
+    GetItem(
+        IpcSender<Option<String>>,
+        StorageType,
+        WebViewId,
+        ServoUrl,
+        String,
+    ),
 
     /// sets the value of the given key in the associated storage data
     SetItem(
         IpcSender<Result<(bool, Option<String>), ()>>,
         StorageType,
+        WebViewId,
         ServoUrl,
         String,
         String,
     ),
 
     /// removes the key/value pair for the given key in the associated storage data
-    RemoveItem(IpcSender<Option<String>>, StorageType, ServoUrl, String),
+    RemoveItem(
+        IpcSender<Option<String>>,
+        StorageType,
+        WebViewId,
+        ServoUrl,
+        String,
+    ),
 
     /// clears the associated storage data by removing all the key/value pairs
-    Clear(IpcSender<bool>, StorageType, ServoUrl),
+    Clear(IpcSender<bool>, StorageType, WebViewId, ServoUrl),
 
     /// send a reply when done cleaning up thread resources and then shut it down
     Exit(IpcSender<()>),

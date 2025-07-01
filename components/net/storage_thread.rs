@@ -7,6 +7,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::path::PathBuf;
 use std::thread;
 
+use base::id::WebViewId;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use malloc_size_of::MallocSizeOf;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
@@ -73,28 +74,28 @@ impl StorageManager {
     fn start(&mut self) {
         loop {
             match self.port.recv().unwrap() {
-                StorageThreadMsg::Length(sender, storage_type, url) => {
-                    self.length(sender, storage_type, url)
+                StorageThreadMsg::Length(sender, storage_type, webview_id, url) => {
+                    self.length(sender, storage_type, webview_id, url)
                 },
-                StorageThreadMsg::Key(sender, storage_type, url, index) => {
-                    self.key(sender, storage_type, url, index)
+                StorageThreadMsg::Key(sender, storage_type, webview_id, url, index) => {
+                    self.key(sender, storage_type, webview_id, url, index)
                 },
-                StorageThreadMsg::Keys(sender, storage_type, url) => {
-                    self.keys(sender, storage_type, url)
+                StorageThreadMsg::Keys(sender, storage_type, webview_id, url) => {
+                    self.keys(sender, storage_type, webview_id, url)
                 },
-                StorageThreadMsg::SetItem(sender, storage_type, url, name, value) => {
-                    self.set_item(sender, storage_type, url, name, value);
+                StorageThreadMsg::SetItem(sender, storage_type, webview_id, url, name, value) => {
+                    self.set_item(sender, storage_type, webview_id, url, name, value);
                     self.save_state()
                 },
-                StorageThreadMsg::GetItem(sender, storage_type, url, name) => {
-                    self.request_item(sender, storage_type, url, name)
+                StorageThreadMsg::GetItem(sender, storage_type, webview_id, url, name) => {
+                    self.request_item(sender, storage_type, webview_id, url, name)
                 },
-                StorageThreadMsg::RemoveItem(sender, storage_type, url, name) => {
-                    self.remove_item(sender, storage_type, url, name);
+                StorageThreadMsg::RemoveItem(sender, storage_type, webview_id, url, name) => {
+                    self.remove_item(sender, storage_type, webview_id, url, name);
                     self.save_state()
                 },
-                StorageThreadMsg::Clear(sender, storage_type, url) => {
-                    self.clear(sender, storage_type, url);
+                StorageThreadMsg::Clear(sender, storage_type, webview_id, url) => {
+                    self.clear(sender, storage_type, webview_id, url);
                     self.save_state()
                 },
                 StorageThreadMsg::CollectMemoryReport(sender) => {
@@ -137,6 +138,7 @@ impl StorageManager {
     fn select_data(
         &self,
         storage_type: StorageType,
+        _webview_id: WebViewId,
         origin: &str,
     ) -> Option<&(usize, BTreeMap<String, String>)> {
         match storage_type {
@@ -148,6 +150,7 @@ impl StorageManager {
     fn select_data_mut(
         &mut self,
         storage_type: StorageType,
+        _webview_id: WebViewId,
         origin: &str,
     ) -> Option<&mut (usize, BTreeMap<String, String>)> {
         match storage_type {
@@ -159,6 +162,7 @@ impl StorageManager {
     fn ensure_data_mut(
         &mut self,
         storage_type: StorageType,
+        _webview_id: WebViewId,
         origin: &str,
     ) -> &mut (usize, BTreeMap<String, String>) {
         match storage_type {
@@ -167,9 +171,15 @@ impl StorageManager {
         }
     }
 
-    fn length(&self, sender: IpcSender<usize>, storage_type: StorageType, url: ServoUrl) {
+    fn length(
+        &self,
+        sender: IpcSender<usize>,
+        storage_type: StorageType,
+        webview_id: WebViewId,
+        url: ServoUrl,
+    ) {
         let origin = self.origin_as_string(url);
-        let data = self.select_data(storage_type, &origin);
+        let data = self.select_data(storage_type, webview_id, &origin);
         sender
             .send(data.map_or(0, |(_, entry)| entry.len()))
             .unwrap();
@@ -179,20 +189,27 @@ impl StorageManager {
         &self,
         sender: IpcSender<Option<String>>,
         storage_type: StorageType,
+        webview_id: WebViewId,
         url: ServoUrl,
         index: u32,
     ) {
         let origin = self.origin_as_string(url);
-        let data = self.select_data(storage_type, &origin);
+        let data = self.select_data(storage_type, webview_id, &origin);
         let key = data
             .and_then(|(_, entry)| entry.keys().nth(index as usize))
             .cloned();
         sender.send(key).unwrap();
     }
 
-    fn keys(&self, sender: IpcSender<Vec<String>>, storage_type: StorageType, url: ServoUrl) {
+    fn keys(
+        &self,
+        sender: IpcSender<Vec<String>>,
+        storage_type: StorageType,
+        webview_id: WebViewId,
+        url: ServoUrl,
+    ) {
         let origin = self.origin_as_string(url);
-        let data = self.select_data(storage_type, &origin);
+        let data = self.select_data(storage_type, webview_id, &origin);
         let keys = data.map_or(vec![], |(_, entry)| entry.keys().cloned().collect());
 
         sender.send(keys).unwrap();
@@ -206,6 +223,7 @@ impl StorageManager {
         &mut self,
         sender: IpcSender<Result<(bool, Option<String>), ()>>,
         storage_type: StorageType,
+        webview_id: WebViewId,
         url: ServoUrl,
         name: String,
         value: String,
@@ -213,8 +231,8 @@ impl StorageManager {
         let origin = self.origin_as_string(url);
 
         let (this_storage_size, other_storage_size) = {
-            let local_data = self.select_data(StorageType::Local, &origin);
-            let session_data = self.select_data(StorageType::Session, &origin);
+            let local_data = self.select_data(StorageType::Local, webview_id, &origin);
+            let session_data = self.select_data(StorageType::Session, webview_id, &origin);
             let local_data_size = local_data.map_or(0, |&(total, _)| total);
             let session_data_size = session_data.map_or(0, |&(total, _)| total);
             match storage_type {
@@ -223,7 +241,8 @@ impl StorageManager {
             }
         };
 
-        let &mut (ref mut total, ref mut entry) = self.ensure_data_mut(storage_type, &origin);
+        let &mut (ref mut total, ref mut entry) =
+            self.ensure_data_mut(storage_type, webview_id, &origin);
 
         let mut new_total_size = this_storage_size + value.len();
         if let Some(old_value) = entry.get(&name) {
@@ -253,11 +272,12 @@ impl StorageManager {
         &self,
         sender: IpcSender<Option<String>>,
         storage_type: StorageType,
+        webview_id: WebViewId,
         url: ServoUrl,
         name: String,
     ) {
         let origin = self.origin_as_string(url);
-        let data = self.select_data(storage_type, &origin);
+        let data = self.select_data(storage_type, webview_id, &origin);
         sender
             .send(data.and_then(|(_, entry)| entry.get(&name)).cloned())
             .unwrap();
@@ -268,11 +288,12 @@ impl StorageManager {
         &mut self,
         sender: IpcSender<Option<String>>,
         storage_type: StorageType,
+        webview_id: WebViewId,
         url: ServoUrl,
         name: String,
     ) {
         let origin = self.origin_as_string(url);
-        let data = self.select_data_mut(storage_type, &origin);
+        let data = self.select_data_mut(storage_type, webview_id, &origin);
         let old_value = data.and_then(|&mut (ref mut total, ref mut entry)| {
             entry.remove(&name).inspect(|old| {
                 *total -= name.len() + old.len();
@@ -281,9 +302,15 @@ impl StorageManager {
         sender.send(old_value).unwrap();
     }
 
-    fn clear(&mut self, sender: IpcSender<bool>, storage_type: StorageType, url: ServoUrl) {
+    fn clear(
+        &mut self,
+        sender: IpcSender<bool>,
+        storage_type: StorageType,
+        webview_id: WebViewId,
+        url: ServoUrl,
+    ) {
         let origin = self.origin_as_string(url);
-        let data = self.select_data_mut(storage_type, &origin);
+        let data = self.select_data_mut(storage_type, webview_id, &origin);
         sender
             .send(data.is_some_and(|&mut (ref mut total, ref mut entry)| {
                 if !entry.is_empty() {

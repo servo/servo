@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::id::WebViewId;
 use constellation_traits::ScriptToConstellationMessage;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
@@ -49,6 +50,10 @@ impl Storage {
         )
     }
 
+    fn webview_id(&self) -> WebViewId {
+        self.global().as_window().window_proxy().webview_id()
+    }
+
     fn get_url(&self) -> ServoUrl {
         self.global().get_url()
     }
@@ -67,6 +72,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
             .send(StorageThreadMsg::Length(
                 sender,
                 self.storage_type,
+                self.webview_id(),
                 self.get_url(),
             ))
             .unwrap();
@@ -81,6 +87,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
             .send(StorageThreadMsg::Key(
                 sender,
                 self.storage_type,
+                self.webview_id(),
                 self.get_url(),
                 index,
             ))
@@ -93,7 +100,13 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         let name = String::from(name);
 
-        let msg = StorageThreadMsg::GetItem(sender, self.storage_type, self.get_url(), name);
+        let msg = StorageThreadMsg::GetItem(
+            sender,
+            self.storage_type,
+            self.webview_id(),
+            self.get_url(),
+            name,
+        );
         self.get_storage_thread().send(msg).unwrap();
         receiver.recv().unwrap().map(DOMString::from)
     }
@@ -107,6 +120,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
         let msg = StorageThreadMsg::SetItem(
             sender,
             self.storage_type,
+            self.webview_id(),
             self.get_url(),
             name.clone(),
             value.clone(),
@@ -128,8 +142,13 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         let name = String::from(name);
 
-        let msg =
-            StorageThreadMsg::RemoveItem(sender, self.storage_type, self.get_url(), name.clone());
+        let msg = StorageThreadMsg::RemoveItem(
+            sender,
+            self.storage_type,
+            self.webview_id(),
+            self.get_url(),
+            name.clone(),
+        );
         self.get_storage_thread().send(msg).unwrap();
         if let Some(old_value) = receiver.recv().unwrap() {
             self.broadcast_change_notification(Some(name), Some(old_value), None);
@@ -144,6 +163,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
             .send(StorageThreadMsg::Clear(
                 sender,
                 self.storage_type,
+                self.webview_id(),
                 self.get_url(),
             ))
             .unwrap();
@@ -160,6 +180,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
             .send(StorageThreadMsg::Keys(
                 sender,
                 self.storage_type,
+                self.webview_id(),
                 self.get_url(),
             ))
             .unwrap();
