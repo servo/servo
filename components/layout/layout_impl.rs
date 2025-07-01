@@ -727,7 +727,7 @@ impl LayoutThread {
                 self.load_all_web_fonts_from_stylesheet_with_guard(stylesheet, guards.ua_or_user);
             }
 
-            if self.stylist.quirks_mode() != QuirksMode::NoQuirks {
+            if self.stylist.quirks_mode() == QuirksMode::Quirks {
                 self.stylist.append_stylesheet(
                     ua_stylesheets.quirks_mode_stylesheet.clone(),
                     guards.ua_or_user,
