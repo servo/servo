@@ -376,19 +376,6 @@ impl From<NonReplacedContents> for Contents {
     }
 }
 
-impl std::convert::TryFrom<Contents> for NonReplacedContents {
-    type Error = &'static str;
-
-    fn try_from(contents: Contents) -> Result<Self, Self::Error> {
-        match contents {
-            Contents::NonReplaced(non_replaced_contents) => Ok(non_replaced_contents),
-            Contents::Replaced(_) => {
-                Err("Tried to covnert a `Contents::Replaced` into `NonReplacedContent`")
-            },
-        }
-    }
-}
-
 impl NonReplacedContents {
     pub(crate) fn traverse<'dom>(
         self,

@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::convert::TryFrom;
 
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use servo_arc::Arc;
@@ -464,23 +463,27 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         contents: Contents,
         box_slot: BoxSlot<'dom>,
     ) {
-        let (DisplayInside::Flow { is_list_item }, false) =
-            (display_inside, contents.is_replaced())
-        else {
-            // If this inline element is an atomic, handle it and return.
-            let context = self.context;
-            let propagated_data = self.propagated_data;
-            let atomic = self.ensure_inline_formatting_context_builder().push_atomic(
-                IndependentFormattingContext::construct(
-                    context,
-                    info,
-                    display_inside,
-                    contents,
-                    propagated_data,
-                ),
-            );
-            box_slot.set(LayoutBox::InlineLevel(vec![atomic]));
-            return;
+        let (is_list_item, non_replaced_contents) = match (display_inside, contents) {
+            (
+                DisplayInside::Flow { is_list_item },
+                Contents::NonReplaced(non_replaced_contents),
+            ) => (is_list_item, non_replaced_contents),
+            (_, contents) => {
+                // If this inline element is an atomic, handle it and return.
+                let context = self.context;
+                let propagated_data = self.propagated_data;
+                let atomic = self.ensure_inline_formatting_context_builder().push_atomic(
+                    IndependentFormattingContext::construct(
+                        context,
+                        info,
+                        display_inside,
+                        contents,
+                        propagated_data,
+                    ),
+                );
+                box_slot.set(LayoutBox::InlineLevel(vec![atomic]));
+                return;
+            },
         };
 
         // Otherwise, this is just a normal inline box. Whatever happened before, all we need to do
@@ -500,9 +503,7 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         }
 
         // `unwrap` doesn’t panic here because `is_replaced` returned `false`.
-        NonReplacedContents::try_from(contents)
-            .unwrap()
-            .traverse(self.context, info, self);
+        non_replaced_contents.traverse(self.context, info, self);
 
         self.finish_anonymous_table_if_needed();
 
