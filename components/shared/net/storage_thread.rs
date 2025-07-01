@@ -18,31 +18,31 @@ pub enum StorageType {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum StorageThreadMsg {
     /// gets the number of key/value pairs present in the associated storage data
-    Length(IpcSender<usize>, ServoUrl, StorageType),
+    Length(IpcSender<usize>, StorageType, ServoUrl),
 
     /// gets the name of the key at the specified index in the associated storage data
-    Key(IpcSender<Option<String>>, ServoUrl, StorageType, u32),
+    Key(IpcSender<Option<String>>, StorageType, ServoUrl, u32),
 
     /// Gets the available keys in the associated storage data
-    Keys(IpcSender<Vec<String>>, ServoUrl, StorageType),
+    Keys(IpcSender<Vec<String>>, StorageType, ServoUrl),
 
     /// gets the value associated with the given key in the associated storage data
-    GetItem(IpcSender<Option<String>>, ServoUrl, StorageType, String),
+    GetItem(IpcSender<Option<String>>, StorageType, ServoUrl, String),
 
     /// sets the value of the given key in the associated storage data
     SetItem(
         IpcSender<Result<(bool, Option<String>), ()>>,
-        ServoUrl,
         StorageType,
+        ServoUrl,
         String,
         String,
     ),
 
     /// removes the key/value pair for the given key in the associated storage data
-    RemoveItem(IpcSender<Option<String>>, ServoUrl, StorageType, String),
+    RemoveItem(IpcSender<Option<String>>, StorageType, ServoUrl, String),
 
     /// clears the associated storage data by removing all the key/value pairs
-    Clear(IpcSender<bool>, ServoUrl, StorageType),
+    Clear(IpcSender<bool>, StorageType, ServoUrl),
 
     /// send a reply when done cleaning up thread resources and then shut it down
     Exit(IpcSender<()>),

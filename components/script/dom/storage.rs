@@ -66,8 +66,8 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
         self.get_storage_thread()
             .send(StorageThreadMsg::Length(
                 sender,
-                self.get_url(),
                 self.storage_type,
+                self.get_url(),
             ))
             .unwrap();
         receiver.recv().unwrap() as u32
@@ -80,8 +80,8 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
         self.get_storage_thread()
             .send(StorageThreadMsg::Key(
                 sender,
-                self.get_url(),
                 self.storage_type,
+                self.get_url(),
                 index,
             ))
             .unwrap();
@@ -93,7 +93,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         let name = String::from(name);
 
-        let msg = StorageThreadMsg::GetItem(sender, self.get_url(), self.storage_type, name);
+        let msg = StorageThreadMsg::GetItem(sender, self.storage_type, self.get_url(), name);
         self.get_storage_thread().send(msg).unwrap();
         receiver.recv().unwrap().map(DOMString::from)
     }
@@ -106,8 +106,8 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
 
         let msg = StorageThreadMsg::SetItem(
             sender,
-            self.get_url(),
             self.storage_type,
+            self.get_url(),
             name.clone(),
             value.clone(),
         );
@@ -129,7 +129,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
         let name = String::from(name);
 
         let msg =
-            StorageThreadMsg::RemoveItem(sender, self.get_url(), self.storage_type, name.clone());
+            StorageThreadMsg::RemoveItem(sender, self.storage_type, self.get_url(), name.clone());
         self.get_storage_thread().send(msg).unwrap();
         if let Some(old_value) = receiver.recv().unwrap() {
             self.broadcast_change_notification(Some(name), Some(old_value), None);
@@ -143,8 +143,8 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
         self.get_storage_thread()
             .send(StorageThreadMsg::Clear(
                 sender,
-                self.get_url(),
                 self.storage_type,
+                self.get_url(),
             ))
             .unwrap();
         if receiver.recv().unwrap() {
@@ -159,8 +159,8 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
         self.get_storage_thread()
             .send(StorageThreadMsg::Keys(
                 sender,
-                self.get_url(),
                 self.storage_type,
+                self.get_url(),
             ))
             .unwrap();
         receiver

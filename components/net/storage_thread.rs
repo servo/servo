@@ -73,28 +73,28 @@ impl StorageManager {
     fn start(&mut self) {
         loop {
             match self.port.recv().unwrap() {
-                StorageThreadMsg::Length(sender, url, storage_type) => {
-                    self.length(sender, url, storage_type)
+                StorageThreadMsg::Length(sender, storage_type, url) => {
+                    self.length(sender, storage_type, url)
                 },
-                StorageThreadMsg::Key(sender, url, storage_type, index) => {
-                    self.key(sender, url, storage_type, index)
+                StorageThreadMsg::Key(sender, storage_type, url, index) => {
+                    self.key(sender, storage_type, url, index)
                 },
-                StorageThreadMsg::Keys(sender, url, storage_type) => {
-                    self.keys(sender, url, storage_type)
+                StorageThreadMsg::Keys(sender, storage_type, url) => {
+                    self.keys(sender, storage_type, url)
                 },
-                StorageThreadMsg::SetItem(sender, url, storage_type, name, value) => {
-                    self.set_item(sender, url, storage_type, name, value);
+                StorageThreadMsg::SetItem(sender, storage_type, url, name, value) => {
+                    self.set_item(sender, storage_type, url, name, value);
                     self.save_state()
                 },
-                StorageThreadMsg::GetItem(sender, url, storage_type, name) => {
-                    self.request_item(sender, url, storage_type, name)
+                StorageThreadMsg::GetItem(sender, storage_type, url, name) => {
+                    self.request_item(sender, storage_type, url, name)
                 },
-                StorageThreadMsg::RemoveItem(sender, url, storage_type, name) => {
-                    self.remove_item(sender, url, storage_type, name);
+                StorageThreadMsg::RemoveItem(sender, storage_type, url, name) => {
+                    self.remove_item(sender, storage_type, url, name);
                     self.save_state()
                 },
-                StorageThreadMsg::Clear(sender, url, storage_type) => {
-                    self.clear(sender, url, storage_type);
+                StorageThreadMsg::Clear(sender, storage_type, url) => {
+                    self.clear(sender, storage_type, url);
                     self.save_state()
                 },
                 StorageThreadMsg::CollectMemoryReport(sender) => {
@@ -154,7 +154,7 @@ impl StorageManager {
         }
     }
 
-    fn length(&self, sender: IpcSender<usize>, url: ServoUrl, storage_type: StorageType) {
+    fn length(&self, sender: IpcSender<usize>, storage_type: StorageType, url: ServoUrl) {
         let origin = self.origin_as_string(url);
         let data = self.select_data(storage_type);
         sender
@@ -165,8 +165,8 @@ impl StorageManager {
     fn key(
         &self,
         sender: IpcSender<Option<String>>,
-        url: ServoUrl,
         storage_type: StorageType,
+        url: ServoUrl,
         index: u32,
     ) {
         let origin = self.origin_as_string(url);
@@ -178,7 +178,7 @@ impl StorageManager {
         sender.send(key).unwrap();
     }
 
-    fn keys(&self, sender: IpcSender<Vec<String>>, url: ServoUrl, storage_type: StorageType) {
+    fn keys(&self, sender: IpcSender<Vec<String>>, storage_type: StorageType, url: ServoUrl) {
         let origin = self.origin_as_string(url);
         let data = self.select_data(storage_type);
         let keys = data
@@ -195,8 +195,8 @@ impl StorageManager {
     fn set_item(
         &mut self,
         sender: IpcSender<Result<(bool, Option<String>), ()>>,
-        url: ServoUrl,
         storage_type: StorageType,
+        url: ServoUrl,
         name: String,
         value: String,
     ) {
@@ -252,8 +252,8 @@ impl StorageManager {
     fn request_item(
         &self,
         sender: IpcSender<Option<String>>,
-        url: ServoUrl,
         storage_type: StorageType,
+        url: ServoUrl,
         name: String,
     ) {
         let origin = self.origin_as_string(url);
@@ -271,8 +271,8 @@ impl StorageManager {
     fn remove_item(
         &mut self,
         sender: IpcSender<Option<String>>,
-        url: ServoUrl,
         storage_type: StorageType,
+        url: ServoUrl,
         name: String,
     ) {
         let origin = self.origin_as_string(url);
@@ -287,7 +287,7 @@ impl StorageManager {
         sender.send(old_value).unwrap();
     }
 
-    fn clear(&mut self, sender: IpcSender<bool>, url: ServoUrl, storage_type: StorageType) {
+    fn clear(&mut self, sender: IpcSender<bool>, storage_type: StorageType, url: ServoUrl) {
         let origin = self.origin_as_string(url);
         let data = self.select_data_mut(storage_type);
         sender
