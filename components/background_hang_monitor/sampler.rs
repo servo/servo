@@ -89,6 +89,9 @@ impl NativeStack {
                 let name = symbol
                     .name()
                     .map(|n| String::from_utf8_lossy(n.as_bytes()).to_string());
+                // demangle if possible -
+                // the `rustc_demangle` crate transparently supports both
+                // "legacy" (C++ style) and "v0" mangling formats.
                 #[cfg(feature = "sampler")]
                 let name = name.map(|n| rustc_demangle::demangle(&n).to_string());
 
