@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! Functions for validating names as defined in the DOM Standard: https://dom.spec.whatwg.org/
+//! Functions for validating names as defined in the DOM Standard: <https://dom.spec.whatwg.org/#namespaces>
 
 use html5ever::{LocalName, Namespace, Prefix};
 use script_bindings::error::{Error, Fallible};
@@ -26,14 +26,8 @@ fn is_valid_namespace_prefix(p: &str) -> bool {
         return false;
     }
 
-    !p.chars().any(|c| {
-        c.is_ascii_whitespace() || matches!(
-            c,
-                '\u{0000}' |
-                '\u{002F}' |
-                '\u{003E}'
-        )
-    })
+    !p.chars()
+        .any(|c| c.is_ascii_whitespace() || matches!(c, '\u{0000}' | '\u{002F}' | '\u{003E}'))
 }
 
 /// See <https://dom.spec.whatwg.org/#valid-attribute-local-name>
@@ -47,18 +41,7 @@ pub(crate) fn is_valid_attribute_local_name(name: &str) -> bool {
     }
 
     !name.chars().any(|c| {
-        matches!(
-            c,
-            '\u{0009}' |
-                '\u{000A}' |
-                '\u{000C}' |
-                '\u{000D}' |
-                '\u{0020}' |
-                '\u{0000}' |
-                '\u{002F}' |
-                '\u{003D}' |
-                '\u{003E}'
-        )
+        c.is_ascii_whitespace() || matches!(c, '\u{0000}' | '\u{002F}' | '\u{003D}' | '\u{003E}')
     })
 }
 
@@ -79,17 +62,7 @@ pub(crate) fn is_valid_element_local_name(name: &str) -> bool {
         for c in iter {
             // Step 2.1 If name contains ASCII whitespace,
             // U+0000 NULL, U+002F (/), or U+003E (>), then return false.
-            if matches!(
-                c,
-                '\u{0009}' |
-                    '\u{000A}' |
-                    '\u{000C}' |
-                    '\u{000D}' |
-                    '\u{0020}' |
-                    '\u{0000}' |
-                    '\u{002F}' |
-                    '\u{003E}'
-            ) {
+            if c.is_ascii_whitespace() || matches!(c, '\u{0000}' | '\u{002F}' | '\u{003E}') {
                 return false;
             }
         }
@@ -123,18 +96,9 @@ pub(crate) fn is_valid_element_local_name(name: &str) -> bool {
 pub(crate) fn is_valid_doctype_name(name: &str) -> bool {
     // A string is a valid doctype name if it does not contain
     // ASCII whitespace, U+0000 NULL, or U+003E (>).
-    !name.chars().any(|c| {
-        matches!(
-            c,
-            '\u{0009}' |
-                '\u{000A}' |
-                '\u{000C}' |
-                '\u{000D}' |
-                '\u{0020}' |
-                '\u{0000}' |
-                '\u{003E}'
-        )
-    })
+    !name
+        .chars()
+        .any(|c| c.is_ascii_whitespace() || matches!(c, '\u{0000}' | '\u{003E}'))
 }
 
 /// Context for [`validate_and_extract`] a namespace and qualified name
