@@ -1047,7 +1047,7 @@ pub(crate) fn handle_get_element_shadow_root(
         .send(
             get_known_element(documents, pipeline, element_id).map(|element| {
                 element
-                    .GetShadowRoot()
+                    .shadow_root()
                     .map(|x| x.upcast::<Node>().unique_id(pipeline))
             }),
         )
