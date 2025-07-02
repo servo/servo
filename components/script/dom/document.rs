@@ -110,11 +110,11 @@ use crate::dom::bindings::codegen::Bindings::XPathNSResolverBinding::XPathNSReso
 use crate::dom::bindings::codegen::UnionTypes::{
     NodeOrString, StringOrElementCreationOptions, TrustedHTMLOrString,
 };
-use crate::dom::bindings::error::{Error, ErrorInfo, ErrorResult, Fallible};
-use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
-use crate::dom::bindings::name_validation::{
+use crate::dom::bindings::domname::{
     self, is_valid_attribute_local_name, is_valid_element_local_name,
 };
+use crate::dom::bindings::error::{Error, ErrorInfo, ErrorResult, Fallible};
+use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
@@ -5553,9 +5553,9 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     ) -> Fallible<DomRoot<Element>> {
         // Step 1. Let (namespace, prefix, localName) be the result of
         //      validating and extracting namespace and qualifiedName given "element".
-        let context = name_validation::Context::Element;
+        let context = domname::Context::Element;
         let (namespace, prefix, local_name) =
-            name_validation::validate_and_extract(namespace, &qualified_name, context)?;
+            domname::validate_and_extract(namespace, &qualified_name, context)?;
 
         // Step 2. Let is be null.
         // Step 3. If options is a dictionary and options["is"] exists, then set is to it.
@@ -5614,9 +5614,9 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     ) -> Fallible<DomRoot<Attr>> {
         // Step 1. Let (namespace, prefix, localName) be the result of validating and
         //      extracting namespace and qualifiedName given "attribute".
-        let context = name_validation::Context::Attribute;
+        let context = domname::Context::Attribute;
         let (namespace, prefix, local_name) =
-            name_validation::validate_and_extract(namespace, &qualified_name, context)?;
+            domname::validate_and_extract(namespace, &qualified_name, context)?;
         let value = AttrValue::String("".to_owned());
         let qualified_name = LocalName::from(qualified_name);
         Ok(Attr::new(

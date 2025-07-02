@@ -88,9 +88,9 @@ use crate::dom::bindings::codegen::UnionTypes::{
     NodeOrString, TrustedHTMLOrNullIsEmptyString, TrustedHTMLOrString, TrustedScriptURLOrUSVString,
 };
 use crate::dom::bindings::conversions::DerivedFrom;
+use crate::dom::bindings::domname::{self, is_valid_attribute_local_name};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
-use crate::dom::bindings::name_validation::{self, is_valid_attribute_local_name};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
@@ -2861,9 +2861,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     ) -> ErrorResult {
         // Step 1. Let (namespace, prefix, localName) be the result of validating and
         //      extracting namespace and qualifiedName given "element".
-        let context = name_validation::Context::Element;
+        let context = domname::Context::Element;
         let (namespace, prefix, local_name) =
-            name_validation::validate_and_extract(namespace, &qualified_name, context)?;
+            domname::validate_and_extract(namespace, &qualified_name, context)?;
         let qualified_name = LocalName::from(qualified_name);
         let value = self.parse_attribute(&namespace, &local_name, value);
         self.set_first_matching_attribute(
