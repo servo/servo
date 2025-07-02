@@ -45,6 +45,7 @@ pub struct BoxTree {
 }
 
 impl BoxTree {
+    #[servo_tracing::instrument(name = "Box Tree Construction", skip_all)]
     pub(crate) fn construct(context: &LayoutContext, root_element: ServoLayoutNode<'_>) -> Self {
         let boxes = construct_for_root_element(context, root_element);
 
@@ -191,6 +192,7 @@ fn construct_for_root_element(
 }
 
 impl BoxTree {
+    #[servo_tracing::instrument(name = "Fragment Tree Construction", skip_all)]
     pub(crate) fn layout(
         &self,
         layout_context: &LayoutContext,

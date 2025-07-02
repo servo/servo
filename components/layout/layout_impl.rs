@@ -440,7 +440,7 @@ impl Layout for LayoutThread {
 
     fn reflow(&mut self, reflow_request: ReflowRequest) -> Option<ReflowResult> {
         time_profile!(
-            profile_time::ProfilerCategory::LayoutPerform,
+            profile_time::ProfilerCategory::Layout,
             self.profiler_metadata(),
             self.time_profiler_chan.clone(),
             || self.handle_reflow(reflow_request),
@@ -821,26 +821,33 @@ impl LayoutThread {
             .restyle
             .as_ref()
             .expect("Should not get here if there is not restyle.");
-        let dirty_root = unsafe {
-            ServoLayoutNode::new(&restyle.dirty_root.unwrap())
-                .as_element()
-                .unwrap()
-        };
 
-        let recalc_style_traversal = RecalcStyle::new(&layout_context);
-        let token = {
-            let shared =
-                DomTraversal::<ServoLayoutElement>::shared_context(&recalc_style_traversal);
-            RecalcStyle::pre_traverse(dirty_root, shared)
-        };
+        let recalc_style_traversal;
+        let dirty_root;
+        {
+            #[cfg(feature = "tracing")]
+            let _span = tracing::trace_span!("Styling", servo_profiling = true).entered();
 
-        if !token.should_traverse() {
-            layout_context.style_context.stylist.rule_tree().maybe_gc();
-            return (RestyleDamage::empty(), IFrameSizes::default());
+            let original_dirty_root = unsafe {
+                ServoLayoutNode::new(&restyle.dirty_root.unwrap())
+                    .as_element()
+                    .unwrap()
+            };
+
+            recalc_style_traversal = RecalcStyle::new(&layout_context);
+            let token = {
+                let shared =
+                    DomTraversal::<ServoLayoutElement>::shared_context(&recalc_style_traversal);
+                RecalcStyle::pre_traverse(original_dirty_root, shared)
+            };
+
+            if !token.should_traverse() {
+                layout_context.style_context.stylist.rule_tree().maybe_gc();
+                return (RestyleDamage::empty(), IFrameSizes::default());
+            }
+
+            dirty_root = driver::traverse_dom(&recalc_style_traversal, token, rayon_pool).as_node();
         }
-
-        let dirty_root: ServoLayoutNode =
-            driver::traverse_dom(&recalc_style_traversal, token, rayon_pool).as_node();
 
         let root_node = root_element.as_node();
         let mut damage = compute_damage_and_repair_style(&layout_context.style_context, root_node);
@@ -909,6 +916,7 @@ impl LayoutThread {
         (damage, std::mem::take(&mut *iframe_sizes))
     }
 
+    #[servo_tracing::instrument(name = "Overflow Calculation", skip_all)]
     fn calculate_overflow(&self, damage: RestyleDamage) {
         if !damage.contains(RestyleDamage::RECALCULATE_OVERFLOW) {
             return;
@@ -927,6 +935,7 @@ impl LayoutThread {
         self.need_new_stacking_context_tree.set(true);
     }
 
+    #[servo_tracing::instrument(name = "Stacking Context Tree Construction", skip_all)]
     fn build_stacking_context_tree(&self, reflow_request: &ReflowRequest, damage: RestyleDamage) {
         if !ReflowPhases::necessary(&reflow_request.reflow_goal)
             .contains(ReflowPhases::StackingContextTreeConstruction)
@@ -999,6 +1008,7 @@ impl LayoutThread {
 
     /// Build the display list for the current layout and send it to the renderer. If no display
     /// list is built, returns false.
+    #[servo_tracing::instrument(name = "Display List Construction", skip_all)]
     fn build_display_list(
         &self,
         reflow_request: &ReflowRequest,
