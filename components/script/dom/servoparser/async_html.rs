@@ -579,7 +579,7 @@ impl Tokenizer {
             } => {
                 let location = self.get_node(&location);
                 let template = self.get_node(&template);
-                let attributes = attributes
+                let attributes: Vec<_> = attributes
                     .into_iter()
                     .map(|attribute| HtmlAttribute {
                         name: attribute.name,
@@ -588,7 +588,7 @@ impl Tokenizer {
                     .collect();
 
                 let did_succeed =
-                    attach_declarative_shadow_inner(&location, &template, attributes).is_ok();
+                    attach_declarative_shadow_inner(&location, &template, &attributes);
                 sender.send(did_succeed).unwrap();
             },
         }
@@ -610,7 +610,6 @@ fn run(
     scripting_enabled: bool,
 ) {
     let options = TreeBuilderOpts {
-        ignore_missing_rules: true,
         scripting_enabled,
         ..Default::default()
     };
@@ -962,13 +961,13 @@ impl TreeSink for Sink {
         &self,
         location: &Self::Handle,
         template: &Self::Handle,
-        attributes: Vec<HtmlAttribute>,
-    ) -> Result<(), String> {
+        attributes: &[HtmlAttribute],
+    ) -> bool {
         let attributes = attributes
-            .into_iter()
+            .iter()
             .map(|attribute| Attribute {
-                name: attribute.name,
-                value: String::from(attribute.value),
+                name: attribute.name.clone(),
+                value: String::from(attribute.value.clone()),
             })
             .collect();
 
@@ -983,13 +982,6 @@ impl TreeSink for Sink {
             sender,
         });
 
-        let did_succeed = receiver.recv().unwrap();
-
-        // TODO: This api is silly, we shouldn't have to return a string here
-        if did_succeed {
-            Ok(())
-        } else {
-            Err("Attaching declarative shadow root failed".to_owned())
-        }
+        receiver.recv().unwrap()
     }
 }
