@@ -1221,14 +1221,25 @@ impl InitialFlexLineLayout<'_> {
         );
 
         // https://drafts.csswg.org/css-flexbox/#algo-cross-item
-        let layout_results = items
-            .par_iter()
-            .zip(&item_used_main_sizes)
-            .map(|(item, used_main_size)| {
-                item.layout(*used_main_size, flex_context, None, None)
-                    .unwrap()
-            })
-            .collect::<Vec<_>>();
+        let layout_results: Vec<_> = if flex_context.layout_context.use_rayon {
+            items
+                .par_iter()
+                .zip(&item_used_main_sizes)
+                .map(|(item, used_main_size)| {
+                    item.layout(*used_main_size, flex_context, None, None)
+                        .unwrap()
+                })
+                .collect()
+        } else {
+            items
+                .iter()
+                .zip(&item_used_main_sizes)
+                .map(|(item, used_main_size)| {
+                    item.layout(*used_main_size, flex_context, None, None)
+                        .unwrap()
+                })
+                .collect()
+        };
 
         let items: Vec<_> = izip!(
             items.into_iter(),
