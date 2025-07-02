@@ -4,11 +4,9 @@
 
 //! Functions for validating names as defined in the DOM Standard: <https://dom.spec.whatwg.org/#namespaces>
 
-use html5ever::{LocalName, Namespace, Prefix};
+use html5ever::{LocalName, Namespace, Prefix, ns};
 use script_bindings::error::{Error, Fallible};
 use script_bindings::str::DOMString;
-
-use crate::dom::bindings::xmlname::namespace_from_domstring;
 
 /// <https://infra.spec.whatwg.org/#xml-namespace>
 const XML_NAMESPACE: &str = "http://www.w3.org/XML/1998/namespace";
@@ -99,6 +97,16 @@ pub(crate) fn is_valid_doctype_name(name: &str) -> bool {
     !name
         .chars()
         .any(|c| c.is_ascii_whitespace() || matches!(c, '\u{0000}' | '\u{003E}'))
+}
+
+/// Convert a possibly-null URL to a namespace.
+///
+/// If the URL is None, returns the empty namespace.
+pub(crate) fn namespace_from_domstring(url: Option<DOMString>) -> Namespace {
+    match url {
+        None => ns!(),
+        Some(s) => Namespace::from(s),
+    }
 }
 
 /// Context for [`validate_and_extract`] a namespace and qualified name
