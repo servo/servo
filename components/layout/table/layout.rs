@@ -1069,71 +1069,96 @@ impl<'a> TableLayout<'a> {
         layout_context: &LayoutContext,
         containing_block_for_table: &ContainingBlock,
     ) {
-        self.cells_laid_out = self
-            .table
-            .slots
-            .par_iter()
-            .enumerate()
-            .map(|(row_index, row_slots)| {
-                row_slots
-                    .par_iter()
-                    .enumerate()
-                    .map(|(column_index, slot)| {
-                        let TableSlot::Cell(cell) = slot else {
-                            return None;
-                        };
+        let layout_table_slot = |coordinate: TableSlotCoordinates, slot: &TableSlot| {
+            let TableSlot::Cell(cell) = slot else {
+                return None;
+            };
 
-                        let cell = cell.borrow();
-                        let area = LogicalSides {
-                            inline_start: column_index,
-                            inline_end: column_index + cell.colspan,
-                            block_start: row_index,
-                            block_end: row_index + cell.rowspan,
-                        };
-                        let layout_style = cell.layout_style();
-                        let border = self
-                            .get_collapsed_border_widths_for_area(area)
-                            .unwrap_or_else(|| {
-                                layout_style
-                                    .border_width(containing_block_for_table.style.writing_mode)
-                            });
-                        let padding: LogicalSides<Au> = layout_style
-                            .padding(containing_block_for_table.style.writing_mode)
-                            .percentages_relative_to(self.basis_for_cell_padding_percentage);
-                        let inline_border_padding_sum = border.inline_sum() + padding.inline_sum();
+            let cell = cell.borrow();
+            let area = LogicalSides {
+                inline_start: coordinate.x,
+                inline_end: coordinate.x + cell.colspan,
+                block_start: coordinate.y,
+                block_end: coordinate.y + cell.rowspan,
+            };
+            let layout_style = cell.layout_style();
+            let border = self
+                .get_collapsed_border_widths_for_area(area)
+                .unwrap_or_else(|| {
+                    layout_style.border_width(containing_block_for_table.style.writing_mode)
+                });
+            let padding: LogicalSides<Au> = layout_style
+                .padding(containing_block_for_table.style.writing_mode)
+                .percentages_relative_to(self.basis_for_cell_padding_percentage);
+            let inline_border_padding_sum = border.inline_sum() + padding.inline_sum();
 
-                        let mut total_cell_width: Au = (column_index..column_index + cell.colspan)
-                            .map(|column_index| self.distributed_column_widths[column_index])
-                            .sum::<Au>() -
-                            inline_border_padding_sum;
-                        total_cell_width = total_cell_width.max(Au::zero());
+            let mut total_cell_width: Au = (coordinate.x..coordinate.x + cell.colspan)
+                .map(|column_index| self.distributed_column_widths[column_index])
+                .sum::<Au>() -
+                inline_border_padding_sum;
+            total_cell_width = total_cell_width.max(Au::zero());
 
-                        let containing_block_for_children = ContainingBlock {
-                            size: ContainingBlockSize {
-                                inline: total_cell_width,
-                                block: SizeConstraint::default(),
-                            },
-                            style: &cell.base.style,
-                        };
+            let containing_block_for_children = ContainingBlock {
+                size: ContainingBlockSize {
+                    inline: total_cell_width,
+                    block: SizeConstraint::default(),
+                },
+                style: &cell.base.style,
+            };
 
-                        let mut positioning_context = PositioningContext::default();
-                        let layout = cell.contents.layout(
-                            layout_context,
-                            &mut positioning_context,
-                            &containing_block_for_children,
-                            false, /* depends_on_block_constraints */
-                        );
+            let mut positioning_context = PositioningContext::default();
+            let layout = cell.contents.layout(
+                layout_context,
+                &mut positioning_context,
+                &containing_block_for_children,
+                false, /* depends_on_block_constraints */
+            );
 
-                        Some(CellLayout {
-                            layout,
-                            padding,
-                            border,
-                            positioning_context,
-                        })
-                    })
-                    .collect()
+            Some(CellLayout {
+                layout,
+                padding,
+                border,
+                positioning_context,
             })
-            .collect();
+        };
+
+        self.cells_laid_out = if layout_context.use_rayon {
+            self.table
+                .slots
+                .par_iter()
+                .enumerate()
+                .map(|(row_index, row_slots)| {
+                    row_slots
+                        .par_iter()
+                        .enumerate()
+                        .map(|(column_index, slot)| {
+                            layout_table_slot(
+                                TableSlotCoordinates::new(column_index, row_index),
+                                slot,
+                            )
+                        })
+                        .collect()
+                })
+                .collect()
+        } else {
+            self.table
+                .slots
+                .iter()
+                .enumerate()
+                .map(|(row_index, row_slots)| {
+                    row_slots
+                        .iter()
+                        .enumerate()
+                        .map(|(column_index, slot)| {
+                            layout_table_slot(
+                                TableSlotCoordinates::new(column_index, row_index),
+                                slot,
+                            )
+                        })
+                        .collect()
+                })
+                .collect()
+        };
 
         // Now go through all cells laid out and update the cell measure based on the size
         // determined during layout.
