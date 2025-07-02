@@ -12,7 +12,7 @@ use script_bindings::conversions::SafeToJSValConvertible;
 use crate::dom::bindings::codegen::Bindings::TrustedTypePolicyFactoryBinding::{
     TrustedTypePolicyFactoryMethods, TrustedTypePolicyOptions,
 };
-use crate::dom::bindings::conversions::root_from_object;
+use crate::dom::bindings::conversions::root_from_handlevalue;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
@@ -236,6 +236,15 @@ impl TrustedTypePolicyFactory {
         // Step 7: Assert: convertedInput is an instance of expectedType.
         // TODO(https://github.com/w3c/trusted-types/issues/566): Implement when spec is resolved
     }
+
+    /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-isscript>
+    #[allow(unsafe_code)]
+    pub(crate) fn is_trusted_script(
+        cx: JSContext,
+        value: HandleValue,
+    ) -> Result<DomRoot<TrustedScript>, ()> {
+        unsafe { root_from_handlevalue::<TrustedScript>(value, *cx) }
+    }
 }
 
 impl TrustedTypePolicyFactoryMethods<crate::DomTypeHolder> for TrustedTypePolicyFactory {
@@ -251,29 +260,17 @@ impl TrustedTypePolicyFactoryMethods<crate::DomTypeHolder> for TrustedTypePolicy
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-ishtml>
     #[allow(unsafe_code)]
     fn IsHTML(&self, cx: JSContext, value: HandleValue) -> bool {
-        if !value.get().is_object() {
-            return false;
-        }
-        rooted!(in(*cx) let object = value.to_object());
-        unsafe { root_from_object::<TrustedHTML>(object.get(), *cx).is_ok() }
+        unsafe { root_from_handlevalue::<TrustedHTML>(value, *cx).is_ok() }
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-isscript>
     #[allow(unsafe_code)]
     fn IsScript(&self, cx: JSContext, value: HandleValue) -> bool {
-        if !value.get().is_object() {
-            return false;
-        }
-        rooted!(in(*cx) let object = value.to_object());
-        unsafe { root_from_object::<TrustedScript>(object.get(), *cx).is_ok() }
+        TrustedTypePolicyFactory::is_trusted_script(cx, value).is_ok()
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-isscripturl>
     #[allow(unsafe_code)]
     fn IsScriptURL(&self, cx: JSContext, value: HandleValue) -> bool {
-        if !value.get().is_object() {
-            return false;
-        }
-        rooted!(in(*cx) let object = value.to_object());
-        unsafe { root_from_object::<TrustedScriptURL>(object.get(), *cx).is_ok() }
+        unsafe { root_from_handlevalue::<TrustedScriptURL>(value, *cx).is_ok() }
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-emptyhtml>
     fn EmptyHTML(&self, can_gc: CanGc) -> DomRoot<TrustedHTML> {
