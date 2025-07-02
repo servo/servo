@@ -41,8 +41,6 @@ use style::values::specified::source_size_list::SourceSizeList;
 use style_traits::ParsingMode;
 use url::Url;
 
-use super::domexception::DOMErrorName;
-use super::types::DOMException;
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
@@ -55,7 +53,7 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMeth
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
@@ -457,7 +455,7 @@ impl HTMLImageElement {
         LoadBlocker::terminate(&self.current_request.borrow().blocker, can_gc);
         // Mark the node dirty
         self.upcast::<Node>().dirty(NodeDamage::Other);
-        self.resolve_image_decode_promises(can_gc);
+        self.resolve_image_decode_promises();
     }
 
     /// Step 24 of <https://html.spec.whatwg.org/multipage/#update-the-image-data>
@@ -568,9 +566,9 @@ impl HTMLImageElement {
         request.metadata = None;
 
         if matches!(state, State::Broken) {
-            self.reject_image_decode_promises(can_gc);
+            self.reject_image_decode_promises();
         } else if matches!(state, State::CompletelyAvailable) {
-            self.resolve_image_decode_promises(can_gc);
+            self.resolve_image_decode_promises();
         }
     }
 
@@ -865,6 +863,7 @@ impl HTMLImageElement {
                         // Step 17
                         current_request.current_pixel_density = Some(selected_pixel_density);
                         self.init_image_request(&mut current_request, url, src, can_gc);
+                        self.reject_image_decode_promises();
                     },
                     (_, _) => {
                         // step 17
@@ -1157,10 +1156,7 @@ impl HTMLImageElement {
         if !document.is_fully_active() ||
             matches!(self.current_request.borrow().state, State::Broken)
         {
-            promise.reject_native(
-                &DOMException::new(&document.global(), DOMErrorName::EncodingError, can_gc),
-                can_gc,
-            );
+            promise.reject_error(Error::Encoding, can_gc);
         } else if matches!(
             self.current_request.borrow().state,
             State::CompletelyAvailable
@@ -1174,22 +1170,59 @@ impl HTMLImageElement {
         }
     }
 
-    fn resolve_image_decode_promises(&self, can_gc: CanGc) {
-        for promise in self.image_decode_promises.borrow().iter() {
-            promise.resolve_native(&(), can_gc);
+    /// <https://html.spec.whatwg.org/multipage/#dom-img-decode>
+    fn resolve_image_decode_promises(&self) {
+        if self.image_decode_promises.borrow().is_empty() {
+            return;
         }
+
+        // Step 3. If the decoding process completes successfully, then queue a
+        // global task on the DOM manipulation task source with global to
+        // resolve promise with undefined.
+        let trusted_image_decode_promises: Vec<TrustedPromise> = self
+            .image_decode_promises
+            .borrow()
+            .iter()
+            .map(|promise| TrustedPromise::new(promise.clone()))
+            .collect();
+
         self.image_decode_promises.borrow_mut().clear();
+
+        self.owner_global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(fulfill_image_decode_promises: move || {
+                for trusted_promise in trusted_image_decode_promises {
+                    trusted_promise.root().resolve_native(&(), CanGc::note());
+                }
+            }));
     }
 
-    fn reject_image_decode_promises(&self, can_gc: CanGc) {
-        let document = self.owner_document();
-        for promise in self.image_decode_promises.borrow().iter() {
-            promise.reject_native(
-                &DOMException::new(&document.global(), DOMErrorName::EncodingError, can_gc),
-                can_gc,
-            );
+    /// <https://html.spec.whatwg.org/multipage/#dom-img-decode>
+    fn reject_image_decode_promises(&self) {
+        if self.image_decode_promises.borrow().is_empty() {
+            return;
         }
+
+        // Step 3. Queue a global task on the DOM manipulation task source with
+        // global to reject promise with an "EncodingError" DOMException.
+        let trusted_image_decode_promises: Vec<TrustedPromise> = self
+            .image_decode_promises
+            .borrow()
+            .iter()
+            .map(|promise| TrustedPromise::new(promise.clone()))
+            .collect();
+
         self.image_decode_promises.borrow_mut().clear();
+
+        self.owner_global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(reject_image_decode_promises: move || {
+                for trusted_promise in trusted_image_decode_promises {
+                    trusted_promise.root().reject_error(Error::Encoding, CanGc::note());
+                }
+            }));
     }
 
     /// Step 15 for <https://html.spec.whatwg.org/multipage/#img-environment-changes>
