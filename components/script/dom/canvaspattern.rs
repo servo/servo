@@ -93,21 +93,14 @@ impl CanvasPatternMethods<crate::DomTypeHolder> for CanvasPattern {
             !matrix.m12.is_finite() ||
             !matrix.m21.is_finite() ||
             !matrix.m22.is_finite() ||
-            !matrix.m41.is_finite() ||
-            !matrix.m42.is_finite()
+            !matrix.m31.is_finite() ||
+            !matrix.m32.is_finite()
         {
             return Ok(());
         }
 
         // Step 3. Reset the pattern's transformation matrix to matrix.
-        *self.transform.borrow_mut() = Transform2D::new(
-            matrix.m11 as f32,
-            matrix.m12 as f32,
-            matrix.m21 as f32,
-            matrix.m22 as f32,
-            matrix.m41 as f32,
-            matrix.m42 as f32,
-        );
+        *self.transform.borrow_mut() = matrix.cast();
 
         Ok(())
     }
