@@ -10,7 +10,7 @@ use script_bindings::str::DOMString;
 
 use crate::dom::bindings::xmlname::namespace_from_domstring;
 
-/// See <https://infra.spec.whatwg.org/#xml-namespace>
+/// <https://infra.spec.whatwg.org/#xml-namespace>
 const XML_NAMESPACE: &str = "http://www.w3.org/XML/1998/namespace";
 
 /// See <https://infra.spec.whatwg.org/#xmlns-namespace>
