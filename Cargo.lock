@@ -703,6 +703,7 @@ dependencies = [
  "log",
  "mach2",
  "nix",
+ "rustc-demangle",
  "serde_json",
 ]
 
