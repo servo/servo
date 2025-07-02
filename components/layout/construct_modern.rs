@@ -10,9 +10,8 @@ use std::sync::LazyLock;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use style::selector_parser::PseudoElement;
 
-use crate::PropagatedBoxTreeData;
 use crate::context::LayoutContext;
-use crate::dom::BoxSlot;
+use crate::dom::{BoxSlot, LayoutBox};
 use crate::dom_traversal::{Contents, NodeAndStyleInfo, TraversalHandler};
 use crate::flow::inline::construct::InlineFormattingContextBuilder;
 use crate::flow::{BlockContainer, BlockFormattingContext};
@@ -22,6 +21,7 @@ use crate::formatting_contexts::{
 };
 use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::{ComputedValuesExt, DisplayGeneratingBox};
+use crate::{ArcRefCell, PropagatedBoxTreeData};
 
 /// A builder used for both flex and grid containers.
 pub(crate) struct ModernContainerBuilder<'a, 'dom> {
@@ -78,10 +78,9 @@ impl<'dom> ModernContainerJob<'dom> {
                 };
 
                 Some(ModernItem {
-                    kind: ModernItemKind::InFlow,
+                    kind: ModernItemKind::InFlow(formatting_context),
                     order: 0,
                     box_slot: None,
-                    formatting_context,
                 })
             },
             ModernContainerJob::ElementOrPseudoElement {
@@ -91,6 +90,31 @@ impl<'dom> ModernContainerJob<'dom> {
                 box_slot,
             } => {
                 let is_abspos = info.style.get_box().position.is_absolutely_positioned();
+
+                if !info.damage.has_box_damage() {
+                    if let Some(layout_box) = match box_slot.slot.as_ref() {
+                        Some(box_slot) => match &*box_slot.borrow() {
+                            Some(LayoutBox::FlexLevel(_)) |
+                            Some(LayoutBox::TaffyItemBox(_)) => Some(box_slot.clone()),
+                            _ => None,
+                        },
+                        None => None,
+                    } {
+                        if is_abspos {
+                            return Some(ModernItem {
+                                kind: ModernItemKind::ReusedBox(layout_box),
+                                order: 0,
+                                box_slot: Some(box_slot),
+                            });
+                        } else {
+                            return Some(ModernItem {
+                                kind: ModernItemKind::ReusedBox(layout_box),
+                                order: info.style.clone_order(),
+                                box_slot: Some(box_slot),
+                            });
+                        }
+                    }
+                }
 
                 // Text decorations are not propagated to any out-of-flow descendants. In addition,
                 // absolutes don't affect the size of ancestors so it is fine to allow descendent
@@ -110,17 +134,15 @@ impl<'dom> ModernContainerJob<'dom> {
 
                 if is_abspos {
                     Some(ModernItem {
-                        kind: ModernItemKind::OutOfFlow,
+                        kind: ModernItemKind::OutOfFlow(formatting_context),
                         order: 0,
                         box_slot: Some(box_slot),
-                        formatting_context,
                     })
                 } else {
                     Some(ModernItem {
-                        kind: ModernItemKind::InFlow,
+                        kind: ModernItemKind::InFlow(formatting_context),
                         order: info.style.clone_order(),
                         box_slot: Some(box_slot),
-                        formatting_context,
                     })
                 }
             },
@@ -146,15 +168,15 @@ impl ModernContainerTextRun<'_> {
 }
 
 pub(crate) enum ModernItemKind {
-    InFlow,
-    OutOfFlow,
+    InFlow(IndependentFormattingContext),
+    OutOfFlow(IndependentFormattingContext),
+    ReusedBox(ArcRefCell<Option<LayoutBox>>),
 }
 
 pub(crate) struct ModernItem<'dom> {
     pub kind: ModernItemKind,
     pub order: i32,
     pub box_slot: Option<BoxSlot<'dom>>,
-    pub formatting_context: IndependentFormattingContext,
 }
 
 impl<'dom> TraversalHandler<'dom> for ModernContainerBuilder<'_, 'dom> {
