@@ -776,7 +776,7 @@ impl ImageCache for ImageCacheImpl {
             }
         }
 
-        let decoded = {
+        let (key, decoded) = {
             let result = store
                 .pending_loads
                 .get_cached(url.clone(), origin.clone(), cors_setting);
@@ -784,11 +784,14 @@ impl ImageCache for ImageCacheImpl {
                 CacheResult::Hit(key, pl) => match (&pl.result, &pl.metadata) {
                     (&Some(Ok(_)), _) => {
                         debug!("Sync decoding {} ({:?})", url, key);
-                        decode_bytes_sync(
+                        (
                             key,
-                            pl.bytes.as_slice(),
-                            pl.cors_status,
-                            pl.content_type.clone(),
+                            decode_bytes_sync(
+                                key,
+                                pl.bytes.as_slice(),
+                                pl.cors_status,
+                                pl.content_type.clone(),
+                            ),
                         )
                     },
                     (&None, Some(meta)) => {
@@ -817,18 +820,7 @@ impl ImageCache for ImageCacheImpl {
         // have the full response available, we decode the bytes synchronously
         // and ignore the async decode when it finishes later.
         // TODO: make this behaviour configurable according to the caller's needs.
-
-        // Do a blocking call to get a key
-        let image_key = store
-            .compositor_api
-            .generate_image_key_blocking()
-            .expect("Could not generate image key");
-        let Some(DecodedImage::Raster(mut raster_image)) = decoded.image else {
-            unreachable!("No raster iamge");
-        };
-
-        set_webrender_image_key(&store.compositor_api, &mut raster_image, image_key);
-        store.complete_load(decoded.key, LoadResult::LoadedRasterImage(raster_image));
+        store.handle_decoder(decoded);
         match store.get_completed_image_if_available(url, origin, cors_setting, use_placeholder) {
             Some(Ok((image, image_url))) => {
                 let is_placeholder = image_url == store.placeholder_url;
@@ -838,7 +830,8 @@ impl ImageCache for ImageCacheImpl {
                     is_placeholder,
                 })
             },
-            _ => ImageCacheResult::LoadError,
+            // Note: this happens if we are pending a batch of image keys.
+            _ => ImageCacheResult::Pending(key),
         }
     }
 
