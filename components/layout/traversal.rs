@@ -145,6 +145,10 @@ pub(crate) fn compute_damage_and_repair_style_inner(
         element_data.borrow_mut().damage.insert(element_damage);
     }
 
+    if element_damage.contains(LayoutDamage::recollect_box_tree_children()) {
+        node.invalidate_cached_fragment();
+    }
+
     // Only propagate up layout phases from children, as other types of damage are
     // incorporated into `element_damage` above.
     element_damage | (damage_from_children & RestyleDamage::RELAYOUT)
