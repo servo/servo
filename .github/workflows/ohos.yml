@@ -25,12 +25,11 @@ on:
         default: "release"
         type: choice
         description: "Cargo build profile"
-        options: [ "release", "debug", "production"]
+        options: ["release", "debug", "production"]
       bencher:
         required: false
         default: false
         type: boolean
-
 
 env:
   RUST_BACKTRACE: 1
@@ -44,7 +43,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        target: ['aarch64-unknown-linux-ohos', 'x86_64-unknown-linux-ohos']
+        target: ["aarch64-unknown-linux-ohos", "x86_64-unknown-linux-ohos"]
     outputs:
       signed: ${{ steps.signing_config.outputs.signed }}
     steps:
@@ -138,7 +137,7 @@ jobs:
     needs: ["build"]
     strategy:
       matrix:
-        target: ['aarch64-unknown-linux-ohos', 'x86_64-unknown-linux-ohos']
+        target: ["aarch64-unknown-linux-ohos", "x86_64-unknown-linux-ohos"]
     if: ${{ inputs.bencher && inputs.profile != 'debug' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }}
     uses: ./.github/workflows/bencher.yml
     with:
@@ -206,7 +205,7 @@ jobs:
       - name: Test loading servo.org
         env:
           TRACE_BUFFER_SZ_KB: "524288" # 512 MB
-        run:  |
+        run: |
           mkdir test_output
           hdc shell aa force-stop org.servo.servo
           # Hitrace allows us to save application and system traces, which is useful to analyze performance.
@@ -279,8 +278,14 @@ jobs:
         uses: ./.github/actions/setup-python
       - name: "Run benchmark"
         run: hitrace-bench -r support/hitrace-bencher/runs.json
+        continue-on-error: true
       - name: Run speedometer
+        id: BencherRun
         run: python3 ./mach test-speedometer-ohos --bmf-output speedometer.json
+        continue-on-error: true
+      - name: Create empty speedometer.json if failed
+        run: touch speedometer.json
+        if: ${{ steps.BencherRun.outcome == 'failure' }}
       - name: Getting model name
         run: |
           echo "MODEL_NAME=$(hdc bugreport | head -n 20 | grep MarketName | awk '{for (i=2; i<NF; i++) printf $i " "; print $NF}' -)" >> $GITHUB_ENV
@@ -288,7 +293,7 @@ jobs:
         run: jq --compact-output --slurp add speedometer.json bench.json > combined-bencher.json
       - uses: bencherdev/bencher@main
       - name: Uploading to bencher.dev
-        run: | 
+        run: |
           bencher run --adapter json \
                       --file combined-bencher.json \
                       --project '${{ env.BENCHER_PROJECT }}' \
@@ -296,4 +301,9 @@ jobs:
                       --token '${{ secrets.BENCHER_API_TOKEN }}' \
                       --github-actions '${{ secrets.GITHUB_TOKEN }}' \
                       --testbed="$MODEL_NAME"
-
+      - name: Success
+        if: ${{ !contains(steps.*.outcome, 'failure') && !contains(steps.*.outcome, 'cancelled') }}
+        run: exit 0
+      - name: Failure
+        if: contains(steps.*.outcome, 'failure') || contains(steps.*.outcome, 'cancelled')
+        run: exit 1
