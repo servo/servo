@@ -48,10 +48,12 @@ impl StorageThreadFactory for IpcSender<StorageThreadMsg> {
     }
 }
 
+type OriginEntry = (usize, BTreeMap<String, String>);
+
 struct StorageManager {
     port: IpcReceiver<StorageThreadMsg>,
-    session_data: HashMap<String, (usize, BTreeMap<String, String>)>,
-    local_data: HashMap<String, (usize, BTreeMap<String, String>)>,
+    session_data: HashMap<String, OriginEntry>,
+    local_data: HashMap<String, OriginEntry>,
     config_dir: Option<PathBuf>,
 }
 
@@ -140,7 +142,7 @@ impl StorageManager {
         storage_type: StorageType,
         _webview_id: WebViewId,
         origin: &str,
-    ) -> Option<&(usize, BTreeMap<String, String>)> {
+    ) -> Option<&OriginEntry> {
         match storage_type {
             StorageType::Session => self.session_data.get(origin),
             StorageType::Local => self.local_data.get(origin),
@@ -152,7 +154,7 @@ impl StorageManager {
         storage_type: StorageType,
         _webview_id: WebViewId,
         origin: &str,
-    ) -> Option<&mut (usize, BTreeMap<String, String>)> {
+    ) -> Option<&mut OriginEntry> {
         match storage_type {
             StorageType::Session => self.session_data.get_mut(origin),
             StorageType::Local => self.local_data.get_mut(origin),
@@ -164,7 +166,7 @@ impl StorageManager {
         storage_type: StorageType,
         _webview_id: WebViewId,
         origin: &str,
-    ) -> &mut (usize, BTreeMap<String, String>) {
+    ) -> &mut OriginEntry {
         match storage_type {
             StorageType::Session => self.session_data.entry(origin.to_string()).or_default(),
             StorageType::Local => self.local_data.entry(origin.to_string()).or_default(),
