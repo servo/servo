@@ -57,19 +57,49 @@ impl Path2D {
         self.path.borrow().is_empty()
     }
 
-    fn last_point(path: &[PathSegment]) -> Option<Point2D<f32>> {
+    fn last_point(path: &[PathSegment]) -> Option<PathSegment> {
         if path.is_empty() {
             return None;
         }
 
-            // already checked if path segments is empty in step 1 so safe to unwrap at this step
-            let (x, y) = match path.last().unwrap() {
-                PathSegment::ClosePath => todo!(),
-                PathSegment::MoveTo { x, y } | PathSegment::LineTo { x, y } | PathSegment::Quadratic { x, y, .. } | PathSegment::Bezier { x, y, ..} | PathSegment::Ellipse { x, y, .. } | PathSegment::SvgArc { x, y, .. } => (x, y),
-                PathSegment::ArcTo { cp1x, cp1y, cp2x, cp2y, radius } => todo!(),
-            };
+        // already checked if path segments is empty above, so safe to unwrap at this step
+        let last_point = path.last().unwrap();
 
-        Some(Point2D::new(*x, *y))
+        let last_point = match last_point {
+            PathSegment::MoveTo { .. } |
+            PathSegment::LineTo { .. } |
+            PathSegment::Quadratic { .. } |
+            PathSegment::Bezier { .. } |
+            PathSegment::Ellipse { .. } |
+            PathSegment::SvgArc { .. } |
+            PathSegment::ArcTo { .. } => *last_point,
+            PathSegment::ClosePath => {
+                // find the first point's index for the last subpath
+                let first_point_index = match path
+                    .iter()
+                    .rev()
+                    .skip(1)
+                    .position(|segment| *segment == PathSegment::ClosePath)
+                {
+                    Some(index) => index + 1,
+                    None => 0,
+                };
+                let first_point = path.get(first_point_index)?;
+
+                match first_point {
+                    PathSegment::MoveTo { .. } |
+                    PathSegment::LineTo { .. } |
+                    PathSegment::Quadratic { .. } |
+                    PathSegment::Bezier { .. } |
+                    PathSegment::Ellipse { .. } |
+                    PathSegment::SvgArc { .. } |
+                    PathSegment::ArcTo { .. } => *first_point,
+                    PathSegment::ClosePath => return None,
+                }
+            },
+        };
+
+        Some(last_point)
     }
 
     fn add_path(&self, other: &Path2D, transform: &DOMMatrix2DInit) -> ErrorResult {
@@ -88,8 +118,8 @@ impl Path2D {
             !matrix.m12.is_finite() ||
             !matrix.m21.is_finite() ||
             !matrix.m22.is_finite() ||
-            !matrix.m41.is_finite() ||
-            !matrix.m42.is_finite()
+            !matrix.m31.is_finite() ||
+            !matrix.m32.is_finite()
         {
             return Ok(());
         }
@@ -98,32 +128,29 @@ impl Path2D {
         let mut c = other.segments();
 
         // Step 5. Transform all the coordinates and lines in c by the transform matrix matrix.
-        let apply_matrix_transform = |x: f32, y: f32| -> Fallible<Point2D<f64>> {
-            matrix
-                .transform_point2d(Point2D::new(x.into(), y.into()))
-                .ok_or(Error::InvalidState)
+        let apply_matrix_transform = |x: f32, y: f32| -> Point2D<f64> {
+            matrix.transform_point(Point2D::new(x.into(), y.into()))
         };
 
         for segment in c.iter_mut() {
             match *segment {
-                PathSegment::ClosePath => {},
                 PathSegment::MoveTo { x, y } => {
-                    let transformed_point = apply_matrix_transform(x, y)?;
+                    let transformed_point = apply_matrix_transform(x, y);
                     *segment = PathSegment::MoveTo {
                         x: transformed_point.x as f32,
                         y: transformed_point.y as f32,
                     };
                 },
                 PathSegment::LineTo { x, y } => {
-                    let transformed_point = apply_matrix_transform(x, y)?;
+                    let transformed_point = apply_matrix_transform(x, y);
                     *segment = PathSegment::LineTo {
                         x: transformed_point.x as f32,
                         y: transformed_point.y as f32,
                     }
                 },
                 PathSegment::Quadratic { cpx, cpy, x, y } => {
-                    let transformed_cp = apply_matrix_transform(cpx, cpy)?;
-                    let transformed_point = apply_matrix_transform(x, y)?;
+                    let transformed_cp = apply_matrix_transform(cpx, cpy);
+                    let transformed_point = apply_matrix_transform(x, y);
                     *segment = PathSegment::Quadratic {
                         cpx: transformed_cp.x as f32,
                         cpy: transformed_cp.y as f32,
@@ -139,9 +166,9 @@ impl Path2D {
                     x,
                     y,
                 } => {
-                    let transformed_cp1 = apply_matrix_transform(cp1x, cp1y)?;
-                    let transformed_cp2 = apply_matrix_transform(cp2x, cp2y)?;
-                    let transformed_point = apply_matrix_transform(x, y)?;
+                    let transformed_cp1 = apply_matrix_transform(cp1x, cp1y);
+                    let transformed_cp2 = apply_matrix_transform(cp2x, cp2y);
+                    let transformed_point = apply_matrix_transform(x, y);
                     *segment = PathSegment::Bezier {
                         cp1x: transformed_cp1.x as f32,
                         cp1y: transformed_cp1.y as f32,
@@ -158,8 +185,8 @@ impl Path2D {
                     cp2y,
                     radius,
                 } => {
-                    let transformed_cp1 = apply_matrix_transform(cp1x, cp1y)?;
-                    let transformed_cp2 = apply_matrix_transform(cp2x, cp2y)?;
+                    let transformed_cp1 = apply_matrix_transform(cp1x, cp1y);
+                    let transformed_cp2 = apply_matrix_transform(cp2x, cp2y);
                     *segment = PathSegment::ArcTo {
                         cp1x: transformed_cp1.x as f32,
                         cp1y: transformed_cp1.y as f32,
@@ -178,7 +205,7 @@ impl Path2D {
                     end_angle,
                     anticlockwise,
                 } => {
-                    let transformed_point = apply_matrix_transform(x, y)?;
+                    let transformed_point = apply_matrix_transform(x, y);
                     *segment = PathSegment::Ellipse {
                         x: transformed_point.x as f32,
                         y: transformed_point.y as f32,
@@ -199,7 +226,7 @@ impl Path2D {
                     x,
                     y,
                 } => {
-                    let transformed_point = apply_matrix_transform(x, y)?;
+                    let transformed_point = apply_matrix_transform(x, y);
                     *segment = PathSegment::SvgArc {
                         x: transformed_point.x as f32,
                         y: transformed_point.y as f32,
@@ -210,25 +237,18 @@ impl Path2D {
                         sweep,
                     }
                 },
+                PathSegment::ClosePath => {},
             }
         }
 
         // Step 6. Let (x, y) be the last point in the last subpath of c
-        // already checked if path segments is empty in step 1 so safe to unwrap at this step
-        let last_point = Path2D::last_point(&c).unwrap();
+        let last_point = Path2D::last_point(&c).unwrap_or(PathSegment::ClosePath);
 
         // Step 7. Add all the subpaths in c to a.
-        if std::ptr::eq(&self.path, &other.path) {
-            // Note: this is not part of the spec, but it is a workaround to
-            // avoids borrow conflict when path is same as other.path
-            self.path.borrow_mut().extend_from_within(..);
-        } else {
-            let mut dest = self.path.borrow_mut();
-            dest.extend(other.path.borrow().iter().copied());
-        }
+        self.path.borrow_mut().extend(c);
 
-        // Step 8. Create a new subpath in a with (x, y) as the only point in the subpath.
-        self.push(PathSegment::MoveTo { x: last_point.x, y: last_point.y });
+        // Step 8. Create a new subpath in `a` with (x, y) as the only point in the subpath.
+        self.push(last_point);
 
         Ok(())
     }
