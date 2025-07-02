@@ -65,41 +65,27 @@ impl Path2D {
         // already checked if path segments is empty above, so safe to unwrap at this step
         let last_point = path.last().unwrap();
 
-        let last_point = match last_point {
-            PathSegment::MoveTo { .. } |
-            PathSegment::LineTo { .. } |
-            PathSegment::Quadratic { .. } |
-            PathSegment::Bezier { .. } |
-            PathSegment::Ellipse { .. } |
-            PathSegment::SvgArc { .. } |
-            PathSegment::ArcTo { .. } => *last_point,
-            PathSegment::ClosePath => {
-                // find the first point's index for the last subpath
-                let first_point_index = match path
-                    .iter()
-                    .rev()
-                    .skip(1)
-                    .position(|segment| *segment == PathSegment::ClosePath)
-                {
-                    Some(index) => index + 1,
-                    None => 0,
-                };
-                let first_point = path.get(first_point_index)?;
+        if let PathSegment::ClosePath = last_point {
+            // find first point for the last subpath
+            let first_point_index = match path
+                .iter()
+                .rev()
+                .skip(1)
+                .position(|segment| *segment == PathSegment::ClosePath)
+            {
+                Some(index) => index + 1,
+                None => 0,
+            };
+            let first_point = path.get(first_point_index)?;
 
-                match first_point {
-                    PathSegment::MoveTo { .. } |
-                    PathSegment::LineTo { .. } |
-                    PathSegment::Quadratic { .. } |
-                    PathSegment::Bezier { .. } |
-                    PathSegment::Ellipse { .. } |
-                    PathSegment::SvgArc { .. } |
-                    PathSegment::ArcTo { .. } => *first_point,
-                    PathSegment::ClosePath => return None,
-                }
-            },
-        };
+            if let PathSegment::ClosePath = first_point {
+                return None;
+            } else {
+                return Some(*first_point);
+            }
+        }
 
-        Some(last_point)
+        Some(*last_point)
     }
 
     fn add_path(&self, other: &Path2D, transform: &DOMMatrix2DInit) -> ErrorResult {
