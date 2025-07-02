@@ -6,6 +6,7 @@
 
 use html5ever::{LocalName, Namespace, Prefix, ns};
 
+use crate::dom::bindings::domname::namespace_from_domstring;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::str::DOMString;
 
@@ -145,14 +146,4 @@ pub(crate) fn matches_name_production(name: &str) -> bool {
         return false;
     }
     iter.all(is_valid_continuation)
-}
-
-/// Convert a possibly-null URL to a namespace.
-///
-/// If the URL is None, returns the empty namespace.
-pub(crate) fn namespace_from_domstring(url: Option<DOMString>) -> Namespace {
-    match url {
-        None => ns!(),
-        Some(s) => Namespace::from(s),
-    }
 }

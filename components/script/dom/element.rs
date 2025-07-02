@@ -88,14 +88,16 @@ use crate::dom::bindings::codegen::UnionTypes::{
     NodeOrString, TrustedHTMLOrNullIsEmptyString, TrustedHTMLOrString, TrustedScriptURLOrUSVString,
 };
 use crate::dom::bindings::conversions::DerivedFrom;
-use crate::dom::bindings::domname::{self, is_valid_attribute_local_name};
+use crate::dom::bindings::domname::{
+    self, is_valid_attribute_local_name, namespace_from_domstring,
+};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::bindings::xmlname::{matches_name_production, namespace_from_domstring};
+use crate::dom::bindings::xmlname::matches_name_production;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::create::create_element;
 use crate::dom::csp::{CspReporting, InlineCheckType};

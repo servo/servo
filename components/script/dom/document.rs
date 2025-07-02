@@ -111,7 +111,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
     NodeOrString, StringOrElementCreationOptions, TrustedHTMLOrString,
 };
 use crate::dom::bindings::domname::{
-    self, is_valid_attribute_local_name, is_valid_element_local_name,
+    self, is_valid_attribute_local_name, is_valid_element_local_name, namespace_from_domstring,
 };
 use crate::dom::bindings::error::{Error, ErrorInfo, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
@@ -123,7 +123,7 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::{HashMapTracedValues, NoTrace};
 #[cfg(feature = "webgpu")]
 use crate::dom::bindings::weakref::WeakRef;
-use crate::dom::bindings::xmlname::{matches_name_production, namespace_from_domstring};
+use crate::dom::bindings::xmlname::matches_name_production;
 use crate::dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use crate::dom::cdatasection::CDATASection;
 use crate::dom::clipboardevent::{ClipboardEvent, ClipboardEventType};
