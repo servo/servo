@@ -92,6 +92,7 @@ where
     }
 }
 
+#[servo_tracing::instrument(skip_all)]
 pub(crate) fn compute_damage_and_repair_style(
     context: &SharedStyleContext,
     node: ServoLayoutNode<'_>,

@@ -66,7 +66,7 @@ pub enum ProfilerCategory {
     Compositing = 0x00,
 
     /// The script thread is doing layout work.
-    LayoutPerform = 0x10,
+    Layout = 0x10,
 
     ImageSaving = 0x51,
     ScriptAttachLayout = 0x60,
@@ -126,7 +126,7 @@ impl ProfilerCategory {
     pub const fn variant_name(&self) -> &'static str {
         match self {
             ProfilerCategory::Compositing => "Compositing",
-            ProfilerCategory::LayoutPerform => "LayoutPerform",
+            ProfilerCategory::Layout => "Layout",
             ProfilerCategory::ImageSaving => "ImageSaving",
             ProfilerCategory::ScriptAttachLayout => "ScriptAttachLayout",
             ProfilerCategory::ScriptConstellationMsg => "ScriptConstellationMsg",
