@@ -19,7 +19,7 @@ use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
     ImageBitmapMethods, ImageBitmapOptions, ImageBitmapSource, ImageOrientation, PremultiplyAlpha,
     ResizeQuality,
 };
-use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
@@ -28,7 +28,6 @@ use crate::dom::bindings::transferable::Transferable;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::types::Promise;
 use crate::script_runtime::CanGc;
-use crate::test::TrustedPromise;
 
 #[dom_struct]
 pub(crate) struct ImageBitmap {
@@ -359,36 +358,12 @@ impl ImageBitmap {
                     return p;
                 }
 
-                // If no ImageBitmap object can be constructed, then the promise is rejected instead.
-                let Some(img) = image.image_data() else {
+                // If no ImageBitmap object can be constructed, then the promise
+                // is rejected instead.
+                let Some(snapshot) = image.get_raster_image_data() else {
                     p.reject_error(Error::InvalidState, can_gc);
                     return p;
                 };
-
-                // TODO: Support vector HTMLImageElement.
-                let Some(img) = img.as_raster_image() else {
-                    p.reject_error(Error::InvalidState, can_gc);
-                    return p;
-                };
-
-                let size = Size2D::new(img.metadata.width, img.metadata.height);
-                let format = match img.format {
-                    PixelFormat::BGRA8 => SnapshotPixelFormat::BGRA,
-                    PixelFormat::RGBA8 => SnapshotPixelFormat::RGBA,
-                    pixel_format => {
-                        unimplemented!("unsupported pixel format ({:?})", pixel_format)
-                    },
-                };
-                let alpha_mode = SnapshotAlphaMode::Transparent {
-                    premultiplied: false,
-                };
-
-                let snapshot = Snapshot::from_vec(
-                    size.cast(),
-                    format,
-                    alpha_mode,
-                    img.first_frame().bytes.to_vec(),
-                );
 
                 // Step 6.3. Set imageBitmap's bitmap data to a copy of image's media data,
                 // cropped to the source rectangle with formatting.

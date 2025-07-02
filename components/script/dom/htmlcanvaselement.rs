@@ -749,29 +749,3 @@ impl Convert<GLContextAttributes> for WebGLContextAttributes {
         }
     }
 }
-
-pub(crate) mod utils {
-    use net_traits::image_cache::ImageResponse;
-    use net_traits::request::CorsSettings;
-    use servo_url::ServoUrl;
-
-    use crate::dom::window::Window;
-
-    pub(crate) fn request_image_from_cache(
-        window: &Window,
-        url: ServoUrl,
-        cors_setting: Option<CorsSettings>,
-    ) -> ImageResponse {
-        let image_cache = window.image_cache();
-        let result = image_cache.get_image(
-            url.clone(),
-            window.origin().immutable().clone(),
-            cors_setting,
-        );
-
-        match result {
-            Some(image) => ImageResponse::Loaded(image, url),
-            None => ImageResponse::None,
-        }
-    }
-}
