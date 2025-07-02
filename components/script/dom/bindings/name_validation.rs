@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! Functions for validating names
+//! Functions for validating names as defined in the DOM Standard: https://dom.spec.whatwg.org/
 
 use html5ever::{LocalName, Namespace, Prefix};
 use script_bindings::error::{Error, Fallible};
