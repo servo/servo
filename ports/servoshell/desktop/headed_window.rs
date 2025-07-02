@@ -484,18 +484,13 @@ impl WindowPortsMethods for Window {
     }
 
     fn window_rect(&self) -> DeviceIntRect {
-        let toolbar_height = (self.toolbar_height() * self.hidpi_scale_factor())
-            .get()
-            .ceil() as i32;
-        let inner_size = self.winit_window.inner_size();
-        let total_size = Size2D::new(
-            inner_size.width as i32,
-            inner_size.height as i32 + toolbar_height,
-        );
-        let (x, y) = match self.winit_window.inner_position() {
-            Ok(pos) => (pos.x, pos.y - toolbar_height),
-            Err(_) => (0, 0),
-        };
+        let outer_size = self.winit_window.outer_size();
+        let total_size = Size2D::new(outer_size.width as i32, outer_size.height as i32);
+        let (x, y) = self
+            .winit_window
+            .outer_position()
+            .map(|pos| (pos.x, pos.y))
+            .unwrap_or((0, 0));
         DeviceIntRect::from_origin_and_size(Point2D::new(x, y), total_size)
     }
 
