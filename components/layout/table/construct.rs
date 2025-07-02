@@ -854,21 +854,37 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                     let Contents::NonReplaced(non_replaced_contents) = contents else {
                         unreachable!("Replaced should not have a LayoutInternal display type.");
                     };
-                    let contents =
-                        IndependentNonReplacedContents::Flow(BlockFormattingContext::construct(
-                            self.context,
-                            info,
-                            non_replaced_contents,
-                            self.current_propagated_data,
-                            false, /* is_list_item */
-                        ));
 
-                    let caption = ArcRefCell::new(TableCaption {
-                        context: IndependentFormattingContext {
-                            base: LayoutBoxBase::new(info.into(), info.style.clone()),
-                            contents: IndependentFormattingContextContents::NonReplaced(contents),
-                        },
+                    let old_caption = (!info.damage.has_box_damage())
+                        .then(|| match box_slot.take_layout_box() {
+                            Some(LayoutBox::TableLevelBox(TableLevelBox::Caption(caption))) => {
+                                Some(caption)
+                            },
+                            _ => None,
+                        })
+                        .flatten();
+
+                    let caption = old_caption.unwrap_or_else(|| {
+                        let contents = IndependentNonReplacedContents::Flow(
+                            BlockFormattingContext::construct(
+                                self.context,
+                                info,
+                                non_replaced_contents,
+                                self.current_propagated_data,
+                                false, /* is_list_item */
+                            ),
+                        );
+
+                        ArcRefCell::new(TableCaption {
+                            context: IndependentFormattingContext {
+                                base: LayoutBoxBase::new(info.into(), info.style.clone()),
+                                contents: IndependentFormattingContextContents::NonReplaced(
+                                    contents,
+                                ),
+                            },
+                        })
                     });
+
                     self.builder.table.captions.push(caption.clone());
                     box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::Caption(caption)));
                 },

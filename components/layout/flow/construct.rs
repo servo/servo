@@ -700,7 +700,6 @@ impl BlockLevelJob<'_> {
                 },
                 None => None,
             } {
-                block_level_box.borrow().invalidate_cached_fragment();
                 return block_level_box;
             }
         }

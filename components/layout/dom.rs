@@ -29,7 +29,7 @@ use crate::flow::inline::{InlineItem, SharedInlineStyles};
 use crate::fragment_tree::Fragment;
 use crate::geom::PhysicalSize;
 use crate::replaced::CanvasInfo;
-use crate::table::TableLevelBox;
+use crate::table::{TableCaption, TableLevelBox};
 use crate::taffy::TaffyItemBox;
 
 /// The data that is stored in each DOM node that is used by layout.
@@ -179,6 +179,10 @@ impl BoxSlot<'_> {
         if let Some(slot) = &mut self.slot {
             *slot.borrow_mut() = Some(box_);
         }
+    }
+
+    pub(crate) fn take_layout_box(&self) -> Option<LayoutBox> {
+        self.slot.as_ref().and_then(|slot| slot.borrow_mut().take())
     }
 }
 
