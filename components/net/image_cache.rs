@@ -148,7 +148,7 @@ fn set_webrender_image_key(compositor_api: &CrossProcessCompositorApi, image: &m
     };
     if let Some(image_key) = compositor_api.generate_image_key() {
         let data = SerializableImageData::Raw(IpcSharedMemory::from_bytes(&bytes));
-        compositor_api.add_image(image_key, descriptor, data);
+        compositor_api.add_image(image_key, descriptor, data, None);
         image.id = Some(image_key);
     }
 }

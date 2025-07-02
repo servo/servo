@@ -18,7 +18,7 @@ use webrender_api::units::{
     LayoutPixel, LayoutPoint, LayoutRect, LayoutSize, LayoutTransform, LayoutVector2D,
 };
 use webrender_api::{
-    Epoch, ExternalScrollId, PipelineId, ReferenceFrameKind, ScrollLocation, SpatialId,
+    Epoch, ExternalScrollId, ImageKey, PipelineId, ReferenceFrameKind, ScrollLocation, SpatialId,
     StickyOffsetBounds, TransformStyle,
 };
 
@@ -531,6 +531,9 @@ pub struct CompositorDisplayListInfo {
     /// Whether the first layout or a subsequent (incremental) layout triggered this
     /// display list creation.
     pub first_reflow: bool,
+
+    /// Images and their associated epochs
+    pub image_epochs: HashMap<ImageKey, base::Epoch>,
 }
 
 impl CompositorDisplayListInfo {
@@ -576,6 +579,7 @@ impl CompositorDisplayListInfo {
             root_scroll_node_id,
             is_contentful: false,
             first_reflow,
+            image_epochs: HashMap::new(),
         }
     }
 
