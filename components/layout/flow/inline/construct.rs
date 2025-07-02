@@ -6,6 +6,7 @@ use std::borrow::Cow;
 use std::char::{ToLowercase, ToUppercase};
 
 use icu_segmenter::WordSegmenter;
+use icu_segmenter::options::WordBreakInvariantOptions;
 use itertools::izip;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::values::specified::text::TextTransformCase;
@@ -676,7 +677,7 @@ pub(crate) fn capitalize_string(string: &str, allow_word_at_start: bool) -> Stri
     let mut output_string = String::new();
     output_string.reserve(string.len());
 
-    let word_segmenter = WordSegmenter::new_auto();
+    let word_segmenter = WordSegmenter::new_auto(WordBreakInvariantOptions::default());
     let mut bounds = word_segmenter.segment_str(string).peekable();
     let mut byte_index = 0;
     for character in string.chars() {
