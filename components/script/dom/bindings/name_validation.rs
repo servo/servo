@@ -27,13 +27,8 @@ fn is_valid_namespace_prefix(p: &str) -> bool {
     }
 
     !p.chars().any(|c| {
-        matches!(
+        c.is_ascii_whitespace() || matches!(
             c,
-            '\u{0009}' |
-                '\u{000A}' |
-                '\u{000C}' |
-                '\u{000D}' |
-                '\u{0020}' |
                 '\u{0000}' |
                 '\u{002F}' |
                 '\u{003E}'
