@@ -4534,7 +4534,7 @@ where
                 let is_open = self.browsing_contexts.contains_key(&browsing_context_id);
                 let _ = response_sender.send(is_open);
             },
-            WebDriverCommandMsg::GetWindowSize(..) => {
+            WebDriverCommandMsg::GetWindowRect(..) => {
                 unreachable!("This command should be send directly to the embedder.");
             },
             WebDriverCommandMsg::GetViewportSize(..) => {

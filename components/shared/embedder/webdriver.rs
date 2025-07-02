@@ -20,7 +20,7 @@ use servo_url::ServoUrl;
 use style_traits::CSSPixel;
 use webdriver::common::{WebElement, WebFrame, WebWindow};
 use webdriver::error::ErrorStatus;
-use webrender_api::units::{DeviceIntSize, DevicePixel};
+use webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel};
 
 use crate::{MouseButton, MouseButtonAction};
 
@@ -31,7 +31,7 @@ pub struct WebDriverMessageId(pub usize);
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverCommandMsg {
     /// Get the window size.
-    GetWindowSize(WebViewId, IpcSender<Size2D<i32, DevicePixel>>),
+    GetWindowRect(WebViewId, IpcSender<DeviceIntRect>),
     /// Get the viewport size.
     GetViewportSize(WebViewId, IpcSender<Size2D<u32, DevicePixel>>),
     /// Load a URL in the top-level browsing context with the given ID.

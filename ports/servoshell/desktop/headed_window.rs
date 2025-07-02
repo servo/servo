@@ -17,7 +17,7 @@ use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
 use servo::servo_config::pref;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::ScrollLocation;
-use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePixel};
+use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::{
     Cursor, ImeEvent, InputEvent, Key, KeyState, KeyboardEvent, MouseButton as ServoMouseButton,
     MouseButtonAction, MouseButtonEvent, MouseLeaveEvent, MouseMoveEvent,
@@ -481,6 +481,17 @@ impl WindowPortsMethods for Window {
                     size.height.try_into().ok()?,
                 ))
             })
+    }
+
+    fn window_rect(&self) -> DeviceIntRect {
+        let outer_size = self.winit_window.outer_size();
+        let total_size = Size2D::new(outer_size.width as i32, outer_size.height as i32);
+        let origin = self
+            .winit_window
+            .outer_position()
+            .map(|point| Point2D::new(point.x, point.y))
+            .unwrap_or_default();
+        DeviceIntRect::from_origin_and_size(origin, total_size)
     }
 
     fn set_position(&self, point: DeviceIntPoint) {

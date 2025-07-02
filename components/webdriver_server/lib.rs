@@ -799,7 +799,7 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#get-window-rect>
-    fn handle_window_size(
+    fn handle_window_rect(
         &self,
         verify: VerifyBrowsingContextIsOpen,
     ) -> WebDriverResult<WebDriverResponse> {
@@ -810,14 +810,14 @@ impl Handler {
         if let VerifyBrowsingContextIsOpen::Yes = verify {
             self.verify_top_level_browsing_context_is_open(webview_id)?;
         }
-        self.send_message_to_embedder(WebDriverCommandMsg::GetWindowSize(webview_id, sender))?;
+        self.send_message_to_embedder(WebDriverCommandMsg::GetWindowRect(webview_id, sender))?;
 
-        let window_size = wait_for_script_response(receiver)?;
+        let window_rect = wait_for_script_response(receiver)?;
         let window_size_response = WindowRectResponse {
-            x: 0,
-            y: 0,
-            width: window_size.width,
-            height: window_size.height,
+            x: window_rect.min.x,
+            y: window_rect.min.y,
+            width: window_rect.width(),
+            height: window_rect.height(),
         };
         Ok(WebDriverResponse::WindowRect(window_size_response))
     }
@@ -842,7 +842,7 @@ impl Handler {
         // We don't current allow modifying the window x/y positions, so we can just
         // return the current window rectangle if not changing dimension.
         if params.width.is_none() && params.height.is_none() {
-            return self.handle_window_size(VerifyBrowsingContextIsOpen::No);
+            return self.handle_window_rect(VerifyBrowsingContextIsOpen::No);
         }
         // (TODO) Step 14. Fully exit fullscreen.
         // (TODO) Step 15. Restore the window.
@@ -853,7 +853,7 @@ impl Handler {
 
         let current = LazyCell::new(|| {
             let WebDriverResponse::WindowRect(current) = self
-                .handle_window_size(VerifyBrowsingContextIsOpen::No)
+                .handle_window_rect(VerifyBrowsingContextIsOpen::No)
                 .unwrap()
             else {
                 unreachable!("handle_window_size() must return WindowRect");
@@ -2160,7 +2160,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::Get(ref parameters) => self.handle_get(parameters),
             WebDriverCommand::GetCurrentUrl => self.handle_current_url(),
             WebDriverCommand::GetWindowRect => {
-                self.handle_window_size(VerifyBrowsingContextIsOpen::Yes)
+                self.handle_window_rect(VerifyBrowsingContextIsOpen::Yes)
             },
             WebDriverCommand::SetWindowRect(ref size) => self.handle_set_window_size(size),
             WebDriverCommand::IsEnabled(ref element) => self.handle_is_enabled(element),
