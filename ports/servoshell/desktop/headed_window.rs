@@ -486,12 +486,12 @@ impl WindowPortsMethods for Window {
     fn window_rect(&self) -> DeviceIntRect {
         let outer_size = self.winit_window.outer_size();
         let total_size = Size2D::new(outer_size.width as i32, outer_size.height as i32);
-        let (x, y) = self
+        let origin = self
             .winit_window
             .outer_position()
-            .map(|pos| (pos.x, pos.y))
-            .unwrap_or((0, 0));
-        DeviceIntRect::from_origin_and_size(Point2D::new(x, y), total_size)
+            .map(|point| Point2D::new(point.x, point.y))
+            .unwrap_or_default();
+        DeviceIntRect::from_origin_and_size(origin, total_size)
     }
 
     fn set_position(&self, point: DeviceIntPoint) {
