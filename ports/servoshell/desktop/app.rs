@@ -362,14 +362,14 @@ impl App {
                     // TODO: send a response to the WebDriver
                     // so it knows when the focus has finished.
                 },
-                WebDriverCommandMsg::GetWindowSize(_webview_id, response_sender) => {
+                WebDriverCommandMsg::GetWindowRect(_webview_id, response_sender) => {
                     let window = self
                         .windows
                         .values()
                         .next()
                         .expect("Should have at least one window in servoshell");
 
-                    if let Err(error) = response_sender.send(window.screen_geometry().size) {
+                    if let Err(error) = response_sender.send(window.window_rect()) {
                         warn!("Failed to send response of GetWindowSize: {error}");
                     }
                 },

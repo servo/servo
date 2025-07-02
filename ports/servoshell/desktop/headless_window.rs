@@ -8,9 +8,9 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use euclid::num::Zero;
-use euclid::{Length, Scale, Size2D};
+use euclid::{Length, Point2D, Scale, Size2D};
 use servo::servo_geometry::DeviceIndependentPixel;
-use servo::webrender_api::units::{DeviceIntSize, DevicePixel};
+use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::{RenderingContext, ScreenGeometry, SoftwareRenderingContext};
 use winit::dpi::PhysicalSize;
 
@@ -133,6 +133,10 @@ impl WindowPortsMethods for Window {
 
     fn toolbar_height(&self) -> Length<f32, DeviceIndependentPixel> {
         Length::zero()
+    }
+
+    fn window_rect(&self) -> DeviceIntRect {
+        DeviceIntRect::from_origin_and_size(Point2D::zero(), self.inner_size.get())
     }
 
     fn set_toolbar_height(&self, _height: Length<f32, DeviceIndependentPixel>) {

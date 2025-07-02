@@ -67,7 +67,6 @@ impl Tokenizer {
         };
 
         let options = TreeBuilderOpts {
-            ignore_missing_rules: true,
             scripting_enabled: document.scripting_enabled(),
             iframe_srcdoc: document.url().as_str() == "about:srcdoc",
             quirks_mode,
