@@ -15,8 +15,8 @@ use serde_json::{Map, Value};
 use servo_url::ServoUrl;
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::protocol::JsonPacketStream;
+use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::protocol::{ClientRequest, JsonPacketStream};
 use crate::resource::ResourceAvailable;
 
 #[derive(Clone, Copy)]
@@ -68,30 +68,28 @@ impl Actor for WorkerActor {
     }
     fn handle_message(
         &self,
+        mut request: ClientRequest,
         _registry: &ActorRegistry,
         msg_type: &str,
         _msg: &Map<String, Value>,
-        stream: &mut TcpStream,
         stream_id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
-        Ok(match msg_type {
+    ) -> Result<(), ActorError> {
+        match msg_type {
             "attach" => {
                 let msg = AttachedReply {
                     from: self.name(),
                     type_: "attached".to_owned(),
                     url: self.url.as_str().to_owned(),
                 };
-                if stream.write_json_packet(&msg).is_err() {
-                    return Ok(ActorMessageStatus::Processed);
-                }
+                // FIXME: we don’t send an actual reply (message without type), which seems to be a bug?
+                request.write_json_packet(&msg)?;
                 self.streams
                     .borrow_mut()
-                    .insert(stream_id, stream.try_clone().unwrap());
+                    .insert(stream_id, request.try_clone_stream().unwrap());
                 // FIXME: fix messages to not require forging a pipeline for worker messages
                 self.script_chan
                     .send(WantsLiveNotifications(TEST_PIPELINE_ID, true))
                     .unwrap();
-                ActorMessageStatus::Processed
             },
 
             "connect" => {
@@ -101,8 +99,8 @@ impl Actor for WorkerActor {
                     thread_actor: self.thread.clone(),
                     console_actor: self.console.clone(),
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                // FIXME: we don’t send an actual reply (message without type), which seems to be a bug?
+                request.write_json_packet(&msg)?;
             },
 
             "detach" => {
@@ -110,13 +108,14 @@ impl Actor for WorkerActor {
                     from: self.name(),
                     type_: "detached".to_string(),
                 };
-                let _ = stream.write_json_packet(&msg);
                 self.cleanup(stream_id);
-                ActorMessageStatus::Processed
+                // FIXME: we don’t send an actual reply (message without type), which seems to be a bug?
+                request.write_json_packet(&msg)?;
             },
 
-            _ => ActorMessageStatus::Ignored,
-        })
+            _ => return Err(ActorError::UnrecognizedPacketType),
+        };
+        Ok(())
     }
 
     fn cleanup(&self, stream_id: StreamId) {

@@ -5,7 +5,6 @@
 //! Liberally derived from the [Firefox JS implementation](http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/webconsole.js).
 //! Handles interaction with the remote web console on network events (HTTP requests, responses) in Servo.
 
-use std::net::TcpStream;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use chrono::{Local, LocalResult, TimeZone};
@@ -16,9 +15,9 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::network_handler::Cause;
-use crate::protocol::JsonPacketStream;
+use crate::protocol::ClientRequest;
 
 pub struct NetworkEventActor {
     pub name: String,
@@ -201,13 +200,13 @@ impl Actor for NetworkEventActor {
 
     fn handle_message(
         &self,
+        request: ClientRequest,
         _registry: &ActorRegistry,
         msg_type: &str,
         _msg: &Map<String, Value>,
-        stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
-        Ok(match msg_type {
+    ) -> Result<(), ActorError> {
+        match msg_type {
             "getRequestHeaders" => {
                 let mut headers = Vec::new();
                 let mut raw_headers_string = "".to_owned();
@@ -231,8 +230,7 @@ impl Actor for NetworkEventActor {
                     header_size: headers_size,
                     raw_headers: raw_headers_string,
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                request.reply_final(&msg)?
             },
             "getRequestCookies" => {
                 let mut cookies = Vec::new();
@@ -247,8 +245,7 @@ impl Actor for NetworkEventActor {
                     from: self.name(),
                     cookies,
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                request.reply_final(&msg)?
             },
             "getRequestPostData" => {
                 let msg = GetRequestPostDataReply {
@@ -256,8 +253,7 @@ impl Actor for NetworkEventActor {
                     post_data: self.request_body.clone(),
                     post_data_discarded: self.request_body.is_none(),
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                request.reply_final(&msg)?
             },
             "getResponseHeaders" => {
                 if let Some(ref response_headers) = self.response_headers_raw {
@@ -281,9 +277,11 @@ impl Actor for NetworkEventActor {
                         header_size: headers_size,
                         raw_headers: raw_headers_string,
                     };
-                    let _ = stream.write_json_packet(&msg);
+                    request.reply_final(&msg)?;
+                } else {
+                    // FIXME: what happens when there are no response headers?
+                    return Err(ActorError::Internal);
                 }
-                ActorMessageStatus::Processed
             },
             "getResponseCookies" => {
                 let mut cookies = Vec::new();
@@ -299,8 +297,7 @@ impl Actor for NetworkEventActor {
                     from: self.name(),
                     cookies,
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                request.reply_final(&msg)?
             },
             "getResponseContent" => {
                 let msg = GetResponseContentReply {
@@ -308,8 +305,7 @@ impl Actor for NetworkEventActor {
                     content: self.response_body.clone(),
                     content_discarded: self.response_body.is_none(),
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                request.reply_final(&msg)?
             },
             "getEventTimings" => {
                 // TODO: This is a fake timings msg
@@ -322,8 +318,7 @@ impl Actor for NetworkEventActor {
                     timings: timings_obj,
                     total_time: total,
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                request.reply_final(&msg)?
             },
             "getSecurityInfo" => {
                 // TODO: Send the correct values for securityInfo.
@@ -333,11 +328,11 @@ impl Actor for NetworkEventActor {
                         state: "insecure".to_owned(),
                     },
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                request.reply_final(&msg)?
             },
-            _ => ActorMessageStatus::Ignored,
-        })
+            _ => return Err(ActorError::UnrecognizedPacketType),
+        };
+        Ok(())
     }
 }
 

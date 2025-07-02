@@ -5,14 +5,12 @@
 //! The layout actor informs the DevTools client of the layout properties of the document, such as
 //! grids or flexboxes. It acts as a placeholder for now.
 
-use std::net::TcpStream;
-
 use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::protocol::JsonPacketStream;
+use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::protocol::ClientRequest;
 
 #[derive(Serialize)]
 pub struct LayoutInspectorActorMsg {
@@ -47,21 +45,20 @@ impl Actor for LayoutInspectorActor {
     /// - `getCurrentFlexbox`: Returns the active flexbox, non functional at the moment
     fn handle_message(
         &self,
+        request: ClientRequest,
         _registry: &ActorRegistry,
         msg_type: &str,
         _msg: &Map<String, Value>,
-        stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
-        Ok(match msg_type {
+    ) -> Result<(), ActorError> {
+        match msg_type {
             "getGrids" => {
                 let msg = GetGridsReply {
                     from: self.name(),
                     // TODO: Actually create a list of grids
                     grids: vec![],
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                request.reply_final(&msg)?
             },
             "getCurrentFlexbox" => {
                 let msg = GetCurrentFlexboxReply {
@@ -69,12 +66,14 @@ impl Actor for LayoutInspectorActor {
                     // TODO: Create and return the current flexbox object
                     flexbox: None,
                 };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                request.reply_final(&msg)?
             },
-            _ => ActorMessageStatus::Ignored,
-        })
+            _ => return Err(ActorError::UnrecognizedPacketType),
+        };
+        Ok(())
     }
+
+    fn cleanup(&self, _id: StreamId) {}
 }
 
 impl LayoutInspectorActor {

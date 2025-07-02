@@ -9,17 +9,15 @@
 //!
 //! [Firefox JS implementation]: https://searchfox.org/mozilla-central/source/devtools/server/actors/descriptors/tab.js
 
-use std::net::TcpStream;
-
 use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
 use crate::actors::root::{DescriptorTraits, RootActor};
 use crate::actors::watcher::{WatcherActor, WatcherActorMsg};
-use crate::protocol::JsonPacketStream;
+use crate::protocol::ClientRequest;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -89,42 +87,40 @@ impl Actor for TabDescriptorActor {
     ///   to describe the debugging capabilities of this tab.
     fn handle_message(
         &self,
+        request: ClientRequest,
         registry: &ActorRegistry,
         msg_type: &str,
         _msg: &Map<String, Value>,
-        stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
-        Ok(match msg_type {
+    ) -> Result<(), ActorError> {
+        match msg_type {
             "getTarget" => {
                 let frame = registry
                     .find::<BrowsingContextActor>(&self.browsing_context_actor)
                     .encodable();
-                let _ = stream.write_json_packet(&GetTargetReply {
+                request.reply_final(&GetTargetReply {
                     from: self.name(),
                     frame,
-                });
-                ActorMessageStatus::Processed
+                })?
             },
             "getFavicon" => {
                 // TODO: Return a favicon when available
-                let _ = stream.write_json_packet(&GetFaviconReply {
+                request.reply_final(&GetFaviconReply {
                     from: self.name(),
                     favicon: String::new(),
-                });
-                ActorMessageStatus::Processed
+                })?
             },
             "getWatcher" => {
                 let ctx_actor = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
                 let watcher = registry.find::<WatcherActor>(&ctx_actor.watcher);
-                let _ = stream.write_json_packet(&GetWatcherReply {
+                request.reply_final(&GetWatcherReply {
                     from: self.name(),
                     watcher: watcher.encodable(),
-                });
-                ActorMessageStatus::Processed
+                })?
             },
-            _ => ActorMessageStatus::Ignored,
-        })
+            _ => return Err(ActorError::UnrecognizedPacketType),
+        };
+        Ok(())
     }
 }
 

@@ -2,13 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::net::TcpStream;
-
 use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::protocol::ClientRequest;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -36,13 +35,13 @@ impl Actor for MemoryActor {
 
     fn handle_message(
         &self,
+        _request: ClientRequest,
         _registry: &ActorRegistry,
         _msg_type: &str,
         _msg: &Map<String, Value>,
-        _stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
-        Ok(ActorMessageStatus::Ignored)
+    ) -> Result<(), ActorError> {
+        Err(ActorError::UnrecognizedPacketType)
     }
 }
 
