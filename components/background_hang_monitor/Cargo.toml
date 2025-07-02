@@ -21,6 +21,7 @@ crossbeam-channel = { workspace = true }
 ipc-channel = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
+rustc-demangle = { version = "0.1", optional = true }
 serde_json = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
@@ -33,4 +34,4 @@ nix = { workspace = true, features = ["signal"], optional = true }
 nix = { workspace = true, features = ["signal"], optional = true }
 
 [features]
-sampler = ["mach2", "nix"]
+sampler = ["mach2", "nix", "rustc-demangle"]

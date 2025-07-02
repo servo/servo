@@ -86,10 +86,15 @@ impl NativeStack {
                 continue;
             }
             backtrace::resolve(*ip, |symbol| {
-                // TODO: use the demangled or C++ demangled symbols if available.
                 let name = symbol
                     .name()
                     .map(|n| String::from_utf8_lossy(n.as_bytes()).to_string());
+                // demangle if possible -
+                // the `rustc_demangle` crate transparently supports both
+                // "legacy" (C++ style) and "v0" mangling formats.
+                #[cfg(feature = "sampler")]
+                let name = name.map(|n| rustc_demangle::demangle(&n).to_string());
+
                 let filename = symbol.filename().map(|n| n.to_string_lossy().to_string());
                 let lineno = symbol.lineno();
                 profile.backtrace.push(HangProfileSymbol {
