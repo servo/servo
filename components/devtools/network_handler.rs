@@ -55,23 +55,6 @@ pub(crate) fn handle_network_event(
                     stream,
                 );
             }
-            // for stream in &mut connections {
-            //     // Notify that a new network event has started
-            //     actor.resource_array(
-            //         event_actor.clone(),
-            //         "network-event".to_string(),
-            //         ResourceArrayType::Available,
-            //         stream,
-            //     );
-
-            //     // Also push initial resource update (request headers, cookies)
-            //     actor.resource_array(
-            //         resource_updates.clone(),
-            //         "network-event".to_string(),
-            //         ResourceArrayType::Updated,
-            //         stream,
-            //     );
-            // }
         },
         NetworkEvent::HttpResponse(httpresponse) => {
             let actor = actors.find_mut::<NetworkEventActor>(&netevent_actor_name);

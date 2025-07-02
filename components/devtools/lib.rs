@@ -115,7 +115,6 @@ struct DevtoolsInstance {
     actors: Arc<Mutex<ActorRegistry>>,
     id_map: Arc<Mutex<IdMap>>,
     browsing_contexts: HashMap<BrowsingContextId, String>,
-    sender: Sender<DevtoolsControlMsg>,
     receiver: Receiver<DevtoolsControlMsg>,
     pipelines: HashMap<PipelineId, BrowsingContextId>,
     actor_workers: HashMap<WorkerId, String>,
@@ -180,7 +179,6 @@ impl DevtoolsInstance {
             id_map: Arc::new(Mutex::new(IdMap::default())),
             browsing_contexts: HashMap::new(),
             pipelines: HashMap::new(),
-            sender: sender.clone(),
             receiver,
             actor_requests: HashMap::new(),
             actor_workers: HashMap::new(),
@@ -317,23 +315,18 @@ impl DevtoolsInstance {
     }
 
     fn handle_navigate(&self, browsing_context_id: BrowsingContextId, state: NavigationState) {
-        // Emit WillNavigate early
         let url = match &state {
             NavigationState::Start(url) => url.clone(),
             NavigationState::Stop(_, page_info) => page_info.url.clone(),
         };
-        let _ = self.sender.send(DevtoolsControlMsg::FromScript(
-            ScriptToDevtoolsControlMsg::WillNavigate {
-                browsing_context_id,
-                url,
-            },
-        ));
+
         let actor_name = self.browsing_contexts.get(&browsing_context_id).unwrap();
-        self.actors
-            .lock()
-            .unwrap()
-            .find::<BrowsingContextActor>(actor_name)
-            .navigate(state, &mut self.id_map.lock().expect("Mutex poisoned"));
+        let binding = self.actors.lock().unwrap();
+        let actor = binding
+            .find::<BrowsingContextActor>(actor_name);
+
+        actor.emit_will_navigate(browsing_context_id, url.clone());
+        actor.navigate(state, &mut self.id_map.lock().expect("Mutex poisoned"));
     }
 
     // We need separate actor representations for each script global that exists;
@@ -513,9 +506,12 @@ impl DevtoolsInstance {
                     .watcher
                     .clone()
             });
+            
+        if watcher_name.is_none() {
+            return;
+        }
 
-        let netevent_actor_name =
-            self.find_network_event_actor(request_id, watcher_name.clone().unwrap_or_default());
+        let netevent_actor_name = self.find_network_event_actor(request_id, watcher_name.clone().unwrap_or_default());
 
         handle_network_event(
             Arc::clone(&self.actors),
@@ -538,8 +534,8 @@ impl DevtoolsInstance {
             Vacant(entry) => {
                 let resource_id = self.next_resource_id;
                 self.next_resource_id += 1;
-                let actor_name = watcher_name;
-                let actor = NetworkEventActor::new(actor_name.clone(), resource_id);
+                let actor_name = actors.new_name("netevent");
+                let actor = NetworkEventActor::new(actor_name.clone(), resource_id, watcher_name);
                 entry.insert(actor_name.clone());
                 actors.register(Box::new(actor));
                 actor_name

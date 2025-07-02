@@ -19,7 +19,6 @@ use crate::StreamId;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::network_handler::Cause;
 use crate::protocol::JsonPacketStream;
-use crate::resource::ResourceAvailable;
 
 pub struct NetworkEventActor {
     pub name: String,
@@ -344,7 +343,7 @@ impl Actor for NetworkEventActor {
 }
 
 impl NetworkEventActor {
-    pub fn new(name: String, resource_id: u64) -> NetworkEventActor {
+    pub fn new(name: String, resource_id: u64, watcher_name: String) -> NetworkEventActor {
         NetworkEventActor {
             name,
             resource_id,
@@ -369,7 +368,7 @@ impl NetworkEventActor {
             total_time: Duration::ZERO,
             security_state: "insecure".to_owned(),
             event_timing: None,
-            watcher_name: String::new(),
+            watcher_name,
         }
     }
 
