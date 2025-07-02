@@ -460,6 +460,9 @@ impl ResourceChannelManager {
                 http_state.http_cache.write().unwrap().clear();
             },
             CoreResourceMsg::ToFileManager(msg) => self.resource_manager.filemanager.handle(msg),
+            CoreResourceMsg::OverrideCert(bytes) => {
+                http_state.override_manager.add_override_from_base64(&bytes)
+            },
             CoreResourceMsg::Exit(sender) => {
                 if let Some(ref config_dir) = self.config_dir {
                     match http_state.auth_cache.read() {
