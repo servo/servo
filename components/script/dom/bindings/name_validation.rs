@@ -13,10 +13,10 @@ use crate::dom::bindings::xmlname::namespace_from_domstring;
 /// <https://infra.spec.whatwg.org/#xml-namespace>
 const XML_NAMESPACE: &str = "http://www.w3.org/XML/1998/namespace";
 
-/// See <https://infra.spec.whatwg.org/#xmlns-namespace>
+/// <https://infra.spec.whatwg.org/#xmlns-namespace>
 const XMLNS_NAMESPACE: &str = "http://www.w3.org/2000/xmlns/";
 
-/// See <https://dom.spec.whatwg.org/#valid-namespace-prefix>
+/// <https://dom.spec.whatwg.org/#valid-namespace-prefix>
 fn is_valid_namespace_prefix(p: &str) -> bool {
     // A string is a valid namespace prefix if its length
     // is at least 1 and it does not contain ASCII whitespace,
@@ -30,7 +30,7 @@ fn is_valid_namespace_prefix(p: &str) -> bool {
         .any(|c| c.is_ascii_whitespace() || matches!(c, '\u{0000}' | '\u{002F}' | '\u{003E}'))
 }
 
-/// See <https://dom.spec.whatwg.org/#valid-attribute-local-name>
+/// <https://dom.spec.whatwg.org/#valid-attribute-local-name>
 pub(crate) fn is_valid_attribute_local_name(name: &str) -> bool {
     // A string is a valid attribute local name if its length
     // is at least 1 and it does not contain ASCII whitespace,
@@ -45,7 +45,7 @@ pub(crate) fn is_valid_attribute_local_name(name: &str) -> bool {
     })
 }
 
-/// See <https://dom.spec.whatwg.org/#valid-element-local-name>
+/// <https://dom.spec.whatwg.org/#valid-element-local-name>
 pub(crate) fn is_valid_element_local_name(name: &str) -> bool {
     // Step 1. If name’s length is 0, then return false.
     if name.is_empty() {
@@ -92,7 +92,7 @@ pub(crate) fn is_valid_element_local_name(name: &str) -> bool {
     }
 }
 
-/// See <https://dom.spec.whatwg.org/#valid-doctype-name>
+/// <https://dom.spec.whatwg.org/#valid-doctype-name>
 pub(crate) fn is_valid_doctype_name(name: &str) -> bool {
     // A string is a valid doctype name if it does not contain
     // ASCII whitespace, U+0000 NULL, or U+003E (>).
@@ -103,14 +103,14 @@ pub(crate) fn is_valid_doctype_name(name: &str) -> bool {
 
 /// Context for [`validate_and_extract`] a namespace and qualified name
 ///
-/// See <https://dom.spec.whatwg.org/#validate-and-extract>
+/// <https://dom.spec.whatwg.org/#validate-and-extract>
 #[derive(Clone, Copy, Debug)]
 pub(crate) enum Context {
     Attribute,
     Element,
 }
 
-/// See <https://dom.spec.whatwg.org/#validate-and-extract>
+/// <https://dom.spec.whatwg.org/#validate-and-extract>
 pub(crate) fn validate_and_extract(
     namespace: Option<DOMString>,
     qualified_name: &str,
