@@ -262,7 +262,7 @@ impl KvsEngine for HeedEngine {
                                 .expect("Could not get store");
                             // FIXME:(arihant2math) Return count with sender
                         },
-                        AsyncOperation::Clear => {
+                        AsyncOperation::ReadWrite(AsyncReadWriteOperation::Clear) => {
                             let stores = stores
                                 .write()
                                 .expect("Could not acquire write lock on stores");

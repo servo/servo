@@ -387,8 +387,7 @@ impl IDBObjectStore {
     }
 
     /// Checks if the transation is active, throwing a "TransactionInactiveError" DOMException if not.
-    /// If writing is true, it then checks if the transaction is a read-only transaction, throwing a "ReadOnlyError" DOMException if so.
-    fn check_transaction(&self, writing: bool) -> Fallible<()> {
+    fn check_transaction_active(&self) -> Fallible<()> {
         // Let transaction be this object store handle's transaction.
         let transaction = self.transaction.get().ok_or(Error::TransactionInactive)?;
 
@@ -397,11 +396,22 @@ impl IDBObjectStore {
             return Err(Error::TransactionInactive);
         }
 
-        // If transaction is a read-only transaction, throw a "ReadOnlyError" DOMException.
-        if writing {
-            if let IDBTransactionMode::Readonly = transaction.get_mode() {
-                return Err(Error::ReadOnly);
-            }
+        Ok(())
+    }
+
+    /// Checks if the transation is active, throwing a "TransactionInactiveError" DOMException if not.
+    /// it then checks if the transaction is a read-only transaction, throwing a "ReadOnlyError" DOMException if so.
+    fn check_readwrite_transaction_active(&self) -> Fallible<()> {
+        // Let transaction be this object store handle's transaction.
+        let transaction = self.transaction.get().ok_or(Error::TransactionInactive)?;
+
+        // If transaction is not active, throw a "TransactionInactiveError" DOMException.
+        if !transaction.is_active() {
+            return Err(Error::TransactionInactive);
+        }
+
+        if let IDBTransactionMode::Readonly = transaction.get_mode() {
+            return Err(Error::ReadOnly);
         }
         Ok(())
     }
@@ -415,7 +425,7 @@ impl IDBObjectStore {
         overwrite: bool,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<IDBRequest>> {
-        // Step 1: Unneeded, handled by self.check_transaction()
+        // Step 1: Unneeded, handled by self.check_readwrite_transaction_active()
         // Step 2: Let store be this object store handle's object store.
         // This is resolved in the `execute_async` function.
 
@@ -423,7 +433,7 @@ impl IDBObjectStore {
         // FIXME:(rasviitanen)
 
         // Steps 4-5
-        self.check_transaction(true)?;
+        self.check_readwrite_transaction_active()?;
 
         // Step 6: If store uses in-line keys and key was given, throw a "DataError" DOMException.
         if !key.is_undefined() && self.uses_inline_keys() {
@@ -497,11 +507,11 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-delete
     fn Delete(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
-        // Step 1: Unneeded, handled by self.check_transaction()
+        // Step 1: Unneeded, handled by self.check_readwrite_transaction_active()
         // TODO: Step 2
         // TODO: Step 3
         // Steps 4-5
-        self.check_transaction(true)?;
+        self.check_readwrite_transaction_active()?;
         // Step 6
         // TODO: Convert to key range instead
         let serialized_query = IDBObjectStore::convert_value_to_key(cx, query, None);
@@ -518,21 +528,26 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-clear
     fn Clear(&self) -> Fallible<DomRoot<IDBRequest>> {
-        // Step 1: Unneeded, handled by self.check_transaction()
+        // Step 1: Unneeded, handled by self.check_readwrite_transaction_active()
         // TODO: Step 2
         // TODO: Step 3
         // Steps 4-5
-        self.check_transaction(true)?;
-        IDBRequest::execute_async(self, AsyncOperation::Clear, None, CanGc::note())
+        self.check_readwrite_transaction_active()?;
+        IDBRequest::execute_async(
+            self,
+            AsyncOperation::ReadWrite(AsyncReadWriteOperation::Clear),
+            None,
+            CanGc::note(),
+        )
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-get
     fn Get(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
-        // Step 1: Unneeded, handled by self.check_transaction()
+        // Step 1: Unneeded, handled by self.check_transaction_active()
         // TODO: Step 2
         // TODO: Step 3
         // Step 4
-        self.check_transaction(false)?;
+        self.check_transaction_active()?;
         // Step 5
         // TODO: Convert to key range instead
         let serialized_query = IDBObjectStore::convert_value_to_key(cx, query, None);
@@ -549,11 +564,11 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-getkey
     // fn GetKey(&self, _cx: SafeJSContext, _query: HandleValue) -> DomRoot<IDBRequest> {
-    //     // Step 1: Unneeded, handled by self.check_transaction()
+    //     // Step 1: Unneeded, handled by self.check_transaction_active()
     //     // TODO: Step 2
     //     // TODO: Step 3
     //     // Step 4
-    //     self.check_transaction(false)?;
+    //     self.check_transaction_active()?;
     //     // Step 5
     //     // TODO: Convert to key range instead
     //     let serialized_query = IDBObjectStore::convert_value_to_key(cx, query, None);
@@ -582,18 +597,23 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-count
     fn Count(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
-        // Step 1: Unneeded, handled by self.check_transaction()
+        // Step 1: Unneeded, handled by self.check_transaction_active()
         // TODO: Step 2
         // TODO: Step 3
         // Steps 4
-        self.check_transaction(false)?;
+        self.check_transaction_active()?;
 
         // Step 5
         let serialized_query = IDBObjectStore::convert_value_to_key(cx, query, None);
 
         // Step 6
         serialized_query.and_then(|q| {
-            IDBRequest::execute_async(self, AsyncOperation::Count(q), None, CanGc::note())
+            IDBRequest::execute_async(
+                self,
+                AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Count(q)),
+                None,
+                CanGc::note(),
+            )
         })
     }
 
