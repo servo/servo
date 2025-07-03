@@ -29,7 +29,6 @@ use js::typedarray::{
     ArrayBufferView, CreateWith, Float32, Float32Array, Int32, Int32Array, TypedArray,
     TypedArrayElementCreator, Uint32Array,
 };
-use net_traits::image_cache::ImageResponse;
 use pixels::{self, Alpha, PixelFormat, Snapshot, SnapshotPixelFormat};
 use serde::{Deserialize, Serialize};
 use servo_config::pref;
