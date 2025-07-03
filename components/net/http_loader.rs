@@ -721,22 +721,27 @@ async fn obtain_response(
 
                 let msg = if let Some(request_id) = request_id {
                     if let Some(pipeline_id) = pipeline_id {
-                        Some(prepare_devtools_request(
-                            request_id,
-                            closure_url,
-                            method.clone(),
-                            headers,
-                            Some(devtools_bytes.lock().unwrap().clone()),
-                            pipeline_id,
-                            (connect_end - connect_start).unsigned_abs(),
-                            (send_end - send_start).unsigned_abs(),
-                            is_xhr,
-                            browsing_context_id.unwrap(),
-                        ))
-                    // TODO: ^This is not right, connect_start is taken before contructing the
-                    // request and connect_end at the end of it. send_start is takend before the
-                    // connection too. I'm not sure it's currently possible to get the time at the
-                    // point between the connection and the start of a request.
+                        if let Some(browsing_context_id) = browsing_context_id {
+                            Some(prepare_devtools_request(
+                                request_id,
+                                closure_url,
+                                method.clone(),
+                                headers,
+                                Some(devtools_bytes.lock().unwrap().clone()),
+                                pipeline_id,
+                                (connect_end - connect_start).unsigned_abs(),
+                                (send_end - send_start).unsigned_abs(),
+                                is_xhr,
+                                browsing_context_id,
+                            ))
+                        } else {
+                            debug!("Not notifying devtools (no browsing_context_id)");
+                            None
+                        }
+                        // TODO: ^This is not right, connect_start is taken before contructing the
+                        // request and connect_end at the end of it. send_start is takend before the
+                        // connection too. I'm not sure it's currently possible to get the time at the
+                        // point between the connection and the start of a request.
                     } else {
                         debug!("Not notifying devtools (no pipeline_id)");
                         None

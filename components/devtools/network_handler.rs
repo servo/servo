@@ -28,11 +28,8 @@ pub(crate) fn handle_network_event(
     network_event: NetworkEvent,
 ) {
     let mut actors = actors.lock().unwrap();
-    let watcher_name = {
-        let actor_ref = actors.find::<NetworkEventActor>(&netevent_actor_name);
-        actor_ref.watcher_name.clone()
-    };
     let actor = actors.find_mut::<NetworkEventActor>(&netevent_actor_name);
+    let watcher_name = actor.watcher_name.clone();
     match network_event {
         NetworkEvent::HttpRequest(httprequest) => {
             actor.add_request(httprequest);

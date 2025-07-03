@@ -323,8 +323,15 @@ impl DevtoolsInstance {
         for stream in self.connections.values() {
             connections.push(stream.try_clone().unwrap());
         }
-        watcher_actor.emit_will_navigate(browsing_context_id, url.clone(), &mut connections);
-        actor.navigate(state, &mut self.id_map.lock().expect("Mutex poisoned"));
+
+        let mut id_map = self.id_map.lock().expect("Mutex poisoned");
+        watcher_actor.emit_will_navigate(
+            browsing_context_id,
+            url.clone(),
+            &mut connections,
+            &mut id_map,
+        );
+        actor.navigate(state, &mut id_map);
     }
 
     // We need separate actor representations for each script global that exists;

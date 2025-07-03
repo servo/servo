@@ -33,9 +33,10 @@ use crate::actors::watcher::target_configuration::{
 use crate::actors::watcher::thread_configuration::{
     ThreadConfigurationActor, ThreadConfigurationActorMsg,
 };
+use crate::id::DevtoolsBrowsingContextId;
 use crate::protocol::JsonPacketStream;
 use crate::resource::{ResourceArrayType, ResourceAvailable};
-use crate::{EmptyReplyMsg, StreamId, WorkerActor};
+use crate::{EmptyReplyMsg, IdMap, StreamId, WorkerActor};
 
 pub mod network_parent;
 pub mod target_configuration;
@@ -192,6 +193,18 @@ pub struct WatcherActor {
     target_configuration: String,
     thread_configuration: String,
     session_context: SessionContext,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WillNavigateMessage {
+    browsing_context_id: DevtoolsBrowsingContextId,
+    inner_window_id: u32,
+    name: String,
+    time: u128,
+    is_frame_switching: bool,
+    #[serde(rename = "newURI")]
+    new_uri: ServoUrl,
 }
 
 impl Actor for WatcherActor {
@@ -437,18 +450,20 @@ impl WatcherActor {
         browsing_context_id: BrowsingContextId,
         url: ServoUrl,
         connections: &mut Vec<TcpStream>,
+        id_map: &mut IdMap,
     ) {
-        let msg = serde_json::json!({
-            "browsingContextID": browsing_context_id,
-            "innerWindowId": 0,  // TODO: set this to the correct value
-            "name": "will-navigate",
-            "time": SystemTime::now()
+        let msg = WillNavigateMessage {
+            browsing_context_id: id_map.browsing_context_id(browsing_context_id),
+            inner_window_id: 0, // TODO: set this to the correct value
+            name: "will-navigate".to_string(),
+            time: SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap_or_default()
                 .as_millis(),
-            "isFrameSwitching": false, // TODO: set this to the correct value
-            "newURI": url,
-        });
+            is_frame_switching: false, // TODO: Implement frame switching
+            new_URI: url,
+        };
+
         for stream in connections {
             self.resource_array(
                 msg.clone(),
