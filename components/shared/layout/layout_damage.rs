@@ -8,7 +8,7 @@ use style::selector_parser::RestyleDamage;
 bitflags! {
     /// Individual layout actions that may be necessary after restyling. This is an extension
     /// of `RestyleDamage` from stylo, which only uses the 4 lower bits.
-    #[derive(Clone, Copy, Default, Eq, PartialEq)]
+    #[derive(Clone, Copy, Default, Debug, Eq, PartialEq)]
     pub struct LayoutDamage: u16 {
         /// Recollect the box children for this element, because some of the them will be
         /// rebuilt.
@@ -27,5 +27,32 @@ impl LayoutDamage {
 
     pub fn has_box_damage(&self) -> bool {
         self.intersects(Self::REBUILD_BOX)
+    }
+}
+
+impl std::fmt::Display for LayoutDamage {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        let mut first_elem = true;
+
+        let to_iter = [
+            (LayoutDamage::RECOLLECT_BOX_TREE_CHILDREN, "Recollect box tree childern"),
+            (LayoutDamage::REBUILD_BOX, "Rebuild box"),
+        ];
+
+        for &(damage, damage_str) in &to_iter {
+            if self.contains(damage) {
+                if !first_elem {
+                    write!(f, " | ")?;
+                }
+                write!(f, "{}", damage_str)?;
+                first_elem = false;
+            }
+        }
+
+        if first_elem {
+            write!(f, "NoDamage")?;
+        }
+
+        Ok(())
     }
 }

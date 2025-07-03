@@ -7,6 +7,7 @@ use std::char::{ToLowercase, ToUppercase};
 
 use icu_segmenter::WordSegmenter;
 use itertools::izip;
+use layout_api::LayoutDamage;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::values::specified::text::TextTransformCase;
 use unicode_bidi::Level;
@@ -18,6 +19,7 @@ use super::{
 };
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
+use crate::dom::{BoxSlot, LayoutBox};
 use crate::dom_traversal::NodeAndStyleInfo;
 use crate::flow::float::FloatBox;
 use crate::formatting_contexts::IndependentFormattingContext;
@@ -72,7 +74,7 @@ pub(crate) struct InlineFormattingContextBuilder {
     /// container root (see `handle_inline_level_element`).
     //_
     /// When an inline box ends, it's removed from this stack.
-    inline_box_stack: Vec<InlineBoxIdentifier>,
+    inline_box_stack: Vec<(InlineBoxIdentifier, LayoutDamage)>,
 
     /// Normally, an inline box produces a single box tree [`InlineItem`]. When a block
     /// element causes an inline box [to be split], it can produce multiple
@@ -87,11 +89,17 @@ pub(crate) struct InlineFormattingContextBuilder {
     /// Whether or not the inline formatting context under construction has any
     /// uncollapsible text content.
     pub has_uncollapsible_text_content: bool,
+
+    inherited_damage: LayoutDamage,
+    pub(crate) accumated_damage: LayoutDamage,
 }
 
 impl InlineFormattingContextBuilder {
     pub(crate) fn new(info: &NodeAndStyleInfo) -> Self {
-        Self::new_for_shared_styles(vec![info.into()])
+        let mut builder = Self::new_for_shared_styles(vec![info.into()]);
+        builder.inherited_damage = info.damage;
+        builder.accumated_damage = builder.inherited_damage;
+        builder
     }
 
     pub(crate) fn new_for_shared_styles(
@@ -151,15 +159,32 @@ impl InlineFormattingContextBuilder {
             .all(|inline_level_box| inline_level_box_is_empty(&inline_level_box.borrow()))
     }
 
-    pub(crate) fn push_atomic(
+    pub(crate) fn push_atomic<'dom>(
         &mut self,
-        independent_formatting_context: IndependentFormattingContext,
-    ) -> ArcRefCell<InlineItem> {
-        let inline_level_box = ArcRefCell::new(InlineItem::Atomic(
-            ArcRefCell::new(independent_formatting_context),
-            self.current_text_offset,
-            Level::ltr(), /* This will be assigned later if necessary. */
-        ));
+        info: &NodeAndStyleInfo<'dom>,
+        independent_formatting_context_creator: impl FnOnce() -> IndependentFormattingContext,
+        box_slot: BoxSlot<'dom>,
+    ) {
+        let inline_level_box = if !self.accumated_damage.contains(LayoutDamage::REBUILD_BOX) {
+            get_inline_items_from_box_slot(&box_slot, info.damage).and_then(|inline_items| {
+                match &*inline_items.first()?.borrow() {
+                    InlineItem::Atomic(..) => inline_items.first().cloned(),
+                    _ => None,
+                }
+            })
+        } else {
+            None
+        }
+        .unwrap_or_else(|| {
+            self.accumated_damage.insert(LayoutDamage::REBUILD_BOX);
+
+            ArcRefCell::new(InlineItem::Atomic(
+                ArcRefCell::new(independent_formatting_context_creator()),
+                self.current_text_offset,
+                Level::ltr(), /* This will be assigned later if necessary. */
+            ))
+        });
+
         self.inline_items.push(inline_level_box.clone());
 
         // Push an object replacement character for this atomic, which will ensure that the line breaker
@@ -168,37 +193,76 @@ impl InlineFormattingContextBuilder {
 
         self.last_inline_box_ended_with_collapsible_white_space = false;
         self.on_word_boundary = true;
-
-        inline_level_box
+        box_slot.set(LayoutBox::InlineLevel(vec![inline_level_box.clone()]));
     }
 
-    pub(crate) fn push_absolutely_positioned_box(
+    pub(crate) fn push_absolutely_positioned_box<'dom>(
         &mut self,
-        absolutely_positioned_box: AbsolutelyPositionedBox,
-    ) -> ArcRefCell<InlineItem> {
-        let absolutely_positioned_box = ArcRefCell::new(absolutely_positioned_box);
-        let inline_level_box = ArcRefCell::new(InlineItem::OutOfFlowAbsolutelyPositionedBox(
-            absolutely_positioned_box,
-            self.current_text_offset,
-        ));
+        info: &NodeAndStyleInfo<'dom>,
+        absolutely_positioned_box_creator: impl FnOnce() -> AbsolutelyPositionedBox,
+        box_slot: BoxSlot<'dom>,
+    ) {
+        let inline_level_box = if !self.accumated_damage.contains(LayoutDamage::REBUILD_BOX) {
+            get_inline_items_from_box_slot(&box_slot, info.damage).and_then(|inline_items| {
+                match &*inline_items.first()?.borrow() {
+                    InlineItem::OutOfFlowAbsolutelyPositionedBox(..) => {
+                        inline_items.first().cloned()
+                    },
+                    _ => None,
+                }
+            })
+        } else {
+            None
+        }
+        .unwrap_or_else(|| {
+            self.accumated_damage.insert(LayoutDamage::REBUILD_BOX);
+
+            ArcRefCell::new(InlineItem::OutOfFlowAbsolutelyPositionedBox(
+                ArcRefCell::new(absolutely_positioned_box_creator()),
+                self.current_text_offset,
+            ))
+        });
 
         self.inline_items.push(inline_level_box.clone());
-        inline_level_box
+        box_slot.set(LayoutBox::InlineLevel(vec![inline_level_box]));
     }
 
-    pub(crate) fn push_float_box(&mut self, float_box: FloatBox) -> ArcRefCell<InlineItem> {
-        let inline_level_box =
-            ArcRefCell::new(InlineItem::OutOfFlowFloatBox(ArcRefCell::new(float_box)));
+    pub(crate) fn push_float_box<'dom>(
+        &mut self,
+        info: &NodeAndStyleInfo<'dom>,
+        float_box_creator: impl FnOnce() -> FloatBox,
+        box_slot: BoxSlot<'dom>,
+    ) {
+        let inline_level_box = if !self.accumated_damage.contains(LayoutDamage::REBUILD_BOX) {
+            get_inline_items_from_box_slot(&box_slot, info.damage).and_then(|inline_items| {
+                match &*inline_items.first()?.borrow() {
+                    InlineItem::OutOfFlowFloatBox(..) => inline_items.first().cloned(),
+                    _ => None,
+                }
+            })
+        } else {
+            None
+        }
+        .unwrap_or_else(|| {
+            self.accumated_damage.insert(LayoutDamage::REBUILD_BOX);
+
+            ArcRefCell::new(InlineItem::OutOfFlowFloatBox(ArcRefCell::new(
+                float_box_creator(),
+            )))
+        });
+
         self.inline_items.push(inline_level_box.clone());
         self.contains_floats = true;
-        inline_level_box
+        box_slot.set(LayoutBox::InlineLevel(vec![inline_level_box]));
     }
 
     pub(crate) fn start_inline_box(
         &mut self,
         inline_box: InlineBox,
+        damage: LayoutDamage,
         block_in_inline_splits: Option<Vec<ArcRefCell<InlineItem>>>,
     ) {
+        self.accumated_damage.insert(damage);
         self.push_control_character_string(inline_box.base.style.bidi_control_chars().0);
 
         // Don't push a `SharedInlineStyles` if we are pushing this box when splitting
@@ -212,7 +276,7 @@ impl InlineFormattingContextBuilder {
         let (identifier, inline_box) = self.inline_boxes.start_inline_box(inline_box);
         let inline_level_box = ArcRefCell::new(InlineItem::StartInlineBox(inline_box));
         self.inline_items.push(inline_level_box.clone());
-        self.inline_box_stack.push(identifier);
+        self.inline_box_stack.push((identifier, damage));
 
         let mut block_in_inline_splits = block_in_inline_splits.unwrap_or_default();
         block_in_inline_splits.push(inline_level_box);
@@ -240,7 +304,7 @@ impl InlineFormattingContextBuilder {
     fn end_inline_box_internal(
         &mut self,
     ) -> (InlineBoxIdentifier, Option<Vec<ArcRefCell<InlineItem>>>) {
-        let identifier = self
+        let (identifier, _) = self
             .inline_box_stack
             .pop()
             .expect("Ended non-existent inline box");
@@ -257,6 +321,8 @@ impl InlineFormattingContextBuilder {
     }
 
     pub(crate) fn push_text<'dom>(&mut self, text: Cow<'dom, str>, info: &NodeAndStyleInfo<'dom>) {
+        self.accumated_damage.insert(info.damage);
+
         let white_space_collapse = info.style.clone_white_space_collapse();
         let collapsed = WhitespaceCollapse::new(
             text.chars(),
@@ -340,12 +406,7 @@ impl InlineFormattingContextBuilder {
         self.shared_inline_styles_stack.pop();
     }
 
-    pub(crate) fn split_around_block_and_finish(
-        &mut self,
-        layout_context: &LayoutContext,
-        has_first_formatted_line: bool,
-        default_bidi_level: Level,
-    ) -> Option<InlineFormattingContext> {
+    pub(crate) fn split_around_block(&mut self) -> Option<InlineFormattingContextBuilder> {
         if self.is_empty() {
             return None;
         }
@@ -355,9 +416,10 @@ impl InlineFormattingContextBuilder {
         // marked as not being the first fragment. No inline content is carried over to this new
         // builder.
         let mut new_builder = Self::new_for_shared_styles(self.shared_inline_styles_stack.clone());
+        new_builder.inherited_damage = self.inherited_damage;
 
         let block_in_inline_splits = std::mem::take(&mut self.block_in_inline_splits);
-        for (identifier, historical_inline_boxes) in
+        for ((identifier, damage), historical_inline_boxes) in
             izip!(self.inline_box_stack.iter(), block_in_inline_splits)
         {
             // Start a new inline box for every ongoing inline box in this
@@ -370,6 +432,7 @@ impl InlineFormattingContextBuilder {
                     .get(identifier)
                     .borrow()
                     .split_around_block(),
+                *damage,
                 Some(historical_inline_boxes),
             );
         }
@@ -382,12 +445,7 @@ impl InlineFormattingContextBuilder {
             inline_builder_from_before_split.end_inline_box_internal();
         }
 
-        inline_builder_from_before_split.finish(
-            layout_context,
-            has_first_formatted_line,
-            /* is_single_line_text_input = */ false,
-            default_bidi_level,
-        )
+        Some(inline_builder_from_before_split)
     }
 
     /// Finish the current inline formatting context, returning [`None`] if the context was empty.
@@ -698,4 +756,23 @@ pub(crate) fn capitalize_string(string: &str, allow_word_at_start: bool) -> Stri
     }
 
     output_string
+}
+
+fn get_inline_items_from_box_slot(
+    box_slot: &BoxSlot<'_>,
+    node_damage: LayoutDamage,
+) -> Option<Vec<ArcRefCell<InlineItem>>> {
+    if node_damage.has_box_damage() {
+        return None;
+    }
+
+    match box_slot.slot.as_ref() {
+        Some(box_slot) => match &*box_slot.borrow() {
+            Some(LayoutBox::InlineLevel(inline_items)) => {
+                Some(inline_items.iter().cloned().collect())
+            },
+            _ => None,
+        },
+        None => None,
+    }
 }

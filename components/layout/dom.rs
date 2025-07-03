@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::any::Any;
+use std::collections::HashMap;
 use std::marker::PhantomData;
 
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
@@ -26,7 +27,7 @@ use crate::cell::ArcRefCell;
 use crate::flexbox::FlexLevelBox;
 use crate::flow::BlockLevelBox;
 use crate::flow::inline::{InlineItem, SharedInlineStyles};
-use crate::fragment_tree::Fragment;
+use crate::fragment_tree::{Fragment, Tag};
 use crate::geom::PhysicalSize;
 use crate::replaced::CanvasInfo;
 use crate::table::TableLevelBox;
@@ -39,6 +40,7 @@ pub struct InnerDOMLayoutData {
     pub(super) pseudo_before_box: ArcRefCell<Option<LayoutBox>>,
     pub(super) pseudo_after_box: ArcRefCell<Option<LayoutBox>>,
     pub(super) pseudo_marker_box: ArcRefCell<Option<LayoutBox>>,
+    pub(super) pseudo_anonymous_box: HashMap<Tag, ArcRefCell<Option<LayoutBox>>>,
 }
 
 impl InnerDOMLayoutData {
@@ -214,6 +216,8 @@ pub(crate) trait NodeExt<'dom> {
     fn element_box_slot(&self) -> BoxSlot<'dom>;
     fn pseudo_element_box_slot(&self, which: PseudoElement) -> BoxSlot<'dom>;
     fn unset_pseudo_element_box(&self, which: PseudoElement);
+    fn anonymous_box_slot(&self, tag: Tag) -> BoxSlot<'dom>;
+    fn set_anonymous_boxes(&self, all_anonymous_boxes: HashMap<Tag, ArcRefCell<Option<LayoutBox>>>);
 
     /// Remove boxes for the element itself, and its `:before` and `:after` if any.
     fn unset_all_boxes(&self);
@@ -358,12 +362,30 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
         *cell.borrow_mut() = None;
     }
 
+    fn anonymous_box_slot(&self, tag: Tag) -> BoxSlot<'dom> {
+        let mut data = self.layout_data_mut();
+        let cell = data
+            .pseudo_anonymous_box
+            .entry(tag)
+            .or_insert(ArcRefCell::new(None));
+        BoxSlot::new(cell.clone())
+    }
+
+    fn set_anonymous_boxes(
+        &self,
+        all_anonymous_boxes: HashMap<Tag, ArcRefCell<Option<LayoutBox>>>,
+    ) {
+        let mut data = self.layout_data_mut();
+        data.pseudo_anonymous_box = all_anonymous_boxes;
+    }
+
     fn unset_all_boxes(&self) {
-        let data = self.layout_data_mut();
+        let mut data = self.layout_data_mut();
         *data.self_box.borrow_mut() = None;
         *data.pseudo_before_box.borrow_mut() = None;
         *data.pseudo_after_box.borrow_mut() = None;
         *data.pseudo_marker_box.borrow_mut() = None;
+        data.pseudo_anonymous_box.clear();
         // Stylo already takes care of removing all layout data
         // for DOM descendants of elements with `display: none`.
     }
@@ -376,6 +398,10 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
     }
 
     fn fragments_for_pseudo(&self, pseudo_element: Option<PseudoElement>) -> Vec<Fragment> {
+        if pseudo_element == Some(PseudoElement::ServoAnonymousBox) {
+            return vec![];
+        }
+
         NodeExt::layout_data(self)
             .and_then(|layout_data| {
                 layout_data

@@ -83,6 +83,7 @@ use bitflags::bitflags;
 use construct::InlineFormattingContextBuilder;
 use fonts::{ByteIndex, FontMetrics, GlyphStore};
 use inline_box::{InlineBox, InlineBoxContainerState, InlineBoxIdentifier, InlineBoxes};
+use itertools::izip;
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use line::{
     AbsolutelyPositionedLineItem, AtomicLineItem, FloatLineItem, LineItem, LineItemLayout,
@@ -1698,6 +1699,61 @@ impl InlineFormattingContext {
             is_single_line_text_input,
             has_right_to_left_content,
         }
+    }
+
+    pub(crate) fn repair_with_builder_if_valid(
+        &mut self,
+        builder: &InlineFormattingContextBuilder,
+    ) -> bool {
+        if self.inline_items.len() != builder.inline_items.len() {
+            return false;
+        }
+
+        let mut recollected_text_segments = builder.text_segments.iter();
+
+        for (previously_built_inline_item, recollected_inline_item) in
+            izip!(self.inline_items.iter(), builder.inline_items.iter())
+        {
+            match &*recollected_inline_item.borrow() {
+                InlineItem::StartInlineBox(_) |
+                InlineItem::EndInlineBox |
+                InlineItem::Atomic(..) => {
+                    recollected_text_segments.next();
+                },
+                InlineItem::TextRun(recollected_text_run) => {
+                    let InlineItem::TextRun(previously_built_text_run) =
+                        &*previously_built_inline_item.borrow()
+                    else {
+                        return false;
+                    };
+
+                    let previously_built_text_range =
+                        previously_built_text_run.borrow().text_range.clone();
+                    if previously_built_text_range != recollected_text_run.borrow().text_range {
+                        return false;
+                    }
+
+                    let Some(recollected_text_segment) = recollected_text_segments.next() else {
+                        return false;
+                    };
+
+                    let previously_built_text_segment =
+                        &self.text_content[previously_built_text_range];
+                    if previously_built_text_segment != recollected_text_segment.as_str() {
+                        return false;
+                    }
+                },
+                InlineItem::OutOfFlowAbsolutelyPositionedBox(..) |
+                InlineItem::OutOfFlowFloatBox(_) => {},
+            }
+        }
+
+        let Some(shared_inline_styles) = builder.shared_inline_styles_stack.last() else {
+            return false;
+        };
+
+        self.shared_inline_styles = shared_inline_styles.clone();
+        true
     }
 
     pub(crate) fn repair_style(&self, node: &ServoLayoutNode, new_style: &Arc<ComputedValues>) {
