@@ -804,11 +804,17 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                     box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::Track(row)));
                 },
                 DisplayLayoutInternal::TableColumn => {
+                    let old_box = box_slot.take_layout_box_if_undamaged(info.damage);
+                    let old_column = old_box.and_then(|layout_box| match layout_box {
+                        LayoutBox::TableLevelBox(TableLevelBox::Track(column)) => Some(column),
+                        _ => None,
+                    });
                     let column = add_column(
                         &mut self.builder.table.columns,
                         info,
                         None,  /* group_index */
                         false, /* is_anonymous */
+                        old_column,
                     );
                     box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::Track(column)));
                 },
@@ -831,6 +837,7 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                             info,
                             Some(column_group_index),
                             true, /* is_anonymous */
+                            None,
                         );
                     } else {
                         self.builder
@@ -1101,11 +1108,17 @@ impl<'dom> TraversalHandler<'dom> for TableColumnGroupBuilder {
             ::std::mem::forget(box_slot);
             return;
         }
+        let old_box = box_slot.take_layout_box_if_undamaged(info.damage);
+        let old_column = old_box.and_then(|layout_box| match layout_box {
+            LayoutBox::TableLevelBox(TableLevelBox::Track(column)) => Some(column),
+            _ => None,
+        });
         let column = add_column(
             &mut self.columns,
             info,
             Some(self.column_group_index),
             false, /* is_anonymous */
+            old_column,
         );
         box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::Track(column)));
     }
@@ -1128,6 +1141,7 @@ fn add_column(
     column_info: &NodeAndStyleInfo,
     group_index: Option<usize>,
     is_anonymous: bool,
+    old_column: Option<ArcRefCell<TableTrack>>,
 ) -> ArcRefCell<TableTrack> {
     let span = if column_info.pseudo_element_type.is_none() {
         column_info.node.to_threadsafe().get_span().unwrap_or(1)
@@ -1138,11 +1152,13 @@ fn add_column(
     // The HTML specification clamps value of `span` for `<col>` to [1, 1000].
     assert!((1..=1000).contains(&span));
 
-    let column = ArcRefCell::new(TableTrack {
-        base: LayoutBoxBase::new(column_info.into(), column_info.style.clone()),
-        group_index,
-        is_anonymous,
-        shared_background_style: SharedStyle::new(column_info.style.clone()),
+    let column = old_column.unwrap_or_else(|| {
+        ArcRefCell::new(TableTrack {
+            base: LayoutBoxBase::new(column_info.into(), column_info.style.clone()),
+            group_index,
+            is_anonymous,
+            shared_background_style: SharedStyle::new(column_info.style.clone()),
+        })
     });
     collection.extend(repeat(column.clone()).take(span as usize));
     column
