@@ -379,6 +379,9 @@ pub(crate) struct Document {
     current_parser: MutNullableDom<ServoParser>,
     /// The cached first `base` element with an `href` attribute.
     base_element: MutNullableDom<HTMLBaseElement>,
+    /// <https://html.spec.whatwg.org/multipage/#concept-document-about-base-url>
+    #[no_trace]
+    about_base_url: DomRefCell<Option<ServoUrl>>,
     /// This field is set to the document itself for inert documents.
     /// <https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document>
     appropriate_template_contents_owner_document: MutNullableDom<Document>,
@@ -811,22 +814,21 @@ impl Document {
     /// <https://html.spec.whatwg.org/multipage/#fallback-base-url>
     pub(crate) fn fallback_base_url(&self) -> ServoUrl {
         let document_url = self.url();
-        if let Some(browsing_context) = self.browsing_context() {
-            // Step 1: If document is an iframe srcdoc document, then return the
-            // document base URL of document's browsing context's container document.
-            let container_base_url = browsing_context
-                .parent()
-                .and_then(|parent| parent.document())
-                .map(|document| document.base_url());
-            if document_url.as_str() == "about:srcdoc" {
-                if let Some(base_url) = container_base_url {
-                    return base_url;
-                }
+        // Step 1: If document is an iframe srcdoc document, then:
+        if document_url.as_str() == "about:srcdoc" {
+            let about_base_url = self.about_base_url.borrow().clone();
+            // Step 1.1: Assert: document's about base URL is non-null.
+            assert!(about_base_url.is_some());
+            if let Some(base_url) = about_base_url {
+                // Step 1.2: Return document's about base URL.
+                return base_url;
             }
-            // Step 2: If document's URL is about:blank, and document's browsing
-            // context's creator base URL is non-null, then return that creator base URL.
-            if document_url.as_str() == "about:blank" && browsing_context.has_creator_base_url() {
-                return browsing_context.creator_base_url().unwrap();
+        }
+        // Step 2: If document's URL matches about:blank and document's
+        // about base URL is non-null, then return document's about base URL.
+        if document_url.as_str() == "about:blank" {
+            if let Some(base_url) = self.about_base_url.borrow().clone() {
+                return base_url;
             }
         }
         // Step 3: Return document's URL.
@@ -4039,6 +4041,7 @@ impl Document {
         status_code: Option<u16>,
         canceller: FetchCanceller,
         is_initial_about_blank: bool,
+        about_base_url: Option<ServoUrl>,
         allow_declarative_shadow_roots: bool,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
         has_trustworthy_ancestor_origin: bool,
@@ -4143,6 +4146,7 @@ impl Document {
             loader: DomRefCell::new(doc_loader),
             current_parser: Default::default(),
             base_element: Default::default(),
+            about_base_url: DomRefCell::new(about_base_url),
             appropriate_template_contents_owner_document: Default::default(),
             pending_restyles: DomRefCell::new(FnvHashMap::default()),
             needs_restyle: Cell::new(RestyleReason::DOMChanged),
@@ -4343,6 +4347,7 @@ impl Document {
         status_code: Option<u16>,
         canceller: FetchCanceller,
         is_initial_about_blank: bool,
+        about_base_url: Option<ServoUrl>,
         allow_declarative_shadow_roots: bool,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
         has_trustworthy_ancestor_origin: bool,
@@ -4364,6 +4369,7 @@ impl Document {
             status_code,
             canceller,
             is_initial_about_blank,
+            about_base_url,
             allow_declarative_shadow_roots,
             inherited_insecure_requests_policy,
             has_trustworthy_ancestor_origin,
@@ -4388,6 +4394,7 @@ impl Document {
         status_code: Option<u16>,
         canceller: FetchCanceller,
         is_initial_about_blank: bool,
+        about_base_url: Option<ServoUrl>,
         allow_declarative_shadow_roots: bool,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
         has_trustworthy_ancestor_origin: bool,
@@ -4409,6 +4416,7 @@ impl Document {
                 status_code,
                 canceller,
                 is_initial_about_blank,
+                about_base_url,
                 allow_declarative_shadow_roots,
                 inherited_insecure_requests_policy,
                 has_trustworthy_ancestor_origin,
@@ -4543,6 +4551,7 @@ impl Document {
                     None,
                     Default::default(),
                     false,
+                    None,
                     self.allow_declarative_shadow_roots(),
                     Some(self.insecure_requests_policy()),
                     self.has_trustworthy_ancestor_or_current_origin(),
@@ -5235,6 +5244,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             None,
             Default::default(),
             false,
+            None,
             doc.allow_declarative_shadow_roots(),
             Some(doc.insecure_requests_policy()),
             doc.has_trustworthy_ancestor_or_current_origin(),

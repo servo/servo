@@ -842,6 +842,30 @@ where
         }
     }
 
+    fn retrieve_event_loop_for_host(
+        &mut self,
+        url: &ServoUrl,
+        webview_id: &WebViewId,
+        opener: &Option<BrowsingContextId>,
+    ) -> (Option<Rc<EventLoop>>, Option<Host>) {
+        match reg_host(url) {
+            None => (None, None),
+            Some(host) => match self.get_event_loop(&host, webview_id, opener) {
+                Err(err) => {
+                    warn!("{}", err);
+                    (None, Some(host))
+                },
+                Ok(event_loop) => {
+                    if let Some(event_loop) = event_loop.upgrade() {
+                        (Some(event_loop), None)
+                    } else {
+                        (None, Some(host))
+                    }
+                },
+            },
+        }
+    }
+
     /// Helper function for creating a pipeline
     #[allow(clippy::too_many_arguments)]
     fn new_pipeline(
@@ -880,7 +904,9 @@ where
         );
 
         let (event_loop, host) = match sandbox {
-            IFrameSandboxState::IFrameSandboxed => (None, None),
+            IFrameSandboxState::IFrameSandboxed => {
+                self.retrieve_event_loop_for_host(&load_data.url, &webview_id, &opener)
+            },
             IFrameSandboxState::IFrameUnsandboxed => {
                 // If this is an about:blank or about:srcdoc load, it must share the creator's
                 // event loop. This must match the logic in the script thread when determining
@@ -888,22 +914,7 @@ where
                 if load_data.url.as_str() != "about:blank" &&
                     load_data.url.as_str() != "about:srcdoc"
                 {
-                    match reg_host(&load_data.url) {
-                        None => (None, None),
-                        Some(host) => match self.get_event_loop(&host, &webview_id, &opener) {
-                            Err(err) => {
-                                warn!("{}", err);
-                                (None, Some(host))
-                            },
-                            Ok(event_loop) => {
-                                if let Some(event_loop) = event_loop.upgrade() {
-                                    (Some(event_loop), None)
-                                } else {
-                                    (None, Some(host))
-                                }
-                            },
-                        },
-                    }
+                    self.retrieve_event_loop_for_host(&load_data.url, &webview_id, &opener)
                 } else if let Some(parent) =
                     parent_pipeline_id.and_then(|pipeline_id| self.pipelines.get(&pipeline_id))
                 {
