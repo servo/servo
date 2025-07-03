@@ -26,15 +26,15 @@ use unicode_script::Script;
 use webrender_api::{ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey};
 
 use crate::backend::{
-    Backend, DrawOptionsHelpers as _, GenericDrawTarget as _, GenericPathBuilder, PathHelpers,
-    PatternHelpers, StrokeOptionsHelpers as _,
+    Backend, DrawOptionsHelpers as _, GenericDrawTarget as _, GenericPath, PatternHelpers,
+    StrokeOptionsHelpers as _,
 };
 
 // Asserts on WR texture cache update for zero sized image with raw data.
 // https://github.com/servo/webrender/blob/main/webrender/src/texture_cache.rs#L1475
 const MIN_WR_IMAGE_SIZE: Size2D<u64> = Size2D::new(1, 1);
 
-fn to_path<B: Backend>(path: &[PathSegment], mut builder: B::PathBuilder) -> B::Path {
+fn to_path<B: Backend>(path: &[PathSegment], mut builder: B::Path) -> B::Path {
     let mut build_ref = PathBuilderRef::<B> {
         builder: &mut builder,
         transform: Transform2D::identity(),
@@ -102,7 +102,7 @@ fn to_path<B: Backend>(path: &[PathSegment], mut builder: B::PathBuilder) -> B::
             ),
         }
     }
-    builder.finish()
+    builder
 }
 
 /// The canvas data stores a state machine for the current status of
@@ -118,9 +118,9 @@ enum PathState<B: Backend> {
     /// Path builder in user-space. If a transform has been applied
     /// but no further path operations have occurred, it is stored
     /// in the optional field.
-    UserSpacePathBuilder(B::PathBuilder, Option<Transform2D<f32>>),
+    UserSpacePathBuilder(B::Path, Option<Transform2D<f32>>),
     /// Path builder in device-space.
-    DeviceSpacePathBuilder(B::PathBuilder),
+    DeviceSpacePathBuilder(B::Path),
     /// Path in user-space. If a transform has been applied but
     /// but no further path operations have occurred, it is stored
     /// in the optional field.
@@ -130,7 +130,7 @@ enum PathState<B: Backend> {
 /// A wrapper around a stored PathBuilder and an optional transformation that should be
 /// applied to any points to ensure they are in the matching device space.
 struct PathBuilderRef<'a, B: Backend> {
-    builder: &'a mut B::PathBuilder,
+    builder: &'a mut B::Path,
     transform: Transform2D<f32>,
 }
 
@@ -816,28 +816,27 @@ impl<'a, B: Backend> CanvasData<'a, B> {
     fn ensure_path(&mut self) -> Option<&B::Path> {
         // If there's no record of any path yet, create a new builder in user-space.
         if self.path_state.is_none() {
-            self.path_state = Some(PathState::UserSpacePathBuilder(
-                self.drawtarget.create_path_builder(),
-                None,
-            ));
+            self.path_state = Some(PathState::UserSpacePathBuilder(B::Path::new(), None));
         }
 
         // If a user-space builder exists, create a finished path from it.
         let new_state = match *self.path_state.as_mut().unwrap() {
             PathState::UserSpacePathBuilder(ref mut builder, ref mut transform) => {
-                Some((builder.finish(), transform.take()))
+                Some((builder, transform.take()))
             },
             PathState::DeviceSpacePathBuilder(..) | PathState::UserSpacePath(..) => None,
         };
         if let Some((path, transform)) = new_state {
-            self.path_state = Some(PathState::UserSpacePath(path, transform));
+            self.path_state = Some(PathState::UserSpacePath(path.clone(), transform));
         }
 
         // If a user-space path exists, create a device-space builder based on it if
         // any transform is present.
         let new_state = match *self.path_state.as_ref().unwrap() {
             PathState::UserSpacePath(ref path, Some(ref transform)) => {
-                Some(path.transformed_copy_to_builder(transform))
+                let mut path = path.clone();
+                path.transform(transform);
+                Some(path)
             },
             PathState::UserSpacePath(..) |
             PathState::UserSpacePathBuilder(..) |
@@ -852,8 +851,9 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         let new_state = match *self.path_state.as_mut().unwrap() {
             PathState::DeviceSpacePathBuilder(ref mut builder) => {
                 let inverse = self.drawtarget.get_transform().inverse()?;
-                let mut builder = builder.finish().transformed_copy_to_builder(&inverse);
-                Some(builder.finish())
+                let mut path = builder.clone();
+                path.transform(&inverse);
+                Some(path)
             },
             PathState::UserSpacePathBuilder(..) | PathState::UserSpacePath(..) => None,
         };
@@ -888,7 +888,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
             return; // Paint nothing if gradient size is zero.
         }
 
-        let path = to_path::<B>(path, self.drawtarget.create_path_builder());
+        let path = to_path::<B>(path, B::Path::new());
 
         self.drawtarget
             .fill(&path, &self.state.fill_style, &self.state.draw_options);
@@ -916,7 +916,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
             return; // Paint nothing if gradient size is zero.
         }
 
-        let path = to_path::<B>(path, self.drawtarget.create_path_builder());
+        let path = to_path::<B>(path, B::Path::new());
 
         self.drawtarget.stroke(
             &path,
@@ -935,7 +935,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
     }
 
     pub(crate) fn clip_path(&mut self, path: &[PathSegment]) {
-        let path = to_path::<B>(path, self.drawtarget.create_path_builder());
+        let path = to_path::<B>(path, B::Path::new());
         self.drawtarget.push_clip(&path);
     }
 
@@ -970,11 +970,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
             Some(PathState::UserSpacePath(_, Some(transform))) => transform,
             Some(_) | None => &self.drawtarget.get_transform(),
         };
-        let result = to_path::<B>(path, self.drawtarget.create_path_builder()).contains_point(
-            x,
-            y,
-            path_transform,
-        );
+        let result = to_path::<B>(path, B::Path::new()).contains_point(x, y, path_transform);
         chan.send(result).unwrap();
     }
 
@@ -988,10 +984,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
 
     fn path_builder(&mut self) -> PathBuilderRef<B> {
         if self.path_state.is_none() {
-            self.path_state = Some(PathState::UserSpacePathBuilder(
-                self.drawtarget.create_path_builder(),
-                None,
-            ));
+            self.path_state = Some(PathState::UserSpacePathBuilder(B::Path::new(), None));
         }
 
         // Rust is not pleased by returning a reference to a builder in some branches
@@ -1003,18 +996,18 @@ impl<'a, B: Backend> CanvasData<'a, B> {
                     None
                 },
                 PathState::UserSpacePathBuilder(ref mut builder, Some(ref transform)) => {
-                    let path = builder.finish();
-                    Some(PathState::DeviceSpacePathBuilder(
-                        path.transformed_copy_to_builder(transform),
-                    ))
+                    let mut path = builder.clone();
+                    path.transform(transform);
+                    Some(PathState::DeviceSpacePathBuilder(path))
                 },
-                PathState::UserSpacePath(ref path, Some(ref transform)) => Some(
-                    PathState::DeviceSpacePathBuilder(path.transformed_copy_to_builder(transform)),
-                ),
-                PathState::UserSpacePath(ref path, None) => Some(PathState::UserSpacePathBuilder(
-                    path.copy_to_builder(),
-                    None,
-                )),
+                PathState::UserSpacePath(ref path, Some(ref transform)) => {
+                    let mut path = path.clone();
+                    path.transform(transform);
+                    Some(PathState::DeviceSpacePathBuilder(path))
+                },
+                PathState::UserSpacePath(ref path, None) => {
+                    Some(PathState::UserSpacePathBuilder(path.clone(), None))
+                },
             }
         };
         match new_state {

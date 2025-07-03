@@ -21,9 +21,8 @@ pub(crate) trait Backend: Clone + Sized {
     type DrawOptions: DrawOptionsHelpers + Clone;
     type CompositionOp;
     type DrawTarget: GenericDrawTarget<Self>;
-    type PathBuilder: GenericPathBuilder<Self>;
+    type Path: GenericPath<Self> + Clone;
     type SourceSurface;
-    type Path: PathHelpers<Self> + Clone;
     type GradientStop;
     type GradientStops;
 
@@ -61,7 +60,6 @@ pub(crate) trait GenericDrawTarget<B: Backend> {
         source: Rect<i32>,
         destination: Point2D<i32>,
     );
-    fn create_path_builder(&self) -> B::PathBuilder;
     fn create_similar_draw_target(&self, size: &Size2D<i32>) -> Self;
     fn create_source_surface_from_data(&self, data: &[u8]) -> Option<B::SourceSurface>;
     fn draw_surface(
@@ -118,8 +116,10 @@ pub(crate) trait GenericDrawTarget<B: Backend> {
     fn bytes(&self) -> Cow<[u8]>;
 }
 
-/// A generic PathBuilder that abstracts the interface for azure's and raqote's PathBuilder.
-pub(crate) trait GenericPathBuilder<B: Backend> {
+/// A generic Path that abstracts the interface for raqote's PathBuilder/Path.
+pub(crate) trait GenericPath<B: Backend> {
+    fn new() -> Self;
+    fn transform(&mut self, transform: &Transform2D<f32>);
     fn arc(
         &mut self,
         origin: Point2D<f32>,
@@ -237,7 +237,7 @@ pub(crate) trait GenericPathBuilder<B: Backend> {
             self.quadratic_curve_to(&q.ctrl, &q.to);
         });
     }
-    fn finish(&mut self) -> B::Path;
+    fn contains_point(&self, x: f64, y: f64, path_transform: &Transform2D<f32>) -> bool;
 }
 
 pub(crate) trait PatternHelpers {
@@ -256,12 +256,4 @@ pub(crate) trait StrokeOptionsHelpers {
 
 pub(crate) trait DrawOptionsHelpers {
     fn set_alpha(&mut self, val: f32);
-}
-
-pub(crate) trait PathHelpers<B: Backend> {
-    fn transformed_copy_to_builder(&self, transform: &Transform2D<f32>) -> B::PathBuilder;
-
-    fn contains_point(&self, x: f64, y: f64, path_transform: &Transform2D<f32>) -> bool;
-
-    fn copy_to_builder(&self) -> B::PathBuilder;
 }
