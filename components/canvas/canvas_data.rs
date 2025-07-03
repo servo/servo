@@ -8,22 +8,22 @@ use std::sync::Arc;
 
 use app_units::Au;
 use canvas_traits::canvas::*;
-use compositing_traits::{CrossProcessCompositorApi, SerializableImageData};
+use compositing_traits::CrossProcessCompositorApi;
 use euclid::default::{Box2D, Point2D, Rect, Size2D, Transform2D, Vector2D};
 use euclid::point2;
 use fonts::{
     ByteIndex, FontBaseline, FontContext, FontGroup, FontMetrics, FontRef, GlyphInfo, GlyphStore,
     LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
 };
-use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::IpcSender;
 use log::warn;
-use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
+use pixels::Snapshot;
 use range::Range;
 use servo_arc::Arc as ServoArc;
 use style::color::AbsoluteColor;
 use style::properties::style_structs::Font as FontStyleStruct;
 use unicode_script::Script;
-use webrender_api::{ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey};
+use webrender_api::ImageKey;
 
 use crate::backend::{
     Backend, DrawOptionsHelpers as _, GenericDrawTarget as _, GenericPath, PatternHelpers,
@@ -352,15 +352,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         let size = size.max(MIN_WR_IMAGE_SIZE);
         let draw_target = backend.create_drawtarget(size);
         let image_key = compositor_api.generate_image_key_blocking().unwrap();
-        let descriptor = ImageDescriptor {
-            size: size.cast().cast_unit(),
-            stride: None,
-            format: ImageFormat::BGRA8,
-            offset: 0,
-            flags: ImageDescriptorFlags::empty(),
-        };
-        let data =
-            SerializableImageData::Raw(IpcSharedMemory::from_bytes(draw_target.bytes().as_ref()));
+        let (descriptor, data) = draw_target.wr_data();
         compositor_api.add_image(image_key, descriptor, data);
         CanvasData {
             state: backend.new_paint_state(),
@@ -1107,16 +1099,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
 
     /// Update image in WebRender
     pub(crate) fn update_image_rendering(&mut self) {
-        let descriptor = ImageDescriptor {
-            size: self.drawtarget.get_size().cast_unit(),
-            stride: None,
-            format: ImageFormat::BGRA8,
-            offset: 0,
-            flags: ImageDescriptorFlags::empty(),
-        };
-        let data = SerializableImageData::Raw(IpcSharedMemory::from_bytes(
-            self.drawtarget.bytes().as_ref(),
-        ));
+        let (descriptor, data) = self.drawtarget.wr_data();
 
         self.compositor_api
             .update_image(self.image_key, descriptor, data);
@@ -1217,29 +1200,19 @@ impl<'a, B: Backend> CanvasData<'a, B> {
     ) -> Snapshot {
         let canvas_size = canvas_size.unwrap_or(self.drawtarget.get_size().cast());
 
-        let data = if let Some(read_rect) = read_rect {
+        if let Some(read_rect) = read_rect {
             let canvas_rect = Rect::from_size(canvas_size);
             if canvas_rect
                 .intersection(&read_rect)
                 .is_none_or(|rect| rect.is_empty())
             {
-                vec![]
+                Snapshot::empty()
             } else {
-                pixels::rgba8_get_rect(self.drawtarget.bytes().as_ref(), canvas_size, read_rect)
-                    .to_vec()
+                self.drawtarget.snapshot().get_rect(read_rect)
             }
         } else {
-            self.drawtarget.bytes().into_owned()
-        };
-
-        Snapshot::from_vec(
-            canvas_size,
-            SnapshotPixelFormat::BGRA,
-            SnapshotAlphaMode::Transparent {
-                premultiplied: true,
-            },
-            data,
-        )
+            self.drawtarget.snapshot()
+        }
     }
 }
 

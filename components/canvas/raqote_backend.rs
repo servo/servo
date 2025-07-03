@@ -2,20 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 
 use canvas_traits::canvas::*;
+use compositing_traits::SerializableImageData;
 use cssparser::color::clamp_unit_f32;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use font_kit::font::Font;
 use fonts::{ByteIndex, FontIdentifier, FontTemplateRefMethods};
+use ipc_channel::ipc::IpcSharedMemory;
 use log::warn;
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use range::Range;
 use raqote::PathOp;
 use style::color::AbsoluteColor;
+use webrender_api::{ImageDescriptor, ImageDescriptorFlags, ImageFormat};
 
 use crate::backend::{
     Backend, DrawOptionsHelpers, GenericDrawTarget, GenericPath, PatternHelpers,
@@ -570,7 +572,7 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
         self.set_transform(matrix);
     }
     fn surface(&self) -> <RaqoteBackend as Backend>::SourceSurface {
-        self.bytes().to_vec()
+        self.get_data_u8().to_vec()
     }
     fn stroke(
         &mut self,
@@ -598,12 +600,33 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
 
         self.stroke(&pb.finish(), &source(pattern), stroke_options, draw_options);
     }
-    #[allow(unsafe_code)]
-    fn bytes(&self) -> Cow<[u8]> {
-        let v = self.get_data();
-        Cow::Borrowed(unsafe {
-            std::slice::from_raw_parts(v.as_ptr() as *const u8, std::mem::size_of_val(v))
-        })
+
+    fn wr_data(
+        &self,
+    ) -> (
+        webrender_api::ImageDescriptor,
+        compositing_traits::SerializableImageData,
+    ) {
+        let descriptor = ImageDescriptor {
+            size: self.get_size().cast_unit(),
+            stride: None,
+            format: ImageFormat::BGRA8,
+            offset: 0,
+            flags: ImageDescriptorFlags::empty(),
+        };
+        let data = SerializableImageData::Raw(IpcSharedMemory::from_bytes(self.get_data_u8()));
+        (descriptor, data)
+    }
+
+    fn snapshot(&self) -> Snapshot {
+        Snapshot::from_vec(
+            self.get_size().cast(),
+            SnapshotPixelFormat::BGRA,
+            SnapshotAlphaMode::Transparent {
+                premultiplied: true,
+            },
+            self.get_data_u8().to_vec(),
+        )
     }
 }
 
