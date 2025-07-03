@@ -643,6 +643,7 @@ impl CanvasState {
                         smoothing_enabled,
                     ));
                 },
+                OffscreenRenderingContext::Detached => return Err(Error::InvalidState),
             }
         } else {
             self.send_canvas_2d_msg(Canvas2dMsg::DrawEmptyImage(
@@ -711,6 +712,7 @@ impl CanvasState {
                                 source_rect,
                                 smoothing_enabled,
                             )),
+                        OffscreenRenderingContext::Detached => return Err(Error::InvalidState),
                     }
                 },
                 _ => return Err(Error::InvalidState),

@@ -214,6 +214,7 @@ pub struct SWManagerSenders {
 
 /// Messages sent to Service Worker Manager thread
 #[derive(Debug, Deserialize, Serialize)]
+#[allow(clippy::large_enum_variant)]
 pub enum ServiceWorkerMsg {
     /// Timeout message sent by active service workers
     Timeout(ServoUrl),

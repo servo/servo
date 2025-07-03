@@ -373,6 +373,8 @@ namespace_id! {HistoryStateId, HistoryStateIndex, "HistoryState"}
 
 namespace_id! {ImageBitmapId, ImageBitmapIndex, "ImageBitmap"}
 
+namespace_id! {OffscreenCanvasId, OffscreenCanvasIndex, "OffscreenCanvas"}
+
 // We provide ids just for unit testing.
 pub const TEST_NAMESPACE: PipelineNamespaceId = PipelineNamespaceId(1234);
 #[allow(unsafe_code)]
