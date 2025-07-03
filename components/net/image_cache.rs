@@ -328,12 +328,22 @@ impl LoadKeyGenerator {
     }
 }
 
-#[derive(Debug)]
 enum LoadResult {
     LoadedRasterImage(RasterImage),
     LoadedVectorImage(VectorImageData),
     PlaceholderLoaded(Arc<RasterImage>),
     None,
+}
+
+impl std::fmt::Debug for LoadResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::LoadedRasterImage(i) => write!(f, "LoadedRasterImage({i:?})"),
+            Self::LoadedVectorImage(i) => write!(f, "LoadedVectorImage"),
+            Self::PlaceholderLoaded(i) => write!(f, "PlaceholderLoaded({i:?})"),
+            Self::None => write!(f, "None"),
+        }
+    }
 }
 
 /// Represents an image that is either being loaded
