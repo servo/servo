@@ -228,13 +228,15 @@ impl Path2D {
         }
 
         // Step 6. Let (x, y) be the last point in the last subpath of c
-        let last_point = Path2D::last_point(&c).unwrap_or(PathSegment::ClosePath);
+        let last_point = Path2D::last_point(&c);
 
         // Step 7. Add all the subpaths in c to a.
         self.path.borrow_mut().extend(c);
 
         // Step 8. Create a new subpath in `a` with (x, y) as the only point in the subpath.
-        self.push(last_point);
+        if let Some(last_point) = last_point {
+            self.push(last_point);
+        }
 
         Ok(())
     }
