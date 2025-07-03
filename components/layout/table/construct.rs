@@ -855,14 +855,11 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                         unreachable!("Replaced should not have a LayoutInternal display type.");
                     };
 
-                    let old_caption = (!info.damage.has_box_damage())
-                        .then(|| match box_slot.take_layout_box() {
-                            Some(LayoutBox::TableLevelBox(TableLevelBox::Caption(caption))) => {
-                                Some(caption)
-                            },
-                            _ => None,
-                        })
-                        .flatten();
+                    let old_box = box_slot.take_layout_box_if_undamaged(info.damage);
+                    let old_caption = old_box.and_then(|layout_box| match layout_box {
+                        LayoutBox::TableLevelBox(TableLevelBox::Caption(caption)) => Some(caption),
+                        _ => None,
+                    });
 
                     let caption = old_caption.unwrap_or_else(|| {
                         let contents = IndependentNonReplacedContents::Flow(
@@ -1006,45 +1003,54 @@ impl<'dom> TraversalHandler<'dom> for TableRowBuilder<'_, '_, 'dom, '_> {
         match display {
             DisplayGeneratingBox::LayoutInternal(internal) => match internal {
                 DisplayLayoutInternal::TableCell => {
-                    // This value will already have filtered out rowspan=0
-                    // in quirks mode, so we don't have to worry about that.
-                    let (rowspan, colspan) = if info.pseudo_element_type.is_none() {
-                        let node = info.node.to_threadsafe();
-                        let rowspan = node.get_rowspan().unwrap_or(1) as usize;
-                        let colspan = node.get_colspan().unwrap_or(1) as usize;
-
-                        // The HTML specification clamps value of `rowspan` to [0, 65534] and
-                        // `colspan` to [1, 1000].
-                        assert!((1..=1000).contains(&colspan));
-                        assert!((0..=65534).contains(&rowspan));
-
-                        (rowspan, colspan)
-                    } else {
-                        (1, 1)
-                    };
-
-                    let propagated_data =
-                        self.propagated_data.disallowing_percentage_table_columns();
-                    let Contents::NonReplaced(non_replaced_contents) = contents else {
-                        unreachable!("Replaced should not have a LayoutInternal display type.");
-                    };
-
-                    let contents = BlockFormattingContext::construct(
-                        self.table_traversal.context,
-                        info,
-                        non_replaced_contents,
-                        propagated_data,
-                        false, /* is_list_item */
-                    );
-
                     self.finish_current_anonymous_cell_if_needed();
 
-                    let cell = ArcRefCell::new(TableSlotCell {
-                        base: LayoutBoxBase::new(info.into(), info.style.clone()),
-                        contents,
-                        colspan,
-                        rowspan,
+                    let old_box = box_slot.take_layout_box_if_undamaged(info.damage);
+                    let old_cell = old_box.and_then(|layout_box| match layout_box {
+                        LayoutBox::TableLevelBox(TableLevelBox::Cell(cell)) => Some(cell),
+                        _ => None,
                     });
+
+                    let cell = old_cell.unwrap_or_else(|| {
+                        // This value will already have filtered out rowspan=0
+                        // in quirks mode, so we don't have to worry about that.
+                        let (rowspan, colspan) = if info.pseudo_element_type.is_none() {
+                            let node = info.node.to_threadsafe();
+                            let rowspan = node.get_rowspan().unwrap_or(1) as usize;
+                            let colspan = node.get_colspan().unwrap_or(1) as usize;
+
+                            // The HTML specification clamps value of `rowspan` to [0, 65534] and
+                            // `colspan` to [1, 1000].
+                            assert!((1..=1000).contains(&colspan));
+                            assert!((0..=65534).contains(&rowspan));
+
+                            (rowspan, colspan)
+                        } else {
+                            (1, 1)
+                        };
+
+                        let propagated_data =
+                            self.propagated_data.disallowing_percentage_table_columns();
+                        let Contents::NonReplaced(non_replaced_contents) = contents else {
+                            unreachable!("Replaced should not have a LayoutInternal display type.");
+                        };
+
+                        let contents = BlockFormattingContext::construct(
+                            self.table_traversal.context,
+                            info,
+                            non_replaced_contents,
+                            propagated_data,
+                            false, /* is_list_item */
+                        );
+
+                        ArcRefCell::new(TableSlotCell {
+                            base: LayoutBoxBase::new(info.into(), info.style.clone()),
+                            contents,
+                            colspan,
+                            rowspan,
+                        })
+                    });
+
                     self.table_traversal.builder.add_cell(cell.clone());
                     box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::Cell(cell)));
                 },

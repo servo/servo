@@ -181,7 +181,10 @@ impl BoxSlot<'_> {
         }
     }
 
-    pub(crate) fn take_layout_box(&self) -> Option<LayoutBox> {
+    pub(crate) fn take_layout_box_if_undamaged(&self, damage: LayoutDamage) -> Option<LayoutBox> {
+        if damage.has_box_damage() {
+            return None;
+        }
         self.slot.as_ref().and_then(|slot| slot.borrow_mut().take())
     }
 }
