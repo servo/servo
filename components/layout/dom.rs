@@ -180,6 +180,10 @@ impl BoxSlot<'_> {
             *slot.borrow_mut() = Some(box_);
         }
     }
+
+    pub(crate) fn take_layout_box(&self) -> Option<LayoutBox> {
+        self.slot.as_ref().and_then(|slot| slot.borrow_mut().take())
+    }
 }
 
 impl Drop for BoxSlot<'_> {
