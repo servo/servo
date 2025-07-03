@@ -10,6 +10,7 @@
 import {request_options_with_mediation_required,
         fedcm_test,
         fedcm_get_dialog_type_promise,
+        fedcm_settles_without_dialog,
         manifest_origin,
         open_and_wait_for_popup,
         select_manifest} from '../support/fedcm-helper.sub.js';
@@ -43,7 +44,7 @@ fedcm_test(async t => {
 
   // Select the first account, which is the most recently signed in account.
   await window.test_driver.select_fedcm_account(0);
-  const cred = await cred_promise;
+  const cred = await fedcm_settles_without_dialog(t, cred_promise);
   assert_equals(cred.token, "account_id=jane_doe");
 }, 'Test that the "Use Other Account" button works correctly.');
 

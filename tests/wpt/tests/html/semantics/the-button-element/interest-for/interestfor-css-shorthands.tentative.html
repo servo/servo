@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+
+<body>
+<script>
+test_shorthand_value('interest-delay', '0.23s 450ms', {
+  'interest-show-delay': '0.23s',
+  'interest-hide-delay': '450ms'
+});
+test_shorthand_value('interest-delay', '0.23s', {
+  'interest-show-delay': '0.23s',
+  'interest-hide-delay': '0.23s'
+});
+test_shorthand_value('interest-delay', '450ms', {
+  'interest-show-delay': '450ms',
+  'interest-hide-delay': '450ms'
+});
+
+test_invalid_value('interest-delay', '');
+test_invalid_value('interest-delay', '0');
+test_invalid_value('interest-delay', '0.23s 0.23s 0.23s');
+</script>

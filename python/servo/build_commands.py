@@ -19,8 +19,6 @@ import sys
 from time import time
 from typing import Optional, List, Dict
 
-import notifypy
-
 from mach.decorators import (
     CommandArgument,
     CommandProvider,
@@ -33,7 +31,7 @@ import servo.platform.macos
 import servo.util
 import servo.visual_studio
 
-from servo.command_base import BuildType, CommandBase, call, check_call
+from servo.command_base import BuildType, CommandBase, check_call
 from servo.gstreamer import windows_dlls, windows_plugins, package_gstreamer_dylibs
 from servo.platform.build_target import BuildTarget
 
@@ -189,12 +187,10 @@ class MachCommands(CommandBase):
                 except ImportError:
                     pass
 
-        # Generate Desktop Notification if elapsed-time > some threshold value
-
+        # Print how long the build took
         elapsed = time() - build_start
         elapsed_delta = datetime.timedelta(seconds=int(elapsed))
         build_message = f"{'Succeeded' if status == 0 else 'Failed'} in {elapsed_delta}"
-        self.notify("Servo build", build_message)
         print(build_message)
 
         return status
@@ -286,56 +282,6 @@ class MachCommands(CommandBase):
             env["RUSTFLAGS"] += " -Zsanitizer=thread"
             env["TARGET_CFLAGS"] += " -fsanitize=thread"
             env["TARGET_CXXFLAGS"] += " -fsanitize=thread"
-
-    def notify(self, title: str, message: str):
-        """Generate desktop notification when build is complete and the
-        elapsed build time was longer than 30 seconds.
-
-        If notify-command is set in the [tools] section of the configuration,
-        that is used instead."""
-        notify_command = self.config["tools"].get("notify-command")
-
-        # notifypy does not know how to send transient notifications, so we use a custom
-        # notifier on Linux. If transient notifications are not used, then notifications
-        # pile up in the notification center and must be cleared manually.
-        class LinuxNotifier(notifypy.BaseNotifier):
-            def __init__(self, **kwargs):
-                pass
-
-            def send_notification(self, **kwargs):
-                try:
-                    import dbus
-
-                    bus = dbus.SessionBus()
-                    notify_obj = bus.get_object("org.freedesktop.Notifications", "/org/freedesktop/Notifications")
-                    method = notify_obj.get_dbus_method("Notify", "org.freedesktop.Notifications")
-                    method(
-                        kwargs.get("application_name"),
-                        0,  # Don't replace previous notification.
-                        kwargs.get("notification_icon", ""),
-                        kwargs.get("notification_title"),
-                        kwargs.get("notification_subtitle"),
-                        [],  # actions
-                        {"transient": True},  # hints
-                        -1,  # timeout
-                    )
-                except Exception as exception:
-                    print(f"[Warning] Could not generate notification: {exception}", file=sys.stderr)
-                return True
-
-        if notify_command:
-            if call([notify_command, title, message]) != 0:
-                print(f"[Warning] Could not generate notification: Could not run '{notify_command}'.", file=sys.stderr)
-        else:
-            try:
-                notifier = LinuxNotifier if sys.platform.startswith("linux") else None
-                notification = notifypy.Notify(use_custom_notifier=notifier)
-                notification.title = title
-                notification.message = message
-                notification.icon = path.join(self.get_top_dir(), "resources", "servo_64.png")
-                notification.send(block=False)
-            except notifypy.exceptions.UnsupportedPlatform as e:
-                print(f"[Warning] Could not generate notification: {e}", file=sys.stderr)
 
 
 def copy_windows_dlls_to_build_directory(servo_binary: str, target: BuildTarget) -> bool:

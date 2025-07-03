@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: Fallback alignment of 'align-content: stretch'</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-align/#valdef-align-content-stretch">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11641">
+<meta name="assert" content="The fallback alignment for `align-content: stretch` is `flex-start`, not `safe flex-start`.">
+<link rel="match" href="../reference/ref-filled-green-200px-square.html">
+
+<style>
+#flex {
+    display: flex;
+    width: 200px;
+    height: 200px;
+    flex-wrap: wrap-reverse;
+    align-content: stretch;
+}
+#item {
+    width: 200px;
+    height: 400px;
+    background: linear-gradient(to bottom, red 50%, green 50%);
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="overflow: hidden">
+  <div id="flex">
+    <div id="item"></div>
+  </div>
+</div>

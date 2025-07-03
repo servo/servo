@@ -9,6 +9,7 @@ use crate::codegen::PrototypeList::proto_id_to_name;
 use crate::script_runtime::JSContext as SafeJSContext;
 
 /// DOM exceptions that can be thrown by a native DOM method.
+/// <https://webidl.spec.whatwg.org/#dfn-error-names-table>
 #[derive(Clone, Debug, MallocSizeOf)]
 pub enum Error {
     /// IndexSizeError DOMException
@@ -67,6 +68,8 @@ pub enum Error {
     Operation,
     /// NotAllowedError DOMException
     NotAllowed,
+    /// EncodingError DOMException
+    Encoding,
 
     /// TypeError JavaScript Error
     Type(String),

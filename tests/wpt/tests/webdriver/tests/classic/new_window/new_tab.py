@@ -90,8 +90,9 @@ def test_initial_selection_for_contenteditable(session, inline):
 
     elem = session.find.css("div", all=False)
 
-    wait = Poll(
-        session,
-        timeout=5,
-        message="Initial selection for contenteditable not set")
-    wait.until(lambda _: elem.attribute("_focused") == "true")
+    def assert_initial_selection(s):
+        assert elem.attribute(
+            "_focused") == "true", "Initial selection for contenteditable not set"
+
+    wait = Poll(session, timeout=5)
+    wait.until(assert_initial_selection)

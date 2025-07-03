@@ -45,7 +45,7 @@ serde = { workspace = true }
 servo_arc = { workspace = true }
 servo_config = { path = "../config" }
 servo_url = { path = "../url" }
-smallvec = { workspace = true, features = ["union"] }
+smallvec = { workspace = true }
 stylo = { workspace = true }
 stylo_atoms = { workspace = true }
 tracing = { workspace = true, optional = true }

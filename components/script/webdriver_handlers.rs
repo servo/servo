@@ -43,6 +43,9 @@ use crate::dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelec
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLSerializerBinding::XMLSerializerMethods;
+use crate::dom::bindings::codegen::Bindings::XPathResultBinding::{
+    XPathResultConstants, XPathResultMethods,
+};
 use crate::dom::bindings::conversions::{
     ConversionBehavior, ConversionResult, FromJSValConvertible, StringificationBehavior,
     get_property, get_property_jsval, jsid_to_string, jsstring_to_str, root_from_object,
@@ -215,25 +218,6 @@ fn all_matching_links(
         .query_selector_all(DOMString::from("a"))
         .map_err(|_| ErrorStatus::InvalidSelector)
         .map(|nodes| matching_links(&nodes, link_text, partial, can_gc).collect())
-}
-
-fn first_matching_link(
-    root_node: &Node,
-    link_text: String,
-    partial: bool,
-    can_gc: CanGc,
-) -> Result<Option<String>, ErrorStatus> {
-    // <https://w3c.github.io/webdriver/#dfn-find>
-    // Step 7.2. If a DOMException, SyntaxError, XPathException, or other error occurs
-    // during the execution of the element location strategy, return error invalid selector.
-    root_node
-        .query_selector_all(DOMString::from("a"))
-        .map_err(|_| ErrorStatus::InvalidSelector)
-        .map(|nodes| {
-            matching_links(&nodes, link_text, partial, can_gc)
-                .take(1)
-                .next()
-        })
 }
 
 #[allow(unsafe_code)]
@@ -714,65 +698,6 @@ fn retrieve_document_and_check_root_existence(
     }
 }
 
-pub(crate) fn handle_find_element_css_selector(
-    documents: &DocumentCollection,
-    pipeline: PipelineId,
-    selector: String,
-    reply: IpcSender<Result<Option<String>, ErrorStatus>>,
-) {
-    match retrieve_document_and_check_root_existence(documents, pipeline) {
-        Ok(document) => reply
-            .send(
-                document
-                    .QuerySelector(DOMString::from(selector))
-                    .map_err(|_| ErrorStatus::InvalidSelector)
-                    .map(|element| element.map(|x| x.upcast::<Node>().unique_id(pipeline))),
-            )
-            .unwrap(),
-        Err(error) => reply.send(Err(error)).unwrap(),
-    }
-}
-
-pub(crate) fn handle_find_element_link_text(
-    documents: &DocumentCollection,
-    pipeline: PipelineId,
-    selector: String,
-    partial: bool,
-    reply: IpcSender<Result<Option<String>, ErrorStatus>>,
-    can_gc: CanGc,
-) {
-    match retrieve_document_and_check_root_existence(documents, pipeline) {
-        Ok(document) => reply
-            .send(first_matching_link(
-                document.upcast::<Node>(),
-                selector.clone(),
-                partial,
-                can_gc,
-            ))
-            .unwrap(),
-        Err(error) => reply.send(Err(error)).unwrap(),
-    }
-}
-
-pub(crate) fn handle_find_element_tag_name(
-    documents: &DocumentCollection,
-    pipeline: PipelineId,
-    selector: String,
-    reply: IpcSender<Result<Option<String>, ErrorStatus>>,
-    can_gc: CanGc,
-) {
-    match retrieve_document_and_check_root_existence(documents, pipeline) {
-        Ok(document) => reply
-            .send(Ok(document
-                .GetElementsByTagName(DOMString::from(selector), can_gc)
-                .elements_iter()
-                .next()
-                .map(|element| element.upcast::<Node>().unique_id(pipeline))))
-            .unwrap(),
-        Err(error) => reply.send(Err(error)).unwrap(),
-    }
-}
-
 pub(crate) fn handle_find_elements_css_selector(
     documents: &DocumentCollection,
     pipeline: PipelineId,
@@ -837,63 +762,85 @@ pub(crate) fn handle_find_elements_tag_name(
     }
 }
 
-pub(crate) fn handle_find_element_element_css_selector(
-    documents: &DocumentCollection,
-    pipeline: PipelineId,
-    element_id: String,
+/// <https://w3c.github.io/webdriver/#xpath>
+fn find_elements_xpath_strategy(
+    document: &Document,
+    start_node: &Node,
     selector: String,
-    reply: IpcSender<Result<Option<String>, ErrorStatus>>,
-) {
-    reply
-        .send(
-            get_known_element(documents, pipeline, element_id).and_then(|element| {
-                element
-                    .upcast::<Node>()
-                    .query_selector(DOMString::from(selector))
-                    .map_err(|_| ErrorStatus::InvalidSelector)
-                    .map(|element| element.map(|x| x.upcast::<Node>().unique_id(pipeline)))
-            }),
-        )
-        .unwrap();
+    pipeline: PipelineId,
+    can_gc: CanGc,
+) -> Result<Vec<String>, ErrorStatus> {
+    // Step 1. Let evaluateResult be the result of calling evaluate,
+    // with arguments selector, start node, null, ORDERED_NODE_SNAPSHOT_TYPE, and null.
+
+    // A snapshot is used to promote operation atomicity.
+    let evaluate_result = match document.Evaluate(
+        DOMString::from(selector),
+        start_node,
+        None,
+        XPathResultConstants::ORDERED_NODE_SNAPSHOT_TYPE,
+        None,
+        can_gc,
+    ) {
+        Ok(res) => res,
+        Err(_) => return Err(ErrorStatus::InvalidSelector),
+    };
+    // Step 2. Let index be 0. (Handled altogether in Step 5.)
+
+    // Step 3: Let length be the result of getting the property "snapshotLength"
+    // from evaluateResult.
+
+    let length = match evaluate_result.GetSnapshotLength() {
+        Ok(len) => len,
+        Err(_) => return Err(ErrorStatus::InvalidSelector),
+    };
+
+    // Step 4: Prepare result vector
+    let mut result = Vec::new();
+
+    // Step 5: Repeat, while index is less than length:
+    for index in 0..length {
+        // Step 5.1. Let node be the result of calling snapshotItem with
+        // evaluateResult as this and index as the argument.
+        let node = match evaluate_result.SnapshotItem(index) {
+            Ok(node) => node.expect(
+                "Node should always exist as ORDERED_NODE_SNAPSHOT_TYPE \
+                                gives static result and we verified the length!",
+            ),
+            Err(_) => return Err(ErrorStatus::InvalidSelector),
+        };
+
+        // Step 5.2. If node is not an element return an error with error code invalid selector.
+        if !node.is::<Element>() {
+            return Err(ErrorStatus::InvalidSelector);
+        }
+
+        // Step 5.3. Append node to result.
+        result.push(node.unique_id(pipeline));
+    }
+    // Step 6. Return success with data result.
+    Ok(result)
 }
 
-pub(crate) fn handle_find_element_element_link_text(
+pub(crate) fn handle_find_elements_xpath_selector(
     documents: &DocumentCollection,
     pipeline: PipelineId,
-    element_id: String,
     selector: String,
-    partial: bool,
-    reply: IpcSender<Result<Option<String>, ErrorStatus>>,
+    reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
     can_gc: CanGc,
 ) {
-    reply
-        .send(
-            get_known_element(documents, pipeline, element_id).and_then(|element| {
-                first_matching_link(element.upcast::<Node>(), selector.clone(), partial, can_gc)
-            }),
-        )
-        .unwrap();
-}
-
-pub(crate) fn handle_find_element_element_tag_name(
-    documents: &DocumentCollection,
-    pipeline: PipelineId,
-    element_id: String,
-    selector: String,
-    reply: IpcSender<Result<Option<String>, ErrorStatus>>,
-    can_gc: CanGc,
-) {
-    reply
-        .send(
-            get_known_element(documents, pipeline, element_id).map(|element| {
-                element
-                    .GetElementsByTagName(DOMString::from(selector), can_gc)
-                    .elements_iter()
-                    .next()
-                    .map(|x| x.upcast::<Node>().unique_id(pipeline))
-            }),
-        )
-        .unwrap();
+    match retrieve_document_and_check_root_existence(documents, pipeline) {
+        Ok(document) => reply
+            .send(find_elements_xpath_strategy(
+                &document,
+                document.upcast::<Node>(),
+                selector,
+                pipeline,
+                can_gc,
+            ))
+            .unwrap(),
+        Err(error) => reply.send(Err(error)).unwrap(),
+    }
 }
 
 pub(crate) fn handle_find_element_elements_css_selector(
@@ -955,6 +902,31 @@ pub(crate) fn handle_find_element_elements_tag_name(
                     .elements_iter()
                     .map(|x| x.upcast::<Node>().unique_id(pipeline))
                     .collect::<Vec<String>>()
+            }),
+        )
+        .unwrap();
+}
+
+pub(crate) fn handle_find_element_elements_xpath_selector(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    element_id: String,
+    selector: String,
+    reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    can_gc: CanGc,
+) {
+    reply
+        .send(
+            get_known_element(documents, pipeline, element_id).and_then(|element| {
+                find_elements_xpath_strategy(
+                    &documents
+                        .find_document(pipeline)
+                        .expect("Document existence guaranteed by `get_known_element`"),
+                    element.upcast::<Node>(),
+                    selector,
+                    pipeline,
+                    can_gc,
+                )
             }),
         )
         .unwrap();
@@ -1039,6 +1011,31 @@ pub(crate) fn handle_find_shadow_elements_tag_name(
         .unwrap();
 }
 
+pub(crate) fn handle_find_shadow_elements_xpath_selector(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    shadow_root_id: String,
+    selector: String,
+    reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    can_gc: CanGc,
+) {
+    reply
+        .send(
+            get_known_shadow_root(documents, pipeline, shadow_root_id).and_then(|shadow_root| {
+                find_elements_xpath_strategy(
+                    &documents
+                        .find_document(pipeline)
+                        .expect("Document existence guaranteed by `get_known_shadow_root`"),
+                    shadow_root.upcast::<Node>(),
+                    selector,
+                    pipeline,
+                    can_gc,
+                )
+            }),
+        )
+        .unwrap();
+}
+
 /// <https://www.w3.org/TR/webdriver2/#dfn-get-element-shadow-root>
 pub(crate) fn handle_get_element_shadow_root(
     documents: &DocumentCollection,
@@ -1050,7 +1047,7 @@ pub(crate) fn handle_get_element_shadow_root(
         .send(
             get_known_element(documents, pipeline, element_id).map(|element| {
                 element
-                    .GetShadowRoot()
+                    .shadow_root()
                     .map(|x| x.upcast::<Node>().unique_id(pipeline))
             }),
         )

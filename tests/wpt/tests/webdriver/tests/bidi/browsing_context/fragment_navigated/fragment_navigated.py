@@ -1,9 +1,9 @@
 import pytest
 
-from tests.support.sync import AsyncPoll
 from webdriver.bidi.modules.script import ContextTarget
 from webdriver.error import TimeoutException
 
+from tests.bidi import wait_for_bidi_events
 from ... import any_int, recursive_compare, int_interval
 from .. import assert_navigation_info
 
@@ -267,9 +267,8 @@ async def test_new_context(bidi_session, subscribe_events, type_hint):
 
     await bidi_session.browsing_context.create(type_hint=type_hint)
 
-    wait = AsyncPoll(bidi_session, timeout=0.5)
     with pytest.raises(TimeoutException):
-        await wait.until(lambda _: len(events) > 0)
+        await wait_for_bidi_events(bidi_session, events, 1, timeout=0.5)
 
     remove_listener()
 
@@ -291,9 +290,8 @@ async def test_document_write(bidi_session, subscribe_events, new_tab, sandbox):
         await_promise=False
     )
 
-    wait = AsyncPoll(bidi_session, timeout=0.5)
     with pytest.raises(TimeoutException):
-        await wait.until(lambda _: len(events) > 0)
+        await wait_for_bidi_events(bidi_session, events, 1, timeout=0.5)
 
     remove_listener()
 
@@ -319,8 +317,7 @@ async def test_regular_navigation(bidi_session, subscribe_events, url, new_tab, 
 
     await bidi_session.browsing_context.navigate(context=new_tab["context"], url=url(EMPTY_PAGE + after), wait="complete")
 
-    wait = AsyncPoll(bidi_session, timeout=0.5)
     with pytest.raises(TimeoutException):
-        await wait.until(lambda _: len(events) > 0)
+        await wait_for_bidi_events(bidi_session, events, 1, timeout=0.5)
 
     remove_listener()

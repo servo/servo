@@ -52,13 +52,14 @@ def test_opening_new_window_keeps_current_window_handle(session, inline):
     url = inline("""<a href="javascript:window.open();">open window</a>""")
     session.url = url
     session.find.css("a", all=False).click()
-    wait = Poll(
-        session,
-        timeout=5,
-        message="No new window has been opened")
-    new_handles = wait.until(lambda s: set(s.handles) - set(original_handles))
 
-    assert len(new_handles) == 1
+    def check_window_handles(s):
+        assert s.handles != original_handles, "No new window handles found"
+
+    wait = Poll(session, timeout=5)
+    wait.until(check_window_handles)
+
+    assert len(set(session.handles) - set(original_handles)) == 1
     assert session.window_handle == original_handle
     assert session.url == url
 
@@ -101,14 +102,10 @@ def test_abort_by_user_prompt_twice(session, dialog_type):
 
     # The first alert has been accepted by the user prompt handler, the second
     # alert will still be opened because the current step isn't aborted.
-    wait = Poll(
-        session,
-        timeout=5,
-        message="Second alert has not been opened",
-        ignored_exceptions=NoSuchAlertException
-    )
-    text = wait.until(lambda s: s.alert.text)
+    def assert_alert_text(s):
+        assert s.alert.text == "Bye", "Second alert was not opened"
 
-    assert text == "Bye"
+    wait = Poll(session, timeout=5, ignored_exceptions=NoSuchAlertException)
+    wait.until(assert_alert_text)
 
     session.alert.accept()

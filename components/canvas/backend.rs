@@ -200,6 +200,10 @@ pub(crate) trait GenericPathBuilder<B: Backend> {
 
         self.line_to(arc.from());
 
+        if sweep.radians.abs() < 1e-3 {
+            return;
+        }
+
         arc.for_each_quadratic_bezier(&mut |q| {
             self.quadratic_curve_to(&q.ctrl, &q.to);
         });

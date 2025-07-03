@@ -51,3 +51,39 @@ class Emulation(BidiModule):
             params["userContexts"] = user_contexts
 
         return params
+
+    @command
+    def set_locale_override(
+        self,
+        locale: Union[str, None],
+        contexts: Optional[List[str]] = None,
+        user_contexts: Optional[List[str]] = None,
+    ) -> Mapping[str, Any]:
+        params: MutableMapping[str, Any] = {
+            "locale": locale
+        }
+
+        if contexts is not None:
+            params["contexts"] = contexts
+        if user_contexts is not None:
+            params["userContexts"] = user_contexts
+
+        return params
+
+    @command
+    def set_screen_orientation_override(
+        self,
+        screen_orientation:Dict[str, Any],
+        contexts: Optional[List[str]] = None,
+        user_contexts: Optional[List[str]] = None,
+    ) -> Mapping[str, Any]:
+        params: MutableMapping[str, Any] = {
+            "screenOrientation": screen_orientation
+        }
+
+        if contexts is not None:
+            params["contexts"] = contexts
+        if user_contexts is not None:
+            params["userContexts"] = user_contexts
+
+        return params

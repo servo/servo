@@ -8,6 +8,7 @@ use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use js::rust::{HandleObject, HandleValue};
 use pixels::Snapshot;
+use script_bindings::weakref::WeakRef;
 
 use crate::canvas_context::{CanvasContext, OffscreenRenderingContext};
 use crate::dom::bindings::cell::{DomRefCell, Ref};
@@ -38,21 +39,21 @@ pub(crate) struct OffscreenCanvas {
     context: DomRefCell<Option<OffscreenRenderingContext>>,
 
     /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-placeholder>
-    placeholder: Option<Dom<HTMLCanvasElement>>,
+    placeholder: Option<WeakRef<HTMLCanvasElement>>,
 }
 
 impl OffscreenCanvas {
     pub(crate) fn new_inherited(
         width: u64,
         height: u64,
-        placeholder: Option<&HTMLCanvasElement>,
+        placeholder: Option<WeakRef<HTMLCanvasElement>>,
     ) -> OffscreenCanvas {
         OffscreenCanvas {
             eventtarget: EventTarget::new_inherited(),
             width: Cell::new(width),
             height: Cell::new(height),
             context: DomRefCell::new(None),
-            placeholder: placeholder.map(Dom::from_ref),
+            placeholder,
         }
     }
 
@@ -61,7 +62,7 @@ impl OffscreenCanvas {
         proto: Option<HandleObject>,
         width: u64,
         height: u64,
-        placeholder: Option<&HTMLCanvasElement>,
+        placeholder: Option<WeakRef<HTMLCanvasElement>>,
         can_gc: CanGc,
     ) -> DomRoot<OffscreenCanvas> {
         reflect_dom_object_with_proto(
@@ -126,8 +127,10 @@ impl OffscreenCanvas {
         Some(context)
     }
 
-    pub(crate) fn placeholder(&self) -> Option<&HTMLCanvasElement> {
-        self.placeholder.as_deref()
+    pub(crate) fn placeholder(&self) -> Option<DomRoot<HTMLCanvasElement>> {
+        self.placeholder
+            .as_ref()
+            .and_then(|placeholder| placeholder.root())
     }
 }
 
@@ -181,8 +184,8 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
             canvas_context.resize();
         }
 
-        if let Some(canvas) = &self.placeholder {
-            canvas.set_natural_width(value as _, can_gc);
+        if let Some(canvas) = self.placeholder() {
+            canvas.set_natural_width(value as _, can_gc)
         }
     }
 
@@ -199,8 +202,8 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
             canvas_context.resize();
         }
 
-        if let Some(canvas) = &self.placeholder {
-            canvas.set_natural_height(value as _, can_gc);
+        if let Some(canvas) = self.placeholder() {
+            canvas.set_natural_height(value as _, can_gc)
         }
     }
 }

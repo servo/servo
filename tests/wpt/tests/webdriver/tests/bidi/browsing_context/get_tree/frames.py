@@ -1,6 +1,6 @@
 import pytest
 
-from tests.support.sync import AsyncPoll
+from tests.bidi import wait_for_bidi_events
 from .. import assert_browsing_context
 
 pytestmark = pytest.mark.asyncio
@@ -137,8 +137,7 @@ async def test_user_context(
     )
 
     # Wait until all iframes have been loaded.
-    wait = AsyncPoll(bidi_session, timeout=2)
-    await wait.until(lambda _: len(events) >= 3)
+    await wait_for_bidi_events(bidi_session, events, 3)
 
     top_level_context_id = context["context"]
     all_contexts = await bidi_session.browsing_context.get_tree(

@@ -5,23 +5,36 @@
 'use strict';
 
 async_test(t => {
-  const open_rq = createdb(t, undefined, 9);
+  const delete_rq = indexedDB.deleteDatabase('db-that-doesnt-exist');
+  delete_rq.onerror = fail(t, 'delete_rq.error');
+  delete_rq.onsuccess = t.step_func(e => {
+    assert_equals(e.oldVersion, 0, 'event.oldVersion');
+    assert_equals(e.target.source, null, 'event.target.source');
+  });
 
+  const open_rq = createdb(t, undefined, 9);
   open_rq.onupgradeneeded = t.step_func(e => {});
   open_rq.onsuccess = t.step_func(e => {
     const db = e.target.result;
     db.close();
 
-    const delete_rq = indexedDB.deleteDatabase(db.name);
-    delete_rq.onerror = t.step_func(e => {
-      assert_unreached('Unexpected delete_rq.error event');
-    });
-    delete_rq.onsuccess = t.step_func(e => {
+    const delete_rq1 = indexedDB.deleteDatabase(db.name);
+    delete_rq1.onerror = fail(t, 'delete_rq1.error');
+    delete_rq1.onsuccess = t.step_func(e => {
+      assert_equals(e.oldVersion, 9, 'event.oldVersion');
       assert_equals(e.target.source, null, 'event.target.source');
-      t.done();
+    });
+
+    const delete_rq2 = indexedDB.deleteDatabase(db.name);
+    delete_rq2.onerror = fail(t, 'delete_rq2.error');
+
+    delete_rq2.onsuccess = t.step_func_done(e => {
+      assert_equals(e.oldVersion, 0, 'event.oldVersion');
+      assert_equals(e.target.source, null, 'event.target.source');
     });
   });
-}, 'deleteDatabase() request should have no source');
+}, 'deleteDatabase() request should have no source, and deleting a non-existent\
+ database should succeed with oldVersion of 0.');
 
 async_test(t => {
   const open_rq = createdb(t, undefined, 9);

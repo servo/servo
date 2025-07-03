@@ -20,7 +20,7 @@ use servo_url::ServoUrl;
 use style_traits::CSSPixel;
 use webdriver::common::{WebElement, WebFrame, WebWindow};
 use webdriver::error::ErrorStatus;
-use webrender_api::units::{DeviceIntSize, DevicePixel};
+use webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel};
 
 use crate::{MouseButton, MouseButtonAction};
 
@@ -31,7 +31,7 @@ pub struct WebDriverMessageId(pub usize);
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverCommandMsg {
     /// Get the window size.
-    GetWindowSize(WebViewId, IpcSender<Size2D<i32, DevicePixel>>),
+    GetWindowRect(WebViewId, IpcSender<DeviceIntRect>),
     /// Get the viewport size.
     GetViewportSize(WebViewId, IpcSender<Size2D<u32, DevicePixel>>),
     /// Load a URL in the top-level browsing context with the given ID.
@@ -131,28 +131,10 @@ pub enum WebDriverScriptCommand {
     DeleteCookie(String, IpcSender<Result<(), ErrorStatus>>),
     ExecuteScript(String, IpcSender<WebDriverJSResult>),
     ExecuteAsyncScript(String, IpcSender<WebDriverJSResult>),
-    FindElementCSSSelector(String, IpcSender<Result<Option<String>, ErrorStatus>>),
-    FindElementLinkText(String, bool, IpcSender<Result<Option<String>, ErrorStatus>>),
-    FindElementTagName(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     FindElementsCSSSelector(String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindElementsLinkText(String, bool, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindElementsTagName(String, IpcSender<Result<Vec<String>, ErrorStatus>>),
-    FindElementElementCSSSelector(
-        String,
-        String,
-        IpcSender<Result<Option<String>, ErrorStatus>>,
-    ),
-    FindElementElementLinkText(
-        String,
-        String,
-        bool,
-        IpcSender<Result<Option<String>, ErrorStatus>>,
-    ),
-    FindElementElementTagName(
-        String,
-        String,
-        IpcSender<Result<Option<String>, ErrorStatus>>,
-    ),
+    FindElementsXpathSelector(String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindElementElementsCSSSelector(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindElementElementsLinkText(
         String,
@@ -161,6 +143,7 @@ pub enum WebDriverScriptCommand {
         IpcSender<Result<Vec<String>, ErrorStatus>>,
     ),
     FindElementElementsTagName(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
+    FindElementElementsXPathSelector(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindShadowElementsCSSSelector(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindShadowElementsLinkText(
         String,
@@ -169,6 +152,7 @@ pub enum WebDriverScriptCommand {
         IpcSender<Result<Vec<String>, ErrorStatus>>,
     ),
     FindShadowElementsTagName(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
+    FindShadowElementsXPathSelector(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     GetElementShadowRoot(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     ElementClick(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     GetActiveElement(IpcSender<Option<String>>),

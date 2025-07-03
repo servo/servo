@@ -214,6 +214,7 @@ pub struct SurfaceStyle {
     pub surface_size: Size2D<u32>,
     pub repeat_x: bool,
     pub repeat_y: bool,
+    pub transform: Transform2D<f32>,
 }
 
 impl SurfaceStyle {
@@ -222,12 +223,14 @@ impl SurfaceStyle {
         surface_size: Size2D<u32>,
         repeat_x: bool,
         repeat_y: bool,
+        transform: Transform2D<f32>,
     ) -> Self {
         Self {
             surface_data: ByteBuf::from(surface_data),
             surface_size,
             repeat_x,
             repeat_y,
+            transform,
         }
     }
 }

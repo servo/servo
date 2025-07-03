@@ -39,7 +39,6 @@ use base::id::{PipelineNamespace, PipelineNamespaceId};
 use bluetooth::BluetoothThreadFactory;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
-use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas_traits::webgl::{GlType, WebGLThreads};
 use clipboard_delegate::StringRequest;
 pub use compositing::WebRenderDebugOption;
@@ -115,7 +114,7 @@ use webview::WebViewInner;
 #[cfg(feature = "webxr")]
 pub use webxr;
 pub use {
-    background_hang_monitor, base, canvas, canvas_traits, devtools, devtools_traits, euclid, fonts,
+    background_hang_monitor, base, canvas_traits, devtools, devtools_traits, euclid, fonts,
     ipc_channel, layout_api, media, net, net_traits, profile, profile_traits, script,
     script_traits, servo_config as config, servo_config, servo_geometry, servo_url, style,
     style_traits, webrender_api,
@@ -1095,12 +1094,6 @@ fn create_constellation(
         .to_proxy(),
     );
 
-    let (canvas_create_sender, canvas_ipc_sender) = CanvasPaintThread::start(
-        compositor_proxy.cross_process_compositor_api.clone(),
-        system_font_service.clone(),
-        public_resource_threads.clone(),
-    );
-
     let initial_state = InitialConstellationState {
         compositor_proxy,
         embedder_proxy,
@@ -1133,8 +1126,6 @@ fn create_constellation(
         opts.random_pipeline_closure_probability,
         opts.random_pipeline_closure_seed,
         opts.hard_fail,
-        canvas_create_sender,
-        canvas_ipc_sender,
     )
 }
 

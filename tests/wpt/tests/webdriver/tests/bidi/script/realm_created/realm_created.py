@@ -1,10 +1,10 @@
 # META: timeout=long
 
 import pytest
-from tests.support.sync import AsyncPoll
-
 from webdriver.bidi.modules.script import RealmTarget
 from webdriver.error import TimeoutException
+
+from tests.bidi import wait_for_bidi_events
 from ... import any_string, recursive_compare
 from .. import create_sandbox
 
@@ -47,9 +47,7 @@ async def test_create_context(bidi_session, subscribe_events, type_hint):
 
     new_context = await bidi_session.browsing_context.create(type_hint=type_hint)
 
-    wait = AsyncPoll(
-        bidi_session, message="Didn't receive realm created events")
-    await wait.until(lambda _: len(events) >= 1)
+    await wait_for_bidi_events(bidi_session, events, 1, equal_check=False)
 
     result = await bidi_session.script.get_realms(context=new_context["context"])
 
@@ -184,9 +182,8 @@ async def test_subscribe_to_one_context(
     )
 
     # Make sure we didn't receive the event for the top context
-    wait = AsyncPoll(bidi_session, timeout=0.5)
     with pytest.raises(TimeoutException):
-        await wait.until(lambda _: len(events) > 0)
+        await wait_for_bidi_events(bidi_session, events, 1, timeout=0.5)
 
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=inline("<div>foo</div>"), wait="complete"

@@ -31,7 +31,7 @@ function assert_numeric_style_equals(opacity, expected, description) {
 test(t => {
   const animation = createDiv(t).animate(
     { opacity: 0 },
-    { duration: 1, fill: 'forwards' }
+    { duration: 1 }
   );
 
   const nonStyleElement = document.createElementNS(
@@ -53,7 +53,7 @@ test(t => {
   div.classList.add('pseudo');
   const animation = div.animate(
     { opacity: 0 },
-    { duration: 1, fill: 'forwards', pseudoElement: '::before' }
+    { duration: 1, pseudoElement: '::before' }
   );
 
   assert_throws_dom('NoModificationAllowedError', () => {
@@ -66,7 +66,7 @@ test(t => {
   div.classList.add('pseudo');
   const animation = div.animate(
     { opacity: 0 },
-    { duration: 1, fill: 'forwards', pseudoElement: '::before' }
+    { duration: 1, pseudoElement: '::before' }
   );
 
   div.remove();
@@ -84,7 +84,7 @@ test(t => {
   const div = createDiv(t);
   const animation = div.animate(
     { opacity: 0 },
-    { duration: 1, fill: 'forwards' }
+    { duration: 1 }
   );
 
   div.remove();
@@ -98,7 +98,7 @@ test(t => {
   const div = createDiv(t);
   const animation = div.animate(
     { opacity: 0 },
-    { duration: 1, fill: 'forwards' }
+    { duration: 1 }
   );
 
   div.style.display = 'none';
@@ -115,7 +115,7 @@ test(t => {
 
   const animation = div.animate(
     { opacity: 0 },
-    { duration: 1, fill: 'forwards' }
+    { duration: 1 }
   );
 
   container.style.display = 'none';
@@ -132,7 +132,7 @@ test(t => {
 
   const animation = div.animate(
     { opacity: 0 },
-    { duration: 1, fill: 'forwards' }
+    { duration: 1 }
   );
 
   container.style.display = 'contents';
@@ -148,7 +148,7 @@ test(t => {
 
   const animation = div.animate(
     { opacity: 0 },
-    { duration: 1, fill: 'forwards' }
+    { duration: 1 }
   );
 
   div.style.display = 'contents';
@@ -169,17 +169,30 @@ test(t => {
 
   const animation = div.animate(
     { opacity: 0.2 },
-    { duration: 1, fill: 'forwards' }
+    { duration: 1 }
   );
   animation.finish();
 
   animation.commitStyles();
 
-  // Cancel the animation so we can inspect the underlying style
-  animation.cancel();
-
   assert_numeric_style_equals(getComputedStyle(div).opacity, 0.2);
 }, 'Commits styles');
+
+test(t => {
+    const div = createDiv(t);
+    div.style.opacity = '0.1';
+
+    const animation = div.animate(
+        { opacity: [0.5, 1] },
+        { duration: 1 }
+    );
+    animation.playbackRate = -1;
+    animation.finish();
+
+    animation.commitStyles();
+
+    assert_numeric_style_equals(getComputedStyle(div).opacity, 0.5);
+}, 'Commits styles for backwards animation');
 
 test(t => {
   const div = createDiv(t);
@@ -192,6 +205,35 @@ test(t => {
 
   assert_numeric_style_equals(getComputedStyle(div).opacity, 0.45);
 }, 'Commits values calculated mid-interval');
+
+test(t => {
+  const div = createDiv(t);
+  div.style.opacity = '0';
+
+  const animation = div.animate(
+    { opacity: 1 },
+    { duration: 1000, delay: 1000 }
+  );
+  animation.currentTime = 500;
+  animation.commitStyles();
+  animation.cancel();
+
+  assert_numeric_style_equals(getComputedStyle(div).opacity, 0);
+}, 'Commits values during the start delay');
+
+test(t => {
+  const div = createDiv(t);
+  div.style.opacity = '0';
+
+  const animation = div.animate(
+    { opacity: 1 },
+    { duration: 1000, delay: 1000 }
+  );
+  animation.currentTime = 2100;
+  animation.commitStyles();
+
+  assert_numeric_style_equals(getComputedStyle(div).opacity, 0);
+}, 'Commits value after the active interval');
 
 // -------------------------
 // Tests covering various parts of the stack
@@ -207,11 +249,11 @@ promise_test(async t => {
   );
   const animB = div.animate(
     { opacity: '0.2', composite: 'add' },
-    { duration: 1, fill: 'forwards' }
+    { duration: 1 }
   );
   const animC = div.animate(
     { opacity: '0.3', composite: 'add' },
-    { duration: 1, fill: 'forwards' }
+    { duration: 1 }
   );
 
   animA.persist();
@@ -248,8 +290,6 @@ promise_test(async t => {
   animB.commitStyles();
 
   animA.cancel();
-  animB.cancel();
-  animC.cancel();
 
   assert_numeric_style_equals(getComputedStyle(div).opacity, 0.4);
 }, 'Commits the intermediate value of an animation in the middle of stack');
@@ -259,12 +299,66 @@ promise_test(async t => {
   div.style.opacity = '0.1';
 
   const animA = div.animate(
+    { opacity: '0.2' },
+    { duration: 1 }
+  );
+  const animB = div.animate(
+    { opacity: '0.2', composite: 'add' },
+    { duration: 1 }
+  );
+  const animC = div.animate(
+    { opacity: '0.3', composite: 'add' },
+    { duration: 1 }
+  );
+
+  animA.persist();
+  animB.persist();
+
+  await animB.finished;
+
+  // The values above have been chosen such that various error conditions
+  // produce results that all differ from the desired result:
+  //
+  //  Expected result:
+  //
+  //    animA + animB = 0.4
+  //
+  //  Likely error results:
+  //
+  //    <underlying> = 0.1
+  //    (Commit didn't work at all)
+  //
+  //    animB = 0.2
+  //    (Didn't add at all when resolving)
+  //
+  //    <underlying> + animB = 0.3
+  //    (Added to the underlying value instead of lower-priority animations when
+  //    resolving)
+  //
+  //    <underlying> + animA + animB = 0.5
+  //    (Didn't respect the composite mode of lower-priority animations)
+  //
+  //    animA + animB + animC = 0.7
+  //    (Resolved the whole stack, not just up to the target effect)
+  //
+
+  animA.commitStyles();
+  animB.commitStyles();
+
+  assert_numeric_style_equals(getComputedStyle(div).opacity, 0.4);
+}, 'Commits the intermediate value of an animation up to the middle of the stack');
+
+promise_test(async t => {
+  const div = createDiv(t);
+  div.style.opacity = '0.1';
+
+  const animA = div.animate(
     { opacity: 0.2 },
-    { duration: 1, fill: 'forwards' }
+    { duration: 1 }
   );
   const animB = div.animate(
     { opacity: 0.3 },
-    { duration: 1, fill: 'forwards' }
+    { duration: 1 }
   );
 
   await animA.finished;
@@ -286,11 +380,11 @@ promise_test(async t => {
   );
   const animB = div.animate(
     { opacity: '0.2', composite: 'add' },
-    { duration: 1, fill: 'forwards' }
+    { duration: 1 }
   );
   const animC = div.animate(
     { opacity: '0.3', composite: 'add' },
-    { duration: 1, fill: 'forwards' }
+    { duration: 1 }
   );
 
   animA.persist();
@@ -318,8 +412,6 @@ promise_test(async t => {
   animB.commitStyles();
 
   animA.cancel();
-  animB.cancel();
-  animC.cancel();
 
   assert_numeric_style_equals(getComputedStyle(div).opacity, 0.5);
 }, 'Commit composites on top of the underlying value');
@@ -334,13 +426,11 @@ test(t => {
 
   const animation = div.animate(
     { marginInlineStart: '20px' },
-    { duration: 1, fill: 'forwards' }
+    { duration: 1 }
   );
   animation.finish();
 
   animation.commitStyles();
-
-  animation.cancel();
 
   assert_equals(getComputedStyle(div).marginLeft, '20px');
 }, 'Commits logical properties');
@@ -351,13 +441,11 @@ test(t => {
 
   const animation = div.animate(
     { marginInlineStart: '20px' },
-    { duration: 1, fill: 'forwards' }
+    { duration: 1 }
   );
   animation.finish();
 
   animation.commitStyles();
-
-  animation.cancel();
 
   assert_equals(div.style.marginLeft, '20px');
 }, 'Commits logical properties as physical properties');
@@ -368,11 +456,10 @@ test(t => {
 
   const animation = div.animate(
     { width: '10em' },
-    { duration: 1, fill: 'forwards' }
+    { duration: 1 }
   );
   animation.finish();
   animation.commitStyles();
-  animation.cancel();
 
   assert_numeric_style_equals(getComputedStyle(div).width, 100);
 
@@ -394,11 +481,10 @@ test(t => {
   div.style.opacity = 'var(--target)';
   const animation = div.animate(
     { '--target': 0.8 },
-    { duration: 1, fill: 'forwards' }
+    { duration: 1 }
   );
   animation.finish();
   animation.commitStyles();
-  animation.cancel();
 
   assert_numeric_style_equals(getComputedStyle(div).opacity, 0.8);
 }, 'Commits custom variables');
@@ -409,11 +495,10 @@ test(t => {
 
   const animation = div.animate(
     { opacity: 'var(--target)' },
-    { duration: 1, fill: 'forwards' }
+    { duration: 1 }
   );
   animation.finish();
   animation.commitStyles();
-  animation.cancel();
 
   assert_numeric_style_equals(getComputedStyle(div).opacity, 0.5);
 
@@ -434,11 +519,10 @@ test(t => {
 
   const animation = div.animate(
     { lineHeight: '1.5' },
-    { duration: 1, fill: 'forwards' }
+    { duration: 1 }
   );
   animation.finish();
   animation.commitStyles();
-  animation.cancel();
 
   assert_numeric_style_equals(getComputedStyle(div).lineHeight, 15);
   assert_equals(
@@ -459,11 +543,11 @@ test(t => {
   const div = createDiv(t);
   const animation = div.animate(
     { transform: 'translate(20px, 20px)' },
-    { duration: 1, fill: 'forwards' }
+    { duration: 1 }
   );
   animation.finish();
   animation.commitStyles();
-  animation.cancel();
+
   assert_equals(
     getComputedStyle(div).transform,
     'matrix(1, 0, 0, 1, 20, 20)'
@@ -478,14 +562,11 @@ test(t => {
 
   const animation = div.animate(
     { translate: '200px', rotate: '90deg', scale: 3 },
-    { duration: 1, fill: 'forwards' }
+    { duration: 1 }
   );
   animation.finish();
 
   animation.commitStyles();
-
-  // Cancel the animation so we can inspect the underlying style
-  animation.cancel();
 
   assert_equals(getComputedStyle(div).translate, '200px');
   assert_equals(getComputedStyle(div).rotate, '90deg');
@@ -496,11 +577,11 @@ test(t => {
   const div = createDiv(t);
   const animation = div.animate(
     { transform: 'translate(20px, 20px)' },
-    { duration: 1, fill: 'forwards' }
+    { duration: 1 }
   );
   animation.finish();
   animation.commitStyles();
-  animation.cancel();
+
   assert_equals(div.style.transform, 'translate(20px, 20px)');
 }, 'Commits transforms as a transform list');
 
@@ -550,13 +631,11 @@ test(t => {
 
   const animation = div.animate(
     { margin: '20px' },
-    { duration: 1, fill: 'forwards' }
+    { duration: 1 }
   );
   animation.finish();
 
   animation.commitStyles();
-
-  animation.cancel();
 
   assert_equals(div.style.marginLeft, '20px');
 }, 'Commits shorthand styles');
@@ -573,7 +652,7 @@ promise_test(async t => {
   // Setup animation
   const animation = div.animate(
     { opacity: 0.2 },
-    { duration: 1, fill: 'forwards' }
+    { duration: 1 }
   );
   animation.finish();
 
@@ -605,7 +684,7 @@ promise_test(async t => {
   // Setup animation
   const animation = div.animate(
     { opacity: 0.2 },
-    { duration: 1, fill: 'forwards' }
+    { duration: 1 }
   );
   animation.finish();
 

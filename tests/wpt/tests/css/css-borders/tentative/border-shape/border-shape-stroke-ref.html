@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<style>
+@import "resources/stroke-variants.css";
+
+svg {
+    width: 100px;
+    height: 100px;
+    overflow: visible;
+}
+
+svg, circle {
+    fill: white;
+    stroke: purple;
+}
+</style>
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="50,0 100,50, 50,100, 0,50" />
+</svg>
+<script>
+    document.querySelector("polygon").classList.add(new URLSearchParams(location.search).get("class"));
+</script>
+</div>

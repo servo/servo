@@ -19,7 +19,7 @@ Notes:
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
-<script src="/largest-contentful-paint/resources/largest-contentful-paint-helpers.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-helper.js"></script>
 <script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
 <script>
   function clickHandler() {
@@ -45,7 +45,7 @@ Notes:
     const beforeLoad = performance.now();
     const promise = Promise.all([
       SoftNavigationTestHelper.getPerformanceEntries(
-        /*type=*/ "largest-contentful-paint",
+        /*type=*/ "interaction-contentful-paint",
         /*includeSoftNavigationObservations=*/ true,
         /*minNumEntries=*/ 1,
       ),

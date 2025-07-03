@@ -362,18 +362,18 @@ impl App {
                     // TODO: send a response to the WebDriver
                     // so it knows when the focus has finished.
                 },
-                WebDriverCommandMsg::GetWindowSize(_webview_id, response_sender) => {
+                WebDriverCommandMsg::GetWindowRect(_webview_id, response_sender) => {
                     let window = self
                         .windows
                         .values()
                         .next()
                         .expect("Should have at least one window in servoshell");
 
-                    if let Err(error) = response_sender.send(window.screen_geometry().size) {
+                    if let Err(error) = response_sender.send(window.window_rect()) {
                         warn!("Failed to send response of GetWindowSize: {error}");
                     }
                 },
-                WebDriverCommandMsg::SetWindowSize(webview_id, size, size_sender) => {
+                WebDriverCommandMsg::SetWindowSize(webview_id, requested_size, size_sender) => {
                     let Some(webview) = running_state.webview_by_id(webview_id) else {
                         continue;
                     };
@@ -384,8 +384,12 @@ impl App {
                         .next()
                         .expect("Should have at least one window in servoshell");
 
-                    let size = window.request_resize(&webview, size);
-                    if let Err(error) = size_sender.send(size.unwrap_or_default()) {
+                    // When None is returned, it means that the request went to the display system,
+                    // and the actual size will be delivered later with the WindowEvent::Resized.
+                    let returned_size = window.request_resize(&webview, requested_size);
+                    // TODO: Handle None case. For now, we assume always succeed.
+                    // In reality, the request may exceed available screen size.
+                    if let Err(error) = size_sender.send(returned_size.unwrap_or(requested_size)) {
                         warn!("Failed to send window size: {error}");
                     }
                 },

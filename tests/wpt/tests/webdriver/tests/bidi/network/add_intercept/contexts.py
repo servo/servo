@@ -1,3 +1,5 @@
+# META: timeout=long
+
 import asyncio
 
 import pytest

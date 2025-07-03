@@ -1,3 +1,6 @@
+from tests.support.sync import DEFAULT_INTERVAL, DEFAULT_TIMEOUT, Poll
+
+
 def get_events(session):
     """Return list of key events recorded in the test_keys_page fixture."""
     events = session.execute_script("return allEvents.events;") or []
@@ -14,6 +17,7 @@ def get_events(session):
         # tests expect ''.
         if "code" in e and e["code"] == "Unidentified":
             e["code"] = ""
+
     return events
 
 
@@ -27,3 +31,14 @@ def get_keys(input_el):
         return ""
     else:
         return rv
+
+
+def wait_for_events(session, min_count, timeout=DEFAULT_TIMEOUT, interval=DEFAULT_INTERVAL):
+    def check_events(_):
+        events = get_events(session)
+        assert len(events) >= min_count, \
+            f"Didn't receive all events: expected at least {min_count}, got {len(events)}"
+        return events
+
+    wait = Poll(session, timeout=timeout, interval=interval)
+    return wait.until(check_events)

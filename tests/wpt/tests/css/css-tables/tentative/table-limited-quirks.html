@@ -1,0 +1,89 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<meta charset="utf-8">
+<title>Table in limited-quirks mode</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src="/resources/check-layout-th.js"></script>
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<link rel="stylesheet" type="text/css" href="./support/table-tentative.css" />
+<link rel="author" title="Aleks Totic" href="atotic@chromium.org" />
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com" />
+<link rel="help" href="https://quirks.spec.whatwg.org/#the-table-cell-width-calculation-quirk" />
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-document-limited-quirks" />
+<link rel="help" href="https://github.com/servo/servo/pull/37814" />
+<style>
+ table {
+    table-layout: auto;
+    border-spacing: 8px 8px;
+  }
+  td {
+    padding: 20px;
+    background: #BFB;
+    font-size: 10px;
+    box-sizing: border-box;
+  }
+  td > div {
+    display: inline-block;
+    background: rgba(56,162,56,0.3);
+  }
+</style>
+
+<h1>Tables in limited-quirks mode proposals</h1>
+
+<p><a href="https://quirks.spec.whatwg.org/#the-table-cell-height-box-sizing-quirk">The table cell height box sizing quirk</a> does NOT apply to limited-quirks mode</p>
+<table data-expected-height=156>
+  <tr>
+    <td style="height:100px;box-sizing:content-box" data-expected-height=140>100 height</td>
+  </tr>
+</table>
+<table data-expected-height=116>
+  <tr>
+    <td style="height:100px;box-sizing:border-box" data-expected-height=100>100 height</td>
+  </tr>
+</table>
+
+<p><a href="https://quirks.spec.whatwg.org/#the-table-cell-nowrap-minimum-width-calculation-quirk">The table cell nowrap minimum width calculation quirk</a> does NOT apply to limited-quirks mode</p>
+<table>
+  <tr>
+    <td nowrap style="width:50px;font: 20px/1 Ahem" data-expected-width=580>nowrap nowrap nowrap nowrap</td>
+  </tr>
+</table>
+
+<p><a href="https://quirks.spec.whatwg.org/#the-text-decoration-doesnt-propagate-into-tables-quirk">The text decoration doesn’t propagate into tables quirk</a> does NOT apply to limited-quirks mode</p>
+<div style="font-style:italic">
+  <table>
+    <td id="italic">decoration</td>
+  </table>
+</div>
+
+<p><a href="https://quirks.spec.whatwg.org/#the-collapsing-table-quirk">The collapsing table quirk</a> does NOT apply to limited-quirks mode</p>
+<table style="border: 20px solid green" data-expected-height=40 data-expected-width=40></table>
+
+<p><a href="https://quirks.spec.whatwg.org/#the-table-cell-width-calculation-quirk">The table cell width calculation quirk</a> does NOT apply to limited-quirks mode</p>
+<table style="width:200px">
+  <td data-expected-width=184><img style="width:50px;height:20px"><img style="width:50px;height:20px"><img style="width:50px;height:20px"><img style="width:50px;height:20px"><img style="width:50px;height:20px"></td>
+</table>
+
+<p><a href="https://html.spec.whatwg.org/multipage/tables.html#algorithm-for-processing-rows">The "let <i>cell grows downward</i> be false" quirk</a> does NOT apply to limited-quirks mode</p>
+<table>
+  <tr style="height: 100px">
+    <td id="rowspan" rowspan="0" data-expected-height=208>208 height</td>
+  </tr>
+  <tr style="height: 100px"></tr>
+</table>
+
+<script>
+  let pngSrc="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAACWAQMAAAChElVaAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAABlBMVEUAgAD///8UPy9PAAAAAWJLR0QB/wIt3gAAAAd0SU1FB+MBDwkdA1Cz/EMAAAAbSURBVEjH7cGBAAAAAMOg+VPf4ARVAQAAAM8ADzwAAeM8wQsAAAAldEVYdGRhdGU6Y3JlYXRlADIwMTktMDEtMTVUMTc6Mjk6MDMtMDg6MDCYDy9IAAAAJXRFWHRkYXRlOm1vZGlmeQAyMDE5LTAxLTE1VDE3OjI5OjAzLTA4OjAw6VKX9AAAAABJRU5ErkJggg=="
+;
+  for (let img of Array.from(document.querySelectorAll("img"))) {
+    img.src = pngSrc;
+  }
+  test(_ => {
+    assert_equals(window.getComputedStyle(document.querySelector("#italic")).fontStyle, "italic");
+  }, "decoration propagates into table");
+  test(_ => {
+    assert_equals(document.querySelector("#rowspan").rowSpan, 0);
+  }, "rowspan can be zero");
+  document.fonts.ready.then(() => checkLayout("table"));
+</script>

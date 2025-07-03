@@ -941,12 +941,6 @@ impl IOCompositor {
                 self.global.borrow_mut().send_transaction(transaction);
             },
 
-            CompositorMsg::AddImage(key, desc, data) => {
-                let mut txn = Transaction::new();
-                txn.add_image(key, desc, data.into(), None);
-                self.global.borrow_mut().send_transaction(txn);
-            },
-
             CompositorMsg::GenerateFontKeys(
                 number_of_font_keys,
                 number_of_font_instance_keys,

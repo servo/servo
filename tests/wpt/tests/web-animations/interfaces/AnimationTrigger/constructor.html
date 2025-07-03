@@ -11,7 +11,7 @@
 
   test(t => {
     const trigger = new AnimationTrigger();
-    assert_equals(trigger.type, "once", "default type is once.");
+    assert_equals(trigger.behavior, "once", "default behavior is once.");
     assert_equals(trigger.timeline, document.timeline,
       "default timeline is document.timeline.");
     assert_equals(trigger.rangeStart, "normal", "default rangeStart is normal");
@@ -24,7 +24,7 @@
 
   test(t => {
     const trigger = new AnimationTrigger({});
-    assert_equals(trigger.type, "once", "default type is once.");
+    assert_equals(trigger.behavior, "once", "default behavior is once.");
     assert_equals(trigger.timeline, document.timeline,
       "default timeline is document.timeline.");
     assert_equals(trigger.rangeStart, "normal", "default rangeStart is normal");
@@ -38,14 +38,14 @@
   test(t => {
     const scroll_timeline = new ScrollTimeline();
     const trigger = new AnimationTrigger({
-      type: "repeat",
+      behavior: "repeat",
       timeline: scroll_timeline,
       rangeStart: "contain 10%",
       rangeEnd: "contain 90%",
       exitRangeStart: "cover 10%",
       exitRangeEnd: "cover 90%"
     });
-    assert_equals(trigger.type, "repeat", "default type is repeat.");
+    assert_equals(trigger.behavior, "repeat", "default behavior is repeat.");
     assert_equals(trigger.timeline, scroll_timeline,
       "timeline is supplied scroll timeline.");
     assert_equals(trigger.rangeStart, "contain 10%",
@@ -61,14 +61,14 @@
   test(t => {
     const view_timeline = new ViewTimeline();
     const trigger = new AnimationTrigger({
-      type: "repeat",
+      behavior: "repeat",
       timeline: view_timeline,
       rangeStart: "contain 10%",
       rangeEnd: "contain 90%",
       exitRangeStart: "cover 10%",
       exitRangeEnd: "cover 90%"
     });
-    assert_equals(trigger.type, "repeat", "type is supplied type.");
+    assert_equals(trigger.behavior, "repeat", "behavior is supplied behavior.");
     assert_equals(trigger.timeline, view_timeline,
       "timeline is supplied scroll timeline.");
     assert_equals(trigger.rangeStart, "contain 10%",

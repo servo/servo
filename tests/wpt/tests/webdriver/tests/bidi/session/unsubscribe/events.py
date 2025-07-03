@@ -4,6 +4,8 @@ from webdriver.error import TimeoutException
 from tests.support.sync import AsyncPoll
 
 
+from tests.bidi import wait_for_bidi_events
+
 # The basic use case of unsubscribing globally from a single event
 # is covered by tests for each event in the dedicated folders.
 
@@ -30,9 +32,8 @@ async def test_unsubscribe_from_module(bidi_session, new_tab, inline):
         context=new_tab["context"], url=inline("")
     )
 
-    wait = AsyncPoll(bidi_session, timeout=0.5)
     with pytest.raises(TimeoutException):
-        await wait.until(lambda _: len(events) > 0)
+        await wait_for_bidi_events(bidi_session, events, 1, timeout=0.5)
 
     remove_listener_domContentLoaded()
     remove_listener_load()
