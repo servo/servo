@@ -434,6 +434,8 @@ impl WebView {
             ))
     }
 
+    /// Ask the [`WebView`] to scroll web content. Note that positive scroll offsets reveal more
+    /// content on the bottom and right of the page.
     pub fn notify_scroll_event(&self, location: ScrollLocation, point: DeviceIntPoint) {
         self.inner()
             .compositor

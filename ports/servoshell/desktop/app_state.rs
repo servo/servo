@@ -361,14 +361,14 @@ impl RunningAppState {
             .shortcut(Modifiers::empty(), Key::PageDown, || {
                 let scroll_location = ScrollLocation::Delta(Vector2D::new(
                     0.0,
-                    -self.inner().window.page_height() + 2.0 * LINE_HEIGHT,
+                    self.inner().window.page_height() - 2.0 * LINE_HEIGHT,
                 ));
                 webview.notify_scroll_event(scroll_location, origin);
             })
             .shortcut(Modifiers::empty(), Key::PageUp, || {
                 let scroll_location = ScrollLocation::Delta(Vector2D::new(
                     0.0,
-                    self.inner().window.page_height() - 2.0 * LINE_HEIGHT,
+                    -self.inner().window.page_height() + 2.0 * LINE_HEIGHT,
                 ));
                 webview.notify_scroll_event(scroll_location, origin);
             })
@@ -379,19 +379,19 @@ impl RunningAppState {
                 webview.notify_scroll_event(ScrollLocation::End, origin);
             })
             .shortcut(Modifiers::empty(), Key::ArrowUp, || {
-                let location = ScrollLocation::Delta(Vector2D::new(0.0, 3.0 * LINE_HEIGHT));
-                webview.notify_scroll_event(location, origin);
-            })
-            .shortcut(Modifiers::empty(), Key::ArrowDown, || {
                 let location = ScrollLocation::Delta(Vector2D::new(0.0, -3.0 * LINE_HEIGHT));
                 webview.notify_scroll_event(location, origin);
             })
+            .shortcut(Modifiers::empty(), Key::ArrowDown, || {
+                let location = ScrollLocation::Delta(Vector2D::new(0.0, 3.0 * LINE_HEIGHT));
+                webview.notify_scroll_event(location, origin);
+            })
             .shortcut(Modifiers::empty(), Key::ArrowLeft, || {
-                let location = ScrollLocation::Delta(Vector2D::new(LINE_HEIGHT, 0.0));
+                let location = ScrollLocation::Delta(Vector2D::new(-LINE_HEIGHT, 0.0));
                 webview.notify_scroll_event(location, origin);
             })
             .shortcut(Modifiers::empty(), Key::ArrowRight, || {
-                let location = ScrollLocation::Delta(Vector2D::new(-LINE_HEIGHT, 0.0));
+                let location = ScrollLocation::Delta(Vector2D::new(LINE_HEIGHT, 0.0));
                 webview.notify_scroll_event(location, origin);
             });
     }
