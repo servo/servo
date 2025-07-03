@@ -148,6 +148,9 @@ pub enum CompositorMsg {
     /// Create a new image key. The result will be returned via the
     /// provided channel sender.
     GenerateImageKey(IpcSender<ImageKey>),
+    /// The same as the above but it will be forwarded to the pipeline instead
+    /// of send via a channel.
+    GenerateImageKeysForPipeline(PipelineId),
     /// Perform a resource update operation.
     UpdateImages(SmallVec<[ImageUpdate; 1]>),
 
@@ -294,10 +297,22 @@ impl CrossProcessCompositorApi {
     }
 
     /// Create a new image key. Blocks until the key is available.
-    pub fn generate_image_key(&self) -> Option<ImageKey> {
+    pub fn generate_image_key_blocking(&self) -> Option<ImageKey> {
         let (sender, receiver) = ipc::channel().unwrap();
         self.0.send(CompositorMsg::GenerateImageKey(sender)).ok()?;
         receiver.recv().ok()
+    }
+
+    /// Sends a message to the compositor for creating new image keys.
+    /// The compositor will then send a batch of keys over the constellation to the script_thread
+    /// and the appropriate pipeline.
+    pub fn generate_image_key_async(&self, pipeline_id: PipelineId) {
+        if let Err(e) = self
+            .0
+            .send(CompositorMsg::GenerateImageKeysForPipeline(pipeline_id))
+        {
+            warn!("Could not send image keys to Compositor {}", e);
+        }
     }
 
     pub fn add_image(
