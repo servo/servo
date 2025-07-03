@@ -26,11 +26,13 @@ use webrender_api::ImageKey;
 use crate::cell::ArcRefCell;
 use crate::context::{LayoutContext, LayoutImageCacheResult};
 use crate::dom::NodeExt;
-use crate::fragment_tree::{BaseFragmentInfo, Fragment, IFrameFragment, ImageFragment};
-use crate::geom::{
-    LogicalSides1D, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize, Size, Sizes,
+use crate::fragment_tree::{
+    BaseFragmentInfo, CollapsedBlockMargins, Fragment, IFrameFragment, ImageFragment,
 };
-use crate::layout_box_base::LayoutBoxBase;
+use crate::geom::{
+    LazySize, LogicalSides1D, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize, Size, Sizes,
+};
+use crate::layout_box_base::{CacheableLayoutResult, LayoutBoxBase};
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, LayoutStyle};
 use crate::{ConstraintSpace, ContainingBlock, SizeConstraint};
@@ -597,6 +599,40 @@ impl ReplacedContents {
     #[inline]
     pub(crate) fn layout_style<'a>(&self, base: &'a LayoutBoxBase) -> LayoutStyle<'a> {
         LayoutStyle::Default(&base.style)
+    }
+
+    pub(crate) fn layout(
+        &self,
+        layout_context: &LayoutContext,
+        containing_block_for_children: &ContainingBlock,
+        preferred_aspect_ratio: Option<AspectRatio>,
+        base: &LayoutBoxBase,
+        depends_on_block_constraints: bool,
+        lazy_block_size: &LazySize,
+    ) -> CacheableLayoutResult {
+        // TODO: consider caching the result in LayoutBoxBase like we do for non-replaced.
+        let writing_mode = base.style.writing_mode;
+        let inline_size = containing_block_for_children.size.inline;
+        let content_block_size = self.content_size(
+            Direction::Block,
+            preferred_aspect_ratio,
+            &|| SizeConstraint::Definite(inline_size),
+            &|| self.fallback_block_size(writing_mode),
+        );
+        let size = LogicalVec2 {
+            inline: inline_size,
+            block: lazy_block_size.resolve(|| content_block_size),
+        }
+        .to_physical_size(writing_mode);
+        CacheableLayoutResult {
+            baselines: Default::default(),
+            collapsible_margins_in_children: CollapsedBlockMargins::zero(),
+            content_block_size,
+            content_inline_size_for_table: None,
+            depends_on_block_constraints,
+            fragments: self.make_fragments(layout_context, &base.style, size),
+            specific_layout_info: None,
+        }
     }
 }
 
