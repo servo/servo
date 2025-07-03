@@ -34,77 +34,6 @@ use crate::backend::{
 // https://github.com/servo/webrender/blob/main/webrender/src/texture_cache.rs#L1475
 const MIN_WR_IMAGE_SIZE: Size2D<u64> = Size2D::new(1, 1);
 
-fn to_path<B: Backend>(path: &[PathSegment], mut builder: B::Path) -> B::Path {
-    let mut build_ref = PathBuilderRef::<B> {
-        builder: &mut builder,
-        transform: Transform2D::identity(),
-    };
-    for &seg in path {
-        match seg {
-            PathSegment::ClosePath => build_ref.close(),
-            PathSegment::MoveTo { x, y } => build_ref.move_to(&Point2D::new(x, y)),
-            PathSegment::LineTo { x, y } => build_ref.line_to(&Point2D::new(x, y)),
-            PathSegment::Quadratic { cpx, cpy, x, y } => {
-                build_ref.quadratic_curve_to(&Point2D::new(cpx, cpy), &Point2D::new(x, y))
-            },
-            PathSegment::Bezier {
-                cp1x,
-                cp1y,
-                cp2x,
-                cp2y,
-                x,
-                y,
-            } => build_ref.bezier_curve_to(
-                &Point2D::new(cp1x, cp1y),
-                &Point2D::new(cp2x, cp2y),
-                &Point2D::new(x, y),
-            ),
-            PathSegment::ArcTo {
-                cp1x,
-                cp1y,
-                cp2x,
-                cp2y,
-                radius,
-            } => build_ref.arc_to(&Point2D::new(cp1x, cp1y), &Point2D::new(cp2x, cp2y), radius),
-            PathSegment::Ellipse {
-                x,
-                y,
-                radius_x,
-                radius_y,
-                rotation,
-                start_angle,
-                end_angle,
-                anticlockwise,
-            } => build_ref.ellipse(
-                &Point2D::new(x, y),
-                radius_x,
-                radius_y,
-                rotation,
-                start_angle,
-                end_angle,
-                anticlockwise,
-            ),
-            PathSegment::SvgArc {
-                radius_x,
-                radius_y,
-                rotation,
-                large_arc,
-                sweep,
-                x,
-                y,
-            } => build_ref.svg_arc(
-                radius_x,
-                radius_y,
-                rotation,
-                large_arc,
-                sweep,
-                &Point2D::new(x, y),
-            ),
-        }
-    }
-    builder
-}
-
 /// The canvas data stores a state machine for the current status of
 /// the path data and any relevant transformations that are
 /// applied to it. The Azure drawing API expects the path to be in
@@ -125,21 +54,21 @@ enum PathState<B: Backend> {
 
 /// A wrapper around a stored PathBuilder and an optional transformation that should be
 /// applied to any points to ensure they are in the matching device space.
-struct PathBuilderRef<'a, B: Backend> {
-    builder: &'a mut B::Path,
-    transform: Transform2D<f32>,
+pub(crate) struct PathBuilderRef<'a, B: Backend> {
+    pub(crate) builder: &'a mut B::Path,
+    pub(crate) transform: Transform2D<f32>,
 }
 
 impl<B: Backend> PathBuilderRef<'_, B> {
     /// <https://html.spec.whatwg.org/multipage#ensure-there-is-a-subpath>
-    fn ensure_there_is_a_subpath(&mut self, point: &Point2D<f32>) {
+    pub(crate) fn ensure_there_is_a_subpath(&mut self, point: &Point2D<f32>) {
         if self.builder.get_current_point().is_none() {
             self.builder.move_to(*point);
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-context-2d-lineto>
-    fn line_to(&mut self, pt: &Point2D<f32>) {
+    pub(crate) fn line_to(&mut self, pt: &Point2D<f32>) {
         // 2. If the object's path has no subpaths, then ensure there is a subpath for (x, y).
         self.ensure_there_is_a_subpath(pt);
 
@@ -147,12 +76,12 @@ impl<B: Backend> PathBuilderRef<'_, B> {
         self.builder.line_to(pt);
     }
 
-    fn move_to(&mut self, pt: &Point2D<f32>) {
+    pub(crate) fn move_to(&mut self, pt: &Point2D<f32>) {
         let pt = self.transform.transform_point(*pt);
         self.builder.move_to(pt);
     }
 
-    fn rect(&mut self, rect: &Rect<f32>) {
+    pub(crate) fn rect(&mut self, rect: &Rect<f32>) {
         let (first, second, third, fourth) = (
             Point2D::new(rect.origin.x, rect.origin.y),
             Point2D::new(rect.origin.x + rect.size.width, rect.origin.y),
@@ -171,7 +100,7 @@ impl<B: Backend> PathBuilderRef<'_, B> {
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-context-2d-quadraticcurveto>
-    fn quadratic_curve_to(&mut self, cp: &Point2D<f32>, endpoint: &Point2D<f32>) {
+    pub(crate) fn quadratic_curve_to(&mut self, cp: &Point2D<f32>, endpoint: &Point2D<f32>) {
         // 2. Ensure there is a subpath for (cpx, cpy).
         self.ensure_there_is_a_subpath(cp);
 
@@ -182,7 +111,12 @@ impl<B: Backend> PathBuilderRef<'_, B> {
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-context-2d-beziercurveto>
-    fn bezier_curve_to(&mut self, cp1: &Point2D<f32>, cp2: &Point2D<f32>, endpoint: &Point2D<f32>) {
+    pub(crate) fn bezier_curve_to(
+        &mut self,
+        cp1: &Point2D<f32>,
+        cp2: &Point2D<f32>,
+        endpoint: &Point2D<f32>,
+    ) {
         // 2. Ensure there is a subpath for (cp1x, cp1y).
         self.ensure_there_is_a_subpath(cp1);
 
@@ -193,7 +127,7 @@ impl<B: Backend> PathBuilderRef<'_, B> {
         )
     }
 
-    fn arc(
+    pub(crate) fn arc(
         &mut self,
         center: &Point2D<f32>,
         radius: f32,
@@ -207,7 +141,7 @@ impl<B: Backend> PathBuilderRef<'_, B> {
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-context-2d-arcto>
-    fn arc_to(&mut self, cp1: &Point2D<f32>, cp2: &Point2D<f32>, radius: f32) {
+    pub(crate) fn arc_to(&mut self, cp1: &Point2D<f32>, cp2: &Point2D<f32>, radius: f32) {
         let cp0 = if let (Some(inverse), Some(point)) =
             (self.transform.inverse(), self.builder.get_current_point())
         {
@@ -296,7 +230,7 @@ impl<B: Backend> PathBuilderRef<'_, B> {
         );
     }
 
-    fn svg_arc(
+    pub(crate) fn svg_arc(
         &mut self,
         radius_x: f32,
         radius_y: f32,
@@ -316,7 +250,7 @@ impl<B: Backend> PathBuilderRef<'_, B> {
         );
     }
 
-    fn close(&mut self) {
+    pub(crate) fn close(&mut self) {
         self.builder.close();
     }
 }
@@ -866,12 +800,13 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         );
     }
 
-    pub(crate) fn fill_path(&mut self, path: &[PathSegment]) {
+    pub(crate) fn fill_path(&mut self, path_segments: &[PathSegment]) {
         if self.state.fill_style.is_zero_size_gradient() {
             return; // Paint nothing if gradient size is zero.
         }
 
-        let path = to_path::<B>(path, B::Path::new());
+        let mut path = B::Path::new();
+        path.add_segments(path_segments);
 
         self.drawtarget
             .fill(&path, &self.state.fill_style, &self.state.draw_options);
@@ -894,12 +829,13 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         );
     }
 
-    pub(crate) fn stroke_path(&mut self, path: &[PathSegment]) {
+    pub(crate) fn stroke_path(&mut self, path_segments: &[PathSegment]) {
         if self.state.stroke_style.is_zero_size_gradient() {
             return; // Paint nothing if gradient size is zero.
         }
 
-        let path = to_path::<B>(path, B::Path::new());
+        let mut path = B::Path::new();
+        path.add_segments(path_segments);
 
         self.drawtarget.stroke(
             &path,
@@ -917,8 +853,9 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         self.drawtarget.push_clip(&path);
     }
 
-    pub(crate) fn clip_path(&mut self, path: &[PathSegment]) {
-        let path = to_path::<B>(path, B::Path::new());
+    pub(crate) fn clip_path(&mut self, path_segments: &[PathSegment]) {
+        let mut path = B::Path::new();
+        path.add_segments(path_segments);
         self.drawtarget.push_clip(&path);
     }
 
@@ -943,7 +880,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
 
     pub(crate) fn is_point_in_path_(
         &mut self,
-        path: &[PathSegment],
+        path_segments: &[PathSegment],
         x: f64,
         y: f64,
         _fill_rule: FillRule,
@@ -953,7 +890,9 @@ impl<'a, B: Backend> CanvasData<'a, B> {
             Some(PathState::UserSpacePath(_, Some(transform))) => transform,
             Some(_) | None => &self.drawtarget.get_transform(),
         };
-        let result = to_path::<B>(path, B::Path::new()).contains_point(x, y, path_transform);
+        let mut path = B::Path::new();
+        path.add_segments(path_segments);
+        let result = path.contains_point(x, y, path_transform);
         chan.send(result).unwrap();
     }
 
