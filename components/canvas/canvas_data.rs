@@ -115,16 +115,12 @@ fn to_path<B: Backend>(path: &[PathSegment], mut builder: B::Path) -> B::Path {
 /// with the correct transform applied.
 /// TODO: De-abstract now that Azure is removed?
 enum PathState<B: Backend> {
-    /// Path builder in user-space. If a transform has been applied
-    /// but no further path operations have occurred, it is stored
-    /// in the optional field.
-    UserSpacePathBuilder(B::Path, Option<Transform2D<f32>>),
-    /// Path builder in device-space.
-    DeviceSpacePathBuilder(B::Path),
     /// Path in user-space. If a transform has been applied but
     /// but no further path operations have occurred, it is stored
     /// in the optional field.
     UserSpacePath(B::Path, Option<Transform2D<f32>>),
+    /// Path in device-space.
+    DeviceSpacePath(B::Path),
 }
 
 /// A wrapper around a stored PathBuilder and an optional transformation that should be
@@ -814,23 +810,12 @@ impl<'a, B: Backend> CanvasData<'a, B> {
     /// Turn the [`Self::path_state`] into a user-space path, returning `None` if the
     /// path transformation matrix is uninvertible.
     fn ensure_path(&mut self) -> Option<&B::Path> {
-        // If there's no record of any path yet, create a new builder in user-space.
+        // If there's no record of any path yet, create a new path in user-space.
         if self.path_state.is_none() {
-            self.path_state = Some(PathState::UserSpacePathBuilder(B::Path::new(), None));
+            self.path_state = Some(PathState::UserSpacePath(B::Path::new(), None));
         }
 
-        // If a user-space builder exists, create a finished path from it.
-        let new_state = match *self.path_state.as_mut().unwrap() {
-            PathState::UserSpacePathBuilder(ref mut builder, ref mut transform) => {
-                Some((builder, transform.take()))
-            },
-            PathState::DeviceSpacePathBuilder(..) | PathState::UserSpacePath(..) => None,
-        };
-        if let Some((path, transform)) = new_state {
-            self.path_state = Some(PathState::UserSpacePath(path.clone(), transform));
-        }
-
-        // If a user-space path exists, create a device-space builder based on it if
+        // If a user-space path exists, create a device-space path based on it if
         // any transform is present.
         let new_state = match *self.path_state.as_ref().unwrap() {
             PathState::UserSpacePath(ref path, Some(ref transform)) => {
@@ -838,24 +823,22 @@ impl<'a, B: Backend> CanvasData<'a, B> {
                 path.transform(transform);
                 Some(path)
             },
-            PathState::UserSpacePath(..) |
-            PathState::UserSpacePathBuilder(..) |
-            PathState::DeviceSpacePathBuilder(..) => None,
+            PathState::UserSpacePath(..) | PathState::DeviceSpacePath(..) => None,
         };
         if let Some(builder) = new_state {
-            self.path_state = Some(PathState::DeviceSpacePathBuilder(builder));
+            self.path_state = Some(PathState::DeviceSpacePath(builder));
         }
 
-        // If a device-space builder is present, create a user-space path from its
+        // If a device-space path is present, create a user-space path from its
         // finished path by inverting the initial transformation.
         let new_state = match *self.path_state.as_mut().unwrap() {
-            PathState::DeviceSpacePathBuilder(ref mut builder) => {
+            PathState::DeviceSpacePath(ref mut builder) => {
                 let inverse = self.drawtarget.get_transform().inverse()?;
                 let mut path = builder.clone();
                 path.transform(&inverse);
                 Some(path)
             },
-            PathState::UserSpacePathBuilder(..) | PathState::UserSpacePath(..) => None,
+            PathState::UserSpacePath(..) => None,
         };
         if let Some(path) = new_state {
             self.path_state = Some(PathState::UserSpacePath(path, None));
@@ -984,7 +967,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
 
     fn path_builder(&mut self) -> PathBuilderRef<B> {
         if self.path_state.is_none() {
-            self.path_state = Some(PathState::UserSpacePathBuilder(B::Path::new(), None));
+            self.path_state = Some(PathState::UserSpacePath(B::Path::new(), None));
         }
 
         // Rust is not pleased by returning a reference to a builder in some branches
@@ -992,21 +975,14 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         // matches works around the resulting borrow errors.
         let new_state = {
             match *self.path_state.as_mut().unwrap() {
-                PathState::UserSpacePathBuilder(_, None) | PathState::DeviceSpacePathBuilder(_) => {
-                    None
-                },
-                PathState::UserSpacePathBuilder(ref mut builder, Some(ref transform)) => {
-                    let mut path = builder.clone();
-                    path.transform(transform);
-                    Some(PathState::DeviceSpacePathBuilder(path))
-                },
+                PathState::DeviceSpacePath(_) => None,
                 PathState::UserSpacePath(ref path, Some(ref transform)) => {
                     let mut path = path.clone();
                     path.transform(transform);
-                    Some(PathState::DeviceSpacePathBuilder(path))
+                    Some(PathState::DeviceSpacePath(path))
                 },
                 PathState::UserSpacePath(ref path, None) => {
-                    Some(PathState::UserSpacePathBuilder(path.clone(), None))
+                    Some(PathState::UserSpacePath(path.clone(), None))
                 },
             }
         };
@@ -1015,13 +991,13 @@ impl<'a, B: Backend> CanvasData<'a, B> {
             Some(state) => self.path_state = Some(state),
             // There's an existing builder value that can be returned immediately.
             None => match *self.path_state.as_mut().unwrap() {
-                PathState::UserSpacePathBuilder(ref mut builder, None) => {
+                PathState::UserSpacePath(ref mut builder, None) => {
                     return PathBuilderRef {
                         builder,
                         transform: Transform2D::identity(),
                     };
                 },
-                PathState::DeviceSpacePathBuilder(ref mut builder) => {
+                PathState::DeviceSpacePath(ref mut builder) => {
                     return PathBuilderRef {
                         builder,
                         transform: self.drawtarget.get_transform(),
@@ -1032,15 +1008,15 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         }
 
         match *self.path_state.as_mut().unwrap() {
-            PathState::UserSpacePathBuilder(ref mut builder, None) => PathBuilderRef {
+            PathState::UserSpacePath(ref mut builder, None) => PathBuilderRef {
                 builder,
                 transform: Transform2D::identity(),
             },
-            PathState::DeviceSpacePathBuilder(ref mut builder) => PathBuilderRef {
+            PathState::DeviceSpacePath(ref mut builder) => PathBuilderRef {
                 builder,
                 transform: self.drawtarget.get_transform(),
             },
-            PathState::UserSpacePathBuilder(..) | PathState::UserSpacePath(..) => unreachable!(),
+            PathState::UserSpacePath(..) => unreachable!(),
         }
     }
 
@@ -1147,8 +1123,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         // If there is an in-progress path, store the existing transformation required
         // to move between device and user space.
         match self.path_state.as_mut() {
-            None | Some(PathState::DeviceSpacePathBuilder(..)) => (),
-            Some(PathState::UserSpacePathBuilder(_, transform)) |
+            None | Some(PathState::DeviceSpacePath(..)) => (),
             Some(PathState::UserSpacePath(_, transform)) => {
                 if transform.is_none() {
                     *transform = Some(self.drawtarget.get_transform());
