@@ -987,7 +987,8 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
     if print_text:
         print("\r ➤  Checking files for tidiness...")
 
-    number_of_core = multiprocessing.cpu_count()
+    # Limit to 2 to avoid overhead from excessive parallelism
+    number_of_core = min(2, multiprocessing.cpu_count())
 
     with concurrent.futures.ProcessPoolExecutor(
         max_workers=number_of_core, mp_context=multiprocessing.get_context("fork")
