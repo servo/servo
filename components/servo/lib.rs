@@ -269,8 +269,6 @@ impl Servo {
             .store(opts.debug.disable_share_style_cache, Ordering::Relaxed);
         style::context::DEFAULT_DUMP_STYLE_STATISTICS
             .store(opts.debug.dump_style_statistics, Ordering::Relaxed);
-        style::traversal::IS_SERVO_NONINCREMENTAL_LAYOUT
-            .store(opts.nonincremental_layout, Ordering::Relaxed);
 
         if !opts.multiprocess {
             media_platform::init();

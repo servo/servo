@@ -32,9 +32,6 @@ pub struct Opts {
     /// visualizing the traces as a timeline.
     pub time_profiler_trace_path: Option<String>,
 
-    /// True to turn off incremental layout.
-    pub nonincremental_layout: bool,
-
     pub user_stylesheets: Vec<(Vec<u8>, ServoUrl)>,
 
     /// True to exit on thread failure instead of displaying about:failure.
@@ -189,7 +186,6 @@ impl Default for Opts {
             wait_for_stable_image: false,
             time_profiling: None,
             time_profiler_trace_path: None,
-            nonincremental_layout: false,
             user_stylesheets: Vec::new(),
             hard_fail: true,
             webdriver_port: None,
