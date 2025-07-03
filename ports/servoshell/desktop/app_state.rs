@@ -444,11 +444,11 @@ impl WebViewDelegate for RunningAppState {
         self.inner().window.set_position(new_position);
     }
 
-    fn request_resize_to(&self, webview: servo::WebView, new_size: DeviceIntSize) {
+    fn request_resize_to(&self, webview: servo::WebView, new_outer_size: DeviceIntSize) {
         let mut rect = webview.rect();
-        rect.set_size(new_size.to_f32());
+        rect.set_size(new_outer_size.to_f32());
         webview.move_resize(rect);
-        self.inner().window.request_resize(&webview, new_size);
+        self.inner().window.request_resize(&webview, new_outer_size);
     }
 
     fn show_simple_dialog(&self, webview: servo::WebView, dialog: SimpleDialog) {
