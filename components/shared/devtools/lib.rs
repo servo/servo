@@ -108,11 +108,6 @@ pub enum ScriptToDevtoolsControlMsg {
     CreateSourceActor(PipelineId, SourceInfo),
 
     UpdateSourceContent(PipelineId, String),
-
-    WillNavigate {
-        browsing_context_id: BrowsingContextId,
-        url: ServoUrl,
-    },
 }
 
 /// Serialized JS return values

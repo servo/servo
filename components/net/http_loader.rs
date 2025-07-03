@@ -540,7 +540,7 @@ async fn obtain_response(
     is_xhr: bool,
     context: &FetchContext,
     fetch_terminated: UnboundedSender<bool>,
-    browsing_context_id: BrowsingContextId,
+    browsing_context_id: Option<BrowsingContextId>,
 ) -> Result<(HyperResponse<Decoder>, Option<ChromeToDevtoolsControlMsg>), NetworkError> {
     {
         let mut headers = request_headers.clone();
@@ -731,7 +731,7 @@ async fn obtain_response(
                             (connect_end - connect_start).unsigned_abs(),
                             (send_end - send_start).unsigned_abs(),
                             is_xhr,
-                            browsing_context_id,
+                            browsing_context_id.unwrap(),
                         ))
                     // TODO: ^This is not right, connect_start is taken before contructing the
                     // request and connect_end at the end of it. send_start is takend before the
@@ -1893,7 +1893,7 @@ async fn http_network_fetch(
         let _ = fetch_terminated_sender.send(false);
     }
 
-    let browsing_context_id = request.target_webview_id.unwrap().0;
+    let browsing_context_id = request.target_webview_id.map(|id| id.0);
 
     let response_future = obtain_response(
         &context.state.client,
@@ -2017,7 +2017,7 @@ async fn http_network_fetch(
 
         // --- Tell devtools that we got a response
         // Send an HttpResponse message to devtools with the corresponding request_id
-        if let Some(pipeline_id) = pipeline_id {
+        if let (Some(pipeline_id), Some(browsing_context_id)) = (pipeline_id, browsing_context_id) {
             send_response_to_devtools(
                 &sender,
                 request_id.unwrap(),

@@ -45,6 +45,7 @@ use crate::actors::process::ProcessActor;
 use crate::actors::root::RootActor;
 use crate::actors::source::SourceActor;
 use crate::actors::thread::ThreadActor;
+use crate::actors::watcher::WatcherActor;
 use crate::actors::worker::{WorkerActor, WorkerType};
 use crate::id::IdMap;
 use crate::network_handler::handle_network_event;
@@ -279,13 +280,6 @@ impl DevtoolsInstance {
 
                     self.handle_console_message(pipeline_id, None, console_message.finish())
                 },
-                DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::WillNavigate {
-                    ..
-                }) => {
-                    // Ignore or log it, since we now emit it early
-                    // Or implement logic here if needed later
-                },
-
                 DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
                     request_id,
                     network_event,
@@ -321,11 +315,15 @@ impl DevtoolsInstance {
         };
 
         let actor_name = self.browsing_contexts.get(&browsing_context_id).unwrap();
-        let binding = self.actors.lock().unwrap();
-        let actor = binding
-            .find::<BrowsingContextActor>(actor_name);
+        let actors = self.actors.lock().unwrap();
+        let actor = actors.find::<BrowsingContextActor>(actor_name);
+        let watcher_actor = actors.find::<WatcherActor>(&actor.watcher);
 
-        actor.emit_will_navigate(browsing_context_id, url.clone());
+        let mut connections = Vec::<TcpStream>::new();
+        for stream in self.connections.values() {
+            connections.push(stream.try_clone().unwrap());
+        }
+        watcher_actor.emit_will_navigate(browsing_context_id, url.clone(), &mut connections);
         actor.navigate(state, &mut self.id_map.lock().expect("Mutex poisoned"));
     }
 
@@ -492,33 +490,29 @@ impl DevtoolsInstance {
         network_event: NetworkEvent,
     ) {
         let browsing_context_id = match &network_event {
-            NetworkEvent::HttpRequest(req) => Some(req.browsing_context_id),
-            NetworkEvent::HttpResponse(resp) => Some(resp.browsing_context_id),
+            NetworkEvent::HttpRequest(req) => req.browsing_context_id,
+            NetworkEvent::HttpResponse(resp) => resp.browsing_context_id,
         };
 
-        let watcher_name = browsing_context_id
-            .and_then(|id| self.browsing_contexts.get(&id))
-            .map(|actor_name| {
-                self.actors
-                    .lock()
-                    .unwrap()
-                    .find::<BrowsingContextActor>(actor_name)
-                    .watcher
-                    .clone()
-            });
-            
-        if watcher_name.is_none() {
+        let Some(browsing_context_actor_name) = self.browsing_contexts.get(&browsing_context_id)
+        else {
             return;
-        }
+        };
+        let watcher_name = self
+            .actors
+            .lock()
+            .unwrap()
+            .find::<BrowsingContextActor>(browsing_context_actor_name)
+            .watcher
+            .clone();
 
-        let netevent_actor_name = self.find_network_event_actor(request_id, watcher_name.clone().unwrap_or_default());
+        let netevent_actor_name = self.find_network_event_actor(request_id, watcher_name);
 
         handle_network_event(
             Arc::clone(&self.actors),
             netevent_actor_name,
             connections,
             network_event,
-            watcher_name.unwrap_or_default(),
         )
     }
 

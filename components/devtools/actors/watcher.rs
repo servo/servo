@@ -14,9 +14,11 @@ use std::collections::HashMap;
 use std::net::TcpStream;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use base::id::BrowsingContextId;
 use log::warn;
 use serde::Serialize;
 use serde_json::{Map, Value};
+use servo_url::ServoUrl;
 
 use self::network_parent::{NetworkParentActor, NetworkParentActorMsg};
 use super::breakpoint::BreakpointListActor;
@@ -427,6 +429,33 @@ impl WatcherActor {
                 resources: self.session_context.supported_resources.clone(),
                 targets: self.session_context.supported_targets.clone(),
             },
+        }
+    }
+
+    pub fn emit_will_navigate(
+        &self,
+        browsing_context_id: BrowsingContextId,
+        url: ServoUrl,
+        connections: &mut Vec<TcpStream>,
+    ) {
+        let msg = serde_json::json!({
+            "browsingContextID": browsing_context_id,
+            "innerWindowId": 0,  // TODO: set this to the correct value
+            "name": "will-navigate",
+            "time": SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis(),
+            "isFrameSwitching": false, // TODO: set this to the correct value
+            "newURI": url,
+        });
+        for stream in connections {
+            self.resource_array(
+                msg.clone(),
+                "document-event".to_string(),
+                ResourceArrayType::Available,
+                stream,
+            );
         }
     }
 }

@@ -10,17 +10,15 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::net::TcpStream;
 
-use base::id::{BrowsingContextId, PipelineId};
+use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg::{
     self, GetCssDatabase, SimulateColorScheme, WantsLiveNotifications,
 };
-use devtools_traits::ScriptToDevtoolsControlMsg::WillNavigate;
 use devtools_traits::{DevtoolsPageInfo, NavigationState};
 use embedder_traits::Theme;
 use ipc_channel::ipc::{self, IpcSender};
 use serde::Serialize;
 use serde_json::{Map, Value};
-use servo_url::ServoUrl;
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::inspector::InspectorActor;
@@ -372,16 +370,5 @@ impl BrowsingContextActor {
         self.script_chan
             .send(SimulateColorScheme(self.active_pipeline_id.get(), theme))
             .map_err(|_| ())
-    }
-
-    pub fn emit_will_navigate(&self, browsing_context_id: BrowsingContextId, url: ServoUrl) {
-        let msg = WillNavigate {
-            browsing_context_id,
-            url: url.clone(),
-        };
-
-        for stream in self.streams.borrow_mut().values_mut() {
-            let _ = stream.write_json_packet(&msg);
-        }
     }
 }

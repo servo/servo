@@ -26,17 +26,19 @@ pub(crate) fn handle_network_event(
     netevent_actor_name: String,
     mut connections: Vec<TcpStream>,
     network_event: NetworkEvent,
-    watcher_name: String,
 ) {
     let mut actors = actors.lock().unwrap();
+    let watcher_name = {
+        let actor_ref = actors.find::<NetworkEventActor>(&netevent_actor_name);
+        actor_ref.watcher_name.clone()
+    };
+    let actor = actors.find_mut::<NetworkEventActor>(&netevent_actor_name);
     match network_event {
         NetworkEvent::HttpRequest(httprequest) => {
-            let actor = actors.find_mut::<NetworkEventActor>(&netevent_actor_name);
             actor.add_request(httprequest);
 
             let event_actor = actor.event_actor();
             let resource_updates = actor.resource_updates();
-
             let watcher_actor = actors.find::<WatcherActor>(&watcher_name);
 
             for stream in &mut connections {
@@ -57,7 +59,6 @@ pub(crate) fn handle_network_event(
             }
         },
         NetworkEvent::HttpResponse(httpresponse) => {
-            let actor = actors.find_mut::<NetworkEventActor>(&netevent_actor_name);
             // Store the response information in the actor
             actor.add_response(httpresponse);
             let resource = actor.resource_updates();

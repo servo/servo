@@ -7,7 +7,7 @@ use std::sync::atomic::AtomicBool;
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
-use base::id::{PipelineId, TEST_WEBVIEW_ID};
+use base::id::PipelineId;
 use constellation_traits::{
     ScopeThings, ServiceWorkerMsg, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
 };
@@ -346,7 +346,7 @@ impl ServiceWorkerGlobalScope {
                     .map(Referrer::ReferrerUrl)
                     .unwrap_or_else(|| global.upcast::<GlobalScope>().get_referrer());
 
-                let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), script_url, referrer)
+                let request = RequestBuilder::new(None, script_url, referrer)
                     .destination(Destination::ServiceWorker)
                     .credentials_mode(CredentialsMode::Include)
                     .parser_metadata(ParserMetadata::NotParserInserted)
