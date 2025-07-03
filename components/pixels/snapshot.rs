@@ -43,14 +43,6 @@ impl Alpha {
             Alpha::DontCare => false,
         }
     }
-
-    pub const fn needs_alpha_unmultiplication(&self) -> bool {
-        match self {
-            Alpha::Premultiplied => true,
-            Alpha::NotPremultiplied => false,
-            Alpha::DontCare => false,
-        }
-    }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
