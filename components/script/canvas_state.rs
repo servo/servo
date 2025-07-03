@@ -1186,14 +1186,7 @@ impl CanvasState {
             let size = snapshot.size();
             Ok(Some(CanvasPattern::new(
                 global,
-                snapshot
-                    .to_vec(
-                        Some(SnapshotAlphaMode::Transparent {
-                            premultiplied: true,
-                        }),
-                        Some(SnapshotPixelFormat::BGRA),
-                    )
-                    .0, // TODO: send snapshot
+                snapshot,
                 size.cast(),
                 rep,
                 self.is_origin_clean(image),
