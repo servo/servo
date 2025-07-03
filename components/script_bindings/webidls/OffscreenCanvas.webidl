@@ -13,7 +13,7 @@ dictionary ImageEncodeOptions {
 
 //enum OffscreenRenderingContextId { "2d", "webgl", "webgl2" };
 
-[Exposed=(Window,Worker)/*, Transferable*/, Pref="dom_offscreen_canvas_enabled"]
+[Exposed=(Window,Worker), Transferable, Pref="dom_offscreen_canvas_enabled"]
 interface OffscreenCanvas : EventTarget {
   [Throws] constructor([EnforceRange] unsigned long long width, [EnforceRange] unsigned long long height);
   attribute [EnforceRange] unsigned long long width;
