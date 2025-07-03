@@ -215,7 +215,7 @@ def bootstrap(topdir):
     import mach.main
 
     mach = mach.main.Mach(os.getcwd())
-    mach.populate_context_handler = populate_context
+    mach.populate_context_handler = populate_context  # type: ignore[assignment]
 
     for category, meta in CATEGORIES.items():
         mach.define_category(category, meta["short"], meta["long"], meta["priority"])

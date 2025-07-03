@@ -18,18 +18,16 @@ import subprocess
 import sys
 import tempfile
 import traceback
-import urllib
+import urllib.error
 
 import toml
-
 from mach.decorators import (
+    Command,
     CommandArgument,
     CommandProvider,
-    Command,
 )
 
 import servo.platform
-
 from servo.command_base import CommandBase, cd, check_call
 from servo.util import delete, download_bytes
 
@@ -177,7 +175,7 @@ class MachCommands(CommandBase):
         import toml
 
         if os.environ.get("CARGO_HOME", ""):
-            cargo_dir = os.environ.get("CARGO_HOME")
+            cargo_dir = os.environ.get("CARGO_HOME", "")
         else:
             home_dir = os.path.expanduser("~")
             cargo_dir = path.join(home_dir, ".cargo")

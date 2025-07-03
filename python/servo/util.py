@@ -14,7 +14,7 @@ import shutil
 import stat
 import sys
 import time
-import urllib
+import urllib.error
 import urllib.request
 import zipfile
 from typing import Dict, List, Union
@@ -137,11 +137,11 @@ class ZipFileWithUnixPermissions(zipfile.ZipFile):
 
     # For Python 3.x
     def _extract_member(self, member, targetpath, pwd):
-        if sys.version_info[0] >= 3:
+        if int(sys.version_info[0]) >= 3:
             if not isinstance(member, zipfile.ZipInfo):
                 member = self.getinfo(member)
 
-            targetpath = super()._extract_member(member, targetpath, pwd)
+            targetpath = super().extract(member, targetpath, pwd)
 
             attr = member.external_attr >> 16
             if attr != 0:

@@ -146,9 +146,9 @@ def find_msvc_redist_dirs(vs_platform: str) -> Generator[str, None, None]:
                 path1 = os.path.join(vs_platform, "Microsoft.{}.CRT".format(redist_version))
                 path2 = os.path.join("onecore", vs_platform, "Microsoft.{}.CRT".format(redist_version))
                 for path in [path1, path2]:
-                    path = os.path.join(redist_path, path)
+                    full_path = os.path.join(redist_path, path)
                     if os.path.isdir(path):
-                        yield path
+                        yield full_path
                     else:
                         tried.append(path)
 
@@ -164,13 +164,14 @@ def find_windows_sdk_installation_path() -> str:
 
     # This module must be imported here, because other platforms also
     # load this file and the module is platform-specific.
-    import winreg
+    if sys.platform == "win32":
+        import winreg
 
-    # This is based on the advice from
-    # https://stackoverflow.com/questions/35119223/how-to-programmatically-detect-and-locate-the-windows-10-sdk
-    key_path = r"SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\v10.0"
-    try:
-        with winreg.OpenKeyEx(winreg.HKEY_LOCAL_MACHINE, key_path) as key:
-            return str(winreg.QueryValueEx(key, "InstallationFolder")[0])
-    except FileNotFoundError:
-        raise Exception(f"Couldn't find Windows SDK installation path in registry at path ({key_path})")
+        # This is based on the advice from
+        # https://stackoverflow.com/questions/35119223/how-to-programmatically-detect-and-locate-the-windows-10-sdk
+        key_path = r"SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\v10.0"
+        try:
+            with winreg.OpenKeyEx(winreg.HKEY_LOCAL_MACHINE, key_path) as key:
+                return str(winreg.QueryValueEx(key, "InstallationFolder")[0])
+        except FileNotFoundError:
+            raise Exception(f"Couldn't find Windows SDK installation path in registry at path ({key_path})")

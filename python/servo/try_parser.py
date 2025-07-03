@@ -131,7 +131,7 @@ def handle_preset(s: str) -> Optional[JobConfig]:
         return None
 
 
-def handle_modifier(config: JobConfig, s: str) -> Optional[JobConfig]:
+def handle_modifier(config: Optional[JobConfig], s: str) -> Optional[JobConfig]:
     if config is None:
         return None
     s = s.lower()
@@ -352,6 +352,8 @@ class TestParser(unittest.TestCase):
         a = handle_modifier(a, "linux-unit-tests")
         b = handle_preset("linux-wpt")
         b = handle_modifier(b, "linux-wpt")
+        assert a is not None
+        assert b is not None
         self.assertTrue(a.merge(b), "Should merge jobs that have different unit test configurations.")
         self.assertEqual(a, JobConfig("Linux (Unit Tests, WPT)", Workflow.LINUX, unit_tests=True, wpt=True))
 
