@@ -22,8 +22,8 @@ pub enum SnapshotPixelFormat {
 pub enum Alpha {
     Premultiplied,
     NotPremultiplied,
-    /// This is used for opaque texture
-    /// where you can choose the one that represents less work
+    /// This is used for opaque textures for which the presence of alpha in the
+    /// output data format does not matter.
     DontCare,
 }
 
