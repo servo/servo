@@ -42,3 +42,8 @@ input:not([type=image]), textarea { box-sizing: border-box; }
 
 img[align=left i] { margin-right: 3px; }
 img[align=right i] { margin-left: 3px; }
+
+/* https://html.spec.whatwg.org/multipage/rendering.html#lists:quirks-mode */
+li { list-style-position: inside; }
+li :is(dir, menu, ol, ul) { list-style-position: outside; }
+:is(dir, menu, ol, ul) :is(dir, menu, ol, ul, li) { list-style-position: unset; }
