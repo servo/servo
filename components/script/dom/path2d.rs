@@ -58,12 +58,7 @@ impl Path2D {
     }
 
     fn last_point(path: &[PathSegment]) -> Option<PathSegment> {
-        if path.is_empty() {
-            return None;
-        }
-
-        // already checked if path segments is empty above, so safe to unwrap at this step
-        let last_point = path.last().unwrap();
+        let last_point = path.last()?;
 
         if let PathSegment::ClosePath = last_point {
             // find first point for the last subpath
