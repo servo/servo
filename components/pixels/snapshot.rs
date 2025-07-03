@@ -19,6 +19,33 @@ pub enum SnapshotPixelFormat {
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+pub enum Alpha {
+    Premultiplied,
+    NotPremultiplied,
+    /// This is used for opaque textures for which the presence of alpha in the
+    /// output data format does not matter.
+    DontCare,
+}
+
+impl Alpha {
+    pub const fn from_premultiplied(is_premultiplied: bool) -> Self {
+        if is_premultiplied {
+            Self::Premultiplied
+        } else {
+            Self::NotPremultiplied
+        }
+    }
+
+    pub const fn needs_alpha_multiplication(&self) -> bool {
+        match self {
+            Alpha::Premultiplied => false,
+            Alpha::NotPremultiplied => true,
+            Alpha::DontCare => false,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum SnapshotAlphaMode {
     /// Internal data is opaque (alpha is cleared to 1)
     Opaque,
@@ -37,19 +64,16 @@ impl Default for SnapshotAlphaMode {
 }
 
 impl SnapshotAlphaMode {
-    pub const fn is_premultiplied(&self) -> bool {
+    pub const fn alpha(&self) -> Alpha {
         match self {
-            SnapshotAlphaMode::Opaque => true,
-            SnapshotAlphaMode::AsOpaque { premultiplied } => *premultiplied,
-            SnapshotAlphaMode::Transparent { premultiplied } => *premultiplied,
+            SnapshotAlphaMode::Opaque => Alpha::DontCare,
+            SnapshotAlphaMode::AsOpaque { premultiplied } => {
+                Alpha::from_premultiplied(*premultiplied)
+            },
+            SnapshotAlphaMode::Transparent { premultiplied } => {
+                Alpha::from_premultiplied(*premultiplied)
+            },
         }
-    }
-
-    pub const fn is_opaque(&self) -> bool {
-        matches!(
-            self,
-            SnapshotAlphaMode::Opaque | SnapshotAlphaMode::AsOpaque { .. }
-        )
     }
 }
 
@@ -112,14 +136,6 @@ impl<T> Snapshot<T> {
     pub const fn alpha_mode(&self) -> SnapshotAlphaMode {
         self.alpha_mode
     }
-
-    pub const fn is_premultiplied(&self) -> bool {
-        self.alpha_mode().is_premultiplied()
-    }
-
-    pub const fn is_opaque(&self) -> bool {
-        self.alpha_mode().is_opaque()
-    }
 }
 
 impl Snapshot<SnapshotData> {
@@ -181,14 +197,6 @@ impl Snapshot<SnapshotData> {
     }
     */
 
-    pub fn data(&self) -> &[u8] {
-        &self.data
-    }
-
-    pub fn data_mut(&mut self) -> &mut [u8] {
-        &mut self.data
-    }
-
     /// Convert inner data of snapshot to target format and alpha mode.
     /// If data is already in target format and alpha mode no work will be done.
     pub fn transform(
@@ -200,7 +208,7 @@ impl Snapshot<SnapshotData> {
         let multiply = match (self.alpha_mode, target_alpha_mode) {
             (SnapshotAlphaMode::Opaque, _) => Multiply::None,
             (alpha_mode, SnapshotAlphaMode::Opaque) => {
-                if alpha_mode.is_premultiplied() {
+                if alpha_mode.alpha() == Alpha::Premultiplied {
                     Multiply::UnMultiply
                 } else {
                     Multiply::None
@@ -232,6 +240,37 @@ impl Snapshot<SnapshotData> {
         self.format = target_format;
     }
 
+    pub fn as_raw_bytes(&self) -> &[u8] {
+        &self.data
+    }
+
+    pub fn as_raw_bytes_mut(&mut self) -> &mut [u8] {
+        &mut self.data
+    }
+
+    pub fn as_bytes(
+        &mut self,
+        target_alpha_mode: Option<SnapshotAlphaMode>,
+        target_format: Option<SnapshotPixelFormat>,
+    ) -> (&mut [u8], SnapshotAlphaMode, SnapshotPixelFormat) {
+        let target_alpha_mode = target_alpha_mode.unwrap_or(self.alpha_mode);
+        let target_format = target_format.unwrap_or(self.format);
+        self.transform(target_alpha_mode, target_format);
+        (&mut self.data, target_alpha_mode, target_format)
+    }
+
+    pub fn to_vec(
+        mut self,
+        target_alpha_mode: Option<SnapshotAlphaMode>,
+        target_format: Option<SnapshotPixelFormat>,
+    ) -> (Vec<u8>, SnapshotAlphaMode, SnapshotPixelFormat) {
+        let target_alpha_mode = target_alpha_mode.unwrap_or(self.alpha_mode);
+        let target_format = target_format.unwrap_or(self.format);
+        self.transform(target_alpha_mode, target_format);
+        let SnapshotData::Owned(data) = self.data;
+        (data, target_alpha_mode, target_format)
+    }
+
     pub fn as_ipc(self) -> Snapshot<IpcSharedMemory> {
         let Snapshot {
             size,
@@ -248,12 +287,6 @@ impl Snapshot<SnapshotData> {
             data,
             format,
             alpha_mode,
-        }
-    }
-
-    pub fn to_vec(self) -> Vec<u8> {
-        match self.data {
-            SnapshotData::Owned(data) => data,
         }
     }
 }

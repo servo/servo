@@ -198,10 +198,10 @@ impl ImageBitmap {
         pixels::copy_rgba8_image(
             input.size(),
             input_rect_cropped.cast(),
-            input.data(),
+            input.as_raw_bytes(),
             source.size(),
             source_rect_cropped.cast(),
-            source.data_mut(),
+            source.as_raw_bytes_mut(),
         );
 
         // Step 7. Scale output to the size specified by outputWidth and outputHeight.
@@ -213,9 +213,12 @@ impl ImageBitmap {
                 ResizeQuality::High => pixels::FilterQuality::High,
             };
 
-            let Some(output_data) =
-                pixels::scale_rgba8_image(source.size(), source.data(), output_size, quality)
-            else {
+            let Some(output_data) = pixels::scale_rgba8_image(
+                source.size(),
+                source.as_raw_bytes(),
+                output_size,
+                quality,
+            ) else {
                 log::warn!(
                     "Failed to scale the bitmap of size {:?} to required size {:?}",
                     source.size(),
@@ -240,7 +243,7 @@ impl ImageBitmap {
         // output must be flipped vertically, disregarding any image orientation metadata
         // of the source (such as EXIF metadata), if any.
         if options.imageOrientation == ImageOrientation::FlipY {
-            pixels::flip_y_rgba8_image_inplace(output.size(), output.data_mut());
+            pixels::flip_y_rgba8_image_inplace(output.size(), output.as_raw_bytes_mut());
         }
 
         // TODO: Step 9. If image is an img element or a Blob object, let val be the value
