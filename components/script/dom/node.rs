@@ -796,8 +796,15 @@ impl Node {
             self.inclusive_descendants_version(),
             doc.inclusive_descendants_version(),
         ) + 1;
-        for ancestor in self.inclusive_ancestors(ShadowIncluding::No) {
-            ancestor.inclusive_descendants_version.set(version);
+
+        // This `while` loop is equivalent to iterating over the non-shadow-inclusive ancestors
+        // without creating intermediate rooted DOM objects.
+        let mut node = &MutNullableDom::new(Some(self));
+        while let Some(p) = node.if_is_some(|p| {
+            p.inclusive_descendants_version.set(version);
+            &p.parent_node
+        }) {
+            node = p
         }
         doc.inclusive_descendants_version.set(version);
     }
