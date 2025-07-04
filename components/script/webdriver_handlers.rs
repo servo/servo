@@ -56,6 +56,7 @@ use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
+use crate::dom::domrect::DOMRect;
 use crate::dom::element::Element;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -1340,6 +1341,33 @@ pub(crate) fn handle_get_title(
         .unwrap();
 }
 
+/// <https://w3c.github.io/webdriver/#dfn-calculate-the-absolute-position>
+fn calculate_absolute_position(
+    documents: &DocumentCollection,
+    pipeline: &PipelineId,
+    rect: &DOMRect,
+) -> Result<(f64, f64), ErrorStatus> {
+    // Step 1
+    // We already pass the rectangle here, see `handle_get_rect`.
+
+    // Step 2
+    let document = match documents.find_document(*pipeline) {
+        Some(document) => document,
+        None => return Err(ErrorStatus::UnknownError),
+    };
+    let win = match document.GetDefaultView() {
+        Some(win) => win,
+        None => return Err(ErrorStatus::UnknownError),
+    };
+
+    // Step 3 - 5
+    let x = win.ScrollX() as f64 + rect.X();
+    let y = win.ScrollY() as f64 + rect.Y();
+
+    Ok((x, y))
+}
+
+/// <https://w3c.github.io/webdriver/#get-element-rect>
 pub(crate) fn handle_get_rect(
     documents: &DocumentCollection,
     pipeline: PipelineId,
@@ -1350,37 +1378,17 @@ pub(crate) fn handle_get_rect(
     reply
         .send(
             get_known_element(documents, pipeline, element_id).and_then(|element| {
-                // https://w3c.github.io/webdriver/webdriver-spec.html#dfn-calculate-the-absolute-position
-                match element.downcast::<HTMLElement>() {
-                    Some(html_element) => {
-                        // Step 1
-                        let mut x = 0;
-                        let mut y = 0;
+                // Step 4-5
+                // We pass the rect instead of element so we don't have to
+                // call `GetBoundingClientRect` twice.
+                let rect = element.GetBoundingClientRect(can_gc);
+                let (x, y) = calculate_absolute_position(documents, &pipeline, &rect)?;
 
-                        let mut offset_parent = html_element.GetOffsetParent(can_gc);
-
-                        // Step 2
-                        while let Some(element) = offset_parent {
-                            offset_parent = match element.downcast::<HTMLElement>() {
-                                Some(elem) => {
-                                    x += elem.OffsetLeft(can_gc);
-                                    y += elem.OffsetTop(can_gc);
-                                    elem.GetOffsetParent(can_gc)
-                                },
-                                None => None,
-                            };
-                        }
-                        // Step 3
-                        Ok(Rect::new(
-                            Point2D::new(x as f64, y as f64),
-                            Size2D::new(
-                                html_element.OffsetWidth(can_gc) as f64,
-                                html_element.OffsetHeight(can_gc) as f64,
-                            ),
-                        ))
-                    },
-                    None => Err(ErrorStatus::UnknownError),
-                }
+                // Step 6-7
+                Ok(Rect::new(
+                    Point2D::new(x, y),
+                    Size2D::new(rect.Width(), rect.Height()),
+                ))
             }),
         )
         .unwrap();
