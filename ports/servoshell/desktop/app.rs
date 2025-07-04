@@ -548,7 +548,7 @@ impl App {
                 ) => {
                     self.handle_webdriver_script_commnd(
                         webdriver_script_command.clone(),
-                        &running_state,
+                        running_state,
                     );
                     running_state.forward_webdriver_command(WebDriverCommandMsg::ScriptCommand(
                         browsing_context_id,
