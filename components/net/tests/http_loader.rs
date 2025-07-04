@@ -327,7 +327,7 @@ fn test_request_and_response_data_with_network_messages() {
         connect_time: devhttprequest.connect_time,
         send_time: devhttprequest.send_time,
         is_xhr: false,
-        broswsing_context_id: TEST_WEBVIEW_ID.0,
+        browsing_context_id: TEST_WEBVIEW_ID.0,
     };
 
     let content = "Yay!";
