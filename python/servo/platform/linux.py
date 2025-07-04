@@ -7,11 +7,12 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-import distro
 import os
-import subprocess
 import shutil
+import subprocess
 from typing import Optional, Tuple
+
+import distro
 
 from .base import Base
 from .build_target import BuildTarget
@@ -201,7 +202,7 @@ class Linux(Base):
 
         return (distrib, version)
 
-    def _platform_bootstrap(self, force: bool) -> bool:
+    def _platform_bootstrap(self, _force: bool) -> bool:
         if self.distro.lower() == "nixos":
             print("NixOS does not need bootstrap, it will automatically enter a nix-shell")
             print("Just run ./mach build")
@@ -239,7 +240,7 @@ class Linux(Base):
             input("Press Enter to continue...")
             return False
 
-        installed_something = self.install_non_gstreamer_dependencies(force)
+        installed_something = self.install_non_gstreamer_dependencies(_force)
         return installed_something
 
     def install_non_gstreamer_dependencies(self, force: bool) -> bool:
@@ -265,7 +266,7 @@ class Linux(Base):
                 install = True
         elif self.distro in ["CentOS", "CentOS Linux", "Fedora", "Fedora Linux", "Fedora Linux Asahi Remix"]:
             command = ["dnf", "install"]
-            installed_pkgs: [str] = subprocess.check_output(
+            installed_pkgs: list[str] = subprocess.check_output(
                 ["rpm", "--query", "--all", "--queryformat", "%{NAME}\n"], encoding="utf-8"
             ).split("\n")
             pkgs = DNF_PKGS
@@ -274,7 +275,7 @@ class Linux(Base):
                     install = True
                     break
         elif self.distro == "void":
-            installed_pkgs = str(subprocess.check_output(["xbps-query", "-l"]))
+            installed_pkgs: list[str] = subprocess.check_output(["xbps-query", "-l"], text=True).splitlines()
             pkgs = XBPS_PKGS
             for pkg in pkgs:
                 command = ["xbps-install", "-A"]
@@ -312,7 +313,7 @@ class Linux(Base):
             raise EnvironmentError("Installation of dependencies failed.")
         return True
 
-    def gstreamer_root(self, _target: BuildTarget) -> Optional[str]:
+    def gstreamer_root(self, target: BuildTarget) -> Optional[str]:
         return None
 
     def _platform_bootstrap_gstreamer(self, _target: BuildTarget, _force: bool) -> bool:

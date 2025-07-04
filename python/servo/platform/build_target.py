@@ -16,10 +16,10 @@ import shutil
 import subprocess
 import sys
 from enum import Enum
-
 from os import path
-from packaging.version import parse as parse_version
 from typing import Any, Dict, Optional
+
+from packaging.version import parse as parse_version
 
 import servo.platform
 import servo.util as util
@@ -218,8 +218,8 @@ class AndroidTarget(CrossBuildTarget):
             env["RUSTFLAGS"] += f"-C link-arg={libclangrt_filename}"
 
         env["RUST_TARGET"] = self.triple()
-        env["HOST_CC"] = host_cc
-        env["HOST_CXX"] = host_cxx
+        env["HOST_CC"] = host_cc or ""
+        env["HOST_CXX"] = host_cxx or ""
         env["HOST_CFLAGS"] = ""
         env["HOST_CXXFLAGS"] = ""
         env["TARGET_CC"] = to_ndk_bin("clang")

@@ -15,14 +15,13 @@ import shutil
 import stat
 import subprocess
 import sys
-
 from time import time
-from typing import Optional, List, Dict
+from typing import Dict, List, Optional
 
 from mach.decorators import (
+    Command,
     CommandArgument,
     CommandProvider,
-    Command,
 )
 from mach.registrar import Registrar
 
@@ -30,12 +29,10 @@ import servo.platform
 import servo.platform.macos
 import servo.util
 import servo.visual_studio
-
-from servo.command_base import BuildType, CommandBase, check_call
-from servo.gstreamer import windows_dlls, windows_plugins, package_gstreamer_dylibs
-from servo.platform.build_target import BuildTarget
-
 from python.servo.platform.build_target import SanitizerKind
+from servo.command_base import BuildType, CommandBase, check_call
+from servo.gstreamer import package_gstreamer_dylibs, windows_dlls, windows_plugins
+from servo.platform.build_target import BuildTarget
 
 SUPPORTED_ASAN_TARGETS = [
     "aarch64-apple-darwin",
@@ -69,8 +66,8 @@ def get_rustc_llvm_version() -> Optional[List[int]]:
             if line_lowercase.startswith("llvm version:"):
                 llvm_version = line_lowercase.strip("llvm version:")
                 llvm_version = llvm_version.strip()
-                version = llvm_version.split(".")
-                print(f"Info: rustc is using LLVM version {'.'.join(version)}")
+                version = list(map(int, llvm_version.split(".")))
+                print(f"Info: rustc is using LLVM version {llvm_version}")
                 return version
         else:
             print(f"Error: Couldn't find LLVM version in output of `rustc --version --verbose`: `{result.stdout}`")
@@ -178,7 +175,7 @@ class MachCommands(CommandBase):
                 # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
                 # like Instruments.app.
                 try:
-                    import Cocoa
+                    import Cocoa  # pyrefly: ignore
 
                     icon_path = path.join(self.get_top_dir(), "resources", "servo_1024.png")
                     icon = Cocoa.NSImage.alloc().initWithContentsOfFile_(icon_path)
@@ -385,6 +382,6 @@ def package_msvc_dlls(servo_exe_dir: str, target: BuildTarget):
     windows_sdk_dir = servo.visual_studio.find_windows_sdk_installation_path()
     dll_name = "api-ms-win-crt-runtime-l1-1-0.dll"
     file_to_copy = next(pathlib.Path(windows_sdk_dir).rglob(os.path.join("**", vs_platform, dll_name)))
-    copy_file(file_to_copy)
+    copy_file(str(file_to_copy))
 
     return True

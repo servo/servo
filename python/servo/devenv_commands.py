@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 from os import getcwd, listdir, path
+from typing import Union
 
 from mach.decorators import (
     Command,
@@ -131,7 +132,10 @@ class MachCommands(CommandBase):
 
             github_annotation_manager = GitHubAnnotationManager("clippy")
 
-            results = self.run_cargo_build_like_command("clippy", params, env=env, capture_output=True, **kwargs)
+            results: Union[subprocess.CompletedProcess[bytes], int] = self.run_cargo_build_like_command(
+                "clippy", params, env=env, capture_output=True, **kwargs
+            )
+            assert results is subprocess.CompletedProcess[bytes]
             if results.returncode == 0:
                 return 0
             try:
@@ -183,6 +187,7 @@ class MachCommands(CommandBase):
 
         env = self.build_env()
         ndk_stack = path.join(env["ANDROID_NDK"], "ndk-stack")
+        # pyrefly: ignore  # missing-attribute
         self.setup_configuration_for_android_target(target)
         sym_path = path.join(
             "target", target, "release" if release else "debug", "apk", "obj", "local", self.config["android"]["lib"]
@@ -230,7 +235,7 @@ class MachCommands(CommandBase):
                         "gdb.execute('set solib-search-path ' + param)",
                         "end",
                     ]
-                )
+                ).encode("utf-8")
             )
 
         p = subprocess.Popen(

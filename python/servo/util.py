@@ -148,6 +148,7 @@ class ZipFileWithUnixPermissions(zipfile.ZipFile):
                 os.chmod(targetpath, attr)
             return targetpath
         else:
+            # pyrefly: ignore  # missing-attribute
             return super(ZipFileWithUnixPermissions, self)._extract_member(member, targetpath, pwd)
 
 

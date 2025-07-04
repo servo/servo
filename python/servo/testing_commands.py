@@ -8,6 +8,7 @@
 # except according to those terms.
 
 import argparse
+import base64
 import json
 import logging
 import os
@@ -214,14 +215,14 @@ class MachCommands(CommandBase):
             return 0
 
         # Gather Cargo build timings (https://doc.rust-lang.org/cargo/reference/timings.html).
-        args = ["--timings"]
+        args: list[str] = ["--timings"]
 
         if build_type.is_release():
             args += ["--release"]
         elif build_type.is_dev():
             pass  # there is no argument for debug
         else:
-            args += ["--profile", build_type.profile]
+            args += ["--profile", build_type.profile or ""]
 
         for crate in packages:
             args += ["-p", "%s_tests" % crate]
@@ -343,6 +344,7 @@ class MachCommands(CommandBase):
             run_file = path.abspath(path.join(test_file_dir, "runtests.py"))
             run_globals = {"__file__": run_file}
             exec(compile(open(run_file).read(), run_file, "exec"), run_globals)
+            # pyrefly: ignore  # not-callable
             passed = run_globals["run_tests"](tests, verbose or very_verbose) and passed
 
         return 0 if passed else 1
@@ -434,12 +436,14 @@ class MachCommands(CommandBase):
                 window.alert("JavaScript is running!")
             </script>
         """
-        url = "data:text/html;base64," + html.encode("base64").replace("\n", "")
+        html_base64: str = base64.b64encode(html.encode("utf-8")).decode("utf-8")
+        url: str = "data:text/html;base64," + html_base64.replace("\n", "")
         args = self.in_android_emulator(build_type)
         args = [sys.executable] + args + [url]
         process = subprocess.Popen(args, stdout=subprocess.PIPE)
         try:
             while 1:
+                assert process.stdout is not None
                 line = process.stdout.readline()
                 if len(line) == 0:
                     print("EOF without finding the expected line")
@@ -457,7 +461,9 @@ class MachCommands(CommandBase):
 
         env = self.build_env()
         os.environ["PATH"] = env["PATH"]
+        # pyrefly: ignore  # missing-attribute
         assert self.setup_configuration_for_android_target(target)
+        # pyrefly: ignore  # missing-attribute
         apk = self.get_apk_path(build_type)
 
         py = path.join(self.context.topdir, "etc", "run_in_headless_android_emulator.py")
@@ -675,6 +681,7 @@ class MachCommands(CommandBase):
         )
         run_globals = {"__file__": run_file}
         exec(compile(open(run_file).read(), run_file, "exec"), run_globals)
+        # pyrefly: ignore  # not-callable
         return run_globals["update_test_file"](cache_dir)
 
     @Command(
@@ -692,6 +699,7 @@ class MachCommands(CommandBase):
 
         run_globals = {"__file__": run_file}
         exec(compile(open(run_file).read(), run_file, "exec"), run_globals)
+        # pyrefly: ignore  # not-callable
         return run_globals["update_conformance"](version, dest_folder, None, patches_dir)
 
     @Command("update-webgpu", description="Update the WebGPU conformance test suite", category="testing")
