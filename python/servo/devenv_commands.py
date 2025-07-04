@@ -13,7 +13,7 @@ import subprocess
 import sys
 import tempfile
 from os import getcwd, listdir, path
-from typing import Union
+from subprocess import CompletedProcess
 
 from mach.decorators import (
     Command,
@@ -132,10 +132,9 @@ class MachCommands(CommandBase):
 
             github_annotation_manager = GitHubAnnotationManager("clippy")
 
-            results: Union[subprocess.CompletedProcess[bytes], int] = self.run_cargo_build_like_command(
-                "clippy", params, env=env, capture_output=True, **kwargs
-            )
-            assert results is subprocess.CompletedProcess[bytes]
+            results = self.run_cargo_build_like_command("clippy", params, env=env, capture_output=True, **kwargs)
+
+            assert isinstance(results, CompletedProcess)
             if results.returncode == 0:
                 return 0
             try:
