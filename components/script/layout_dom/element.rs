@@ -203,15 +203,16 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
 
     fn inheritance_parent(&self) -> Option<Self> {
         if self.is_pseudo_element() {
-            // Inheritance parent of an implemented pseudo element should be the
-            // pseudo element originating element, except for element backed pseudo.
-            // But Servo are yet to implement that type of pseudo elements.
+            // The inheritance parent of an implemented pseudo-element should be the
+            // originating element, except if `is_element_backed()` is true, then it should
+            // be the flat tree parent. Note `is_element_backed()` differs from the CSS term.
+            // At the current time, `is_element_backed()` is always false in Servo.
             //
-            // FIXME: handle the cases of element backed pseudo
+            // FIXME: handle the cases of element-backed pseudo-elements.
             return self.pseudo_element_originating_element();
         }
 
-        // FIXME: In default the inheritance parent would be the Self::parent_element
+        // FIXME: By default the inheritance parent would be the Self::parent_element
         //        but probably we should use the flattened tree parent.
         self.parent_element()
     }
@@ -382,9 +383,6 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
     /// the element will match the specified pseudo element throughout the style computation.
     #[inline]
     fn implemented_pseudo_element(&self) -> Option<PseudoElement> {
-        if !self.as_node().node.is_in_ua_widget() {
-            return None;
-        }
         self.as_node().node.implemented_pseudo_element()
     }
 

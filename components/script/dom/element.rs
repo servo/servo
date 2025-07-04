@@ -697,9 +697,11 @@ impl Element {
     /// With UA shadow root element being assumed as one element, any focus should
     /// be delegated to its host.
     ///
-    /// TODO: Ideally, all of the UA shadow root should use UA widget styling, but
-    ///       some of the UA widget implemented prior to the implementation of Gecko's
-    ///       UA widget matching might need some tweaking.
+    // TODO: Ideally, all of the UA shadow root should use UA widget styling, but
+    //       some of the UA widget implemented prior to the implementation of Gecko's
+    //       UA widget matching might need some tweaking.
+    // FIXME: We are yet to implement more complex focusing with that is necessary
+    //        for delegate focus, and we are using workarounds for that right now.
     pub(crate) fn attach_ua_shadow_root(
         &self,
         use_ua_widget_styling: bool,
@@ -711,7 +713,7 @@ impl Element {
                 ShadowRootMode::Closed,
                 false,
                 false,
-                true,
+                false,
                 SlotAssignmentMode::Manual,
                 can_gc,
             )
