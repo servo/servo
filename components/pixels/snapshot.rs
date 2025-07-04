@@ -182,7 +182,7 @@ impl Snapshot<SnapshotData> {
 
     pub fn get_rect(&self, rect: Rect<u32>) -> Self {
         let data = rgba8_get_rect(self.as_raw_bytes(), self.size(), rect).to_vec();
-        Self::from_vec(self.size, self.format, self.alpha_mode, data)
+        Self::from_vec(rect.size, self.format, self.alpha_mode, data)
     }
 
     // TODO: https://github.com/servo/servo/issues/36594

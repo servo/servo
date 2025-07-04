@@ -1696,10 +1696,8 @@ impl CanvasState {
         };
 
         // Step 7.
-        let (sender, receiver) = ipc::bytes_channel().unwrap();
-        let pixels = unsafe { &imagedata.get_rect(Rect::new(src_rect.origin, dst_rect.size)) };
-        self.send_canvas_2d_msg(Canvas2dMsg::PutImageData(dst_rect, receiver));
-        sender.send(pixels).unwrap();
+        let snapshot = imagedata.get_snapshot_rect(Rect::new(src_rect.origin, dst_rect.size));
+        self.send_canvas_2d_msg(Canvas2dMsg::PutImageData(dst_rect, snapshot.as_ipc()));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage

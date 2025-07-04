@@ -372,31 +372,27 @@ impl<'a, B: Backend> CanvasData<'a, B> {
 
     pub(crate) fn draw_image(
         &mut self,
-        image_data: &[u8],
-        image_size: Size2D<u32>,
+        snapshot: Snapshot,
         dest_rect: Rect<f64>,
         source_rect: Rect<f64>,
         smoothing_enabled: bool,
-        premultiply: bool,
     ) {
         // We round up the floating pixel values to draw the pixels
         let source_rect = source_rect.ceil();
         // It discards the extra pixels (if any) that won't be painted
-        let image_data = if Rect::from_size(image_size.to_f64()).contains_rect(&source_rect) {
-            pixels::rgba8_get_rect(image_data, image_size, source_rect.to_u32()).into()
+        let snapshot = if Rect::from_size(snapshot.size().to_f64()).contains_rect(&source_rect) {
+            snapshot.get_rect(source_rect.to_u32())
         } else {
-            image_data.into()
+            snapshot
         };
 
         let draw_options = self.state.draw_options.clone();
         let writer = |draw_target: &mut B::DrawTarget| {
             write_image::<B>(
                 draw_target,
-                image_data,
-                source_rect.size,
+                snapshot,
                 dest_rect,
                 smoothing_enabled,
-                premultiply,
                 &draw_options,
             );
         };
@@ -1106,13 +1102,11 @@ impl<'a, B: Backend> CanvasData<'a, B> {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
-    pub(crate) fn put_image_data(&mut self, mut imagedata: Vec<u8>, rect: Rect<u32>) {
-        assert_eq!(imagedata.len() % 4, 0);
-        assert_eq!(rect.size.area() as usize, imagedata.len() / 4);
-        pixels::rgba8_byte_swap_and_premultiply_inplace(&mut imagedata);
+    pub(crate) fn put_image_data(&mut self, snapshot: Snapshot, rect: Rect<u32>) {
+        assert_eq!(rect.size, snapshot.size());
         let source_surface = self
             .drawtarget
-            .create_source_surface_from_data(&imagedata)
+            .create_source_surface_from_data(snapshot)
             .unwrap();
         self.drawtarget.copy_surface(
             source_surface,
@@ -1252,22 +1246,16 @@ pub(crate) struct CanvasPaintState<'a, B: Backend> {
 /// premultiply: Determines whenever the image data should be premultiplied or not
 fn write_image<B: Backend>(
     draw_target: &mut B::DrawTarget,
-    mut image_data: Vec<u8>,
-    image_size: Size2D<f64>,
+    snapshot: Snapshot,
     dest_rect: Rect<f64>,
     smoothing_enabled: bool,
-    premultiply: bool,
     draw_options: &B::DrawOptions,
 ) {
-    if image_data.is_empty() {
+    if snapshot.size().is_empty() {
         return;
     }
 
-    if premultiply {
-        pixels::rgba8_premultiply_inplace(&mut image_data);
-    }
-
-    let image_rect = Rect::new(Point2D::zero(), image_size);
+    let image_rect = Rect::new(Point2D::zero(), snapshot.size().cast());
 
     // From spec https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
     // When scaling up, if the imageSmoothingEnabled attribute is set to true, the user agent should attempt
@@ -1280,7 +1268,7 @@ fn write_image<B: Backend>(
     };
 
     let source_surface = draw_target
-        .create_source_surface_from_data(&image_data)
+        .create_source_surface_from_data(snapshot)
         .unwrap();
 
     draw_target.draw_surface(source_surface, dest_rect, image_rect, filter, draw_options);

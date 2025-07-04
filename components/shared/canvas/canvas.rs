@@ -6,7 +6,7 @@ use std::default::Default;
 use std::str::FromStr;
 
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
-use ipc_channel::ipc::{IpcBytesReceiver, IpcSender};
+use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
 use pixels::IpcSnapshot;
 use serde::{Deserialize, Serialize};
@@ -109,7 +109,7 @@ pub enum Canvas2dMsg {
     LineTo(Point2D<f32>),
     MoveTo(Point2D<f32>),
     MeasureText(String, IpcSender<TextMetrics>),
-    PutImageData(Rect<u32>, IpcBytesReceiver),
+    PutImageData(Rect<u32>, IpcSnapshot),
     QuadraticCurveTo(Point2D<f32>, Point2D<f32>),
     Rect(Rect<f32>),
     RestoreContext,

@@ -388,9 +388,17 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
     }
     fn create_source_surface_from_data(
         &self,
-        data: &[u8],
+        data: Snapshot,
     ) -> Option<<RaqoteBackend as Backend>::SourceSurface> {
-        Some(data.to_vec())
+        Some(
+            data.to_vec(
+                Some(SnapshotAlphaMode::Transparent {
+                    premultiplied: true,
+                }),
+                Some(SnapshotPixelFormat::BGRA),
+            )
+            .0,
+        )
     }
     #[allow(unsafe_code)]
     fn draw_surface(

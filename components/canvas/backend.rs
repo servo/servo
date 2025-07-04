@@ -62,7 +62,7 @@ pub(crate) trait GenericDrawTarget<B: Backend> {
         destination: Point2D<i32>,
     );
     fn create_similar_draw_target(&self, size: &Size2D<i32>) -> Self;
-    fn create_source_surface_from_data(&self, data: &[u8]) -> Option<B::SourceSurface>;
+    fn create_source_surface_from_data(&self, data: Snapshot) -> Option<B::SourceSurface>;
     fn draw_surface(
         &mut self,
         surface: B::SourceSurface,
