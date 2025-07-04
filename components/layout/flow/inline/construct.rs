@@ -18,6 +18,7 @@ use super::{
 };
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
+use crate::dom::LayoutBox;
 use crate::dom_traversal::NodeAndStyleInfo;
 use crate::flow::float::FloatBox;
 use crate::formatting_contexts::IndependentFormattingContext;
@@ -153,10 +154,30 @@ impl InlineFormattingContextBuilder {
 
     pub(crate) fn push_atomic(
         &mut self,
-        independent_formatting_context: IndependentFormattingContext,
+        independent_formatting_context_creator: impl FnOnce()
+            -> ArcRefCell<IndependentFormattingContext>,
+        old_layout_box: Option<LayoutBox>,
     ) -> ArcRefCell<InlineItem> {
+        // If there is an existing undamaged layout box that's compatible, use that.
+        let independent_formatting_context = old_layout_box
+            .and_then(|layout_box| {
+                let LayoutBox::InlineLevel(inline_level_boxes) = layout_box else {
+                    return None;
+                };
+
+                // If there's an existing box, it should be a compatible atomic inline and should
+                // not have been subject to inline-block splitting.
+                assert_eq!(inline_level_boxes.len(), 1);
+                let first_box = inline_level_boxes.into_iter().next()?;
+                match &*first_box.borrow() {
+                    InlineItem::Atomic(atomic, ..) => Some(atomic.clone()),
+                    _ => None,
+                }
+            })
+            .unwrap_or_else(independent_formatting_context_creator);
+
         let inline_level_box = ArcRefCell::new(InlineItem::Atomic(
-            ArcRefCell::new(independent_formatting_context),
+            independent_formatting_context,
             self.current_text_offset,
             Level::ltr(), /* This will be assigned later if necessary. */
         ));
