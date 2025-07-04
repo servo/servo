@@ -711,7 +711,7 @@ pub struct ScreenGeometry {
     pub size: DeviceIntSize,
     /// The available size of the screen in device pixels. This size is the size
     /// available for web content on the screen, and should be `size` minus any system
-    /// toolbars, docks, and interface elements of the OS. This will be converted to
+    /// toolbars, docks, and interface elements. This will be converted to
     /// CSS pixels based on the pixel scaling of the `WebView`.
     pub available_size: DeviceIntSize,
     /// The offset of the `WebView` in device pixels for the purposes of the `window.screenLeft`
