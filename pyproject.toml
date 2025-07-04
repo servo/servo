@@ -1,5 +1,5 @@
+[tool.ruff]
 line-length = 120
-
 extend-exclude = [
     # temporary local files
     "target/**",
@@ -12,13 +12,12 @@ extend-exclude = [
     "tests/**",
 ]
 
-[lint]
+[tool.ruff.lint]
 select = [
     "E",
     "W",
     "F",
 ]
-
 ignore = [
     # Trailing whitespace; the standard tidy process will enforce no trailing whitespace
     "W291",
