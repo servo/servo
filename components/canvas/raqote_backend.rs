@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use canvas_traits::canvas::*;
 use compositing_traits::SerializableImageData;
 use cssparser::color::clamp_unit_f32;
-use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
+use euclid::default::{Box2D, Point2D, Rect, Size2D, Transform2D, Vector2D};
 use font_kit::font::Font;
 use fonts::{ByteIndex, FontIdentifier, FontTemplateRefMethods};
 use ipc_channel::ipc::IpcSharedMemory;
@@ -724,6 +724,28 @@ impl GenericPath<RaqoteBackend> for Path {
     fn transform(&mut self, transform: &Transform2D<f32>) {
         let path: raqote::Path = (&*self).into();
         self.0.set(path.transform(transform).into());
+    }
+
+    fn bound_box(&self) -> Rect<f64> {
+        let path: raqote::Path = self.into();
+        let mut points = vec![];
+        for op in path.ops {
+            match op {
+                PathOp::MoveTo(p) => points.push(p),
+                PathOp::LineTo(p) => points.push(p),
+                PathOp::QuadTo(p1, p2) => {
+                    points.push(p1);
+                    points.push(p2);
+                },
+                PathOp::CubicTo(p1, p2, p3) => {
+                    points.push(p1);
+                    points.push(p2);
+                    points.push(p3);
+                },
+                PathOp::Close => {},
+            }
+        }
+        Box2D::from_points(points).to_rect().cast()
     }
 }
 
