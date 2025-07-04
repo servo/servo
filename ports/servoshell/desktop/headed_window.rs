@@ -431,8 +431,8 @@ impl WindowPortsMethods for Window {
         );
 
         let screen_size = self.screen_size.to_f32() * hidpi_factor;
-        // FIXME: This is wrong! We need to subtract by OS occupied space, not toolbar.
-        // But it is very hard to get this value with Winit
+        // FIXME: In reality, this should subtract screen space used by the system interface
+        // elements, but it is difficult to get this value with `winit` currently. See:
         // See https://github.com/rust-windowing/winit/issues/2494
         let available_screen_size = screen_size - toolbar_size;
 
