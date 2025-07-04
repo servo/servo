@@ -114,7 +114,7 @@ pub(crate) trait GenericDrawTarget<B: Backend> {
         draw_options: &B::DrawOptions,
     );
     fn surface(&self) -> B::SourceSurface;
-    fn wr_data(&self) -> (ImageDescriptor, SerializableImageData);
+    fn image_descriptor_and_serializable_data(&self) -> (ImageDescriptor, SerializableImageData);
     fn snapshot(&self) -> Snapshot;
 }
 

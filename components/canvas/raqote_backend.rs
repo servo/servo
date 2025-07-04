@@ -609,7 +609,7 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
         self.stroke(&pb.finish(), &source(pattern), stroke_options, draw_options);
     }
 
-    fn wr_data(
+    fn image_descriptor_and_serializable_data(
         &self,
     ) -> (
         webrender_api::ImageDescriptor,

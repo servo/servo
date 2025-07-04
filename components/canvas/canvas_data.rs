@@ -352,7 +352,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         let size = size.max(MIN_WR_IMAGE_SIZE);
         let draw_target = backend.create_drawtarget(size);
         let image_key = compositor_api.generate_image_key_blocking().unwrap();
-        let (descriptor, data) = draw_target.wr_data();
+        let (descriptor, data) = draw_target.image_descriptor_and_serializable_data();
         compositor_api.add_image(image_key, descriptor, data);
         CanvasData {
             state: backend.new_paint_state(),
@@ -1095,7 +1095,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
 
     /// Update image in WebRender
     pub(crate) fn update_image_rendering(&mut self) {
-        let (descriptor, data) = self.drawtarget.wr_data();
+        let (descriptor, data) = self.drawtarget.image_descriptor_and_serializable_data();
 
         self.compositor_api
             .update_image(self.image_key, descriptor, data);
