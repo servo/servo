@@ -346,20 +346,20 @@ impl WebViewRenderer {
     }
 
     pub(crate) fn dispatch_point_input_event(&self, event: InputEvent) -> bool {
-        self.dispatch_point_input_event_with_retry(event, true)
+        self.dispatch_point_input_event_internal(event, true)
     }
 
     pub(crate) fn dispatch_pending_point_input_events(&self) {
         while let Some(event) = self.pending_point_input_events.borrow_mut().pop_front() {
             // TODO: Add multiple retry later if needed.
-            self.dispatch_point_input_event_with_retry(event, false);
+            self.dispatch_point_input_event_internal(event, false);
         }
     }
 
-    pub(crate) fn dispatch_point_input_event_with_retry(
+    pub(crate) fn dispatch_point_input_event_internal(
         &self,
         mut event: InputEvent,
-        need_retry: bool,
+        retry_on_error: bool,
     ) -> bool {
         // Events that do not need to do hit testing are sent directly to the
         // constellation to filter down.
@@ -369,7 +369,7 @@ impl WebViewRenderer {
 
         // Delay the event if the epoch is not synchronized yet (new frame is not ready),
         // or hit test result would fail and the event is rejected anyway.
-        if need_retry &&
+        if retry_on_error &&
             (!self.webrender_frame_ready.get() ||
                 !self.pending_point_input_events.borrow().is_empty())
         {
@@ -387,7 +387,7 @@ impl WebViewRenderer {
             .hit_test_at_point(point, get_pipeline_details)
         {
             Ok(hit_test_results) => Some(hit_test_results),
-            Err(HitTestError::EpochMismatch) if need_retry => {
+            Err(HitTestError::EpochMismatch) if retry_on_error => {
                 self.pending_point_input_events
                     .borrow_mut()
                     .push_back(event.clone());
