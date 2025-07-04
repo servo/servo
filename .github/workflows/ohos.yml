@@ -165,6 +165,8 @@ jobs:
       - run: |
           git switch --detach
           git reset --hard FETCH_HEAD
+      - name: Adding test files to directory
+        run: cp -r support/hitrace-bencher/* support/openharmony/AppScope/resources/resfile/
       - name: Build for aarch64 HarmonyOS
         run: |
           ./mach build --locked --target aarch64-unknown-linux-ohos --profile=${{ inputs.profile }} --flavor=harmonyos --no-default-features --features tracing,tracing-hitrace
