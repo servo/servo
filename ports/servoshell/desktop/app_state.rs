@@ -12,7 +12,7 @@ use euclid::Vector2D;
 use keyboard_types::{Key, Modifiers, ShortcutMatcher};
 use log::{error, info};
 use servo::base::id::WebViewId;
-use servo::config::{opts, pref};
+use servo::config::pref;
 use servo::ipc_channel::ipc::IpcSender;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
@@ -500,7 +500,7 @@ impl WebViewDelegate for RunningAppState {
         // When WebDriver is enabled, do not focus and raise the WebView to the top,
         // as that is what the specification expects. Otherwise, we would like `window.open()`
         // to create a new foreground tab
-        if opts::get().webdriver_port.is_none() {
+        if self.servoshell_preferences.webdriver_port.is_none() {
             webview.focus();
             webview.raise_to_top(true);
         }
