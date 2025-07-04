@@ -174,7 +174,8 @@ pub enum CompositorMsg {
     GetClientWindowRect(WebViewId, IpcSender<DeviceIndependentIntRect>),
     /// Get the size of the screen that the client window inhabits.
     GetScreenSize(WebViewId, IpcSender<DeviceIndependentIntSize>),
-    /// Get the available screen size (without toolbars and docks) for the screen
+    /// Get the available screen size, without system interface elements such as menus, docks, and
+    /// taskbars.
     /// the client window inhabits.
     GetAvailableScreenSize(WebViewId, IpcSender<DeviceIndependentIntSize>),
 
