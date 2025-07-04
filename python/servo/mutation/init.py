@@ -14,9 +14,8 @@ import sys
 from os import listdir
 from os.path import isdir, isfile, join
 
-import test  # pyrefly: ignore  # import-error
+import test
 
-# pyrefly: ignore  # missing-attribute
 test_summary = {
     test.Status.KILLED: 0,
     test.Status.SURVIVED: 0,
