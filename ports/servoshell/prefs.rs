@@ -57,6 +57,9 @@ pub(crate) struct ServoShellPreferences {
     /// Where to load userscripts from, if any.
     /// and if the option isn't passed userscripts won't be loaded.
     pub userscripts_directory: Option<PathBuf>,
+    /// `None` to disable WebDriver or `Some` with a port number to start a server to listen to
+    /// remote WebDriver commands.
+    pub webdriver_port: Option<u16>,
 
     /// Log filter given in the `log_filter` spec as a String, if any.
     /// If a filter is passed, the logger should adjust accordingly.
@@ -84,6 +87,7 @@ impl Default for ServoShellPreferences {
             output_image_path: None,
             exit_after_stable_image: false,
             userscripts_directory: None,
+            webdriver_port: None,
             #[cfg(target_env = "ohos")]
             log_filter: None,
             #[cfg(target_env = "ohos")]
@@ -535,11 +539,9 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         preferences.devtools_server_port = port;
     }
 
-    let webdriver_port = opt_match.opt_default("webdriver", "7000").map(|port| {
-        port.parse().unwrap_or_else(|err| {
-            args_fail(&format!("Error parsing option: --webdriver ({})", err))
-        })
-    });
+    if opt_match.opt_present("webdriver") {
+        preferences.dom_testing_html_input_element_select_files_enabled = true;
+    }
 
     let parse_resolution_string = |string: String| {
         let components: Vec<u32> = string
@@ -646,6 +648,12 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         preferences.js_ion_enabled = false;
     }
 
+    let webdriver_port = opt_match.opt_default("webdriver", "7000").map(|port| {
+        port.parse().unwrap_or_else(|err| {
+            args_fail(&format!("Error parsing option: --webdriver ({})", err))
+        })
+    });
+
     let exit_after_load = opt_match.opt_present("x") || output_image_path.is_some();
     let wait_for_stable_image = exit_after_load;
     let servoshell_preferences = ServoShellPreferences {
@@ -662,6 +670,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         userscripts_directory: opt_match
             .opt_default("userscripts", "resources/user-agent-js")
             .map(PathBuf::from),
+        webdriver_port,
         #[cfg(target_env = "ohos")]
         log_filter,
         #[cfg(target_env = "ohos")]
@@ -686,7 +695,6 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         nonincremental_layout,
         user_stylesheets,
         hard_fail: opt_match.opt_present("f") && !opt_match.opt_present("F"),
-        webdriver_port,
         multiprocess: opt_match.opt_present("M"),
         background_hang_monitor: opt_match.opt_present("B"),
         sandbox: opt_match.opt_present("S"),

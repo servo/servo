@@ -14,6 +14,7 @@ use pixels::{CorsStatus, ImageMetadata, RasterImage};
 use profile_traits::mem::Report;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
+use webrender_api::ImageKey;
 use webrender_api::units::DeviceIntSize;
 
 use crate::FetchResponseMsg;
@@ -225,6 +226,10 @@ pub trait ImageCache: Sync + Send {
     /// Create new image cache based on this one, while reusing the existing thread_pool.
     fn create_new_image_cache(
         &self,
+        pipeline_id: Option<PipelineId>,
         compositor_api: CrossProcessCompositorApi,
     ) -> Arc<dyn ImageCache>;
+
+    /// Fills the image cache with a batch of keys.
+    fn fill_key_cache_with_batch_of_keys(&self, image_keys: Vec<ImageKey>);
 }

@@ -130,11 +130,11 @@ impl ScrollableNodeInfo {
         let original_layer_scroll_offset = self.offset;
 
         if scrollable_size.width > 0. && self.scroll_sensitivity.x.contains(context) {
-            self.offset.x = new_offset.x.min(0.0).max(-scrollable_size.width);
+            self.offset.x = new_offset.x.clamp(0.0, scrollable_size.width);
         }
 
         if scrollable_size.height > 0. && self.scroll_sensitivity.y.contains(context) {
-            self.offset.y = new_offset.y.min(0.0).max(-scrollable_size.height);
+            self.offset.y = new_offset.y.clamp(0.0, scrollable_size.height);
         }
 
         if self.offset != original_layer_scroll_offset {
@@ -158,7 +158,7 @@ impl ScrollableNodeInfo {
         let delta = match scroll_location {
             ScrollLocation::Delta(delta) => delta,
             ScrollLocation::Start => {
-                if self.offset.y.round() >= 0.0 {
+                if self.offset.y.round() <= 0.0 {
                     // Nothing to do on this layer.
                     return None;
                 }
@@ -167,8 +167,8 @@ impl ScrollableNodeInfo {
                 return Some(self.offset);
             },
             ScrollLocation::End => {
-                let end_pos = -self.scrollable_size().height;
-                if self.offset.y.round() <= end_pos {
+                let end_pos = self.scrollable_size().height;
+                if self.offset.y.round() >= end_pos {
                     // Nothing to do on this layer.
                     return None;
                 }
@@ -231,20 +231,9 @@ impl ScrollTreeNode {
 
     /// Set the offset for this node, returns false if this was a
     /// non-scrolling node for which you cannot set the offset.
-    pub fn set_offset(&mut self, new_offset: LayoutVector2D) -> bool {
-        match self.info {
-            SpatialTreeNodeInfo::Scroll(ref mut info) => {
-                let scrollable_size = info.scrollable_size();
-                if scrollable_size.width > 0. {
-                    info.offset.x = (new_offset.x).min(0.0).max(-scrollable_size.width);
-                }
-
-                if scrollable_size.height > 0. {
-                    info.offset.y = (new_offset.y).min(0.0).max(-scrollable_size.height);
-                }
-                true
-            },
-            _ => false,
+    pub fn set_offset(&mut self, new_offset: LayoutVector2D) {
+        if let SpatialTreeNodeInfo::Scroll(ref mut info) = self.info {
+            info.scroll_to_offset(new_offset, ScrollType::Script);
         }
     }
 

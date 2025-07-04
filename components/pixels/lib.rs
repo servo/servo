@@ -226,6 +226,42 @@ pub fn clip(
         .filter(|rect| !rect.is_empty())
 }
 
+#[derive(PartialEq)]
+pub enum EncodedImageType {
+    Png,
+    Jpeg,
+    Webp,
+}
+
+impl From<String> for EncodedImageType {
+    // From: https://html.spec.whatwg.org/multipage/#serialising-bitmaps-to-a-file
+    // User agents must support PNG ("image/png"). User agents may support other
+    // types. If the user agent does not support the requested type, then it
+    // must create the file using the PNG format.
+    // Anything different than image/jpeg or image/webp is thus treated as PNG.
+    fn from(mime_type: String) -> Self {
+        let mime = mime_type.to_lowercase();
+        if mime == "image/jpeg" {
+            Self::Jpeg
+        } else if mime == "image/webp" {
+            Self::Webp
+        } else {
+            Self::Png
+        }
+    }
+}
+
+impl EncodedImageType {
+    pub fn as_mime_type(&self) -> String {
+        match self {
+            Self::Png => "image/png",
+            Self::Jpeg => "image/jpeg",
+            Self::Webp => "image/webp",
+        }
+        .to_owned()
+    }
+}
+
 /// Whether this response passed any CORS checks, and is thus safe to read from
 /// in cross-origin environments.
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]

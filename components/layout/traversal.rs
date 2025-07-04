@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use layout_api::LayoutDamage;
 use layout_api::wrapper_traits::LayoutNode;
 use script::layout_dom::ServoLayoutNode;
 use style::context::{SharedStyleContext, StyleContext};
@@ -103,39 +104,52 @@ pub(crate) fn compute_damage_and_repair_style(
 pub(crate) fn compute_damage_and_repair_style_inner(
     context: &SharedStyleContext,
     node: ServoLayoutNode<'_>,
-    parent_restyle_damage: RestyleDamage,
+    damage_from_parent: RestyleDamage,
 ) -> RestyleDamage {
-    let element_damage;
+    let mut element_damage;
+    let element_data = &node
+        .style_data()
+        .expect("Should not run `compute_damage` before styling.")
+        .element_data;
 
     {
-        let mut element_data = node
-            .style_data()
-            .expect("Should not run `compute_damage` before styling.")
-            .element_data
-            .borrow_mut();
-
-        element_damage = std::mem::take(&mut element_data.damage);
+        let mut element_data = element_data.borrow_mut();
+        element_data.damage.insert(damage_from_parent);
+        element_damage = element_data.damage;
 
         if let Some(ref style) = element_data.styles.primary {
             if style.get_box().display == Display::None {
-                return element_damage | parent_restyle_damage;
+                return element_damage;
             }
         }
     }
 
-    let element_and_parent_damage = element_damage | parent_restyle_damage;
+    // If we are reconstructing this node, then all of the children should be reconstructed as well.
+    let damage_for_children = element_damage | damage_from_parent;
     let mut damage_from_children = RestyleDamage::empty();
     for child in iter_child_nodes(node) {
         if child.is_element() {
             damage_from_children |=
-                compute_damage_and_repair_style_inner(context, child, element_and_parent_damage);
+                compute_damage_and_repair_style_inner(context, child, damage_for_children);
         }
     }
 
-    let damage_for_parent = damage_from_children | element_and_parent_damage;
-    if !damage_for_parent.contains(RestyleDamage::RELAYOUT) && !element_damage.is_empty() {
+    if element_damage != RestyleDamage::reconstruct() && !element_damage.is_empty() {
         node.repair_style(context);
     }
 
-    damage_for_parent
+    // If one of our children needed to be reconstructed, we need to recollect children
+    // during box tree construction.
+    if damage_from_children.contains(LayoutDamage::recollect_box_tree_children()) {
+        element_damage.insert(LayoutDamage::recollect_box_tree_children());
+        element_data.borrow_mut().damage.insert(element_damage);
+    }
+
+    if element_damage.contains(LayoutDamage::recollect_box_tree_children()) {
+        node.invalidate_cached_fragment();
+    }
+
+    // Only propagate up layout phases from children, as other types of damage are
+    // incorporated into `element_damage` above.
+    element_damage | (damage_from_children & RestyleDamage::RELAYOUT)
 }

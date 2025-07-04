@@ -663,14 +663,8 @@ impl Document {
             has_dirty_descendants &= *ancestor != *new_dirty_root;
         }
 
-        let maybe_shadow_host = new_dirty_root
-            .downcast::<ShadowRoot>()
-            .map(ShadowRootMethods::Host);
-        let new_dirty_root_element = new_dirty_root
-            .downcast::<Element>()
-            .or(maybe_shadow_host.as_deref());
-
-        self.dirty_root.set(new_dirty_root_element);
+        self.dirty_root
+            .set(Some(new_dirty_root.downcast::<Element>().unwrap()));
     }
 
     pub(crate) fn take_dirty_root(&self) -> Option<DomRoot<Element>> {
@@ -936,7 +930,7 @@ impl Document {
 
         // FIXME(emilio): This is very inefficient, ideally the flag above would
         // be enough and incremental layout could figure out from there.
-        node.dirty(NodeDamage::Other);
+        node.dirty(NodeDamage::ContentOrHeritage);
     }
 
     /// Remove any existing association between the provided id and any elements in this document.
@@ -2252,6 +2246,7 @@ impl Document {
     ) -> TouchEventResult {
         // Ignore all incoming events without a hit test.
         let Some(hit_test_result) = hit_test_result else {
+            self.update_active_touch_points_when_early_return(event);
             return TouchEventResult::Forwarded;
         };
 
@@ -2269,6 +2264,7 @@ impl Document {
             .filter_map(DomRoot::downcast::<Element>)
             .next()
         else {
+            self.update_active_touch_points_when_early_return(event);
             return TouchEventResult::Forwarded;
         };
 
@@ -2351,6 +2347,34 @@ impl Document {
         match result {
             EventStatus::Canceled => TouchEventResult::Processed(false),
             EventStatus::NotCanceled => TouchEventResult::Processed(true),
+        }
+    }
+
+    // If hittest fails, we still need to update the active point information.
+    fn update_active_touch_points_when_early_return(&self, event: TouchEvent) {
+        match event.event_type {
+            TouchEventType::Down => {
+                // If the touchdown fails, we don't need to do anything.
+                // When a touchmove or touchdown occurs at that touch point,
+                // a warning is triggered: Got a touchmove/touchend event for a non-active touch point
+            },
+            TouchEventType::Move => {
+                // The failure of touchmove does not affect the number of active points.
+                // Since there is no position information when it fails, we do not need to update.
+            },
+            TouchEventType::Up | TouchEventType::Cancel => {
+                // Remove an existing touch point
+                let mut active_touch_points = self.active_touch_points.borrow_mut();
+                match active_touch_points
+                    .iter()
+                    .position(|t| t.Identifier() == event.id.0)
+                {
+                    Some(i) => {
+                        active_touch_points.swap_remove(i);
+                    },
+                    None => warn!("Got a touchend event for a non-active touch point"),
+                }
+            },
         }
     }
 

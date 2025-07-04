@@ -5,17 +5,48 @@
 use std::ops::{Deref, DerefMut};
 
 use euclid::default::Size2D;
+use image::codecs::jpeg::JpegEncoder;
+use image::codecs::png::PngEncoder;
+use image::codecs::webp::WebPEncoder;
+use image::{ColorType, ImageEncoder, ImageError};
 use ipc_channel::ipc::IpcSharedMemory;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 
-use crate::{Multiply, transform_inplace};
+use crate::{EncodedImageType, Multiply, transform_inplace};
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum SnapshotPixelFormat {
     #[default]
     RGBA,
     BGRA,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+pub enum Alpha {
+    Premultiplied,
+    NotPremultiplied,
+    /// This is used for opaque textures for which the presence of alpha in the
+    /// output data format does not matter.
+    DontCare,
+}
+
+impl Alpha {
+    pub const fn from_premultiplied(is_premultiplied: bool) -> Self {
+        if is_premultiplied {
+            Self::Premultiplied
+        } else {
+            Self::NotPremultiplied
+        }
+    }
+
+    pub const fn needs_alpha_multiplication(&self) -> bool {
+        match self {
+            Alpha::Premultiplied => false,
+            Alpha::NotPremultiplied => true,
+            Alpha::DontCare => false,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
@@ -37,19 +68,16 @@ impl Default for SnapshotAlphaMode {
 }
 
 impl SnapshotAlphaMode {
-    pub const fn is_premultiplied(&self) -> bool {
+    pub const fn alpha(&self) -> Alpha {
         match self {
-            SnapshotAlphaMode::Opaque => true,
-            SnapshotAlphaMode::AsOpaque { premultiplied } => *premultiplied,
-            SnapshotAlphaMode::Transparent { premultiplied } => *premultiplied,
+            SnapshotAlphaMode::Opaque => Alpha::DontCare,
+            SnapshotAlphaMode::AsOpaque { premultiplied } => {
+                Alpha::from_premultiplied(*premultiplied)
+            },
+            SnapshotAlphaMode::Transparent { premultiplied } => {
+                Alpha::from_premultiplied(*premultiplied)
+            },
         }
-    }
-
-    pub const fn is_opaque(&self) -> bool {
-        matches!(
-            self,
-            SnapshotAlphaMode::Opaque | SnapshotAlphaMode::AsOpaque { .. }
-        )
     }
 }
 
@@ -112,14 +140,6 @@ impl<T> Snapshot<T> {
     pub const fn alpha_mode(&self) -> SnapshotAlphaMode {
         self.alpha_mode
     }
-
-    pub const fn is_premultiplied(&self) -> bool {
-        self.alpha_mode().is_premultiplied()
-    }
-
-    pub const fn is_opaque(&self) -> bool {
-        self.alpha_mode().is_opaque()
-    }
 }
 
 impl Snapshot<SnapshotData> {
@@ -181,14 +201,6 @@ impl Snapshot<SnapshotData> {
     }
     */
 
-    pub fn data(&self) -> &[u8] {
-        &self.data
-    }
-
-    pub fn data_mut(&mut self) -> &mut [u8] {
-        &mut self.data
-    }
-
     /// Convert inner data of snapshot to target format and alpha mode.
     /// If data is already in target format and alpha mode no work will be done.
     pub fn transform(
@@ -200,7 +212,7 @@ impl Snapshot<SnapshotData> {
         let multiply = match (self.alpha_mode, target_alpha_mode) {
             (SnapshotAlphaMode::Opaque, _) => Multiply::None,
             (alpha_mode, SnapshotAlphaMode::Opaque) => {
-                if alpha_mode.is_premultiplied() {
+                if alpha_mode.alpha() == Alpha::Premultiplied {
                     Multiply::UnMultiply
                 } else {
                     Multiply::None
@@ -232,6 +244,37 @@ impl Snapshot<SnapshotData> {
         self.format = target_format;
     }
 
+    pub fn as_raw_bytes(&self) -> &[u8] {
+        &self.data
+    }
+
+    pub fn as_raw_bytes_mut(&mut self) -> &mut [u8] {
+        &mut self.data
+    }
+
+    pub fn as_bytes(
+        &mut self,
+        target_alpha_mode: Option<SnapshotAlphaMode>,
+        target_format: Option<SnapshotPixelFormat>,
+    ) -> (&mut [u8], SnapshotAlphaMode, SnapshotPixelFormat) {
+        let target_alpha_mode = target_alpha_mode.unwrap_or(self.alpha_mode);
+        let target_format = target_format.unwrap_or(self.format);
+        self.transform(target_alpha_mode, target_format);
+        (&mut self.data, target_alpha_mode, target_format)
+    }
+
+    pub fn to_vec(
+        mut self,
+        target_alpha_mode: Option<SnapshotAlphaMode>,
+        target_format: Option<SnapshotPixelFormat>,
+    ) -> (Vec<u8>, SnapshotAlphaMode, SnapshotPixelFormat) {
+        let target_alpha_mode = target_alpha_mode.unwrap_or(self.alpha_mode);
+        let target_format = target_format.unwrap_or(self.format);
+        self.transform(target_alpha_mode, target_format);
+        let SnapshotData::Owned(data) = self.data;
+        (data, target_alpha_mode, target_format)
+    }
+
     pub fn as_ipc(self) -> Snapshot<IpcSharedMemory> {
         let Snapshot {
             size,
@@ -251,9 +294,61 @@ impl Snapshot<SnapshotData> {
         }
     }
 
-    pub fn to_vec(self) -> Vec<u8> {
-        match self.data {
-            SnapshotData::Owned(data) => data,
+    pub fn encode_for_mime_type<W: std::io::Write>(
+        &mut self,
+        image_type: &EncodedImageType,
+        quality: Option<f64>,
+        encoder: &mut W,
+    ) -> Result<(), ImageError> {
+        let width = self.size.width;
+        let height = self.size.height;
+
+        let (data, _, _) = self.as_bytes(
+            if *image_type == EncodedImageType::Jpeg {
+                Some(SnapshotAlphaMode::AsOpaque {
+                    premultiplied: true,
+                })
+            } else {
+                Some(SnapshotAlphaMode::Transparent {
+                    premultiplied: false,
+                })
+            },
+            Some(SnapshotPixelFormat::RGBA),
+        );
+
+        match image_type {
+            EncodedImageType::Png => {
+                // FIXME(nox): https://github.com/image-rs/image-png/issues/86
+                // FIXME(nox): https://github.com/image-rs/image-png/issues/87
+                PngEncoder::new(encoder).write_image(data, width, height, ColorType::Rgba8)
+            },
+            EncodedImageType::Jpeg => {
+                let jpeg_encoder = if let Some(quality) = quality {
+                    // The specification allows quality to be in [0.0..1.0] but the JPEG encoder
+                    // expects it to be in [1..100]
+                    if (0.0..=1.0).contains(&quality) {
+                        JpegEncoder::new_with_quality(
+                            encoder,
+                            (quality * 100.0).round().clamp(1.0, 100.0) as u8,
+                        )
+                    } else {
+                        JpegEncoder::new(encoder)
+                    }
+                } else {
+                    JpegEncoder::new(encoder)
+                };
+
+                jpeg_encoder.write_image(data, width, height, ColorType::Rgba8)
+            },
+            EncodedImageType::Webp => {
+                // No quality support because of https://github.com/image-rs/image/issues/1984
+                WebPEncoder::new_lossless(encoder).write_image(
+                    data,
+                    width,
+                    height,
+                    ColorType::Rgba8,
+                )
+            },
         }
     }
 }

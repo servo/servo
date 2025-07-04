@@ -466,14 +466,13 @@ impl WindowPortsMethods for Window {
         self.winit_window.set_title(title);
     }
 
-    fn request_resize(&self, _: &WebView, size: DeviceIntSize) -> Option<DeviceIntSize> {
-        let toolbar_height = self.toolbar_height() * self.hidpi_scale_factor();
-        let toolbar_height = toolbar_height.get().ceil() as i32;
-        let total_size = PhysicalSize::new(size.width, size.height + toolbar_height);
+    fn request_resize(&self, _: &WebView, new_outer_size: DeviceIntSize) -> Option<DeviceIntSize> {
+        let title_height =
+            self.winit_window.outer_size().height - self.winit_window.inner_size().height;
         self.winit_window
             .request_inner_size::<PhysicalSize<i32>>(PhysicalSize::new(
-                total_size.width,
-                total_size.height,
+                new_outer_size.width,
+                new_outer_size.height - title_height as i32,
             ))
             .and_then(|size| {
                 Some(DeviceIntSize::new(
@@ -630,10 +629,9 @@ impl WindowPortsMethods for Window {
                     dy = 0.0;
                 }
 
-                let scroll_location = ScrollLocation::Delta(Vector2D::new(dx as f32, dy as f32));
-
                 // Send events
                 webview.notify_input_event(InputEvent::Wheel(WheelEvent::new(delta, point)));
+                let scroll_location = ScrollLocation::Delta(-Vector2D::new(dx as f32, dy as f32));
                 webview.notify_scroll_event(scroll_location, point.to_i32());
             },
             WindowEvent::Touch(touch) => {

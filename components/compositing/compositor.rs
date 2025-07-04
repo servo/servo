@@ -38,13 +38,13 @@ use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage};
 use profile_traits::mem::{ProcessReports, ProfilerRegistration, Report, ReportKind};
 use profile_traits::time::{self as profile_time, ProfilerCategory};
 use profile_traits::{path, time_profile};
-use servo_config::opts;
+use servo_config::{opts, pref};
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::CSSPixel;
 use webrender::{CaptureBits, RenderApi, Transaction};
 use webrender_api::units::{
     DeviceIntPoint, DeviceIntRect, DevicePixel, DevicePoint, DeviceRect, LayoutPoint, LayoutRect,
-    LayoutSize, LayoutVector2D, WorldPoint,
+    LayoutSize, WorldPoint,
 };
 use webrender_api::{
     self, BuiltDisplayList, DirtyRect, DisplayListPayload, DocumentId, Epoch as WebRenderEpoch,
@@ -714,11 +714,9 @@ impl IOCompositor {
                 // is inverted compared to `winit`s wheel delta. Hence,
                 // here we invert the sign to mimic wheel scroll
                 // implementation in `headed_window.rs`.
-                let dx = -dx;
-                let dy = -dy;
                 let delta = WheelDelta {
-                    x: dx,
-                    y: dy,
+                    x: -dx,
+                    y: -dy,
                     z: 0.0,
                     mode: WheelMode::DeltaPixel,
                 };
@@ -768,7 +766,7 @@ impl IOCompositor {
                 txn.set_scroll_offsets(
                     external_scroll_id,
                     vec![SampledScrollOffset {
-                        offset: -offset,
+                        offset,
                         generation: 0,
                     }],
                 );
@@ -898,6 +896,19 @@ impl IOCompositor {
                 let _ = sender.send(self.global.borrow().webrender_api.generate_image_key());
             },
 
+            CompositorMsg::GenerateImageKeysForPipeline(pipeline_id) => {
+                let image_keys = (0..pref!(image_key_batch_size))
+                    .map(|_| self.global.borrow().webrender_api.generate_image_key())
+                    .collect();
+                if let Err(error) = self.global.borrow().constellation_sender.send(
+                    EmbedderToConstellationMessage::SendImageKeysForPipeline(
+                        pipeline_id,
+                        image_keys,
+                    ),
+                ) {
+                    warn!("Sending Image Keys to Constellation failed with({error:?}).");
+                }
+            },
             CompositorMsg::UpdateImages(updates) => {
                 let mut txn = Transaction::new();
                 for update in updates {
@@ -1169,7 +1180,6 @@ impl IOCompositor {
                         continue;
                     };
 
-                    let offset = LayoutVector2D::new(-offset.x, -offset.y);
                     transaction.set_scroll_offsets(
                         external_id,
                         vec![SampledScrollOffset {
@@ -1731,11 +1741,10 @@ impl IOCompositor {
                 self.send_root_pipeline_display_list_in_transaction(&mut transaction);
             }
             for update in scroll_offset_updates {
-                let offset = LayoutVector2D::new(-update.offset.x, -update.offset.y);
                 transaction.set_scroll_offsets(
                     update.external_scroll_id,
                     vec![SampledScrollOffset {
-                        offset,
+                        offset: update.offset,
                         generation: 0,
                     }],
                 );

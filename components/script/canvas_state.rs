@@ -394,14 +394,15 @@ impl CanvasState {
 
         let (sender, receiver) = ipc::channel().unwrap();
         self.send_canvas_2d_msg(Canvas2dMsg::GetImageData(rect, canvas_size, sender));
-        let mut snapshot = receiver.recv().unwrap().to_owned();
-        snapshot.transform(
-            SnapshotAlphaMode::Transparent {
-                premultiplied: false,
-            },
-            SnapshotPixelFormat::RGBA,
-        );
-        snapshot.to_vec()
+        let snapshot = receiver.recv().unwrap().to_owned();
+        snapshot
+            .to_vec(
+                Some(SnapshotAlphaMode::Transparent {
+                    premultiplied: false,
+                }),
+                Some(SnapshotPixelFormat::RGBA),
+            )
+            .0
     }
 
     ///
@@ -1177,7 +1178,14 @@ impl CanvasState {
             let size = snapshot.size();
             Ok(Some(CanvasPattern::new(
                 global,
-                snapshot.to_vec(),
+                snapshot
+                    .to_vec(
+                        Some(SnapshotAlphaMode::Transparent {
+                            premultiplied: true,
+                        }),
+                        Some(SnapshotPixelFormat::BGRA),
+                    )
+                    .0, // TODO: send snapshot
                 size.cast(),
                 rep,
                 self.is_origin_clean(image),

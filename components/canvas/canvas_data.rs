@@ -421,7 +421,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
     ) -> CanvasData<'a, B> {
         let size = size.max(MIN_WR_IMAGE_SIZE);
         let draw_target = backend.create_drawtarget(size);
-        let image_key = compositor_api.generate_image_key().unwrap();
+        let image_key = compositor_api.generate_image_key_blocking().unwrap();
         let descriptor = ImageDescriptor {
             size: size.cast().cast_unit(),
             stride: None,

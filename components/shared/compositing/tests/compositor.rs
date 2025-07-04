@@ -46,11 +46,11 @@ fn test_scroll_tree_simple_scroll() {
     let (scrolled_id, offset) = scroll_tree
         .scroll_node_or_ancestor(
             &id,
-            ScrollLocation::Delta(LayoutVector2D::new(-20.0, -40.0)),
+            ScrollLocation::Delta(LayoutVector2D::new(20.0, 40.0)),
             ScrollType::Script,
         )
         .unwrap();
-    let expected_offset = LayoutVector2D::new(-20.0, -40.0);
+    let expected_offset = LayoutVector2D::new(20.0, 40.0);
     assert_eq!(scrolled_id, ExternalScrollId(0, pipeline_id));
     assert_eq!(offset, expected_offset);
     assert_eq!(scroll_tree.get_node(&id).offset(), Some(expected_offset));
@@ -58,7 +58,7 @@ fn test_scroll_tree_simple_scroll() {
     let (scrolled_id, offset) = scroll_tree
         .scroll_node_or_ancestor(
             &id,
-            ScrollLocation::Delta(LayoutVector2D::new(20.0, 40.0)),
+            ScrollLocation::Delta(LayoutVector2D::new(-20.0, -40.0)),
             ScrollType::Script,
         )
         .unwrap();
@@ -67,10 +67,10 @@ fn test_scroll_tree_simple_scroll() {
     assert_eq!(offset, expected_offset);
     assert_eq!(scroll_tree.get_node(&id).offset(), Some(expected_offset));
 
-    // Scroll offsets must be negative.
+    // Scroll offsets must be positive.
     let result = scroll_tree.scroll_node_or_ancestor(
         &id,
-        ScrollLocation::Delta(LayoutVector2D::new(20.0, 40.0)),
+        ScrollLocation::Delta(LayoutVector2D::new(-20.0, -40.0)),
         ScrollType::Script,
     );
     assert!(result.is_none());
@@ -99,11 +99,11 @@ fn test_scroll_tree_simple_scroll_chaining() {
     let (scrolled_id, offset) = scroll_tree
         .scroll_node_or_ancestor(
             &unscrollable_child_id,
-            ScrollLocation::Delta(LayoutVector2D::new(-20.0, -40.0)),
+            ScrollLocation::Delta(LayoutVector2D::new(20.0, 40.0)),
             ScrollType::Script,
         )
         .unwrap();
-    let expected_offset = LayoutVector2D::new(-20.0, -40.0);
+    let expected_offset = LayoutVector2D::new(20.0, 40.0);
     assert_eq!(scrolled_id, ExternalScrollId(0, pipeline_id));
     assert_eq!(offset, expected_offset);
     assert_eq!(
@@ -114,11 +114,11 @@ fn test_scroll_tree_simple_scroll_chaining() {
     let (scrolled_id, offset) = scroll_tree
         .scroll_node_or_ancestor(
             &unscrollable_child_id,
-            ScrollLocation::Delta(LayoutVector2D::new(-10.0, -15.0)),
+            ScrollLocation::Delta(LayoutVector2D::new(10.0, 15.0)),
             ScrollType::Script,
         )
         .unwrap();
-    let expected_offset = LayoutVector2D::new(-30.0, -55.0);
+    let expected_offset = LayoutVector2D::new(30.0, 55.0);
     assert_eq!(scrolled_id, ExternalScrollId(0, pipeline_id));
     assert_eq!(offset, expected_offset);
     assert_eq!(
@@ -140,7 +140,7 @@ fn test_scroll_tree_chain_when_at_extent() {
         .scroll_node_or_ancestor(&child_id, ScrollLocation::End, ScrollType::Script)
         .unwrap();
 
-    let expected_offset = LayoutVector2D::new(0.0, -100.0);
+    let expected_offset = LayoutVector2D::new(0.0, 100.0);
     assert_eq!(scrolled_id, ExternalScrollId(1, pipeline_id));
     assert_eq!(offset, expected_offset);
     assert_eq!(
@@ -153,11 +153,11 @@ fn test_scroll_tree_chain_when_at_extent() {
     let (scrolled_id, offset) = scroll_tree
         .scroll_node_or_ancestor(
             &child_id,
-            ScrollLocation::Delta(LayoutVector2D::new(0.0, -10.0)),
+            ScrollLocation::Delta(LayoutVector2D::new(0.0, 10.0)),
             ScrollType::Script,
         )
         .unwrap();
-    let expected_offset = LayoutVector2D::new(0.0, -10.0);
+    let expected_offset = LayoutVector2D::new(0.0, 10.0);
     assert_eq!(scrolled_id, ExternalScrollId(0, pipeline_id));
     assert_eq!(offset, expected_offset);
     assert_eq!(
@@ -187,11 +187,11 @@ fn test_scroll_tree_chain_through_overflow_hidden() {
     let (scrolled_id, offset) = scroll_tree
         .scroll_node_or_ancestor(
             &overflow_hidden_id,
-            ScrollLocation::Delta(LayoutVector2D::new(-20.0, -40.0)),
+            ScrollLocation::Delta(LayoutVector2D::new(20.0, 40.0)),
             ScrollType::InputEvents,
         )
         .unwrap();
-    let expected_offset = LayoutVector2D::new(-20.0, -40.0);
+    let expected_offset = LayoutVector2D::new(20.0, 40.0);
     assert_eq!(scrolled_id, ExternalScrollId(0, pipeline_id));
     assert_eq!(offset, expected_offset);
     assert_eq!(

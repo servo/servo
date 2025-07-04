@@ -113,13 +113,20 @@ impl FlexContainer {
             .into_iter()
             .map(|item| {
                 let box_ = match item.kind {
-                    ModernItemKind::InFlow => ArcRefCell::new(FlexLevelBox::FlexItem(
-                        FlexItemBox::new(item.formatting_context),
-                    )),
-                    ModernItemKind::OutOfFlow => {
-                        let abs_pos_box =
-                            ArcRefCell::new(AbsolutelyPositionedBox::new(item.formatting_context));
+                    ModernItemKind::InFlow(independent_formatting_context) => ArcRefCell::new(
+                        FlexLevelBox::FlexItem(FlexItemBox::new(independent_formatting_context)),
+                    ),
+                    ModernItemKind::OutOfFlow(independent_formatting_context) => {
+                        let abs_pos_box = ArcRefCell::new(AbsolutelyPositionedBox::new(
+                            independent_formatting_context,
+                        ));
                         ArcRefCell::new(FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(abs_pos_box))
+                    },
+                    ModernItemKind::ReusedBox(layout_box) => match layout_box {
+                        LayoutBox::FlexLevel(flex_level_box) => flex_level_box,
+                        _ => unreachable!(
+                            "Undamaged flex level element should be associated with flex level box"
+                        ),
                     },
                 };
 

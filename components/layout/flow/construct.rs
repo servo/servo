@@ -290,7 +290,7 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
 
         if inline_table {
             self.ensure_inline_formatting_context_builder()
-                .push_atomic(ifc);
+                .push_atomic(|| ArcRefCell::new(ifc), None);
         } else {
             let table_block = ArcRefCell::new(BlockLevelBox::Independent(ifc));
 
@@ -472,15 +472,20 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
                 // If this inline element is an atomic, handle it and return.
                 let context = self.context;
                 let propagated_data = self.propagated_data;
-                let atomic = self.ensure_inline_formatting_context_builder().push_atomic(
-                    IndependentFormattingContext::construct(
+
+                let construction_callback = || {
+                    ArcRefCell::new(IndependentFormattingContext::construct(
                         context,
                         info,
                         display_inside,
                         contents,
                         propagated_data,
-                    ),
-                );
+                    ))
+                };
+                let old_layout_box = box_slot.take_layout_box_if_undamaged(info.damage);
+                let atomic = self
+                    .ensure_inline_formatting_context_builder()
+                    .push_atomic(construction_callback, old_layout_box);
                 box_slot.set(LayoutBox::InlineLevel(vec![atomic]));
                 return;
             },
@@ -689,6 +694,21 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
 impl BlockLevelJob<'_> {
     fn finish(self, context: &LayoutContext) -> ArcRefCell<BlockLevelBox> {
         let info = &self.info;
+
+        // If this `BlockLevelBox` is undamaged and it has been laid out before, reuse
+        // the old one, while being sure to clear the layout cache.
+        if !info.damage.has_box_damage() {
+            if let Some(block_level_box) = match self.box_slot.slot.as_ref() {
+                Some(box_slot) => match &*box_slot.borrow() {
+                    Some(LayoutBox::BlockLevel(block_level_box)) => Some(block_level_box.clone()),
+                    _ => None,
+                },
+                None => None,
+            } {
+                return block_level_box;
+            }
+        }
+
         let block_level_box = match self.kind {
             BlockLevelCreator::SameFormattingContextBlock(intermediate_block_container) => {
                 let contents = intermediate_block_container.finish(context, info);

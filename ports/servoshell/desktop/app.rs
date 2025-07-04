@@ -160,7 +160,7 @@ impl App {
         servo.setup_logging();
 
         // Initialize WebDriver server here before `servo` is moved.
-        let webdriver_receiver = self.opts.webdriver_port.map(|port| {
+        let webdriver_receiver = self.servoshell_preferences.webdriver_port.map(|port| {
             let (embedder_sender, embedder_receiver) = unbounded();
 
             // TODO: WebDriver will no longer need this channel once all WebDriver

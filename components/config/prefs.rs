@@ -149,6 +149,8 @@ pub struct Preferences {
     /// Whether or not subpixel antialiasing is enabled for text rendering.
     pub gfx_subpixel_text_antialiasing_enabled: bool,
     pub gfx_texture_swizzling_enabled: bool,
+    /// The amount of image keys we request per batch for the image cache.
+    pub image_key_batch_size: i64,
     /// Whether or not the DOM inspector should show shadow roots of user-agent shadow trees
     pub inspector_show_servo_internal_shadow_roots: bool,
     pub js_asmjs_enabled: bool,
@@ -326,6 +328,7 @@ impl Preferences {
             gfx_text_antialiasing_enabled: true,
             gfx_subpixel_text_antialiasing_enabled: true,
             gfx_texture_swizzling_enabled: true,
+            image_key_batch_size: 10,
             inspector_show_servo_internal_shadow_roots: false,
             js_asmjs_enabled: true,
             js_asyncstack: false,

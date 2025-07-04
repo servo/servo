@@ -907,7 +907,7 @@ impl WebGLThread {
         let descriptor = Self::image_descriptor(size, alpha);
         let data = Self::external_image_data(context_id, image_buffer_kind);
 
-        let image_key = compositor_api.generate_image_key().unwrap();
+        let image_key = compositor_api.generate_image_key_blocking().unwrap();
         compositor_api.add_image(image_key, descriptor, data);
 
         image_key

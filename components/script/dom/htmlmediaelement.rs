@@ -237,7 +237,7 @@ impl VideoFrameRenderer for MediaFrameRenderer {
             Some(current_frame) => {
                 self.old_frame = Some(current_frame.image_key);
 
-                let Some(new_image_key) = self.compositor_api.generate_image_key() else {
+                let Some(new_image_key) = self.compositor_api.generate_image_key_blocking() else {
                     return;
                 };
 
@@ -270,7 +270,7 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                 updates.push(ImageUpdate::AddImage(new_image_key, descriptor, image_data));
             },
             None => {
-                let Some(image_key) = self.compositor_api.generate_image_key() else {
+                let Some(image_key) = self.compositor_api.generate_image_key_blocking() else {
                     return;
                 };
 
