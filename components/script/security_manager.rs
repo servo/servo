@@ -26,6 +26,7 @@ use crate::dom::csppolicyviolationreport::{
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::performanceresourcetiming::InitiatorType;
+use crate::dom::reportingobserver::ReportingObserver;
 use crate::dom::securitypolicyviolationevent::SecurityPolicyViolationEvent;
 use crate::dom::types::GlobalScope;
 use crate::fetch::create_a_potential_cors_request;
@@ -155,6 +156,24 @@ impl TaskOnce for CSPViolationReportTask {
             .find(|directive| directive.name == "report-uri")
         {
             self.post_csp_violation_to_report_uri(report_uri_directive);
+        }
+        // Step 3.5. If violation’s policy’s directive set contains a directive named "report-to" directive:
+        if let Some(report_to_directive) = self
+            .violation_policy
+            .directive_set
+            .iter()
+            .find(|directive| directive.name == "report-to")
+        {
+            // Step 3.5.1. Let body be a new CSPViolationReportBody, initialized as follows:
+            let body = self.violation_report.clone().convert();
+            // Step 3.5.2. Let settings object be violation’s global object’s relevant settings object.
+            // Step 3.5.3. Generate and queue a report with the following arguments:
+            ReportingObserver::generate_and_queue_a_report(
+                &self.global.root(),
+                "csp-violation".into(),
+                Some(body),
+                report_to_directive.value.join(" ").into(),
+            )
         }
     }
 }
