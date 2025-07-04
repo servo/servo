@@ -683,7 +683,6 @@ impl Element {
 
         let node = self.upcast::<Node>();
         node.dirty(NodeDamage::Other);
-        node.rev_version();
 
         Ok(shadow_root)
     }
