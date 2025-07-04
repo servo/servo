@@ -663,14 +663,8 @@ impl Document {
             has_dirty_descendants &= *ancestor != *new_dirty_root;
         }
 
-        let maybe_shadow_host = new_dirty_root
-            .downcast::<ShadowRoot>()
-            .map(ShadowRootMethods::Host);
-        let new_dirty_root_element = new_dirty_root
-            .downcast::<Element>()
-            .or(maybe_shadow_host.as_deref());
-
-        self.dirty_root.set(new_dirty_root_element);
+        self.dirty_root
+            .set(Some(new_dirty_root.downcast::<Element>().unwrap()));
     }
 
     pub(crate) fn take_dirty_root(&self) -> Option<DomRoot<Element>> {
