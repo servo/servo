@@ -520,7 +520,7 @@ impl Handler {
 
     fn focus_webview_id(&self) -> WebDriverResult<WebViewId> {
         let (sender, receiver) = ipc::channel().unwrap();
-        self.send_message_to_embedder(WebDriverCommandMsg::GetFocusedWebView(sender.clone()))?;
+        self.send_message_to_embedder(WebDriverCommandMsg::EnsuredFocusedWebView(sender.clone()))?;
         // Wait until the document is ready before returning the top-level browsing context id.
         match wait_for_script_response(receiver)? {
             Some(webview_id) => Ok(webview_id),
