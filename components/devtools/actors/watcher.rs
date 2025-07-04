@@ -33,7 +33,6 @@ use crate::actors::watcher::target_configuration::{
 use crate::actors::watcher::thread_configuration::{
     ThreadConfigurationActor, ThreadConfigurationActorMsg,
 };
-use crate::id::DevtoolsBrowsingContextId;
 use crate::protocol::JsonPacketStream;
 use crate::resource::{ResourceArrayType, ResourceAvailable};
 use crate::{EmptyReplyMsg, IdMap, StreamId, WorkerActor};
@@ -198,7 +197,8 @@ pub struct WatcherActor {
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WillNavigateMessage {
-    browsing_context_id: DevtoolsBrowsingContextId,
+    #[serde(rename = "browsingContextID")]
+    browsing_context_id: u32,
     inner_window_id: u32,
     name: String,
     time: u128,
@@ -453,7 +453,7 @@ impl WatcherActor {
         id_map: &mut IdMap,
     ) {
         let msg = WillNavigateMessage {
-            browsing_context_id: id_map.browsing_context_id(browsing_context_id),
+            browsing_context_id: id_map.browsing_context_id(browsing_context_id).value(),
             inner_window_id: 0, // TODO: set this to the correct value
             name: "will-navigate".to_string(),
             time: SystemTime::now()
@@ -461,7 +461,7 @@ impl WatcherActor {
                 .unwrap_or_default()
                 .as_millis(),
             is_frame_switching: false, // TODO: Implement frame switching
-            new_URI: url,
+            new_uri: url,
         };
 
         for stream in connections {

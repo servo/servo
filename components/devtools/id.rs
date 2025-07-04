@@ -5,7 +5,6 @@
 use std::collections::HashMap;
 
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
-use serde::Serialize;
 
 #[derive(Debug, Default)]
 pub(crate) struct IdMap {
@@ -58,7 +57,7 @@ impl IdMap {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct DevtoolsBrowserId(u32);
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct DevtoolsBrowsingContextId(u32);
 
 #[derive(Clone, Copy, Debug, PartialEq)]

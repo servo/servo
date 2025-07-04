@@ -2713,12 +2713,7 @@ impl Window {
             };
 
             // Step 13
-            ScriptThread::navigate(
-                window_proxy.browsing_context_id(),
-                pipeline_id,
-                load_data,
-                resolved_history_handling,
-            );
+            ScriptThread::navigate(pipeline_id, load_data, resolved_history_handling);
         };
     }
 

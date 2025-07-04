@@ -309,28 +309,23 @@ impl DevtoolsInstance {
     }
 
     fn handle_navigate(&self, browsing_context_id: BrowsingContextId, state: NavigationState) {
-        let url = match &state {
-            NavigationState::Start(url) => url.clone(),
-            NavigationState::Stop(_, page_info) => page_info.url.clone(),
-        };
-
         let actor_name = self.browsing_contexts.get(&browsing_context_id).unwrap();
         let actors = self.actors.lock().unwrap();
         let actor = actors.find::<BrowsingContextActor>(actor_name);
-        let watcher_actor = actors.find::<WatcherActor>(&actor.watcher);
-
-        let mut connections = Vec::<TcpStream>::new();
-        for stream in self.connections.values() {
-            connections.push(stream.try_clone().unwrap());
-        }
-
         let mut id_map = self.id_map.lock().expect("Mutex poisoned");
-        watcher_actor.emit_will_navigate(
-            browsing_context_id,
-            url.clone(),
-            &mut connections,
-            &mut id_map,
-        );
+        if let NavigationState::Start(url) = &state {
+            let mut connections = Vec::<TcpStream>::new();
+            for stream in self.connections.values() {
+                connections.push(stream.try_clone().unwrap());
+            }
+            let watcher_actor = actors.find::<WatcherActor>(&actor.watcher);
+            watcher_actor.emit_will_navigate(
+                browsing_context_id,
+                url.clone(),
+                &mut connections,
+                &mut id_map,
+            );
+        };
         actor.navigate(state, &mut id_map);
     }
 

@@ -599,7 +599,6 @@ impl ScriptThread {
 
     /// Step 13 of <https://html.spec.whatwg.org/multipage/#navigate>
     pub(crate) fn navigate(
-        browsing_context: BrowsingContextId,
         pipeline_id: PipelineId,
         mut load_data: LoadData,
         history_handling: NavigationHistoryBehavior,
@@ -642,13 +641,6 @@ impl ScriptThread {
                     .dom_manipulation_task_source()
                     .queue(task);
             } else {
-                if let Some(ref sender) = script_thread.senders.devtools_server_sender {
-                    let _ = sender.send(ScriptToDevtoolsControlMsg::Navigate(
-                        browsing_context,
-                        NavigationState::Start(load_data.url.clone()),
-                    ));
-                }
-
                 script_thread
                     .senders
                     .pipeline_to_constellation_sender
