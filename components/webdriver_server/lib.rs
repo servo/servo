@@ -681,6 +681,10 @@ impl Handler {
                         "setWindowRect".to_string(),
                         json!(servo_capabilities.set_window_rect),
                     );
+                    processed.insert(
+                        "userAgent".to_string(),
+                        servo_config::pref!(user_agent).into(),
+                    );
 
                     let response =
                         NewSessionResponse::new(session.id.to_string(), Value::Object(processed));
