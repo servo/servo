@@ -3145,7 +3145,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                 IpcSharedMemory::from_bytes(&vec![0u8; expected_byte_len as usize])
             },
         };
-        let (alpha_treatment, y_axis_treatment) = self.base.get_current_unpack_state(false);
+        let (alpha_treatment, y_axis_treatment) =
+            self.base.get_current_unpack_state(Alpha::NotPremultiplied);
         // If UNPACK_FLIP_Y_WEBGL or UNPACK_PREMULTIPLY_ALPHA_WEBGL is set to true, texImage3D and texSubImage3D
         // generate an INVALID_OPERATION error if they upload data from a PIXEL_UNPACK_BUFFER or a non-null client
         // side ArrayBufferView.
