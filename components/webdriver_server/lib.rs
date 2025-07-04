@@ -127,12 +127,15 @@ pub fn start_server(
     constellation_chan_deprecated: Sender<EmbedderToConstellationMessage>,
     embedder_sender: Sender<WebDriverCommandMsg>,
     event_loop_waker: Box<dyn EventLoopWaker>,
+    webdriver_response_receiver: IpcReceiver<WebDriverCommandResponse>,
 ) {
     let handler = Handler::new(
         constellation_chan_deprecated,
         embedder_sender,
         event_loop_waker,
+        webdriver_response_receiver,
     );
+
     thread::Builder::new()
         .name("WebDriverHttpServer".to_owned())
         .spawn(move || {
@@ -242,12 +245,8 @@ struct Handler {
     /// TODO: change name to constellation_sender
     constellation_chan: Sender<EmbedderToConstellationMessage>,
 
-    /// The IPC sender which we can clone and pass along to the constellation
-    /// TODO: change name to webdriver_response_sender
-    constellation_sender: IpcSender<WebDriverCommandResponse>,
-
     /// Receiver notification from the constellation when a command is completed
-    constellation_receiver: IpcReceiver<WebDriverCommandResponse>,
+    webdriver_response_receiver: IpcReceiver<WebDriverCommandResponse>,
 
     id_generator: WebDriverMessageIdGenerator,
 
@@ -474,6 +473,7 @@ impl Handler {
         constellation_chan: Sender<EmbedderToConstellationMessage>,
         embedder_sender: Sender<WebDriverCommandMsg>,
         event_loop_waker: Box<dyn EventLoopWaker>,
+        webdriver_response_receiver: IpcReceiver<WebDriverCommandResponse>,
     ) -> Handler {
         // Create a pair of both an IPC and a threaded channel,
         // keep the IPC sender to clone and pass to the constellation for each load,
@@ -484,8 +484,6 @@ impl Handler {
         let (sender, load_status_receiver) = unbounded();
         ROUTER.route_ipc_receiver_to_crossbeam_sender(receiver, sender);
 
-        let (constellation_sender, constellation_receiver) = ipc::channel().unwrap();
-
         Handler {
             load_status_sender,
             load_status_receiver,
@@ -493,8 +491,7 @@ impl Handler {
             embedder_sender,
             event_loop_waker,
             constellation_chan,
-            constellation_sender,
-            constellation_receiver,
+            webdriver_response_receiver,
             id_generator: WebDriverMessageIdGenerator::new(),
             current_action_id: Cell::new(None),
             num_pending_actions: Cell::new(0),
@@ -1836,9 +1833,7 @@ impl Handler {
             sender,
         );
         let cmd_msg = WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd);
-        self.constellation_chan
-            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
-            .unwrap();
+        self.send_message_to_embedder(cmd_msg)?;
 
         // TODO: distinguish the not found and not focusable cases
         // File input and non-typeable form control should have
@@ -1853,9 +1848,7 @@ impl Handler {
         // send keys command being two separate messages,
         // so the constellation may have changed state between them.
         let cmd_msg = WebDriverCommandMsg::SendKeys(browsing_context_id, input_events);
-        self.constellation_chan
-            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
-            .unwrap();
+        self.send_message_to_embedder(cmd_msg)?;
 
         Ok(WebDriverResponse::Void)
     }

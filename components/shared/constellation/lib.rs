@@ -20,7 +20,7 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::id::{MessagePortId, PipelineId, WebViewId};
 use embedder_traits::{
     CompositorHitTestResult, Cursor, InputEvent, JavaScriptEvaluationId, MediaSessionActionType,
-    Theme, ViewportDetails, WebDriverCommandMsg,
+    Theme, ViewportDetails, WebDriverCommandMsg, WebDriverCommandResponse,
 };
 pub use from_script_message::*;
 use ipc_channel::ipc::IpcSender;
@@ -96,6 +96,8 @@ pub enum EmbedderToConstellationMessage {
     CreateMemoryReport(IpcSender<MemoryReportResult>),
     /// Sends the generated image key to the image cache associated with this pipeline.
     SendImageKeysForPipeline(PipelineId, Vec<ImageKey>),
+    /// Set WebDriver input event handled sender.
+    SetWebDriverResponseSender(IpcSender<WebDriverCommandResponse>),
 }
 
 /// A description of a paint metric that is sent from the Servo renderer to the
