@@ -452,7 +452,9 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn show_simple_dialog(&self, webview: servo::WebView, dialog: SimpleDialog) {
-        if self.servoshell_preferences.headless {
+        if self.servoshell_preferences.headless &&
+            self.servoshell_preferences.webdriver_port.is_none()
+        {
             // TODO: Avoid copying this from the default trait impl?
             // Return the DOM-specified default value for when we **cannot show simple dialogs**.
             let _ = match dialog {
@@ -477,7 +479,9 @@ impl WebViewDelegate for RunningAppState {
         webview: WebView,
         authentication_request: AuthenticationRequest,
     ) {
-        if self.servoshell_preferences.headless {
+        if self.servoshell_preferences.headless &&
+            self.servoshell_preferences.webdriver_port.is_none()
+        {
             return;
         }
 
@@ -575,7 +579,9 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn request_permission(&self, webview: servo::WebView, permission_request: PermissionRequest) {
-        if self.servoshell_preferences.headless {
+        if self.servoshell_preferences.headless &&
+            self.servoshell_preferences.webdriver_port.is_none()
+        {
             permission_request.deny();
             return;
         }
@@ -635,7 +641,9 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn show_form_control(&self, webview: WebView, form_control: FormControl) {
-        if self.servoshell_preferences.headless {
+        if self.servoshell_preferences.headless &&
+            self.servoshell_preferences.webdriver_port.is_none()
+        {
             return;
         }
 
