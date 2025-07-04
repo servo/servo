@@ -916,6 +916,10 @@ impl CanvasContext for WebGL2RenderingContext {
         self.base.resize();
     }
 
+    fn reset_bitmap(&self) {
+        self.base.reset_bitmap();
+    }
+
     fn get_image_data(&self) -> Option<Snapshot> {
         self.base.get_image_data()
     }

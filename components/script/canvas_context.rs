@@ -39,6 +39,11 @@ pub(crate) trait CanvasContext {
 
     fn resize(&self);
 
+    // Resets the backing bitmap (to transparent or opaque black) without the
+    // context state reset.
+    // Used by OffscreenCanvas.transferToImageBitmap.
+    fn reset_bitmap(&self);
+
     /// Returns none if area of canvas is zero.
     ///
     /// In case of other errors it returns cleared snapshot
@@ -142,6 +147,21 @@ impl CanvasContext for RenderingContext {
             RenderingContext::WebGL2(context) => context.resize(),
             #[cfg(feature = "webgpu")]
             RenderingContext::WebGPU(context) => context.resize(),
+        }
+    }
+
+    fn reset_bitmap(&self) {
+        match self {
+            RenderingContext::Placeholder(offscreen_canvas) => {
+                if let Some(context) = offscreen_canvas.context() {
+                    context.reset_bitmap()
+                }
+            },
+            RenderingContext::Context2d(context) => context.reset_bitmap(),
+            RenderingContext::WebGL(context) => context.reset_bitmap(),
+            RenderingContext::WebGL2(context) => context.reset_bitmap(),
+            #[cfg(feature = "webgpu")]
+            RenderingContext::WebGPU(context) => context.reset_bitmap(),
         }
     }
 
@@ -254,6 +274,12 @@ impl CanvasContext for OffscreenRenderingContext {
     fn resize(&self) {
         match self {
             OffscreenRenderingContext::Context2d(context) => context.resize(),
+        }
+    }
+
+    fn reset_bitmap(&self) {
+        match self {
+            OffscreenRenderingContext::Context2d(context) => context.reset_bitmap(),
         }
     }
 

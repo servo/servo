@@ -1974,6 +1974,10 @@ impl CanvasContext for WebGLRenderingContext {
         }
     }
 
+    fn reset_bitmap(&self) {
+        warn!("The WebGLRenderingContext 'reset_bitmap' is not implemented yet");
+    }
+
     // Used by HTMLCanvasElement.toDataURL
     //
     // This emits errors quite liberally, but the spec says that this operation

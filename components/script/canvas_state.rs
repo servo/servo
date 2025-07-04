@@ -292,6 +292,14 @@ impl CanvasState {
         *self.state.borrow_mut() = CanvasContextState::new();
     }
 
+    pub(crate) fn reset_bitmap(&self) {
+        if !self.is_paintable() {
+            return;
+        }
+
+        self.send_canvas_2d_msg(Canvas2dMsg::ClearRect(self.size.get().to_f32().into()));
+    }
+
     fn create_drawable_rect(&self, x: f64, y: f64, w: f64, h: f64) -> Option<Rect<f32>> {
         if !([x, y, w, h].iter().all(|val| val.is_finite())) {
             return None;

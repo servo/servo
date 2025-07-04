@@ -27,6 +27,7 @@ use crate::dom::blob::Blob;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::HTMLCanvasElement;
+use crate::dom::imagebitmap::ImageBitmap;
 use crate::dom::offscreencanvasrenderingcontext2d::OffscreenCanvasRenderingContext2D;
 use crate::dom::promise::Promise;
 use crate::realms::{AlreadyInRealm, InRealm};
@@ -212,6 +213,40 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         if let Some(canvas) = self.placeholder() {
             canvas.set_natural_height(value as _, can_gc)
         }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-transfertoimagebitmap>
+    fn TransferToImageBitmap(&self, can_gc: CanGc) -> Fallible<DomRoot<ImageBitmap>> {
+        // TODO Step 1. If the value of this OffscreenCanvas object's
+        // [[Detached]] internal slot is set to true, then throw an
+        // "InvalidStateError" DOMException.
+
+        // Step 2. If this OffscreenCanvas object's context mode is set to none,
+        // then throw an "InvalidStateError" DOMException.
+        if self.context.borrow().is_none() {
+            return Err(Error::InvalidState);
+        }
+
+        // Step 3. Let image be a newly created ImageBitmap object that
+        // references the same underlying bitmap data as this OffscreenCanvas
+        // object's bitmap.
+        let Some(snapshot) = self.get_image_data() else {
+            return Err(Error::InvalidState);
+        };
+
+        let image_bitmap = ImageBitmap::new(&self.global(), snapshot, can_gc);
+        image_bitmap.set_origin_clean(self.origin_is_clean());
+
+        // Step 4. Set this OffscreenCanvas object's bitmap to reference a newly
+        // created bitmap of the same dimensions and color space as the previous
+        // bitmap, and with its pixels initialized to transparent black, or
+        // opaque black if the rendering context's alpha is false.
+        if let Some(canvas_context) = self.context() {
+            canvas_context.reset_bitmap();
+        }
+
+        // Step 5. Return image.
+        Ok(image_bitmap)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-converttoblob>
