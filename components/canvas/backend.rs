@@ -2,15 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Cow;
-
 use canvas_traits::canvas::{
     CompositionOrBlending, FillOrStrokeStyle, LineCapStyle, LineJoinStyle, PathSegment,
 };
+use compositing_traits::SerializableImageData;
 use euclid::Angle;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use lyon_geom::Arc;
+use pixels::Snapshot;
 use style::color::AbsoluteColor;
+use webrender_api::ImageDescriptor;
 
 use crate::canvas_data::{CanvasPaintState, Filter, PathBuilderRef, TextRun};
 
@@ -61,7 +62,7 @@ pub(crate) trait GenericDrawTarget<B: Backend> {
         destination: Point2D<i32>,
     );
     fn create_similar_draw_target(&self, size: &Size2D<i32>) -> Self;
-    fn create_source_surface_from_data(&self, data: &[u8]) -> Option<B::SourceSurface>;
+    fn create_source_surface_from_data(&self, data: Snapshot) -> Option<B::SourceSurface>;
     fn draw_surface(
         &mut self,
         surface: B::SourceSurface,
@@ -113,7 +114,8 @@ pub(crate) trait GenericDrawTarget<B: Backend> {
         draw_options: &B::DrawOptions,
     );
     fn surface(&self) -> B::SourceSurface;
-    fn bytes(&self) -> Cow<[u8]>;
+    fn image_descriptor_and_serializable_data(&self) -> (ImageDescriptor, SerializableImageData);
+    fn snapshot(&self) -> Snapshot;
 }
 
 /// A generic Path that abstracts the interface for raqote's PathBuilder/Path.

@@ -4,7 +4,7 @@
 
 use std::ops::{Deref, DerefMut};
 
-use euclid::default::Size2D;
+use euclid::default::{Rect, Size2D};
 use image::codecs::jpeg::JpegEncoder;
 use image::codecs::png::PngEncoder;
 use image::codecs::webp::WebPEncoder;
@@ -13,7 +13,7 @@ use ipc_channel::ipc::IpcSharedMemory;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 
-use crate::{EncodedImageType, Multiply, transform_inplace};
+use crate::{EncodedImageType, Multiply, rgba8_get_rect, transform_inplace};
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum SnapshotPixelFormat {
@@ -178,6 +178,11 @@ impl Snapshot<SnapshotData> {
             format,
             alpha_mode,
         }
+    }
+
+    pub fn get_rect(&self, rect: Rect<u32>) -> Self {
+        let data = rgba8_get_rect(self.as_raw_bytes(), self.size(), rect).to_vec();
+        Self::from_vec(rect.size, self.format, self.alpha_mode, data)
     }
 
     // TODO: https://github.com/servo/servo/issues/36594

@@ -2,19 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 
 use canvas_traits::canvas::*;
+use compositing_traits::SerializableImageData;
 use cssparser::color::clamp_unit_f32;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use font_kit::font::Font;
 use fonts::{ByteIndex, FontIdentifier, FontTemplateRefMethods};
+use ipc_channel::ipc::IpcSharedMemory;
 use log::warn;
+use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use range::Range;
 use raqote::PathOp;
 use style::color::AbsoluteColor;
+use webrender_api::{ImageDescriptor, ImageDescriptorFlags, ImageFormat};
 
 use crate::backend::{
     Backend, DrawOptionsHelpers, GenericDrawTarget, GenericPath, PatternHelpers,
@@ -34,7 +37,7 @@ thread_local! {
 pub(crate) struct RaqoteBackend;
 
 impl Backend for RaqoteBackend {
-    type Pattern<'a> = Pattern<'a>;
+    type Pattern<'a> = Pattern;
     type StrokeOptions = raqote::StrokeStyle;
     type Color = raqote::SolidSource;
     type DrawOptions = raqote::DrawOptions;
@@ -112,12 +115,12 @@ impl Backend for RaqoteBackend {
 }
 
 #[derive(Clone)]
-pub enum Pattern<'a> {
+pub enum Pattern {
     // argb
     Color(u8, u8, u8, u8),
     LinearGradient(LinearGradientPattern),
     RadialGradient(RadialGradientPattern),
-    Surface(SurfacePattern<'a>),
+    Surface(SurfacePattern),
 }
 
 #[derive(Clone)]
@@ -165,17 +168,17 @@ impl RadialGradientPattern {
 }
 
 #[derive(Clone)]
-pub struct SurfacePattern<'a> {
-    image: raqote::Image<'a>,
+pub struct SurfacePattern {
+    image: Snapshot,
     filter: raqote::FilterMode,
     extend: raqote::ExtendMode,
     repeat: Repetition,
     transform: Transform2D<f32>,
 }
 
-impl<'a> SurfacePattern<'a> {
+impl SurfacePattern {
     fn new(
-        image: raqote::Image<'a>,
+        image: Snapshot,
         filter: raqote::FilterMode,
         repeat: Repetition,
         transform: Transform2D<f32>,
@@ -195,7 +198,7 @@ impl<'a> SurfacePattern<'a> {
         }
     }
     pub fn size(&self) -> Size2D<f32> {
-        Size2D::new(self.image.width as f32, self.image.height as f32)
+        self.image.size().cast()
     }
     pub fn repetition(&self) -> &Repetition {
         &self.repeat
@@ -224,7 +227,7 @@ impl Repetition {
     }
 }
 
-pub fn source<'a>(pattern: &Pattern<'a>) -> raqote::Source<'a> {
+pub fn source(pattern: &Pattern) -> raqote::Source {
     match pattern {
         Pattern::Color(a, r, g, b) => raqote::Source::Solid(
             raqote::SolidSource::from_unpremultiplied_argb(*a, *r, *g, *b),
@@ -243,16 +246,30 @@ pub fn source<'a>(pattern: &Pattern<'a>) -> raqote::Source<'a> {
             pattern.radius2,
             raqote::Spread::Pad,
         ),
-        Pattern::Surface(pattern) => raqote::Source::Image(
-            pattern.image,
-            pattern.extend,
-            pattern.filter,
-            pattern.transform,
-        ),
+        Pattern::Surface(pattern) => {
+            #[allow(unsafe_code)]
+            let data = unsafe {
+                let data = pattern.image.as_raw_bytes();
+                std::slice::from_raw_parts(
+                    data.as_ptr() as *const u32,
+                    data.len() / std::mem::size_of::<u32>(),
+                )
+            };
+            raqote::Source::Image(
+                raqote::Image {
+                    width: pattern.image.size().width as i32,
+                    height: pattern.image.size().height as i32,
+                    data,
+                },
+                pattern.extend,
+                pattern.filter,
+                pattern.transform,
+            )
+        },
     }
 }
 
-impl PatternHelpers for Pattern<'_> {
+impl PatternHelpers for Pattern {
     fn is_zero_size_gradient(&self) -> bool {
         match self {
             Pattern::RadialGradient(pattern) => {
@@ -371,9 +388,17 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
     }
     fn create_source_surface_from_data(
         &self,
-        data: &[u8],
+        data: Snapshot,
     ) -> Option<<RaqoteBackend as Backend>::SourceSurface> {
-        Some(data.to_vec())
+        Some(
+            data.to_vec(
+                Some(SnapshotAlphaMode::Transparent {
+                    premultiplied: true,
+                }),
+                Some(SnapshotPixelFormat::BGRA),
+            )
+            .0,
+        )
     }
     #[allow(unsafe_code)]
     fn draw_surface(
@@ -384,23 +409,20 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
         filter: Filter,
         draw_options: &<RaqoteBackend as Backend>::DrawOptions,
     ) {
-        let surface_data = surface;
-        let image = raqote::Image {
-            width: source.size.width as i32,
-            height: source.size.height as i32,
-            data: unsafe {
-                std::slice::from_raw_parts(
-                    surface_data.as_ptr() as *const u32,
-                    surface_data.len() / std::mem::size_of::<u32>(),
-                )
+        let image = Snapshot::from_vec(
+            source.size.cast(),
+            SnapshotPixelFormat::BGRA,
+            SnapshotAlphaMode::Transparent {
+                premultiplied: true,
             },
-        };
+            surface,
+        );
 
         let transform =
             raqote::Transform::translation(-dest.origin.x as f32, -dest.origin.y as f32)
                 .then_scale(
-                    image.width as f32 / dest.size.width as f32,
-                    image.height as f32 / dest.size.height as f32,
+                    source.size.width as f32 / dest.size.width as f32,
+                    source.size.height as f32 / dest.size.height as f32,
                 );
 
         let pattern = Pattern::Surface(SurfacePattern::new(
@@ -434,7 +456,7 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
     fn fill(
         &mut self,
         path: &<RaqoteBackend as Backend>::Path,
-        pattern: &<RaqoteBackend as Backend>::Pattern<'_>,
+        pattern: &Pattern,
         draw_options: &<RaqoteBackend as Backend>::DrawOptions,
     ) {
         let path = path.into();
@@ -470,7 +492,7 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
         &mut self,
         text_runs: Vec<TextRun>,
         start: Point2D<f32>,
-        pattern: &<RaqoteBackend as Backend>::Pattern<'_>,
+        pattern: &Pattern,
         draw_options: &<RaqoteBackend as Backend>::DrawOptions,
     ) {
         let mut advance = 0.;
@@ -558,12 +580,12 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
         self.set_transform(matrix);
     }
     fn surface(&self) -> <RaqoteBackend as Backend>::SourceSurface {
-        self.bytes().to_vec()
+        self.get_data_u8().to_vec()
     }
     fn stroke(
         &mut self,
         path: &<RaqoteBackend as Backend>::Path,
-        pattern: &Pattern<'_>,
+        pattern: &Pattern,
         stroke_options: &<RaqoteBackend as Backend>::StrokeOptions,
         draw_options: &<RaqoteBackend as Backend>::DrawOptions,
     ) {
@@ -586,12 +608,33 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
 
         self.stroke(&pb.finish(), &source(pattern), stroke_options, draw_options);
     }
-    #[allow(unsafe_code)]
-    fn bytes(&self) -> Cow<[u8]> {
-        let v = self.get_data();
-        Cow::Borrowed(unsafe {
-            std::slice::from_raw_parts(v.as_ptr() as *const u8, std::mem::size_of_val(v))
-        })
+
+    fn image_descriptor_and_serializable_data(
+        &self,
+    ) -> (
+        webrender_api::ImageDescriptor,
+        compositing_traits::SerializableImageData,
+    ) {
+        let descriptor = ImageDescriptor {
+            size: self.get_size().cast_unit(),
+            stride: None,
+            format: ImageFormat::BGRA8,
+            offset: 0,
+            flags: ImageDescriptorFlags::empty(),
+        };
+        let data = SerializableImageData::Raw(IpcSharedMemory::from_bytes(self.get_data_u8()));
+        (descriptor, data)
+    }
+
+    fn snapshot(&self) -> Snapshot {
+        Snapshot::from_vec(
+            self.get_size().cast(),
+            SnapshotPixelFormat::BGRA,
+            SnapshotAlphaMode::Transparent {
+                premultiplied: true,
+            },
+            self.get_data_u8().to_vec(),
+        )
     }
 }
 
@@ -728,8 +771,8 @@ impl ToRaqoteStyle for LineCapStyle {
     }
 }
 
-pub trait ToRaqotePattern<'a> {
-    fn to_raqote_pattern(self) -> Option<Pattern<'a>>;
+pub trait ToRaqotePattern {
+    fn to_raqote_pattern(self) -> Option<Pattern>;
 }
 
 pub trait ToRaqoteGradientStop {
@@ -750,9 +793,9 @@ impl ToRaqoteGradientStop for CanvasGradientStop {
     }
 }
 
-impl ToRaqotePattern<'_> for FillOrStrokeStyle {
+impl ToRaqotePattern for FillOrStrokeStyle {
     #[allow(unsafe_code)]
-    fn to_raqote_pattern(self) -> Option<Pattern<'static>> {
+    fn to_raqote_pattern(self) -> Option<Pattern> {
         use canvas_traits::canvas::FillOrStrokeStyle::*;
 
         match self {
@@ -785,19 +828,17 @@ impl ToRaqotePattern<'_> for FillOrStrokeStyle {
                     stops,
                 )))
             },
-            Surface(ref style) => {
+            Surface(style) => {
                 let repeat = Repetition::from_xy(style.repeat_x, style.repeat_y);
-                let data = &style.surface_data[..];
-
-                let image = raqote::Image {
-                    width: style.surface_size.width as i32,
-                    height: style.surface_size.height as i32,
-                    data: unsafe {
-                        std::slice::from_raw_parts(data.as_ptr() as *const u32, data.len() / 4)
+                let mut snapshot = style.surface_data.to_owned();
+                snapshot.transform(
+                    SnapshotAlphaMode::Transparent {
+                        premultiplied: true,
                     },
-                };
+                    SnapshotPixelFormat::BGRA,
+                );
                 Some(Pattern::Surface(SurfacePattern::new(
-                    image,
+                    snapshot,
                     raqote::FilterMode::Nearest,
                     repeat,
                     style.transform,

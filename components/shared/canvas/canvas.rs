@@ -6,11 +6,10 @@ use std::default::Default;
 use std::str::FromStr;
 
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
-use ipc_channel::ipc::{IpcBytesReceiver, IpcSender};
+use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
 use pixels::IpcSnapshot;
 use serde::{Deserialize, Serialize};
-use serde_bytes::ByteBuf;
 use strum::{Display, EnumString};
 use style::color::AbsoluteColor;
 use style::properties::style_structs::Font as FontStyleStruct;
@@ -110,7 +109,7 @@ pub enum Canvas2dMsg {
     LineTo(Point2D<f32>),
     MoveTo(Point2D<f32>),
     MeasureText(String, IpcSender<TextMetrics>),
-    PutImageData(Rect<u32>, IpcBytesReceiver),
+    PutImageData(Rect<u32>, IpcSnapshot),
     QuadraticCurveTo(Point2D<f32>, Point2D<f32>),
     Rect(Rect<f32>),
     RestoreContext,
@@ -210,7 +209,7 @@ impl RadialGradientStyle {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SurfaceStyle {
-    pub surface_data: ByteBuf,
+    pub surface_data: IpcSnapshot,
     pub surface_size: Size2D<u32>,
     pub repeat_x: bool,
     pub repeat_y: bool,
@@ -219,14 +218,14 @@ pub struct SurfaceStyle {
 
 impl SurfaceStyle {
     pub fn new(
-        surface_data: Vec<u8>,
+        surface_data: IpcSnapshot,
         surface_size: Size2D<u32>,
         repeat_x: bool,
         repeat_y: bool,
         transform: Transform2D<f32>,
     ) -> Self {
         Self {
-            surface_data: ByteBuf::from(surface_data),
+            surface_data,
             surface_size,
             repeat_x,
             repeat_y,

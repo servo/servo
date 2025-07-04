@@ -8,22 +8,22 @@ use std::sync::Arc;
 
 use app_units::Au;
 use canvas_traits::canvas::*;
-use compositing_traits::{CrossProcessCompositorApi, SerializableImageData};
+use compositing_traits::CrossProcessCompositorApi;
 use euclid::default::{Box2D, Point2D, Rect, Size2D, Transform2D, Vector2D};
 use euclid::point2;
 use fonts::{
     ByteIndex, FontBaseline, FontContext, FontGroup, FontMetrics, FontRef, GlyphInfo, GlyphStore,
     LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
 };
-use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::IpcSender;
 use log::warn;
-use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
+use pixels::Snapshot;
 use range::Range;
 use servo_arc::Arc as ServoArc;
 use style::color::AbsoluteColor;
 use style::properties::style_structs::Font as FontStyleStruct;
 use unicode_script::Script;
-use webrender_api::{ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey};
+use webrender_api::ImageKey;
 
 use crate::backend::{
     Backend, DrawOptionsHelpers as _, GenericDrawTarget as _, GenericPath, PatternHelpers,
@@ -352,15 +352,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         let size = size.max(MIN_WR_IMAGE_SIZE);
         let draw_target = backend.create_drawtarget(size);
         let image_key = compositor_api.generate_image_key_blocking().unwrap();
-        let descriptor = ImageDescriptor {
-            size: size.cast().cast_unit(),
-            stride: None,
-            format: ImageFormat::BGRA8,
-            offset: 0,
-            flags: ImageDescriptorFlags::empty(),
-        };
-        let data =
-            SerializableImageData::Raw(IpcSharedMemory::from_bytes(draw_target.bytes().as_ref()));
+        let (descriptor, data) = draw_target.image_descriptor_and_serializable_data();
         compositor_api.add_image(image_key, descriptor, data);
         CanvasData {
             state: backend.new_paint_state(),
@@ -380,31 +372,27 @@ impl<'a, B: Backend> CanvasData<'a, B> {
 
     pub(crate) fn draw_image(
         &mut self,
-        image_data: &[u8],
-        image_size: Size2D<u32>,
+        snapshot: Snapshot,
         dest_rect: Rect<f64>,
         source_rect: Rect<f64>,
         smoothing_enabled: bool,
-        premultiply: bool,
     ) {
         // We round up the floating pixel values to draw the pixels
         let source_rect = source_rect.ceil();
         // It discards the extra pixels (if any) that won't be painted
-        let image_data = if Rect::from_size(image_size.to_f64()).contains_rect(&source_rect) {
-            pixels::rgba8_get_rect(image_data, image_size, source_rect.to_u32()).into()
+        let snapshot = if Rect::from_size(snapshot.size().to_f64()).contains_rect(&source_rect) {
+            snapshot.get_rect(source_rect.to_u32())
         } else {
-            image_data.into()
+            snapshot
         };
 
         let draw_options = self.state.draw_options.clone();
         let writer = |draw_target: &mut B::DrawTarget| {
             write_image::<B>(
                 draw_target,
-                image_data,
-                source_rect.size,
+                snapshot,
                 dest_rect,
                 smoothing_enabled,
-                premultiply,
                 &draw_options,
             );
         };
@@ -1107,29 +1095,18 @@ impl<'a, B: Backend> CanvasData<'a, B> {
 
     /// Update image in WebRender
     pub(crate) fn update_image_rendering(&mut self) {
-        let descriptor = ImageDescriptor {
-            size: self.drawtarget.get_size().cast_unit(),
-            stride: None,
-            format: ImageFormat::BGRA8,
-            offset: 0,
-            flags: ImageDescriptorFlags::empty(),
-        };
-        let data = SerializableImageData::Raw(IpcSharedMemory::from_bytes(
-            self.drawtarget.bytes().as_ref(),
-        ));
+        let (descriptor, data) = self.drawtarget.image_descriptor_and_serializable_data();
 
         self.compositor_api
             .update_image(self.image_key, descriptor, data);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
-    pub(crate) fn put_image_data(&mut self, mut imagedata: Vec<u8>, rect: Rect<u32>) {
-        assert_eq!(imagedata.len() % 4, 0);
-        assert_eq!(rect.size.area() as usize, imagedata.len() / 4);
-        pixels::rgba8_byte_swap_and_premultiply_inplace(&mut imagedata);
+    pub(crate) fn put_image_data(&mut self, snapshot: Snapshot, rect: Rect<u32>) {
+        assert_eq!(rect.size, snapshot.size());
         let source_surface = self
             .drawtarget
-            .create_source_surface_from_data(&imagedata)
+            .create_source_surface_from_data(snapshot)
             .unwrap();
         self.drawtarget.copy_surface(
             source_surface,
@@ -1217,29 +1194,19 @@ impl<'a, B: Backend> CanvasData<'a, B> {
     ) -> Snapshot {
         let canvas_size = canvas_size.unwrap_or(self.drawtarget.get_size().cast());
 
-        let data = if let Some(read_rect) = read_rect {
+        if let Some(read_rect) = read_rect {
             let canvas_rect = Rect::from_size(canvas_size);
             if canvas_rect
                 .intersection(&read_rect)
                 .is_none_or(|rect| rect.is_empty())
             {
-                vec![]
+                Snapshot::empty()
             } else {
-                pixels::rgba8_get_rect(self.drawtarget.bytes().as_ref(), canvas_size, read_rect)
-                    .to_vec()
+                self.drawtarget.snapshot().get_rect(read_rect)
             }
         } else {
-            self.drawtarget.bytes().into_owned()
-        };
-
-        Snapshot::from_vec(
-            canvas_size,
-            SnapshotPixelFormat::BGRA,
-            SnapshotAlphaMode::Transparent {
-                premultiplied: true,
-            },
-            data,
-        )
+            self.drawtarget.snapshot()
+        }
     }
 }
 
@@ -1279,22 +1246,16 @@ pub(crate) struct CanvasPaintState<'a, B: Backend> {
 /// premultiply: Determines whenever the image data should be premultiplied or not
 fn write_image<B: Backend>(
     draw_target: &mut B::DrawTarget,
-    mut image_data: Vec<u8>,
-    image_size: Size2D<f64>,
+    snapshot: Snapshot,
     dest_rect: Rect<f64>,
     smoothing_enabled: bool,
-    premultiply: bool,
     draw_options: &B::DrawOptions,
 ) {
-    if image_data.is_empty() {
+    if snapshot.size().is_empty() {
         return;
     }
 
-    if premultiply {
-        pixels::rgba8_premultiply_inplace(&mut image_data);
-    }
-
-    let image_rect = Rect::new(Point2D::zero(), image_size);
+    let image_rect = Rect::new(Point2D::zero(), snapshot.size().cast());
 
     // From spec https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
     // When scaling up, if the imageSmoothingEnabled attribute is set to true, the user agent should attempt
@@ -1307,7 +1268,7 @@ fn write_image<B: Backend>(
     };
 
     let source_surface = draw_target
-        .create_source_surface_from_data(&image_data)
+        .create_source_surface_from_data(snapshot)
         .unwrap();
 
     draw_target.draw_surface(source_surface, dest_rect, image_rect, filter, draw_options);
