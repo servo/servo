@@ -1066,36 +1066,6 @@ impl SequentialLayoutState {
             .map(|offset| offset - self.position_with_zero_clearance(block_start_margin))
     }
 
-    /// A block that is replaced or establishes an independent formatting context can't overlap floats,
-    /// it has to be placed next to them, and may get some clearance if there isn't enough space.
-    /// Given such a block with the provided 'clear', 'block_start_margin', 'pbm' and 'object_size',
-    /// this method finds an area that is big enough and doesn't overlap floats.
-    /// It returns a tuple with:
-    /// - The clearance amount (if any), which includes both the effect of 'clear'
-    ///   and the extra space to avoid floats.
-    /// - The LogicalRect in which the block can be placed without overlapping floats.
-    pub(crate) fn calculate_clearance_and_inline_adjustment(
-        &self,
-        clear: Clear,
-        block_start_margin: &CollapsedMargin,
-        pbm: &PaddingBorderMargin,
-        object_size: LogicalVec2<Au>,
-    ) -> (Option<Au>, LogicalRect<Au>) {
-        // First compute the clear position required by the 'clear' property.
-        // The code below may then add extra clearance when the element can't fit
-        // next to floats not covered by 'clear'.
-        let clear_position = self.calculate_clear_position(clear, block_start_margin);
-        let ceiling =
-            clear_position.unwrap_or_else(|| self.position_without_clearance(block_start_margin));
-        let mut placement = PlacementAmongFloats::new(&self.floats, ceiling, object_size, pbm);
-        let placement_rect = placement.place();
-        let position = &placement_rect.start_corner;
-        let has_clearance = clear_position.is_some() || position.block > ceiling;
-        let clearance = has_clearance
-            .then(|| position.block - self.position_with_zero_clearance(block_start_margin));
-        (clearance, placement_rect)
-    }
-
     /// Adds a new adjoining margin.
     pub(crate) fn adjoin_assign(&mut self, margin: &CollapsedMargin) {
         self.current_margin.adjoin_assign(margin)
