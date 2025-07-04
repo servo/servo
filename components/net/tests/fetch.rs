@@ -1340,6 +1340,7 @@ fn test_fetch_with_devtools() {
         connect_time: devhttprequest.connect_time,
         send_time: devhttprequest.send_time,
         is_xhr: true,
+        browsing_context_id: TEST_WEBVIEW_ID.0,
     };
 
     let content = "Yay!";
@@ -1356,6 +1357,7 @@ fn test_fetch_with_devtools() {
         status: HttpStatus::default(),
         body: None,
         pipeline_id: TEST_PIPELINE_ID,
+        browsing_context_id: TEST_WEBVIEW_ID.0,
     };
 
     assert_eq!(devhttprequest, httprequest);
