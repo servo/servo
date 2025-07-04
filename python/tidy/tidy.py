@@ -17,7 +17,7 @@ import os
 import re
 import subprocess
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Dict, Generator, Iterator, List, Tuple, cast
 
 import colorama
@@ -39,28 +39,23 @@ CARGO_DENY_CONFIG_FILE = os.path.join(TOPDIR, "deny.toml")
 
 ERROR_RAW_URL_IN_RUSTDOC = "Found raw link in rustdoc. Please escape it with angle brackets or use a markdown link."
 
-
-@dataclass
-class IgnoreConfig:
-    files: list[str] = field(default_factory=lambda: [cast(str, os.path.join(".", "."))])
-    directories: list[str] = field(default_factory=lambda: [cast(str, os.path.join(".", "."))])
-    packages: list[str] = field(default_factory=list)
-
-
-@dataclass
-class Config:
-    key_outside: str = ""
-    skip_check_length: bool = False
-    skip_check_licenses: bool = False
-    check_alphabetical_order: bool = True
-    lint_scripts: list[str] = field(default_factory=list)
-    blocked_packages: dict[str, str] = field(default_factory=dict)
-    ignore: IgnoreConfig = field(default_factory=IgnoreConfig)
-    check_ext: dict[str, str] = field(default_factory=dict)
-
-
-# Default configs
-config = Config()
+config: dict[str, Any] = {
+    "skip-check-length": False,
+    "skip-check-licenses": False,
+    "check-alphabetical-order": True,
+    "lint-scripts": [],
+    "blocked-packages": {},
+    "ignore": {
+        "files": [
+            os.path.join(".", "."),  # ignore hidden files
+        ],
+        "directories": [
+            os.path.join(".", "."),  # ignore hidden directories
+        ],
+        "packages": [],
+    },
+    "check_ext": {},
+}
 
 COMMENTS = [b"// ", b"# ", b" *", b"/* "]
 
@@ -203,7 +198,7 @@ class FileList(object):
 
 
 def filter_file(file_name):
-    if any(file_name.startswith(ignored_file) for ignored_file in config.ignore.files):
+    if any(file_name.startswith(ignored_file) for ignored_file in config["ignore"]["files"]):
         return False
     base_name = os.path.basename(file_name)
     if any(fnmatch.fnmatch(base_name, pattern) for pattern in FILE_PATTERNS_TO_IGNORE):
@@ -215,7 +210,7 @@ def filter_files(start_dir, only_changed_files, progress):
     file_iter = FileList(
         start_dir,
         only_changed_files=only_changed_files,
-        exclude_dirs=config.ignore.directories,
+        exclude_dirs=config["ignore"]["directories"],
         progress=progress,
     )
 
@@ -245,7 +240,7 @@ def is_apache_licensed(header):
 
 
 def check_license(file_name, lines):
-    if any(file_name.endswith(ext) for ext in (".toml", ".lock", ".json", ".html")) or config.skip_check_licenses:
+    if any(file_name.endswith(ext) for ext in (".toml", ".lock", ".json", ".html")) or config["skip-check-licenses"]:
         return
 
     if lines[0].startswith(b"#!") and lines[1].strip():
@@ -282,7 +277,7 @@ def check_modeline(file_name, lines):
 
 
 def check_length(file_name, idx, line):
-    if any(file_name.endswith(ext) for ext in (".lock", ".json", ".html", ".toml")) or config.skip_check_length:
+    if any(file_name.endswith(ext) for ext in (".lock", ".json", ".html", ".toml")) or config["skip-check-length"]:
         return
 
     # Prefer shorter lines when shell scripting.
@@ -556,7 +551,7 @@ def check_rust(file_name, lines):
     prev_feature_name = ""
     indent = 0
 
-    check_alphabetical_order = config.check_alphabetical_order
+    check_alphabetical_order = config["check-alphabetical-order"]
     decl_message = "{} is not in alphabetical order"
     decl_expected = "\n\t\033[93mexpected: {}\033[0m"
     decl_found = "\n\t\033[91mfound: {}\033[0m"
@@ -939,13 +934,15 @@ def check_config_file(config_file, print_text=True):
         if "=" not in line:
             continue
 
-        key = line.split("=")[0].strip().replace("-", "_")
+        key = line.split("=")[0].strip()
 
         # Check for invalid keys inside [configs] and [ignore] table
         if (
-            (current_table == "configs" and not hasattr(config, key))
-            or (current_table == "ignore" and not hasattr(config.ignore, key))
+            current_table == "configs"
+            and key not in config
+            or current_table == "ignore"
             # Any key outside of tables
+            and key not in config["ignore"]
             or current_table == ""
         ):
             yield config_file, idx + 1, "invalid config key '%s'" % key
@@ -958,27 +955,27 @@ def parse_config(config_file):
     exclude = config_file.get("ignore", {})
     # Add list of ignored directories to config
     ignored_directories = [d for p in exclude.get("directories", []) for d in (glob.glob(p) or [p])]
-    config.ignore.directories += normilize_paths(ignored_directories)
+    config["ignore"]["directories"] += normilize_paths(ignored_directories)
     # Add list of ignored files to config
-    config.ignore.files += normilize_paths(exclude.get("files", []))
+    config["ignore"]["files"] += normilize_paths(exclude.get("files", []))
     # Add list of ignored packages to config
-    config.ignore.packages = exclude.get("packages", [])
+    config["ignore"]["packages"] = exclude.get("packages", [])
 
     # Add dict of dir, list of expected ext to config
     dirs_to_check = config_file.get("check_ext", {})
     # Fix the paths (OS-dependent)
     for path, exts in dirs_to_check.items():
-        config.check_ext[normilize_paths(path)] = exts  # type: ignore
+        config["check_ext"][normilize_paths(path)] = exts  # type: ignore
 
     # Add list of blocked packages
-    config.blocked_packages = config_file.get("blocked-packages", {})
+    config["blocked-packages"] = config_file.get("blocked-packages", {})
 
     # Override default configs
-    user_configs = config_file.get("configs", [])
+    user_configs: dict[str, Any] = config_file.get("configs", [])
 
-    for pref, value in user_configs.items():
-        if hasattr(config, pref.replace("-", "_")):
-            setattr(config, pref.replace("-", "_"), value)
+    for pref in user_configs:
+        if pref in config:
+            config[pref] = user_configs[pref]
 
 
 def check_directory_files(directories, print_text=True):
@@ -1024,7 +1021,7 @@ def scan(only_changed_files=False, progress=False, github_annotations=False):
     # check config file for errors
     config_errors = check_config_file(CONFIG_FILE_PATH)
     # check directories contain expected files
-    directory_errors = check_directory_files(config.check_ext)
+    directory_errors = check_directory_files(config["check_ext"])
     # standard checks
     files_to_check = filter_files(".", only_changed_files, progress)
     checking_functions = (check_webidl_spec,)

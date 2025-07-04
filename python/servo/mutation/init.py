@@ -16,12 +16,13 @@ from os.path import isdir, isfile, join
 
 import test  # pyrefly: ignore  # import-error
 
+# pyrefly: ignore  # missing-attribute
 test_summary = {
     test.Status.KILLED: 0,
     test.Status.SURVIVED: 0,
     test.Status.SKIPPED: 0,
     test.Status.UNEXPECTED: 0,
-}  # pyrefly: ignore  # missing-attribute
+}
 
 
 def get_folders_list(path):
