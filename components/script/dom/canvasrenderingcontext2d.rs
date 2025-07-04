@@ -153,6 +153,10 @@ impl CanvasContext for CanvasRenderingContext2D {
         self.set_canvas_bitmap_dimensions(self.size().cast())
     }
 
+    fn reset_bitmap(&self) {
+        self.canvas_state.reset_bitmap()
+    }
+
     fn get_image_data(&self) -> Option<Snapshot> {
         if !self.canvas_state.is_paintable() {
             return None;
