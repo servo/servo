@@ -99,16 +99,7 @@ class Item:
         return result
 
 
-def get_results(filenames: list[str], tag: str = "") -> Optional[Item]:
-    unexpected = []
-    for filename in filenames:
-        try:
-            with open(filename, encoding="utf-8") as file:
-                unexpected += json.load(file)
-        except FileNotFoundError as exception:
-            print(exception)
-    unexpected.sort(key=lambda result: result["path"])
-
+def get_results(unexpected: list[dict], tag: str = "") -> Optional[Item]:
     def is_flaky(result):
         return result["flaky"]
 
@@ -139,6 +130,27 @@ def get_results(filenames: list[str], tag: str = "") -> Optional[Item]:
         text += f" ({run_url})"
     text += ":"
     return Item(text, "", children) if children else None
+
+
+def get_results_per_subsuite(filenames: list[str], tag: str = "") -> list[tuple[Item, str]]:
+    unexpected = []
+    for filename in filenames:
+        try:
+            with open(filename, encoding="utf-8") as file:
+                unexpected += json.load(file)
+        except FileNotFoundError as exception:
+            print(exception)
+    unexpected.sort(key=lambda result: result["path"])
+    subsuites = set(result.get("subsuite", "") for result in unexpected)
+    results = []
+    for subsuite in subsuites:
+        tag = f"{tag} {subsuite}" if subsuite else tag
+        subsuite_results = get_results(
+            list(filter(lambda result: result.get("subsuite", "") == subsuite, unexpected)), tag
+        )
+        if subsuite_results:
+            results.append((subsuite_results, tag))
+    return results
 
 
 def get_github_run_url() -> Optional[str]:
@@ -244,23 +256,24 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--tag", default="wpt", action="store", help="A string tag used to distinguish the results.")
     args, filenames = parser.parse_known_args()
-    results = get_results(filenames, args.tag)
+    results = get_results_per_subsuite(filenames, args.tag)
     if not results:
         print("Did not find any unexpected results.")
         create_github_reports("Did not find any unexpected results.", args.tag)
         return
 
-    print(results.to_string())
+    for subsuite_results, subsuite_tag in results:
+        print(subsuite_results.to_string())
 
-    html_string = ElementTree.tostring(results.to_html(), encoding="unicode")
-    create_github_reports(html_string, args.tag)
+        html_string = ElementTree.tostring(subsuite_results.to_html(), encoding="unicode")
+        create_github_reports(html_string, subsuite_tag)
 
-    pr_number = get_pr_number()
-    if pr_number:
-        process = subprocess.Popen(["gh", "pr", "comment", pr_number, "-F", "-"], stdin=subprocess.PIPE)
-        print(process.communicate(input=html_string.encode("utf-8"))[0])
-    else:
-        print("Could not find PR number in environment. Not making GitHub comment.")
+        pr_number = get_pr_number()
+        if pr_number:
+            process = subprocess.Popen(["gh", "pr", "comment", pr_number, "-F", "-"], stdin=subprocess.PIPE)
+            print(process.communicate(input=html_string.encode("utf-8"))[0])
+        else:
+            print("Could not find PR number in environment. Not making GitHub comment.")
 
 
 if __name__ == "__main__":
