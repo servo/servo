@@ -160,19 +160,10 @@ impl InlineFormattingContextBuilder {
     ) -> ArcRefCell<InlineItem> {
         // If there is an existing undamaged layout box that's compatible, use that.
         let independent_formatting_context = old_layout_box
-            .and_then(|layout_box| {
-                let LayoutBox::InlineLevel(inline_level_boxes) = layout_box else {
-                    return None;
-                };
-
-                // If there's an existing box, it should be a compatible atomic inline and should
-                // not have been subject to inline-block splitting.
-                assert_eq!(inline_level_boxes.len(), 1);
-                let first_box = inline_level_boxes.into_iter().next()?;
-                match &*first_box.borrow() {
-                    InlineItem::Atomic(atomic, ..) => Some(atomic.clone()),
-                    _ => None,
-                }
+            .and_then(LayoutBox::unsplit_inline_level_layout_box)
+            .and_then(|inline_item| match &*inline_item.borrow() {
+                InlineItem::Atomic(atomic, ..) => Some(atomic.clone()),
+                _ => None,
             })
             .unwrap_or_else(independent_formatting_context_creator);
 
@@ -195,9 +186,20 @@ impl InlineFormattingContextBuilder {
 
     pub(crate) fn push_absolutely_positioned_box(
         &mut self,
-        absolutely_positioned_box: AbsolutelyPositionedBox,
+        absolutely_positioned_box_creator: impl FnOnce() -> ArcRefCell<AbsolutelyPositionedBox>,
+        old_layout_box: Option<LayoutBox>,
     ) -> ArcRefCell<InlineItem> {
-        let absolutely_positioned_box = ArcRefCell::new(absolutely_positioned_box);
+        let absolutely_positioned_box = old_layout_box
+            .and_then(LayoutBox::unsplit_inline_level_layout_box)
+            .and_then(|inline_item| match &*inline_item.borrow() {
+                InlineItem::OutOfFlowAbsolutelyPositionedBox(positioned_box, ..) => {
+                    Some(positioned_box.clone())
+                },
+                _ => None,
+            })
+            .unwrap_or_else(absolutely_positioned_box_creator);
+
+        // We cannot just reuse the old inline item, because the `current_text_offset` may have changed.
         let inline_level_box = ArcRefCell::new(InlineItem::OutOfFlowAbsolutelyPositionedBox(
             absolutely_positioned_box,
             self.current_text_offset,
@@ -207,9 +209,23 @@ impl InlineFormattingContextBuilder {
         inline_level_box
     }
 
-    pub(crate) fn push_float_box(&mut self, float_box: FloatBox) -> ArcRefCell<InlineItem> {
-        let inline_level_box =
-            ArcRefCell::new(InlineItem::OutOfFlowFloatBox(ArcRefCell::new(float_box)));
+    pub(crate) fn push_float_box(
+        &mut self,
+        float_box_creator: impl FnOnce() -> ArcRefCell<FloatBox>,
+        old_layout_box: Option<LayoutBox>,
+    ) -> ArcRefCell<InlineItem> {
+        let inline_level_box = old_layout_box
+            .and_then(LayoutBox::unsplit_inline_level_layout_box)
+            .unwrap_or_else(|| ArcRefCell::new(InlineItem::OutOfFlowFloatBox(float_box_creator())));
+
+        debug_assert!(
+            matches!(
+                &*inline_level_box.borrow(),
+                InlineItem::OutOfFlowFloatBox(..),
+            ),
+            "Created float box with incompatible `old_layout_box`"
+        );
+
         self.inline_items.push(inline_level_box.clone());
         self.contains_floats = true;
         inline_level_box
