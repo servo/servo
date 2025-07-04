@@ -286,7 +286,7 @@ impl PatternHelpers for Pattern {
         match self {
             Pattern::Surface(pattern) => match pattern.repetition() {
                 Repetition::RepeatX | Repetition::Repeat => None, // x is not bounded
-                Repetition::RepeatY | Repetition::NoRepeat => Some(pattern.image.width as u32),
+                Repetition::RepeatY | Repetition::NoRepeat => Some(pattern.image.size().width),
             },
             Pattern::Color(..) | Pattern::LinearGradient(..) | Pattern::RadialGradient(..) => None,
         }
@@ -296,7 +296,7 @@ impl PatternHelpers for Pattern {
         match self {
             Pattern::Surface(pattern) => match pattern.repetition() {
                 Repetition::RepeatY | Repetition::Repeat => None, // y is not bounded
-                Repetition::RepeatX | Repetition::NoRepeat => Some(pattern.image.height as u32),
+                Repetition::RepeatX | Repetition::NoRepeat => Some(pattern.image.size().height),
             },
             Pattern::Color(..) | Pattern::LinearGradient(..) | Pattern::RadialGradient(..) => None,
         }
