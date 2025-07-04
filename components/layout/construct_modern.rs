@@ -12,7 +12,7 @@ use style::selector_parser::PseudoElement;
 
 use crate::PropagatedBoxTreeData;
 use crate::context::LayoutContext;
-use crate::dom::BoxSlot;
+use crate::dom::{BoxSlot, LayoutBox};
 use crate::dom_traversal::{Contents, NodeAndStyleInfo, TraversalHandler};
 use crate::flow::inline::construct::InlineFormattingContextBuilder;
 use crate::flow::{BlockContainer, BlockFormattingContext};
@@ -78,10 +78,9 @@ impl<'dom> ModernContainerJob<'dom> {
                 };
 
                 Some(ModernItem {
-                    kind: ModernItemKind::InFlow,
+                    kind: ModernItemKind::InFlow(formatting_context),
                     order: 0,
                     box_slot: None,
-                    formatting_context,
                 })
             },
             ModernContainerJob::ElementOrPseudoElement {
@@ -91,6 +90,25 @@ impl<'dom> ModernContainerJob<'dom> {
                 box_slot,
             } => {
                 let is_abspos = info.style.get_box().position.is_absolutely_positioned();
+                let order = if is_abspos {
+                    0
+                } else {
+                    info.style.clone_order()
+                };
+
+                if let Some(layout_box) = box_slot
+                    .take_layout_box_if_undamaged(info.damage)
+                    .and_then(|layout_box| match &layout_box {
+                        LayoutBox::FlexLevel(_) | LayoutBox::TaffyItemBox(_) => Some(layout_box),
+                        _ => None,
+                    })
+                {
+                    return Some(ModernItem {
+                        kind: ModernItemKind::ReusedBox(layout_box),
+                        order,
+                        box_slot: Some(box_slot),
+                    });
+                }
 
                 // Text decorations are not propagated to any out-of-flow descendants. In addition,
                 // absolutes don't affect the size of ancestors so it is fine to allow descendent
@@ -108,21 +126,16 @@ impl<'dom> ModernContainerJob<'dom> {
                     propagated_data,
                 );
 
-                if is_abspos {
-                    Some(ModernItem {
-                        kind: ModernItemKind::OutOfFlow,
-                        order: 0,
-                        box_slot: Some(box_slot),
-                        formatting_context,
-                    })
+                let kind = if is_abspos {
+                    ModernItemKind::OutOfFlow(formatting_context)
                 } else {
-                    Some(ModernItem {
-                        kind: ModernItemKind::InFlow,
-                        order: info.style.clone_order(),
-                        box_slot: Some(box_slot),
-                        formatting_context,
-                    })
-                }
+                    ModernItemKind::InFlow(formatting_context)
+                };
+                Some(ModernItem {
+                    kind,
+                    order,
+                    box_slot: Some(box_slot),
+                })
             },
         }
     }
@@ -146,15 +159,15 @@ impl ModernContainerTextRun<'_> {
 }
 
 pub(crate) enum ModernItemKind {
-    InFlow,
-    OutOfFlow,
+    InFlow(IndependentFormattingContext),
+    OutOfFlow(IndependentFormattingContext),
+    ReusedBox(LayoutBox),
 }
 
 pub(crate) struct ModernItem<'dom> {
     pub kind: ModernItemKind,
     pub order: i32,
     pub box_slot: Option<BoxSlot<'dom>>,
-    pub formatting_context: IndependentFormattingContext,
 }
 
 impl<'dom> TraversalHandler<'dom> for ModernContainerBuilder<'_, 'dom> {

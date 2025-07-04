@@ -46,15 +46,22 @@ impl TaffyContainer {
             .into_iter()
             .map(|item| {
                 let box_ = match item.kind {
-                    ModernItemKind::InFlow => ArcRefCell::new(TaffyItemBox::new(
-                        TaffyItemBoxInner::InFlowBox(item.formatting_context),
-                    )),
-                    ModernItemKind::OutOfFlow => {
-                        let abs_pos_box =
-                            ArcRefCell::new(AbsolutelyPositionedBox::new(item.formatting_context));
+                    ModernItemKind::InFlow(independent_formatting_context) => {
+                        ArcRefCell::new(TaffyItemBox::new(TaffyItemBoxInner::InFlowBox(
+                            independent_formatting_context,
+                        )))
+                    },
+                    ModernItemKind::OutOfFlow(independent_formatting_context) => {
+                        let abs_pos_box = ArcRefCell::new(AbsolutelyPositionedBox::new(
+                            independent_formatting_context,
+                        ));
                         ArcRefCell::new(TaffyItemBox::new(
                             TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(abs_pos_box),
                         ))
+                    },
+                    ModernItemKind::ReusedBox(layout_box) => match layout_box {
+                        LayoutBox::TaffyItemBox(taffy_item_box) => taffy_item_box,
+                        _ => unreachable!("Undamaged taffy level element should be associated with taffy level box"),
                     },
                 };
 
