@@ -5,11 +5,15 @@
 use std::ops::{Deref, DerefMut};
 
 use euclid::default::Size2D;
+use image::codecs::jpeg::JpegEncoder;
+use image::codecs::png::PngEncoder;
+use image::codecs::webp::WebPEncoder;
+use image::{ColorType, ImageEncoder, ImageError};
 use ipc_channel::ipc::IpcSharedMemory;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 
-use crate::{Multiply, transform_inplace};
+use crate::{EncodedImageType, Multiply, transform_inplace};
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum SnapshotPixelFormat {
@@ -287,6 +291,64 @@ impl Snapshot<SnapshotData> {
             data,
             format,
             alpha_mode,
+        }
+    }
+
+    pub fn encode_for_mime_type<W: std::io::Write>(
+        &mut self,
+        image_type: &EncodedImageType,
+        quality: Option<f64>,
+        encoder: &mut W,
+    ) -> Result<(), ImageError> {
+        let width = self.size.width;
+        let height = self.size.height;
+
+        let (data, _, _) = self.as_bytes(
+            if *image_type == EncodedImageType::Jpeg {
+                Some(SnapshotAlphaMode::AsOpaque {
+                    premultiplied: true,
+                })
+            } else {
+                Some(SnapshotAlphaMode::Transparent {
+                    premultiplied: false,
+                })
+            },
+            Some(SnapshotPixelFormat::RGBA),
+        );
+
+        match image_type {
+            EncodedImageType::Png => {
+                // FIXME(nox): https://github.com/image-rs/image-png/issues/86
+                // FIXME(nox): https://github.com/image-rs/image-png/issues/87
+                PngEncoder::new(encoder).write_image(data, width, height, ColorType::Rgba8)
+            },
+            EncodedImageType::Jpeg => {
+                let jpeg_encoder = if let Some(quality) = quality {
+                    // The specification allows quality to be in [0.0..1.0] but the JPEG encoder
+                    // expects it to be in [1..100]
+                    if (0.0..=1.0).contains(&quality) {
+                        JpegEncoder::new_with_quality(
+                            encoder,
+                            (quality * 100.0).round().clamp(1.0, 100.0) as u8,
+                        )
+                    } else {
+                        JpegEncoder::new(encoder)
+                    }
+                } else {
+                    JpegEncoder::new(encoder)
+                };
+
+                jpeg_encoder.write_image(data, width, height, ColorType::Rgba8)
+            },
+            EncodedImageType::Webp => {
+                // No quality support because of https://github.com/image-rs/image/issues/1984
+                WebPEncoder::new_lossless(encoder).write_image(
+                    data,
+                    width,
+                    height,
+                    ColorType::Rgba8,
+                )
+            },
         }
     }
 }
