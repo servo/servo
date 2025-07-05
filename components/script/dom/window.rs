@@ -2341,7 +2341,7 @@ impl Window {
         // iframe size updates.
         //
         // See <https://github.com/servo/servo/issues/14719>
-        self.reflow(ReflowGoal::UpdateTheRendering, can_gc);
+        self.Document().update_the_rendering(can_gc);
     }
 
     pub(crate) fn layout_blocked(&self) -> bool {
