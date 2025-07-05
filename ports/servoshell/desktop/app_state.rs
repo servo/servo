@@ -452,7 +452,9 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn show_simple_dialog(&self, webview: servo::WebView, dialog: SimpleDialog) {
-        if self.servoshell_preferences.headless {
+        if self.servoshell_preferences.headless &&
+            self.servoshell_preferences.webdriver_port.is_none()
+        {
             // TODO: Avoid copying this from the default trait impl?
             // Return the DOM-specified default value for when we **cannot show simple dialogs**.
             let _ = match dialog {
