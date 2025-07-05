@@ -24,8 +24,8 @@ use servo::servo_url::ServoUrl;
 use servo::user_content_manager::{UserContentManager, UserScript};
 use servo::webrender_api::ScrollLocation;
 use servo::{
-    EventLoopWaker, InputEvent, MouseButtonEvent, MouseMoveEvent, WebDriverCommandMsg, WheelDelta,
-    WheelEvent, WheelMode,
+    EventLoopWaker, InputEvent, MouseButtonEvent, MouseMoveEvent, WebDriverCommandMsg,
+    WebDriverScriptCommand, WheelDelta, WheelEvent, WheelMode,
 };
 use url::Url;
 use winit::application::ApplicationHandler;
@@ -516,7 +516,19 @@ impl App {
                         webview.notify_scroll_event(scroll_location, point.to_i32());
                     }
                 },
-                WebDriverCommandMsg::ScriptCommand(..) |
+                WebDriverCommandMsg::ScriptCommand(
+                    browsing_context_id,
+                    webdriver_script_command,
+                ) => {
+                    self.handle_webdriver_script_commnd(
+                        webdriver_script_command.clone(),
+                        running_state,
+                    );
+                    running_state.forward_webdriver_command(WebDriverCommandMsg::ScriptCommand(
+                        browsing_context_id,
+                        webdriver_script_command,
+                    ));
+                },
                 WebDriverCommandMsg::TakeScreenshot(..) => {
                     warn!(
                         "WebDriverCommand {:?} is still not moved from constellation to embedder",
@@ -524,6 +536,24 @@ impl App {
                     );
                 },
             };
+        }
+    }
+
+    fn handle_webdriver_script_commnd(
+        &self,
+        msg: WebDriverScriptCommand,
+        running_state: &RunningAppState,
+    ) {
+        match msg {
+            WebDriverScriptCommand::ExecuteScript(_webview_id, response_sender) => {
+                // Give embedder a chance to interrupt the script command.
+                // Webdriver only handles 1 script command at a time, so we can
+                // safely set a new interrupt sender and remove the previous one here.
+                running_state.set_script_command_interrupt_sender(Some(response_sender));
+            },
+            _ => {
+                running_state.set_script_command_interrupt_sender(None);
+            },
         }
     }
 }
