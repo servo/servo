@@ -4,12 +4,6 @@
 
 //! Functions for validating and extracting qualified XML names.
 
-use html5ever::{LocalName, Namespace, Prefix, ns};
-
-use crate::dom::bindings::domname::namespace_from_domstring;
-use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::str::DOMString;
-
 /// Check if an element name is valid. See <http://www.w3.org/TR/xml/#NT-Name>
 /// for details.
 pub(crate) fn is_valid_start(c: char) -> bool {
