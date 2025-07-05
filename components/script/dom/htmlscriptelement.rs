@@ -674,8 +674,7 @@ impl HTMLScriptElement {
             *self.script_text.borrow_mut() = TrustedScript::get_trusted_script_compliant_string(
                 &self.owner_global(),
                 self.Text(),
-                "HTMLScriptElement",
-                "text",
+                "HTMLScriptElement text",
                 can_gc,
             )?;
         }
@@ -1560,8 +1559,7 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
         let value = TrustedScript::get_trusted_script_compliant_string(
             &self.owner_global(),
             input,
-            "HTMLScriptElement",
-            "innerText",
+            "HTMLScriptElement innerText",
             can_gc,
         )?;
         *self.script_text.borrow_mut() = value.clone();
@@ -1582,8 +1580,7 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
         let value = TrustedScript::get_trusted_script_compliant_string(
             &self.owner_global(),
             value,
-            "HTMLScriptElement",
-            "text",
+            "HTMLScriptElement text",
             can_gc,
         )?;
         // Step 2: Set this's script text value to the given value.
@@ -1608,8 +1605,7 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
         let value = TrustedScript::get_trusted_script_compliant_string(
             &self.owner_global(),
             value.unwrap_or(TrustedScriptOrString::String(DOMString::from(""))),
-            "HTMLScriptElement",
-            "textContent",
+            "HTMLScriptElement textContent",
             can_gc,
         )?;
         // Step 2: Set this's script text value to value.
