@@ -1867,6 +1867,30 @@
   expected: green
   variants: *load-image-variant-definition
 
+- name: 2d.pattern.paint.norepeat.outside_arc
+  images:
+  - red-16x16.png
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    {{ load_image }}
+    var pattern = ctx.createPattern(img, 'no-repeat');
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = pattern;
+    ctx.beginPath();
+    ctx.arc(0, 0, 50, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 16, 16);
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 20,1 == 0,255,0,255;
+    @assert pixel 1,20 == 0,255,0,255;
+    @assert pixel 48,48 == 0,255,0,255;
+  expected: green
+  variants: *load-image-variant-definition
+
 - name: 2d.pattern.paint.norepeat.coord1
   images:
   - green.png
