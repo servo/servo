@@ -13,6 +13,7 @@ use js::jsapi::{
 };
 use js::jsval::UndefinedValue;
 use js::rust::{HandleValue, MutableHandleValue};
+use log::error;
 use net_traits::IpcSend;
 use net_traits::indexeddb_thread::{
     AsyncOperation, IndexedDBKeyType, IndexedDBThreadMsg, SyncOperation,
@@ -25,6 +26,7 @@ use crate::dom::bindings::codegen::Bindings::IDBObjectStoreBinding::IDBObjectSto
 use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransactionMode;
 // We need to alias this name, otherwise test-tidy complains at &String reference.
 use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence as StrOrStringSequence;
+use crate::dom::bindings::conversions::jsstring_to_str;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
@@ -150,22 +152,22 @@ impl IDBObjectStore {
         let _seen = seen.unwrap_or_default();
 
         // Step 2: If seen contains input, then return invalid.
-        // FIXME:(rasviitanen)
+        // FIXME:(arihant2math) implement this
         // Check if we have seen this key
         // Does not currently work with HandleValue,
         // as it does not implement PartialEq
 
         // Step 3
-        // FIXME:(rasviitanen) Accept buffer, array and date as well
+        // FIXME:(arihant2math) Accept buffer, array and date as well
         if input.is_number() {
-            // FIXME:(rasviitanen) check for NaN
-            let key = structuredclone::write(cx, input, None).expect("Could not serialize key");
-            return Ok(IndexedDBKeyType::Number(key.serialized));
+            // FIXME:(arihant2math) check for NaN
+            return Ok(IndexedDBKeyType::Number(input.to_number()));
         }
 
         if input.is_string() {
-            let key = structuredclone::write(cx, input, None).expect("Could not serialize key");
-            return Ok(IndexedDBKeyType::String(key.serialized));
+            let string_ptr = std::ptr::NonNull::new(input.to_string()).unwrap();
+            let key = unsafe { jsstring_to_str(*cx, string_ptr).str().to_string() };
+            return Ok(IndexedDBKeyType::String(key));
         }
 
         if input.is_object() {
@@ -185,11 +187,9 @@ impl IDBObjectStore {
                 }
 
                 if IsArrayBufferObject(*object) || JS_IsArrayBufferViewObject(*object) {
-                    let key =
-                        structuredclone::write(cx, input, None).expect("Could not serialize key");
-                    // FIXME:(arihant2math) Return the correct type here
-                    // it doesn't really matter at the moment...
-                    return Ok(IndexedDBKeyType::Number(key.serialized.clone()));
+                    // FIXME:(arihant2math)
+                    error!("Array buffers as keys is currently unsupported");
+                    return Err(Error::NotSupported);
                 }
 
                 if let ESClass::Array = built_in_class {
