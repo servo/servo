@@ -16,11 +16,12 @@ use keyboard_types::KeyboardEvent;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use pixels::RasterImage;
 use serde::{Deserialize, Serialize};
+use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize, DeviceIndependentPixel};
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
 use webdriver::common::{WebElement, WebFrame, WebWindow};
 use webdriver::error::ErrorStatus;
-use webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel};
+use webrender_api::units::DevicePixel;
 
 use crate::{MouseButton, MouseButtonAction};
 
@@ -34,7 +35,7 @@ pub enum WebDriverCommandMsg {
     /// back to the WebDriver client. It is set to constellation for now
     SetWebDriverResponseSender(IpcSender<WebDriverCommandResponse>),
     /// Get the window size.
-    GetWindowRect(WebViewId, IpcSender<DeviceIntRect>),
+    GetWindowRect(WebViewId, IpcSender<DeviceIndependentIntRect>),
     /// Get the viewport size.
     GetViewportSize(WebViewId, IpcSender<Size2D<u32, DevicePixel>>),
     /// Load a URL in the top-level browsing context with the given ID.
@@ -90,8 +91,8 @@ pub enum WebDriverCommandMsg {
     /// Set the window size.
     SetWindowSize(
         WebViewId,
-        DeviceIntSize,
-        IpcSender<Size2D<i32, DevicePixel>>,
+        DeviceIndependentIntSize,
+        IpcSender<Size2D<i32, DeviceIndependentPixel>>,
     ),
     /// Take a screenshot of the window.
     TakeScreenshot(
