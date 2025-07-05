@@ -1011,7 +1011,7 @@ impl LayoutThread {
     fn build_display_list(
         &self,
         reflow_request: &ReflowRequest,
-        damage: RestyleDamage,
+        _damage: RestyleDamage,
         image_resolver: &Arc<ImageResolver>,
     ) -> bool {
         if !ReflowPhases::necessary(&reflow_request.reflow_goal)
@@ -1031,9 +1031,9 @@ impl LayoutThread {
         // require display lists. If a non-display-list-generating reflow updated layout
         // in a previous refow, we cannot skip display list generation here the next time
         // a display list is requested.
-        if !self.need_new_display_list.get() && !damage.contains(RestyleDamage::REPAINT) {
+        /*if !self.need_new_display_list.get() && !damage.contains(RestyleDamage::REPAINT) {
             return false;
-        }
+        }*/
 
         let mut epoch = self.epoch.get();
         epoch.next();
