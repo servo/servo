@@ -138,8 +138,8 @@ pub(super) fn build_linear(
                 Left => -gradient_box.height,
             };
             let y = match vertical {
-                Top => gradient_box.width,
-                Bottom => -gradient_box.width,
+                Top => -gradient_box.width,
+                Bottom => gradient_box.width,
             };
 
             // `{ x, y }` is now a vector of arbitrary length
