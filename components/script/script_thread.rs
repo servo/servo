@@ -343,8 +343,10 @@ pub struct ScriptThread {
     scheduled_script_thread_animation_timer: RefCell<Option<TimerId>>,
 
     /// A flag that lets the [`ScriptThread`]'s main loop know that the
-    /// [`Self::scheduled_script_thread_animation_timer`] timer fired and it should
-    /// trigger an animation tick "update the rendering" call.
+    /// it should trigger an animation tick "update the rendering" call.
+    ///
+    /// This can be set by receiving [`ScriptThreadMessage::TickAllAnimations`]
+    /// or when [`Self::scheduled_script_thread_animation_timer`] timer fired.
     should_trigger_script_thread_animation_tick: Arc<AtomicBool>,
 }
 
@@ -592,6 +594,11 @@ impl ScriptThread {
             },
             (LoadOrigin::Script(source_origin), _) => source_origin == target,
         }
+    }
+
+    pub(crate) fn set_animation_tick(&self) {
+        self.should_trigger_script_thread_animation_tick
+            .store(true, Ordering::Relaxed);
     }
 
     /// Step 13 of <https://html.spec.whatwg.org/multipage/#navigate>
@@ -1173,25 +1180,17 @@ impl ScriptThread {
     ///
     /// Attempt to update the rendering and then do a microtask checkpoint if rendering was actually
     /// updated.
-    pub(crate) fn update_the_rendering(&self, requested_by_renderer: bool, can_gc: CanGc) {
+    pub(crate) fn update_the_rendering(&self, can_gc: CanGc) {
         *self.last_render_opportunity_time.borrow_mut() = Some(Instant::now());
 
         // If the ScriptThread animation timer fired, this is an animation tick.
-        let mut is_animation_tick = requested_by_renderer;
-        if self
+        let is_animation_tick = self
             .should_trigger_script_thread_animation_tick
-            .load(Ordering::Relaxed)
-        {
+            .load(Ordering::Relaxed);
+        if is_animation_tick {
             self.should_trigger_script_thread_animation_tick
                 .store(false, Ordering::Relaxed);
-            *self.scheduled_script_thread_animation_timer.borrow_mut() = None;
-            is_animation_tick = true;
-        }
-
-        // If this is an animation tick, cancel any upcoming ScriptThread-based animation timer.
-        // This tick serves the purpose and we to limit animation ticks if some are coming from
-        // the renderer.
-        if requested_by_renderer {
+            // Cancel any upcoming ScriptThread-based animation timer.
             if let Some(timer_id) = self
                 .scheduled_script_thread_animation_timer
                 .borrow_mut()
@@ -1452,7 +1451,6 @@ impl ScriptThread {
             .receivers
             .recv(&self.task_queue, &self.timer_scheduler.borrow());
 
-        let mut compositor_requested_update_the_rendering = false;
         loop {
             debug!("Handling event: {event:?}");
 
@@ -1523,7 +1521,7 @@ impl ScriptThread {
                 MixedMessage::FromConstellation(ScriptThreadMessage::TickAllAnimations(
                     _webviews,
                 )) => {
-                    compositor_requested_update_the_rendering = true;
+                    self.set_animation_tick();
                 },
                 MixedMessage::FromConstellation(ScriptThreadMessage::SendInputEvent(id, event)) => {
                     self.handle_input_event(id, event)
@@ -1651,7 +1649,7 @@ impl ScriptThread {
         // Update the rendering whenever we receive an IPC message. This may not actually do anything if
         // we are running animations and the compositor hasn't requested a new frame yet via a TickAllAnimatons
         // message.
-        self.update_the_rendering(compositor_requested_update_the_rendering, can_gc);
+        self.update_the_rendering(can_gc);
 
         true
     }
