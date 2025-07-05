@@ -782,8 +782,13 @@ impl Node {
             self.inclusive_descendants_version(),
             doc.inclusive_descendants_version(),
         ) + 1;
-        for ancestor in self.inclusive_ancestors(ShadowIncluding::No) {
-            ancestor.inclusive_descendants_version.set(version);
+
+        let mut parent = &self.parent_node;
+        while let Some(p) = parent.if_is_some(|p| {
+            p.inclusive_descendants_version.set(version);
+            &p.parent_node
+        }) {
+            parent = p
         }
         doc.inclusive_descendants_version.set(version);
     }
