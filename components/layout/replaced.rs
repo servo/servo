@@ -585,7 +585,6 @@ impl ReplacedContents {
         depends_on_block_constraints: bool,
         lazy_block_size: &LazySize,
     ) -> CacheableLayoutResult {
-        // TODO: consider caching the result in LayoutBoxBase like we do for non-replaced.
         let writing_mode = base.style.writing_mode;
         let inline_size = containing_block_for_children.size.inline;
         let content_block_size = self.content_size(

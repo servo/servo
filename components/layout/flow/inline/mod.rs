@@ -123,9 +123,7 @@ use crate::context::LayoutContext;
 use crate::dom_traversal::NodeAndStyleInfo;
 use crate::flow::CollapsibleWithParentStartMargin;
 use crate::flow::float::{FloatBox, SequentialLayoutState};
-use crate::formatting_contexts::{
-    Baselines, IndependentFormattingContext, IndependentNonReplacedContents,
-};
+use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
 use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment, FragmentFlags,
     PositioningFragment,
@@ -2153,9 +2151,7 @@ impl IndependentFormattingContext {
             BaselineSource::First => baselines.first,
             BaselineSource::Last => baselines.last,
             BaselineSource::Auto => match &self.contents {
-                IndependentFormattingContextContents::NonReplaced(
-                    IndependentNonReplacedContents::Flow(_),
-                ) => baselines.last,
+                IndependentFormattingContextContents::Flow(_) => baselines.last,
                 _ => baselines.first,
             },
         }
