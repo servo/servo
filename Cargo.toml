@@ -130,7 +130,7 @@ servo-media-gstreamer = { git = "https://github.com/servo/media" }
 servo-tracing = { path = "components/servo_tracing" }
 servo_arc = { git = "https://github.com/servo/stylo", branch = "2025-06-03" }
 smallbitvec = "2.6.0"
-smallvec = { version = "1.15", features = ["union"] }
+smallvec = { version = "1.15", features = ["union", "serde"] }
 static_assertions = "1.1"
 string_cache = "0.8"
 string_cache_codegen = "0.5"
