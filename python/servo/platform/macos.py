@@ -52,8 +52,8 @@ class MacOS(Base):
         installed_something |= self._platform_bootstrap_gstreamer(target, False)
         return installed_something
 
-    def _platform_bootstrap_gstreamer(self, target: BuildTarget, force: bool) -> bool:
-        if not force and self.is_gstreamer_installed(target):
+    def _platform_bootstrap_gstreamer(self, _target: BuildTarget, _force: bool) -> bool:
+        if not _force and self.is_gstreamer_installed(_target):
             return False
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -73,5 +73,5 @@ class MacOS(Base):
                 ]
             )
 
-            assert self.is_gstreamer_installed(target)
+            assert self.is_gstreamer_installed(_target)
             return True

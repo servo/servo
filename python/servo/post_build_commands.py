@@ -15,22 +15,19 @@ from shutil import copy2
 from typing import List
 
 import mozdebug
-
 from mach.decorators import (
+    Command,
     CommandArgument,
     CommandProvider,
-    Command,
 )
 
-import servo.util
 import servo.platform
-
+import servo.util
 from servo.command_base import (
     CommandBase,
     check_call,
     is_linux,
 )
-
 
 ANDROID_APP_NAME = "org.servo.servoshell"
 
@@ -141,6 +138,7 @@ class PostBuildCommands(CommandBase):
             if usb:
                 args += ["-d"]
             shell = subprocess.Popen(args + ["shell"], stdin=subprocess.PIPE)
+            # pyrefly: ignore  # bad-argument-type
             shell.communicate(bytes("\n".join(script) + "\n", "utf8"))
             return shell.wait()
 
@@ -197,7 +195,7 @@ class PostBuildCommands(CommandBase):
         if not args:
             print("AVDs created by `./mach bootstrap-android` are servo-arm and servo-x86.")
         emulator = self.android_emulator_path(self.build_env())
-        return subprocess.call([emulator] + args)
+        return subprocess.call([emulator] + (args or []))
 
     @Command("rr-record", description="Run Servo whilst recording execution with rr", category="post-build")
     @CommandArgument("params", nargs="...", help="Command-line arguments to be passed through to Servo")

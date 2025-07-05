@@ -9,11 +9,10 @@
 
 import logging
 import os
-from typing import Iterable, Tuple
 import unittest
+from typing import Iterable, Tuple
 
 from . import tidy
-
 
 BASE_PATH = "python/tidy/tests/"
 

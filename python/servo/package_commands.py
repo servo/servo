@@ -7,41 +7,39 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-from datetime import datetime
-import random
-import time
-from typing import List
-from github import Github
-
 import hashlib
 import io
 import json
 import os
 import os.path as path
+import random
 import shutil
 import subprocess
 import sys
+import time
+from datetime import datetime
+from typing import List
 
-import servo.gstreamer
+from github import Github
 from mach.decorators import (
+    Command,
     CommandArgument,
     CommandProvider,
-    Command,
 )
 from mach.registrar import Registrar
 
+import servo.gstreamer
+from python.servo.platform.build_target import SanitizerKind
 from servo.command_base import (
-    BuildType,
-    archive_deterministically,
     BuildNotFound,
+    BuildType,
+    CommandBase,
+    archive_deterministically,
     cd,
     check_output,
-    CommandBase,
     is_windows,
 )
 from servo.util import delete, get_target_dir
-
-from python.servo.platform.build_target import SanitizerKind
 
 PACKAGES = {
     "android": [
@@ -196,8 +194,8 @@ class PackageCommands(CommandBase):
             if "HVIGOR_PATH" not in env:
                 try:
                     with cd(ohos_target_dir):
-                        version = check_output(["hvigorw", "--version", "--no-daemon"])
-                    print(f"Found `hvigorw` with version {str(version, 'utf-8').strip()} in system PATH")
+                        version = check_output(["hvigorw", "--version", "--no-daemon"], text=True)
+                    print(f"Found `hvigorw` with version {version.strip()} in system PATH")
                     hvigor_command[0:0] = ["hvigorw"]
                 except FileNotFoundError:
                     print(
@@ -217,6 +215,7 @@ class PackageCommands(CommandBase):
                 hvigor_script = f"{env['HVIGOR_PATH']}/node_modules/@ohos/hvigor/bin/hvigor.js"
                 hvigor_command[0:0] = ["node", hvigor_script]
 
+            # pyrefly: ignore  # missing-attribute
             abi_string = self.target.abi_string()
             ohos_libs_dir = path.join(ohos_target_dir, "entry", "libs", abi_string)
             os.makedirs(ohos_libs_dir)
@@ -418,6 +417,7 @@ class PackageCommands(CommandBase):
                 return 1
 
         if self.is_android():
+            # pyrefly: ignore  # missing-attribute
             pkg_path = self.target.get_package_path(build_type.directory_name())
             exec_command = [self.android_adb_path(env)]
             if emulator and usb:
@@ -429,6 +429,7 @@ class PackageCommands(CommandBase):
                 exec_command += ["-d"]
             exec_command += ["install", "-r", pkg_path]
         elif self.is_openharmony():
+            # pyrefly: ignore  # missing-attribute
             pkg_path = self.target.get_package_path(build_type.directory_name(), flavor=flavor)
             hdc_path = path.join(env["OHOS_SDK_NATIVE"], "../", "toolchains", "hdc")
             exec_command = [hdc_path, "install", "-r", pkg_path]
@@ -483,6 +484,7 @@ class PackageCommands(CommandBase):
 
             asset_name = f"servo-latest.{extension}"
             release.upload_asset(package, name=asset_name)
+            # pyrefly: ignore  # missing-attribute
             release.upload_asset_from_memory(
                 package_hash_fileobj, package_hash_fileobj.getbuffer().nbytes, name=f"{asset_name}.sha256"
             )

@@ -230,6 +230,8 @@ def find_non_system_dependencies_with_otool(binary_path: str) -> Set[str]:
     process = subprocess.Popen(["/usr/bin/otool", "-L", binary_path], stdout=subprocess.PIPE)
     output = set()
 
+    assert process.stdout is not None
+
     for line in map(lambda line: line.decode("utf8"), process.stdout):
         if not line.startswith("\t"):
             continue
@@ -249,9 +251,11 @@ def package_gstreamer_dylibs(binary_path: str, library_target_directory: str, ta
 
     # This import only works when called from `mach`.
     import servo.platform
+    import servo.platform.macos
 
     gstreamer_root = servo.platform.get().gstreamer_root(target)
     gstreamer_version = servo.platform.macos.GSTREAMER_PLUGIN_VERSION
+    assert gstreamer_root is not None
     gstreamer_root_libs = os.path.join(gstreamer_root, "lib")
 
     # This is the relative path from the directory we are packaging the dylibs into and
