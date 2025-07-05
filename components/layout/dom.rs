@@ -136,20 +136,6 @@ impl LayoutBox {
                 .repair_style(context, node, new_style),
         }
     }
-
-    /// If this [`LayoutBox`] represents an unsplit (due to inline-block splits) inline
-    /// level item, unwrap and return it. If not, return `None`.
-    pub(crate) fn unsplit_inline_level_layout_box(self) -> Option<ArcRefCell<InlineItem>> {
-        let LayoutBox::InlineLevel(inline_level_boxes) = self else {
-            return None;
-        };
-        // If this element box has been subject to inline-block splitting, ignore it. It's
-        // not useful currently for incremental box tree construction.
-        if inline_level_boxes.len() != 1 {
-            return None;
-        }
-        inline_level_boxes.into_iter().next()
-    }
 }
 
 /// A wrapper for [`InnerDOMLayoutData`]. This is necessary to give the entire data
