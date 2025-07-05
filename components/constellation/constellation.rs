@@ -3635,6 +3635,13 @@ where
                 },
             };
 
+        if let Some(ref chan) = self.devtools_sender {
+            let state = NavigationState::Start(load_data.url.clone());
+            let _ = chan.send(DevtoolsControlMsg::FromScript(
+                ScriptToDevtoolsControlMsg::Navigate(browsing_context_id, state),
+            ));
+        }
+
         match parent_pipeline_id {
             Some(parent_pipeline_id) => {
                 // Find the script thread for the pipeline containing the iframe
