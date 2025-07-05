@@ -85,13 +85,6 @@ impl<T: Copy> From<T> for LogicalVec2<T> {
 }
 
 impl<T> LogicalVec2<T> {
-    pub(crate) fn as_ref(&self) -> LogicalVec2<&T> {
-        LogicalVec2 {
-            inline: &self.inline,
-            block: &self.block,
-        }
-    }
-
     pub fn map_inline_and_block_axes<U>(
         &self,
         inline_f: impl FnOnce(&T) -> U,
