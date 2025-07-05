@@ -2076,11 +2076,8 @@ impl IndependentFormattingContext {
             .content_rect
             .translate(pbm_physical_offset.to_vector());
 
-        // Apply baselines if necessary.
-        let mut fragment = match baselines {
-            Some(baselines) => fragment.with_baselines(baselines),
-            None => fragment,
-        };
+        // Apply baselines.
+        fragment = fragment.with_baselines(baselines);
 
         // Lay out absolutely positioned children if this new atomic establishes a containing block
         // for absolutes.
