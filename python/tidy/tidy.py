@@ -7,12 +7,14 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+import concurrent.futures
 import configparser
 import fnmatch
 import glob
 import io
 import itertools
 import json
+import multiprocessing
 import os
 import re
 import subprocess
@@ -957,6 +959,27 @@ We only expect files with {ext} extensions in {dir_name}""".format(**details)
                 yield (filename, 1, message)
 
 
+def file_checking(filename, checking_functions, line_checking_functions):
+    errors = []
+    if not os.path.exists(filename):
+        return errors
+    with open(filename, "rb") as f:
+        contents = f.read()
+
+        if not contents.strip():
+            errors.append((filename, 0, "file is empty"))
+            return errors
+        for check in checking_functions:
+            for error in check(filename, contents):
+                errors.append((filename,) + error)
+        lines = contents.splitlines(True)
+        for check in line_checking_functions:
+            for error in check(filename, lines):
+                errors.append((filename,) + error)
+
+        return errors
+
+
 def collect_errors_for_files(files_to_check, checking_functions, line_checking_functions, print_text=True):
     (has_element, files_to_check) = is_iter_empty(files_to_check)
     if not has_element:
@@ -964,22 +987,24 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
     if print_text:
         print("\r ➤  Checking files for tidiness...")
 
-    for filename in files_to_check:
-        if not os.path.exists(filename):
-            continue
-        with open(filename, "rb") as f:
-            contents = f.read()
-            if not contents.strip():
-                yield filename, 0, "file is empty"
-                continue
-            for check in checking_functions:
-                for error in check(filename, contents):
-                    # the result will be: `(filename, line, message)`
-                    yield (filename,) + error
-            lines = contents.splitlines(True)
-            for check in line_checking_functions:
-                for error in check(filename, lines):
-                    yield (filename,) + error
+    number_of_core = multiprocessing.cpu_count()
+
+    with concurrent.futures.ProcessPoolExecutor(
+        max_workers=number_of_core, mp_context=multiprocessing.get_context("fork")
+    ) as executor:
+        futures = {
+            executor.submit(file_checking, filename, checking_functions, line_checking_functions): filename
+            for filename in files_to_check
+        }
+
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                errors = future.result()
+            except Exception:
+                pass
+            else:
+                for error in errors:
+                    yield error
 
 
 def scan(only_changed_files=False, progress=False, github_annotations=False):
