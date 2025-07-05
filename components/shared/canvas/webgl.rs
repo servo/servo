@@ -364,6 +364,22 @@ pub enum WebGLCommand {
     VertexAttribPointer(u32, i32, u32, bool, i32, u32),
     VertexAttribPointer2f(u32, i32, bool, i32, u32),
     SetViewport(i32, i32, i32, i32),
+    TexImage3D {
+        target: u32,
+        level: u32,
+        internal_format: TexFormat,
+        size: Size2D<u32>,
+        depth: u32,
+        format: TexFormat,
+        data_type: TexDataType,
+        // FIXME: This should be computed on the WebGL thread.
+        effective_data_type: u32,
+        unpacking_alignment: u32,
+        alpha_treatment: Option<AlphaTreatment>,
+        y_axis_treatment: YAxisTreatment,
+        pixel_format: Option<PixelFormat>,
+        data: TruncatedDebug<IpcSharedMemory>,
+    },
     TexImage2D {
         target: u32,
         level: u32,
