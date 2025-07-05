@@ -397,7 +397,7 @@ impl ScrollTree {
         for node in self.nodes.iter_mut() {
             if let SpatialTreeNodeInfo::Scroll(ref mut scroll_info) = node.info {
                 if let Some(offset) = offsets.get(&scroll_info.external_id) {
-                    scroll_info.offset = *offset;
+                    scroll_info.scroll_to_offset(*offset, ScrollType::Script);
                 }
             }
         }
