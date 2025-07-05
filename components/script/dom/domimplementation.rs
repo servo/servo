@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use html5ever::{local_name, ns};
+use script_bindings::error::Error;
 use script_traits::DocumentActivity;
 
 use crate::document_loader::DocumentLoader;
@@ -13,14 +14,12 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::UnionTypes::StringOrElementCreationOptions;
+use crate::dom::bindings::domname::{is_valid_doctype_name, namespace_from_domstring};
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::xmlname::{
-    namespace_from_domstring, validate_and_extract_qualified_name,
-};
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documenttype::DocumentType;
 use crate::dom::htmlbodyelement::HTMLBodyElement;
@@ -58,6 +57,7 @@ impl DOMImplementation {
 }
 
 // https://dom.spec.whatwg.org/#domimplementation
+#[allow(non_snake_case)]
 impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
     /// <https://dom.spec.whatwg.org/#dom-domimplementation-createdocumenttype>
     fn CreateDocumentType(
@@ -67,8 +67,12 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
         sysid: DOMString,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<DocumentType>> {
-        // Step 1. Validate qualifiedName.
-        validate_and_extract_qualified_name(&qualified_name)?;
+        // Step 1. If name is not a valid doctype name, then throw an
+        //      "InvalidCharacterError" DOMException.
+        if !is_valid_doctype_name(&qualified_name) {
+            debug!("Not a valid doctype name");
+            return Err(Error::InvalidCharacter);
+        }
 
         Ok(DocumentType::new(
             qualified_name,
