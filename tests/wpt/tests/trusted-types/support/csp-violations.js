@@ -118,3 +118,18 @@ function trySendingPlainStringToTrustedTypeSink(sinkGroups, cspHeaders) {
     document.head.appendChild(iframe);
   });
 }
+
+function tryNavigatingToJavaScriptURLInSubframe(cspHeaders) {
+  return new Promise(resolve => {
+    window.addEventListener("message", event => {
+      resolve(event.data);
+    }, {once: true});
+    let iframe = document.createElement("iframe");
+    let url = "/trusted-types/support/navigate-to-javascript-url.html";
+    url += "?pipe=header(Content-Security-Policy,connect-src 'none')"
+    if (cspHeaders)
+      url += `|${cspHeaders}`;
+    iframe.src = url;
+    document.head.appendChild(iframe);
+  });
+}

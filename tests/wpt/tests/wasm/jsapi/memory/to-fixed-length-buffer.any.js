@@ -26,7 +26,7 @@ test(() => {
 }, "API surface");
 
 test(() => {
-  const memory = new WebAssembly.Memory({ initial: 0 });
+  const memory = new WebAssembly.Memory({ initial: 0, maximum: 1 });
   const buffer1 = memory.buffer;
 
   assert_false(buffer1.resizable, "By default the AB is initially not resizable");

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>'dominant-baseline: central' on &#x3c;text&#x3e; with large font-size (and scaling) (reference)</title>
+  <h:link rel="stylesheet" type="text/css" href="/fonts/ahem.css"/>
+  <text dominant-baseline="central" fill="green" y="40"
+        font-size="100" font-family="Ahem" text-decoration="underline">X</text>
+</svg>

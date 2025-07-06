@@ -3,8 +3,11 @@
 import errno
 import http
 import http.server
+import ipaddress
 import os
+import platform
 import socket
+import socketserver
 import ssl
 import sys
 import threading
@@ -226,6 +229,25 @@ class WebTestServer(http.server.ThreadingHTTPServer):
                 self.socket = ssl_context.wrap_socket(self.socket,
                                                       do_handshake_on_connect=False,
                                                       server_side=True)
+
+    def server_bind(self):
+        if platform.system() != "Darwin":
+            super().server_bind()
+        else:
+            # We override this on macOS to workaround gethostbyaddr triggering the local
+            # network alert even when passed "localhost" (rdar://153097791); this should
+            # be the same as the superclass implementation except for the addition of
+            # our check.
+            socketserver.TCPServer.server_bind(self)
+            host, port = self.server_address[:2]
+            if (
+                ipaddress.ip_address(host).is_loopback and
+                ipaddress.ip_address(socket.gethostbyname("localhost")).is_loopback
+            ):
+                self.server_name = "localhost"
+            else:
+                self.server_name = socket.getfqdn(host)
+            self.server_port = port
 
     def finish_request(self, request, client_address):
         if isinstance(self.socket, ssl.SSLSocket):

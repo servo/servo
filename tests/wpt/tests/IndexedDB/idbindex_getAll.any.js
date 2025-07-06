@@ -84,3 +84,7 @@ index_get_all_values_test(
 index_get_all_values_test(
     /*storeName=*/ 'out-of-line-multi', /*options=*/ {query: 'vowel'},
     'Retrieve one key multiple values');
+
+get_all_with_invalid_keys_test(
+    'getAll', /*storeName=*/ 'out-of-line', /*indexName=*/ 'test_idx',
+    /*shouldUseDictionary=*/ false, 'Get all values with invalid query keys');

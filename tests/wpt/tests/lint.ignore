@@ -671,6 +671,7 @@ AHEM SYSTEM FONT: css/css-fonts/matching/font-unicode-presented-as-emoji-outline
 AHEM SYSTEM FONT: css/css-fonts/matching/font-unicode-presented-as-emoji-outline-ref.html
 AHEM SYSTEM FONT: css/css-fonts/parsing/font-size-adjust-computed.html
 AHEM SYSTEM FONT: css/css-fonts/size-adjust-unicode-range-system-fallback.html
+AHEM SYSTEM FONT: css/css-text/zwnj-renders-invisible.html
 AHEM SYSTEM FONT: css/css-overflow/line-clamp/block-ellipsis-010.html
 AHEM SYSTEM FONT: css/css-overflow/line-clamp/reference/block-ellipsis-010-ref.html
 AHEM SYSTEM FONT: css/css-overflow/line-clamp/reference/block-ellipsis-010-alt-ref.html

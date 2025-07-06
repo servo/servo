@@ -1,0 +1,23 @@
+<!-- quirks mode -->
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#lists">
+<link rel="match" href="list-style-position-quirks-mode-ref.html">
+<style>
+  body {
+    /* Increase left margin to ensure we can see the list item's marker. */
+    margin-left: 50px;
+  }
+  .wrapper {
+    border: 2px solid teal;
+    width: max-content;
+    margin-bottom: 2px;
+  }
+</style>
+<div class="wrapper">
+  <li>unspecified</li>
+  <li style="list-style-position: outside">outside</li>
+  <li style="list-style-position: initial">initial</li>
+  <li style="list-style-position: inherit">inherit</li>
+  <li style="list-style-position: unset">unset</li>
+  <li style="list-style-position: revert">revert</li>
+  <li style="list-style-position: revert-layer">revert-layer</li>
+</div>

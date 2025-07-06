@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta http-equiv="Content-Security-Policy"
+      content="require-trusted-types-for 'script'; connect-src 'none'">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<script src="./support/csp-violations.js"></script>
+<script src="./support/navigation-support.js"></script>
+<script>
+  promise_test(async _ => {
+    await new Promise(resolve => window.addEventListener("load", resolve));
+    /* Set window.location to a JavaScript URL, without a default policy. */
+    const result = await setLocationToJavaScriptURL();
+    assert_false(result.javaScriptExecuted, "JavaScript shouldn't have been executed");
+    assert_equals(result.violations.length, 1);
+    const violation = result.violations[0];
+    assert_equals(violation.violatedDirective, "require-trusted-types-for");
+    assert_equals(violation.disposition, "enforce");
+    assert_equals(violation.sample, `Location href|${clipSampleIfNeeded(kJavaScriptURLCode)}`);
+    assert_equals(violation.lineNumber, 4);
+    // https://w3c.github.io/webappsec-csp/#create-violation-for-global does not
+    // say how to determine the location and browsers provide inconsistent
+    // values for column number, so just check it's at least the offset of the
+    // '=' character of window.
+    assert_greater_than_equal(violation.columnNumber, 9);
+    assert_equals(result.exception, null);
+  }, "Setting window.location to a javascript: URL without a default policy should report a CSP violation instead of executing the JavaScript code.");
+</script>
