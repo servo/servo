@@ -466,7 +466,7 @@ class CommandBase(object):
                 # GStreamer distribution (such as harfbuzz), but we only modify the rpath of the
                 # target binary (servoshell / libsimpleservo).
                 if platform.is_macos:
-                    util.prepend_paths_to_env(env, "DYLD_LIBRARY_PATH", os.path.join(gstreamer_root, "lib"))
+                    util.prepend_paths_to_env(env, "DYLD_FALLBACK_LIBRARY_PATH", os.path.join(gstreamer_root, "lib"))
 
         if sys.platform != "win32":
             env.setdefault("CC", "clang")
