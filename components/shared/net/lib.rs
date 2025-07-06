@@ -6,7 +6,7 @@
 
 use std::collections::HashMap;
 use std::fmt::Display;
-use std::sync::{LazyLock, OnceLock};
+use std::sync::OnceLock;
 use std::thread;
 
 use base::cross_process_instant::CrossProcessInstant;
@@ -27,7 +27,6 @@ use mime::Mime;
 use request::RequestId;
 use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
-use servo_rand::RngCore;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::filemanager_thread::FileManagerThreadMsg;
@@ -545,6 +544,8 @@ pub enum CoreResourceMsg {
     /// Break the load handler loop, send a reply when done cleaning up local resources
     /// and exit
     Exit(IpcSender<()>),
+    /// Override the given erroring SSL certificate
+    OverrideCert(Vec<u8>),
 }
 
 // FIXME: https://github.com/servo/servo/issues/34591
@@ -1027,6 +1028,3 @@ pub fn set_default_accept_language(headers: &mut HeaderMap) {
         HeaderValue::from_static("en-US,en;q=0.5"),
     );
 }
-
-pub static PRIVILEGED_SECRET: LazyLock<u32> =
-    LazyLock::new(|| servo_rand::ServoRng::default().next_u32());
