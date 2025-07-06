@@ -22,6 +22,7 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use log::{debug, trace, warn};
 use net_traits::blob_url_store::parse_blob_url;
+use net_traits::clientstorage::thread_msg::ClientStorageThreadMsg;
 use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::indexeddb_thread::IndexedDBThreadMsg;
 use net_traits::pub_domains::public_suffix_list_size_of;
@@ -45,6 +46,7 @@ use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::async_runtime::HANDLE;
+use crate::clientstorage::thread_factory::ClientStorageThreadFactory;
 use crate::connector::{
     CACertificates, CertificateErrorOverrideManager, create_http_client, create_tls_config,
 };
@@ -106,12 +108,19 @@ pub fn new_resource_threads(
         ignore_certificate_errors,
         protocols,
     );
+    let clientstorage: IpcSender<ClientStorageThreadMsg> =
+        ClientStorageThreadFactory::new(config_dir.clone());
     let storage: IpcSender<StorageThreadMsg> =
         StorageThreadFactory::new(config_dir.clone(), mem_profiler_chan);
     let idb: IpcSender<IndexedDBThreadMsg> = IndexedDBThreadFactory::new(config_dir);
     (
-        ResourceThreads::new(public_core, storage.clone(), idb.clone()),
-        ResourceThreads::new(private_core, storage, idb),
+        ResourceThreads::new(
+            public_core,
+            clientstorage.clone(),
+            storage.clone(),
+            idb.clone(),
+        ),
+        ResourceThreads::new(private_core, clientstorage, storage, idb),
     )
 }
 

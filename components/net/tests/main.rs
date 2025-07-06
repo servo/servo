@@ -5,6 +5,7 @@
 #![cfg(test)]
 #![allow(dead_code)]
 
+mod clientstorage;
 mod cookie;
 mod cookie_http_state;
 mod data_loader;

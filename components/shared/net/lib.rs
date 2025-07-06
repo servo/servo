@@ -30,6 +30,7 @@ use serde::{Deserialize, Serialize};
 use servo_rand::RngCore;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
+use crate::clientstorage::thread_msg::ClientStorageThreadMsg;
 use crate::filemanager_thread::FileManagerThreadMsg;
 use crate::http_status::HttpStatus;
 use crate::indexeddb_thread::IndexedDBThreadMsg;
@@ -38,6 +39,7 @@ use crate::response::{HttpsState, Response, ResponseInit};
 use crate::storage_thread::StorageThreadMsg;
 
 pub mod blob_url_store;
+pub mod clientstorage;
 pub mod filemanager_thread;
 pub mod http_status;
 pub mod image_cache;
@@ -415,6 +417,7 @@ where
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ResourceThreads {
     pub core_thread: CoreResourceThread,
+    clientstorage_thread: IpcSender<ClientStorageThreadMsg>,
     storage_thread: IpcSender<StorageThreadMsg>,
     idb_thread: IpcSender<IndexedDBThreadMsg>,
 }
@@ -422,11 +425,13 @@ pub struct ResourceThreads {
 impl ResourceThreads {
     pub fn new(
         c: CoreResourceThread,
+        u: IpcSender<ClientStorageThreadMsg>,
         s: IpcSender<StorageThreadMsg>,
         i: IpcSender<IndexedDBThreadMsg>,
     ) -> ResourceThreads {
         ResourceThreads {
             core_thread: c,
+            clientstorage_thread: u,
             storage_thread: s,
             idb_thread: i,
         }
@@ -444,6 +449,16 @@ impl IpcSend<CoreResourceMsg> for ResourceThreads {
 
     fn sender(&self) -> IpcSender<CoreResourceMsg> {
         self.core_thread.clone()
+    }
+}
+
+impl IpcSend<ClientStorageThreadMsg> for ResourceThreads {
+    fn send(&self, msg: ClientStorageThreadMsg) -> IpcSendResult {
+        self.clientstorage_thread.send(msg)
+    }
+
+    fn sender(&self) -> IpcSender<ClientStorageThreadMsg> {
+        self.clientstorage_thread.clone()
     }
 }
 

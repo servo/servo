@@ -46,10 +46,15 @@ mod font_context {
         fn new() -> TestContext {
             let (system_font_service, system_font_service_proxy) = MockSystemFontService::spawn();
             let (core_sender, _) = ipc::channel().unwrap();
+            let (clientstorage_sender, _) = ipc::channel().unwrap();
             let (storage_sender, _) = ipc::channel().unwrap();
             let (indexeddb_sender, _) = ipc::channel().unwrap();
-            let mock_resource_threads =
-                ResourceThreads::new(core_sender, storage_sender, indexeddb_sender);
+            let mock_resource_threads = ResourceThreads::new(
+                core_sender,
+                clientstorage_sender,
+                storage_sender,
+                indexeddb_sender,
+            );
             let mock_compositor_api = CrossProcessCompositorApi::dummy();
 
             let proxy_clone = Arc::new(system_font_service_proxy.to_sender().to_proxy());

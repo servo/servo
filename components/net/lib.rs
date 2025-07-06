@@ -5,6 +5,7 @@
 #![deny(unsafe_code)]
 
 pub mod async_runtime;
+pub mod clientstorage;
 pub mod connector;
 pub mod cookie;
 pub mod cookie_storage;
