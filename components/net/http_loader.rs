@@ -35,7 +35,6 @@ use hyper::Response as HyperResponse;
 use hyper::body::{Bytes, Frame};
 use hyper::ext::ReasonPhrase;
 use hyper::header::{HeaderName, TRANSFER_ENCODING};
-use hyper_serde::Serde;
 use hyper_util::client::legacy::Client;
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
@@ -53,8 +52,8 @@ use net_traits::request::{
 };
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use net_traits::{
-    CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, FetchMetadata, NetworkError, RedirectEndValue,
-    RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
+    CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, NetworkError, RedirectEndValue, RedirectStartValue,
+    ReferrerPolicy, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
 };
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
@@ -422,7 +421,7 @@ fn prepare_devtools_request(
     ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event)
 }
 
-fn send_request_to_devtools(
+pub fn send_request_to_devtools(
     msg: ChromeToDevtoolsControlMsg,
     devtools_chan: &Sender<DevtoolsControlMsg>,
 ) {
@@ -431,7 +430,7 @@ fn send_request_to_devtools(
         .unwrap();
 }
 
-fn send_response_to_devtools(
+pub fn send_response_to_devtools(
     devtools_chan: &Sender<DevtoolsControlMsg>,
     request_id: String,
     headers: Option<HeaderMap>,
@@ -1919,7 +1918,6 @@ async fn http_network_fetch(
         browsing_context_id,
     );
 
-    let pipeline_id = request.pipeline_id;
     // This will only get the headers, the body is read later
     let (res, msg) = match response_future.await {
         Ok(wrapped_response) => wrapped_response,
@@ -1995,17 +1993,8 @@ async fn http_network_fetch(
     // We're about to spawn a future to be waited on here
     let (done_sender, done_receiver) = unbounded_channel();
     *done_chan = Some((done_sender.clone(), done_receiver));
-    let meta = match response
-        .metadata()
-        .expect("Response metadata should exist at this stage")
-    {
-        FetchMetadata::Unfiltered(m) => m,
-        FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
-    };
 
     let devtools_sender = context.devtools_chan.clone();
-    let meta_status = meta.status;
-    let meta_headers = meta.headers;
     let cancellation_listener = context.cancellation_listener.clone();
     if cancellation_listener.cancelled() {
         return Response::network_error(NetworkError::Internal("Fetch aborted".into()));
@@ -2018,19 +2007,6 @@ async fn http_network_fetch(
         let sender = sender.lock().unwrap();
         if let Some(m) = msg {
             send_request_to_devtools(m, &sender);
-        }
-
-        // --- Tell devtools that we got a response
-        // Send an HttpResponse message to devtools with the corresponding request_id
-        if let (Some(pipeline_id), Some(browsing_context_id)) = (pipeline_id, browsing_context_id) {
-            send_response_to_devtools(
-                &sender,
-                request_id.unwrap(),
-                meta_headers.map(Serde::into_inner),
-                meta_status,
-                pipeline_id,
-                browsing_context_id,
-            );
         }
     }
 
