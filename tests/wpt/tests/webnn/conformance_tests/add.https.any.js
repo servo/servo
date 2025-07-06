@@ -12,14 +12,6 @@
 // Compute the element-wise binary addition of the two input tensors.
 // MLOperand add(MLOperand a, MLOperand b);
 
-
-const getAddPrecisionTolerance = (graphResources) => {
-  const toleranceValueDict = {float32: 1, float16: 1};
-  const expectedDataType =
-      getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
-  return {metricType: 'ULP', value: toleranceValueDict[expectedDataType]};
-};
-
 const addTests = [
   {
     'name': 'add float32 1D constant tensors',
@@ -1008,8 +1000,7 @@ const addTests = [
 
 if (navigator.ml) {
   addTests.forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getAddPrecisionTolerance, test);
+    webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

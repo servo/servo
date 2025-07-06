@@ -25,7 +25,7 @@
 
   promise_test(async (t) => {
     const iframe = await attachIframe();
-    t.add_cleanup(makeCleanup(iframe));
+    t.add_cleanup(makeCleanup({ iframe }));
     const iframeWindow = iframe.contentWindow;
     await test_driver.bless("request full screen");
     await document.documentElement.requestFullscreen();

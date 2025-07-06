@@ -117,8 +117,14 @@ return promise_test(async (t) => {
   assert_implements(
       navigator.bluetooth.test, 'missing navigator.bluetooth.test');
   await test_driver.bidi.bluetooth.request_device_prompt_updated.subscribe();
-
-  await test_function(t);
+  await test_driver.bidi.bluetooth.gatt_connection_attempted.subscribe();
+  await test_driver.bidi.bluetooth.characteristic_event_generated.subscribe();
+  await test_driver.bidi.bluetooth.descriptor_event_generated.subscribe();
+  try {
+    await test_function(t);
+  } finally {
+    await test_driver.bidi.bluetooth.disable_simulation();
+  }
 }, name, properties);
 }
 
@@ -179,7 +185,7 @@ function selectFirstDeviceOnDevicePromptUpdated() {
   }
   test_driver.bidi.bluetooth.request_device_prompt_updated.once().then(
       (promptEvent) => {
-        assert_greater_than_equal(promptEvent.devices.length, 0);
+        assert_greater_than(promptEvent.devices.length, 0);
         return test_driver.bidi.bluetooth.handle_request_device_prompt({
           prompt: promptEvent.prompt,
           accept: true,
@@ -194,6 +200,7 @@ function selectFirstDeviceOnDevicePromptUpdated() {
  *     successful or rejects with an error.
  */
 function requestDeviceWithTrustedClick() {
+  selectFirstDeviceOnDevicePromptUpdated();
   let args = arguments;
   return callWithTrustedClick(
       () => navigator.bluetooth.requestDevice.apply(navigator.bluetooth, args));

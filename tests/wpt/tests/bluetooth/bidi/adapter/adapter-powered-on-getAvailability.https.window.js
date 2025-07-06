@@ -2,6 +2,7 @@
 // META: script=/resources/testdriver-vendor.js
 // META: script=/bluetooth/resources/bluetooth-test.js
 // META: script=/bluetooth/resources/bluetooth-fake-devices.js
+// META: timeout=long
 'use strict';
 const test_desc = 'getAvailability() resolves with true if the Bluetooth ' +
     'radio is powered on and the platform supports Bluetooth LE.';

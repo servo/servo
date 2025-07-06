@@ -56,8 +56,13 @@ def test_subprocess_exit(server_subprocesses, tempfile_name):
         # constructor that is also used to create the long-running processes
         # which are relevant to this functionality. Disable the check so that
         # the constructor is only used to create relevant processes.
+        config = {
+            "browser_host": "localhost",
+            "alternate_hosts": {"alt": "127.0.0.1"},
+            "check_subdomains": False,
+        }
         with open(tempfile_name, 'w') as handle:
-            json.dump({"check_subdomains": False, "bind_address": False}, handle)
+            json.dump(config, handle)
 
         # The `logger` module from the wptserver package uses a singleton
         # pattern which resists testing. In order to avoid conflicting with

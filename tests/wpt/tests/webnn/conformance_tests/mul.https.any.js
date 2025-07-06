@@ -12,14 +12,6 @@
 // Compute the element-wise binary multiplication of the two input tensors.
 // MLOperand mul(MLOperand a, MLOperand b);
 
-
-const getMulPrecisionTolerance = (graphResources) => {
-  const toleranceValueDict = {float32: 1, float16: 1};
-  const expectedDataType =
-      getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
-  return {metricType: 'ULP', value: toleranceValueDict[expectedDataType]};
-};
-
 const mulTests = [
   {
     'name': 'mul float32 1D constant tensors',
@@ -924,8 +916,7 @@ const mulTests = [
 
 if (navigator.ml) {
   mulTests.forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getMulPrecisionTolerance, test);
+    webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

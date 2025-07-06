@@ -2,6 +2,7 @@
 // META: script=/resources/testdriver-vendor.js
 // META: script=/bluetooth/resources/bluetooth-test.js
 // META: script=/bluetooth/resources/bluetooth-fake-devices.js
+// META: timeout=long
 const test_desc =
     'A device with name and no UUIDs nearby. Should be found if ' +
     'acceptAllDevices is true.';

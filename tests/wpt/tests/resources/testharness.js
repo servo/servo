@@ -1132,7 +1132,7 @@
      *
      * Typically this function is called implicitly on page load; it's
      * only necessary for users to call this when either the
-     * ``explicit_done`` or ``single_page`` properties have been set
+     * ``explicit_done`` or ``single_test`` properties have been set
      * via the :js:func:`setup` function.
      *
      * For single page tests this marks the test as complete and sets its status.

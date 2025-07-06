@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<title>Node moves to another document</title>
+<link rel="author" title="Dominic Farolino" href="mailto:dom@chromium.org">
+<link rel="help" href="https://crbug.com/40277823">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<script src="/common/get-host-info.sub.js"></script>
+
+<body>
+<script>
+// This is a regression test for a Chromium bug: https://crbug.com/40277823.
+// The test is reproducible by:
+//   1. Creating a node with an event listener that the compositor cares about,
+//      in a different local root than this one.
+//   2. Moving the node to *this* local root, which is different from the one it
+//      was created in.
+//   3. Clicking the node, or otherwise firing an event at it for the event that
+//      the compositor cares about. The node's current local root (this
+//      document)'s EventHandlerRegistry should know that a node with this kind
+//      event listener has been added to this local root, and the compositor
+//      shouldn't be able to fast-path around the event. The event should invoke
+//      the event listener. In Chromium before https://crrev.com/c/6674259, the
+//      node's new local root's EventHandlerRegistry would not be updated to
+//      learn about the node's event listener, and when the event comes in, the
+//      compositor would fast-path around it and fail to fire the listener. This
+//      test ensures that the listener is fired, even after the cross-local-root
+//      adoption.
+promise_test(async t => {
+  const crossOriginChild = document.createElement('iframe');
+  const crossOriginChildURL =
+      new URL('resources/cross-origin-middle-frame-2.html',
+      get_host_info().HTTP_REMOTE_ORIGIN + location.pathname);
+  crossOriginChild.src = crossOriginChildURL;
+
+  const grandchildLoadPromise = new Promise(resolve => {
+    window.onmessage = e => {
+      if (e.data === 'grandchild loaded') {
+        resolve();
+      }
+    }
+  });
+  document.body.append(crossOriginChild);
+  await grandchildLoadPromise;
+
+  const sameOriginGrandchild = window.frames[0][0];
+  assert_not_equals(sameOriginGrandchild.document, null,
+      "same-origin grandchild frame exists");
+
+  const grandchildButton = sameOriginGrandchild.button;
+  assert_not_equals(grandchildButton, null);
+
+  // After this current document adopts the node with an event listener from a
+  // different local frame root, the event listener should still function on the
+  // adopted node.
+  document.body.append(grandchildButton);
+  await test_driver.click(grandchildButton);
+  assert_array_equals(sameOriginGrandchild.events, ['pointerdown'],
+      "the document now hosting the adopted node recognizes the pointerdown " +
+      "event handler on the adopted node, and allows it to fire after " +
+      "adoption");
+}, "Event handler-bearing node moved across local roots and its event " +
+   "listeners still work");
+</script>
+</body>

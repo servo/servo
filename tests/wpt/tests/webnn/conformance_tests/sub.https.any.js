@@ -12,23 +12,6 @@
 // Compute the element-wise binary subtraction of the two input tensors.
 // MLOperand sub(MLOperand a, MLOperand b);
 
-
-const getSubPrecisionTolerance = (graphResources) => {
-  const toleranceValueDict = {
-    float32: 1,
-    float16: 1,
-    int8: 0,
-    uint8: 0,
-    int32: 0,
-    uint32: 0,
-    int64: 0,
-    uint64: 0
-  };
-  const expectedDataType =
-      getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
-  return {metricType: 'ULP', value: toleranceValueDict[expectedDataType]};
-};
-
 const subTests = [
   {
     'name': 'sub float32 1D constant tensors',
@@ -1132,8 +1115,7 @@ const subTests = [
 
 if (navigator.ml) {
   subTests.forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getSubPrecisionTolerance, test);
+    webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

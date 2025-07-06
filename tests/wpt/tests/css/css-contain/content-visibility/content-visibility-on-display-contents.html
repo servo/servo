@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#content-visibility">
+<meta name="assert" content="content-visibility on display contents element does not apply since size containment does not apply to it">
+<body>
+<p>Test passes if there is a filled green square.</p>
+<div style="display: contents; content-visibility: hidden;">
+  <div>
+    <div style="width: 100px; height: 100px; background-color: green;"></div>
+  </div>
+</div>
+</body>
+</html>

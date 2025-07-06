@@ -1,165 +1,150 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>
-      audionode-connect-method-chaining.html
-    </title>
+    <title>AudioNode.connect() Method Chaining and Validation Tests</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src="/webaudio/resources/audit-util.js"></script>
-    <script src="/webaudio/resources/audit.js"></script>
   </head>
   <body>
-    <script id="layout-test-code">
-      // AudioNode dictionary with associated arguments.
-      let nodeDictionary = [
-        {name: 'Analyser'}, {name: 'BiquadFilter'}, {name: 'BufferSource'},
-        {name: 'ChannelMerger', args: [6]},
-        {name: 'ChannelSplitter', args: [6]}, {name: 'Convolver'},
-        {name: 'Delay', args: []}, {name: 'DynamicsCompressor'}, {name: 'Gain'},
-        {name: 'Oscillator'}, {name: 'Panner'},
-        {name: 'ScriptProcessor', args: [512, 1, 1]}, {name: 'StereoPanner'},
-        {name: 'WaveShaper'}
+    <script>
+      // Dictionary of AudioNode types and their constructor arguments
+      const audioNodeTypesToTest = [
+        { name: 'Analyser' }, { name: 'BiquadFilter' },
+        { name: 'BufferSource' }, { name: 'ChannelMerger', args: [6] },
+        { name: 'ChannelSplitter', args: [6] }, { name: 'Convolver' },
+        { name: 'Delay' }, { name: 'DynamicsCompressor' }, { name: 'Gain' },
+        { name: 'Oscillator' }, { name: 'Panner' },
+        { name: 'ScriptProcessor', args: [512, 1, 1] },
+        { name: 'StereoPanner' }, { name: 'WaveShaper' }
       ];
 
-
-      function verifyReturnedNode(should, config) {
-        should(
-            config.destination === config.returned,
-            'The return value of ' + config.desc + ' matches the destination ' +
-                config.returned.constructor.name)
-            .beEqualTo(true);
+      // Verifies that AudioNode.connect() returns the destination node.
+      function verifyConnectReturnValue(
+          t, { sourceNode, destinationNode, returnedValue, description }) {
+            assert_equals(
+              returnedValue,
+              destinationNode,
+              `${description} should return the destination node`
+            );
       }
 
-      // Test utility for batch method checking: in order to test 3 method
-      // signatures, so we create 3 dummy destinations.
-      // 1) .connect(GainNode)
-      // 2) .connect(BiquadFilterNode, output)
-      // 3) .connect(ChannelMergerNode, output, input)
-      function testConnectMethod(context, should, options) {
-        let source =
-            context['create' + options.name].apply(context, options.args);
-        let sourceName = source.constructor.name;
+      // Creates a source node and tests .connect() chaining with:
+      //  - a simple GainNode
+      //  - a BiquadFilterNode with output index
+      //  - a ChannelMergerNode with both output and input index
+      function testConnectChainingForNodeType(t, audioContext, nodeInfo) {
+        const sourceNode =
+            audioContext[`create${nodeInfo.name}`].apply(audioContext,
+                nodeInfo.args || []);
+        const sourceTypeName = sourceNode.constructor.name;
 
-        let destination1 = context.createGain();
-        verifyReturnedNode(should, {
-          source: source,
-          destination: destination1,
-          returned: source.connect(destination1),
-          desc: sourceName + '.connect(' + destination1.constructor.name + ')'
+        const gainNode = audioContext.createGain();
+        verifyConnectReturnValue(t, {
+          sourceNode,
+          destinationNode: gainNode,
+          returnedValue: sourceNode.connect(gainNode),
+          description: `${sourceTypeName}.connect(GainNode)`
         });
 
-        let destination2 = context.createBiquadFilter();
-        verifyReturnedNode(should, {
-          source: source,
-          destination: destination2,
-          returned: source.connect(destination2, 0),
-          desc:
-              sourceName + '.connect(' + destination2.constructor.name + ', 0)'
+        const biquadNode = audioContext.createBiquadFilter();
+        verifyConnectReturnValue(t, {
+          sourceNode,
+          destinationNode: biquadNode,
+          returnedValue: sourceNode.connect(biquadNode, 0),
+          description: `${sourceTypeName}.connect(BiquadFilterNode, 0)`
         });
 
-        let destination3 = context.createChannelMerger();
-        verifyReturnedNode(should, {
-          source: source,
-          destination: destination3,
-          returned: source.connect(destination3, 0, 1),
-          desc: sourceName + '.connect(' + destination3.constructor.name +
-              ', 0, 1)'
+        const channelMergerNode = audioContext.createChannelMerger();
+        verifyConnectReturnValue(t, {
+          sourceNode,
+          destinationNode: channelMergerNode,
+          returnedValue: sourceNode.connect(channelMergerNode, 0, 1),
+          description: `${sourceTypeName}.connect(ChannelMergerNode, 0, 1)`
         });
       }
 
+      test(t => {
+        const audioContext = new AudioContext();
 
-      let audit = Audit.createTaskRunner();
+        for (const nodeInfo of audioNodeTypesToTest) {
+          testConnectChainingForNodeType(t, audioContext, nodeInfo);
+        }
+      }, 'Verify connect() method chaining for common AudioNode types ' +
+          'returns destination');
 
-      // Task: testing entries from the dictionary.
-      audit.define('from-dictionary', (task, should) => {
-        let context = new AudioContext();
+      test(t => {
+        const audioContext = new AudioContext();
 
-        for (let i = 0; i < nodeDictionary.length; i++)
-          testConnectMethod(context, should, nodeDictionary[i]);
+        const audioElement = document.createElement('audio');
+        testConnectChainingForNodeType(t, audioContext, {
+          name: 'MediaElementSource',
+          args: [audioElement]
+        });
 
-        task.done();
-      });
+        const mediaStreamDestination =
+            audioContext.createMediaStreamDestination();
+        const mediaStream = mediaStreamDestination.stream;
 
-      // Task: testing Media* nodes.
-      audit.define('media-group', (task, should) => {
-        let context = new AudioContext();
+        testConnectChainingForNodeType(t, audioContext, {
+          name: 'MediaStreamSource',
+          args: [mediaStream]
+        });
+      }, 'Verify connect() method chaining for MediaElementSourceNode ' +
+          'and MediaStreamSourceNode');
 
-        // Test MediaElementSourceNode needs an <audio> element.
-        let mediaElement = document.createElement('audio');
-        testConnectMethod(
-            context, should,
-            {name: 'MediaElementSource', args: [mediaElement]});
+      test(t => {
+        const contextA = new AudioContext();
+        const contextB = new AudioContext();
+        const gainA1 = contextA.createGain();
+        const gainA2 = contextA.createGain();
 
-        // MediaStreamAudioDestinationNode has no output so it connect method
-        // chaining isn't possible.
+        assert_throws_dom(
+          'IndexSizeError',
+          () => {
+            gainA1.connect(gainA2, 1).connect(contextA.destination);
+          },
+          'Connecting to an invalid output index should throw IndexSizeError'
+        );
 
-        // MediaStreamSourceNode requires 'stream' object to be constructed,
-        // which is a part of MediaStreamDestinationNode.
-        let streamDestination = context.createMediaStreamDestination();
-        let stream = streamDestination.stream;
-        testConnectMethod(
-            context, should, {name: 'MediaStreamSource', args: [stream]});
+        assert_throws_dom(
+          'InvalidAccessError',
+          () => {
+            gainA1.connect(gainA2).connect(contextB.destination);
+          },
+          'Connecting nodes across different AudioContexts should ' +
+              'throw InvalidAccessError'
+        );
+      }, 'Test exceptions thrown by invalid connect() chaining');
 
-        task.done();
-      });
+      promise_test(async t => {
+        const context = new OfflineAudioContext(1, 128, 8000);
 
-      // Task: test the exception thrown by invalid operation.
-      audit.define('invalid-operation', (task, should) => {
-        let contextA = new AudioContext();
-        let contextB = new AudioContext();
-        let gain1 = contextA.createGain();
-        let gain2 = contextA.createGain();
+        const constantBuffer = createConstantBuffer(context, 1, 1.0);
+        const bufferSource = context.createBufferSource();
+        bufferSource.buffer = constantBuffer;
+        bufferSource.loop = true;
 
-        // Test if the first connection throws correctly. The first gain node
-        // does not have the second output, so it should throw.
-        should(function() {
-          gain1.connect(gain2, 1).connect(contextA.destination);
-        }, 'Connecting with an invalid output').throw(DOMException, 'IndexSizeError');
+        const gainNode1 = context.createGain();
+        gainNode1.gain.value = 0.5;
 
-        // Test if the second connection throws correctly. The contextB's
-        // destination is not compatible with the nodes from contextA, thus the
-        // first connection succeeds but the second one should throw.
-        should(
-            function() {
-              gain1.connect(gain2).connect(contextB.destination);
-            },
-            'Connecting to a node from the different context')
-            .throw(DOMException, 'InvalidAccessError');
+        const gainNode2 = context.createGain();
+        gainNode2.gain.value = 0.25;
+        bufferSource.connect(gainNode1)
+            .connect(gainNode2)
+                .connect(context.destination);
+        bufferSource.start();
 
-        task.done();
-      });
+        const renderedBuffer = await context.startRendering();
 
-      // Task: verify if the method chaining actually works.
-      audit.define('verification', (task, should) => {
-        // We pick the lowest sample rate allowed to run the test efficiently.
-        let context = new OfflineAudioContext(1, 128, 8000);
-
-        let constantBuffer = createConstantBuffer(context, 1, 1.0);
-
-        let source = context.createBufferSource();
-        source.buffer = constantBuffer;
-        source.loop = true;
-
-        let gain1 = context.createGain();
-        gain1.gain.value = 0.5;
-        let gain2 = context.createGain();
-        gain2.gain.value = 0.25;
-
-        source.connect(gain1).connect(gain2).connect(context.destination);
-        source.start();
-
-        context.startRendering()
-            .then(function(buffer) {
-              should(
-                  buffer.getChannelData(0),
-                  'The output of chained connection of gain nodes')
-                  .beConstantValueOf(0.125);
-            })
-            .then(() => task.done());
-      });
-
-      audit.run();
+        assert_array_approx_equals(
+          renderedBuffer.getChannelData(0),
+          new Float32Array(renderedBuffer.length).fill(0.125),
+          1e-6,
+          'Output of chained gain nodes should be input * 0.5 * 0.25 = 0.125'
+        );
+      }, 'Test correct signal flow and output value after chaining ' +
+          '.connect() on gain nodes');
     </script>
   </body>
 </html>
