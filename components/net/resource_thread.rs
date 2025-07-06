@@ -106,9 +106,9 @@ pub fn new_resource_threads(
         ignore_certificate_errors,
         protocols,
     );
-    let idb: IpcSender<IndexedDBThreadMsg> = IndexedDBThreadFactory::new(config_dir.clone());
     let storage: IpcSender<StorageThreadMsg> =
-        StorageThreadFactory::new(config_dir, mem_profiler_chan);
+        StorageThreadFactory::new(config_dir.clone(), mem_profiler_chan);
+    let idb: IpcSender<IndexedDBThreadMsg> = IndexedDBThreadFactory::new(config_dir);
     (
         ResourceThreads::new(public_core, storage.clone(), idb.clone()),
         ResourceThreads::new(private_core, storage, idb),

@@ -447,16 +447,6 @@ impl IpcSend<CoreResourceMsg> for ResourceThreads {
     }
 }
 
-impl IpcSend<IndexedDBThreadMsg> for ResourceThreads {
-    fn send(&self, msg: IndexedDBThreadMsg) -> IpcSendResult {
-        self.idb_thread.send(msg)
-    }
-
-    fn sender(&self) -> IpcSender<IndexedDBThreadMsg> {
-        self.idb_thread.clone()
-    }
-}
-
 impl IpcSend<StorageThreadMsg> for ResourceThreads {
     fn send(&self, msg: StorageThreadMsg) -> IpcSendResult {
         self.storage_thread.send(msg)
@@ -464,6 +454,16 @@ impl IpcSend<StorageThreadMsg> for ResourceThreads {
 
     fn sender(&self) -> IpcSender<StorageThreadMsg> {
         self.storage_thread.clone()
+    }
+}
+
+impl IpcSend<IndexedDBThreadMsg> for ResourceThreads {
+    fn send(&self, msg: IndexedDBThreadMsg) -> IpcSendResult {
+        self.idb_thread.send(msg)
+    }
+
+    fn sender(&self) -> IpcSender<IndexedDBThreadMsg> {
+        self.idb_thread.clone()
     }
 }
 
