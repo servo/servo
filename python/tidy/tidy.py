@@ -794,7 +794,12 @@ def lint_wpt_test_files() -> Iterator[Tuple[str, int, str]]:
     # Override the logging function so that we can collect errors from
     # the lint script, which doesn't allow configuration of the output.
     messages: List[str] = []
-    lint.logger.error = lambda message: messages.append(message)  # type: ignore
+    assert lint.logger is not None
+
+    def fake_error(msg: object, *args: object, **kwargs: object) -> None:
+        messages.append(str(msg))
+
+    lint.logger.error = fake_error
 
     # We do not lint all WPT-like tests because they do not all currently have
     # lint.ignore files.

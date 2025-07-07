@@ -4,9 +4,9 @@
 
 import hashlib
 import os
+import runpy
 import subprocess
 import sys
-import runpy
 
 SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
 TOP_DIR = os.path.abspath(os.path.join(SCRIPT_PATH, ".."))

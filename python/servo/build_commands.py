@@ -8,6 +8,7 @@
 # except according to those terms.
 
 import datetime
+import importlib
 import os
 import os.path as path
 import pathlib
@@ -16,7 +17,7 @@ import stat
 import subprocess
 import sys
 from time import time
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from mach.decorators import (
     Command,
@@ -175,7 +176,7 @@ class MachCommands(CommandBase):
                 # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
                 # like Instruments.app.
                 try:
-                    import Cocoa  # pyrefly: ignore
+                    Cocoa = cast(Any, importlib.import_module("Cocoa"))
 
                     icon_path = path.join(self.get_top_dir(), "resources", "servo_1024.png")
                     icon = Cocoa.NSImage.alloc().initWithContentsOfFile_(icon_path)

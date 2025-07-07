@@ -19,6 +19,7 @@ import shutil
 import subprocess
 import sys
 import textwrap
+from typing import Any
 
 import tidy
 import wpt
@@ -342,9 +343,8 @@ class MachCommands(CommandBase):
             # For the `import WebIDL` in runtests.py
             sys.path.insert(0, test_file_dir)
             run_file = path.abspath(path.join(test_file_dir, "runtests.py"))
-            run_globals = {"__file__": run_file}
+            run_globals: dict[str, Any] = {"__file__": run_file}
             exec(compile(open(run_file).read(), run_file, "exec"), run_globals)
-            # pyrefly: ignore  # not-callable
             passed = run_globals["run_tests"](tests, verbose or very_verbose) and passed
 
         return 0 if passed else 1
@@ -679,9 +679,8 @@ class MachCommands(CommandBase):
         run_file = path.abspath(
             path.join(PROJECT_TOPLEVEL_PATH, "components", "net", "tests", "cookie_http_state_utils.py")
         )
-        run_globals = {"__file__": run_file}
+        run_globals: dict[str, Any] = {"__file__": run_file}
         exec(compile(open(run_file).read(), run_file, "exec"), run_globals)
-        # pyrefly: ignore  # not-callable
         return run_globals["update_test_file"](cache_dir)
 
     @Command(
@@ -697,9 +696,8 @@ class MachCommands(CommandBase):
         if os.path.exists(dest_folder):
             shutil.rmtree(dest_folder)
 
-        run_globals = {"__file__": run_file}
+        run_globals: dict[str, Any] = {"__file__": run_file}
         exec(compile(open(run_file).read(), run_file, "exec"), run_globals)
-        # pyrefly: ignore  # not-callable
         return run_globals["update_conformance"](version, dest_folder, None, patches_dir)
 
     @Command("update-webgpu", description="Update the WebGPU conformance test suite", category="testing")
