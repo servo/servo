@@ -263,6 +263,8 @@ class CommandBase(object):
 
     This mostly handles configuration management, such as .servobuild."""
 
+    target: BuildTarget | OpenHarmonyTarget | AndroidTarget
+
     def __init__(self, context):
         self.context = context
         self.enable_media = False

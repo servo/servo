@@ -29,7 +29,7 @@ from mach.decorators import (
 from mach.registrar import Registrar
 
 import servo.gstreamer
-from python.servo.platform.build_target import SanitizerKind
+from python.servo.platform.build_target import AndroidTarget, OpenHarmonyTarget, SanitizerKind
 from servo.command_base import (
     BuildNotFound,
     BuildType,
@@ -215,7 +215,7 @@ class PackageCommands(CommandBase):
                 hvigor_script = f"{env['HVIGOR_PATH']}/node_modules/@ohos/hvigor/bin/hvigor.js"
                 hvigor_command[0:0] = ["node", hvigor_script]
 
-            # pyrefly: ignore  # missing-attribute
+            assert isinstance(self.target, OpenHarmonyTarget)
             abi_string = self.target.abi_string()
             ohos_libs_dir = path.join(ohos_target_dir, "entry", "libs", abi_string)
             os.makedirs(ohos_libs_dir)
@@ -417,7 +417,7 @@ class PackageCommands(CommandBase):
                 return 1
 
         if self.is_android():
-            # pyrefly: ignore  # missing-attribute
+            assert isinstance(self.target, AndroidTarget)
             pkg_path = self.target.get_package_path(build_type.directory_name())
             exec_command = [self.android_adb_path(env)]
             if emulator and usb:
@@ -429,7 +429,7 @@ class PackageCommands(CommandBase):
                 exec_command += ["-d"]
             exec_command += ["install", "-r", pkg_path]
         elif self.is_openharmony():
-            # pyrefly: ignore  # missing-attribute
+            assert isinstance(self.target, OpenHarmonyTarget)
             pkg_path = self.target.get_package_path(build_type.directory_name(), flavor=flavor)
             hdc_path = path.join(env["OHOS_SDK_NATIVE"], "../", "toolchains", "hdc")
             exec_command = [hdc_path, "install", "-r", pkg_path]
