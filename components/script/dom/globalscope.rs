@@ -76,6 +76,7 @@ use crate::dom::bindings::codegen::Bindings::NotificationBinding::NotificationPe
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
     PermissionName, PermissionState,
 };
+use crate::dom::bindings::codegen::Bindings::ReportingObserverBinding::Report;
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
@@ -109,6 +110,7 @@ use crate::dom::performance::Performance;
 use crate::dom::performanceobserver::VALID_ENTRY_TYPES;
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::{CrossRealmTransformReadable, ReadableStream};
+use crate::dom::reportingobserver::ReportingObserver;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
@@ -3328,6 +3330,56 @@ impl GlobalScope {
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.TrustedTypes(can_gc);
+        }
+        unreachable!();
+    }
+
+    pub(crate) fn append_reporting_observer(&self, reporting_observer: &ReportingObserver) {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.append_reporting_observer(DomRoot::from_ref(reporting_observer));
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.append_reporting_observer(DomRoot::from_ref(reporting_observer));
+        }
+        unreachable!();
+    }
+
+    pub(crate) fn remove_reporting_observer(&self, reporting_observer: &ReportingObserver) {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.remove_reporting_observer(reporting_observer);
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.remove_reporting_observer(reporting_observer);
+        }
+        unreachable!();
+    }
+
+    pub(crate) fn registered_reporting_observers(&self) -> Vec<DomRoot<ReportingObserver>> {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.registered_reporting_observers();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.registered_reporting_observers();
+        }
+        unreachable!();
+    }
+
+    pub(crate) fn append_report(&self, report: Report) {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.append_report(report);
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.append_report(report);
+        }
+        unreachable!();
+    }
+
+    pub(crate) fn buffered_reports(&self) -> Vec<Report> {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.buffered_reports();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.buffered_reports();
         }
         unreachable!();
     }

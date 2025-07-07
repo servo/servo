@@ -7,11 +7,14 @@ use serde::Serialize;
 use servo_url::ServoUrl;
 
 use crate::conversions::Convert;
+use crate::dom::bindings::codegen::Bindings::CSPViolationReportBodyBinding::CSPViolationReportBody;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;
+use crate::dom::bindings::codegen::Bindings::ReportingObserverBinding::ReportBody;
 use crate::dom::bindings::codegen::Bindings::SecurityPolicyViolationEventBinding::{
     SecurityPolicyViolationEventDisposition, SecurityPolicyViolationEventInit,
 };
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::reportingobserver::ReportingObserver;
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -77,6 +80,28 @@ impl Convert<SecurityPolicyViolationEventInit> for SecurityPolicyViolationReport
     }
 }
 
+impl Convert<CSPViolationReportBody> for SecurityPolicyViolationReport {
+    fn convert(self) -> CSPViolationReportBody {
+        CSPViolationReportBody {
+            sample: self.sample.map(|s| s.into()),
+            blockedURL: Some(self.blocked_url.into()),
+            // TODO(37328): Why does /content-security-policy/reporting-api/
+            // report-to-directive-allowed-in-meta.https.sub.html expect this to be
+            // empty, yet the spec expects us to copy referrer from SecurityPolicyViolationReport
+            referrer: Some("".to_owned().into()),
+            statusCode: self.status_code,
+            documentURL: self.document_url.into(),
+            sourceFile: Some(self.source_file.into()),
+            effectiveDirective: self.effective_directive.into(),
+            lineNumber: Some(self.line_number),
+            columnNumber: Some(self.column_number),
+            originalPolicy: self.original_policy.into(),
+            disposition: self.disposition,
+            parent: ReportBody::empty(),
+        }
+    }
+}
+
 /// <https://www.w3.org/TR/CSP/#deprecated-serialize-violation>
 impl From<SecurityPolicyViolationReport> for CSPReportUriViolationReportBody {
     fn from(value: SecurityPolicyViolationReport) -> Self {
@@ -101,7 +126,7 @@ impl From<SecurityPolicyViolationReport> for CSPReportUriViolationReportBody {
             // Step 2.1. Set body["source-file'] to the result of
             // executing § 5.4 Strip URL for use in reports on violation’s source file.
             converted.source_file = ServoUrl::parse(&value.source_file)
-                .map(strip_url_for_reports)
+                .map(ReportingObserver::strip_url_for_reports)
                 .ok();
             // Step 2.2. Set body["line-number"] to violation’s line number.
             converted.line_number = Some(value.line_number);
@@ -187,15 +212,15 @@ impl CSPViolationReportBuilder {
         SecurityPolicyViolationReport {
             violated_directive: self.effective_directive.clone(),
             effective_directive: self.effective_directive.clone(),
-            document_url: strip_url_for_reports(global.get_url()),
+            document_url: ReportingObserver::strip_url_for_reports(global.get_url()),
             disposition: match self.report_only {
                 true => SecurityPolicyViolationEventDisposition::Report,
                 false => SecurityPolicyViolationEventDisposition::Enforce,
             },
             // https://w3c.github.io/webappsec-csp/#violation-referrer
             referrer: match global.get_referrer() {
-                Referrer::Client(url) => strip_url_for_reports(url),
-                Referrer::ReferrerUrl(url) => strip_url_for_reports(url),
+                Referrer::Client(url) => ReportingObserver::strip_url_for_reports(url),
+                Referrer::ReferrerUrl(url) => ReportingObserver::strip_url_for_reports(url),
                 _ => "".to_owned(),
             },
             sample: self.sample,
@@ -217,21 +242,4 @@ fn serialize_disposition<S: serde::Serializer>(
         SecurityPolicyViolationEventDisposition::Report => serializer.serialize_str("report"),
         SecurityPolicyViolationEventDisposition::Enforce => serializer.serialize_str("enforce"),
     }
-}
-
-/// <https://w3c.github.io/webappsec-csp/#strip-url-for-use-in-reports>
-fn strip_url_for_reports(mut url: ServoUrl) -> String {
-    let scheme = url.scheme();
-    // > Step 1: If url’s scheme is not an HTTP(S) scheme, then return url’s scheme.
-    if scheme != "https" && scheme != "http" {
-        return scheme.to_owned();
-    }
-    // > Step 2: Set url’s fragment to the empty string.
-    url.set_fragment(None);
-    // > Step 3: Set url’s username to the empty string.
-    let _ = url.set_username("");
-    // > Step 4: Set url’s password to the empty string.
-    let _ = url.set_password(None);
-    // > Step 5: Return the result of executing the URL serializer on url.
-    url.into_string()
 }
