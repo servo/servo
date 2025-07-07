@@ -628,7 +628,7 @@ class MachCommands(CommandBase):
 
         return check_call([run_file, "|".join(tests), bin_path, base_dir, bmf_output])
 
-    def speedometer_to_bmf(self, speedometer: str, bmf_output: str | None):
+    def speedometer_to_bmf(self, speedometer: dict[str, Any], bmf_output: str | None):
         output = dict()
 
         def parse_speedometer_result(result):
@@ -649,15 +649,17 @@ class MachCommands(CommandBase):
                     }
                 }
             else:
-                raise "Unknown unit!"
+                raise Exception("Unknown unit!")
 
             for child in result["children"]:
                 parse_speedometer_result(child)
 
         for v in speedometer.values():
             parse_speedometer_result(v)
-        with open(bmf_output, "w", encoding="utf-8") as f:
-            json.dump(output, f, indent=4)
+
+        if bmf_output is not None:
+            with open(bmf_output, "w", encoding="utf-8") as f:
+                json.dump(output, f, indent=4)
 
     def speedometer_runner(self, binary: str, bmf_output: str | None):
         speedometer = json.loads(
@@ -680,10 +682,9 @@ class MachCommands(CommandBase):
             self.speedometer_to_bmf(speedometer, bmf_output)
 
     def speedometer_runner_ohos(self, bmf_output: str | None):
-        hdc_path: str = shutil.which("hdc")
+        ohos_sdk_native = os.getenv("OHOS_SDK_NATIVE") or ""
+        hdc_path: str = shutil.which("hdc") or path.join(ohos_sdk_native, "../", "toolchains", "hdc")
         log_path: str = "/data/app/el2/100/base/org.servo.servo/cache/servo.log"
-        if hdc_path is None:
-            hdc_path = path.join(os.getenv("OHOS_SDK_NATIVE"), "../", "toolchains", "hdc")
 
         def read_log_file() -> str:
             subprocess.call([hdc_path, "file", "recv", log_path])
