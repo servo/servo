@@ -56,7 +56,7 @@ pub enum WebDriverCommandMsg {
     /// of a browsing context.
     ScriptCommand(BrowsingContextId, WebDriverScriptCommand),
     /// Act as if keys were pressed in the browsing context with the given ID.
-    SendKeys(BrowsingContextId, Vec<WebDriverInputEvent>),
+    SendKeys(WebViewId, Vec<WebDriverInputEvent>),
     /// Act as if keys were pressed or release in the browsing context with the given ID.
     KeyboardAction(
         WebViewId,

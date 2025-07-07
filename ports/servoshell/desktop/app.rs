@@ -16,6 +16,7 @@ use constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::unbounded;
 use euclid::{Point2D, Vector2D};
 use ipc_channel::ipc;
+use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use log::{info, trace, warn};
 use net::protocols::ProtocolRegistry;
 use servo::config::opts::Opts;
@@ -26,7 +27,7 @@ use servo::user_content_manager::{UserContentManager, UserScript};
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::DeviceIntSize;
 use servo::{
-    EventLoopWaker, InputEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent,
+    EventLoopWaker, ImeEvent, InputEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent,
     WebDriverCommandMsg, WebDriverScriptCommand, WebDriverUserPromptAction, WheelDelta, WheelEvent,
     WheelMode,
 };
@@ -476,8 +477,23 @@ impl App {
                     }
                 },
                 // Key events don't need hit test so can be forwarded to constellation for now
-                WebDriverCommandMsg::SendKeys(..) => {
-                    running_state.forward_webdriver_command(msg);
+                WebDriverCommandMsg::SendKeys(webview_id, cmd) => {
+                    for event in cmd {
+                        if let Some(webview) = running_state.webview_by_id(webview_id) {
+                            match event {
+                                WebDriverInputEvent::Keyboard(event) => {
+                                    webview.notify_input_event(InputEvent::Keyboard(
+                                        KeyboardEvent::new(event),
+                                    ));
+                                },
+                                WebDriverInputEvent::Composition(event) => {
+                                    webview.notify_input_event(InputEvent::Ime(
+                                        ImeEvent::Composition(event),
+                                    ));
+                                },
+                            }
+                        };
+                    }
                 },
                 WebDriverCommandMsg::KeyboardAction(webview_id, key_event, msg_id) => {
                     // TODO: We should do processing like in `headed_window:handle_keyboard_input`.
