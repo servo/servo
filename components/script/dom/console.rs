@@ -335,11 +335,20 @@ fn stringify_handle_values(messages: &[HandleValue]) -> DOMString {
 }
 
 fn console_message(global: &GlobalScope, message: &DOMString) {
-    with_stderr_lock(move || {
-        let prefix = global.current_group_label().unwrap_or_default();
-        let message = format!("{}{}", prefix, message);
-        println!("{}", message);
-    })
+    let prefix = global.current_group_label().unwrap_or_default();
+    let formatted_message = format!("{}{}", prefix, message);
+
+    #[cfg(any(target_os = "android", target_env = "ohos"))]
+    {
+        info!("{}", formatted_message);
+    }
+
+    #[cfg(not(any(target_os = "android", target_env = "ohos")))]
+    {
+        with_stderr_lock(move || {
+            println!("{}", formatted_message);
+        });
+    }
 }
 
 #[derive(Debug, Eq, PartialEq)]
