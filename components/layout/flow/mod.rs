@@ -32,7 +32,8 @@ use crate::formatting_contexts::{
     Baselines, IndependentFormattingContext, IndependentFormattingContextContents,
 };
 use crate::fragment_tree::{
-    BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment, FragmentFlags,
+    BaseFragmentInfo, BlockLevelLayoutInfo, BoxFragment, CollapsedBlockMargins, CollapsedMargin,
+    Fragment, FragmentFlags,
 };
 use crate::geom::{
     AuOrAuto, LazySize, LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalPoint,
@@ -1175,8 +1176,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         flow_layout.specific_layout_info,
     )
     .with_baselines(flow_layout.baselines)
-    .with_block_margins_collapsed_with_children(block_margins_collapsed_with_children)
-    .with_clearance(clearance)
+    .with_block_level_layout_info(block_margins_collapsed_with_children, clearance)
 }
 
 impl IndependentFormattingContext {
@@ -1288,7 +1288,7 @@ impl IndependentFormattingContext {
             layout.specific_layout_info,
         )
         .with_baselines(layout.baselines)
-        .with_block_margins_collapsed_with_children(block_margins_collapsed_with_children)
+        .with_block_level_layout_info(block_margins_collapsed_with_children, None)
     }
 
     /// Lay out a normal in flow non-replaced block that establishes an independent
@@ -1605,8 +1605,7 @@ impl IndependentFormattingContext {
             layout.specific_layout_info,
         )
         .with_baselines(layout.baselines)
-        .with_block_margins_collapsed_with_children(CollapsedBlockMargins::from_margin(&margin))
-        .with_clearance(clearance)
+        .with_block_level_layout_info(CollapsedBlockMargins::from_margin(&margin), clearance)
     }
 }
 
@@ -2076,7 +2075,13 @@ impl<'container> PlacementState<'container> {
                     return;
                 }
 
-                let fragment_block_margins = fragment.block_margins_collapsed_with_children();
+                let BlockLevelLayoutInfo {
+                    clearance,
+                    block_margins_collapsed_with_children: fragment_block_margins,
+                } = &**fragment
+                    .block_level_layout_info
+                    .as_ref()
+                    .expect("A block-level fragment should have a BlockLevelLayoutInfo.");
                 let mut fragment_block_size = fragment
                     .border_rect()
                     .size
@@ -2088,7 +2093,7 @@ impl<'container> PlacementState<'container> {
                 // > If the top and bottom margins of an element with clearance are adjoining,
                 // > its margins collapse with the adjoining margins of following siblings but that
                 // > resulting margin does not collapse with the bottom margin of the parent block.
-                if let Some(clearance) = fragment.clearance {
+                if let Some(clearance) = *clearance {
                     fragment_block_size += clearance;
                     // Margins can't be adjoining if they are separated by clearance.
                     // Setting `next_in_flow_margin_collapses_with_parent_start_margin` to false
