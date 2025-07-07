@@ -52,7 +52,7 @@ pub enum WebDriverCommandMsg {
     SendKeys(BrowsingContextId, Vec<WebDriverInputEvent>),
     /// Act as if keys were pressed or release in the browsing context with the given ID.
     KeyboardAction(
-        BrowsingContextId,
+        WebViewId,
         KeyboardEvent,
         // Should never be None.
         Option<WebDriverMessageId>,

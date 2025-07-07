@@ -311,11 +311,8 @@ impl Handler {
         // Step 12
         self.increment_num_pending_actions();
         let msg_id = self.current_action_id.get();
-        let cmd_msg = WebDriverCommandMsg::KeyboardAction(
-            self.session().unwrap().browsing_context_id,
-            keyboard_event,
-            msg_id,
-        );
+        let cmd_msg =
+            WebDriverCommandMsg::KeyboardAction(session.webview_id, keyboard_event, msg_id);
         let _ = self.send_message_to_embedder(cmd_msg);
     }
 
@@ -350,11 +347,8 @@ impl Handler {
             // Step 12
             self.increment_num_pending_actions();
             let msg_id = self.current_action_id.get();
-            let cmd_msg = WebDriverCommandMsg::KeyboardAction(
-                self.session().unwrap().browsing_context_id,
-                keyboard_event,
-                msg_id,
-            );
+            let cmd_msg =
+                WebDriverCommandMsg::KeyboardAction(session.webview_id, keyboard_event, msg_id);
             let _ = self.send_message_to_embedder(cmd_msg);
         }
     }
