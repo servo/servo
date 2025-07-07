@@ -673,8 +673,8 @@ impl HoistedAbsolutelyPositionedBox {
                 pbm.border.to_physical(containing_block_writing_mode),
                 margin.to_physical(containing_block_writing_mode),
                 None, /* clearance */
+                specific_layout_info,
             )
-            .with_specific_layout_info(specific_layout_info)
         };
 
         // This is an absolutely positioned element, which means it also establishes a

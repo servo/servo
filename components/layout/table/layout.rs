@@ -1788,8 +1788,8 @@ impl<'a> TableLayout<'a> {
                 self.pbm.border.to_physical(table_writing_mode),
                 PhysicalSides::zero(),
                 None, /* clearance */
-            )
-            .with_specific_layout_info(self.specific_layout_info_for_grid());
+                self.specific_layout_info_for_grid(),
+            );
         }
 
         let mut table_fragments = Vec::new();
@@ -1913,9 +1913,9 @@ impl<'a> TableLayout<'a> {
             self.pbm.border.to_physical(table_writing_mode),
             PhysicalSides::zero(),
             None, /* clearance */
+            self.specific_layout_info_for_grid(),
         )
         .with_baselines(baselines)
-        .with_specific_layout_info(self.specific_layout_info_for_grid())
     }
 
     fn specific_layout_info_for_grid(&mut self) -> Option<SpecificLayoutInfo> {
@@ -2359,6 +2359,7 @@ impl<'a> RowFragmentLayout<'a> {
             PhysicalSides::zero(), /* border */
             PhysicalSides::zero(), /* margin */
             None,                  /* clearance */
+            None,                  /* specific_layout_info */
         );
         row_fragment.set_does_not_paint_background();
 
@@ -2431,6 +2432,7 @@ impl RowGroupFragmentLayout {
             PhysicalSides::zero(), /* border */
             PhysicalSides::zero(), /* margin */
             None,                  /* clearance */
+            None,                  /* specific_layout_info */
         );
         row_group_fragment.set_does_not_paint_background();
 
@@ -2910,9 +2912,9 @@ impl TableSlotCell {
             layout.border.to_physical(table_style.writing_mode),
             PhysicalSides::zero(), /* margin */
             None,                  /* clearance */
+            specific_layout_info,
         )
         .with_baselines(layout.layout.baselines)
-        .with_specific_layout_info(specific_layout_info)
     }
 }
 

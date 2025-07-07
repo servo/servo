@@ -116,6 +116,7 @@ impl BoxFragment {
         border: PhysicalSides<Au>,
         margin: PhysicalSides<Au>,
         clearance: Option<Au>,
+        specific_layout_info: Option<SpecificLayoutInfo>,
     ) -> BoxFragment {
         BoxFragment {
             base: base_fragment_info.into(),
@@ -132,7 +133,7 @@ impl BoxFragment {
             scrollable_overflow: None,
             resolved_sticky_insets: AtomicRefCell::default(),
             background_mode: BackgroundMode::Normal,
-            specific_layout_info: None,
+            specific_layout_info,
         }
     }
 
@@ -183,11 +184,6 @@ impl BoxFragment {
 
     pub fn set_does_not_paint_background(&mut self) {
         self.background_mode = BackgroundMode::None;
-    }
-
-    pub fn with_specific_layout_info(mut self, info: Option<SpecificLayoutInfo>) -> Self {
-        self.specific_layout_info = info;
-        self
     }
 
     pub fn with_block_margins_collapsed_with_children(

@@ -460,6 +460,7 @@ impl LineItemLayout<'_, '_> {
             border.to_physical(ifc_writing_mode),
             margin.to_physical(ifc_writing_mode),
             None, /* clearance */
+            None, /* specific_layout_info */
         );
 
         let offset_from_parent_ifc = LogicalVec2 {
