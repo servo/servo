@@ -7,7 +7,7 @@
 use euclid::default::Size2D;
 use layout_api::HTMLCanvasData;
 use pixels::Snapshot;
-use script_bindings::root::Dom;
+use script_bindings::root::{Dom, DomRoot};
 use webrender_api::ImageKey;
 
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
@@ -38,6 +38,11 @@ pub(crate) trait CanvasContext {
     fn canvas(&self) -> Option<HTMLCanvasElementOrOffscreenCanvas>;
 
     fn resize(&self);
+
+    // Resets the backing bitmap (to transparent or opaque black) without the
+    // context state reset.
+    // Used by OffscreenCanvas.transferToImageBitmap.
+    fn reset_bitmap(&self);
 
     /// Returns none if area of canvas is zero.
     ///
@@ -81,7 +86,7 @@ pub(crate) trait CanvasContext {
 
 pub(crate) trait CanvasHelpers {
     fn size(&self) -> Size2D<u32>;
-    fn canvas(&self) -> Option<&HTMLCanvasElement>;
+    fn canvas(&self) -> Option<DomRoot<HTMLCanvasElement>>;
 }
 
 impl CanvasHelpers for HTMLCanvasElementOrOffscreenCanvas {
@@ -94,9 +99,9 @@ impl CanvasHelpers for HTMLCanvasElementOrOffscreenCanvas {
         }
     }
 
-    fn canvas(&self) -> Option<&HTMLCanvasElement> {
+    fn canvas(&self) -> Option<DomRoot<HTMLCanvasElement>> {
         match self {
-            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => Some(canvas),
+            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => Some(canvas.clone()),
             HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => canvas.placeholder(),
         }
     }
@@ -142,6 +147,21 @@ impl CanvasContext for RenderingContext {
             RenderingContext::WebGL2(context) => context.resize(),
             #[cfg(feature = "webgpu")]
             RenderingContext::WebGPU(context) => context.resize(),
+        }
+    }
+
+    fn reset_bitmap(&self) {
+        match self {
+            RenderingContext::Placeholder(offscreen_canvas) => {
+                if let Some(context) = offscreen_canvas.context() {
+                    context.reset_bitmap()
+                }
+            },
+            RenderingContext::Context2d(context) => context.reset_bitmap(),
+            RenderingContext::WebGL(context) => context.reset_bitmap(),
+            RenderingContext::WebGL2(context) => context.reset_bitmap(),
+            #[cfg(feature = "webgpu")]
+            RenderingContext::WebGPU(context) => context.reset_bitmap(),
         }
     }
 
@@ -254,6 +274,12 @@ impl CanvasContext for OffscreenRenderingContext {
     fn resize(&self) {
         match self {
             OffscreenRenderingContext::Context2d(context) => context.resize(),
+        }
+    }
+
+    fn reset_bitmap(&self) {
+        match self {
+            OffscreenRenderingContext::Context2d(context) => context.reset_bitmap(),
         }
     }
 

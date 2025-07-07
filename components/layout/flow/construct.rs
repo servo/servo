@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::convert::TryFrom;
 
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use servo_arc::Arc;
@@ -291,7 +290,7 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
 
         if inline_table {
             self.ensure_inline_formatting_context_builder()
-                .push_atomic(ifc);
+                .push_atomic(|| ArcRefCell::new(ifc), None);
         } else {
             let table_block = ArcRefCell::new(BlockLevelBox::Independent(ifc));
 
@@ -464,23 +463,32 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         contents: Contents,
         box_slot: BoxSlot<'dom>,
     ) {
-        let (DisplayInside::Flow { is_list_item }, false) =
-            (display_inside, contents.is_replaced())
-        else {
-            // If this inline element is an atomic, handle it and return.
-            let context = self.context;
-            let propagated_data = self.propagated_data;
-            let atomic = self.ensure_inline_formatting_context_builder().push_atomic(
-                IndependentFormattingContext::construct(
-                    context,
-                    info,
-                    display_inside,
-                    contents,
-                    propagated_data,
-                ),
-            );
-            box_slot.set(LayoutBox::InlineLevel(vec![atomic]));
-            return;
+        let (is_list_item, non_replaced_contents) = match (display_inside, contents) {
+            (
+                DisplayInside::Flow { is_list_item },
+                Contents::NonReplaced(non_replaced_contents),
+            ) => (is_list_item, non_replaced_contents),
+            (_, contents) => {
+                // If this inline element is an atomic, handle it and return.
+                let context = self.context;
+                let propagated_data = self.propagated_data;
+
+                let construction_callback = || {
+                    ArcRefCell::new(IndependentFormattingContext::construct(
+                        context,
+                        info,
+                        display_inside,
+                        contents,
+                        propagated_data,
+                    ))
+                };
+                let old_layout_box = box_slot.take_layout_box_if_undamaged(info.damage);
+                let atomic = self
+                    .ensure_inline_formatting_context_builder()
+                    .push_atomic(construction_callback, old_layout_box);
+                box_slot.set(LayoutBox::InlineLevel(vec![atomic]));
+                return;
+            },
         };
 
         // Otherwise, this is just a normal inline box. Whatever happened before, all we need to do
@@ -500,9 +508,7 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         }
 
         // `unwrap` doesn’t panic here because `is_replaced` returned `false`.
-        NonReplacedContents::try_from(contents)
-            .unwrap()
-            .traverse(self.context, info, self);
+        non_replaced_contents.traverse(self.context, info, self);
 
         self.finish_anonymous_table_if_needed();
 
@@ -598,13 +604,17 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
     ) {
         if let Some(builder) = self.inline_formatting_context_builder.as_mut() {
             if !builder.is_empty() {
-                let inline_level_box =
-                    builder.push_absolutely_positioned_box(AbsolutelyPositionedBox::construct(
+                let constructor = || {
+                    ArcRefCell::new(AbsolutelyPositionedBox::construct(
                         self.context,
                         info,
                         display_inside,
                         contents,
-                    ));
+                    ))
+                };
+                let old_layout_box = box_slot.take_layout_box_if_undamaged(info.damage);
+                let inline_level_box =
+                    builder.push_absolutely_positioned_box(constructor, old_layout_box);
                 box_slot.set(LayoutBox::InlineLevel(vec![inline_level_box]));
                 return;
             }
@@ -631,13 +641,17 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
     ) {
         if let Some(builder) = self.inline_formatting_context_builder.as_mut() {
             if !builder.is_empty() {
-                let inline_level_box = builder.push_float_box(FloatBox::construct(
-                    self.context,
-                    info,
-                    display_inside,
-                    contents,
-                    self.propagated_data,
-                ));
+                let constructor = || {
+                    ArcRefCell::new(FloatBox::construct(
+                        self.context,
+                        info,
+                        display_inside,
+                        contents,
+                        self.propagated_data,
+                    ))
+                };
+                let old_layout_box = box_slot.take_layout_box_if_undamaged(info.damage);
+                let inline_level_box = builder.push_float_box(constructor, old_layout_box);
                 box_slot.set(LayoutBox::InlineLevel(vec![inline_level_box]));
                 return;
             }
@@ -688,6 +702,21 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
 impl BlockLevelJob<'_> {
     fn finish(self, context: &LayoutContext) -> ArcRefCell<BlockLevelBox> {
         let info = &self.info;
+
+        // If this `BlockLevelBox` is undamaged and it has been laid out before, reuse
+        // the old one, while being sure to clear the layout cache.
+        if !info.damage.has_box_damage() {
+            if let Some(block_level_box) = match self.box_slot.slot.as_ref() {
+                Some(box_slot) => match &*box_slot.borrow() {
+                    Some(LayoutBox::BlockLevel(block_level_box)) => Some(block_level_box.clone()),
+                    _ => None,
+                },
+                None => None,
+            } {
+                return block_level_box;
+            }
+        }
+
         let block_level_box = match self.kind {
             BlockLevelCreator::SameFormattingContextBlock(intermediate_block_container) => {
                 let contents = intermediate_block_container.finish(context, info);

@@ -17,7 +17,6 @@ use style::logical_geometry::Direction;
 use style::properties::ComputedValues;
 use style::properties::longhands::align_items::computed_value::T as AlignItems;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
-use style::properties::longhands::flex_direction::computed_value::T as FlexDirection;
 use style::properties::longhands::flex_wrap::computed_value::T as FlexWrap;
 use style::values::computed::LengthPercentage;
 use style::values::generics::flex::GenericFlexBasis as FlexBasis;
@@ -640,9 +639,6 @@ impl FlexContainer {
         depends_on_block_constraints: bool,
         lazy_block_size: &LazySize,
     ) -> CacheableLayoutResult {
-        let depends_on_block_constraints =
-            depends_on_block_constraints || self.config.flex_direction == FlexDirection::Column;
-
         let mut flex_context = FlexContext {
             config: self.config.clone(),
             layout_context,
@@ -802,7 +798,7 @@ impl FlexContainer {
 
             if fallback_is_needed {
                 (resolved_align_content, is_safe) = match resolved_align_content {
-                    AlignFlags::STRETCH => (AlignFlags::FLEX_START, true),
+                    AlignFlags::STRETCH => (AlignFlags::FLEX_START, false),
                     AlignFlags::SPACE_BETWEEN => (AlignFlags::FLEX_START, true),
                     AlignFlags::SPACE_AROUND => (AlignFlags::CENTER, true),
                     AlignFlags::SPACE_EVENLY => (AlignFlags::CENTER, true),
@@ -1225,14 +1221,25 @@ impl InitialFlexLineLayout<'_> {
         );
 
         // https://drafts.csswg.org/css-flexbox/#algo-cross-item
-        let layout_results = items
-            .par_iter()
-            .zip(&item_used_main_sizes)
-            .map(|(item, used_main_size)| {
-                item.layout(*used_main_size, flex_context, None, None)
-                    .unwrap()
-            })
-            .collect::<Vec<_>>();
+        let layout_results: Vec<_> = if flex_context.layout_context.use_rayon {
+            items
+                .par_iter()
+                .zip(&item_used_main_sizes)
+                .map(|(item, used_main_size)| {
+                    item.layout(*used_main_size, flex_context, None, None)
+                        .unwrap()
+                })
+                .collect()
+        } else {
+            items
+                .iter()
+                .zip(&item_used_main_sizes)
+                .map(|(item, used_main_size)| {
+                    item.layout(*used_main_size, flex_context, None, None)
+                        .unwrap()
+                })
+                .collect()
+        };
 
         let items: Vec<_> = izip!(
             items.into_iter(),
@@ -2140,7 +2147,7 @@ impl FlexItem<'_> {
 
     #[inline]
     fn is_table(&self) -> bool {
-        self.box_.is_table()
+        self.box_.independent_formatting_context.is_table()
     }
 }
 
@@ -2218,12 +2225,30 @@ impl FlexItemBox {
                 .map(|v| Au::zero().max(v - pbm_auto_is_zero.cross)),
         };
 
-        // <https://drafts.csswg.org/css-flexbox/#definite-sizes>
-        // > If a single-line flex container has a definite cross size, the automatic preferred
-        // > outer cross size of any stretched flex items is the flex container’s inner cross size
-        // > (clamped to the flex item’s min and max cross size) and is considered definite.
-        let (preferred_cross_size, min_cross_size, max_cross_size) = content_cross_sizes
-            .resolve_each_extrinsic(Size::FitContent, Au::zero(), stretch_size.cross);
+        let is_table = self.independent_formatting_context.is_table();
+        let tentative_cross_content_size = if cross_axis_is_item_block_axis {
+            self.independent_formatting_context
+                .tentative_block_content_size(preferred_aspect_ratio)
+        } else {
+            None
+        };
+        let (preferred_cross_size, min_cross_size, max_cross_size) =
+            if let Some(cross_content_size) = tentative_cross_content_size {
+                let (preferred, min, max) = content_cross_sizes.resolve_each(
+                    Size::FitContent,
+                    Au::zero,
+                    stretch_size.cross,
+                    || cross_content_size,
+                    is_table,
+                );
+                (Some(preferred), min, max)
+            } else {
+                content_cross_sizes.resolve_each_extrinsic(
+                    Size::FitContent,
+                    Au::zero(),
+                    stretch_size.cross,
+                )
+            };
         let cross_size = SizeConstraint::new(preferred_cross_size, min_cross_size, max_cross_size);
 
         // <https://drafts.csswg.org/css-flexbox/#transferred-size-suggestion>
@@ -2348,7 +2373,7 @@ impl FlexItemBox {
             get_automatic_minimum_size,
             stretch_size.main,
             &main_content_sizes,
-            self.is_table(),
+            is_table,
         );
 
         FlexItem {
@@ -2691,14 +2716,6 @@ impl FlexItemBox {
                     IntrinsicSizingMode::Size => content_block_size(),
                 }
             },
-        }
-    }
-
-    #[inline]
-    fn is_table(&self) -> bool {
-        match &self.independent_formatting_context.contents {
-            IndependentFormattingContextContents::NonReplaced(content) => content.is_table(),
-            IndependentFormattingContextContents::Replaced(_) => false,
         }
     }
 }

@@ -1,10 +1,10 @@
 import pytest
-from tests.support.sync import AsyncPoll
-
 from webdriver.bidi.modules.script import ContextTarget
+from webdriver.error import TimeoutException
+
+from tests.bidi import wait_for_bidi_events
 from . import assert_file_dialog_opened_event
 
-from webdriver.error import TimeoutException
 
 pytestmark = pytest.mark.asyncio
 
@@ -36,9 +36,8 @@ async def test_unsubscribe(bidi_session, inline, top_context, wait_for_event,
         user_activation=True
     )
 
-    wait = AsyncPoll(bidi_session, timeout=0.5)
     with pytest.raises(TimeoutException):
-        await wait.until(lambda _: len(events) > 0)
+        await wait_for_bidi_events(bidi_session, events, 1, timeout=0.5)
 
     remove_listener()
 

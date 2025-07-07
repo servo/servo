@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SVG Content Sniffing Test</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <script>
+        test(() => {
+            const text = `<svg id="x" xmlns="http://www.w3.org/2000/svg"><image href="xyz" onerror="window.exploitRan = true;" /></svg>`;
+            const blob = new Blob([text], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            const attackerControlledString = url + "#x";
+
+            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
+
+            use.setAttribute('href', attackerControlledString);
+            svg.appendChild(use);
+
+            document.body.appendChild(svg);
+
+            assert_false(Boolean(window.exploitRan), "The SVG content was incorrectly executed.");
+        }, "SVG should not be executed when the content type is not valid");
+    </script>
+</body>
+</html>

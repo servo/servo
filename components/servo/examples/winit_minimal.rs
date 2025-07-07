@@ -1,5 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::RefCell;
 use std::error::Error;
@@ -7,8 +8,7 @@ use std::rc::Rc;
 
 use euclid::{Scale, Size2D};
 use servo::{
-    RenderingContext, Servo, ServoBuilder, TouchEventType, WebView, WebViewBuilder,
-    WindowRenderingContext,
+    RenderingContext, Servo, ServoBuilder, WebView, WebViewBuilder, WindowRenderingContext,
 };
 use tracing::warn;
 use url::Url;

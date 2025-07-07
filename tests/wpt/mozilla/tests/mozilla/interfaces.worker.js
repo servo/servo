@@ -103,6 +103,7 @@ test_interfaces([
   "ReadableStreamBYOBReader",
   "ReadableByteStreamController",
   "ReadableStreamBYOBRequest",
+  "ReportingObserver",
   "Request",
   "Response",
   "SecurityPolicyViolationEvent",

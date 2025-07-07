@@ -199,7 +199,7 @@ impl ServoParser {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#parsing-html-fragments
+    /// <https://html.spec.whatwg.org/multipage/#parsing-html-fragments>
     pub(crate) fn parse_html_fragment(
         context: &Element,
         input: DOMString,
@@ -211,7 +211,7 @@ impl ServoParser {
         let window = context_document.window();
         let url = context_document.url();
 
-        // Step 1.
+        // Step 1. Let document be a Document node whose type is "html".
         let loader = DocumentLoader::new_with_threads(
             context_document.loader().resource_threads().clone(),
             Some(url.clone()),
@@ -237,8 +237,15 @@ impl ServoParser {
             can_gc,
         );
 
-        // Step 2.
+        // Step 2. If context's node document is in quirks mode, then set document's mode to "quirks".
+        // Step 3. Otherwise, if context's node document is in limited-quirks mode, then set document's
+        // mode to "limited-quirks".
         document.set_quirks_mode(context_document.quirks_mode());
+
+        // NOTE: The following steps happened as part of Step 1.
+        // Step 4. If allowDeclarativeShadowRoots is true, then set document's
+        // allow declarative shadow roots to true.
+        // Step 5. Create a new HTML parser, and associate it with document.
 
         // Step 11.
         let form = context_node
@@ -248,6 +255,7 @@ impl ServoParser {
         let fragment_context = FragmentContext {
             context_elem: context_node,
             form_elem: form.as_deref(),
+            context_element_allows_scripting: context_document.scripting_enabled(),
         };
 
         let parser = ServoParser::new(
@@ -1121,6 +1129,7 @@ impl PreInvoke for ParserContext {}
 pub(crate) struct FragmentContext<'a> {
     pub(crate) context_elem: &'a Node,
     pub(crate) form_elem: Option<&'a Node>,
+    pub(crate) context_element_allows_scripting: bool,
 }
 
 #[cfg_attr(crown, allow(crown::unrooted_must_root))]
@@ -1439,9 +1448,9 @@ impl TreeSink for Sink {
         &self,
         host: &Dom<Node>,
         template: &Dom<Node>,
-        attrs: Vec<Attribute>,
-    ) -> Result<(), String> {
-        attach_declarative_shadow_inner(host, template, attrs)
+        attributes: &[Attribute],
+    ) -> bool {
+        attach_declarative_shadow_inner(host, template, attributes)
     }
 }
 
@@ -1579,15 +1588,11 @@ impl TendrilSink<UTF8> for NetworkSink {
     }
 }
 
-fn attach_declarative_shadow_inner(
-    host: &Node,
-    template: &Node,
-    attrs: Vec<Attribute>,
-) -> Result<(), String> {
+fn attach_declarative_shadow_inner(host: &Node, template: &Node, attributes: &[Attribute]) -> bool {
     let host_element = host.downcast::<Element>().unwrap();
 
     if host_element.shadow_root().is_some() {
-        return Err(String::from("Already in a shadow host"));
+        return false;
     }
 
     let template_element = template.downcast::<HTMLTemplateElement>().unwrap();
@@ -1603,13 +1608,17 @@ fn attach_declarative_shadow_inner(
     let mut delegatesfocus = false;
     let mut serializable = false;
 
-    let attrs: Vec<ElementAttribute> = attrs
-        .clone()
-        .into_iter()
-        .map(|attr| ElementAttribute::new(attr.name, DOMString::from(String::from(attr.value))))
+    let attributes: Vec<ElementAttribute> = attributes
+        .iter()
+        .map(|attr| {
+            ElementAttribute::new(
+                attr.name.clone(),
+                DOMString::from(String::from(attr.value.clone())),
+            )
+        })
         .collect();
 
-    attrs
+    attributes
         .iter()
         .for_each(|attr: &ElementAttribute| match attr.name.local {
             local_name!("shadowrootmode") => {
@@ -1655,8 +1664,8 @@ fn attach_declarative_shadow_inner(
             // Step 8.5. Set shadow’s available to element internals to true.
             shadow_root.set_available_to_element_internals(true);
 
-            Ok(())
+            true
         },
-        Err(_) => Err(String::from("Attaching shadow fails")),
+        Err(_) => false,
     }
 }

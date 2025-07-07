@@ -257,20 +257,19 @@ impl Tokenizer {
         tokenizer.insert_node(0, Dom::from_ref(document.upcast()));
 
         let sink = Sink::new(to_tokenizer_sender.clone());
-        let mut ctxt_parse_node = None;
         let mut form_parse_node = None;
-        let mut fragment_context_is_some = false;
-        if let Some(fc) = fragment_context {
+        let mut parser_fragment_context = None;
+        if let Some(fragment_context) = fragment_context {
             let node = sink.new_parse_node();
-            tokenizer.insert_node(node.id, Dom::from_ref(fc.context_elem));
-            ctxt_parse_node = Some(node);
+            tokenizer.insert_node(node.id, Dom::from_ref(fragment_context.context_elem));
+            parser_fragment_context =
+                Some((node, fragment_context.context_element_allows_scripting));
 
-            form_parse_node = fc.form_elem.map(|form_elem| {
+            form_parse_node = fragment_context.form_elem.map(|form_elem| {
                 let node = sink.new_parse_node();
                 tokenizer.insert_node(node.id, Dom::from_ref(form_elem));
                 node
             });
-            fragment_context_is_some = true;
         };
 
         // Create new thread for HtmlTokenizer. This is where parser actions
@@ -282,8 +281,7 @@ impl Tokenizer {
             .spawn(move || {
                 run(
                     sink,
-                    fragment_context_is_some,
-                    ctxt_parse_node,
+                    parser_fragment_context,
                     form_parse_node,
                     to_tokenizer_sender,
                     html_tokenizer_receiver,
@@ -581,7 +579,7 @@ impl Tokenizer {
             } => {
                 let location = self.get_node(&location);
                 let template = self.get_node(&template);
-                let attributes = attributes
+                let attributes: Vec<_> = attributes
                     .into_iter()
                     .map(|attribute| HtmlAttribute {
                         name: attribute.name,
@@ -590,38 +588,44 @@ impl Tokenizer {
                     .collect();
 
                 let did_succeed =
-                    attach_declarative_shadow_inner(&location, &template, attributes).is_ok();
+                    attach_declarative_shadow_inner(&location, &template, &attributes);
                 sender.send(did_succeed).unwrap();
             },
         }
     }
 }
 
+/// Run the parser.
+///
+/// The `fragment_context` argument is `Some` in the fragment case and describes the context
+/// node as well as whether scripting is enabled for the context node. Note that whether or not
+/// scripting is enabled for the context node does not affect whether scripting is enabled for the
+/// parser, that is determined by the `scripting_enabled` argument.
 fn run(
     sink: Sink,
-    fragment_context_is_some: bool,
-    ctxt_parse_node: Option<ParseNode>,
+    fragment_context: Option<(ParseNode, bool)>,
     form_parse_node: Option<ParseNode>,
     sender: Sender<ToTokenizerMsg>,
     receiver: Receiver<ToHtmlTokenizerMsg>,
     scripting_enabled: bool,
 ) {
     let options = TreeBuilderOpts {
-        ignore_missing_rules: true,
         scripting_enabled,
         ..Default::default()
     };
 
-    let html_tokenizer = if fragment_context_is_some {
-        let tb =
-            TreeBuilder::new_for_fragment(sink, ctxt_parse_node.unwrap(), form_parse_node, options);
+    let html_tokenizer = if let Some((context_node, context_scripting_enabled)) = fragment_context {
+        let tree_builder =
+            TreeBuilder::new_for_fragment(sink, context_node, form_parse_node, options);
 
         let tok_options = TokenizerOpts {
-            initial_state: Some(tb.tokenizer_state_for_context_elem()),
+            initial_state: Some(
+                tree_builder.tokenizer_state_for_context_elem(context_scripting_enabled),
+            ),
             ..Default::default()
         };
 
-        HtmlTokenizer::new(tb, tok_options)
+        HtmlTokenizer::new(tree_builder, tok_options)
     } else {
         HtmlTokenizer::new(TreeBuilder::new(sink, options), Default::default())
     };
@@ -957,13 +961,13 @@ impl TreeSink for Sink {
         &self,
         location: &Self::Handle,
         template: &Self::Handle,
-        attributes: Vec<HtmlAttribute>,
-    ) -> Result<(), String> {
+        attributes: &[HtmlAttribute],
+    ) -> bool {
         let attributes = attributes
-            .into_iter()
+            .iter()
             .map(|attribute| Attribute {
-                name: attribute.name,
-                value: String::from(attribute.value),
+                name: attribute.name.clone(),
+                value: String::from(attribute.value.clone()),
             })
             .collect();
 
@@ -978,13 +982,6 @@ impl TreeSink for Sink {
             sender,
         });
 
-        let did_succeed = receiver.recv().unwrap();
-
-        // TODO: This api is silly, we shouldn't have to return a string here
-        if did_succeed {
-            Ok(())
-        } else {
-            Err("Attaching declarative shadow root failed".to_owned())
-        }
+        receiver.recv().unwrap()
     }
 }

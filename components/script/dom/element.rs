@@ -23,6 +23,7 @@ use html5ever::{LocalName, Namespace, Prefix, QualName, local_name, namespace_pr
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::HandleObject;
+use layout_api::LayoutDamage;
 use net_traits::ReferrerPolicy;
 use net_traits::request::CorsSettings;
 use selectors::Element as SelectorsElement;
@@ -103,9 +104,7 @@ use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReaction, CustomElementState,
     is_valid_custom_element_name,
 };
-use crate::dom::document::{
-    Document, LayoutDocumentHelpers, ReflowTriggerCondition, determine_policy_for_token,
-};
+use crate::dom::document::{Document, LayoutDocumentHelpers, determine_policy_for_token};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::domrect::DOMRect;
 use crate::dom::domrectlist::DOMRectList;
@@ -360,9 +359,18 @@ impl Element {
         // NodeStyleDamaged, but I'm preserving existing behavior.
         restyle.hint.insert(RestyleHint::RESTYLE_SELF);
 
-        if damage == NodeDamage::Other {
-            doc.note_node_with_dirty_descendants(self.upcast());
-            restyle.damage = RestyleDamage::reconstruct();
+        match damage {
+            NodeDamage::Style => {},
+            NodeDamage::ContentOrHeritage => {
+                doc.note_node_with_dirty_descendants(self.upcast());
+                restyle
+                    .damage
+                    .insert(LayoutDamage::recollect_box_tree_children());
+            },
+            NodeDamage::Other => {
+                doc.note_node_with_dirty_descendants(self.upcast());
+                restyle.damage.insert(RestyleDamage::reconstruct());
+            },
         }
     }
 
@@ -675,7 +683,6 @@ impl Element {
 
         let node = self.upcast::<Node>();
         node.dirty(NodeDamage::Other);
-        node.rev_version();
 
         Ok(shadow_root)
     }
@@ -4693,10 +4700,7 @@ impl Element {
             .and_then(|data| data.client_rect.as_ref())
             .and_then(|rect| rect.get().ok())
         {
-            if matches!(
-                doc.needs_reflow(),
-                None | Some(ReflowTriggerCondition::PaintPostponed)
-            ) {
+            if doc.restyle_reason().is_empty() {
                 return rect;
             }
         }

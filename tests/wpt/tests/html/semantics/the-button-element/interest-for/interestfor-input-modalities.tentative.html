@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<meta name="timeout" content="long">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer/" />
+<link rel="help" href="https://github.com/whatwg/html/pull/11006" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/invoker-utils.js"></script>
+
+<meta name=variant content=?method=hover>
+<meta name=variant content=?method=focus>
+
+<button data-testcase="<button>" interestfor=target>Button</button>
+
+<a data-testcase="<a>" href=foo interestfor=target>Link</a>
+
+<img src="/images/blue.png" usemap="#map" id=areatarget>
+<map id=map>
+  <area data-testcase="<area>" data-hover="areatarget" interestfor=target href="/" shape=default>
+</map>
+
+<svg viewBox="0 0 100 100" style="width: 100px" xmlns="http://www.w3.org/2000/svg">
+  <a data-testcase="SVG <a>" href=foo interestfor=target>
+    <text x=50 y=90>SVG A</text>
+  </a>
+</svg>
+
+<div id=target>Target</div>
+<button id=otherbutton>Other button</button>
+
+<style>
+  [interestfor] {
+    interest-delay: 0s;
+  }
+</style>
+
+<script>
+const allInterestForElements = document.querySelectorAll('[data-testcase]');
+assert_true(allInterestForElements.length > 0);
+function verifyInterest(onlyElements,description) {
+  if (!(onlyElements instanceof Array)) {
+    onlyElements = [onlyElements];
+  }
+  [...allInterestForElements, another].forEach(el => {
+    const expectInterest = onlyElements.includes(el);
+    assert_equals(el.matches(':has-interest'),expectInterest,`${description}, element ${el.dataset.testcase} should ${expectInterest ? "" : "NOT "}have interest`);
+  })
+}
+function reinsert(element) {
+  const parent = element.parentElement;
+  const nextSibling = element.nextSibling;
+  element.remove();
+  parent.insertBefore(element,nextSibling);
+}
+function preventEvent(shouldCancel,el,type) {
+  if (shouldCancel) {
+    assert_not_equals(type,'focusin','focusin can\'t be cancelled');
+    assert_not_equals(type,'focusout','focusout can\'t be cancelled');
+    el.addEventListener(type, (e) => e.preventDefault(), {once:true});
+  }
+}
+
+const urlParams = new URLSearchParams(window.location.search);
+method = urlParams.get('method');
+['none','cancel-trigger','cancel-lose'].forEach(cancelEvent => {
+  allInterestForElements.forEach(el => {
+    const description = `${el.dataset.testcase}, ${cancelEvent}, ${method}`;
+    promise_test(async function (t) {
+      t.add_cleanup(() => {
+        reinsert(el);
+        reinsert(target);
+      });
+      assert_false(el.matches(':has-interest'),'setup');
+      assert_false(el.matches(':has-partial-interest'),'setup');
+      assert_false(target.matches(':target-of-interest'),'setup');
+      assert_false(target.matches(':target-of-partial-interest'),'setup');
+      const signal = t.get_signal();
+      let interestCount = 0;
+      let loseInterestCount = 0;
+      target.addEventListener('interest', (e) => (++interestCount), {signal});
+      target.addEventListener('loseinterest', () => (++loseInterestCount), {signal});
+      const cancelTrigger = cancelEvent === 'cancel-trigger';
+      const cancelLose = cancelEvent === 'cancel-lose';
+      assert_true(cancelTrigger || cancelLose || cancelEvent === 'none');
+
+      switch (method) {
+        case 'hover':
+          preventEvent(cancelTrigger,el,'mouseover');
+          hovertarget = el;
+          if (el.dataset.hover) {
+            hovertarget = document.getElementById(el.dataset.hover);
+          }
+          await hoverOver(hovertarget)
+          break;
+        case 'focus':
+          if (cancelTrigger) {
+            return; // focusin cannot be cancelled, nothing to test
+          }
+          await focusOn(el);
+          break;
+        default:
+          assert_notreached();
+      }
+      assert_equals(loseInterestCount, 0, 'Lose interest should not be fired yet');
+      if (cancelTrigger) {
+        assert_equals(interestCount, 0, 'Because the trigger event was cancelled, interest should not be fired');
+        assert_false(el.matches(':has-interest'),':has-interest should not match');
+      } else {
+        assert_equals(interestCount, 1, 'Interest should be fired');
+        assert_true(el.matches(':has-interest'),':has-interest should match');
+      }
+      interestCount = 0;
+
+      switch (method) {
+        case 'hover':
+          preventEvent(cancelLose,el,'mouseout');
+          await hoverOver(otherbutton);
+          break;
+        case 'focus':
+          if (cancelLose) {
+            return; // focusout cannot be cancelled, nothing to test
+          }
+          await focusOn(otherbutton);
+          break;
+        default:
+          assert_notreached();
+      }
+      assert_equals(interestCount, 0, 'No new interest event should be fired');
+      if (cancelTrigger || cancelLose) {
+        assert_equals(loseInterestCount, 0, 'No lose interest event should be fired');
+      } else {
+        assert_equals(loseInterestCount, 1, 'Lose interest event should be fired');
+      }
+      if (cancelLose) {
+        assert_true(el.matches(':has-interest'),':has-interest should still match because we canceled the triggering event');
+      } else {
+        assert_false(el.matches(':has-interest'),':has-interest should not match');
+      }
+    },`Basic behavior, ${description}`);
+  });
+});
+</script>

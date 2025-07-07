@@ -3,11 +3,9 @@
 // (https://github.com/w3c/webref)
 // Source: Subresource Integrity (https://w3c.github.io/webappsec-subresource-integrity/)
 
-[Exposed=Window]
-interface IntegrityPolicyViolationReportBody : ReportBody {
-  [Default] object toJSON();
-  readonly attribute USVString documentURL;
-  readonly attribute USVString blockedURL;
-  readonly attribute USVString destination;
-  readonly attribute boolean   reportOnly;
+dictionary IntegrityViolationReportBody : ReportBody {
+  USVString documentURL;
+  USVString blockedURL;
+  USVString destination;
+  boolean   reportOnly;
 };

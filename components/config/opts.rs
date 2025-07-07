@@ -44,10 +44,6 @@ pub struct Opts {
     /// behavior for debugging purposes.
     pub debug: DebugOptions,
 
-    /// `None` to disable WebDriver or `Some` with a port number to start a server to listen to
-    /// remote WebDriver commands.
-    pub webdriver_port: Option<u16>,
-
     /// Whether we're running in multiprocess mode.
     pub multiprocess: bool,
 
@@ -192,7 +188,6 @@ impl Default for Opts {
             nonincremental_layout: false,
             user_stylesheets: Vec::new(),
             hard_fail: true,
-            webdriver_port: None,
             multiprocess: false,
             background_hang_monitor: false,
             random_pipeline_closure_probability: None,

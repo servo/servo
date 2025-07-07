@@ -107,16 +107,8 @@ public class Servo {
         mRunCallback.inGLThread(() -> mJNI.loadUri(uri));
     }
 
-    public void scrollStart(int dx, int dy, int x, int y) {
-        mRunCallback.inGLThread(() -> mJNI.scrollStart(dx, dy, x, y));
-    }
-
     public void scroll(int dx, int dy, int x, int y) {
         mRunCallback.inGLThread(() -> mJNI.scroll(dx, dy, x, y));
-    }
-
-    public void scrollEnd(int dx, int dy, int x, int y) {
-        mRunCallback.inGLThread(() -> mJNI.scrollEnd(dx, dy, x, y));
     }
 
     public void touchDown(float x, float y, int pointerId) {

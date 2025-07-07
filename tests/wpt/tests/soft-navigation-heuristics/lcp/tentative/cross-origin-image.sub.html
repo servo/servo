@@ -17,7 +17,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
-<script src="/largest-contentful-paint/resources/largest-contentful-paint-helpers.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-helper.js"></script>
 <script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
 <script>
   function clickHandler() {
@@ -41,7 +41,7 @@
     assert_equals(lcpEntries.length, 1);
     assert_equals(lcpEntries[0].id, "click-target", "The first entry should be the button");
     const softLcpPromise = SoftNavigationTestHelper.getPerformanceEntries(
-      /*type=*/ "largest-contentful-paint",
+      /*type=*/ "interaction-contentful-paint",
       /*includeSoftNavigationObservations=*/ true,
       /*minNumEntries=*/ 1,
     );

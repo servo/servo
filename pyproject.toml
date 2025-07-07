@@ -1,0 +1,26 @@
+[tool.ruff]
+line-length = 120
+extend-exclude = [
+    # temporary local files
+    "target/**",
+    "__pycache__/**",
+    "python/_venv*/**",
+    # upstream
+    "third_party/**",
+    "python/mach/**",
+    "components/**",
+    "tests/**",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "W",
+    "F",
+]
+ignore = [
+    # Trailing whitespace; the standard tidy process will enforce no trailing whitespace
+    "W291",
+    # 80 character line length; the standard tidy process will enforce line length
+    "E501",
+]

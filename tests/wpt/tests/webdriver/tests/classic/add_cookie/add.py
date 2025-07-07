@@ -232,6 +232,31 @@ def test_add_session_cookie_with_leading_dot_character_in_domain(session, url, s
         cookie["domain"] == ".%s" % server_config["browser_host"]
 
 
+def test_add_cookie_with_expiry_in_the_future(session, url):
+    five_years_from_now = int(
+        (datetime.now(timezone.utc) + timedelta(days=5 * 365) - datetime.fromtimestamp(0, timezone.utc)).total_seconds())
+
+    new_cookie = {
+        "name": "hello",
+        "value": "world",
+        "expiry": five_years_from_now
+    }
+
+    session.url = url("/common/blank.html")
+    clear_all_cookies(session)
+
+    result = add_cookie(session, new_cookie)
+    assert_success(result)
+
+    cookie = session.cookies("hello")
+    assert cookie["name"] == "hello"
+    assert cookie["value"] == "world"
+
+    # There is a recommended upper limit of 400 days on the allowed expiry
+    # value, which user agent can adjust.
+    assert cookie["expiry"] <= five_years_from_now
+
+
 @pytest.mark.parametrize("same_site", ["None", "Lax", "Strict"])
 def test_add_cookie_with_valid_samesite_flag(session, url, same_site):
     new_cookie = {

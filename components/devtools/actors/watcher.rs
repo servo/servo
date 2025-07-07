@@ -11,11 +11,14 @@
 //! [Firefox JS implementation]: https://searchfox.org/mozilla-central/source/devtools/server/actors/descriptors/watcher.js
 
 use std::collections::HashMap;
+use std::net::TcpStream;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use base::id::BrowsingContextId;
 use log::warn;
 use serde::Serialize;
 use serde_json::{Map, Value};
+use servo_url::ServoUrl;
 
 use self::network_parent::{NetworkParentActor, NetworkParentActorMsg};
 use super::breakpoint::BreakpointListActor;
@@ -32,7 +35,7 @@ use crate::actors::watcher::thread_configuration::{
 };
 use crate::protocol::{ClientRequest, JsonPacketStream};
 use crate::resource::{ResourceArrayType, ResourceAvailable};
-use crate::{EmptyReplyMsg, StreamId, WorkerActor};
+use crate::{EmptyReplyMsg, IdMap, StreamId, WorkerActor};
 
 pub mod network_parent;
 pub mod target_configuration;
@@ -78,7 +81,7 @@ impl SessionContext {
                 ("local-storage", false),
                 ("session-storage", false),
                 ("platform-message", false),
-                ("network-event", false),
+                ("network-event", true),
                 ("network-event-stacktrace", false),
                 ("reflow", false),
                 ("stylesheet", false),
@@ -189,6 +192,19 @@ pub struct WatcherActor {
     target_configuration: String,
     thread_configuration: String,
     session_context: SessionContext,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WillNavigateMessage {
+    #[serde(rename = "browsingContextID")]
+    browsing_context_id: u32,
+    inner_window_id: u32,
+    name: String,
+    time: u128,
+    is_frame_switching: bool,
+    #[serde(rename = "newURI")]
+    new_uri: ServoUrl,
 }
 
 impl Actor for WatcherActor {
@@ -319,6 +335,7 @@ impl Actor for WatcherActor {
                             }
                         },
                         "console-message" | "error-message" => {},
+                        "network-event" => {},
                         _ => warn!("resource {} not handled yet", resource),
                     }
                 }
@@ -376,6 +393,12 @@ impl Actor for WatcherActor {
     }
 }
 
+impl ResourceAvailable for WatcherActor {
+    fn actor_name(&self) -> String {
+        self.name.clone()
+    }
+}
+
 impl WatcherActor {
     pub fn new(
         actors: &mut ActorRegistry,
@@ -411,6 +434,35 @@ impl WatcherActor {
                 resources: self.session_context.supported_resources.clone(),
                 targets: self.session_context.supported_targets.clone(),
             },
+        }
+    }
+
+    pub fn emit_will_navigate(
+        &self,
+        browsing_context_id: BrowsingContextId,
+        url: ServoUrl,
+        connections: &mut Vec<TcpStream>,
+        id_map: &mut IdMap,
+    ) {
+        let msg = WillNavigateMessage {
+            browsing_context_id: id_map.browsing_context_id(browsing_context_id).value(),
+            inner_window_id: 0, // TODO: set this to the correct value
+            name: "will-navigate".to_string(),
+            time: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis(),
+            is_frame_switching: false, // TODO: Implement frame switching
+            new_uri: url,
+        };
+
+        for stream in connections {
+            self.resource_array(
+                msg.clone(),
+                "document-event".to_string(),
+                ResourceArrayType::Available,
+                stream,
+            );
         }
     }
 }

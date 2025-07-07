@@ -12,7 +12,7 @@ use euclid::Vector2D;
 use keyboard_types::{Key, Modifiers, ShortcutMatcher};
 use log::{error, info};
 use servo::base::id::WebViewId;
-use servo::config::{opts, pref};
+use servo::config::pref;
 use servo::ipc_channel::ipc::IpcSender;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
@@ -361,14 +361,14 @@ impl RunningAppState {
             .shortcut(Modifiers::empty(), Key::PageDown, || {
                 let scroll_location = ScrollLocation::Delta(Vector2D::new(
                     0.0,
-                    -self.inner().window.page_height() + 2.0 * LINE_HEIGHT,
+                    self.inner().window.page_height() - 2.0 * LINE_HEIGHT,
                 ));
                 webview.notify_scroll_event(scroll_location, origin);
             })
             .shortcut(Modifiers::empty(), Key::PageUp, || {
                 let scroll_location = ScrollLocation::Delta(Vector2D::new(
                     0.0,
-                    self.inner().window.page_height() - 2.0 * LINE_HEIGHT,
+                    -self.inner().window.page_height() + 2.0 * LINE_HEIGHT,
                 ));
                 webview.notify_scroll_event(scroll_location, origin);
             })
@@ -379,19 +379,19 @@ impl RunningAppState {
                 webview.notify_scroll_event(ScrollLocation::End, origin);
             })
             .shortcut(Modifiers::empty(), Key::ArrowUp, || {
-                let location = ScrollLocation::Delta(Vector2D::new(0.0, 3.0 * LINE_HEIGHT));
-                webview.notify_scroll_event(location, origin);
-            })
-            .shortcut(Modifiers::empty(), Key::ArrowDown, || {
                 let location = ScrollLocation::Delta(Vector2D::new(0.0, -3.0 * LINE_HEIGHT));
                 webview.notify_scroll_event(location, origin);
             })
+            .shortcut(Modifiers::empty(), Key::ArrowDown, || {
+                let location = ScrollLocation::Delta(Vector2D::new(0.0, 3.0 * LINE_HEIGHT));
+                webview.notify_scroll_event(location, origin);
+            })
             .shortcut(Modifiers::empty(), Key::ArrowLeft, || {
-                let location = ScrollLocation::Delta(Vector2D::new(LINE_HEIGHT, 0.0));
+                let location = ScrollLocation::Delta(Vector2D::new(-LINE_HEIGHT, 0.0));
                 webview.notify_scroll_event(location, origin);
             })
             .shortcut(Modifiers::empty(), Key::ArrowRight, || {
-                let location = ScrollLocation::Delta(Vector2D::new(-LINE_HEIGHT, 0.0));
+                let location = ScrollLocation::Delta(Vector2D::new(LINE_HEIGHT, 0.0));
                 webview.notify_scroll_event(location, origin);
             });
     }
@@ -444,11 +444,11 @@ impl WebViewDelegate for RunningAppState {
         self.inner().window.set_position(new_position);
     }
 
-    fn request_resize_to(&self, webview: servo::WebView, new_size: DeviceIntSize) {
+    fn request_resize_to(&self, webview: servo::WebView, new_outer_size: DeviceIntSize) {
         let mut rect = webview.rect();
-        rect.set_size(new_size.to_f32());
+        rect.set_size(new_outer_size.to_f32());
         webview.move_resize(rect);
-        self.inner().window.request_resize(&webview, new_size);
+        self.inner().window.request_resize(&webview, new_outer_size);
     }
 
     fn show_simple_dialog(&self, webview: servo::WebView, dialog: SimpleDialog) {
@@ -500,7 +500,7 @@ impl WebViewDelegate for RunningAppState {
         // When WebDriver is enabled, do not focus and raise the WebView to the top,
         // as that is what the specification expects. Otherwise, we would like `window.open()`
         // to create a new foreground tab
-        if opts::get().webdriver_port.is_none() {
+        if self.servoshell_preferences.webdriver_port.is_none() {
             webview.focus();
             webview.raise_to_top(true);
         }

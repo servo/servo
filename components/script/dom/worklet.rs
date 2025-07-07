@@ -37,7 +37,7 @@ use crate::dom::bindings::codegen::Bindings::WorkletBinding::{WorkletMethods, Wo
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::TrustedPromise;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, RootCollection, ThreadLocalStackRoots};
 use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::trace::{CustomTraceable, JSTraceable, RootedTraceableBox};
@@ -153,7 +153,7 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
 
         self.droppable_field
             .thread_pool
-            .get_or_init(ScriptThread::worklet_thread_pool)
+            .get_or_init(|| ScriptThread::worklet_thread_pool(self.global().image_cache()))
             .fetch_and_invoke_a_worklet_script(
                 self.window.pipeline_id(),
                 self.droppable_field.worklet_id,

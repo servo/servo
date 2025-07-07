@@ -8,7 +8,7 @@ use std::iter::FusedIterator;
 use fonts::ByteIndex;
 use html5ever::{LocalName, local_name};
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
-use layout_api::{LayoutElementType, LayoutNodeType};
+use layout_api::{LayoutDamage, LayoutElementType, LayoutNodeType};
 use range::Range;
 use script::layout_dom::ServoLayoutNode;
 use selectors::Element as SelectorsElement;
@@ -34,26 +34,20 @@ pub(crate) struct NodeAndStyleInfo<'dom> {
     pub node: ServoLayoutNode<'dom>,
     pub pseudo_element_type: Option<PseudoElement>,
     pub style: ServoArc<ComputedValues>,
+    pub damage: LayoutDamage,
 }
 
 impl<'dom> NodeAndStyleInfo<'dom> {
-    fn new_with_pseudo(
+    pub(crate) fn new(
         node: ServoLayoutNode<'dom>,
-        pseudo_element_type: PseudoElement,
         style: ServoArc<ComputedValues>,
+        damage: LayoutDamage,
     ) -> Self {
-        Self {
-            node,
-            pseudo_element_type: Some(pseudo_element_type),
-            style,
-        }
-    }
-
-    pub(crate) fn new(node: ServoLayoutNode<'dom>, style: ServoArc<ComputedValues>) -> Self {
         Self {
             node,
             pseudo_element_type: None,
             style,
+            damage,
         }
     }
 
@@ -71,11 +65,12 @@ impl<'dom> NodeAndStyleInfo<'dom> {
             .to_threadsafe()
             .as_element()?
             .with_pseudo(pseudo_element_type)?
-            .style(context.shared_context());
+            .style(&context.style_context);
         Some(NodeAndStyleInfo {
             node: self.node,
             pseudo_element_type: Some(pseudo_element_type),
             style,
+            damage: self.damage,
         })
     }
 
@@ -193,18 +188,14 @@ pub(super) trait TraversalHandler<'dom> {
 }
 
 fn traverse_children_of<'dom>(
-    parent_element: ServoLayoutNode<'dom>,
+    parent_element_info: &NodeAndStyleInfo<'dom>,
     context: &LayoutContext,
     handler: &mut impl TraversalHandler<'dom>,
 ) {
-    traverse_eager_pseudo_element(PseudoElement::Before, parent_element, context, handler);
+    traverse_eager_pseudo_element(PseudoElement::Before, parent_element_info, context, handler);
 
-    if parent_element.is_text_input() {
-        let info = NodeAndStyleInfo::new(
-            parent_element,
-            parent_element.style(context.shared_context()),
-        );
-        let node_text_content = parent_element.to_threadsafe().node_text_content();
+    if parent_element_info.node.is_text_input() {
+        let node_text_content = parent_element_info.node.to_threadsafe().node_text_content();
         if node_text_content.is_empty() {
             // The addition of zero-width space here forces the text input to have an inline formatting
             // context that might otherwise be trimmed if there's no text. This is important to ensure
@@ -213,14 +204,18 @@ fn traverse_children_of<'dom>(
             //
             // This is also used to ensure that the caret will still be rendered when the input is empty.
             // TODO: Is there a less hacky way to do this?
-            handler.handle_text(&info, "\u{200B}".into());
+            handler.handle_text(parent_element_info, "\u{200B}".into());
         } else {
-            handler.handle_text(&info, node_text_content);
+            handler.handle_text(parent_element_info, node_text_content);
         }
     } else {
-        for child in iter_child_nodes(parent_element) {
+        for child in iter_child_nodes(parent_element_info.node) {
             if child.is_text_node() {
-                let info = NodeAndStyleInfo::new(child, child.style(context.shared_context()));
+                let info = NodeAndStyleInfo::new(
+                    child,
+                    child.style(&context.style_context),
+                    child.take_restyle_damage(),
+                );
                 handler.handle_text(&info, child.to_threadsafe().node_text_content());
             } else if child.is_element() {
                 traverse_element(child, context, handler);
@@ -228,7 +223,7 @@ fn traverse_children_of<'dom>(
         }
     }
 
-    traverse_eager_pseudo_element(PseudoElement::After, parent_element, context, handler);
+    traverse_eager_pseudo_element(PseudoElement::After, parent_element_info, context, handler);
 }
 
 fn traverse_element<'dom>(
@@ -241,8 +236,11 @@ fn traverse_element<'dom>(
     element.unset_pseudo_element_box(PseudoElement::Marker);
 
     let replaced = ReplacedContents::for_element(element, context);
-    let style = element.style(context.shared_context());
-    match Display::from(style.get_box().display) {
+    let style = element.style(&context.style_context);
+    let damage = element.take_restyle_damage();
+    let info = NodeAndStyleInfo::new(element, style, damage);
+
+    match Display::from(info.style.get_box().display) {
         Display::None => element.unset_all_boxes(),
         Display::Contents => {
             if replaced.is_some() {
@@ -250,14 +248,13 @@ fn traverse_element<'dom>(
                 // <https://drafts.csswg.org/css-display-3/#valdef-display-contents>
                 element.unset_all_boxes()
             } else {
-                let shared_inline_styles: SharedInlineStyles =
-                    (&NodeAndStyleInfo::new(element, style)).into();
+                let shared_inline_styles: SharedInlineStyles = (&info).into();
                 element
                     .element_box_slot()
                     .set(LayoutBox::DisplayContents(shared_inline_styles.clone()));
 
                 handler.enter_display_contents(shared_inline_styles);
-                traverse_children_of(element, context, handler);
+                traverse_children_of(&info, context, handler);
                 handler.leave_display_contents();
             }
         },
@@ -276,7 +273,6 @@ fn traverse_element<'dom>(
             };
             let display = display.used_value_for_contents(&contents);
             let box_slot = element.element_box_slot();
-            let info = NodeAndStyleInfo::new(element, style);
             handler.handle_element(&info, display, contents, box_slot);
         },
     }
@@ -284,45 +280,45 @@ fn traverse_element<'dom>(
 
 fn traverse_eager_pseudo_element<'dom>(
     pseudo_element_type: PseudoElement,
-    node: ServoLayoutNode<'dom>,
+    node_info: &NodeAndStyleInfo<'dom>,
     context: &LayoutContext,
     handler: &mut impl TraversalHandler<'dom>,
 ) {
     assert!(pseudo_element_type.is_eager());
 
     // First clear any old contents from the node.
-    node.unset_pseudo_element_box(pseudo_element_type);
+    node_info.node.unset_pseudo_element_box(pseudo_element_type);
 
-    let Some(element) = node.to_threadsafe().as_element() else {
+    // If this node doesn't have this eager pseudo-element, exit early. This depends on
+    // the style applied to the element.
+    let Some(pseudo_element_info) = node_info.pseudo(context, pseudo_element_type) else {
         return;
     };
-    let Some(pseudo_element) = element.with_pseudo(pseudo_element_type) else {
-        return;
-    };
-
-    let style = pseudo_element.style(context.shared_context());
-    if style.ineffective_content_property() {
+    if pseudo_element_info.style.ineffective_content_property() {
         return;
     }
 
-    let info = NodeAndStyleInfo::new_with_pseudo(node, pseudo_element_type, style);
-    match Display::from(info.style.get_box().display) {
+    match Display::from(pseudo_element_info.style.get_box().display) {
         Display::None => {},
         Display::Contents => {
-            let items = generate_pseudo_element_content(&info.style, node, context);
-            let box_slot = node.pseudo_element_box_slot(pseudo_element_type);
-            let shared_inline_styles: SharedInlineStyles = (&info).into();
+            let items = generate_pseudo_element_content(&pseudo_element_info, context);
+            let box_slot = pseudo_element_info
+                .node
+                .pseudo_element_box_slot(pseudo_element_type);
+            let shared_inline_styles: SharedInlineStyles = (&pseudo_element_info).into();
             box_slot.set(LayoutBox::DisplayContents(shared_inline_styles.clone()));
 
             handler.enter_display_contents(shared_inline_styles);
-            traverse_pseudo_element_contents(&info, context, handler, items);
+            traverse_pseudo_element_contents(&pseudo_element_info, context, handler, items);
             handler.leave_display_contents();
         },
         Display::GeneratingBox(display) => {
-            let items = generate_pseudo_element_content(&info.style, node, context);
-            let box_slot = node.pseudo_element_box_slot(pseudo_element_type);
+            let items = generate_pseudo_element_content(&pseudo_element_info, context);
+            let box_slot = pseudo_element_info
+                .node
+                .pseudo_element_box_slot(pseudo_element_type);
             let contents = NonReplacedContents::OfPseudoElement(items).into();
-            handler.handle_element(&info, display, contents, box_slot);
+            handler.handle_element(&pseudo_element_info, display, contents, box_slot);
         },
     }
 }
@@ -378,19 +374,6 @@ impl From<NonReplacedContents> for Contents {
     }
 }
 
-impl std::convert::TryFrom<Contents> for NonReplacedContents {
-    type Error = &'static str;
-
-    fn try_from(contents: Contents) -> Result<Self, Self::Error> {
-        match contents {
-            Contents::NonReplaced(non_replaced_contents) => Ok(non_replaced_contents),
-            Contents::Replaced(_) => {
-                Err("Tried to covnert a `Contents::Replaced` into `NonReplacedContent`")
-            },
-        }
-    }
-}
-
 impl NonReplacedContents {
     pub(crate) fn traverse<'dom>(
         self,
@@ -400,7 +383,7 @@ impl NonReplacedContents {
     ) {
         match self {
             NonReplacedContents::OfElement | NonReplacedContents::OfTextControl => {
-                traverse_children_of(info.node, context, handler)
+                traverse_children_of(info, context, handler)
             },
             NonReplacedContents::OfPseudoElement(items) => {
                 traverse_pseudo_element_contents(info, context, handler, items)
@@ -422,11 +405,10 @@ where
 
 /// <https://www.w3.org/TR/CSS2/generate.html#propdef-content>
 fn generate_pseudo_element_content(
-    pseudo_element_style: &ComputedValues,
-    element: ServoLayoutNode<'_>,
+    pseudo_element_info: &NodeAndStyleInfo,
     context: &LayoutContext,
 ) -> Vec<PseudoElementContentItem> {
-    match &pseudo_element_style.get_counters().content {
+    match &pseudo_element_info.style.get_counters().content {
         Content::Items(items) => {
             let mut vec = vec![];
             for item in items.items.iter() {
@@ -435,7 +417,8 @@ fn generate_pseudo_element_content(
                         vec.push(PseudoElementContentItem::Text(s.to_string()));
                     },
                     ContentItem::Attr(attr) => {
-                        let element = element
+                        let element = pseudo_element_info
+                            .node
                             .to_threadsafe()
                             .as_element()
                             .expect("Expected an element");
@@ -467,14 +450,14 @@ fn generate_pseudo_element_content(
                     },
                     ContentItem::Image(image) => {
                         if let Some(replaced_content) =
-                            ReplacedContents::from_image(element, context, image)
+                            ReplacedContents::from_image(pseudo_element_info.node, context, image)
                         {
                             vec.push(PseudoElementContentItem::Replaced(replaced_content));
                         }
                     },
                     ContentItem::OpenQuote | ContentItem::CloseQuote => {
                         // TODO(xiaochengh): calculate quote depth
-                        let maybe_quote = match &pseudo_element_style.get_list().quotes {
+                        let maybe_quote = match &pseudo_element_info.style.get_list().quotes {
                             Quotes::QuoteList(quote_list) => {
                                 quote_list.0.first().map(|quote_pair| {
                                     get_quote_from_pair(
@@ -485,7 +468,7 @@ fn generate_pseudo_element_content(
                                 })
                             },
                             Quotes::Auto => {
-                                let lang = &pseudo_element_style.get_font()._x_lang;
+                                let lang = &pseudo_element_info.style.get_font()._x_lang;
                                 let quotes = quotes_for_lang(lang.0.as_ref(), 0);
                                 Some(get_quote_from_pair(item, &quotes.opening, &quotes.closing))
                             },

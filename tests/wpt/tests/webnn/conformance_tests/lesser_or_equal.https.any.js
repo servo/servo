@@ -14,14 +14,6 @@
 //
 // MLOperand lesserOrEqual(MLOperand a, MLOperand b);
 
-
-const getLesserOrEqualPrecisionTolerance = (graphResources) => {
-  const toleranceValueDict = {uint8: 0};
-  const expectedDataType =
-      getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
-  return {metricType: 'ULP', value: toleranceValueDict[expectedDataType]};
-};
-
 const lesserOrEqualTests = [
   {
     'name': 'lesserOrEqual float32 0D scalar',
@@ -1105,7 +1097,7 @@ const lesserOrEqualTests = [
 if (navigator.ml) {
   lesserOrEqualTests.forEach((test) => {
     webnn_conformance_test(
-        buildAndExecuteGraph, getLesserOrEqualPrecisionTolerance, test,
+        buildAndExecuteGraph, getZeroULPTolerance, test,
         /*cast_to_supported_type=*/true);
   });
 } else {

@@ -175,26 +175,16 @@ impl<'a> CanvasPaintThread<'a> {
                 .canvas(canvas_id)
                 .is_point_in_path_(&path[..], x, y, fill_rule, chan),
             Canvas2dMsg::DrawImage(snapshot, dest_rect, source_rect, smoothing_enabled) => {
-                let snapshot = snapshot.to_owned();
                 self.canvas(canvas_id).draw_image(
-                    snapshot.data(),
-                    snapshot.size(),
+                    snapshot.to_owned(),
                     dest_rect,
                     source_rect,
                     smoothing_enabled,
-                    !snapshot.alpha_mode().is_premultiplied(),
                 )
             },
-            Canvas2dMsg::DrawEmptyImage(image_size, dest_rect, source_rect) => {
-                self.canvas(canvas_id).draw_image(
-                    &vec![0; image_size.area() as usize * 4],
-                    image_size,
-                    dest_rect,
-                    source_rect,
-                    false,
-                    false,
-                )
-            },
+            Canvas2dMsg::DrawEmptyImage(image_size, dest_rect, source_rect) => self
+                .canvas(canvas_id)
+                .draw_image(Snapshot::cleared(image_size), dest_rect, source_rect, false),
             Canvas2dMsg::DrawImageInOther(
                 other_canvas_id,
                 image_size,
@@ -202,16 +192,14 @@ impl<'a> CanvasPaintThread<'a> {
                 source_rect,
                 smoothing,
             ) => {
-                let image_data = self
+                let snapshot = self
                     .canvas(canvas_id)
                     .read_pixels(Some(source_rect.to_u32()), Some(image_size));
                 self.canvas(other_canvas_id).draw_image(
-                    image_data.data(),
-                    source_rect.size.to_u32(),
+                    snapshot,
                     dest_rect,
                     source_rect,
                     smoothing,
-                    false,
                 );
             },
             Canvas2dMsg::MoveTo(ref point) => self.canvas(canvas_id).move_to(point),
@@ -261,9 +249,9 @@ impl<'a> CanvasPaintThread<'a> {
                     .read_pixels(Some(dest_rect), Some(canvas_size));
                 sender.send(snapshot.as_ipc()).unwrap();
             },
-            Canvas2dMsg::PutImageData(rect, receiver) => {
+            Canvas2dMsg::PutImageData(rect, snapshot) => {
                 self.canvas(canvas_id)
-                    .put_image_data(receiver.recv().unwrap(), rect);
+                    .put_image_data(snapshot.to_owned(), rect);
             },
             Canvas2dMsg::SetShadowOffsetX(value) => {
                 self.canvas(canvas_id).set_shadow_offset_x(value)
@@ -398,22 +386,15 @@ impl Canvas<'_> {
 
     fn draw_image(
         &mut self,
-        data: &[u8],
-        size: Size2D<u32>,
+        snapshot: Snapshot,
         dest_rect: Rect<f64>,
         source_rect: Rect<f64>,
         smoothing_enabled: bool,
-        is_premultiplied: bool,
     ) {
         match self {
-            Canvas::Raqote(canvas_data) => canvas_data.draw_image(
-                data,
-                size,
-                dest_rect,
-                source_rect,
-                smoothing_enabled,
-                is_premultiplied,
-            ),
+            Canvas::Raqote(canvas_data) => {
+                canvas_data.draw_image(snapshot, dest_rect, source_rect, smoothing_enabled)
+            },
         }
     }
 
@@ -613,9 +594,9 @@ impl Canvas<'_> {
         }
     }
 
-    fn put_image_data(&mut self, unwrap: Vec<u8>, rect: Rect<u32>) {
+    fn put_image_data(&mut self, snapshot: Snapshot, rect: Rect<u32>) {
         match self {
-            Canvas::Raqote(canvas_data) => canvas_data.put_image_data(unwrap, rect),
+            Canvas::Raqote(canvas_data) => canvas_data.put_image_data(snapshot, rect),
         }
     }
 

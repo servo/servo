@@ -8,7 +8,10 @@ use std::slice;
 use std::sync::{Arc, Mutex};
 
 use arrayvec::ArrayVec;
-use compositing_traits::{WebrenderExternalImageApi, WebrenderImageSource};
+use compositing_traits::{
+    CrossProcessCompositorApi, SerializableImageData, WebrenderExternalImageApi,
+    WebrenderImageSource,
+};
 use euclid::default::Size2D;
 use ipc_channel::ipc::IpcSender;
 use log::{error, warn};
@@ -17,11 +20,10 @@ use serde::{Deserialize, Serialize};
 use webgpu_traits::{
     ContextConfiguration, Error, PRESENTATION_BUFFER_COUNT, WebGPUContextId, WebGPUMsg,
 };
-use webrender::{RenderApi, Transaction};
 use webrender_api::units::DeviceIntSize;
 use webrender_api::{
-    DirtyRect, DocumentId, ExternalImageData, ExternalImageId, ExternalImageType, ImageData,
-    ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey,
+    ExternalImageData, ExternalImageId, ExternalImageType, ImageDescriptor, ImageDescriptorFlags,
+    ImageFormat, ImageKey,
 };
 use wgpu_core::device::HostMap;
 use wgpu_core::global::Global;
@@ -182,7 +184,7 @@ impl WebGPUImageDescriptor {
 pub struct ContextData {
     image_key: ImageKey,
     image_desc: WebGPUImageDescriptor,
-    image_data: ImageData,
+    image_data: ExternalImageData,
     buffer_ids: ArrayVec<(id::BufferId, PresentationBufferState), PRESENTATION_BUFFER_COUNT>,
     /// If there is no associated swapchain the context is dummy (transparent black)
     swap_chain: Option<SwapChain>,
@@ -202,12 +204,12 @@ impl ContextData {
         size: DeviceIntSize,
         buffer_ids: ArrayVec<id::BufferId, PRESENTATION_BUFFER_COUNT>,
     ) -> Self {
-        let image_data = ImageData::External(ExternalImageData {
+        let image_data = ExternalImageData {
             id: ExternalImageId(context_id.0),
             channel_index: 0,
             image_type: ExternalImageType::Buffer,
             normalized_uvs: false,
-        });
+        };
 
         Self {
             image_key,
@@ -300,8 +302,7 @@ impl ContextData {
         mut self,
         global: &Arc<Global>,
         script_sender: &IpcSender<WebGPUMsg>,
-        webrender_api: &Arc<Mutex<RenderApi>>,
-        webrender_document: DocumentId,
+        compositor_api: &CrossProcessCompositorApi,
     ) {
         self.destroy_swapchain(global);
         for (buffer_id, _) in self.buffer_ids {
@@ -309,12 +310,7 @@ impl ContextData {
                 warn!("Unable to send FreeBuffer({:?}) ({:?})", buffer_id, e);
             };
         }
-        let mut txn = Transaction::new();
-        txn.delete_image(self.image_key);
-        webrender_api
-            .lock()
-            .unwrap()
-            .send_transaction(webrender_document, txn);
+        compositor_api.delete_image(self.image_key);
     }
 
     /// Returns true if presentation id was updated (was newer)
@@ -344,17 +340,11 @@ impl crate::WGPU {
         buffer_ids: ArrayVec<id::BufferId, PRESENTATION_BUFFER_COUNT>,
     ) {
         let context_data = ContextData::new(context_id, image_key, size, buffer_ids);
-        let mut txn = Transaction::new();
-        txn.add_image(
+        self.compositor_api.add_image(
             image_key,
             context_data.image_desc.0,
-            context_data.image_data.clone(),
-            None,
+            SerializableImageData::External(context_data.image_data),
         );
-        self.webrender_api
-            .lock()
-            .unwrap()
-            .send_transaction(self.webrender_document, txn);
         assert!(
             self.wgpu_image_map
                 .lock()
@@ -431,17 +421,11 @@ impl crate::WGPU {
         };
 
         if needs_image_update {
-            let mut txn = Transaction::new();
-            txn.update_image(
+            self.compositor_api.update_image(
                 context_data.image_key,
                 context_data.image_desc.0,
-                context_data.image_data.clone(),
-                &DirtyRect::All,
+                SerializableImageData::External(context_data.image_data),
             );
-            self.webrender_api
-                .lock()
-                .unwrap()
-                .send_transaction(self.webrender_document, txn);
         }
     }
 
@@ -521,8 +505,7 @@ impl crate::WGPU {
         let callback = {
             let global = Arc::clone(&self.global);
             let wgpu_image_map = Arc::clone(&self.wgpu_image_map);
-            let webrender_api = Arc::clone(&self.webrender_api);
-            let webrender_document = self.webrender_document;
+            let compositor_api = self.compositor_api.clone();
             let token = self.poller.token();
             Box::new(move |result| {
                 drop(token);
@@ -532,8 +515,7 @@ impl crate::WGPU {
                     buffer_id,
                     wgpu_image_map,
                     context_id,
-                    webrender_api,
-                    webrender_document,
+                    compositor_api,
                     image_desc,
                     presentation_id,
                 );
@@ -554,12 +536,7 @@ impl crate::WGPU {
             .unwrap()
             .remove(&context_id)
             .unwrap()
-            .destroy(
-                &self.global,
-                &self.script_sender,
-                &self.webrender_api,
-                self.webrender_document,
-            );
+            .destroy(&self.global, &self.script_sender, &self.compositor_api);
     }
 }
 
@@ -570,8 +547,7 @@ fn update_wr_image(
     buffer_id: id::BufferId,
     wgpu_image_map: WGPUImageMap,
     context_id: WebGPUContextId,
-    webrender_api: Arc<Mutex<RenderApi>>,
-    webrender_document: webrender_api::DocumentId,
+    compositor_api: CrossProcessCompositorApi,
     image_desc: WebGPUImageDescriptor,
     presentation_id: PresentationId,
 ) {
@@ -597,17 +573,11 @@ fn update_wr_image(
                     return;
                 };
                 let old_presentation_buffer = swap_chain.data.replace(presentation_buffer);
-                let mut txn = Transaction::new();
-                txn.update_image(
+                compositor_api.update_image(
                     context_data.image_key,
                     context_data.image_desc.0,
-                    context_data.image_data.clone(),
-                    &DirtyRect::All,
+                    SerializableImageData::External(context_data.image_data),
                 );
-                webrender_api
-                    .lock()
-                    .unwrap()
-                    .send_transaction(webrender_document, txn);
                 if let Some(old_presentation_buffer) = old_presentation_buffer {
                     context_data.unmap_old_buffer(old_presentation_buffer)
                 }

@@ -59,5 +59,42 @@
     assert_equals(alternateAuthResponseAfterExpiry2.status, 200);
     assert_true(documentHasCookie(expectedCookieAndValue2));
     assert_false(documentHasCookie(expectedCookieAndValue1));
-}, "Refresh can replace session config");
+  }, "Refresh can replace session config");
+
+  promise_test(async t => {
+    await setupShardedServerState();
+    const expectedCookieAndValue = "auth_cookie=abcdef0123";
+    const expectedCookieAndAttributes = `${expectedCookieAndValue};Domain=${location.hostname};Path=/device-bound-session-credentials`;
+    addCookieAndSessionCleanup(t);
+
+    // Prompt starting a session, and wait until registration completes.
+    const loginResponse = await fetch('login.py');
+    assert_equals(loginResponse.status, 200);
+    await waitForCookie(expectedCookieAndValue, /*expectCookie=*/true);
+
+    // Confirm that a request has the cookie set.
+    const authResponse = await fetch('verify_authenticated.py');
+    assert_equals(authResponse.status, 200);
+
+    // Configure server to change the session identifier in the session config on next refresh.
+    configureServer({ responseSessionIdOverride: 12345 });
+
+    // Expire the first cookie and send a request, which triggers the refresh with the new session config.
+    expireCookie(expectedCookieAndAttributes);
+    assert_false(documentHasCookie(expectedCookieAndValue));
+    const authResponseAfterExpiry = await fetch('verify_authenticated.py');
+
+    // The first refresh request will give us a new cookie, but will also cause the session to be terminated.
+    assert_true(documentHasCookie(expectedCookieAndValue));
+    assert_equals(authResponseAfterExpiry.status, 200);
+
+    // Now that the session is terminated, refresh should not give us a new cookie.
+    expireCookie(expectedCookieAndAttributes);
+    assert_false(documentHasCookie(expectedCookieAndValue));
+    const authResponseAfterTermination = await fetch('verify_authenticated.py');
+    assert_equals(authResponseAfterTermination.status, 401);
+
+    // Because refresh failed, we still do not have the cookie
+    assert_false(documentHasCookie(expectedCookieAndValue));
+  }, "Refresh cannot replace session identifier");
 </script>

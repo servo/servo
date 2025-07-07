@@ -21,7 +21,7 @@ use js::jsapi::{JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, NullValue, ObjectValue, UInt32Value};
 use js::rust::{CustomAutoRooterGuard, HandleObject, MutableHandleValue};
 use js::typedarray::{ArrayBufferView, CreateWith, Float32, Int32Array, Uint32, Uint32Array};
-use pixels::Snapshot;
+use pixels::{Alpha, Snapshot};
 use script_bindings::interfaces::WebGL2RenderingContextHelpers;
 use servo_config::pref;
 use url::Host;
@@ -914,6 +914,10 @@ impl CanvasContext for WebGL2RenderingContext {
 
     fn resize(&self) {
         self.base.resize();
+    }
+
+    fn reset_bitmap(&self) {
+        self.base.reset_bitmap();
     }
 
     fn get_image_data(&self) -> Option<Snapshot> {
@@ -3257,7 +3261,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
         let size = Size2D::new(width, height);
 
-        let (alpha_treatment, y_axis_treatment) = self.base.get_current_unpack_state(false);
+        let (alpha_treatment, y_axis_treatment) =
+            self.base.get_current_unpack_state(Alpha::NotPremultiplied);
 
         self.base.tex_image_2d(
             &texture,

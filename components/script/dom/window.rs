@@ -52,8 +52,9 @@ use js::rust::{
     MutableHandleValue,
 };
 use layout_api::{
-    FragmentType, Layout, PendingImageState, QueryMsg, ReflowGoal, ReflowRequest,
-    TrustedNodeAddress, combine_id_with_fragment_type,
+    FragmentType, Layout, PendingImage, PendingImageState, PendingRasterizationImage, QueryMsg,
+    ReflowGoal, ReflowRequest, ReflowRequestRestyle, RestyleReason, TrustedNodeAddress,
+    combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
@@ -101,6 +102,7 @@ use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
     ImageBitmapOptions, ImageBitmapSource,
 };
 use crate::dom::bindings::codegen::Bindings::MediaQueryListBinding::MediaQueryList_Binding::MediaQueryListMethods;
+use crate::dom::bindings::codegen::Bindings::ReportingObserverBinding::Report;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
@@ -124,7 +126,7 @@ use crate::dom::bluetooth::BluetoothExtraPermissionData;
 use crate::dom::crypto::Crypto;
 use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
 use crate::dom::customelementregistry::CustomElementRegistry;
-use crate::dom::document::{AnimationFrameCallback, Document, ReflowTriggerCondition};
+use crate::dom::document::{AnimationFrameCallback, Document};
 use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventtarget::EventTarget;
@@ -145,6 +147,7 @@ use crate::dom::navigator::Navigator;
 use crate::dom::node::{Node, NodeDamage, NodeTraits, from_untrusted_node_address};
 use crate::dom::performance::Performance;
 use crate::dom::promise::Promise;
+use crate::dom::reportingobserver::ReportingObserver;
 use crate::dom::screen::Screen;
 use crate::dom::selection::Selection;
 use crate::dom::shadowroot::ShadowRoot;
@@ -375,9 +378,6 @@ pub(crate) struct Window {
     /// It is used to avoid sending idle message more than once, which is unneccessary.
     has_sent_idle_message: Cell<bool>,
 
-    /// Emits notifications when there is a relayout.
-    relayout_event: bool,
-
     /// Unminify Css.
     unminify_css: bool,
 
@@ -400,6 +400,12 @@ pub(crate) struct Window {
 
     /// <https://dom.spec.whatwg.org/#window-current-event>
     current_event: DomRefCell<Option<Dom<Event>>>,
+
+    /// <https://w3c.github.io/reporting/#windoworworkerglobalscope-registered-reporting-observer-list>
+    reporting_observer_list: DomRefCell<Vec<DomRoot<ReportingObserver>>>,
+
+    /// <https://w3c.github.io/reporting/#windoworworkerglobalscope-reports>
+    report_list: DomRefCell<Vec<Report>>,
 }
 
 impl Window {
@@ -502,6 +508,35 @@ impl Window {
     /// This can panic if it is called after the browsing context has been discarded
     pub(crate) fn window_proxy(&self) -> DomRoot<WindowProxy> {
         self.window_proxy.get().unwrap()
+    }
+
+    pub(crate) fn append_reporting_observer(&self, reporting_observer: DomRoot<ReportingObserver>) {
+        self.reporting_observer_list
+            .borrow_mut()
+            .push(reporting_observer);
+    }
+
+    pub(crate) fn remove_reporting_observer(&self, reporting_observer: &ReportingObserver) {
+        if let Some(index) = self
+            .reporting_observer_list
+            .borrow()
+            .iter()
+            .position(|observer| &**observer == reporting_observer)
+        {
+            self.reporting_observer_list.borrow_mut().remove(index);
+        }
+    }
+
+    pub(crate) fn registered_reporting_observers(&self) -> Vec<DomRoot<ReportingObserver>> {
+        self.reporting_observer_list.borrow().clone()
+    }
+
+    pub(crate) fn append_report(&self, report: Report) {
+        self.report_list.borrow_mut().push(report);
+    }
+
+    pub(crate) fn buffered_reports(&self) -> Vec<Report> {
+        self.report_list.borrow().clone()
     }
 
     /// Returns the window proxy if it has not been discarded.
@@ -2127,35 +2162,19 @@ impl Window {
     ///
     /// NOTE: This method should almost never be called directly! Layout and rendering updates should
     /// happen as part of the HTML event loop via *update the rendering*.
-    #[allow(unsafe_code)]
-    fn force_reflow(
-        &self,
-        reflow_goal: ReflowGoal,
-        condition: Option<ReflowTriggerCondition>,
-    ) -> bool {
-        self.Document().ensure_safe_to_run_script_or_layout();
+    fn force_reflow(&self, reflow_goal: ReflowGoal) -> bool {
+        let document = self.Document();
+        document.ensure_safe_to_run_script_or_layout();
 
         // If layouts are blocked, we block all layouts that are for display only. Other
         // layouts (for queries and scrolling) are not blocked, as they do not display
         // anything and script excpects the layout to be up-to-date after they run.
-        let layout_blocked = self.layout_blocker.get().layout_blocked();
         let pipeline_id = self.pipeline_id();
-        if reflow_goal == ReflowGoal::UpdateTheRendering && layout_blocked {
+        if reflow_goal == ReflowGoal::UpdateTheRendering &&
+            self.layout_blocker.get().layout_blocked()
+        {
             debug!("Suppressing pre-load-event reflow pipeline {pipeline_id}");
             return false;
-        }
-
-        if condition != Some(ReflowTriggerCondition::PaintPostponed) {
-            debug!(
-                "Invalidating layout cache due to reflow condition {:?}",
-                condition
-            );
-            // Invalidate any existing cached layout values.
-            self.layout_marker.borrow().set(false);
-            // Create a new layout caching token.
-            *self.layout_marker.borrow_mut() = Rc::new(Cell::new(true));
-        } else {
-            debug!("Not invalidating cached layout values for paint-only reflow.");
         }
 
         debug!("script: performing reflow for goal {reflow_goal:?}");
@@ -2165,39 +2184,45 @@ impl Window {
             None
         };
 
-        // On debug mode, print the reflow event information.
-        if self.relayout_event {
-            debug_reflow_events(pipeline_id, &reflow_goal);
-        }
+        let restyle_reason = document.restyle_reason();
+        document.clear_restyle_reasons();
+        let restyle = if restyle_reason.needs_restyle() {
+            debug!("Invalidating layout cache due to reflow condition {restyle_reason:?}",);
+            // Invalidate any existing cached layout values.
+            self.layout_marker.borrow().set(false);
+            // Create a new layout caching token.
+            *self.layout_marker.borrow_mut() = Rc::new(Cell::new(true));
 
-        let document = self.Document();
+            let stylesheets_changed = document.flush_stylesheets_for_reflow();
+            let pending_restyles = document.drain_pending_restyles();
+            let dirty_root = document
+                .take_dirty_root()
+                .filter(|_| !stylesheets_changed)
+                .or_else(|| document.GetDocumentElement())
+                .map(|root| root.upcast::<Node>().to_trusted_node_address());
 
-        let stylesheets_changed = document.flush_stylesheets_for_reflow();
-        let for_display = reflow_goal.needs_display();
-        let pending_restyles = document.drain_pending_restyles();
-        let dirty_root = document
-            .take_dirty_root()
-            .filter(|_| !stylesheets_changed)
-            .or_else(|| document.GetDocumentElement())
-            .map(|root| root.upcast::<Node>().to_trusted_node_address());
+            Some(ReflowRequestRestyle {
+                reason: restyle_reason,
+                dirty_root,
+                stylesheets_changed,
+                pending_restyles,
+            })
+        } else {
+            None
+        };
 
-        let highlighted_dom_node = document.highlighted_dom_node().map(|node| node.to_opaque());
-
-        // Send new document and relevant styles to layout.
         let reflow = ReflowRequest {
             document: document.upcast::<Node>().to_trusted_node_address(),
-            dirty_root,
-            stylesheets_changed,
+            restyle,
             viewport_details: self.viewport_details.get(),
             origin: self.origin().immutable().clone(),
             reflow_goal,
             dom_count: document.dom_count(),
-            pending_restyles,
             animation_timeline_value: document.current_animation_timeline_value(),
             animations: document.animations().sets.clone(),
             node_to_animating_image_map: document.image_animation_manager().node_to_image_map(),
             theme: self.theme.get(),
-            highlighted_dom_node,
+            highlighted_dom_node: document.highlighted_dom_node().map(|node| node.to_opaque()),
         };
 
         let Some(results) = self.layout.borrow_mut().reflow(reflow) else {
@@ -2209,69 +2234,13 @@ impl Window {
             self.emit_timeline_marker(marker.end());
         }
 
-        // Either this reflow caused new contents to be displayed or on the next
-        // full layout attempt a reflow should be forced in order to update the
-        // visual contents of the page. A case where full display might be delayed
-        // is when reflowing just for the purpose of doing a layout query.
-        document.set_needs_paint(!for_display);
-
-        for image in results.pending_images {
-            let id = image.id;
-            let node = unsafe { from_untrusted_node_address(image.node) };
-
-            if let PendingImageState::Unrequested(ref url) = image.state {
-                fetch_image_for_layout(url.clone(), &node, id, self.image_cache.clone());
-            }
-
-            let mut images = self.pending_layout_images.borrow_mut();
-            if !images.contains_key(&id) {
-                let trusted_node = Trusted::new(&*node);
-                let sender = self.register_image_cache_listener(id, move |response| {
-                    trusted_node
-                        .root()
-                        .owner_window()
-                        .pending_layout_image_notification(response);
-                });
-
-                self.image_cache.add_listener(ImageLoadListener::new(
-                    sender,
-                    self.pipeline_id(),
-                    id,
-                ));
-            }
-
-            let nodes = images.entry(id).or_default();
-            if !nodes.iter().any(|n| std::ptr::eq(&**n, &*node)) {
-                nodes.push(Dom::from_ref(&*node));
-            }
-        }
-
-        for image in results.pending_rasterization_images {
-            let node = unsafe { from_untrusted_node_address(image.node) };
-
-            let mut images = self.pending_images_for_rasterization.borrow_mut();
-            if !images.contains_key(&(image.id, image.size)) {
-                self.image_cache.add_rasterization_complete_listener(
-                    pipeline_id,
-                    image.id,
-                    image.size,
-                    self.image_cache_sender.clone(),
-                );
-            }
-
-            let nodes = images.entry((image.id, image.size)).or_default();
-            if !nodes.iter().any(|n| std::ptr::eq(&**n, &*node)) {
-                nodes.push(Dom::from_ref(&*node));
-            }
-        }
-
-        let size_messages = self
-            .Document()
+        self.handle_pending_images_post_reflow(
+            results.pending_images,
+            results.pending_rasterization_images,
+        );
+        document
             .iframes_mut()
-            .handle_new_iframe_sizes_after_layout(results.iframe_sizes);
-        if !size_messages.is_empty() {
-            self.send_to_constellation(ScriptToConstellationMessage::IFrameSizes(size_messages));
-        }
+            .handle_new_iframe_sizes_after_layout(self, results.iframe_sizes);
         document.update_animations_post_reflow();
         self.update_constellation_epoch();
 
@@ -2295,31 +2264,8 @@ impl Window {
 
         self.Document().ensure_safe_to_run_script_or_layout();
 
-        let mut issued_reflow = false;
-        let condition = self.Document().needs_reflow();
         let updating_the_rendering = reflow_goal == ReflowGoal::UpdateTheRendering;
-        let for_display = reflow_goal.needs_display();
-        if !updating_the_rendering || condition.is_some() {
-            debug!("Reflowing document ({:?})", self.pipeline_id());
-            issued_reflow = self.force_reflow(reflow_goal, condition);
-
-            // We shouldn't need a reflow immediately after a completed reflow, unless the reflow didn't
-            // display anything and it wasn't for display. Queries can cause this to happen.
-            if issued_reflow {
-                let condition = self.Document().needs_reflow();
-                let display_is_pending = condition == Some(ReflowTriggerCondition::PaintPostponed);
-                assert!(
-                    condition.is_none() || (display_is_pending && !for_display),
-                    "Needed reflow after reflow: {:?}",
-                    condition
-                );
-            }
-        } else {
-            debug!(
-                "Document ({:?}) doesn't need reflow - skipping it (goal {reflow_goal:?})",
-                self.pipeline_id()
-            );
-        }
+        let issued_reflow = self.force_reflow(reflow_goal);
 
         let document = self.Document();
         let font_face_set = document.Fonts(can_gc);
@@ -2420,7 +2366,6 @@ impl Window {
 
         self.layout_blocker
             .set(LayoutBlocker::FiredLoadEventOrParsingTimerExpired);
-        self.Document().set_needs_paint(true);
 
         // We do this immediately instead of scheduling a future task, because this can
         // happen if parsing is taking a very long time, which means that the
@@ -2433,7 +2378,7 @@ impl Window {
         // iframe size updates.
         //
         // See <https://github.com/servo/servo/issues/14719>
-        self.reflow(ReflowGoal::UpdateTheRendering, can_gc);
+        self.Document().update_the_rendering(can_gc);
     }
 
     pub(crate) fn layout_blocked(&self) -> bool {
@@ -2749,12 +2694,7 @@ impl Window {
             };
 
             // Step 13
-            ScriptThread::navigate(
-                window_proxy.browsing_context_id(),
-                pipeline_id,
-                load_data,
-                resolved_history_handling,
-            );
+            ScriptThread::navigate(pipeline_id, load_data, resolved_history_handling);
         };
     }
 
@@ -2777,7 +2717,8 @@ impl Window {
             return;
         }
         self.theme.set(new_theme);
-        self.Document().set_needs_paint(true);
+        self.Document()
+            .add_restyle_reason(RestyleReason::ThemeChanged);
     }
 
     pub(crate) fn get_url(&self) -> ServoUrl {
@@ -2811,7 +2752,14 @@ impl Window {
 
         // The document needs to be repainted, because the initial containing block
         // is now a different size.
-        self.Document().set_needs_paint(true);
+        self.Document()
+            .add_restyle_reason(RestyleReason::ViewportSizeChanged);
+
+        // If viewport units were used, all nodes need to be restyled, because
+        // we currently do not track which ones rely on viewport units.
+        if self.layout().device().used_viewport_units() {
+            self.Document().dirty_all_nodes();
+        }
     }
 
     pub(crate) fn suspend(&self, can_gc: CanGc) {
@@ -2906,6 +2854,18 @@ impl Window {
         );
         self.set_viewport_details(new_size);
 
+        // The document needs to be repainted, because the initial containing
+        // block is now a different size. This should be triggered before the
+        // event is fired below so that any script queries trigger a restyle.
+        self.Document()
+            .add_restyle_reason(RestyleReason::ViewportSizeChanged);
+
+        // If viewport units were used, all nodes need to be restyled, because
+        // we currently do not track which ones rely on viewport units.
+        if self.layout().device().used_viewport_units() {
+            self.Document().dirty_all_nodes();
+        }
+
         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
         if size_type == WindowSizeType::Resize {
             let uievent = UIEvent::new(
@@ -2919,10 +2879,6 @@ impl Window {
             );
             uievent.upcast::<Event>().fire(self.upcast(), can_gc);
         }
-
-        // The document needs to be repainted, because the initial containing block
-        // is now a different size.
-        self.Document().set_needs_paint(true);
 
         true
     }
@@ -3006,6 +2962,61 @@ impl Window {
     pub(crate) fn in_immersive_xr_session(&self) -> bool {
         false
     }
+
+    #[allow(unsafe_code)]
+    fn handle_pending_images_post_reflow(
+        &self,
+        pending_images: Vec<PendingImage>,
+        pending_rasterization_images: Vec<PendingRasterizationImage>,
+    ) {
+        let pipeline_id = self.pipeline_id();
+        for image in pending_images {
+            let id = image.id;
+            let node = unsafe { from_untrusted_node_address(image.node) };
+
+            if let PendingImageState::Unrequested(ref url) = image.state {
+                fetch_image_for_layout(url.clone(), &node, id, self.image_cache.clone());
+            }
+
+            let mut images = self.pending_layout_images.borrow_mut();
+            if !images.contains_key(&id) {
+                let trusted_node = Trusted::new(&*node);
+                let sender = self.register_image_cache_listener(id, move |response| {
+                    trusted_node
+                        .root()
+                        .owner_window()
+                        .pending_layout_image_notification(response);
+                });
+
+                self.image_cache
+                    .add_listener(ImageLoadListener::new(sender, pipeline_id, id));
+            }
+
+            let nodes = images.entry(id).or_default();
+            if !nodes.iter().any(|n| std::ptr::eq(&**n, &*node)) {
+                nodes.push(Dom::from_ref(&*node));
+            }
+        }
+
+        for image in pending_rasterization_images {
+            let node = unsafe { from_untrusted_node_address(image.node) };
+
+            let mut images = self.pending_images_for_rasterization.borrow_mut();
+            if !images.contains_key(&(image.id, image.size)) {
+                self.image_cache.add_rasterization_complete_listener(
+                    pipeline_id,
+                    image.id,
+                    image.size,
+                    self.image_cache_sender.clone(),
+                );
+            }
+
+            let nodes = images.entry((image.id, image.size)).or_default();
+            if !nodes.iter().any(|n| std::ptr::eq(&**n, &*node)) {
+                nodes.push(Dom::from_ref(&*node));
+            }
+        }
+    }
 }
 
 impl Window {
@@ -3037,7 +3048,6 @@ impl Window {
         #[cfg(feature = "webxr")] webxr_registry: Option<webxr_api::Registry>,
         microtask_queue: Rc<MicrotaskQueue>,
         compositor_api: CrossProcessCompositorApi,
-        relayout_event: bool,
         unminify_js: bool,
         unminify_css: bool,
         local_script_source: Option<String>,
@@ -3125,7 +3135,6 @@ impl Window {
             exists_mut_observer: Cell::new(false),
             compositor_api,
             has_sent_idle_message: Cell::new(false),
-            relayout_event,
             unminify_css,
             user_content_manager,
             player_context,
@@ -3134,6 +3143,8 @@ impl Window {
             current_event: DomRefCell::new(None),
             theme: Cell::new(theme),
             trusted_types: Default::default(),
+            reporting_observer_list: Default::default(),
+            report_list: Default::default(),
         });
 
         unsafe {
@@ -3211,29 +3222,6 @@ fn should_move_clip_rect(clip_rect: UntypedRect<Au>, new_viewport: UntypedRect<f
         (clip_rect.max_x() - new_viewport.max_x()).abs() <= viewport_scroll_margin.width ||
         (clip_rect.origin.y - new_viewport.origin.y).abs() <= viewport_scroll_margin.height ||
         (clip_rect.max_y() - new_viewport.max_y()).abs() <= viewport_scroll_margin.height
-}
-
-fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal) {
-    let goal_string = match *reflow_goal {
-        ReflowGoal::UpdateTheRendering => "\tFull",
-        ReflowGoal::UpdateScrollNode(..) => "\tUpdateScrollNode",
-        ReflowGoal::LayoutQuery(ref query_msg) => match *query_msg {
-            QueryMsg::ContentBox => "\tContentBoxQuery",
-            QueryMsg::ContentBoxes => "\tContentBoxesQuery",
-            QueryMsg::NodesFromPointQuery => "\tNodesFromPointQuery",
-            QueryMsg::ClientRectQuery => "\tClientRectQuery",
-            QueryMsg::ScrollingAreaOrOffsetQuery => "\tNodeScrollGeometryQuery",
-            QueryMsg::ResolvedStyleQuery => "\tResolvedStyleQuery",
-            QueryMsg::ResolvedFontStyleQuery => "\nResolvedFontStyleQuery",
-            QueryMsg::OffsetParentQuery => "\tOffsetParentQuery",
-            QueryMsg::StyleQuery => "\tStyleQuery",
-            QueryMsg::TextIndexQuery => "\tTextIndexQuery",
-            QueryMsg::ElementInnerOuterTextQuery => "\tElementInnerOuterTextQuery",
-            QueryMsg::InnerWindowDimensionsQuery => "\tInnerWindowDimensionsQuery",
-        },
-    };
-
-    println!("**** pipeline={id}\t{goal_string}");
 }
 
 impl Window {

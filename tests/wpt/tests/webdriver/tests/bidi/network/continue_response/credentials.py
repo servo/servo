@@ -73,8 +73,12 @@ async def test_correct_credentials(
     # the last event. See https://github.com/w3c/webdriver-bidi/issues/627
 
     # Wait until a a responseCompleted event with status 200 OK is received.
-    wait = AsyncPoll(
-        bidi_session, message="Didn't receive response completed events")
-    await wait.until(lambda _: len(response_completed_events) > 0 and response_completed_events[-1]["response"]["status"] == 200)
+    def check_event(_):
+        assert len(
+            response_completed_events) > 0, "Didn't receive response completed events"
+        assert response_completed_events[-1]["response"]["status"] == 200, "Invalid HTTP status for most recent event"
+
+    wait = AsyncPoll(bidi_session)
+    await wait.until(check_event)
 
     remove_listener()

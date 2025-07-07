@@ -17,7 +17,7 @@ use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
 use servo::servo_config::pref;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::ScrollLocation;
-use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePixel};
+use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::{
     Cursor, ImeEvent, InputEvent, Key, KeyState, KeyboardEvent, MouseButton as ServoMouseButton,
     MouseButtonAction, MouseButtonEvent, MouseLeaveEvent, MouseMoveEvent,
@@ -431,6 +431,9 @@ impl WindowPortsMethods for Window {
         );
 
         let screen_size = self.screen_size.to_f32() * hidpi_factor;
+        // FIXME: In reality, this should subtract screen space used by the system interface
+        // elements, but it is difficult to get this value with `winit` currently. See:
+        // See https://github.com/rust-windowing/winit/issues/2494
         let available_screen_size = screen_size - toolbar_size;
 
         // Offset the WebView origin by the toolbar so that it reflects the actual viewport and
@@ -466,14 +469,13 @@ impl WindowPortsMethods for Window {
         self.winit_window.set_title(title);
     }
 
-    fn request_resize(&self, _: &WebView, size: DeviceIntSize) -> Option<DeviceIntSize> {
-        let toolbar_height = self.toolbar_height() * self.hidpi_scale_factor();
-        let toolbar_height = toolbar_height.get().ceil() as i32;
-        let total_size = PhysicalSize::new(size.width, size.height + toolbar_height);
+    fn request_resize(&self, _: &WebView, new_outer_size: DeviceIntSize) -> Option<DeviceIntSize> {
+        let title_height =
+            self.winit_window.outer_size().height - self.winit_window.inner_size().height;
         self.winit_window
             .request_inner_size::<PhysicalSize<i32>>(PhysicalSize::new(
-                total_size.width,
-                total_size.height,
+                new_outer_size.width,
+                new_outer_size.height - title_height as i32,
             ))
             .and_then(|size| {
                 Some(DeviceIntSize::new(
@@ -481,6 +483,17 @@ impl WindowPortsMethods for Window {
                     size.height.try_into().ok()?,
                 ))
             })
+    }
+
+    fn window_rect(&self) -> DeviceIntRect {
+        let outer_size = self.winit_window.outer_size();
+        let total_size = Size2D::new(outer_size.width as i32, outer_size.height as i32);
+        let origin = self
+            .winit_window
+            .outer_position()
+            .map(|point| Point2D::new(point.x, point.y))
+            .unwrap_or_default();
+        DeviceIntRect::from_origin_and_size(origin, total_size)
     }
 
     fn set_position(&self, point: DeviceIntPoint) {
@@ -619,10 +632,9 @@ impl WindowPortsMethods for Window {
                     dy = 0.0;
                 }
 
-                let scroll_location = ScrollLocation::Delta(Vector2D::new(dx as f32, dy as f32));
-
                 // Send events
                 webview.notify_input_event(InputEvent::Wheel(WheelEvent::new(delta, point)));
+                let scroll_location = ScrollLocation::Delta(-Vector2D::new(dx as f32, dy as f32));
                 webview.notify_scroll_event(scroll_location, point.to_i32());
             },
             WindowEvent::Touch(touch) => {

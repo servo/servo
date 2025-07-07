@@ -12,7 +12,7 @@ use layout_api::wrapper_traits::{
     LayoutDataTrait, LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
 use layout_api::{
-    GenericLayoutDataTrait, LayoutElementType, LayoutNodeType as ScriptLayoutNodeType,
+    GenericLayoutDataTrait, LayoutDamage, LayoutElementType, LayoutNodeType as ScriptLayoutNodeType,
 };
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::Image;
@@ -20,7 +20,7 @@ use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
 use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
-use style::selector_parser::PseudoElement;
+use style::selector_parser::{PseudoElement, RestyleDamage};
 
 use crate::cell::ArcRefCell;
 use crate::flexbox::FlexLevelBox;
@@ -136,6 +136,20 @@ impl LayoutBox {
                 .repair_style(context, node, new_style),
         }
     }
+
+    /// If this [`LayoutBox`] represents an unsplit (due to inline-block splits) inline
+    /// level item, unwrap and return it. If not, return `None`.
+    pub(crate) fn unsplit_inline_level_layout_box(self) -> Option<ArcRefCell<InlineItem>> {
+        let LayoutBox::InlineLevel(inline_level_boxes) = self else {
+            return None;
+        };
+        // If this element box has been subject to inline-block splitting, ignore it. It's
+        // not useful currently for incremental box tree construction.
+        if inline_level_boxes.len() != 1 {
+            return None;
+        }
+        inline_level_boxes.into_iter().next()
+    }
 }
 
 /// A wrapper for [`InnerDOMLayoutData`]. This is necessary to give the entire data
@@ -160,7 +174,6 @@ pub struct BoxSlot<'dom> {
 /// A mutable reference to a `LayoutBox` stored in a DOM element.
 impl BoxSlot<'_> {
     pub(crate) fn new(slot: ArcRefCell<Option<LayoutBox>>) -> Self {
-        *slot.borrow_mut() = None;
         let slot = Some(slot);
         Self {
             slot,
@@ -180,6 +193,13 @@ impl BoxSlot<'_> {
         if let Some(slot) = &mut self.slot {
             *slot.borrow_mut() = Some(box_);
         }
+    }
+
+    pub(crate) fn take_layout_box_if_undamaged(&self, damage: LayoutDamage) -> Option<LayoutBox> {
+        if damage.has_box_damage() {
+            return None;
+        }
+        self.slot.as_ref().and_then(|slot| slot.borrow_mut().take())
     }
 }
 
@@ -216,6 +236,7 @@ pub(crate) trait NodeExt<'dom> {
     fn invalidate_cached_fragment(&self);
 
     fn repair_style(&self, context: &SharedStyleContext);
+    fn take_restyle_damage(&self) -> LayoutDamage;
 }
 
 impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
@@ -403,5 +424,13 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
                 layout_object.repair_style(context, self, &node.style(context));
             }
         }
+    }
+
+    fn take_restyle_damage(&self) -> LayoutDamage {
+        let damage = self
+            .style_data()
+            .map(|style_data| std::mem::take(&mut style_data.element_data.borrow_mut().damage))
+            .unwrap_or_else(RestyleDamage::reconstruct);
+        LayoutDamage::from_bits_retain(damage.bits())
     }
 }

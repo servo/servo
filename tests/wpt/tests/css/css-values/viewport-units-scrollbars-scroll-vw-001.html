@@ -1,0 +1,14 @@
+<!doctype html>
+<html style="overflow: scroll;">
+<title>CSS Values and Units Test: Viewport units and scrollbars</title>
+<meta name="assert" content="There is no horizontal overflow when 100vw is reduced by scrollbar width when the scrollbars are unconditional.">
+<link rel="help" href="http://www.w3.org/TR/css3-values/#viewport-relative-lengths">
+<link rel="match" href="viewport-units-scrollbars-scroll-vw-001-ref.html">
+<body style="margin: 0; padding: 0;">
+  <p>
+  Pass Condition: There is no horizontal overflow. Chrome 139 and earlier fail
+  because vw is calculated as if :root's vertical scrollbar doesn't exist.
+  </p>
+  <div style="width: 100vw; height: 100px; background: orange;"></div>
+</body>
+</html>

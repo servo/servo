@@ -109,6 +109,21 @@ def handle_preset(s: str) -> Optional[JobConfig]:
             profile="production",  # WebGPU works to slow with debug assert
             unit_tests=False,
         )  # production profile does not work with unit-tests
+    elif any(word in s for word in ["webdriver", "wd"]):
+        return JobConfig(
+            "WebDriver",
+            Workflow.LINUX,
+            wpt=True,
+            wpt_args=" ".join(
+                [
+                    "./tests/wpt/tests/webdriver/tests/classic/",
+                    "--product servodriver",
+                    "--headless",
+                ]
+            ),
+            unit_tests=False,
+            number_of_wpt_chunks=1,
+        )
     elif any(word in s for word in ["lint", "tidy"]):
         return JobConfig("Lint", Workflow.LINT)
     else:

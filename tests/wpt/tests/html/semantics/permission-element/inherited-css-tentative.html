@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<link rel="match" href="inherited-css-ref.html">
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style">
+<!-- The permission element not inherit css properties from the parent div.
+-->
+<body>
+  <style>
+    div {
+      text-emphasis: &quot;x&quot;;
+      text-emphasis-position: over right;
+      text-shadow: 1px 1px 2px black;
+    }
+  </style>
+  <div>
+    <permission type="camera"></permission>
+  </div>
+</body>
+</html>

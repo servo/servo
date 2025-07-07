@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: Explicitly testing for the initial value of a custom property</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#if-notation">
+<link rel="help" href="https://issues.chromium.org/issues/428131125">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div>
+  PASS if green
+</div>
+<style>
+  div {
+    color: if(style(--x:initial): green; else: red);
+  }
+</style>
+<script>
+  test(() => {
+    let cs = getComputedStyle(document.querySelector('div'));
+    assert_equals(cs.getPropertyValue('color'), 'rgb(0, 128, 0)');
+  }, 'if-testing the initial keyword without any property registrations');
+</script>

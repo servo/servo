@@ -40,15 +40,11 @@ mod from_constellation {
                 Self::NewWebRenderFrameReady(..) => target!("NewWebRenderFrameReady"),
                 Self::PipelineExited(..) => target!("PipelineExited"),
                 Self::LoadComplete(..) => target!("LoadComplete"),
-                Self::WebDriverMouseButtonEvent(..) => target!("WebDriverMouseButtonEvent"),
-                Self::WebDriverMouseMoveEvent(..) => target!("WebDriverMouseMoveEvent"),
-                Self::WebDriverWheelScrollEvent(..) => target!("WebDriverWheelScrollEvent"),
                 Self::SendInitialTransaction(..) => target!("SendInitialTransaction"),
                 Self::SendScrollNode(..) => target!("SendScrollNode"),
                 Self::SendDisplayList { .. } => target!("SendDisplayList"),
                 Self::HitTest(..) => target!("HitTest"),
                 Self::GenerateImageKey(..) => target!("GenerateImageKey"),
-                Self::AddImage(..) => target!("AddImage"),
                 Self::UpdateImages(..) => target!("UpdateImages"),
                 Self::GenerateFontKeys(..) => target!("GenerateFontKeys"),
                 Self::AddFont(..) => target!("AddFont"),
@@ -60,6 +56,7 @@ mod from_constellation {
                 Self::GetAvailableScreenSize(..) => target!("GetAvailableScreenSize"),
                 Self::CollectMemoryReport(..) => target!("CollectMemoryReport"),
                 Self::Viewport(..) => target!("Viewport"),
+                Self::GenerateImageKeysForPipeline(..) => target!("GenerateImageKeysForPipeline"),
             }
         }
     }

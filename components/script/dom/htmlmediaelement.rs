@@ -200,7 +200,7 @@ impl MediaFrameRenderer {
 
 impl VideoFrameRenderer for MediaFrameRenderer {
     fn render(&mut self, frame: VideoFrame) {
-        let mut updates = vec![];
+        let mut updates = smallvec::smallvec![];
 
         if let Some(old_image_key) = mem::replace(&mut self.very_old_frame, self.old_frame.take()) {
             updates.push(ImageUpdate::DeleteImage(old_image_key));
@@ -237,7 +237,7 @@ impl VideoFrameRenderer for MediaFrameRenderer {
             Some(current_frame) => {
                 self.old_frame = Some(current_frame.image_key);
 
-                let Some(new_image_key) = self.compositor_api.generate_image_key() else {
+                let Some(new_image_key) = self.compositor_api.generate_image_key_blocking() else {
                     return;
                 };
 
@@ -270,7 +270,7 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                 updates.push(ImageUpdate::AddImage(new_image_key, descriptor, image_data));
             },
             None => {
-                let Some(image_key) = self.compositor_api.generate_image_key() else {
+                let Some(image_key) = self.compositor_api.generate_image_key_blocking() else {
                     return;
                 };
 

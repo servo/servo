@@ -63,6 +63,11 @@ test_pseudo_computed_value("::marker", "animation-play-state", "paused");
 test_pseudo_computed_value("::marker", "animation-timing-function", "linear");
 test_pseudo_computed_value("::marker", "animation-composition", "add");
 
+test_pseudo_computed_value("::marker", "animation-range", "contain 10px cover 20px");
+test_pseudo_computed_value("::marker", "animation-range-start", "contain 10px");
+test_pseudo_computed_value("::marker", "animation-range-end", "cover 20px");
+test_pseudo_computed_value("::marker", "animation-timeline", "scroll()");
+
 // ::marker supports transition properties.
 test_pseudo_computed_value("::marker", "transition", "display 1s linear 2s");
 test_pseudo_computed_value("::marker", "transition-delay", "1s");

@@ -143,7 +143,7 @@ public class ServoView extends SurfaceView
 
         if (mFlinging && mScroller.isFinished()) {
             mFlinging = false;
-            mServo.scrollEnd(0, 0, mCurX, mCurY);
+            mServo.scroll(0, 0, -mCurX, -mCurY);
         }
 
         if (mFlinging) {
@@ -172,7 +172,7 @@ public class ServoView extends SurfaceView
             int x = Math.min(mCurX, this.getHeight());
             int y = Math.min(mCurY, this.getWidth());
 
-            mServo.scroll(dx, dy, x, y);
+            mServo.scroll(-dx, -dy, x, y);
         }
 
         if (zoomNecessary) {
@@ -229,16 +229,8 @@ public class ServoView extends SurfaceView
         }
     }
 
-    public void scrollStart(int dx, int dy, int x, int y) {
-        mServo.scrollStart(dx, dy, x, y);
-    }
-
     public void scroll(int dx, int dy, int x, int y) {
         mServo.scroll(dx, dy, x, y);
-    }
-
-    public void scrollEnd(int dx, int dy, int x, int y) {
-        mServo.scrollEnd(dx, dy, x, y);
     }
 
     public void click(float x, float y) {
@@ -257,7 +249,7 @@ public class ServoView extends SurfaceView
         mCurY = velocityY < 0 ? mPageHeight : 0;
         mLastY = mCurY;
         mScroller.fling(mCurX, mCurY, (int) velocityX, (int) velocityY, 0, mPageWidth, 0, mPageHeight);
-        mServo.scrollStart(0, 0, mCurX, mCurY);
+        mServo.scroll(0, 0, mCurX, mCurY);
         startLooping();
         return true;
     }
@@ -309,7 +301,7 @@ public class ServoView extends SurfaceView
     }
 
     public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-        mServo.scroll((int) -distanceX, (int) -distanceY, (int) e2.getX(), (int) e2.getY());
+        mServo.scroll((int) distanceX, (int) distanceY, (int) e2.getX(), (int) e2.getY());
         return true;
     }
 

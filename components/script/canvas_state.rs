@@ -53,9 +53,10 @@ use crate::dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrSt
 use crate::dom::canvaspattern::CanvasPattern;
 use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::dommatrixreadonly::dommatrix2dinit_to_matrix;
-use crate::dom::element::{Element, cors_setting_for_element};
+use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::HTMLCanvasElement;
+use crate::dom::htmlimageelement::HTMLImageElement;
 use crate::dom::htmlvideoelement::HTMLVideoElement;
 use crate::dom::imagebitmap::ImageBitmap;
 use crate::dom::imagedata::ImageData;
@@ -291,6 +292,14 @@ impl CanvasState {
         *self.state.borrow_mut() = CanvasContextState::new();
     }
 
+    pub(crate) fn reset_bitmap(&self) {
+        if !self.is_paintable() {
+            return;
+        }
+
+        self.send_canvas_2d_msg(Canvas2dMsg::ClearRect(self.size.get().to_f32().into()));
+    }
+
     fn create_drawable_rect(&self, x: f64, y: f64, w: f64, h: f64) -> Option<Rect<f32>> {
         if !([x, y, w, h].iter().all(|val| val.is_finite())) {
             return None;
@@ -393,14 +402,15 @@ impl CanvasState {
 
         let (sender, receiver) = ipc::channel().unwrap();
         self.send_canvas_2d_msg(Canvas2dMsg::GetImageData(rect, canvas_size, sender));
-        let mut snapshot = receiver.recv().unwrap().to_owned();
-        snapshot.transform(
-            SnapshotAlphaMode::Transparent {
-                premultiplied: false,
-            },
-            SnapshotPixelFormat::RGBA,
-        );
-        snapshot.to_vec()
+        let snapshot = receiver.recv().unwrap().to_owned();
+        snapshot
+            .to_vec(
+                Some(SnapshotAlphaMode::Transparent {
+                    premultiplied: false,
+                }),
+                Some(SnapshotPixelFormat::RGBA),
+            )
+            .0
     }
 
     ///
@@ -444,6 +454,17 @@ impl CanvasState {
         }
 
         let result = match image {
+            CanvasImageSource::HTMLImageElement(ref image) => {
+                // https://html.spec.whatwg.org/multipage/#drawing-images
+                // 2. Let usability be the result of checking the usability of image.
+                // 3. If usability is bad, then return (without drawing anything).
+                if !image.is_usable()? {
+                    return Ok(());
+                }
+
+                self.draw_html_image_element(image, htmlcanvas, sx, sy, sw, sh, dx, dy, dw, dh);
+                Ok(())
+            },
             CanvasImageSource::HTMLVideoElement(ref video) => {
                 // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
                 // Step 2. Let usability be the result of checking the usability of image.
@@ -480,34 +501,6 @@ impl CanvasState {
 
                 self.draw_offscreen_canvas(canvas, htmlcanvas, sx, sy, sw, sh, dx, dy, dw, dh)
             },
-            CanvasImageSource::HTMLImageElement(ref image) => {
-                // https://html.spec.whatwg.org/multipage/#drawing-images
-                // 2. Let usability be the result of checking the usability of image.
-                // 3. If usability is bad, then return (without drawing anything).
-                if !image.is_usable()? {
-                    return Ok(());
-                }
-
-                // TODO(pylbrecht): is it possible for image.get_url() to return None after the usability check?
-                // https://html.spec.whatwg.org/multipage/#img-error
-                // If the image argument is an HTMLImageElement object that is in the broken state,
-                // then throw an InvalidStateError exception
-                let url = image.get_url().ok_or(Error::InvalidState)?;
-                let cors_setting = cors_setting_for_element(image.upcast());
-                self.fetch_and_draw_image_data(
-                    htmlcanvas,
-                    url,
-                    cors_setting,
-                    sx,
-                    sy,
-                    sw,
-                    sh,
-                    dx,
-                    dy,
-                    dw,
-                    dh,
-                )
-            },
             CanvasImageSource::CSSStyleValue(ref value) => {
                 let url = value
                     .get_url(self.base_url.clone())
@@ -522,6 +515,52 @@ impl CanvasState {
             self.set_origin_unclean()
         }
         result
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage>
+    #[allow(clippy::too_many_arguments)]
+    fn draw_html_image_element(
+        &self,
+        image: &HTMLImageElement,
+        canvas: Option<&HTMLCanvasElement>,
+        sx: f64,
+        sy: f64,
+        sw: Option<f64>,
+        sh: Option<f64>,
+        dx: f64,
+        dy: f64,
+        dw: Option<f64>,
+        dh: Option<f64>,
+    ) {
+        let Some(snapshot) = image.get_raster_image_data() else {
+            return;
+        };
+
+        // Step 4. Establish the source and destination rectangles.
+        let image_size = snapshot.size();
+        let dw = dw.unwrap_or(image_size.width as f64);
+        let dh = dh.unwrap_or(image_size.height as f64);
+        let sw = sw.unwrap_or(image_size.width as f64);
+        let sh = sh.unwrap_or(image_size.height as f64);
+
+        let (source_rect, dest_rect) =
+            self.adjust_source_dest_rects(image_size, sx, sy, sw, sh, dx, dy, dw, dh);
+
+        // Step 5. If one of the sw or sh arguments is zero, then return. Nothing is painted.
+        if !is_rect_valid(source_rect) || !is_rect_valid(dest_rect) {
+            return;
+        }
+
+        let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
+
+        self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
+            snapshot.as_ipc(),
+            dest_rect,
+            source_rect,
+            smoothing_enabled,
+        ));
+
+        self.mark_as_dirty(canvas);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage>
@@ -1099,12 +1138,7 @@ impl CanvasState {
                     return Ok(None);
                 }
 
-                image
-                    .get_url()
-                    .and_then(|url| {
-                        self.fetch_image_data(url, cors_setting_for_element(image.upcast()))
-                    })
-                    .ok_or(Error::InvalidState)?
+                image.get_raster_image_data().ok_or(Error::InvalidState)?
             },
             CanvasImageSource::HTMLVideoElement(ref video) => {
                 // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
@@ -1152,7 +1186,7 @@ impl CanvasState {
             let size = snapshot.size();
             Ok(Some(CanvasPattern::new(
                 global,
-                snapshot.to_vec(),
+                snapshot,
                 size.cast(),
                 rep,
                 self.is_origin_clean(image),
@@ -1662,10 +1696,8 @@ impl CanvasState {
         };
 
         // Step 7.
-        let (sender, receiver) = ipc::bytes_channel().unwrap();
-        let pixels = unsafe { &imagedata.get_rect(Rect::new(src_rect.origin, dst_rect.size)) };
-        self.send_canvas_2d_msg(Canvas2dMsg::PutImageData(dst_rect, receiver));
-        sender.send(pixels).unwrap();
+        let snapshot = imagedata.get_snapshot_rect(Rect::new(src_rect.origin, dst_rect.size));
+        self.send_canvas_2d_msg(Canvas2dMsg::PutImageData(dst_rect, snapshot.as_ipc()));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
@@ -1935,21 +1967,14 @@ impl CanvasState {
             !matrix.m12.is_finite() ||
             !matrix.m21.is_finite() ||
             !matrix.m22.is_finite() ||
-            !matrix.m41.is_finite() ||
-            !matrix.m42.is_finite()
+            !matrix.m31.is_finite() ||
+            !matrix.m32.is_finite()
         {
             return Ok(());
         }
 
         // Step 3. Reset the current transformation matrix to matrix.
-        self.state.borrow_mut().transform = Transform2D::new(
-            matrix.m11 as f32,
-            matrix.m12 as f32,
-            matrix.m21 as f32,
-            matrix.m22 as f32,
-            matrix.m41 as f32,
-            matrix.m42 as f32,
-        );
+        self.state.borrow_mut().transform = matrix.cast();
         self.update_transform();
         Ok(())
     }

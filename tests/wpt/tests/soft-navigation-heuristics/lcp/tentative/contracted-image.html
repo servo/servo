@@ -3,11 +3,13 @@
       The soft navigation version of the identically named
       test in /largest-contentful-paint/contracted-image.html.
       Notes:
+      - Sets viewport size to 400x400 to reduce flakiness.
       - Awaits trivial soft navigation with same page contents as original test.
       - Uses promise_test and slightly revised HTML tags, to make it easy to
         observe the initial LCP before the soft navigation (the click target)
         and distinguish it from the interesting LCP after the soft navigation.
 -->
+<meta viewport="width=400, height=400" />
 <meta charset="utf-8" />
 <title>
   Largest Contentful Paint: contracted image bounded by display size after soft navigation.
@@ -22,7 +24,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
-<script src="/largest-contentful-paint/resources/largest-contentful-paint-helpers.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-helper.js"></script>
 <script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
 <script>
   function clickHandler() {
@@ -36,25 +38,38 @@
 <script>
   promise_test(async (t) => {
     assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
-    if (test_driver) {
-      test_driver.click(document.getElementById("click-target"));
-    }
-    const beforeLoad = performance.now();
     const helper = new SoftNavigationTestHelper(t);
-    await helper.getBufferedPerformanceEntriesWithTimeout(
-      /*type=*/ "soft-navigation",
+    const lcpEntries = await helper.getBufferedPerformanceEntriesWithTimeout(
+      /*type=*/ "largest-contentful-paint",
       /*includeSoftNavigationObservations=*/ false,
       /*minNumEntries=*/ 1,
     );
-    const entries = await helper.getBufferedPerformanceEntriesWithTimeout(
-      /*type=*/ "largest-contentful-paint",
-      /*includeSoftNavigationObservations=*/ true,
-      /*minNumEntries=*/ 2,
-    );
-    assert_equals(entries.length, 2);
-    assert_equals(entries[0].id, "click-target", "The first entry should be the button");
+    assert_equals(lcpEntries.length, 1);
+    assert_equals(lcpEntries[0].id, "click-target", "The first entry should be the button");
 
-    const entry = entries[1];
+    const promises = Promise.all([
+      SoftNavigationTestHelper.getPerformanceEntries(
+        /*type=*/ "soft-navigation",
+        /*includeSoftNavigationObservations=*/ false,
+        /*minNumEntries=*/ 1,
+      ),
+      SoftNavigationTestHelper.getPerformanceEntries(
+        /*type=*/ "interaction-contentful-paint",
+        /*includeSoftNavigationObservations=*/ true,
+        /*minNumEntries=*/ 1,
+      ),
+    ]);
+    const beforeLoad = performance.now();
+    if (test_driver) {
+      test_driver.click(document.getElementById("click-target"));
+    }
+    const [softNavEntries, icpEntries] = await helper.withTimeoutMessage(
+      promises,
+      "Soft navigation and interaction contentful paint entries should be available.",
+    );
+    assert_equals(softNavEntries.length, 1);
+    assert_equals(icpEntries.length, 1);
+    const entry = icpEntries[0];
     const url = window.location.origin + "/images/black-rectangle.png";
     // black-rectangle.png is 100 x 50. It occupies 50 x 50 so size will be bounded by the displayed size.
     const size = 50 * 50;

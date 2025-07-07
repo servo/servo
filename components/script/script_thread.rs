@@ -68,7 +68,7 @@ use js::jsapi::{
 };
 use js::jsval::UndefinedValue;
 use js::rust::ParentRuntime;
-use layout_api::{LayoutConfig, LayoutFactory, ScriptThreadFactory};
+use layout_api::{LayoutConfig, LayoutFactory, RestyleReason, ScriptThreadFactory};
 use media::WindowGLContext;
 use metrics::MAX_TASK_NS;
 use net_traits::image_cache::{ImageCache, ImageCacheResponseMessage};
@@ -294,9 +294,6 @@ pub struct ScriptThread {
 
     /// Print Progressive Web Metrics to console.
     print_pwm: bool,
-
-    /// Emits notifications when there is a relayout.
-    relayout_event: bool,
 
     /// Unminify Javascript.
     unminify_js: bool,
@@ -599,7 +596,6 @@ impl ScriptThread {
 
     /// Step 13 of <https://html.spec.whatwg.org/multipage/#navigate>
     pub(crate) fn navigate(
-        browsing_context: BrowsingContextId,
         pipeline_id: PipelineId,
         mut load_data: LoadData,
         history_handling: NavigationHistoryBehavior,
@@ -642,13 +638,6 @@ impl ScriptThread {
                     .dom_manipulation_task_source()
                     .queue(task);
             } else {
-                if let Some(ref sender) = script_thread.senders.devtools_server_sender {
-                    let _ = sender.send(ScriptToDevtoolsControlMsg::Navigate(
-                        browsing_context,
-                        NavigationState::Start(load_data.url.clone()),
-                    ));
-                }
-
                 script_thread
                     .senders
                     .pipeline_to_constellation_sender
@@ -738,7 +727,8 @@ impl ScriptThread {
         })
     }
 
-    pub(crate) fn worklet_thread_pool() -> Rc<WorkletThreadPool> {
+    /// The worklet will use the given `ImageCache`.
+    pub(crate) fn worklet_thread_pool(image_cache: Arc<dyn ImageCache>) -> Rc<WorkletThreadPool> {
         with_optional_script_thread(|script_thread| {
             let script_thread = script_thread.unwrap();
             script_thread
@@ -755,9 +745,7 @@ impl ScriptThread {
                             .senders
                             .pipeline_to_constellation_sender
                             .clone(),
-                        image_cache: script_thread
-                            .image_cache
-                            .create_new_image_cache(script_thread.compositor_api.clone()),
+                        image_cache,
                         #[cfg(feature = "webgpu")]
                         gpu_id_hub: script_thread.gpu_id_hub.clone(),
                         inherited_secure_context: script_thread.inherited_secure_context,
@@ -964,7 +952,6 @@ impl ScriptThread {
             compositor_api: state.compositor_api,
             profile_script_events: opts.debug.profile_script_events,
             print_pwm: opts.print_pwm,
-            relayout_event: opts.debug.relayout_event,
             unminify_js: opts.unminify_js,
             local_script_source: opts.local_script_source.clone(),
             unminify_css: opts.unminify_css,
@@ -1374,7 +1361,7 @@ impl ScriptThread {
         let Some((_, document)) = self.documents.borrow().iter().find(|(_, document)| {
             document.is_fully_active() &&
                 !document.window().layout_blocked() &&
-                document.needs_reflow().is_some()
+                !document.restyle_reason().is_empty()
         }) else {
             return;
         };
@@ -2002,6 +1989,18 @@ impl ScriptThread {
             ScriptThreadMessage::EvaluateJavaScript(pipeline_id, evaluation_id, script) => {
                 self.handle_evaluate_javascript(pipeline_id, evaluation_id, script, can_gc);
             },
+            ScriptThreadMessage::SendImageKeysBatch(pipeline_id, image_keys) => {
+                if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
+                    window
+                        .image_cache()
+                        .fill_key_cache_with_batch_of_keys(image_keys);
+                } else {
+                    warn!(
+                        "Could not find window corresponding to an image cache to send image keys to pipeline {:?}",
+                        pipeline_id
+                    );
+                }
+            },
         }
     }
 
@@ -2247,33 +2246,6 @@ impl ScriptThread {
             WebDriverScriptCommand::DeleteCookie(name, reply) => {
                 webdriver_handlers::handle_delete_cookie(&documents, pipeline_id, name, reply)
             },
-            WebDriverScriptCommand::FindElementCSSSelector(selector, reply) => {
-                webdriver_handlers::handle_find_element_css_selector(
-                    &documents,
-                    pipeline_id,
-                    selector,
-                    reply,
-                )
-            },
-            WebDriverScriptCommand::FindElementLinkText(selector, partial, reply) => {
-                webdriver_handlers::handle_find_element_link_text(
-                    &documents,
-                    pipeline_id,
-                    selector,
-                    partial,
-                    reply,
-                    can_gc,
-                )
-            },
-            WebDriverScriptCommand::FindElementTagName(selector, reply) => {
-                webdriver_handlers::handle_find_element_tag_name(
-                    &documents,
-                    pipeline_id,
-                    selector,
-                    reply,
-                    can_gc,
-                )
-            },
             WebDriverScriptCommand::FindElementsCSSSelector(selector, reply) => {
                 webdriver_handlers::handle_find_elements_css_selector(
                     &documents,
@@ -2301,34 +2273,10 @@ impl ScriptThread {
                     can_gc,
                 )
             },
-            WebDriverScriptCommand::FindElementElementCSSSelector(selector, element_id, reply) => {
-                webdriver_handlers::handle_find_element_element_css_selector(
+            WebDriverScriptCommand::FindElementsXpathSelector(selector, reply) => {
+                webdriver_handlers::handle_find_elements_xpath_selector(
                     &documents,
                     pipeline_id,
-                    element_id,
-                    selector,
-                    reply,
-                )
-            },
-            WebDriverScriptCommand::FindElementElementLinkText(
-                selector,
-                element_id,
-                partial,
-                reply,
-            ) => webdriver_handlers::handle_find_element_element_link_text(
-                &documents,
-                pipeline_id,
-                element_id,
-                selector,
-                partial,
-                reply,
-                can_gc,
-            ),
-            WebDriverScriptCommand::FindElementElementTagName(selector, element_id, reply) => {
-                webdriver_handlers::handle_find_element_element_tag_name(
-                    &documents,
-                    pipeline_id,
-                    element_id,
                     selector,
                     reply,
                     can_gc,
@@ -2367,6 +2315,18 @@ impl ScriptThread {
                     can_gc,
                 )
             },
+            WebDriverScriptCommand::FindElementElementsXPathSelector(
+                selector,
+                element_id,
+                reply,
+            ) => webdriver_handlers::handle_find_element_elements_xpath_selector(
+                &documents,
+                pipeline_id,
+                element_id,
+                selector,
+                reply,
+                can_gc,
+            ),
             WebDriverScriptCommand::FindShadowElementsCSSSelector(
                 selector,
                 shadow_root_id,
@@ -2401,6 +2361,18 @@ impl ScriptThread {
                     reply,
                 )
             },
+            WebDriverScriptCommand::FindShadowElementsXPathSelector(
+                selector,
+                shadow_root_id,
+                reply,
+            ) => webdriver_handlers::handle_find_shadow_elements_xpath_selector(
+                &documents,
+                pipeline_id,
+                shadow_root_id,
+                selector,
+                reply,
+                can_gc,
+            ),
             WebDriverScriptCommand::GetElementShadowRoot(element_id, reply) => {
                 webdriver_handlers::handle_get_element_shadow_root(
                     &documents,
@@ -2493,6 +2465,9 @@ impl ScriptThread {
                     reply,
                     can_gc,
                 )
+            },
+            WebDriverScriptCommand::GetParentFrameId(reply) => {
+                webdriver_handlers::handle_get_parent_frame_id(&documents, pipeline_id, reply)
             },
             WebDriverScriptCommand::GetBrowsingContextId(webdriver_frame_id, reply) => {
                 webdriver_handlers::handle_get_browsing_context_id(
@@ -3129,7 +3104,7 @@ impl ScriptThread {
     /// page no longer exists.
     fn handle_worklet_loaded(&self, pipeline_id: PipelineId) {
         if let Some(document) = self.documents.borrow().find_document(pipeline_id) {
-            document.set_needs_paint(true)
+            document.add_restyle_reason(RestyleReason::PaintWorkletLoaded);
         }
     }
 
@@ -3349,7 +3324,7 @@ impl ScriptThread {
 
         let image_cache = self
             .image_cache
-            .create_new_image_cache(self.compositor_api.clone());
+            .create_new_image_cache(Some(incomplete.pipeline_id), self.compositor_api.clone());
 
         let layout_config = LayoutConfig {
             id: incomplete.pipeline_id,
@@ -3398,7 +3373,6 @@ impl ScriptThread {
             self.webxr_registry.clone(),
             self.microtask_queue.clone(),
             self.compositor_api.clone(),
-            self.relayout_event,
             self.unminify_js,
             self.unminify_css,
             self.local_script_source.clone(),

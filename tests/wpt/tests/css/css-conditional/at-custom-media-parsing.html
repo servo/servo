@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>Custom Media Queries Parsing</title>
+<link rel="help" href="https://www.w3.org/TR/mediaqueries-5/#custom-mq">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  function test_valid(rule) {
+    test(() => {
+      let s = new CSSStyleSheet();
+      s.replaceSync(`${rule}`);
+      assert_equals(s.cssRules.length, 1);
+    }, `${rule} is valid`);
+  }
+
+  function test_invalid(rule) {
+    test(() => {
+      let s = new CSSStyleSheet();
+      s.replaceSync(`${rule}`);
+      assert_equals(s.cssRules.length, 0);
+    }, `${rule} is invalid`);
+  }
+
+  test_valid('@custom-media --query (max-width: 30em)');
+  test_valid('@custom-media --query (color), (hover)');
+  test_valid('@custom-media --query not all and (hover: hover)');
+  test_valid('@custom-media --query true');
+  test_valid('@custom-media --query false');
+  test_valid('@custom-media -- true');
+  test_valid('@custom-media --foo/* */(width > 42px)');
+
+  test_invalid('@custom-media query ()');
+  test_invalid('@custom-media query (max-width: 30em)');
+  test_invalid('@custom-media --query(max-width: 30em)');
+  test_invalid('@custom-media --query(max-width: 30em) !');
+  test_invalid('@custom-media -query(max-width: 30em)');
+  test_invalid('@custom-media --query true!');
+  test_invalid('@custom-media --query false true');
+</script>

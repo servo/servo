@@ -17,8 +17,10 @@
     </div>
   </main>
   <script>
-    const link = document.getElementById("link");
     testSoftNavigation({
+      testName: "Test that an image LCP followed by a smaller soft navigation LCP"
+        + " properly queues an LCP entry, even when the soft navigation is"
+        + " detected between the LCP's render and paint.",
       addContent: async () => {
         // Add an LCP element, but have it be small enough to not trigger the
         // Soft Navigation heuristics.
@@ -27,10 +29,7 @@
           const p2 = addTextParagraphToMain("m");
         });
       },
-      link: link,
-      test: "Test that an image LCP followed by a smaller soft navigation LCP"
-        + " properly queues an LCP entry, even when the soft navigation is"
-        + " detected between the LCP's render and paint."});
+      });
   </script>
 </body>
 </html>

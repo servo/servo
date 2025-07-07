@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<link rel=author href=mailto:dizhangg@chromium.org>
+<link rel=help href=https://open-ui.org/components/menu.explainer>
+
+<style>
+/* TODO: Remove CSS rule when it is defined in UA style sheet. */
+menulist {
+  position-area: bottom span-right;
+  position: absolute;
+}
+
+.nested {
+  position-area: right span-bottom;
+}
+</style>
+
+<div id="container">
+ <menubar>
+   <menuitem id="a" command="toggle-menu" commandfor="menulist1">Commands A</menuitem>
+   <menuitem id="b" command="toggle-menu" commandfor="menulist2">Commands B</menuitem>
+   <menuitem id="c">Commands C</menuitem>
+ </menubar>
+</div>
+
+<menulist id="menulist1">
+ <menuitem id="d">Command D</menuitem>
+</menulist>
+
+<menulist id="menulist2">
+ <menuitem id="e">Command E</menuitem>
+ <menuitem id="f">Command F</menuitem>
+ <menuitem  id="g" command="toggle-menu" commandfor="menulist3">Commands G</menuitem>
+</menulist>
+
+<menulist id="menulist3" class="nested">
+ <menuitem id="h">Command H</menuitem>
+ <menuitem id="i">Command I</menuitem>
+</menulist>
+
+<script>
+
+const ArrowLeft = '\uE012';
+const ArrowUp = '\uE013';
+const ArrowRight = '\uE014';
+const ArrowDown = '\uE015';
+
+async function navigateMenus() {
+  await test_driver.click(a);
+  assert_equals(document.activeElement, a);
+  await test_driver.send_keys(document.activeElement, ArrowDown);
+  assert_equals(document.activeElement, d);
+  await test_driver.send_keys(document.activeElement, ArrowRight);
+  assert_equals(document.activeElement, b);
+  await test_driver.send_keys(document.activeElement, ArrowDown);
+  assert_equals(document.activeElement, e);
+  await test_driver.send_keys(document.activeElement, ArrowDown);
+  assert_equals(document.activeElement, f);
+  await test_driver.send_keys(document.activeElement, ArrowDown);
+  assert_equals(document.activeElement, g);
+  await test_driver.send_keys(document.activeElement, ArrowRight);
+  assert_equals(document.activeElement, h);
+  await test_driver.send_keys(document.activeElement, ArrowDown);
+  assert_equals(document.activeElement, i);
+  await test_driver.send_keys(document.activeElement, ArrowRight);
+  assert_equals(document.activeElement, c);
+}
+
+promise_test(async (t) => {
+  await navigateMenus();
+}, 'Should use arrow keys to move between menuitems in menulist invoked from menubar.');
+
+promise_test(async (t) => {
+  container.setAttribute('popover','auto');
+  container.showPopover();
+  await navigateMenus();
+  container.removeAttribute('popover');
+}, 'Should use arrow keys to move between menuitems in menulist invoked from menubar inside a popover without closing the popover.');
+
+promise_test(async (t) => {
+  document.querySelectorAll("menulist").forEach((menulist) => {
+   menulist.addEventListener('beforetoggle', () => menulist.hidePopover());
+  });
+  a.focus();
+  await navigateMenus();
+}, 'Should use arrow keys to move between menuitems: Hide popover on beforetoggle should still work.');
+
+</script>

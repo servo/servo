@@ -331,10 +331,20 @@ impl Minibrowser {
                                     if location_field.changed() {
                                         location_dirty.set(true);
                                     }
+                                    // Handle adddress bar shortcut.
                                     if ui.input(|i| {
-                                        i.clone().consume_key(Modifiers::COMMAND, Key::L)
+                                        if cfg!(target_os = "macos") {
+                                            i.clone().consume_key(Modifiers::COMMAND, Key::L)
+                                        } else {
+                                            i.clone().consume_key(Modifiers::COMMAND, Key::L) ||
+                                                i.clone().consume_key(Modifiers::ALT, Key::D)
+                                        }
                                     }) {
+                                        // The focus request immediately makes gained_focus return true.
                                         location_field.request_focus();
+                                    }
+                                    // Select address bar text when it's focused (click or shortcut).
+                                    if location_field.gained_focus() {
                                         if let Some(mut state) =
                                             TextEditState::load(ui.ctx(), location_id)
                                         {
@@ -346,6 +356,7 @@ impl Minibrowser {
                                             state.store(ui.ctx(), location_id);
                                         }
                                     }
+                                    // Navigate to address when enter is pressed in the address bar.
                                     if location_field.lost_focus() &&
                                         ui.input(|i| i.clone().key_pressed(Key::Enter))
                                     {

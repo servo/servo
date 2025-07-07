@@ -20,7 +20,7 @@ use servo_url::ServoUrl;
 use style_traits::CSSPixel;
 use webdriver::common::{WebElement, WebFrame, WebWindow};
 use webdriver::error::ErrorStatus;
-use webrender_api::units::{DeviceIntSize, DevicePixel};
+use webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel};
 
 use crate::{MouseButton, MouseButtonAction};
 
@@ -30,8 +30,11 @@ pub struct WebDriverMessageId(pub usize);
 /// Messages to the constellation originating from the WebDriver server.
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverCommandMsg {
+    /// Used in the initialization of the WebDriver server to set the sender for sending responses
+    /// back to the WebDriver client. It is set to constellation for now
+    SetWebDriverResponseSender(IpcSender<WebDriverCommandResponse>),
     /// Get the window size.
-    GetWindowSize(WebViewId, IpcSender<Size2D<i32, DevicePixel>>),
+    GetWindowRect(WebViewId, IpcSender<DeviceIntRect>),
     /// Get the viewport size.
     GetViewportSize(WebViewId, IpcSender<Size2D<u32, DevicePixel>>),
     /// Load a URL in the top-level browsing context with the given ID.
@@ -53,7 +56,6 @@ pub enum WebDriverCommandMsg {
         KeyboardEvent,
         // Should never be None.
         Option<WebDriverMessageId>,
-        IpcSender<WebDriverCommandResponse>,
     ),
     /// Act as if the mouse was clicked in the browsing context with the given ID.
     MouseButtonAction(
@@ -64,7 +66,6 @@ pub enum WebDriverCommandMsg {
         f32,
         // Should never be None.
         Option<WebDriverMessageId>,
-        IpcSender<WebDriverCommandResponse>,
     ),
     /// Act as if the mouse was moved in the browsing context with the given ID.
     MouseMoveAction(
@@ -74,7 +75,6 @@ pub enum WebDriverCommandMsg {
         // None if it's not the last `perform_pointer_move` since we only
         // expect one response from constellation for each tick actions.
         Option<WebDriverMessageId>,
-        IpcSender<WebDriverCommandResponse>,
     ),
     /// Act as if the mouse wheel is scrolled in the browsing context given the given ID.
     WheelScrollAction(
@@ -86,7 +86,6 @@ pub enum WebDriverCommandMsg {
         // None if it's not the last `perform_wheel_scroll` since we only
         // expect one response from constellation for each tick actions.
         Option<WebDriverMessageId>,
-        IpcSender<WebDriverCommandResponse>,
     ),
     /// Set the window size.
     SetWindowSize(
@@ -131,28 +130,10 @@ pub enum WebDriverScriptCommand {
     DeleteCookie(String, IpcSender<Result<(), ErrorStatus>>),
     ExecuteScript(String, IpcSender<WebDriverJSResult>),
     ExecuteAsyncScript(String, IpcSender<WebDriverJSResult>),
-    FindElementCSSSelector(String, IpcSender<Result<Option<String>, ErrorStatus>>),
-    FindElementLinkText(String, bool, IpcSender<Result<Option<String>, ErrorStatus>>),
-    FindElementTagName(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     FindElementsCSSSelector(String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindElementsLinkText(String, bool, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindElementsTagName(String, IpcSender<Result<Vec<String>, ErrorStatus>>),
-    FindElementElementCSSSelector(
-        String,
-        String,
-        IpcSender<Result<Option<String>, ErrorStatus>>,
-    ),
-    FindElementElementLinkText(
-        String,
-        String,
-        bool,
-        IpcSender<Result<Option<String>, ErrorStatus>>,
-    ),
-    FindElementElementTagName(
-        String,
-        String,
-        IpcSender<Result<Option<String>, ErrorStatus>>,
-    ),
+    FindElementsXpathSelector(String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindElementElementsCSSSelector(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindElementElementsLinkText(
         String,
@@ -161,6 +142,7 @@ pub enum WebDriverScriptCommand {
         IpcSender<Result<Vec<String>, ErrorStatus>>,
     ),
     FindElementElementsTagName(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
+    FindElementElementsXPathSelector(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindShadowElementsCSSSelector(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     FindShadowElementsLinkText(
         String,
@@ -169,6 +151,7 @@ pub enum WebDriverScriptCommand {
         IpcSender<Result<Vec<String>, ErrorStatus>>,
     ),
     FindShadowElementsTagName(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
+    FindShadowElementsXPathSelector(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
     GetElementShadowRoot(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     ElementClick(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     GetActiveElement(IpcSender<Option<String>>),
@@ -198,6 +181,7 @@ pub enum WebDriverScriptCommand {
         WebDriverFrameId,
         IpcSender<Result<BrowsingContextId, ErrorStatus>>,
     ),
+    GetParentFrameId(IpcSender<Result<BrowsingContextId, ErrorStatus>>),
     GetUrl(IpcSender<ServoUrl>),
     GetPageSource(IpcSender<Result<String, ErrorStatus>>),
     IsEnabled(String, IpcSender<Result<bool, ErrorStatus>>),
@@ -240,7 +224,6 @@ pub type WebDriverJSResult = Result<WebDriverJSValue, WebDriverJSError>;
 pub enum WebDriverFrameId {
     Short(u16),
     Element(String),
-    Parent,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

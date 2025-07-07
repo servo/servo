@@ -67,27 +67,28 @@ impl Tokenizer {
         };
 
         let options = TreeBuilderOpts {
-            ignore_missing_rules: true,
             scripting_enabled: document.scripting_enabled(),
             iframe_srcdoc: document.url().as_str() == "about:srcdoc",
             quirks_mode,
             ..Default::default()
         };
 
-        let inner = if let Some(fc) = fragment_context {
-            let tb = TreeBuilder::new_for_fragment(
+        let inner = if let Some(fragment_context) = fragment_context {
+            let tree_builder = TreeBuilder::new_for_fragment(
                 sink,
-                Dom::from_ref(fc.context_elem),
-                fc.form_elem.map(Dom::from_ref),
+                Dom::from_ref(fragment_context.context_elem),
+                fragment_context.form_elem.map(Dom::from_ref),
                 options,
             );
 
-            let tok_options = TokenizerOpts {
-                initial_state: Some(tb.tokenizer_state_for_context_elem()),
+            let tokenizer_options = TokenizerOpts {
+                initial_state: Some(tree_builder.tokenizer_state_for_context_elem(
+                    fragment_context.context_element_allows_scripting,
+                )),
                 ..Default::default()
             };
 
-            HtmlTokenizer::new(tb, tok_options)
+            HtmlTokenizer::new(tree_builder, tokenizer_options)
         } else {
             HtmlTokenizer::new(TreeBuilder::new(sink, options), Default::default())
         };

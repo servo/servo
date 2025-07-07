@@ -8,7 +8,7 @@ OffscreenRenderingContext;
 
 dictionary ImageEncodeOptions {
   DOMString type = "image/png";
-  unrestricted double quality = 1.0;
+  unrestricted double quality;
 };
 
 //enum OffscreenRenderingContextId { "2d", "webgl", "webgl2" };
@@ -20,6 +20,6 @@ interface OffscreenCanvas : EventTarget {
   attribute [EnforceRange] unsigned long long height;
 
   [Throws] OffscreenRenderingContext? getContext(DOMString contextId, optional any options = null);
-  //ImageBitmap transferToImageBitmap();
-  //Promise<Blob> convertToBlob(optional ImageEncodeOptions options);
+  [Throws] ImageBitmap transferToImageBitmap();
+  Promise<Blob> convertToBlob(optional ImageEncodeOptions options = {});
 };

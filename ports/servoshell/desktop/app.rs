@@ -12,14 +12,21 @@ use std::time::Instant;
 use std::{env, fs};
 
 use ::servo::ServoBuilder;
+use constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::unbounded;
+use euclid::{Point2D, Vector2D};
+use ipc_channel::ipc;
 use log::{info, trace, warn};
 use net::protocols::ProtocolRegistry;
 use servo::config::opts::Opts;
 use servo::config::prefs::Preferences;
 use servo::servo_url::ServoUrl;
 use servo::user_content_manager::{UserContentManager, UserScript};
-use servo::{EventLoopWaker, WebDriverCommandMsg};
+use servo::webrender_api::ScrollLocation;
+use servo::{
+    EventLoopWaker, InputEvent, MouseButtonEvent, MouseMoveEvent, WebDriverCommandMsg, WheelDelta,
+    WheelEvent, WheelMode,
+};
 use url::Url;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
@@ -160,17 +167,27 @@ impl App {
         servo.setup_logging();
 
         // Initialize WebDriver server here before `servo` is moved.
-        let webdriver_receiver = self.opts.webdriver_port.map(|port| {
+        let webdriver_receiver = self.servoshell_preferences.webdriver_port.map(|port| {
             let (embedder_sender, embedder_receiver) = unbounded();
+            let (webdriver_response_sender, webdriver_response_receiver) = ipc::channel().unwrap();
 
-            // TODO: WebDriver will no longer need this channel once all WebDriver
-            // commands are executed via the Servo API.
-            let constellation_sender_deprecated = servo.constellation_sender();
+            // Set the WebDriver response sender to constellation.
+            // TODO: consider using Servo API to notify embedder about input events completions
+            servo
+                .constellation_sender()
+                .send(EmbedderToConstellationMessage::SetWebDriverResponseSender(
+                    webdriver_response_sender,
+                ))
+                .unwrap_or_else(|_| {
+                    warn!("Failed to set WebDriver response sender in constellation");
+                });
+
             webdriver_server::start_server(
                 port,
-                constellation_sender_deprecated,
+                servo.constellation_sender(),
                 embedder_sender,
                 self.waker.clone(),
+                webdriver_response_receiver,
             );
 
             embedder_receiver
@@ -331,6 +348,9 @@ impl App {
 
         while let Ok(msg) = webdriver_receiver.try_recv() {
             match msg {
+                WebDriverCommandMsg::SetWebDriverResponseSender(..) => {
+                    running_state.forward_webdriver_command(msg);
+                },
                 WebDriverCommandMsg::IsWebViewOpen(webview_id, sender) => {
                     let context = running_state.webview_by_id(webview_id);
 
@@ -338,8 +358,8 @@ impl App {
                         warn!("Failed to send response of IsWebViewOpein: {error}");
                     }
                 },
-                webdriver_msg @ WebDriverCommandMsg::IsBrowsingContextOpen(..) => {
-                    running_state.forward_webdriver_command(webdriver_msg);
+                WebDriverCommandMsg::IsBrowsingContextOpen(..) => {
+                    running_state.forward_webdriver_command(msg);
                 },
                 WebDriverCommandMsg::NewWebView(response_sender, load_status_sender) => {
                     let new_webview =
@@ -362,18 +382,18 @@ impl App {
                     // TODO: send a response to the WebDriver
                     // so it knows when the focus has finished.
                 },
-                WebDriverCommandMsg::GetWindowSize(_webview_id, response_sender) => {
+                WebDriverCommandMsg::GetWindowRect(_webview_id, response_sender) => {
                     let window = self
                         .windows
                         .values()
                         .next()
                         .expect("Should have at least one window in servoshell");
 
-                    if let Err(error) = response_sender.send(window.screen_geometry().size) {
+                    if let Err(error) = response_sender.send(window.window_rect()) {
                         warn!("Failed to send response of GetWindowSize: {error}");
                     }
                 },
-                WebDriverCommandMsg::SetWindowSize(webview_id, size, size_sender) => {
+                WebDriverCommandMsg::SetWindowSize(webview_id, requested_size, size_sender) => {
                     let Some(webview) = running_state.webview_by_id(webview_id) else {
                         continue;
                     };
@@ -384,8 +404,12 @@ impl App {
                         .next()
                         .expect("Should have at least one window in servoshell");
 
-                    let size = window.request_resize(&webview, size);
-                    if let Err(error) = size_sender.send(size.unwrap_or_default()) {
+                    // When None is returned, it means that the request went to the display system,
+                    // and the actual size will be delivered later with the WindowEvent::Resized.
+                    let returned_size = window.request_resize(&webview, requested_size);
+                    // TODO: Handle None case. For now, we assume always succeed.
+                    // In reality, the request may exceed available screen size.
+                    if let Err(error) = size_sender.send(returned_size.unwrap_or(requested_size)) {
                         warn!("Failed to send window size: {error}");
                     }
                 },
@@ -430,11 +454,68 @@ impl App {
                         webview.go_forward(1);
                     }
                 },
-                WebDriverCommandMsg::SendKeys(..) |
-                WebDriverCommandMsg::KeyboardAction(..) |
-                WebDriverCommandMsg::MouseButtonAction(..) |
-                WebDriverCommandMsg::MouseMoveAction(..) |
-                WebDriverCommandMsg::WheelScrollAction(..) |
+                // Key events don't need hit test so can be forwarded to constellation for now
+                WebDriverCommandMsg::SendKeys(..) => {
+                    running_state.forward_webdriver_command(msg);
+                },
+                WebDriverCommandMsg::KeyboardAction(..) => {
+                    running_state.forward_webdriver_command(msg);
+                },
+                WebDriverCommandMsg::MouseButtonAction(
+                    webview_id,
+                    mouse_event_type,
+                    mouse_button,
+                    x,
+                    y,
+                    webdriver_message_id,
+                ) => {
+                    if let Some(webview) = running_state.webview_by_id(webview_id) {
+                        webview.notify_input_event(
+                            InputEvent::MouseButton(MouseButtonEvent::new(
+                                mouse_event_type,
+                                mouse_button,
+                                Point2D::new(x, y),
+                            ))
+                            .with_webdriver_message_id(webdriver_message_id),
+                        );
+                    }
+                },
+                WebDriverCommandMsg::MouseMoveAction(webview_id, x, y, webdriver_message_id) => {
+                    if let Some(webview) = running_state.webview_by_id(webview_id) {
+                        webview.notify_input_event(
+                            InputEvent::MouseMove(MouseMoveEvent::new(Point2D::new(x, y)))
+                                .with_webdriver_message_id(webdriver_message_id),
+                        );
+                    }
+                },
+                WebDriverCommandMsg::WheelScrollAction(
+                    webview_id,
+                    x,
+                    y,
+                    dx,
+                    dy,
+                    webdriver_message_id,
+                ) => {
+                    if let Some(webview) = running_state.webview_by_id(webview_id) {
+                        let delta = WheelDelta {
+                            x: -dx,
+                            y: -dy,
+                            z: 0.0,
+                            mode: WheelMode::DeltaPixel,
+                        };
+
+                        let point = Point2D::new(x, y);
+                        let scroll_location =
+                            ScrollLocation::Delta(Vector2D::new(dx as f32, dy as f32));
+
+                        webview.notify_input_event(
+                            InputEvent::Wheel(WheelEvent::new(delta, point))
+                                .with_webdriver_message_id(webdriver_message_id),
+                        );
+
+                        webview.notify_scroll_event(scroll_location, point.to_i32());
+                    }
+                },
                 WebDriverCommandMsg::ScriptCommand(..) |
                 WebDriverCommandMsg::TakeScreenshot(..) => {
                     warn!(

@@ -4,6 +4,7 @@
 
 use std::ops::Deref;
 
+use base::id::TEST_WEBVIEW_ID;
 use headers::{ContentType, HeaderMapExt};
 use hyper_serde::Serde;
 use mime::{self, Mime};
@@ -24,7 +25,7 @@ fn assert_parse(
     use net_traits::request::RequestBuilder;
 
     let url = ServoUrl::parse(url).unwrap();
-    let request = RequestBuilder::new(None, url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url.clone(), Referrer::NoReferrer)
         .origin(url.origin())
         .pipeline_id(None)
         .build();

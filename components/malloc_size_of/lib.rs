@@ -352,31 +352,6 @@ where
     }
 }
 
-impl<T> MallocShallowSizeOf for thin_vec::ThinVec<T> {
-    fn shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        if self.capacity() == 0 {
-            // If it's the singleton we might not be a heap pointer.
-            return 0;
-        }
-
-        assert_eq!(
-            std::mem::size_of::<Self>(),
-            std::mem::size_of::<*const ()>()
-        );
-        unsafe { ops.malloc_size_of(*(self as *const Self as *const *const ())) }
-    }
-}
-
-impl<T: MallocSizeOf> MallocSizeOf for thin_vec::ThinVec<T> {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        let mut n = self.shallow_size_of(ops);
-        for elem in self.iter() {
-            n += elem.size_of(ops);
-        }
-        n
-    }
-}
-
 impl<T: MallocSizeOf> MallocSizeOf for BinaryHeap<T> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.iter().map(|element| element.size_of(ops)).sum()

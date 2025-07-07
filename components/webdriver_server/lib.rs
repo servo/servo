@@ -10,7 +10,7 @@ mod actions;
 mod capabilities;
 
 use std::borrow::ToOwned;
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, LazyCell, RefCell};
 use std::collections::{BTreeMap, HashMap};
 use std::io::Cursor;
 use std::net::{SocketAddr, SocketAddrV4};
@@ -127,12 +127,15 @@ pub fn start_server(
     constellation_chan_deprecated: Sender<EmbedderToConstellationMessage>,
     embedder_sender: Sender<WebDriverCommandMsg>,
     event_loop_waker: Box<dyn EventLoopWaker>,
+    webdriver_response_receiver: IpcReceiver<WebDriverCommandResponse>,
 ) {
     let handler = Handler::new(
         constellation_chan_deprecated,
         embedder_sender,
         event_loop_waker,
+        webdriver_response_receiver,
     );
+
     thread::Builder::new()
         .name("WebDriverHttpServer".to_owned())
         .spawn(move || {
@@ -242,18 +245,12 @@ struct Handler {
     /// TODO: change name to constellation_sender
     constellation_chan: Sender<EmbedderToConstellationMessage>,
 
-    /// The IPC sender which we can clone and pass along to the constellation
-    /// TODO: change name to webdriver_response_sender
-    constellation_sender: IpcSender<WebDriverCommandResponse>,
-
     /// Receiver notification from the constellation when a command is completed
-    constellation_receiver: IpcReceiver<WebDriverCommandResponse>,
+    webdriver_response_receiver: IpcReceiver<WebDriverCommandResponse>,
 
     id_generator: WebDriverMessageIdGenerator,
 
     current_action_id: Cell<Option<WebDriverMessageId>>,
-
-    resize_timeout: u32,
 
     /// Number of pending actions of which WebDriver is waiting for responses.
     num_pending_actions: Cell<u32>,
@@ -466,11 +463,17 @@ impl<'de> Visitor<'de> for TupleVecMapVisitor {
     }
 }
 
+enum VerifyBrowsingContextIsOpen {
+    Yes,
+    No,
+}
+
 impl Handler {
     pub fn new(
         constellation_chan: Sender<EmbedderToConstellationMessage>,
         embedder_sender: Sender<WebDriverCommandMsg>,
         event_loop_waker: Box<dyn EventLoopWaker>,
+        webdriver_response_receiver: IpcReceiver<WebDriverCommandResponse>,
     ) -> Handler {
         // Create a pair of both an IPC and a threaded channel,
         // keep the IPC sender to clone and pass to the constellation for each load,
@@ -481,8 +484,6 @@ impl Handler {
         let (sender, load_status_receiver) = unbounded();
         ROUTER.route_ipc_receiver_to_crossbeam_sender(receiver, sender);
 
-        let (constellation_sender, constellation_receiver) = ipc::channel().unwrap();
-
         Handler {
             load_status_sender,
             load_status_receiver,
@@ -490,11 +491,9 @@ impl Handler {
             embedder_sender,
             event_loop_waker,
             constellation_chan,
-            constellation_sender,
-            constellation_receiver,
+            webdriver_response_receiver,
             id_generator: WebDriverMessageIdGenerator::new(),
             current_action_id: Cell::new(None),
-            resize_timeout: 500,
             num_pending_actions: Cell::new(0),
         }
     }
@@ -679,6 +678,10 @@ impl Handler {
                         "setWindowRect".to_string(),
                         json!(servo_capabilities.set_window_rect),
                     );
+                    processed.insert(
+                        "userAgent".to_string(),
+                        servo_config::pref!(user_agent).into(),
+                    );
 
                     let response =
                         NewSessionResponse::new(session.id.to_string(), Value::Object(processed));
@@ -796,64 +799,82 @@ impl Handler {
         )))
     }
 
-    fn handle_window_size(&self) -> WebDriverResult<WebDriverResponse> {
+    /// <https://w3c.github.io/webdriver/#get-window-rect>
+    fn handle_window_rect(
+        &self,
+        verify: VerifyBrowsingContextIsOpen,
+    ) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
         let webview_id = self.session()?.webview_id;
+        // Step 1. If session's current top-level browsing context is no longer open,
+        // return error with error code no such window.
+        if let VerifyBrowsingContextIsOpen::Yes = verify {
+            self.verify_top_level_browsing_context_is_open(webview_id)?;
+        }
+        self.send_message_to_embedder(WebDriverCommandMsg::GetWindowRect(webview_id, sender))?;
 
-        self.verify_top_level_browsing_context_is_open(webview_id)?;
-
-        self.send_message_to_embedder(WebDriverCommandMsg::GetWindowSize(webview_id, sender))?;
-
-        let window_size = wait_for_script_response(receiver)?;
+        let window_rect = wait_for_script_response(receiver)?;
         let window_size_response = WindowRectResponse {
-            x: 0,
-            y: 0,
-            width: window_size.width,
-            height: window_size.height,
+            x: window_rect.min.x,
+            y: window_rect.min.y,
+            width: window_rect.width(),
+            height: window_rect.height(),
         };
         Ok(WebDriverResponse::WindowRect(window_size_response))
     }
 
+    /// <https://w3c.github.io/webdriver/#set-window-rect>
     fn handle_set_window_size(
         &self,
         params: &WindowRectParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        let (sender, receiver) = ipc::channel().unwrap();
+        // Step 9 - 10. Input Validation. Already done when deserialize.
 
-        // We don't current allow modifying the window x/y positions, so we can just
-        // return the current window rectangle.
-        if params.width.is_none() || params.height.is_none() {
-            return self.handle_window_size();
-        }
+        // Step 11. In case the Set Window Rect command is partially supported
+        // (i.e. some combinations of arguments are supported but not others),
+        // the implmentation is expected to continue with the remaining steps.
+        // DO NOT return "unsupported operation".
 
-        let width = params.width.unwrap_or(0);
-        let height = params.height.unwrap_or(0);
-        let size = Size2D::new(width as u32, height as u32);
         let webview_id = self.session()?.webview_id;
-        // TODO: Return some other error earlier if the size is invalid.
-
         // Step 12. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
         self.verify_top_level_browsing_context_is_open(webview_id)?;
 
+        // We don't current allow modifying the window x/y positions, so we can just
+        // return the current window rectangle if not changing dimension.
+        if params.width.is_none() && params.height.is_none() {
+            return self.handle_window_rect(VerifyBrowsingContextIsOpen::No);
+        }
+        // (TODO) Step 14. Fully exit fullscreen.
+        // (TODO) Step 15. Restore the window.
+        let (sender, receiver) = ipc::channel().unwrap();
+
+        // Step 16 - 17. Set the width/height in CSS pixels.
+        // This should be done as long as one of width/height is not null.
+
+        let current = LazyCell::new(|| {
+            let WebDriverResponse::WindowRect(current) = self
+                .handle_window_rect(VerifyBrowsingContextIsOpen::No)
+                .unwrap()
+            else {
+                unreachable!("handle_window_size() must return WindowRect");
+            };
+            current
+        });
+
+        let (width, height) = (
+            params.width.unwrap_or_else(|| current.width),
+            params.height.unwrap_or_else(|| current.height),
+        );
+
         self.send_message_to_embedder(WebDriverCommandMsg::SetWindowSize(
             webview_id,
-            size.to_i32(),
+            Size2D::new(width, height),
             sender.clone(),
         ))?;
 
-        let timeout = self.resize_timeout;
-        let embedder_sender = self.embedder_sender.clone();
-        let waker = self.event_loop_waker.clone();
-        thread::spawn(move || {
-            // On timeout, we send a GetWindowSize message to the constellation,
-            // which will give the current window size.
-            thread::sleep(Duration::from_millis(timeout as u64));
-            let _ = embedder_sender.send(WebDriverCommandMsg::GetWindowSize(webview_id, sender));
-            waker.wake();
-        });
-
         let window_size = wait_for_script_response(receiver)?;
+        debug!("window_size after resizing: {window_size:?}");
         let window_size_response = WindowRectResponse {
             x: 0,
             y: 0,
@@ -970,53 +991,11 @@ impl Handler {
         &self,
         parameters: &LocatorParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        // Step 4. If selector is undefined, return error with error code invalid argument.
-        if parameters.value.is_empty() {
-            return Err(WebDriverError::new(ErrorStatus::InvalidArgument, ""));
-        }
-        let (sender, receiver) = ipc::channel().unwrap();
-
-        match parameters.using {
-            LocatorStrategy::CSSSelector => {
-                let cmd = WebDriverScriptCommand::FindElementCSSSelector(
-                    parameters.value.clone(),
-                    sender,
-                );
-                self.browsing_context_script_command::<true>(cmd)?;
-            },
-            LocatorStrategy::LinkText | LocatorStrategy::PartialLinkText => {
-                let cmd = WebDriverScriptCommand::FindElementLinkText(
-                    parameters.value.clone(),
-                    parameters.using == LocatorStrategy::PartialLinkText,
-                    sender,
-                );
-                self.browsing_context_script_command::<true>(cmd)?;
-            },
-            LocatorStrategy::TagName => {
-                let cmd =
-                    WebDriverScriptCommand::FindElementTagName(parameters.value.clone(), sender);
-                self.browsing_context_script_command::<true>(cmd)?;
-            },
-            _ => {
-                return Err(WebDriverError::new(
-                    ErrorStatus::UnsupportedOperation,
-                    "Unsupported locator strategy",
-                ));
-            },
-        }
-
+        // Step 1 - 9.
+        let res = self.handle_find_elements(parameters)?;
         // Step 10. If result is empty, return error with error code no such element.
         // Otherwise, return the first element of result.
-        match wait_for_script_response(receiver)? {
-            Ok(value) => match value {
-                Some(value) => {
-                    let value_resp = serde_json::to_value(WebElement(value)).unwrap();
-                    Ok(WebDriverResponse::Generic(ValueResponse(value_resp)))
-                },
-                None => Err(WebDriverError::new(ErrorStatus::NoSuchElement, "")),
-            },
-            Err(error) => Err(WebDriverError::new(error, "")),
-        }
+        unwrap_first_element_response(res)
     }
 
     /// <https://w3c.github.io/webdriver/#close-window>
@@ -1079,33 +1058,62 @@ impl Handler {
         }))
     }
 
+    /// <https://w3c.github.io/webdriver/#dfn-switch-to-frame>
     fn handle_switch_to_frame(
         &mut self,
         parameters: &SwitchToFrameParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        self.verify_top_level_browsing_context_is_open(self.session()?.webview_id)?;
-
         use webdriver::common::FrameId;
         let frame_id = match parameters.id {
+            // id is null
             FrameId::Top => {
-                let session = self.session_mut()?;
-                session.browsing_context_id = BrowsingContextId::from(session.webview_id);
+                let webview_id = self.session()?.webview_id;
+                // Step 1. If session's current top-level browsing context is no longer open,
+                // return error with error code no such window.
+                self.verify_top_level_browsing_context_is_open(webview_id)?;
+                // (SKIP) Step 2. Try to handle any user prompts with session.
+
+                // Step 3. Set the current browsing context with session and
+                // session's current top-level browsing context.
+                self.session_mut()?.browsing_context_id = BrowsingContextId::from(webview_id);
                 return Ok(WebDriverResponse::Void);
             },
-            FrameId::Short(ref x) => WebDriverFrameId::Short(*x),
+            // id is a Number object
+            FrameId::Short(ref x) => {
+                // (Already handled when deserializing in webdriver-crate)
+                // Step 1. If id is less than 0 or greater than 2^16 – 1,
+                // return error with error code invalid argument.
+                WebDriverFrameId::Short(*x)
+            },
             FrameId::Element(ref x) => WebDriverFrameId::Element(x.to_string()),
         };
 
         self.switch_to_frame(frame_id)
     }
 
+    /// <https://w3c.github.io/webdriver/#switch-to-parent-frame>
     fn handle_switch_to_parent_frame(&mut self) -> WebDriverResult<WebDriverResponse> {
         let webview_id = self.session()?.webview_id;
-        self.verify_top_level_browsing_context_is_open(webview_id)?;
-        if self.session()?.browsing_context_id == webview_id {
+        let browsing_context = self.session()?.browsing_context_id;
+        // Step 1. If session's current browsing context is already the top-level browsing context:
+        if browsing_context == webview_id {
+            // Step 1.1. If session's current browsing context is no longer open,
+            // return error with error code no such window.
+            self.verify_browsing_context_is_open(browsing_context)?;
+            // Step 1.2. Return success with data null.
             return Ok(WebDriverResponse::Void);
         }
-        self.switch_to_frame(WebDriverFrameId::Parent)
+        let (sender, receiver) = ipc::channel().unwrap();
+        let cmd = WebDriverScriptCommand::GetParentFrameId(sender);
+        // TODO: Track Parent Browsing Context directly in the session, as expected by Spec.
+        self.browsing_context_script_command::<true>(cmd)?;
+        match wait_for_script_response(receiver)? {
+            Ok(browsing_context_id) => {
+                self.session_mut()?.browsing_context_id = browsing_context_id;
+                Ok(WebDriverResponse::Void)
+            },
+            Err(error) => Err(WebDriverError::new(error, "")),
+        }
     }
 
     // https://w3c.github.io/webdriver/#switch-to-window
@@ -1141,13 +1149,6 @@ impl Handler {
         &mut self,
         frame_id: WebDriverFrameId,
     ) -> WebDriverResult<WebDriverResponse> {
-        if let WebDriverFrameId::Short(_) = frame_id {
-            return Err(WebDriverError::new(
-                ErrorStatus::UnsupportedOperation,
-                "Selecting frame by id not supported",
-            ));
-        }
-
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetBrowsingContextId(frame_id, sender);
         self.browsing_context_script_command::<true>(cmd)?;
@@ -1192,11 +1193,12 @@ impl Handler {
                     WebDriverScriptCommand::FindElementsTagName(parameters.value.clone(), sender);
                 self.browsing_context_script_command::<true>(cmd)?;
             },
-            _ => {
-                return Err(WebDriverError::new(
-                    ErrorStatus::UnsupportedOperation,
-                    "Unsupported locator strategy",
-                ));
+            LocatorStrategy::XPath => {
+                let cmd = WebDriverScriptCommand::FindElementsXpathSelector(
+                    parameters.value.clone(),
+                    sender,
+                );
+                self.browsing_context_script_command::<true>(cmd)?;
             },
         }
 
@@ -1212,62 +1214,16 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#find-element-from-element>
-    fn handle_find_element_element(
+    fn handle_find_element_from_element(
         &self,
         element: &WebElement,
         parameters: &LocatorParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        // Step 4. If selector is undefined, return error with error code invalid argument.
-        if parameters.value.is_empty() {
-            return Err(WebDriverError::new(ErrorStatus::InvalidArgument, ""));
-        }
-        let (sender, receiver) = ipc::channel().unwrap();
-
-        match parameters.using {
-            LocatorStrategy::CSSSelector => {
-                let cmd = WebDriverScriptCommand::FindElementElementCSSSelector(
-                    parameters.value.clone(),
-                    element.to_string(),
-                    sender,
-                );
-                self.browsing_context_script_command::<true>(cmd)?;
-            },
-            LocatorStrategy::LinkText | LocatorStrategy::PartialLinkText => {
-                let cmd = WebDriverScriptCommand::FindElementElementLinkText(
-                    parameters.value.clone(),
-                    element.to_string(),
-                    parameters.using == LocatorStrategy::PartialLinkText,
-                    sender,
-                );
-                self.browsing_context_script_command::<true>(cmd)?;
-            },
-            LocatorStrategy::TagName => {
-                let cmd = WebDriverScriptCommand::FindElementElementTagName(
-                    parameters.value.clone(),
-                    element.to_string(),
-                    sender,
-                );
-                self.browsing_context_script_command::<true>(cmd)?;
-            },
-            _ => {
-                return Err(WebDriverError::new(
-                    ErrorStatus::UnsupportedOperation,
-                    "Unsupported locator strategy",
-                ));
-            },
-        }
+        // Step 1 - 8.
+        let res = self.handle_find_elements_from_element(element, parameters)?;
         // Step 9. If result is empty, return error with error code no such element.
         // Otherwise, return the first element of result.
-        match wait_for_script_response(receiver)? {
-            Ok(value) => match value {
-                Some(value) => {
-                    let value_resp = serde_json::to_value(WebElement(value))?;
-                    Ok(WebDriverResponse::Generic(ValueResponse(value_resp)))
-                },
-                None => Err(WebDriverError::new(ErrorStatus::NoSuchElement, "")),
-            },
-            Err(error) => Err(WebDriverError::new(error, "")),
-        }
+        unwrap_first_element_response(res)
     }
 
     /// <https://w3c.github.io/webdriver/#find-elements-from-element>
@@ -1308,11 +1264,13 @@ impl Handler {
                 );
                 self.browsing_context_script_command::<true>(cmd)?;
             },
-            _ => {
-                return Err(WebDriverError::new(
-                    ErrorStatus::UnsupportedOperation,
-                    "Unsupported locator strategy",
-                ));
+            LocatorStrategy::XPath => {
+                let cmd = WebDriverScriptCommand::FindElementElementsXPathSelector(
+                    parameters.value.clone(),
+                    element.to_string(),
+                    sender,
+                );
+                self.browsing_context_script_command::<true>(cmd)?;
             },
         }
 
@@ -1368,11 +1326,13 @@ impl Handler {
                 );
                 self.browsing_context_script_command::<true>(cmd)?;
             },
-            _ => {
-                return Err(WebDriverError::new(
-                    ErrorStatus::UnsupportedOperation,
-                    "Unsupported locator strategy",
-                ));
+            LocatorStrategy::XPath => {
+                let cmd = WebDriverScriptCommand::FindShadowElementsXPathSelector(
+                    parameters.value.clone(),
+                    shadow_root.to_string(),
+                    sender,
+                );
+                self.browsing_context_script_command::<true>(cmd)?;
             },
         }
 
@@ -1396,22 +1356,11 @@ impl Handler {
         shadow_root: &ShadowRoot,
         parameters: &LocatorParameters,
     ) -> WebDriverResult<WebDriverResponse> {
+        // Step 1 - 8.
         let res = self.handle_find_elements_from_shadow_root(shadow_root, parameters)?;
         // Step 9. If result is empty, return error with error code no such element.
         // Otherwise, return the first element of result.
-        if let WebDriverResponse::Generic(ValueResponse(values)) = res {
-            let arr = values.as_array().unwrap();
-            if let Some(first) = arr.first() {
-                Ok(WebDriverResponse::Generic(ValueResponse(first.clone())))
-            } else {
-                Err(WebDriverError::new(ErrorStatus::NoSuchElement, ""))
-            }
-        } else {
-            Err(WebDriverError::new(
-                ErrorStatus::UnknownError,
-                "Unexpected response",
-            ))
-        }
+        unwrap_first_element_response(res)
     }
 
     fn handle_get_shadow_root(&self, element: WebElement) -> WebDriverResult<WebDriverResponse> {
@@ -1888,9 +1837,7 @@ impl Handler {
             sender,
         );
         let cmd_msg = WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd);
-        self.constellation_chan
-            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
-            .unwrap();
+        self.send_message_to_embedder(cmd_msg)?;
 
         // TODO: distinguish the not found and not focusable cases
         // File input and non-typeable form control should have
@@ -1905,9 +1852,7 @@ impl Handler {
         // send keys command being two separate messages,
         // so the constellation may have changed state between them.
         let cmd_msg = WebDriverCommandMsg::SendKeys(browsing_context_id, input_events);
-        self.constellation_chan
-            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
-            .unwrap();
+        self.send_message_to_embedder(cmd_msg)?;
 
         Ok(WebDriverResponse::Void)
     }
@@ -2211,7 +2156,9 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::AddCookie(ref parameters) => self.handle_add_cookie(parameters),
             WebDriverCommand::Get(ref parameters) => self.handle_get(parameters),
             WebDriverCommand::GetCurrentUrl => self.handle_current_url(),
-            WebDriverCommand::GetWindowRect => self.handle_window_size(),
+            WebDriverCommand::GetWindowRect => {
+                self.handle_window_rect(VerifyBrowsingContextIsOpen::Yes)
+            },
             WebDriverCommand::SetWindowRect(ref size) => self.handle_set_window_size(size),
             WebDriverCommand::IsEnabled(ref element) => self.handle_is_enabled(element),
             WebDriverCommand::IsSelected(ref element) => self.handle_is_selected(element),
@@ -2233,7 +2180,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::FindElement(ref parameters) => self.handle_find_element(parameters),
             WebDriverCommand::FindElements(ref parameters) => self.handle_find_elements(parameters),
             WebDriverCommand::FindElementElement(ref element, ref parameters) => {
-                self.handle_find_element_element(element, parameters)
+                self.handle_find_element_from_element(element, parameters)
             },
             WebDriverCommand::FindElementElements(ref element, ref parameters) => {
                 self.handle_find_elements_from_element(element, parameters)
@@ -2357,4 +2304,17 @@ where
     receiver
         .recv()
         .map_err(|_| WebDriverError::new(ErrorStatus::NoSuchWindow, ""))
+}
+
+fn unwrap_first_element_response(res: WebDriverResponse) -> WebDriverResult<WebDriverResponse> {
+    if let WebDriverResponse::Generic(ValueResponse(values)) = res {
+        let arr = values.as_array().unwrap();
+        if let Some(first) = arr.first() {
+            Ok(WebDriverResponse::Generic(ValueResponse(first.clone())))
+        } else {
+            Err(WebDriverError::new(ErrorStatus::NoSuchElement, ""))
+        }
+    } else {
+        unreachable!()
+    }
 }

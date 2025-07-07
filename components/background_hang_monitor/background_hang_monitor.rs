@@ -97,6 +97,8 @@ impl BackgroundHangMonitorRegister for HangMonitorRegister {
         let sampler = crate::sampler_windows::WindowsSampler::new_boxed();
         #[cfg(all(feature = "sampler", target_os = "macos"))]
         let sampler = crate::sampler_mac::MacOsSampler::new_boxed();
+        #[cfg(all(feature = "sampler", target_os = "android"))]
+        let sampler = crate::sampler_linux::LinuxSampler::new_boxed();
         #[cfg(all(
             feature = "sampler",
             target_os = "linux",
@@ -110,7 +112,6 @@ impl BackgroundHangMonitorRegister for HangMonitorRegister {
         let sampler = crate::sampler_linux::LinuxSampler::new_boxed();
         #[cfg(any(
             not(feature = "sampler"),
-            target_os = "android",
             all(
                 target_os = "linux",
                 any(

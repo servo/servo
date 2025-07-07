@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<title>Keyword sizes for intrinsic contributions</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#sizing-values">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-contribution">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12333">
+<link rel="help" href="https://github.com/servo/servo/issues/37478">
+<meta assert="Intrinsic keywords for min/max block sizes on a replaced element affect the inline min/max-content contributions.">
+
+<style>
+.test { width: max-content; background: red; border: 5px solid; margin: 5px; }
+.test.flex-row { display: flex; flex-direction: row; }
+.test.flex-col { display: flex; flex-direction: column; }
+.test.grid { display: grid }
+canvas { display: block; background: green; height: 0px; width: max-content; }
+</style>
+<div id="log"></div>
+
+<div class="test" data-expected-width="60" data-expected-height="60">
+  <canvas width="50" height="50" style="height: 0px; min-height: max-content"></canvas>
+</div>
+<div class="test" data-expected-width="60" data-expected-height="60">
+  <canvas width="50" height="50" style="height: 100px; max-height: max-content"></canvas>
+</div>
+
+<div class="test flex-row" data-expected-width="60" data-expected-height="60">
+  <canvas width="50" height="50" style="height: 0px; min-height: max-content"></canvas>
+</div>
+<div class="test flex-row" data-expected-width="60" data-expected-height="60">
+  <canvas width="50" height="50" style="height: 100px; max-height: max-content"></canvas>
+</div>
+
+<div class="test flex-col" data-expected-width="60" data-expected-height="60">
+  <canvas width="50" height="50" style="height: 0px; min-height: max-content"></canvas>
+</div>
+<div class="test flex-col" data-expected-width="60" data-expected-height="60">
+  <canvas width="50" height="50" style="height: 100px; max-height: max-content"></canvas>
+</div>
+
+<div class="test grid" data-expected-width="60" data-expected-height="60">
+  <canvas width="50" height="50" style="height: 0px; min-height: max-content"></canvas>
+</div>
+<div class="test grid" data-expected-width="60" data-expected-height="60">
+  <canvas width="50" height="50" style="height: 100px; max-height: max-content"></canvas>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+checkLayout(".test");
+</script>

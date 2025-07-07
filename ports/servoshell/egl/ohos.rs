@@ -507,6 +507,7 @@ static LOGGER: LazyLock<hilog::Logger> = LazyLock::new(|| {
         "servoshell::egl::log",
         // Show JS errors by default.
         "script::dom::bindings::error",
+        "script::dom::console",
         // Show GL errors by default.
         "canvas::webgl_thread",
         "compositing::compositor",

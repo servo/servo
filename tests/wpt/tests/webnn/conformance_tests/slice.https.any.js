@@ -15,11 +15,6 @@
 //     MLOperand input, sequence<[EnforceRange] unsigned long>starts,
 //     sequence<[EnforceRange] unsigned long>sizes);
 
-
-const getSlicePrecisionTolerance = () => {
-  return {metricType: 'ULP', value: 0};
-};
-
 const sliceTests = [
   {
     'name': 'slice float32 1D constant tensor',
@@ -632,8 +627,7 @@ const sliceTests = [
 
 if (navigator.ml) {
   sliceTests.forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getSlicePrecisionTolerance, test);
+    webnn_conformance_test(buildAndExecuteGraph, getZeroULPTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

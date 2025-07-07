@@ -8,15 +8,13 @@ use std::fmt::{Debug, Error, Formatter};
 
 use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::Sender;
-use embedder_traits::{
-    AnimationState, EventLoopWaker, MouseButton, MouseButtonAction, TouchEventResult,
-    WebDriverMessageId,
-};
+use embedder_traits::{AnimationState, EventLoopWaker, TouchEventResult};
 use euclid::Rect;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use pixels::RasterImage;
+use smallvec::SmallVec;
 use strum_macros::IntoStaticStr;
 use style_traits::CSSPixel;
 use webrender_api::DocumentId;
@@ -104,20 +102,6 @@ pub enum CompositorMsg {
     PipelineExited(WebViewId, PipelineId, PipelineExitSource),
     /// The load of a page has completed
     LoadComplete(WebViewId),
-    /// WebDriver mouse button event
-    WebDriverMouseButtonEvent(
-        WebViewId,
-        MouseButtonAction,
-        MouseButton,
-        f32,
-        f32,
-        Option<WebDriverMessageId>,
-    ),
-    /// WebDriver mouse move event
-    WebDriverMouseMoveEvent(WebViewId, f32, f32, Option<WebDriverMessageId>),
-    // Webdriver wheel scroll event
-    WebDriverWheelScrollEvent(WebViewId, f32, f32, f64, f64, Option<WebDriverMessageId>),
-
     /// Inform WebRender of the existence of this pipeline.
     SendInitialTransaction(WebRenderPipelineId),
     /// Perform a scroll operation.
@@ -147,10 +131,11 @@ pub enum CompositorMsg {
     /// Create a new image key. The result will be returned via the
     /// provided channel sender.
     GenerateImageKey(IpcSender<ImageKey>),
-    /// Add an image with the given data and `ImageKey`.
-    AddImage(ImageKey, ImageDescriptor, SerializableImageData),
+    /// The same as the above but it will be forwarded to the pipeline instead
+    /// of send via a channel.
+    GenerateImageKeysForPipeline(PipelineId),
     /// Perform a resource update operation.
-    UpdateImages(Vec<ImageUpdate>),
+    UpdateImages(SmallVec<[ImageUpdate; 1]>),
 
     /// Generate a new batch of font keys which can be used to allocate
     /// keys asynchronously.
@@ -172,7 +157,8 @@ pub enum CompositorMsg {
     GetClientWindowRect(WebViewId, IpcSender<DeviceIndependentIntRect>),
     /// Get the size of the screen that the client window inhabits.
     GetScreenSize(WebViewId, IpcSender<DeviceIndependentIntSize>),
-    /// Get the available screen size (without toolbars and docks) for the screen
+    /// Get the available screen size, without system interface elements such as menus, docks, and
+    /// taskbars.
     /// the client window inhabits.
     GetAvailableScreenSize(WebViewId, IpcSender<DeviceIndependentIntSize>),
 
@@ -295,10 +281,22 @@ impl CrossProcessCompositorApi {
     }
 
     /// Create a new image key. Blocks until the key is available.
-    pub fn generate_image_key(&self) -> Option<ImageKey> {
+    pub fn generate_image_key_blocking(&self) -> Option<ImageKey> {
         let (sender, receiver) = ipc::channel().unwrap();
         self.0.send(CompositorMsg::GenerateImageKey(sender)).ok()?;
         receiver.recv().ok()
+    }
+
+    /// Sends a message to the compositor for creating new image keys.
+    /// The compositor will then send a batch of keys over the constellation to the script_thread
+    /// and the appropriate pipeline.
+    pub fn generate_image_key_async(&self, pipeline_id: PipelineId) {
+        if let Err(e) = self
+            .0
+            .send(CompositorMsg::GenerateImageKeysForPipeline(pipeline_id))
+        {
+            warn!("Could not send image keys to Compositor {}", e);
+        }
     }
 
     pub fn add_image(
@@ -307,13 +305,24 @@ impl CrossProcessCompositorApi {
         descriptor: ImageDescriptor,
         data: SerializableImageData,
     ) {
-        if let Err(e) = self.0.send(CompositorMsg::AddImage(key, descriptor, data)) {
-            warn!("Error sending image update: {}", e);
-        }
+        self.update_images([ImageUpdate::AddImage(key, descriptor, data)].into());
+    }
+
+    pub fn update_image(
+        &self,
+        key: ImageKey,
+        descriptor: ImageDescriptor,
+        data: SerializableImageData,
+    ) {
+        self.update_images([ImageUpdate::UpdateImage(key, descriptor, data)].into());
+    }
+
+    pub fn delete_image(&self, key: ImageKey) {
+        self.update_images([ImageUpdate::DeleteImage(key)].into());
     }
 
     /// Perform an image resource update operation.
-    pub fn update_images(&self, updates: Vec<ImageUpdate>) {
+    pub fn update_images(&self, updates: SmallVec<[ImageUpdate; 1]>) {
         if let Err(e) = self.0.send(CompositorMsg::UpdateImages(updates)) {
             warn!("error sending image updates: {}", e);
         }

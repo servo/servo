@@ -8,6 +8,7 @@
 
 #![deny(unsafe_code)]
 
+mod layout_damage;
 pub mod wrapper_traits;
 
 use std::any::Any;
@@ -19,6 +20,7 @@ use app_units::Au;
 use atomic_refcell::AtomicRefCell;
 use base::Epoch;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
+use bitflags::bitflags;
 use compositing_traits::CrossProcessCompositorApi;
 use constellation_traits::LoadData;
 use embedder_traits::{Theme, UntrustedNodeAddress, ViewportDetails};
@@ -27,8 +29,9 @@ use fnv::FnvHashMap;
 use fonts::{FontContext, SystemFontServiceProxy};
 use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
+pub use layout_damage::LayoutDamage;
 use libc::c_void;
-use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps};
+use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps, malloc_size_of_is_0};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::{ImageCache, PendingImageId};
 use parking_lot::RwLock;
@@ -345,52 +348,6 @@ pub enum ReflowGoal {
     UpdateScrollNode(ExternalScrollId, LayoutVector2D),
 }
 
-impl ReflowGoal {
-    /// Returns true if the given ReflowQuery needs a full, up-to-date display list to
-    /// be present or false if it only needs stacking-relative positions.
-    pub fn needs_display_list(&self) -> bool {
-        match *self {
-            ReflowGoal::UpdateTheRendering | ReflowGoal::UpdateScrollNode(..) => true,
-            ReflowGoal::LayoutQuery(ref querymsg) => match *querymsg {
-                QueryMsg::ElementInnerOuterTextQuery |
-                QueryMsg::InnerWindowDimensionsQuery |
-                QueryMsg::NodesFromPointQuery |
-                QueryMsg::ResolvedStyleQuery |
-                QueryMsg::ScrollingAreaOrOffsetQuery |
-                QueryMsg::TextIndexQuery => true,
-                QueryMsg::ClientRectQuery |
-                QueryMsg::ContentBox |
-                QueryMsg::ContentBoxes |
-                QueryMsg::OffsetParentQuery |
-                QueryMsg::ResolvedFontStyleQuery |
-                QueryMsg::StyleQuery => false,
-            },
-        }
-    }
-
-    /// Returns true if the given ReflowQuery needs its display list send to WebRender or
-    /// false if a layout_thread display list is sufficient.
-    pub fn needs_display(&self) -> bool {
-        match *self {
-            ReflowGoal::UpdateTheRendering | ReflowGoal::UpdateScrollNode(..) => true,
-            ReflowGoal::LayoutQuery(ref querymsg) => match *querymsg {
-                QueryMsg::NodesFromPointQuery |
-                QueryMsg::TextIndexQuery |
-                QueryMsg::ElementInnerOuterTextQuery => true,
-                QueryMsg::ContentBox |
-                QueryMsg::ContentBoxes |
-                QueryMsg::ClientRectQuery |
-                QueryMsg::ScrollingAreaOrOffsetQuery |
-                QueryMsg::ResolvedStyleQuery |
-                QueryMsg::ResolvedFontStyleQuery |
-                QueryMsg::OffsetParentQuery |
-                QueryMsg::InnerWindowDimensionsQuery |
-                QueryMsg::StyleQuery => false,
-            },
-        }
-    }
-}
-
 #[derive(Clone, Debug, MallocSizeOf)]
 pub struct IFrameSize {
     pub browsing_context_id: BrowsingContextId,
@@ -399,6 +356,29 @@ pub struct IFrameSize {
 }
 
 pub type IFrameSizes = FnvHashMap<BrowsingContextId, IFrameSize>;
+
+bitflags! {
+    /// Conditions which cause a [`Document`] to need to be restyled during reflow, which
+    /// might cause the rest of layout to happen as well.
+    #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+    pub struct RestyleReason: u16 {
+        const StylesheetsChanged = 1 << 0;
+        const DOMChanged = 1 << 1;
+        const PendingRestyles = 1 << 2;
+        const HighlightedDOMNodeChanged = 1 << 3;
+        const ThemeChanged = 1 << 4;
+        const ViewportSizeChanged = 1 << 5;
+        const PaintWorkletLoaded = 1 << 6;
+    }
+}
+
+malloc_size_of_is_0!(RestyleReason);
+
+impl RestyleReason {
+    pub fn needs_restyle(&self) -> bool {
+        !self.is_empty()
+    }
+}
 
 /// Information derived from a layout pass that needs to be returned to the script thread.
 #[derive(Debug, Default)]
@@ -415,15 +395,27 @@ pub struct ReflowResult {
     pub iframe_sizes: IFrameSizes,
 }
 
+/// Information needed for a script-initiated reflow that requires a restyle
+/// and reconstruction of box and fragment trees.
+#[derive(Debug)]
+pub struct ReflowRequestRestyle {
+    /// Whether or not (and for what reasons) restyle needs to happen.
+    pub reason: RestyleReason,
+    /// The dirty root from which to restyle.
+    pub dirty_root: Option<TrustedNodeAddress>,
+    /// Whether the document's stylesheets have changed since the last script reflow.
+    pub stylesheets_changed: bool,
+    /// Restyle snapshot map.
+    pub pending_restyles: Vec<(TrustedNodeAddress, PendingRestyle)>,
+}
+
 /// Information needed for a script-initiated reflow.
 #[derive(Debug)]
 pub struct ReflowRequest {
     /// The document node.
     pub document: TrustedNodeAddress,
-    /// The dirty root from which to restyle.
-    pub dirty_root: Option<TrustedNodeAddress>,
-    /// Whether the document's stylesheets have changed since the last script reflow.
-    pub stylesheets_changed: bool,
+    /// If a restyle is necessary, all of the informatio needed to do that restyle.
+    pub restyle: Option<ReflowRequestRestyle>,
     /// The current [`ViewportDetails`] to use for this reflow.
     pub viewport_details: ViewportDetails,
     /// The goal of this reflow.
@@ -432,8 +424,6 @@ pub struct ReflowRequest {
     pub dom_count: u32,
     /// The current window origin
     pub origin: ImmutableOrigin,
-    /// Restyle snapshot map.
-    pub pending_restyles: Vec<(TrustedNodeAddress, PendingRestyle)>,
     /// The current animation timeline value.
     pub animation_timeline_value: f64,
     /// The set of animations for this document.
@@ -444,6 +434,14 @@ pub struct ReflowRequest {
     pub theme: Theme,
     /// The node highlighted by the devtools, if any
     pub highlighted_dom_node: Option<OpaqueNode>,
+}
+
+impl ReflowRequest {
+    pub fn stylesheets_changed(&self) -> bool {
+        self.restyle
+            .as_ref()
+            .is_some_and(|restyle| restyle.stylesheets_changed)
+    }
 }
 
 /// A pending restyle.
