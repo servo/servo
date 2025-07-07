@@ -27,7 +27,8 @@ use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::DeviceIntSize;
 use servo::{
     EventLoopWaker, InputEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent,
-    WebDriverCommandMsg, WebDriverScriptCommand, WheelDelta, WheelEvent, WheelMode,
+    WebDriverCommandMsg, WebDriverScriptCommand, WebDriverUserPromptAction, WheelDelta, WheelEvent,
+    WheelMode,
 };
 use url::Url;
 use winit::application::ApplicationHandler;
@@ -551,6 +552,35 @@ impl App {
                         browsing_context_id,
                         webdriver_script_command,
                     ));
+                },
+                WebDriverCommandMsg::HandleUserPrompt(webview_id, action, response_sender) => {
+                    let response = if running_state.webview_has_active_dialog(webview_id) {
+                        match action {
+                            WebDriverUserPromptAction::Accept => {
+                                running_state.accept_active_dialogs(webview_id)
+                            },
+                            WebDriverUserPromptAction::Dismiss => {
+                                running_state.dismiss_active_dialogs(webview_id)
+                            },
+                        };
+                        Ok(())
+                    } else {
+                        Err(())
+                    };
+
+                    if let Err(error) = response_sender.send(response) {
+                        warn!("Failed to send response of HandleUserPrompt: {error}");
+                    };
+                },
+                WebDriverCommandMsg::GetAlertText(webview_id, response_sender) => {
+                    let response = match running_state.alert_text_of_newest_dialog(webview_id) {
+                        Some(text) => Ok(text),
+                        None => Err(()),
+                    };
+
+                    if let Err(error) = response_sender.send(response) {
+                        warn!("Failed to send response of GetAlertText: {error}");
+                    };
                 },
                 WebDriverCommandMsg::TakeScreenshot(..) => {
                     warn!(

@@ -337,6 +337,38 @@ impl RunningAppState {
             .is_some_and(|dialogs| !dialogs.is_empty())
     }
 
+    pub(crate) fn webview_has_active_dialog(&self, webview_id: WebViewId) -> bool {
+        let inner = self.inner();
+        inner
+            .dialogs
+            .get(&webview_id)
+            .is_some_and(|dialogs| !dialogs.is_empty())
+    }
+
+    pub(crate) fn accept_active_dialogs(&self, webview_id: WebViewId) {
+        if let Some(dialogs) = self.inner_mut().dialogs.get_mut(&webview_id) {
+            dialogs.drain(..).for_each(|dialog| {
+                dialog.accept();
+            });
+        }
+    }
+
+    pub(crate) fn dismiss_active_dialogs(&self, webview_id: WebViewId) {
+        if let Some(dialogs) = self.inner_mut().dialogs.get_mut(&webview_id) {
+            dialogs.drain(..).for_each(|dialog| {
+                dialog.dismiss();
+            });
+        }
+    }
+
+    pub(crate) fn alert_text_of_newest_dialog(&self, webview_id: WebViewId) -> Option<String> {
+        self.inner()
+            .dialogs
+            .get(&webview_id)
+            .and_then(|dialogs| dialogs.last())
+            .and_then(|dialog| dialog.message())
+    }
+
     pub(crate) fn get_focused_webview_index(&self) -> Option<usize> {
         let focused_id = self.inner().focused_webview_id?;
         self.webviews()
@@ -485,6 +517,17 @@ impl WebViewDelegate for RunningAppState {
 
     fn show_simple_dialog(&self, webview: servo::WebView, dialog: SimpleDialog) {
         self.interrupt_webdriver_script_evaluation();
+
+        // Dialogs block the page load, so need need to notify WebDriver
+        let webview_id = webview.id();
+        if let Some(sender) = self
+            .webdriver_senders
+            .borrow_mut()
+            .load_status_senders
+            .get(&webview_id)
+        {
+            let _ = sender.send(WebDriverLoadStatus::Blocked);
+        };
 
         if self.servoshell_preferences.headless &&
             self.servoshell_preferences.webdriver_port.is_none()
