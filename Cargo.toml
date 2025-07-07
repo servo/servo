@@ -76,7 +76,7 @@ http = "1.3"
 http-body-util = "0.1"
 hyper = "1.6"
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "logging", "tls12", "webpki-tokio"] }
-hyper-util = { version = "0.1", features = ["client", "http2", "tokio"] }
+hyper-util = { version = "0.1", features = ["client-legacy", "http2", "tokio"] }
 hyper_serde = { path = "components/hyper_serde" }
 icu_locid = "1.5.0"
 icu_segmenter = "1.5.0"
