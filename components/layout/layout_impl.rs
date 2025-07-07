@@ -26,7 +26,7 @@ use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
 use layout_api::{
-    IFrameSizes, Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType,
+    IFrameSizes, Layout, LayoutConfig, LayoutDamage, LayoutFactory, NodesFromPointQueryType,
     OffsetParentResponse, QueryMsg, ReflowGoal, ReflowRequest, ReflowRequestRestyle, ReflowResult,
     TrustedNodeAddress,
 };
@@ -849,29 +849,38 @@ impl LayoutThread {
         }
 
         let root_node = root_element.as_node();
-        let mut damage = compute_damage_and_repair_style(&layout_context.style_context, root_node);
-        if viewport_changed {
-            damage = RestyleDamage::RELAYOUT;
-        } else if !damage.contains(RestyleDamage::RELAYOUT) {
+        let damage_from_environment = viewport_changed
+            .then_some(RestyleDamage::RELAYOUT)
+            .unwrap_or_default();
+        let damage = compute_damage_and_repair_style(
+            &layout_context.style_context,
+            root_node,
+            damage_from_environment,
+        );
+
+        if !damage.contains(RestyleDamage::RELAYOUT) {
             layout_context.style_context.stylist.rule_tree().maybe_gc();
             return (damage, IFrameSizes::default());
         }
 
         let mut box_tree = self.box_tree.borrow_mut();
         let box_tree = &mut *box_tree;
-        let mut build_box_tree = || {
-            if !BoxTree::update(recalc_style_traversal.context(), dirty_root) {
-                *box_tree = Some(Arc::new(BoxTree::construct(
-                    recalc_style_traversal.context(),
-                    root_node,
-                )));
-            }
-        };
-        if let Some(pool) = rayon_pool {
-            pool.install(build_box_tree)
-        } else {
-            build_box_tree()
-        };
+        let layout_damage: LayoutDamage = damage.into();
+        if box_tree.is_none() || layout_damage.has_box_damage() {
+            let mut build_box_tree = || {
+                if !BoxTree::update(recalc_style_traversal.context(), dirty_root) {
+                    *box_tree = Some(Arc::new(BoxTree::construct(
+                        recalc_style_traversal.context(),
+                        root_node,
+                    )));
+                }
+            };
+            if let Some(pool) = rayon_pool {
+                pool.install(build_box_tree)
+            } else {
+                build_box_tree()
+            };
+        }
 
         let viewport_size = self.stylist.device().au_viewport_size();
         let run_layout = || {

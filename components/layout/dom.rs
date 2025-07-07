@@ -77,24 +77,24 @@ pub(super) enum LayoutBox {
 }
 
 impl LayoutBox {
-    fn invalidate_cached_fragment(&self) {
+    fn clear_fragment_layout_cache(&self) {
         match self {
             LayoutBox::DisplayContents(..) => {},
             LayoutBox::BlockLevel(block_level_box) => {
-                block_level_box.borrow().invalidate_cached_fragment()
+                block_level_box.borrow().clear_fragment_layout_cache()
             },
             LayoutBox::InlineLevel(inline_items) => {
                 for inline_item in inline_items.iter() {
-                    inline_item.borrow().invalidate_cached_fragment()
+                    inline_item.borrow().clear_fragment_layout_cache()
                 }
             },
             LayoutBox::FlexLevel(flex_level_box) => {
-                flex_level_box.borrow().invalidate_cached_fragment()
+                flex_level_box.borrow().clear_fragment_layout_cache()
             },
             LayoutBox::TaffyItemBox(taffy_item_box) => {
-                taffy_item_box.borrow_mut().invalidate_cached_fragment()
+                taffy_item_box.borrow_mut().clear_fragment_layout_cache()
             },
-            LayoutBox::TableLevelBox(table_box) => table_box.invalidate_cached_fragment(),
+            LayoutBox::TableLevelBox(table_box) => table_box.clear_fragment_layout_cache(),
         }
     }
 
@@ -247,7 +247,7 @@ pub(crate) trait NodeExt<'dom> {
     fn unset_all_pseudo_boxes(&self);
 
     fn fragments_for_pseudo(&self, pseudo_element: Option<PseudoElement>) -> Vec<Fragment>;
-    fn invalidate_cached_fragment(&self);
+    fn clear_fragment_layout_cache(&self);
 
     fn repair_style(&self, context: &SharedStyleContext);
     fn take_restyle_damage(&self) -> LayoutDamage;
@@ -381,15 +381,15 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
         self.layout_data_mut().pseudo_boxes.clear();
     }
 
-    fn invalidate_cached_fragment(&self) {
+    fn clear_fragment_layout_cache(&self) {
         let data = self.layout_data_mut();
         if let Some(data) = data.self_box.borrow_mut().as_ref() {
-            data.invalidate_cached_fragment();
+            data.clear_fragment_layout_cache();
         }
 
         for pseudo_layout_data in data.pseudo_boxes.iter() {
             if let Some(layout_box) = pseudo_layout_data.box_slot.borrow().as_ref() {
-                layout_box.invalidate_cached_fragment();
+                layout_box.clear_fragment_layout_cache();
             }
         }
     }

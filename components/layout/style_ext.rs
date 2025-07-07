@@ -653,6 +653,10 @@ impl ComputedValuesExt for ComputedValues {
 
     /// Return true if this style is a normal block and establishes
     /// a new block formatting context.
+    ///
+    /// NOTE: This should be kept in sync with the checks in `impl
+    /// TElement::compute_layout_damage` for `ServoLayoutElement` in
+    /// `components/script/layout_dom/element.rs`.
     fn establishes_block_formatting_context(&self, fragment_flags: FragmentFlags) -> bool {
         if self.establishes_scroll_container(fragment_flags) {
             return true;

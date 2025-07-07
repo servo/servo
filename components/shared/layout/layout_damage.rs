@@ -25,7 +25,29 @@ impl LayoutDamage {
             RestyleDamage::RELAYOUT
     }
 
+    pub fn rebuild_box_tree() -> RestyleDamage {
+        RestyleDamage::from_bits_retain(LayoutDamage::REBUILD_BOX.bits()) | RestyleDamage::RELAYOUT
+    }
+
     pub fn has_box_damage(&self) -> bool {
         self.intersects(Self::REBUILD_BOX)
+    }
+}
+
+impl From<RestyleDamage> for LayoutDamage {
+    fn from(restyle_damage: RestyleDamage) -> Self {
+        LayoutDamage::from_bits_retain(restyle_damage.bits())
+    }
+}
+
+impl std::fmt::Debug for LayoutDamage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.contains(Self::REBUILD_BOX) {
+            f.write_str("REBUILD_BOX")
+        } else if self.contains(Self::RECOLLECT_BOX_TREE_CHILDREN) {
+            f.write_str("RECOLLECT_BOX_TREE_CHILDREN")
+        } else {
+            f.write_str("EMPTY")
+        }
     }
 }

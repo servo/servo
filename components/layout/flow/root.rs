@@ -417,25 +417,8 @@ impl<'dom> IncrementalBoxTreeUpdate<'dom> {
             },
         }
 
-        // We are going to rebuild the box tree from the update point downward, but this update
-        // point is an absolute, which means that it needs to be laid out again in the containing
-        // block for absolutes, which is established by one of its ancestors. In addition,
-        // absolutes, when laid out, can produce more absolutes (either fixed or absolutely
-        // positioned) elements, so there may be yet more layout that has to happen in this
-        // ancestor.
-        //
-        // We do not know which ancestor is the one that established the containing block for this
-        // update point, so just invalidate the fragment cache of all ancestors, meaning that even
-        // though the box tree is preserved, the fragment tree from the root to the update point and
-        // all of its descendants will need to be rebuilt. This isn't as bad as it seems, because
-        // siblings and siblings of ancestors of this path through the tree will still have cached
-        // fragments.
-        //
-        // TODO: Do better. This is still a very crude way to do incremental layout.
         let mut invalidate_start_point = self.node;
         while let Some(parent_node) = invalidate_start_point.parent_node() {
-            parent_node.invalidate_cached_fragment();
-
             // Box tree reconstruction doesn't need to involve these ancestors, so their
             // damage isn't useful for us.
             //
