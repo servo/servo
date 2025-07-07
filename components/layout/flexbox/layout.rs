@@ -299,8 +299,8 @@ impl FlexLineItem<'_> {
                 .sides_to_flow_relative(item_margin)
                 .to_physical(container_writing_mode),
             None, /* clearance */
-        )
-        .with_specific_layout_info(self.layout_result.specific_layout_info);
+            self.layout_result.specific_layout_info,
+        );
 
         // If this flex item establishes a containing block for absolutely-positioned
         // descendants, then lay out any relevant absolutely-positioned children. This

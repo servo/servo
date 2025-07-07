@@ -552,12 +552,12 @@ impl TaffyContainer {
                             border,
                             margin,
                             None, /* clearance */
+                            child_specific_layout_info,
                         )
                         .with_baselines(Baselines {
                             first: output.first_baselines.y.map(Au::from_f32_px),
                             last: None,
-                        })
-                        .with_specific_layout_info(child_specific_layout_info);
+                        });
 
                         child.positioning_context.layout_collected_children(
                             container_ctx.layout_context,

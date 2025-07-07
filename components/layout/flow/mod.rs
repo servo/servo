@@ -408,6 +408,7 @@ impl OutsideMarker {
             PhysicalSides::zero(),
             PhysicalSides::zero(),
             None,
+            flow_layout.specific_layout_info,
         )))
     }
 
@@ -1173,6 +1174,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         pbm.border.to_physical(containing_block_writing_mode),
         margin.to_physical(containing_block_writing_mode),
         clearance,
+        flow_layout.specific_layout_info,
     )
     .with_baselines(flow_layout.baselines)
     .with_block_margins_collapsed_with_children(block_margins_collapsed_with_children)
@@ -1285,9 +1287,9 @@ impl IndependentFormattingContext {
             pbm.border.to_physical(containing_block_writing_mode),
             margin.to_physical(containing_block_writing_mode),
             None, /* clearance */
+            layout.specific_layout_info,
         )
         .with_baselines(layout.baselines)
-        .with_specific_layout_info(layout.specific_layout_info)
         .with_block_margins_collapsed_with_children(block_margins_collapsed_with_children)
     }
 
@@ -1603,9 +1605,9 @@ impl IndependentFormattingContext {
             pbm.border.to_physical(containing_block_writing_mode),
             margin.to_physical(containing_block_writing_mode),
             clearance,
+            layout.specific_layout_info,
         )
         .with_baselines(layout.baselines)
-        .with_specific_layout_info(layout.specific_layout_info)
         .with_block_margins_collapsed_with_children(CollapsedBlockMargins::from_margin(&margin))
     }
 }
@@ -2241,7 +2243,7 @@ impl IndependentFormattingContext {
         let margin = pbm.margin.auto_is(Au::zero);
         let pbm_sums = pbm.padding + pbm.border + margin;
 
-        let (fragments, content_rect, baselines) = match &self.contents {
+        let (fragments, content_rect, baselines, specific_layout_info) = match &self.contents {
             IndependentFormattingContextContents::Replaced(replaced) => {
                 // Floats and atomic inlines can't collapse margins with their parent,
                 // so don't ignore block margins when resolving a stretch block size.
@@ -2261,7 +2263,7 @@ impl IndependentFormattingContext {
                 let fragments = replaced.make_fragments(layout_context, style, content_size);
 
                 let content_rect = PhysicalRect::new(PhysicalPoint::zero(), content_size);
-                (fragments, content_rect, None)
+                (fragments, content_rect, None, None)
             },
             IndependentFormattingContextContents::NonReplaced(non_replaced) => {
                 let writing_mode = self.style().writing_mode;
@@ -2344,6 +2346,7 @@ impl IndependentFormattingContext {
                     independent_layout.fragments,
                     content_rect,
                     Some(independent_layout.baselines),
+                    independent_layout.specific_layout_info,
                 )
             },
         };
@@ -2367,6 +2370,7 @@ impl IndependentFormattingContext {
             // so there's no need to store it explicitly in the fragment.
             // And atomic inlines don't have clearance.
             None, /* clearance */
+            specific_layout_info,
         );
 
         IndependentFloatOrAtomicLayoutResult {
