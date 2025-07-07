@@ -290,7 +290,7 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
 
         if inline_table {
             self.ensure_inline_formatting_context_builder()
-                .push_atomic(ifc);
+                .push_atomic(|| ArcRefCell::new(ifc), None);
         } else {
             let table_block = ArcRefCell::new(BlockLevelBox::Independent(ifc));
 
@@ -472,15 +472,20 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
                 // If this inline element is an atomic, handle it and return.
                 let context = self.context;
                 let propagated_data = self.propagated_data;
-                let atomic = self.ensure_inline_formatting_context_builder().push_atomic(
-                    IndependentFormattingContext::construct(
+
+                let construction_callback = || {
+                    ArcRefCell::new(IndependentFormattingContext::construct(
                         context,
                         info,
                         display_inside,
                         contents,
                         propagated_data,
-                    ),
-                );
+                    ))
+                };
+                let old_layout_box = box_slot.take_layout_box_if_undamaged(info.damage);
+                let atomic = self
+                    .ensure_inline_formatting_context_builder()
+                    .push_atomic(construction_callback, old_layout_box);
                 box_slot.set(LayoutBox::InlineLevel(vec![atomic]));
                 return;
             },
@@ -599,13 +604,17 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
     ) {
         if let Some(builder) = self.inline_formatting_context_builder.as_mut() {
             if !builder.is_empty() {
-                let inline_level_box =
-                    builder.push_absolutely_positioned_box(AbsolutelyPositionedBox::construct(
+                let constructor = || {
+                    ArcRefCell::new(AbsolutelyPositionedBox::construct(
                         self.context,
                         info,
                         display_inside,
                         contents,
-                    ));
+                    ))
+                };
+                let old_layout_box = box_slot.take_layout_box_if_undamaged(info.damage);
+                let inline_level_box =
+                    builder.push_absolutely_positioned_box(constructor, old_layout_box);
                 box_slot.set(LayoutBox::InlineLevel(vec![inline_level_box]));
                 return;
             }
@@ -632,13 +641,17 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
     ) {
         if let Some(builder) = self.inline_formatting_context_builder.as_mut() {
             if !builder.is_empty() {
-                let inline_level_box = builder.push_float_box(FloatBox::construct(
-                    self.context,
-                    info,
-                    display_inside,
-                    contents,
-                    self.propagated_data,
-                ));
+                let constructor = || {
+                    ArcRefCell::new(FloatBox::construct(
+                        self.context,
+                        info,
+                        display_inside,
+                        contents,
+                        self.propagated_data,
+                    ))
+                };
+                let old_layout_box = box_slot.take_layout_box_if_undamaged(info.damage);
+                let inline_level_box = builder.push_float_box(constructor, old_layout_box);
                 box_slot.set(LayoutBox::InlineLevel(vec![inline_level_box]));
                 return;
             }

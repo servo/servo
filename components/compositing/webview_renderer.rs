@@ -345,7 +345,22 @@ impl WebViewRenderer {
         }
     }
 
-    pub(crate) fn dispatch_point_input_event(&mut self, mut event: InputEvent) -> bool {
+    pub(crate) fn dispatch_point_input_event(&self, event: InputEvent) -> bool {
+        self.dispatch_point_input_event_internal(event, true)
+    }
+
+    pub(crate) fn dispatch_pending_point_input_events(&self) {
+        while let Some(event) = self.pending_point_input_events.borrow_mut().pop_front() {
+            // TODO: Add multiple retry later if needed.
+            self.dispatch_point_input_event_internal(event, false);
+        }
+    }
+
+    pub(crate) fn dispatch_point_input_event_internal(
+        &self,
+        mut event: InputEvent,
+        retry_on_error: bool,
+    ) -> bool {
         // Events that do not need to do hit testing are sent directly to the
         // constellation to filter down.
         let Some(point) = event.point() else {
@@ -354,7 +369,9 @@ impl WebViewRenderer {
 
         // Delay the event if the epoch is not synchronized yet (new frame is not ready),
         // or hit test result would fail and the event is rejected anyway.
-        if !self.webrender_frame_ready.get() || !self.pending_point_input_events.borrow().is_empty()
+        if retry_on_error &&
+            (!self.webrender_frame_ready.get() ||
+                !self.pending_point_input_events.borrow().is_empty())
         {
             self.pending_point_input_events
                 .borrow_mut()
@@ -369,16 +386,14 @@ impl WebViewRenderer {
             .borrow()
             .hit_test_at_point(point, get_pipeline_details)
         {
-            Ok(hit_test_results) => hit_test_results,
-            Err(HitTestError::EpochMismatch) => {
+            Ok(hit_test_results) => Some(hit_test_results),
+            Err(HitTestError::EpochMismatch) if retry_on_error => {
                 self.pending_point_input_events
                     .borrow_mut()
-                    .push_back(event);
+                    .push_back(event.clone());
                 return false;
             },
-            _ => {
-                return false;
-            },
+            _ => None,
         };
 
         match event {
@@ -389,65 +404,24 @@ impl WebViewRenderer {
             InputEvent::MouseLeave(_) |
             InputEvent::MouseMove(_) |
             InputEvent::Wheel(_) => {
-                self.global
-                    .borrow_mut()
-                    .update_cursor_from_hittest(point, &result);
+                if let Some(ref result) = result {
+                    self.global
+                        .borrow_mut()
+                        .update_cursor_from_hittest(point, result);
+                } else {
+                    warn!("Not hit test result.");
+                }
             },
             _ => unreachable!("Unexpected input event type: {event:?}"),
         }
 
         if let Err(error) = self.global.borrow().constellation_sender.send(
-            EmbedderToConstellationMessage::ForwardInputEvent(self.id, event, Some(result)),
+            EmbedderToConstellationMessage::ForwardInputEvent(self.id, event, result),
         ) {
             warn!("Sending event to constellation failed ({error:?}).");
             false
         } else {
             true
-        }
-    }
-
-    // TODO: This function duplicates a lot of `dispatch_point_input_event.
-    // Perhaps it should just be called here instead.
-    pub(crate) fn dispatch_pending_point_input_events(&self) {
-        while let Some(mut event) = self.pending_point_input_events.borrow_mut().pop_front() {
-            // Events that do not need to do hit testing are sent directly to the
-            // constellation to filter down.
-            let Some(point) = event.point() else {
-                continue;
-            };
-
-            // If we can't find a pipeline to send this event to, we cannot continue.
-            let get_pipeline_details = |pipeline_id| self.pipelines.get(&pipeline_id);
-            let Ok(result) = self
-                .global
-                .borrow()
-                .hit_test_at_point(point, get_pipeline_details)
-            else {
-                // Don't need to process pending input events in this frame any more.
-                // TODO: Add multiple retry later if needed.
-                return;
-            };
-
-            match event {
-                InputEvent::Touch(ref mut touch_event) => {
-                    touch_event.init_sequence_id(self.touch_handler.current_sequence_id);
-                },
-                InputEvent::MouseButton(_) |
-                InputEvent::MouseLeave(_) |
-                InputEvent::MouseMove(_) |
-                InputEvent::Wheel(_) => {
-                    self.global
-                        .borrow_mut()
-                        .update_cursor_from_hittest(point, &result);
-                },
-                _ => unreachable!("Unexpected input event type: {event:?}"),
-            }
-
-            if let Err(error) = self.global.borrow().constellation_sender.send(
-                EmbedderToConstellationMessage::ForwardInputEvent(self.id, event, Some(result)),
-            ) {
-                warn!("Sending event to constellation failed ({error:?}).");
-            }
         }
     }
 
@@ -816,22 +790,6 @@ impl WebViewRenderer {
                 cursor,
                 event_count: 1,
             }));
-    }
-
-    /// Push scroll pending event when receiving wheel action from webdriver
-    pub(crate) fn on_webdriver_wheel_action(
-        &mut self,
-        scroll_delta: Vector2D<f32, DevicePixel>,
-        point: Point2D<f32, DevicePixel>,
-    ) {
-        if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
-            return;
-        }
-
-        let scroll_location =
-            ScrollLocation::Delta(LayoutVector2D::from_untyped(scroll_delta.to_untyped()));
-        let cursor = DeviceIntPoint::new(point.x as i32, point.y as i32);
-        self.on_scroll_window_event(scroll_location, cursor)
     }
 
     /// Process pending scroll events for this [`WebViewRenderer`]. Returns a tuple containing:

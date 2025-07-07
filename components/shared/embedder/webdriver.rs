@@ -30,6 +30,9 @@ pub struct WebDriverMessageId(pub usize);
 /// Messages to the constellation originating from the WebDriver server.
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverCommandMsg {
+    /// Used in the initialization of the WebDriver server to set the sender for sending responses
+    /// back to the WebDriver client. It is set to constellation for now
+    SetWebDriverResponseSender(IpcSender<WebDriverCommandResponse>),
     /// Get the window size.
     GetWindowRect(WebViewId, IpcSender<DeviceIntRect>),
     /// Get the viewport size.
@@ -53,7 +56,6 @@ pub enum WebDriverCommandMsg {
         KeyboardEvent,
         // Should never be None.
         Option<WebDriverMessageId>,
-        IpcSender<WebDriverCommandResponse>,
     ),
     /// Act as if the mouse was clicked in the browsing context with the given ID.
     MouseButtonAction(
@@ -64,7 +66,6 @@ pub enum WebDriverCommandMsg {
         f32,
         // Should never be None.
         Option<WebDriverMessageId>,
-        IpcSender<WebDriverCommandResponse>,
     ),
     /// Act as if the mouse was moved in the browsing context with the given ID.
     MouseMoveAction(
@@ -74,7 +75,6 @@ pub enum WebDriverCommandMsg {
         // None if it's not the last `perform_pointer_move` since we only
         // expect one response from constellation for each tick actions.
         Option<WebDriverMessageId>,
-        IpcSender<WebDriverCommandResponse>,
     ),
     /// Act as if the mouse wheel is scrolled in the browsing context given the given ID.
     WheelScrollAction(
@@ -86,7 +86,6 @@ pub enum WebDriverCommandMsg {
         // None if it's not the last `perform_wheel_scroll` since we only
         // expect one response from constellation for each tick actions.
         Option<WebDriverMessageId>,
-        IpcSender<WebDriverCommandResponse>,
     ),
     /// Set the window size.
     SetWindowSize(

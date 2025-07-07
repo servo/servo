@@ -245,12 +245,12 @@ const dequantizeLinearTests = [
         },
         'dequantizeLinearScale': {
           'data': [0.2800687253475189, -4.617084980010986],
-          'descriptor': {shape: [2, 1], dataType: 'float32'},
+          'descriptor': {shape: [1, 1, 2, 1], dataType: 'float32'},
           'constant': true
         },
         'dequantizeLinearZeroPoint': {
           'data': [12, 12],
-          'descriptor': {shape: [2, 1], dataType: 'int8'},
+          'descriptor': {shape: [1, 1, 2, 1], dataType: 'int8'},
           'constant': true
         }
       },
@@ -430,12 +430,12 @@ const dequantizeLinearTests = [
             9.343092918395996,
             -4.617084980010986,
           ],
-          'descriptor': {shape: [2, 1], dataType: 'float32'},
+          'descriptor': {shape: [1, 1, 2, 1], dataType: 'float32'},
           'constant': true
         },
         'dequantizeLinearZeroPoint': {
           'data': [2, 3],
-          'descriptor': {shape: [2, 1], dataType: 'uint4'},
+          'descriptor': {shape: [1, 1, 2, 1], dataType: 'uint4'},
           'constant': true
         }
       },
@@ -473,12 +473,12 @@ const dequantizeLinearTests = [
             9.343092918395996,
             -4.617084980010986,
           ],
-          'descriptor': {shape: [1, 2], dataType: 'float32'},
+          'descriptor': {shape: [1, 1, 2], dataType: 'float32'},
           'constant': true
         },
         'dequantizeLinearZeroPoint': {
           'data': [2, 3],
-          'descriptor': {shape: [1, 2], dataType: 'uint4'},
+          'descriptor': {shape: [1, 1, 2], dataType: 'uint4'},
           'constant': true
         }
       },
@@ -581,7 +581,7 @@ const dequantizeLinearTests = [
     'graph': {
       'inputs': {
         'dequantizeLinearInput': {
-          'data': [0, -1, 10, -15],
+          'data': [0, -1, -6, 1],
           'descriptor': {shape: [1, 1, 2, 2], dataType: 'int4'},
           'constant': true
         },
@@ -590,12 +590,12 @@ const dequantizeLinearTests = [
             1.1202747821807861, -4.617084980010986, 6.2405495643615723,
             3.841923713684082
           ],
-          'descriptor': {shape: [2, 2], dataType: 'float32'},
+          'descriptor': {shape: [1, 1, 2, 2], dataType: 'float32'},
           'constant': true
         },
         'dequantizeLinearZeroPoint': {
           'data': [2, -3, -5, 4],
-          'descriptor': {shape: [2, 2], dataType: 'int4'},
+          'descriptor': {shape: [1, 1, 2, 2], dataType: 'int4'},
           'constant': true
         }
       },
@@ -667,12 +667,12 @@ const dequantizeLinearTests = [
         },
         'dequantizeLinearScale': {
           'data': [1.1202747821807861, 0.2800687253475189],
-          'descriptor': {shape: [2], dataType: 'float32'},
+          'descriptor': {shape: [1, 1, 2], dataType: 'float32'},
           'constant': true
         },
         'dequantizeLinearZeroPoint': {
           'data': [35, -24],
-          'descriptor': {shape: [2], dataType: 'int32'},
+          'descriptor': {shape: [1, 1, 2], dataType: 'int32'},
           'constant': true
         }
       },

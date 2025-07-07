@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<!-- This document is used for the test `move-node-local-root.html` -->
+<script src="/common/get-host-info.sub.js"></script>
+
+<body>
+<script>
+(async function() {
+  // This iframe will be cross-origin to the current document, but same-origin
+  // with its grandparent, our direct parent.
+  const iframe = document.createElement('iframe');
+  iframe.src = new URL('resources/blank.html', get_host_info().HTTP_ORIGIN);
+  const loadPromise = new Promise(resolve => iframe.onload = resolve);
+  document.body.append(iframe);
+  await loadPromise;
+
+  parent.postMessage('grandchild loaded', '*');
+})();
+</script>
+</body>

@@ -5,6 +5,7 @@
 use canvas_traits::canvas::{FillOrStrokeStyle, RepetitionStyle, SurfaceStyle};
 use dom_struct::dom_struct;
 use euclid::default::{Size2D, Transform2D};
+use pixels::{IpcSnapshot, Snapshot};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasPatternMethods;
@@ -21,7 +22,8 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct CanvasPattern {
     reflector_: Reflector,
-    surface_data: Vec<u8>,
+    #[no_trace]
+    surface_data: IpcSnapshot,
     #[no_trace]
     surface_size: Size2D<u32>,
     repeat_x: bool,
@@ -33,7 +35,7 @@ pub(crate) struct CanvasPattern {
 
 impl CanvasPattern {
     fn new_inherited(
-        surface_data: Vec<u8>,
+        surface_data: Snapshot,
         surface_size: Size2D<u32>,
         repeat: RepetitionStyle,
         origin_clean: bool,
@@ -47,7 +49,7 @@ impl CanvasPattern {
 
         CanvasPattern {
             reflector_: Reflector::new(),
-            surface_data,
+            surface_data: surface_data.as_ipc(),
             surface_size,
             repeat_x: x,
             repeat_y: y,
@@ -57,7 +59,7 @@ impl CanvasPattern {
     }
     pub(crate) fn new(
         global: &GlobalScope,
-        surface_data: Vec<u8>,
+        surface_data: Snapshot,
         surface_size: Size2D<u32>,
         repeat: RepetitionStyle,
         origin_clean: bool,

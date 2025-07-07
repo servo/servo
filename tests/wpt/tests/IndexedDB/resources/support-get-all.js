@@ -559,3 +559,47 @@ function get_all_with_options_and_count_test(
     });
   }, testDescription);
 }
+
+// Get all operations must throw a `DataError` exception for invalid query keys.
+// See `get_all_test()` above for a description of the parameters.
+function get_all_with_invalid_keys_test(
+    getAllFunctionName, storeName, optionalIndexName,
+    shouldUseDictionaryArgument, testDescription) {
+  // Set up the object store or index to query.
+  const setupFunction = optionalIndexName ? index_get_all_test_setup :
+                                            object_store_get_all_test_setup;
+
+  setupFunction(storeName, (test, connection, expectedRecords) => {
+    const transaction = connection.transaction(storeName, 'readonly');
+    let queryTarget = transaction.objectStore(storeName);
+    if (optionalIndexName) {
+      queryTarget = queryTarget.index(optionalIndexName);
+    }
+
+    const invalidKeys = [
+      {
+        description: 'Date(NaN)',
+        value: new Date(NaN),
+      },
+      {
+        description: 'Array',
+        value: [{}],
+      },
+      {
+        description: 'detached TypedArray',
+        value: createDetachedArrayBuffer(),
+      },
+      {
+        description: 'detached ArrayBuffer',
+        value: createDetachedArrayBuffer().buffer
+      },
+    ];
+    invalidKeys.forEach(({description, value}) => {
+      const argument = shouldUseDictionaryArgument ? {query: value} : value;
+      assert_throws_dom('DataError', () => {
+        queryTarget[getAllFunctionName](argument);
+      }, `An invalid ${description} key must throw an exception.`);
+    });
+    test.done();
+  }, testDescription);
+}

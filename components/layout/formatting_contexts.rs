@@ -265,6 +265,48 @@ impl IndependentFormattingContext {
             IndependentFormattingContextContents::Replaced(..) => {},
         }
     }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn layout(
+        &self,
+        layout_context: &LayoutContext,
+        positioning_context: &mut PositioningContext,
+        containing_block_for_children: &ContainingBlock,
+        containing_block: &ContainingBlock,
+        preferred_aspect_ratio: Option<AspectRatio>,
+        depends_on_block_constraints: bool,
+        lazy_block_size: &LazySize,
+    ) -> CacheableLayoutResult {
+        match &self.contents {
+            IndependentFormattingContextContents::NonReplaced(content) => content.layout(
+                layout_context,
+                positioning_context,
+                containing_block_for_children,
+                containing_block,
+                &self.base,
+                depends_on_block_constraints,
+                lazy_block_size,
+            ),
+            IndependentFormattingContextContents::Replaced(content) => content.layout(
+                layout_context,
+                containing_block_for_children,
+                preferred_aspect_ratio,
+                &self.base,
+                depends_on_block_constraints,
+                lazy_block_size,
+            ),
+        }
+    }
+
+    #[inline]
+    pub(crate) fn is_table(&self) -> bool {
+        matches!(
+            &self.contents,
+            IndependentFormattingContextContents::NonReplaced(
+                IndependentNonReplacedContents::Table(_)
+            )
+        )
+    }
 }
 
 impl IndependentNonReplacedContents {
@@ -312,7 +354,7 @@ impl IndependentNonReplacedContents {
         skip_all
     )]
     #[allow(clippy::too_many_arguments)]
-    pub fn layout(
+    pub(crate) fn layout(
         &self,
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
@@ -376,11 +418,6 @@ impl IndependentNonReplacedContents {
     pub(crate) fn preferred_aspect_ratio(&self) -> Option<AspectRatio> {
         // TODO: support preferred aspect ratios on non-replaced boxes.
         None
-    }
-
-    #[inline]
-    pub(crate) fn is_table(&self) -> bool {
-        matches!(self, Self::Table(_))
     }
 
     fn repair_style(

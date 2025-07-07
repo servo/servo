@@ -15,11 +15,6 @@
 // MLOperand expand(
 //     MLOperand input, sequence<[EnforceRange] unsigned long> newShape);
 
-
-const getExpandPrecisionTolerance = () => {
-  return {metricType: 'ULP', value: 0};
-};
-
 const expandTests = [
   {
     'name': 'expand float32 0D scalar to 1D',
@@ -1335,8 +1330,7 @@ const expandTests = [
 
 if (navigator.ml) {
   expandTests.forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getExpandPrecisionTolerance, test);
+    webnn_conformance_test(buildAndExecuteGraph, getZeroULPTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

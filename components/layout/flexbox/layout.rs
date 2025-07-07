@@ -2147,7 +2147,7 @@ impl FlexItem<'_> {
 
     #[inline]
     fn is_table(&self) -> bool {
-        self.box_.is_table()
+        self.box_.independent_formatting_context.is_table()
     }
 }
 
@@ -2225,7 +2225,7 @@ impl FlexItemBox {
                 .map(|v| Au::zero().max(v - pbm_auto_is_zero.cross)),
         };
 
-        let is_table = self.is_table();
+        let is_table = self.independent_formatting_context.is_table();
         let tentative_cross_content_size = if cross_axis_is_item_block_axis {
             self.independent_formatting_context
                 .tentative_block_content_size(preferred_aspect_ratio)
@@ -2716,14 +2716,6 @@ impl FlexItemBox {
                     IntrinsicSizingMode::Size => content_block_size(),
                 }
             },
-        }
-    }
-
-    #[inline]
-    fn is_table(&self) -> bool {
-        match &self.independent_formatting_context.contents {
-            IndependentFormattingContextContents::NonReplaced(content) => content.is_table(),
-            IndependentFormattingContextContents::Replaced(_) => false,
         }
     }
 }

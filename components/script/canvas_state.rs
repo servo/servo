@@ -292,6 +292,14 @@ impl CanvasState {
         *self.state.borrow_mut() = CanvasContextState::new();
     }
 
+    pub(crate) fn reset_bitmap(&self) {
+        if !self.is_paintable() {
+            return;
+        }
+
+        self.send_canvas_2d_msg(Canvas2dMsg::ClearRect(self.size.get().to_f32().into()));
+    }
+
     fn create_drawable_rect(&self, x: f64, y: f64, w: f64, h: f64) -> Option<Rect<f32>> {
         if !([x, y, w, h].iter().all(|val| val.is_finite())) {
             return None;
@@ -1178,14 +1186,7 @@ impl CanvasState {
             let size = snapshot.size();
             Ok(Some(CanvasPattern::new(
                 global,
-                snapshot
-                    .to_vec(
-                        Some(SnapshotAlphaMode::Transparent {
-                            premultiplied: true,
-                        }),
-                        Some(SnapshotPixelFormat::BGRA),
-                    )
-                    .0, // TODO: send snapshot
+                snapshot,
                 size.cast(),
                 rep,
                 self.is_origin_clean(image),
@@ -1695,10 +1696,8 @@ impl CanvasState {
         };
 
         // Step 7.
-        let (sender, receiver) = ipc::bytes_channel().unwrap();
-        let pixels = unsafe { &imagedata.get_rect(Rect::new(src_rect.origin, dst_rect.size)) };
-        self.send_canvas_2d_msg(Canvas2dMsg::PutImageData(dst_rect, receiver));
-        sender.send(pixels).unwrap();
+        let snapshot = imagedata.get_snapshot_rect(Rect::new(src_rect.origin, dst_rect.size));
+        self.send_canvas_2d_msg(Canvas2dMsg::PutImageData(dst_rect, snapshot.as_ipc()));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage

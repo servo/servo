@@ -4,37 +4,34 @@
     <title>k-rate AudioParams with inputs for AudioBufferSourceNode</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <script src="/webaudio/resources/audit.js"></script>
     <script src="/webaudio/resources/audit-util.js"></script>
   </head>
 
   <body>
     <script>
-      let audit = Audit.createTaskRunner();
-
-      // Fairly abitrary sampleRate and somewhat duration
       const sampleRate = 8000;
       const testDuration = 0.25;
 
-      [['playbackRate', [1, 0], [2, testDuration]],
-       ['detune', [-1200, 0], [1200, testDuration]]]
-          .forEach(param => {
-            audit.define(
-                {label: param[0], description: `AudioBufferSource ${param[0]}`},
-                async (task, should) => {
-                  await doTest(should, {
-                    prefix: task.label,
-                    paramName: param[0],
-                    startValue: param[1],
-                    endValue: param[2]
-                  });
-                  task.done();
-                });
+      const testCases = [
+        { paramName: 'playbackRate', startValue: [1, 0],
+            endValue: [2, testDuration] },
+        { paramName: 'detune', startValue: [-1200, 0],
+            endValue: [1200, testDuration] }
+      ];
+
+      for (const { paramName, startValue, endValue } of testCases) {
+        promise_test(async t => {
+          const prefix = `AudioBufferSourceNode ${paramName}`;
+          await runKRateParamInputTest(t, {
+            prefix,
+            paramName,
+            startValue,
+            endValue
           });
+        }, `Verify k-rate AudioParam input works correctly for ${paramName}`);
+      }
 
-      audit.run();
-
-      async function doTest(should, options) {
+      async function runKRateParamInputTest(test, options) {
         // Test k-rate automation of AudioBufferSourceNode with connected
         // input.
         //
@@ -54,110 +51,95 @@
         //   prefix    - prefix to use for the messages.
         //   paramName - Name of the AudioParam to be tested
 
-        let {prefix, paramName, startValue, endValue} = options;
+        const { prefix, paramName, startValue, endValue } = options;
 
-        let context = new OfflineAudioContext({
+        const context = new OfflineAudioContext({
           numberOfChannels: 2,
-          sampleRate: sampleRate,
+          sampleRate,
           length: testDuration * sampleRate
         });
 
-        let merger = new ChannelMergerNode(
-            context, {numberOfInputs: context.destination.channelCount});
+        const merger = new ChannelMergerNode(context, {
+          numberOfInputs: context.destination.channelCount
+        });
         merger.connect(context.destination);
 
-        // Linear ramp to use for the buffer sources
-        let ramp = createLinearRampBuffer(context, context.length);
+        const rampBuffer = createLinearRampBuffer(context, context.length);
 
-        // Create the reference and test nodes.
-        let refNode;
-        let tstNode;
+        let refNode, tstNode;
 
-        const nodeOptions = {buffer: ramp};
+        const nodeOptions = { buffer: rampBuffer };
 
-        should(
-            () => refNode = new AudioBufferSourceNode(context, nodeOptions),
-            `${prefix}: refNode = new AudioBufferSourceNode(context, ${
-                JSON.stringify(nodeOptions)})`)
-            .notThrow();
+        test.step(() => {
+          refNode = new AudioBufferSourceNode(context, nodeOptions);
+        }, `${prefix}: create reference AudioBufferSourceNode`);
 
-        should(
-            () => tstNode = new AudioBufferSourceNode(context, nodeOptions),
-            `${prefix}: tstNode = new AudioBufferSourceNode(context, ${
-                JSON.stringify(nodeOptions)})`)
-            .notThrow();
+        test.step(() => {
+          tstNode = new AudioBufferSourceNode(context, nodeOptions);
+        }, `${prefix}: create test AudioBufferSourceNode`);
 
+        // Set automation on the reference node’s param
+        test.step(() => {
+          refNode[paramName].setValueAtTime(...startValue);
+        }, `${prefix}: setValueAtTime(${startValue[0]}, ${startValue[1]})`);
 
-        // Automate the AudioParam of the reference node with a linear ramp
-        should(
-            () => refNode[paramName].setValueAtTime(...startValue),
-            `${prefix}: refNode[${paramName}].setValueAtTime(${
-                startValue[0]}, ${startValue[1]})`)
-            .notThrow();
+        test.step(() => {
+          refNode[paramName].linearRampToValueAtTime(...endValue);
+        }, `${prefix}: linearRampToValueAtTime(${endValue[0]}, ` +
+            `${endValue[1]})`);
 
-        should(
-            () => refNode[paramName].linearRampToValueAtTime(...endValue),
-            `${prefix}: refNode[${paramName}].linearRampToValueAtTime(${
-                endValue[0]}, ${endValue[1]})`)
-            .notThrow();
+        // Modulate test node’s param via input signal
+        let mod = new ConstantSourceNode(context, { offset: 0 });
 
+        const modStart = startValue[0] - refNode[paramName].defaultValue;
+        const modEnd = endValue[0] - refNode[paramName].defaultValue;
 
-        // Create the input node and automate it so that it's output when added
-        // to the intrinsic value of the AudioParam we get the same values as
-        // the automations on the reference node.
+        test.step(() => {
+          mod.offset.setValueAtTime(modStart, startValue[1]);
+        }, `${prefix}: mod.offset.setValueAtTime(${modStart}, ` +
+            ` ${startValue[1]})`);
 
-        // Compute the start and end values based on the defaultValue of the
-        // param and the desired startValue and endValue.  The input is added to
-        // the intrinsic value of the AudioParam, so we need to account for
-        // that.
+        test.step(() => {
+          mod.offset.linearRampToValueAtTime(modEnd, endValue[1]);
+        }, `${prefix}: mod.offset.linearRampToValueAtTime(${modEnd}, ` +
+            ` ${endValue[1]})`);
 
-        let mod;
-        should(
-            () => mod = new ConstantSourceNode(context, {offset: 0}),
-            `${prefix}: mod = new ConstantSourceNode(context, {offset: 0})`)
-            .notThrow();
+        test.step(() => {
+          mod.connect(tstNode[paramName]);
+        }, `${prefix}: mod.connect(tstNode[${paramName}])`);
 
-        let modStart = startValue[0] - refNode[paramName].defaultValue;
-        let modEnd = endValue[0] - refNode[paramName].defaultValue;
-        should(
-            () => mod.offset.setValueAtTime(modStart, startValue[1]),
-            `${prefix}: mod.offset.setValueAtTime(${modStart}, ${
-                startValue[1]})`)
-            .notThrow();
-        should(
-            () => mod.offset.linearRampToValueAtTime(modEnd, endValue[1]),
-            `${prefix}: mod.offset.linearRampToValueAtTime(${modEnd}, ${
-                endValue[1]})`)
-            .notThrow();
-
-        // Connect up everything.
-        should(
-            () => mod.connect(tstNode[paramName]),
-            `${prefix}: mod.connect(tstNode[${paramName}])`)
-            .notThrow();
-
+        // Connect both nodes to different merger inputs
         refNode.connect(merger, 0, 0);
         tstNode.connect(merger, 0, 1);
 
-        // Go!
+        // Start all nodes
         refNode.start();
         tstNode.start();
         mod.start();
 
-        const buffer = await context.startRendering();
-        let expected = buffer.getChannelData(0);
-        let actual = buffer.getChannelData(1);
+        const renderedBuffer = await context.startRendering();
 
-        // Quick sanity check that output isn't zero.  This means we messed up
-        // the connections or automations or the buffer source.
-        should(expected, `Expected k-rate ${paramName} AudioParam with input`)
-            .notBeConstantValueOf(0);
-        should(actual, `Actual k-rate ${paramName} AudioParam with input`)
-            .notBeConstantValueOf(0);
+        const expected = renderedBuffer.getChannelData(0);
+        const actual = renderedBuffer.getChannelData(1);
 
-        // The expected and actual results must be EXACTLY the same.
-        should(actual, `k-rate ${paramName} AudioParam with input`)
-            .beCloseToArray(expected, {absoluteThreshold: 0});
+        // Sanity check: outputs should not be silent
+        assert_false(
+          expected.every(v => v === 0),
+          `${prefix}: expected output is not silent`
+        );
+
+        assert_false(
+          actual.every(v => v === 0),
+          `${prefix}: actual output is not silent`
+        );
+
+        // Expected and actual outputs must match exactly
+        assert_array_approx_equals(
+          actual,
+          expected,
+          0,
+          `${prefix}: actual matches expected for k-rate AudioParam input`
+        );
       }
     </script>
   </body>

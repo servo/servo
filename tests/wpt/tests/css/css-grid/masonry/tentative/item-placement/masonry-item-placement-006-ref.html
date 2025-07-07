@@ -16,7 +16,6 @@ grid {
   display: inline-grid;
   gap: 1px 2px;
   grid-template-columns: repeat(4,20px);
-  grid-template-rows: masonry;
   color: #444;
   border: 1px solid;
   padding: 2px;
@@ -26,59 +25,116 @@ item {
   background-color: #444;
   color: #fff;
 }
+
+flex {
+  gap: 1px;
+  display: flex;
+  flex-direction: column;
+  height: fit-content;
+}
 </style>
 </head>
 <body>
 
 <grid>
   <item style="padding-top:30px; grid-column:1/2">1</item>
-  <item style="grid-column:2/3">2</item>
-  <item style="grid-column:3/4">3</item>
-  <item style="grid-column:4/5">4</item>
-  <item style="grid-column:2/3">5</item>
-  <item style="grid-column:3/4">6</item>
+  <flex>
+    <item>2</item>
+    <item>5</item>
+  </flex>
+  <flex>
+    <item>3</item>
+    <item>6</item>
+  </flex>
+  <item style="grid-column:4/5; height: fit-content;">4</item>
 </grid>
 
 <grid>
-  <item style="grid-column:1/2">1</item>
+  <flex>
+    <item>1</item>
+    <item>5</item>
+  </flex>
   <item style="padding-top:30px; grid-column:2/3">2</item>
-  <item style="grid-column:3/4">3</item>
-  <item style="grid-column:4/5">4</item>
-  <item style="grid-column:1/2">5</item>
-  <item style="grid-column:3/4">6</item>
+  <flex>
+    <item style="grid-column:3/4">3</item>
+    <item style="grid-column:3/4">6</item>
+  </flex>
+  <item style="grid-column:4/5; height: fit-content;">4</item>
 </grid>
 
 <grid>
   <item style="padding-top:30px; grid-column:1/2">1</item>
   <item style="padding-top:30px; grid-column:2/3">2</item>
-  <item style="padding-top:10px; grid-column:3/4">3</item>
-  <item style="grid-column:4/5">4</item>
-  <item style="grid-column:4/5">5</item>
-  <item style="grid-column:3/4">6</item>
+  <flex>
+    <item style="padding-top:10px">3</item>
+    <item>5</item>
+  </flex>
+  <flex>
+    <item>4</item>
+    <item>6</item>
+  </flex>
 </grid>
 
 <grid>
-  <item style="grid-column:1/2">1</item>
-  <item style="padding-top:30px; grid-column:2/3">2</item>
-  <item style="padding-top:10px; grid-column:3/4">3</item>
-  <item style="grid-column:3/span 2">4</item>
-  <item style="grid-column:1/2">5</item>
-  <item style="grid-column:1/2">6</item>
+  <flex>
+    <item>1</item>
+    <item>5</item>
+  </flex>
+  <flex>
+    <item style="padding-top:30px">2</item>
+    <item>6</item>
+  </flex>
+  <flex>
+    <item style="padding-top:10px">3</item>
+    <item style="width: calc(200% + 2px)">4</item>
+  </flex>
 </grid>
 
 <grid>
-  <item style="grid-column:1/2">1</item>
+  <item style="padding-top:30px; grid-column:1/2">1</item>
   <item style="padding-top:30px; grid-column:2/3">2</item>
-  <item style="padding-top:10px; grid-column:3/4">3</item>
+  <flex>
+    <item style="padding-top:10px">3</item>
+    <item>6</item>
+  </flex>
+  <flex>
+    <item>4</item>
+    <item>5</item>
+  </flex>
+</grid>
+
+<grid>
+  <flex>
+    <item>1</item>
+    <item>5</item>
+    <item>6</item>
+  </flex>
+  <flex>
+    <item style="padding-top:30px; height: calc(100% - 2px);">2</item>
+  </flex>
+  <flex>
+    <item style="padding-top:10px;">3</item>
+    <item style="width: calc(200% + 2px)">4</item>
+  </flex>
+</grid>
+
+<grid>
+  <item style="grid-column:1/2; height: fit-content;">1</item>
+  <item style="padding-top:30px; grid-column:2/3; height: fit-content;">2</item>
+  <item style="padding-top:10px; grid-column:3/4; height: fit-content;">3</item>
   <item style="grid-column:1/span 3">4</item>
-  <item style="grid-column:4/5">5</item>
-  <item style="grid-column:4/5">6</item>
+  <div style="display: grid; grid-row: 1/2; grid-column: 4/5;">
+    <flex>
+      <item>5</item>
+      <item>6</item>
+    </flex>
+  </div>
 </grid>
 
 <grid>
-  <item style="grid-column:1/2">1</item>
-  <item style="padding-top:30px; grid-column:2/3">2</item>
-  <item style="padding-top:10px; grid-column:3/4">3</item>
+  <item style="grid-column:1/2; height: fit-content;">1</item>
+  <item style="padding-top:30px; grid-column:2/3; height: fit-content;">2</item>
+  <item style="padding-top:10px; grid-column:3/4; height: fit-content;">3</item>
   <item style="grid-column:1/span 4">4</item>
   <item style="grid-column:1/2">5</item>
   <item style="grid-column:2/3">6</item>

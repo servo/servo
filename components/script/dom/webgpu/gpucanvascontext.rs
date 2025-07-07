@@ -276,6 +276,10 @@ impl CanvasContext for GPUCanvasContext {
         }
     }
 
+    fn reset_bitmap(&self) {
+        warn!("The GPUCanvasContext 'reset_bitmap' is not implemented yet");
+    }
+
     /// <https://gpuweb.github.io/gpuweb/#ref-for-abstract-opdef-get-a-copy-of-the-image-contents-of-a-context%E2%91%A5>
     fn get_image_data(&self) -> Option<Snapshot> {
         // 1. Return a copy of the image contents of context.

@@ -14,13 +14,6 @@
 //
 // MLOperand tanh(MLOperand input);
 
-const getTanhPrecisionTolerance = (graphResources) => {
-  const toleranceValueDict = {float32: 1 / 1024, float16: 1 / 512};
-  const expectedDataType =
-      getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
-  return {metricType: 'ATOL', value: toleranceValueDict[expectedDataType]};
-};
-
 const tanhTests = [
   {
     'name': 'tanh float32 1D constant tensor',
@@ -594,8 +587,7 @@ const tanhTests = [
 
 if (navigator.ml) {
   tanhTests.forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getTanhPrecisionTolerance, test);
+    webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

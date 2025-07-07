@@ -9,7 +9,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use async_recursion::async_recursion;
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::{HistoryStateId, PipelineId};
+use base::id::{BrowsingContextId, HistoryStateId, PipelineId};
 use crossbeam_channel::Sender;
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
@@ -398,6 +398,7 @@ fn prepare_devtools_request(
     connect_time: Duration,
     send_time: Duration,
     is_xhr: bool,
+    browsing_context_id: BrowsingContextId,
 ) -> ChromeToDevtoolsControlMsg {
     let started_date_time = SystemTime::now();
     let request = DevtoolsHttpRequest {
@@ -414,6 +415,7 @@ fn prepare_devtools_request(
         connect_time,
         send_time,
         is_xhr,
+        browsing_context_id,
     };
     let net_event = NetworkEvent::HttpRequest(request);
 
@@ -435,12 +437,14 @@ fn send_response_to_devtools(
     headers: Option<HeaderMap>,
     status: HttpStatus,
     pipeline_id: PipelineId,
+    browsing_context_id: BrowsingContextId,
 ) {
     let response = DevtoolsHttpResponse {
         headers,
         status,
         body: None,
         pipeline_id,
+        browsing_context_id,
     };
     let net_event_response = NetworkEvent::HttpResponse(response);
 
@@ -536,6 +540,7 @@ async fn obtain_response(
     is_xhr: bool,
     context: &FetchContext,
     fetch_terminated: UnboundedSender<bool>,
+    browsing_context_id: Option<BrowsingContextId>,
 ) -> Result<(HyperResponse<Decoder>, Option<ChromeToDevtoolsControlMsg>), NetworkError> {
     {
         let mut headers = request_headers.clone();
@@ -716,21 +721,27 @@ async fn obtain_response(
 
                 let msg = if let Some(request_id) = request_id {
                     if let Some(pipeline_id) = pipeline_id {
-                        Some(prepare_devtools_request(
-                            request_id,
-                            closure_url,
-                            method.clone(),
-                            headers,
-                            Some(devtools_bytes.lock().unwrap().clone()),
-                            pipeline_id,
-                            (connect_end - connect_start).unsigned_abs(),
-                            (send_end - send_start).unsigned_abs(),
-                            is_xhr,
-                        ))
-                    // TODO: ^This is not right, connect_start is taken before contructing the
-                    // request and connect_end at the end of it. send_start is takend before the
-                    // connection too. I'm not sure it's currently possible to get the time at the
-                    // point between the connection and the start of a request.
+                        if let Some(browsing_context_id) = browsing_context_id {
+                            Some(prepare_devtools_request(
+                                request_id,
+                                closure_url,
+                                method.clone(),
+                                headers,
+                                Some(devtools_bytes.lock().unwrap().clone()),
+                                pipeline_id,
+                                (connect_end - connect_start).unsigned_abs(),
+                                (send_end - send_start).unsigned_abs(),
+                                is_xhr,
+                                browsing_context_id,
+                            ))
+                        } else {
+                            debug!("Not notifying devtools (no browsing_context_id)");
+                            None
+                        }
+                        // TODO: ^This is not right, connect_start is taken before contructing the
+                        // request and connect_end at the end of it. send_start is takend before the
+                        // connection too. I'm not sure it's currently possible to get the time at the
+                        // point between the connection and the start of a request.
                     } else {
                         debug!("Not notifying devtools (no pipeline_id)");
                         None
@@ -1887,6 +1898,8 @@ async fn http_network_fetch(
         let _ = fetch_terminated_sender.send(false);
     }
 
+    let browsing_context_id = request.target_webview_id.map(|id| id.0);
+
     let response_future = obtain_response(
         &context.state.client,
         &url,
@@ -1903,6 +1916,7 @@ async fn http_network_fetch(
         is_xhr,
         context,
         fetch_terminated_sender,
+        browsing_context_id,
     );
 
     let pipeline_id = request.pipeline_id;
@@ -2008,13 +2022,14 @@ async fn http_network_fetch(
 
         // --- Tell devtools that we got a response
         // Send an HttpResponse message to devtools with the corresponding request_id
-        if let Some(pipeline_id) = pipeline_id {
+        if let (Some(pipeline_id), Some(browsing_context_id)) = (pipeline_id, browsing_context_id) {
             send_response_to_devtools(
                 &sender,
                 request_id.unwrap(),
                 meta_headers.map(Serde::into_inner),
                 meta_status,
                 pipeline_id,
+                browsing_context_id,
             );
         }
     }

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Mixins: Mixins depending on other mixins</title>
+    <link rel="help" href="https://drafts.csswg.org/css-mixins-1/#apply-rule">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+      @mixin --m1() {
+        &.a {
+          @apply --m2;
+        }
+      }
+      .c {
+        @apply --m1;
+      }
+      @mixin --m2() {
+        &.b {
+          color: green;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div><div class="a b c" id="target">This text should be green.</div></div>
+  <script>
+    test(() => {
+      let target = document.getElementById('target');
+      assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+    });
+  </script>
+  </body>
+</html>

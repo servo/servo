@@ -2341,7 +2341,7 @@ impl Window {
         // iframe size updates.
         //
         // See <https://github.com/servo/servo/issues/14719>
-        self.reflow(ReflowGoal::UpdateTheRendering, can_gc);
+        self.Document().update_the_rendering(can_gc);
     }
 
     pub(crate) fn layout_blocked(&self) -> bool {
@@ -2657,12 +2657,7 @@ impl Window {
             };
 
             // Step 13
-            ScriptThread::navigate(
-                window_proxy.browsing_context_id(),
-                pipeline_id,
-                load_data,
-                resolved_history_handling,
-            );
+            ScriptThread::navigate(pipeline_id, load_data, resolved_history_handling);
         };
     }
 

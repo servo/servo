@@ -539,6 +539,10 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         preferences.devtools_server_port = port;
     }
 
+    if opt_match.opt_present("webdriver") {
+        preferences.dom_testing_html_input_element_select_files_enabled = true;
+    }
+
     let parse_resolution_string = |string: String| {
         let components: Vec<u32> = string
             .split('x')

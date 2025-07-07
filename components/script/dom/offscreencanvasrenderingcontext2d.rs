@@ -84,6 +84,10 @@ impl CanvasContext for OffscreenCanvasRenderingContext2D {
         self.context.resize()
     }
 
+    fn reset_bitmap(&self) {
+        self.context.reset_bitmap()
+    }
+
     fn get_image_data(&self) -> Option<Snapshot> {
         self.context.get_image_data()
     }

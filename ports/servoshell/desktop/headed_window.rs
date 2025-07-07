@@ -431,6 +431,9 @@ impl WindowPortsMethods for Window {
         );
 
         let screen_size = self.screen_size.to_f32() * hidpi_factor;
+        // FIXME: In reality, this should subtract screen space used by the system interface
+        // elements, but it is difficult to get this value with `winit` currently. See:
+        // See https://github.com/rust-windowing/winit/issues/2494
         let available_screen_size = screen_size - toolbar_size;
 
         // Offset the WebView origin by the toolbar so that it reflects the actual viewport and
