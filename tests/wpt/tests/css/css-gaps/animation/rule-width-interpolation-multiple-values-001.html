@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>rule-width interpolation</title>
+  <link rel="author" title="Javier Contreras" href="mailto:javiercon@chromium.org">
+  <link rel="help" href="https://drafts.csswg.org/css-gaps-1/#column-row-rule-width">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/css/support/interpolation-testcommon.js"></script>
+  <style>
+    .parent {
+      row-rule-style: solid;
+      row-rule-width: 90px;
+    }
+
+    .target {
+      display: flex;
+      row-gap: 10px;
+      row-rule-width: 10px 10px 10px;
+      row-rule-style: solid;
+      row-rule-color: black;
+      flex-wrap: wrap;
+      column-rule-width: 10px 15px 20px;
+      column-rule-style: solid;
+      column-rule-color: black;
+    }
+  </style>
+</head>
+<body>
+  <script>
+    test_interpolation({
+      property: 'row-rule-width',
+      from: neutralKeyframe,
+      to: '40px',
+    }, [
+      { at: -0.3, expect: '1px 1px 1px' },
+      { at: 0, expect: '10px 10px 10px' },
+      { at: 0.3, expect: '19px 19px 19px' },
+      { at: 0.6, expect: '28px 28px 28px' },
+      { at: 1, expect: '40px 40px 40px' },
+      { at: 1.5, expect: '55px 55px 55px' },
+    ]);
+
+    test_interpolation({
+      property: 'column-rule-width',
+      from: neutralKeyframe,
+      to: '40px',
+    }, [
+      { at: -0.3, expect: '1px 7px 14px' },
+      { at: 0, expect: '10px 15px 20px' },
+      { at: 0.3, expect: '19px 22px 26px' },
+      { at: 0.6, expect: '28px 30px 32px' },
+      { at: 1, expect: '40px 40px 40px' },
+      { at: 1.5, expect: '55px 52px 50px' },
+    ]);
+  </script>
+</body>
+</html>

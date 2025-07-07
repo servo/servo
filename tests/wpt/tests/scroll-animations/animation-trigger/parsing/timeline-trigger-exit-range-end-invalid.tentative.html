@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/#animation-trigger">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+test_invalid_value("timeline-trigger-exit-range-end", "infinite");
+test_invalid_value("timeline-trigger-exit-range-end", "1s 2s");
+test_invalid_value("timeline-trigger-exit-range-end", "1s / 2s");
+
+test_invalid_value("timeline-trigger-exit-range-end", "peek 50%");
+test_invalid_value("timeline-trigger-exit-range-end", "50% contain");
+test_invalid_value("timeline-trigger-exit-range-end", "50% cover");
+test_invalid_value("timeline-trigger-exit-range-end", "50% entry");
+test_invalid_value("timeline-trigger-exit-range-end", "50% enter");
+test_invalid_value("timeline-trigger-exit-range-end", "50% exit");
+test_invalid_value("timeline-trigger-exit-range-end", "contain contain");
+test_invalid_value("timeline-trigger-exit-range-end", "none");
+test_invalid_value("timeline-trigger-exit-range-end", "cover 50% enter 50%");
+test_invalid_value("timeline-trigger-exit-range-end", "auto contain");
+</script>

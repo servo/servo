@@ -26,7 +26,7 @@ test(() => {
 }, "API surface");
 
 test(() => {
-  const memory = new WebAssembly.Memory({ initial: 0 });
+  const memory = new WebAssembly.Memory({ initial: 0, maximum: 1 });
   const buffer1 = memory.buffer;
 
   assert_false(buffer1.resizable, "By default the AB is initially not resizable");
@@ -50,12 +50,6 @@ test(() => {
     const buffer = memory.toResizableBuffer();
     assert_equals(buffer.maxByteLength, kPageSize * maxNumPages, "Memory maximum is same as maxByteLength");
   }
-
-  {
-    const memory = new WebAssembly.Memory({ initial: 0 });
-    const buffer = memory.toResizableBuffer();
-    assert_equals(buffer.maxByteLength, kPageSize * kSpecMaxPages, "Default max size is 65536 * 65536");
-  }
 }, "toResizableBuffer max size");
 
 test(() => {
@@ -72,7 +66,7 @@ test(() => {
 }, "Resizing a Memory's resizable buffer");
 
 test(() => {
-  const memory = new WebAssembly.Memory({ initial: 0 });
+  const memory = new WebAssembly.Memory({ initial: 0, maximum: 1 });
   const buffer = memory.toResizableBuffer();
   assert_throws_js(TypeError, () => buffer.transfer(), "Cannot be detached by JS");
 }, "Resizable buffers from Memory cannot be detached by JS");

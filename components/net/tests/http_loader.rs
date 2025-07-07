@@ -252,7 +252,7 @@ fn test_request_and_response_data_with_network_messages() {
 
     let mut request_headers = HeaderMap::new();
     request_headers.typed_insert(Host::from("bar.foo".parse::<Authority>().unwrap()));
-    let request = RequestBuilder::new(None, url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url.clone(), Referrer::NoReferrer)
         .method(Method::GET)
         .headers(request_headers)
         .body(None)
@@ -327,6 +327,7 @@ fn test_request_and_response_data_with_network_messages() {
         connect_time: devhttprequest.connect_time,
         send_time: devhttprequest.send_time,
         is_xhr: false,
+        browsing_context_id: TEST_WEBVIEW_ID.0,
     };
 
     let content = "Yay!";
@@ -348,6 +349,7 @@ fn test_request_and_response_data_with_network_messages() {
         status: HttpStatus::default(),
         body: None,
         pipeline_id: TEST_PIPELINE_ID,
+        browsing_context_id: TEST_WEBVIEW_ID.0,
     };
 
     assert_eq!(devhttprequest, httprequest);
@@ -407,7 +409,7 @@ fn test_redirected_request_to_devtools() {
         };
     let (pre_server, pre_url) = make_server(pre_handler);
 
-    let request = RequestBuilder::new(None, pre_url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), pre_url.clone(), Referrer::NoReferrer)
         .method(Method::POST)
         .destination(Destination::Document)
         .pipeline_id(Some(TEST_PIPELINE_ID))

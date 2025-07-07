@@ -34,7 +34,7 @@
         assert_equals(div.querySelector('img').src, img.src);
         return true;
       }
-      dragDropTest(img, div, onDropCallBack, 'Dragging an image to an iframe should copy it there', iframe)
+      dragDropTest(img, div, onDropCallBack, 'Dragging an image to an iframe should copy it there', /*dragIframe=*/null, iframe)
     };
     test();
   </script>

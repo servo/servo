@@ -16,12 +16,14 @@
       --font-size-span: 18px;
       --cell-padding: 12px;
       --font-family-span: Calibri, sans-serif;
+      --range: 100%;
     }
 
     span {
       font-size: var(--font-size-span);
       font-family: var(--font-family-span);
       color: var(--span-text-color);
+      animation-range: 0 100%, 0 var(--range)
     }
 
     td {

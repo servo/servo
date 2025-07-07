@@ -14,4 +14,8 @@ test_invalid_value("offset-rotate", "calc(sign(50%) * 1deg)");
 test_invalid_value("offset-path", "ray(calc(sign(50%) * 1deg))");
 test_invalid_value("color", "hsl(calc(sign(50%) * 1deg) 82% 43%)");
 test_invalid_value("transform", "rotate(calc(sign(50%) * 1deg))");
+test_invalid_value("animation-duration", "calc(sign(50%) * 1s)");
+test_invalid_value("animation-delay", "calc(sign(50%) * 1s)");
+test_invalid_value("transition-duration", "calc(sign(50%) * 1s)");
+test_invalid_value("transition-delay", "calc(sign(50%) * 1s)");
 </script>

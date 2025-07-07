@@ -8,10 +8,7 @@ use std::fmt::{Debug, Error, Formatter};
 
 use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::Sender;
-use embedder_traits::{
-    AnimationState, EventLoopWaker, MouseButton, MouseButtonAction, TouchEventResult,
-    WebDriverMessageId,
-};
+use embedder_traits::{AnimationState, EventLoopWaker, TouchEventResult};
 use euclid::Rect;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
@@ -105,20 +102,6 @@ pub enum CompositorMsg {
     PipelineExited(WebViewId, PipelineId, PipelineExitSource),
     /// The load of a page has completed
     LoadComplete(WebViewId),
-    /// WebDriver mouse button event
-    WebDriverMouseButtonEvent(
-        WebViewId,
-        MouseButtonAction,
-        MouseButton,
-        f32,
-        f32,
-        Option<WebDriverMessageId>,
-    ),
-    /// WebDriver mouse move event
-    WebDriverMouseMoveEvent(WebViewId, f32, f32, Option<WebDriverMessageId>),
-    // Webdriver wheel scroll event
-    WebDriverWheelScrollEvent(WebViewId, f32, f32, f64, f64, Option<WebDriverMessageId>),
-
     /// Inform WebRender of the existence of this pipeline.
     SendInitialTransaction(WebRenderPipelineId),
     /// Perform a scroll operation.
@@ -174,7 +157,8 @@ pub enum CompositorMsg {
     GetClientWindowRect(WebViewId, IpcSender<DeviceIndependentIntRect>),
     /// Get the size of the screen that the client window inhabits.
     GetScreenSize(WebViewId, IpcSender<DeviceIndependentIntSize>),
-    /// Get the available screen size (without toolbars and docks) for the screen
+    /// Get the available screen size, without system interface elements such as menus, docks, and
+    /// taskbars.
     /// the client window inhabits.
     GetAvailableScreenSize(WebViewId, IpcSender<DeviceIndependentIntSize>),
 

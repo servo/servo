@@ -27,10 +27,10 @@ use constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
 use crossbeam_channel::{Receiver, Sender};
 use dpi::PhysicalSize;
 use embedder_traits::{
-    CompositorHitTestResult, Cursor, InputEvent, MouseButtonEvent, MouseMoveEvent, ShutdownState,
-    UntrustedNodeAddress, ViewportDetails, WheelDelta, WheelEvent, WheelMode,
+    CompositorHitTestResult, Cursor, InputEvent, ShutdownState, UntrustedNodeAddress,
+    ViewportDetails,
 };
-use euclid::{Point2D, Rect, Scale, Size2D, Transform3D, Vector2D};
+use euclid::{Point2D, Rect, Scale, Size2D, Transform3D};
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use libc::c_void;
 use log::{debug, info, trace, warn};
@@ -670,64 +670,6 @@ impl IOCompositor {
                 if opts::get().wait_for_stable_image {
                     self.set_needs_repaint(RepaintReason::ReadyForScreenshot);
                 }
-            },
-
-            CompositorMsg::WebDriverMouseButtonEvent(
-                webview_id,
-                action,
-                button,
-                x,
-                y,
-                message_id,
-            ) => {
-                let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
-                    warn!("Handling input event for unknown webview: {webview_id}");
-                    return;
-                };
-                let dppx = webview_renderer.device_pixels_per_page_pixel();
-                let point = dppx.transform_point(Point2D::new(x, y));
-                webview_renderer.dispatch_point_input_event(
-                    InputEvent::MouseButton(MouseButtonEvent::new(action, button, point))
-                        .with_webdriver_message_id(message_id),
-                );
-            },
-
-            CompositorMsg::WebDriverMouseMoveEvent(webview_id, x, y, message_id) => {
-                let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
-                    warn!("Handling input event for unknown webview: {webview_id}");
-                    return;
-                };
-                let dppx = webview_renderer.device_pixels_per_page_pixel();
-                let point = dppx.transform_point(Point2D::new(x, y));
-                webview_renderer.dispatch_point_input_event(
-                    InputEvent::MouseMove(MouseMoveEvent::new(point))
-                        .with_webdriver_message_id(message_id),
-                );
-            },
-
-            CompositorMsg::WebDriverWheelScrollEvent(webview_id, x, y, dx, dy, message_id) => {
-                let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
-                    warn!("Handling input event for unknown webview: {webview_id}");
-                    return;
-                };
-                // The sign of wheel delta value definition in uievent
-                // is inverted compared to `winit`s wheel delta. Hence,
-                // here we invert the sign to mimic wheel scroll
-                // implementation in `headed_window.rs`.
-                let delta = WheelDelta {
-                    x: -dx,
-                    y: -dy,
-                    z: 0.0,
-                    mode: WheelMode::DeltaPixel,
-                };
-                let dppx = webview_renderer.device_pixels_per_page_pixel();
-                let point = dppx.transform_point(Point2D::new(x, y));
-                let scroll_delta = dppx.transform_vector(Vector2D::new(dx as f32, dy as f32));
-                webview_renderer.dispatch_point_input_event(
-                    InputEvent::Wheel(WheelEvent::new(delta, point))
-                        .with_webdriver_message_id(message_id),
-                );
-                webview_renderer.on_webdriver_wheel_action(scroll_delta, point);
             },
 
             CompositorMsg::SendInitialTransaction(pipeline) => {

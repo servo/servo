@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Mixins: Shadow DOM</title>
+    <link rel="help" href="https://drafts.csswg.org/css-mixins-1/#defining-mixins">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+      @mixin --exists-only-outside-shadow() {
+        color: green;
+      }
+      #e4 {
+        color: green;
+        @apply --in-shadow;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="host">
+      <template shadowrootmode="open">
+        <style>
+          #e1 {
+            color: red;
+            @apply --exists-only-outside-shadow;
+          }
+          #e2 {
+            color: red;
+            @apply --m1;
+          }
+          #e3 {
+            color: red;
+            @apply --exists-only-in-adopted;
+          }
+        </style>
+        <style>
+          @mixin --m1() {
+            color: green;
+          }
+          @mixin --in-shadow() {
+            color: red;
+          }
+        </style>
+        <div id="e1">This text should be green.</div>
+        <div id="e2">This text should be green.</div>
+        <div id="e3">This text should be green.</div>
+      </template>
+    </div>
+    <div id="e4">This text should be green.</div>
+    <script>
+      const sheet = new CSSStyleSheet();
+      sheet.replaceSync('@mixin --exists-only-in-adopted() { color: green; }');
+      document.getElementById('host').shadowRoot.adoptedStyleSheets = [sheet];
+
+      test(() => {
+        let target = document.getElementById('host').shadowRoot.getElementById('e1');
+        assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+      }, 'Style in shadow DOM should have access to outside non-adopted mixins');
+
+      test(() => {
+        let target = document.getElementById('host').shadowRoot.getElementById('e2');
+        assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+      }, 'Style in shadow DOM should have access to inside mixins');
+
+      test(() => {
+        let target = document.getElementById('host').shadowRoot.getElementById('e3');
+        assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+      }, 'Style in shadow DOM should have access to mixins from adopted stylesheets');
+
+      test(() => {
+        let target = document.getElementById('e4');
+        assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+      }, 'Style outside shadow DOM should _not_ have access to inside mixins');
+    </script>
+  </body>
+</html>

@@ -792,22 +792,6 @@ impl WebViewRenderer {
             }));
     }
 
-    /// Push scroll pending event when receiving wheel action from webdriver
-    pub(crate) fn on_webdriver_wheel_action(
-        &mut self,
-        scroll_delta: Vector2D<f32, DevicePixel>,
-        point: Point2D<f32, DevicePixel>,
-    ) {
-        if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
-            return;
-        }
-
-        let scroll_location =
-            ScrollLocation::Delta(LayoutVector2D::from_untyped(scroll_delta.to_untyped()));
-        let cursor = DeviceIntPoint::new(point.x as i32, point.y as i32);
-        self.on_scroll_window_event(scroll_location, cursor)
-    }
-
     /// Process pending scroll events for this [`WebViewRenderer`]. Returns a tuple containing:
     ///
     ///  - A boolean that is true if a zoom occurred.

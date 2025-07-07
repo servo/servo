@@ -12,6 +12,7 @@ use js::gc::CustomAutoRooterGuard;
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use js::typedarray::{ClampedU8, Uint8ClampedArray};
+use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 
 use super::bindings::buffer_source::{HeapBufferSource, create_heap_buffer_source_with_length};
 use crate::dom::bindings::buffer_source::create_buffer_source;
@@ -181,6 +182,18 @@ impl ImageData {
     #[allow(unsafe_code)]
     pub(crate) unsafe fn get_rect(&self, rect: Rect<u32>) -> Cow<[u8]> {
         pixels::rgba8_get_rect(unsafe { self.as_slice() }, self.get_size().to_u32(), rect)
+    }
+
+    #[allow(unsafe_code)]
+    pub(crate) fn get_snapshot_rect(&self, rect: Rect<u32>) -> Snapshot {
+        Snapshot::from_vec(
+            rect.size,
+            SnapshotPixelFormat::RGBA,
+            SnapshotAlphaMode::Transparent {
+                premultiplied: false,
+            },
+            unsafe { self.get_rect(rect).into_owned() },
+        )
     }
 
     #[allow(unsafe_code)]

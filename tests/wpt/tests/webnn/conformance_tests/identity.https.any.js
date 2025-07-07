@@ -13,14 +13,6 @@
 //
 // MLOperand identity(MLOperand input);
 
-
-const getIdentityPrecisionTolerance = (graphResources) => {
-  const toleranceValueDict = {float32: 0, float16: 0};
-  const expectedDataType =
-      getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
-  return {metricType: 'ULP', value: toleranceValueDict[expectedDataType]};
-};
-
 const identityTests = [
   {
     'name': 'identity float32 0D scalar',
@@ -530,8 +522,7 @@ const identityTests = [
 
 if (navigator.ml) {
   identityTests.forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getIdentityPrecisionTolerance, test);
+    webnn_conformance_test(buildAndExecuteGraph, getZeroULPTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

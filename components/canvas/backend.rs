@@ -2,17 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Cow;
-
 use canvas_traits::canvas::{
-    CompositionOrBlending, FillOrStrokeStyle, LineCapStyle, LineJoinStyle,
+    CompositionOrBlending, FillOrStrokeStyle, LineCapStyle, LineJoinStyle, PathSegment,
 };
+use compositing_traits::SerializableImageData;
 use euclid::Angle;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use lyon_geom::Arc;
+use pixels::Snapshot;
 use style::color::AbsoluteColor;
+use webrender_api::ImageDescriptor;
 
-use crate::canvas_data::{CanvasPaintState, Filter, TextRun};
+use crate::canvas_data::{CanvasPaintState, Filter, PathBuilderRef, TextRun};
 
 pub(crate) trait Backend: Clone + Sized {
     type Pattern<'a>: PatternHelpers + Clone;
@@ -21,9 +22,8 @@ pub(crate) trait Backend: Clone + Sized {
     type DrawOptions: DrawOptionsHelpers + Clone;
     type CompositionOp;
     type DrawTarget: GenericDrawTarget<Self>;
-    type PathBuilder: GenericPathBuilder<Self>;
+    type Path: GenericPath<Self> + Clone;
     type SourceSurface;
-    type Path: PathHelpers<Self> + Clone;
     type GradientStop;
     type GradientStops;
 
@@ -61,9 +61,8 @@ pub(crate) trait GenericDrawTarget<B: Backend> {
         source: Rect<i32>,
         destination: Point2D<i32>,
     );
-    fn create_path_builder(&self) -> B::PathBuilder;
     fn create_similar_draw_target(&self, size: &Size2D<i32>) -> Self;
-    fn create_source_surface_from_data(&self, data: &[u8]) -> Option<B::SourceSurface>;
+    fn create_source_surface_from_data(&self, data: Snapshot) -> Option<B::SourceSurface>;
     fn draw_surface(
         &mut self,
         surface: B::SourceSurface,
@@ -115,11 +114,14 @@ pub(crate) trait GenericDrawTarget<B: Backend> {
         draw_options: &B::DrawOptions,
     );
     fn surface(&self) -> B::SourceSurface;
-    fn bytes(&self) -> Cow<[u8]>;
+    fn image_descriptor_and_serializable_data(&self) -> (ImageDescriptor, SerializableImageData);
+    fn snapshot(&self) -> Snapshot;
 }
 
-/// A generic PathBuilder that abstracts the interface for azure's and raqote's PathBuilder.
-pub(crate) trait GenericPathBuilder<B: Backend> {
+/// A generic Path that abstracts the interface for raqote's PathBuilder/Path.
+pub(crate) trait GenericPath<B: Backend<Path = Self>> {
+    fn new() -> Self;
+    fn transform(&mut self, transform: &Transform2D<f32>);
     fn arc(
         &mut self,
         origin: Point2D<f32>,
@@ -237,7 +239,76 @@ pub(crate) trait GenericPathBuilder<B: Backend> {
             self.quadratic_curve_to(&q.ctrl, &q.to);
         });
     }
-    fn finish(&mut self) -> B::Path;
+    fn contains_point(&self, x: f64, y: f64, path_transform: &Transform2D<f32>) -> bool;
+    fn add_segments(&mut self, path: &[PathSegment]) {
+        let mut build_ref = PathBuilderRef::<B> {
+            builder: self,
+            transform: Transform2D::identity(),
+        };
+        for &seg in path {
+            match seg {
+                PathSegment::ClosePath => build_ref.close(),
+                PathSegment::MoveTo { x, y } => build_ref.move_to(&Point2D::new(x, y)),
+                PathSegment::LineTo { x, y } => build_ref.line_to(&Point2D::new(x, y)),
+                PathSegment::Quadratic { cpx, cpy, x, y } => {
+                    build_ref.quadratic_curve_to(&Point2D::new(cpx, cpy), &Point2D::new(x, y))
+                },
+                PathSegment::Bezier {
+                    cp1x,
+                    cp1y,
+                    cp2x,
+                    cp2y,
+                    x,
+                    y,
+                } => build_ref.bezier_curve_to(
+                    &Point2D::new(cp1x, cp1y),
+                    &Point2D::new(cp2x, cp2y),
+                    &Point2D::new(x, y),
+                ),
+                PathSegment::ArcTo {
+                    cp1x,
+                    cp1y,
+                    cp2x,
+                    cp2y,
+                    radius,
+                } => build_ref.arc_to(&Point2D::new(cp1x, cp1y), &Point2D::new(cp2x, cp2y), radius),
+                PathSegment::Ellipse {
+                    x,
+                    y,
+                    radius_x,
+                    radius_y,
+                    rotation,
+                    start_angle,
+                    end_angle,
+                    anticlockwise,
+                } => build_ref.ellipse(
+                    &Point2D::new(x, y),
+                    radius_x,
+                    radius_y,
+                    rotation,
+                    start_angle,
+                    end_angle,
+                    anticlockwise,
+                ),
+                PathSegment::SvgArc {
+                    radius_x,
+                    radius_y,
+                    rotation,
+                    large_arc,
+                    sweep,
+                    x,
+                    y,
+                } => build_ref.svg_arc(
+                    radius_x,
+                    radius_y,
+                    rotation,
+                    large_arc,
+                    sweep,
+                    &Point2D::new(x, y),
+                ),
+            }
+        }
+    }
 }
 
 pub(crate) trait PatternHelpers {
@@ -256,12 +327,4 @@ pub(crate) trait StrokeOptionsHelpers {
 
 pub(crate) trait DrawOptionsHelpers {
     fn set_alpha(&mut self, val: f32);
-}
-
-pub(crate) trait PathHelpers<B: Backend> {
-    fn transformed_copy_to_builder(&self, transform: &Transform2D<f32>) -> B::PathBuilder;
-
-    fn contains_point(&self, x: f64, y: f64, path_transform: &Transform2D<f32>) -> bool;
-
-    fn copy_to_builder(&self) -> B::PathBuilder;
 }

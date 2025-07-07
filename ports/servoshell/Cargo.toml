@@ -62,6 +62,7 @@ euclid = { workspace = true }
 getopts = { workspace = true }
 hitrace = { workspace = true, optional = true }
 image = { workspace = true }
+ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
 libc = { workspace = true }
 libservo = { path = "../../components/servo", features = ["background_hang_monitor", "bluetooth", "testbinding"] }
@@ -78,7 +79,6 @@ webdriver_server = { path = "../../components/webdriver_server" }
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.15"
-ipc-channel = { workspace = true }
 jni = "0.21.1"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]

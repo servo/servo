@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Filters: filter and mix-blend mode on the same element (ref)</title>
+<style>
+    html {
+        background: green;
+    }
+    div {
+        width: 200px;
+        height: 200px;
+    }
+    .outer {
+        mix-blend-mode: screen;
+    }
+    .inner {
+        background: red;
+        filter: grayscale();
+    }
+</style>
+</head>
+<body>
+    <div class=outer>
+        <div class=inner></div>
+    </div>
+</body>
+</html>
