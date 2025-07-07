@@ -115,7 +115,6 @@ impl BoxFragment {
         padding: PhysicalSides<Au>,
         border: PhysicalSides<Au>,
         margin: PhysicalSides<Au>,
-        clearance: Option<Au>,
         specific_layout_info: Option<SpecificLayoutInfo>,
     ) -> BoxFragment {
         BoxFragment {
@@ -127,7 +126,7 @@ impl BoxFragment {
             padding,
             border,
             margin,
-            clearance,
+            clearance: None,
             baselines: Baselines::default(),
             block_margins_collapsed_with_children: None,
             scrollable_overflow: None,
@@ -191,6 +190,11 @@ impl BoxFragment {
         collapsed_margins: CollapsedBlockMargins,
     ) -> Self {
         self.block_margins_collapsed_with_children = Some(collapsed_margins.into());
+        self
+    }
+
+    pub fn with_clearance(mut self, clearance: Option<Au>) -> Self {
+        self.clearance = clearance;
         self
     }
 

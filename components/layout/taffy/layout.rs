@@ -551,7 +551,6 @@ impl TaffyContainer {
                             padding,
                             border,
                             margin,
-                            None, /* clearance */
                             child_specific_layout_info,
                         )
                         .with_baselines(Baselines {

@@ -672,7 +672,6 @@ impl HoistedAbsolutelyPositionedBox {
                 pbm.padding.to_physical(containing_block_writing_mode),
                 pbm.border.to_physical(containing_block_writing_mode),
                 margin.to_physical(containing_block_writing_mode),
-                None, /* clearance */
                 specific_layout_info,
             )
         };

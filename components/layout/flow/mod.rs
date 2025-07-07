@@ -407,7 +407,6 @@ impl OutsideMarker {
             PhysicalSides::zero(),
             PhysicalSides::zero(),
             PhysicalSides::zero(),
-            None,
             flow_layout.specific_layout_info,
         )))
     }
@@ -1173,11 +1172,11 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         pbm.padding.to_physical(containing_block_writing_mode),
         pbm.border.to_physical(containing_block_writing_mode),
         margin.to_physical(containing_block_writing_mode),
-        clearance,
         flow_layout.specific_layout_info,
     )
     .with_baselines(flow_layout.baselines)
     .with_block_margins_collapsed_with_children(block_margins_collapsed_with_children)
+    .with_clearance(clearance)
 }
 
 impl IndependentFormattingContext {
@@ -1286,7 +1285,6 @@ impl IndependentFormattingContext {
             pbm.padding.to_physical(containing_block_writing_mode),
             pbm.border.to_physical(containing_block_writing_mode),
             margin.to_physical(containing_block_writing_mode),
-            None, /* clearance */
             layout.specific_layout_info,
         )
         .with_baselines(layout.baselines)
@@ -1604,11 +1602,11 @@ impl IndependentFormattingContext {
             pbm.padding.to_physical(containing_block_writing_mode),
             pbm.border.to_physical(containing_block_writing_mode),
             margin.to_physical(containing_block_writing_mode),
-            clearance,
             layout.specific_layout_info,
         )
         .with_baselines(layout.baselines)
         .with_block_margins_collapsed_with_children(CollapsedBlockMargins::from_margin(&margin))
+        .with_clearance(clearance)
     }
 }
 
@@ -2358,6 +2356,9 @@ impl IndependentFormattingContext {
             );
         }
 
+        // Floats can have clearance, but it's handled internally by the float placement logic,
+        // so there's no need to store it explicitly in the fragment.
+        // And atomic inlines don't have clearance.
         let fragment = BoxFragment::new(
             base_fragment_info,
             self.style().clone(),
@@ -2366,10 +2367,6 @@ impl IndependentFormattingContext {
             pbm.padding.to_physical(container_writing_mode),
             pbm.border.to_physical(container_writing_mode),
             margin.to_physical(container_writing_mode),
-            // Floats can have clearance, but it's handled internally by the float placement logic,
-            // so there's no need to store it explicitly in the fragment.
-            // And atomic inlines don't have clearance.
-            None, /* clearance */
             specific_layout_info,
         );
 
