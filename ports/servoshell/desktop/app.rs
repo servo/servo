@@ -406,6 +406,8 @@ impl App {
                         .next()
                         .expect("Should have at least one window in servoshell");
                     let scale = window.hidpi_scale_factor().get() as f64;
+                    // TODO: Find a universal way to convert.
+                    // See https://github.com/servo/servo/issues/37937
                     let requested_physical_size = DeviceIntSize::new(
                         (requested_size.width as f64 * scale).round() as i32,
                         (requested_size.height as f64 * scale).round() as i32,
@@ -415,6 +417,9 @@ impl App {
                     let returned_size = window.request_resize(&webview, requested_physical_size);
                     // TODO: Handle None case. For now, we assume always succeed.
                     // In reality, the request may exceed available screen size.
+
+                    // TODO: Find a universal way to convert.
+                    // See https://github.com/servo/servo/issues/37937
                     if let Err(error) = size_sender.send(
                         returned_size
                             .map(|size| {

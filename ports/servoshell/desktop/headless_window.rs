@@ -138,6 +138,8 @@ impl WindowPortsMethods for Window {
     fn window_rect(&self) -> DeviceIndependentIntRect {
         let inner_size = self.inner_size.get().to_f64();
         let scale = self.hidpi_scale_factor().get() as f64;
+        // TODO: Find a universal way to convert.
+        // See https://github.com/servo/servo/issues/37937
         DeviceIndependentIntRect::from_origin_and_size(
             Point2D::zero(),
             Size2D::new(

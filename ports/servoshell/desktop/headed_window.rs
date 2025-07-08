@@ -487,10 +487,14 @@ impl WindowPortsMethods for Window {
     fn window_rect(&self) -> DeviceIndependentIntRect {
         let outer_size = self.winit_window.outer_size();
         let hidpi_scale = self.hidpi_scale_factor().get() as f64;
+        // TODO: Find a universal way to convert.
+        // See https://github.com/servo/servo/issues/37937
         let total_size = Size2D::new(
             (outer_size.width as f64 / hidpi_scale).round() as i32,
             (outer_size.height as f64 / hidpi_scale).round() as i32,
         );
+        // TODO: Find a universal way to convert.
+        // See https://github.com/servo/servo/issues/37937
         let origin = self
             .winit_window
             .outer_position()
