@@ -35,6 +35,7 @@ use hyper::Response as HyperResponse;
 use hyper::body::{Bytes, Frame};
 use hyper::ext::ReasonPhrase;
 use hyper::header::{HeaderName, TRANSFER_ENCODING};
+use hyper_serde::Serde;
 use hyper_util::client::legacy::Client;
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
@@ -52,8 +53,8 @@ use net_traits::request::{
 };
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use net_traits::{
-    CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, NetworkError, RedirectEndValue, RedirectStartValue,
-    ReferrerPolicy, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
+    CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, FetchMetadata, NetworkError, RedirectEndValue,
+    RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
 };
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
@@ -431,24 +432,73 @@ pub fn send_request_to_devtools(
 }
 
 pub fn send_response_to_devtools(
-    devtools_chan: &Sender<DevtoolsControlMsg>,
-    request_id: String,
-    headers: Option<HeaderMap>,
-    status: HttpStatus,
-    pipeline_id: PipelineId,
-    browsing_context_id: BrowsingContextId,
+    request: &mut Request,
+    context: &FetchContext,
+    response: &Response,
 ) {
-    let response = DevtoolsHttpResponse {
-        headers,
-        status,
-        body: None,
-        pipeline_id,
-        browsing_context_id,
-    };
-    let net_event_response = NetworkEvent::HttpResponse(response);
+    if let (Some(devtools_chan), Some(pipeline_id), Some(webview_id)) = (
+        context.devtools_chan.as_ref(),
+        request.pipeline_id,
+        request.target_webview_id,
+    ) {
+        let browsing_context_id = webview_id.0;
+        let meta = match response
+            .metadata()
+            .expect("Response metadata should exist at this stage")
+        {
+            FetchMetadata::Unfiltered(m) => m,
+            FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
+        };
+        let status = meta.status;
+        let headers = meta.headers.map(Serde::into_inner);
 
-    let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event_response);
-    let _ = devtools_chan.send(DevtoolsControlMsg::FromChrome(msg));
+        let devtoolsresponse = DevtoolsHttpResponse {
+            headers,
+            status,
+            body: None,
+            pipeline_id,
+            browsing_context_id,
+        };
+        let net_event_response = NetworkEvent::HttpResponse(devtoolsresponse);
+
+        let msg =
+            ChromeToDevtoolsControlMsg::NetworkEvent(request.id.0.to_string(), net_event_response);
+
+        let _ = devtools_chan
+            .lock()
+            .unwrap()
+            .send(DevtoolsControlMsg::FromChrome(msg));
+    }
+}
+
+pub fn send_early_httprequest_to_devtools(request: &mut Request, context: &FetchContext) {
+    if let (Some(devtools_chan), Some(browsing_context_id), Some(pipeline_id)) = (
+        context.devtools_chan.as_ref(),
+        request.target_webview_id.map(|id| id.0),
+        request.pipeline_id,
+    ) {
+        // Build the partial DevtoolsHttpRequest
+        let devtools_request = DevtoolsHttpRequest {
+            url: request.current_url().clone(),
+            method: request.method.clone(),
+            headers: request.headers.clone(),
+            body: None,
+            pipeline_id,
+            started_date_time: SystemTime::now(),
+            time_stamp: 0,
+            connect_time: Duration::from_millis(0),
+            send_time: Duration::from_millis(0),
+            is_xhr: false,
+            browsing_context_id,
+        };
+
+        let msg = ChromeToDevtoolsControlMsg::NetworkEvent(
+            request.id.0.to_string(),
+            NetworkEvent::HttpRequest(devtools_request),
+        );
+
+        send_request_to_devtools(msg, &devtools_chan.lock().unwrap());
+    }
 }
 
 fn auth_from_cache(

@@ -4,22 +4,17 @@
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, SystemTime};
 use std::{io, mem, str};
 
 use base64::Engine as _;
 use base64::engine::general_purpose;
 use content_security_policy as csp;
 use crossbeam_channel::Sender;
-use devtools_traits::{
-    ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
-    NetworkEvent,
-};
+use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::resources::{self, Resource};
 use headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt};
 use http::header::{self, HeaderMap, HeaderName, RANGE};
 use http::{HeaderValue, Method, StatusCode};
-use hyper_serde::Serde;
 use ipc_channel::ipc;
 use log::{debug, trace, warn};
 use mime::{self, Mime};
@@ -34,8 +29,8 @@ use net_traits::request::{
 };
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use net_traits::{
-    FetchMetadata, FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceAttribute,
-    ResourceFetchTiming, ResourceTimeValue, ResourceTimingType, set_default_accept_language,
+    FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming,
+    ResourceTimeValue, ResourceTimingType, set_default_accept_language,
 };
 use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
@@ -48,7 +43,7 @@ use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::headers::determine_nosniff;
 use crate::filemanager_thread::FileManager;
 use crate::http_loader::{
-    HttpState, determine_requests_referrer, http_fetch, send_request_to_devtools,
+    HttpState, determine_requests_referrer, http_fetch, send_early_httprequest_to_devtools,
     send_response_to_devtools, set_default_accept,
 };
 use crate::protocols::{ProtocolRegistry, is_url_potentially_trustworthy};
@@ -265,40 +260,8 @@ pub async fn main_fetch(
 ) -> Response {
     // Step 1: Let request be fetchParam's request.
     let request = &mut fetch_params.request;
-
-    let request_id = context
-        .devtools_chan
-        .as_ref()
-        .map(|_| uuid::Uuid::new_v4().simple().to_string());
-    // Send information about the request to devtools
-    if let (Some(devtools_chan), Some(browsing_context_id), Some(pipeline_id)) = (
-        context.devtools_chan.as_ref(),
-        request.target_webview_id.map(|id| id.0),
-        request.pipeline_id,
-    ) {
-        // Build the partial DevtoolsHttpRequest
-        let devtools_request = DevtoolsHttpRequest {
-            url: request.current_url().clone(),
-            method: request.method.clone(),
-            headers: request.headers.clone(),
-            body: None,
-            pipeline_id,
-            started_date_time: SystemTime::now(),
-            time_stamp: 0,
-            connect_time: Duration::from_millis(0),
-            send_time: Duration::from_millis(0),
-            is_xhr: false,
-            browsing_context_id,
-        };
-
-        let msg = ChromeToDevtoolsControlMsg::NetworkEvent(
-            request_id.clone().unwrap(),
-            NetworkEvent::HttpRequest(devtools_request),
-        );
-
-        send_request_to_devtools(msg, &devtools_chan.lock().unwrap());
-    }
-
+    // send early HTTP request to DevTools
+    send_early_httprequest_to_devtools(request, &context);
     // Step 2: Let response be null.
     let mut response = None;
 
@@ -743,31 +706,7 @@ pub async fn main_fetch(
     // Step 22.
     target.process_response(request, &response);
     // Send Response to Devtools
-    if let (Some(devtools_chan), Some(pipeline_id), Some(webview_id)) = (
-        context.devtools_chan.as_ref(),
-        request.pipeline_id,
-        request.target_webview_id,
-    ) {
-        let browsing_context_id = webview_id.0;
-        let meta = match response
-            .metadata()
-            .expect("Response metadata should exist at this stage")
-        {
-            FetchMetadata::Unfiltered(m) => m,
-            FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
-        };
-        let status = meta.status;
-        let headers = meta.headers.map(Serde::into_inner);
-
-        send_response_to_devtools(
-            &devtools_chan.lock().unwrap(),
-            request_id.clone().unwrap(),
-            headers,
-            status,
-            pipeline_id,
-            browsing_context_id,
-        );
-    }
+    send_response_to_devtools(request, &context, &response);
 
     // Step 23.
     if !response_loaded {
@@ -779,31 +718,7 @@ pub async fn main_fetch(
     // Send Response to Devtools
     // This is done after process_response_eof to ensure that the body is fully
     // processed before sending the response to Devtools.
-    if let (Some(devtools_chan), Some(pipeline_id), Some(webview_id)) = (
-        context.devtools_chan.as_ref(),
-        request.pipeline_id,
-        request.target_webview_id,
-    ) {
-        let browsing_context_id = webview_id.0;
-        let meta = match response
-            .metadata()
-            .expect("Response metadata should exist at this stage")
-        {
-            FetchMetadata::Unfiltered(m) => m,
-            FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
-        };
-        let status = meta.status;
-        let headers = meta.headers.map(Serde::into_inner);
-
-        send_response_to_devtools(
-            &devtools_chan.lock().unwrap(),
-            request_id.clone().unwrap(),
-            headers,
-            status,
-            pipeline_id,
-            browsing_context_id,
-        );
-    }
+    send_response_to_devtools(request, &context, &response);
 
     if let Ok(http_cache) = context.state.http_cache.write() {
         http_cache.update_awaiting_consumers(request, &response);
