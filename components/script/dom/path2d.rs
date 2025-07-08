@@ -177,19 +177,26 @@ impl Path2D {
             PathSegment::Bezier { x, y, .. } |
             PathSegment::Ellipse { x, y, .. } |
             PathSegment::SvgArc { x, y, .. } => Some(Point2D::new(*x, *y)),
-            PathSegment::ArcTo { .. } => {
+            PathSegment::ArcTo { cp1x, cp1y, .. } => Some(
                 Path2D::compute_final_arc_to_point(&path[..path.len() - 1])
-            },
+                    .unwrap_or(Point2D::new(*cp1x, *cp1y)),
+            ),
             PathSegment::ClosePath => {
                 // find first point for the last subpath
-                let first_point_index = match path
-                    .iter()
-                    .rev()
-                    .skip(1)
-                    .position(|segment| *segment == PathSegment::ClosePath)
-                {
-                    Some(index) => index + 1,
-                    None => 0,
+                let first_point_index = {
+                    let mut index = None;
+                    for i in (0..path.len()).rev().skip(1) {
+                        if matches!(path[i], PathSegment::ClosePath) {
+                            index = Some(i);
+                            break;
+                        }
+                    }
+
+                    if let Some(index) = index {
+                        index + 1
+                    } else {
+                        0
+                    }
                 };
 
                 let first_point = path.get(first_point_index)?;
@@ -497,8 +504,75 @@ mod test {
     #[test]
     fn test_last_point() {
         let path_segment = vec![PathSegment::ClosePath];
+        let input = vec![
+            (
+                vec![PathSegment::MoveTo {
+                    x: 100.,
+                    y: 100.0f32,
+                }],
+                Some(Point2D::new(100., 100.0f32)),
+            ),
+            (
+                vec![
+                    PathSegment::ClosePath,
+                    PathSegment::ClosePath,
+                    PathSegment::ClosePath,
+                ],
+                None,
+            ),
+            (vec![PathSegment::ClosePath], None),
+            (
+                vec![
+                    PathSegment::MoveTo { x: 40., y: 23.0f32 },
+                    PathSegment::ClosePath,
+                ],
+                Some(Point2D::new(40., 23.0f32)),
+            ),
+            (
+                vec![
+                    PathSegment::LineTo { x: 89.0f32, y: 33. },
+                    PathSegment::MoveTo { x: 40., y: 23.0f32 },
+                    PathSegment::ClosePath,
+                ],
+                Some(Point2D::new(89., 33.0f32)),
+            ),
+            (
+                vec![
+                    PathSegment::ClosePath,
+                    PathSegment::LineTo { x: 89.0f32, y: 33. },
+                    PathSegment::MoveTo { x: 40., y: 23.0f32 },
+                    PathSegment::ClosePath,
+                ],
+                Some(Point2D::new(89., 33.0f32)),
+            ),
+            (
+                vec![
+                    PathSegment::LineTo {
+                        x: 23.0f32,
+                        y: 423.,
+                    },
+                    PathSegment::ClosePath,
+                    PathSegment::LineTo { x: 89.0f32, y: 33. },
+                    PathSegment::MoveTo { x: 40., y: 23.0f32 },
+                    PathSegment::ClosePath,
+                ],
+                Some(Point2D::new(89., 33.0f32)),
+            ),
+            (
+                vec![PathSegment::ArcTo {
+                    cp1x: 33.,
+                    cp1y: 44.,
+                    cp2x: 88.,
+                    cp2y: 100.0f32,
+                    radius: 30.,
+                }],
+                Some(Point2D::new(33., 44.0f32)),
+            ),
+        ];
 
-        let last_point = Path2D::last_point(&path_segment);
-        assert_eq!(last_point, None);
+        for (segments, expected) in input {
+            let last_point = Path2D::last_point(&segments);
+            assert_eq!(last_point, expected);
+        }
     }
 }
