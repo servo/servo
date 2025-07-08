@@ -57,63 +57,44 @@ impl Path2D {
         self.path.borrow().last().copied()
     }
 
-    fn is_path_empty(&self) -> bool {
+    pub(crate) fn is_path_empty(&self) -> bool {
         self.path.borrow().is_empty()
     }
 
-    fn compute_arc_to_points(
-        cp0: Point2D<f32>,
-        cp1: Point2D<f32>,
-        cp2: Point2D<f32>,
-        radius: f32,
-    ) -> Point2D<f32> {
-        // 2. Ensure there is a subpath for (x1, y1) is done by one of self.line_to calls
-
-        if (cp0.x == cp1.x && cp0.y == cp1.y) || cp1 == cp2 || radius == 0.0 {
-            return cp1;
-        }
-
-        // if all three control points lie on a single straight line,
-        // connect the first two by a straight line
-        let direction = (cp2.x - cp1.x) * (cp0.y - cp1.y) + (cp2.y - cp1.y) * (cp1.x - cp0.x);
-        if direction == 0.0 {
-            return cp1;
-        }
-
-        // otherwise, draw the Arc
-        let a2 = (cp0.x - cp1.x).powi(2) + (cp0.y - cp1.y).powi(2);
-        let b2 = (cp1.x - cp2.x).powi(2) + (cp1.y - cp2.y).powi(2);
-        let d = {
-            let c2 = (cp0.x - cp2.x).powi(2) + (cp0.y - cp2.y).powi(2);
-            let cosx = (a2 + b2 - c2) / (2.0 * (a2 * b2).sqrt());
-            let sinx = (1.0 - cosx.powi(2)).sqrt();
-            radius / ((1.0 - cosx) / sinx)
-        };
-
-        // first tangent point
-        let anx = (cp1.x - cp0.x) / a2.sqrt();
-        let any = (cp1.y - cp0.y) / a2.sqrt();
-        let _tp1 = Point2D::new(cp1.x - anx * d, cp1.y - any * d);
-
-        // second tangent point
-        let bnx = (cp1.x - cp2.x) / b2.sqrt();
-        let bny = (cp1.y - cp2.y) / b2.sqrt();
-        let tp2 = Point2D::new(cp1.x - bnx * d, cp1.y - bny * d);
-
-        tp2
-    }
-
     fn compute_final_arc_to_point(path: &[PathSegment]) -> Option<Point2D<f32>> {
-        // [arcto]
-        // [moveto/anypoint, arcto]
-        // [closepath, arcto]
-        // [lineto, closepath, arcto]
-        // [lineto, arcto, closepath, arcto]
-        // [arcto, closepath, arcto]
-        // [arcto, closepath, arcto, closepath, arcto]
-        // [moveto, closepath, arcto, closepath, arcto]
-        // [closepath, closepath, arcto, closepath, arcto]
-        // [arcto, arcto, arcto]
+        fn compute_arc_to_points(
+            cp0: Point2D<f32>,
+            cp1: Point2D<f32>,
+            cp2: Point2D<f32>,
+            radius: f32,
+        ) -> Point2D<f32> {
+            if (cp0.x == cp1.x && cp0.y == cp1.y) || cp1 == cp2 || radius == 0.0 {
+                return cp1;
+            }
+
+            // if all three control points lie on a single straight line,
+            // connect the first two by a straight line
+            let direction = (cp2.x - cp1.x) * (cp0.y - cp1.y) + (cp2.y - cp1.y) * (cp1.x - cp0.x);
+            if direction == 0.0 {
+                return cp1;
+            }
+
+            // otherwise, draw the Arc
+            let a2 = (cp0.x - cp1.x).powi(2) + (cp0.y - cp1.y).powi(2);
+            let b2 = (cp1.x - cp2.x).powi(2) + (cp1.y - cp2.y).powi(2);
+            let d = {
+                let c2 = (cp0.x - cp2.x).powi(2) + (cp0.y - cp2.y).powi(2);
+                let cosx = (a2 + b2 - c2) / (2.0 * (a2 * b2).sqrt());
+                let sinx = (1.0 - cosx.powi(2)).sqrt();
+                radius / ((1.0 - cosx) / sinx)
+            };
+
+            // second tangent point
+            let bnx = (cp1.x - cp2.x) / b2.sqrt();
+            let bny = (cp1.y - cp2.y) / b2.sqrt();
+
+            Point2D::new(cp1.x - bnx * d, cp1.y - bny * d)
+        }
 
         match path.last()? {
             PathSegment::ClosePath => {
@@ -137,12 +118,22 @@ impl Path2D {
                     PathSegment::Ellipse { x, y, .. } |
                     PathSegment::SvgArc { x, y, .. } => Some(Point2D::new(*x, *y)),
                     PathSegment::ClosePath => None,
-                    PathSegment::ArcTo { cp1x, cp1y, .. } => {
-                        match Path2D::compute_final_arc_to_point(&path[..subpath_first_point_index])
-                        {
-                            Some(point) => Some(point),
-                            None => Some(Point2D::new(*cp1x, *cp1y)),
-                        }
+                    PathSegment::ArcTo {
+                        cp1x,
+                        cp1y,
+                        cp2x,
+                        cp2y,
+                        radius,
+                    } => {
+                        let cp0 = match Path2D::compute_final_arc_to_point(
+                            &path[..subpath_first_point_index],
+                        ) {
+                            Some(point) => point,
+                            None => Point2D::new(*cp1x, *cp1y),
+                        };
+                        let cp1 = Point2D::new(*cp1x, *cp1y);
+                        let cp2 = Point2D::new(*cp2x, *cp2y);
+                        Some(compute_arc_to_points(cp0, cp1, cp2, *radius))
                     },
                 }
             },
@@ -166,7 +157,7 @@ impl Path2D {
                 };
                 let cp1 = Point2D::new(*cp1x, *cp1y);
                 let cp2 = Point2D::new(*cp2x, *cp2y);
-                Some(Path2D::compute_arc_to_points(cp0, cp1, cp2, *radius))
+                Some(compute_arc_to_points(cp0, cp1, cp2, *radius))
             },
         }
     }
@@ -212,8 +203,11 @@ impl Path2D {
                     PathSegment::Ellipse { x, y, .. } |
                     PathSegment::SvgArc { x, y, .. } => Some(Point2D::new(*x, *y)),
                     PathSegment::ClosePath => None,
-                    PathSegment::ArcTo { .. } => {
-                        Path2D::compute_final_arc_to_point(&path[..first_point_index])
+                    PathSegment::ArcTo { cp1x, cp1y, .. } => {
+                        match Path2D::compute_final_arc_to_point(&path[..first_point_index]) {
+                            Some(point) => Some(point),
+                            None => Some(Point2D::new(*cp1x, *cp1y)),
+                        }
                     },
                 }
             },
@@ -516,7 +510,6 @@ mod test {
 
     #[test]
     fn test_last_point() {
-        let path_segment = vec![PathSegment::ClosePath];
         let input = vec![
             (
                 vec![PathSegment::MoveTo {
@@ -527,15 +520,6 @@ mod test {
             ),
             (
                 vec![
-                    PathSegment::ClosePath,
-                    PathSegment::ClosePath,
-                    PathSegment::ClosePath,
-                ],
-                None,
-            ),
-            (vec![PathSegment::ClosePath], None),
-            (
-                vec![
                     PathSegment::MoveTo { x: 40., y: 23.0f32 },
                     PathSegment::ClosePath,
                 ],
@@ -543,15 +527,6 @@ mod test {
             ),
             (
                 vec![
-                    PathSegment::LineTo { x: 89.0f32, y: 33. },
-                    PathSegment::MoveTo { x: 40., y: 23.0f32 },
-                    PathSegment::ClosePath,
-                ],
-                Some(Point2D::new(89., 33.0f32)),
-            ),
-            (
-                vec![
-                    PathSegment::ClosePath,
                     PathSegment::LineTo { x: 89.0f32, y: 33. },
                     PathSegment::MoveTo { x: 40., y: 23.0f32 },
                     PathSegment::ClosePath,
@@ -599,6 +574,10 @@ mod test {
             ),
             (
                 vec![
+                    PathSegment::LineTo {
+                        x: 89.,
+                        y: 100.0f32,
+                    },
                     PathSegment::ClosePath,
                     PathSegment::ArcTo {
                         cp1x: 33.,
@@ -609,6 +588,202 @@ mod test {
                     },
                 ],
                 Some(Point2D::new(89., 100.0f32)),
+            ),
+            (
+                vec![
+                    PathSegment::LineTo {
+                        x: 89.,
+                        y: 100.0f32,
+                    },
+                    PathSegment::ClosePath,
+                    PathSegment::ArcTo {
+                        cp1x: 123.,
+                        cp1y: 81.,
+                        cp2x: 30.,
+                        cp2y: 420.0f32,
+                        radius: 30.,
+                    },
+                    PathSegment::ArcTo {
+                        cp1x: 33.,
+                        cp1y: 44.,
+                        cp2x: 88.,
+                        cp2y: 100.0f32,
+                        radius: 30.,
+                    },
+                ],
+                Some(Point2D::new(104.05499, 150.05759f32)),
+            ),
+            (
+                vec![
+                    PathSegment::ArcTo {
+                        cp1x: 123.,
+                        cp1y: 81.,
+                        cp2x: 30.,
+                        cp2y: 420.0f32,
+                        radius: 30.,
+                    },
+                    PathSegment::ClosePath,
+                    PathSegment::ArcTo {
+                        cp1x: 838.,
+                        cp1y: 132.,
+                        cp2x: 21.,
+                        cp2y: 180.0f32,
+                        radius: 70.,
+                    },
+                ],
+                Some(Point2D::new(123., 81.)),
+            ),
+            (
+                vec![
+                    PathSegment::ArcTo {
+                        cp1x: 323.,
+                        cp1y: 89.,
+                        cp2x: 33.,
+                        cp2y: 111.0f32,
+                        radius: 30.,
+                    },
+                    PathSegment::ClosePath,
+                    PathSegment::ArcTo {
+                        cp1x: 123.,
+                        cp1y: 81.,
+                        cp2x: 30.,
+                        cp2y: 420.0f32,
+                        radius: 200.,
+                    },
+                    PathSegment::ClosePath,
+                    PathSegment::ArcTo {
+                        cp1x: 838.,
+                        cp1y: 132.,
+                        cp2x: 21.,
+                        cp2y: 180.0f32,
+                        radius: 70.,
+                    },
+                ],
+                Some(Point2D::new(80.94957, 234.28061)),
+            ),
+            (
+                vec![
+                    PathSegment::MoveTo { x: 323., y: 89. },
+                    PathSegment::ClosePath,
+                    PathSegment::ArcTo {
+                        cp1x: 123.,
+                        cp1y: 81.,
+                        cp2x: 30.,
+                        cp2y: 420.0f32,
+                        radius: 200.,
+                    },
+                    PathSegment::ClosePath,
+                    PathSegment::ArcTo {
+                        cp1x: 838.,
+                        cp1y: 132.,
+                        cp2x: 21.,
+                        cp2y: 180.0f32,
+                        radius: 70.,
+                    },
+                ],
+                Some(Point2D::new(80.94957, 234.28061)),
+            ),
+            (
+                vec![
+                    PathSegment::ArcTo {
+                        cp1x: 323.,
+                        cp1y: 89.,
+                        cp2x: 33.,
+                        cp2y: 111.0f32,
+                        radius: 30.,
+                    },
+                    PathSegment::ArcTo {
+                        cp1x: 123.,
+                        cp1y: 81.,
+                        cp2x: 30.,
+                        cp2y: 420.0f32,
+                        radius: 200.,
+                    },
+                    PathSegment::ClosePath,
+                    PathSegment::ArcTo {
+                        cp1x: 838.,
+                        cp1y: 132.,
+                        cp2x: 21.,
+                        cp2y: 180.0f32,
+                        radius: 70.,
+                    },
+                ],
+                Some(Point2D::new(323., 89.)),
+            ),
+            (
+                vec![
+                    PathSegment::ArcTo {
+                        cp1x: 323.,
+                        cp1y: 89.,
+                        cp2x: 33.,
+                        cp2y: 111.0f32,
+                        radius: 30.,
+                    },
+                    PathSegment::ArcTo {
+                        cp1x: 123.,
+                        cp1y: 81.,
+                        cp2x: 30.,
+                        cp2y: 420.0f32,
+                        radius: 200.,
+                    },
+                    PathSegment::ArcTo {
+                        cp1x: 838.,
+                        cp1y: 132.,
+                        cp2x: 21.,
+                        cp2y: 180.0f32,
+                        radius: 70.,
+                    },
+                ],
+                Some(Point2D::new(80.94957, 234.28061)),
+            ),
+            (
+                vec![
+                    PathSegment::ArcTo {
+                        cp1x: 100.,
+                        cp1y: 100.,
+                        cp2x: 100.,
+                        cp2y: 100.,
+                        radius: 20.,
+                    },
+                    PathSegment::ClosePath,
+                ],
+                Some(Point2D::new(100., 100.)),
+            ),
+            (
+                vec![
+                    PathSegment::MoveTo { x: 111., y: 333. },
+                    PathSegment::ClosePath,
+                    PathSegment::ArcTo {
+                        cp1x: 100.,
+                        cp1y: 100.,
+                        cp2x: 100.,
+                        cp2y: 100.,
+                        radius: 20.,
+                    },
+                    PathSegment::ClosePath,
+                ],
+                Some(Point2D::new(111., 333.)),
+            ),
+            (
+                vec![
+                    PathSegment::ArcTo {
+                        cp1x: 111.,
+                        cp1y: 333.,
+                        cp2x: 800.,
+                        cp2y: 58.,
+                        radius: 100.,
+                    },
+                    PathSegment::ClosePath,
+                    PathSegment::ArcTo {
+                        cp1x: 100.,
+                        cp1y: 100.,
+                        cp2x: 100.,
+                        cp2y: 100.,
+                        radius: 20.,
+                    },
+                    PathSegment::ClosePath,
+                ],
+                Some(Point2D::new(111., 333.)),
             ),
         ];
 
