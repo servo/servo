@@ -715,7 +715,8 @@ impl Handler {
     }
 
     /// Send command to Script Thread with session's current browsing context.
-    /// If verify is Yes, it would verify the existence of browsing context before sending.
+    /// If `verify` is [`VerifyBrowsingContextIsOpen::Yes`],
+    /// it would verify the existence of browsing context before sending.
     fn browsing_context_script_command(
         &self,
         cmd_msg: WebDriverScriptCommand,
@@ -733,8 +734,8 @@ impl Handler {
     }
 
     /// Send command to Script Thread with session's current top-level browsing context.
-    /// If verify is Yes, it would verify the existence of top-level
-    /// browsing context before sending.
+    /// If `verify` is [`VerifyBrowsingContextIsOpen::Yes`],
+    /// it would verify the existence of top-level browsing context before sending.
     fn top_level_script_command(
         &self,
         cmd_msg: WebDriverScriptCommand,
