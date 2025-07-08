@@ -298,7 +298,6 @@ impl FlexLineItem<'_> {
             flex_context
                 .sides_to_flow_relative(item_margin)
                 .to_physical(container_writing_mode),
-            None, /* clearance */
             self.layout_result.specific_layout_info,
         );
 
