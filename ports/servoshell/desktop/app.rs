@@ -454,6 +454,12 @@ impl App {
                         warn!("Failed to send response of GetFocusedWebView: {error}");
                     };
                 },
+                WebDriverCommandMsg::AddLoadStatusSender(webview_id, load_status_sender) => {
+                    running_state.set_load_status_sender(webview_id, load_status_sender);
+                },
+                WebDriverCommandMsg::RemoveLoadStatusSender(webview_id) => {
+                    running_state.remove_load_status_sender(webview_id);
+                },
                 WebDriverCommandMsg::LoadUrl(webview_id, url, load_status_sender) => {
                     if let Some(webview) = running_state.webview_by_id(webview_id) {
                         webview.load(url.into_url());

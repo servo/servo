@@ -33,7 +33,9 @@ use webdriver::error::ErrorStatus;
 use crate::document_collection::DocumentCollection;
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
-use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
+    DocumentMethods, DocumentReadyState,
+};
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
@@ -1716,4 +1718,21 @@ pub(crate) fn handle_is_selected(
             }),
         )
         .unwrap();
+}
+
+pub(crate) fn handle_try_wait_for_document_navigation(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    reply: IpcSender<bool>,
+) {
+    let document = match documents.find_document(pipeline) {
+        Some(document) => document,
+        None => {
+            return reply.send(false).unwrap();
+        },
+    };
+
+    let wait_for_document_ready = document.ReadyState() != DocumentReadyState::Complete;
+
+    reply.send(wait_for_document_ready).unwrap();
 }

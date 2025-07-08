@@ -127,6 +127,8 @@ pub enum WebDriverCommandMsg {
         IpcSender<Result<(), ()>>,
     ),
     GetAlertText(WebViewId, IpcSender<Result<String, ()>>),
+    AddLoadStatusSender(WebViewId, IpcSender<WebDriverLoadStatus>),
+    RemoveLoadStatusSender(WebViewId),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -202,6 +204,7 @@ pub enum WebDriverScriptCommand {
     GetTitle(IpcSender<String>),
     /// Match the element type before sending the event for webdriver `element send keys`.
     WillSendKeys(String, String, bool, IpcSender<Result<bool, ErrorStatus>>),
+    IsDocumentReadyStateComplete(IpcSender<bool>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
