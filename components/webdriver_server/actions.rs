@@ -20,7 +20,7 @@ use webdriver::actions::{
 use webdriver::command::ActionsParameters;
 use webdriver::error::{ErrorStatus, WebDriverError};
 
-use crate::{Handler, WebElement, wait_for_script_response};
+use crate::{Handler, VerifyBrowsingContextIsOpen, WebElement, wait_for_script_response};
 
 // Interval between wheelScroll and pointerMove increments in ms, based on common vsync
 static POINTERMOVE_INTERVAL: u64 = 17;
@@ -738,8 +738,9 @@ impl Handler {
         web_element: &WebElement,
     ) -> Result<(i64, i64), ErrorStatus> {
         let (sender, receiver) = ipc::channel().unwrap();
-        self.browsing_context_script_command::<false>(
+        self.browsing_context_script_command(
             WebDriverScriptCommand::GetElementInViewCenterPoint(web_element.to_string(), sender),
+            VerifyBrowsingContextIsOpen::No,
         )
         .unwrap();
         let response = match wait_for_script_response(receiver) {
