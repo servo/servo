@@ -302,10 +302,7 @@ impl<'dom> IncrementalBoxTreeUpdate<'dom> {
         }
 
         let layout_data = NodeExt::layout_data(&potential_dirty_root_node)?;
-        if layout_data.pseudo_before_box.borrow().is_some() {
-            return None;
-        }
-        if layout_data.pseudo_after_box.borrow().is_some() {
+        if !layout_data.pseudo_boxes.is_empty() {
             return None;
         }
 

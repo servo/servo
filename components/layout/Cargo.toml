@@ -52,6 +52,7 @@ servo_arc = { workspace = true }
 servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
+smallvec = { workspace = true }
 stylo = { workspace = true }
 stylo_atoms = { workspace = true }
 stylo_traits = { workspace = true }
