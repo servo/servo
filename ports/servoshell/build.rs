@@ -11,9 +11,6 @@ use std::process::Command;
 fn git_sha() -> Result<String, String> {
     let output = Command::new("git")
         .args(["rev-parse", "--short", "HEAD"])
-        // on macos mach sets DYLD_LIBRARY_PATH since it is needed for unit-tests, but it
-        // causes git to fail, so we remove it for the git invocation.
-        .env_remove("DYLD_LIBRARY_PATH")
         .output()
         .map_err(|e| e.to_string())?;
     if output.status.success() {
