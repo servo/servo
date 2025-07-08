@@ -258,6 +258,7 @@ pub(crate) enum OffscreenRenderingContext {
     //WebGL2(Dom<WebGL2RenderingContext>),
     //#[cfg(feature = "webgpu")]
     //WebGPU(Dom<GPUCanvasContext>),
+    Detached,
 }
 
 impl CanvasContext for OffscreenRenderingContext {
@@ -268,54 +269,63 @@ impl CanvasContext for OffscreenRenderingContext {
     fn canvas(&self) -> Option<HTMLCanvasElementOrOffscreenCanvas> {
         match self {
             OffscreenRenderingContext::Context2d(context) => context.canvas(),
+            OffscreenRenderingContext::Detached => None,
         }
     }
 
     fn resize(&self) {
         match self {
             OffscreenRenderingContext::Context2d(context) => context.resize(),
+            OffscreenRenderingContext::Detached => {},
         }
     }
 
     fn reset_bitmap(&self) {
         match self {
             OffscreenRenderingContext::Context2d(context) => context.reset_bitmap(),
+            OffscreenRenderingContext::Detached => {},
         }
     }
 
     fn get_image_data(&self) -> Option<Snapshot> {
         match self {
             OffscreenRenderingContext::Context2d(context) => context.get_image_data(),
+            OffscreenRenderingContext::Detached => None,
         }
     }
 
     fn origin_is_clean(&self) -> bool {
         match self {
             OffscreenRenderingContext::Context2d(context) => context.origin_is_clean(),
+            OffscreenRenderingContext::Detached => true,
         }
     }
 
     fn size(&self) -> Size2D<u32> {
         match self {
             OffscreenRenderingContext::Context2d(context) => context.size(),
+            OffscreenRenderingContext::Detached => Size2D::default(),
         }
     }
 
     fn mark_as_dirty(&self) {
         match self {
             OffscreenRenderingContext::Context2d(context) => context.mark_as_dirty(),
+            OffscreenRenderingContext::Detached => {},
         }
     }
 
     fn update_rendering(&self) {
         match self {
             OffscreenRenderingContext::Context2d(context) => context.update_rendering(),
+            OffscreenRenderingContext::Detached => {},
         }
     }
 
     fn onscreen(&self) -> bool {
         match self {
             OffscreenRenderingContext::Context2d(context) => context.onscreen(),
+            OffscreenRenderingContext::Detached => false,
         }
     }
 }

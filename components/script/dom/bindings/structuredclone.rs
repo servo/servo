@@ -11,12 +11,12 @@ use std::ptr;
 
 use base::id::{
     BlobId, DomExceptionId, DomPointId, ImageBitmapId, Index, MessagePortId, NamespaceIndex,
-    PipelineNamespaceId,
+    OffscreenCanvasId, PipelineNamespaceId,
 };
 use constellation_traits::{
     BlobImpl, DomException, DomPoint, MessagePortImpl, Serializable as SerializableInterface,
-    SerializableImageBitmap, StructuredSerializedData, Transferrable as TransferrableInterface,
-    TransformStreamData,
+    SerializableImageBitmap, StructuredSerializedData, TransferableOffscreenCanvas,
+    Transferrable as TransferrableInterface, TransformStreamData,
 };
 use js::gc::RootedVec;
 use js::glue::{
@@ -46,6 +46,7 @@ use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::imagebitmap::ImageBitmap;
 use crate::dom::messageport::MessagePort;
+use crate::dom::offscreencanvas::OffscreenCanvas;
 use crate::dom::readablestream::ReadableStream;
 use crate::dom::types::{DOMException, TransformStream};
 use crate::dom::writablestream::WritableStream;
@@ -70,6 +71,7 @@ pub(super) enum StructuredCloneTags {
     WritableStream = 0xFFFF8008,
     TransformStream = 0xFFFF8009,
     ImageBitmap = 0xFFFF800A,
+    OffscreenCanvas = 0xFFFF800B,
     Max = 0xFFFFFFFF,
 }
 
@@ -90,6 +92,7 @@ impl From<TransferrableInterface> for StructuredCloneTags {
         match v {
             TransferrableInterface::ImageBitmap => StructuredCloneTags::ImageBitmap,
             TransferrableInterface::MessagePort => StructuredCloneTags::MessagePort,
+            TransferrableInterface::OffscreenCanvas => StructuredCloneTags::OffscreenCanvas,
             TransferrableInterface::ReadableStream => StructuredCloneTags::ReadableStream,
             TransferrableInterface::WritableStream => StructuredCloneTags::WritableStream,
             TransferrableInterface::TransformStream => StructuredCloneTags::TransformStream,
@@ -274,6 +277,7 @@ fn receiver_for_type(
     match val {
         TransferrableInterface::ImageBitmap => receive_object::<ImageBitmap>,
         TransferrableInterface::MessagePort => receive_object::<MessagePort>,
+        TransferrableInterface::OffscreenCanvas => receive_object::<OffscreenCanvas>,
         TransferrableInterface::ReadableStream => receive_object::<ReadableStream>,
         TransferrableInterface::WritableStream => receive_object::<WritableStream>,
         TransferrableInterface::TransformStream => receive_object::<TransformStream>,
@@ -401,6 +405,7 @@ fn transfer_for_type(val: TransferrableInterface) -> TransferOperation {
     match val {
         TransferrableInterface::ImageBitmap => try_transfer::<ImageBitmap>,
         TransferrableInterface::MessagePort => try_transfer::<MessagePort>,
+        TransferrableInterface::OffscreenCanvas => try_transfer::<OffscreenCanvas>,
         TransferrableInterface::ReadableStream => try_transfer::<ReadableStream>,
         TransferrableInterface::WritableStream => try_transfer::<WritableStream>,
         TransferrableInterface::TransformStream => try_transfer::<TransformStream>,
@@ -451,6 +456,7 @@ unsafe fn can_transfer_for_type(
     match transferable {
         TransferrableInterface::ImageBitmap => can_transfer::<ImageBitmap>(obj, cx),
         TransferrableInterface::MessagePort => can_transfer::<MessagePort>(obj, cx),
+        TransferrableInterface::OffscreenCanvas => can_transfer::<OffscreenCanvas>(obj, cx),
         TransferrableInterface::ReadableStream => can_transfer::<ReadableStream>(obj, cx),
         TransferrableInterface::WritableStream => can_transfer::<WritableStream>(obj, cx),
         TransferrableInterface::TransformStream => can_transfer::<TransformStream>(obj, cx),
@@ -542,6 +548,8 @@ pub(crate) struct StructuredDataReader<'a> {
     pub(crate) image_bitmaps: Option<HashMap<ImageBitmapId, SerializableImageBitmap>>,
     /// A map of transferred image bitmaps.
     pub(crate) transferred_image_bitmaps: Option<HashMap<ImageBitmapId, SerializableImageBitmap>>,
+    /// A map of transferred offscreen canvases.
+    pub(crate) offscreen_canvases: Option<HashMap<OffscreenCanvasId, TransferableOffscreenCanvas>>,
 }
 
 /// A data holder for transferred and serialized objects.
@@ -564,6 +572,8 @@ pub(crate) struct StructuredDataWriter {
     pub(crate) image_bitmaps: Option<HashMap<ImageBitmapId, SerializableImageBitmap>>,
     /// Transferred image bitmaps.
     pub(crate) transferred_image_bitmaps: Option<HashMap<ImageBitmapId, SerializableImageBitmap>>,
+    /// Transferred offscreen canvases.
+    pub(crate) offscreen_canvases: Option<HashMap<OffscreenCanvasId, TransferableOffscreenCanvas>>,
 }
 
 /// Writes a structured clone. Returns a `DataClone` error if that fails.
@@ -620,6 +630,7 @@ pub(crate) fn write(
             blobs: sc_writer.blobs.take(),
             image_bitmaps: sc_writer.image_bitmaps.take(),
             transferred_image_bitmaps: sc_writer.transferred_image_bitmaps.take(),
+            offscreen_canvases: sc_writer.offscreen_canvases.take(),
         };
 
         Ok(data)
@@ -646,6 +657,7 @@ pub(crate) fn read(
         errors: DOMErrorRecord { message: None },
         image_bitmaps: data.image_bitmaps.take(),
         transferred_image_bitmaps: data.transferred_image_bitmaps.take(),
+        offscreen_canvases: data.offscreen_canvases.take(),
     };
     let sc_reader_ptr = &mut sc_reader as *mut _;
     unsafe {
