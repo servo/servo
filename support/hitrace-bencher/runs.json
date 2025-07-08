@@ -11,6 +11,7 @@
             //"sleep": 10,  // how long should we wait for servo to load the page
             //"bundle_name": "org.servo.servo", // the bundle name to start
             //"commands": ["--ps=--tracing-filter", "info"] // arbitrary additional arguments
+            //"is_rooted": true  // Allows files to be pushed to the device instead of relying them being already packaged
         },
         "filters": [
             // Filters are currently given via the simple serialize of `filters::JsonValueFilter`.
@@ -46,6 +47,11 @@
             {
                 "name": "JS",
                 "match_str": "js"
+            },
+            {
+                "name": "resident-smaps",
+                "match_str": "resident-according-to-smaps",
+                "combined": true,
             }
         ]
     },
@@ -82,6 +88,27 @@
             {
                 "name": "JS",
                 "match_str": "js"
+            },
+            {
+                "name": "resident-smaps",
+                "match_str": "resident-according-to-smaps",
+                "combined": true
+            }
+        ]
+    },
+    {
+        "args": {
+            "bencher": true,
+            "url": "file:///parse_from_string.html",
+            "tries": 5
+        },
+        "filters": [
+        ],
+        "point_filters": [
+            {
+                "name": "",
+                "match_str": "parsefromstring",
+                "no_unit_conversion": true
             }
         ]
     }
