@@ -817,7 +817,13 @@ impl Node {
 
         match self.type_id() {
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text)) => {
-                self.parent_node.get().unwrap().dirty(damage)
+                // For content changes in text nodes, we should accurately use
+                // [`NodeDamage::ContentOrHeritage`] to mark the parent node, thereby
+                // reducing the scope of incremental box tree construction.
+                self.parent_node
+                    .get()
+                    .unwrap()
+                    .dirty(NodeDamage::ContentOrHeritage)
             },
             NodeTypeId::Element(_) => self.downcast::<Element>().unwrap().restyle(damage),
             NodeTypeId::DocumentFragment(DocumentFragmentTypeId::ShadowRoot) => self
