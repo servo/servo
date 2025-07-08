@@ -81,6 +81,7 @@ itertools = { workspace = true }
 js = { workspace = true }
 jstraceable_derive = { path = "../jstraceable_derive" }
 keyboard-types = { workspace = true }
+kurbo = { workspace = true }
 layout_api = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }

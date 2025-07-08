@@ -8,20 +8,19 @@ use std::collections::HashMap;
 use canvas_traits::canvas::*;
 use compositing_traits::SerializableImageData;
 use cssparser::color::clamp_unit_f32;
-use euclid::default::{Box2D, Point2D, Rect, Size2D, Transform2D, Vector2D};
+use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use font_kit::font::Font;
 use fonts::{ByteIndex, FontIdentifier, FontTemplateRefMethods};
 use ipc_channel::ipc::IpcSharedMemory;
 use log::warn;
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use range::Range;
-use raqote::PathOp;
+use raqote::PathBuilder;
 use style::color::AbsoluteColor;
 use webrender_api::{ImageDescriptor, ImageDescriptorFlags, ImageFormat};
 
 use crate::backend::{
-    Backend, DrawOptionsHelpers, GenericDrawTarget, GenericPath, PatternHelpers,
-    StrokeOptionsHelpers,
+    Backend, DrawOptionsHelpers, GenericDrawTarget, PatternHelpers, StrokeOptionsHelpers,
 };
 use crate::canvas_data::{CanvasPaintState, Filter, TextRun};
 
@@ -44,7 +43,6 @@ impl Backend for RaqoteBackend {
     type CompositionOp = raqote::BlendMode;
     type DrawTarget = raqote::DrawTarget;
     type SourceSurface = Vec<u8>; // TODO: See if we can avoid the alloc (probably?)
-    type Path = Path;
     type GradientStop = raqote::GradientStop;
     type GradientStops = Vec<raqote::GradientStop>;
 
@@ -346,7 +344,8 @@ fn create_gradient_stops(gradient_stops: Vec<CanvasGradientStop>) -> Vec<raqote:
 
 impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
     fn clear_rect(&mut self, rect: &Rect<f32>) {
-        let mut pb = raqote::PathBuilder::new();
+        let rect = rect.cast();
+        let mut pb = canvas_traits::canvas::Path::new();
         pb.rect(
             rect.origin.x,
             rect.origin.y,
@@ -356,7 +355,7 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
         let mut options = raqote::DrawOptions::new();
         options.blend_mode = raqote::BlendMode::Clear;
         let pattern = Pattern::Color(0, 0, 0, 0);
-        <Self as GenericDrawTarget<RaqoteBackend>>::fill(self, &pb.into(), &pattern, &options);
+        <Self as GenericDrawTarget<RaqoteBackend>>::fill(self, &pb, &pattern, &options);
     }
     #[allow(unsafe_code)]
     fn copy_surface(
@@ -424,15 +423,15 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
             transform,
         ));
 
-        let mut pb = raqote::PathBuilder::new();
+        let mut pb = canvas_traits::canvas::Path::new();
         pb.rect(
-            dest.origin.x as f32,
-            dest.origin.y as f32,
-            dest.size.width as f32,
-            dest.size.height as f32,
+            dest.origin.x,
+            dest.origin.y,
+            dest.size.width,
+            dest.size.height,
         );
 
-        <Self as GenericDrawTarget<RaqoteBackend>>::fill(self, &pb.into(), &pattern, draw_options);
+        <Self as GenericDrawTarget<RaqoteBackend>>::fill(self, &pb, &pattern, draw_options);
     }
     fn draw_surface_with_shadow(
         &self,
@@ -447,11 +446,11 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
     }
     fn fill(
         &mut self,
-        path: &<RaqoteBackend as Backend>::Path,
+        path: &canvas_traits::canvas::Path,
         pattern: &Pattern,
         draw_options: &<RaqoteBackend as Backend>::DrawOptions,
     ) {
-        let path = path.into();
+        let path = to_path(path);
         match draw_options.blend_mode {
             raqote::BlendMode::Src => {
                 self.clear(raqote::SolidSource::from_unpremultiplied_argb(0, 0, 0, 0));
@@ -546,7 +545,8 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
         pattern: &<RaqoteBackend as Backend>::Pattern<'_>,
         draw_options: &<RaqoteBackend as Backend>::DrawOptions,
     ) {
-        let mut pb = raqote::PathBuilder::new();
+        let rect = rect.cast();
+        let mut pb = canvas_traits::canvas::Path::new();
         pb.rect(
             rect.origin.x,
             rect.origin.y,
@@ -554,7 +554,7 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
             rect.size.height,
         );
 
-        <Self as GenericDrawTarget<RaqoteBackend>>::fill(self, &pb.into(), pattern, draw_options);
+        <Self as GenericDrawTarget<RaqoteBackend>>::fill(self, &pb, pattern, draw_options);
     }
     fn get_size(&self) -> Size2D<i32> {
         Size2D::new(self.width(), self.height())
@@ -565,8 +565,8 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
     fn pop_clip(&mut self) {
         self.pop_clip();
     }
-    fn push_clip(&mut self, path: &<RaqoteBackend as Backend>::Path) {
-        self.push_clip(&path.into());
+    fn push_clip(&mut self, path: &canvas_traits::canvas::Path) {
+        self.push_clip(&to_path(path));
     }
     fn push_clip_rect(&mut self, rect: &Rect<i32>) {
         self.push_clip_rect(rect.to_box2d());
@@ -579,12 +579,17 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
     }
     fn stroke(
         &mut self,
-        path: &<RaqoteBackend as Backend>::Path,
+        path: &canvas_traits::canvas::Path,
         pattern: &Pattern,
         stroke_options: &<RaqoteBackend as Backend>::StrokeOptions,
         draw_options: &<RaqoteBackend as Backend>::DrawOptions,
     ) {
-        self.stroke(&path.into(), &source(pattern), stroke_options, draw_options);
+        self.stroke(
+            &to_path(path),
+            &source(pattern),
+            stroke_options,
+            draw_options,
+        );
     }
     fn stroke_rect(
         &mut self,
@@ -662,99 +667,6 @@ impl Clone for Path {
         let path = path_builder.finish();
         self.0.set(path.clone().into());
         Self(Cell::new(path.into()))
-    }
-}
-
-impl GenericPath<RaqoteBackend> for Path {
-    fn contains_point(&self, x: f64, y: f64, path_transform: &Transform2D<f32>) -> bool {
-        let path: raqote::Path = self.into();
-        path.transform(path_transform)
-            .contains_point(0.01, x as f32, y as f32)
-    }
-
-    fn new() -> Self {
-        Self(Cell::new(raqote::PathBuilder::new()))
-    }
-
-    fn bezier_curve_to(
-        &mut self,
-        control_point1: &Point2D<f32>,
-        control_point2: &Point2D<f32>,
-        control_point3: &Point2D<f32>,
-    ) {
-        self.0.get_mut().cubic_to(
-            control_point1.x,
-            control_point1.y,
-            control_point2.x,
-            control_point2.y,
-            control_point3.x,
-            control_point3.y,
-        );
-    }
-
-    fn close(&mut self) {
-        self.0.get_mut().close();
-    }
-
-    fn get_current_point(&mut self) -> Option<Point2D<f32>> {
-        let path: raqote::Path = (&*self).into();
-
-        path.ops.iter().last().and_then(|op| match op {
-            PathOp::MoveTo(point) | PathOp::LineTo(point) => Some(Point2D::new(point.x, point.y)),
-            PathOp::CubicTo(_, _, point) => Some(Point2D::new(point.x, point.y)),
-            PathOp::QuadTo(_, point) => Some(Point2D::new(point.x, point.y)),
-            PathOp::Close => path.ops.first().and_then(get_first_point),
-        })
-    }
-
-    fn line_to(&mut self, point: Point2D<f32>) {
-        self.0.get_mut().line_to(point.x, point.y);
-    }
-
-    fn move_to(&mut self, point: Point2D<f32>) {
-        self.0.get_mut().move_to(point.x, point.y);
-    }
-
-    fn quadratic_curve_to(&mut self, control_point: &Point2D<f32>, end_point: &Point2D<f32>) {
-        self.0
-            .get_mut()
-            .quad_to(control_point.x, control_point.y, end_point.x, end_point.y);
-    }
-
-    fn transform(&mut self, transform: &Transform2D<f32>) {
-        let path: raqote::Path = (&*self).into();
-        self.0.set(path.transform(transform).into());
-    }
-
-    fn bounding_box(&self) -> Rect<f64> {
-        let path: raqote::Path = self.into();
-        let mut points = vec![];
-        for op in path.ops {
-            match op {
-                PathOp::MoveTo(p) => points.push(p),
-                PathOp::LineTo(p) => points.push(p),
-                PathOp::QuadTo(p1, p2) => {
-                    points.push(p1);
-                    points.push(p2);
-                },
-                PathOp::CubicTo(p1, p2, p3) => {
-                    points.push(p1);
-                    points.push(p2);
-                    points.push(p3);
-                },
-                PathOp::Close => {},
-            }
-        }
-        Box2D::from_points(points).to_rect().cast()
-    }
-}
-
-fn get_first_point(op: &PathOp) -> Option<euclid::Point2D<f32, euclid::UnknownUnit>> {
-    match op {
-        PathOp::MoveTo(point) | PathOp::LineTo(point) => Some(Point2D::new(point.x, point.y)),
-        PathOp::CubicTo(point, _, _) => Some(Point2D::new(point.x, point.y)),
-        PathOp::QuadTo(point, _) => Some(Point2D::new(point.x, point.y)),
-        PathOp::Close => None,
     }
 }
 
@@ -933,4 +845,27 @@ impl ToRaqoteStyle for CompositionStyle {
             CompositionStyle::Clear => raqote::BlendMode::Clear,
         }
     }
+}
+
+fn to_path(path: &canvas_traits::canvas::Path) -> raqote::Path {
+    let mut pb = PathBuilder::new();
+    for cmd in &path.0 {
+        match cmd {
+            kurbo::PathEl::MoveTo(kurbo::Point { x, y }) => pb.move_to(x as f32, y as f32),
+            kurbo::PathEl::LineTo(kurbo::Point { x, y }) => pb.line_to(x as f32, y as f32),
+            kurbo::PathEl::QuadTo(cp, p) => {
+                pb.quad_to(cp.x as f32, cp.y as f32, p.x as f32, p.y as f32)
+            },
+            kurbo::PathEl::CurveTo(cp1, cp2, p) => pb.cubic_to(
+                cp1.x as f32,
+                cp1.y as f32,
+                cp2.x as f32,
+                cp2.y as f32,
+                p.x as f32,
+                p.y as f32,
+            ),
+            kurbo::PathEl::ClosePath => pb.close(),
+        }
+    }
+    pb.finish()
 }
