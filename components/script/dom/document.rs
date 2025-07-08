@@ -6752,7 +6752,7 @@ pub(crate) struct ImageAnimationUpdateCallback {
 impl ImageAnimationUpdateCallback {
     pub(crate) fn invoke(self, can_gc: CanGc) {
         with_script_thread(|script_thread| {
-            script_thread.set_animation_tick();
+            script_thread.set_has_pending_animation_tick();
             script_thread.update_the_rendering(can_gc);
         })
     }

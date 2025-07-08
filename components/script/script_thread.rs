@@ -342,12 +342,12 @@ pub struct ScriptThread {
     #[no_trace]
     scheduled_script_thread_animation_timer: RefCell<Option<TimerId>>,
 
-    /// A flag that lets the [`ScriptThread`]'s main loop know that
-    /// it should trigger an animation tick "update the rendering" call.
-    ///
-    /// This can be set by receiving [`ScriptThreadMessage::TickAllAnimations`]
-    /// or when [`Self::scheduled_script_thread_animation_timer`] timer fired.
-    should_trigger_script_thread_animation_tick: Arc<AtomicBool>,
+    /// Whether an animation tick is pending. This might either be because the Servo renderer
+    /// is managing animations and the [`ScriptThread`] has received a
+    /// [`ScriptThreadMessage::TickAllAnimations`] message or because the [`ScriptThread`]
+    /// itself is managing animations the the timer fired triggering a [`ScriptThread`]-based
+    /// animation tick.
+    has_pending_animation_tick: Arc<AtomicBool>,
 }
 
 struct BHMExitSignal {
@@ -596,8 +596,8 @@ impl ScriptThread {
         }
     }
 
-    pub(crate) fn set_animation_tick(&self) {
-        self.should_trigger_script_thread_animation_tick
+    pub(crate) fn set_has_pending_animation_tick(&self) {
+        self.has_pending_animation_tick
             .store(true, Ordering::Relaxed);
     }
 
@@ -980,7 +980,7 @@ impl ScriptThread {
             layout_factory,
             relative_mouse_down_point: Cell::new(Point2D::zero()),
             scheduled_script_thread_animation_timer: Default::default(),
-            should_trigger_script_thread_animation_tick: Arc::new(AtomicBool::new(false)),
+            has_pending_animation_tick: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -1183,14 +1183,13 @@ impl ScriptThread {
     pub(crate) fn update_the_rendering(&self, can_gc: CanGc) {
         *self.last_render_opportunity_time.borrow_mut() = Some(Instant::now());
 
-        // If the ScriptThread animation timer fired, this is an animation tick.
-        let is_animation_tick = self
-            .should_trigger_script_thread_animation_tick
-            .load(Ordering::Relaxed);
+        let is_animation_tick = self.has_pending_animation_tick.load(Ordering::Relaxed);
         if is_animation_tick {
-            self.should_trigger_script_thread_animation_tick
+            self.has_pending_animation_tick
                 .store(false, Ordering::Relaxed);
-            // Cancel any upcoming ScriptThread-based animation timer.
+            // If this is an animation tick, cancel any upcoming ScriptThread-based animation timer.
+            // This tick serves the purpose and we to limit animation ticks if some are coming from
+            // the renderer.
             if let Some(timer_id) = self
                 .scheduled_script_thread_animation_timer
                 .borrow_mut()
@@ -1419,8 +1418,7 @@ impl ScriptThread {
         const SCRIPT_THREAD_ANIMATION_TICK_DELAY: u64 = 30;
 
         debug!("Scheduling ScriptThread animation frame.");
-        let trigger_script_thread_animation =
-            self.should_trigger_script_thread_animation_tick.clone();
+        let trigger_script_thread_animation = self.has_pending_animation_tick.clone();
         let timer_id = self.schedule_timer(TimerEventRequest {
             callback: Box::new(move || {
                 trigger_script_thread_animation.store(true, Ordering::Relaxed);
@@ -1521,7 +1519,7 @@ impl ScriptThread {
                 MixedMessage::FromConstellation(ScriptThreadMessage::TickAllAnimations(
                     _webviews,
                 )) => {
-                    self.set_animation_tick();
+                    self.set_has_pending_animation_tick();
                 },
                 MixedMessage::FromConstellation(ScriptThreadMessage::SendInputEvent(id, event)) => {
                     self.handle_input_event(id, event)
