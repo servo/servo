@@ -24,8 +24,8 @@ use servo::servo_url::ServoUrl;
 use servo::user_content_manager::{UserContentManager, UserScript};
 use servo::webrender_api::ScrollLocation;
 use servo::{
-    EventLoopWaker, InputEvent, MouseButtonEvent, MouseMoveEvent, WebDriverCommandMsg, WheelDelta,
-    WheelEvent, WheelMode,
+    EventLoopWaker, InputEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent,
+    WebDriverCommandMsg, WheelDelta, WheelEvent, WheelMode,
 };
 use url::Url;
 use winit::application::ApplicationHandler;
@@ -458,8 +458,14 @@ impl App {
                 WebDriverCommandMsg::SendKeys(..) => {
                     running_state.forward_webdriver_command(msg);
                 },
-                WebDriverCommandMsg::KeyboardAction(..) => {
-                    running_state.forward_webdriver_command(msg);
+                WebDriverCommandMsg::KeyboardAction(webview_id, key_event, msg_id) => {
+                    // TODO: We should do processing like in `headed_window:handle_keyboard_input`.
+                    if let Some(webview) = running_state.webview_by_id(webview_id) {
+                        webview.notify_input_event(
+                            InputEvent::Keyboard(KeyboardEvent::new(key_event))
+                                .with_webdriver_message_id(msg_id),
+                        );
+                    }
                 },
                 WebDriverCommandMsg::MouseButtonAction(
                     webview_id,

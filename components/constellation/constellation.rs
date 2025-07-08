@@ -4625,31 +4625,8 @@ where
                     }
                 }
             },
-            WebDriverCommandMsg::KeyboardAction(browsing_context_id, key_event, msg_id) => {
-                let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
-                    Some(browsing_context) => browsing_context.pipeline_id,
-                    None => {
-                        return warn!("{}: KeyboardAction after closure", browsing_context_id);
-                    },
-                };
-                let event_loop = match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => pipeline.event_loop.clone(),
-                    None => return warn!("{}: KeyboardAction after closure", pipeline_id),
-                };
-                let event = InputEvent::Keyboard(KeyboardEvent::new(key_event.clone()))
-                    .with_webdriver_message_id(msg_id);
-                let control_msg = ScriptThreadMessage::SendInputEvent(
-                    pipeline_id,
-                    ConstellationInputEvent {
-                        pressed_mouse_buttons: self.pressed_mouse_buttons,
-                        active_keyboard_modifiers: key_event.modifiers,
-                        hit_test_result: None,
-                        event,
-                    },
-                );
-                if let Err(e) = event_loop.send(control_msg) {
-                    self.handle_send_error(pipeline_id, e)
-                }
+            WebDriverCommandMsg::KeyboardAction(..) => {
+                unreachable!("This command should be send directly to the embedder.");
             },
             WebDriverCommandMsg::MouseButtonAction(..) => {
                 unreachable!("This command should be send directly to the embedder.");
