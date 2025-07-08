@@ -16,8 +16,9 @@ import shutil
 import stat
 import subprocess
 import sys
+from os import PathLike
 from time import time
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional, Union, cast
 
 from mach.decorators import (
     Command,
@@ -67,9 +68,9 @@ def get_rustc_llvm_version() -> Optional[List[int]]:
             if line_lowercase.startswith("llvm version:"):
                 llvm_version = line_lowercase.strip("llvm version:")
                 llvm_version = llvm_version.strip()
-                version = list(map(int, llvm_version.split(".")))
-                print(f"Info: rustc is using LLVM version {llvm_version}")
-                return version
+                version = llvm_version.split(".")
+                print(f"Info: rustc is using LLVM version {'.'.join(version)}")
+                return list(map(int, version))
         else:
             print(f"Error: Couldn't find LLVM version in output of `rustc --version --verbose`: `{result.stdout}`")
     except Exception as e:
@@ -353,7 +354,7 @@ def package_gstreamer_dlls(servo_exe_dir: str, target: BuildTarget):
 
 
 def package_msvc_dlls(servo_exe_dir: str, target: BuildTarget):
-    def copy_file(dll_path: Optional[str]) -> bool:
+    def copy_file(dll_path: Union[PathLike[str], str]) -> bool:
         if not dll_path or not os.path.exists(dll_path):
             print(f"WARNING: Could not find DLL at {dll_path}", file=sys.stderr)
             return False
@@ -383,6 +384,6 @@ def package_msvc_dlls(servo_exe_dir: str, target: BuildTarget):
     windows_sdk_dir = servo.visual_studio.find_windows_sdk_installation_path()
     dll_name = "api-ms-win-crt-runtime-l1-1-0.dll"
     file_to_copy = next(pathlib.Path(windows_sdk_dir).rglob(os.path.join("**", vs_platform, dll_name)))
-    copy_file(str(file_to_copy))
+    copy_file(file_to_copy)
 
     return True

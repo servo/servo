@@ -138,8 +138,7 @@ class PostBuildCommands(CommandBase):
             if usb:
                 args += ["-d"]
             shell = subprocess.Popen(args + ["shell"], stdin=subprocess.PIPE)
-            # pyrefly: ignore  # bad-argument-type
-            shell.communicate(bytes("\n".join(script) + "\n", "utf8"))
+            shell.communicate("\n".join(script) + "\n")
             return shell.wait()
 
         args = [servo_binary]

@@ -202,7 +202,7 @@ class Linux(Base):
 
         return (distrib, version)
 
-    def _platform_bootstrap(self, _force: bool) -> bool:
+    def _platform_bootstrap(self, force: bool) -> bool:  # pyrefly: ignore
         if self.distro.lower() == "nixos":
             print("NixOS does not need bootstrap, it will automatically enter a nix-shell")
             print("Just run ./mach build")
@@ -240,7 +240,7 @@ class Linux(Base):
             input("Press Enter to continue...")
             return False
 
-        installed_something = self.install_non_gstreamer_dependencies(_force)
+        installed_something = self.install_non_gstreamer_dependencies(force)
         return installed_something
 
     def install_non_gstreamer_dependencies(self, force: bool) -> bool:
@@ -313,7 +313,8 @@ class Linux(Base):
             raise EnvironmentError("Installation of dependencies failed.")
         return True
 
-    def gstreamer_root(self, target: BuildTarget) -> Optional[str]:
+    # pyrefly: ignore
+    def gstreamer_root(self, _target: BuildTarget) -> Optional[str]:
         return None
 
     def _platform_bootstrap_gstreamer(self, _target: BuildTarget, _force: bool) -> bool:
