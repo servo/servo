@@ -22,6 +22,7 @@ pub use crate::compositor::{IOCompositor, WebRenderDebugOption};
 mod tracing;
 
 mod compositor;
+mod largest_contentful_paint;
 mod refresh_driver;
 mod touch;
 mod webview_manager;

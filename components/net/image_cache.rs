@@ -9,6 +9,7 @@ use std::sync::{Arc, Mutex};
 use std::{mem, thread};
 
 use base::id::PipelineId;
+use compositing_traits::largest_contentful_paint_record::record_image_raw_size;
 use compositing_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
 use imsz::imsz_from_reader;
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
@@ -89,6 +90,7 @@ fn decode_bytes_sync(
             DecodedImage::Vector(VectorImageData {
                 svg_tree: Arc::new(svg_tree),
                 cors_status: cors,
+                raw_size: bytes.len(),
             })
         })
     } else {
@@ -161,6 +163,8 @@ fn set_webrender_image_key(
     let data = SerializableImageData::Raw(IpcSharedMemory::from_bytes(&bytes));
     compositor_api.add_image(image_key, descriptor, data);
     image.id = Some(image_key);
+
+    record_image_raw_size(image_key, image.raw_size);
 }
 
 // ======================================================================
@@ -272,6 +276,7 @@ struct VectorImageData {
     #[conditional_malloc_size_of]
     svg_tree: Arc<usvg::Tree>,
     cors_status: CorsStatus,
+    raw_size: usize,
 }
 
 enum DecodedImage {
@@ -618,6 +623,7 @@ impl ImageCacheStore {
                     id: key,
                     metadata,
                     cors_status: vector_image.cors_status,
+                    raw_size: vector_image.raw_size,
                 };
                 ImageResponse::Loaded(Image::Vector(vector_image), url.unwrap())
             },
@@ -934,6 +940,7 @@ impl ImageCache for ImageCacheImpl {
                 bytes: IpcSharedMemory::from_bytes(&bytes),
                 id: None,
                 cors_status: vector_image.cors_status,
+                raw_size: vector_image.raw_size,
             };
 
             let mut store = store.lock().unwrap();

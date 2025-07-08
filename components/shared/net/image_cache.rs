@@ -40,6 +40,7 @@ pub struct VectorImage {
     pub id: VectorImageId,
     pub metadata: ImageMetadata,
     pub cors_status: CorsStatus,
+    pub raw_size: usize,
 }
 
 impl Image {
@@ -61,6 +62,13 @@ impl Image {
         match self {
             Image::Raster(image) => Some(image.clone()),
             Image::Vector(..) => None,
+        }
+    }
+
+    pub fn raw_size(&self) -> usize {
+        match self {
+            Image::Raster(image) => image.raw_size,
+            Image::Vector(image) => image.raw_size,
         }
     }
 }
