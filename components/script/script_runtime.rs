@@ -21,30 +21,33 @@ use std::{os, ptr, thread};
 use background_hang_monitor_api::ScriptHangAnnotation;
 use js::conversions::jsstr_to_string;
 use js::glue::{
-    CollectServoSizes, CreateJobQueue, DeleteJobQueue, DispatchableRun, JobQueueTraps,
-    RUST_js_GetErrorMessage, SetBuildId, StreamConsumerConsumeChunk,
+    CollectServoSizes, CreateJobQueue, DeleteJobQueue, DispatchableRun, JS_GetReservedSlot,
+    JobQueueTraps, RUST_js_GetErrorMessage, SetBuildId, StreamConsumerConsumeChunk,
     StreamConsumerNoteResponseURLs, StreamConsumerStreamEnd, StreamConsumerStreamError,
 };
 use js::jsapi::{
-    AsmJSOption, BuildIdCharVector, ContextOptionsRef, DisableIncrementalGC,
-    Dispatchable as JSRunnable, Dispatchable_MaybeShuttingDown, GCDescription, GCOptions,
-    GCProgress, GCReason, GetPromiseUserInputEventHandlingState, HandleObject, HandleString, Heap,
-    InitConsumeStreamCallback, InitDispatchToEventLoop, JS_AddExtraGCRootsTracer,
-    JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback, JS_SetGCCallback,
-    JS_SetGCParameter, JS_SetGlobalJitCompilerOption, JS_SetOffthreadIonCompilationEnabled,
-    JS_SetParallelParsingEnabled, JS_SetSecurityCallbacks, JSContext as RawJSContext, JSGCParamKey,
-    JSGCStatus, JSJitCompilerOption, JSObject, JSSecurityCallbacks, JSTracer, JobQueue, MimeType,
+    AsmJSOption, BuildIdCharVector, CompilationType, ContextOptionsRef, Dispatchable as JSRunnable,
+    Dispatchable_MaybeShuttingDown, GCDescription, GCOptions, GCProgress, GCReason,
+    GetPromiseUserInputEventHandlingState, HandleObject, HandleString,
+    HandleValue as RawHandleValue, Heap, InitConsumeStreamCallback, InitDispatchToEventLoop,
+    JS_AddExtraGCRootsTracer, JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback,
+    JS_NewObject, JS_NewStringCopyN, JS_SetGCCallback, JS_SetGCParameter,
+    JS_SetGlobalJitCompilerOption, JS_SetOffthreadIonCompilationEnabled,
+    JS_SetParallelParsingEnabled, JS_SetReservedSlot, JS_SetSecurityCallbacks,
+    JSCLASS_RESERVED_SLOTS_MASK, JSCLASS_RESERVED_SLOTS_SHIFT, JSClass, JSClassOps,
+    JSContext as RawJSContext, JSGCParamKey, JSGCStatus, JSJitCompilerOption, JSObject,
+    JSSecurityCallbacks, JSTracer, JobQueue, MimeType, MutableHandleObject, MutableHandleString,
     PromiseRejectionHandlingState, PromiseUserInputEventHandlingState, RuntimeCode,
     SetDOMCallbacks, SetGCSliceCallback, SetJobQueue, SetPreserveWrapperCallbacks,
     SetProcessBuildIdOp, SetPromiseRejectionTrackerCallback, StreamConsumer as JSStreamConsumer,
 };
-use js::jsval::UndefinedValue;
+use js::jsval::{ObjectValue, UndefinedValue};
 use js::panic::wrap_panic;
 pub(crate) use js::rust::ThreadSafeJSContext;
 use js::rust::wrappers::{GetPromiseIsHandled, JS_GetPromiseResult};
 use js::rust::{
-    Handle, HandleObject as RustHandleObject, IntoHandle, JSEngine, JSEngineHandle, ParentRuntime,
-    Runtime as RustRuntime,
+    Handle, HandleObject as RustHandleObject, HandleValue, IntoHandle, JSEngine, JSEngineHandle,
+    ParentRuntime, Runtime as RustRuntime,
 };
 use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;
@@ -60,7 +63,7 @@ use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::Response_Binding::ResponseMethods;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
 use crate::dom::bindings::conversions::{
-    get_dom_class, private_from_object, root_from_handleobject,
+    get_dom_class, private_from_object, root_from_handleobject, root_from_object,
 };
 use crate::dom::bindings::error::{Error, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
@@ -69,6 +72,7 @@ use crate::dom::bindings::refcounted::{
 };
 use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::trace_roots;
+use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::DOM_CALLBACKS;
 use crate::dom::bindings::{principals, settings_stack};
 use crate::dom::csp::CspReporting;
@@ -78,20 +82,22 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promiserejectionevent::PromiseRejectionEvent;
 use crate::dom::response::Response;
+use crate::dom::trustedscript::TrustedScript;
 use crate::microtask::{EnqueuedPromiseCallback, Microtask, MicrotaskQueue};
-use crate::realms::{AlreadyInRealm, InRealm};
+use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_module::EnsureModuleHooksInitialized;
 use crate::script_thread::trace_thread;
 use crate::task_source::SendableTaskSource;
 
 static JOB_QUEUE_TRAPS: JobQueueTraps = JobQueueTraps {
-    getIncumbentGlobal: Some(get_incumbent_global),
+    getHostDefinedData: Some(get_host_defined_data),
     enqueuePromiseJob: Some(enqueue_promise_job),
     empty: Some(empty),
 };
 
 static SECURITY_CALLBACKS: JSSecurityCallbacks = JSSecurityCallbacks {
     contentSecurityPolicyAllows: Some(content_security_policy_allows),
+    codeForEvalGets: Some(code_for_eval_gets),
     subsumes: Some(principals::subsumes),
 };
 
@@ -223,19 +229,57 @@ impl From<ScriptThreadEventCategory> for ScriptHangAnnotation {
     }
 }
 
+static HOST_DEFINED_DATA: JSClassOps = JSClassOps {
+    addProperty: None,
+    delProperty: None,
+    enumerate: None,
+    newEnumerate: None,
+    resolve: None,
+    mayResolve: None,
+    finalize: None,
+    call: None,
+    construct: None,
+    trace: None,
+};
+
+static HOST_DEFINED_DATA_CLASS: JSClass = JSClass {
+    name: c"HostDefinedData".as_ptr(),
+    flags: (HOST_DEFINED_DATA_SLOTS & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT,
+    cOps: &HOST_DEFINED_DATA,
+    spec: ptr::null(),
+    ext: ptr::null(),
+    oOps: ptr::null(),
+};
+
+const INCUMBENT_SETTING_SLOT: u32 = 0;
+const HOST_DEFINED_DATA_SLOTS: u32 = 1;
+
 #[allow(unsafe_code)]
-unsafe extern "C" fn get_incumbent_global(_: *const c_void, _: *mut RawJSContext) -> *mut JSObject {
-    let mut result = ptr::null_mut();
+unsafe extern "C" fn get_host_defined_data(
+    _: *const c_void,
+    cx: *mut RawJSContext,
+    data: MutableHandleObject,
+) -> bool {
     wrap_panic(&mut || {
-        let incumbent_global = GlobalScope::incumbent();
+        let Some(incumbent_global) = GlobalScope::incumbent() else {
+            data.set(ptr::null_mut());
+            return;
+        };
 
-        assert!(incumbent_global.is_some());
+        let _realm = enter_realm(&*incumbent_global);
 
-        result = incumbent_global
-            .map(|g| g.reflector().get_jsobject().get())
-            .unwrap_or(ptr::null_mut())
+        rooted!(in(cx) let result = JS_NewObject(cx, &HOST_DEFINED_DATA_CLASS));
+        assert!(!result.is_null());
+
+        JS_SetReservedSlot(
+            *result,
+            INCUMBENT_SETTING_SLOT,
+            &ObjectValue(*incumbent_global.reflector().get_jsobject()),
+        );
+
+        data.set(result.get());
     });
-    result
+    true
 }
 
 #[allow(unsafe_code)]
@@ -257,14 +301,20 @@ unsafe extern "C" fn enqueue_promise_job(
     promise: HandleObject,
     job: HandleObject,
     _allocation_site: HandleObject,
-    incumbent_global: HandleObject,
+    host_defined_data: HandleObject,
 ) -> bool {
     let cx = JSContext::from_ptr(cx);
     let mut result = false;
     wrap_panic(&mut || {
         let microtask_queue = &*(extra as *const MicrotaskQueue);
-        let global = if !incumbent_global.is_null() {
-            GlobalScope::from_object(incumbent_global.get())
+        let global = if !host_defined_data.is_null() {
+            let mut incumbent_global = UndefinedValue();
+            JS_GetReservedSlot(
+                host_defined_data.get(),
+                INCUMBENT_SETTING_SLOT,
+                &mut incumbent_global,
+            );
+            GlobalScope::from_object(incumbent_global.to_object())
         } else {
             let realm = AlreadyInRealm::assert_for_cx(cx);
             GlobalScope::from_context(*cx, InRealm::already(&realm))
@@ -370,10 +420,44 @@ unsafe extern "C" fn promise_rejection_tracker(
 }
 
 #[allow(unsafe_code)]
+fn safely_convert_null_to_string(cx: JSContext, str_: HandleString) -> DOMString {
+    DOMString::from(match str_ {
+        str_ if !str_.is_null() => unsafe { jsstr_to_string(*cx, *str_) },
+        _ => "".to_owned(),
+    })
+}
+
+#[allow(unsafe_code)]
+unsafe extern "C" fn code_for_eval_gets(
+    cx: *mut RawJSContext,
+    code: HandleObject,
+    code_for_eval: MutableHandleString,
+) -> bool {
+    let cx = JSContext::from_ptr(cx);
+    if let Ok(trusted_script) = root_from_object::<TrustedScript>(code.get(), *cx) {
+        let script_string = trusted_script.data();
+        let new_string = JS_NewStringCopyN(
+            *cx,
+            script_string.as_ptr() as *const libc::c_char,
+            script_string.len(),
+        );
+        code_for_eval.set(new_string);
+    }
+    true
+}
+
+/// <https://www.w3.org/TR/CSP/#can-compile-strings>
+#[allow(unsafe_code)]
 unsafe extern "C" fn content_security_policy_allows(
     cx: *mut RawJSContext,
     runtime_code: RuntimeCode,
-    sample: HandleString,
+    code_string: HandleString,
+    compilation_type: CompilationType,
+    parameter_strings: u8, //FIXME in bindings generation
+    body_string: HandleString,
+    parameter_args: u8, //FIXME in bindings generation
+    body_arg: RawHandleValue,
+    can_compile_strings: *mut bool,
 ) -> bool {
     let mut allowed = false;
     let cx = JSContext::from_ptr(cx);
@@ -383,19 +467,21 @@ unsafe extern "C" fn content_security_policy_allows(
         let global = &GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
 
         allowed = match runtime_code {
-            RuntimeCode::JS => {
-                let source = match sample {
-                    sample if !sample.is_null() => &jsstr_to_string(*cx, *sample),
-                    _ => "",
-                };
-                global
-                    .get_csp_list()
-                    .is_js_evaluation_allowed(global, source)
-            },
+            RuntimeCode::JS => TrustedScript::can_compile_string_with_trusted_type(
+                cx,
+                global,
+                safely_convert_null_to_string(cx, code_string),
+                compilation_type,
+                parameter_strings,
+                safely_convert_null_to_string(cx, body_string),
+                parameter_args,
+                HandleValue::from_raw(body_arg),
+            ),
             RuntimeCode::WASM => global.get_csp_list().is_wasm_evaluation_allowed(global),
         };
     });
-    allowed
+    *can_compile_strings = allowed;
+    true
 }
 
 #[allow(unsafe_code)]
@@ -550,7 +636,7 @@ impl Runtime {
             Some(empty_has_released_callback),
         );
         // Pre barriers aren't working correctly at the moment
-        DisableIncrementalGC(cx);
+        JS_SetGCParameter(cx, JSGCParamKey::JSGC_INCREMENTAL_GC_ENABLED, 0);
 
         unsafe extern "C" fn dispatch_to_event_loop(
             closure: *mut c_void,
@@ -720,9 +806,6 @@ impl Runtime {
         */
         if let Some(val) = in_range(pref!(js_mem_gc_empty_chunk_count_min), 0, 10_000) {
             JS_SetGCParameter(cx, JSGCParamKey::JSGC_MIN_EMPTY_CHUNK_COUNT, val as u32);
-        }
-        if let Some(val) = in_range(pref!(js_mem_gc_empty_chunk_count_max), 0, 10_000) {
-            JS_SetGCParameter(cx, JSGCParamKey::JSGC_MAX_EMPTY_CHUNK_COUNT, val as u32);
         }
 
         Runtime {

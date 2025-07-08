@@ -113,9 +113,22 @@ unsafe extern "C" fn instance_class_has_proto_at_depth(
     domclass.dom_class.interface_chain[depth as usize] as u32 == proto_id
 }
 
+/// <https://searchfox.org/mozilla-central/rev/c18faaae88b30182e487fa3341bc7d923e22f23a/xpcom/base/CycleCollectedJSRuntime.cpp#792>
+unsafe extern "C" fn instance_class_is_error(clasp: *const js::jsapi::JSClass) -> bool {
+    if !is_dom_class(&*clasp) {
+        return false;
+    }
+    let domclass: *const DOMJSClass = clasp as *const _;
+    let domclass = &*domclass;
+    let root_interface = domclass.dom_class.interface_chain[0] as u32;
+    // TODO: support checking bare Exception prototype as well.
+    root_interface == PrototypeList::ID::DOMException as u32
+}
+
 #[allow(missing_docs)] // FIXME
 pub(crate) const DOM_CALLBACKS: DOMCallbacks = DOMCallbacks {
     instanceClassMatchesProto: Some(instance_class_has_proto_at_depth),
+    instanceClassIsError: Some(instance_class_is_error),
 };
 
 /// Eagerly define all relevant WebIDL interface constructors on the

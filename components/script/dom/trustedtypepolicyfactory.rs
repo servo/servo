@@ -241,6 +241,19 @@ impl TrustedTypePolicyFactory {
         // Step 7: Assert: convertedInput is an instance of expectedType.
         // TODO(https://github.com/w3c/trusted-types/issues/566): Implement when spec is resolved
     }
+
+    /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-isscript>
+    #[allow(unsafe_code)]
+    pub(crate) fn is_trusted_script(
+        cx: JSContext,
+        value: HandleValue,
+    ) -> Result<DomRoot<TrustedScript>, ()> {
+        if !value.get().is_object() {
+            return Err(());
+        }
+        rooted!(in(*cx) let object = value.to_object());
+        unsafe { root_from_object::<TrustedScript>(object.get(), *cx) }
+    }
 }
 
 impl TrustedTypePolicyFactoryMethods<crate::DomTypeHolder> for TrustedTypePolicyFactory {
@@ -265,11 +278,7 @@ impl TrustedTypePolicyFactoryMethods<crate::DomTypeHolder> for TrustedTypePolicy
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-isscript>
     #[allow(unsafe_code)]
     fn IsScript(&self, cx: JSContext, value: HandleValue) -> bool {
-        if !value.get().is_object() {
-            return false;
-        }
-        rooted!(in(*cx) let object = value.to_object());
-        unsafe { root_from_object::<TrustedScript>(object.get(), *cx).is_ok() }
+        TrustedTypePolicyFactory::is_trusted_script(cx, value).is_ok()
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-isscripturl>
     #[allow(unsafe_code)]

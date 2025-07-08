@@ -81,7 +81,7 @@ jobs:
         uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:
-          ndk-version: r26c
+          ndk-version: r28b
       - name: Setup Gradle caches
         uses: gradle/actions/setup-gradle@v4
       - name: Trigger initial download of Gradle with retries

@@ -56,6 +56,7 @@ jobs:
       build-libservo: ${{ inputs.build-libservo }}
       wpt-args: ${{ inputs.wpt-args }}
       bencher: ${{ inputs.bencher }}
+      force-github-hosted-runner: true  # <need sdk 15.2 on self-hosted runners>
 
   linux:
     if: ${{ inputs.workflow == 'linux' }}
