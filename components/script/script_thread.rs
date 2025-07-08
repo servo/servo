@@ -342,7 +342,7 @@ pub struct ScriptThread {
     #[no_trace]
     scheduled_script_thread_animation_timer: RefCell<Option<TimerId>>,
 
-    /// A flag that lets the [`ScriptThread`]'s main loop know that the
+    /// A flag that lets the [`ScriptThread`]'s main loop know that
     /// it should trigger an animation tick "update the rendering" call.
     ///
     /// This can be set by receiving [`ScriptThreadMessage::TickAllAnimations`]
