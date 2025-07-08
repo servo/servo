@@ -5224,7 +5224,7 @@ dependencies = [
 [[package]]
 name = "mozjs"
 version = "0.14.1"
-source = "git+https://github.com/servo/mozjs#728acdf3d4ce0604e9f75dd1d539dc6f291ccec7"
+source = "git+https://github.com/servo/mozjs#128e1e230a0155ed9395c718184f34bddc045860"
 dependencies = [
  "bindgen 0.71.1",
  "cc",
@@ -5235,8 +5235,8 @@ dependencies = [
 
 [[package]]
 name = "mozjs_sys"
-version = "0.128.9-2"
-source = "git+https://github.com/servo/mozjs#728acdf3d4ce0604e9f75dd1d539dc6f291ccec7"
+version = "0.128.13-0"
+source = "git+https://github.com/servo/mozjs#128e1e230a0155ed9395c718184f34bddc045860"
 dependencies = [
  "bindgen 0.71.1",
  "cc",
