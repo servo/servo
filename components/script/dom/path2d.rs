@@ -57,30 +57,156 @@ impl Path2D {
         self.path.borrow().is_empty()
     }
 
-    fn last_point(path: &[PathSegment]) -> Option<PathSegment> {
-        let last_point = path.last()?;
+    fn compute_arc_to_points(
+        cp0: Point2D<f32>,
+        cp1: Point2D<f32>,
+        cp2: Point2D<f32>,
+        radius: f32,
+    ) -> Point2D<f32> {
+        // 2. Ensure there is a subpath for (x1, y1) is done by one of self.line_to calls
 
-        if let PathSegment::ClosePath = last_point {
-            // find first point for the last subpath
-            let first_point_index = match path
-                .iter()
-                .rev()
-                .skip(1)
-                .position(|segment| *segment == PathSegment::ClosePath)
-            {
-                Some(index) => index + 1,
-                None => 0,
-            };
-            let first_point = path.get(first_point_index)?;
-
-            if let PathSegment::ClosePath = first_point {
-                return None;
-            } else {
-                return Some(*first_point);
-            }
+        if (cp0.x == cp1.x && cp0.y == cp1.y) || cp1 == cp2 || radius == 0.0 {
+            return cp1;
         }
 
-        Some(*last_point)
+        // if all three control points lie on a single straight line,
+        // connect the first two by a straight line
+        let direction = (cp2.x - cp1.x) * (cp0.y - cp1.y) + (cp2.y - cp1.y) * (cp1.x - cp0.x);
+        if direction == 0.0 {
+            return cp1;
+        }
+
+        // otherwise, draw the Arc
+        let a2 = (cp0.x - cp1.x).powi(2) + (cp0.y - cp1.y).powi(2);
+        let b2 = (cp1.x - cp2.x).powi(2) + (cp1.y - cp2.y).powi(2);
+        let d = {
+            let c2 = (cp0.x - cp2.x).powi(2) + (cp0.y - cp2.y).powi(2);
+            let cosx = (a2 + b2 - c2) / (2.0 * (a2 * b2).sqrt());
+            let sinx = (1.0 - cosx.powi(2)).sqrt();
+            radius / ((1.0 - cosx) / sinx)
+        };
+
+        // first tangent point
+        let anx = (cp1.x - cp0.x) / a2.sqrt();
+        let any = (cp1.y - cp0.y) / a2.sqrt();
+        let _tp1 = Point2D::new(cp1.x - anx * d, cp1.y - any * d);
+
+        // second tangent point
+        let bnx = (cp1.x - cp2.x) / b2.sqrt();
+        let bny = (cp1.y - cp2.y) / b2.sqrt();
+        let tp2 = Point2D::new(cp1.x - bnx * d, cp1.y - bny * d);
+
+        tp2
+    }
+
+    fn compute_final_arc_to_point(path: &[PathSegment]) -> Option<Point2D<f32>> {
+        // [arcto]
+        // [moveto/anypoint, arcto]
+        // [closepath, arcto]
+        // [lineto, closepath, arcto]
+        // [lineto, arcto, closepath, arcto]
+        // [arcto, closepath, arcto]
+        // [arcto, closepath, arcto, closepath, arcto]
+        // [moveto, closepath, arcto, closepath, arcto]
+        // [closepath, closepath, arcto, closepath, arcto]
+        // [arcto, arcto, arcto]
+
+        match path.last()? {
+            PathSegment::ClosePath => {
+                // find first point for this subpath
+                let subpath_first_point_index = match path
+                    .iter()
+                    .rev()
+                    .skip(1)
+                    .position(|segment| *segment == PathSegment::ClosePath)
+                {
+                    Some(index) => index + 1,
+                    None => 0,
+                };
+
+                let subpath_first_point = path.get(subpath_first_point_index)?;
+                match subpath_first_point {
+                    PathSegment::MoveTo { x, y } |
+                    PathSegment::LineTo { x, y } |
+                    PathSegment::Quadratic { x, y, .. } |
+                    PathSegment::Bezier { x, y, .. } |
+                    PathSegment::Ellipse { x, y, .. } |
+                    PathSegment::SvgArc { x, y, .. } => Some(Point2D::new(*x, *y)),
+                    PathSegment::ClosePath => None,
+                    PathSegment::ArcTo { cp1x, cp1y, .. } => {
+                        match Path2D::compute_final_arc_to_point(&path[..subpath_first_point_index])
+                        {
+                            Some(point) => Some(point),
+                            None => Some(Point2D::new(*cp1x, *cp1y)),
+                        }
+                    },
+                }
+            },
+            PathSegment::MoveTo { x, y } |
+            PathSegment::LineTo { x, y } |
+            PathSegment::Quadratic { x, y, .. } |
+            PathSegment::Bezier { x, y, .. } |
+            PathSegment::Ellipse { x, y, .. } |
+            PathSegment::SvgArc { x, y, .. } => Some(Point2D::new(*x, *y)),
+            PathSegment::ArcTo {
+                cp1x,
+                cp1y,
+                cp2x,
+                cp2y,
+                radius,
+            } => {
+                let last_segment = path.len() - 1;
+                let cp0 = match Path2D::compute_final_arc_to_point(&path[..last_segment]) {
+                    Some(point) => point,
+                    None => Point2D::new(*cp1x, *cp1y),
+                };
+                let cp1 = Point2D::new(*cp1x, *cp1y);
+                let cp2 = Point2D::new(*cp2x, *cp2y);
+                Some(Path2D::compute_arc_to_points(cp0, cp1, cp2, *radius))
+            },
+        }
+    }
+
+    fn last_point(path: &[PathSegment]) -> Option<Point2D<f32>> {
+        let last_point = path.last()?;
+
+        match last_point {
+            PathSegment::MoveTo { x, y } |
+            PathSegment::LineTo { x, y } |
+            PathSegment::Quadratic { x, y, .. } |
+            PathSegment::Bezier { x, y, .. } |
+            PathSegment::Ellipse { x, y, .. } |
+            PathSegment::SvgArc { x, y, .. } => Some(Point2D::new(*x, *y)),
+            PathSegment::ArcTo { .. } => {
+                Path2D::compute_final_arc_to_point(&path[..path.len() - 1])
+            },
+            PathSegment::ClosePath => {
+                // find first point for the last subpath
+                let first_point_index = match path
+                    .iter()
+                    .rev()
+                    .skip(1)
+                    .position(|segment| *segment == PathSegment::ClosePath)
+                {
+                    Some(index) => index + 1,
+                    None => 0,
+                };
+
+                let first_point = path.get(first_point_index)?;
+                match first_point {
+                    PathSegment::MoveTo { x, y } |
+                    PathSegment::LineTo { x, y } |
+                    PathSegment::Quadratic { x, y, .. } |
+                    PathSegment::Bezier { x, y, .. } |
+                    PathSegment::Ellipse { x, y, .. } |
+                    PathSegment::SvgArc { x, y, .. } => Some(Point2D::new(*x, *y)),
+                    PathSegment::ClosePath => None,
+                    PathSegment::ArcTo { .. } => {
+                        Path2D::compute_final_arc_to_point(&path[..first_point_index])
+                    },
+                }
+            },
+        }
     }
 
     fn add_path(&self, other: &Path2D, transform: &DOMMatrix2DInit) -> ErrorResult {
@@ -230,7 +356,10 @@ impl Path2D {
 
         // Step 8. Create a new subpath in `a` with (x, y) as the only point in the subpath.
         if let Some(last_point) = last_point {
-            self.push(last_point);
+            self.push(PathSegment::MoveTo {
+                x: last_point.x,
+                y: last_point.y,
+            });
         }
 
         Ok(())
@@ -358,5 +487,18 @@ impl Path2DMethods<crate::DomTypeHolder> for Path2D {
             proto,
             can_gc,
         )
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_last_point() {
+        let path_segment = vec![PathSegment::ClosePath];
+
+        let last_point = Path2D::last_point(&path_segment);
+        assert_eq!(last_point, None);
     }
 }
