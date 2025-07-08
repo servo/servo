@@ -36,6 +36,7 @@ env:
   SHELL: /bin/bash
   CARGO_INCREMENTAL: 0
   BENCHER_PROJECT: ${{ vars.BENCHER_PROJECT || 'servo' }}
+  HITRACE_BENCH_VERSION: 0.7.0
 
 jobs:
   build:
@@ -276,6 +277,11 @@ jobs:
           fetch-depth: 2
       - name: Setup Python
         uses: ./.github/actions/setup-python
+      - name: Getting hitrace-bench version
+        run: echo "INSTALLED_HITRACE_BENCH_VERSION=$(hitrace-bench --version | awk '{print $2}')" >> $GITHUB_ENV
+      - name: Install hitrace-bench
+        run: cargo install --locked hitrace-bench --version $HITRACE_BENCH_VERSION
+        if: ${{ env.INSTALLED_HITRACE_BENCH_VERSION != env.HITRACE_BENCH_VERSION }}
       - name: "Run benchmark"
         run: hitrace-bench -r support/hitrace-bencher/runs.json
         continue-on-error: true
