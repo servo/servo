@@ -20,7 +20,7 @@ use super::{
 };
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::dom::{BoxSlot, LayoutBox};
+use crate::dom::{BoxSlot, LayoutBox, NodeExt};
 use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents, TraversalHandler};
 use crate::flow::{BlockContainerBuilder, BlockFormattingContext};
 use crate::formatting_contexts::{
@@ -715,12 +715,18 @@ impl<'style, 'dom> TableBuilderTraversal<'style, 'dom> {
         row_builder.finish();
 
         let style = anonymous_info.style.clone();
-        self.push_table_row(ArcRefCell::new(TableTrack {
+        let table_row = ArcRefCell::new(TableTrack {
             base: LayoutBoxBase::new((&anonymous_info).into(), style.clone()),
             group_index: self.current_row_group_index,
             is_anonymous: true,
             shared_background_style: SharedStyle::new(style),
-        }));
+        });
+        self.push_table_row(table_row.clone());
+
+        self.info
+            .node
+            .pseudo_element_box_slot(PseudoElement::ServoAnonymousTableRow)
+            .set(LayoutBox::TableLevelBox(TableLevelBox::Track(table_row)))
     }
 
     fn push_table_row(&mut self, table_track: ArcRefCell<TableTrack>) {
@@ -981,14 +987,22 @@ impl<'style, 'builder, 'dom, 'a> TableRowBuilder<'style, 'builder, 'dom, 'a> {
         }
 
         let block_container = builder.finish();
+        let new_table_cell = ArcRefCell::new(TableSlotCell {
+            base: LayoutBoxBase::new(BaseFragmentInfo::anonymous(), anonymous_info.style),
+            contents: BlockFormattingContext::from_block_container(block_container),
+            colspan: 1,
+            rowspan: 1,
+        });
         self.table_traversal
             .builder
-            .add_cell(ArcRefCell::new(TableSlotCell {
-                base: LayoutBoxBase::new(BaseFragmentInfo::anonymous(), anonymous_info.style),
-                contents: BlockFormattingContext::from_block_container(block_container),
-                colspan: 1,
-                rowspan: 1,
-            }));
+            .add_cell(new_table_cell.clone());
+
+        self.info
+            .node
+            .pseudo_element_box_slot(PseudoElement::ServoAnonymousTableCell)
+            .set(LayoutBox::TableLevelBox(TableLevelBox::Cell(
+                new_table_cell,
+            )));
     }
 }
 

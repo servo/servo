@@ -4725,6 +4725,7 @@ dependencies = [
  "servo_geometry",
  "servo_malloc_size_of",
  "servo_url",
+ "smallvec",
  "stylo",
  "stylo_atoms",
  "stylo_traits",

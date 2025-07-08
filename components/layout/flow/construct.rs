@@ -299,9 +299,12 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
                 self.push_block_level_job_for_inline_formatting_context(inline_formatting_context);
             }
 
+            let box_slot = table_info
+                .node
+                .pseudo_element_box_slot(PseudoElement::ServoAnonymousTable);
             self.block_level_boxes.push(BlockLevelJob {
                 info: table_info,
-                box_slot: BoxSlot::dummy(),
+                box_slot,
                 kind: BlockLevelCreator::AnonymousTable { table_block },
                 propagated_data: self.propagated_data,
             });
@@ -683,10 +686,13 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
             })
             .clone();
 
+        let box_slot = self
+            .info
+            .node
+            .pseudo_element_box_slot(PseudoElement::ServoAnonymousBox);
         self.block_level_boxes.push(BlockLevelJob {
             info,
-            // FIXME(nox): We should be storing this somewhere.
-            box_slot: BoxSlot::dummy(),
+            box_slot,
             kind: BlockLevelCreator::SameFormattingContextBlock(
                 IntermediateBlockContainer::InlineFormattingContext(
                     BlockContainer::InlineFormattingContext(inline_formatting_context),
