@@ -121,10 +121,11 @@ impl RunningAppState {
         }
     }
 
-    pub(crate) fn create_and_focus_toplevel_webview(self: &Rc<Self>, url: Url) {
+    pub(crate) fn create_and_focus_toplevel_webview(self: &Rc<Self>, url: Url) -> WebView {
         let webview = self.create_toplevel_webview(url);
         webview.focus();
         webview.raise_to_top(true);
+        webview
     }
 
     pub(crate) fn create_toplevel_webview(self: &Rc<Self>, url: Url) -> WebView {
@@ -149,6 +150,10 @@ impl RunningAppState {
 
     pub(crate) fn servo(&self) -> &Servo {
         &self.servo
+    }
+
+    pub(crate) fn no_open_webview(&self) -> bool {
+        self.inner().webviews.is_empty()
     }
 
     pub(crate) fn webdriver_receiver(&self) -> Option<&Receiver<WebDriverCommandMsg>> {
@@ -268,7 +273,13 @@ impl RunningAppState {
 
         match last_created {
             Some(last_created_webview) => last_created_webview.focus(),
-            None => self.servo.start_shutting_down(),
+            None => {
+                // For WebDriver, don't shutdown when last webview closed
+                // https://github.com/servo/servo/issues/37408
+                if opts::get().webdriver_port.is_none() {
+                    self.servo.start_shutting_down()
+                }
+            },
         }
     }
 
