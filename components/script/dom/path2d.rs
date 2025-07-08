@@ -53,6 +53,10 @@ impl Path2D {
         self.path.borrow().clone()
     }
 
+    fn last(&self) -> Option<PathSegment> {
+        self.path.borrow().last().copied()
+    }
+
     fn is_path_empty(&self) -> bool {
         self.path.borrow().is_empty()
     }
@@ -381,7 +385,16 @@ impl Path2DMethods<crate::DomTypeHolder> for Path2D {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-closepath>
     fn ClosePath(&self) {
-        self.path.borrow_mut().close_path();
+        if self.is_path_empty() {
+            return;
+        }
+
+        // safe to unwrap because of empty check above
+        if matches!(self.last().unwrap(), PathSegment::ClosePath) {
+            return;
+        }
+
+        self.push(PathSegment::ClosePath);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-moveto>
@@ -567,6 +580,35 @@ mod test {
                     radius: 30.,
                 }],
                 Some(Point2D::new(33., 44.0f32)),
+            ),
+            (
+                vec![
+                    PathSegment::MoveTo {
+                        x: 89.,
+                        y: 100.0f32,
+                    },
+                    PathSegment::ArcTo {
+                        cp1x: 33.,
+                        cp1y: 44.,
+                        cp2x: 88.,
+                        cp2y: 100.0f32,
+                        radius: 30.,
+                    },
+                ],
+                Some(Point2D::new(89., 100.0f32)),
+            ),
+            (
+                vec![
+                    PathSegment::ClosePath,
+                    PathSegment::ArcTo {
+                        cp1x: 33.,
+                        cp1y: 44.,
+                        cp2x: 88.,
+                        cp2y: 100.0f32,
+                        radius: 30.,
+                    },
+                ],
+                Some(Point2D::new(89., 100.0f32)),
             ),
         ];
 
