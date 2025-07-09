@@ -17,7 +17,8 @@ import os
 import re
 import subprocess
 import sys
-from typing import Any, Dict, List
+from dataclasses import dataclass
+from typing import Any, Dict, Iterator, List, Tuple
 
 import colorama
 import toml
@@ -126,6 +127,10 @@ def is_iter_empty(iterator):
         return True, itertools.chain((obj,), iterator)
     except StopIteration:
         return False, iterator
+
+
+def normalize_path(path: str) -> str:
+    return os.path.relpath(os.path.abspath(path), TOPDIR)
 
 
 def normilize_paths(paths):
@@ -374,6 +379,38 @@ def check_ruff_lints():
                 error["location"]["row"],
                 f"[{error['code']}] {error['message']} ({error['url']})",
             )
+
+
+@dataclass
+class PyreflyDiagnostic:
+    """
+    Represents a single diagnostic error reported by Pyrefly.
+    """
+
+    line: int
+    column: int
+    stop_line: int
+    stop_column: int
+    path: str
+    code: int
+    name: str
+    description: str
+    concise_description: str
+
+
+def check_pyrefly_type_checking() -> Iterator[Tuple[str, int, str]]:
+    print("\r ➤  Running `pyrefly` checks...")
+    try:
+        result = subprocess.run(["pyrefly", "check", "--output-format", "json"], capture_output=True)
+        parsed_json = json.loads(result.stdout)
+        errors = parsed_json.get("errors", [])
+    except subprocess.CalledProcessError as error:
+        print(f"{colorama.Fore.YELLOW}{error}{colorama.Style.RESET_ALL}")
+        pass
+    else:
+        for error in errors:
+            diagnostic: PyreflyDiagnostic = PyreflyDiagnostic(**error)
+            yield normalize_path(diagnostic.path), diagnostic.line, diagnostic.name
 
 
 def run_cargo_deny_lints():
@@ -1006,8 +1043,11 @@ def scan(only_changed_files=False, progress=False, github_annotations=False):
     cargo_lock_errors = run_cargo_deny_lints()
     wpt_errors = run_wpt_lints(only_changed_files)
 
+    python_type_check = check_pyrefly_type_checking()
     # chain all the iterators
-    errors = itertools.chain(config_errors, directory_errors, file_errors, python_errors, wpt_errors, cargo_lock_errors)
+    errors = itertools.chain(
+        config_errors, directory_errors, file_errors, python_errors, python_type_check, wpt_errors, cargo_lock_errors
+    )
 
     colorama.init()
     error = None

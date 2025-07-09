@@ -12,17 +12,14 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
-
 from typing import List, NamedTuple, Optional, Union
 
 import mozlog
 import mozlog.formatters
+from wptrunner import wptcommandline, wptrunner
 
 from . import SERVO_ROOT, WPT_PATH, WPT_TOOLS_PATH
 from .grouping_formatter import ServoFormatter, ServoHandler, UnexpectedResult, UnexpectedSubtestResult
-from wptrunner import wptcommandline
-from wptrunner import wptrunner
-
 
 CERTS_PATH = os.path.join(WPT_TOOLS_PATH, "certs")
 TRACKER_API = "https://intermittent-tracker.servo.org"
@@ -99,7 +96,7 @@ def run_tests(default_binary_path: str, **kwargs):
     wptcommandline.check_args(kwargs)
 
     mozlog.commandline.log_formatters["servo"] = (
-        ServoFormatter,
+        tuple[type[ServoFormatter], str],
         "Servo's grouping output formatter",
     )
 

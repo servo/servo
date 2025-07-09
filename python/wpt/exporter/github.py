@@ -16,7 +16,7 @@ day be entirely replaced with something like PyGithub."""
 from __future__ import annotations
 
 import logging
-import urllib
+import urllib.parse
 
 from typing import Optional, TYPE_CHECKING
 

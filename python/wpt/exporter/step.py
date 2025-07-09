@@ -18,15 +18,16 @@ from __future__ import annotations
 import logging
 import os
 import textwrap
-
 from typing import TYPE_CHECKING, Generic, Optional, TypeVar
 
-from .common import COULD_NOT_APPLY_CHANGES_DOWNSTREAM_COMMENT
-from .common import COULD_NOT_APPLY_CHANGES_UPSTREAM_COMMENT
-from .common import COULD_NOT_MERGE_CHANGES_DOWNSTREAM_COMMENT
-from .common import COULD_NOT_MERGE_CHANGES_UPSTREAM_COMMENT
-from .common import UPSTREAMABLE_PATH
-from .common import wpt_branch_name_from_servo_pr_number
+from .common import (
+    COULD_NOT_APPLY_CHANGES_DOWNSTREAM_COMMENT,
+    COULD_NOT_APPLY_CHANGES_UPSTREAM_COMMENT,
+    COULD_NOT_MERGE_CHANGES_DOWNSTREAM_COMMENT,
+    COULD_NOT_MERGE_CHANGES_UPSTREAM_COMMENT,
+    UPSTREAMABLE_PATH,
+    wpt_branch_name_from_servo_pr_number,
+)
 from .github import GithubBranch, GithubRepository, PullRequest
 
 if TYPE_CHECKING:
@@ -42,7 +43,7 @@ class Step:
     def provides(self) -> Optional[AsyncValue]:
         return None
 
-    def run(self, _: SyncRun):
+    def run(self, run: SyncRun):
         return
 
 
@@ -78,6 +79,9 @@ class CreateOrUpdateBranchForPRStep(Step):
         try:
             commits = self._get_upstreamable_commits_from_local_servo_repo(run.sync)
             branch_name = self._create_or_update_branch_for_pr(run, commits)
+            if branch_name is None:
+                logging.info("Could not get branch_name from PR.")
+                return
             branch = run.sync.downstream_wpt.get_branch(branch_name)
 
             self.branch.resolve(branch)
