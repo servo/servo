@@ -24,7 +24,7 @@ use js::glue::{
     NewJSAutoStructuredCloneBuffer, WriteBytesToJSStructuredCloneData,
 };
 use js::jsapi::{
-    CloneDataPolicy, HandleObject as RawHandleObject, Heap, JS_ClearPendingException,
+    CloneDataPolicy, HandleObject as RawHandleObject, Heap, JS_IsExceptionPending,
     JS_ReadUint32Pair, JS_STRUCTURED_CLONE_VERSION, JS_WriteUint32Pair, JSContext, JSObject,
     JSStructuredCloneCallbacks, JSStructuredCloneReader, JSStructuredCloneWriter,
     MutableHandleObject as RawMutableHandleObject, StructuredCloneScope, TransferableOwnership,
@@ -619,8 +619,13 @@ pub(crate) fn write(
             val.handle(),
         );
         if !result {
-            JS_ClearPendingException(*cx);
-            return Err(sc_writer.error.unwrap_or(Error::DataClone(None)));
+            let error = if JS_IsExceptionPending(*cx) {
+                Error::JSFailed
+            } else {
+                sc_writer.error.unwrap_or(Error::DataClone(None))
+            };
+
+            return Err(error);
         }
 
         let nbytes = GetLengthOfJSStructuredCloneData(scdata);
@@ -696,8 +701,13 @@ pub(crate) fn read(
             sc_reader_ptr as *mut raw::c_void,
         );
         if !result {
-            JS_ClearPendingException(*cx);
-            return Err(sc_reader.error.unwrap_or(Error::DataClone(None)));
+            let error = if JS_IsExceptionPending(*cx) {
+                Error::JSFailed
+            } else {
+                sc_reader.error.unwrap_or(Error::DataClone(None))
+            };
+
+            return Err(error);
         }
 
         DeleteJSAutoStructuredCloneBuffer(scbuf);
