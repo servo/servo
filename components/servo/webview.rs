@@ -14,9 +14,10 @@ use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
     Cursor, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus, MediaSessionActionType,
-    ScreenGeometry, Theme, ViewportDetails,
+    ScreenGeometry, Theme, ViewportDetails, WebDriverLoadStatus,
 };
 use euclid::{Point2D, Scale, Size2D};
+use ipc_channel::ipc::IpcSender;
 use servo_geometry::DeviceIndependentPixel;
 use url::Url;
 use webrender_api::ScrollLocation;
@@ -422,6 +423,7 @@ impl WebView {
             .send(EmbedderToConstellationMessage::TraverseHistory(
                 self.id(),
                 TraversalDirection::Back(amount),
+                None,
             ))
     }
 
@@ -431,6 +433,21 @@ impl WebView {
             .send(EmbedderToConstellationMessage::TraverseHistory(
                 self.id(),
                 TraversalDirection::Forward(amount),
+                None,
+            ))
+    }
+
+    pub fn traverse_history(
+        &self,
+        direction: TraversalDirection,
+        webdriver_sender: IpcSender<WebDriverLoadStatus>,
+    ) {
+        self.inner()
+            .constellation_proxy
+            .send(EmbedderToConstellationMessage::TraverseHistory(
+                self.id(),
+                direction,
+                Some(webdriver_sender),
             ))
     }
 

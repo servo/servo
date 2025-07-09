@@ -1378,8 +1378,15 @@ where
                 self.embedder_proxy.send(EmbedderMsg::WebViewBlurred);
             },
             // Handle a forward or back request
-            EmbedderToConstellationMessage::TraverseHistory(webview_id, direction) => {
+            EmbedderToConstellationMessage::TraverseHistory(
+                webview_id,
+                direction,
+                response_sender,
+            ) => {
                 self.handle_traverse_history_msg(webview_id, direction);
+                if let Some(sender) = response_sender {
+                    let _ = sender.send(WebDriverLoadStatus::Complete);
+                }
             },
             EmbedderToConstellationMessage::ChangeViewportDetails(
                 webview_id,
