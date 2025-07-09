@@ -56,9 +56,6 @@ use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorConsta
 use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethods;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::Navigator_Binding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
-use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
-    ShadowRootMode, SlotAssignmentMode,
-};
 use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{TextTrackKind, TextTrackMode};
 use crate::dom::bindings::codegen::Bindings::URLBinding::URLMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
@@ -93,7 +90,6 @@ use crate::dom::mediastream::MediaStream;
 use crate::dom::node::{Node, NodeDamage, NodeTraits, UnbindContext};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
-use crate::dom::shadowroot::IsUserAgentWidget;
 use crate::dom::texttrack::TextTrack;
 use crate::dom::texttracklist::TextTrackList;
 use crate::dom::timeranges::{TimeRanges, TimeRangesContainer};
@@ -2020,17 +2016,11 @@ impl HTMLMediaElement {
             // if we are already showing the controls.
             return;
         }
-        let shadow_root = element
-            .attach_shadow(
-                IsUserAgentWidget::Yes,
-                ShadowRootMode::Closed,
-                false,
-                false,
-                false,
-                SlotAssignmentMode::Manual,
-                can_gc,
-            )
-            .unwrap();
+        // FIXME(stevennovaryo): Recheck styling of media element to avoid
+        //                       reparsing styles.
+        let shadow_root = self
+            .upcast::<Element>()
+            .attach_ua_shadow_root(false, can_gc);
         let document = self.owner_document();
         let script = HTMLScriptElement::new(
             local_name!("script"),
