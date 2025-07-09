@@ -133,8 +133,8 @@ impl BlockLevelBox {
         }
     }
 
-    pub(crate) fn invalidate_cached_fragment(&self) {
-        self.with_base(LayoutBoxBase::invalidate_cached_fragment);
+    pub(crate) fn clear_fragment_layout_cache(&self) {
+        self.with_base(|base| base.clear_fragment_layout_cache());
     }
 
     pub(crate) fn fragments(&self) -> Vec<Fragment> {

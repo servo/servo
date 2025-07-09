@@ -33,7 +33,9 @@ use style::selector_parser::{
 };
 use style::shared_lock::Locked as StyleLocked;
 use style::stylesheets::scope_rule::ImplicitScopeRoot;
-use style::values::computed::Display;
+use style::values::computed::{Display, Image};
+use style::values::specified::align::AlignFlags;
+use style::values::specified::box_::{DisplayInside, DisplayOutside};
 use style::values::{AtomIdent, AtomString};
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
@@ -586,8 +588,72 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
         }
     }
 
-    fn compute_layout_damage(_old: &ComputedValues, _new: &ComputedValues) -> RestyleDamage {
-        RestyleDamage::from_bits_retain(LayoutDamage::REBUILD_BOX.bits())
+    fn compute_layout_damage(old: &ComputedValues, new: &ComputedValues) -> RestyleDamage {
+        let box_tree_needs_rebuild = || {
+            let old_box = old.get_box();
+            let new_box = new.get_box();
+
+            if old_box.display != new_box.display ||
+                old_box.float != new_box.float ||
+                old_box.position != new_box.position
+            {
+                return true;
+            }
+
+            if old.get_font() != new.get_font() {
+                return true;
+            }
+
+            // NOTE: This should be kept in sync with the checks in `impl
+            // StyleExt::establishes_block_formatting_context` for `ComputedValues` in
+            // `components/layout/style_ext.rs`.
+            if new_box.display.outside() == DisplayOutside::Block &&
+                new_box.display.inside() == DisplayInside::Flow
+            {
+                let alignment_establishes_new_block_formatting_context =
+                    |style: &ComputedValues| {
+                        style.get_position().align_content.0.primary() != AlignFlags::NORMAL
+                    };
+
+                let old_column = old.get_column();
+                let new_column = new.get_column();
+                if old_box.overflow_x.is_scrollable() != new_box.overflow_x.is_scrollable() ||
+                    old_column.is_multicol() != new_column.is_multicol() ||
+                    old_column.column_span != new_column.column_span ||
+                    alignment_establishes_new_block_formatting_context(old) !=
+                        alignment_establishes_new_block_formatting_context(new)
+                {
+                    return true;
+                }
+            }
+
+            if old_box.display.is_list_item() {
+                let old_list = old.get_list();
+                let new_list = new.get_list();
+                if old_list.list_style_position != new_list.list_style_position ||
+                    old_list.list_style_image != new_list.list_style_image ||
+                    (new_list.list_style_image == Image::None &&
+                        old_list.list_style_type != new_list.list_style_type)
+                {
+                    return true;
+                }
+            }
+
+            if new.is_pseudo_style() && old.get_counters().content != new.get_counters().content {
+                return true;
+            }
+
+            false
+        };
+
+        if box_tree_needs_rebuild() {
+            RestyleDamage::from_bits_retain(LayoutDamage::REBUILD_BOX.bits())
+        } else {
+            // This element needs to be laid out again, but does not have any damage to
+            // its box. In the future, we will distinguish between types of damage to the
+            // fragment as well.
+            RestyleDamage::RELAYOUT
+        }
     }
 }
 

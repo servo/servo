@@ -251,10 +251,10 @@ impl InlineItem {
         }
     }
 
-    pub(crate) fn invalidate_cached_fragment(&self) {
+    pub(crate) fn clear_fragment_layout_cache(&self) {
         match self {
             InlineItem::StartInlineBox(inline_box) => {
-                inline_box.borrow().base.invalidate_cached_fragment()
+                inline_box.borrow().base.clear_fragment_layout_cache()
             },
             InlineItem::EndInlineBox | InlineItem::TextRun(..) => {},
             InlineItem::OutOfFlowAbsolutelyPositionedBox(positioned_box, ..) => {
@@ -262,18 +262,18 @@ impl InlineItem {
                     .borrow()
                     .context
                     .base
-                    .invalidate_cached_fragment();
+                    .clear_fragment_layout_cache();
             },
             InlineItem::OutOfFlowFloatBox(float_box) => float_box
                 .borrow()
                 .contents
                 .base
-                .invalidate_cached_fragment(),
+                .clear_fragment_layout_cache(),
             InlineItem::Atomic(independent_formatting_context, ..) => {
                 independent_formatting_context
                     .borrow()
                     .base
-                    .invalidate_cached_fragment();
+                    .clear_fragment_layout_cache()
             },
         }
     }
