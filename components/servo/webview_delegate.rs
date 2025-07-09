@@ -584,6 +584,8 @@ pub trait WebViewDelegate {
 
     /// Request to display a notification.
     fn show_notification(&self, _webview: WebView, _notification: Notification) {}
+
+    fn notify_webdriver_load_status_complete(&self, _webview: WebView) {}
 }
 
 pub(crate) struct DefaultWebViewDelegate;

@@ -998,6 +998,13 @@ impl Servo {
                     webview.delegate().show_form_control(webview, form_control);
                 }
             },
+            EmbedderMsg::WebDriverLoadStatusComplete(webview_id) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview
+                        .delegate()
+                        .notify_webdriver_load_status_complete(webview);
+                }
+            },
         }
     }
 
