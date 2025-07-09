@@ -9,11 +9,12 @@ dictionary TextEncoderEncodeIntoResult {
   unsigned long long written;
 };
 
-[Exposed=(Window,Worker)]
+[Exposed=*]
 interface TextEncoder {
    [Throws] constructor();
-   readonly attribute DOMString encoding;
+
    [NewObject]
    Uint8Array encode(optional USVString input = "");
    TextEncoderEncodeIntoResult encodeInto(USVString source, [AllowShared] Uint8Array destination);
 };
+TextEncoder includes TextEncoderCommon;
