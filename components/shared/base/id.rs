@@ -397,7 +397,7 @@ pub const TEST_WEBVIEW_ID: WebViewId = WebViewId(TEST_BROWSING_CONTEXT_ID);
 /// An id for a ScrollTreeNode in the ScrollTree. This contains both the index
 /// to the node in the tree's array of nodes as well as the corresponding SpatialId
 /// for the SpatialNode in the WebRender display list.
-#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub struct ScrollTreeNodeId {
     /// The index of this scroll tree node in the tree's array of nodes.
     pub index: usize,
