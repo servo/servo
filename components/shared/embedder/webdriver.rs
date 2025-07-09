@@ -29,7 +29,7 @@ use crate::{MouseButton, MouseButtonAction};
 pub struct WebDriverMessageId(pub usize);
 
 /// Messages to the constellation originating from the WebDriver server.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverCommandMsg {
     /// Used in the initialization of the WebDriver server to set the sender for sending responses
     /// back to the WebDriver client. It is set to constellation for now
@@ -117,7 +117,7 @@ pub enum WebDriverCommandMsg {
     IsBrowsingContextOpen(BrowsingContextId, IpcSender<bool>),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverScriptCommand {
     AddCookie(
         #[serde(
@@ -221,7 +221,7 @@ pub enum WebDriverJSError {
 
 pub type WebDriverJSResult = Result<WebDriverJSValue, WebDriverJSError>;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverFrameId {
     Short(u16),
     Element(String),

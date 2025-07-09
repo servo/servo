@@ -43,7 +43,7 @@ pub(crate) enum AppState {
 #[derive(Clone, Default)]
 struct WebDriverSenders {
     pub load_status_senders: HashMap<WebViewId, IpcSender<WebDriverLoadStatus>>,
-    pub script_command_interrupt_sender: Option<IpcSender<WebDriverJSResult>>,
+    pub script_evaluation_interrupt_sender: Option<IpcSender<WebDriverJSResult>>,
 }
 
 pub(crate) struct RunningAppState {
@@ -415,21 +415,23 @@ impl RunningAppState {
     ) {
         self.webdriver_senders
             .borrow_mut()
-            .script_command_interrupt_sender = sender;
+            .script_evaluation_interrupt_sender = sender;
     }
 
-    // From <https://w3c.github.io/webdriver/#dfn-execute-a-function-body>:
-    // > The rules to execute a function body are as follows. The algorithm returns
-    // > an ECMAScript completion record.
-    // >
-    // > If at any point during the algorithm a user prompt appears, immediately return
-    // > Completion { Type: normal, Value: null, Target: empty }, but continue to run the
-    // >  other steps of this algorithm in parallel.
-    fn interrupt_webdriver_script_command(&self) {
+    /// Interrupt any ongoing WebDriver-based script evaluation.
+    ///
+    /// From <https://w3c.github.io/webdriver/#dfn-execute-a-function-body>:
+    /// > The rules to execute a function body are as follows. The algorithm returns
+    /// > an ECMAScript completion record.
+    /// >
+    /// > If at any point during the algorithm a user prompt appears, immediately return
+    /// > Completion { Type: normal, Value: null, Target: empty }, but continue to run the
+    /// >  other steps of this algorithm in parallel.
+    fn interrupt_webdriver_script_evaluation(&self) {
         if let Some(sender) = &self
             .webdriver_senders
             .borrow()
-            .script_command_interrupt_sender
+            .script_evaluation_interrupt_sender
         {
             sender.send(Ok(WebDriverJSValue::Null)).unwrap_or_else(|err| {
                 info!("Notify dialog appear failed. Maybe the channel to webdriver is closed: {err}");
@@ -482,7 +484,7 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn show_simple_dialog(&self, webview: servo::WebView, dialog: SimpleDialog) {
-        self.interrupt_webdriver_script_command();
+        self.interrupt_webdriver_script_evaluation();
 
         if self.servoshell_preferences.headless &&
             self.servoshell_preferences.webdriver_port.is_none()
@@ -500,7 +502,6 @@ impl WebViewDelegate for RunningAppState {
                     response_sender, ..
                 } => response_sender.send(Default::default()),
             };
-
             return;
         }
         let dialog = Dialog::new_simple_dialog(dialog);

@@ -546,10 +546,7 @@ impl App {
                     browsing_context_id,
                     webdriver_script_command,
                 ) => {
-                    self.handle_webdriver_script_commnd(
-                        webdriver_script_command.clone(),
-                        running_state,
-                    );
+                    self.handle_webdriver_script_commnd(&webdriver_script_command, running_state);
                     running_state.forward_webdriver_command(WebDriverCommandMsg::ScriptCommand(
                         browsing_context_id,
                         webdriver_script_command,
@@ -567,7 +564,7 @@ impl App {
 
     fn handle_webdriver_script_commnd(
         &self,
-        msg: WebDriverScriptCommand,
+        msg: &WebDriverScriptCommand,
         running_state: &RunningAppState,
     ) {
         match msg {
@@ -575,7 +572,7 @@ impl App {
                 // Give embedder a chance to interrupt the script command.
                 // Webdriver only handles 1 script command at a time, so we can
                 // safely set a new interrupt sender and remove the previous one here.
-                running_state.set_script_command_interrupt_sender(Some(response_sender));
+                running_state.set_script_command_interrupt_sender(Some(response_sender.clone()));
             },
             _ => {
                 running_state.set_script_command_interrupt_sender(None);
