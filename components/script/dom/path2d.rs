@@ -383,8 +383,10 @@ impl Path2DMethods<crate::DomTypeHolder> for Path2D {
             return;
         }
 
-        // safe to unwrap because of empty check above
-        if matches!(self.last().unwrap(), PathSegment::ClosePath) {
+        if matches!(
+            self.last().expect("Path should not be empty"),
+            PathSegment::ClosePath
+        ) {
             return;
         }
 
