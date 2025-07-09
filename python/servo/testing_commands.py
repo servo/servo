@@ -8,6 +8,7 @@
 # except according to those terms.
 
 import argparse
+import base64
 import json
 import logging
 import os
@@ -19,6 +20,7 @@ import subprocess
 import sys
 import textwrap
 from time import sleep
+from typing import Any, Callable, TypedDict
 
 import tidy
 import wpt
@@ -66,6 +68,11 @@ TOML_GLOBS = [
     "ports/*/*.toml",
     "support/*/*.toml",
 ]
+
+
+class RunGlobals(TypedDict, total=False):
+    __file__: str
+    run_tests: Callable[..., bool]
 
 
 def format_toml_files_with_taplo(check_only: bool = True) -> int:
@@ -215,14 +222,14 @@ class MachCommands(CommandBase):
             return 0
 
         # Gather Cargo build timings (https://doc.rust-lang.org/cargo/reference/timings.html).
-        args = ["--timings"]
+        args: list[str] = ["--timings"]
 
         if build_type.is_release():
             args += ["--release"]
         elif build_type.is_dev():
             pass  # there is no argument for debug
         else:
-            args += ["--profile", build_type.profile]
+            args += ["--profile", build_type.profile]  # pyrefly: ignore
 
         for crate in packages:
             args += ["-p", "%s_tests" % crate]
@@ -342,7 +349,7 @@ class MachCommands(CommandBase):
             # For the `import WebIDL` in runtests.py
             sys.path.insert(0, test_file_dir)
             run_file = path.abspath(path.join(test_file_dir, "runtests.py"))
-            run_globals = {"__file__": run_file}
+            run_globals: RunGlobals = {"__file__": run_file}
             exec(compile(open(run_file).read(), run_file, "exec"), run_globals)
             passed = run_globals["run_tests"](tests, verbose or very_verbose) and passed
 
@@ -435,12 +442,14 @@ class MachCommands(CommandBase):
                 window.alert("JavaScript is running!")
             </script>
         """
-        url = "data:text/html;base64," + html.encode("base64").replace("\n", "")
+        html_base64: str = base64.b64encode(html.encode("utf-8")).decode("utf-8")
+        url: str = "data:text/html;base64," + html_base64.replace("\n", "")
         args = self.in_android_emulator(build_type)
         args = [sys.executable] + args + [url]
         process = subprocess.Popen(args, stdout=subprocess.PIPE)
         try:
             while 1:
+                assert process.stdout is not None
                 line = process.stdout.readline()
                 if len(line) == 0:
                     print("EOF without finding the expected line")
@@ -458,7 +467,9 @@ class MachCommands(CommandBase):
 
         env = self.build_env()
         os.environ["PATH"] = env["PATH"]
+        # pyrefly: ignore  # missing-attribute
         assert self.setup_configuration_for_android_target(target)
+        # pyrefly: ignore  # missing-attribute
         apk = self.get_apk_path(build_type)
 
         py = path.join(self.context.topdir, "etc", "run_in_headless_android_emulator.py")
@@ -622,7 +633,7 @@ class MachCommands(CommandBase):
 
         return check_call([run_file, "|".join(tests), bin_path, base_dir, bmf_output])
 
-    def speedometer_to_bmf(self, speedometer: str, bmf_output: str | None):
+    def speedometer_to_bmf(self, speedometer: dict[str, Any], bmf_output: str | None):
         output = dict()
 
         def parse_speedometer_result(result):
@@ -643,15 +654,17 @@ class MachCommands(CommandBase):
                     }
                 }
             else:
-                raise "Unknown unit!"
+                raise Exception("Unknown unit!")
 
             for child in result["children"]:
                 parse_speedometer_result(child)
 
         for v in speedometer.values():
             parse_speedometer_result(v)
-        with open(bmf_output, "w", encoding="utf-8") as f:
-            json.dump(output, f, indent=4)
+
+        if bmf_output is not None:
+            with open(bmf_output, "w", encoding="utf-8") as f:
+                json.dump(output, f, indent=4)
 
     def speedometer_runner(self, binary: str, bmf_output: str | None):
         speedometer = json.loads(
@@ -674,10 +687,9 @@ class MachCommands(CommandBase):
             self.speedometer_to_bmf(speedometer, bmf_output)
 
     def speedometer_runner_ohos(self, bmf_output: str | None):
-        hdc_path: str = shutil.which("hdc")
+        ohos_sdk_native = os.getenv("OHOS_SDK_NATIVE") or ""
+        hdc_path: str = shutil.which("hdc") or path.join(ohos_sdk_native, "../", "toolchains", "hdc")
         log_path: str = "/data/app/el2/100/base/org.servo.servo/cache/servo.log"
-        if hdc_path is None:
-            hdc_path = path.join(os.getenv("OHOS_SDK_NATIVE"), "../", "toolchains", "hdc")
 
         def read_log_file() -> str:
             subprocess.call([hdc_path, "file", "recv", log_path])
@@ -703,8 +715,6 @@ class MachCommands(CommandBase):
                 "org.servo.servo",
                 "-U",
                 "https://servospeedometer.netlify.app?headless=1",
-                "--ps=--pref",
-                "js_disable_jit=true",
                 "--ps",
                 "--log-filter",
                 "script::dom::console",
@@ -747,7 +757,7 @@ class MachCommands(CommandBase):
         run_file = path.abspath(
             path.join(PROJECT_TOPLEVEL_PATH, "components", "net", "tests", "cookie_http_state_utils.py")
         )
-        run_globals = {"__file__": run_file}
+        run_globals: dict[str, Any] = {"__file__": run_file}
         exec(compile(open(run_file).read(), run_file, "exec"), run_globals)
         return run_globals["update_test_file"](cache_dir)
 
@@ -764,7 +774,7 @@ class MachCommands(CommandBase):
         if os.path.exists(dest_folder):
             shutil.rmtree(dest_folder)
 
-        run_globals = {"__file__": run_file}
+        run_globals: dict[str, Any] = {"__file__": run_file}
         exec(compile(open(run_file).read(), run_file, "exec"), run_globals)
         return run_globals["update_conformance"](version, dest_folder, None, patches_dir)
 

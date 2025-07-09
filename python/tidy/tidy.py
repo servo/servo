@@ -17,7 +17,8 @@ import os
 import re
 import subprocess
 import sys
-from typing import Any, Dict, List
+from dataclasses import dataclass
+from typing import Any, Dict, Generator, Iterator, List, Tuple, TypedDict, cast
 
 import colorama
 import toml
@@ -38,11 +39,29 @@ CARGO_DENY_CONFIG_FILE = os.path.join(TOPDIR, "deny.toml")
 
 ERROR_RAW_URL_IN_RUSTDOC = "Found raw link in rustdoc. Please escape it with angle brackets or use a markdown link."
 
-sys.path.append(os.path.join(WPT_PATH, "tests"))
-sys.path.append(os.path.join(WPT_PATH, "tests", "tools", "wptrunner"))
+IgnoreConfig = TypedDict(
+    "IgnoreConfig",
+    {
+        "files": list[str],
+        "directories": list[str],
+        "packages": list[str],
+    },
+)
 
-# Default configs
-config = {
+Config = TypedDict(
+    "Config",
+    {
+        "skip-check-length": bool,
+        "skip-check-licenses": bool,
+        "check-alphabetical-order": bool,
+        "lint-scripts": list,
+        "blocked-packages": dict[str, Any],
+        "ignore": IgnoreConfig,
+        "check_ext": dict[str, Any],
+    },
+)
+
+config: Config = {
     "skip-check-length": False,
     "skip-check-licenses": False,
     "check-alphabetical-order": True,
@@ -128,6 +147,10 @@ def is_iter_empty(iterator):
         return False, iterator
 
 
+def normalize_path(path: str) -> str:
+    return os.path.relpath(os.path.abspath(path), TOPDIR)
+
+
 def normilize_paths(paths):
     if isinstance(paths, str):
         return os.path.join(*paths.split("/"))
@@ -151,7 +174,7 @@ def git_changes_since_last_merge(path):
     args = ["git", "log", "-n1", "--committer", "noreply@github.com", "--format=%H"]
     last_merge = subprocess.check_output(args, universal_newlines=True).strip()
     if not last_merge:
-        return
+        return []
 
     args = ["git", "diff", "--name-only", last_merge, path]
     file_list = normilize_paths(subprocess.check_output(args, universal_newlines=True).splitlines())
@@ -163,7 +186,7 @@ class FileList(object):
     def __init__(self, directory, only_changed_files=False, exclude_dirs=[], progress=True):
         self.directory = directory
         self.excluded = exclude_dirs
-        self.generator = self._filter_excluded() if exclude_dirs else self._default_walk()
+        self.generator: Generator[str, None, None] = self._filter_excluded() if exclude_dirs else self._default_walk()
         if only_changed_files:
             self.generator = self._git_changed_files()
         if progress:
@@ -250,7 +273,7 @@ def check_license(file_name, lines):
     license_block = []
 
     for line in lines:
-        line = line.rstrip(b"\n")
+        line = (line or b"").rstrip(b"\n")
         if not line.strip():
             blank_lines += 1
             if blank_lines >= max_blank_lines:
@@ -376,6 +399,38 @@ def check_ruff_lints():
             )
 
 
+@dataclass
+class PyreflyDiagnostic:
+    """
+    Represents a single diagnostic error reported by Pyrefly.
+    """
+
+    line: int
+    column: int
+    stop_line: int
+    stop_column: int
+    path: str
+    code: int
+    name: str
+    description: str
+    concise_description: str
+
+
+def check_pyrefly_type_checking() -> Iterator[Tuple[str, int, str]]:
+    print("\r ➤  Running `pyrefly` checks...")
+    try:
+        result = subprocess.run(["pyrefly", "check", "--output-format", "json"], capture_output=True)
+        parsed_json = json.loads(result.stdout)
+        errors = parsed_json.get("errors", [])
+    except subprocess.CalledProcessError as error:
+        print(f"{colorama.Fore.YELLOW}{error}{colorama.Style.RESET_ALL}")
+        pass
+    else:
+        for error in errors:
+            diagnostic: PyreflyDiagnostic = PyreflyDiagnostic(**error)
+            yield normalize_path(diagnostic.path), diagnostic.line, diagnostic.name
+
+
 def run_cargo_deny_lints():
     print("\r ➤  Running `cargo-deny` checks...")
     result = subprocess.run(
@@ -385,7 +440,7 @@ def run_cargo_deny_lints():
 
     errors = []
     for line in result.stderr.splitlines():
-        error_fields = json.loads(line)["fields"]
+        error_fields = json.loads(str(line))["fields"]
         error_code = error_fields.get("code", "unknown")
         error_severity = error_fields.get("severity", "unknown")
         message = error_fields.get("message", "")
@@ -511,11 +566,11 @@ def check_rust(file_name, lines):
         os.path.join("*", "ports", "servoshell", "embedder.rs"),
         os.path.join("*", "rust_tidy.rs"),  # This is for the tests.
     ]
-    is_panic_not_allowed_rs_file = any([glob.fnmatch.fnmatch(file_name, path) for path in PANIC_NOT_ALLOWED_PATHS])
+    is_panic_not_allowed_rs_file = any([fnmatch.fnmatch(file_name, path) for path in PANIC_NOT_ALLOWED_PATHS])
 
     prev_open_brace = False
     multi_line_string = False
-    prev_mod = {}
+    prev_mod: dict[int, str] = {}
     prev_feature_name = ""
     indent = 0
 
@@ -655,6 +710,7 @@ def check_rust(file_name, lines):
             if (idx - 1) < 0 or "#[macro_use]" not in lines[idx - 1].decode("utf-8"):
                 match = line.find(" {")
                 if indent not in prev_mod:
+                    prev_mod = cast(dict[int, str], prev_mod)
                     prev_mod[indent] = ""
                 if match == -1 and not line.endswith(";"):
                     yield (idx + 1, "mod declaration spans multiple lines")
@@ -727,7 +783,7 @@ def check_webidl_spec(file_name, contents):
     yield (0, "No specification link found.")
 
 
-def check_that_manifests_exist():
+def check_that_manifests_exist() -> Iterator[Tuple[str, int, str]]:
     # Determine the metadata and test directories from the configuration file.
     metadata_dirs = []
     config = configparser.ConfigParser()
@@ -739,11 +795,11 @@ def check_that_manifests_exist():
     for directory in metadata_dirs:
         manifest_path = os.path.join(TOPDIR, directory, "MANIFEST.json")
         if not os.path.isfile(manifest_path):
-            yield (WPT_CONFIG_INI_PATH, "", f"Path in config was not found: {manifest_path}")
+            yield (WPT_CONFIG_INI_PATH, 0, f"Path in config was not found: {manifest_path}")
 
 
-def check_that_manifests_are_clean():
-    from wptrunner import wptlogging
+def check_that_manifests_are_clean() -> Iterator[Tuple[str, int, str]]:
+    from tools.wptrunner.wptrunner import wptlogging
 
     print("\r ➤  Checking WPT manifests for cleanliness...")
     output_stream = io.StringIO("")
@@ -752,16 +808,18 @@ def check_that_manifests_are_clean():
         for line in output_stream.getvalue().splitlines():
             if "ERROR" in line:
                 yield (WPT_CONFIG_INI_PATH, 0, line)
-        yield (WPT_CONFIG_INI_PATH, "", "WPT manifest is dirty. Run `./mach update-manifest`.")
+        yield (WPT_CONFIG_INI_PATH, 0, "WPT manifest is dirty. Run `./mach update-manifest`.")
 
 
-def lint_wpt_test_files():
+def lint_wpt_test_files() -> Iterator[Tuple[str, int, str]]:
     from tools.lint import lint
 
     # Override the logging function so that we can collect errors from
     # the lint script, which doesn't allow configuration of the output.
     messages: List[str] = []
-    lint.logger.error = lambda message: messages.append(message)
+    assert lint.logger is not None
+
+    lint.logger.error = lambda message: messages.append(message)  # pyrefly: ignore
 
     # We do not lint all WPT-like tests because they do not all currently have
     # lint.ignore files.
@@ -779,10 +837,10 @@ def lint_wpt_test_files():
         if lint.lint(suite_directory, tests_changed, output_format="normal"):
             for message in messages:
                 (filename, message) = message.split(":", maxsplit=1)
-                yield (filename, "", message)
+                yield (filename, 0, message)
 
 
-def run_wpt_lints(only_changed_files: bool):
+def run_wpt_lints(only_changed_files: bool) -> Iterator[Tuple[str, int, str]]:
     if not os.path.exists(WPT_CONFIG_INI_PATH):
         yield (WPT_CONFIG_INI_PATH, 0, f"{WPT_CONFIG_INI_PATH} is required but was not found")
         return
@@ -932,16 +990,17 @@ def parse_config(config_file):
     dirs_to_check = config_file.get("check_ext", {})
     # Fix the paths (OS-dependent)
     for path, exts in dirs_to_check.items():
-        config["check_ext"][normilize_paths(path)] = exts
+        config["check_ext"][normilize_paths(path)] = exts  # type: ignore
 
     # Add list of blocked packages
     config["blocked-packages"] = config_file.get("blocked-packages", {})
 
     # Override default configs
     user_configs = config_file.get("configs", [])
+
     for pref in user_configs:
         if pref in config:
-            config[pref] = user_configs[pref]
+            config[pref] = user_configs[pref]  # pyrefly: ignore
 
 
 def check_directory_files(directories, print_text=True):
@@ -1006,8 +1065,11 @@ def scan(only_changed_files=False, progress=False, github_annotations=False):
     cargo_lock_errors = run_cargo_deny_lints()
     wpt_errors = run_wpt_lints(only_changed_files)
 
+    python_type_check = check_pyrefly_type_checking()
     # chain all the iterators
-    errors = itertools.chain(config_errors, directory_errors, file_errors, python_errors, wpt_errors, cargo_lock_errors)
+    errors = itertools.chain(
+        config_errors, directory_errors, file_errors, python_errors, python_type_check, wpt_errors, cargo_lock_errors
+    )
 
     colorama.init()
     error = None
@@ -1031,6 +1093,5 @@ class CargoDenyKrate:
         self.name = crate["name"]
         self.version = crate["version"]
         self.parents = [CargoDenyKrate(parent) for parent in data.get("parents", [])]
-
-    def __str__(self):
-        return f"{self.name}@{self.version}"
+        self.version = crate["version"]
+        self.parents = [CargoDenyKrate(parent) for parent in data.get("parents", [])]

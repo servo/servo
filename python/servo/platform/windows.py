@@ -8,12 +8,12 @@
 # except according to those terms.
 
 import os
+import shutil
 import subprocess
 import tempfile
-from typing import Optional
-import urllib
+import urllib.parse
 import zipfile
-import shutil
+from typing import Optional
 
 from servo import util
 
@@ -184,7 +184,8 @@ class Windows(Base):
             for installer in [libs_msi, devel_msi]:
                 arguments = [
                     "/a",
-                    f'"{installer}"TARGETDIR="{DEPENDENCIES_DIR}"',  # Install destination
+                    # Install destination
+                    f'"{installer}"TARGETDIR="{DEPENDENCIES_DIR}"',
                     "/qn",  # Quiet mode
                 ]
                 quoted_arguments = ",".join((f"'{arg}'" for arg in arguments))

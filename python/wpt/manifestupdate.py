@@ -10,7 +10,7 @@ from collections import defaultdict
 from six import iterkeys, iteritems
 
 from . import SERVO_ROOT, WPT_PATH
-from mozlog.structured import commandline
+from mozlog import commandline
 
 # This must happen after importing from "." since it adds WPT
 # tools to the Python system path.

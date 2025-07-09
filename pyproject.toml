@@ -24,3 +24,26 @@ ignore = [
     # 80 character line length; the standard tidy process will enforce line length
     "E501",
 ]
+
+[tool.pyrefly]
+search-path = [
+    "python",
+    "tests/wpt/tests",
+    "tests/wpt/tests/tools",
+    "tests/wpt/tests/tools/wptrunner",
+    "tests/wpt/tests/tools/wptserve",
+    "python/mach",
+]
+project-includes = [
+    "python/**/*.py",
+]
+project-excludes = [
+    "**/venv/**",
+    "**/.venv/**",
+    "tests/wpt/tests/**",
+    "**/test.py",
+    "**/*_tests.py",
+    "**/tests/**",
+    "python/mach/**/*.py",
+    "python/servo/mutation/**/*.py",
+]

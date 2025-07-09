@@ -8,6 +8,7 @@
 # except according to those terms.
 
 import datetime
+import importlib
 import os
 import os.path as path
 import pathlib
@@ -15,14 +16,14 @@ import shutil
 import stat
 import subprocess
 import sys
-
+from os import PathLike
 from time import time
-from typing import Optional, List, Dict
+from typing import Any, Dict, List, Optional, Union, cast
 
 from mach.decorators import (
+    Command,
     CommandArgument,
     CommandProvider,
-    Command,
 )
 from mach.registrar import Registrar
 
@@ -30,12 +31,10 @@ import servo.platform
 import servo.platform.macos
 import servo.util
 import servo.visual_studio
-
-from servo.command_base import BuildType, CommandBase, check_call
-from servo.gstreamer import windows_dlls, windows_plugins, package_gstreamer_dylibs
-from servo.platform.build_target import BuildTarget
-
 from python.servo.platform.build_target import SanitizerKind
+from servo.command_base import BuildType, CommandBase, check_call
+from servo.gstreamer import package_gstreamer_dylibs, windows_dlls, windows_plugins
+from servo.platform.build_target import BuildTarget
 
 SUPPORTED_ASAN_TARGETS = [
     "aarch64-apple-darwin",
@@ -71,7 +70,7 @@ def get_rustc_llvm_version() -> Optional[List[int]]:
                 llvm_version = llvm_version.strip()
                 version = llvm_version.split(".")
                 print(f"Info: rustc is using LLVM version {'.'.join(version)}")
-                return version
+                return list(map(int, version))
         else:
             print(f"Error: Couldn't find LLVM version in output of `rustc --version --verbose`: `{result.stdout}`")
     except Exception as e:
@@ -178,7 +177,7 @@ class MachCommands(CommandBase):
                 # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
                 # like Instruments.app.
                 try:
-                    import Cocoa
+                    Cocoa = cast(Any, importlib.import_module("Cocoa"))
 
                     icon_path = path.join(self.get_top_dir(), "resources", "servo_1024.png")
                     icon = Cocoa.NSImage.alloc().initWithContentsOfFile_(icon_path)
@@ -355,7 +354,7 @@ def package_gstreamer_dlls(servo_exe_dir: str, target: BuildTarget):
 
 
 def package_msvc_dlls(servo_exe_dir: str, target: BuildTarget):
-    def copy_file(dll_path: Optional[str]) -> bool:
+    def copy_file(dll_path: Union[PathLike[str], str]) -> bool:
         if not dll_path or not os.path.exists(dll_path):
             print(f"WARNING: Could not find DLL at {dll_path}", file=sys.stderr)
             return False

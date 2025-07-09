@@ -7,15 +7,21 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-from os import listdir
-from os.path import isfile, isdir, join
 import json
-import sys
-import test
 import logging
 import random
+import sys
+from os import listdir
+from os.path import isdir, isfile, join
 
-test_summary = {test.Status.KILLED: 0, test.Status.SURVIVED: 0, test.Status.SKIPPED: 0, test.Status.UNEXPECTED: 0}
+import test
+
+test_summary = {
+    test.Status.KILLED: 0,
+    test.Status.SURVIVED: 0,
+    test.Status.SKIPPED: 0,
+    test.Status.UNEXPECTED: 0,
+}
 
 
 def get_folders_list(path):
@@ -25,6 +31,7 @@ def get_folders_list(path):
             folder_name = join(path, filename)
             folder_list.append(folder_name)
         return folder_list
+    return folder_list
 
 
 def mutation_test_for(mutation_path):

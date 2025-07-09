@@ -8,6 +8,7 @@
 # except according to those terms.
 
 import json
+from subprocess import CompletedProcess
 
 from mach.decorators import (
     Command,
@@ -85,6 +86,8 @@ class MachCommands(CommandBase):
             github_annotation_manager = GitHubAnnotationManager("clippy")
 
             results = self.run_cargo_build_like_command("clippy", params, env=env, capture_output=True, **kwargs)
+
+            assert isinstance(results, CompletedProcess)
             if results.returncode == 0:
                 return 0
             try:
