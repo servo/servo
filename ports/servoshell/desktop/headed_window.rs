@@ -15,9 +15,9 @@ use keyboard_types::{Modifiers, ShortcutMatcher};
 use log::{debug, info};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
 use servo::servo_config::pref;
-use servo::servo_geometry::DeviceIndependentPixel;
+use servo::servo_geometry::{DeviceIndependentIntRect, DeviceIndependentPixel};
 use servo::webrender_api::ScrollLocation;
-use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
+use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePixel};
 use servo::{
     Cursor, ImeEvent, InputEvent, Key, KeyState, KeyboardEvent, MouseButton as ServoMouseButton,
     MouseButtonAction, MouseButtonEvent, MouseLeaveEvent, MouseMoveEvent,
@@ -484,15 +484,28 @@ impl WindowPortsMethods for Window {
             })
     }
 
-    fn window_rect(&self) -> DeviceIntRect {
+    fn window_rect(&self) -> DeviceIndependentIntRect {
         let outer_size = self.winit_window.outer_size();
-        let total_size = Size2D::new(outer_size.width as i32, outer_size.height as i32);
+        let hidpi_scale = self.hidpi_scale_factor().get() as f64;
+        // TODO: Find a universal way to convert.
+        // See https://github.com/servo/servo/issues/37937
+        let total_size = Size2D::new(
+            (outer_size.width as f64 / hidpi_scale).round() as i32,
+            (outer_size.height as f64 / hidpi_scale).round() as i32,
+        );
+        // TODO: Find a universal way to convert.
+        // See https://github.com/servo/servo/issues/37937
         let origin = self
             .winit_window
             .outer_position()
-            .map(|point| Point2D::new(point.x, point.y))
+            .map(|point| {
+                Point2D::new(
+                    (point.x as f64 / hidpi_scale).round() as i32,
+                    (point.y as f64 / hidpi_scale).round() as i32,
+                )
+            })
             .unwrap_or_default();
-        DeviceIntRect::from_origin_and_size(origin, total_size)
+        DeviceIndependentIntRect::from_origin_and_size(origin, total_size)
     }
 
     fn set_position(&self, point: DeviceIntPoint) {
