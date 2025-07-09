@@ -315,8 +315,12 @@ impl ShadowRoot {
 impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
     // https://html.spec.whatwg.org/multipage/#dom-document-activeelement
     fn GetActiveElement(&self) -> Option<DomRoot<Element>> {
-        self.document_or_shadow_root
-            .get_active_element(self.get_focused_element(), None, None)
+        self.document_or_shadow_root.get_active_element(
+            self.upcast(),
+            self.get_focused_element(),
+            None,
+            None,
+        )
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint
