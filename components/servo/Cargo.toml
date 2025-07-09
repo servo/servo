@@ -13,7 +13,7 @@ path = "lib.rs"
 crate-type = ["rlib"]
 
 [features]
-default = ["clipboard", "vello_cpu"]
+default = ["clipboard", "js_jit", "vello_cpu"]
 background_hang_monitor = ["background_hang_monitor/sampler"]
 bluetooth = [
     "bluetooth_traits",
@@ -29,6 +29,7 @@ debugmozjs = ["script/debugmozjs"]
 dynamic_freetype = ["webrender/dynamic_freetype"]
 jitspew = ["script/jitspew"]
 js_backtrace = ["script/js_backtrace"]
+js_jit = ["script/js_jit"]
 media-gstreamer = ["servo-media-gstreamer", "gstreamer"]
 native-bluetooth = ["bluetooth/native-bluetooth"]
 no-wgl = ["mozangle/egl", "mozangle/build_dlls", "surfman/sm-angle-default", "compositing_traits/no-wgl"]
