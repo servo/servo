@@ -726,10 +726,10 @@ impl Handler {
         if let VerifyBrowsingContextIsOpen::Yes = verify {
             self.verify_browsing_context_is_open(browsing_context_id)?;
         }
-        let msg = EmbedderToConstellationMessage::WebDriverCommand(
-            WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd_msg),
-        );
-        self.constellation_chan.send(msg).unwrap();
+        self.send_message_to_embedder(WebDriverCommandMsg::ScriptCommand(
+            browsing_context_id,
+            cmd_msg,
+        ))?;
         Ok(())
     }
 
@@ -746,10 +746,10 @@ impl Handler {
             self.verify_top_level_browsing_context_is_open(webview_id)?;
         }
         let browsing_context_id = BrowsingContextId::from(webview_id);
-        let msg = EmbedderToConstellationMessage::WebDriverCommand(
-            WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd_msg),
-        );
-        self.constellation_chan.send(msg).unwrap();
+        self.send_message_to_embedder(WebDriverCommandMsg::ScriptCommand(
+            browsing_context_id,
+            cmd_msg,
+        ))?;
         Ok(())
     }
 
