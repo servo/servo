@@ -11,7 +11,7 @@ use constellation_traits::SerializableImageBitmap;
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
 use pixels::{CorsStatus, PixelFormat, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
-use script_bindings::error::Error;
+use script_bindings::error::{Error, Fallible};
 use script_bindings::realms::{AlreadyInRealm, InRealm};
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -630,14 +630,16 @@ impl Serializable for ImageBitmap {
 
     /// <https://html.spec.whatwg.org/multipage/#the-imagebitmap-interface:serialization-steps>
     fn serialize(&self) -> Result<(ImageBitmapId, Self::Data), ()> {
-        // Step 1. If value's origin-clean flag is not set, then throw a "DataCloneError" DOMException.
-        if !self.origin_is_clean() {
+        // <https://html.spec.whatwg.org/multipage/#structuredserializeinternal>
+        // Step 19.1. If value has a [[Detached]] internal slot whose value is
+        // true, then throw a "DataCloneError" DOMException.
+        if self.is_detached() {
             return Err(());
         }
 
-        // If value has a [[Detached]] internal slot whose value is true,
-        // then throw a "DataCloneError" DOMException.
-        if self.is_detached() {
+        // Step 1. If value's origin-clean flag is not set, then throw a
+        // "DataCloneError" DOMException.
+        if !self.origin_is_clean() {
             return Err(());
         }
 
@@ -673,45 +675,41 @@ impl Transferable for ImageBitmap {
     type Index = ImageBitmapIndex;
     type Data = SerializableImageBitmap;
 
-    fn can_transfer(&self) -> bool {
-        if !self.origin_is_clean() || self.is_detached() {
-            return false;
-        }
-        true
-    }
-
     /// <https://html.spec.whatwg.org/multipage/#the-imagebitmap-interface:transfer-steps>
-    fn transfer(&self) -> Result<(ImageBitmapId, SerializableImageBitmap), ()> {
-        // Step 1. If value's origin-clean flag is not set, then throw a "DataCloneError" DOMException.
-        if !self.origin_is_clean() {
-            return Err(());
+    fn transfer(&self) -> Fallible<(ImageBitmapId, SerializableImageBitmap)> {
+        // <https://html.spec.whatwg.org/multipage/#structuredserializewithtransfer>
+        // Step 5.2. If transferable has a [[Detached]] internal slot and
+        // transferable.[[Detached]] is true, then throw a "DataCloneError"
+        // DOMException.
+        if self.is_detached() {
+            return Err(Error::DataClone(None));
         }
 
-        // If value has a [[Detached]] internal slot whose value is true,
-        // then throw a "DataCloneError" DOMException.
-        if self.is_detached() {
-            return Err(());
+        // Step 1. If value's origin-clean flag is not set, then throw a
+        // "DataCloneError" DOMException.
+        if !self.origin_is_clean() {
+            return Err(Error::DataClone(None));
         }
 
         // Step 2. Set dataHolder.[[BitmapData]] to value's bitmap data.
         // Step 3. Unset value's bitmap data.
-        let serialized = SerializableImageBitmap {
+        let transferred = SerializableImageBitmap {
             bitmap_data: self.bitmap_data.borrow_mut().take().unwrap(),
         };
 
-        Ok((ImageBitmapId::new(), serialized))
+        Ok((ImageBitmapId::new(), transferred))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-imagebitmap-interface:transfer-receiving-steps>
     fn transfer_receive(
         owner: &GlobalScope,
         _: ImageBitmapId,
-        serialized: SerializableImageBitmap,
+        transferred: SerializableImageBitmap,
     ) -> Result<DomRoot<Self>, ()> {
         // Step 1. Set value's bitmap data to serialized.[[BitmapData]].
         Ok(ImageBitmap::new(
             owner,
-            serialized.bitmap_data,
+            transferred.bitmap_data,
             CanGc::note(),
         ))
     }

@@ -152,16 +152,24 @@ impl Transferable for OffscreenCanvas {
     type Data = TransferableOffscreenCanvas;
 
     /// <https://html.spec.whatwg.org/multipage/#the-offscreencanvas-interface:transfer-steps>
-    fn transfer(&self) -> Result<(OffscreenCanvasId, TransferableOffscreenCanvas), ()> {
-        // TODO(#37919) Step 1. If value's context mode is not equal to none,
-        // then throw an "InvalidStateError" DOMException.
+    fn transfer(&self) -> Fallible<(OffscreenCanvasId, TransferableOffscreenCanvas)> {
+        // <https://html.spec.whatwg.org/multipage/#structuredserializewithtransfer>
+        // Step 5.2. If transferable has a [[Detached]] internal slot and
+        // transferable.[[Detached]] is true, then throw a "DataCloneError"
+        // DOMException.
+        if let Some(OffscreenRenderingContext::Detached) = *self.context.borrow() {
+            return Err(Error::DataClone(None));
+        }
+
+        // Step 1. If value's context mode is not equal to none, then throw an
+        // "InvalidStateError" DOMException.
         if !self.context.borrow().is_none() {
-            return Err(());
+            return Err(Error::InvalidState);
         }
 
         // TODO(#37882): Allow to transfer with a placeholder canvas element.
         if self.placeholder.is_some() {
-            return Err(());
+            return Err(Error::InvalidState);
         }
 
         // Step 2. Set value's context mode to detached.
