@@ -59,7 +59,7 @@ impl WebGLValidator for CommonTexImage3DValidator<'_> {
             .active_texture_for_image_target(target);
         let limits = self.context.limits();
 
-        let max_size = limits.max_cube_map_tex_size;
+        let max_size = limits.max_3d_tex_size;
 
         //  If an attempt is made to call this function with no WebGLTexture
         //  bound, an INVALID_OPERATION error is generated.

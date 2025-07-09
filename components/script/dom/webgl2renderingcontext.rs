@@ -3080,7 +3080,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         // If type is specified as FLOAT_32_UNSIGNED_INT_24_8_REV, srcData must be null;
         // otherwise, generates an INVALID_OPERATION error.
         if type_ == constants::FLOAT_32_UNSIGNED_INT_24_8_REV && src_data.is_some() {
-            self.base.webgl_error(InvalidValue);
+            self.base.webgl_error(InvalidOperation);
             return Ok(());
         }
 
