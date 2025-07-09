@@ -2186,11 +2186,11 @@ impl Document {
     pub(crate) fn handle_wheel_event(
         &self,
         event: WheelEvent,
-        hit_test_result: Option<CompositorHitTestResult>,
+        input_event: &ConstellationInputEvent,
         can_gc: CanGc,
     ) {
         // Ignore all incoming events without a hit test.
-        let Some(hit_test_result) = hit_test_result else {
+        let Some(hit_test_result) = &input_event.hit_test_result else {
             return;
         };
 
@@ -2220,6 +2220,16 @@ impl Document {
             EventCancelable::Cancelable,
             Some(&self.window),
             0i32,
+            hit_test_result.point_in_viewport.to_i32(),
+            hit_test_result.point_in_viewport.to_i32(),
+            hit_test_result
+                .point_relative_to_initial_containing_block
+                .to_i32(),
+            input_event.active_keyboard_modifiers,
+            0i16,
+            input_event.pressed_mouse_buttons,
+            None,
+            None,
             // winit defines positive wheel delta values as revealing more content left/up.
             // https://docs.rs/winit-gtk/latest/winit/event/enum.MouseScrollDelta.html
             // This is the opposite of wheel delta in uievents
