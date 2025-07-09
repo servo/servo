@@ -147,6 +147,7 @@ use crate::dom::navigator::Navigator;
 use crate::dom::node::{Node, NodeDamage, NodeTraits, from_untrusted_node_address};
 use crate::dom::performance::Performance;
 use crate::dom::promise::Promise;
+use crate::dom::reportingendpoint::{ReportingEndpoint, SendReportsToEndpoints};
 use crate::dom::reportingobserver::ReportingObserver;
 use crate::dom::screen::Screen;
 use crate::dom::selection::Selection;
@@ -406,6 +407,10 @@ pub(crate) struct Window {
 
     /// <https://w3c.github.io/reporting/#windoworworkerglobalscope-reports>
     report_list: DomRefCell<Vec<Report>>,
+
+    /// <https://w3c.github.io/reporting/#windoworworkerglobalscope-endpoints>
+    #[no_trace]
+    endpoints_list: DomRefCell<Vec<ReportingEndpoint>>,
 }
 
 impl Window {
@@ -533,10 +538,26 @@ impl Window {
 
     pub(crate) fn append_report(&self, report: Report) {
         self.report_list.borrow_mut().push(report);
+        let trusted_window = Trusted::new(self);
+        self.upcast::<GlobalScope>()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(send_to_reporting_endpoints: move || {
+                let window = trusted_window.root();
+                let reports = std::mem::take(&mut *window.report_list.borrow_mut());
+                window.upcast::<GlobalScope>().send_reports_to_endpoints(
+                    reports,
+                    window.endpoints_list.borrow().clone(),
+                );
+            }));
     }
 
     pub(crate) fn buffered_reports(&self) -> Vec<Report> {
         self.report_list.borrow().clone()
+    }
+
+    pub(crate) fn set_endpoints_list(&self, endpoints: Vec<ReportingEndpoint>) {
+        *self.endpoints_list.borrow_mut() = endpoints;
     }
 
     /// Returns the window proxy if it has not been discarded.
@@ -3145,6 +3166,7 @@ impl Window {
             trusted_types: Default::default(),
             reporting_observer_list: Default::default(),
             report_list: Default::default(),
+            endpoints_list: Default::default(),
         });
 
         unsafe {
