@@ -70,6 +70,7 @@ use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::performanceentry::PerformanceEntry;
 use crate::dom::performancenavigationtiming::PerformanceNavigationTiming;
 use crate::dom::processinginstruction::ProcessingInstruction;
+use crate::dom::reportingendpoint::ReportingEndpoint;
 use crate::dom::shadowroot::IsUserAgentWidget;
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::vtable_for;
@@ -913,9 +914,13 @@ impl FetchResponseListener for ParserContext {
             .map(Serde::into_inner)
             .map(Into::into);
 
-        let csp_list = metadata
-            .as_ref()
-            .and_then(|m| parse_csp_list_from_metadata(&m.headers));
+        let (csp_list, endpoints_list) = match metadata.as_ref() {
+            None => (None, None),
+            Some(m) => (
+                parse_csp_list_from_metadata(&m.headers),
+                ReportingEndpoint::parse_reporting_endpoints_header(&self.url.clone(), &m.headers),
+            ),
+        };
 
         let parser = match ScriptThread::page_headers_available(&self.id, metadata, CanGc::note()) {
             Some(parser) => parser,
@@ -928,6 +933,9 @@ impl FetchResponseListener for ParserContext {
         let _realm = enter_realm(&*parser.document);
 
         parser.document.set_csp_list(csp_list);
+        if let Some(endpoints) = endpoints_list {
+            parser.document.window().set_endpoints_list(endpoints);
+        }
         self.parser = Some(Trusted::new(&*parser));
         self.submit_resource_timing();
 

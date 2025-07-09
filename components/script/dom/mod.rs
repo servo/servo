@@ -517,6 +517,7 @@ pub(crate) mod readablestreambyobrequest;
 pub(crate) mod readablestreamdefaultcontroller;
 pub(crate) mod readablestreamdefaultreader;
 pub(crate) mod readablestreamgenericreader;
+pub(crate) mod reportingendpoint;
 pub(crate) mod reportingobserver;
 pub(crate) mod request;
 pub(crate) mod resizeobserver;

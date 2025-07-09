@@ -234,7 +234,7 @@ impl CSPViolationReportBuilder {
     }
 }
 
-fn serialize_disposition<S: serde::Serializer>(
+pub(crate) fn serialize_disposition<S: serde::Serializer>(
     val: &SecurityPolicyViolationEventDisposition,
     serializer: S,
 ) -> Result<S::Ok, S::Error> {

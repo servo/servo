@@ -49,6 +49,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
+use crate::dom::reportingendpoint::ReportingEndpoint;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worker::{TrustedWorkerAddress, Worker};
@@ -481,6 +482,10 @@ impl DedicatedWorkerGlobalScope {
                 };
                 scope.set_url(metadata.final_url.clone());
                 scope.set_csp_list(parse_csp_list_from_metadata(&metadata.headers));
+                scope.set_endpoints_list(ReportingEndpoint::parse_reporting_endpoints_header(
+                    &metadata.final_url.clone(),
+                    &metadata.headers,
+                ));
                 global_scope.set_https_state(metadata.https_state);
                 let source = String::from_utf8_lossy(&bytes);
                 if let Some(chan) = global_scope.devtools_chan() {
