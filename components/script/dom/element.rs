@@ -99,7 +99,7 @@ use crate::dom::bindings::xmlname::{
 };
 use crate::dom::characterdata::CharacterData;
 use crate::dom::create::create_element;
-use crate::dom::csp::{CspReporting, InlineCheckType};
+use crate::dom::csp::{CspReporting, InlineCheckType, SourcePosition};
 use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReaction, CustomElementState,
     is_valid_custom_element_name,
@@ -2660,6 +2660,14 @@ impl Element {
         match self.GetOuterHTML(can_gc)? {
             TrustedHTMLOrNullIsEmptyString::NullIsEmptyString(str) => Ok(str),
             TrustedHTMLOrNullIsEmptyString::TrustedHTML(_) => unreachable!(),
+        }
+    }
+
+    pub(crate) fn compute_source_position(&self, line_number: u32) -> SourcePosition {
+        SourcePosition {
+            source_file: self.owner_global().get_url().to_string(),
+            line_number: line_number + 2,
+            column_number: 0,
         }
     }
 }

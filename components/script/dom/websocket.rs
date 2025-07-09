@@ -471,7 +471,7 @@ struct ReportCSPViolationTask {
 impl TaskOnce for ReportCSPViolationTask {
     fn run_once(self) {
         let global = self.websocket.root().global();
-        global.report_csp_violations(self.violations, None);
+        global.report_csp_violations(self.violations, None, None);
     }
 }
 

@@ -121,6 +121,8 @@ pub(crate) struct HTMLLinkElement {
     previous_type_matched: Cell<bool>,
     /// Whether the previous media environment matched with the media query
     previous_media_environment_matched: Cell<bool>,
+    /// Line number this element was created on
+    line_number: u64,
 }
 
 impl HTMLLinkElement {
@@ -143,6 +145,7 @@ impl HTMLLinkElement {
             is_explicitly_enabled: Cell::new(false),
             previous_type_matched: Cell::new(true),
             previous_media_environment_matched: Cell::new(true),
+            line_number: creator.return_line_number(),
         }
     }
 
@@ -1018,7 +1021,11 @@ impl FetchResponseListener for PrefetchContext {
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
-        global.report_csp_violations(violations, None);
+        let link = self.link.root();
+        let source_position = link
+            .upcast::<Element>()
+            .compute_source_position(link.line_number as u32);
+        global.report_csp_violations(violations, None, Some(source_position));
     }
 }
 
@@ -1092,7 +1099,11 @@ impl FetchResponseListener for PreloadContext {
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
-        global.report_csp_violations(violations, None);
+        let link = self.link.root();
+        let source_position = link
+            .upcast::<Element>()
+            .compute_source_position(link.line_number as u32);
+        global.report_csp_violations(violations, None, Some(source_position));
     }
 }
 
