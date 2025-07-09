@@ -9,7 +9,7 @@
 
 [Exposed=*]
 interface TextDecoderStream {
-  constructor(optional DOMString label = "utf-8", optional TextDecoderOptions options = {});
+  [Throws] constructor(optional DOMString label = "utf-8", optional TextDecoderOptions options = {});
 };
 TextDecoderStream includes TextDecoderCommon;
 TextDecoderStream includes GenericTransformStream;

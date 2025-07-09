@@ -12,7 +12,7 @@ dictionary TextDecodeOptions {
   boolean stream = false;
 };
 
-[Exposed=*]
+[Exposed=(Window,Worker)]
 interface TextDecoder {
   [Throws] constructor(optional DOMString label = "utf-8", optional TextDecoderOptions options = {});
 
