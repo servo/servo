@@ -143,7 +143,7 @@ pub(crate) unsafe fn uniform_typed<T>(
 
 /// Set of bitflags for texture unpacking (texImage2d, etc...)
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
-struct TextureUnpacking(u8);
+pub(crate) struct TextureUnpacking(u8);
 
 bitflags! {
     impl TextureUnpacking: u8 {
@@ -325,6 +325,10 @@ impl WebGLRenderingContext {
 
     pub(crate) fn texture_unpacking_alignment(&self) -> u32 {
         self.texture_unpacking_alignment.get()
+    }
+
+    pub(crate) fn bound_draw_framebuffer(&self) -> Option<DomRoot<WebGLFramebuffer>> {
+        self.bound_draw_framebuffer.get()
     }
 
     pub(crate) fn current_vao(&self) -> DomRoot<WebGLVertexArrayObjectOES> {
@@ -1680,6 +1684,8 @@ impl WebGLRenderingContext {
                 constants::BOOL |
                 constants::INT |
                 constants::SAMPLER_2D |
+                WebGL2RenderingContextConstants::SAMPLER_2D_ARRAY |
+                WebGL2RenderingContextConstants::SAMPLER_3D |
                 constants::SAMPLER_CUBE => {},
                 _ => return Err(InvalidOperation),
             }
@@ -1687,7 +1693,10 @@ impl WebGLRenderingContext {
             let val = self.uniform_vec_section_int(val, src_offset, src_length, 1, location)?;
 
             match location.type_() {
-                constants::SAMPLER_2D | constants::SAMPLER_CUBE => {
+                constants::SAMPLER_2D |
+                constants::SAMPLER_CUBE |
+                WebGL2RenderingContextConstants::SAMPLER_2D_ARRAY |
+                WebGL2RenderingContextConstants::SAMPLER_3D => {
                     for &v in val
                         .iter()
                         .take(cmp::min(location.size().unwrap_or(1) as usize, val.len()))
@@ -2144,6 +2153,30 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 let texture = self
                     .textures
                     .active_texture_slot(constants::TEXTURE_2D, self.webgl_version())
+                    .unwrap()
+                    .get();
+                texture.to_jsval(*cx, retval);
+                return;
+            },
+            WebGL2RenderingContextConstants::TEXTURE_BINDING_2D_ARRAY => unsafe {
+                let texture = self
+                    .textures
+                    .active_texture_slot(
+                        WebGL2RenderingContextConstants::TEXTURE_2D_ARRAY,
+                        self.webgl_version(),
+                    )
+                    .unwrap()
+                    .get();
+                texture.to_jsval(*cx, retval);
+                return;
+            },
+            WebGL2RenderingContextConstants::TEXTURE_BINDING_3D => unsafe {
+                let texture = self
+                    .textures
+                    .active_texture_slot(
+                        WebGL2RenderingContextConstants::TEXTURE_3D,
+                        self.webgl_version(),
+                    )
                     .unwrap()
                     .get();
                 texture.to_jsval(*cx, retval);
@@ -4036,7 +4069,10 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         self.with_location(location, |location| {
             match location.type_() {
                 constants::BOOL | constants::INT => {},
-                constants::SAMPLER_2D | constants::SAMPLER_CUBE => {
+                constants::SAMPLER_2D |
+                WebGL2RenderingContextConstants::SAMPLER_3D |
+                WebGL2RenderingContextConstants::SAMPLER_2D_ARRAY |
+                constants::SAMPLER_CUBE => {
                     if val < 0 || val as u32 >= self.limits.max_combined_texture_image_units {
                         return Err(InvalidValue);
                     }
@@ -4237,7 +4273,11 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             constants::BOOL_VEC4 => unsafe {
                 uniform_get(triple, WebGLCommand::GetUniformBool4).to_jsval(*cx, rval);
             },
-            constants::INT | constants::SAMPLER_2D | constants::SAMPLER_CUBE => {
+            constants::INT |
+            constants::SAMPLER_2D |
+            constants::SAMPLER_CUBE |
+            WebGL2RenderingContextConstants::SAMPLER_2D_ARRAY |
+            WebGL2RenderingContextConstants::SAMPLER_3D => {
                 rval.set(Int32Value(uniform_get(triple, WebGLCommand::GetUniformInt)))
             },
             constants::INT_VEC2 => unsafe {
@@ -5121,6 +5161,22 @@ impl TexPixels {
 
     pub(crate) fn size(&self) -> Size2D<u32> {
         self.size
+    }
+
+    pub(crate) fn pixel_format(&self) -> Option<PixelFormat> {
+        self.pixel_format
+    }
+
+    pub(crate) fn alpha_treatment(&self) -> Option<AlphaTreatment> {
+        self.alpha_treatment
+    }
+
+    pub(crate) fn y_axis_treatment(&self) -> YAxisTreatment {
+        self.y_axis_treatment
+    }
+
+    pub(crate) fn into_shared_memory(self) -> IpcSharedMemory {
+        self.data
     }
 }
 

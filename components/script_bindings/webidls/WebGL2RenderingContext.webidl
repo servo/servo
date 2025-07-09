@@ -322,9 +322,9 @@ interface mixin WebGL2RenderingContextBase
   //void texImage3D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height,
   //                GLsizei depth, GLint border, GLenum format, GLenum type,
   //                TexImageSource source); // May throw DOMException
-  //[Throws]
-  //void texImage3D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height,
-  //                GLsizei depth, GLint border, GLenum format, GLenum type, [AllowShared] ArrayBufferView? srcData);
+  [Throws]
+  undefined texImage3D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height,
+                  GLsizei depth, GLint border, GLenum format, GLenum type, /*[AllowShared]*/ ArrayBufferView? srcData);
   //[Throws]
   //void texImage3D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height,
   //                GLsizei depth, GLint border, GLenum format, GLenum type, [AllowShared] ArrayBufferView srcData,
