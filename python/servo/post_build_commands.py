@@ -192,9 +192,10 @@ class PostBuildCommands(CommandBase):
     @CommandArgument("args", nargs="...", help="Command-line arguments to be passed through to the emulator")
     def android_emulator(self, args=None):
         if not args:
+            args = []
             print("AVDs created by `./mach bootstrap-android` are servo-arm and servo-x86.")
         emulator = self.android_emulator_path(self.build_env())
-        return subprocess.call([emulator] + (args or []))
+        return subprocess.call([emulator] + args)
 
     @Command("rr-record", description="Run Servo whilst recording execution with rr", category="post-build")
     @CommandArgument("params", nargs="...", help="Command-line arguments to be passed through to Servo")

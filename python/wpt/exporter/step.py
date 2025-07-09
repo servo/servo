@@ -80,7 +80,7 @@ class CreateOrUpdateBranchForPRStep(Step):
             commits = self._get_upstreamable_commits_from_local_servo_repo(run.sync)
             branch_name = self._create_or_update_branch_for_pr(run, commits)
             if branch_name is None:
-                logging.info("Could not branch_name from PR.")
+                logging.info("Could not get branch_name from PR.")
                 return
             branch = run.sync.downstream_wpt.get_branch(branch_name)
 

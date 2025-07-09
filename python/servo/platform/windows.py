@@ -163,7 +163,8 @@ class Windows(Base):
     def is_gstreamer_installed(self, target: BuildTarget) -> bool:
         return self.gstreamer_root(target) is not None
 
-    def _platform_bootstrap_gstreamer(self, target: BuildTarget, force: bool) -> bool:  # pyrefly: ignore
+    # pyrefly: ignore
+    def _platform_bootstrap_gstreamer(self, target: BuildTarget, force: bool) -> bool:
         if not force and self.is_gstreamer_installed(target):
             return False
 

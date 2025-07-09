@@ -224,7 +224,7 @@ class MachCommands(CommandBase):
         elif build_type.is_dev():
             pass  # there is no argument for debug
         else:
-            args += ["--profile", build_type.profile or ""]
+            args += ["--profile", build_type.profile]  # pyrefly: ignore
 
         for crate in packages:
             args += ["-p", "%s_tests" % crate]

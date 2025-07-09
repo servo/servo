@@ -18,7 +18,7 @@ import re
 import subprocess
 import sys
 from dataclasses import dataclass
-from typing import Any, Dict, Generator, Iterator, List, Tuple, cast
+from typing import Any, Dict, Generator, Iterator, List, Tuple, TypedDict, cast
 
 import colorama
 import toml
@@ -39,7 +39,29 @@ CARGO_DENY_CONFIG_FILE = os.path.join(TOPDIR, "deny.toml")
 
 ERROR_RAW_URL_IN_RUSTDOC = "Found raw link in rustdoc. Please escape it with angle brackets or use a markdown link."
 
-config: dict[str, Any] = {
+IgnoreConfig = TypedDict(
+    "IgnoreConfig",
+    {
+        "files": list[str],
+        "directories": list[str],
+        "packages": list[str],
+    },
+)
+
+Config = TypedDict(
+    "Config",
+    {
+        "skip-check-length": bool,
+        "skip-check-licenses": bool,
+        "check-alphabetical-order": bool,
+        "lint-scripts": list,
+        "blocked-packages": dict[str, Any],
+        "ignore": IgnoreConfig,
+        "check_ext": dict[str, Any],
+    },
+)
+
+config: Config = {
     "skip-check-length": False,
     "skip-check-licenses": False,
     "check-alphabetical-order": True,
@@ -400,7 +422,8 @@ def check_pyrefly_type_checking() -> Iterator[Tuple[str, int, str]]:
         result = subprocess.run(["pyrefly", "check", "--output-format", "json"], capture_output=True)
         parsed_json = json.loads(result.stdout)
         errors = parsed_json.get("errors", [])
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as error:
+        print(f"{colorama.Fore.YELLOW}{error}{colorama.Style.RESET_ALL}")
         pass
     else:
         for error in errors:
@@ -796,10 +819,7 @@ def lint_wpt_test_files() -> Iterator[Tuple[str, int, str]]:
     messages: List[str] = []
     assert lint.logger is not None
 
-    def fake_error(msg: object, *args: object, **kwargs: object) -> None:
-        messages.append(str(msg))
-
-    lint.logger.error = fake_error
+    lint.logger.error = lambda message: messages.append(message)  # pyrefly: ignore
 
     # We do not lint all WPT-like tests because they do not all currently have
     # lint.ignore files.
@@ -946,8 +966,8 @@ def check_config_file(config_file, print_text=True):
             current_table == "configs"
             and key not in config
             or current_table == "ignore"
-            # Any key outside of tables
             and key not in config["ignore"]
+            # Any key outside of tables
             or current_table == ""
         ):
             yield config_file, idx + 1, "invalid config key '%s'" % key
@@ -976,11 +996,11 @@ def parse_config(config_file):
     config["blocked-packages"] = config_file.get("blocked-packages", {})
 
     # Override default configs
-    user_configs: dict[str, Any] = config_file.get("configs", [])
+    user_configs = config_file.get("configs", [])
 
     for pref in user_configs:
         if pref in config:
-            config[pref] = user_configs[pref]
+            config[pref] = user_configs[pref]  # pyrefly: ignore
 
 
 def check_directory_files(directories, print_text=True):
