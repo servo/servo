@@ -216,7 +216,10 @@ unsafe extern "C" fn read_callback(
     ptr::null_mut()
 }
 
-struct InterfaceDoesNotMatch;
+enum OperationError {
+    InterfaceDoesNotMatch,
+    Exception(Error),
+}
 
 unsafe fn try_serialize<T: Serializable + IDLInterface>(
     val: SerializableInterface,
@@ -225,11 +228,11 @@ unsafe fn try_serialize<T: Serializable + IDLInterface>(
     global: &GlobalScope,
     w: *mut JSStructuredCloneWriter,
     writer: &mut StructuredDataWriter,
-) -> Result<bool, InterfaceDoesNotMatch> {
+) -> Result<bool, OperationError> {
     if let Ok(obj) = root_from_object::<T>(*obj, cx) {
         return Ok(write_object(val, global, &*obj, w, writer));
     }
-    Err(InterfaceDoesNotMatch)
+    Err(OperationError::InterfaceDoesNotMatch)
 }
 
 type SerializeOperation = unsafe fn(
@@ -239,7 +242,7 @@ type SerializeOperation = unsafe fn(
     &GlobalScope,
     *mut JSStructuredCloneWriter,
     &mut StructuredDataWriter,
-) -> Result<bool, InterfaceDoesNotMatch>;
+) -> Result<bool, OperationError>;
 
 fn serialize_for_type(val: SerializableInterface) -> SerializeOperation {
     match val {
@@ -363,32 +366,34 @@ unsafe fn try_transfer<T: Transferable + IDLInterface>(
     tag: *mut u32,
     ownership: *mut TransferableOwnership,
     extra_data: *mut u64,
-) -> Result<(), ()> {
-    if let Ok(object) = root_from_object::<T>(*obj, cx) {
-        *tag = StructuredCloneTags::from(interface) as u32;
-        *ownership = TransferableOwnership::SCTAG_TMO_CUSTOM;
-        if let Ok((id, object)) = object.transfer() {
-            // 2. Store the transferred object at a given key.
-            let objects = T::serialized_storage(StructuredData::Writer(sc_writer))
-                .get_or_insert_with(HashMap::new);
-            objects.insert(id, object);
+) -> Result<(), OperationError> {
+    let Ok(object) = root_from_object::<T>(*obj, cx) else {
+        return Err(OperationError::InterfaceDoesNotMatch);
+    };
 
-            let index = id.index.0.get();
+    *tag = StructuredCloneTags::from(interface) as u32;
+    *ownership = TransferableOwnership::SCTAG_TMO_CUSTOM;
 
-            let mut big: [u8; 8] = [0; 8];
-            let name_space = id.namespace_id.0.to_ne_bytes();
-            let index = index.to_ne_bytes();
+    let (id, object) = object.transfer().map_err(OperationError::Exception)?;
 
-            let (left, right) = big.split_at_mut(4);
-            left.copy_from_slice(&name_space);
-            right.copy_from_slice(&index);
+    // 2. Store the transferred object at a given key.
+    let objects =
+        T::serialized_storage(StructuredData::Writer(sc_writer)).get_or_insert_with(HashMap::new);
+    objects.insert(id, object);
 
-            // 3. Return a u64 representation of the key where the object is stored.
-            *extra_data = u64::from_ne_bytes(big);
-            return Ok(());
-        }
-    }
-    Err(())
+    let index = id.index.0.get();
+
+    let mut big: [u8; 8] = [0; 8];
+    let name_space = id.namespace_id.0.to_ne_bytes();
+    let index = index.to_ne_bytes();
+
+    let (left, right) = big.split_at_mut(4);
+    left.copy_from_slice(&name_space);
+    right.copy_from_slice(&index);
+
+    // 3. Return a u64 representation of the key where the object is stored.
+    *extra_data = u64::from_ne_bytes(big);
+    Ok(())
 }
 
 type TransferOperation = unsafe fn(
@@ -399,7 +404,7 @@ type TransferOperation = unsafe fn(
     *mut u32,
     *mut TransferableOwnership,
     *mut u64,
-) -> Result<(), ()>;
+) -> Result<(), OperationError>;
 
 fn transfer_for_type(val: TransferrableInterface) -> TransferOperation {
     match val {
@@ -425,8 +430,16 @@ unsafe extern "C" fn write_transfer_callback(
     let sc_writer = &mut *(closure as *mut StructuredDataWriter);
     for transferable in TransferrableInterface::iter() {
         let try_transfer = transfer_for_type(transferable);
-        if try_transfer(transferable, obj, cx, sc_writer, tag, ownership, extra_data).is_ok() {
-            return true;
+
+        match try_transfer(transferable, obj, cx, sc_writer, tag, ownership, extra_data) {
+            Err(error) => match error {
+                OperationError::InterfaceDoesNotMatch => {},
+                OperationError::Exception(error) => {
+                    sc_writer.error = Some(error);
+                    return false;
+                },
+            },
+            Ok(..) => return true,
         }
     }
 
@@ -486,9 +499,11 @@ unsafe extern "C" fn report_error_callback(
     let msg_result = unsafe { CStr::from_ptr(error_message).to_str().map(str::to_string) };
 
     if let Ok(msg) = msg_result {
-        let dom_error_record = &mut *(closure as *mut DOMErrorRecord);
+        let error = &mut *(closure as *mut Option<Error>);
 
-        dom_error_record.message = Some(msg)
+        if error.is_none() {
+            *error = Some(Error::DataClone(Some(msg)));
+        }
     }
 }
 
@@ -516,18 +531,12 @@ pub(crate) enum StructuredData<'a, 'b> {
     Writer(&'a mut StructuredDataWriter),
 }
 
-#[derive(Default)]
-#[repr(C)]
-pub(crate) struct DOMErrorRecord {
-    pub(crate) message: Option<String>,
-}
-
 /// Reader and writer structs for results from, and inputs to, structured-data read/write operations.
 /// <https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data>
 #[repr(C)]
 pub(crate) struct StructuredDataReader<'a> {
-    /// A struct of error message.
-    errors: DOMErrorRecord,
+    /// A error record.
+    error: Option<Error>,
     /// Rooted copies of every deserialized object to ensure they are not garbage collected.
     roots: RootedVec<'a, Box<Heap<*mut JSObject>>>,
     /// A map of port implementations,
@@ -556,8 +565,8 @@ pub(crate) struct StructuredDataReader<'a> {
 #[derive(Default)]
 #[repr(C)]
 pub(crate) struct StructuredDataWriter {
-    /// Error message.
-    pub(crate) errors: DOMErrorRecord,
+    /// Error record.
+    pub(crate) error: Option<Error>,
     /// Transferred ports.
     pub(crate) ports: Option<HashMap<MessagePortId, MessagePortImpl>>,
     /// Transferred transform streams.
@@ -611,7 +620,7 @@ pub(crate) fn write(
         );
         if !result {
             JS_ClearPendingException(*cx);
-            return Err(Error::DataClone(sc_writer.errors.message));
+            return Err(sc_writer.error.unwrap_or(Error::DataClone(None)));
         }
 
         let nbytes = GetLengthOfJSStructuredCloneData(scdata);
@@ -648,13 +657,13 @@ pub(crate) fn read(
     let _ac = enter_realm(global);
     rooted_vec!(let mut roots);
     let mut sc_reader = StructuredDataReader {
+        error: None,
         roots,
         port_impls: data.ports.take(),
         transform_streams_port_impls: data.transform_streams.take(),
         blob_impls: data.blobs.take(),
         points: data.points.take(),
         exceptions: data.exceptions.take(),
-        errors: DOMErrorRecord { message: None },
         image_bitmaps: data.image_bitmaps.take(),
         transferred_image_bitmaps: data.transferred_image_bitmaps.take(),
         offscreen_canvases: data.offscreen_canvases.take(),
@@ -688,7 +697,7 @@ pub(crate) fn read(
         );
         if !result {
             JS_ClearPendingException(*cx);
-            return Err(Error::DataClone(sc_reader.errors.message));
+            return Err(sc_reader.error.unwrap_or(Error::DataClone(None)));
         }
 
         DeleteJSAutoStructuredCloneBuffer(scbuf);

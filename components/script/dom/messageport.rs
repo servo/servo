@@ -19,7 +19,7 @@ use crate::dom::bindings::codegen::Bindings::MessagePortBinding::{
     MessagePortMethods, StructuredSerializeOptions,
 };
 use crate::dom::bindings::conversions::root_from_object;
-use crate::dom::bindings::error::{Error, ErrorResult, ErrorToJsval};
+use crate::dom::bindings::error::{Error, ErrorResult, ErrorToJsval, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
@@ -256,9 +256,13 @@ impl Transferable for MessagePort {
     type Data = MessagePortImpl;
 
     /// <https://html.spec.whatwg.org/multipage/#message-ports:transfer-steps>
-    fn transfer(&self) -> Result<(MessagePortId, MessagePortImpl), ()> {
+    fn transfer(&self) -> Fallible<(MessagePortId, MessagePortImpl)> {
+        // <https://html.spec.whatwg.org/multipage/#structuredserializewithtransfer>
+        // Step 5.2. If transferable has a [[Detached]] internal slot and
+        // transferable.[[Detached]] is true, then throw a "DataCloneError"
+        // DOMException.
         if self.detached.get() {
-            return Err(());
+            return Err(Error::DataClone(None));
         }
 
         self.detached.set(true);
