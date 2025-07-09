@@ -67,19 +67,25 @@ fn assert_cookie_for_domain(
     assert_eq!(cookies.as_ref().map(|c| &**c), cookie);
 }
 
-pub fn expect_devtools_http_request(
-    devtools_port: &Receiver<DevtoolsControlMsg>,
-) -> DevtoolsHttpRequest {
+fn recv_http_request(devtools_port: &Receiver<DevtoolsControlMsg>) -> DevtoolsHttpRequest {
     match devtools_port.recv().unwrap() {
         DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(_, net_event)) => {
             match net_event {
-                NetworkEvent::HttpRequest(httprequest) => httprequest,
-
-                _ => panic!("No HttpRequest Received"),
+                NetworkEvent::HttpRequest(req) => req,
+                other => panic!("Expected HttpRequest but got: {:?}", other),
             }
         },
-        _ => panic!("No HttpRequest Received"),
+        other => panic!("Expected NetworkEvent but got: {:?}", other),
     }
+}
+
+pub fn expect_devtools_http_request(
+    devtools_port: &Receiver<DevtoolsControlMsg>,
+) -> (DevtoolsHttpRequest, DevtoolsHttpRequest) {
+    (
+        recv_http_request(devtools_port),
+        recv_http_request(devtools_port),
+    )
 }
 
 pub fn expect_devtools_http_response(
@@ -92,9 +98,9 @@ pub fn expect_devtools_http_response(
         )) => match net_event_response {
             NetworkEvent::HttpResponse(httpresponse) => httpresponse,
 
-            _ => panic!("No HttpResponse Received"),
+            other => panic!("Expected HttpResponse but got: {:?}", other),
         },
-        _ => panic!("No HttpResponse Received"),
+        other => panic!("Expected NetworkEvent but got: {:?}", other),
     }
 }
 
@@ -275,7 +281,7 @@ fn test_request_and_response_data_with_network_messages() {
     let _ = server.close();
 
     // notification received from devtools
-    let devhttprequest = expect_devtools_http_request(&devtools_port);
+    let devhttprequests = expect_devtools_http_request(&devtools_port);
     let devhttpresponse = expect_devtools_http_response(&devtools_port);
 
     //Creating default headers for request
@@ -322,10 +328,10 @@ fn test_request_and_response_data_with_network_messages() {
         headers: headers,
         body: Some(vec![]),
         pipeline_id: TEST_PIPELINE_ID,
-        started_date_time: devhttprequest.started_date_time,
-        time_stamp: devhttprequest.time_stamp,
-        connect_time: devhttprequest.connect_time,
-        send_time: devhttprequest.send_time,
+        started_date_time: devhttprequests.1.started_date_time,
+        time_stamp: devhttprequests.1.time_stamp,
+        connect_time: devhttprequests.1.connect_time,
+        send_time: devhttprequests.1.send_time,
         is_xhr: false,
         browsing_context_id: TEST_WEBVIEW_ID.0,
     };
@@ -352,7 +358,7 @@ fn test_request_and_response_data_with_network_messages() {
         browsing_context_id: TEST_WEBVIEW_ID.0,
     };
 
-    assert_eq!(devhttprequest, httprequest);
+    assert_eq!(devhttprequests.1, httprequest);
     assert_eq!(devhttpresponse, httpresponse);
 }
 
@@ -421,21 +427,21 @@ fn test_redirected_request_to_devtools() {
     let _ = pre_server.close();
     let _ = post_server.close();
 
-    let devhttprequest = expect_devtools_http_request(&devtools_port);
+    let devhttprequests = expect_devtools_http_request(&devtools_port);
     let devhttpresponse = expect_devtools_http_response(&devtools_port);
 
-    assert_eq!(devhttprequest.method, Method::POST);
-    assert_eq!(devhttprequest.url, pre_url);
+    assert_eq!(devhttprequests.0.method, Method::POST);
+    assert_eq!(devhttprequests.0.url, pre_url);
     assert_eq!(
         devhttpresponse.status,
         HttpStatus::from(StatusCode::MOVED_PERMANENTLY)
     );
 
-    let devhttprequest = expect_devtools_http_request(&devtools_port);
+    let devhttprequests = expect_devtools_http_request(&devtools_port);
     let devhttpresponse = expect_devtools_http_response(&devtools_port);
 
-    assert_eq!(devhttprequest.method, Method::GET);
-    assert_eq!(devhttprequest.url, post_url);
+    assert_eq!(devhttprequests.0.method, Method::GET);
+    assert_eq!(devhttprequests.0.url, post_url);
     assert_eq!(devhttpresponse.status, HttpStatus::default());
 }
 

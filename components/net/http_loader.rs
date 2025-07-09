@@ -934,6 +934,8 @@ pub async fn http_fetch(
         .try_code()
         .is_some_and(is_redirect_status)
     {
+        // Notify devtools before handling redirect
+        send_response_to_devtools(request, context, &response);
         // Substep 1.
         if response.actual_response().status != StatusCode::SEE_OTHER {
             // TODO: send RST_STREAM frame
