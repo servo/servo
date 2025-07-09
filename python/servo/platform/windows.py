@@ -99,7 +99,7 @@ class Windows(Base):
         else:
             print("done")
 
-    def _platform_bootstrap(self, force: bool) -> bool:  # pyrefly: ignore
+    def _platform_bootstrap(self, force: bool) -> bool:
         installed_something = self.passive_bootstrap()
         # If `winget` works well in practice, we could switch the default in the future.
         if shutil.which("choco") is not None:
@@ -163,7 +163,6 @@ class Windows(Base):
     def is_gstreamer_installed(self, target: BuildTarget) -> bool:
         return self.gstreamer_root(target) is not None
 
-    # pyrefly: ignore
     def _platform_bootstrap_gstreamer(self, target: BuildTarget, force: bool) -> bool:
         if not force and self.is_gstreamer_installed(target):
             return False

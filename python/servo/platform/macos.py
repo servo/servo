@@ -38,7 +38,7 @@ class MacOS(Base):
         # Servo only supports the official GStreamer distribution on MacOS.
         return not target.is_cross_build() and os.path.exists(GSTREAMER_ROOT)
 
-    def _platform_bootstrap(self, _force: bool) -> bool:
+    def _platform_bootstrap(self, force: bool) -> bool:
         installed_something = False
         try:
             brewfile = os.path.join(util.SERVO_ROOT, "support", "macos", "Brewfile")
@@ -52,7 +52,7 @@ class MacOS(Base):
         installed_something |= self._platform_bootstrap_gstreamer(target, False)
         return installed_something
 
-    def _platform_bootstrap_gstreamer(self, target: BuildTarget, force: bool) -> bool:  # pyrefly: ignore
+    def _platform_bootstrap_gstreamer(self, target: BuildTarget, force: bool) -> bool:
         if not force and self.is_gstreamer_installed(target):
             return False
 

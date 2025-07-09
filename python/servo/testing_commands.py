@@ -20,7 +20,7 @@ import subprocess
 import sys
 import textwrap
 from time import sleep
-from typing import Any
+from typing import Any, Callable, TypedDict
 
 import tidy
 import wpt
@@ -68,6 +68,11 @@ TOML_GLOBS = [
     "ports/*/*.toml",
     "support/*/*.toml",
 ]
+
+
+class RunGlobals(TypedDict, total=False):
+    __file__: str
+    run_tests: Callable[..., bool]
 
 
 def format_toml_files_with_taplo(check_only: bool = True) -> int:
@@ -344,7 +349,7 @@ class MachCommands(CommandBase):
             # For the `import WebIDL` in runtests.py
             sys.path.insert(0, test_file_dir)
             run_file = path.abspath(path.join(test_file_dir, "runtests.py"))
-            run_globals: dict[str, Any] = {"__file__": run_file}
+            run_globals: RunGlobals = {"__file__": run_file}
             exec(compile(open(run_file).read(), run_file, "exec"), run_globals)
             passed = run_globals["run_tests"](tests, verbose or very_verbose) and passed
 
