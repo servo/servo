@@ -469,12 +469,15 @@ impl WindowPortsMethods for Window {
     }
 
     fn request_resize(&self, _: &WebView, new_outer_size: DeviceIntSize) -> Option<DeviceIntSize> {
-        let title_height =
-            self.winit_window.outer_size().height - self.winit_window.inner_size().height;
+        let outer_size = self.winit_window.outer_size();
+        let inner_size = self.winit_window.inner_size();
+        let decoration_height = outer_size.height - inner_size.height;
+        let decoration_width = outer_size.width - inner_size.width;
+
         self.winit_window
             .request_inner_size::<PhysicalSize<i32>>(PhysicalSize::new(
-                new_outer_size.width,
-                new_outer_size.height - title_height as i32,
+                new_outer_size.width - decoration_width as i32,
+                new_outer_size.height - decoration_height as i32,
             ))
             .and_then(|size| {
                 Some(DeviceIntSize::new(
