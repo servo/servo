@@ -14,6 +14,7 @@ use embedder_traits::{
 };
 use ipc_channel::ipc::IpcSender;
 use serde::Serialize;
+use servo_geometry::DeviceIndependentIntRect;
 use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 
@@ -474,6 +475,11 @@ pub trait WebViewDelegate {
     /// embedder, these requests are automatically denied.
     fn request_open_auxiliary_webview(&self, _parent_webview: WebView) -> Option<WebView> {
         None
+    }
+
+    /// Get the window rectangle.
+    fn window_rect(&self, _webview: WebView) -> DeviceIndependentIntRect {
+        DeviceIndependentIntRect::default()
     }
 
     /// Content in a [`WebView`] is requesting permission to access a feature requiring

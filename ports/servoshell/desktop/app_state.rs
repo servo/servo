@@ -14,6 +14,7 @@ use log::{error, info};
 use servo::base::id::WebViewId;
 use servo::config::pref;
 use servo::ipc_channel::ipc::IpcSender;
+use servo::servo_geometry::DeviceIndependentIntRect;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
@@ -506,6 +507,10 @@ impl WebViewDelegate for RunningAppState {
 
     fn request_move_to(&self, _: servo::WebView, new_position: DeviceIntPoint) {
         self.inner().window.set_position(new_position);
+    }
+
+    fn window_rect(&self, _: servo::WebView) -> DeviceIndependentIntRect {
+        self.inner().window.window_rect()
     }
 
     fn request_resize_to(&self, webview: servo::WebView, new_outer_size: DeviceIntSize) {

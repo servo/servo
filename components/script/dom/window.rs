@@ -1686,12 +1686,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://drafts.csswg.org/cssom-view/#dom-window-resizeby
     fn ResizeBy(&self, x: i32, y: i32) {
-        let (size, _) = self.client_window();
+        let size = self.client_window().size();
         // Step 1
-        self.ResizeTo(
-            x + size.width.to_i32().unwrap_or(1),
-            y + size.height.to_i32().unwrap_or(1),
-        )
+        self.ResizeTo(x + size.width, y + size.height)
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-moveto
@@ -1706,33 +1703,29 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://drafts.csswg.org/cssom-view/#dom-window-moveby
     fn MoveBy(&self, x: i32, y: i32) {
-        let (_, origin) = self.client_window();
+        let pos = self.client_window().min;
         // Step 1
-        self.MoveTo(x + origin.x, y + origin.y)
+        self.MoveTo(x + pos.x, y + pos.y)
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-screenx
     fn ScreenX(&self) -> i32 {
-        let (_, origin) = self.client_window();
-        origin.x
+        self.client_window().min.x
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-screeny
     fn ScreenY(&self) -> i32 {
-        let (_, origin) = self.client_window();
-        origin.y
+        self.client_window().min.y
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-outerheight
     fn OuterHeight(&self) -> i32 {
-        let (size, _) = self.client_window();
-        size.height.to_i32().unwrap_or(1)
+        self.client_window().height()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-outerwidth
     fn OuterWidth(&self) -> i32 {
-        let (size, _) = self.client_window();
-        size.width.to_i32().unwrap_or(1)
+        self.client_window().width()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-devicepixelratio
@@ -2151,18 +2144,13 @@ impl Window {
         self.viewport_details.get().hidpi_scale_factor
     }
 
-    fn client_window(&self) -> (Size2D<u32, CSSPixel>, Point2D<i32, CSSPixel>) {
-        let timer_profile_chan = self.global().time_profiler_chan().clone();
-        let (sender, receiver) =
-            ProfiledIpc::channel::<DeviceIndependentIntRect>(timer_profile_chan).unwrap();
-        let _ = self.compositor_api.sender().send(
-            compositing_traits::CompositorMsg::GetClientWindowRect(self.webview_id(), sender),
-        );
-        let rect = receiver.recv().unwrap_or_default();
-        (
-            Size2D::new(rect.size().width as u32, rect.size().height as u32),
-            Point2D::new(rect.min.x, rect.min.y),
-        )
+    fn client_window(&self) -> DeviceIndependentIntRect {
+        let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
+
+        let msg = EmbedderMsg::GetWindowRect(self.webview_id(), sender);
+        self.send_to_embedder(msg);
+
+        receiver.recv().unwrap_or_default()
     }
 
     /// Prepares to tick animations and then does a reflow which also advances the

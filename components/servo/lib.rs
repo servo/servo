@@ -998,6 +998,16 @@ impl Servo {
                     webview.delegate().show_form_control(webview, form_control);
                 }
             },
+            EmbedderMsg::GetWindowRect(webview_id, response_sender) => {
+                let window_rect = self
+                    .get_webview_handle(webview_id)
+                    .map(|webview| webview.delegate().window_rect(webview))
+                    .unwrap_or_default();
+
+                if let Err(error) = response_sender.send(window_rect) {
+                    warn!("Failed to send response of GetWindowRect: {error}");
+                }
+            },
         }
     }
 

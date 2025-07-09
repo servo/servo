@@ -31,6 +31,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use num_derive::FromPrimitive;
 use pixels::RasterImage;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use servo_geometry::DeviceIndependentIntRect;
 use servo_url::ServoUrl;
 use strum_macros::IntoStaticStr;
 use style::queries::values::PrefersColorScheme;
@@ -363,6 +364,8 @@ pub enum EmbedderMsg {
     NewFavicon(WebViewId, ServoUrl),
     /// The history state has changed.
     HistoryChanged(WebViewId, Vec<ServoUrl>, usize),
+    /// Get the device independent window rectangle.
+    GetWindowRect(WebViewId, IpcSender<DeviceIndependentIntRect>),
     /// Entered or exited fullscreen.
     NotifyFullscreenStateChanged(WebViewId, bool),
     /// The [`LoadStatus`] of the Given `WebView` has changed.
