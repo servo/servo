@@ -19,7 +19,10 @@ use napi_derive_ohos::{module_exports, napi};
 use napi_ohos::bindgen_prelude::Function;
 use napi_ohos::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi_ohos::{Env, JsObject, JsString, NapiRaw};
-use ohos_ime::{AttachOptions, Ime, ImeProxy, RawTextEditorProxy};
+use ohos_ime::{
+    AttachOptions, CreateImeProxyError, CreateTextEditorProxyError, Ime, ImeProxy,
+    RawTextEditorProxy,
+};
 use ohos_ime_sys::types::InputMethod_EnterKeyType;
 use servo::style::Zero;
 use servo::{
@@ -812,6 +815,12 @@ struct HostCallbacks {
     ime_proxy: RefCell<Option<ohos_ime::ImeProxy>>,
 }
 
+#[derive(Debug)]
+enum ImeError {
+    TextEditorProxy(CreateTextEditorProxyError),
+    ImeProxy(CreateImeProxyError),
+}
+
 impl HostCallbacks {
     pub fn new() -> Self {
         HostCallbacks {
@@ -830,6 +839,22 @@ impl HostCallbacks {
             },
             None => error!("PROMPT_TOAST not set. Dropping message {message}"),
         }
+    }
+
+    fn try_create_ime_proxy(
+        &self,
+        input_type: InputMethodType,
+        multiline: bool,
+    ) -> Result<ImeProxy, ImeError> {
+        let attach_options = AttachOptions::new(true);
+        let options = convert_ime_options(input_type, multiline);
+        let text_config = ohos_ime::TextConfigBuilder::new()
+            .input_type(options.input_type)
+            .enterkey_type(options.enterkey_type)
+            .build();
+        let editor = RawTextEditorProxy::new(Box::new(ServoIme { text_config }))
+            .map_err(|e| ImeError::TextEditorProxy(e))?;
+        ImeProxy::new(editor, attach_options).map_err(|e| ImeError::ImeProxy(e))
     }
 }
 
@@ -965,6 +990,8 @@ impl HostTrait for HostCallbacks {
     ///
     /// Most basic implementation for now, which just ignores all the input parameters
     /// and shows the soft keyboard with default settings.
+    /// When the keyboard cannot be shown (because the application is not in focus)
+    /// we just continue and try next time.
     fn on_ime_show(
         &self,
         input_type: InputMethodType,
@@ -974,20 +1001,21 @@ impl HostTrait for HostCallbacks {
     ) {
         debug!("IME show!");
         let mut ime_proxy = self.ime_proxy.borrow_mut();
-        let ime = ime_proxy.get_or_insert_with(|| {
-            let attach_options = AttachOptions::new(true);
-            let options = convert_ime_options(input_type, multiline);
-            let text_config = ohos_ime::TextConfigBuilder::new()
-                .input_type(options.input_type)
-                .enterkey_type(options.enterkey_type)
-                .build();
-            let editor = RawTextEditorProxy::new(Box::new(ServoIme { text_config }))
-                .expect("Failed to create RawTextEditorProxy");
-            ImeProxy::new(editor, attach_options).expect("Failed to create IME proxy")
-        });
-        match ime.show_keyboard() {
-            Ok(()) => debug!("IME show keyboard - success"),
-            Err(_e) => error!("IME show keyboard error"),
+        if ime_proxy.is_none() {
+            *ime_proxy = match self.try_create_ime_proxy(input_type, multiline) {
+                Err(ref e) => {
+                    error!("Couold not show keyboard because of {e:?}");
+                    None
+                },
+                Ok(proxy) => Some(proxy),
+            };
+        }
+
+        if let Some(ref ime) = *ime_proxy {
+            match ime.show_keyboard() {
+                Ok(()) => debug!("IME show keyboard - success"),
+                Err(_e) => error!("IME show keyboard error"),
+            }
         }
     }
 
