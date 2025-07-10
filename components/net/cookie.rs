@@ -13,7 +13,7 @@ use cookie::Cookie;
 use net_traits::CookieSource;
 use net_traits::pub_domains::is_pub_domain;
 use nom::branch::alt;
-use nom::bytes::complete::{tag, take, take_while_m_n};
+use nom::bytes::complete::{tag, tag_no_case, take, take_while_m_n};
 use nom::combinator::{opt, recognize};
 use nom::multi::{many0, many1, separated_list1};
 use nom::sequence::{delimited, preceded, terminated, tuple};
@@ -348,10 +348,7 @@ impl ServoCookie {
 
     /// <https://www.ietf.org/archive/id/draft-ietf-httpbis-rfc6265bis-20.html#name-dates>
     pub fn parse_date(string: &str) -> Option<OffsetDateTime> {
-        // NOTE: RFC6265 does not explicitly state that the value of the Expires attribute is
-        // case-insensitive, but it is a common behaviour in practice.
-        let lower_case_string = string.to_lowercase();
-        let string_in_bytes = lower_case_string.as_bytes();
+        let string_in_bytes = string.as_bytes();
 
         // Helper closures
         let parse_ascii_u8 =
@@ -426,18 +423,18 @@ impl ServoCookie {
         let month = |input| {
             terminated(
                 alt((
-                    tag("jan"),
-                    tag("feb"),
-                    tag("mar"),
-                    tag("apr"),
-                    tag("may"),
-                    tag("jun"),
-                    tag("jul"),
-                    tag("aug"),
-                    tag("sep"),
-                    tag("oct"),
-                    tag("nov"),
-                    tag("dec"),
+                    tag_no_case("jan"),
+                    tag_no_case("feb"),
+                    tag_no_case("mar"),
+                    tag_no_case("apr"),
+                    tag_no_case("may"),
+                    tag_no_case("jun"),
+                    tag_no_case("jul"),
+                    tag_no_case("aug"),
+                    tag_no_case("sep"),
+                    tag_no_case("oct"),
+                    tag_no_case("nov"),
+                    tag_no_case("dec"),
                 )),
                 any_octets,
             )(input)
@@ -499,7 +496,11 @@ impl ServoCookie {
             if month_value.is_none() {
                 if let Ok((_, result)) = month(date_token) {
                     // set the found-month flag and set the month-value to the month denoted by the date-token.
-                    month_value = match std::str::from_utf8(result).unwrap() {
+                    month_value = match std::str::from_utf8(result)
+                        .unwrap()
+                        .to_ascii_lowercase()
+                        .as_str()
+                    {
                         "jan" => Some(Month::January),
                         "feb" => Some(Month::February),
                         "mar" => Some(Month::March),
