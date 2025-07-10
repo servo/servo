@@ -67,8 +67,9 @@ impl WindowPortsMethods for Window {
     fn screen_geometry(&self) -> servo::ScreenGeometry {
         ScreenGeometry {
             size: self.screen_size,
+            window_size: self.inner_size.get(),
             available_size: self.screen_size,
-            offset: Default::default(),
+            window_offset: Default::default(),
         }
     }
 

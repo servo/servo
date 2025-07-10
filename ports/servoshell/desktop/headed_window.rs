@@ -438,13 +438,15 @@ impl WindowPortsMethods for Window {
 
         // Offset the WebView origin by the toolbar so that it reflects the actual viewport and
         // not the window origin.
-        let window_origin = self.winit_window.outer_position().unwrap_or_default();
-        let offset = winit_position_to_euclid_point(window_origin);
+        let window_offset =
+            winit_position_to_euclid_point(self.winit_window.outer_position().unwrap_or_default());
+        let window_size = winit_size_to_euclid_size(self.winit_window.outer_size()).to_i32();
 
         ScreenGeometry {
             size: screen_size.to_i32(),
+            window_size,
             available_size: available_screen_size.to_i32(),
-            offset,
+            window_offset,
         }
     }
 

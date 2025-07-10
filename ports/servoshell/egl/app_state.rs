@@ -12,7 +12,7 @@ use log::{debug, error, info, warn};
 use raw_window_handle::{RawWindowHandle, WindowHandle};
 use servo::base::id::WebViewId;
 use servo::euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
-use servo::servo_geometry::{DeviceIndependentIntRect, DeviceIndependentPixel};
+use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::{
@@ -171,29 +171,6 @@ impl WebViewDelegate for RunningAppState {
                 }
             });
         }
-    }
-
-    fn window_rect(&self, _: WebView) -> DeviceIndependentIntRect {
-        let coord = self.callbacks.coordinates.borrow();
-        let offset = coord.origin();
-        let screen_size = coord.size().to_f64();
-
-        let scale = self.inner().hidpi_scale_factor.get() as f64;
-
-        // TODO: Find a universal way to convert.
-        // See https://github.com/servo/servo/issues/37937
-        let offset = Point2D::new(
-            (offset.x as f64 / scale).round() as i32,
-            (offset.y as f64 / scale).round() as i32,
-        );
-
-        // Convert size components to independent pixels
-        let logical_width = (screen_size.width / scale).round() as i32;
-        let logical_height = (screen_size.height / scale).round() as i32;
-
-        let size = Point2D::new(logical_width, logical_height);
-
-        DeviceIndependentIntRect::from_origin_and_size(offset, size)
     }
 
     fn notify_closed(&self, webview: WebView) {
