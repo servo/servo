@@ -170,14 +170,14 @@ class CreateOrUpdateBranchForPRStep(Step):
                 remote_url = f"https://{user}:{token}@github.com/{repo}.git"
                 run.sync.local_wpt_repo.run("push", "-f", remote_url, branch_name)
 
-            return branch_name
         finally:
             try:
                 run.sync.local_wpt_repo.run("checkout", "master")
                 run.sync.local_wpt_repo.run("branch", "-D", branch_name)
             except Exception:
                 pass
-            return branch_name
+
+        return branch_name
 
 
 class RemoveBranchForPRStep(Step):
