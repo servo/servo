@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html class="reftest-wait"></html>
+<title>SVG elements inside `&lt;g&gt;` tag with intial scale '0' should be mutable via JS</title>
+<link rel="help" href="https://crbug.com/332328859">
+<link rel="help" href="https://www.w3.org/TR/css-transforms-1/#transform-property">
+<link rel="help" href="https://www.w3.org/TR/css-transforms-1/#funcdef-transform-scale">
+<link rel="author" title="Vinay Singh" href="mailto:vinaysingh@microsoft.com">
+<link rel="match" href="../../struct/reftests/reference/green-100x100.html">
+<script src="/common/rendering-utils.js"></script>
+
+<svg width="300" height="300">
+  <g>
+    <g>
+      <rect id="rect" width="125" height="125" fill="green" style="transform: scale(0);" />
+    </g>
+  </g>
+</svg>
+
+<script>
+  waitForAtLeastOneFrame().then(() => {
+    const rect = document.getElementById('rect');
+    rect.style.transform = 'scale(0.8)';
+
+    // Ensure DOM updates are flushed before removing the class
+    requestAnimationFrame(() => {
+      document.documentElement.classList.remove('reftest-wait');
+    });
+  });
+</script>
+</html>

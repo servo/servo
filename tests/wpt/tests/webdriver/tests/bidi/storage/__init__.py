@@ -59,7 +59,7 @@ def create_cookie(
         secure: Optional[bool] = True,
         path: Optional[str] = None,
         http_only: Optional[bool] = None,
-        same_site: Optional[str] = None,
+        same_site: Optional[str] = "none",
         expiry: Optional[int] = None,
 ) -> PartialCookie:
     """

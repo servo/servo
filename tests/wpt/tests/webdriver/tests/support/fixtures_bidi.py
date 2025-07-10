@@ -553,7 +553,7 @@ async def add_cookie(bidi_session):
             cookie_string += f";path={path}"
             cookie["path"] = path
 
-        if same_site != "none":
+        if same_site != "default":
             cookie_string += f";SameSite={same_site}"
 
         if secure is True:

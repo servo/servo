@@ -89,7 +89,7 @@ async def test_set_cookie_header_before_request_sent(
     on_load = wait_for_event(LOAD_EVENT)
 
     response_header = Header(
-        name="Set-Cookie", value=NetworkStringValue("aaa=bbb;Path=/")
+        name="Set-Cookie", value=NetworkStringValue("aaa=bbb;Path=/;SameSite=None;Secure")
     )
 
     await bidi_session.network.provide_response(
@@ -112,7 +112,7 @@ async def test_set_cookie_header_before_request_sent(
         "name": "aaa",
         "path": "/",
         "sameSite": "none",
-        "secure": False,
+        "secure": True,
         "size": 6,
         "value": {"type": "string", "value": "bbb"},
     }
@@ -141,10 +141,10 @@ async def test_set_cookie_header_and_cookies_before_request_sent(
     on_load = wait_for_event(LOAD_EVENT)
 
     response_header = Header(
-        name="Set-Cookie", value=NetworkStringValue("foo=bar;Path=/")
+        name="Set-Cookie", value=NetworkStringValue("foo=bar;Path=/;SameSite=None;Secure;")
     )
     response_cookie = SetCookieHeader(
-        name="baz", value=NetworkStringValue("biz"), path="/"
+        name="baz", value=NetworkStringValue("biz"), path="/", same_site="none", secure=True
     )
 
     await bidi_session.network.provide_response(
@@ -173,7 +173,7 @@ async def test_set_cookie_header_and_cookies_before_request_sent(
         "name": "foo",
         "path": "/",
         "sameSite": "none",
-        "secure": False,
+        "secure": True,
         "size": 6,
         "value": {"type": "string", "value": "bar"},
     }
@@ -184,7 +184,7 @@ async def test_set_cookie_header_and_cookies_before_request_sent(
         "name": "baz",
         "path": "/",
         "sameSite": "none",
-        "secure": False,
+        "secure": True,
         "size": 6,
         "value": {"type": "string", "value": "biz"},
     }

@@ -29,34 +29,40 @@ function getBoundingClientRect(node, start, end) {
   return rect;
 }
 
-test(() => {
-  const element = document.querySelector('#text-1');
-  const elementRect = element.getBoundingClientRect();
-  const rangeRect = getBoundingClientRect(element.firstChild, 0, element.firstChild.length);
-  assert_approx_equals(elementRect.x, rangeRect.x, 1);
-  assert_approx_equals(elementRect.y, rangeRect.y, 1);
-  assert_approx_equals(elementRect.width, rangeRect.width, 1);
-  assert_approx_equals(elementRect.height, rangeRect.height, 1);
-}, 'Element.getBoundingClientRect() and Range.getBoudingClientRect() should match for an SVG <text>');
+setup({ explicit_done: true });
 
-test(() => {
-  const element = document.querySelector('#text-2');
-  const elementRect = element.getBoundingClientRect();
-  const rangeRect = getBoundingClientRect(element.firstChild, 0, element.firstChild.length);
-  assert_approx_equals(elementRect.x, rangeRect.x, 1);
-  assert_approx_equals(elementRect.y, rangeRect.y, 1);
-  assert_approx_equals(elementRect.width, rangeRect.width, 1);
-  assert_approx_equals(elementRect.height, rangeRect.height, 1);
-}, 'Element.getBoundingClientRect() and Range.getBoudingClientRect() should match for an SVG <text> with a transform');
+document.fonts.ready.then(() => {
+  test(() => {
+    const element = document.querySelector('#text-1');
+    const elementRect = element.getBoundingClientRect();
+    const rangeRect = getBoundingClientRect(element.firstChild, 0, element.firstChild.length);
+    assert_approx_equals(elementRect.x, rangeRect.x, 1);
+    assert_approx_equals(elementRect.y, rangeRect.y, 1);
+    assert_approx_equals(elementRect.width, rangeRect.width, 1);
+    assert_approx_equals(elementRect.height, rangeRect.height, 1);
+  }, 'Element.getBoundingClientRect() and Range.getBoudingClientRect() should match for an SVG <text>');
 
-test(() => {
-  const element = document.querySelector('#text-3');
-  const elementRect = element.getBoundingClientRect();
-  const rangeRect = getBoundingClientRect(element.firstChild, 0, element.firstChild.length);
-  assert_approx_equals(elementRect.x, rangeRect.x, 1);
-  assert_approx_equals(elementRect.y, rangeRect.y, 1);
-  assert_approx_equals(elementRect.width, rangeRect.width, 1);
-  assert_approx_equals(elementRect.height, rangeRect.height, 1);
-}, 'Element.getBoundingClientRect() and Range.getBoudingClientRect() should match for an SVG <text> with a rotate');
+  test(() => {
+    const element = document.querySelector('#text-2');
+    const elementRect = element.getBoundingClientRect();
+    const rangeRect = getBoundingClientRect(element.firstChild, 0, element.firstChild.length);
+    assert_approx_equals(elementRect.x, rangeRect.x, 1);
+    assert_approx_equals(elementRect.y, rangeRect.y, 1);
+    assert_approx_equals(elementRect.width, rangeRect.width, 1);
+    assert_approx_equals(elementRect.height, rangeRect.height, 1);
+  }, 'Element.getBoundingClientRect() and Range.getBoudingClientRect() should match for an SVG <text> with a transform');
+
+  test(() => {
+    const element = document.querySelector('#text-3');
+    const elementRect = element.getBoundingClientRect();
+    const rangeRect = getBoundingClientRect(element.firstChild, 0, element.firstChild.length);
+    assert_approx_equals(elementRect.x, rangeRect.x, 1);
+    assert_approx_equals(elementRect.y, rangeRect.y, 1);
+    assert_approx_equals(elementRect.width, rangeRect.width, 1);
+    assert_approx_equals(elementRect.height, rangeRect.height, 1);
+  }, 'Element.getBoundingClientRect() and Range.getBoudingClientRect() should match for an SVG <text> with a rotate');
+
+  done();
+});
 </script>
 </body>

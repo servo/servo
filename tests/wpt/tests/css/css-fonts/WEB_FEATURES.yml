@@ -28,6 +28,9 @@ features:
   files:
   - alternates-order.html
   - font-variant-alternates-*
+- name: font-variant-emoji
+  files:
+  - font-variant-emoji-*
 - name: font-variant-position
   files:
   - font-variant-position-*

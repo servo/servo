@@ -30,11 +30,11 @@ async def test_default_partition(
 
     cookie1_name = "foo"
     cookie1_value = "bar"
-    await add_cookie(new_tab["context"], cookie1_name, cookie1_value)
+    await add_cookie(new_tab["context"], cookie1_name, cookie1_value, secure=True)
 
     cookie2_name = "foo_2"
     cookie2_value = "bar_2"
-    await add_cookie(top_context["context"], cookie2_name, cookie2_value)
+    await add_cookie(top_context["context"], cookie2_name, cookie2_value, secure=True)
 
     cookies = await bidi_session.storage.get_cookies()
 
@@ -49,7 +49,7 @@ async def test_default_partition(
             "name": cookie1_name,
             "path": "/webdriver/tests/support",
             "sameSite": "none",
-            "secure": False,
+            "secure": True,
             "size": 6,
             "value": {"type": "string", "value": cookie1_value},
         },
@@ -62,7 +62,7 @@ async def test_default_partition(
             "name": cookie2_name,
             "path": "/webdriver/tests/support",
             "sameSite": "none",
-            "secure": False,
+            "secure": True,
             "size": 10,
             "value": {"type": "string", "value": cookie2_value},
         },
@@ -94,7 +94,7 @@ async def test_partition_context(
 
     cookie_name = "foo"
     cookie_value = "bar"
-    await add_cookie(new_tab["context"], cookie_name, cookie_value)
+    await add_cookie(new_tab["context"], cookie_name, cookie_value, secure=True)
 
     # Check that added cookies are present on the right context.
     cookies = await bidi_session.storage.get_cookies(
@@ -112,7 +112,7 @@ async def test_partition_context(
             "name": cookie_name,
             "path": "/webdriver/tests/support",
             "sameSite": "none",
-            "secure": False,
+            "secure": True,
             "size": 6,
             "value": {"type": "string", "value": cookie_value},
         },
@@ -309,7 +309,7 @@ async def test_partition_default_user_context(
 
     cookie_name = "foo"
     cookie_value = "bar"
-    await add_cookie(new_context["context"], cookie_name, cookie_value)
+    await add_cookie(new_context["context"], cookie_name, cookie_value, secure=True)
 
     # Check that added cookies are present on the right user context.
     result = await bidi_session.storage.get_cookies(
@@ -322,7 +322,7 @@ async def test_partition_default_user_context(
             "name": cookie_name,
             "path": "/webdriver/tests/support",
             "sameSite": "none",
-            "secure": False,
+            "secure": True,
             "size": 6,
             "value": {"type": "string", "value": cookie_value},
         }
@@ -362,7 +362,7 @@ async def test_partition_user_context(
 
     cookie_name = "foo_1"
     cookie_value = "bar_1"
-    await add_cookie(new_context_1["context"], cookie_name, cookie_value)
+    await add_cookie(new_context_1["context"], cookie_name, cookie_value, secure=True)
 
     # Check that added cookies are present on the right user context.
     result = await bidi_session.storage.get_cookies(
@@ -375,7 +375,7 @@ async def test_partition_user_context(
             "name": cookie_name,
             "path": "/webdriver/tests/support",
             "sameSite": "none",
-            "secure": False,
+            "secure": True,
             "size": 10,
             "value": {"type": "string", "value": cookie_value},
         }

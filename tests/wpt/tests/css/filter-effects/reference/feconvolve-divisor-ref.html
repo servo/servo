@@ -1,0 +1,14 @@
+<!doctype html>
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="800" height="250">
+  <defs>
+    <filter id="f1" filterUnits="userSpaceOnUse"
+            x="100" y="100" width="100" height="100">
+      <feConvolveMatrix kernelMatrix="1 1 1  1 1 1  1 1 1"
+                        preserveAlpha="false" bias=".5" />
+    </filter>
+  </defs>
+
+  <rect x="100" y="100" width="100" height="100" fill="lime"
+        filter="url(#f1)" />
+</svg>

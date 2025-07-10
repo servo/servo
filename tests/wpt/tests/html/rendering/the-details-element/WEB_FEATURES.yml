@@ -1,6 +1,17 @@
 features:
 - name: details
   files: "**"
+- name: details-content
+  files:
+  # List all of the tests for ::details-content manually instead of using
+  # a pattern, since the filename lends itself to testing other pseudo-elements
+  # for <details> in the future, if they are added.
+  - details-pseudo-elements-001.html
+  - details-pseudo-elements-002.html
+  - details-pseudo-elements-003.html
+  - details-pseudo-elements-004.html
+  - details-pseudo-elements-005.html
+  - details-pseudo-elements-006.html
 - name: scroll-to-text-fragment
   files:
   - auto-expand-details-text-fragment.html
