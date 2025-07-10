@@ -118,10 +118,10 @@ impl Table {
         let mut table = table_builder.finish();
         table.anonymous = true;
 
-        let ifc = IndependentFormattingContext {
-            base: LayoutBoxBase::new((&table_info).into(), table_style),
-            contents: IndependentFormattingContextContents::Table(table),
-        };
+        let ifc = IndependentFormattingContext::new(
+            LayoutBoxBase::new((&table_info).into(), table_style),
+            IndependentFormattingContextContents::Table(table),
+        );
 
         (table_info, ifc)
     }
@@ -881,12 +881,9 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                                 false, /* is_list_item */
                             ),
                         );
-
+                        let base = LayoutBoxBase::new(info.into(), info.style.clone());
                         ArcRefCell::new(TableCaption {
-                            context: IndependentFormattingContext {
-                                base: LayoutBoxBase::new(info.into(), info.style.clone()),
-                                contents,
-                            },
+                            context: IndependentFormattingContext::new(base, contents),
                         })
                     });
 

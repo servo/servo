@@ -34,7 +34,9 @@ use crate::{
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct IndependentFormattingContext {
     pub base: LayoutBoxBase,
-    pub contents: IndependentFormattingContextContents,
+    // Private so that code outside of this module cannot match variants.
+    // It should go through methods instead.
+    contents: IndependentFormattingContextContents,
 }
 
 #[derive(Debug, MallocSizeOf)]
@@ -65,6 +67,10 @@ impl Baselines {
 }
 
 impl IndependentFormattingContext {
+    pub(crate) fn new(base: LayoutBoxBase, contents: IndependentFormattingContextContents) -> Self {
+        Self { base, contents }
+    }
+
     pub fn construct(
         context: &LayoutContext,
         node_and_style_info: &NodeAndStyleInfo,
@@ -137,13 +143,6 @@ impl IndependentFormattingContext {
                 }
             },
         }
-    }
-
-    pub fn is_replaced(&self) -> bool {
-        matches!(
-            self.contents,
-            IndependentFormattingContextContents::Replaced(_)
-        )
     }
 
     #[inline]
@@ -236,6 +235,19 @@ impl IndependentFormattingContext {
                 table.repair_style(context, new_style)
             },
         }
+    }
+
+    #[inline]
+    pub(crate) fn is_block_container(&self) -> bool {
+        matches!(self.contents, IndependentFormattingContextContents::Flow(_))
+    }
+
+    #[inline]
+    pub(crate) fn is_replaced(&self) -> bool {
+        matches!(
+            self.contents,
+            IndependentFormattingContextContents::Replaced(_)
+        )
     }
 
     #[inline]
