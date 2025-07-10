@@ -36,7 +36,7 @@ env:
   SHELL: /bin/bash
   CARGO_INCREMENTAL: 0
   BENCHER_PROJECT: ${{ vars.BENCHER_PROJECT || 'servo' }}
-  HITRACE_BENCH_VERSION: 0.7.0
+  HITRACE_BENCH_VERSION: 0.8.2
 
 jobs:
   build:
@@ -285,7 +285,7 @@ jobs:
         run: cargo install --locked hitrace-bench --version $HITRACE_BENCH_VERSION
         if: ${{ env.INSTALLED_HITRACE_BENCH_VERSION != env.HITRACE_BENCH_VERSION }}
       - name: "Run benchmark"
-        run: hitrace-bench -r support/hitrace-bencher/runs.json
+        run: hitrace-bench -r support/hitrace-bencher/runs.json --bencher -p ${{ inputs.profile }}
         continue-on-error: true
       - name: Run speedometer
         id: BencherRun
