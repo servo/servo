@@ -54,7 +54,7 @@ class AsyncValue(Generic[T]):
     def __init__(self, value: Optional[T] = None):
         self._value = value
 
-    def resolve(self, value: T):
+    def resolve(self, value: Optional[T]):
         self._value = value
 
     def value(self) -> T:
