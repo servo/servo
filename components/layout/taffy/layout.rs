@@ -206,19 +206,21 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                         ..taffy::LayoutOutput::DEFAULT
                     }
                 } else {
+                    // TODO: pass min- and max- size
+                    let tentative_block_size = content_box_known_dimensions
+                        .height
+                        .map(Au::from_f32_px)
+                        .map_or_else(SizeConstraint::default, SizeConstraint::Definite);
+
                     // Compute inline size
                     let inline_size = content_box_known_dimensions.width.unwrap_or_else(|| {
                         let constraint_space = ConstraintSpace {
-                            // TODO: pass min- and max- size
-                            block_size: SizeConstraint::new(
-                                inputs.parent_size.height.map(Au::from_f32_px),
-                                Au::zero(),
-                                None,
-                            ),
+                            block_size: tentative_block_size,
                             writing_mode,
                             preferred_aspect_ratio,
                         };
 
+                        // TODO: pass min- and max- size
                         let result = independent_context
                             .inline_content_sizes(self.layout_context, &constraint_space);
                         let adjusted_available_space = inputs
@@ -243,10 +245,7 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                     let content_box_size_override = ContainingBlock {
                         size: ContainingBlockSize {
                             inline: Au::from_f32_px(inline_size),
-                            block: content_box_known_dimensions
-                                .height
-                                .map(Au::from_f32_px)
-                                .map_or_else(SizeConstraint::default, SizeConstraint::Definite),
+                            block: tentative_block_size,
                         },
                         style,
                     };
