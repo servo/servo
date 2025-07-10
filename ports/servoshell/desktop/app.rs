@@ -477,22 +477,24 @@ impl App {
                     }
                 },
                 // Key events don't need hit test so can be forwarded to constellation for now
-                WebDriverCommandMsg::SendKeys(webview_id, cmd) => {
-                    for event in cmd {
-                        if let Some(webview) = running_state.webview_by_id(webview_id) {
-                            match event {
-                                WebDriverInputEvent::Keyboard(event) => {
-                                    webview.notify_input_event(InputEvent::Keyboard(
-                                        KeyboardEvent::new(event),
-                                    ));
-                                },
-                                WebDriverInputEvent::Composition(event) => {
-                                    webview.notify_input_event(InputEvent::Ime(
-                                        ImeEvent::Composition(event),
-                                    ));
-                                },
-                            }
-                        };
+                WebDriverCommandMsg::SendKeys(webview_id, webdriver_input_events) => {
+                    let Some(webview) = running_state.webview_by_id(webview_id) else {
+                        continue;
+                    };
+
+                    for event in webdriver_input_events {
+                        match event {
+                            WebDriverInputEvent::Keyboard(event) => {
+                                webview.notify_input_event(InputEvent::Keyboard(
+                                    KeyboardEvent::new(event),
+                                ));
+                            },
+                            WebDriverInputEvent::Composition(event) => {
+                                webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
+                                    event,
+                                )));
+                            },
+                        }
                     }
                 },
                 WebDriverCommandMsg::KeyboardAction(webview_id, key_event, msg_id) => {

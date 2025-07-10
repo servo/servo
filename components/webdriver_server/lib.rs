@@ -1850,7 +1850,7 @@ impl Handler {
             self.session()?.strict_file_interactability,
             sender,
         );
-        self.browsing_context_script_command::<true>(cmd)?;
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
 
         // TODO: distinguish the not found and not focusable cases
         // File input and non-typeable form control should have
