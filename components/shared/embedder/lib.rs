@@ -425,7 +425,6 @@ pub enum EmbedderMsg {
         JavaScriptEvaluationId,
         Result<JSValue, JavaScriptEvaluationError>,
     ),
-    WebDriverCommand(WebDriverCommandMsg),
 }
 
 impl Debug for EmbedderMsg {
