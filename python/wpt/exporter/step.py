@@ -18,16 +18,15 @@ from __future__ import annotations
 import logging
 import os
 import textwrap
+
 from typing import TYPE_CHECKING, Generic, Optional, TypeVar
 
-from .common import (
-    COULD_NOT_APPLY_CHANGES_DOWNSTREAM_COMMENT,
-    COULD_NOT_APPLY_CHANGES_UPSTREAM_COMMENT,
-    COULD_NOT_MERGE_CHANGES_DOWNSTREAM_COMMENT,
-    COULD_NOT_MERGE_CHANGES_UPSTREAM_COMMENT,
-    UPSTREAMABLE_PATH,
-    wpt_branch_name_from_servo_pr_number,
-)
+from .common import COULD_NOT_APPLY_CHANGES_DOWNSTREAM_COMMENT
+from .common import COULD_NOT_APPLY_CHANGES_UPSTREAM_COMMENT
+from .common import COULD_NOT_MERGE_CHANGES_DOWNSTREAM_COMMENT
+from .common import COULD_NOT_MERGE_CHANGES_UPSTREAM_COMMENT
+from .common import UPSTREAMABLE_PATH
+from .common import wpt_branch_name_from_servo_pr_number
 from .github import GithubBranch, GithubRepository, PullRequest
 
 if TYPE_CHECKING:

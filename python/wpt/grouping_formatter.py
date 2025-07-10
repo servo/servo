@@ -8,12 +8,12 @@ from __future__ import annotations
 import collections
 import os
 import sys
-from dataclasses import dataclass, field
-from typing import DefaultDict, Dict, Optional, Union
-
 import mozlog
 import mozlog.formatters.base
 import mozlog.reader
+
+from dataclasses import dataclass, field
+from typing import DefaultDict, Dict, Optional, Union
 from six import itervalues
 
 DEFAULT_MOVE_UP_CODE = "\x1b[A"
