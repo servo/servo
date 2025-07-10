@@ -757,22 +757,30 @@ pub struct NotificationAction {
 }
 
 /// Information about a `WebView`'s screen geometry and offset. This is used
-/// for the [Screen](https://drafts.csswg.org/cssom-view/#the-screen-interface)
-/// CSSOM APIs and `window.screenLeft` / `window.screenTop`.
+/// for the [Screen](https://drafts.csswg.org/cssom-view/#the-screen-interface) CSSOM APIs
+/// and `window.screenLeft` / `window.screenX` / `window.screenTop` / `window.screenY` /
+/// `window.moveBy`/ `window.resizeBy` / `window.outerWidth` / `window.outerHeight` /
+/// `window.screen.availHeight` / `window.screen.availWidth`.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct ScreenGeometry {
     /// The size of the screen in device pixels. This will be converted to
     /// CSS pixels based on the pixel scaling of the `WebView`.
     pub size: DeviceIntSize,
-    /// The available size of the screen in device pixels. This size is the size
+    /// The size of the window in device pixels for the purposes of the
+    /// `window.outerWidth` / `window.outerHeight` / `window.resizeBy`. This will be converted to
+    /// CSS pixels based on the pixel scaling of the `WebView`.
+    pub window_size: DeviceIntSize,
+    /// The available size of the screen in device pixels for the purposes of
+    /// the `window.screen.availHeight` / `window.screen.availWidth`. This is the size
     /// available for web content on the screen, and should be `size` minus any system
     /// toolbars, docks, and interface elements. This will be converted to
     /// CSS pixels based on the pixel scaling of the `WebView`.
     pub available_size: DeviceIntSize,
-    /// The offset of the `WebView` in device pixels for the purposes of the `window.screenLeft`
-    /// and `window.screenTop` APIs. This will be converted to CSS pixels based on the pixel scaling
-    /// of the `WebView`.
-    pub offset: DeviceIntPoint,
+    /// The offset of the `WebView` in device pixels for the purposes of the
+    /// `window.screenLeft`, `window.screenX`, `window.screenTop`,
+    /// `window.screenY`, and `window.moveBy` APIs.
+    /// This will be converted to CSS pixels based on the pixel scaling of the `WebView`.
+    pub window_offset: DeviceIntPoint,
 }
 
 impl From<SelectElementOption> for SelectElementOptionOrOptgroup {
