@@ -193,3 +193,29 @@ function computeSNR(actual, expected) {
 
   return signalPower / noisePower;
 }
+
+/**
+ * Asserts that all elements in the given array are equal to the specified value.
+ * If the value is NaN, checks that each element in the array is also NaN.
+ * Throws an assertion error if any element does not match the expected value.
+ *
+ * @param {Array<number>} array - The array of numbers to check.
+ * @param {number} value - The constant value that each array element should match.
+ * @param {string} [messagePrefix=''] - Optional prefix for assertion error messages.
+ */
+function assert_constant_value(array, value, messagePrefix = '') {
+  for (let i = 0; i < array.length; ++i) {
+    if (Number.isNaN(value)) {
+      assert_true(
+        Number.isNaN(array[i]),
+        `${messagePrefix} entry ${i} should be NaN`
+      );
+    } else {
+      assert_equals(
+        array[i],
+        value,
+        `${messagePrefix} entry ${i} should be ${value}`
+      );
+    }
+  }
+}

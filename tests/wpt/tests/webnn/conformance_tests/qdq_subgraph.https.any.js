@@ -3600,6 +3600,171 @@ const subgraphTests = [
     }
   },
   {
+    'name': 'quantized pad with constant mode for Kernel fusion',
+    'graph': {
+      'inputs': {
+        'input': {
+          'data': [
+            1.6811466217041016, 0.0479511022567749, 0.33355462551116943,
+            -0.1988269537687301, -0.0041167140007019, -0.0634240251779556,
+          ],
+          'descriptor': {shape: [2, 3], dataType: 'float32'},
+          'constant': false
+        },
+        'scale': {
+          'data': [0.003921568859368563],
+          'descriptor': {shape: [1], dataType: 'float32'},
+          'constant': true
+        },
+        'zeroPoint': {
+          'data': [0],
+          'descriptor': {shape: [1], dataType: 'int8'},
+          'constant': true
+        },
+      },
+      'operators': [
+        {
+          'name': 'quantizeLinear',
+          'arguments': [
+            {'input': 'input'},
+            {'scale': 'scale', 'zeroPoint': 'zeroPoint'}
+          ],
+          'outputs': 'quantizedInput'
+        },
+        {
+          'name': 'dequantizeLinear',
+          'arguments': [
+            {'input': 'quantizedInput'},
+            {'scale': 'scale', 'zeroPoint': 'zeroPoint'}
+          ],
+          'outputs': 'dequantizedInput'
+        },
+        {
+          'name': 'pad',
+          'arguments': [
+            {'input': 'dequantizedInput'}, {'beginningPadding': [1, 2]},
+            {'endingPadding': [1, 2]}, {'options': {'value': 1}}
+          ],
+          'outputs': 'padOutput'
+        },
+        {
+          'name': 'quantizeLinear',
+          'arguments': [
+            {'input': 'padOutput'},
+            {'scale': 'scale', 'zeroPoint': 'zeroPoint'}
+          ],
+          'outputs': 'quantizedPadOutput'
+        },
+        {
+          'name': 'dequantizeLinear',
+          'arguments': [
+            {'input': 'quantizedPadOutput'},
+            {'scale': 'scale', 'zeroPoint': 'zeroPoint'}
+          ],
+          'outputs': 'output'
+        }
+      ],
+      'expectedOutputs': {
+        'output': {
+          'data': [
+            0.49803924560546875, 0.49803924560546875, 0.49803924560546875,
+            0.49803924560546875, 0.49803924560546875, 0.49803924560546875,
+            0.49803924560546875, 0.49803924560546875, 0.49803924560546875,
+            0.49803924560546875, 0.0470588281750679, 0.3333333432674408,
+            0.49803924560546875, 0.49803924560546875, 0.49803924560546875,
+            0.49803924560546875, -0.20000001788139343, -0.003921568859368563,
+            -0.062745101749897, 0.49803924560546875, 0.49803924560546875,
+            0.49803924560546875, 0.49803924560546875, 0.49803924560546875,
+            0.49803924560546875, 0.49803924560546875, 0.49803924560546875,
+            0.49803924560546875,
+          ],
+          'descriptor': {shape: [4, 7], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'quantized pad with constant mode for XNNPack fusion',
+    'graph': {
+      'inputs': {
+        'input': {
+          'data': [
+            1.6811466217041016, 0.0479511022567749, 0.33355462551116943,
+            -0.1988269537687301, -0.0041167140007019, -0.0634240251779556,
+          ],
+          'descriptor': {shape: [2, 3], dataType: 'float32'},
+          'constant': false
+        },
+        'scale': {
+          'data': [0.003921568859368563],
+          'descriptor': {shape: [1], dataType: 'float32'},
+          'constant': true
+        },
+        'zeroPoint': {
+          'data': [0],
+          'descriptor': {shape: [1], dataType: 'int8'},
+          'constant': true
+        },
+      },
+      'operators': [
+        {
+          'name': 'quantizeLinear',
+          'arguments': [
+            {'input': 'input'},
+            {'scale': 'scale', 'zeroPoint': 'zeroPoint'}
+          ],
+          'outputs': 'quantizedInput'
+        },
+        {
+          'name': 'dequantizeLinear',
+          'arguments': [
+            {'input': 'quantizedInput'},
+            {'scale': 'scale', 'zeroPoint': 'zeroPoint'}
+          ],
+          'outputs': 'dequantizedInput'
+        },
+        {
+          'name': 'pad',
+          'arguments': [
+            {'input': 'dequantizedInput'}, {'beginningPadding': [1, 2]},
+            {'endingPadding': [1, 2]}, {'options': {'value': 0}}
+          ],
+          'outputs': 'padOutput'
+        },
+        {
+          'name': 'quantizeLinear',
+          'arguments': [
+            {'input': 'padOutput'},
+            {'scale': 'scale', 'zeroPoint': 'zeroPoint'}
+          ],
+          'outputs': 'quantizedPadOutput'
+        },
+        {
+          'name': 'dequantizeLinear',
+          'arguments': [
+            {'input': 'quantizedPadOutput'},
+            {'scale': 'scale', 'zeroPoint': 'zeroPoint'}
+          ],
+          'outputs': 'output'
+        }
+      ],
+      'expectedOutputs': {
+        'output': {
+          'data': [
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 0.49803924560546875, 0.0470588281750679, 0.3333333432674408,
+            0, 0, 0, 0,
+            -0.20000001788139343, -0.003921568859368563, -0.062745101749897, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+          ],
+          'descriptor': {shape: [4, 7], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
     'name': 'quantized clamp',
     'graph': {
       'inputs': {

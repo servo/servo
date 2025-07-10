@@ -2,3 +2,6 @@ features:
 - name: text-emphasis
   files:
   - text-emphasis-*
+- name: text-underline-offset
+  files:
+  - text-underline-offset-*

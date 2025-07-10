@@ -49,8 +49,9 @@
   <div id="item2"></div>
 </div>
 <script>
-  setup(() => assert_implements_size_container_queries());
+setup(() => assert_implements_size_container_queries(), { explicit_done: true });
 
+document.fonts.ready.then(() => {
   const item1_width = parseInt(getComputedStyle(item1).width);
   const item2_width = parseInt(getComputedStyle(item2).width);
   const container_width = parseInt(getComputedStyle(container).width);
@@ -73,4 +74,7 @@
   test(() => {
     assert_equals(parseInt(getComputedStyle(item2, "::before").width), item2_width);
   }, "The size of the flex item #2 should be given by its contents");
+
+  done();
+})
 </script>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API Active Mode Cannot Replace Active Mode.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script type="module">
+import {request_options_with_mediation_required,
+        fedcm_test,
+        fedcm_get_and_select_first_account} from '../support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  let active_test_options = request_options_with_mediation_required("manifest_with_rp_mode.json");
+  active_test_options.identity.mode = "active";
+
+  return test_driver.bless('initiate FedCM request', async function() {
+      let first_cred = fedcm_get_and_select_first_account(t, active_test_options);
+      let second_cred = navigator.credentials.get(active_test_options);
+      let rej = promise_rejects_dom(t, 'NotAllowedError', second_cred);
+
+      let cred = await first_cred;
+      assert_equals(cred.token, "mode=active");
+      await rej;
+  });
+}, "Test that the active mode cannot replace active mode.");
+
+</script>

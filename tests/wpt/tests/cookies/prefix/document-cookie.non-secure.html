@@ -3,12 +3,13 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/cookies/resources/cookie-helper.sub.js"></script>
 <script>
+  let counter = 0;
   function create_test(prefix, params, shouldExistInDOM, shouldExistViaHTTP, title) {
     promise_test(t => {
       var name = prefix + "prefixtestcookie";
       erase_cookie_from_js(name, params);
       t.add_cleanup(() => erase_cookie_from_js(name, params));
-      var value = "" + Math.random();
+      var value = "foo" + ++counter;
       document.cookie = name + "=" + value + ";" + params;
 
       assert_dom_cookie(name, value, shouldExistInDOM);

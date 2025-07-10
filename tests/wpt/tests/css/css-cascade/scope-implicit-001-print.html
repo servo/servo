@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="help" href="drafts.csswg.org/css-cascade-6/#scoped-styles">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1930618">
+<div>
+<style>
+@scope {
+  .a {
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div class="a"></div>
+</div>

@@ -43,8 +43,8 @@ async def test_default_partition(
     cookie2_value = "bar_2"
 
     if with_document_cookie:
-        await add_cookie(new_tab["context"], cookie1_name, cookie1_value)
-        await add_cookie(top_context["context"], cookie2_name, cookie2_value)
+        await add_cookie(new_tab["context"], cookie1_name, cookie1_value, secure=True)
+        await add_cookie(top_context["context"], cookie2_name, cookie2_value, secure=True)
     else:
         await set_cookie(
             cookie=create_cookie(
@@ -89,7 +89,7 @@ async def test_partition_context(
     cookie_value = "bar"
     partition = BrowsingContextPartitionDescriptor(new_tab["context"])
     if with_document_cookie:
-        await add_cookie(new_tab["context"], cookie_name, cookie_value)
+        await add_cookie(new_tab["context"], cookie_name, cookie_value, secure=True)
     else:
         await set_cookie(
             cookie=create_cookie(
@@ -256,10 +256,10 @@ async def test_partition_user_context(
 
     if with_document_cookie:
         await add_cookie(
-            new_context_1["context"], cookie1_name, cookie1_value, path="/"
+            new_context_1["context"], cookie1_name, cookie1_value, path="/", secure=True
         )
         await add_cookie(
-            new_context_2["context"], cookie2_name, cookie2_value, path="/"
+            new_context_2["context"], cookie2_name, cookie2_value, path="/", secure=True
         )
     else:
         await set_cookie(
@@ -267,6 +267,8 @@ async def test_partition_user_context(
                 domain=cookie1_domain,
                 name=cookie1_name,
                 value=NetworkStringValue(cookie1_value),
+                same_site="none",
+                secure=True
             ),
             partition=cookie1_partition,
         )
@@ -275,6 +277,8 @@ async def test_partition_user_context(
                 domain=cookie2_domain,
                 name=cookie2_name,
                 value=NetworkStringValue(cookie2_value),
+                same_site="none",
+                secure=True
             ),
             partition=cookie2_partition,
         )
@@ -297,5 +301,5 @@ async def test_partition_user_context(
         name=cookie2_name,
         value={"type": "string", "value": cookie2_value},
         partition=cookie2_partition,
-        secure=False
+        secure=True
     )
