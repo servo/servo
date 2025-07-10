@@ -261,6 +261,7 @@ pub async fn main_fetch(
     // Step 1: Let request be fetchParam's request.
     let request = &mut fetch_params.request;
     // send early HTTP request to DevTools
+    #[allow(clippy::needless_borrow)]
     send_early_httprequest_to_devtools(request, &context);
     // Step 2: Let response be null.
     let mut response = None;
@@ -706,6 +707,7 @@ pub async fn main_fetch(
     // Step 22.
     target.process_response(request, &response);
     // Send Response to Devtools
+    #[allow(clippy::needless_borrow)]
     send_response_to_devtools(request, &context, &response);
 
     // Step 23.
@@ -718,6 +720,7 @@ pub async fn main_fetch(
     // Send Response to Devtools
     // This is done after process_response_eof to ensure that the body is fully
     // processed before sending the response to Devtools.
+    #[allow(clippy::needless_borrow)]
     send_response_to_devtools(request, &context, &response);
 
     if let Ok(http_cache) = context.state.http_cache.write() {
