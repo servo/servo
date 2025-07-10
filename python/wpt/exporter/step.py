@@ -79,9 +79,6 @@ class CreateOrUpdateBranchForPRStep(Step):
         try:
             commits = self._get_upstreamable_commits_from_local_servo_repo(run.sync)
             branch_name = self._create_or_update_branch_for_pr(run, commits)
-            if branch_name is None:
-                logging.info("Could not get branch_name from PR.")
-                return
             branch = run.sync.downstream_wpt.get_branch(branch_name)
 
             self.branch.resolve(branch)
@@ -147,7 +144,7 @@ class CreateOrUpdateBranchForPRStep(Step):
         run.sync.local_wpt_repo.run("add", "--all")
         run.sync.local_wpt_repo.run("commit", "--message", commit["message"], "--author", commit["author"])
 
-    def _create_or_update_branch_for_pr(self, run: SyncRun, commits: list[dict], pre_commit_callback=None):
+    def _create_or_update_branch_for_pr(self, run: SyncRun, commits: list[dict], pre_commit_callback=None) -> str:
         branch_name = wpt_branch_name_from_servo_pr_number(self.pull_data["number"])
         try:
             # Create a new branch with a unique name that is consistent between
@@ -180,6 +177,7 @@ class CreateOrUpdateBranchForPRStep(Step):
                 run.sync.local_wpt_repo.run("branch", "-D", branch_name)
             except Exception:
                 pass
+            return branch_name
 
 
 class RemoveBranchForPRStep(Step):

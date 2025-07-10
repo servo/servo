@@ -398,7 +398,7 @@ class PyreflyDiagnostic:
     concise_description: str
 
 
-def check_pyrefly_type_checking() -> Iterator[Tuple[str, int, str]]:
+def run_python_type_checker() -> Iterator[Tuple[str, int, str]]:
     print("\r ➤  Running `pyrefly` checks...")
     try:
         result = subprocess.run(["pyrefly", "check", "--output-format", "json"], capture_output=True)
@@ -409,7 +409,7 @@ def check_pyrefly_type_checking() -> Iterator[Tuple[str, int, str]]:
         pass
     else:
         for error in errors:
-            diagnostic: PyreflyDiagnostic = PyreflyDiagnostic(**error)
+            diagnostic = PyreflyDiagnostic(**error)
             yield normalize_path(diagnostic.path), diagnostic.line, diagnostic.name
 
 
@@ -1043,7 +1043,7 @@ def scan(only_changed_files=False, progress=False, github_annotations=False):
     cargo_lock_errors = run_cargo_deny_lints()
     wpt_errors = run_wpt_lints(only_changed_files)
 
-    python_type_check = check_pyrefly_type_checking()
+    python_type_check = run_python_type_checker()
     # chain all the iterators
     errors = itertools.chain(
         config_errors, directory_errors, file_errors, python_errors, python_type_check, wpt_errors, cargo_lock_errors

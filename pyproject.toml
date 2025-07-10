@@ -35,7 +35,7 @@ search-path = [
     "python/mach",
 ]
 project-includes = [
-    "python/wpt/*.py",
+    "python/wpt/**/*.py",
 ]
 project-excludes = [
     "**/venv/**",
