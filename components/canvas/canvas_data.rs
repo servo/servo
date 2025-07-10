@@ -1216,7 +1216,8 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         );
     }
 
-    /// We need to bound shape on non-repeat (bounded) patterns
+    /// Push a clip to the draw target to respect the non-repeating bound (either x, y, or both)
+    /// of the given pattern.
     fn maybe_bound_shape_with_pattern<F>(
         &mut self,
         pattern: B::Pattern<'_>,
@@ -1227,7 +1228,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
     {
         let x_bound = pattern.x_bound();
         let y_bound = pattern.y_bound();
-        // clear is also unbounded
+        // Clear operations are also unbounded.
         if self.state.draw_options.is_clear() || (x_bound.is_none() && y_bound.is_none()) {
             draw_shape(self);
             return;
