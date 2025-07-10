@@ -399,7 +399,7 @@ class PyreflyDiagnostic:
 
 
 def run_python_type_checker() -> Iterator[Tuple[str, int, str]]:
-    print("\r ➤  Running `pyrefly` checks...")
+    print("\r ➤  Checking type annotations in python files ...")
     try:
         result = subprocess.run(["pyrefly", "check", "--output-format", "json"], capture_output=True)
         parsed_json = json.loads(result.stdout)
@@ -410,7 +410,7 @@ def run_python_type_checker() -> Iterator[Tuple[str, int, str]]:
     else:
         for error in errors:
             diagnostic = PyreflyDiagnostic(**error)
-            yield normalize_path(diagnostic.path), diagnostic.line, diagnostic.name
+            yield normalize_path(diagnostic.path), diagnostic.line, diagnostic.concise_description
 
 
 def run_cargo_deny_lints():
