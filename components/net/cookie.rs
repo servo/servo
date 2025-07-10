@@ -50,6 +50,8 @@ impl ServoCookie {
         // Cookie::parse uses RFC 2616 <http://tools.ietf.org/html/rfc2616#section-3.3.1> to parse
         // cookie expiry date. If it fails to parse the expiry date, try to parse again with
         // less strict algorithm from RFC6265.
+        // TODO: We can remove this code and the ServoCookie::parse_date function if cookie-rs
+        // library fixes this upstream.
         if cookie.expires_datetime().is_none() {
             let expiry_date_str = cookie_str
                 .split(';')
