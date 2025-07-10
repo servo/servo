@@ -1842,20 +1842,15 @@ impl Handler {
         element: &WebElement,
         keys: &SendKeysParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        let browsing_context_id = self.session()?.browsing_context_id;
-        // Step 3. If session's current browsing context is no longer open,
-        // return error with error code no such window.
-        self.verify_browsing_context_is_open(browsing_context_id)?;
+        // Step 3-8
         let (sender, receiver) = ipc::channel().unwrap();
-
         let cmd = WebDriverScriptCommand::WillSendKeys(
             element.to_string(),
             keys.text.to_string(),
             self.session()?.strict_file_interactability,
             sender,
         );
-        let cmd_msg = WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd);
-        self.send_message_to_embedder(cmd_msg)?;
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
 
         // TODO: distinguish the not found and not focusable cases
         // File input and non-typeable form control should have
@@ -1869,7 +1864,8 @@ impl Handler {
         // TODO: there's a race condition caused by the focus command and the
         // send keys command being two separate messages,
         // so the constellation may have changed state between them.
-        let cmd_msg = WebDriverCommandMsg::SendKeys(browsing_context_id, input_events);
+        // TODO: We should use `dispatch_action` to send the keys.
+        let cmd_msg = WebDriverCommandMsg::SendKeys(self.session()?.webview_id, input_events);
         self.send_message_to_embedder(cmd_msg)?;
 
         Ok(WebDriverResponse::Void)

@@ -131,10 +131,10 @@ use embedder_traits::resources::{self, Resource};
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
     AnimationState, CompositorHitTestResult, Cursor, EmbedderMsg, EmbedderProxy,
-    FocusSequenceNumber, ImeEvent, InputEvent, JSValue, JavaScriptEvaluationError,
-    JavaScriptEvaluationId, KeyboardEvent, MediaSessionActionType, MediaSessionEvent,
-    MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent, Theme,
-    ViewportDetails, WebDriverCommandMsg, WebDriverCommandResponse, WebDriverLoadStatus,
+    FocusSequenceNumber, InputEvent, JSValue, JavaScriptEvaluationError, JavaScriptEvaluationId,
+    KeyboardEvent, MediaSessionActionType, MediaSessionEvent, MediaSessionPlaybackState,
+    MouseButton, MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverCommandMsg,
+    WebDriverCommandResponse, WebDriverLoadStatus,
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
@@ -142,7 +142,6 @@ use fonts::SystemFontServiceProxy;
 use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use keyboard_types::{Key, KeyState, Modifiers};
 use layout_api::{LayoutFactory, ScriptThreadFactory};
 use log::{debug, error, info, trace, warn};
@@ -4594,36 +4593,8 @@ where
                     self.handle_send_error(pipeline_id, e);
                 }
             },
-            WebDriverCommandMsg::SendKeys(browsing_context_id, cmd) => {
-                let pipeline_id = self
-                    .browsing_contexts
-                    .get(&browsing_context_id)
-                    .expect("SendKeys: Browsing context must exist at this point")
-                    .pipeline_id;
-                let event_loop = match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => pipeline.event_loop.clone(),
-                    None => return warn!("{}: SendKeys after closure", pipeline_id),
-                };
-                for event in cmd {
-                    let event = match event {
-                        WebDriverInputEvent::Keyboard(event) => ConstellationInputEvent {
-                            pressed_mouse_buttons: self.pressed_mouse_buttons,
-                            active_keyboard_modifiers: event.modifiers,
-                            hit_test_result: None,
-                            event: InputEvent::Keyboard(KeyboardEvent::new(event)),
-                        },
-                        WebDriverInputEvent::Composition(event) => ConstellationInputEvent {
-                            pressed_mouse_buttons: self.pressed_mouse_buttons,
-                            active_keyboard_modifiers: self.active_keyboard_modifiers,
-                            hit_test_result: None,
-                            event: InputEvent::Ime(ImeEvent::Composition(event)),
-                        },
-                    };
-                    let control_msg = ScriptThreadMessage::SendInputEvent(pipeline_id, event);
-                    if let Err(e) = event_loop.send(control_msg) {
-                        return self.handle_send_error(pipeline_id, e);
-                    }
-                }
+            WebDriverCommandMsg::SendKeys(..) => {
+                unreachable!("This command should be send directly to the embedder.");
             },
             WebDriverCommandMsg::KeyboardAction(..) => {
                 unreachable!("This command should be send directly to the embedder.");
