@@ -281,6 +281,7 @@ pub struct RasterImage {
     pub cors_status: CorsStatus,
     pub bytes: IpcSharedMemory,
     pub frames: Vec<ImageFrame>,
+    pub raw_size: usize,
 }
 
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
@@ -374,6 +375,7 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Raster
                         bytes: IpcSharedMemory::from_bytes(&rgba),
                         id: None,
                         cors_status,
+                        raw_size: buffer.len(),
                     })
                 },
                 Err(e) => {
@@ -591,6 +593,7 @@ fn decode_gif(buffer: &[u8], cors_status: CorsStatus) -> Option<RasterImage> {
         id: None,
         format: PixelFormat::BGRA8,
         bytes: IpcSharedMemory::from_bytes(&bytes),
+        raw_size: buffer.len(),
     })
 }
 

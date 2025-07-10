@@ -10,6 +10,7 @@ use base::WebRenderEpochToU16;
 use base::id::ScrollTreeNodeId;
 use clip::{Clip, ClipId};
 use compositing_traits::display_list::{CompositorDisplayListInfo, SpatialTreeNodeInfo};
+use compositing_traits::largest_contentful_paint_record::LCPCandidateRecord;
 use embedder_traits::Cursor;
 use euclid::{Point2D, Scale, SideOffsets2D, Size2D, UnknownUnit, Vector2D};
 use fonts::GlyphStore;
@@ -50,6 +51,8 @@ use wr::units::LayoutVector2D;
 use crate::cell::ArcRefCell;
 use crate::context::{ImageResolver, ResolvedImage};
 pub use crate::display_list::conversions::ToWebRender;
+use crate::display_list::effect::EffectNodeId;
+use crate::display_list::largest_contenful_paint_helper::LargestContentfulPaintHelper;
 use crate::display_list::stacking_context::StackingContextSection;
 use crate::fragment_tree::{
     BackgroundMode, BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo, Tag,
@@ -64,7 +67,9 @@ use crate::style_ext::{BorderStyleColor, ComputedValuesExt};
 mod background;
 mod clip;
 mod conversions;
+mod effect;
 mod gradient;
+mod largest_contenful_paint_helper;
 mod stacking_context;
 
 use background::BackgroundPainter;
@@ -119,6 +124,9 @@ pub(crate) struct DisplayListBuilder<'a> {
 
     /// The device pixel ratio used for this `Document`'s display list.
     device_pixel_ratio: Scale<f32, StyloCSSPixel, StyloDevicePixel>,
+
+    /// The Helper for calculator Largest Contentful Paint
+    lcp_helper: LargestContentfulPaintHelper<'a>,
 }
 
 struct InspectorHighlight {
@@ -155,6 +163,7 @@ impl InspectorHighlight {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 impl DisplayListBuilder<'_> {
     pub(crate) fn build(
         reflow_request: &ReflowRequest,
@@ -163,6 +172,7 @@ impl DisplayListBuilder<'_> {
         image_resolver: Arc<ImageResolver>,
         device_pixel_ratio: Scale<f32, StyloCSSPixel, StyloDevicePixel>,
         debug: &DebugOptions,
+        lcp_record: &mut LCPCandidateRecord,
     ) -> BuiltDisplayList {
         // Build the rest of the display list which inclues all of the WebRender primitives.
         let compositor_info = &mut stacking_context_tree.compositor_info;
@@ -180,6 +190,14 @@ impl DisplayListBuilder<'_> {
             webrender_display_list_builder.dump_serialized_display_list();
         }
 
+        let lcp_helper = LargestContentfulPaintHelper {
+            clip_tree: &stacking_context_tree.clip_store,
+            effect_tree: &stacking_context_tree.effect_store,
+            current_scroll_node_id: compositor_info.root_reference_frame_id,
+            current_clip_id: ClipId::INVALID,
+            current_effect_id: EffectNodeId::INVALID,
+            lcp_record,
+        };
         #[cfg(feature = "tracing")]
         let _span =
             tracing::trace_span!("DisplayListBuilder::build", servo_profiling = true).entered();
@@ -196,6 +214,7 @@ impl DisplayListBuilder<'_> {
             clip_map: Default::default(),
             image_resolver,
             device_pixel_ratio,
+            lcp_helper,
         };
 
         builder.add_all_spatial_nodes();
@@ -567,6 +586,7 @@ impl InspectorHighlight {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 impl Fragment {
     pub(crate) fn build_display_list(
         &self,
@@ -576,6 +596,7 @@ impl Fragment {
         is_hit_test_for_scrollable_overflow: bool,
         is_collapsed_table_borders: bool,
         text_decorations: &Arc<Vec<FragmentTextDecoration>>,
+        text_block_parent: Option<Tag>,
     ) {
         let spatial_id = builder.spatial_id(builder.current_scroll_node_id);
         let clip_chain_id = builder.clip_chain_id(builder.current_clip_id);
@@ -649,6 +670,18 @@ impl Fragment {
                                 image_key,
                                 wr::ColorF::WHITE,
                             );
+
+                            let visual_rect = builder.lcp_helper.compute_visual_rect(
+                                clip,
+                                &builder.compositor_info.scroll_tree,
+                                builder.compositor_info.viewport_size,
+                            );
+                            builder.lcp_helper.record_image(
+                                image.base.tag.unwrap().node.id(),
+                                &visual_rect,
+                                &image_key,
+                                builder.compositor_info.epoch,
+                            );
                         }
                     },
                     Visibility::Hidden => (),
@@ -692,6 +725,7 @@ impl Fragment {
                         builder,
                         containing_block,
                         text_decorations,
+                        text_block_parent,
                     ),
                     Visibility::Hidden => (),
                     Visibility::Collapse => (),
@@ -731,6 +765,7 @@ impl Fragment {
         builder: &mut DisplayListBuilder,
         containing_block: &PhysicalRect<Au>,
         text_decorations: &Arc<Vec<FragmentTextDecoration>>,
+        text_block_parent: Option<Tag>,
     ) {
         // NB: The order of painting text components (CSS Text Decoration Module Level 3) is:
         // shadows, underline, overline, text, text-emphasis, and then line-through.
@@ -911,6 +946,18 @@ impl Fragment {
         if !shadows.0.is_empty() {
             builder.wr().pop_all_shadows();
         }
+
+        let visual_rect = builder.lcp_helper.compute_visual_rect(
+            rect.to_webrender(),
+            &builder.compositor_info.scroll_tree,
+            builder.compositor_info.viewport_size,
+        );
+        builder.lcp_helper.record_text(
+            fragment.base.tag.unwrap().node.id(),
+            text_block_parent.unwrap().node.id(),
+            &visual_rect,
+            builder.compositor_info.epoch,
+        );
     }
 
     fn build_display_list_for_text_decoration(
@@ -1334,6 +1381,18 @@ impl<'a> BuilderForBoxFragment<'a> {
                                 wr::ColorF::WHITE,
                             )
                         }
+
+                        let visual_rect = builder.lcp_helper.compute_visual_rect(
+                            layer.bounds,
+                            &builder.compositor_info.scroll_tree,
+                            builder.compositor_info.viewport_size,
+                        );
+                        builder.lcp_helper.record_image(
+                            self.fragment.base.tag.unwrap().node.id(),
+                            &visual_rect,
+                            &image_key,
+                            builder.compositor_info.epoch,
+                        );
                     }
                 },
             }

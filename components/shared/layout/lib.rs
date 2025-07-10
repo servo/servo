@@ -614,6 +614,7 @@ mod test {
             bytes: IpcSharedMemory::from_byte(1, 1),
             frames: image_frames,
             cors_status: CorsStatus::Unsafe,
+            raw_size: 1,
         };
         let mut image_animation_state = ImageAnimationState::new(Arc::new(image), 0.0);
 
