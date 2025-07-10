@@ -99,7 +99,7 @@ def run_tests(default_binary_path: str, **kwargs):
     wptcommandline.check_args(kwargs)
 
     mozlog.commandline.log_formatters["servo"] = (
-        tuple[type[ServoFormatter], str],
+        type[ServoFormatter],
         "Servo's grouping output formatter",
     )
 
