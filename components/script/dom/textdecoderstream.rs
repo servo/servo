@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use encoding_rs::Encoding;
 use script_bindings::root::DomRoot;
 use js::rust::HandleObject;
 
@@ -19,6 +20,10 @@ use crate::script_runtime::CanGc;
 #[allow(non_snake_case)]
 pub(crate) struct TextDecoderStream {
     reflector_: Reflector,
+    #[no_trace]
+    encoding: &'static Encoding,
+    fatal: bool,
+    ignoreBOM: bool,
 }
 
 #[allow(non_snake_case)]
@@ -33,23 +38,24 @@ impl TextDecoderStreamMethods<crate::DomTypeHolder> for TextDecoderStream {
         todo!()
     }
 
+    // https://encoding.spec.whatwg.org/#dom-textdecoder-encoding
+    fn Encoding(&self) -> DOMString {
+        DOMString::from(self.encoding.name().to_ascii_lowercase())
+    }
+
+    fn Fatal(&self) -> bool {
+        self.fatal
+    }
+
+    fn IgnoreBOM(&self) -> bool {
+        self.ignoreBOM
+    }
+
     fn Readable(&self) -> DomRoot<<crate::DomTypeHolder as DomTypes>::ReadableStream> {
         todo!()
     }
 
     fn Writable(&self) -> DomRoot<<crate::DomTypeHolder as DomTypes>::WritableStream> {
-        todo!()
-    }
-
-    fn Encoding(&self) -> DOMString {
-        todo!()
-    }
-
-    fn Fatal(&self) -> bool {
-        todo!()
-    }
-
-    fn IgnoreBOM(&self) -> bool {
         todo!()
     }
 }
