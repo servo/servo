@@ -706,7 +706,7 @@ pub async fn main_fetch(
     // Step 22.
     target.process_response(request, &response);
     // Send Response to Devtools
-    send_response_to_devtools(request, &context, &response);
+    send_response_to_devtools(request, context, &response);
 
     // Step 23.
     if !response_loaded {
@@ -718,7 +718,7 @@ pub async fn main_fetch(
     // Send Response to Devtools
     // This is done after process_response_eof to ensure that the body is fully
     // processed before sending the response to Devtools.
-    send_response_to_devtools(request, &context, &response);
+    send_response_to_devtools(request, context, &response);
 
     if let Ok(http_cache) = context.state.http_cache.write() {
         http_cache.update_awaiting_consumers(request, &response);
