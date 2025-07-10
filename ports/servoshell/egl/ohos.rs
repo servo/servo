@@ -167,7 +167,10 @@ impl ServoAction {
     fn do_action(&self, servo: &Rc<RunningAppState>) {
         use ServoAction::*;
         match self {
-            WakeUp => servo.perform_updates(),
+            WakeUp => {
+                servo.perform_updates();
+                servo.present_if_needed();
+            },
             LoadUrl(url) => servo.load_uri(url.as_str()),
             GoBack => servo.go_back(),
             GoForward => servo.go_forward(),
