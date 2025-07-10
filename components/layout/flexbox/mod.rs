@@ -175,17 +175,17 @@ impl FlexLevelBox {
         }
     }
 
-    pub(crate) fn invalidate_cached_fragment(&self) {
+    pub(crate) fn clear_fragment_layout_cache(&self) {
         match self {
             FlexLevelBox::FlexItem(flex_item_box) => flex_item_box
                 .independent_formatting_context
                 .base
-                .invalidate_cached_fragment(),
+                .clear_fragment_layout_cache(),
             FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(positioned_box) => positioned_box
                 .borrow()
                 .context
                 .base
-                .invalidate_cached_fragment(),
+                .clear_fragment_layout_cache(),
         }
     }
 

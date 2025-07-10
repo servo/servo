@@ -6,7 +6,7 @@
 <script src="support/cq-testcommon.js"></script>
 <script>
 
-setup(() => assert_implements_size_container_queries());
+setup(() => assert_implements_size_container_queries(), { explicit_done: true });
 
 // Inflate a <template> subtree into #main, run the test function,
 // then clean up.
@@ -171,12 +171,14 @@ test_template(document.currentScript.previousElementSibling, (t) => {
   </div>
 </template>
 <script>
-test_template(document.currentScript.previousElementSibling, (t) => {
-  t.add_cleanup(() => main.classList.remove("larger"));
-  assert_equals(getComputedStyle(main.querySelector("#test")).color, red);
-  main.classList.add("larger");
-  assert_equals(getComputedStyle(main.querySelector("#test")).color, green);
-}, 'cap units respond to changes');
+document.fonts.load("10px Ahem").then(() => {
+  test_template(document.currentScript.previousElementSibling, (t) => {
+    t.add_cleanup(() => main.classList.remove("larger"));
+    assert_equals(getComputedStyle(main.querySelector("#test")).color, red);
+    main.classList.add("larger");
+    assert_equals(getComputedStyle(main.querySelector("#test")).color, green);
+  }, 'cap units respond to changes');
+})
 </script>
 
 <template>
@@ -319,10 +321,14 @@ test_template(document.currentScript.previousElementSibling, (t) => {
   </div>
 </template>
 <script>
-test_template(document.currentScript.previousElementSibling, (t) => {
-  t.add_cleanup(() => document.documentElement.classList.remove("larger"));
-  assert_equals(getComputedStyle(main.querySelector("#test")).color, red);
-  document.documentElement.classList.add("larger");
-  assert_equals(getComputedStyle(main.querySelector("#test")).color, green);
-}, 'rcap units respond to changes');
+document.fonts.load("10px Ahem").then(() => {
+  test_template(document.currentScript.previousElementSibling, (t) => {
+    t.add_cleanup(() => document.documentElement.classList.remove("larger"));
+    assert_equals(getComputedStyle(main.querySelector("#test")).color, red);
+    document.documentElement.classList.add("larger");
+    assert_equals(getComputedStyle(main.querySelector("#test")).color, green);
+  }, 'rcap units respond to changes');
+
+  done();
+})
 </script>

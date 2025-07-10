@@ -6,6 +6,17 @@
 
 <script id="myWorker" type="text/worker">
 
+function isDataCloneError(funcStr, offscreenCanvas)
+{
+    try {
+        eval(funcStr);
+    } catch (e) {
+        if (e instanceof DOMException && e.name == "DataCloneError")
+            return true;
+        return false;
+    }
+}
+
 function isInvalidStateError(funcStr, offscreenCanvas)
 {
     try {
@@ -35,7 +46,7 @@ function testExceptionWithDetachedOffscreenCanvas1()
 {
     var offscreenCanvas = new OffscreenCanvas(10, 10);
     self.postMessage(offscreenCanvas, [offscreenCanvas]);
-    return isInvalidStateError("self.postMessage(offscreenCanvas, [offscreenCanvas])", offscreenCanvas);
+    return isDataCloneError("self.postMessage(offscreenCanvas, [offscreenCanvas])", offscreenCanvas);
 }
 
 function testExceptionWithDetachedOffscreenCanvas2()
@@ -113,7 +124,7 @@ async_test(function(t) {
 
 async_test(function(t) {
     var worker = makeWorker(t);
-    worker.addEventListener('message', t.step_func(function (msg) {
+    worker.addEventListener('message', t.step_func(function(msg) {
         if (msg.data == true || msg.data == false) {
             assert_true(msg.data);
             t.done();
@@ -124,7 +135,7 @@ async_test(function(t) {
 
 async_test(function(t) {
     var worker = makeWorker(t);
-    worker.addEventListener('message', t.step_func(function (msg) {
+    worker.addEventListener('message', t.step_func(function(msg) {
         if (msg.data == true || msg.data == false) {
             assert_true(msg.data);
             t.done();
@@ -135,7 +146,7 @@ async_test(function(t) {
 
 async_test(function(t) {
     var worker = makeWorker(t);
-    worker.addEventListener('message', t.step_func(function (msg) {
+    worker.addEventListener('message', t.step_func(function(msg) {
         if (msg.data == true || msg.data == false) {
             assert_true(msg.data);
             t.done();

@@ -27,7 +27,7 @@ use super::geom::{FlexAxis, FlexRelativeRect, FlexRelativeSides, FlexRelativeVec
 use super::{FlexContainer, FlexContainerConfig, FlexItemBox, FlexLevelBox};
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::formatting_contexts::{Baselines, IndependentFormattingContextContents};
+use crate::formatting_contexts::Baselines;
 use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags, SpecificLayoutInfo,
 };
@@ -171,14 +171,6 @@ impl FlexItemLayoutResult {
 
         false
     }
-
-    fn compatible_with_containing_block_size_and_content_size(
-        &self,
-        containing_block: &ContainingBlock,
-        size: LogicalVec2<Au>,
-    ) -> bool {
-        size == self.content_size && self.compatible_with_containing_block_size(containing_block)
-    }
 }
 
 /// A data structure to hold all of the information about a flex item that has been placed
@@ -298,9 +290,8 @@ impl FlexLineItem<'_> {
             flex_context
                 .sides_to_flow_relative(item_margin)
                 .to_physical(container_writing_mode),
-            None, /* clearance */
-        )
-        .with_specific_layout_info(self.layout_result.specific_layout_info);
+            self.layout_result.specific_layout_info,
+        );
 
         // If this flex item establishes a containing block for absolutely-positioned
         // descendants, then lay out any relevant absolutely-positioned children. This
@@ -1582,7 +1573,8 @@ impl InitialFlexLineLayout<'_> {
                     // but it would prevent stretching. So we only recognize tables in the inline axis.
                     // The interaction of collapsed table tracks and the flexbox algorithms is unclear,
                     // see https://github.com/w3c/csswg-drafts/issues/11408.
-                    item.item.is_table() && axis == Direction::Inline,
+                    item.item.box_.independent_formatting_context.is_table() &&
+                        axis == Direction::Inline,
                 )
             } else {
                 item.layout_result.hypothetical_cross_size
@@ -1757,6 +1749,7 @@ impl FlexItem<'_> {
     ) -> Option<FlexItemLayoutResult> {
         let containing_block = flex_context.containing_block;
         let independent_formatting_context = &self.box_.independent_formatting_context;
+        let is_table = independent_formatting_context.is_table();
         let mut positioning_context = PositioningContext::default();
         let item_writing_mode = independent_formatting_context.style().writing_mode;
         let item_is_horizontal = item_writing_mode.is_horizontal();
@@ -1779,11 +1772,24 @@ impl FlexItem<'_> {
                         .block
                         .to_definite()
                         .map(|size| Au::zero().max(size - self.pbm_auto_is_zero.cross));
-                    self.content_cross_sizes.resolve_extrinsic(
-                        Size::FitContent,
-                        Au::zero(),
-                        stretch_size,
-                    )
+                    let tentative_block_content_size = independent_formatting_context
+                        .tentative_block_content_size(self.preferred_aspect_ratio);
+                    if let Some(block_content_size) = tentative_block_content_size {
+                        SizeConstraint::Definite(self.content_cross_sizes.resolve(
+                            Direction::Block,
+                            Size::FitContent,
+                            Au::zero,
+                            stretch_size,
+                            || block_content_size,
+                            is_table,
+                        ))
+                    } else {
+                        self.content_cross_sizes.resolve_extrinsic(
+                            Size::FitContent,
+                            Au::zero(),
+                            stretch_size,
+                        )
+                    }
                 },
             };
             (used_main_size, cross_size)
@@ -1807,7 +1813,7 @@ impl FlexItem<'_> {
                     Au::zero,
                     Some(stretch_size),
                     get_content_size,
-                    self.is_table(),
+                    is_table,
                 )
             });
             // The main size of a flex item is considered to be definite if its flex basis is definite
@@ -1826,191 +1832,118 @@ impl FlexItem<'_> {
             (cross_size, main_size)
         };
 
-        let container_writing_mode = containing_block.style.writing_mode;
         let item_style = independent_formatting_context.style();
-        match &independent_formatting_context.contents {
-            IndependentFormattingContextContents::Replaced(replaced) => {
-                let min_size = flex_axis.vec2_to_flow_relative(FlexRelativeVec2 {
-                    main: Size::Numeric(self.content_min_main_size),
-                    cross: self.content_cross_sizes.min,
-                });
-                let max_size = flex_axis.vec2_to_flow_relative(FlexRelativeVec2 {
-                    main: self
-                        .content_max_main_size
-                        .map_or(Size::Initial, Size::Numeric),
-                    cross: self.content_cross_sizes.max,
-                });
-                let size = replaced.used_size_as_if_inline_element_from_content_box_sizes(
-                    containing_block,
-                    item_style,
-                    self.preferred_aspect_ratio,
-                    LogicalVec2 {
-                        block: &Sizes::new(
-                            block_size
-                                .to_definite()
-                                .map_or(Size::Initial, Size::Numeric),
-                            min_size.block,
-                            max_size.block,
-                        ),
-                        inline: &Sizes::new(
-                            Size::Numeric(inline_size),
-                            min_size.inline,
-                            max_size.inline,
-                        ),
-                    },
-                    Size::FitContent.into(),
-                    flex_axis.vec2_to_flow_relative(self.pbm_auto_is_zero),
-                );
-
-                if let Some(non_stretch_layout_result) = non_stretch_layout_result {
-                    if non_stretch_layout_result
-                        .compatible_with_containing_block_size_and_content_size(
-                            containing_block,
-                            size,
-                        )
-                    {
-                        return None;
-                    }
-                }
-
-                let hypothetical_cross_size = flex_axis.vec2_to_flex_relative(size).cross;
-                let fragments = replaced.make_fragments(
-                    flex_context.layout_context,
-                    item_style,
-                    size.to_physical_size(container_writing_mode),
-                );
-
-                Some(FlexItemLayoutResult {
-                    hypothetical_cross_size,
-                    fragments,
-                    positioning_context,
-                    content_size: size,
-                    containing_block_inline_size: containing_block.size.inline,
-                    containing_block_block_size: containing_block.size.block,
-                    depends_on_block_constraints: false,
-                    has_child_which_depends_on_block_constraints: false,
-
-                    // We will need to synthesize the baseline, but since the used cross
-                    // size can differ from the hypothetical cross size, we should defer
-                    // synthesizing until needed.
-                    baseline_relative_to_margin_box: None,
-                    specific_layout_info: None,
-                })
+        let item_as_containing_block = ContainingBlock {
+            size: ContainingBlockSize {
+                inline: inline_size,
+                block: block_size,
             },
-            IndependentFormattingContextContents::NonReplaced(non_replaced) => {
-                let item_as_containing_block = ContainingBlock {
-                    size: ContainingBlockSize {
-                        inline: inline_size,
-                        block: block_size,
-                    },
-                    style: item_style,
-                };
+            style: item_style,
+        };
 
-                if let Some(non_stretch_layout_result) = non_stretch_layout_result {
-                    if non_stretch_layout_result
-                        .compatible_with_containing_block_size(&item_as_containing_block)
-                    {
-                        return None;
-                    }
-                }
-
-                let lazy_block_size = if !cross_axis_is_item_block_axis {
-                    used_main_size.into()
-                } else if let Some(cross_size) = used_cross_size_override {
-                    cross_size.into()
-                } else {
-                    // This means that an auto size with stretch alignment will behave different than
-                    // a stretch size. That's not what the spec says, but matches other browsers.
-                    // To be discussed in https://github.com/w3c/csswg-drafts/issues/11784.
-                    let stretch_size = containing_block
-                        .size
-                        .block
-                        .to_definite()
-                        .map(|size| Au::zero().max(size - self.pbm_auto_is_zero.cross));
-                    LazySize::new(
-                        &self.content_cross_sizes,
-                        Direction::Block,
-                        Size::FitContent,
-                        Au::zero,
-                        stretch_size,
-                        self.is_table(),
-                    )
-                };
-
-                let layout = non_replaced.layout(
-                    flex_context.layout_context,
-                    &mut positioning_context,
-                    &item_as_containing_block,
-                    containing_block,
-                    &independent_formatting_context.base,
-                    flex_axis == FlexAxis::Column ||
-                        self.cross_size_stretches_to_line ||
-                        self.depends_on_block_constraints,
-                    &lazy_block_size,
-                );
-                let CacheableLayoutResult {
-                    fragments,
-                    content_block_size,
-                    baselines: content_box_baselines,
-                    depends_on_block_constraints,
-                    specific_layout_info,
-                    ..
-                } = layout;
-
-                let has_child_which_depends_on_block_constraints = fragments.iter().any(|fragment| {
-                        fragment.base().is_some_and(|base|
-                                base.flags.contains(
-                                    FragmentFlags::SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM))
-                });
-
-                let hypothetical_cross_size = if cross_axis_is_item_block_axis {
-                    lazy_block_size.resolve(|| content_block_size)
-                } else {
-                    inline_size
-                };
-
-                let item_writing_mode_is_orthogonal_to_container_writing_mode =
-                    flex_context.config.writing_mode.is_horizontal() !=
-                        item_style.writing_mode.is_horizontal();
-                let has_compatible_baseline = match flex_axis {
-                    FlexAxis::Row => !item_writing_mode_is_orthogonal_to_container_writing_mode,
-                    FlexAxis::Column => item_writing_mode_is_orthogonal_to_container_writing_mode,
-                };
-
-                let baselines_relative_to_margin_box = if has_compatible_baseline {
-                    content_box_baselines.offset(
-                        self.margin.cross_start.auto_is(Au::zero) +
-                            self.padding.cross_start +
-                            self.border.cross_start,
-                    )
-                } else {
-                    Baselines::default()
-                };
-
-                let baseline_relative_to_margin_box = match self.align_self.0.value() {
-                    // ‘baseline’ computes to ‘first baseline’.
-                    AlignFlags::BASELINE => baselines_relative_to_margin_box.first,
-                    AlignFlags::LAST_BASELINE => baselines_relative_to_margin_box.last,
-                    _ => None,
-                };
-
-                Some(FlexItemLayoutResult {
-                    hypothetical_cross_size,
-                    fragments,
-                    positioning_context,
-                    baseline_relative_to_margin_box,
-                    content_size: LogicalVec2 {
-                        inline: item_as_containing_block.size.inline,
-                        block: content_block_size,
-                    },
-                    containing_block_inline_size: item_as_containing_block.size.inline,
-                    containing_block_block_size: item_as_containing_block.size.block,
-                    depends_on_block_constraints,
-                    has_child_which_depends_on_block_constraints,
-                    specific_layout_info,
-                })
-            },
+        if non_stretch_layout_result.is_some_and(|old_result| {
+            old_result.compatible_with_containing_block_size(&item_as_containing_block)
+        }) {
+            return None;
         }
+
+        let lazy_block_size = if !cross_axis_is_item_block_axis {
+            used_main_size.into()
+        } else if let Some(cross_size) = used_cross_size_override {
+            cross_size.into()
+        } else {
+            // This means that an auto size with stretch alignment will behave different than
+            // a stretch size. That's not what the spec says, but matches other browsers.
+            // To be discussed in https://github.com/w3c/csswg-drafts/issues/11784.
+            let stretch_size = containing_block
+                .size
+                .block
+                .to_definite()
+                .map(|size| Au::zero().max(size - self.pbm_auto_is_zero.cross));
+            LazySize::new(
+                &self.content_cross_sizes,
+                Direction::Block,
+                Size::FitContent,
+                Au::zero,
+                stretch_size,
+                is_table,
+            )
+        };
+
+        let layout = independent_formatting_context.layout(
+            flex_context.layout_context,
+            &mut positioning_context,
+            &item_as_containing_block,
+            containing_block,
+            self.preferred_aspect_ratio,
+            flex_axis == FlexAxis::Column ||
+                self.cross_size_stretches_to_line ||
+                self.depends_on_block_constraints,
+            &lazy_block_size,
+        );
+        let CacheableLayoutResult {
+            fragments,
+            content_block_size,
+            baselines: content_box_baselines,
+            depends_on_block_constraints,
+            specific_layout_info,
+            ..
+        } = layout;
+
+        let has_child_which_depends_on_block_constraints = fragments.iter().any(|fragment| {
+            fragment.base().is_some_and(|base| {
+                base.flags.contains(
+                    FragmentFlags::SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM,
+                )
+            })
+        });
+
+        let hypothetical_cross_size = if cross_axis_is_item_block_axis {
+            lazy_block_size.resolve(|| content_block_size)
+        } else {
+            inline_size
+        };
+
+        let item_writing_mode_is_orthogonal_to_container_writing_mode =
+            flex_context.config.writing_mode.is_horizontal() !=
+                item_style.writing_mode.is_horizontal();
+        let has_compatible_baseline = match flex_axis {
+            FlexAxis::Row => !item_writing_mode_is_orthogonal_to_container_writing_mode,
+            FlexAxis::Column => item_writing_mode_is_orthogonal_to_container_writing_mode,
+        };
+
+        let baselines_relative_to_margin_box = if has_compatible_baseline {
+            content_box_baselines.offset(
+                self.margin.cross_start.auto_is(Au::zero) +
+                    self.padding.cross_start +
+                    self.border.cross_start,
+            )
+        } else {
+            Baselines::default()
+        };
+
+        let baseline_relative_to_margin_box = match self.align_self.0.value() {
+            // ‘baseline’ computes to ‘first baseline’.
+            AlignFlags::BASELINE => baselines_relative_to_margin_box.first,
+            AlignFlags::LAST_BASELINE => baselines_relative_to_margin_box.last,
+            _ => None,
+        };
+
+        Some(FlexItemLayoutResult {
+            hypothetical_cross_size,
+            fragments,
+            positioning_context,
+            baseline_relative_to_margin_box,
+            content_size: LogicalVec2 {
+                inline: item_as_containing_block.size.inline,
+                block: content_block_size,
+            },
+            containing_block_inline_size: item_as_containing_block.size.inline,
+            containing_block_block_size: item_as_containing_block.size.block,
+            depends_on_block_constraints,
+            has_child_which_depends_on_block_constraints,
+            specific_layout_info,
+        })
     }
 
     fn synthesized_baseline_relative_to_margin_box(&self, content_size: Au) -> Au {
@@ -2143,11 +2076,6 @@ impl FlexItem<'_> {
                 }
             };
         outer_cross_start + margin.cross_start + self.border.cross_start + self.padding.cross_start
-    }
-
-    #[inline]
-    fn is_table(&self) -> bool {
-        self.box_.independent_formatting_context.is_table()
     }
 }
 
@@ -2613,109 +2541,88 @@ impl FlexItemBox {
         cross_size_stretches_to_container_size: bool,
         intrinsic_sizing_mode: IntrinsicSizingMode,
     ) -> Au {
-        let mut positioning_context = PositioningContext::default();
-        let style = self.independent_formatting_context.style();
-        match &self.independent_formatting_context.contents {
-            IndependentFormattingContextContents::Replaced(replaced) => {
-                let get_used_size = |block_sizes| {
-                    replaced.used_size_as_if_inline_element_from_content_box_sizes(
-                        flex_context.containing_block,
-                        style,
-                        preferred_aspect_ratio,
-                        LogicalVec2 {
-                            block: block_sizes,
-                            inline: &content_box_sizes.inline,
-                        },
-                        Size::FitContent.into(),
-                        LogicalVec2 {
-                            inline: pbm_auto_is_zero.cross,
-                            block: pbm_auto_is_zero.main,
-                        },
-                    )
-                };
-                if intrinsic_sizing_mode == IntrinsicSizingMode::Size {
-                    get_used_size(&Sizes::default()).block
+        let content_block_size = || {
+            let mut positioning_context = PositioningContext::default();
+            let style = self.independent_formatting_context.style();
+
+            // We are computing the intrinsic block size, so the tentative block size that we use
+            // as an input to the intrinsic inline sizes needs to ignore the values of the sizing
+            // properties in the block axis.
+            let tentative_block_size = SizeConstraint::default();
+
+            // TODO: This is wrong if the item writing mode is different from the flex
+            // container's writing mode.
+            let inline_size = {
+                let initial_behavior = if cross_size_stretches_to_container_size {
+                    Size::Stretch
                 } else {
-                    get_used_size(&content_box_sizes.block).block
-                }
+                    Size::FitContent
+                };
+                let stretch_size =
+                    flex_context.containing_block.size.inline - pbm_auto_is_zero.cross;
+                let get_content_size = || {
+                    let constraint_space = ConstraintSpace::new(
+                        tentative_block_size,
+                        style.writing_mode,
+                        preferred_aspect_ratio,
+                    );
+                    self.independent_formatting_context
+                        .inline_content_sizes(flex_context.layout_context, &constraint_space)
+                        .sizes
+                };
+                content_box_sizes.inline.resolve(
+                    Direction::Inline,
+                    initial_behavior,
+                    Au::zero,
+                    Some(stretch_size),
+                    get_content_size,
+                    false,
+                )
+            };
+            let item_as_containing_block = ContainingBlock {
+                size: ContainingBlockSize {
+                    inline: inline_size,
+                    block: tentative_block_size,
+                },
+                style,
+            };
+            self.independent_formatting_context
+                .layout(
+                    flex_context.layout_context,
+                    &mut positioning_context,
+                    &item_as_containing_block,
+                    flex_context.containing_block,
+                    preferred_aspect_ratio,
+                    false, /* depends_on_block_constraints */
+                    &LazySize::intrinsic(),
+                )
+                .content_block_size
+        };
+        match intrinsic_sizing_mode {
+            IntrinsicSizingMode::Contribution => {
+                let stretch_size = flex_context
+                    .containing_block
+                    .size
+                    .block
+                    .to_definite()
+                    .map(|block_size| block_size - pbm_auto_is_zero.main);
+                let inner_block_size = content_box_sizes.block.resolve(
+                    Direction::Block,
+                    Size::FitContent,
+                    Au::zero,
+                    stretch_size,
+                    || ContentSizes::from(content_block_size()),
+                    // Tables have a special sizing in the block axis that handles collapsed rows
+                    // by ignoring the sizing properties and instead relying on the content block size,
+                    // which should indirectly take sizing properties into account.
+                    // However, above we laid out the table with a SizeConstraint::default() block size,
+                    // so the content block size doesn't take sizing properties into account.
+                    // Therefore, pretending that it's never a table tends to provide a better result.
+                    false, /* is_table */
+                );
+                inner_block_size + pbm_auto_is_zero.main
             },
-            IndependentFormattingContextContents::NonReplaced(non_replaced) => {
-                // TODO: This is wrong if the item writing mode is different from the flex
-                // container's writing mode.
-                let inline_size = {
-                    let initial_behavior = if cross_size_stretches_to_container_size {
-                        Size::Stretch
-                    } else {
-                        Size::FitContent
-                    };
-                    let stretch_size =
-                        flex_context.containing_block.size.inline - pbm_auto_is_zero.cross;
-                    let get_content_size = || {
-                        let constraint_space = ConstraintSpace::new(
-                            SizeConstraint::default(),
-                            style.writing_mode,
-                            non_replaced.preferred_aspect_ratio(),
-                        );
-                        self.independent_formatting_context
-                            .inline_content_sizes(flex_context.layout_context, &constraint_space)
-                            .sizes
-                    };
-                    content_box_sizes.inline.resolve(
-                        Direction::Inline,
-                        initial_behavior,
-                        Au::zero,
-                        Some(stretch_size),
-                        get_content_size,
-                        false,
-                    )
-                };
-                let item_as_containing_block = ContainingBlock {
-                    size: ContainingBlockSize {
-                        inline: inline_size,
-                        block: SizeConstraint::default(),
-                    },
-                    style,
-                };
-                let mut content_block_size = || {
-                    non_replaced
-                        .layout(
-                            flex_context.layout_context,
-                            &mut positioning_context,
-                            &item_as_containing_block,
-                            flex_context.containing_block,
-                            &self.independent_formatting_context.base,
-                            false, /* depends_on_block_constraints */
-                            &LazySize::intrinsic(),
-                        )
-                        .content_block_size
-                };
-                match intrinsic_sizing_mode {
-                    IntrinsicSizingMode::Contribution => {
-                        let stretch_size = flex_context
-                            .containing_block
-                            .size
-                            .block
-                            .to_definite()
-                            .map(|block_size| block_size - pbm_auto_is_zero.main);
-                        let inner_block_size = content_box_sizes.block.resolve(
-                            Direction::Block,
-                            Size::FitContent,
-                            Au::zero,
-                            stretch_size,
-                            || ContentSizes::from(content_block_size()),
-                            // Tables have a special sizing in the block axis that handles collapsed rows
-                            // by ignoring the sizing properties and instead relying on the content block size,
-                            // which should indirectly take sizing properties into account.
-                            // However, above we laid out the table with a SizeConstraint::default() block size,
-                            // so the content block size doesn't take sizing properties into account.
-                            // Therefore, pretending that it's never a table tends to provide a better result.
-                            false, /* is_table */
-                        );
-                        inner_block_size + pbm_auto_is_zero.main
-                    },
-                    IntrinsicSizingMode::Size => content_block_size(),
-                }
-            },
+            IntrinsicSizingMode::Size => content_block_size(),
         }
     }
 }

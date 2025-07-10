@@ -6,13 +6,12 @@
 //! This actor manages the configuration flags that the devtools host can apply to threads.
 
 use std::collections::HashMap;
-use std::net::TcpStream;
 
 use serde::Serialize;
 use serde_json::{Map, Value};
 
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::protocol::JsonPacketStream;
+use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::protocol::ClientRequest;
 use crate::{EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
@@ -35,21 +34,21 @@ impl Actor for ThreadConfigurationActor {
     /// - `updateConfiguration`: Receives new configuration flags from the devtools host.
     fn handle_message(
         &self,
+        request: ClientRequest,
         _registry: &ActorRegistry,
         msg_type: &str,
         _msg: &Map<String, Value>,
-        stream: &mut TcpStream,
         _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
-        Ok(match msg_type {
+    ) -> Result<(), ActorError> {
+        match msg_type {
             "updateConfiguration" => {
                 // TODO: Actually update configuration
                 let msg = EmptyReplyMsg { from: self.name() };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
+                request.reply_final(&msg)?
             },
-            _ => ActorMessageStatus::Ignored,
-        })
+            _ => return Err(ActorError::UnrecognizedPacketType),
+        };
+        Ok(())
     }
 }
 

@@ -55,6 +55,19 @@ pub(crate) enum SpecificLayoutInfo {
 }
 
 #[derive(MallocSizeOf)]
+pub(crate) struct BlockLevelLayoutInfo {
+    /// When the `clear` property is not set to `none`, it may introduce clearance.
+    /// Clearance is some extra spacing that is added above the top margin,
+    /// so that the element doesn't overlap earlier floats in the same BFC.
+    /// The presence of clearance prevents the top margin from collapsing with
+    /// earlier margins or with the bottom margin of the parent block.
+    /// <https://drafts.csswg.org/css2/#clearance>
+    pub clearance: Option<Au>,
+
+    pub block_margins_collapsed_with_children: CollapsedBlockMargins,
+}
+
+#[derive(MallocSizeOf)]
 pub(crate) struct BoxFragment {
     pub base: BaseFragment,
 
@@ -73,20 +86,10 @@ pub(crate) struct BoxFragment {
     pub border: PhysicalSides<Au>,
     pub margin: PhysicalSides<Au>,
 
-    /// When the `clear` property is not set to `none`, it may introduce clearance.
-    /// Clearance is some extra spacing that is added above the top margin,
-    /// so that the element doesn't overlap earlier floats in the same BFC.
-    /// The presence of clearance prevents the top margin from collapsing with
-    /// earlier margins or with the bottom margin of the parent block.
-    /// <https://drafts.csswg.org/css2/#clearance>
-    pub clearance: Option<Au>,
-
     /// When this [`BoxFragment`] is for content that has a baseline, this tracks
     /// the first and last baselines of that content. This is used to propagate baselines
     /// to things such as tables and inline formatting contexts.
     baselines: Baselines,
-
-    block_margins_collapsed_with_children: Option<Box<CollapsedBlockMargins>>,
 
     /// The scrollable overflow of this box fragment in the same coordiante system as
     /// [`Self::content_rect`] ie a rectangle within the parent fragment's content
@@ -103,6 +106,9 @@ pub(crate) struct BoxFragment {
 
     /// Additional information of from layout that could be used by Javascripts and devtools.
     pub specific_layout_info: Option<SpecificLayoutInfo>,
+
+    /// Additional information for block-level boxes.
+    pub block_level_layout_info: Option<Box<BlockLevelLayoutInfo>>,
 }
 
 impl BoxFragment {
@@ -115,7 +121,7 @@ impl BoxFragment {
         padding: PhysicalSides<Au>,
         border: PhysicalSides<Au>,
         margin: PhysicalSides<Au>,
-        clearance: Option<Au>,
+        specific_layout_info: Option<SpecificLayoutInfo>,
     ) -> BoxFragment {
         BoxFragment {
             base: base_fragment_info.into(),
@@ -126,13 +132,12 @@ impl BoxFragment {
             padding,
             border,
             margin,
-            clearance,
             baselines: Baselines::default(),
-            block_margins_collapsed_with_children: None,
             scrollable_overflow: None,
             resolved_sticky_insets: AtomicRefCell::default(),
             background_mode: BackgroundMode::Normal,
-            specific_layout_info: None,
+            specific_layout_info,
+            block_level_layout_info: None,
         }
     }
 
@@ -185,16 +190,15 @@ impl BoxFragment {
         self.background_mode = BackgroundMode::None;
     }
 
-    pub fn with_specific_layout_info(mut self, info: Option<SpecificLayoutInfo>) -> Self {
-        self.specific_layout_info = info;
-        self
-    }
-
-    pub fn with_block_margins_collapsed_with_children(
+    pub fn with_block_level_layout_info(
         mut self,
-        collapsed_margins: CollapsedBlockMargins,
+        block_margins_collapsed_with_children: CollapsedBlockMargins,
+        clearance: Option<Au>,
     ) -> Self {
-        self.block_margins_collapsed_with_children = Some(collapsed_margins.into());
+        self.block_level_layout_info = Some(Box::new(BlockLevelLayoutInfo {
+            block_margins_collapsed_with_children,
+            clearance,
+        }));
         self
     }
 
@@ -300,7 +304,6 @@ impl BoxFragment {
                 \npadding rect={:?}\
                 \nborder rect={:?}\
                 \nmargin={:?}\
-                \nclearance={:?}\
                 \nscrollable_overflow={:?}\
                 \nbaselines={:?}\
                 \noverflow={:?}",
@@ -309,7 +312,6 @@ impl BoxFragment {
             self.padding_rect(),
             self.border_rect(),
             self.margin,
-            self.clearance,
             self.scrollable_overflow(),
             self.baselines,
             self.style.effective_overflow(self.base.flags),
@@ -511,13 +513,6 @@ impl BoxFragment {
                 self.style.get_inherited_table().border_collapse == BorderCollapse::Collapse
             },
             _ => false,
-        }
-    }
-
-    pub(crate) fn block_margins_collapsed_with_children(&self) -> CollapsedBlockMargins {
-        match self.block_margins_collapsed_with_children.as_ref() {
-            Some(collapsed_block_margins) => *(collapsed_block_margins).clone(),
-            _ => CollapsedBlockMargins::zero(),
         }
     }
 }

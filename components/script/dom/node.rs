@@ -48,7 +48,7 @@ use style::attr::AttrValue;
 use style::context::QuirksMode;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
-use style::selector_parser::{SelectorImpl, SelectorParser};
+use style::selector_parser::{PseudoElement, SelectorImpl, SelectorParser};
 use style::stylesheets::{Stylesheet, UrlExtraData};
 use uuid::Uuid;
 use xml5ever::{local_name, serialize as xml_serialize};
@@ -233,6 +233,10 @@ bitflags! {
         /// Whether this node has a weird parser insertion mode. i.e whether setting innerHTML
         /// needs extra work or not
         const HAS_WEIRD_PARSER_INSERTION_MODE = 1 << 11;
+
+        /// Whether this node resides in UA shadow DOM. Element within UA Shadow DOM
+        /// will have a different style computation behavior
+        const IS_IN_UA_WIDGET = 1 << 12;
     }
 }
 
@@ -291,6 +295,7 @@ impl Node {
         let parent_is_in_a_document_tree = self.is_in_a_document_tree();
         let parent_in_shadow_tree = self.is_in_a_shadow_tree();
         let parent_is_connected = self.is_connected();
+        let parent_is_in_ua_widget = self.is_in_ua_widget();
 
         for node in new_child.traverse_preorder(ShadowIncluding::No) {
             if parent_in_shadow_tree {
@@ -305,6 +310,7 @@ impl Node {
             );
             node.set_flag(NodeFlags::IS_IN_SHADOW_TREE, parent_in_shadow_tree);
             node.set_flag(NodeFlags::IS_CONNECTED, parent_is_connected);
+            node.set_flag(NodeFlags::IS_IN_UA_WIDGET, parent_is_in_ua_widget);
 
             // Out-of-document elements never have the descendants flag set.
             debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
@@ -694,6 +700,14 @@ impl Node {
     /// <https://dom.spec.whatwg.org/#connected>
     pub(crate) fn is_connected(&self) -> bool {
         self.flags.get().contains(NodeFlags::IS_CONNECTED)
+    }
+
+    pub(crate) fn set_in_ua_widget(&self, in_ua_widget: bool) {
+        self.set_flag(NodeFlags::IS_IN_UA_WIDGET, in_ua_widget)
+    }
+
+    pub(crate) fn is_in_ua_widget(&self) -> bool {
+        self.flags.get().contains(NodeFlags::IS_IN_UA_WIDGET)
     }
 
     /// Returns the type ID of this node.
@@ -1546,6 +1560,20 @@ impl Node {
             next_node: move |n| n.parent_in_flat_tree(),
         }
     }
+
+    /// We are marking this as an implemented pseudo element.
+    pub(crate) fn set_implemented_pseudo_element(&self, pseudo_element: PseudoElement) {
+        // Implemented pseudo element should exist only in the UA shadow DOM.
+        debug_assert!(self.is_in_ua_widget());
+        self.ensure_rare_data().implemented_pseudo_element = Some(pseudo_element);
+    }
+
+    pub(crate) fn implemented_pseudo_element(&self) -> Option<PseudoElement> {
+        self.rare_data
+            .borrow()
+            .as_ref()
+            .and_then(|rare_data| rare_data.implemented_pseudo_element)
+    }
 }
 
 /// Iterate through `nodes` until we find a `Node` that is not in `not_in`
@@ -1630,6 +1658,8 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
     fn iframe_browsing_context_id(self) -> Option<BrowsingContextId>;
     fn iframe_pipeline_id(self) -> Option<PipelineId>;
     fn opaque(self) -> OpaqueNode;
+    fn implemented_pseudo_element(&self) -> Option<PseudoElement>;
+    fn is_in_ua_widget(&self) -> bool;
 }
 
 impl<'dom> LayoutDom<'dom, Node> {
@@ -1879,6 +1909,14 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     #[allow(unsafe_code)]
     fn opaque(self) -> OpaqueNode {
         unsafe { OpaqueNode(self.get_jsobject() as usize) }
+    }
+
+    fn implemented_pseudo_element(&self) -> Option<PseudoElement> {
+        self.unsafe_get().implemented_pseudo_element()
+    }
+
+    fn is_in_ua_widget(&self) -> bool {
+        self.unsafe_get().is_in_ua_widget()
     }
 }
 

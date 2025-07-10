@@ -39,3 +39,4 @@ stylo = { workspace = true }
 url = { workspace = true }
 webdriver = { workspace = true }
 webrender_api = { workspace = true }
+servo_geometry = { path = "../../geometry" }

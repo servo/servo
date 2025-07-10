@@ -15,9 +15,9 @@ use keyboard_types::{Modifiers, ShortcutMatcher};
 use log::{debug, info};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
 use servo::servo_config::pref;
-use servo::servo_geometry::DeviceIndependentPixel;
+use servo::servo_geometry::{DeviceIndependentIntRect, DeviceIndependentPixel};
 use servo::webrender_api::ScrollLocation;
-use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
+use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePixel};
 use servo::{
     Cursor, ImeEvent, InputEvent, Key, KeyState, KeyboardEvent, MouseButton as ServoMouseButton,
     MouseButtonAction, MouseButtonEvent, MouseLeaveEvent, MouseMoveEvent,
@@ -438,14 +438,13 @@ impl WindowPortsMethods for Window {
 
         // Offset the WebView origin by the toolbar so that it reflects the actual viewport and
         // not the window origin.
-        let window_origin = self.winit_window.inner_position().unwrap_or_default();
-        let window_origin = winit_position_to_euclid_point(window_origin).to_f32();
-        let offset = window_origin + toolbar_size;
+        let window_origin = self.winit_window.outer_position().unwrap_or_default();
+        let offset = winit_position_to_euclid_point(window_origin);
 
         ScreenGeometry {
             size: screen_size.to_i32(),
             available_size: available_screen_size.to_i32(),
-            offset: offset.to_i32(),
+            offset,
         }
     }
 
@@ -470,12 +469,15 @@ impl WindowPortsMethods for Window {
     }
 
     fn request_resize(&self, _: &WebView, new_outer_size: DeviceIntSize) -> Option<DeviceIntSize> {
-        let title_height =
-            self.winit_window.outer_size().height - self.winit_window.inner_size().height;
+        let outer_size = self.winit_window.outer_size();
+        let inner_size = self.winit_window.inner_size();
+        let decoration_height = outer_size.height - inner_size.height;
+        let decoration_width = outer_size.width - inner_size.width;
+
         self.winit_window
             .request_inner_size::<PhysicalSize<i32>>(PhysicalSize::new(
-                new_outer_size.width,
-                new_outer_size.height - title_height as i32,
+                new_outer_size.width - decoration_width as i32,
+                new_outer_size.height - decoration_height as i32,
             ))
             .and_then(|size| {
                 Some(DeviceIntSize::new(
@@ -485,15 +487,28 @@ impl WindowPortsMethods for Window {
             })
     }
 
-    fn window_rect(&self) -> DeviceIntRect {
+    fn window_rect(&self) -> DeviceIndependentIntRect {
         let outer_size = self.winit_window.outer_size();
-        let total_size = Size2D::new(outer_size.width as i32, outer_size.height as i32);
+        let hidpi_scale = self.hidpi_scale_factor().get() as f64;
+        // TODO: Find a universal way to convert.
+        // See https://github.com/servo/servo/issues/37937
+        let total_size = Size2D::new(
+            (outer_size.width as f64 / hidpi_scale).round() as i32,
+            (outer_size.height as f64 / hidpi_scale).round() as i32,
+        );
+        // TODO: Find a universal way to convert.
+        // See https://github.com/servo/servo/issues/37937
         let origin = self
             .winit_window
             .outer_position()
-            .map(|point| Point2D::new(point.x, point.y))
+            .map(|point| {
+                Point2D::new(
+                    (point.x as f64 / hidpi_scale).round() as i32,
+                    (point.y as f64 / hidpi_scale).round() as i32,
+                )
+            })
             .unwrap_or_default();
-        DeviceIntRect::from_origin_and_size(origin, total_size)
+        DeviceIndependentIntRect::from_origin_and_size(origin, total_size)
     }
 
     fn set_position(&self, point: DeviceIntPoint) {

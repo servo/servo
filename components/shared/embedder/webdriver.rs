@@ -16,16 +16,23 @@ use keyboard_types::KeyboardEvent;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use pixels::RasterImage;
 use serde::{Deserialize, Serialize};
+use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize, DeviceIndependentPixel};
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
 use webdriver::common::{WebElement, WebFrame, WebWindow};
 use webdriver::error::ErrorStatus;
-use webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel};
+use webrender_api::units::DevicePixel;
 
 use crate::{MouseButton, MouseButtonAction};
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct WebDriverMessageId(pub usize);
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum WebDriverUserPromptAction {
+    Accept,
+    Dismiss,
+}
 
 /// Messages to the constellation originating from the WebDriver server.
 #[derive(Debug, Deserialize, Serialize)]
@@ -34,7 +41,7 @@ pub enum WebDriverCommandMsg {
     /// back to the WebDriver client. It is set to constellation for now
     SetWebDriverResponseSender(IpcSender<WebDriverCommandResponse>),
     /// Get the window size.
-    GetWindowRect(WebViewId, IpcSender<DeviceIntRect>),
+    GetWindowRect(WebViewId, IpcSender<DeviceIndependentIntRect>),
     /// Get the viewport size.
     GetViewportSize(WebViewId, IpcSender<Size2D<u32, DevicePixel>>),
     /// Load a URL in the top-level browsing context with the given ID.
@@ -52,7 +59,7 @@ pub enum WebDriverCommandMsg {
     SendKeys(BrowsingContextId, Vec<WebDriverInputEvent>),
     /// Act as if keys were pressed or release in the browsing context with the given ID.
     KeyboardAction(
-        BrowsingContextId,
+        WebViewId,
         KeyboardEvent,
         // Should never be None.
         Option<WebDriverMessageId>,
@@ -90,8 +97,8 @@ pub enum WebDriverCommandMsg {
     /// Set the window size.
     SetWindowSize(
         WebViewId,
-        DeviceIntSize,
-        IpcSender<Size2D<i32, DevicePixel>>,
+        DeviceIndependentIntSize,
+        IpcSender<Size2D<i32, DeviceIndependentPixel>>,
     ),
     /// Take a screenshot of the window.
     TakeScreenshot(
@@ -114,6 +121,12 @@ pub enum WebDriverCommandMsg {
     IsWebViewOpen(WebViewId, IpcSender<bool>),
     /// Check whether browsing context is open.
     IsBrowsingContextOpen(BrowsingContextId, IpcSender<bool>),
+    HandleUserPrompt(
+        WebViewId,
+        WebDriverUserPromptAction,
+        IpcSender<Result<(), ()>>,
+    ),
+    GetAlertText(WebViewId, IpcSender<Result<String, ()>>),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -236,4 +249,5 @@ pub enum WebDriverLoadStatus {
     Complete,
     Timeout,
     Canceled,
+    Blocked,
 }

@@ -32,7 +32,8 @@ use crate::formatting_contexts::{
     Baselines, IndependentFormattingContext, IndependentFormattingContextContents,
 };
 use crate::fragment_tree::{
-    BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment, FragmentFlags,
+    BaseFragmentInfo, BlockLevelLayoutInfo, BoxFragment, CollapsedBlockMargins, CollapsedMargin,
+    Fragment, FragmentFlags,
 };
 use crate::geom::{
     AuOrAuto, LazySize, LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalPoint,
@@ -132,8 +133,8 @@ impl BlockLevelBox {
         }
     }
 
-    pub(crate) fn invalidate_cached_fragment(&self) {
-        self.with_base(LayoutBoxBase::invalidate_cached_fragment);
+    pub(crate) fn clear_fragment_layout_cache(&self) {
+        self.with_base(|base| base.clear_fragment_layout_cache());
     }
 
     pub(crate) fn fragments(&self) -> Vec<Fragment> {
@@ -407,7 +408,7 @@ impl OutsideMarker {
             PhysicalSides::zero(),
             PhysicalSides::zero(),
             PhysicalSides::zero(),
-            None,
+            flow_layout.specific_layout_info,
         )))
     }
 
@@ -1172,10 +1173,10 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         pbm.padding.to_physical(containing_block_writing_mode),
         pbm.border.to_physical(containing_block_writing_mode),
         margin.to_physical(containing_block_writing_mode),
-        clearance,
+        flow_layout.specific_layout_info,
     )
     .with_baselines(flow_layout.baselines)
-    .with_block_margins_collapsed_with_children(block_margins_collapsed_with_children)
+    .with_block_level_layout_info(block_margins_collapsed_with_children, clearance)
 }
 
 impl IndependentFormattingContext {
@@ -1284,11 +1285,10 @@ impl IndependentFormattingContext {
             pbm.padding.to_physical(containing_block_writing_mode),
             pbm.border.to_physical(containing_block_writing_mode),
             margin.to_physical(containing_block_writing_mode),
-            None, /* clearance */
+            layout.specific_layout_info,
         )
         .with_baselines(layout.baselines)
-        .with_specific_layout_info(layout.specific_layout_info)
-        .with_block_margins_collapsed_with_children(block_margins_collapsed_with_children)
+        .with_block_level_layout_info(block_margins_collapsed_with_children, None)
     }
 
     /// Lay out a normal in flow non-replaced block that establishes an independent
@@ -1602,11 +1602,10 @@ impl IndependentFormattingContext {
             pbm.padding.to_physical(containing_block_writing_mode),
             pbm.border.to_physical(containing_block_writing_mode),
             margin.to_physical(containing_block_writing_mode),
-            clearance,
+            layout.specific_layout_info,
         )
         .with_baselines(layout.baselines)
-        .with_specific_layout_info(layout.specific_layout_info)
-        .with_block_margins_collapsed_with_children(CollapsedBlockMargins::from_margin(&margin))
+        .with_block_level_layout_info(CollapsedBlockMargins::from_margin(&margin), clearance)
     }
 }
 
@@ -2076,7 +2075,13 @@ impl<'container> PlacementState<'container> {
                     return;
                 }
 
-                let fragment_block_margins = fragment.block_margins_collapsed_with_children();
+                let BlockLevelLayoutInfo {
+                    clearance,
+                    block_margins_collapsed_with_children: fragment_block_margins,
+                } = &**fragment
+                    .block_level_layout_info
+                    .as_ref()
+                    .expect("A block-level fragment should have a BlockLevelLayoutInfo.");
                 let mut fragment_block_size = fragment
                     .border_rect()
                     .size
@@ -2088,7 +2093,7 @@ impl<'container> PlacementState<'container> {
                 // > If the top and bottom margins of an element with clearance are adjoining,
                 // > its margins collapse with the adjoining margins of following siblings but that
                 // > resulting margin does not collapse with the bottom margin of the parent block.
-                if let Some(clearance) = fragment.clearance {
+                if let Some(clearance) = *clearance {
                     fragment_block_size += clearance;
                     // Margins can't be adjoining if they are separated by clearance.
                     // Setting `next_in_flow_margin_collapses_with_parent_start_margin` to false
@@ -2221,7 +2226,7 @@ fn block_size_is_zero_or_intrinsic(size: &StyleSize, containing_block: &Containi
 
 pub(crate) struct IndependentFloatOrAtomicLayoutResult {
     pub fragment: BoxFragment,
-    pub baselines: Option<Baselines>,
+    pub baselines: Baselines,
     pub pbm_sums: LogicalSides<Au>,
 }
 
@@ -2233,6 +2238,7 @@ impl IndependentFormattingContext {
         containing_block: &ContainingBlock,
     ) -> IndependentFloatOrAtomicLayoutResult {
         let style = self.style();
+        let writing_mode = style.writing_mode;
         let container_writing_mode = containing_block.style.writing_mode;
         let layout_style = self.layout_style();
         let content_box_sizes_and_pbm =
@@ -2240,113 +2246,96 @@ impl IndependentFormattingContext {
         let pbm = &content_box_sizes_and_pbm.pbm;
         let margin = pbm.margin.auto_is(Au::zero);
         let pbm_sums = pbm.padding + pbm.border + margin;
+        let preferred_aspect_ratio = self.preferred_aspect_ratio(&pbm.padding_border_sums);
+        let is_table = self.is_table();
 
-        let (fragments, content_rect, baselines) = match &self.contents {
-            IndependentFormattingContextContents::Replaced(replaced) => {
-                // Floats and atomic inlines can't collapse margins with their parent,
-                // so don't ignore block margins when resolving a stretch block size.
-                // https://drafts.csswg.org/css-sizing-4/#stretch-fit-sizing
-                let ignore_block_margins_for_stretch = LogicalSides1D::new(false, false);
+        let available_inline_size =
+            Au::zero().max(containing_block.size.inline - pbm_sums.inline_sum());
+        let available_block_size = containing_block
+            .size
+            .block
+            .to_definite()
+            .map(|block_size| Au::zero().max(block_size - pbm_sums.block_sum()));
 
-                // https://drafts.csswg.org/css2/visudet.html#float-replaced-width
-                // https://drafts.csswg.org/css2/visudet.html#inline-replaced-height
-                let content_size = replaced
-                    .used_size_as_if_inline_element(
-                        containing_block,
-                        style,
-                        &content_box_sizes_and_pbm,
-                        ignore_block_margins_for_stretch,
-                    )
-                    .to_physical_size(container_writing_mode);
-                let fragments = replaced.make_fragments(layout_context, style, content_size);
-
-                let content_rect = PhysicalRect::new(PhysicalPoint::zero(), content_size);
-                (fragments, content_rect, None)
-            },
-            IndependentFormattingContextContents::NonReplaced(non_replaced) => {
-                let writing_mode = self.style().writing_mode;
-                let available_inline_size =
-                    Au::zero().max(containing_block.size.inline - pbm_sums.inline_sum());
-                let available_block_size = containing_block
-                    .size
-                    .block
-                    .to_definite()
-                    .map(|block_size| Au::zero().max(block_size - pbm_sums.block_sum()));
-                let tentative_block_size = content_box_sizes_and_pbm
-                    .content_box_sizes
-                    .block
-                    .resolve_extrinsic(Size::FitContent, Au::zero(), available_block_size);
-
-                let get_content_size = || {
-                    let constraint_space = ConstraintSpace::new(
-                        tentative_block_size,
-                        writing_mode,
-                        non_replaced.preferred_aspect_ratio(),
-                    );
-                    self.inline_content_sizes(layout_context, &constraint_space)
-                        .sizes
-                };
-
-                let is_table = layout_style.is_table();
-                let inline_size = content_box_sizes_and_pbm.content_box_sizes.inline.resolve(
-                    Direction::Inline,
-                    Size::FitContent,
-                    Au::zero,
-                    Some(available_inline_size),
-                    get_content_size,
-                    is_table,
-                );
-
-                let containing_block_for_children = ContainingBlock {
-                    size: ContainingBlockSize {
-                        inline: inline_size,
-                        block: tentative_block_size,
-                    },
-                    style: self.style(),
-                };
-                assert_eq!(
-                    container_writing_mode.is_horizontal(),
-                    writing_mode.is_horizontal(),
-                    "Mixed horizontal and vertical writing modes are not supported yet"
-                );
-
-                let lazy_block_size = LazySize::new(
-                    &content_box_sizes_and_pbm.content_box_sizes.block,
-                    Direction::Block,
-                    Size::FitContent,
-                    Au::zero,
-                    available_block_size,
-                    is_table,
-                );
-
-                let independent_layout = non_replaced.layout(
-                    layout_context,
-                    child_positioning_context,
-                    &containing_block_for_children,
-                    containing_block,
-                    &self.base,
-                    false, /* depends_on_block_constraints */
-                    &lazy_block_size,
-                );
-                let inline_size = independent_layout
-                    .content_inline_size_for_table
-                    .unwrap_or(inline_size);
-                let block_size = lazy_block_size.resolve(|| independent_layout.content_block_size);
-
-                let content_size = LogicalVec2 {
-                    block: block_size,
-                    inline: inline_size,
-                }
-                .to_physical_size(container_writing_mode);
-                let content_rect = PhysicalRect::new(PhysicalPoint::zero(), content_size);
-
-                (
-                    independent_layout.fragments,
-                    content_rect,
-                    Some(independent_layout.baselines),
-                )
-            },
+        let tentative_block_content_size =
+            self.tentative_block_content_size(preferred_aspect_ratio);
+        let tentative_block_size = if let Some(block_content_size) = tentative_block_content_size {
+            SizeConstraint::Definite(content_box_sizes_and_pbm.content_box_sizes.block.resolve(
+                Direction::Block,
+                Size::FitContent,
+                Au::zero,
+                available_block_size,
+                || block_content_size,
+                is_table,
+            ))
+        } else {
+            content_box_sizes_and_pbm
+                .content_box_sizes
+                .block
+                .resolve_extrinsic(Size::FitContent, Au::zero(), available_block_size)
         };
+
+        let get_content_size = || {
+            let constraint_space =
+                ConstraintSpace::new(tentative_block_size, writing_mode, preferred_aspect_ratio);
+            self.inline_content_sizes(layout_context, &constraint_space)
+                .sizes
+        };
+
+        let inline_size = content_box_sizes_and_pbm.content_box_sizes.inline.resolve(
+            Direction::Inline,
+            Size::FitContent,
+            Au::zero,
+            Some(available_inline_size),
+            get_content_size,
+            is_table,
+        );
+
+        let containing_block_for_children = ContainingBlock {
+            size: ContainingBlockSize {
+                inline: inline_size,
+                block: tentative_block_size,
+            },
+            style,
+        };
+        assert_eq!(
+            container_writing_mode.is_horizontal(),
+            writing_mode.is_horizontal(),
+            "Mixed horizontal and vertical writing modes are not supported yet"
+        );
+
+        let lazy_block_size = LazySize::new(
+            &content_box_sizes_and_pbm.content_box_sizes.block,
+            Direction::Block,
+            Size::FitContent,
+            Au::zero,
+            available_block_size,
+            is_table,
+        );
+
+        let CacheableLayoutResult {
+            content_inline_size_for_table,
+            content_block_size,
+            fragments,
+            baselines,
+            specific_layout_info,
+            ..
+        } = self.layout(
+            layout_context,
+            child_positioning_context,
+            &containing_block_for_children,
+            containing_block,
+            preferred_aspect_ratio,
+            false, /* depends_on_block_constraints */
+            &lazy_block_size,
+        );
+
+        let content_size = LogicalVec2 {
+            inline: content_inline_size_for_table.unwrap_or(inline_size),
+            block: lazy_block_size.resolve(|| content_block_size),
+        }
+        .to_physical_size(container_writing_mode);
+        let content_rect = PhysicalRect::new(PhysicalPoint::zero(), content_size);
 
         let mut base_fragment_info = self.base_fragment_info();
         if content_box_sizes_and_pbm.depends_on_block_constraints {
@@ -2355,18 +2344,18 @@ impl IndependentFormattingContext {
             );
         }
 
+        // Floats can have clearance, but it's handled internally by the float placement logic,
+        // so there's no need to store it explicitly in the fragment.
+        // And atomic inlines don't have clearance.
         let fragment = BoxFragment::new(
             base_fragment_info,
-            self.style().clone(),
+            style.clone(),
             fragments,
             content_rect,
             pbm.padding.to_physical(container_writing_mode),
             pbm.border.to_physical(container_writing_mode),
             margin.to_physical(container_writing_mode),
-            // Floats can have clearance, but it's handled internally by the float placement logic,
-            // so there's no need to store it explicitly in the fragment.
-            // And atomic inlines don't have clearance.
-            None, /* clearance */
+            specific_layout_info,
         );
 
         IndependentFloatOrAtomicLayoutResult {

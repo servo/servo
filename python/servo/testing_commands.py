@@ -427,43 +427,6 @@ class MachCommands(CommandBase):
             return 1
         return wpt.update.update_tests(**kwargs)
 
-    @Command("test-android-startup", description="Extremely minimal testing of Servo for Android", category="testing")
-    @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
-    def test_android_startup(self, build_type: BuildType):
-        html = """
-            <script>
-                window.alert("JavaScript is running!")
-            </script>
-        """
-        url = "data:text/html;base64," + html.encode("base64").replace("\n", "")
-        args = self.in_android_emulator(build_type)
-        args = [sys.executable] + args + [url]
-        process = subprocess.Popen(args, stdout=subprocess.PIPE)
-        try:
-            while 1:
-                line = process.stdout.readline()
-                if len(line) == 0:
-                    print("EOF without finding the expected line")
-                    return 1
-                print(line.rstrip())
-                if "JavaScript is running!" in line:
-                    break
-        finally:
-            process.terminate()
-
-    def in_android_emulator(self, build_type: BuildType):
-        avd = "servo-x86"
-        target = "i686-linux-android"
-        print("Assuming --target " + target)
-
-        env = self.build_env()
-        os.environ["PATH"] = env["PATH"]
-        assert self.setup_configuration_for_android_target(target)
-        apk = self.get_apk_path(build_type)
-
-        py = path.join(self.context.topdir, "etc", "run_in_headless_android_emulator.py")
-        return [py, avd, apk]
-
     @Command("test-jquery", description="Run the jQuery test suite", category="testing")
     @CommandBase.common_command_arguments(binary_selection=True)
     def test_jquery(self, servo_binary: str):

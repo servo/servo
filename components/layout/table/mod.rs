@@ -398,18 +398,18 @@ pub(crate) enum TableLevelBox {
 }
 
 impl TableLevelBox {
-    pub(crate) fn invalidate_cached_fragment(&self) {
+    pub(crate) fn clear_fragment_layout_cache(&self) {
         match self {
             TableLevelBox::Caption(caption) => {
-                caption.borrow().context.base.invalidate_cached_fragment();
+                caption.borrow().context.base.clear_fragment_layout_cache();
             },
             TableLevelBox::Cell(cell) => {
-                cell.borrow().base.invalidate_cached_fragment();
+                cell.borrow().base.clear_fragment_layout_cache();
             },
             TableLevelBox::TrackGroup(track_group) => {
-                track_group.borrow().base.invalidate_cached_fragment()
+                track_group.borrow().base.clear_fragment_layout_cache()
             },
-            TableLevelBox::Track(track) => track.borrow().base.invalidate_cached_fragment(),
+            TableLevelBox::Track(track) => track.borrow().base.clear_fragment_layout_cache(),
         }
     }
 

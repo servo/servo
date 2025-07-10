@@ -230,9 +230,9 @@ class MergePRStep(Step):
         self.labels_to_remove = labels_to_remove
 
     def run(self, run: SyncRun):
-        for label in self.labels_to_remove:
-            self.pull_request.remove_label(label)
         try:
+            for label in self.labels_to_remove:
+                self.pull_request.remove_label(label)
             self.pull_request.merge()
         except Exception as exception:
             logging.warning("Could not merge PR (%s).", self.pull_request)

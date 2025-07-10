@@ -2,12 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::net::TcpStream;
-
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::protocol::ClientRequest;
 
 pub struct ObjectActor {
     pub name: String,
@@ -20,14 +19,14 @@ impl Actor for ObjectActor {
     }
     fn handle_message(
         &self,
+        _request: ClientRequest,
         _: &ActorRegistry,
         _: &str,
         _: &Map<String, Value>,
-        _: &mut TcpStream,
         _: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
+    ) -> Result<(), ActorError> {
         // TODO: Handle enumSymbols for console object inspection
-        Ok(ActorMessageStatus::Ignored)
+        Err(ActorError::UnrecognizedPacketType)
     }
 }
 

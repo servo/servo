@@ -8,8 +8,8 @@
 use std::rc::Rc;
 
 use euclid::{Length, Scale};
-use servo::servo_geometry::DeviceIndependentPixel;
-use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
+use servo::servo_geometry::{DeviceIndependentIntRect, DeviceIndependentPixel};
+use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePixel};
 use servo::{Cursor, RenderingContext, ScreenGeometry, WebView};
 
 use super::app_state::RunningAppState;
@@ -53,5 +53,5 @@ pub trait WindowPortsMethods {
     fn theme(&self) -> servo::Theme {
         servo::Theme::Light
     }
-    fn window_rect(&self) -> DeviceIntRect;
+    fn window_rect(&self) -> DeviceIndependentIntRect;
 }

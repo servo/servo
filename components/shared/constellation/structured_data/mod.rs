@@ -10,7 +10,9 @@ mod transferable;
 
 use std::collections::HashMap;
 
-use base::id::{BlobId, DomExceptionId, DomPointId, ImageBitmapId, MessagePortId};
+use base::id::{
+    BlobId, DomExceptionId, DomPointId, ImageBitmapId, MessagePortId, OffscreenCanvasId,
+};
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
@@ -38,6 +40,8 @@ pub struct StructuredSerializedData {
     pub image_bitmaps: Option<HashMap<ImageBitmapId, SerializableImageBitmap>>,
     /// Transferred image bitmap objects.
     pub transferred_image_bitmaps: Option<HashMap<ImageBitmapId, SerializableImageBitmap>>,
+    /// Transferred offscreen canvas objects.
+    pub offscreen_canvases: Option<HashMap<OffscreenCanvasId, TransferableOffscreenCanvas>>,
 }
 
 impl StructuredSerializedData {
@@ -48,6 +52,7 @@ impl StructuredSerializedData {
         match val {
             Transferrable::ImageBitmap => is_field_empty(&self.transferred_image_bitmaps),
             Transferrable::MessagePort => is_field_empty(&self.ports),
+            Transferrable::OffscreenCanvas => is_field_empty(&self.offscreen_canvases),
             Transferrable::ReadableStream => is_field_empty(&self.ports),
             Transferrable::WritableStream => is_field_empty(&self.ports),
             Transferrable::TransformStream => is_field_empty(&self.ports),

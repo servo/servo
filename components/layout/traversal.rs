@@ -97,8 +97,9 @@ where
 pub(crate) fn compute_damage_and_repair_style(
     context: &SharedStyleContext,
     node: ServoLayoutNode<'_>,
+    damage_from_environment: RestyleDamage,
 ) -> RestyleDamage {
-    compute_damage_and_repair_style_inner(context, node, RestyleDamage::empty())
+    compute_damage_and_repair_style_inner(context, node, damage_from_environment)
 }
 
 pub(crate) fn compute_damage_and_repair_style_inner(
@@ -107,6 +108,7 @@ pub(crate) fn compute_damage_and_repair_style_inner(
     damage_from_parent: RestyleDamage,
 ) -> RestyleDamage {
     let mut element_damage;
+    let original_element_damage;
     let element_data = &node
         .style_data()
         .expect("Should not run `compute_damage` before styling.")
@@ -114,6 +116,7 @@ pub(crate) fn compute_damage_and_repair_style_inner(
 
     {
         let mut element_data = element_data.borrow_mut();
+        original_element_damage = element_data.damage;
         element_data.damage.insert(damage_from_parent);
         element_damage = element_data.damage;
 
@@ -134,10 +137,6 @@ pub(crate) fn compute_damage_and_repair_style_inner(
         }
     }
 
-    if element_damage != RestyleDamage::reconstruct() && !element_damage.is_empty() {
-        node.repair_style(context);
-    }
-
     // If one of our children needed to be reconstructed, we need to recollect children
     // during box tree construction.
     if damage_from_children.contains(LayoutDamage::recollect_box_tree_children()) {
@@ -145,11 +144,27 @@ pub(crate) fn compute_damage_and_repair_style_inner(
         element_data.borrow_mut().damage.insert(element_damage);
     }
 
-    if element_damage.contains(LayoutDamage::recollect_box_tree_children()) {
-        node.invalidate_cached_fragment();
-    }
-
     // Only propagate up layout phases from children, as other types of damage are
     // incorporated into `element_damage` above.
-    element_damage | (damage_from_children & RestyleDamage::RELAYOUT)
+    let damage_for_parent = element_damage | (damage_from_children & RestyleDamage::RELAYOUT);
+
+    // If we are going to potentially reuse this box tree node, then clear any cached
+    // fragment layout.
+    //
+    // TODO: If this node has `recollect_box_tree_children` damage, this is unecessary
+    // unless it's entirely above the dirty root.
+    if element_damage != RestyleDamage::reconstruct() &&
+        damage_for_parent.contains(RestyleDamage::RELAYOUT)
+    {
+        node.clear_fragment_layout_cache();
+    }
+
+    // If the box will be preserved, update the box's style and also in any fragments
+    // that haven't been cleared.
+    let element_layout_damage: LayoutDamage = element_damage.into();
+    if !element_layout_damage.has_box_damage() && !original_element_damage.is_empty() {
+        node.repair_style(context);
+    }
+
+    damage_for_parent
 }

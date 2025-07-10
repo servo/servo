@@ -1024,23 +1024,26 @@ impl Transferable for TransformStream {
     type Index = MessagePortIndex;
     type Data = TransformStreamData;
 
-    fn transfer(&self) -> Result<(MessagePortId, TransformStreamData), ()> {
+    /// <https://streams.spec.whatwg.org/#ref-for-transfer-steps②>
+    fn transfer(&self) -> Fallible<(MessagePortId, TransformStreamData)> {
         let global = self.global();
         let realm = enter_realm(&*global);
         let comp = InRealm::Entered(&realm);
         let cx = GlobalScope::get_cx();
         let can_gc = CanGc::note();
 
-        // Let readable be value.[[readable]].
+        // Step 1. Let readable be value.[[readable]].
         let readable = self.get_readable();
 
-        // Let writable be value.[[writable]].
+        // Step 2. Let writable be value.[[writable]].
         let writable = self.get_writable();
 
-        // If ! IsReadableStreamLocked(readable) is true, throw a "DataCloneError" DOMException.
-        // If ! IsWritableStreamLocked(writable) is true, throw a "DataCloneError" DOMException.
+        // Step 3. If ! IsReadableStreamLocked(readable) is true, throw a
+        // "DataCloneError" DOMException.
+        // Step 4. If ! IsWritableStreamLocked(writable) is true, throw a
+        // "DataCloneError" DOMException.
         if readable.is_locked() || writable.is_locked() {
-            return Err(());
+            return Err(Error::DataClone(None));
         }
 
         // First port pair (readable → proxy writable)
@@ -1083,8 +1086,10 @@ impl Transferable for TransformStream {
             )
             .set_promise_is_handled();
 
-        // Set dataHolder.[[readable]] to ! StructuredSerializeWithTransfer(readable, « readable »).
-        // Set dataHolder.[[writable]] to ! StructuredSerializeWithTransfer(writable, « writable »).
+        // Step 5. Set dataHolder.[[readable]] to !
+        // StructuredSerializeWithTransfer(readable, « readable »).
+        // Step 6. Set dataHolder.[[writable]] to !
+        // StructuredSerializeWithTransfer(writable, « writable »).
         Ok((
             *port1_peer.message_port_id(),
             TransformStreamData {
@@ -1094,6 +1099,7 @@ impl Transferable for TransformStream {
         ))
     }
 
+    /// <https://streams.spec.whatwg.org/#ref-for-transfer-receiving-steps②>
     fn transfer_receive(
         owner: &GlobalScope,
         _id: MessagePortId,
@@ -1105,18 +1111,23 @@ impl Transferable for TransformStream {
         let port1 = MessagePort::transfer_receive(owner, data.readable.0, data.readable.1)?;
         let port2 = MessagePort::transfer_receive(owner, data.writable.0, data.writable.1)?;
 
-        // Let readableRecord be ! StructuredDeserializeWithTransfer(dataHolder.[[readable]], the current Realm).
-        // Set value.[[readable]] to readableRecord.[[Deserialized]].
-        // Let writableRecord be ! StructuredDeserializeWithTransfer(dataHolder.[[writable]], the current Realm).
+        // Step 1. Let readableRecord be !
+        // StructuredDeserializeWithTransfer(dataHolder.[[readable]], the
+        // current Realm).
         let proxy_readable = ReadableStream::new_with_proto(owner, None, can_gc);
         proxy_readable.setup_cross_realm_transform_readable(cx, &port2, can_gc);
 
+        // Step 2. Let writableRecord be !
+        // StructuredDeserializeWithTransfer(dataHolder.[[writable]], the
+        // current Realm).
         let proxy_writable = WritableStream::new_with_proto(owner, None, can_gc);
         proxy_writable.setup_cross_realm_transform_writable(cx, &port1, can_gc);
 
-        // Set value.[[readable]] to readableRecord.[[Deserialized]].
-        // Set value.[[writable]] to writableRecord.[[Deserialized]].
-        // Set value.[[backpressure]], value.[[backpressureChangePromise]], and value.[[controller]] to undefined.
+        // Step 3. Set value.[[readable]] to readableRecord.[[Deserialized]].
+        // Step 4. Set value.[[writable]] to writableRecord.[[Deserialized]].
+        // Step 5. Set value.[[backpressure]],
+        // value.[[backpressureChangePromise]], and value.[[controller]] to
+        // undefined.
         let stream = TransformStream::new_with_proto(owner, None, can_gc);
         stream.readable.set(Some(&proxy_readable));
         stream.writable.set(Some(&proxy_writable));

@@ -8,6 +8,7 @@
 
 mod actions;
 mod capabilities;
+mod user_prompt;
 
 use std::borrow::ToOwned;
 use std::cell::{Cell, LazyCell, RefCell};
@@ -515,6 +516,11 @@ impl Handler {
         Ok(())
     }
 
+    // This function is called only if session and webview are verified.
+    fn verified_webview_id(&self) -> WebViewId {
+        self.session().unwrap().webview_id
+    }
+
     fn focus_webview_id(&self) -> WebDriverResult<WebViewId> {
         let (sender, receiver) = ipc::channel().unwrap();
         self.send_message_to_embedder(WebDriverCommandMsg::GetFocusedWebView(sender.clone()))?;
@@ -715,38 +721,41 @@ impl Handler {
     }
 
     /// Send command to Script Thread with session's current browsing context.
-    /// If CHECK_OPEN is true, it would verify the existence of browsing context before sending.
-    fn browsing_context_script_command<const CHECK_OPEN: bool>(
+    /// If `verify` is [`VerifyBrowsingContextIsOpen::Yes`],
+    /// it would verify the existence of browsing context before sending.
+    fn browsing_context_script_command(
         &self,
         cmd_msg: WebDriverScriptCommand,
+        verify: VerifyBrowsingContextIsOpen,
     ) -> WebDriverResult<()> {
         let browsing_context_id = self.session()?.browsing_context_id;
-        if CHECK_OPEN {
+        if let VerifyBrowsingContextIsOpen::Yes = verify {
             self.verify_browsing_context_is_open(browsing_context_id)?;
         }
-        let msg = EmbedderToConstellationMessage::WebDriverCommand(
-            WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd_msg),
-        );
-        self.constellation_chan.send(msg).unwrap();
+        self.send_message_to_embedder(WebDriverCommandMsg::ScriptCommand(
+            browsing_context_id,
+            cmd_msg,
+        ))?;
         Ok(())
     }
 
     /// Send command to Script Thread with session's current top-level browsing context.
-    /// If CHECK_OPEN is true, it would verify the existence of top-level
-    /// browsing context before sending.
-    fn top_level_script_command<const CHECK_OPEN: bool>(
+    /// If `verify` is [`VerifyBrowsingContextIsOpen::Yes`],
+    /// it would verify the existence of top-level browsing context before sending.
+    fn top_level_script_command(
         &self,
         cmd_msg: WebDriverScriptCommand,
+        verify: VerifyBrowsingContextIsOpen,
     ) -> WebDriverResult<()> {
         let webview_id = self.session()?.webview_id;
-        if CHECK_OPEN {
+        if let VerifyBrowsingContextIsOpen::Yes = verify {
             self.verify_top_level_browsing_context_is_open(webview_id)?;
         }
         let browsing_context_id = BrowsingContextId::from(webview_id);
-        let msg = EmbedderToConstellationMessage::WebDriverCommand(
-            WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd_msg),
-        );
-        self.constellation_chan.send(msg).unwrap();
+        self.send_message_to_embedder(WebDriverCommandMsg::ScriptCommand(
+            browsing_context_id,
+            cmd_msg,
+        ))?;
         Ok(())
     }
 
@@ -779,7 +788,19 @@ impl Handler {
         debug!("waiting for load");
         let timeout = self.session()?.load_timeout;
         let result = select! {
-            recv(self.load_status_receiver) -> _ => Ok(WebDriverResponse::Void),
+            recv(self.load_status_receiver) -> res => {
+                    match res {
+                    Ok(WebDriverLoadStatus::Blocked) => {
+                        Err(WebDriverError::new(
+                            ErrorStatus::UnexpectedAlertOpen,
+                            "Load is blocked",
+                        ))
+                    }
+                    _ => {
+                        Ok(WebDriverResponse::Void)
+                    }
+                }
+            },
             recv(after(Duration::from_millis(timeout))) -> _ => Err(
                 WebDriverError::new(ErrorStatus::Timeout, "Load timed out")
             ),
@@ -790,7 +811,10 @@ impl Handler {
 
     fn handle_current_url(&self) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
-        self.top_level_script_command::<true>(WebDriverScriptCommand::GetUrl(sender))?;
+        self.top_level_script_command(
+            WebDriverScriptCommand::GetUrl(sender),
+            VerifyBrowsingContextIsOpen::Yes,
+        )?;
 
         let url = wait_for_script_response(receiver)?;
 
@@ -887,10 +911,10 @@ impl Handler {
     fn handle_is_enabled(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
 
-        self.browsing_context_script_command::<true>(WebDriverScriptCommand::IsEnabled(
-            element.to_string(),
-            sender,
-        ))?;
+        self.browsing_context_script_command(
+            WebDriverScriptCommand::IsEnabled(element.to_string(), sender),
+            VerifyBrowsingContextIsOpen::Yes,
+        )?;
 
         match wait_for_script_response(receiver)? {
             Ok(is_enabled) => Ok(WebDriverResponse::Generic(ValueResponse(
@@ -903,10 +927,10 @@ impl Handler {
     fn handle_is_selected(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
 
-        self.browsing_context_script_command::<true>(WebDriverScriptCommand::IsSelected(
-            element.to_string(),
-            sender,
-        ))?;
+        self.browsing_context_script_command(
+            WebDriverScriptCommand::IsSelected(element.to_string(), sender),
+            VerifyBrowsingContextIsOpen::Yes,
+        )?;
 
         match wait_for_script_response(receiver)? {
             Ok(is_selected) => Ok(WebDriverResponse::Generic(ValueResponse(
@@ -951,7 +975,10 @@ impl Handler {
     fn handle_title(&self) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
 
-        self.top_level_script_command::<true>(WebDriverScriptCommand::GetTitle(sender))?;
+        self.top_level_script_command(
+            WebDriverScriptCommand::GetTitle(sender),
+            VerifyBrowsingContextIsOpen::Yes,
+        )?;
 
         let value = wait_for_script_response(receiver)?;
         Ok(WebDriverResponse::Generic(ValueResponse(
@@ -1106,7 +1133,7 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetParentFrameId(sender);
         // TODO: Track Parent Browsing Context directly in the session, as expected by Spec.
-        self.browsing_context_script_command::<true>(cmd)?;
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
         match wait_for_script_response(receiver)? {
             Ok(browsing_context_id) => {
                 self.session_mut()?.browsing_context_id = browsing_context_id;
@@ -1151,7 +1178,7 @@ impl Handler {
     ) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetBrowsingContextId(frame_id, sender);
-        self.browsing_context_script_command::<true>(cmd)?;
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
 
         match wait_for_script_response(receiver)? {
             Ok(browsing_context_id) => {
@@ -1178,7 +1205,7 @@ impl Handler {
                     parameters.value.clone(),
                     sender,
                 );
-                self.browsing_context_script_command::<true>(cmd)?;
+                self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
             },
             LocatorStrategy::LinkText | LocatorStrategy::PartialLinkText => {
                 let cmd = WebDriverScriptCommand::FindElementsLinkText(
@@ -1186,19 +1213,19 @@ impl Handler {
                     parameters.using == LocatorStrategy::PartialLinkText,
                     sender,
                 );
-                self.browsing_context_script_command::<true>(cmd)?;
+                self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
             },
             LocatorStrategy::TagName => {
                 let cmd =
                     WebDriverScriptCommand::FindElementsTagName(parameters.value.clone(), sender);
-                self.browsing_context_script_command::<true>(cmd)?;
+                self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
             },
             LocatorStrategy::XPath => {
                 let cmd = WebDriverScriptCommand::FindElementsXpathSelector(
                     parameters.value.clone(),
                     sender,
                 );
-                self.browsing_context_script_command::<true>(cmd)?;
+                self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
             },
         }
 
@@ -1245,7 +1272,7 @@ impl Handler {
                     element.to_string(),
                     sender,
                 );
-                self.browsing_context_script_command::<true>(cmd)?;
+                self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
             },
             LocatorStrategy::LinkText | LocatorStrategy::PartialLinkText => {
                 let cmd = WebDriverScriptCommand::FindElementElementsLinkText(
@@ -1254,7 +1281,7 @@ impl Handler {
                     parameters.using == LocatorStrategy::PartialLinkText,
                     sender,
                 );
-                self.browsing_context_script_command::<true>(cmd)?;
+                self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
             },
             LocatorStrategy::TagName => {
                 let cmd = WebDriverScriptCommand::FindElementElementsTagName(
@@ -1262,7 +1289,7 @@ impl Handler {
                     element.to_string(),
                     sender,
                 );
-                self.browsing_context_script_command::<true>(cmd)?;
+                self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
             },
             LocatorStrategy::XPath => {
                 let cmd = WebDriverScriptCommand::FindElementElementsXPathSelector(
@@ -1270,7 +1297,7 @@ impl Handler {
                     element.to_string(),
                     sender,
                 );
-                self.browsing_context_script_command::<true>(cmd)?;
+                self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
             },
         }
 
@@ -1307,7 +1334,7 @@ impl Handler {
                     shadow_root.to_string(),
                     sender,
                 );
-                self.browsing_context_script_command::<true>(cmd)?;
+                self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
             },
             LocatorStrategy::LinkText | LocatorStrategy::PartialLinkText => {
                 let cmd = WebDriverScriptCommand::FindShadowElementsLinkText(
@@ -1316,7 +1343,7 @@ impl Handler {
                     parameters.using == LocatorStrategy::PartialLinkText,
                     sender,
                 );
-                self.browsing_context_script_command::<true>(cmd)?;
+                self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
             },
             LocatorStrategy::TagName => {
                 let cmd = WebDriverScriptCommand::FindShadowElementsTagName(
@@ -1324,7 +1351,7 @@ impl Handler {
                     shadow_root.to_string(),
                     sender,
                 );
-                self.browsing_context_script_command::<true>(cmd)?;
+                self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
             },
             LocatorStrategy::XPath => {
                 let cmd = WebDriverScriptCommand::FindShadowElementsXPathSelector(
@@ -1332,7 +1359,7 @@ impl Handler {
                     shadow_root.to_string(),
                     sender,
                 );
-                self.browsing_context_script_command::<true>(cmd)?;
+                self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
             },
         }
 
@@ -1366,7 +1393,7 @@ impl Handler {
     fn handle_get_shadow_root(&self, element: WebElement) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetElementShadowRoot(element.to_string(), sender);
-        self.browsing_context_script_command::<true>(cmd)?;
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
         match wait_for_script_response(receiver)? {
             Ok(value) => {
                 let Some(value) = value else {
@@ -1384,7 +1411,7 @@ impl Handler {
     fn handle_element_rect(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetElementRect(element.to_string(), sender);
-        self.browsing_context_script_command::<true>(cmd)?;
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
         match wait_for_script_response(receiver)? {
             Ok(rect) => {
                 let response = ElementRectResponse {
@@ -1403,7 +1430,7 @@ impl Handler {
     fn handle_element_text(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetElementText(element.to_string(), sender);
-        self.browsing_context_script_command::<true>(cmd)?;
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
         match wait_for_script_response(receiver)? {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
                 serde_json::to_value(value)?,
@@ -1416,7 +1443,7 @@ impl Handler {
     fn handle_active_element(&self) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetActiveElement(sender);
-        self.browsing_context_script_command::<true>(cmd)?;
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
         let value = wait_for_script_response(receiver)?
             .map(|x| serde_json::to_value(WebElement(x)).unwrap());
         // Step 4. If active element is a non-null element, return success
@@ -1437,7 +1464,7 @@ impl Handler {
     fn handle_computed_role(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetComputedRole(element.to_string(), sender);
-        self.browsing_context_script_command::<true>(cmd)?;
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
         match wait_for_script_response(receiver)? {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
                 serde_json::to_value(value)?,
@@ -1449,7 +1476,7 @@ impl Handler {
     fn handle_element_tag_name(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetElementTagName(element.to_string(), sender);
-        self.browsing_context_script_command::<true>(cmd)?;
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
         match wait_for_script_response(receiver)? {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
                 serde_json::to_value(value)?,
@@ -1469,7 +1496,7 @@ impl Handler {
             name.to_owned(),
             sender,
         );
-        self.browsing_context_script_command::<true>(cmd)?;
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
         match wait_for_script_response(receiver)? {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
                 serde_json::to_value(value)?,
@@ -1490,7 +1517,7 @@ impl Handler {
             name.to_owned(),
             sender,
         );
-        self.browsing_context_script_command::<true>(cmd)?;
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
 
         match wait_for_script_response(receiver)? {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
@@ -1508,7 +1535,7 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd =
             WebDriverScriptCommand::GetElementCSS(element.to_string(), name.to_owned(), sender);
-        self.browsing_context_script_command::<true>(cmd)?;
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
         match wait_for_script_response(receiver)? {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
                 serde_json::to_value(value)?,
@@ -1520,7 +1547,7 @@ impl Handler {
     fn handle_get_cookies(&self) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetCookies(sender);
-        self.browsing_context_script_command::<true>(cmd)?;
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
         let cookies = match wait_for_script_response(receiver)? {
             Ok(cookies) => cookies,
             Err(error) => return Err(WebDriverError::new(error, "")),
@@ -1535,7 +1562,7 @@ impl Handler {
     fn handle_get_cookie(&self, name: String) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetCookie(name, sender);
-        self.browsing_context_script_command::<true>(cmd)?;
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
         let cookies = match wait_for_script_response(receiver)? {
             Ok(cookies) => cookies,
             Err(error) => return Err(WebDriverError::new(error, "")),
@@ -1569,7 +1596,7 @@ impl Handler {
         };
 
         let cmd = WebDriverScriptCommand::AddCookie(cookie_builder.build(), sender);
-        self.browsing_context_script_command::<true>(cmd)?;
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
         match wait_for_script_response(receiver)? {
             Ok(_) => Ok(WebDriverResponse::Void),
             Err(error) => Err(WebDriverError::new(error, "")),
@@ -1579,7 +1606,7 @@ impl Handler {
     fn handle_delete_cookie(&self, name: String) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::DeleteCookie(name, sender);
-        self.browsing_context_script_command::<true>(cmd)?;
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
         match wait_for_script_response(receiver)? {
             Ok(_) => Ok(WebDriverResponse::Void),
             Err(error) => Err(WebDriverError::new(error, "")),
@@ -1589,20 +1616,11 @@ impl Handler {
     fn handle_delete_cookies(&self) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::DeleteCookies(sender);
-        self.browsing_context_script_command::<true>(cmd)?;
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
         match wait_for_script_response(receiver)? {
             Ok(_) => Ok(WebDriverResponse::Void),
             Err(error) => Err(WebDriverError::new(error, "")),
         }
-    }
-
-    // https://w3c.github.io/webdriver/#dismiss-alert
-    fn handle_dismiss_alert(&mut self) -> WebDriverResult<WebDriverResponse> {
-        // Step 1. If session's current top-level browsing context is no longer open,
-        // return error with error code no such window.
-        self.verify_top_level_browsing_context_is_open(self.session()?.webview_id)?;
-        // Since user prompts are not yet implement this will always succeed
-        Ok(WebDriverResponse::Void)
     }
 
     fn handle_get_timeouts(&mut self) -> WebDriverResult<WebDriverResponse> {
@@ -1646,7 +1664,7 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
 
         let cmd = WebDriverScriptCommand::GetPageSource(sender);
-        self.browsing_context_script_command::<true>(cmd)?;
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
 
         match wait_for_script_response(receiver)? {
             Ok(source) => Ok(WebDriverResponse::Generic(ValueResponse(
@@ -1735,8 +1753,8 @@ impl Handler {
         debug!("{}", script);
 
         let (sender, receiver) = ipc::channel().unwrap();
-        let command = WebDriverScriptCommand::ExecuteScript(script, sender);
-        self.browsing_context_script_command::<true>(command)?;
+        let cmd = WebDriverScriptCommand::ExecuteScript(script, sender);
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
         let result = wait_for_script_response(receiver)?;
         self.postprocess_js_result(result)
     }
@@ -1779,8 +1797,8 @@ impl Handler {
         debug!("{}", script);
 
         let (sender, receiver) = ipc::channel().unwrap();
-        let command = WebDriverScriptCommand::ExecuteAsyncScript(script, sender);
-        self.browsing_context_script_command::<true>(command)?;
+        let cmd = WebDriverScriptCommand::ExecuteAsyncScript(script, sender);
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
         let result = wait_for_script_response(receiver)?;
         self.postprocess_js_result(result)
     }
@@ -1862,8 +1880,8 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
 
         // Steps 1 - 7
-        let command = WebDriverScriptCommand::ElementClick(element.to_string(), sender);
-        self.browsing_context_script_command::<true>(command)?;
+        let cmd = WebDriverScriptCommand::ElementClick(element.to_string(), sender);
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
 
         match wait_for_script_response(receiver)? {
             Ok(element_id) => match element_id {
@@ -2015,8 +2033,8 @@ impl Handler {
     ) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
 
-        let command = WebDriverScriptCommand::GetBoundingClientRect(element.to_string(), sender);
-        self.browsing_context_script_command::<true>(command)?;
+        let cmd = WebDriverScriptCommand::GetBoundingClientRect(element.to_string(), sender);
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
 
         match wait_for_script_response(receiver)? {
             Ok(rect) => {
@@ -2222,6 +2240,8 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             },
             WebDriverCommand::ElementClick(ref element) => self.handle_element_click(element),
             WebDriverCommand::DismissAlert => self.handle_dismiss_alert(),
+            WebDriverCommand::AcceptAlert => self.handle_accept_alert(),
+            WebDriverCommand::GetAlertText => self.handle_get_alert_text(),
             WebDriverCommand::DeleteCookies => self.handle_delete_cookies(),
             WebDriverCommand::DeleteCookie(name) => self.handle_delete_cookie(name),
             WebDriverCommand::GetTimeouts => self.handle_get_timeouts(),

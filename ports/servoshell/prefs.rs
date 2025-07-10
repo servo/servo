@@ -274,7 +274,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
     opts.optopt(
         "",
         "window-size",
-        "Set the initial window size in logical (device independenrt) pixels",
+        "Set the initial window size in logical (device independent) pixels",
         "1024x740",
     );
     opts.optopt(

@@ -19,7 +19,8 @@ use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FormControl, GamepadHapticEffectType,
     KeyboardEvent, LoadStatus, PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog,
-    WebDriverCommandMsg, WebDriverLoadStatus, WebView, WebViewBuilder, WebViewDelegate,
+    WebDriverCommandMsg, WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus, WebView,
+    WebViewBuilder, WebViewDelegate,
 };
 use url::Url;
 
@@ -42,6 +43,7 @@ pub(crate) enum AppState {
 #[derive(Clone, Default)]
 struct WebDriverSenders {
     pub load_status_senders: HashMap<WebViewId, IpcSender<WebDriverLoadStatus>>,
+    pub script_evaluation_interrupt_sender: Option<IpcSender<WebDriverJSResult>>,
 }
 
 pub(crate) struct RunningAppState {
@@ -335,6 +337,38 @@ impl RunningAppState {
             .is_some_and(|dialogs| !dialogs.is_empty())
     }
 
+    pub(crate) fn webview_has_active_dialog(&self, webview_id: WebViewId) -> bool {
+        let inner = self.inner();
+        inner
+            .dialogs
+            .get(&webview_id)
+            .is_some_and(|dialogs| !dialogs.is_empty())
+    }
+
+    pub(crate) fn accept_active_dialogs(&self, webview_id: WebViewId) {
+        if let Some(dialogs) = self.inner_mut().dialogs.get_mut(&webview_id) {
+            dialogs.drain(..).for_each(|dialog| {
+                dialog.accept();
+            });
+        }
+    }
+
+    pub(crate) fn dismiss_active_dialogs(&self, webview_id: WebViewId) {
+        if let Some(dialogs) = self.inner_mut().dialogs.get_mut(&webview_id) {
+            dialogs.drain(..).for_each(|dialog| {
+                dialog.dismiss();
+            });
+        }
+    }
+
+    pub(crate) fn alert_text_of_newest_dialog(&self, webview_id: WebViewId) -> Option<String> {
+        self.inner()
+            .dialogs
+            .get(&webview_id)
+            .and_then(|dialogs| dialogs.last())
+            .and_then(|dialog| dialog.message())
+    }
+
     pub(crate) fn get_focused_webview_index(&self) -> Option<usize> {
         let focused_id = self.inner().focused_webview_id?;
         self.webviews()
@@ -406,6 +440,36 @@ impl RunningAppState {
             .load_status_senders
             .insert(webview_id, sender);
     }
+
+    pub(crate) fn set_script_command_interrupt_sender(
+        &self,
+        sender: Option<IpcSender<WebDriverJSResult>>,
+    ) {
+        self.webdriver_senders
+            .borrow_mut()
+            .script_evaluation_interrupt_sender = sender;
+    }
+
+    /// Interrupt any ongoing WebDriver-based script evaluation.
+    ///
+    /// From <https://w3c.github.io/webdriver/#dfn-execute-a-function-body>:
+    /// > The rules to execute a function body are as follows. The algorithm returns
+    /// > an ECMAScript completion record.
+    /// >
+    /// > If at any point during the algorithm a user prompt appears, immediately return
+    /// > Completion { Type: normal, Value: null, Target: empty }, but continue to run the
+    /// >  other steps of this algorithm in parallel.
+    fn interrupt_webdriver_script_evaluation(&self) {
+        if let Some(sender) = &self
+            .webdriver_senders
+            .borrow()
+            .script_evaluation_interrupt_sender
+        {
+            sender.send(Ok(WebDriverJSValue::Null)).unwrap_or_else(|err| {
+                info!("Notify dialog appear failed. Maybe the channel to webdriver is closed: {err}");
+            });
+        }
+    }
 }
 
 struct ServoShellServoDelegate;
@@ -452,7 +516,22 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn show_simple_dialog(&self, webview: servo::WebView, dialog: SimpleDialog) {
-        if self.servoshell_preferences.headless {
+        self.interrupt_webdriver_script_evaluation();
+
+        // Dialogs block the page load, so need need to notify WebDriver
+        let webview_id = webview.id();
+        if let Some(sender) = self
+            .webdriver_senders
+            .borrow_mut()
+            .load_status_senders
+            .get(&webview_id)
+        {
+            let _ = sender.send(WebDriverLoadStatus::Blocked);
+        };
+
+        if self.servoshell_preferences.headless &&
+            self.servoshell_preferences.webdriver_port.is_none()
+        {
             // TODO: Avoid copying this from the default trait impl?
             // Return the DOM-specified default value for when we **cannot show simple dialogs**.
             let _ = match dialog {
@@ -477,7 +556,9 @@ impl WebViewDelegate for RunningAppState {
         webview: WebView,
         authentication_request: AuthenticationRequest,
     ) {
-        if self.servoshell_preferences.headless {
+        if self.servoshell_preferences.headless &&
+            self.servoshell_preferences.webdriver_port.is_none()
+        {
             return;
         }
 
@@ -575,7 +656,9 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn request_permission(&self, webview: servo::WebView, permission_request: PermissionRequest) {
-        if self.servoshell_preferences.headless {
+        if self.servoshell_preferences.headless &&
+            self.servoshell_preferences.webdriver_port.is_none()
+        {
             permission_request.deny();
             return;
         }
@@ -635,7 +718,9 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn show_form_control(&self, webview: WebView, form_control: FormControl) {
-        if self.servoshell_preferences.headless {
+        if self.servoshell_preferences.headless &&
+            self.servoshell_preferences.webdriver_port.is_none()
+        {
             return;
         }
 

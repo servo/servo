@@ -3,9 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::collections::HashMap;
 use std::rc::Rc;
 
-use constellation_traits::BlobImpl;
+use base::id::{OffscreenCanvasId, OffscreenCanvasIndex};
+use constellation_traits::{BlobImpl, TransferableOffscreenCanvas};
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use js::rust::{HandleObject, HandleValue};
@@ -23,6 +25,8 @@ use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::structuredclone::StructuredData;
+use crate::dom::bindings::transferable::Transferable;
 use crate::dom::blob::Blob;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -126,6 +130,7 @@ impl OffscreenCanvas {
         if let Some(ctx) = self.context() {
             return match *ctx {
                 OffscreenRenderingContext::Context2d(ref ctx) => Some(DomRoot::from_ref(ctx)),
+                _ => None,
             };
         }
         let context = OffscreenCanvasRenderingContext2D::new(&self.global(), self, can_gc);
@@ -142,6 +147,94 @@ impl OffscreenCanvas {
     }
 }
 
+impl Transferable for OffscreenCanvas {
+    type Index = OffscreenCanvasIndex;
+    type Data = TransferableOffscreenCanvas;
+
+    /// <https://html.spec.whatwg.org/multipage/#the-offscreencanvas-interface:transfer-steps>
+    fn transfer(&self) -> Fallible<(OffscreenCanvasId, TransferableOffscreenCanvas)> {
+        // <https://html.spec.whatwg.org/multipage/#structuredserializewithtransfer>
+        // Step 5.2. If transferable has a [[Detached]] internal slot and
+        // transferable.[[Detached]] is true, then throw a "DataCloneError"
+        // DOMException.
+        if let Some(OffscreenRenderingContext::Detached) = *self.context.borrow() {
+            return Err(Error::DataClone(None));
+        }
+
+        // Step 1. If value's context mode is not equal to none, then throw an
+        // "InvalidStateError" DOMException.
+        if !self.context.borrow().is_none() {
+            return Err(Error::InvalidState);
+        }
+
+        // TODO(#37882): Allow to transfer with a placeholder canvas element.
+        if self.placeholder.is_some() {
+            return Err(Error::InvalidState);
+        }
+
+        // Step 2. Set value's context mode to detached.
+        *self.context.borrow_mut() = Some(OffscreenRenderingContext::Detached);
+
+        // Step 3. Let width and height be the dimensions of value's bitmap.
+        // Step 5. Unset value's bitmap.
+        let width = self.width.replace(0);
+        let height = self.height.replace(0);
+
+        // TODO(#37918) Step 4. Let language and direction be the values of
+        // value's inherited language and inherited direction.
+
+        // Step 6. Set dataHolder.[[Width]] to width and dataHolder.[[Height]]
+        // to height.
+
+        // TODO(#37918) Step 7. Set dataHolder.[[Language]] to language and
+        // dataHolder.[[Direction]] to direction.
+
+        // TODO(#37882) Step 8. Set dataHolder.[[PlaceholderCanvas]] to be a
+        // weak reference to value's placeholder canvas element, if value has
+        // one, or null if it does not.
+        let transferred = TransferableOffscreenCanvas { width, height };
+
+        Ok((OffscreenCanvasId::new(), transferred))
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#the-offscreencanvas-interface:transfer-receiving-steps>
+    fn transfer_receive(
+        owner: &GlobalScope,
+        _: OffscreenCanvasId,
+        transferred: TransferableOffscreenCanvas,
+    ) -> Result<DomRoot<Self>, ()> {
+        // Step 1. Initialize value's bitmap to a rectangular array of
+        // transparent black pixels with width given by dataHolder.[[Width]] and
+        // height given by dataHolder.[[Height]].
+
+        // TODO(#37918) Step 2. Set value's inherited language to
+        // dataHolder.[[Language]] and its inherited direction to
+        // dataHolder.[[Direction]].
+
+        // TODO(#37882) Step 3. If dataHolder.[[PlaceholderCanvas]] is not null,
+        // set value's placeholder canvas element to
+        // dataHolder.[[PlaceholderCanvas]] (while maintaining the weak
+        // reference semantics).
+        Ok(OffscreenCanvas::new(
+            owner,
+            None,
+            transferred.width,
+            transferred.height,
+            None,
+            CanGc::note(),
+        ))
+    }
+
+    fn serialized_storage<'a>(
+        data: StructuredData<'a, '_>,
+    ) -> &'a mut Option<HashMap<OffscreenCanvasId, Self::Data>> {
+        match data {
+            StructuredData::Reader(r) => &mut r.offscreen_canvases,
+            StructuredData::Writer(w) => &mut w.offscreen_canvases,
+        }
+    }
+}
+
 impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
     /// <https://html.spec.whatwg.org/multipage/#dom-offscreencanvas>
     fn Constructor(
@@ -151,8 +244,9 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         width: u64,
         height: u64,
     ) -> Fallible<DomRoot<OffscreenCanvas>> {
-        let offscreencanvas = OffscreenCanvas::new(global, proto, width, height, None, can_gc);
-        Ok(offscreencanvas)
+        Ok(OffscreenCanvas::new(
+            global, proto, width, height, None, can_gc,
+        ))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-getcontext>
@@ -163,6 +257,12 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         _options: HandleValue,
         can_gc: CanGc,
     ) -> Fallible<Option<RootedOffscreenRenderingContext>> {
+        // Step 3. Throw an "InvalidStateError" DOMException if the
+        // OffscreenCanvas object's context mode is detached.
+        if let Some(OffscreenRenderingContext::Detached) = *self.context.borrow() {
+            return Err(Error::InvalidState);
+        }
+
         match &*id {
             "2d" => Ok(self
                 .get_or_init_2d_context(can_gc)
@@ -217,9 +317,12 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-transfertoimagebitmap>
     fn TransferToImageBitmap(&self, can_gc: CanGc) -> Fallible<DomRoot<ImageBitmap>> {
-        // TODO Step 1. If the value of this OffscreenCanvas object's
-        // [[Detached]] internal slot is set to true, then throw an
-        // "InvalidStateError" DOMException.
+        // Step 1. If the value of this OffscreenCanvas object's [[Detached]]
+        // internal slot is set to true, then throw an "InvalidStateError"
+        // DOMException.
+        if let Some(OffscreenRenderingContext::Detached) = *self.context.borrow() {
+            return Err(Error::InvalidState);
+        }
 
         // Step 2. If this OffscreenCanvas object's context mode is set to none,
         // then throw an "InvalidStateError" DOMException.
@@ -254,6 +357,14 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         // Step 5. Let result be a new promise object.
         let in_realm_proof = AlreadyInRealm::assert::<crate::DomTypeHolder>();
         let promise = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
+
+        // Step 1. If the value of this's [[Detached]] internal slot is true,
+        // then return a promise rejected with an "InvalidStateError"
+        // DOMException.
+        if let Some(OffscreenRenderingContext::Detached) = *self.context.borrow() {
+            promise.reject_error(Error::InvalidState, can_gc);
+            return promise;
+        }
 
         // Step 2. If this's context mode is 2d and the rendering context's
         // output bitmap's origin-clean flag is set to false, then return a

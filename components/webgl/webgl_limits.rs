@@ -14,6 +14,7 @@ impl GLLimitsDetect for GLLimits {
     fn detect(gl: &Gl, webgl_version: WebGLVersion) -> GLLimits {
         let max_vertex_attribs = gl.get_integer(gl::MAX_VERTEX_ATTRIBS);
         let max_tex_size = gl.get_integer(gl::MAX_TEXTURE_SIZE);
+        let max_3d_tex_size = gl.get_integer(gl::MAX_3D_TEXTURE_SIZE);
         let max_cube_map_tex_size = gl.get_integer(gl::MAX_CUBE_MAP_TEXTURE_SIZE);
         let max_combined_texture_image_units = gl.get_integer(gl::MAX_COMBINED_TEXTURE_IMAGE_UNITS);
         let max_renderbuffer_size = gl.get_integer(gl::MAX_RENDERBUFFER_SIZE);
@@ -160,6 +161,7 @@ impl GLLimitsDetect for GLLimits {
         GLLimits {
             max_vertex_attribs,
             max_tex_size,
+            max_3d_tex_size,
             max_cube_map_tex_size,
             max_combined_texture_image_units,
             max_fragment_uniform_vectors,

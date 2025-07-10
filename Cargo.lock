@@ -434,9 +434,9 @@ dependencies = [
 
 [[package]]
 name = "async-channel"
-version = "2.4.0"
+version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "16c74e56284d2188cabb6ad99603d1ace887a5d7e7b695d01b728155ed9ed427"
+checksum = "924ed96dd52d1b75e9c1a3e6275715fd320f5f9439fb5a4a11fa51f4221158d2"
 dependencies = [
  "concurrent-queue",
  "event-listener-strategy",
@@ -882,9 +882,9 @@ dependencies = [
 
 [[package]]
 name = "blocking"
-version = "1.6.1"
+version = "1.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "703f41c54fc768e63e091340b424302bb1c29ef4aa0c7f10fe849dfb114d29ea"
+checksum = "e83f8d02be6967315521be875afa792a316e28d57b5a2d401897e2a7921b7f21"
 dependencies = [
  "async-channel",
  "async-task",
@@ -1137,9 +1137,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.2.28"
+version = "1.2.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ad45f4f74e4e20eaa392913b7b33a7091c87e59628f4dd27888205ad888843c"
+checksum = "5c1599538de2394445747c8cf7935946e3cc27e9625f889d979bfb2aaf569362"
 dependencies = [
  "jobserver",
  "libc",
@@ -1163,9 +1163,9 @@ dependencies = [
 
 [[package]]
 name = "cfg-expr"
-version = "0.20.0"
+version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e34e221e91c7eb5e8315b5c9cf1a61670938c0626451f954a51693ed44b37f45"
+checksum = "0d0390889d58f934f01cd49736275b4c2da15bcfc328c78ff2349907e6cabf22"
 dependencies = [
  "smallvec",
  "target-lexicon",
@@ -1521,7 +1521,7 @@ dependencies = [
 [[package]]
 name = "content-security-policy"
 version = "0.5.4"
-source = "git+https://github.com/servo/rust-content-security-policy/?branch=servo-csp#dc1fd32b2b32b704a43f4ae170bb2cbb80a7cf59"
+source = "git+https://github.com/servo/rust-content-security-policy/?branch=servo-csp#e8d4883f9a9349e602465f31a780bc6d70b98528"
 dependencies = [
  "base64 0.22.1",
  "bitflags 2.9.1",
@@ -2252,6 +2252,7 @@ dependencies = [
  "num-traits",
  "pixels",
  "serde",
+ "servo_geometry",
  "servo_malloc_size_of",
  "servo_url",
  "strum_macros",
@@ -3880,9 +3881,9 @@ dependencies = [
 
 [[package]]
 name = "hyper-util"
-version = "0.1.14"
+version = "0.1.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc2fdfdbff08affe55bb779f33b053aa1fe5dd5b54c257343c17edfa55711bdb"
+checksum = "7f66d5bd4c6f02bf0542fad85d626775bab9258cf795a4256dcaf3161114d1df"
 dependencies = [
  "bytes",
  "futures-channel",
@@ -4725,6 +4726,7 @@ dependencies = [
  "servo_geometry",
  "servo_malloc_size_of",
  "servo_url",
+ "smallvec",
  "stylo",
  "stylo_atoms",
  "stylo_traits",
@@ -5222,7 +5224,7 @@ dependencies = [
 [[package]]
 name = "mozjs"
 version = "0.14.1"
-source = "git+https://github.com/servo/mozjs#728acdf3d4ce0604e9f75dd1d539dc6f291ccec7"
+source = "git+https://github.com/servo/mozjs#128e1e230a0155ed9395c718184f34bddc045860"
 dependencies = [
  "bindgen 0.71.1",
  "cc",
@@ -5233,8 +5235,8 @@ dependencies = [
 
 [[package]]
 name = "mozjs_sys"
-version = "0.128.9-2"
-source = "git+https://github.com/servo/mozjs#728acdf3d4ce0604e9f75dd1d539dc6f291ccec7"
+version = "0.128.13-0"
+source = "git+https://github.com/servo/mozjs#128e1e230a0155ed9395c718184f34bddc045860"
 dependencies = [
  "bindgen 0.71.1",
  "cc",
@@ -6844,9 +6846,9 @@ dependencies = [
 
 [[package]]
 name = "rgb"
-version = "0.8.50"
+version = "0.8.51"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57397d16646700483b67d2dd6511d79318f9d057fdbd21a4066aeac8b41d310a"
+checksum = "a457e416a0f90d246a4c3288bd7a25b2304ca727f253f95be383dd17af56be8f"
 dependencies = [
  "bytemuck",
 ]
@@ -7247,7 +7249,7 @@ dependencies = [
 [[package]]
 name = "selectors"
 version = "0.30.0"
-source = "git+https://github.com/servo/stylo?branch=2025-07-01#ece49719ac02599750bd15901ecd7be24e96a26a"
+source = "git+https://github.com/servo/stylo?branch=2025-07-01#95cc620f5a5fadf2e4bdacb17e4731c835ab381b"
 dependencies = [
  "bitflags 2.9.1",
  "cssparser",
@@ -7553,7 +7555,7 @@ dependencies = [
 [[package]]
 name = "servo_arc"
 version = "0.4.1"
-source = "git+https://github.com/servo/stylo?branch=2025-07-01#ece49719ac02599750bd15901ecd7be24e96a26a"
+source = "git+https://github.com/servo/stylo?branch=2025-07-01#95cc620f5a5fadf2e4bdacb17e4731c835ab381b"
 dependencies = [
  "serde",
  "stable_deref_trait",
@@ -8015,7 +8017,7 @@ dependencies = [
 [[package]]
 name = "stylo"
 version = "0.5.0"
-source = "git+https://github.com/servo/stylo?branch=2025-07-01#ece49719ac02599750bd15901ecd7be24e96a26a"
+source = "git+https://github.com/servo/stylo?branch=2025-07-01#95cc620f5a5fadf2e4bdacb17e4731c835ab381b"
 dependencies = [
  "app_units",
  "arrayvec",
@@ -8072,7 +8074,7 @@ dependencies = [
 [[package]]
 name = "stylo_atoms"
 version = "0.5.0"
-source = "git+https://github.com/servo/stylo?branch=2025-07-01#ece49719ac02599750bd15901ecd7be24e96a26a"
+source = "git+https://github.com/servo/stylo?branch=2025-07-01#95cc620f5a5fadf2e4bdacb17e4731c835ab381b"
 dependencies = [
  "string_cache",
  "string_cache_codegen",
@@ -8081,12 +8083,12 @@ dependencies = [
 [[package]]
 name = "stylo_config"
 version = "0.5.0"
-source = "git+https://github.com/servo/stylo?branch=2025-07-01#ece49719ac02599750bd15901ecd7be24e96a26a"
+source = "git+https://github.com/servo/stylo?branch=2025-07-01#95cc620f5a5fadf2e4bdacb17e4731c835ab381b"
 
 [[package]]
 name = "stylo_derive"
 version = "0.5.0"
-source = "git+https://github.com/servo/stylo?branch=2025-07-01#ece49719ac02599750bd15901ecd7be24e96a26a"
+source = "git+https://github.com/servo/stylo?branch=2025-07-01#95cc620f5a5fadf2e4bdacb17e4731c835ab381b"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -8098,7 +8100,7 @@ dependencies = [
 [[package]]
 name = "stylo_dom"
 version = "0.5.0"
-source = "git+https://github.com/servo/stylo?branch=2025-07-01#ece49719ac02599750bd15901ecd7be24e96a26a"
+source = "git+https://github.com/servo/stylo?branch=2025-07-01#95cc620f5a5fadf2e4bdacb17e4731c835ab381b"
 dependencies = [
  "bitflags 2.9.1",
  "stylo_malloc_size_of",
@@ -8107,7 +8109,7 @@ dependencies = [
 [[package]]
 name = "stylo_malloc_size_of"
 version = "0.5.0"
-source = "git+https://github.com/servo/stylo?branch=2025-07-01#ece49719ac02599750bd15901ecd7be24e96a26a"
+source = "git+https://github.com/servo/stylo?branch=2025-07-01#95cc620f5a5fadf2e4bdacb17e4731c835ab381b"
 dependencies = [
  "app_units",
  "cssparser",
@@ -8124,12 +8126,12 @@ dependencies = [
 [[package]]
 name = "stylo_static_prefs"
 version = "0.5.0"
-source = "git+https://github.com/servo/stylo?branch=2025-07-01#ece49719ac02599750bd15901ecd7be24e96a26a"
+source = "git+https://github.com/servo/stylo?branch=2025-07-01#95cc620f5a5fadf2e4bdacb17e4731c835ab381b"
 
 [[package]]
 name = "stylo_traits"
 version = "0.5.0"
-source = "git+https://github.com/servo/stylo?branch=2025-07-01#ece49719ac02599750bd15901ecd7be24e96a26a"
+source = "git+https://github.com/servo/stylo?branch=2025-07-01#95cc620f5a5fadf2e4bdacb17e4731c835ab381b"
 dependencies = [
  "app_units",
  "bitflags 2.9.1",
@@ -8546,7 +8548,7 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 [[package]]
 name = "to_shmem"
 version = "0.2.0"
-source = "git+https://github.com/servo/stylo?branch=2025-07-01#ece49719ac02599750bd15901ecd7be24e96a26a"
+source = "git+https://github.com/servo/stylo?branch=2025-07-01#95cc620f5a5fadf2e4bdacb17e4731c835ab381b"
 dependencies = [
  "cssparser",
  "servo_arc",
@@ -8559,7 +8561,7 @@ dependencies = [
 [[package]]
 name = "to_shmem_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-07-01#ece49719ac02599750bd15901ecd7be24e96a26a"
+source = "git+https://github.com/servo/stylo?branch=2025-07-01#95cc620f5a5fadf2e4bdacb17e4731c835ab381b"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -8570,9 +8572,9 @@ dependencies = [
 
 [[package]]
 name = "tokio"
-version = "1.46.0"
+version = "1.46.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1140bb80481756a8cbe10541f37433b459c5aa1e727b4c020fbfebdc25bf3ec4"
+checksum = "0cc3a2344dafbe23a245241fe8b09735b521110d30fcefbbd5feb1797ca35d17"
 dependencies = [
  "backtrace",
  "bytes",

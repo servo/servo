@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<title>TestDriver bidi.emulation.set_screen_orientation_override method</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+    // WebDriver BiDi screen orientation is not equal to one provided by Web
+    // API. The mapping is specified in
+    // https://www.w3.org/TR/screen-orientation/#dfn-screen-orientation-values-lists.
+    SOME_BIDI_SCREEN_ORIENTATION = {
+        "natural": "landscape",
+        "type": "portrait-secondary"
+    }
+    // Matches `SOME_BIDI_SCREEN_ORIENTATION`.
+    SOME_WEB_SCREEN_ORIENTATION = {"angle": 270, "type": "portrait-secondary"}
+
+    ANOTHER_BIDI_SCREEN_ORIENTATION = {
+        "natural": "portrait",
+        "type": "landscape-primary"
+    }
+    // Matches `ANOTHER_BIDI_SCREEN_ORIENTATION`.
+    ANOTHER_WEB_SCREEN_ORIENTATION = {"angle": 90, "type": "landscape-primary"}
+
+    /** Get the current screen orientation */
+    function get_current_screen_orientation() {
+        return {
+            angle: screen.orientation.angle,
+            type: screen.orientation.type
+        }
+    }
+
+    function assert_screen_orientation_equal(s1, s2) {
+        assert_equals(s1.angle, s2.angle)
+        assert_equals(s1.type, s2.type)
+    }
+
+    promise_test(async () => {
+        // Get the initial screen orientation.
+        const initial_screen_orientation = get_current_screen_orientation();
+
+        // Set the screen orientation override
+        await test_driver.bidi.emulation.set_screen_orientation_override({
+            screenOrientation: SOME_BIDI_SCREEN_ORIENTATION
+        });
+        // Assert the screen orientation matches the override.
+        assert_screen_orientation_equal(get_current_screen_orientation(),
+            SOME_WEB_SCREEN_ORIENTATION);
+
+        // Set another screen orientation override
+        await test_driver.bidi.emulation.set_screen_orientation_override({
+            screenOrientation: ANOTHER_BIDI_SCREEN_ORIENTATION
+        });
+
+        // Assert the screen orientation matches the override.
+        assert_screen_orientation_equal(get_current_screen_orientation(),
+            ANOTHER_WEB_SCREEN_ORIENTATION);
+
+        // Clear the screen orientation override.
+        await test_driver.bidi.emulation.set_screen_orientation_override({});
+        // Assert screen orientation is set to the original value.
+        assert_screen_orientation_equal(get_current_screen_orientation(),
+            initial_screen_orientation);
+    }, "emulate screen orientation and clear override");
+
+</script>

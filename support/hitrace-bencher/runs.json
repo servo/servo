@@ -3,13 +3,11 @@
 // different filters and different arguments
 [
     {
-        "args": {
-            "bencher": true, // output in bencher format
+        "run_args": {
             "url": "https://www.google.com", // the url to test
             "tries": 5 // How many repeated tries we should have, we show the min,max,avg in the output
             //"trace_buffer": 524288,   // trace_buffer size of hitrace
             //"sleep": 10,  // how long should we wait for servo to load the page
-            //"bundle_name": "org.servo.servo", // the bundle name to start
             //"commands": ["--ps=--tracing-filter", "info"] // arbitrary additional arguments
         },
         "filters": [
@@ -46,12 +44,16 @@
             {
                 "name": "JS",
                 "match_str": "js"
+            },
+            {
+                "name": "resident-smaps",
+                "match_str": "resident-according-to-smaps",
+                "combined": true,
             }
         ]
     },
     {
-        "args": {
-            "bencher": true,
+        "run_args": {
             "url": "https://www.servo.org",
             "tries": 5
         },
@@ -82,6 +84,26 @@
             {
                 "name": "JS",
                 "match_str": "js"
+            },
+            {
+                "name": "resident-smaps",
+                "match_str": "resident-according-to-smaps",
+                "combined": true
+            }
+        ]
+    },
+    {
+        "run_args": {
+            "url": "file:///parse_from_string.html",
+            "tries": 5
+        },
+        "filters": [
+        ],
+        "point_filters": [
+            {
+                "name": "",
+                "match_str": "parsefromstring",
+                "no_unit_conversion": true
             }
         ]
     }

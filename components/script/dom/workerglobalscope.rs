@@ -36,6 +36,7 @@ use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
     ImageBitmapOptions, ImageBitmapSource,
 };
+use crate::dom::bindings::codegen::Bindings::ReportingObserverBinding::Report;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerType;
@@ -45,6 +46,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
 };
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception};
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
@@ -56,6 +58,8 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::performance::Performance;
 use crate::dom::promise::Promise;
+use crate::dom::reportingendpoint::{ReportingEndpoint, SendReportsToEndpoints};
+use crate::dom::reportingobserver::ReportingObserver;
 use crate::dom::trustedscripturl::TrustedScriptURL;
 use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::types::ImageBitmap;
@@ -139,6 +143,16 @@ pub(crate) struct WorkerGlobalScope {
 
     #[no_trace]
     insecure_requests_policy: InsecureRequestsPolicy,
+
+    /// <https://w3c.github.io/reporting/#windoworworkerglobalscope-registered-reporting-observer-list>
+    reporting_observer_list: DomRefCell<Vec<DomRoot<ReportingObserver>>>,
+
+    /// <https://w3c.github.io/reporting/#windoworworkerglobalscope-reports>
+    report_list: DomRefCell<Vec<Report>>,
+
+    /// <https://w3c.github.io/reporting/#windoworworkerglobalscope-endpoints>
+    #[no_trace]
+    endpoints_list: DomRefCell<Vec<ReportingEndpoint>>,
 }
 
 impl WorkerGlobalScope {
@@ -196,6 +210,9 @@ impl WorkerGlobalScope {
             timer_scheduler: RefCell::default(),
             insecure_requests_policy,
             trusted_types: Default::default(),
+            reporting_observer_list: Default::default(),
+            report_list: Default::default(),
+            endpoints_list: Default::default(),
         }
     }
 
@@ -257,6 +274,53 @@ impl WorkerGlobalScope {
 
     pub(crate) fn set_csp_list(&self, csp_list: Option<CspList>) {
         self.policy_container.borrow_mut().set_csp_list(csp_list);
+    }
+
+    pub(crate) fn append_reporting_observer(&self, reporting_observer: DomRoot<ReportingObserver>) {
+        self.reporting_observer_list
+            .borrow_mut()
+            .push(reporting_observer);
+    }
+
+    pub(crate) fn remove_reporting_observer(&self, reporting_observer: &ReportingObserver) {
+        if let Some(index) = self
+            .reporting_observer_list
+            .borrow()
+            .iter()
+            .position(|observer| &**observer == reporting_observer)
+        {
+            self.reporting_observer_list.borrow_mut().remove(index);
+        }
+    }
+
+    pub(crate) fn registered_reporting_observers(&self) -> Vec<DomRoot<ReportingObserver>> {
+        self.reporting_observer_list.borrow().clone()
+    }
+
+    pub(crate) fn append_report(&self, report: Report) {
+        self.report_list.borrow_mut().push(report);
+        let trusted_worker = Trusted::new(self);
+        self.upcast::<GlobalScope>()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(send_to_reporting_endpoints: move || {
+                let worker = trusted_worker.root();
+                let reports = std::mem::take(&mut *worker.report_list.borrow_mut());
+                worker.upcast::<GlobalScope>().send_reports_to_endpoints(
+                    reports,
+                    worker.endpoints_list.borrow().clone(),
+                );
+            }));
+    }
+
+    pub(crate) fn buffered_reports(&self) -> Vec<Report> {
+        self.report_list.borrow().clone()
+    }
+
+    pub(crate) fn set_endpoints_list(&self, endpoints: Option<Vec<ReportingEndpoint>>) {
+        if let Some(endpoints) = endpoints {
+            *self.endpoints_list.borrow_mut() = endpoints;
+        }
     }
 
     /// Get a mutable reference to the [`TimerScheduler`] for this [`ServiceWorkerGlobalScope`].
