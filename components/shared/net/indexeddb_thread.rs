@@ -91,6 +91,8 @@ pub enum AsyncOperation {
     Count(
         IndexedDBKeyType, // Key
     ),
+
+    Clear,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
