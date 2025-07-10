@@ -28,6 +28,12 @@ use crate::{MouseButton, MouseButtonAction};
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct WebDriverMessageId(pub usize);
 
+#[derive(Debug, Deserialize, Serialize)]
+pub enum WebDriverUserPromptAction {
+    Accept,
+    Dismiss,
+}
+
 /// Messages to the constellation originating from the WebDriver server.
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverCommandMsg {
@@ -115,6 +121,12 @@ pub enum WebDriverCommandMsg {
     IsWebViewOpen(WebViewId, IpcSender<bool>),
     /// Check whether browsing context is open.
     IsBrowsingContextOpen(BrowsingContextId, IpcSender<bool>),
+    HandleUserPrompt(
+        WebViewId,
+        WebDriverUserPromptAction,
+        IpcSender<Result<(), ()>>,
+    ),
+    GetAlertText(WebViewId, IpcSender<Result<String, ()>>),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -237,4 +249,5 @@ pub enum WebDriverLoadStatus {
     Complete,
     Timeout,
     Canceled,
+    Blocked,
 }
