@@ -25,7 +25,6 @@ use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents, Trav
 use crate::flow::{BlockContainerBuilder, BlockFormattingContext};
 use crate::formatting_contexts::{
     IndependentFormattingContext, IndependentFormattingContextContents,
-    IndependentNonReplacedContents,
 };
 use crate::fragment_tree::BaseFragmentInfo;
 use crate::layout_box_base::LayoutBoxBase;
@@ -121,9 +120,7 @@ impl Table {
 
         let ifc = IndependentFormattingContext {
             base: LayoutBoxBase::new((&table_info).into(), table_style),
-            contents: IndependentFormattingContextContents::NonReplaced(
-                IndependentNonReplacedContents::Table(table),
-            ),
+            contents: IndependentFormattingContextContents::Table(table),
         };
 
         (table_info, ifc)
@@ -875,7 +872,7 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                     });
 
                     let caption = old_caption.unwrap_or_else(|| {
-                        let contents = IndependentNonReplacedContents::Flow(
+                        let contents = IndependentFormattingContextContents::Flow(
                             BlockFormattingContext::construct(
                                 self.context,
                                 info,
@@ -888,9 +885,7 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                         ArcRefCell::new(TableCaption {
                             context: IndependentFormattingContext {
                                 base: LayoutBoxBase::new(info.into(), info.style.clone()),
-                                contents: IndependentFormattingContextContents::NonReplaced(
-                                    contents,
-                                ),
+                                contents,
                             },
                         })
                     });
