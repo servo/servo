@@ -13,7 +13,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-from typing import List, NamedTuple, Optional, Union
+from typing import List, NamedTuple, Optional, Union, cast, Callable
 
 import mozlog
 import mozlog.formatters
@@ -99,7 +99,7 @@ def run_tests(default_binary_path: str, **kwargs):
     wptcommandline.check_args(kwargs)
 
     mozlog.commandline.log_formatters["servo"] = (
-        type[ServoFormatter],
+        cast(Callable, ServoFormatter),
         "Servo's grouping output formatter",
     )
 
