@@ -26,6 +26,9 @@ use crate::{Handler, VerifyBrowsingContextIsOpen, WebElement, wait_for_script_re
 static POINTERMOVE_INTERVAL: u64 = 17;
 static WHEELSCROLL_INTERVAL: u64 = 17;
 
+// https://262.ecma-international.org/6.0/#sec-number.max_safe_integer
+static MAXIMUM_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
+
 // A single action, corresponding to an `action object` in the spec.
 // In the spec, `action item` refers to a plain JSON object.
 // However, we use the name ActionItem here
@@ -148,6 +151,13 @@ impl Handler {
             // Step 1.2. Let tick duration be the result of
             // computing the tick duration with argument tick actions.
             let tick_duration = compute_tick_duration(tick_actions);
+
+            // FIXME: This is out of spec, but the test `perform_actions/invalid.py` requires
+            // that duration more than `MAXIMUM_SAFE_INTEGER` is considered invalid.
+            if tick_duration > MAXIMUM_SAFE_INTEGER {
+                return Err(ErrorStatus::InvalidArgument);
+            }
+
             let now = Instant::now();
 
             // Step 1.3. Try to dispatch tick actions
