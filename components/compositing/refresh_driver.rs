@@ -194,25 +194,19 @@ impl Default for TimerThread {
             .name(String::from("CompositorTimerThread"))
             .spawn(move || {
                 let mut scheduler = TimerScheduler::default();
-
                 loop {
                     select! {
-                                recv(receiver) -> message => {
-                                    match message {
-                                        Ok(TimerThreadMessage::Request(callback,
-                        duration,)) => {
-                                            scheduler.schedule_timer(TimerEventRequest {
-                        callback,
-                        duration,
-                    });
-                                        },
-                                        _ => return,
-                                    }
-                                },
-                                recv(scheduler.wait_channel()) -> _message => {
-                                    scheduler.dispatch_completed_timers();
-                                },
+                        recv(receiver) -> message => {
+                            let (callback, duration) = match message {
+                                Ok(TimerThreadMessage::Request(cb, dur)) => (cb, dur),
+                                _ => return,
                             };
+                            scheduler.schedule_timer(TimerEventRequest { callback, duration});
+                        },
+                        recv(scheduler.wait_channel()) -> _message => {
+                            scheduler.dispatch_completed_timers();
+                        },
+                    };
                 }
             })
             .expect("Could not create RefreshDriver timer thread.");
