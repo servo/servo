@@ -12,12 +12,12 @@ use std::time::SystemTime;
 use cookie::Cookie;
 use net_traits::CookieSource;
 use net_traits::pub_domains::is_pub_domain;
+use nom::IResult;
 use nom::branch::alt;
 use nom::bytes::complete::{tag, tag_no_case, take, take_while_m_n};
 use nom::combinator::{opt, recognize};
 use nom::multi::{many0, many1, separated_list1};
 use nom::sequence::{delimited, preceded, terminated, tuple};
-use nom::{AsChar, IResult};
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use time::{Date, Month, OffsetDateTime, Time};
@@ -398,8 +398,7 @@ impl ServoCookie {
             }
         };
         // time-field = 1*2DIGIT
-        let time_field =
-            |input| take_while_m_n(1, 2, |byte: u8| byte.as_char().is_ascii_digit())(input);
+        let time_field = |input| take_while_m_n(1, 2, |byte: u8| byte.is_ascii_digit())(input);
         // hms-time = time-field ":" time-field ":" time-field
         let hms_time = |input| {
             tuple((
@@ -413,7 +412,7 @@ impl ServoCookie {
         // year = 2*4DIGIT [ non-digit *OCTET ]
         let year = |input| {
             terminated(
-                take_while_m_n(2, 4, |byte: u8| byte.as_char().is_ascii_digit()),
+                take_while_m_n(2, 4, |byte: u8| byte.is_ascii_digit()),
                 opt(tuple((non_digit, any_octets))),
             )(input)
         };
@@ -442,7 +441,7 @@ impl ServoCookie {
         // day-of-month = 1*2DIGIT [ non-digit *OCTET ]
         let day_of_month = |input| {
             terminated(
-                take_while_m_n(1, 2, |byte: u8| byte.as_char().is_ascii_digit()),
+                take_while_m_n(1, 2, |byte: u8| byte.is_ascii_digit()),
                 opt(tuple((non_digit, any_octets))),
             )(input)
         };
