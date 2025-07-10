@@ -55,9 +55,12 @@ impl ServoCookie {
         if cookie.expires_datetime().is_none() {
             let expiry_date_str = cookie_str
                 .split(';')
-                .map(str::trim)
-                .find(|part| part.to_lowercase().starts_with("expires="))
-                .map(|expires_part| &expires_part[8..]);
+                .filter_map(|key_value| {
+                    key_value
+                        .find('=')
+                        .map(|i| (key_value[..i].trim(), key_value[(i + 1)..].trim()))
+                })
+                .find_map(|(key, value)| key.eq_ignore_ascii_case("expires").then_some(value));
             if let Some(date_str) = expiry_date_str {
                 cookie.set_expires(Self::parse_date(date_str));
             }
