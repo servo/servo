@@ -47,8 +47,13 @@ impl Console {
         ConsoleMessageBuilder::new(level, caller.filename, caller.line, caller.col)
     }
 
-    /// Helper to send a message that only consists of a single string to the devtools
+    /// Helper to send a message that only consists of a single string to log,
+    /// console and stdout
     fn send_string_message(global: &GlobalScope, level: LogLevel, message: String) {
+        let s = DOMString::from(message.clone());
+        log!(level.clone().into(), "{}", &s);
+        console_message_to_stdout(global, &s);
+
         let mut builder = Self::build_message(level);
         builder.add_argument(message.into());
         let log_message = builder.finish();
@@ -77,7 +82,7 @@ impl Console {
 
         let msgs = stringify_handle_values(&messages);
         // Also log messages to stdout
-        console_message(global, &msgs);
+        console_message_to_stdout(global, &msgs);
 
         // Also output to the logger which will be at script::dom::console
         log!(level.into(), "{}", &msgs);
@@ -97,7 +102,6 @@ impl Console {
     // Directly logs a DOMString, without processing the message
     pub(crate) fn internal_warn(global: &GlobalScope, message: DOMString) {
         Console::send_string_message(global, LogLevel::Warn, String::from(message.clone()));
-        console_message(global, &message);
     }
 }
 
@@ -335,21 +339,15 @@ fn stringify_handle_values(messages: &[HandleValue]) -> DOMString {
     ))
 }
 
-fn console_message(global: &GlobalScope, message: &DOMString) {
-    let prefix = global.current_group_label().unwrap_or_default();
-    let formatted_message = format!("{}{}", prefix, message);
-
-    // On ohos / android stdout and stderr don't go anywhere useful,
-    // and are redirected in servoshell to the logger again by a
-    // dedicated thread. Better to directly log to the system logger
-    // on ohos / android to avoid this.
-    #[cfg(any(target_os = "android", target_env = "ohos"))]
-    {
-        info!("{}", formatted_message);
-    }
-
+/// On OHOS/ Android, stdout and stderr will be redirected to go
+/// to the logger. As `Console::method` and `Console::send_string_message`
+/// already forwards all messages to the logger with appropriate level
+/// this does not need to do anything for these targets.
+fn console_message_to_stdout(global: &GlobalScope, message: &DOMString) {
     #[cfg(not(any(target_os = "android", target_env = "ohos")))]
     {
+        let prefix = global.current_group_label().unwrap_or_default();
+        let formatted_message = format!("{}{}", prefix, message);
         with_stderr_lock(move || {
             println!("{}", formatted_message);
         });
@@ -405,7 +403,6 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
             let message = format!("Assertion failed: {}", stringify_handle_values(&messages));
 
             Console::send_string_message(global, LogLevel::Log, message.clone());
-            console_message(global, &DOMString::from(message));
         }
     }
 
@@ -414,7 +411,6 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
         if let Ok(()) = global.time(label.clone()) {
             let message = format!("{label}: timer started");
             Console::send_string_message(global, LogLevel::Log, message.clone());
-            console_message(global, &DOMString::from(message));
         }
     }
 
@@ -424,7 +420,6 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
             let message = format!("{label}: {delta}ms {}", stringify_handle_values(&data));
 
             Console::send_string_message(global, LogLevel::Log, message.clone());
-            console_message(global, &DOMString::from(message));
         }
     }
 
@@ -434,7 +429,6 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
             let message = format!("{label}: {delta}ms");
 
             Console::send_string_message(global, LogLevel::Log, message.clone());
-            console_message(global, &DOMString::from(message));
         }
     }
 
@@ -459,7 +453,6 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
         let message = format!("{label}: {count}");
 
         Console::send_string_message(global, LogLevel::Log, message.clone());
-        console_message(global, &DOMString::from(message));
     }
 
     /// <https://console.spec.whatwg.org/#countreset>
