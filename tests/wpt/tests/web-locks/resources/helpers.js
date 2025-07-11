@@ -10,7 +10,9 @@
   };
   self.uniqueNameByQuery = () => {
     const prefix = new URL(location.href).searchParams.get('prefix');
-    return `${prefix}-${++res_num}`;
+    // Add randomness to prevent tests from timing out on leaked locks from
+    // previous sub-tests in the same file.
+    return `${prefix}-${++res_num}-${Math.random()}`;
   }
 
   // Inject an iframe showing the given url into the page, and resolve

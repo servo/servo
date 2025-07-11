@@ -12,6 +12,7 @@
     background-color: blue;
     height: 100px;
     width: 100px;
+    view-transition-name: target;
     z-index: 1;
   }
   ::view-transition-group(*),
@@ -22,6 +23,7 @@
 </style>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-view-transitions/support/common.js"></script>
 <body>
   <div id="target">
   </div>
@@ -33,6 +35,29 @@
       target.style = 'background-color: teal';
     });
     await vt.ready;
+
+    assert_animation_pseudos(
+        target,
+        [
+          '::view-transition-group(target)',
+          '::view-transition-new(target)',
+          '::view-transition-old(target)'
+        ]);
+    assert_animation_names(
+        '::view-transition-old(target)',
+        [
+          '-ua-mix-blend-mode-plus-lighter',
+          '-ua-view-transition-fade-out'
+        ],
+        'fade out on old target');
+    assert_animation_names(
+        '::view-transition-new(target)',
+        [
+          '-ua-mix-blend-mode-plus-lighter',
+          '-ua-view-transition-fade-in'
+        ],
+        'fade in on new target');
+
     const tally = document.getAnimations().length;
     assert_greater_than(tally, 0);
     document.getAnimations().forEach(a => {
@@ -43,7 +68,5 @@
     assert_equals(document.getAnimations().length, 0);
   }, 'View transition animations do not persist once the transition is ' +
      'finished even if animation-fill-mode is forwards');
-
-
 </script>
 </html>

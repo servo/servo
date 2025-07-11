@@ -1,22 +1,21 @@
 // META: title=Summarizer Create User Activation
 // META: script=/resources/testdriver.js
-// META: script=../resources/util.js
 // META: timeout=long
 
 'use strict';
 
-// Model download state is shared between test cases of the same file when run
-// with `EchoAIManagerImpl`, so this test case needs to be on its own file.
+// Mocked model download state may be shared between test cases in the same file
+// (see e.g. `EchoAIManagerImpl`), so this test case is kept in a separate file.
+// TODO(crbug.com/390246212): Support model state controls for WPTs.
 promise_test(async t => {
-  // Creating Summarizer without user activation rejects with NotAllowedError.
+  // Create requires user activation when availability is 'downloadable'.
+  assert_implements_optional(await Summarizer.availability() == 'downloadable');
+  assert_false(navigator.userActivation.isActive);
   await promise_rejects_dom(t, 'NotAllowedError', Summarizer.create());
+  await test_driver.bless('Summarizer.create', Summarizer.create);
 
-  // Creating Summarizer with user activation succeeds.
-  await createSummarizer();
-
-  // Expect available after create.
+  // Create does not require user activation when availability is 'available'.
   assert_equals(await Summarizer.availability(), 'available');
-
-  // Now that it is available, we should no longer need user activation.
+  assert_false(navigator.userActivation.isActive);
   await Summarizer.create();
-}, 'Summarizer.create() requires user activation when availability is "downloadable"');
+}, 'Create requires user activation when availability is "downloadable"');

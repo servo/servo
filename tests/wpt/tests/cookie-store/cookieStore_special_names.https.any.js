@@ -51,6 +51,8 @@
     await promise_rejects_js(testCase, TypeError,
         cookieStore.set( { name: `${prefix}cookie-name`, value: 'cookie-value',
                           path: "/path" }));
+
+    await cookieStore.delete({ name: `${prefix}cookie-name`});
   }, `cookieStore.set with ${prefix} prefix a path option`);
 });
 

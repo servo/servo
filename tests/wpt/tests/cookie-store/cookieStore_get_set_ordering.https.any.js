@@ -4,6 +4,12 @@
 'use strict';
 
 promise_test(async t => {
+  t.add_cleanup(async () => {
+    await cookieStore.delete('ordered-1');
+    await cookieStore.delete('ordered-2');
+    await cookieStore.delete('ordered-3');
+  });
+
   await cookieStore.set('ordered-1', 'cookie-value1');
   await cookieStore.set('ordered-2', 'cookie-value2');
   await cookieStore.set('ordered-3', 'cookie-value3');
@@ -20,6 +26,12 @@ promise_test(async t => {
             'they all end up in the cookie jar in order.');
 
 promise_test(async t => {
+  t.add_cleanup(async () => {
+    await cookieStore.delete('ordered-unordered1');
+    await cookieStore.delete('ordered-unordered2');
+    await cookieStore.delete('ordered-unordered3');
+  });
+
   await Promise.all([
     cookieStore.set('ordered-unordered1', 'unordered-cookie-value1'),
     cookieStore.set('ordered-unordered2', 'unordered-cookie-value2'),

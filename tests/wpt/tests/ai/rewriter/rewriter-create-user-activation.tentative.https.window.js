@@ -1,22 +1,21 @@
 // META: title=Rewriter Create User Activation
 // META: script=/resources/testdriver.js
-// META: script=../resources/util.js
 // META: timeout=long
 
 'use strict';
 
-// Model download state is shared between test cases of the same file when run
-// with `EchoAIManagerImpl`, so this test case needs to be on its own file.
+// Mocked model download state may be shared between test cases in the same file
+// (see e.g. `EchoAIManagerImpl`), so this test case is kept in a separate file.
+// TODO(crbug.com/390246212): Support model state controls for WPTs.
 promise_test(async t => {
-  // Creating Rewriter without user activation rejects with NotAllowedError.
+  // Create requires user activation when availability is 'downloadable'.
+  assert_implements_optional(await Rewriter.availability() == 'downloadable');
+  assert_false(navigator.userActivation.isActive);
   await promise_rejects_dom(t, 'NotAllowedError', Rewriter.create());
+  await test_driver.bless('Rewriter.create', Rewriter.create);
 
-  // Creating Rewriter with user activation succeeds.
-  await createRewriter();
-
-  // Expect available after create.
+  // Create does not require user activation when availability is 'available'.
   assert_equals(await Rewriter.availability(), 'available');
-
-  // Now that it is available, we should no longer need user activation.
+  assert_false(navigator.userActivation.isActive);
   await Rewriter.create();
-}, 'Rewriter.create() requires user activation when availability is "downloadable"');
+}, 'Create requires user activation when availability is "downloadable"');

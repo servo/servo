@@ -502,10 +502,12 @@ async def create_user_context(bidi_session):
 
     user_contexts = []
 
-    async def create_user_context(accept_insecure_certs=None, proxy=None):
+    async def create_user_context(accept_insecure_certs=None, proxy=None,
+            unhandled_prompt_behavior=None):
         nonlocal user_contexts
         user_context = await bidi_session.browser.create_user_context(
-            accept_insecure_certs=accept_insecure_certs, proxy=proxy
+            accept_insecure_certs=accept_insecure_certs, proxy=proxy,
+            unhandled_prompt_behavior=unhandled_prompt_behavior
         )
         user_contexts.append(user_context)
 
@@ -905,3 +907,59 @@ def origin(server_config, domain_value):
         return urlunsplit((protocol, domain_value(domain, subdomain), "", "", ""))
 
     return origin
+
+
+@pytest_asyncio.fixture
+async def assert_file_dialog_canceled(bidi_session, inline, top_context):
+    async def assert_file_dialog_canceled(context=None):
+        context = context or top_context
+        cancel_event = await bidi_session.script.evaluate(
+            expression="""
+                new Promise(resolve => {
+                    const picker = document.createElement('input');
+                    picker.type = 'file';
+                    picker.addEventListener('cancel', (event) => {
+                        resolve(event.isTrusted);
+                    });
+                    picker.click();
+                })""",
+            target=ContextTarget(context["context"]),
+            await_promise=True,
+            user_activation=True
+        )
+
+        # Assert the `cancel` event is dispatched and the event is trusted.
+        assert cancel_event == {
+            'type': 'boolean',
+            'value': True
+        }
+
+    yield assert_file_dialog_canceled
+
+
+@pytest_asyncio.fixture
+async def assert_file_dialog_not_canceled(bidi_session, inline, top_context,
+        wait_for_future_safe):
+    async def assert_file_dialog_not_canceled(context=None):
+        context = context or top_context
+        cancel_event_future = asyncio.create_task(bidi_session.script.evaluate(
+            expression="""
+                        new Promise(resolve => {
+                            const picker = document.createElement('input');
+                            picker.type = 'file';
+                            picker.addEventListener('cancel', (event) => {
+                                resolve(event.isTrusted);
+                            });
+                            picker.click();
+                        })""",
+            target=ContextTarget(context["context"]),
+            await_promise=True,
+            user_activation=True
+        ))
+
+        with pytest.raises(TimeoutException):
+            await wait_for_future_safe(cancel_event_future, timeout=0.5)
+
+        cancel_event_future.cancel()
+
+    yield assert_file_dialog_not_canceled
