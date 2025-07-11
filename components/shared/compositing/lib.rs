@@ -33,7 +33,7 @@ use euclid::default::Size2D as UntypedSize2D;
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use profile_traits::mem::{OpaqueSender, ReportsChan};
 use serde::{Deserialize, Serialize};
-use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize};
+use servo_geometry::DeviceIndependentIntSize;
 use webrender_api::units::{DevicePoint, LayoutVector2D, TexelRect};
 use webrender_api::{
     BuiltDisplayList, BuiltDisplayListDescriptor, ExternalImage, ExternalImageData,
@@ -152,9 +152,6 @@ pub enum CompositorMsg {
     AddFontInstance(FontInstanceKey, FontKey, f32, FontInstanceFlags),
     /// Remove the given font resources from our WebRender instance.
     RemoveFonts(Vec<FontKey>, Vec<FontInstanceKey>),
-
-    /// Get the client window size and position.
-    GetClientWindowRect(WebViewId, IpcSender<DeviceIndependentIntRect>),
     /// Get the size of the screen that the client window inhabits.
     GetScreenSize(WebViewId, IpcSender<DeviceIndependentIntSize>),
     /// Get the available screen size, without system interface elements such as menus, docks, and

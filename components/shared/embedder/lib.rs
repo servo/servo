@@ -31,6 +31,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use num_derive::FromPrimitive;
 use pixels::RasterImage;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use servo_geometry::DeviceIndependentIntRect;
 use servo_url::ServoUrl;
 use strum_macros::IntoStaticStr;
 use style::queries::values::PrefersColorScheme;
@@ -363,6 +364,8 @@ pub enum EmbedderMsg {
     NewFavicon(WebViewId, ServoUrl),
     /// The history state has changed.
     HistoryChanged(WebViewId, Vec<ServoUrl>, usize),
+    /// Get the device independent window rectangle.
+    GetWindowRect(WebViewId, IpcSender<DeviceIndependentIntRect>),
     /// Entered or exited fullscreen.
     NotifyFullscreenStateChanged(WebViewId, bool),
     /// The [`LoadStatus`] of the Given `WebView` has changed.
@@ -754,22 +757,25 @@ pub struct NotificationAction {
 }
 
 /// Information about a `WebView`'s screen geometry and offset. This is used
-/// for the [Screen](https://drafts.csswg.org/cssom-view/#the-screen-interface)
-/// CSSOM APIs and `window.screenLeft` / `window.screenTop`.
+/// for the [Screen](https://drafts.csswg.org/cssom-view/#the-screen-interface) CSSOM APIs
+/// and `window.screenLeft` / `window.screenX` / `window.screenTop` / `window.screenY` /
+/// `window.moveBy`/ `window.resizeBy` / `window.outerWidth` / `window.outerHeight` /
+/// `window.screen.availHeight` / `window.screen.availWidth`.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct ScreenGeometry {
     /// The size of the screen in device pixels. This will be converted to
     /// CSS pixels based on the pixel scaling of the `WebView`.
     pub size: DeviceIntSize,
-    /// The available size of the screen in device pixels. This size is the size
+    /// The available size of the screen in device pixels for the purposes of
+    /// the `window.screen.availHeight` / `window.screen.availWidth`. This is the size
     /// available for web content on the screen, and should be `size` minus any system
     /// toolbars, docks, and interface elements. This will be converted to
     /// CSS pixels based on the pixel scaling of the `WebView`.
     pub available_size: DeviceIntSize,
-    /// The offset of the `WebView` in device pixels for the purposes of the `window.screenLeft`
-    /// and `window.screenTop` APIs. This will be converted to CSS pixels based on the pixel scaling
-    /// of the `WebView`.
-    pub offset: DeviceIntPoint,
+    /// The rectangle the `WebView`'s containing window in device pixels for the purposes of the
+    /// `window.screenLeft` and similar APIs. This will be converted to CSS pixels based
+    /// on the pixel scaling of the `WebView`.
+    pub window_rect: DeviceIntRect,
 }
 
 impl From<SelectElementOption> for SelectElementOptionOrOptgroup {

@@ -19,14 +19,12 @@ use embedder_traits::{
     MouseButtonEvent, MouseMoveEvent, ScrollEvent as EmbedderScrollEvent, ShutdownState,
     TouchEvent, TouchEventResult, TouchEventType, TouchId, ViewportDetails,
 };
-use euclid::{Box2D, Point2D, Scale, Size2D, Vector2D};
+use euclid::{Point2D, Scale, Size2D, Vector2D};
 use fnv::FnvHashSet;
 use log::{debug, warn};
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::{CSSPixel, PinchZoomFactor};
-use webrender_api::units::{
-    DeviceIntPoint, DeviceIntRect, DevicePixel, DevicePoint, DeviceRect, LayoutVector2D,
-};
+use webrender_api::units::{DeviceIntPoint, DevicePixel, DevicePoint, DeviceRect, LayoutVector2D};
 use webrender_api::{ExternalScrollId, HitTestFlags, ScrollLocation};
 
 use crate::compositor::{HitTestError, PipelineDetails, ServoRenderer};
@@ -1039,20 +1037,6 @@ impl WebViewRenderer {
             self.send_window_size_message();
         }
         old_rect != self.rect
-    }
-
-    pub(crate) fn client_window_rect(
-        &self,
-        rendering_context_size: Size2D<u32, DevicePixel>,
-    ) -> Box2D<i32, DeviceIndependentPixel> {
-        let screen_geometry = self.webview.screen_geometry().unwrap_or_default();
-        let rect = DeviceIntRect::from_origin_and_size(
-            screen_geometry.offset,
-            rendering_context_size.to_i32(),
-        )
-        .to_f32() /
-            self.hidpi_scale_factor;
-        rect.to_i32()
     }
 
     pub(crate) fn screen_size(&self) -> Size2D<i32, DeviceIndependentPixel> {

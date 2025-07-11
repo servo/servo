@@ -912,18 +912,6 @@ impl IOCompositor {
                     .collect();
                 let _ = result_sender.send((font_keys, font_instance_keys));
             },
-            CompositorMsg::GetClientWindowRect(webview_id, response_sender) => {
-                let client_window_rect = self
-                    .webview_renderers
-                    .get(webview_id)
-                    .map(|webview_renderer| {
-                        webview_renderer.client_window_rect(self.rendering_context.size2d())
-                    })
-                    .unwrap_or_default();
-                if let Err(error) = response_sender.send(client_window_rect) {
-                    warn!("Sending response to get client window failed ({error:?}).");
-                }
-            },
             CompositorMsg::GetScreenSize(webview_id, response_sender) => {
                 let screen_size = self
                     .webview_renderers
@@ -992,11 +980,6 @@ impl IOCompositor {
                     })
                     .collect();
                 let _ = result_sender.send((font_keys, font_instance_keys));
-            },
-            CompositorMsg::GetClientWindowRect(_, response_sender) => {
-                if let Err(error) = response_sender.send(Default::default()) {
-                    warn!("Sending response to get client window failed ({error:?}).");
-                }
             },
             CompositorMsg::GetScreenSize(_, response_sender) => {
                 if let Err(error) = response_sender.send(Default::default()) {
