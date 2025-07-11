@@ -64,25 +64,20 @@ promise_test(async (t) => {
         );
     };
 
-    recognition1.phrases = new SpeechRecognitionPhraseList([
-        new SpeechRecognitionPhrase("test", 1.0)
-    ]);
+    recognition1.phrases.push(new SpeechRecognitionPhrase("test", 1.0));
 
     // Create the second speech recognition with a mode that supports contextual biasing.
     const recognition2 = new SpeechRecognition();
     recognition2.processLocally = true;
     recognition2.lang = "en-US";
 
-    recognition2.onerror = function(event) {
-        // Currently WPT may not be able to detect that SODA is available and
-        // will throw a "language-not-supported" error here.
-        assert_unreached("Caught an error: " + event.error);
-    };
+    // On-device speech recognition should not throw an error.
+    recognition2.onerror = t.unreached_func("recognition2 should not error");
 
-    recognition2.phrases = new SpeechRecognitionPhraseList([
-        new SpeechRecognitionPhrase("ASIC", 1.0),
-        new SpeechRecognitionPhrase("FPGA", 1.0)
-    ]);
+    recognition2.phrases = [
+        new SpeechRecognitionPhrase("ASIC", 3.0),
+        new SpeechRecognitionPhrase("FPGA", 3.0)
+    ];
 
     const recognitionPromise = new Promise((resolve) => {
         recognition2.onresult = (event) => {

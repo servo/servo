@@ -27,6 +27,8 @@ const movePointerToCenter = (element, iframe, actions) => {
 // test will only pass if this function returns true. Also, if the `dropElement` is inside an
 // iframe, use the optional `iframe` parameter to specify an iframe element that contains the
 // `dropElement` to ensure that tests with an iframe pass.
+// TODO(https://crbug.com/426228061): Some tests were written to drag into scrollbars
+// instead of the center of the element, this function should be expanded to accommodate them.
 function dragDropTest(dragElement, dropElement, onDropCallBack, testDescription,
   dragIframe = undefined, dropIframe = undefined) {
   promise_test((t) => new Promise(async (resolve, reject) => {

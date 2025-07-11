@@ -16,13 +16,19 @@
     const dynamicScriptUrl = new URL("./support/add_dynamic_script.js", document.location).toString();
     const redirectUrl = new URL("/common/redirect.py?location=" + scriptUrl, document.location).toString();
 
-    // This is the hash of 'foo.js':
+    // This is the hash of the string 'foo.js':
     const wrongHash = "LJVNbdCJGjP5027dMuLOQeMEiDI8JvMr5zMiXqW5tzs=";
 
     function get_iframe_url(test_type, policy, script_url) {
       return test_type == "header" ?
         `support/iframe.sub.html?pipe=header(Content-Security-Policy,${policy})&script_url=${script_url}`:
         `support/iframe_meta.sub.html?policy=${policy}&script_url=${script_url}`;
+    }
+
+    function get_iframe_url_with_inline_script(test_type, policy) {
+      return test_type == "header" ?
+        `support/iframe_inline.sub.html?pipe=header(Content-Security-Policy,${policy})`:
+        `support/iframe_inline_meta.sub.html?policy=${policy}`;
     }
 
     for (let test_type of ["header", "metatag"]) {
@@ -114,6 +120,36 @@
         const msgEvent = await new Promise(resolve => window.onmessage = resolve);
         assert_equals(msgEvent.data, 'SCRIPT_RAN');
       }, "url hashes should allow redirected scripts - " + test_type);
+
+      // Tests for strict-dynamic-url keyword:
+
+      promise_test(async t => {
+        // add_dynamic_script.js isn't allowlisted but strict-dynamic-url should allow it:
+        const dynamicScriptUrlHash = await sha256ofURL(dynamicScriptUrl);
+        const policy = `script-src 'nonce-forinlinescript' 'strict-dynamic-url' 'url-sha256-${dynamicScriptUrlHash}'`
+
+        let frame = document.createElement('iframe');
+        frame.src = get_iframe_url(test_type, policy, 'add_dynamic_script.js');
+        document.body.appendChild(frame);
+
+        const msgEvent = await new Promise(resolve => window.onmessage = resolve);
+        assert_equals(msgEvent.data, 'SCRIPT_RAN');
+      }, "dynamically inserted parser-inserted script should be allowed if strict-dynamic-url is present - " + test_type);
+
+      promise_test(async t => {
+        // externalScript.js isn't allowlisted but strict-dynamic-url should allow it:
+        const scriptUrlHash = await sha256ofURL(scriptUrl);
+        // This is the hash of the inline script that dynamically inserts externalScript.js.
+        const inlineScriptHash = "F8UqObF6TSi2W4dDcDzAOAplJkYovBE6JpJjsZJy5HA=";
+        const policy = `script-src 'nonce-forinlinescript' 'strict-dynamic-url' 'sha256-${inlineScriptHash}'`
+
+        let frame = document.createElement('iframe');
+        frame.src = get_iframe_url_with_inline_script(test_type, policy);
+        document.body.appendChild(frame);
+
+        const msgEvent = await new Promise(resolve => window.onmessage = resolve);
+        assert_equals(msgEvent.data, 'SCRIPT_RAN');
+      }, "dynamically inserted script inserted by an inline script should be allowed if strict-dynamic-url is present - " + test_type);
 
     }
 

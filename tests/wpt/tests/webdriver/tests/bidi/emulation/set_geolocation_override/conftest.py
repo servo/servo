@@ -35,17 +35,17 @@ async def get_current_geolocation(bidi_session, configuration):
 
 @pytest_asyncio.fixture
 async def set_geolocation_permission(bidi_session):
-    data_to_cleanup = {}
+    data_to_cleanup = []
 
     async def set_geolocation_permission(context, user_context="default"):
         nonlocal data_to_cleanup
 
         origin = await get_context_origin(bidi_session, context)
 
-        data_to_cleanup = {
+        data_to_cleanup.append({
             "origin": origin,
             "user_context": user_context,
-        }
+        })
 
         await bidi_session.permissions.set_permission(
             descriptor={"name": "geolocation"},
@@ -56,9 +56,10 @@ async def set_geolocation_permission(bidi_session):
 
     yield set_geolocation_permission
 
-    await bidi_session.permissions.set_permission(
-        descriptor={"name": "geolocation"},
-        state="prompt",
-        origin=data_to_cleanup["origin"],
-        user_context=data_to_cleanup["user_context"],
-    )
+    for item in data_to_cleanup:
+        await bidi_session.permissions.set_permission(
+            descriptor={"name": "geolocation"},
+            state="prompt",
+            origin=item["origin"],
+            user_context=item["user_context"],
+        )

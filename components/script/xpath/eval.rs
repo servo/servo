@@ -4,7 +4,7 @@
 
 use std::fmt;
 
-use html5ever::{QualName, local_name, namespace_prefix, ns};
+use html5ever::{LocalName, Namespace, Prefix, QualName, local_name, namespace_prefix, ns};
 
 use super::parser::{
     AdditiveOp, Axis, EqualityOp, Expr, FilterExpr, KindTest, Literal, MultiplicativeOp, NodeTest,
@@ -14,9 +14,11 @@ use super::parser::{
 use super::{EvaluationCtx, Value};
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use crate::dom::bindings::domname::namespace_from_domstring;
 use crate::dom::bindings::inheritance::{Castable, CharacterDataTypeId, NodeTypeId};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::xmlname::validate_and_extract;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::xmlname;
 use crate::dom::element::Element;
 use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::processinginstruction::ProcessingInstruction;
@@ -250,6 +252,111 @@ impl Evaluatable for PathExpr {
             !self.is_descendant &&
             self.steps.len() == 1 &&
             self.steps[0].is_primitive()
+    }
+}
+
+/// Error types for validate and extract a qualified name following
+/// the XML naming rules.
+#[derive(Debug)]
+enum ValidationError {
+    InvalidCharacter,
+    Namespace,
+}
+
+/// Validate a qualified name following the XML naming rules.
+///
+/// On success, this returns a tuple `(prefix, local name)`.
+fn validate_and_extract_qualified_name(
+    qualified_name: &str,
+) -> Result<(Option<&str>, &str), ValidationError> {
+    if qualified_name.is_empty() {
+        // Qualified names must not be empty
+        return Err(ValidationError::InvalidCharacter);
+    }
+    let mut colon_offset = None;
+    let mut at_start_of_name = true;
+
+    for (byte_position, c) in qualified_name.char_indices() {
+        if c == ':' {
+            if colon_offset.is_some() {
+                // Qualified names must not contain more than one colon
+                return Err(ValidationError::InvalidCharacter);
+            }
+            colon_offset = Some(byte_position);
+            at_start_of_name = true;
+            continue;
+        }
+
+        if at_start_of_name {
+            if !xmlname::is_valid_start(c) {
+                // Name segments must begin with a valid start character
+                return Err(ValidationError::InvalidCharacter);
+            }
+            at_start_of_name = false;
+        } else if !xmlname::is_valid_continuation(c) {
+            // Name segments must consist of valid characters
+            return Err(ValidationError::InvalidCharacter);
+        }
+    }
+
+    let Some(colon_offset) = colon_offset else {
+        // Simple case: there is no prefix
+        return Ok((None, qualified_name));
+    };
+
+    let (prefix, local_name) = qualified_name.split_at(colon_offset);
+    let local_name = &local_name[1..]; // Remove the colon
+
+    if prefix.is_empty() || local_name.is_empty() {
+        // Neither prefix nor local name can be empty
+        return Err(ValidationError::InvalidCharacter);
+    }
+
+    Ok((Some(prefix), local_name))
+}
+
+/// Validate a namespace and qualified name following the XML naming rules
+/// and extract their parts.
+fn validate_and_extract(
+    namespace: Option<DOMString>,
+    qualified_name: &str,
+) -> Result<(Namespace, Option<Prefix>, LocalName), ValidationError> {
+    // Step 1. If namespace is the empty string, then set it to null.
+    let namespace = namespace_from_domstring(namespace);
+
+    // Step 2. Validate qualifiedName.
+    // Step 3. Let prefix be null.
+    // Step 4. Let localName be qualifiedName.
+    // Step 5. If qualifiedName contains a U+003A (:):
+    // NOTE: validate_and_extract_qualified_name does all of these things for us, because
+    // it's easier to do them together
+    let (prefix, local_name) = validate_and_extract_qualified_name(qualified_name)?;
+    debug_assert!(!local_name.contains(':'));
+
+    match (namespace, prefix) {
+        (ns!(), Some(_)) => {
+            // Step 6. If prefix is non-null and namespace is null, then throw a "NamespaceError" DOMException.
+            Err(ValidationError::Namespace)
+        },
+        (ref ns, Some("xml")) if ns != &ns!(xml) => {
+            // Step 7. If prefix is "xml" and namespace is not the XML namespace,
+            // then throw a "NamespaceError" DOMException.
+            Err(ValidationError::Namespace)
+        },
+        (ref ns, p) if ns != &ns!(xmlns) && (qualified_name == "xmlns" || p == Some("xmlns")) => {
+            // Step 8. If either qualifiedName or prefix is "xmlns" and namespace is not the XMLNS namespace,
+            // then throw a "NamespaceError" DOMException.
+            Err(ValidationError::Namespace)
+        },
+        (ns!(xmlns), p) if qualified_name != "xmlns" && p != Some("xmlns") => {
+            // Step 9. If namespace is the XMLNS namespace and neither qualifiedName nor prefix is "xmlns",
+            // then throw a "NamespaceError" DOMException.
+            Err(ValidationError::Namespace)
+        },
+        (ns, p) => {
+            // Step 10. Return namespace, prefix, and localName.
+            Ok((ns, p.map(Prefix::from), LocalName::from(local_name)))
+        },
     }
 }
 

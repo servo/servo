@@ -998,7 +998,6 @@ impl Servo {
                     webview.delegate().show_form_control(webview, form_control);
                 }
             },
-            _ => {},
         }
     }
 

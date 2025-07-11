@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use canvas_traits::canvas::*;
 use compositing_traits::SerializableImageData;
 use cssparser::color::clamp_unit_f32;
-use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
+use euclid::default::{Box2D, Point2D, Rect, Size2D, Transform2D, Vector2D};
 use font_kit::font::Font;
 use fonts::{ByteIndex, FontIdentifier, FontTemplateRefMethods};
 use ipc_channel::ipc::IpcSharedMemory;
@@ -197,15 +197,13 @@ impl SurfacePattern {
             transform,
         }
     }
-    pub fn size(&self) -> Size2D<f32> {
-        self.image.size().cast()
-    }
+
     pub fn repetition(&self) -> &Repetition {
         &self.repeat
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy, Debug)]
 pub enum Repetition {
     Repeat,
     RepeatX,
@@ -284,33 +282,23 @@ impl PatternHelpers for Pattern {
         }
     }
 
-    fn draw_rect(&self, rect: &Rect<f32>) -> Rect<f32> {
+    fn x_bound(&self) -> Option<u32> {
         match self {
-            Pattern::Surface(pattern) => {
-                let pattern_rect = Rect::new(Point2D::origin(), pattern.size());
-                let mut draw_rect = rect.intersection(&pattern_rect).unwrap_or(Rect::zero());
-
-                match pattern.repetition() {
-                    Repetition::NoRepeat => {
-                        draw_rect.size.width = draw_rect.size.width.min(pattern_rect.size.width);
-                        draw_rect.size.height = draw_rect.size.height.min(pattern_rect.size.height);
-                    },
-                    Repetition::RepeatX => {
-                        draw_rect.size.width = rect.size.width;
-                        draw_rect.size.height = draw_rect.size.height.min(pattern_rect.size.height);
-                    },
-                    Repetition::RepeatY => {
-                        draw_rect.size.height = rect.size.height;
-                        draw_rect.size.width = draw_rect.size.width.min(pattern_rect.size.width);
-                    },
-                    Repetition::Repeat => {
-                        draw_rect = *rect;
-                    },
-                }
-
-                draw_rect
+            Pattern::Surface(pattern) => match pattern.repetition() {
+                Repetition::RepeatX | Repetition::Repeat => None, // x is not bounded
+                Repetition::RepeatY | Repetition::NoRepeat => Some(pattern.image.size().width),
             },
-            Pattern::Color(..) | Pattern::LinearGradient(..) | Pattern::RadialGradient(..) => *rect,
+            Pattern::Color(..) | Pattern::LinearGradient(..) | Pattern::RadialGradient(..) => None,
+        }
+    }
+
+    fn y_bound(&self) -> Option<u32> {
+        match self {
+            Pattern::Surface(pattern) => match pattern.repetition() {
+                Repetition::RepeatY | Repetition::Repeat => None, // y is not bounded
+                Repetition::RepeatX | Repetition::NoRepeat => Some(pattern.image.size().height),
+            },
+            Pattern::Color(..) | Pattern::LinearGradient(..) | Pattern::RadialGradient(..) => None,
         }
     }
 }
@@ -339,6 +327,10 @@ impl StrokeOptionsHelpers for raqote::StrokeStyle {
 impl DrawOptionsHelpers for raqote::DrawOptions {
     fn set_alpha(&mut self, val: f32) {
         self.alpha = val;
+    }
+
+    fn is_clear(&self) -> bool {
+        matches!(self.blend_mode, raqote::BlendMode::Clear)
     }
 }
 
@@ -576,6 +568,9 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
     fn push_clip(&mut self, path: &<RaqoteBackend as Backend>::Path) {
         self.push_clip(&path.into());
     }
+    fn push_clip_rect(&mut self, rect: &Rect<i32>) {
+        self.push_clip_rect(rect.to_box2d());
+    }
     fn set_transform(&mut self, matrix: &Transform2D<f32>) {
         self.set_transform(matrix);
     }
@@ -729,6 +724,28 @@ impl GenericPath<RaqoteBackend> for Path {
     fn transform(&mut self, transform: &Transform2D<f32>) {
         let path: raqote::Path = (&*self).into();
         self.0.set(path.transform(transform).into());
+    }
+
+    fn bounding_box(&self) -> Rect<f64> {
+        let path: raqote::Path = self.into();
+        let mut points = vec![];
+        for op in path.ops {
+            match op {
+                PathOp::MoveTo(p) => points.push(p),
+                PathOp::LineTo(p) => points.push(p),
+                PathOp::QuadTo(p1, p2) => {
+                    points.push(p1);
+                    points.push(p2);
+                },
+                PathOp::CubicTo(p1, p2, p3) => {
+                    points.push(p1);
+                    points.push(p2);
+                    points.push(p3);
+                },
+                PathOp::Close => {},
+            }
+        }
+        Box2D::from_points(points).to_rect().cast()
     }
 }
 

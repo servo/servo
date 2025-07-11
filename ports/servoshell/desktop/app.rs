@@ -16,6 +16,7 @@ use constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::unbounded;
 use euclid::{Point2D, Vector2D};
 use ipc_channel::ipc;
+use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use log::{info, trace, warn};
 use net::protocols::ProtocolRegistry;
 use servo::config::opts::Opts;
@@ -26,8 +27,9 @@ use servo::user_content_manager::{UserContentManager, UserScript};
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::DeviceIntSize;
 use servo::{
-    EventLoopWaker, InputEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent,
-    WebDriverCommandMsg, WebDriverScriptCommand, WheelDelta, WheelEvent, WheelMode,
+    EventLoopWaker, ImeEvent, InputEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent,
+    WebDriverCommandMsg, WebDriverScriptCommand, WebDriverUserPromptAction, WheelDelta, WheelEvent,
+    WheelMode,
 };
 use url::Url;
 use winit::application::ApplicationHandler;
@@ -475,8 +477,25 @@ impl App {
                     }
                 },
                 // Key events don't need hit test so can be forwarded to constellation for now
-                WebDriverCommandMsg::SendKeys(..) => {
-                    running_state.forward_webdriver_command(msg);
+                WebDriverCommandMsg::SendKeys(webview_id, webdriver_input_events) => {
+                    let Some(webview) = running_state.webview_by_id(webview_id) else {
+                        continue;
+                    };
+
+                    for event in webdriver_input_events {
+                        match event {
+                            WebDriverInputEvent::Keyboard(event) => {
+                                webview.notify_input_event(InputEvent::Keyboard(
+                                    KeyboardEvent::new(event),
+                                ));
+                            },
+                            WebDriverInputEvent::Composition(event) => {
+                                webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
+                                    event,
+                                )));
+                            },
+                        }
+                    }
                 },
                 WebDriverCommandMsg::KeyboardAction(webview_id, key_event, msg_id) => {
                     // TODO: We should do processing like in `headed_window:handle_keyboard_input`.
@@ -551,6 +570,35 @@ impl App {
                         browsing_context_id,
                         webdriver_script_command,
                     ));
+                },
+                WebDriverCommandMsg::HandleUserPrompt(webview_id, action, response_sender) => {
+                    let response = if running_state.webview_has_active_dialog(webview_id) {
+                        match action {
+                            WebDriverUserPromptAction::Accept => {
+                                running_state.accept_active_dialogs(webview_id)
+                            },
+                            WebDriverUserPromptAction::Dismiss => {
+                                running_state.dismiss_active_dialogs(webview_id)
+                            },
+                        };
+                        Ok(())
+                    } else {
+                        Err(())
+                    };
+
+                    if let Err(error) = response_sender.send(response) {
+                        warn!("Failed to send response of HandleUserPrompt: {error}");
+                    };
+                },
+                WebDriverCommandMsg::GetAlertText(webview_id, response_sender) => {
+                    let response = match running_state.alert_text_of_newest_dialog(webview_id) {
+                        Some(text) => Ok(text),
+                        None => Err(()),
+                    };
+
+                    if let Err(error) = response_sender.send(response) {
+                        warn!("Failed to send response of GetAlertText: {error}");
+                    };
                 },
                 WebDriverCommandMsg::TakeScreenshot(..) => {
                     warn!(

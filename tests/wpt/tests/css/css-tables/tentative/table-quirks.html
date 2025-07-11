@@ -55,7 +55,7 @@
 </div>
 
 <p><a href="https://quirks.spec.whatwg.org/#the-collapsing-table-quirk">The collapsing table quirk</a></p>
-<p class="error">Chrome Legacy/Edge/Safari ignore the quirk, FF does not. <b>Proposal: depreciate the quirk</b></p>
+<p class="error">Chrome Legacy/Edge/Safari ignore the quirk, FF does not. <b>Proposal: deprecate the quirk</b></p>
 <table style="border: 20px solid green" data-expected-height=40 data-expected-width=40></table>
 
 <p><a href="https://quirks.spec.whatwg.org/#the-table-cell-width-calculation-quirk">The table cell width calculation quirk</a></p>
@@ -64,10 +64,10 @@
 </table>
 
 <p><a href="https://html.spec.whatwg.org/multipage/tables.html#algorithm-for-processing-rows">The "let <i>cell grows downward</i> be false" quirk</a></p>
-<p class="error">Chrome LayoutNG and Safari ignore the quirk, FF does not.</p>
+<p class="error">Chrome LayoutNG and Safari ignore the quirk, FF does not. <b>Proposal: deprecate the quirk</b></p>
 <table>
   <tr style="height: 100px">
-    <td id="rowspan" rowspan="0" data-expected-height=100>100 height</td>
+    <td id="rowspan" rowspan="0" data-expected-height=208>208 height</td>
   </tr>
   <tr style="height: 100px"></tr>
 </table>
@@ -82,7 +82,7 @@
     assert_equals(window.getComputedStyle(document.querySelector("#notitalic")).fontStyle, "normal");
   }, "decoration does not propagate into table");
   test(_ => {
-    assert_equals(document.querySelector("#rowspan").rowSpan, 1);
-  }, "rowspan can't be zero");
+    assert_equals(document.querySelector("#rowspan").rowSpan, 0);
+  }, "rowspan can be zero");
   document.fonts.ready.then(() => checkLayout("table"));
 </script>

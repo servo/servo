@@ -18,7 +18,6 @@ use crate::flow::inline::construct::InlineFormattingContextBuilder;
 use crate::flow::{BlockContainer, BlockFormattingContext};
 use crate::formatting_contexts::{
     IndependentFormattingContext, IndependentFormattingContextContents,
-    IndependentNonReplacedContents,
 };
 use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::{ComputedValuesExt, DisplayGeneratingBox};
@@ -72,9 +71,7 @@ impl<'dom> ModernContainerJob<'dom> {
                 let info: &NodeAndStyleInfo = anonymous_info;
                 let formatting_context = IndependentFormattingContext {
                     base: LayoutBoxBase::new(info.into(), info.style.clone()),
-                    contents: IndependentFormattingContextContents::NonReplaced(
-                        IndependentNonReplacedContents::Flow(block_formatting_context),
-                    ),
+                    contents: IndependentFormattingContextContents::Flow(block_formatting_context),
                 };
 
                 Some(ModernItem {

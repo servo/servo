@@ -18,6 +18,28 @@
 
 const tileTests = [
   {
+    'name': 'tile float32 0D scalar tensor by repetitions=[]',
+    'graph': {
+      'inputs': {
+        'tileInput': {
+          'data': [0.5],
+          'descriptor': {shape: [], dataType: 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'tile',
+        'arguments': [{'input': 'tileInput'}, {'repetitions': []}],
+        'outputs': 'tileOutput'
+      }],
+      'expectedOutputs': {
+        'tileOutput': {
+          'data': [0.5],
+          'descriptor': {shape: [], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
     'name': 'tile float32 1D constant tensor',
     'graph': {
       'inputs': {

@@ -140,6 +140,34 @@ impl Dialog {
         }
     }
 
+    pub fn accept(&self) {
+        #[allow(clippy::single_match)]
+        match self {
+            Dialog::SimpleDialog(dialog) => {
+                dialog.accept();
+            },
+            _ => {},
+        }
+    }
+
+    pub fn dismiss(&self) {
+        #[allow(clippy::single_match)]
+        match self {
+            Dialog::SimpleDialog(dialog) => {
+                dialog.dismiss();
+            },
+            _ => {},
+        }
+    }
+
+    pub fn message(&self) -> Option<String> {
+        #[allow(clippy::single_match)]
+        match self {
+            Dialog::SimpleDialog(dialog) => Some(dialog.message().to_string()),
+            _ => None,
+        }
+    }
+
     pub fn update(&mut self, ctx: &egui::Context) -> bool {
         match self {
             Dialog::File {

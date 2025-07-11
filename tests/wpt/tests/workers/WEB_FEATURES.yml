@@ -1,4 +1,7 @@
 features:
+- name: request-animation-frame-workers
+  files:
+  - WorkerGlobalScope_requestAnimationFrame.worker.js
 - name: ua-client-hints
   files:
   - WorkerNavigator_userAgentData.http.html

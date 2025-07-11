@@ -37,47 +37,49 @@ function checkMarkerSize(expectedWidth, expectedHeight) {
 }
 setup({explicit_done: true});
 addEventListener("load", () => {
-  test(() => {
-    // Marker string: "1. "
-    target.style.listStyleType = "decimal";
-    checkMarkerSize("30px", "10px");
-  }, "Decimal ::marker");
-  test(() => {
-    // Marker string: "10. "
-    target.setAttribute("value", "10");
-    checkMarkerSize("40px", "10px");
-  }, "Decimal ::marker with custom value");
-  test(() => {
-    // Marker string: "st"
-    target.style.listStyleType = "'st'";
-    checkMarkerSize("20px", "10px");
-  }, "String ::marker");
-  test(() => {
-    // No marker box
-    target.style.listStyleType = "none";
-    checkMarkerSize("auto", "auto");
-  }, "::marker with no box due to 'list-style'");
-  test(() => {
-    // Marker contents: "foo", "bar"
-    target.style.setProperty("--content", "'foo' 'bar'");
-    checkMarkerSize("60px", "10px");
-  }, "::marker with custom string contents");
-  test(() => {
-    // Marker contents: 100x50 image (+2px due to baseline alignment)
-    target.style.setProperty("--content", "var(--image)");
-    checkMarkerSize("100px", "52px");
-  }, "::marker with custom image contents");
-  test(() => {
-    // Marker contents: "foo", 100x50 image (+2px due to baseline alignment)
-    target.style.setProperty("--content", "'foo' var(--image)");
-    checkMarkerSize("130px", "52px");
-  }, "::marker with custom string and image contents");
-  test(() => {
-    // No marker box
-    target.style.listStyleType = "";
-    target.style.setProperty("--content", "none");
-    checkMarkerSize("auto", "auto");
-  }, "::marker with no box due to 'content'");
-  done();
+  document.fonts.load("10px Ahem").then(() => {
+    test(() => {
+      // Marker string: "1. "
+      target.style.listStyleType = "decimal";
+      checkMarkerSize("30px", "10px");
+    }, "Decimal ::marker");
+    test(() => {
+      // Marker string: "10. "
+      target.setAttribute("value", "10");
+      checkMarkerSize("40px", "10px");
+    }, "Decimal ::marker with custom value");
+    test(() => {
+      // Marker string: "st"
+      target.style.listStyleType = "'st'";
+      checkMarkerSize("20px", "10px");
+    }, "String ::marker");
+    test(() => {
+      // No marker box
+      target.style.listStyleType = "none";
+      checkMarkerSize("auto", "auto");
+    }, "::marker with no box due to 'list-style'");
+    test(() => {
+      // Marker contents: "foo", "bar"
+      target.style.setProperty("--content", "'foo' 'bar'");
+      checkMarkerSize("60px", "10px");
+    }, "::marker with custom string contents");
+    test(() => {
+      // Marker contents: 100x50 image (+2px due to baseline alignment)
+      target.style.setProperty("--content", "var(--image)");
+      checkMarkerSize("100px", "52px");
+    }, "::marker with custom image contents");
+    test(() => {
+      // Marker contents: "foo", 100x50 image (+2px due to baseline alignment)
+      target.style.setProperty("--content", "'foo' var(--image)");
+      checkMarkerSize("130px", "52px");
+    }, "::marker with custom string and image contents");
+    test(() => {
+      // No marker box
+      target.style.listStyleType = "";
+      target.style.setProperty("--content", "none");
+      checkMarkerSize("auto", "auto");
+    }, "::marker with no box due to 'content'");
+    done();
+  });
 }, {once: true});
 </script>

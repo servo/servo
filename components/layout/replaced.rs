@@ -29,12 +29,10 @@ use crate::dom::NodeExt;
 use crate::fragment_tree::{
     BaseFragmentInfo, CollapsedBlockMargins, Fragment, IFrameFragment, ImageFragment,
 };
-use crate::geom::{
-    LazySize, LogicalSides1D, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize, Size, Sizes,
-};
+use crate::geom::{LazySize, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize, Size, Sizes};
 use crate::layout_box_base::{CacheableLayoutResult, LayoutBoxBase};
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
-use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, LayoutStyle};
+use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, LayoutStyle};
 use crate::{ConstraintSpace, ContainingBlock, SizeConstraint};
 
 #[derive(Debug, MallocSizeOf)]
@@ -410,29 +408,6 @@ impl ReplacedContents {
             })
     }
 
-    /// <https://drafts.csswg.org/css2/visudet.html#inline-replaced-width>
-    /// <https://drafts.csswg.org/css2/visudet.html#inline-replaced-height>
-    ///
-    /// Also used in other cases, for example
-    /// <https://drafts.csswg.org/css2/visudet.html#block-replaced-width>
-    pub(crate) fn used_size_as_if_inline_element(
-        &self,
-        containing_block: &ContainingBlock,
-        style: &ComputedValues,
-        content_box_sizes_and_pbm: &ContentBoxSizesAndPBM,
-        ignore_block_margins_for_stretch: LogicalSides1D<bool>,
-    ) -> LogicalVec2<Au> {
-        let pbm = &content_box_sizes_and_pbm.pbm;
-        self.used_size_as_if_inline_element_from_content_box_sizes(
-            containing_block,
-            style,
-            self.preferred_aspect_ratio(style, &pbm.padding_border_sums),
-            content_box_sizes_and_pbm.content_box_sizes.as_ref(),
-            Size::FitContent.into(),
-            pbm.sums_auto_is_zero(ignore_block_margins_for_stretch),
-        )
-    }
-
     /// The aspect ratio of the default object sizes.
     /// <https://drafts.csswg.org/css-images-3/#default-object-size>
     pub(crate) fn default_aspect_ratio() -> AspectRatio {
@@ -610,7 +585,6 @@ impl ReplacedContents {
         depends_on_block_constraints: bool,
         lazy_block_size: &LazySize,
     ) -> CacheableLayoutResult {
-        // TODO: consider caching the result in LayoutBoxBase like we do for non-replaced.
         let writing_mode = base.style.writing_mode;
         let inline_size = containing_block_for_children.size.inline;
         let content_block_size = self.content_size(

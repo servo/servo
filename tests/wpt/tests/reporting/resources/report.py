@@ -140,4 +140,8 @@ def main(request, response):
     request.server.stash.put(key=count_key, value=count)
 
   # Return acknowledgement report.
-  return [(b"Content-Type", b"text/plain")], b"Recorded report " + request.body
+  response_headers = [(b"Content-Type", b"text/plain")]
+  # Keep the same as preflight to not send CORS header for www2
+  if b"www2" not in request.headers[b"Origin"]:
+    response_headers.append((b"Access-Control-Allow-Origin", b"*"))
+  return response_headers, b"Recorded report " + request.body

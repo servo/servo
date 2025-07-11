@@ -28,13 +28,19 @@ use crate::{MouseButton, MouseButtonAction};
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct WebDriverMessageId(pub usize);
 
+#[derive(Debug, Deserialize, Serialize)]
+pub enum WebDriverUserPromptAction {
+    Accept,
+    Dismiss,
+}
+
 /// Messages to the constellation originating from the WebDriver server.
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverCommandMsg {
     /// Used in the initialization of the WebDriver server to set the sender for sending responses
     /// back to the WebDriver client. It is set to constellation for now
     SetWebDriverResponseSender(IpcSender<WebDriverCommandResponse>),
-    /// Get the window size.
+    /// Get the window rectangle.
     GetWindowRect(WebViewId, IpcSender<DeviceIndependentIntRect>),
     /// Get the viewport size.
     GetViewportSize(WebViewId, IpcSender<Size2D<u32, DevicePixel>>),
@@ -50,7 +56,7 @@ pub enum WebDriverCommandMsg {
     /// of a browsing context.
     ScriptCommand(BrowsingContextId, WebDriverScriptCommand),
     /// Act as if keys were pressed in the browsing context with the given ID.
-    SendKeys(BrowsingContextId, Vec<WebDriverInputEvent>),
+    SendKeys(WebViewId, Vec<WebDriverInputEvent>),
     /// Act as if keys were pressed or release in the browsing context with the given ID.
     KeyboardAction(
         WebViewId,
@@ -115,6 +121,12 @@ pub enum WebDriverCommandMsg {
     IsWebViewOpen(WebViewId, IpcSender<bool>),
     /// Check whether browsing context is open.
     IsBrowsingContextOpen(BrowsingContextId, IpcSender<bool>),
+    HandleUserPrompt(
+        WebViewId,
+        WebDriverUserPromptAction,
+        IpcSender<Result<(), ()>>,
+    ),
+    GetAlertText(WebViewId, IpcSender<Result<String, ()>>),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -237,4 +249,5 @@ pub enum WebDriverLoadStatus {
     Complete,
     Timeout,
     Canceled,
+    Blocked,
 }

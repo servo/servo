@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<link rel="match" href="border-shape-shadow-ref.html">
+<meta name="fuzzy" content="maxDifference=0-96;totalPixels=0-256">
+<style>
+body {
+    margin: 0;
+}
+#target {
+    margin: 10px;
+    width: 120px;
+    height: 100px;
+    border-shape: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+    position: relative;
+    background: green;
+    box-shadow: 10px 20px 0 0px purple;
+    stroke: black;
+    stroke-width: 2px;
+}
+</style>
+<div id="target">
+</div>

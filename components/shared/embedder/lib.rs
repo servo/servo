@@ -160,6 +160,59 @@ pub enum SimpleDialog {
     },
 }
 
+impl SimpleDialog {
+    /// Returns the message of the dialog.
+    pub fn message(&self) -> &str {
+        match self {
+            SimpleDialog::Alert { message, .. } => message,
+            SimpleDialog::Confirm { message, .. } => message,
+            SimpleDialog::Prompt { message, .. } => message,
+        }
+    }
+
+    pub fn dismiss(&self) {
+        match self {
+            SimpleDialog::Alert {
+                response_sender, ..
+            } => {
+                let _ = response_sender.send(AlertResponse::Ok);
+            },
+            SimpleDialog::Confirm {
+                response_sender, ..
+            } => {
+                let _ = response_sender.send(ConfirmResponse::Cancel);
+            },
+            SimpleDialog::Prompt {
+                response_sender, ..
+            } => {
+                let _ = response_sender.send(PromptResponse::Cancel);
+            },
+        }
+    }
+
+    pub fn accept(&self) {
+        match self {
+            SimpleDialog::Alert {
+                response_sender, ..
+            } => {
+                let _ = response_sender.send(AlertResponse::Ok);
+            },
+            SimpleDialog::Confirm {
+                response_sender, ..
+            } => {
+                let _ = response_sender.send(ConfirmResponse::Ok);
+            },
+            SimpleDialog::Prompt {
+                default,
+                response_sender,
+                ..
+            } => {
+                let _ = response_sender.send(PromptResponse::Ok(default.clone()));
+            },
+        }
+    }
+}
+
 #[derive(Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct AuthenticationResponse {
     /// Username for http request authentication
@@ -372,7 +425,6 @@ pub enum EmbedderMsg {
         JavaScriptEvaluationId,
         Result<JSValue, JavaScriptEvaluationError>,
     ),
-    WebDriverCommand(WebDriverCommandMsg),
 }
 
 impl Debug for EmbedderMsg {

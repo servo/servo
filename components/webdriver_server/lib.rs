@@ -8,6 +8,7 @@
 
 mod actions;
 mod capabilities;
+mod user_prompt;
 
 use std::borrow::ToOwned;
 use std::cell::{Cell, LazyCell, RefCell};
@@ -515,6 +516,11 @@ impl Handler {
         Ok(())
     }
 
+    // This function is called only if session and webview are verified.
+    fn verified_webview_id(&self) -> WebViewId {
+        self.session().unwrap().webview_id
+    }
+
     fn focus_webview_id(&self) -> WebDriverResult<WebViewId> {
         let (sender, receiver) = ipc::channel().unwrap();
         self.send_message_to_embedder(WebDriverCommandMsg::GetFocusedWebView(sender.clone()))?;
@@ -782,7 +788,19 @@ impl Handler {
         debug!("waiting for load");
         let timeout = self.session()?.load_timeout;
         let result = select! {
-            recv(self.load_status_receiver) -> _ => Ok(WebDriverResponse::Void),
+            recv(self.load_status_receiver) -> res => {
+                    match res {
+                    Ok(WebDriverLoadStatus::Blocked) => {
+                        Err(WebDriverError::new(
+                            ErrorStatus::UnexpectedAlertOpen,
+                            "Load is blocked",
+                        ))
+                    }
+                    _ => {
+                        Ok(WebDriverResponse::Void)
+                    }
+                }
+            },
             recv(after(Duration::from_millis(timeout))) -> _ => Err(
                 WebDriverError::new(ErrorStatus::Timeout, "Load timed out")
             ),
@@ -1605,15 +1623,6 @@ impl Handler {
         }
     }
 
-    // https://w3c.github.io/webdriver/#dismiss-alert
-    fn handle_dismiss_alert(&mut self) -> WebDriverResult<WebDriverResponse> {
-        // Step 1. If session's current top-level browsing context is no longer open,
-        // return error with error code no such window.
-        self.verify_top_level_browsing_context_is_open(self.session()?.webview_id)?;
-        // Since user prompts are not yet implement this will always succeed
-        Ok(WebDriverResponse::Void)
-    }
-
     fn handle_get_timeouts(&mut self) -> WebDriverResult<WebDriverResponse> {
         let session = self
             .session
@@ -1833,20 +1842,15 @@ impl Handler {
         element: &WebElement,
         keys: &SendKeysParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        let browsing_context_id = self.session()?.browsing_context_id;
-        // Step 3. If session's current browsing context is no longer open,
-        // return error with error code no such window.
-        self.verify_browsing_context_is_open(browsing_context_id)?;
+        // Step 3-8
         let (sender, receiver) = ipc::channel().unwrap();
-
         let cmd = WebDriverScriptCommand::WillSendKeys(
             element.to_string(),
             keys.text.to_string(),
             self.session()?.strict_file_interactability,
             sender,
         );
-        let cmd_msg = WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd);
-        self.send_message_to_embedder(cmd_msg)?;
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
 
         // TODO: distinguish the not found and not focusable cases
         // File input and non-typeable form control should have
@@ -1860,7 +1864,8 @@ impl Handler {
         // TODO: there's a race condition caused by the focus command and the
         // send keys command being two separate messages,
         // so the constellation may have changed state between them.
-        let cmd_msg = WebDriverCommandMsg::SendKeys(browsing_context_id, input_events);
+        // TODO: We should use `dispatch_action` to send the keys.
+        let cmd_msg = WebDriverCommandMsg::SendKeys(self.session()?.webview_id, input_events);
         self.send_message_to_embedder(cmd_msg)?;
 
         Ok(WebDriverResponse::Void)
@@ -2231,6 +2236,8 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             },
             WebDriverCommand::ElementClick(ref element) => self.handle_element_click(element),
             WebDriverCommand::DismissAlert => self.handle_dismiss_alert(),
+            WebDriverCommand::AcceptAlert => self.handle_accept_alert(),
+            WebDriverCommand::GetAlertText => self.handle_get_alert_text(),
             WebDriverCommand::DeleteCookies => self.handle_delete_cookies(),
             WebDriverCommand::DeleteCookie(name) => self.handle_delete_cookie(name),
             WebDriverCommand::GetTimeouts => self.handle_get_timeouts(),
