@@ -684,8 +684,6 @@ class MachCommands(CommandBase):
         whole_file: str = ""
         for i in range(10):
             sleep(30)
-            subprocess.call([hdc_path, "shell", "uinput", "-T", "-d", "100", "100"])
-            subprocess.call([hdc_path, "shell", "uinput", "-T", "-u", "105", "105"])
             whole_file = read_log_file()
             if "[INFO script::dom::console]" in whole_file:
                 # technically the file could not have been written completely yet
