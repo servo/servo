@@ -98,6 +98,7 @@ pub(crate) trait GenericDrawTarget<B: Backend> {
     fn get_transform(&self) -> Transform2D<f32>;
     fn pop_clip(&mut self);
     fn push_clip(&mut self, path: &B::Path);
+    fn push_clip_rect(&mut self, rect: &Rect<i32>);
     fn set_transform(&mut self, matrix: &Transform2D<f32>);
     fn stroke(
         &mut self,
@@ -309,11 +310,13 @@ pub(crate) trait GenericPath<B: Backend<Path = Self>> {
             }
         }
     }
+    fn bounding_box(&self) -> Rect<f64>;
 }
 
 pub(crate) trait PatternHelpers {
     fn is_zero_size_gradient(&self) -> bool;
-    fn draw_rect(&self, rect: &Rect<f32>) -> Rect<f32>;
+    fn x_bound(&self) -> Option<u32>;
+    fn y_bound(&self) -> Option<u32>;
 }
 
 pub(crate) trait StrokeOptionsHelpers {
@@ -327,4 +330,5 @@ pub(crate) trait StrokeOptionsHelpers {
 
 pub(crate) trait DrawOptionsHelpers {
     fn set_alpha(&mut self, val: f32);
+    fn is_clear(&self) -> bool;
 }
