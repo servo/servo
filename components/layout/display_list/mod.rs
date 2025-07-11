@@ -740,12 +740,16 @@ impl Fragment {
         let rect = fragment.rect.translate(containing_block.origin.to_vector());
         let mut baseline_origin = rect.origin;
         baseline_origin.y += fragment.font_metrics.ascent;
+        let include_whitespace = fragment.has_selection() ||
+            text_decorations
+                .iter()
+                .any(|item| item.line != TextDecorationLine::NONE);
 
         let glyphs = glyphs(
             &fragment.glyphs,
             baseline_origin,
             fragment.justification_adjustment,
-            !fragment.has_selection(),
+            include_whitespace,
         );
         if glyphs.is_empty() {
             return;
@@ -1628,7 +1632,7 @@ fn glyphs(
     glyph_runs: &[Arc<GlyphStore>],
     mut baseline_origin: PhysicalPoint<Au>,
     justification_adjustment: Au,
-    ignore_whitespace: bool,
+    include_whitespace: bool,
 ) -> Vec<wr::GlyphInstance> {
     use fonts_traits::ByteIndex;
     use range::Range;
@@ -1636,7 +1640,7 @@ fn glyphs(
     let mut glyphs = vec![];
     for run in glyph_runs {
         for glyph in run.iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), run.len())) {
-            if !run.is_whitespace() || !ignore_whitespace {
+            if !run.is_whitespace() || include_whitespace {
                 let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
                 let point = units::LayoutPoint::new(
                     baseline_origin.x.to_f32_px() + glyph_offset.x.to_f32_px(),
