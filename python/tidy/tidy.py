@@ -1040,10 +1040,10 @@ def scan(only_changed_files=False, progress=False, github_annotations=False):
     file_errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
 
     python_errors = check_ruff_lints()
+    python_type_check = run_python_type_checker()
     cargo_lock_errors = run_cargo_deny_lints()
     wpt_errors = run_wpt_lints(only_changed_files)
 
-    python_type_check = run_python_type_checker()
     # chain all the iterators
     errors = itertools.chain(
         config_errors, directory_errors, file_errors, python_errors, python_type_check, wpt_errors, cargo_lock_errors
