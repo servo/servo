@@ -1217,10 +1217,10 @@ impl Document {
     /// document's container is removed from the top-level browsing context's
     /// focus chain (not considering system focus).
     pub(crate) fn handle_container_unfocus(&self, can_gc: CanGc) {
-        assert!(
-            self.window().parent_info().is_some(),
-            "top-level document cannot be unfocused",
-        );
+        if self.window().parent_info().is_none() {
+            warn!("Top-level document cannot be unfocused");
+            return;
+        }
 
         // Since this method is called from an event loop, there mustn't be
         // an in-progress focus transaction
