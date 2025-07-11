@@ -743,7 +743,7 @@ impl Fragment {
         let include_whitespace = fragment.has_selection() ||
             text_decorations
                 .iter()
-                .any(|item| item.line != TextDecorationLine::NONE);
+                .any(|item| !item.line.is_empty();
 
         let glyphs = glyphs(
             &fragment.glyphs,
