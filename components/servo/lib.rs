@@ -1010,7 +1010,7 @@ impl Servo {
                     };
 
                     (screen_geometry.window_rect.to_f32() / hidpi_scale_factor)
-                        .round_out()
+                        .round()
                         .to_i32()
                 };
 
