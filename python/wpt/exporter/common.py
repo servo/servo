@@ -43,5 +43,5 @@ COULD_NOT_MERGE_CHANGES_UPSTREAM_COMMENT = (
 )
 
 
-def wpt_branch_name_from_servo_pr_number(servo_pr_number):
+def wpt_branch_name_from_servo_pr_number(servo_pr_number) -> str:
     return f"servo_export_{servo_pr_number}"

@@ -74,7 +74,7 @@ class UnexpectedResult:
         return UnexpectedResult.wrap_and_indent_lines(output, "  ")
 
     @staticmethod
-    def wrap_and_indent_lines(lines, indent):
+    def wrap_and_indent_lines(lines, indent: str):
         if not lines:
             return ""
 
@@ -86,7 +86,7 @@ class UnexpectedResult:
         return output
 
     @staticmethod
-    def to_lines(result: Union[UnexpectedSubtestResult, UnexpectedResult], print_stack=True):
+    def to_lines(result: Union[UnexpectedSubtestResult, UnexpectedResult], print_stack=True) -> list[str]:
         first_line = result.actual
         if result.expected != result.actual:
             first_line += f" [expected {result.expected}]"
@@ -125,7 +125,7 @@ class ServoHandler(mozlog.reader.LogHandler):
     unexpected_tests: Dict[str, list]
     suite_start_time: str
 
-    def __init__(self, detect_flakes=False):
+    def __init__(self, detect_flakes=False) -> None:
         """
         Flake detection assumes first suite is actual run
         and rest of the suites are retry-unexpected for flakes detection.
@@ -134,7 +134,7 @@ class ServoHandler(mozlog.reader.LogHandler):
         self.currently_detecting_flakes = False
         self.reset_state()
 
-    def reset_state(self):
+    def reset_state(self) -> None:
         self.number_of_tests = 0
         self.completed_tests = 0
         self.need_to_erase_last_line = False
@@ -261,7 +261,7 @@ class ServoHandler(mozlog.reader.LogHandler):
         self.unexpected_results.append(result)
         return result
 
-    def test_status(self, data: dict):
+    def test_status(self, data: dict) -> None:
         if self.data_was_for_expected_result(data):
             return
         self.subtest_failures[data["test"]].append(
@@ -276,7 +276,7 @@ class ServoHandler(mozlog.reader.LogHandler):
             )
         )
 
-    def process_output(self, data):
+    def process_output(self, data) -> None:
         if "test" in data:
             self.test_output[data["test"]] += data["data"] + "\n"
 
@@ -294,7 +294,7 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
     move_up: str
     clear_eol: str
 
-    def __init__(self):
+    def __init__(self) -> None:
         ServoHandler.__init__(self)
         self.current_display = ""
         self.interactive = os.isatty(sys.stdout.fileno())
@@ -330,13 +330,13 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
             self.current_display = new_display
         return output + self.current_display
 
-    def test_counter(self):
+    def test_counter(self) -> str:
         if self.number_of_tests == 0:
             return "  [%i] " % self.completed_tests
         else:
             return "  [%i/%i] " % (self.completed_tests, self.number_of_tests)
 
-    def build_status_line(self):
+    def build_status_line(self) -> str:
         new_display = self.test_counter()
 
         if self.running_tests:
@@ -349,7 +349,7 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
         else:
             return new_display + "No tests running.\n"
 
-    def suite_start(self, data):
+    def suite_start(self, data) -> str:
         ServoHandler.suite_start(self, data)
         maybe_flakes_msg = " to detect flaky tests" if self.currently_detecting_flakes else ""
         if self.number_of_tests == 0:
@@ -357,12 +357,12 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
         else:
             return f"Running {self.number_of_tests} tests in {data['source']}{maybe_flakes_msg}\n\n"
 
-    def test_start(self, data):
+    def test_start(self, data) -> str | None:
         ServoHandler.test_start(self, data)
         if self.interactive:
             return self.generate_output(new_display=self.build_status_line())
 
-    def test_end(self, data):
+    def test_end(self, data) -> str | None:
         unexpected_result = ServoHandler.test_end(self, data)
         if unexpected_result:
             # Surround test output by newlines so that it is easier to read.
@@ -381,10 +381,10 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
         else:
             return self.generate_output(text="%s%s\n" % (self.test_counter(), data["test"]))
 
-    def test_status(self, data):
+    def test_status(self, data) -> None:
         ServoHandler.test_status(self, data)
 
-    def suite_end(self, data):
+    def suite_end(self, data) -> str | None:
         ServoHandler.suite_end(self, data)
         if not self.interactive:
             output = "\n"
@@ -402,7 +402,7 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
         if self.number_skipped:
             output += f"    \u2022 {self.number_skipped} skipped.\n"
 
-        def text_for_unexpected_list(text, section):
+        def text_for_unexpected_list(text: str, section: str) -> str:
             tests = self.unexpected_tests[section]
             if not tests:
                 return ""
@@ -429,10 +429,10 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
 
         return self.generate_output(text=output, new_display="")
 
-    def process_output(self, data):
+    def process_output(self, data) -> None:
         ServoHandler.process_output(self, data)
 
-    def log(self, data):
+    def log(self, data) -> str | None:
         ServoHandler.log(self, data)
 
         # We are logging messages that begin with STDERR, because that is how exceptions

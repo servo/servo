@@ -12,6 +12,8 @@ from wptrunner.update import setup_logging, WPTUpdate  # noqa: F401
 from wptrunner.update.base import exit_unclean  # noqa: F401
 from wptrunner import wptcommandline  # noqa: F401
 
+from argparse import ArgumentParser
+
 from . import WPT_PATH
 from . import manifestupdate
 
@@ -49,7 +51,7 @@ def do_sync(**kwargs) -> int:
     return 0
 
 
-def remove_unused_metadata():
+def remove_unused_metadata() -> None:
     print("Removing unused results...")
     unused_files = []
     unused_dirs = []
@@ -93,7 +95,7 @@ def remove_unused_metadata():
 
 
 def update_tests(**kwargs) -> int:
-    def set_if_none(args: dict, key: str, value):
+    def set_if_none(args: dict, key: str, value: str) -> None:
         if key not in args or args[key] is None:
             args[key] = value
 
@@ -117,5 +119,5 @@ def run_update(**kwargs) -> bool:
     return WPTUpdate(logger, **kwargs).run() != exit_unclean
 
 
-def create_parser(**_kwargs):
+def create_parser(**_kwargs) -> ArgumentParser:
     return wptcommandline.create_parser_update()
