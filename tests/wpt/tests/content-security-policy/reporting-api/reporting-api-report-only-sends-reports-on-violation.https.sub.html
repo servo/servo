@@ -7,16 +7,16 @@
 </head>
 <body>
   <script>
-    var t1 = async_test("Test that image does not load");
+    var t1 = async_test("Test that image does load");
     async_test(function(t2) {
     window.addEventListener("securitypolicyviolation", t2.step_func(function(e) {
-        assert_equals(e.blockedURI, "{{location[scheme]}}://{{location[host]}}/content-security-policy/support/fail.png");
+        assert_equals(e.blockedURI, "{{location[scheme]}}://{{location[host]}}/content-security-policy/support/pass.png");
         assert_equals(e.violatedDirective, "img-src");
         t2.done();
       }));
     }, "Event is fired");
   </script>
-  <img src='/content-security-policy/support/fail.png'
+  <img src='/content-security-policy/support/pass.png'
        onload='t1.done();'
        onerror='t1.unreached_func("The image should have loaded");'>
 
