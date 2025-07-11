@@ -3201,7 +3201,7 @@ pub(crate) struct LayoutValue<T: MallocSizeOf> {
 #[allow(unsafe_code)]
 unsafe impl<T: JSTraceable + MallocSizeOf> JSTraceable for LayoutValue<T> {
     unsafe fn trace(&self, trc: *mut js::jsapi::JSTracer) {
-        self.value.trace(trc)
+        unsafe { self.value.trace(trc) };
     }
 }
 
