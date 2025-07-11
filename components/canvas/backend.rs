@@ -310,7 +310,7 @@ pub(crate) trait GenericPath<B: Backend<Path = Self>> {
             }
         }
     }
-    fn bound_box(&self) -> Rect<f64>;
+    fn bounding_box(&self) -> Rect<f64>;
 }
 
 pub(crate) trait PatternHelpers {

@@ -798,7 +798,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
 
         self.maybe_bound_shape_with_pattern(
             self.state.fill_style.clone(),
-            &path.bound_box(),
+            &path.bounding_box(),
             |self_| {
                 self_.drawtarget.fill(
                     &path,
@@ -832,7 +832,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
 
         self.maybe_bound_shape_with_pattern(
             self.state.stroke_style.clone(),
-            &path.bound_box(),
+            &path.bounding_box(),
             |self_| {
                 self_.drawtarget.stroke(
                     &path,
@@ -854,7 +854,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
 
         self.maybe_bound_shape_with_pattern(
             self.state.stroke_style.clone(),
-            &path.bound_box(),
+            &path.bounding_box(),
             |self_| {
                 self_.drawtarget.stroke(
                     &path,

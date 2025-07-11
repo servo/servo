@@ -726,7 +726,7 @@ impl GenericPath<RaqoteBackend> for Path {
         self.0.set(path.transform(transform).into());
     }
 
-    fn bound_box(&self) -> Rect<f64> {
+    fn bounding_box(&self) -> Rect<f64> {
         let path: raqote::Path = self.into();
         let mut points = vec![];
         for op in path.ops {
