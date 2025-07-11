@@ -3952,19 +3952,6 @@
       {}
      ]
     ],
-    "linear_gradients_non_square_a.html": [
-     "2edd6cbaa4638d6fdc474c6e7bec7f4c194dc721",
-     [
-      null,
-      [
-       [
-        "/_mozilla/css/linear_gradients_non_square_ref.html",
-        "=="
-       ]
-      ],
-      {}
-     ]
-    ],
     "linear_gradients_parsing_a.html": [
      "c2e18fb98ed4324f8337290cbae84b14df580182",
      [
@@ -9322,10 +9309,6 @@
     ],
     "linear_gradients_lengths_ref.html": [
      "a067067fff64d232aad7233b69b7b78e74e1f365",
-     []
-    ],
-    "linear_gradients_non_square_ref.html": [
-     "1ad3c75747e05768a3e79d879e535e8b3980f1a4",
      []
     ],
     "linear_gradients_parsing_ref.html": [
