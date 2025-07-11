@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <!-- TODO update link -->
+  <link rel="help" href="https://www.w3.org/TR/css-view-transitions-2/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Missing view transition name</title>
+</head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-view-transitions/support/common.js"></script>
+<style>
+  #target {
+    background-color: blue;
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<body>
+  <div id="target"></div>
+</body>
+<script>
+  promise_test(async () => {
+    const target = document.getElementById('target');
+    const vt1 = document.startViewTransition(() => {
+      target.style.opacity = 0.5;
+    });
+
+    const vt2 = target.startViewTransition(() => {
+      target.style.backgroundColor = 'green';
+    });
+
+    await Promise.all([vt1.ready, vt2.ready]);
+
+    const expected_root_pseudos = [
+      '::view-transition-group(root)',
+      '::view-transition-new(root)',
+      '::view-transition-old(root)'
+    ];
+    const expected_target_pseudos = [];
+
+    assert_animation_pseudos(
+        document.documentElement, expected_root_pseudos,
+        'Document element has animation-name: root by default');
+    assert_animation_pseudos(
+        target, expected_target_pseudos,
+        'No implicit view-transition name for scoped view transition');
+
+  }, 'Scoped view transition excludes animations for root element');
+</script>
+</html>

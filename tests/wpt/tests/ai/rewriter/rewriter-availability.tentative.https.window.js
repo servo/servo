@@ -29,3 +29,9 @@ promise_test(async () => {
     assert_in_array(availability, kValidAvailabilities, options);
   }
 }, 'Rewriter.availability() returns a valid value with plausible options');
+
+promise_test(async (t) => {
+  return promise_rejects_js(t, RangeError, Rewriter.availability({
+    expectedInputLanguages: ['en-abc-invalid'],  // not supported
+  }));
+}, 'Rewriter.availability() rejects when given invalid language tags');

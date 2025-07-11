@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<title>Perspective doesn't apply to non-atomic inlines</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#perspective-property">
+<link rel="help" href="https://issues.chromium.org/issues/430688048">
+<div style="columns:2; column-fill:auto; height:100px;">
+  <span style="perspective:1px;">
+    <div style="anchor-name:--a; height:150px;"></div>
+  </span>
+</div>

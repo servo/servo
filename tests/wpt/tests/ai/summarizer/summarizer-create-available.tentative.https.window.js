@@ -75,10 +75,15 @@ promise_test(async () => {
 }, 'Summarizer.outputLanguage');
 
 promise_test(async (t) => {
-  promise_rejects_js(
-    t, RangeError,
-    createSummarizer({ expectedInputLanguages: ['en-abc-invalid'] }));
+  return promise_rejects_js(
+      t, RangeError,
+      createSummarizer({expectedInputLanguages: ['en-abc-invalid']}));
 }, 'Creating Summarizer with malformed language string');
+
+promise_test(async (t) => {
+  let summarizer = await createSummarizer({expectedInputLanguages: ['EN']});
+  assert_true(!!summarizer);
+}, 'Summarizer.create() canonicalizes language tags');
 
 promise_test(async () => {
   const summarizer = await createSummarizer();

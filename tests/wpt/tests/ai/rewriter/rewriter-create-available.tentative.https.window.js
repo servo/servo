@@ -89,10 +89,15 @@ promise_test(async () => {
 }, 'Rewriter.outputLanguage');
 
 promise_test(async (t) => {
-  promise_rejects_js(
-    t, RangeError,
-    createRewriter({ expectedInputLanguages: ['en-abc-invalid'] }));
+  return promise_rejects_js(
+      t, RangeError,
+      createRewriter({expectedInputLanguages: ['en-abc-invalid']}));
 }, 'Creating Rewriter with malformed language string');
+
+promise_test(async (t) => {
+  let session = await createRewriter({expectedInputLanguages: ['EN']});
+  assert_true(!!session);
+}, 'Rewriter.create() canonicalizes language tags');
 
 promise_test(async () => {
   const rewriter = await createRewriter({});
