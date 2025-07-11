@@ -13,7 +13,7 @@ import mozlog.formatters.base
 import mozlog.reader
 
 from dataclasses import dataclass, field
-from typing import DefaultDict, Dict, Optional, Union
+from typing import DefaultDict, Dict, Optional, Union, TypedDict, Literal
 from six import itervalues
 
 DEFAULT_MOVE_UP_CODE = "\x1b[A"
@@ -61,13 +61,13 @@ class UnexpectedResult:
             # Organize the failures by stack trace so we don't print the same stack trace
             # more than once. They are really tall and we don't want to flood the screen
             # with duplicate information.
-            results_by_stack = collections.defaultdict(list)
+            results_by_stack: DefaultDict[str | None, list[UnexpectedSubtestResult]] = collections.defaultdict(list)
             for subtest_result in self.unexpected_subtest_results:
-                results_by_stack[subtest_result.stack or "Empty"].append(subtest_result)
+                results_by_stack[subtest_result.stack].append(subtest_result)
 
             # Print stackless results first. They are all separate.
-            if "Empty" in results_by_stack:
-                output += make_subtests_failure(results_by_stack.pop("Empty"))
+            if None in results_by_stack:
+                output += make_subtests_failure(results_by_stack.pop(None))
             for subtest_results in results_by_stack.values():
                 output += make_subtests_failure(subtest_results)
 
@@ -109,6 +109,49 @@ class UnexpectedResult:
         return lines
 
 
+class GlobalTestData(TypedDict):
+    action: str
+    time: int
+    thread: str
+    pid: int
+    source: str
+
+
+Status = Literal["PASS", "FAIL", "PRECONDITION_FAILED", "TIMEOUT", "CRASH", "ASSERT", "SKIP", "OK", "ERROR"]
+
+
+class SuiteStartData(GlobalTestData):
+    tests: Dict
+    name: Optional[str]
+    run_info: Optional[Dict]
+    version_info: Optional[Dict]
+    device_info: Optional[Dict]
+
+
+class TestStartData(GlobalTestData):
+    test: str
+    path: Optional[str]
+    known_intermittent: Status
+    subsuite: Optional[str]
+    group: Optional[str]
+
+
+class TestEndData(GlobalTestData):
+    test: str
+    status: Status
+    expected: Status
+    known_intermittent: Status
+    message: Optional[str]
+    stack: Optional[str]
+    extra: Optional[str]
+    subsuite: Optional[str]
+    group: Optional[str]
+
+
+class TestStatusData(TestEndData):
+    subtest: str
+
+
 class ServoHandler(mozlog.reader.LogHandler):
     """LogHandler designed to collect unexpected results for use by
     script or by the ServoFormatter output formatter."""
@@ -118,12 +161,12 @@ class ServoHandler(mozlog.reader.LogHandler):
     need_to_erase_last_line: int
     running_tests: Dict[str, str]
     test_output: DefaultDict[str, str]
-    subtest_failures: DefaultDict[list, list]
+    subtest_failures: DefaultDict[str, list]
     tests_with_failing_subtests: list
     unexpected_results: list
     expected: Dict[str, int]
     unexpected_tests: Dict[str, list]
-    suite_start_time: str
+    suite_start_time: int
 
     def __init__(self, detect_flakes=False) -> None:
         """
@@ -171,7 +214,7 @@ class ServoHandler(mozlog.reader.LogHandler):
     def any_stable_unexpected(self) -> bool:
         return any(not unexpected.flaky for unexpected in self.unexpected_results)
 
-    def suite_start(self, data) -> Optional[str]:
+    def suite_start(self, data: SuiteStartData) -> Optional[str]:
         # If there were any unexpected results and we are starting another suite, assume
         # that this suite has been launched to detect intermittent tests.
         # TODO: Support running more than a single suite at once.
@@ -185,7 +228,7 @@ class ServoHandler(mozlog.reader.LogHandler):
     def suite_end(self, data) -> Optional[str]:
         pass
 
-    def test_start(self, data) -> Optional[str]:
+    def test_start(self, data: TestStartData) -> Optional[str]:
         self.running_tests[data["thread"]] = data["test"]
 
     @staticmethod
@@ -194,11 +237,11 @@ class ServoHandler(mozlog.reader.LogHandler):
             return True
         return "known_intermittent" in data and data["status"] in data["known_intermittent"]
 
-    def test_end(self, data: dict) -> Union[UnexpectedResult, str, None]:
+    def test_end(self, data: TestEndData) -> Union[UnexpectedResult, str, None]:
         self.completed_tests += 1
         test_status = data["status"]
         test_path = data["test"]
-        test_subsuite = data["subsuite"]
+        test_subsuite = data["subsuite"] or ""
         del self.running_tests[data["thread"]]
 
         had_expected_test_result = self.data_was_for_expected_result(data)
@@ -227,8 +270,8 @@ class ServoHandler(mozlog.reader.LogHandler):
                 test_path,
                 test_subsuite,
                 test_status,
-                data.get("expected", test_status) or "",
-                data.get("message", ""),
+                data.get("expected", test_status),
+                data.get("message") or "",
                 data["time"],
                 "",
                 subtest_failures,
@@ -247,7 +290,7 @@ class ServoHandler(mozlog.reader.LogHandler):
             test_subsuite,
             test_status,
             data.get("expected", test_status),
-            data.get("message", ""),
+            data.get("message") or "",
             data["time"],
             stack,
             subtest_failures,
@@ -261,7 +304,7 @@ class ServoHandler(mozlog.reader.LogHandler):
         self.unexpected_results.append(result)
         return result
 
-    def test_status(self, data: dict) -> None:
+    def test_status(self, data: TestStatusData) -> None:
         if self.data_was_for_expected_result(data):
             return
         self.subtest_failures[data["test"]].append(
@@ -270,7 +313,7 @@ class ServoHandler(mozlog.reader.LogHandler):
                 data["subtest"],
                 data["status"],
                 data["expected"],
-                data.get("message", ""),
+                data.get("message") or "",
                 data["time"],
                 data.get("stack", None),
             )
