@@ -16,7 +16,7 @@ day be entirely replaced with something like PyGithub."""
 from __future__ import annotations
 
 import logging
-import urllib
+import urllib.parse
 
 from typing import Optional, TYPE_CHECKING
 
@@ -29,7 +29,7 @@ USER_AGENT = "Servo web-platform-test sync service"
 TIMEOUT = 30  # 30 seconds
 
 
-def authenticated(sync: WPTSync, method, url, json=None) -> requests.Response:
+def authenticated(sync: WPTSync, method: str, url: str, json=None) -> requests.Response:
     logging.info("  → Request: %s %s", method, url)
     if json:
         logging.info("  → Request JSON: %s", json)
@@ -51,14 +51,14 @@ class GithubRepository:
     This class allows interacting with a single GitHub repository.
     """
 
-    def __init__(self, sync: WPTSync, repo: str, default_branch: str):
+    def __init__(self, sync: WPTSync, repo: str, default_branch: str) -> None:
         self.sync = sync
         self.repo = repo
         self.default_branch = default_branch
         self.org = repo.split("/")[0]
         self.pulls_url = f"repos/{self.repo}/pulls"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.repo
 
     def get_pull_request(self, number: int) -> PullRequest:
@@ -94,7 +94,7 @@ class GithubRepository:
 
         return self.get_pull_request(json["items"][0]["number"])
 
-    def open_pull_request(self, branch: GithubBranch, title: str, body: str):
+    def open_pull_request(self, branch: GithubBranch, title: str, body: str) -> PullRequest:
         data = {
             "title": title,
             "head": branch.get_pr_head_reference_for_repo(self),
@@ -107,11 +107,11 @@ class GithubRepository:
 
 
 class GithubBranch:
-    def __init__(self, repo: GithubRepository, branch_name: str):
+    def __init__(self, repo: GithubRepository, branch_name: str) -> None:
         self.repo = repo
         self.name = branch_name
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.repo}/{self.name}"
 
     def get_pr_head_reference_for_repo(self, other_repo: GithubRepository) -> str:
@@ -128,20 +128,20 @@ class PullRequest:
     This class allows interacting with a single pull request on GitHub.
     """
 
-    def __init__(self, repo: GithubRepository, number: int):
+    def __init__(self, repo: GithubRepository, number: int) -> None:
         self.repo = repo
         self.context = repo.sync
         self.number = number
         self.base_url = f"repos/{self.repo.repo}/pulls/{self.number}"
         self.base_issues_url = f"repos/{self.repo.repo}/issues/{self.number}"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.repo}#{self.number}"
 
     def api(self, *args, **kwargs) -> requests.Response:
         return authenticated(self.context, *args, **kwargs)
 
-    def leave_comment(self, comment: str):
+    def leave_comment(self, comment: str) -> requests.Response:
         return self.api("POST", f"{self.base_issues_url}/comments", json={"body": comment})
 
     def change(
@@ -149,7 +149,7 @@ class PullRequest:
         state: Optional[str] = None,
         title: Optional[str] = None,
         body: Optional[str] = None,
-    ):
+    ) -> requests.Response:
         data = {}
         if title:
             data["title"] = title
@@ -159,11 +159,11 @@ class PullRequest:
             data["state"] = state
         return self.api("PATCH", self.base_url, json=data)
 
-    def remove_label(self, label: str):
+    def remove_label(self, label: str) -> None:
         self.api("DELETE", f"{self.base_issues_url}/labels/{label}")
 
-    def add_labels(self, labels: list[str]):
+    def add_labels(self, labels: list[str]) -> None:
         self.api("POST", f"{self.base_issues_url}/labels", json=labels)
 
-    def merge(self):
+    def merge(self) -> None:
         self.api("PUT", f"{self.base_url}/merge", json={"merge_method": "rebase"})

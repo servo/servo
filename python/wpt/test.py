@@ -39,7 +39,7 @@ import flask
 import flask.cli
 import requests
 
-from .exporter import SyncRun, WPTSync
+from .exporter import SyncRun, WPTSync, LocalGitRepo
 from .exporter.step import CreateOrUpdateBranchForPRStep
 
 TESTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tests")
@@ -56,14 +56,14 @@ class MockPullRequest:
 
 
 class MockGitHubAPIServer:
-    def __init__(self, port: int):
+    def __init__(self, port: int) -> None:
         self.port = port
         self.disable_logging()
         self.app = flask.Flask(__name__)
         self.pulls: list[MockPullRequest] = []
 
         class NoLoggingHandler(WSGIRequestHandler):
-            def log_message(self, *args):
+            def log_message(self, *args) -> None:
                 pass
 
         if logging.getLogger().level == logging.DEBUG:
@@ -74,12 +74,12 @@ class MockGitHubAPIServer:
         self.server = make_server("localhost", self.port, self.app, handler_class=handler)
         self.start_server_thread()
 
-    def disable_logging(self):
+    def disable_logging(self) -> None:
         flask.cli.show_server_banner = lambda *args: None
         logging.getLogger("werkzeug").disabled = True
         logging.getLogger("werkzeug").setLevel(logging.CRITICAL)
 
-    def start(self):
+    def start(self) -> None:
         self.thread.start()
 
         # Wait for the server to be started.
@@ -92,7 +92,7 @@ class MockGitHubAPIServer:
             except Exception:
                 time.sleep(0.1)
 
-    def reset_server_state_with_pull_requests(self, pulls: list[MockPullRequest]):
+    def reset_server_state_with_pull_requests(self, pulls: list[MockPullRequest]) -> None:
         response = requests.get(
             f"http://localhost:{self.port}/reset-mock-github",
             json=[dataclasses.asdict(pull_request) for pull_request in pulls],
@@ -101,21 +101,21 @@ class MockGitHubAPIServer:
         assert response.status_code == 200
         assert response.text == "👍"
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         self.server.shutdown()
         self.thread.join()
 
-    def start_server_thread(self):
+    def start_server_thread(self) -> None:
         # pylint: disable=unused-argument
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
 
         @self.app.route("/ping")
-        def ping():
+        def ping() -> tuple[str, int]:
             return ("pong", 200)
 
         @self.app.route("/reset-mock-github")
-        def reset_server():
+        def reset_server() -> tuple[str, int]:
             self.pulls = [
                 MockPullRequest(pull_request["head"], pull_request["number"], pull_request["state"])
                 for pull_request in flask.request.json
@@ -123,7 +123,7 @@ class MockGitHubAPIServer:
             return ("👍", 200)
 
         @self.app.route("/repos/<org>/<repo>/pulls/<int:number>/merge", methods=["PUT"])
-        def merge_pull_request(org, repo, number):
+        def merge_pull_request(org, repo, number) -> tuple[str, int]:
             for pull_request in self.pulls:
                 if pull_request.number == number:
                     pull_request.state = "closed"
@@ -131,7 +131,7 @@ class MockGitHubAPIServer:
             return ("", 404)
 
         @self.app.route("/search/issues", methods=["GET"])
-        def search():
+        def search() -> str:
             params = {}
             param_strings = flask.request.args.get("q", "").split(" ")
             for string in param_strings:
@@ -149,13 +149,13 @@ class MockGitHubAPIServer:
             return json.dumps({"total_count": 0, "items": []})
 
         @self.app.route("/repos/<org>/<repo>/pulls", methods=["POST"])
-        def create_pull_request(org, repo):
+        def create_pull_request(org, repo) -> dict[str, int]:
             new_pr_number = len(self.pulls) + 1
             self.pulls.append(MockPullRequest(flask.request.json["head"], new_pr_number, "open"))
             return {"number": new_pr_number}
 
         @self.app.route("/repos/<org>/<repo>/pulls/<int:number>", methods=["PATCH"])
-        def update_pull_request(org, repo, number):
+        def update_pull_request(org, repo, number) -> tuple[str, int]:
             for pull_request in self.pulls:
                 if pull_request.number == number:
                     if "state" in flask.request.json:
@@ -166,7 +166,7 @@ class MockGitHubAPIServer:
         @self.app.route("/repos/<org>/<repo>/issues/<number>/labels", methods=["GET", "POST"])
         @self.app.route("/repos/<org>/<repo>/issues/<number>/labels/<label>", methods=["DELETE"])
         @self.app.route("/repos/<org>/<repo>/issues/<issue>/comments", methods=["GET", "POST"])
-        def other_requests(*args, **kwargs):
+        def other_requests(*args, **kwargs) -> tuple[str, int]:
             return ("", 204)
 
 
@@ -174,7 +174,7 @@ class TestCleanUpBodyText(unittest.TestCase):
     """Tests that SyncRun.clean_up_body_text properly prepares the
     body text for an upstream pull request."""
 
-    def test_prepare_body(self):
+    def test_prepare_body(self) -> None:
         text = "Simple body text"
         self.assertEqual(text, SyncRun.clean_up_body_text(text))
         self.assertEqual(
@@ -210,7 +210,7 @@ class TestApplyCommitsToWPT(unittest.TestCase):
     """Tests that commits are properly applied to WPT by
     CreateOrUpdateBranchForPRStep._create_or_update_branch_for_pr."""
 
-    def run_test(self, pr_number: int, commit_data: dict):
+    def run_test(self, pr_number: int, commit_data: dict) -> None:
         def make_commit(data):
             with open(os.path.join(TESTS_DIR, data[2]), "rb") as file:
                 return {"author": data[0], "message": data[1], "diff": file.read()}
@@ -221,7 +221,7 @@ class TestApplyCommitsToWPT(unittest.TestCase):
         pull_request = SYNC.servo.get_pull_request(pr_number)
         step = CreateOrUpdateBranchForPRStep({"number": pr_number}, pull_request)
 
-        def get_applied_commits(num_commits: int, applied_commits: list[Tuple[str, str]]):
+        def get_applied_commits(num_commits: int, applied_commits: list[Tuple[str, str]]) -> None:
             assert SYNC is not None
             repo = SYNC.local_wpt_repo
             log = ["log", "--oneline", f"-{num_commits}"]
@@ -240,10 +240,10 @@ class TestApplyCommitsToWPT(unittest.TestCase):
         expected_commits = [(commit["author"], commit["message"]) for commit in commits]
         self.assertListEqual(applied_commits, expected_commits)
 
-    def test_simple_commit(self):
+    def test_simple_commit(self) -> None:
         self.run_test(45, [["test author <test@author>", "test commit message", "18746.diff"]])
 
-    def test_two_commits(self):
+    def test_two_commits(self) -> None:
         self.run_test(
             100,
             [
@@ -253,7 +253,7 @@ class TestApplyCommitsToWPT(unittest.TestCase):
             ],
         )
 
-    def test_non_utf8_commit(self):
+    def test_non_utf8_commit(self) -> None:
         self.run_test(
             100,
             [
@@ -266,15 +266,15 @@ class TestFullSyncRun(unittest.TestCase):
     server: Optional[MockGitHubAPIServer] = None
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         cls.server = MockGitHubAPIServer(PORT)
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         assert cls.server is not None
         cls.server.shutdown()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         assert SYNC is not None
 
         # Clean up any old files.
@@ -282,7 +282,7 @@ class TestFullSyncRun(unittest.TestCase):
         SYNC.local_servo_repo.run("reset", "--hard", first_commit_hash)
         SYNC.local_servo_repo.run("clean", "-fxd")
 
-    def mock_servo_repository_state(self, diffs: list):
+    def mock_servo_repository_state(self, diffs: list) -> str:
         assert SYNC is not None
 
         def make_commit_data(diff):
@@ -333,7 +333,7 @@ class TestFullSyncRun(unittest.TestCase):
         SYNC.run(payload, step_callback=lambda step: actual_steps.append(step.name))
         return actual_steps
 
-    def test_opened_upstreamable_pr(self):
+    def test_opened_upstreamable_pr(self) -> None:
         self.assertListEqual(
             self.run_test("opened.json", ["18746.diff"]),
             [
@@ -344,7 +344,7 @@ class TestFullSyncRun(unittest.TestCase):
             ],
         )
 
-    def test_opened_upstreamable_pr_with_move_into_wpt(self):
+    def test_opened_upstreamable_pr_with_move_into_wpt(self) -> None:
         self.assertListEqual(
             self.run_test("opened.json", ["move-into-wpt.diff"]),
             [
@@ -355,7 +355,7 @@ class TestFullSyncRun(unittest.TestCase):
             ],
         )
 
-    def test_opened_upstreamble_pr_with_move_into_wpt_and_non_ascii_author(self):
+    def test_opened_upstreamble_pr_with_move_into_wpt_and_non_ascii_author(self) -> None:
         self.assertListEqual(
             self.run_test(
                 "opened.json",
@@ -376,7 +376,7 @@ class TestFullSyncRun(unittest.TestCase):
             ],
         )
 
-    def test_opened_upstreamable_pr_with_move_out_of_wpt(self):
+    def test_opened_upstreamable_pr_with_move_out_of_wpt(self) -> None:
         self.assertListEqual(
             self.run_test("opened.json", ["move-out-of-wpt.diff"]),
             [
@@ -387,11 +387,11 @@ class TestFullSyncRun(unittest.TestCase):
             ],
         )
 
-    def test_opened_new_mr_with_no_sync_signal(self):
+    def test_opened_new_mr_with_no_sync_signal(self) -> None:
         self.assertListEqual(self.run_test("opened-with-no-sync-signal.json", ["18746.diff"]), [])
         self.assertListEqual(self.run_test("opened-with-no-sync-signal.json", ["non-wpt.diff"]), [])
 
-    def test_opened_upstreamable_pr_not_applying_cleanly_to_upstream(self):
+    def test_opened_upstreamable_pr_not_applying_cleanly_to_upstream(self) -> None:
         self.assertListEqual(
             self.run_test("opened.json", ["does-not-apply-cleanly.diff"]),
             [
@@ -401,7 +401,7 @@ class TestFullSyncRun(unittest.TestCase):
             ],
         )
 
-    def test_open_new_upstreamable_pr_with_preexisting_upstream_pr(self):
+    def test_open_new_upstreamable_pr_with_preexisting_upstream_pr(self) -> None:
         self.assertListEqual(
             self.run_test(
                 "opened.json",
@@ -416,7 +416,7 @@ class TestFullSyncRun(unittest.TestCase):
             ],
         )
 
-    def test_open_new_non_upstreamable_pr_with_preexisting_upstream_pr(self):
+    def test_open_new_non_upstreamable_pr_with_preexisting_upstream_pr(self) -> None:
         self.assertListEqual(
             self.run_test(
                 "opened.json",
@@ -433,7 +433,7 @@ class TestFullSyncRun(unittest.TestCase):
             ],
         )
 
-    def test_opened_upstreamable_pr_with_non_utf8_file_contents(self):
+    def test_opened_upstreamable_pr_with_non_utf8_file_contents(self) -> None:
         self.assertListEqual(
             self.run_test("opened.json", ["add-non-utf8-file.diff"]),
             [
@@ -446,7 +446,7 @@ class TestFullSyncRun(unittest.TestCase):
 
     def test_open_new_upstreamable_pr_with_preexisting_upstream_pr_not_apply_cleanly_to_upstream(
         self,
-    ):
+    ) -> None:
         self.assertListEqual(
             self.run_test(
                 "opened.json",
@@ -463,10 +463,10 @@ class TestFullSyncRun(unittest.TestCase):
             ],
         )
 
-    def test_closed_pr_no_upstream_pr(self):
+    def test_closed_pr_no_upstream_pr(self) -> None:
         self.assertListEqual(self.run_test("closed.json", ["18746.diff"]), [])
 
-    def test_closed_pr_with_preexisting_upstream_pr(self):
+    def test_closed_pr_with_preexisting_upstream_pr(self) -> None:
         self.assertListEqual(
             self.run_test(
                 "closed.json",
@@ -476,7 +476,7 @@ class TestFullSyncRun(unittest.TestCase):
             ["ChangePRStep:wpt/wpt#10:closed", "RemoveBranchForPRStep:servo/wpt/servo_export_18746"],
         )
 
-    def test_synchronize_move_new_changes_to_preexisting_upstream_pr(self):
+    def test_synchronize_move_new_changes_to_preexisting_upstream_pr(self) -> None:
         self.assertListEqual(
             self.run_test(
                 "synchronize.json",
@@ -491,7 +491,7 @@ class TestFullSyncRun(unittest.TestCase):
             ],
         )
 
-    def test_synchronize_close_upstream_pr_after_new_changes_do_not_include_wpt(self):
+    def test_synchronize_close_upstream_pr_after_new_changes_do_not_include_wpt(self) -> None:
         self.assertListEqual(
             self.run_test(
                 "synchronize.json",
@@ -508,7 +508,7 @@ class TestFullSyncRun(unittest.TestCase):
             ],
         )
 
-    def test_synchronize_open_upstream_pr_after_new_changes_include_wpt(self):
+    def test_synchronize_open_upstream_pr_after_new_changes_include_wpt(self) -> None:
         self.assertListEqual(
             self.run_test("synchronize.json", ["18746.diff"]),
             [
@@ -521,7 +521,7 @@ class TestFullSyncRun(unittest.TestCase):
 
     def test_synchronize_fail_to_update_preexisting_pr_after_new_changes_do_not_apply(
         self,
-    ):
+    ) -> None:
         self.assertListEqual(
             self.run_test(
                 "synchronize.json",
@@ -538,7 +538,7 @@ class TestFullSyncRun(unittest.TestCase):
             ],
         )
 
-    def test_edited_with_upstream_pr(self):
+    def test_edited_with_upstream_pr(self) -> None:
         self.assertListEqual(
             self.run_test("edited.json", ["wpt.diff"], [MockPullRequest("servo:servo_export_19620", 10)]),
             [
@@ -548,12 +548,12 @@ class TestFullSyncRun(unittest.TestCase):
             ],
         )
 
-    def test_edited_with_no_upstream_pr(self):
+    def test_edited_with_no_upstream_pr(self) -> None:
         self.assertListEqual(self.run_test("edited.json", ["wpt.diff"], []), [])
 
     def test_synchronize_move_new_changes_to_preexisting_upstream_pr_with_multiple_commits(
         self,
-    ):
+    ) -> None:
         self.assertListEqual(
             self.run_test("synchronize-multiple.json", ["18746.diff", "non-wpt.diff", "wpt.diff"]),
             [
@@ -564,23 +564,23 @@ class TestFullSyncRun(unittest.TestCase):
             ],
         )
 
-    def test_synchronize_with_non_upstreamable_changes(self):
+    def test_synchronize_with_non_upstreamable_changes(self) -> None:
         self.assertListEqual(self.run_test("synchronize.json", ["non-wpt.diff"]), [])
 
-    def test_merge_upstream_pr_after_merge(self):
+    def test_merge_upstream_pr_after_merge(self) -> None:
         self.assertListEqual(
             self.run_test("merged.json", ["18746.diff"], [MockPullRequest("servo:servo_export_19620", 100)]),
             ["MergePRStep:wpt/wpt#100", "RemoveBranchForPRStep:servo/wpt/servo_export_19620"],
         )
 
-    def test_pr_merged_no_upstream_pr(self):
+    def test_pr_merged_no_upstream_pr(self) -> None:
         self.assertListEqual(self.run_test("merged.json", ["18746.diff"]), [])
 
-    def test_merge_of_non_upstreamble_pr(self):
+    def test_merge_of_non_upstreamble_pr(self) -> None:
         self.assertListEqual(self.run_test("merged.json", ["non-wpt.diff"]), [])
 
 
-def setUpModule():
+def setUpModule() -> None:
     # pylint: disable=invalid-name
     global TMP_DIR, SYNC
 
@@ -599,7 +599,7 @@ def setUpModule():
         suppress_force_push=True,
     )
 
-    def setup_mock_repo(repo_name, local_repo, default_branch: str):
+    def setup_mock_repo(repo_name: str, local_repo: LocalGitRepo, default_branch: str) -> None:
         subprocess.check_output(["cp", "-R", "-p", os.path.join(TESTS_DIR, repo_name), local_repo.path])
         local_repo.run("init", "-b", default_branch)
         local_repo.run("add", ".")
@@ -612,15 +612,15 @@ def setUpModule():
     logging.info("=" * 80)
 
 
-def tearDownModule():
+def tearDownModule() -> None:
     # pylint: disable=invalid-name
     shutil.rmtree(TMP_DIR)
 
 
-def run_tests():
+def run_tests() -> bool:
     verbosity = 1 if logging.getLogger().level >= logging.WARN else 2
 
-    def run_suite(test_case: Type[unittest.TestCase]):
+    def run_suite(test_case: Type[unittest.TestCase]) -> bool:
         return (
             unittest.TextTestRunner(verbosity=verbosity)
             .run(unittest.TestLoader().loadTestsFromTestCase(test_case))
