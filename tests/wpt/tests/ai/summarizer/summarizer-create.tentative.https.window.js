@@ -6,7 +6,7 @@
 'use strict';
 
 promise_test(async () => {
-  assert_true(!!Summarizer);
+  assert_implements_optional("Summarizer" in self, "Summarizer is not supported");
   assert_equals(typeof Summarizer.create, 'function');
 }, 'Summarizer.create() is defined');
 

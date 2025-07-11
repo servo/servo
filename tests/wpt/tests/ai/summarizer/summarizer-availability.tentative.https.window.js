@@ -30,3 +30,9 @@ promise_test(async () => {
     assert_in_array(availability, kValidAvailabilities, options);
   }
 }, 'Summarizer.availability() returns a valid value with plausible options');
+
+promise_test(async (t) => {
+  return promise_rejects_js(t, RangeError, Summarizer.availability({
+    expectedInputLanguages: ['en-abc-invalid'],  // not supported
+  }));
+}, 'Summarizer.availability() rejects when given invalid language tags');

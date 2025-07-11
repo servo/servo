@@ -7,7 +7,7 @@
 <link rel="match"  href="backdrop-filter-edge-behavior-ref.html">
 
 <div>
-  <p>Expected: The black box inside the red box should not contain any red.</p>
+  <p>Expected: The black box inside the red box should contain some red, despite being outside of the scroller's clip</p>
 </div>
 
 <div id=scroller>
@@ -21,6 +21,7 @@
     width: 250px;
     height: 250px;
     overflow: scroll;
+    scrollbar-width: none;
     border: 6px solid red;
     scrollbar-width: none;
   }

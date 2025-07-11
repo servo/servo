@@ -69,12 +69,6 @@ async def test_proxy_proxy_type_manual_socks_proxy_without_socks_version(
 
 
 @pytest.mark.parametrize("value", [42, True, [], {}])
-async def test_params_proxy_ftp_proxy_invalid_type(create_user_context, value):
-    with pytest.raises(error.InvalidArgumentException):
-        await create_user_context(proxy={"proxyType": "manual", "ftpProxy": value})
-
-
-@pytest.mark.parametrize("value", [42, True, [], {}])
 async def test_params_proxy_http_proxy_invalid_type(create_user_context, value):
     with pytest.raises(error.InvalidArgumentException):
         await create_user_context(proxy={"proxyType": "manual", "httpProxy": value})
@@ -170,3 +164,34 @@ async def test_params_autoconfig_missing(create_user_context, value):
         await create_user_context(
             proxy={"proxyType": "pac"}
         )
+
+
+@pytest.mark.parametrize("value", [False, 42, "foo", []])
+async def test_unhandled_prompt_behavior_invalid_type(create_user_context,
+        value):
+    with pytest.raises(error.InvalidArgumentException):
+        await create_user_context(unhandled_prompt_behavior=value)
+
+
+@pytest.mark.parametrize("handler",
+                         ["alert", "beforeUnload", "confirm", "default", "file",
+                          "prompt"])
+@pytest.mark.parametrize("value", [42, True, [], {}, None])
+async def test_unhandled_prompt_behavior_handler_invalid_type(
+        create_user_context, handler, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await create_user_context(unhandled_prompt_behavior={
+            handler: value
+        })
+
+
+@pytest.mark.parametrize("handler",
+                         ["alert", "beforeUnload", "confirm", "default", "file",
+                          "prompt"])
+@pytest.mark.parametrize("value", [42, True, [], {}, None])
+async def test_unhandled_prompt_behavior_handler_invalid_value(
+        create_user_context, handler, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await create_user_context(unhandled_prompt_behavior={
+            handler: "invalid_value"
+        })

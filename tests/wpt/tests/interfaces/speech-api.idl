@@ -14,7 +14,7 @@ interface SpeechRecognition : EventTarget {
     attribute boolean interimResults;
     attribute unsigned long maxAlternatives;
     attribute boolean processLocally;
-    attribute SpeechRecognitionPhraseList phrases;
+    attribute ObservableArray<SpeechRecognitionPhrase> phrases;
 
     // methods to drive the speech interaction
     undefined start();
@@ -133,16 +133,6 @@ interface SpeechRecognitionPhrase {
     constructor(DOMString phrase, optional float boost = 1.0);
     readonly attribute DOMString phrase;
     readonly attribute float boost;
-};
-
-// The object representing a list of phrases for contextual biasing.
-[SecureContext, Exposed=Window]
-interface SpeechRecognitionPhraseList {
-    constructor(sequence<SpeechRecognitionPhrase> phrases);
-    readonly attribute unsigned long length;
-    SpeechRecognitionPhrase item(unsigned long index);
-    undefined addItem(SpeechRecognitionPhrase item);
-    undefined removeItem(unsigned long index);
 };
 
 [Exposed=Window]
