@@ -772,7 +772,7 @@ pub struct ScreenGeometry {
     /// toolbars, docks, and interface elements. This will be converted to
     /// CSS pixels based on the pixel scaling of the `WebView`.
     pub available_size: DeviceIntSize,
-    /// The rectangle the `WebView`'s containing in device pixels for the purposes of the
+    /// The rectangle the `WebView`'s containing window in device pixels for the purposes of the
     /// `window.screenLeft` and similar APIs. This will be converted to CSS pixels based
     /// on the pixel scaling of the `WebView`.
     pub window_rect: DeviceIntRect,
