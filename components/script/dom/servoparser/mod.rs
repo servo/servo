@@ -961,7 +961,14 @@ impl FetchResponseListener for ParserContext {
 
                 let doc = &parser.document;
                 let doc_body = DomRoot::upcast::<Node>(doc.GetBody().unwrap());
-                let img = HTMLImageElement::new(local_name!("img"), None, doc, None, CanGc::note());
+                let img = HTMLImageElement::new(
+                    local_name!("img"),
+                    None,
+                    doc,
+                    None,
+                    ElementCreator::ParserCreated(1),
+                    CanGc::note(),
+                );
                 img.SetSrc(USVString(self.url.to_string()));
                 doc_body
                     .AppendChild(&DomRoot::upcast::<Node>(img), CanGc::note())
@@ -1128,7 +1135,7 @@ impl FetchResponseListener for ParserContext {
         let document = &parser.document;
         let global = &document.global();
         // TODO(https://github.com/w3c/webappsec-csp/issues/687): Update after spec is resolved
-        global.report_csp_violations(violations, None);
+        global.report_csp_violations(violations, None, None);
     }
 }
 

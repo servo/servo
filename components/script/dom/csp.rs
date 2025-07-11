@@ -72,7 +72,7 @@ impl CspReporting for Option<CspList> {
 
         let (is_js_evaluation_allowed, violations) = csp_list.is_js_evaluation_allowed(source);
 
-        global.report_csp_violations(violations, None);
+        global.report_csp_violations(violations, None, None);
 
         is_js_evaluation_allowed == CheckResult::Allowed
     }
@@ -85,7 +85,7 @@ impl CspReporting for Option<CspList> {
 
         let (is_wasm_evaluation_allowed, violations) = csp_list.is_wasm_evaluation_allowed();
 
-        global.report_csp_violations(violations, None);
+        global.report_csp_violations(violations, None, None);
 
         is_wasm_evaluation_allowed == CheckResult::Allowed
     }
@@ -118,7 +118,7 @@ impl CspReporting for Option<CspList> {
         let (result, violations) =
             csp_list.should_navigation_request_be_blocked(&request, NavigationCheckType::Other);
 
-        global.report_csp_violations(violations, element);
+        global.report_csp_violations(violations, element, None);
 
         result == CheckResult::Blocked
     }
@@ -140,7 +140,7 @@ impl CspReporting for Option<CspList> {
         let (result, violations) =
             csp_list.should_elements_inline_type_behavior_be_blocked(&element, type_, source);
 
-        global.report_csp_violations(violations, Some(el));
+        global.report_csp_violations(violations, Some(el), None);
 
         result == CheckResult::Blocked
     }
@@ -159,7 +159,7 @@ impl CspReporting for Option<CspList> {
         let (allowed_by_csp, violations) =
             csp_list.is_trusted_type_policy_creation_allowed(policy_name, created_policy_names);
 
-        global.report_csp_violations(violations, None);
+        global.report_csp_violations(violations, None, None);
 
         allowed_by_csp == CheckResult::Allowed
     }
@@ -192,26 +192,53 @@ impl CspReporting for Option<CspList> {
         let (allowed_by_csp, violations) = csp_list
             .should_sink_type_mismatch_violation_be_blocked_by_csp(sink, sink_group, source);
 
-        global.report_csp_violations(violations, None);
+        global.report_csp_violations(violations, None, None);
 
         allowed_by_csp == CheckResult::Blocked
     }
 }
 
+pub(crate) struct SourcePosition {
+    pub(crate) source_file: String,
+    pub(crate) line_number: u32,
+    pub(crate) column_number: u32,
+}
+
 pub(crate) trait GlobalCspReporting {
-    fn report_csp_violations(&self, violations: Vec<Violation>, element: Option<&Element>);
+    fn report_csp_violations(
+        &self,
+        violations: Vec<Violation>,
+        element: Option<&Element>,
+        source_position: Option<SourcePosition>,
+    );
+}
+
+#[allow(unsafe_code)]
+fn compute_scripted_caller_source_position() -> SourcePosition {
+    let scripted_caller =
+        unsafe { describe_scripted_caller(*GlobalScope::get_cx()) }.unwrap_or_default();
+
+    SourcePosition {
+        source_file: scripted_caller.filename,
+        line_number: scripted_caller.line,
+        column_number: scripted_caller.col + 1,
+    }
 }
 
 impl GlobalCspReporting for GlobalScope {
     /// <https://www.w3.org/TR/CSP/#report-violation>
-    #[allow(unsafe_code)]
-    fn report_csp_violations(&self, violations: Vec<Violation>, element: Option<&Element>) {
-        let scripted_caller =
-            unsafe { describe_scripted_caller(*GlobalScope::get_cx()) }.unwrap_or_default();
+    fn report_csp_violations(
+        &self,
+        violations: Vec<Violation>,
+        element: Option<&Element>,
+        source_position: Option<SourcePosition>,
+    ) {
+        let source_position =
+            source_position.unwrap_or_else(compute_scripted_caller_source_position);
         for violation in violations {
             let (sample, resource) = match violation.resource {
                 ViolationResource::Inline { sample } => (sample, "inline".to_owned()),
-                ViolationResource::Url(url) => (None, url.into()),
+                ViolationResource::Url(url) => (Some(String::new()), url.into()),
                 ViolationResource::TrustedTypePolicy { sample } => {
                     (Some(sample), "trusted-types-policy".to_owned())
                 },
@@ -227,9 +254,9 @@ impl GlobalCspReporting for GlobalScope {
                 .effective_directive(violation.directive.name)
                 .original_policy(violation.policy.to_string())
                 .report_only(violation.policy.disposition == PolicyDisposition::Report)
-                .source_file(scripted_caller.filename.clone())
-                .line_number(scripted_caller.line)
-                .column_number(scripted_caller.col + 1)
+                .source_file(source_position.source_file.clone())
+                .line_number(source_position.line_number)
+                .column_number(source_position.column_number)
                 .build(self);
             // Step 1: Let global be violation’s global object.
             // We use `self` as `global`;

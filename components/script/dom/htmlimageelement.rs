@@ -165,6 +165,8 @@ pub(crate) struct HTMLImageElement {
     last_selected_source: DomRefCell<Option<USVString>>,
     #[ignore_malloc_size_of = "promises are hard"]
     image_decode_promises: DomRefCell<Vec<Rc<Promise>>>,
+    /// Line number this element was created on
+    line_number: u64,
 }
 
 impl HTMLImageElement {
@@ -237,6 +239,7 @@ struct ImageContext {
     /// timing data for this resource
     resource_timing: ResourceFetchTiming,
     url: ServoUrl,
+    element: Trusted<HTMLImageElement>,
 }
 
 impl FetchResponseListener for ImageContext {
@@ -324,7 +327,11 @@ impl FetchResponseListener for ImageContext {
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
-        global.report_csp_violations(violations, None);
+        let elem = self.element.root();
+        let source_position = elem
+            .upcast::<Element>()
+            .compute_source_position(elem.line_number as u32);
+        global.report_csp_violations(violations, None, Some(source_position));
     }
 }
 
@@ -444,6 +451,7 @@ impl HTMLImageElement {
             id,
             aborted: false,
             doc: Trusted::new(&document),
+            element: Trusted::new(self),
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
             url: img_url.clone(),
         };
@@ -1312,6 +1320,7 @@ impl HTMLImageElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        creator: ElementCreator,
     ) -> HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
@@ -1341,6 +1350,7 @@ impl HTMLImageElement {
             source_set: DomRefCell::new(SourceSet::new()),
             last_selected_source: DomRefCell::new(None),
             image_decode_promises: DomRefCell::new(vec![]),
+            line_number: creator.return_line_number(),
         }
     }
 
@@ -1350,11 +1360,12 @@ impl HTMLImageElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        creator: ElementCreator,
         can_gc: CanGc,
     ) -> DomRoot<HTMLImageElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLImageElement::new_inherited(
-                local_name, prefix, document,
+                local_name, prefix, document, creator,
             )),
             document,
             proto,
