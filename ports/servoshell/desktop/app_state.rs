@@ -627,6 +627,17 @@ impl WebViewDelegate for RunningAppState {
         }
     }
 
+    fn notify_history_changed(&self, webview: servo::WebView, _url: Vec<Url>, _current_idx: usize) {
+        if let Some(sender) = self
+            .webdriver_senders
+            .borrow_mut()
+            .load_status_senders
+            .remove(&webview.id())
+        {
+            let _ = sender.send(WebDriverLoadStatus::Complete);
+        }
+    }
+
     fn notify_fullscreen_state_changed(&self, _webview: servo::WebView, fullscreen_state: bool) {
         self.inner().window.set_fullscreen(fullscreen_state);
     }
@@ -740,6 +751,17 @@ impl WebViewDelegate for RunningAppState {
                     Dialog::new_color_picker_dialog(color_picker, offset),
                 );
             },
+        }
+    }
+
+    fn notify_webdriver_load_status_complete(&self, webview: WebView) {
+        if let Some(sender) = self
+            .webdriver_senders
+            .borrow_mut()
+            .load_status_senders
+            .remove(&webview.id())
+        {
+            let _ = sender.send(WebDriverLoadStatus::Complete);
         }
     }
 }
