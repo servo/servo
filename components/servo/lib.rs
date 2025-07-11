@@ -1000,25 +1000,31 @@ impl Servo {
                 }
             },
             EmbedderMsg::GetWindowRect(webview_id, response_sender) => {
-                let window_rect = if let Some(webview) = self.get_webview_handle(webview_id) {
-                    let dpi = webview.dpi();
-                    let screen = webview.delegate().screen_geometry(webview).unwrap();
-                    let pos = screen.window_offset.to_f32();
-                    let window_size = screen.window_size.to_f32();
+                let window_rect = || {
+                    let Some(webview) = self.get_webview_handle(webview_id) else {
+                        return DeviceIndependentIntRect::default();
+                    };
+                    let hidpi_scale_factor = webview.hidpi_scale_factor();
+                    let Some(screen_geometry) = webview.delegate().screen_geometry(webview) else {
+                        return DeviceIndependentIntRect::default();
+                    };
 
-                    let pos_in_css_pixel = (pos / dpi).round().to_i32();
-                    let window_size_in_css_pixel = (window_size / dpi).round().to_i32();
+                    let window_offset_in_css_pixel = (screen_geometry.window_offset.to_f32() /
+                        hidpi_scale_factor)
+                        .round()
+                        .to_i32();
+                    let window_size_in_css_pixel = (screen_geometry.window_size.to_f32() /
+                        hidpi_scale_factor)
+                        .round()
+                        .to_i32();
                     DeviceIndependentIntRect::from_origin_and_size(
-                        pos_in_css_pixel,
+                        window_offset_in_css_pixel,
                         window_size_in_css_pixel,
                     )
-                } else {
-                    warn!("{webview_id} is invalid");
-                    DeviceIndependentIntRect::default()
                 };
 
-                if let Err(error) = response_sender.send(window_rect) {
-                    warn!("Failed to send response of GetWindowRect: {error}");
+                if let Err(error) = response_sender.send(window_rect()) {
+                    warn!("Failed to respond to GetWindowRect: {error}");
                 }
             },
         }

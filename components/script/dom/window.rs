@@ -1703,9 +1703,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://drafts.csswg.org/cssom-view/#dom-window-moveby
     fn MoveBy(&self, x: i32, y: i32) {
-        let pos = self.client_window().min;
+        let origin = self.client_window().min;
         // Step 1
-        self.MoveTo(x + pos.x, y + pos.y)
+        self.MoveTo(x + origin.x, y + origin.y)
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-screenx
@@ -2147,8 +2147,7 @@ impl Window {
     fn client_window(&self) -> DeviceIndependentIntRect {
         let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
 
-        let msg = EmbedderMsg::GetWindowRect(self.webview_id(), sender);
-        self.send_to_embedder(msg);
+        self.send_to_embedder(EmbedderMsg::GetWindowRect(self.webview_id(), sender));
 
         receiver.recv().unwrap_or_default()
     }

@@ -172,10 +172,6 @@ impl WebView {
         self.0.borrow_mut()
     }
 
-    pub(crate) fn dpi(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-        self.inner().hidpi_scale_factor
-    }
-
     pub(crate) fn viewport_details(&self) -> ViewportDetails {
         // The division by 1 represents the page's default zoom of 100%,
         // and gives us the appropriate CSSPixel type for the viewport.
