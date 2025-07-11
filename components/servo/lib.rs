@@ -1009,18 +1009,9 @@ impl Servo {
                         return DeviceIndependentIntRect::default();
                     };
 
-                    let window_offset_in_css_pixel = (screen_geometry.window_offset.to_f32() /
-                        hidpi_scale_factor)
-                        .round()
-                        .to_i32();
-                    let window_size_in_css_pixel = (screen_geometry.window_size.to_f32() /
-                        hidpi_scale_factor)
-                        .round()
-                        .to_i32();
-                    DeviceIndependentIntRect::from_origin_and_size(
-                        window_offset_in_css_pixel,
-                        window_size_in_css_pixel,
-                    )
+                    (screen_geometry.window_rect.to_f32() / hidpi_scale_factor)
+                        .round_out()
+                        .to_i32()
                 };
 
                 if let Err(error) = response_sender.send(window_rect()) {

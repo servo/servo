@@ -8,7 +8,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use euclid::num::Zero;
-use euclid::{Length, Point2D, Scale, Size2D};
+use euclid::{Box2D, Length, Point2D, Scale, Size2D};
 use servo::servo_geometry::{DeviceIndependentIntRect, DeviceIndependentPixel};
 use servo::webrender_api::units::{DeviceIntSize, DevicePixel};
 use servo::{RenderingContext, ScreenGeometry, SoftwareRenderingContext};
@@ -67,9 +67,8 @@ impl WindowPortsMethods for Window {
     fn screen_geometry(&self) -> servo::ScreenGeometry {
         ScreenGeometry {
             size: self.screen_size,
-            window_size: self.inner_size.get(),
             available_size: self.screen_size,
-            window_offset: Default::default(),
+            window_rect: self.inner_size.get().into(),
         }
     }
 

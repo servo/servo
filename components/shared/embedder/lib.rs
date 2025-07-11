@@ -766,21 +766,16 @@ pub struct ScreenGeometry {
     /// The size of the screen in device pixels. This will be converted to
     /// CSS pixels based on the pixel scaling of the `WebView`.
     pub size: DeviceIntSize,
-    /// The size of the window in device pixels for the purposes of the
-    /// `window.outerWidth` / `window.outerHeight` / `window.resizeBy`. This will be converted to
-    /// CSS pixels based on the pixel scaling of the `WebView`.
-    pub window_size: DeviceIntSize,
     /// The available size of the screen in device pixels for the purposes of
     /// the `window.screen.availHeight` / `window.screen.availWidth`. This is the size
     /// available for web content on the screen, and should be `size` minus any system
     /// toolbars, docks, and interface elements. This will be converted to
     /// CSS pixels based on the pixel scaling of the `WebView`.
     pub available_size: DeviceIntSize,
-    /// The offset of the `WebView` in device pixels for the purposes of the
-    /// `window.screenLeft`, `window.screenX`, `window.screenTop`,
-    /// `window.screenY`, and `window.moveBy` APIs.
-    /// This will be converted to CSS pixels based on the pixel scaling of the `WebView`.
-    pub window_offset: DeviceIntPoint,
+    /// The rectangle the `WebView`'s containing in device pixels for the purposes of the
+    /// `window.screenLeft` and similar APIs. This will be converted to CSS pixels based
+    /// on the pixel scaling of the `WebView`.
+    pub window_rect: DeviceIntRect,
 }
 
 impl From<SelectElementOption> for SelectElementOptionOrOptgroup {

@@ -17,7 +17,7 @@ use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
 use servo::servo_config::pref;
 use servo::servo_geometry::{DeviceIndependentIntRect, DeviceIndependentPixel};
 use servo::webrender_api::ScrollLocation;
-use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePixel};
+use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::{
     Cursor, ImeEvent, InputEvent, Key, KeyState, KeyboardEvent, MouseButton as ServoMouseButton,
     MouseButtonAction, MouseButtonEvent, MouseLeaveEvent, MouseMoveEvent,
@@ -429,24 +429,22 @@ impl WindowPortsMethods for Window {
             0.0,
             (self.toolbar_height.get() * self.hidpi_scale_factor()).0,
         );
-
         let screen_size = self.screen_size.to_f32() * hidpi_factor;
+
         // FIXME: In reality, this should subtract screen space used by the system interface
         // elements, but it is difficult to get this value with `winit` currently. See:
         // See https://github.com/rust-windowing/winit/issues/2494
         let available_screen_size = screen_size - toolbar_size;
 
-        // Offset the WebView origin by the toolbar so that it reflects the actual viewport and
-        // not the window origin.
-        let window_offset =
-            winit_position_to_euclid_point(self.winit_window.outer_position().unwrap_or_default());
-        let window_size = winit_size_to_euclid_size(self.winit_window.outer_size()).to_i32();
+        let window_rect = DeviceIntRect::from_origin_and_size(
+            winit_position_to_euclid_point(self.winit_window.outer_position().unwrap_or_default()),
+            winit_size_to_euclid_size(self.winit_window.outer_size()).to_i32(),
+        );
 
         ScreenGeometry {
             size: screen_size.to_i32(),
-            window_size,
             available_size: available_screen_size.to_i32(),
-            window_offset,
+            window_rect,
         }
     }
 
