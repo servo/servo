@@ -29,9 +29,9 @@ use crate::dom::NodeExt;
 use crate::fragment_tree::{
     BaseFragmentInfo, CollapsedBlockMargins, Fragment, IFrameFragment, ImageFragment,
 };
-use crate::geom::{LazySize, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize, Size, Sizes};
+use crate::geom::{LazySize, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize};
 use crate::layout_box_base::{CacheableLayoutResult, LayoutBoxBase};
-use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
+use crate::sizing::{ComputeInlineContentSizes, InlineContentSizesResult};
 use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, LayoutStyle};
 use crate::{ConstraintSpace, ContainingBlock, SizeConstraint};
 
@@ -472,103 +472,6 @@ impl ReplacedContents {
     pub(crate) fn fallback_block_size(&self, writing_mode: WritingMode) -> Au {
         self.natural_block_size(writing_mode)
             .unwrap_or_else(|| Self::default_block_size(writing_mode))
-    }
-
-    /// <https://drafts.csswg.org/css2/visudet.html#inline-replaced-width>
-    /// <https://drafts.csswg.org/css2/visudet.html#inline-replaced-height>
-    ///
-    /// Also used in other cases, for example
-    /// <https://drafts.csswg.org/css2/visudet.html#block-replaced-width>
-    ///
-    /// The logic differs from CSS2 in order to properly handle `aspect-ratio` and keyword sizes.
-    /// Each axis can have preferred, min and max sizing constraints, plus constraints transferred
-    /// from the other axis if there is an aspect ratio, plus a natural and default size.
-    /// In case of conflict, the order of precedence (from highest to lowest) is:
-    /// 1. Non-transferred min constraint
-    /// 2. Non-transferred max constraint
-    /// 3. Non-transferred preferred constraint
-    /// 4. Transferred min constraint
-    /// 5. Transferred max constraint
-    /// 6. Transferred preferred constraint
-    /// 7. Natural size
-    /// 8. Default object size
-    ///
-    /// <https://drafts.csswg.org/css-sizing-4/#aspect-ratio-size-transfers>
-    /// <https://github.com/w3c/csswg-drafts/issues/6071#issuecomment-2243986313>
-    pub(crate) fn used_size_as_if_inline_element_from_content_box_sizes(
-        &self,
-        containing_block: &ContainingBlock,
-        style: &ComputedValues,
-        preferred_aspect_ratio: Option<AspectRatio>,
-        sizes: LogicalVec2<&Sizes>,
-        automatic_size: LogicalVec2<Size<Au>>,
-        pbm_sums: LogicalVec2<Au>,
-    ) -> LogicalVec2<Au> {
-        // <https://drafts.csswg.org/css-sizing-4/#stretch-fit-sizing>
-        let inline_stretch_size = Au::zero().max(containing_block.size.inline - pbm_sums.inline);
-        let block_stretch_size = containing_block
-            .size
-            .block
-            .to_definite()
-            .map(|block_size| Au::zero().max(block_size - pbm_sums.block));
-
-        let writing_mode = style.writing_mode;
-        let resolve_inline_size = |get_block_size: &dyn Fn() -> SizeConstraint| {
-            let get_inline_content_size = || {
-                self.content_size(
-                    Direction::Inline,
-                    preferred_aspect_ratio,
-                    get_block_size,
-                    &|| self.fallback_inline_size(writing_mode),
-                )
-                .into()
-            };
-            sizes.inline.resolve(
-                Direction::Inline,
-                automatic_size.inline,
-                Au::zero,
-                Some(inline_stretch_size),
-                get_inline_content_size,
-                false, /* is_table */
-            )
-        };
-        let resolve_block_size = |get_inline_size: &dyn Fn() -> SizeConstraint| {
-            let get_block_content_size = || -> ContentSizes {
-                self.content_size(
-                    Direction::Block,
-                    preferred_aspect_ratio,
-                    get_inline_size,
-                    &|| self.fallback_block_size(writing_mode),
-                )
-                .into()
-            };
-            sizes.block.resolve(
-                Direction::Block,
-                automatic_size.block,
-                Au::zero,
-                block_stretch_size,
-                get_block_content_size,
-                false, /* is_table */
-            )
-        };
-
-        // First, compute the inline size. Intrinsic values depend on the block sizing properties
-        // through the aspect ratio, but these can also be intrinsic and depend on the inline size.
-        // Therefore, when there is an aspect ratio, we may need to:
-        //  1. Tentatively resolve the inline size, ignoring sizing properties in both axes
-        //     (i.e. resulting in the inline fallback size).
-        //  2. Tentatively resolve the block size, resolving intrinsic keywords by transferring (1).
-        //  3. Resolve the final inline size, resolving intrinsic keywords by transferring (2).
-        //  4. Resolve the final block size, resolving intrinsic keywords by transferring (3).
-        let inline_size = resolve_inline_size(&|| {
-            SizeConstraint::Definite(resolve_block_size(&|| {
-                SizeConstraint::Definite(self.fallback_inline_size(writing_mode))
-            }))
-        });
-        LogicalVec2 {
-            inline: inline_size,
-            block: resolve_block_size(&|| SizeConstraint::Definite(inline_size)),
-        }
     }
 
     #[inline]
