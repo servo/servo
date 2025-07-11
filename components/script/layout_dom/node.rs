@@ -77,7 +77,8 @@ impl<'dom> ServoLayoutNode<'dom> {
     ///
     /// The address pointed to by `address` should point to a valid node in memory.
     pub unsafe fn new(address: &TrustedNodeAddress) -> Self {
-        ServoLayoutNode::from_layout_js(LayoutDom::from_trusted_node_address(*address))
+        let node = unsafe { LayoutDom::from_trusted_node_address(*address) };
+        ServoLayoutNode::from_layout_js(node)
     }
 
     pub(super) fn script_type_id(&self) -> NodeTypeId {
@@ -194,10 +195,10 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
     unsafe fn initialize_style_and_layout_data<RequestedLayoutDataType: LayoutDataTrait>(&self) {
         let inner = self.get_jsmanaged();
         if inner.style_data().is_none() {
-            inner.initialize_style_data();
+            unsafe { inner.initialize_style_data() };
         }
         if inner.layout_data().is_none() {
-            inner.initialize_layout_data(Box::<RequestedLayoutDataType>::default());
+            unsafe { inner.initialize_layout_data(Box::<RequestedLayoutDataType>::default()) };
         }
     }
 
@@ -251,7 +252,8 @@ impl<'dom> ServoThreadSafeLayoutNode<'dom> {
     /// Get the first child of this node. Important: this is not safe for
     /// layout to call, so it should *never* be made public.
     unsafe fn dangerous_first_child(&self) -> Option<Self> {
-        self.get_jsmanaged()
+        let js_managed = unsafe { self.get_jsmanaged() };
+        js_managed
             .first_child_ref()
             .map(ServoLayoutNode::from_layout_js)
             .map(Self::new)
@@ -260,7 +262,8 @@ impl<'dom> ServoThreadSafeLayoutNode<'dom> {
     /// Get the next sibling of this node. Important: this is not safe for
     /// layout to call, so it should *never* be made public.
     unsafe fn dangerous_next_sibling(&self) -> Option<Self> {
-        self.get_jsmanaged()
+        let js_managed = unsafe { self.get_jsmanaged() };
+        js_managed
             .next_sibling_ref()
             .map(ServoLayoutNode::from_layout_js)
             .map(Self::new)

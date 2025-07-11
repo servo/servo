@@ -1600,7 +1600,8 @@ where
 /// returns it.
 #[allow(unsafe_code)]
 pub(crate) unsafe fn from_untrusted_node_address(candidate: UntrustedNodeAddress) -> DomRoot<Node> {
-    DomRoot::from_ref(Node::from_untrusted_node_address(candidate))
+    let node = unsafe { Node::from_untrusted_node_address(candidate) };
+    DomRoot::from_ref(node)
 }
 
 #[allow(unsafe_code)]
@@ -1806,7 +1807,7 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     #[inline]
     #[allow(unsafe_code)]
     unsafe fn initialize_style_data(self) {
-        let data = self.unsafe_get().style_data.borrow_mut_for_layout();
+        let data = unsafe { self.unsafe_get().style_data.borrow_mut_for_layout() };
         debug_assert!(data.is_none());
         *data = Some(Box::default());
     }
@@ -1814,7 +1815,7 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     #[inline]
     #[allow(unsafe_code)]
     unsafe fn initialize_layout_data(self, new_data: Box<GenericLayoutData>) {
-        let data = self.unsafe_get().layout_data.borrow_mut_for_layout();
+        let data = unsafe { self.unsafe_get().layout_data.borrow_mut_for_layout() };
         debug_assert!(data.is_none());
         *data = Some(new_data);
     }
@@ -1822,8 +1823,10 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     #[inline]
     #[allow(unsafe_code)]
     unsafe fn clear_style_and_layout_data(self) {
-        self.unsafe_get().style_data.borrow_mut_for_layout().take();
-        self.unsafe_get().layout_data.borrow_mut_for_layout().take();
+        unsafe {
+            self.unsafe_get().style_data.borrow_mut_for_layout().take();
+            self.unsafe_get().layout_data.borrow_mut_for_layout().take();
+        }
     }
 
     fn is_text_input(&self) -> bool {
@@ -3054,7 +3057,8 @@ impl Node {
         if object.is_null() {
             panic!("Attempted to create a `Node` from an invalid pointer!")
         }
-        &*(conversions::private_from_object(object) as *const Self)
+
+        unsafe { &*(conversions::private_from_object(object) as *const Self) }
     }
 
     pub(crate) fn html_serialize(

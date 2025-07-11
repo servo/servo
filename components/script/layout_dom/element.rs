@@ -99,9 +99,11 @@ impl<'dom> ServoLayoutElement<'dom> {
     /// This function accesses and modifies the underlying DOM object and should
     /// not be used by more than a single thread at once.
     pub unsafe fn unset_snapshot_flags(&self) {
-        self.as_node()
-            .node
-            .set_flag(NodeFlags::HAS_SNAPSHOT | NodeFlags::HANDLED_SNAPSHOT, false);
+        unsafe {
+            self.as_node()
+                .node
+                .set_flag(NodeFlags::HAS_SNAPSHOT | NodeFlags::HANDLED_SNAPSHOT, false);
+        }
     }
 
     /// Unset the snapshot flags on the underlying DOM object for this element.
@@ -111,7 +113,9 @@ impl<'dom> ServoLayoutElement<'dom> {
     /// This function accesses and modifies the underlying DOM object and should
     /// not be used by more than a single thread at once.
     pub unsafe fn set_has_snapshot(&self) {
-        self.as_node().node.set_flag(NodeFlags::HAS_SNAPSHOT, true);
+        unsafe {
+            self.as_node().node.set_flag(NodeFlags::HAS_SNAPSHOT, true);
+        }
     }
 
     /// Returns true if this element is the body child of an html element root element.
@@ -355,22 +359,28 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
     }
 
     unsafe fn set_handled_snapshot(&self) {
-        self.as_node()
-            .node
-            .set_flag(NodeFlags::HANDLED_SNAPSHOT, true);
+        unsafe {
+            self.as_node()
+                .node
+                .set_flag(NodeFlags::HANDLED_SNAPSHOT, true);
+        }
     }
 
     unsafe fn set_dirty_descendants(&self) {
         debug_assert!(self.as_node().is_connected());
-        self.as_node()
-            .node
-            .set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true)
+        unsafe {
+            self.as_node()
+                .node
+                .set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true)
+        }
     }
 
     unsafe fn unset_dirty_descendants(&self) {
-        self.as_node()
-            .node
-            .set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, false)
+        unsafe {
+            self.as_node()
+                .node
+                .set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, false)
+        }
     }
 
     /// Whether this element should match user and content rules.
@@ -406,11 +416,13 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
     }
 
     unsafe fn clear_data(&self) {
-        self.as_node().get_jsmanaged().clear_style_and_layout_data()
+        unsafe { self.as_node().get_jsmanaged().clear_style_and_layout_data() }
     }
 
     unsafe fn ensure_data(&self) -> AtomicRefMut<ElementData> {
-        self.as_node().get_jsmanaged().initialize_style_data();
+        unsafe {
+            self.as_node().get_jsmanaged().initialize_style_data();
+        };
         self.mutate_data().unwrap()
     }
 
