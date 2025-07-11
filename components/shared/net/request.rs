@@ -22,7 +22,7 @@ use crate::{ReferrerPolicy, ResourceTimingType};
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 /// An id to differeniate one network request from another.
-pub struct RequestId(Uuid);
+pub struct RequestId(pub Uuid);
 
 impl Default for RequestId {
     fn default() -> Self {
