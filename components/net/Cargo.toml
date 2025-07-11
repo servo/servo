@@ -52,6 +52,7 @@ malloc_size_of_derive = { workspace = true }
 mime = { workspace = true }
 mime_guess = { workspace = true }
 net_traits = { workspace = true }
+nom = { workspace = true }
 pixels = { path = "../pixels" }
 profile_traits = { workspace = true }
 rayon = { workspace = true }
