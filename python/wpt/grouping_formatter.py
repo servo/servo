@@ -13,7 +13,7 @@ import mozlog.formatters.base
 import mozlog.reader
 
 from dataclasses import dataclass, field
-from typing import DefaultDict, Dict, Optional, Union, TypedDict, Literal
+from typing import DefaultDict, Dict, Optional, NotRequired, Union, TypedDict, Literal
 from six import itervalues
 
 DEFAULT_MOVE_UP_CODE = "\x1b[A"
@@ -122,18 +122,18 @@ Status = Literal["PASS", "FAIL", "PRECONDITION_FAILED", "TIMEOUT", "CRASH", "ASS
 
 class SuiteStartData(GlobalTestData):
     tests: Dict
-    name: Optional[str]
-    run_info: Optional[Dict]
-    version_info: Optional[Dict]
-    device_info: Optional[Dict]
+    name: NotRequired[str]
+    run_info: NotRequired[Dict]
+    version_info: NotRequired[Dict]
+    device_info: NotRequired[Dict]
 
 
 class TestStartData(GlobalTestData):
     test: str
-    path: Optional[str]
+    path: NotRequired[str]
     known_intermittent: Status
-    subsuite: Optional[str]
-    group: Optional[str]
+    subsuite: NotRequired[str]
+    group: NotRequired[str]
 
 
 class TestEndData(GlobalTestData):
@@ -141,11 +141,11 @@ class TestEndData(GlobalTestData):
     status: Status
     expected: Status
     known_intermittent: Status
-    message: Optional[str]
-    stack: Optional[str]
-    extra: Optional[str]
-    subsuite: Optional[str]
-    group: Optional[str]
+    message: NotRequired[str]
+    stack: NotRequired[str]
+    extra: NotRequired[str]
+    subsuite: NotRequired[str]
+    group: NotRequired[str]
 
 
 class TestStatusData(TestEndData):
@@ -241,7 +241,7 @@ class ServoHandler(mozlog.reader.LogHandler):
         self.completed_tests += 1
         test_status = data["status"]
         test_path = data["test"]
-        test_subsuite = data["subsuite"] or ""
+        test_subsuite = data.get("subsuite", "")
         del self.running_tests[data["thread"]]
 
         had_expected_test_result = self.data_was_for_expected_result(data)
@@ -271,7 +271,7 @@ class ServoHandler(mozlog.reader.LogHandler):
                 test_subsuite,
                 test_status,
                 data.get("expected", test_status),
-                data.get("message") or "",
+                data.get("message", ""),
                 data["time"],
                 "",
                 subtest_failures,
@@ -290,7 +290,7 @@ class ServoHandler(mozlog.reader.LogHandler):
             test_subsuite,
             test_status,
             data.get("expected", test_status),
-            data.get("message") or "",
+            data.get("message", ""),
             data["time"],
             stack,
             subtest_failures,
@@ -313,7 +313,7 @@ class ServoHandler(mozlog.reader.LogHandler):
                 data["subtest"],
                 data["status"],
                 data["expected"],
-                data.get("message") or "",
+                data.get("message", ""),
                 data["time"],
                 data.get("stack", None),
             )
