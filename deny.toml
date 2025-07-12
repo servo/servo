@@ -89,7 +89,6 @@ skip = [
     "bitflags",
     "cookie",
     "futures",
-    "hermit-abi",
     "redox_syscall",
     "wayland-sys",
 
