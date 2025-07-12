@@ -12,7 +12,7 @@ use constellation_traits::{
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, NullValue, UndefinedValue};
-use js::rust::{HandleValue, MutableHandleValue};
+use js::rust::{AsHandleValue, HandleValue, MutableHandleValue};
 use net_traits::{CoreResourceMsg, IpcSend};
 use profile_traits::ipc;
 use profile_traits::ipc::channel;
@@ -84,7 +84,6 @@ impl History {
 
     /// <https://html.spec.whatwg.org/multipage/#history-traversal>
     /// Steps 5-16
-    #[allow(unsafe_code)]
     pub(crate) fn activate_state(
         &self,
         state_id: Option<HistoryStateId>,
@@ -145,7 +144,7 @@ impl History {
             PopStateEvent::dispatch_jsval(
                 self.window.upcast::<EventTarget>(),
                 &self.window,
-                unsafe { HandleValue::from_raw(self.state.handle()) },
+                self.state.as_handle_value(),
                 can_gc,
             );
         }

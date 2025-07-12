@@ -13,7 +13,7 @@ use base::id::PipelineId;
 use deny_public_fields::DenyPublicFields;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
-use js::rust::HandleValue;
+use js::rust::{AsHandleValue, HandleValue};
 use serde::{Deserialize, Serialize};
 use servo_config::pref;
 use timers::{BoxedTimerCallback, TimerEventRequest};
@@ -583,13 +583,8 @@ impl JsTimerTask {
         }
     }
 
-    // Returning Handles directly from Heap values is inherently unsafe, but here it's
-    // always done via rooted JsTimers, which is safe.
-    #[allow(unsafe_code)]
     fn collect_heap_args<'b>(&self, args: &'b [Heap<JSVal>]) -> Vec<HandleValue<'b>> {
-        args.iter()
-            .map(|arg| unsafe { HandleValue::from_raw(arg.handle()) })
-            .collect()
+        args.iter().map(|arg| arg.as_handle_value()).collect()
     }
 }
 

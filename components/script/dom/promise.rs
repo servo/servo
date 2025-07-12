@@ -29,7 +29,7 @@ use js::rust::wrappers::{
     GetPromiseIsHandled, GetPromiseState, IsPromiseObject, NewPromiseObject, RejectPromise,
     ResolvePromise, SetAnyPromiseIsHandled, SetPromiseUserInputEventHandlingState,
 };
-use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
+use js::rust::{AsHandleValue, HandleObject, HandleValue, MutableHandleObject, Runtime};
 
 use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::error::{Error, ErrorToJsval};
@@ -440,7 +440,6 @@ struct WaitForAllFulfillmentHandler {
 }
 
 impl Callback for WaitForAllFulfillmentHandler {
-    #[allow(unsafe_code)]
     fn callback(&self, _cx: SafeJSContext, v: HandleValue, _realm: InRealm, _can_gc: CanGc) {
         // Let fulfillmentHandler be the following steps given arg:
 
@@ -458,15 +457,10 @@ impl Callback for WaitForAllFulfillmentHandler {
 
         // If fulfilledCount equals total, then perform successSteps given result.
         if equals_total {
-            // Safety: the values are kept alive by the Heap
-            // while their handles are passed to the the success steps.
-            let result_handles: Vec<HandleValue> = unsafe {
-                self.result
-                    .borrow()
-                    .iter()
-                    .map(|val| HandleValue::from_raw(val.handle()))
-                    .collect()
-            };
+            let result_ref = self.result.borrow();
+            let result_handles: Vec<HandleValue> =
+                result_ref.iter().map(|v| v.as_handle_value()).collect();
+
             (self.success_steps)(result_handles);
         }
     }
