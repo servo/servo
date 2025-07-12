@@ -94,8 +94,8 @@ pub enum AsyncReadWriteOperation {
     ),
 }
 
-// Operations that are not executed instantly, but rather added to a
-// queue that is eventually run.
+/// Operations that are not executed instantly, but rather added to a
+/// queue that is eventually run.
 #[derive(Debug, Deserialize, Serialize)]
 pub enum AsyncOperation {
     ReadOnly(AsyncReadOnlyOperation),
@@ -104,7 +104,7 @@ pub enum AsyncOperation {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum SyncOperation {
-    // Upgrades the version of the database
+    /// Upgrades the version of the database
     UpgradeVersion(
         IpcSender<Result<u64, ()>>,
         ImmutableOrigin,
@@ -112,7 +112,7 @@ pub enum SyncOperation {
         u64,    // Serial number for the transaction
         u64,    // Version to upgrade to
     ),
-    // Checks if an object store has a key generator, used in e.g. Put
+    /// Checks if an object store has a key generator, used in e.g. Put
     HasKeyGenerator(
         IpcSender<bool>,
         ImmutableOrigin,
@@ -120,7 +120,7 @@ pub enum SyncOperation {
         String, // Store
     ),
 
-    // Commits changes of a transaction to the database
+    /// Commits changes of a transaction to the database
     Commit(
         IpcSender<Result<(), ()>>,
         ImmutableOrigin,
@@ -128,7 +128,7 @@ pub enum SyncOperation {
         u64,    // Transaction serial number
     ),
 
-    // Creates a new store for the database
+    /// Creates a new store for the database
     CreateObjectStore(
         IpcSender<Result<(), ()>>,
         ImmutableOrigin,
@@ -157,23 +157,23 @@ pub enum SyncOperation {
         Option<u64>, // Eventual version
     ),
 
-    // Deletes the database
+    /// Deletes the database
     DeleteDatabase(
         IpcSender<Result<(), ()>>,
         ImmutableOrigin,
         String, // Database
     ),
 
-    // Returns an unique identifier that is used to be able to
-    // commit/abort transactions.
+    /// Returns an unique identifier that is used to be able to
+    /// commit/abort transactions.
     RegisterNewTxn(
         IpcSender<u64>,
         ImmutableOrigin,
         String, // Database
     ),
 
-    // Starts executing the requests of a transaction
-    // https://www.w3.org/TR/IndexedDB-2/#transaction-start
+    /// Starts executing the requests of a transaction
+    /// <https://www.w3.org/TR/IndexedDB-2/#transaction-start>
     StartTransaction(
         IpcSender<Result<(), ()>>,
         ImmutableOrigin,
@@ -181,7 +181,7 @@ pub enum SyncOperation {
         u64,    // The serial number of the mutating transaction
     ),
 
-    // Returns the version of the database
+    /// Returns the version of the database
     Version(
         IpcSender<u64>,
         ImmutableOrigin,
