@@ -212,7 +212,7 @@ use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, ScriptThreadEventCategory};
 use crate::script_thread::{ScriptThread, with_script_thread};
 use crate::stylesheet_set::StylesheetSetRef;
-use crate::task::TaskBox;
+use crate::task::NonSendTaskBox;
 use crate::task_source::TaskSourceName;
 use crate::timers::OneshotTimerCallback;
 
@@ -477,7 +477,7 @@ pub(crate) struct Document {
     script_and_layout_blockers: Cell<u32>,
     /// List of tasks to execute as soon as last script/layout blocker is removed.
     #[ignore_malloc_size_of = "Measuring trait objects is hard"]
-    delayed_tasks: DomRefCell<Vec<Box<dyn TaskBox>>>,
+    delayed_tasks: DomRefCell<Vec<Box<dyn NonSendTaskBox>>>,
     /// <https://html.spec.whatwg.org/multipage/#completely-loaded>
     completely_loaded: Cell<bool>,
     /// Set of shadow roots connected to the document tree.
@@ -4338,7 +4338,7 @@ impl Document {
     }
 
     /// Enqueue a task to run as soon as any JS and layout blockers are removed.
-    pub(crate) fn add_delayed_task<T: 'static + TaskBox>(&self, task: T) {
+    pub(crate) fn add_delayed_task<T: 'static + NonSendTaskBox>(&self, task: T) {
         self.delayed_tasks.borrow_mut().push(Box::new(task));
     }
 
