@@ -3,15 +3,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#the-offscreencanvas-interface
-typedef (OffscreenCanvasRenderingContext2D or WebGLRenderingContext or WebGL2RenderingContext)
-OffscreenRenderingContext;
+typedef (OffscreenCanvasRenderingContext2D
+  or ImageBitmapRenderingContext
+  or WebGLRenderingContext
+  or WebGL2RenderingContext) OffscreenRenderingContext;
 
 dictionary ImageEncodeOptions {
   DOMString type = "image/png";
   unrestricted double quality;
 };
 
-//enum OffscreenRenderingContextId { "2d", "webgl", "webgl2" };
+//enum OffscreenRenderingContextId { "2d", "bitmaprenderer", "webgl", "webgl2" };
 
 [Exposed=(Window,Worker), Transferable, Pref="dom_offscreen_canvas_enabled"]
 interface OffscreenCanvas : EventTarget {

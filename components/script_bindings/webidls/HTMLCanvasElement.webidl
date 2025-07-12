@@ -4,6 +4,7 @@
 
 // https://html.spec.whatwg.org/multipage/#htmlcanvaselement
 typedef (CanvasRenderingContext2D
+  or ImageBitmapRenderingContext
   or WebGLRenderingContext
   or WebGL2RenderingContext
   or GPUCanvasContext) RenderingContext;
