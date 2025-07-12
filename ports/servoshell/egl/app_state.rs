@@ -124,13 +124,12 @@ impl ServoDelegate for ServoShellServoDelegate {
 impl WebViewDelegate for RunningAppState {
     fn screen_geometry(&self, _webview: WebView) -> Option<ScreenGeometry> {
         let coord = self.callbacks.coordinates.borrow();
-        let offset = coord.origin();
         let available_size = coord.size();
         let screen_size = coord.size();
         Some(ScreenGeometry {
             size: screen_size,
             available_size,
-            offset,
+            window_rect: DeviceIntRect::from_origin_and_size(coord.origin(), coord.size()),
         })
     }
 

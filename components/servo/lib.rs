@@ -100,6 +100,7 @@ use servo_config::opts::Opts;
 use servo_config::prefs::Preferences;
 use servo_config::{opts, pref, prefs};
 use servo_delegate::DefaultServoDelegate;
+use servo_geometry::DeviceIndependentIntRect;
 use servo_media::ServoMedia;
 use servo_media::player::context::GlContext;
 use servo_url::ServoUrl;
@@ -996,6 +997,25 @@ impl Servo {
                     };
 
                     webview.delegate().show_form_control(webview, form_control);
+                }
+            },
+            EmbedderMsg::GetWindowRect(webview_id, response_sender) => {
+                let window_rect = || {
+                    let Some(webview) = self.get_webview_handle(webview_id) else {
+                        return DeviceIndependentIntRect::default();
+                    };
+                    let hidpi_scale_factor = webview.hidpi_scale_factor();
+                    let Some(screen_geometry) = webview.delegate().screen_geometry(webview) else {
+                        return DeviceIndependentIntRect::default();
+                    };
+
+                    (screen_geometry.window_rect.to_f32() / hidpi_scale_factor)
+                        .round()
+                        .to_i32()
+                };
+
+                if let Err(error) = response_sender.send(window_rect()) {
+                    warn!("Failed to respond to GetWindowRect: {error}");
                 }
             },
         }

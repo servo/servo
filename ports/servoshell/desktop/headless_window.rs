@@ -68,7 +68,7 @@ impl WindowPortsMethods for Window {
         ScreenGeometry {
             size: self.screen_size,
             available_size: self.screen_size,
-            offset: Default::default(),
+            window_rect: self.inner_size.get().into(),
         }
     }
 
