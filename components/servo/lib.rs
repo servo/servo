@@ -100,7 +100,9 @@ use servo_config::opts::Opts;
 use servo_config::prefs::Preferences;
 use servo_config::{opts, pref, prefs};
 use servo_delegate::DefaultServoDelegate;
-use servo_geometry::DeviceIndependentIntRect;
+use servo_geometry::{
+    DeviceIndependentIntRect, convert_rect_to_css_pixel, convert_size_to_css_pixel,
+};
 use servo_media::ServoMedia;
 use servo_media::player::context::GlContext;
 use servo_url::ServoUrl;
@@ -1009,13 +1011,36 @@ impl Servo {
                         return DeviceIndependentIntRect::default();
                     };
 
-                    (screen_geometry.window_rect.to_f32() / hidpi_scale_factor)
-                        .round()
-                        .to_i32()
+                    convert_rect_to_css_pixel(screen_geometry.window_rect, hidpi_scale_factor)
                 };
 
                 if let Err(error) = response_sender.send(window_rect()) {
                     warn!("Failed to respond to GetWindowRect: {error}");
+                }
+            },
+            EmbedderMsg::GetScreenMetrics(webview_id, response_sender) => {
+                let screen_metrics = || {
+                    let Some(webview) = self.get_webview_handle(webview_id) else {
+                        return ScreenMetrics::default();
+                    };
+                    let hidpi_scale_factor = webview.hidpi_scale_factor();
+                    let Some(screen_geometry) = webview.delegate().screen_geometry(webview) else {
+                        return ScreenMetrics::default();
+                    };
+
+                    ScreenMetrics {
+                        screen_size: convert_size_to_css_pixel(
+                            screen_geometry.size,
+                            hidpi_scale_factor,
+                        ),
+                        available_size: convert_size_to_css_pixel(
+                            screen_geometry.available_size,
+                            hidpi_scale_factor,
+                        ),
+                    }
+                };
+                if let Err(error) = response_sender.send(screen_metrics()) {
+                    warn!("Failed to respond to GetScreenMetrics: {error}");
                 }
             },
         }

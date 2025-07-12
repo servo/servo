@@ -33,7 +33,6 @@ use euclid::default::Size2D as UntypedSize2D;
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use profile_traits::mem::{OpaqueSender, ReportsChan};
 use serde::{Deserialize, Serialize};
-use servo_geometry::DeviceIndependentIntSize;
 use webrender_api::units::{DevicePoint, LayoutVector2D, TexelRect};
 use webrender_api::{
     BuiltDisplayList, BuiltDisplayListDescriptor, ExternalImage, ExternalImageData,
@@ -152,13 +151,6 @@ pub enum CompositorMsg {
     AddFontInstance(FontInstanceKey, FontKey, f32, FontInstanceFlags),
     /// Remove the given font resources from our WebRender instance.
     RemoveFonts(Vec<FontKey>, Vec<FontInstanceKey>),
-    /// Get the size of the screen that the client window inhabits.
-    GetScreenSize(WebViewId, IpcSender<DeviceIndependentIntSize>),
-    /// Get the available screen size, without system interface elements such as menus, docks, and
-    /// taskbars.
-    /// the client window inhabits.
-    GetAvailableScreenSize(WebViewId, IpcSender<DeviceIndependentIntSize>),
-
     /// Measure the current memory usage associated with the compositor.
     /// The report must be sent on the provided channel once it's complete.
     CollectMemoryReport(ReportsChan),

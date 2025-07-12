@@ -912,26 +912,6 @@ impl IOCompositor {
                     .collect();
                 let _ = result_sender.send((font_keys, font_instance_keys));
             },
-            CompositorMsg::GetScreenSize(webview_id, response_sender) => {
-                let screen_size = self
-                    .webview_renderers
-                    .get(webview_id)
-                    .map(WebViewRenderer::screen_size)
-                    .unwrap_or_default();
-                if let Err(error) = response_sender.send(screen_size) {
-                    warn!("Sending response to get screen size failed ({error:?}).");
-                }
-            },
-            CompositorMsg::GetAvailableScreenSize(webview_id, response_sender) => {
-                let available_screen_size = self
-                    .webview_renderers
-                    .get(webview_id)
-                    .map(WebViewRenderer::available_screen_size)
-                    .unwrap_or_default();
-                if let Err(error) = response_sender.send(available_screen_size) {
-                    warn!("Sending response to get screen size failed ({error:?}).");
-                }
-            },
             CompositorMsg::Viewport(webview_id, viewport_description) => {
                 if let Some(webview) = self.webview_renderers.get_mut(webview_id) {
                     webview.set_viewport_description(viewport_description);
@@ -980,16 +960,6 @@ impl IOCompositor {
                     })
                     .collect();
                 let _ = result_sender.send((font_keys, font_instance_keys));
-            },
-            CompositorMsg::GetScreenSize(_, response_sender) => {
-                if let Err(error) = response_sender.send(Default::default()) {
-                    warn!("Sending response to get client window failed ({error:?}).");
-                }
-            },
-            CompositorMsg::GetAvailableScreenSize(_, response_sender) => {
-                if let Err(error) = response_sender.send(Default::default()) {
-                    warn!("Sending response to get client window failed ({error:?}).");
-                }
             },
             CompositorMsg::NewWebRenderFrameReady(..) => {
                 // Subtract from the number of pending frames, but do not do any compositing.

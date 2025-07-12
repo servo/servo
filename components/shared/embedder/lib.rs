@@ -31,7 +31,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use num_derive::FromPrimitive;
 use pixels::RasterImage;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use servo_geometry::DeviceIndependentIntRect;
+use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize};
 use servo_url::ServoUrl;
 use strum_macros::IntoStaticStr;
 use style::queries::values::PrefersColorScheme;
@@ -310,6 +310,14 @@ pub struct ViewportDetails {
     pub hidpi_scale_factor: Scale<f32, CSSPixel, DevicePixel>,
 }
 
+/// Unlike [`ScreenGeometry`], the data is in device-independent pixels
+/// to be used by DOM APIs
+#[derive(Default, Deserialize, Serialize)]
+pub struct ScreenMetrics {
+    pub screen_size: DeviceIndependentIntSize,
+    pub available_size: DeviceIndependentIntSize,
+}
+
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum EmbedderMsg {
     /// A status message to be displayed by the browser chrome.
@@ -366,6 +374,8 @@ pub enum EmbedderMsg {
     HistoryChanged(WebViewId, Vec<ServoUrl>, usize),
     /// Get the device independent window rectangle.
     GetWindowRect(WebViewId, IpcSender<DeviceIndependentIntRect>),
+    /// Get the device independent screen size and available size.
+    GetScreenMetrics(WebViewId, IpcSender<ScreenMetrics>),
     /// Entered or exited fullscreen.
     NotifyFullscreenStateChanged(WebViewId, bool),
     /// The [`LoadStatus`] of the Given `WebView` has changed.

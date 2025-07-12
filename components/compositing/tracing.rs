@@ -51,8 +51,6 @@ mod from_constellation {
                 Self::AddSystemFont(..) => target!("AddSystemFont"),
                 Self::AddFontInstance(..) => target!("AddFontInstance"),
                 Self::RemoveFonts(..) => target!("RemoveFonts"),
-                Self::GetScreenSize(..) => target!("GetScreenSize"),
-                Self::GetAvailableScreenSize(..) => target!("GetAvailableScreenSize"),
                 Self::CollectMemoryReport(..) => target!("CollectMemoryReport"),
                 Self::Viewport(..) => target!("Viewport"),
                 Self::GenerateImageKeysForPipeline(..) => target!("GenerateImageKeysForPipeline"),

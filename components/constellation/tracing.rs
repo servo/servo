@@ -215,6 +215,7 @@ mod from_script {
                 Self::NewFavicon(..) => target_variant!("NewFavicon"),
                 Self::HistoryChanged(..) => target_variant!("HistoryChanged"),
                 Self::GetWindowRect(..) => target_variant!("GetWindowRect"),
+                Self::GetScreenMetrics(..) => target_variant!("GetScreenMetrics"),
                 Self::NotifyFullscreenStateChanged(..) => {
                     target_variant!("NotifyFullscreenStateChanged")
                 },
