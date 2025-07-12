@@ -196,7 +196,7 @@ pub enum SyncOperation {
 pub enum IndexedDBThreadMsg {
     Sync(SyncOperation),
     Async(
-        IpcSender<Option<Vec<u8>>>, // Sender to send the result of the async operation
+        IpcSender<Result<Option<Vec<u8>>, ()>>, // Sender to send the result of the async operation
         ImmutableOrigin,
         String, // Database
         String, // ObjectStore

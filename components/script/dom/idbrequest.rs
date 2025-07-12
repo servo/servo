@@ -40,7 +40,7 @@ struct RequestListener {
 }
 
 impl RequestListener {
-    fn handle_async_request_finished(&self, result: Option<Vec<u8>>) {
+    fn handle_async_request_finished(&self, result: Result<Option<Vec<u8>>, ()>) {
         let request = self.request.root();
         let global = request.global();
         let cx = GlobalScope::get_cx();
@@ -50,7 +50,7 @@ impl RequestListener {
         let _ac = enter_realm(&*request);
         rooted!(in(*cx) let mut answer = UndefinedValue());
 
-        if let Some(serialized_data) = result {
+        if let Ok(Some(serialized_data)) = result {
             let data = StructuredSerializedData {
                 serialized: serialized_data,
                 ..Default::default()
@@ -199,7 +199,7 @@ impl IDBRequest {
         };
 
         let (sender, receiver) =
-            ipc::channel::<std::option::Option<Vec<u8>>>(global.time_profiler_chan().clone())
+            ipc::channel::<Result<Option<Vec<u8>>, ()>>(global.time_profiler_chan().clone())
                 .unwrap();
 
         let response_listener = RequestListener {

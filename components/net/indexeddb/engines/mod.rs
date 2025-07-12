@@ -46,7 +46,7 @@ impl std::fmt::Display for SanitizedName {
 }
 
 pub struct KvsOperation {
-    pub sender: IpcSender<Option<Vec<u8>>>,
+    pub sender: IpcSender<Result<Option<Vec<u8>>, ()>>,
     pub store_name: SanitizedName,
     pub operation: AsyncOperation,
 }

@@ -88,7 +88,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
 
     fn queue_operation(
         &mut self,
-        sender: IpcSender<Option<Vec<u8>>>,
+        sender: IpcSender<Result<Option<Vec<u8>>, ()>>,
         store_name: SanitizedName,
         serial_number: u64,
         mode: IndexedDBTxnMode,
