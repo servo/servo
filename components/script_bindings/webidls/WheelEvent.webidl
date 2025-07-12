@@ -27,7 +27,11 @@ dictionary WheelEventInit : MouseEventInit {
 partial interface WheelEvent {
     // Deprecated in DOM Level 3
     undefined initWheelEvent (DOMString typeArg, boolean bubblesArg, boolean cancelableArg,
-                         Window? viewArg, long detailArg,
+                         Window? viewArg, long detailArg, long screenXArg,
+                         long screenYArg, long clientXArg, long clientYArg,
+                         boolean ctrlKeyArg, boolean altKeyArg,
+                         boolean shiftKeyArg, boolean metaKeyArg, short buttonArg,
+                         EventTarget? relatedTargetArg,
                          double deltaX, double deltaY,
                          double deltaZ, unsigned long deltaMode);
 };
