@@ -535,6 +535,26 @@ pub enum ImageUpdate {
     ),
 }
 
+impl Debug for ImageUpdate {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::AddImage(image_key, image_desc, _, epoch) => f
+                .debug_tuple("AddImage")
+                .field(image_key)
+                .field(image_desc)
+                .field(epoch)
+                .finish(),
+            Self::DeleteImage(image_key) => f.debug_tuple("DeleteImage").field(image_key).finish(),
+            Self::UpdateImage(image_key, image_desc, _, epoch) => f
+                .debug_tuple("UpdateImage")
+                .field(image_key)
+                .field(image_desc)
+                .field(epoch)
+                .finish(),
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 /// Serialized `ImageData`. It contains IPC byte channel receiver to prevent from loading bytes too
 /// slow.
