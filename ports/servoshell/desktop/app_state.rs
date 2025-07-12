@@ -470,6 +470,13 @@ impl RunningAppState {
             });
         }
     }
+
+    pub(crate) fn remove_load_status_sender(&self, webview_id: WebViewId) {
+        self.webdriver_senders
+            .borrow_mut()
+            .load_status_senders
+            .remove(&webview_id);
+    }
 }
 
 struct ServoShellServoDelegate;
