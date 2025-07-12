@@ -13,7 +13,7 @@ use content_security_policy::{
     CheckResult, CspList, Destination, Element as CspElement, Initiator, NavigationCheckType,
     Origin, ParserMetadata, PolicyDisposition, PolicySource, Request, ViolationResource,
 };
-use http::HeaderMap;
+use http::header::{HeaderMap, HeaderValue, ValueIter};
 use hyper_serde::Serde;
 use js::rust::describe_scripted_caller;
 
@@ -233,6 +233,9 @@ impl GlobalCspReporting for GlobalScope {
         element: Option<&Element>,
         source_position: Option<SourcePosition>,
     ) {
+        if violations.is_empty() {
+            return;
+        }
         let source_position =
             source_position.unwrap_or_else(compute_scripted_caller_source_position);
         for violation in violations {
@@ -297,35 +300,43 @@ impl GlobalCspReporting for GlobalScope {
     }
 }
 
-/// <https://www.w3.org/TR/CSP/#initialize-document-csp>
+fn parse_and_potentially_append_to_csp_list(
+    old_csp_list: Option<CspList>,
+    csp_header_iter: ValueIter<HeaderValue>,
+    disposition: PolicyDisposition,
+) -> Option<CspList> {
+    let mut csp_list = old_csp_list;
+    for header in csp_header_iter {
+        // This silently ignores the CSP if it contains invalid Unicode.
+        // We should probably report an error somewhere.
+        let new_csp_list = header
+            .to_str()
+            .ok()
+            .map(|value| CspList::parse(value, PolicySource::Header, disposition));
+        if let Some(new_csp_list_value) = new_csp_list {
+            match csp_list {
+                None => csp_list = Some(new_csp_list_value),
+                Some(ref mut csp_list) => csp_list.append(new_csp_list_value),
+            };
+        }
+    }
+    csp_list
+}
+
+/// <https://www.w3.org/TR/CSP/#parse-response-csp>
 pub(crate) fn parse_csp_list_from_metadata(headers: &Option<Serde<HeaderMap>>) -> Option<CspList> {
-    // TODO: Implement step 1 (local scheme special case)
     let headers = headers.as_ref()?;
-    let mut csp = headers.get_all("content-security-policy").iter();
-    // This silently ignores the CSP if it contains invalid Unicode.
-    // We should probably report an error somewhere.
-    let c = csp.next().and_then(|c| c.to_str().ok())?;
-    let mut csp_list = CspList::parse(c, PolicySource::Header, PolicyDisposition::Enforce);
-    for c in csp {
-        let c = c.to_str().ok()?;
-        csp_list.append(CspList::parse(
-            c,
-            PolicySource::Header,
-            PolicyDisposition::Enforce,
-        ));
-    }
-    let csp_report = headers
-        .get_all("content-security-policy-report-only")
-        .iter();
-    // This silently ignores the CSP if it contains invalid Unicode.
-    // We should probably report an error somewhere.
-    for c in csp_report {
-        let c = c.to_str().ok()?;
-        csp_list.append(CspList::parse(
-            c,
-            PolicySource::Header,
-            PolicyDisposition::Report,
-        ));
-    }
-    Some(csp_list)
+    let csp_enforce_list = parse_and_potentially_append_to_csp_list(
+        None,
+        headers.get_all("content-security-policy").iter(),
+        PolicyDisposition::Enforce,
+    );
+
+    parse_and_potentially_append_to_csp_list(
+        csp_enforce_list,
+        headers
+            .get_all("content-security-policy-report-only")
+            .iter(),
+        PolicyDisposition::Report,
+    )
 }
