@@ -310,8 +310,13 @@ pub struct ViewportDetails {
     pub hidpi_scale_factor: Scale<f32, CSSPixel, DevicePixel>,
 }
 
-/// (Screen size, available screen size).
-pub type ScreenMetrics = (DeviceIndependentIntSize, DeviceIndependentIntSize);
+/// Unlike [`ScreenGeometry`], the data is in device-independent pixels
+/// to be used by DOM APIs
+#[derive(Default, Deserialize, Serialize)]
+pub struct ScreenMetrics {
+    pub screen_size: DeviceIndependentIntSize,
+    pub available_size: DeviceIndependentIntSize,
+}
 
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum EmbedderMsg {

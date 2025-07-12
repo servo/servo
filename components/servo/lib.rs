@@ -1028,13 +1028,16 @@ impl Servo {
                         return ScreenMetrics::default();
                     };
 
-                    (
-                        convert_size_to_css_pixel(screen_geometry.size, hidpi_scale_factor),
-                        convert_size_to_css_pixel(
+                    ScreenMetrics {
+                        screen_size: convert_size_to_css_pixel(
+                            screen_geometry.size,
+                            hidpi_scale_factor,
+                        ),
+                        available_size: convert_size_to_css_pixel(
                             screen_geometry.available_size,
                             hidpi_scale_factor,
                         ),
-                    )
+                    }
                 };
                 if let Err(error) = response_sender.send(screen_metrics()) {
                     warn!("Failed to respond to GetScreenMetrics: {error}");
