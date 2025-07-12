@@ -1192,8 +1192,8 @@ impl<'a> BuilderForBoxFragment<'a> {
             return;
         }
         // If the `<body>` background was inherited by the root element, don't paint it again here.
-        if !builder.paint_body_background
-            && flags.intersects(FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT)
+        if !builder.paint_body_background &&
+            flags.intersects(FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT)
         {
             return;
         }
@@ -1556,8 +1556,8 @@ impl<'a> BuilderForBoxFragment<'a> {
             .outline_offset
             .px()
             .max(-self.border_rect.width() / 2.0)
-            .max(-self.border_rect.height() / 2.0)
-            + width;
+            .max(-self.border_rect.height() / 2.0) +
+            width;
         let outline_rect = self.border_rect.inflate(offset, offset);
         let common = builder.common_properties(outline_rect, &self.fragment.style);
         let widths = SideOffsets2D::new_all_same(width);
