@@ -16,7 +16,8 @@ use js::rust::{HandleValue, MutableHandleValue};
 use log::error;
 use net_traits::IpcSend;
 use net_traits::indexeddb_thread::{
-    AsyncOperation, IndexedDBKeyType, IndexedDBThreadMsg, SyncOperation,
+    AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, IndexedDBKeyType,
+    IndexedDBThreadMsg, SyncOperation,
 };
 use profile_traits::ipc;
 
@@ -454,7 +455,11 @@ impl IDBObjectStore {
 
         IDBRequest::execute_async(
             self,
-            AsyncOperation::PutItem(serialized_key, serialized_value.serialized, overwrite),
+            AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem(
+                serialized_key,
+                serialized_value.serialized,
+                overwrite,
+            )),
             None,
             can_gc,
         )
@@ -486,7 +491,12 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     fn Delete(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
         let serialized_query = IDBObjectStore::convert_value_to_key(cx, query, None);
         serialized_query.and_then(|q| {
-            IDBRequest::execute_async(self, AsyncOperation::RemoveItem(q), None, CanGc::note())
+            IDBRequest::execute_async(
+                self,
+                AsyncOperation::ReadWrite(AsyncReadWriteOperation::RemoveItem(q)),
+                None,
+                CanGc::note(),
+            )
         })
     }
 
@@ -499,7 +509,12 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     fn Get(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
         let serialized_query = IDBObjectStore::convert_value_to_key(cx, query, None);
         serialized_query.and_then(|q| {
-            IDBRequest::execute_async(self, AsyncOperation::GetItem(q), None, CanGc::note())
+            IDBRequest::execute_async(
+                self,
+                AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem(q)),
+                None,
+                CanGc::note(),
+            )
         })
     }
 
