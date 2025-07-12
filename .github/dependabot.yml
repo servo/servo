@@ -9,31 +9,31 @@ updates:
   - dependency-type: direct
   - dependency-type: indirect
   groups:
-    gstreamer-related:
-       patterns:
-         - "gio*"
-         - "glib*"
-         - "gobject*"
-         - "gstreamer*"
     egui-related:
-       patterns:
-         - "ecolor"
-         - "egui"
-         - "egui-winit"
-         - "egui_glow"
-         - "emath"
-         - "epaint"
-         - "epaint_default_fonts"
+      patterns:
+        - "ecolor"
+        - "egui"
+        - "egui-winit"
+        - "egui_glow"
+        - "emath"
+        - "epaint"
+        - "epaint_default_fonts"
+    gstreamer-related:
+      patterns:
+        - "gio*"
+        - "glib*"
+        - "gobject*"
+        - "gstreamer*"
     napi-ohos-related:
       patterns:
         - "napi-ohos*"
         - "napi-*-ohos*"
-    servo-media-related:
-      patterns:
-        - "servo-media*"
     objc2-related:
       patterns:
         - "objc2*"
+    servo-media-related:
+      patterns:
+        - "servo-media*"
   ignore:
   # Ignore all stylo crates as their upgrades are coordinated via companion PRs.
   - dependency-name: selectors
