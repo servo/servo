@@ -18,7 +18,7 @@ use std::time::{Duration, Instant};
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::WebViewId;
 use canvas_traits::canvas::CanvasId;
-use canvas_traits::webgl::{self, WebGLContextId, WebGLMsg};
+use canvas_traits::webgl::{WebGLContextId, WebGLMsg};
 use chrono::Local;
 use constellation_traits::{NavigationHistoryBehavior, ScriptToConstellationMessage};
 use content_security_policy::{CspList, PolicyDisposition};
@@ -3561,21 +3561,19 @@ impl Document {
             .filter(|(_, context)| context.onscreen())
             .for_each(|(_, context)| context.update_rendering());
 
-        let dirty_webgl_context_ids: Vec<_> = self
+        let dirty_webgl_context_ids_and_epochs: Vec<_> = self
             .dirty_webgl_contexts
             .borrow_mut()
             .drain()
             .filter(|(_, context)| context.onscreen())
-            .map(|(id, _)| id)
+            .map(|(id, context)| (id, context.next_epoch()))
             .collect();
-        if !dirty_webgl_context_ids.is_empty() {
-            let (sender, receiver) = webgl::webgl_channel().unwrap();
+        if !dirty_webgl_context_ids_and_epochs.is_empty() {
             self.window
                 .webgl_chan()
                 .expect("Where's the WebGL channel?")
-                .send(WebGLMsg::SwapBuffers(dirty_webgl_context_ids, sender, 0))
+                .send(WebGLMsg::SwapBuffers(dirty_webgl_context_ids_and_epochs, 0))
                 .unwrap();
-            receiver.recv().unwrap();
         }
 
         self.window().reflow(ReflowGoal::UpdateTheRendering, can_gc)

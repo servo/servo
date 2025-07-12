@@ -1079,6 +1079,7 @@ name = "canvas"
 version = "0.0.1"
 dependencies = [
  "app_units",
+ "base",
  "canvas_traits",
  "compositing_traits",
  "crossbeam-channel",
@@ -9427,6 +9428,7 @@ dependencies = [
 name = "webgl"
 version = "0.0.1"
 dependencies = [
+ "base",
  "bitflags 2.9.1",
  "byteorder",
  "canvas_traits",
