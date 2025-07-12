@@ -347,7 +347,7 @@ pub struct ScriptThread {
     /// [`ScriptThreadMessage::TickAllAnimations`] message or because the [`ScriptThread`]
     /// itself is managing animations the the timer fired triggering a [`ScriptThread`]-based
     /// animation tick.
-    has_pending_animation_tick: Arc<AtomicBool>,
+    has_pending_animation_tick: Rc<Cell<bool>>,
 }
 
 struct BHMExitSignal {
@@ -597,8 +597,7 @@ impl ScriptThread {
     }
 
     pub(crate) fn set_has_pending_animation_tick(&self) {
-        self.has_pending_animation_tick
-            .store(true, Ordering::Relaxed);
+        self.has_pending_animation_tick.set(true);
     }
 
     /// Step 13 of <https://html.spec.whatwg.org/multipage/#navigate>
@@ -972,7 +971,7 @@ impl ScriptThread {
             layout_factory,
             relative_mouse_down_point: Cell::new(Point2D::zero()),
             scheduled_script_thread_animation_timer: Default::default(),
-            has_pending_animation_tick: Arc::new(AtomicBool::new(false)),
+            has_pending_animation_tick: Default::default(),
         }
     }
 
@@ -1175,10 +1174,8 @@ impl ScriptThread {
     pub(crate) fn update_the_rendering(&self, can_gc: CanGc) {
         *self.last_render_opportunity_time.borrow_mut() = Some(Instant::now());
 
-        let is_animation_tick = self.has_pending_animation_tick.load(Ordering::Relaxed);
+        let is_animation_tick = self.has_pending_animation_tick.replace(false);
         if is_animation_tick {
-            self.has_pending_animation_tick
-                .store(false, Ordering::Relaxed);
             // If this is an animation tick, cancel any upcoming ScriptThread-based animation timer.
             // This tick serves the purpose and we to limit animation ticks if some are coming from
             // the renderer.
@@ -1413,7 +1410,7 @@ impl ScriptThread {
         let trigger_script_thread_animation = self.has_pending_animation_tick.clone();
         let timer_id = self.schedule_timer(TimerEventRequest {
             callback: Box::new(move || {
-                trigger_script_thread_animation.store(true, Ordering::Relaxed);
+                trigger_script_thread_animation.set(true);
             }),
             duration: Duration::from_millis(SCRIPT_THREAD_ANIMATION_TICK_DELAY),
         });
