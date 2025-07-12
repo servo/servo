@@ -157,8 +157,7 @@ jobs:
     name: HarmonyOS Build (aarch64)
     continue-on-error: true
     runs-on: hos-builder
-    if: ${{ false }}
-    #if: github.repository == 'servo/servo'
+    if: github.repository == 'servo/servo'
     steps:
       - if: ${{ github.event_name != 'pull_request_target' }}
         run: git fetch --depth=1 origin $GITHUB_SHA
@@ -185,8 +184,7 @@ jobs:
     # so in the beginning we will just do a best effort approach but ignore errors.
     continue-on-error: true
     runs-on: hos-runner
-    if: ${{ false }}
-    #if: github.repository == 'servo/servo'
+    if: github.repository == 'servo/servo'
     needs: build-harmonyos-aarch64
     steps:
       - uses: actions/download-artifact@v4
@@ -248,8 +246,7 @@ jobs:
     continue-on-error: true
     runs-on: hos-runner
     needs: test-harmonyos-aarch64
-    if: ${{ false }}
-    #if: github.repository == 'servo/servo'
+    if: github.repository == 'servo/servo'
     steps:
       - uses: actions/download-artifact@v4
         with:
