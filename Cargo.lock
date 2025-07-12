@@ -5227,7 +5227,7 @@ dependencies = [
 [[package]]
 name = "mozjs"
 version = "0.14.1"
-source = "git+https://github.com/servo/mozjs#128e1e230a0155ed9395c718184f34bddc045860"
+source = "git+https://github.com/Taym95/mozjs?branch=heap-handlevalue-wrapper#02c842547f5eb8b9524cd2c8097066b25bdef501"
 dependencies = [
  "bindgen 0.71.1",
  "cc",
@@ -5239,7 +5239,7 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "0.128.13-0"
-source = "git+https://github.com/servo/mozjs#128e1e230a0155ed9395c718184f34bddc045860"
+source = "git+https://github.com/Taym95/mozjs?branch=heap-handlevalue-wrapper#02c842547f5eb8b9524cd2c8097066b25bdef501"
 dependencies = [
  "bindgen 0.71.1",
  "cc",
