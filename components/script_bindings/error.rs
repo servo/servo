@@ -70,6 +70,8 @@ pub enum Error {
     NotAllowed,
     /// EncodingError DOMException
     Encoding,
+    /// ConstraintError DOMException
+    Constraint,
 
     /// TypeError JavaScript Error
     Type(String),
