@@ -30,6 +30,7 @@ use js::rust::wrappers::{
     ResolvePromise, SetAnyPromiseIsHandled, SetPromiseUserInputEventHandlingState,
 };
 use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
+use script_bindings::conversions::safe_to_jsval;
 
 use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::error::{Error, ErrorToJsval};
@@ -160,9 +161,9 @@ impl Promise {
         _can_gc: CanGc,
     ) -> Rc<Promise> {
         let _ac = JSAutoRealm::new(*cx, global.reflector().get_jsobject().get());
+        rooted!(in(*cx) let mut rval = UndefinedValue());
+        safe_to_jsval(cx, value, rval.handle_mut());
         unsafe {
-            rooted!(in(*cx) let mut rval = UndefinedValue());
-            value.to_jsval(*cx, rval.handle_mut());
             rooted!(in(*cx) let p = CallOriginalPromiseResolve(*cx, rval.handle()));
             assert!(!p.handle().is_null());
             Promise::new_with_js_promise(p.handle(), cx)
@@ -178,16 +179,15 @@ impl Promise {
         _can_gc: CanGc,
     ) -> Rc<Promise> {
         let _ac = JSAutoRealm::new(*cx, global.reflector().get_jsobject().get());
+        rooted!(in(*cx) let mut rval = UndefinedValue());
+        safe_to_jsval(cx, value, rval.handle_mut());
         unsafe {
-            rooted!(in(*cx) let mut rval = UndefinedValue());
-            value.to_jsval(*cx, rval.handle_mut());
             rooted!(in(*cx) let p = CallOriginalPromiseReject(*cx, rval.handle()));
             assert!(!p.handle().is_null());
             Promise::new_with_js_promise(p.handle(), cx)
         }
     }
 
-    #[allow(unsafe_code)]
     pub(crate) fn resolve_native<T>(&self, val: &T, can_gc: CanGc)
     where
         T: ToJSValConvertible,
@@ -195,9 +195,7 @@ impl Promise {
         let cx = GlobalScope::get_cx();
         let _ac = enter_realm(self);
         rooted!(in(*cx) let mut v = UndefinedValue());
-        unsafe {
-            val.to_jsval(*cx, v.handle_mut());
-        }
+        safe_to_jsval(cx, val, v.handle_mut());
         self.resolve(cx, v.handle(), can_gc);
     }
 
@@ -211,7 +209,6 @@ impl Promise {
         }
     }
 
-    #[allow(unsafe_code)]
     pub(crate) fn reject_native<T>(&self, val: &T, can_gc: CanGc)
     where
         T: ToJSValConvertible,
@@ -219,9 +216,7 @@ impl Promise {
         let cx = GlobalScope::get_cx();
         let _ac = enter_realm(self);
         rooted!(in(*cx) let mut v = UndefinedValue());
-        unsafe {
-            val.to_jsval(*cx, v.handle_mut());
-        }
+        safe_to_jsval(cx, val, v.handle_mut());
         self.reject(cx, v.handle(), can_gc);
     }
 
