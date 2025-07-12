@@ -1596,11 +1596,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-scrollx>
     fn ScrollX(&self) -> i32 {
-        self.scroll_offset_query_with_external_scroll_id(
-            self.pipeline_id().root_scroll_id(),
-            CanGc::note(),
-        )
-        .x as i32
+        self.scroll_offset(CanGc::note()).x as i32
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-pagexoffset
@@ -1610,11 +1606,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-scrolly>
     fn ScrollY(&self) -> i32 {
-        self.scroll_offset_query_with_external_scroll_id(
-            self.pipeline_id().root_scroll_id(),
-            CanGc::note(),
-        )
-        .y as i32
+        self.scroll_offset(CanGc::note()).y as i32
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-pageyoffset
@@ -1656,10 +1648,11 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollby
     fn ScrollBy_(&self, x: f64, y: f64, can_gc: CanGc) {
+        let scroll_offset = self.scroll_offset(can_gc);
         // Step 3
-        let left = x + self.ScrollX() as f64;
+        let left = x + scroll_offset.x as f64;
         // Step 4
-        let top = y + self.ScrollY() as f64;
+        let top = y + scroll_offset.y as f64;
 
         // Step 5
         self.scroll(left, top, ScrollBehavior::Auto, can_gc);
@@ -1984,6 +1977,13 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 }
 
 impl Window {
+    pub(crate) fn scroll_offset(&self, can_gc: CanGc) -> Vector2D<f32, LayoutPixel> {
+        self.scroll_offset_query_with_external_scroll_id(
+            self.pipeline_id().root_scroll_id(),
+            can_gc,
+        )
+    }
+
     // https://heycam.github.io/webidl/#named-properties-object
     // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
     #[allow(unsafe_code)]
@@ -2102,7 +2102,8 @@ impl Window {
 
         // Step 10
         //TODO handling ongoing smooth scrolling
-        if x == self.ScrollX() as f64 && y == self.ScrollY() as f64 {
+        let scroll_offset = self.scroll_offset(can_gc);
+        if x == scroll_offset.x as f64 && y == scroll_offset.y as f64 {
             return;
         }
 

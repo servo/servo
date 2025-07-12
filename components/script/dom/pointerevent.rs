@@ -8,7 +8,6 @@ use dom_struct::dom_struct;
 use euclid::Point2D;
 use js::rust::HandleObject;
 use keyboard_types::Modifiers;
-use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use style_traits::CSSPixel;
 
 use super::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
@@ -234,9 +233,10 @@ impl PointerEventMethods<crate::DomTypeHolder> for PointerEvent {
     ) -> DomRoot<PointerEvent> {
         let bubbles = EventBubbles::from(init.parent.parent.parent.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.parent.parent.parent.cancelable);
+        let scroll_offset = window.scroll_offset(can_gc);
         let page_point = Point2D::new(
-            window.ScrollX() + init.parent.clientX,
-            window.ScrollY() + init.parent.clientY,
+            scroll_offset.x as i32 + init.parent.clientX,
+            scroll_offset.y as i32 + init.parent.clientY,
         );
         PointerEvent::new_with_proto(
             window,

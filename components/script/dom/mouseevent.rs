@@ -278,9 +278,10 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
     ) -> Fallible<DomRoot<MouseEvent>> {
         let bubbles = EventBubbles::from(init.parent.parent.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.parent.parent.cancelable);
+        let scroll_offset = window.scroll_offset(can_gc);
         let page_point = Point2D::new(
-            window.ScrollX() + init.clientX,
-            window.ScrollY() + init.clientY,
+            scroll_offset.x as i32 + init.clientX,
+            scroll_offset.y as i32 + init.clientY,
         );
         let event = MouseEvent::new_with_proto(
             window,
@@ -478,6 +479,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
         meta_key_arg: bool,
         button_arg: i16,
         related_target_arg: Option<&EventTarget>,
+        can_gc: CanGc,
     ) {
         if self.upcast::<Event>().dispatching() {
             return;
@@ -496,9 +498,10 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
             .set(Point2D::new(client_x_arg, client_y_arg));
 
         let global = self.global();
+        let scroll_offset = global.as_window().scroll_offset(can_gc);
         self.page_point.set(Point2D::new(
-            global.as_window().ScrollX() + client_x_arg,
-            global.as_window().ScrollY() + client_y_arg,
+            scroll_offset.x as i32 + client_x_arg,
+            scroll_offset.y as i32 + client_y_arg,
         ));
 
         let mut modifiers = Modifiers::empty();

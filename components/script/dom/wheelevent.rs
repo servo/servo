@@ -95,6 +95,7 @@ impl WheelEvent {
             delta_y,
             delta_z,
             delta_mode,
+            can_gc,
         );
 
         ev
@@ -160,6 +161,7 @@ impl WheelEventMethods<crate::DomTypeHolder> for WheelEvent {
         delta_y_arg: Finite<f64>,
         delta_z_arg: Finite<f64>,
         delta_mode_arg: u32,
+        can_gc: CanGc,
     ) {
         if self.upcast::<Event>().dispatching() {
             return;
@@ -181,6 +183,7 @@ impl WheelEventMethods<crate::DomTypeHolder> for WheelEvent {
             self.mouseevent.MetaKey(),
             self.mouseevent.Button(),
             self.mouseevent.GetRelatedTarget().as_deref(),
+            can_gc,
         );
         self.delta_x.set(delta_x_arg);
         self.delta_y.set(delta_y_arg);
