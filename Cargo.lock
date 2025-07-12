@@ -1087,6 +1087,7 @@ dependencies = [
  "font-kit",
  "fonts",
  "ipc-channel",
+ "kurbo",
  "log",
  "lyon_geom",
  "net_traits",
@@ -1108,6 +1109,7 @@ dependencies = [
  "euclid",
  "glow",
  "ipc-channel",
+ "kurbo",
  "malloc_size_of_derive",
  "pixels",
  "serde",
@@ -4681,6 +4683,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1077d333efea6170d9ccb96d3c3026f300ca0773da4938cc4c811daa6df68b0c"
 dependencies = [
  "arrayvec",
+ "serde",
  "smallvec",
 ]
 
@@ -7089,6 +7092,7 @@ dependencies = [
  "itertools 0.14.0",
  "jstraceable_derive",
  "keyboard-types",
+ "kurbo",
  "layout_api",
  "libc",
  "log",

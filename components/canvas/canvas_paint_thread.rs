@@ -156,7 +156,7 @@ impl<'a> CanvasPaintThread<'a> {
             },
             Canvas2dMsg::FillPath(style, path) => {
                 self.canvas(canvas_id).set_fill_style(style);
-                self.canvas(canvas_id).fill_path(&path[..]);
+                self.canvas(canvas_id).fill_path(&path);
             },
             Canvas2dMsg::Stroke(style) => {
                 self.canvas(canvas_id).set_stroke_style(style);
@@ -164,16 +164,13 @@ impl<'a> CanvasPaintThread<'a> {
             },
             Canvas2dMsg::StrokePath(style, path) => {
                 self.canvas(canvas_id).set_stroke_style(style);
-                self.canvas(canvas_id).stroke_path(&path[..]);
+                self.canvas(canvas_id).stroke_path(&path);
             },
             Canvas2dMsg::Clip => self.canvas(canvas_id).clip(),
-            Canvas2dMsg::ClipPath(path) => self.canvas(canvas_id).clip_path(&path[..]),
+            Canvas2dMsg::ClipPath(path) => self.canvas(canvas_id).clip_path(&path),
             Canvas2dMsg::IsPointInCurrentPath(x, y, fill_rule, chan) => self
                 .canvas(canvas_id)
                 .is_point_in_path(x, y, fill_rule, chan),
-            Canvas2dMsg::IsPointInPath(path, x, y, fill_rule, chan) => self
-                .canvas(canvas_id)
-                .is_point_in_path_(&path[..], x, y, fill_rule, chan),
             Canvas2dMsg::DrawImage(snapshot, dest_rect, source_rect, smoothing_enabled) => {
                 self.canvas(canvas_id).draw_image(
                     snapshot.to_owned(),
@@ -333,7 +330,7 @@ impl Canvas<'_> {
         }
     }
 
-    fn fill_path(&mut self, path: &[PathSegment]) {
+    fn fill_path(&mut self, path: &Path) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.fill_path(path),
         }
@@ -345,7 +342,7 @@ impl Canvas<'_> {
         }
     }
 
-    fn stroke_path(&mut self, path: &[PathSegment]) {
+    fn stroke_path(&mut self, path: &Path) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.stroke_path(path),
         }
@@ -360,21 +357,6 @@ impl Canvas<'_> {
     fn is_point_in_path(&mut self, x: f64, y: f64, fill_rule: FillRule, chan: IpcSender<bool>) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.is_point_in_path(x, y, fill_rule, chan),
-        }
-    }
-
-    fn is_point_in_path_(
-        &mut self,
-        path: &[PathSegment],
-        x: f64,
-        y: f64,
-        fill_rule: FillRule,
-        chan: IpcSender<bool>,
-    ) {
-        match self {
-            Canvas::Raqote(canvas_data) => {
-                canvas_data.is_point_in_path_(path, x, y, fill_rule, chan)
-            },
         }
     }
 
@@ -582,7 +564,7 @@ impl Canvas<'_> {
         }
     }
 
-    fn clip_path(&mut self, path: &[PathSegment]) {
+    fn clip_path(&mut self, path: &Path) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.clip_path(path),
         }

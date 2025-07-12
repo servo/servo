@@ -74,8 +74,6 @@ mod drag_data_store;
 mod links;
 mod xpath;
 
-mod svgpath;
-
 pub use init::init;
 pub(crate) use script_bindings::DomTypes;
 pub use script_runtime::JSEngineSetup;
