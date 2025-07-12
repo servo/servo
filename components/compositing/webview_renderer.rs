@@ -19,7 +19,7 @@ use embedder_traits::{
     MouseButtonEvent, MouseMoveEvent, ScrollEvent as EmbedderScrollEvent, ShutdownState,
     TouchEvent, TouchEventResult, TouchEventType, TouchId, ViewportDetails,
 };
-use euclid::{Point2D, Scale, Size2D, Vector2D};
+use euclid::{Point2D, Scale, Vector2D};
 use fnv::FnvHashSet;
 use log::{debug, warn};
 use servo_geometry::DeviceIndependentPixel;
@@ -1037,16 +1037,6 @@ impl WebViewRenderer {
             self.send_window_size_message();
         }
         old_rect != self.rect
-    }
-
-    pub(crate) fn screen_size(&self) -> Size2D<i32, DeviceIndependentPixel> {
-        let screen_geometry = self.webview.screen_geometry().unwrap_or_default();
-        (screen_geometry.size.to_f32() / self.hidpi_scale_factor).to_i32()
-    }
-
-    pub(crate) fn available_screen_size(&self) -> Size2D<i32, DeviceIndependentPixel> {
-        let screen_geometry = self.webview.screen_geometry().unwrap_or_default();
-        (screen_geometry.available_size.to_f32() / self.hidpi_scale_factor).to_i32()
     }
 
     pub fn set_viewport_description(&mut self, viewport_description: ViewportDescription) {
