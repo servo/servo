@@ -528,7 +528,6 @@ pub enum CoreResourceMsg {
     SetCookiesForUrl(ServoUrl, Vec<Serde<Cookie<'static>>>, CookieSource),
     SetCookieForUrlAsync(
         CookieStoreId,
-        CookieRequestId,
         ServoUrl,
         Serde<Cookie<'static>>,
         CookieSource,
@@ -541,17 +540,12 @@ pub enum CoreResourceMsg {
         IpcSender<Vec<Serde<Cookie<'static>>>>,
         CookieSource,
     ),
-    GetCookiesDataForUrlAsync(
-        CookieStoreId,
-        CookieRequestId,
-        ServoUrl,
-        String,
-        CookieSource,
-    ),
+    GetCookiesDataForUrlAsync(CookieStoreId, ServoUrl, String, CookieSource),
     DeleteCookies(ServoUrl),
     DeleteCookie(ServoUrl, String),
-    DeleteCookieAsync(CookieStoreId, CookieRequestId, ServoUrl, String),
+    DeleteCookieAsync(CookieStoreId, ServoUrl, String),
     NewCookieListener(CookieStoreId, IpcSender<CookieAsyncResponse>, ServoUrl),
+    RemoveCookieListener(CookieStoreId),
     /// Get a history state by a given history state id
     GetHistoryState(HistoryStateId, IpcSender<Option<Vec<u8>>>),
     /// Set a history state for a given history state id
@@ -1009,19 +1003,8 @@ pub enum CookieData {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CookieAsyncResponse {
-    pub id: CookieRequestId,
-    pub event: CookieData,
+    pub data: CookieData,
 }
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum CookieRequestType {
-    Get(ServoUrl, String),
-    GetAll(ServoUrl),
-    Set(ServoUrl, Serde<Cookie<'static>>),
-    Delete(ServoUrl, Serde<Cookie<'static>>),
-}
-
-pub type CookieRequestId = i64;
 
 /// Network errors that have to be exported out of the loaders
 #[derive(Clone, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
