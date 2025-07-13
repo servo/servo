@@ -33,7 +33,8 @@ use winit::event::{
 };
 use winit::event_loop::ActiveEventLoop;
 use winit::keyboard::{Key as LogicalKey, ModifiersState, NamedKey};
-use winit::platform::x11::WindowAttributesExtX11;
+#[cfg(target_os = "linux")]
+use winit::platform::wayland::WindowAttributesExtWayland;
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use winit::window::Icon;
 #[cfg(target_os = "macos")]
@@ -95,9 +96,11 @@ impl Window {
             .with_min_inner_size(LogicalSize::new(1, 1))
             // Must be invisible at startup; accesskit_winit setup needs to
             // happen before the window is shown for the first time.
-            .with_visible(false)
-            // Set a name so it can be pinned to taskbars in Linux.
-            .with_name("org.servo.Servo", "Servo");
+            .with_visible(false);
+
+        // Set a name so it can be pinned to taskbars in Linux.
+        #[cfg(target_os = "linux")]
+        let window_attr = window_attr.with_name("org.servo.Servo", "Servo");
 
         #[allow(deprecated)]
         let winit_window = event_loop
