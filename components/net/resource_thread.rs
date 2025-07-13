@@ -30,7 +30,7 @@ use net_traits::request::{Destination, RequestBuilder, RequestId};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
 use net_traits::{
-    AsyncRuntime, CookieAsyncResponse, CookieData, CookieRequestId, CookieSource, CoreResourceMsg,
+    AsyncRuntime, CookieAsyncResponse, CookieData, CookieSource, CoreResourceMsg,
     CoreResourceThread, CustomResponseMediator, DiscardFetch, FetchChannels, FetchTaskTarget,
     ResourceFetchTiming, ResourceThreads, ResourceTimingType, WebSocketDomAction,
     WebSocketNetworkEvent,
@@ -339,12 +339,7 @@ impl ResourceChannelManager {
         cancellation_listener
     }
 
-    fn send_cookie_response(
-        &self,
-        store_id: CookieStoreId,
-        request_id: CookieRequestId,
-        data: CookieData,
-    ) {
+    fn send_cookie_response(&self, store_id: CookieStoreId, data: CookieData) {
         let sender = self.cookie_listeners.get(&store_id);
         if sender.is_none() {
             warn!(
@@ -353,10 +348,7 @@ impl ResourceChannelManager {
             );
             return;
         }
-        let _ = sender.unwrap().send(CookieAsyncResponse {
-            id: request_id,
-            event: data,
-        });
+        let _ = sender.unwrap().send(CookieAsyncResponse { data });
     }
 
     /// Returns false if the thread should exit.
@@ -422,7 +414,14 @@ impl ResourceChannelManager {
                     .delete_cookie_with_name(&request, name);
                 return true;
             },
-            CoreResourceMsg::DeleteCookieAsync(_cookie_store_id, _request_id, _url, _name) => {},
+            CoreResourceMsg::DeleteCookieAsync(cookie_store_id, url, name) => {
+                http_state
+                    .cookie_jar
+                    .write()
+                    .unwrap()
+                    .delete_cookie_with_name(&url, name);
+                self.send_cookie_response(cookie_store_id, CookieData::Delete(Ok(())));
+            },
             CoreResourceMsg::FetchRedirect(request_builder, res_init, sender) => {
                 let cancellation_listener =
                     self.get_or_create_cancellation_listener(request_builder.id);
@@ -448,20 +447,14 @@ impl ResourceChannelManager {
                     );
                 }
             },
-            CoreResourceMsg::SetCookieForUrlAsync(
-                cookie_store_id,
-                request_id,
-                url,
-                cookie,
-                source,
-            ) => {
+            CoreResourceMsg::SetCookieForUrlAsync(cookie_store_id, url, cookie, source) => {
                 self.resource_manager.set_cookie_for_url(
                     &url,
                     cookie.into_inner().to_owned(),
                     source,
                     http_state,
                 );
-                self.send_cookie_response(cookie_store_id, request_id, CookieData::Set(Ok(())));
+                self.send_cookie_response(cookie_store_id, CookieData::Set(Ok(())));
             },
             CoreResourceMsg::GetCookiesForUrl(url, consumer, source) => {
                 let mut cookie_jar = http_state.cookie_jar.write().unwrap();
@@ -470,28 +463,21 @@ impl ResourceChannelManager {
                     .send(cookie_jar.cookies_for_url(&url, source))
                     .unwrap();
             },
-            CoreResourceMsg::GetCookiesDataForUrlAsync(
-                cookie_store_id,
-                request_id,
-                url,
-                name,
-                source,
-            ) => {
+            CoreResourceMsg::GetCookiesDataForUrlAsync(cookie_store_id, url, name, source) => {
                 let mut cookie_jar = http_state.cookie_jar.write().unwrap();
                 cookie_jar.remove_expired_cookies_for_url(&url);
                 let cookies = cookie_jar
                     .cookies_data_for_url(&url, source)
                     .map(Serde)
                     .collect();
-                self.send_cookie_response(
-                    cookie_store_id,
-                    request_id,
-                    CookieData::Get(cookies, name),
-                );
+                self.send_cookie_response(cookie_store_id, CookieData::Get(cookies, name));
             },
             CoreResourceMsg::NewCookieListener(cookie_store_id, sender, _url) => {
                 // TODO: Use the URL for setting up the actual monitoring
                 self.cookie_listeners.insert(cookie_store_id, sender);
+            },
+            CoreResourceMsg::RemoveCookieListener(cookie_store_id) => {
+                self.cookie_listeners.remove(&cookie_store_id);
             },
             CoreResourceMsg::NetworkMediator(mediator_chan, origin) => {
                 self.resource_manager

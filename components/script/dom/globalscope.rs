@@ -115,7 +115,7 @@ use crate::dom::reportingobserver::ReportingObserver;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
-use crate::dom::types::{DebuggerGlobalScope, MessageEvent};
+use crate::dom::types::{CookieStore, DebuggerGlobalScope, MessageEvent};
 use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpudevice::GPUDevice;
@@ -208,6 +208,9 @@ pub(crate) struct GlobalScope {
     registration_map: DomRefCell<
         HashMapTracedValues<ServiceWorkerRegistrationId, Dom<ServiceWorkerRegistration>>,
     >,
+
+    /// <https://wicg.github.io/cookie-store/#dom-window-cookiestore>
+    cookie_store: MutNullableDom<CookieStore>,
 
     /// <https://w3c.github.io/ServiceWorker/#environment-settings-object-service-worker-object-map>
     worker_map: DomRefCell<HashMapTracedValues<ServiceWorkerId, Dom<ServiceWorker>>>,
@@ -747,6 +750,7 @@ impl GlobalScope {
             eventtarget: EventTarget::new_inherited(),
             crypto: Default::default(),
             registration_map: DomRefCell::new(HashMapTracedValues::new()),
+            cookie_store: Default::default(),
             worker_map: DomRefCell::new(HashMapTracedValues::new()),
             pipeline_id,
             devtools_wants_updates: Default::default(),
@@ -2359,6 +2363,10 @@ impl GlobalScope {
 
     pub(crate) fn crypto(&self, can_gc: CanGc) -> DomRoot<Crypto> {
         self.crypto.or_init(|| Crypto::new(self, can_gc))
+    }
+
+    pub(crate) fn cookie_store(&self, can_gc: CanGc) -> DomRoot<CookieStore> {
+        self.cookie_store.or_init(|| CookieStore::new(self, can_gc))
     }
 
     pub(crate) fn live_devtools_updates(&self) -> bool {
