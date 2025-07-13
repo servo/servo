@@ -31,7 +31,7 @@ use embedder_traits::{
     ViewportDetails,
 };
 use euclid::{Point2D, Rect, Scale, Size2D, Transform3D};
-use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::{self, IpcSharedMemory};
 use libc::c_void;
 use log::{debug, info, trace, warn};
 use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage};
@@ -164,8 +164,6 @@ pub struct IOCompositor {
 
     /// Epoch of WebRender's images
     image_epochs: HashMap<ImageKey, Epoch>,
-
-    awaiting_display_list: Option<(BuiltDisplayList, CompositorDisplayListInfo, WebViewId)>,
 }
 
 /// Why we need to be repainted. This is used for debugging.
@@ -237,6 +235,9 @@ pub(crate) struct PipelineDetails {
     /// Which parts of Servo have reported that this `Pipeline` has exited. Only when all
     /// have done so will it be discarded.
     pub exited: PipelineExitSource,
+
+    /// Display list waiting to be sent to WR when all images resolve.
+    pub awaiting_display_list: Option<(BuiltDisplayList, CompositorDisplayListInfo)>,
 }
 
 impl PipelineDetails {
@@ -267,6 +268,7 @@ impl PipelineDetails {
             first_paint_metric: PaintMetricState::Waiting,
             first_contentful_paint_metric: PaintMetricState::Waiting,
             exited: PipelineExitSource::empty(),
+            awaiting_display_list: None,
         }
     }
 
@@ -454,7 +456,6 @@ impl IOCompositor {
             pending_frames: 0,
             _mem_profiler_registration: registration,
             image_epochs: HashMap::new(),
-            awaiting_display_list: None,
         };
 
         {
@@ -783,14 +784,24 @@ impl IOCompositor {
                 )
                 .entered();
 
-                if self
+                let pipeline_id = display_list_info.pipeline_id.into();
+
+                let Some(webview) = self.webview_renderers.get_mut(webview_id) else {
+                    return warn!(
+                        "Received SendDisplayList for non-existing webview renderer {webview_id}"
+                    );
+                };
+
+                let pipeline_details = webview.ensure_pipeline_details(pipeline_id);
+
+                if pipeline_details
                     .awaiting_display_list
-                    .replace((built_display_list, display_list_info, webview_id))
+                    .replace((built_display_list, display_list_info))
                     .is_some()
                 {
                     warn!("Skipping display list!")
                 }
-                self.maybe_send_awaiting_display_list();
+                self.maybe_send_awaiting_display_list_for_pipeline(pipeline_id);
             },
 
             CompositorMsg::HitTest(pipeline, point, flags, sender) => {
@@ -916,9 +927,22 @@ impl IOCompositor {
         }
     }
 
-    fn maybe_send_awaiting_display_list(&mut self) {
-        let (built_display_list, display_list_info, webview_id, done) = {
-            let Some((_, display_list_info, _, _)) = &mut self.awaiting_display_list else {
+    fn maybe_send_awaiting_display_list_for_pipeline(&mut self, pipeline_id: PipelineId) {
+        let Some(webview_id) = self
+            .global
+            .borrow()
+            .pipeline_to_webview_map
+            .get(&pipeline_id)
+            .copied()
+        else {
+            return warn!("Could not find WebView for incoming display list");
+        };
+        let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
+            return warn!("Could not find WebView for incoming display list");
+        };
+        let details = webview_renderer.ensure_pipeline_details(pipeline_id);
+        let (built_display_list, display_list_info) = {
+            let Some((_, display_list_info)) = &mut details.awaiting_display_list else {
                 return;
             };
             for (k, v) in &self.image_epochs {
@@ -933,20 +957,13 @@ impl IOCompositor {
             if !display_list_info.image_epochs.is_empty() {
                 return;
             }
-            let Some(a) = self.awaiting_display_list.take() else {
+            let Some(a) = details.awaiting_display_list.take() else {
                 return;
             };
             a
         };
 
-        let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
-            return warn!("Could not find WebView for incoming display list");
-        };
         // WebRender is not ready until we receive "NewWebRenderFrameReady"
-        webview_renderer.webrender_frame_ready.set(false);
-
-        let pipeline_id = display_list_info.pipeline_id;
-        let details = webview_renderer.ensure_pipeline_details(pipeline_id.into());
         details.most_recent_display_list_epoch = Some(display_list_info.epoch);
         details.hit_test_items = display_list_info.hit_test_info;
         details.install_new_scroll_tree(display_list_info.scroll_tree);
@@ -961,12 +978,30 @@ impl IOCompositor {
         {
             details.first_contentful_paint_metric = PaintMetricState::Seen(epoch, first_reflow);
         }
+        let _ = details;
+        webview_renderer.webrender_frame_ready.set(false);
 
         let mut transaction = Transaction::new();
-        transaction.set_display_list(display_list_info.epoch, (pipeline_id, built_display_list));
+        transaction.set_display_list(
+            display_list_info.epoch,
+            (pipeline_id.into(), built_display_list),
+        );
         self.update_transaction_with_all_scroll_offsets(&mut transaction);
         self.generate_frame(&mut transaction, RenderReasons::SCENE);
         self.global.borrow_mut().send_transaction(transaction);
+    }
+
+    fn maybe_send_awaiting_display_list(&mut self) {
+        let pipelines: Vec<_> = self
+            .webview_renderers
+            .iter()
+            .flat_map(WebViewRenderer::pipeline_ids)
+            .copied()
+            .collect();
+
+        for pipeline_id in pipelines {
+            self.maybe_send_awaiting_display_list_for_pipeline(pipeline_id);
+        }
     }
 
     /// Handle messages sent to the compositor during the shutdown process. In general,
