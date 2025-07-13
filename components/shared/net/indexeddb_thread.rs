@@ -192,11 +192,20 @@ pub enum SyncOperation {
     Exit(IpcSender<()>),
 }
 
+/// The set of all kinds of results that can be returned from async operations.
+#[derive(Debug, Deserialize, Serialize)]
+pub enum IdbResult {
+    /// The key used to perform an async operation.
+    Key(IndexedDBKeyType),
+    /// A structured clone of a value retrieved from an object store.
+    Data(Vec<u8>),
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub enum IndexedDBThreadMsg {
     Sync(SyncOperation),
     Async(
-        IpcSender<Result<Option<Vec<u8>>, ()>>, // Sender to send the result of the async operation
+        IpcSender<Result<Option<IdbResult>, ()>>, // Sender to send the result of the async operation
         ImmutableOrigin,
         String, // Database
         String, // ObjectStore

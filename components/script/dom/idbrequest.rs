@@ -3,15 +3,20 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::iter::repeat;
 
 use constellation_traits::StructuredSerializedData;
 use dom_struct::dom_struct;
 use ipc_channel::router::ROUTER;
+use js::conversions::ToJSValConvertible;
+use js::gc::MutableHandle;
 use js::jsapi::Heap;
-use js::jsval::{JSVal, UndefinedValue};
-use js::rust::HandleValue;
+use js::jsval::{DoubleValue, JSVal, UndefinedValue};
+use js::rust::{HandleValue, MutableHandleValue};
 use net_traits::IpcSend;
-use net_traits::indexeddb_thread::{AsyncOperation, IndexedDBThreadMsg, IndexedDBTxnMode};
+use net_traits::indexeddb_thread::{
+    AsyncOperation, IdbResult, IndexedDBKeyType, IndexedDBThreadMsg, IndexedDBTxnMode,
+};
 use profile_traits::ipc;
 use stylo_atoms::Atom;
 
@@ -39,8 +44,32 @@ struct RequestListener {
     request: Trusted<IDBRequest>,
 }
 
+#[allow(unsafe_code)]
+fn key_type_to_jsval(cx: SafeJSContext, key: &IndexedDBKeyType, mut result: MutableHandleValue) {
+    match key {
+        IndexedDBKeyType::Number(n) => result.set(DoubleValue(*n)),
+        IndexedDBKeyType::String(s) => unsafe { s.to_jsval(*cx, result) },
+        IndexedDBKeyType::Binary(b) => unsafe { b.to_jsval(*cx, result) },
+        IndexedDBKeyType::Date(_d) => {
+            // TODO: implement this when Date's representation is finalized.
+            result.set(UndefinedValue());
+        },
+        IndexedDBKeyType::Array(a) => unsafe {
+            rooted_vec!(let mut values <- repeat(UndefinedValue()).take(a.len()));
+            for (key, value) in a.iter().zip(
+                values
+                    .iter_mut()
+                    .map(|v| MutableHandle::from_marked_location(v)),
+            ) {
+                key_type_to_jsval(cx, key, value);
+            }
+            values.to_jsval(*cx, result);
+        },
+    }
+}
+
 impl RequestListener {
-    fn handle_async_request_finished(&self, result: Result<Option<Vec<u8>>, ()>) {
+    fn handle_async_request_finished(&self, result: Result<Option<IdbResult>, ()>) {
         let request = self.request.root();
         let global = request.global();
         let cx = GlobalScope::get_cx();
@@ -50,14 +79,21 @@ impl RequestListener {
         let _ac = enter_realm(&*request);
         rooted!(in(*cx) let mut answer = UndefinedValue());
 
-        if let Ok(Some(serialized_data)) = result {
-            let data = StructuredSerializedData {
-                serialized: serialized_data,
-                ..Default::default()
-            };
+        if let Ok(Some(data)) = result {
+            match data {
+                IdbResult::Key(key) => {
+                    key_type_to_jsval(GlobalScope::get_cx(), &key, answer.handle_mut())
+                },
+                IdbResult::Data(serialized_data) => {
+                    let data = StructuredSerializedData {
+                        serialized: serialized_data,
+                        ..Default::default()
+                    };
 
-            if structuredclone::read(&global, data, answer.handle_mut()).is_err() {
-                warn!("Error reading structuredclone data");
+                    if structuredclone::read(&global, data, answer.handle_mut()).is_err() {
+                        warn!("Error reading structuredclone data");
+                    }
+                },
             }
 
             request.set_result(answer.handle());
@@ -199,7 +235,7 @@ impl IDBRequest {
         };
 
         let (sender, receiver) =
-            ipc::channel::<Result<Option<Vec<u8>>, ()>>(global.time_profiler_chan().clone())
+            ipc::channel::<Result<Option<IdbResult>, ()>>(global.time_profiler_chan().clone())
                 .unwrap();
 
         let response_listener = RequestListener {

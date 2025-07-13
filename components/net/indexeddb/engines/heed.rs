@@ -9,7 +9,7 @@ use heed::types::*;
 use heed::{Database, Env, EnvOpenOptions};
 use log::warn;
 use net_traits::indexeddb_thread::{
-    AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, IndexedDBTxnMode,
+    AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, IdbResult, IndexedDBTxnMode,
 };
 use tokio::sync::oneshot;
 
@@ -144,7 +144,8 @@ impl KvsEngine for HeedEngine {
                             let result = store.inner.get(&rtxn, &key).expect("Could not get item");
 
                             if let Some(blob) = result {
-                                results.push((request.sender, Some(blob.to_vec())));
+                                results
+                                    .push((request.sender, Some(IdbResult::Data(blob.to_vec()))));
                             } else {
                                 results.push((request.sender, None));
                             }
@@ -197,7 +198,7 @@ impl KvsEngine for HeedEngine {
                             value,
                             overwrite,
                         )) => {
-                            let key: Vec<u8> = bincode::serialize(&key).unwrap();
+                            let serialized_key: Vec<u8> = bincode::serialize(&key).unwrap();
                             let stores = stores
                                 .write()
                                 .expect("Could not acquire write lock on stores");
@@ -205,17 +206,23 @@ impl KvsEngine for HeedEngine {
                                 .get(&request.store_name)
                                 .expect("Could not get store");
                             if overwrite {
-                                let result =
-                                    store.inner.put(&mut wtxn, &key, &value).ok().and(Some(key));
+                                let result = store
+                                    .inner
+                                    .put(&mut wtxn, &serialized_key, &value)
+                                    .ok()
+                                    .and(Some(IdbResult::Key(key)));
                                 results.push((request.sender, result));
                             } else if store
                                 .inner
-                                .get(&wtxn, &key)
+                                .get(&wtxn, &serialized_key)
                                 .expect("Could not get item")
                                 .is_none()
                             {
-                                let result =
-                                    store.inner.put(&mut wtxn, &key, &value).ok().and(Some(key));
+                                let result = store
+                                    .inner
+                                    .put(&mut wtxn, &serialized_key, &value)
+                                    .ok()
+                                    .and(Some(IdbResult::Key(key)));
                                 results.push((request.sender, result));
                             } else {
                                 results.push((request.sender, None));
@@ -231,17 +238,24 @@ impl KvsEngine for HeedEngine {
                                 .expect("Could not get store");
                             let result = store.inner.get(&wtxn, &key).expect("Could not get item");
 
-                            results.push((request.sender, result.map(|blob| blob.to_vec())));
+                            results.push((
+                                request.sender,
+                                result.map(|blob| IdbResult::Data(blob.to_vec())),
+                            ));
                         },
                         AsyncOperation::ReadWrite(AsyncReadWriteOperation::RemoveItem(key)) => {
-                            let key: Vec<u8> = bincode::serialize(&key).unwrap();
+                            let serialized_key: Vec<u8> = bincode::serialize(&key).unwrap();
                             let stores = stores
                                 .write()
                                 .expect("Could not acquire write lock on stores");
                             let store = stores
                                 .get(&request.store_name)
                                 .expect("Could not get store");
-                            let result = store.inner.delete(&mut wtxn, &key).ok().and(Some(key));
+                            let result = store
+                                .inner
+                                .delete(&mut wtxn, &serialized_key)
+                                .ok()
+                                .and(Some(IdbResult::Key(key)));
                             results.push((request.sender, result));
                         },
                         AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Count(key)) => {
