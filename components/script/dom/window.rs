@@ -261,7 +261,6 @@ pub(crate) struct Window {
     screen: MutNullableDom<Screen>,
     session_storage: MutNullableDom<Storage>,
     local_storage: MutNullableDom<Storage>,
-    cookie_store: MutNullableDom<CookieStore>,
     status: DomRefCell<DOMString>,
     trusted_types: MutNullableDom<TrustedTypePolicyFactory>,
 
@@ -1187,8 +1186,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://wicg.github.io/cookie-store/
     fn CookieStore(&self) -> DomRoot<CookieStore> {
-        self.cookie_store
-            .or_init(|| CookieStore::new(self, CanGc::note()))
+        self.global().cookie_store(CanGc::note())
     }
 
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto
@@ -3131,7 +3129,6 @@ impl Window {
             screen: Default::default(),
             session_storage: Default::default(),
             local_storage: Default::default(),
-            cookie_store: Default::default(),
             status: DomRefCell::new(DOMString::new()),
             parent_info,
             dom_static: GlobalStaticData::new(),
