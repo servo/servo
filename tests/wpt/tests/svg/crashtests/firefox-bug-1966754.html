@@ -1,0 +1,10 @@
+<!doctype html>
+<body>
+  <svg>
+    <filter id="crash" x="0" y="0" width="400px" height="400px">
+      <feColorMatrix in="SourceGraphic" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 1 0 0 0"></feColorMatrix>
+      <feGaussianBlur stdDeviation="4"></feGaussianBlur>
+    </filter>
+    <rect width="100" height="100" filter="url(#crash)"/>
+  </svg>
+</body>

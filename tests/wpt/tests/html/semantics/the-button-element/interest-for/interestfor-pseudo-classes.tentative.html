@@ -37,18 +37,12 @@
   }
 </style>
 <script>
-function checkPseudos(invoker,target,expectHasPartialInterest,expectHasInterest,expectTargetHasPartialInterest,expectTargetHasInterest,msg) {
+function checkPseudos(invoker,target,expectHasInterest,expectTargetHasInterest,msg) {
   msg = msg ?? 'Error';
-  assert_true(!expectHasPartialInterest || expectHasInterest,'Partial interest can\'t be true without full interest');
-  assert_true(!expectTargetHasPartialInterest || expectTargetHasInterest,'Partial interest can\'t be true without full interest (target)');
   assert_equals(invoker.matches(':has-interest'),expectHasInterest,`${msg}: :has-interest mismatch`);
-  assert_equals(invoker.matches(':has-partial-interest'),expectHasPartialInterest,`${msg}: :has-partial-interest mismatch`);
-  assert_equals(target.matches(':target-of-interest'),expectTargetHasInterest,`${msg}: :target-of-partial-interest mismatch`);
-  assert_equals(target.matches(':target-of-partial-interest'),expectTargetHasPartialInterest,`${msg}: :target-of-partial-interest mismatch`);
+  assert_equals(target.matches(':target-of-interest'),expectTargetHasInterest,`${msg}: :target-of-interest mismatch`);
   assert_false(invoker.matches(':target-of-interest'),'invoker should never match :target-of-interest');
-  assert_false(invoker.matches(':target-of-partial-interest'),'invoker should never match :target-of-partial-interest');
   assert_false(target.matches(':has-interest'),'target should never match :has-interest');
-  assert_false(target.matches(':has-partial-interest'),'target should never match :has-partial-interest');
   assert_equals(target.matches(':popover-open'),expectTargetHasInterest,'Popover should be open if target has interest');
 }
 // Note that add_cleanup does not wait for async functions.
@@ -65,16 +59,16 @@ promise_test(async (t) => {
   let hasInterest = false;
   target.addEventListener('interest',() => (hasInterest=true));
   target.addEventListener('loseinterest',() => (hasInterest=false));
-  checkPseudos(invoker,target,false,false,false,false,'initial');
+  checkPseudos(invoker,target,false,false,'initial');
   assert_false(hasInterest);
   await hoverOver(invoker);
-  checkPseudos(invoker,target,false,true,false,true,'hovering invoker shows full interest (and not partial interest)');
+  checkPseudos(invoker,target,true,true,'hovering invoker shows full interest');
   assert_true(hasInterest,'event was fired');
   await hoverOver(target);
-  checkPseudos(invoker,target,false,true,false,true,'hovering the target maintains interest');
+  checkPseudos(invoker,target,true,true,'hovering the target maintains interest');
   assert_true(hasInterest,'loseinterest event was not yet fired');
   await hoverOver(unrelated);
-  checkPseudos(invoker,target,false,false,false,false,'hovering unrelated loses interest');
+  checkPseudos(invoker,target,false,false,'hovering unrelated loses interest');
   assert_false(hasInterest,'loseinterest event was fired');
   await do_cleanup();
 },'Basic pseudo class function, with mouse hover triggering');
@@ -83,115 +77,65 @@ promise_test(async (t) => {
   let hasInterest = false;
   target.addEventListener('interest',() => (hasInterest=true));
   target.addEventListener('loseinterest',() => (hasInterest=false));
-  checkPseudos(invoker,target,false,false,false,false,'initial');
+  checkPseudos(invoker,target,false,false,'initial');
   assert_false(hasInterest);
   await focusOn(invoker);
-  checkPseudos(invoker,target,true,true,true,true,'focusing invoker shows partial interest (and therefore also interest)');
+  checkPseudos(invoker,target,true,true,'focusing invoker shows interest');
   assert_true(hasInterest,'event was fired');
-  // Partial interest does not affect programmatic focusability:
-  await focusOn(target_button);
-  checkPseudos(invoker,target,false,true,false,true,'focusing the target upgrades to full interest (no longer partial interest)');
-  assert_true(hasInterest,'loseinterest event was not yet fired');
   await focusOn(invoker);
-  checkPseudos(invoker,target,false,true,false,true,'focusing back on invoker keeps full interest');
+  checkPseudos(invoker,target,true,true,'focusing back on invoker keeps full interest');
   assert_true(hasInterest,'loseinterest event was not yet fired');
   await focusOn(unrelated);
-  checkPseudos(invoker,target,false,false,false,false,'focusing unrelated loses interest');
+  checkPseudos(invoker,target,false,false,'focusing unrelated loses interest');
   assert_false(hasInterest,'loseinterest event was fired');
   await do_cleanup();
 },'Basic pseudo class function, with keyboard focus triggering');
 
 promise_test(async (t) => {
-  checkPseudos(invoker,target,false,false,false,false,'initial');
+  checkPseudos(invoker,target,false,false,'initial');
   await focusOn(invoker);
-  checkPseudos(invoker,target,true,true,true,true,'focusing invoker shows partial interest');
-  assert_equals(document.activeElement,invoker);
-  // Tab once, which should skip over the button in the popover, to the button
-  // that comes after it.
+  checkPseudos(invoker,target,true,true,'invoker now has full interest');
   await sendTab();
-  assert_equals(document.activeElement,after,'focus should be on the button after the popover');
-  checkPseudos(invoker,target,false,false,false,false,'interest was lost, due to blur of the invoker');
-  await do_cleanup();
-},'Keyboard-triggered partial focus keeps contents from being keyboard focusable');
-
-promise_test(async (t) => {
-  checkPseudos(invoker,target,false,false,false,false,'initial');
-  await focusOn(invoker);
-  checkPseudos(invoker,target,true,true,true,true,'focusing invoker shows partial interest');
-  invoker.setAttribute('style',`interest-delay: 10000s`);
-  await sendShowInterestHotkey();
-  checkPseudos(invoker,target,false,true,false,true,'invoker now has full interest');
-  assert_equals(document.activeElement,target_button,'focus moves to the target automatically');
-  await do_cleanup();
-},'Show interest hotkey confers "full interest", without any delays');
-
-promise_test(async (t) => {
-  checkPseudos(invoker,target,false,false,false,false,'initial');
-  await focusOn(invoker);
-  checkPseudos(invoker,target,true,true,true,true,'focusing invoker shows partial interest');
-  invoker.setAttribute('style',`interest-delay: 10000s`);
-  await hoverOver(target);
-  checkPseudos(invoker,target,false,true,false,true,'invoker now has full interest');
-  assert_equals(document.activeElement,invoker,'focus does not move in this case');
-  await do_cleanup();
-},'Hovering the popover confers "full interest", without any delays');
-
-promise_test(async (t) => {
-  checkPseudos(invoker,target,false,false,false,false,'initial');
-  await focusOn(invoker);
-  checkPseudos(invoker,target,true,true,true,true,'focusing invoker shows partial interest');
-  invoker.setAttribute('style',`interest-delay: 10000s`);
-  await hoverOver(invoker);
-  checkPseudos(invoker,target,false,true,false,true,'invoker now has full interest');
-  assert_equals(document.activeElement,invoker,'focus does not move in this case');
-  await do_cleanup();
-},'Hovering the invoker confers "full interest", without any delays');
-
-promise_test(async (t) => {
-  checkPseudos(invoker,target,false,false,false,false,'initial');
-  await focusOn(invoker);
-  await sendShowInterestHotkey();
-  checkPseudos(invoker,target,false,true,false,true,'invoker now has full interest');
+  assert_equals(document.activeElement,target_button,'focus should now be able to move within the target');
   await sendTab();
-  assert_equals(document.activeElement,target_button_2,'focus should now be able to move within the target');
+  assert_equals(document.activeElement,target_button_2,'focus should be able to move within the target');
   await sendShiftTab();
-  assert_equals(document.activeElement,target_button,'focus should now be able to move within the target (backwards)');
   await sendShiftTab();
   assert_equals(document.activeElement,invoker,'focus should go back to invoker');
-  checkPseudos(invoker,target,false,true,false,true,'focusing back on invoker keeps full interest');
+  checkPseudos(invoker,target,true,true,'focusing back on invoker keeps full interest');
   await focusOn(unrelated);
-  checkPseudos(invoker,target,false,false,false,false,'focusing unrelated loses interest');
+  checkPseudos(invoker,target,false,false,'focusing unrelated loses interest');
   await do_cleanup();
-},'With full interest, contents are keyboard focusable');
+},'Contents of target popover are keyboard focusable');
 
 promise_test(async (t) => {
-  checkPseudos(invoker,target,false,false,false,false,'initial');
+  checkPseudos(invoker,target,false,false,'initial');
   await focusOn(invoker);
-  checkPseudos(invoker,target,true,true,true,true,'focusing invoker shows partial interest');
+  checkPseudos(invoker,target,true,true,'focusing invoker shows interest');
   invoker.setAttribute('style',`interest-delay: 10000s`);
   await sendLoseInterestHotkey();
-  checkPseudos(invoker,target,false,false,false,false,'Hot key loses interest immediately (no delays)');
+  checkPseudos(invoker,target,false,false,'Hot key loses interest immediately (no delays)');
   await do_cleanup();
 },`Lose interest hotkey works`);
 
 promise_test(async (t) => {
-  checkPseudos(invoker,target,false,false,false,false,'initial');
+  checkPseudos(invoker,target,false,false,'initial');
   await focusOn(invoker);
-  checkPseudos(invoker,target,true,true,true,true,'focusing invoker shows partial interest');
+  checkPseudos(invoker,target,true,true,'focusing invoker shows interest');
   invoker.setAttribute('style',`interest-delay: 10000s`);
   target.hidePopover();
-  checkPseudos(invoker,target,false,false,false,false,'closing the popover loses interest');
+  checkPseudos(invoker,target,false,false,'closing the popover loses interest');
   assert_equals(document.activeElement,invoker,'focus does not move');
   await do_cleanup();
 },'Closing the target popover loses interest, without any delays (keyboard activation)');
 
 promise_test(async (t) => {
-  checkPseudos(invoker,target,false,false,false,false,'initial');
+  checkPseudos(invoker,target,false,false,'initial');
   await hoverOver(invoker);
-  checkPseudos(invoker,target,false,true,false,true,'hovering invoker shows full interest (and not partial interest)');
+  checkPseudos(invoker,target,true,true,'hovering invoker shows full interest');
   invoker.setAttribute('style',`interest-delay: 10000s`);
   target.hidePopover();
-  checkPseudos(invoker,target,false,false,false,false,'closing the popover loses interest');
+  checkPseudos(invoker,target,false,false,'closing the popover loses interest');
   await do_cleanup();
 },'Closing the target popover loses interest, without any delays (mouse activation)');
 
@@ -199,27 +143,23 @@ const invokerDelayMs = 100; // The CSS delay setting.
 const hoverWaitTime = 200; // How long to wait to cover the delay for sure.
 promise_test(async (t) => {
   invoker.setAttribute('style',`interest-delay: ${invokerDelayMs}ms`);
-  checkPseudos(invoker,target,false,false,false,false,'initial');
+  checkPseudos(invoker,target,false,false,'initial');
   const token1 = await mouseOverAndRecord(t,invoker);
   const immediate_result = invoker.matches(':has-interest') ||
-      invoker.matches(':has-partial-interest') ||
-      target.matches(':target-of-interest') ||
-      target.matches(':target-of-partial-interest');
+      target.matches(':target-of-interest');
   if (msSinceMouseOver(token1) < invokerDelayMs) {
     assert_false(immediate_result,'No pseudos should match before the show delay elapses');
   }
   await waitForHoverTime(hoverWaitTime);
-  checkPseudos(invoker,target,false,true,false,true,'full interest pseudos (but not partial interest) should match after hover delay');
+  checkPseudos(invoker,target,true,true,'pseudos should match after hover delay');
   const token2 = await mouseOverAndRecord(t,unrelated);
   const immediate_result2 =  invoker.matches(':has-interest') &&
-      !invoker.matches(':has-partial-interest') &&
-      target.matches(':target-of-interest') &&
-      !target.matches(':target-of-partial-interest');
+      target.matches(':target-of-interest');
   if (msSinceMouseOver(token2) < invokerDelayMs) {
-    assert_true(immediate_result2,'all pseudos should still represent full interest before the hide delay elapses');
+    assert_true(immediate_result2,'all pseudos should still match before the hide delay elapses');
   }
   await waitForHoverTime(hoverWaitTime);
-  checkPseudos(invoker,target,false,false,false,false,'no pseudos should match after de-hover delay');
+  checkPseudos(invoker,target,false,false,'no pseudos should match after de-hover delay');
   await do_cleanup();
 },'The pseudo classes only match after delays, once interest is shown');
 </script>

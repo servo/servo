@@ -135,14 +135,3 @@ async function sendLoseInterestHotkey() {
     .send();
   await waitForRender();
 }
-async function sendShowInterestHotkey() {
-  const kAlt = "\uE00A";
-  const kArrowUp = '\uE013';
-  await new test_driver.Actions()
-    .keyDown(kAlt)
-    .keyDown(kArrowUp)
-    .keyUp(kArrowUp)
-    .keyUp(kAlt)
-    .send();
-  await waitForRender();
-}
