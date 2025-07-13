@@ -247,6 +247,10 @@ impl StackingContextTreeClipStore {
             _ => None,
         }
     }
+
+    pub fn get_node(&self, id: &ClipId) -> Option<&Clip> {
+        self.0.get(id.0)
+    }
 }
 
 fn compute_shape_radius(
