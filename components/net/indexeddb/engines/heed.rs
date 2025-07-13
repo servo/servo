@@ -205,18 +205,12 @@ impl KvsEngine for HeedEngine {
                             let store = stores
                                 .get(&request.store_name)
                                 .expect("Could not get store");
-                            if overwrite {
-                                let result = store
+                            if overwrite ||
+                                store
                                     .inner
-                                    .put(&mut wtxn, &serialized_key, &value)
-                                    .ok()
-                                    .and(Some(IdbResult::Key(key)));
-                                results.push((request.sender, result));
-                            } else if store
-                                .inner
-                                .get(&wtxn, &serialized_key)
-                                .expect("Could not get item")
-                                .is_none()
+                                    .get(&wtxn, &serialized_key)
+                                    .expect("Could not get item")
+                                    .is_none()
                             {
                                 let result = store
                                     .inner
