@@ -125,6 +125,10 @@ impl CanvasContext for CanvasRenderingContext2D {
 
     fn update_rendering(&self) {
         self.canvas_state.update_rendering();
+        // we need to remark as dirty for layout to prevent using cached epoch
+        if let Some(canvas) = self.canvas.canvas() {
+            canvas.upcast::<Node>().dirty(NodeDamage::Other);
+        }
     }
 
     fn resize(&self) {
