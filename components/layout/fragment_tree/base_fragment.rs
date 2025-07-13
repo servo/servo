@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use bitflags::bitflags;
+use compositing_traits::largest_contentful_paint_candidate::LCPCandidateID;
 use layout_api::combine_id_with_fragment_type;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
@@ -34,6 +35,15 @@ impl BaseFragment {
 
     pub(crate) fn is_anonymous(&self) -> bool {
         self.tag.is_none()
+    }
+}
+
+impl From<&BaseFragment> for LCPCandidateID {
+    fn from(fragment: &BaseFragment) -> Self {
+        fragment
+            .tag
+            .map(|tag| LCPCandidateID(tag.node.id()))
+            .unwrap_or_default()
     }
 }
 

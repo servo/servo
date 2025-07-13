@@ -55,6 +55,7 @@ use webrender_api::{
 };
 
 use crate::InitialCompositorState;
+use crate::largest_contentful_paint::LargestContentfulPaintDetector;
 use crate::refresh_driver::RefreshDriver;
 use crate::webview_manager::WebViewManager;
 use crate::webview_renderer::{PinchZoomResult, UnknownWebView, WebViewRenderer};
@@ -159,6 +160,9 @@ pub struct IOCompositor {
     /// A handle to the memory profiler which will automatically unregister
     /// when it's dropped.
     _mem_profiler_registration: ProfilerRegistration,
+
+    /// Calculate largest-contentful-paint.
+    lcp_detector: LargestContentfulPaintDetector,
 }
 
 /// Why we need to be repainted. This is used for debugging.
@@ -448,6 +452,7 @@ impl IOCompositor {
             rendering_context: state.rendering_context,
             pending_frames: 0,
             _mem_profiler_registration: registration,
+            lcp_detector: LargestContentfulPaintDetector::new(),
         };
 
         {
@@ -917,6 +922,10 @@ impl IOCompositor {
                 if let Some(webview) = self.webview_renderers.get_mut(webview_id) {
                     webview.set_viewport_description(viewport_description);
                 }
+            },
+            CompositorMsg::LCPCandidate(lcp_candidate, pipeline_id) => {
+                self.lcp_detector
+                    .append_lcp_candidate(pipeline_id, lcp_candidate);
             },
         }
     }
@@ -1503,6 +1512,22 @@ impl IOCompositor {
                         pipeline.first_contentful_paint_metric = PaintMetricState::Sent;
                     },
                     _ => {},
+                }
+
+                if let Some(lcp) = self.lcp_detector.calculate_largest_contentful_paint(
+                    paint_time,
+                    current_epoch,
+                    pipeline_id.into(),
+                ) {
+                    #[cfg(feature = "tracing")]
+                    let _ = tracing::debug_span!(
+                        "largest-contentful-paint",
+                        servo_profiling = true,
+                        timestamp = ?lcp.paint_time,
+                    )
+                    .entered();
+                    // TODO(boluochoufeng): Add LCP to PaintMetric.
+                    let _ = lcp;
                 }
             }
         }

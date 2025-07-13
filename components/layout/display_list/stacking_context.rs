@@ -319,6 +319,9 @@ impl StackingContextContent {
                 builder.current_scroll_node_id = *scroll_node_id;
                 builder.current_reference_frame_scroll_node_id = *reference_frame_scroll_node_id;
                 builder.current_clip_id = *clip_id;
+                builder
+                    .lcp_candidate_collector
+                    .update_current_node_id(*scroll_node_id, *clip_id);
                 fragment.build_display_list(
                     builder,
                     containing_block,
