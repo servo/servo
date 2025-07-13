@@ -493,6 +493,7 @@ impl DevtoolsInstance {
     ) {
         let browsing_context_id = match &network_event {
             NetworkEvent::HttpRequest(req) => req.browsing_context_id,
+            NetworkEvent::HttpRequestUpdate(req) => req.browsing_context_id,
             NetworkEvent::HttpResponse(resp) => resp.browsing_context_id,
         };
 

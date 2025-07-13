@@ -72,6 +72,7 @@ fn recv_http_request(devtools_port: &Receiver<DevtoolsControlMsg>) -> DevtoolsHt
         DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(_, net_event)) => {
             match net_event {
                 NetworkEvent::HttpRequest(req) => req,
+                NetworkEvent::HttpRequestUpdate(req) => req,
                 other => panic!("Expected HttpRequest but got: {:?}", other),
             }
         },

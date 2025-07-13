@@ -1918,12 +1918,7 @@ async fn http_network_fetch(
 
     // Step 5
     let url = request.current_url();
-
-    let request_id = context
-        .devtools_chan
-        .as_ref()
-        .map(|_| uuid::Uuid::new_v4().simple().to_string());
-
+    let request_id = request.id.0.to_string();
     if log_enabled!(log::Level::Info) {
         info!("{:?} request for {}", request.method, url);
         for header in request.headers.iter() {
@@ -1963,7 +1958,7 @@ async fn http_network_fetch(
             .map(|body| body.source_is_null())
             .unwrap_or(false),
         &request.pipeline_id,
-        request_id.as_deref(),
+        Some(&request_id)  ,
         is_xhr,
         context,
         fetch_terminated_sender,
@@ -2057,10 +2052,16 @@ async fn http_network_fetch(
 
     if let Some(ref sender) = devtools_sender {
         let sender = sender.lock().unwrap();
-        if let Some(m) = msg {
-            send_request_to_devtools(m, &sender);
+        if let Some(ChromeToDevtoolsControlMsg::NetworkEvent(_, NetworkEvent::HttpRequest(devtools_request))) = msg {
+            let update_msg = ChromeToDevtoolsControlMsg::NetworkEvent(
+                request.id.0.to_string(),
+                NetworkEvent::HttpRequestUpdate(devtools_request),
+            );
+            send_request_to_devtools(update_msg, &sender);
         }
     }
+    
+
 
     let done_sender2 = done_sender.clone();
     let done_sender3 = done_sender.clone();
