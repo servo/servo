@@ -4,6 +4,7 @@
 
 use ipc_channel::ipc::{self, IpcSender};
 
+use super::routed_msg::ClientStorageRoutedMsg;
 use super::thread_msg::ClientStorageThreadMsg;
 
 pub struct ClientStorageProxy {
@@ -13,6 +14,22 @@ pub struct ClientStorageProxy {
 impl ClientStorageProxy {
     pub fn new(ipc_sender: IpcSender<ClientStorageThreadMsg>) -> ClientStorageProxy {
         ClientStorageProxy { ipc_sender }
+    }
+
+    pub fn send_test_constructor(&self) -> (IpcSender<ClientStorageRoutedMsg>, u64) {
+        // Messages the parent receives
+        let (child_to_parent_sender, child_to_parent_receiver) = ipc::channel().unwrap();
+
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.ipc_sender
+            .send(ClientStorageThreadMsg::TestConstructor {
+                child_to_parent_receiver,
+                sender,
+            })
+            .unwrap();
+        let id = receiver.recv().unwrap();
+
+        (child_to_parent_sender, id)
     }
 
     pub fn send_exit(&self) {
