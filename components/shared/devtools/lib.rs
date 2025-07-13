@@ -432,7 +432,7 @@ pub enum CachedConsoleMessage {
     ConsoleLog(ConsoleLog),
 }
 
-#[derive(Debug, PartialEq,Clone)]
+#[derive(Debug, PartialEq)]
 pub struct HttpRequest {
     pub url: ServoUrl,
     pub method: Method,

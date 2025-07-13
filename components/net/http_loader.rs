@@ -1958,7 +1958,7 @@ async fn http_network_fetch(
             .map(|body| body.source_is_null())
             .unwrap_or(false),
         &request.pipeline_id,
-        Some(&request_id)  ,
+        Some(&request_id),
         is_xhr,
         context,
         fetch_terminated_sender,
@@ -2052,7 +2052,11 @@ async fn http_network_fetch(
 
     if let Some(ref sender) = devtools_sender {
         let sender = sender.lock().unwrap();
-        if let Some(ChromeToDevtoolsControlMsg::NetworkEvent(_, NetworkEvent::HttpRequest(devtools_request))) = msg {
+        if let Some(ChromeToDevtoolsControlMsg::NetworkEvent(
+            _,
+            NetworkEvent::HttpRequest(devtools_request),
+        )) = msg
+        {
             let update_msg = ChromeToDevtoolsControlMsg::NetworkEvent(
                 request.id.0.to_string(),
                 NetworkEvent::HttpRequestUpdate(devtools_request),
@@ -2060,8 +2064,6 @@ async fn http_network_fetch(
             send_request_to_devtools(update_msg, &sender);
         }
     }
-    
-
 
     let done_sender2 = done_sender.clone();
     let done_sender3 = done_sender.clone();
