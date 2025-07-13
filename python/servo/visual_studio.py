@@ -51,7 +51,6 @@ def find_compatible_msvc_with_vswhere() -> Generator[VisualStudioInstallation, N
     vswhere = find_vswhere()
     if not vswhere:
         return
-
     output = subprocess.check_output(
         [
             vswhere,
@@ -62,7 +61,7 @@ def find_compatible_msvc_with_vswhere() -> Generator[VisualStudioInstallation, N
             "-requires",
             "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
             "-requires",
-            "Microsoft.VisualStudio.Component.Windows10SDK",
+            "Microsoft.VisualStudio.Component.Windows*SDK.*",
             "-utf8",
         ]
     ).decode(errors="ignore")
