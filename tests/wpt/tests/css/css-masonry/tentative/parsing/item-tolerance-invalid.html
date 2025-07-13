@@ -17,8 +17,15 @@ test_invalid_value("item-tolerance", "auto");
 
 test_invalid_value("item-tolerance", "10");
 test_invalid_value("item-tolerance", "10px 20px");
+test_invalid_value("item-tolerance", "1fr");
 test_invalid_value("item-tolerance", "-1px");
 test_invalid_value("item-tolerance", "-10%");
+test_invalid_value("item-tolerance", "normal 10px");
+test_invalid_value("item-tolerance", "infinite 10px");
+test_invalid_value("item-tolerance", "10px normal");
+test_invalid_value("item-tolerance", "10px infinite");
+test_invalid_value("item-tolerance", "normal infinite");
+test_invalid_value("item-tolerance", "infinite normal");
 </script>
 </body>
 </html>

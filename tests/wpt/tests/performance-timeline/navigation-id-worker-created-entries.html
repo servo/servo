@@ -18,9 +18,8 @@
         worker.postMessage('');
       });
 
-      assert_equals(navigationId.length, 0,
-        'Navigation id of performance entries created by a worker should be empty.');
-    }, 'Navigation id of performance entries created by workers should be empty');
+      assert_equals(navigationId, 0, '0 indicates the absence of a navigation id.');
+    }, 'Navigation id of performance entries created by workers should be 0.');
   </script>
 </body>
 

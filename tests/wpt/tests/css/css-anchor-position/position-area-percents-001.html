@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<title>Percentage inset/margin/padding in position-area</title>
+
+<link rel="help" href="https://www.w3.org/TR/css-anchor-position/#position-area">
+<link rel="match" href="position-area-percents-001-ref.html">
+<link rel="author" name="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+
+<style>
+  .container {
+    width: 100px; height: 100px;
+    border: solid gray;
+    margin: 6px;
+    position: relative;
+    float: left;
+  }
+
+  .anchor {
+    position: absolute;
+    background: silver;
+    inset: 20px 20px 40px 20px;
+    /* Makes bottom center-right area 80px wide by 40px tall */
+    anchor-name: --foo;
+  }
+
+  .anchored {
+    border: solid blue 2px;
+    position: absolute;
+    position-anchor: --foo;
+    position-area: bottom span-right;
+    place-self: stretch;
+    inset: 20% 0 0 20%;
+    margin: 0 5% 5% 0;
+    padding: 10%;
+    background: content-box aqua;
+  }
+</style>
+
+<div class=container>
+  <div class="anchor"></div>
+  <div class="anchored"></div>
+</div>
+
+<div class=container>
+  <div class="anchor"></div>
+  <div class="anchored" style="writing-mode: vertical-rl"></div>
+</div>
+
+<div class=container style="writing-mode: vertical-rl">
+  <div class="anchor"></div>
+  <div class="anchored"></div>
+</div>
+<div class=container style="writing-mode: vertical-rl">
+  <div class="anchor"></div>
+  <div class="anchored" style="writing-mode: horizontal-tb"></div>
+</div>
+
