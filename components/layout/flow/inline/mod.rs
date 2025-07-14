@@ -79,6 +79,7 @@ use std::mem;
 use std::rc::Rc;
 
 use app_units::{Au, MAX_AU};
+use base::id::WebViewId;
 use bitflags::bitflags;
 use construct::InlineFormattingContextBuilder;
 use fonts::{ByteIndex, FontMetrics, GlyphStore};
@@ -510,9 +511,9 @@ impl LineBlockSizes {
             None => {
                 // This is the case mentinoned above where there are multiple solutions.
                 // This code is putting the baseline roughly in the middle of the line.
-                let leading = self.resolve() -
-                    (self.size_for_baseline_positioning.ascent +
-                        self.size_for_baseline_positioning.descent);
+                let leading = self.resolve()
+                    - (self.size_for_baseline_positioning.ascent
+                        + self.size_for_baseline_positioning.descent);
                 leading.scale_by(0.5) + self.size_for_baseline_positioning.ascent
             },
         }
@@ -811,8 +812,8 @@ impl InlineFormattingContextLayout<'_> {
         if inline_box_state
             .base_fragment_info
             .flags
-            .contains(FragmentFlags::IS_BR_ELEMENT) &&
-            self.deferred_br_clear == Clear::None
+            .contains(FragmentFlags::IS_BR_ELEMENT)
+            && self.deferred_br_clear == Clear::None
         {
             self.deferred_br_clear = Clear::from_style_and_container_writing_mode(
                 &inline_box_state.base.style,
@@ -821,9 +822,9 @@ impl InlineFormattingContextLayout<'_> {
         }
 
         if inline_box.is_first_split {
-            self.current_line_segment.inline_size += inline_box_state.pbm.padding.inline_start +
-                inline_box_state.pbm.border.inline_start +
-                inline_box_state.pbm.margin.inline_start.auto_is(Au::zero);
+            self.current_line_segment.inline_size += inline_box_state.pbm.padding.inline_start
+                + inline_box_state.pbm.border.inline_start
+                + inline_box_state.pbm.margin.inline_start.auto_is(Au::zero);
             self.current_line_segment
                 .line_items
                 .push(LineItem::InlineStartBoxPaddingBorderMargin(
@@ -865,9 +866,9 @@ impl InlineFormattingContextLayout<'_> {
         }
 
         if inline_box_state.is_last_fragment {
-            let pbm_end = inline_box_state.pbm.padding.inline_end +
-                inline_box_state.pbm.border.inline_end +
-                inline_box_state.pbm.margin.inline_end.auto_is(Au::zero);
+            let pbm_end = inline_box_state.pbm.padding.inline_end
+                + inline_box_state.pbm.border.inline_end
+                + inline_box_state.pbm.margin.inline_end.auto_is(Au::zero);
             self.current_line_segment.inline_size += pbm_end;
             self.current_line_segment
                 .line_items
@@ -911,9 +912,9 @@ impl InlineFormattingContextLayout<'_> {
         let had_inline_advance =
             self.current_line.inline_position != self.current_line.start_position.inline;
 
-        let effective_block_advance = if self.current_line.has_content ||
-            had_inline_advance ||
-            self.linebreak_before_new_content
+        let effective_block_advance = if self.current_line.has_content
+            || had_inline_advance
+            || self.linebreak_before_new_content
         {
             self.current_line_max_block_size_including_nested_containers()
         } else {
@@ -969,8 +970,8 @@ impl InlineFormattingContextLayout<'_> {
         );
 
         // If the line doesn't have any fragments, we don't need to add a containing fragment for it.
-        if fragments.is_empty() &&
-            self.positioning_context.len() == start_positioning_context_length
+        if fragments.is_empty()
+            && self.positioning_context.len() == start_positioning_context_length
         {
             return;
         }
@@ -1080,8 +1081,8 @@ impl InlineFormattingContextLayout<'_> {
         // line box."
         let text_indent = self.current_line.start_position.inline;
         let line_length = self.current_line.inline_position - whitespace_trimmed - text_indent;
-        let adjusted_line_start = line_start +
-            match text_align {
+        let adjusted_line_start = line_start
+            + match text_align {
                 TextAlign::Start => text_indent,
                 TextAlign::End => (available_space - line_length).max(text_indent),
                 TextAlign::Center => (available_space - line_length + text_indent)
@@ -1123,8 +1124,8 @@ impl InlineFormattingContextLayout<'_> {
             .expect("Tried to lay out a float with no sequential placement state!");
 
         let block_offset_from_containining_block_top = state
-            .current_block_position_including_margins() -
-            state.current_containing_block_offset();
+            .current_block_position_including_margins()
+            - state.current_containing_block_offset();
         state.place_float_fragment(
             fragment,
             self.containing_block,
@@ -1260,8 +1261,8 @@ impl InlineFormattingContextLayout<'_> {
         if !can_break {
             // Even if we cannot break, adding content to this line might change its position.
             // In that case we need to redo our placement among floats.
-            if self.sequential_layout_state.is_some() &&
-                (inline_would_overflow || block_would_overflow)
+            if self.sequential_layout_state.is_some()
+                && (inline_would_overflow || block_would_overflow)
             {
                 let new_placement = self.place_line_among_floats(potential_line_size);
                 self.current_line
@@ -1284,8 +1285,9 @@ impl InlineFormattingContextLayout<'_> {
             // If we have a limited block size then we are wedging this line between floats.
             assert!(self.sequential_layout_state.is_some());
             let new_placement = self.place_line_among_floats(potential_line_size);
-            if new_placement.start_corner.block !=
-                self.current_line
+            if new_placement.start_corner.block
+                != self
+                    .current_line
                     .line_block_start_considering_placement_among_floats()
             {
                 return true;
@@ -1405,8 +1407,8 @@ impl InlineFormattingContextLayout<'_> {
         let current_inline_box_identifier = self.current_inline_box_identifier();
         match self.current_line_segment.line_items.last_mut() {
             Some(LineItem::TextRun(inline_box_identifier, line_item))
-                if *inline_box_identifier == current_inline_box_identifier &&
-                    line_item.can_merge(ifc_font_info.key, bidi_level) =>
+                if *inline_box_identifier == current_inline_box_identifier
+                    && line_item.can_merge(ifc_font_info.key, bidi_level) =>
             {
                 line_item.text.push(glyph_store);
                 return;
@@ -1420,9 +1422,9 @@ impl InlineFormattingContextLayout<'_> {
                 let insertion_point_index = selection.begin();
                 // We only allow the caret to be shown in the start of the fragment if it is the first fragment.
                 // Otherwise this will cause duplicate caret, especially apparent when encountered line break.
-                if insertion_point_index >= range.begin() &&
-                    insertion_point_index <= range.end() &&
-                    (range.begin() != insertion_point_index || range.begin().0 == 0)
+                if insertion_point_index >= range.begin()
+                    && insertion_point_index <= range.end()
+                    && (range.begin() != insertion_point_index || range.begin().0 == 0)
                 {
                     Some(Range::new(
                         insertion_point_index - range.begin(),
@@ -1500,8 +1502,8 @@ impl InlineFormattingContextLayout<'_> {
 
     pub(super) fn unbreakable_segment_fits_on_line(&mut self) -> bool {
         let potential_line_size = LogicalVec2 {
-            inline: self.current_line.inline_position + self.current_line_segment.inline_size -
-                self.current_line_segment.trailing_whitespace_size,
+            inline: self.current_line.inline_position + self.current_line_segment.inline_size
+                - self.current_line_segment.trailing_whitespace_size,
             block: self
                 .current_line_max_block_size_including_nested_containers()
                 .max(&self.current_line_segment.max_block_size)
@@ -1523,8 +1525,8 @@ impl InlineFormattingContextLayout<'_> {
         }
 
         let potential_line_size = LogicalVec2 {
-            inline: self.current_line.inline_position + self.current_line_segment.inline_size -
-                self.current_line_segment.trailing_whitespace_size,
+            inline: self.current_line.inline_position + self.current_line_segment.inline_size
+                - self.current_line_segment.trailing_whitespace_size,
             block: self
                 .current_line_max_block_size_including_nested_containers()
                 .max(&self.current_line_segment.max_block_size)
@@ -1620,8 +1622,8 @@ impl From<&InheritedText> for SegmentContentFlags {
 
         // White-space with `white-space-collapse: break-spaces` never hangs and always takes up
         // space.
-        if style_text.text_wrap_mode == TextWrapMode::Wrap &&
-            style_text.white_space_collapse != WhiteSpaceCollapse::BreakSpaces
+        if style_text.text_wrap_mode == TextWrapMode::Wrap
+            && style_text.white_space_collapse != WhiteSpaceCollapse::BreakSpaces
         {
             flags.insert(Self::WRAPPABLE_AND_HANGABLE_WHITESPACE);
         }
@@ -1637,6 +1639,7 @@ impl InlineFormattingContext {
         has_first_formatted_line: bool,
         is_single_line_text_input: bool,
         starting_bidi_level: Level,
+        webview_id: WebViewId,
     ) -> Self {
         // This is to prevent a double borrow.
         let text_content: String = builder.text_segments.into_iter().collect();
@@ -1655,6 +1658,7 @@ impl InlineFormattingContext {
                         &mut new_linebreaker,
                         &mut font_metrics,
                         &bidi_info,
+                        webview_id,
                     );
                 },
                 InlineItem::StartInlineBox(inline_box) => {
@@ -1667,15 +1671,16 @@ impl InlineFormattingContext {
                             &font,
                             &mut font_metrics,
                             &layout_context.font_context,
+                            webview_id,
                         ));
                     }
                 },
                 InlineItem::Atomic(_, index_in_text, bidi_level) => {
                     *bidi_level = bidi_info.levels[*index_in_text];
                 },
-                InlineItem::OutOfFlowAbsolutelyPositionedBox(..) |
-                InlineItem::OutOfFlowFloatBox(_) |
-                InlineItem::EndInlineBox => {},
+                InlineItem::OutOfFlowAbsolutelyPositionedBox(..)
+                | InlineItem::OutOfFlowFloatBox(_)
+                | InlineItem::EndInlineBox => {},
             }
         }
 
@@ -1820,9 +1825,9 @@ impl InlineFormattingContext {
 
         let mut collapsible_margins_in_children = CollapsedBlockMargins::zero();
         let content_block_size = layout.current_line.start_position.block;
-        collapsible_margins_in_children.collapsed_through = !layout.had_inflow_content &&
-            content_block_size.is_zero() &&
-            collapsible_with_parent_start_margin.0;
+        collapsible_margins_in_children.collapsed_through = !layout.had_inflow_content
+            && content_block_size.is_zero()
+            && collapsible_with_parent_start_margin.0;
 
         CacheableLayoutResult {
             fragments: layout.fragments,
@@ -2001,15 +2006,15 @@ impl InlineContainerState {
             &self.font_metrics,
             &self.font_metrics,
         );
-        self.baseline_offset +
-            match child_vertical_align {
+        self.baseline_offset
+            + match child_vertical_align {
                 // `top` and `bottom are not actually relative to the baseline, but this value is unused
                 // in those cases.
                 // TODO: We should distinguish these from `baseline` in order to implement "aligned subtrees" properly.
                 // See https://drafts.csswg.org/css2/#aligned-subtree.
-                VerticalAlign::Keyword(VerticalAlignKeyword::Baseline) |
-                VerticalAlign::Keyword(VerticalAlignKeyword::Top) |
-                VerticalAlign::Keyword(VerticalAlignKeyword::Bottom) => Au::zero(),
+                VerticalAlign::Keyword(VerticalAlignKeyword::Baseline)
+                | VerticalAlign::Keyword(VerticalAlignKeyword::Top)
+                | VerticalAlign::Keyword(VerticalAlignKeyword::Bottom) => Au::zero(),
                 VerticalAlign::Keyword(VerticalAlignKeyword::Sub) => {
                     block_size.resolve().scale_by(FONT_SUBSCRIPT_OFFSET_RATIO)
                 },
@@ -2022,14 +2027,14 @@ impl InlineContainerState {
                 VerticalAlign::Keyword(VerticalAlignKeyword::Middle) => {
                     // "Align the vertical midpoint of the box with the baseline of the parent
                     // box plus half the x-height of the parent."
-                    (child_block_size.size_for_baseline_positioning.ascent -
-                        child_block_size.size_for_baseline_positioning.descent -
-                        self.font_metrics.x_height)
+                    (child_block_size.size_for_baseline_positioning.ascent
+                        - child_block_size.size_for_baseline_positioning.descent
+                        - self.font_metrics.x_height)
                         .scale_by(0.5)
                 },
                 VerticalAlign::Keyword(VerticalAlignKeyword::TextBottom) => {
-                    self.font_metrics.descent -
-                        child_block_size.size_for_baseline_positioning.descent
+                    self.font_metrics.descent
+                        - child_block_size.size_for_baseline_positioning.descent
                 },
                 VerticalAlign::Length(length_percentage) => {
                     -length_percentage.to_used_value(child_block_size.line_height)
@@ -2090,16 +2095,16 @@ impl IndependentFormattingContext {
             Some(child_positioning_context)
         };
 
-        if layout.text_wrap_mode == TextWrapMode::Wrap &&
-            !layout
+        if layout.text_wrap_mode == TextWrapMode::Wrap
+            && !layout
                 .ifc
                 .previous_character_prevents_soft_wrap_opportunity(offset_in_text)
         {
             layout.process_soft_wrap_opportunity();
         }
 
-        let size = pbm_sums.sum() +
-            fragment
+        let size = pbm_sums.sum()
+            + fragment
                 .content_rect
                 .size
                 .to_logical(container_writing_mode);
@@ -2260,8 +2265,8 @@ fn effective_vertical_align(
 fn is_baseline_relative(vertical_align: VerticalAlign) -> bool {
     !matches!(
         vertical_align,
-        VerticalAlign::Keyword(VerticalAlignKeyword::Top) |
-            VerticalAlign::Keyword(VerticalAlignKeyword::Bottom)
+        VerticalAlign::Keyword(VerticalAlignKeyword::Top)
+            | VerticalAlign::Keyword(VerticalAlignKeyword::Bottom)
     )
 }
 
@@ -2555,7 +2560,7 @@ fn char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character: ch
         return false;
     }
     let class = linebreak_property(character);
-    class == XI_LINE_BREAKING_CLASS_GL ||
-        class == XI_LINE_BREAKING_CLASS_WJ ||
-        class == XI_LINE_BREAKING_CLASS_ZWJ
+    class == XI_LINE_BREAKING_CLASS_GL
+        || class == XI_LINE_BREAKING_CLASS_WJ
+        || class == XI_LINE_BREAKING_CLASS_ZWJ
 }

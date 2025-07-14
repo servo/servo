@@ -4,6 +4,7 @@
 
 use std::sync::Arc;
 
+use base::id::WebViewId;
 use euclid::Size2D;
 use fnv::FnvHashMap;
 use fonts::FontContext;
@@ -40,6 +41,8 @@ pub(crate) struct LayoutContext<'a> {
     /// An [`ImageResolver`] used for resolving images during box and fragment
     /// tree construction. Later passed to display list construction.
     pub image_resolver: Arc<ImageResolver>,
+
+    pub webview_id: WebViewId,
 }
 
 pub enum ResolvedImage<'a> {

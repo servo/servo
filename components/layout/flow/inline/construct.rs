@@ -391,8 +391,8 @@ impl InlineFormattingContextBuilder {
                 self.has_uncollapsible_text_content |= matches!(
                     white_space_collapse,
                     WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces
-                ) || !character.is_ascii_whitespace() ||
-                    (character == '\n' && white_space_collapse != WhiteSpaceCollapse::Collapse);
+                ) || !character.is_ascii_whitespace()
+                    || (character == '\n' && white_space_collapse != WhiteSpaceCollapse::Collapse);
             })
             .collect();
 
@@ -495,6 +495,7 @@ impl InlineFormattingContextBuilder {
             has_first_formatted_line,
             /* is_single_line_text_input = */ false,
             default_bidi_level,
+            layout_context.webview_id,
         )
     }
 
@@ -505,6 +506,7 @@ impl InlineFormattingContextBuilder {
         has_first_formatted_line: bool,
         is_single_line_text_input: bool,
         default_bidi_level: Level,
+        webview_id: base::id::WebViewId,
     ) -> Option<InlineFormattingContext> {
         if self.is_empty() {
             return None;
@@ -518,6 +520,7 @@ impl InlineFormattingContextBuilder {
             has_first_formatted_line,
             is_single_line_text_input,
             default_bidi_level,
+            webview_id,
         ))
     }
 }
@@ -596,8 +599,8 @@ where
         // > characters are considered collapsible
         // If whitespace is not considered collapsible, it is preserved entirely, which
         // means that we can simply return the input string exactly.
-        if self.white_space_collapse == WhiteSpaceCollapse::Preserve ||
-            self.white_space_collapse == WhiteSpaceCollapse::BreakSpaces
+        if self.white_space_collapse == WhiteSpaceCollapse::Preserve
+            || self.white_space_collapse == WhiteSpaceCollapse::BreakSpaces
         {
             // From <https://drafts.csswg.org/css-text-3/#white-space-processing>:
             // > Carriage returns (U+000D) are treated identically to spaces (U+0020) in all respects.
@@ -644,9 +647,9 @@ where
                 // >    collapsible segment break is removed.
                 // > 2. Then any remaining segment break is either transformed into a space (U+0020)
                 // >    or removed depending on the context before and after the break.
-                } else if !self.following_newline &&
-                    preserve_segment_break() &&
-                    !self.is_leading_trimmed_white_space()
+                } else if !self.following_newline
+                    && preserve_segment_break()
+                    && !self.is_leading_trimmed_white_space()
                 {
                     self.inside_white_space = false;
                     self.following_newline = true;
