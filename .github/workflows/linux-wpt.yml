@@ -109,7 +109,7 @@ jobs:
               --log-wptreport wpt-full-logs/linux/wptreport/$chunk_id.json \
               --log-raw-unexpected wpt-filtered-logs/linux/$chunk_id.log \
               --filter-intermittents wpt-filtered-logs/linux/$chunk_id.json \
-              ${{ inputs.wpt-args }}; then
+              ${{ inputs.wpt-args }} 2>&1 | sed 's|^|'"[Chunk $chunk_id/$total_chunks] "'|'; then
               :  # Do nothing
             else
               echo $? > $exit_status_file
