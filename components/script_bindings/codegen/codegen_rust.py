@@ -36,7 +36,7 @@ from WebIDL import (
     IDLWrapperType,
 )
 
-from Configuration import (
+from configuration import (
     Configuration,
     Descriptor,
     DescriptorProvider,
