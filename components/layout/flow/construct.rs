@@ -230,6 +230,7 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
             !self.have_already_seen_first_line_for_text_indent,
             self.info.is_single_line_text_input(),
             self.info.style.to_bidi_level(),
+            self.context.webview_id,
         )
     }
 

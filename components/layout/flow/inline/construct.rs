@@ -495,6 +495,7 @@ impl InlineFormattingContextBuilder {
             has_first_formatted_line,
             /* is_single_line_text_input = */ false,
             default_bidi_level,
+            layout_context.webview_id,
         )
     }
 
@@ -505,6 +506,7 @@ impl InlineFormattingContextBuilder {
         has_first_formatted_line: bool,
         is_single_line_text_input: bool,
         default_bidi_level: Level,
+        webview_id: base::id::WebViewId,
     ) -> Option<InlineFormattingContext> {
         if self.is_empty() {
             return None;
@@ -518,6 +520,7 @@ impl InlineFormattingContextBuilder {
             has_first_formatted_line,
             is_single_line_text_input,
             default_bidi_level,
+            webview_id,
         ))
     }
 }
