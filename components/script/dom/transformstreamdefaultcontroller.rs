@@ -71,6 +71,7 @@ enum TransformAlgorithmType {
 impl TransformAlgorithmType {
     fn call(
         &self,
+        cx: SafeJSContext,
         this_obj: &SafeHandleObject,
         chunk: SafeHandleValue,
         controller: &TransformStreamDefaultController,
@@ -107,6 +108,7 @@ enum FlushAlgorithmType {
 impl FlushAlgorithmType {
     fn call(
         &self,
+        cx: SafeJSContext,
         this_obj: &SafeHandleObject,
         controller: &TransformStreamDefaultController,
         can_gc: CanGc,
@@ -240,7 +242,7 @@ impl TransformStreamDefaultController {
         let algo = self.transform.borrow().clone();
         let result = if let Some(transform) = algo {
             rooted!(in(*cx) let this_object = self.transform_obj.get());
-            let call_result = transform.call(&this_object.handle(), chunk, self, can_gc);
+            let call_result = transform.call(cx, &this_object.handle(), chunk, self, can_gc);
             match call_result {
                 Ok(p) => p,
                 Err(e) => {
@@ -314,7 +316,7 @@ impl TransformStreamDefaultController {
         let algo = self.flush.borrow().clone();
         let result = if let Some(flush) = algo {
             rooted!(in(*cx) let this_object = self.transform_obj.get());
-            let call_result = flush.call(&this_object.handle(), self, can_gc);
+            let call_result = flush.call(cx, &this_object.handle(), self, can_gc);
             match call_result {
                 Ok(p) => p,
                 Err(e) => {
