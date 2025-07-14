@@ -554,7 +554,7 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
                 let gl = contexts.bindings(device, context_id).unwrap();
                 unsafe { gl.delete_texture(depth_stencil_texture) };
             }
-            let mut context = contexts
+            let context = contexts
                 .context(device, context_id)
                 .expect("missing GL context");
             for surface_texture in mem::replace(&mut layer.surface_textures, vec![]) {
