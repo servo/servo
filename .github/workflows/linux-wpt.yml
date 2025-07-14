@@ -101,7 +101,7 @@ jobs:
               break
             fi
             >&2 echo "Got chunk $chunk_id (of $total_chunks chunks)"
-            if ./mach test-wpt \
+            if PYTHONUNBUFFERED=1 ./mach test-wpt \
               $WPT_ALWAYS_SUCCEED_ARG \
               --${{ inputs.profile }} --processes $(nproc) --timeout-multiplier 2 \
               --total-chunks $total_chunks --this-chunk $chunk_id \
