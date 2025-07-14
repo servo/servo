@@ -968,6 +968,7 @@ impl LayoutThread {
             iframe_sizes: Mutex::default(),
             use_rayon: rayon_pool.is_some(),
             image_resolver: image_resolver.clone(),
+            webview_id: self.webview_id,
         };
 
         let restyle = reflow_request

@@ -6,6 +6,7 @@ use std::mem;
 use std::ops::Range;
 
 use app_units::Au;
+use base::id::WebViewId;
 use base::text::is_bidi_control;
 use fonts::{
     FontContext, FontRef, GlyphRun, LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
@@ -96,6 +97,7 @@ impl TextRunSegment {
         bidi_level: Level,
         fonts: &[FontKeyAndMetrics],
         font_context: &FontContext,
+        webview_id: WebViewId,
     ) -> bool {
         fn is_specific(script: Script) -> bool {
             script != Script::Common && script != Script::Inherited
@@ -106,7 +108,7 @@ impl TextRunSegment {
         }
 
         let current_font_key_and_metrics = &fonts[self.font_index];
-        if new_font.key(font_context) != current_font_key_and_metrics.key ||
+        if new_font.key(webview_id, font_context) != current_font_key_and_metrics.key ||
             new_font.descriptor.pt_size != current_font_key_and_metrics.pt_size
         {
             return false;
@@ -371,6 +373,7 @@ impl TextRun {
         linebreaker: &mut LineBreaker,
         font_cache: &mut Vec<FontKeyAndMetrics>,
         bidi_info: &BidiInfo,
+        webview_id: WebViewId,
     ) {
         let parent_style = self.inline_styles.style.borrow().clone();
         let inherited_text_style = parent_style.get_inherited_text().clone();
@@ -403,6 +406,7 @@ impl TextRun {
                 font_cache,
                 bidi_info,
                 &parent_style,
+                webview_id,
             )
             .into_iter()
             .map(|(mut segment, font)| {
@@ -451,6 +455,7 @@ impl TextRun {
         font_cache: &mut Vec<FontKeyAndMetrics>,
         bidi_info: &BidiInfo,
         parent_style: &Arc<ComputedValues>,
+        webview_id: WebViewId,
     ) -> Vec<(TextRunSegment, FontRef)> {
         let font_group = font_context.font_group(parent_style.clone_font());
         let mut current: Option<(TextRunSegment, FontRef)> = None;
@@ -497,12 +502,13 @@ impl TextRun {
                     bidi_level,
                     font_cache,
                     font_context,
+                    webview_id,
                 ) {
                     continue;
                 }
             }
 
-            let font_index = add_or_get_font(&font, font_cache, font_context);
+            let font_index = add_or_get_font(&font, font_cache, font_context, webview_id);
 
             // Add the new segment and finish the existing one, if we had one. If the first
             // characters in the run were control characters we may be creating the first
@@ -527,7 +533,7 @@ impl TextRun {
         // of those cases, just use the first font.
         if current.is_none() {
             current = font_group.write().first(font_context).map(|font| {
-                let font_index = add_or_get_font(&font, font_cache, font_context);
+                let font_index = add_or_get_font(&font, font_cache, font_context, webview_id);
                 (
                     TextRunSegment::new(
                         font_index,
@@ -597,8 +603,10 @@ pub(super) fn add_or_get_font(
     font: &FontRef,
     ifc_fonts: &mut Vec<FontKeyAndMetrics>,
     font_context: &FontContext,
+    webview_id: WebViewId,
 ) -> usize {
-    let font_instance_key = font.key(font_context);
+    //error!("Add or get font for {webview_id:?}");
+    let font_instance_key = font.key(webview_id, font_context);
     for (index, ifc_font_info) in ifc_fonts.iter().enumerate() {
         if ifc_font_info.key == font_instance_key &&
             ifc_font_info.pt_size == font.descriptor.pt_size
