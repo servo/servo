@@ -47,7 +47,7 @@ pub struct StructuredSerializedData {
 impl StructuredSerializedData {
     fn is_empty(&self, val: Transferrable) -> bool {
         fn is_field_empty<K, V>(field: &Option<HashMap<K, V>>) -> bool {
-            field.as_ref().is_some_and(|h| h.is_empty())
+            field.as_ref().is_none_or(|h| h.is_empty())
         }
         match val {
             Transferrable::ImageBitmap => is_field_empty(&self.transferred_image_bitmaps),
