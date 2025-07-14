@@ -44,7 +44,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::{CustomTraceable, RootedTraceableBox};
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
-use crate::dom::csp::parse_csp_list_from_metadata;
+use crate::dom::csp::{Violation, parse_csp_list_from_metadata};
 use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventtarget::EventTarget;
@@ -55,7 +55,7 @@ use crate::dom::reportingendpoint::ReportingEndpoint;
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worker::{TrustedWorkerAddress, Worker};
 use crate::dom::workerglobalscope::WorkerGlobalScope;
-use crate::fetch::load_whole_resource;
+use crate::fetch::{CspViolationsProcessor, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
@@ -177,6 +177,22 @@ impl QueuedTaskConversion for DedicatedWorkerScriptMsg {
 }
 
 unsafe_no_jsmanaged_fields!(TaskQueue<DedicatedWorkerScriptMsg>);
+
+struct DedicatedWorkerCspProcessor {
+    parent_event_loop_sender: ScriptEventLoopSender,
+    pipeline_id: PipelineId,
+}
+
+impl CspViolationsProcessor for DedicatedWorkerCspProcessor {
+    fn process_csp_violations(&self, violations: Vec<Violation>) {
+        let _ = self
+            .parent_event_loop_sender
+            .send(CommonScriptMsg::ReportCspViolations(
+                self.pipeline_id,
+                violations,
+            ));
+    }
+}
 
 // https://html.spec.whatwg.org/multipage/#dedicatedworkerglobalscope
 #[dom_struct]
@@ -464,6 +480,10 @@ impl DedicatedWorkerGlobalScope {
                     request,
                     &global_scope.resource_threads().sender(),
                     global_scope,
+                    &DedicatedWorkerCspProcessor {
+                        parent_event_loop_sender: parent_event_loop_sender.clone(),
+                        pipeline_id,
+                    },
                     CanGc::note(),
                 ) {
                     Err(e) => {
