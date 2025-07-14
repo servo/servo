@@ -10,12 +10,12 @@ use std::{mem, ptr};
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, Prefix, ns};
-use js::conversions::ToJSValConvertible;
 use js::glue::UnwrapObjectStatic;
 use js::jsapi::{HandleValueArray, Heap, IsCallable, IsConstructor, JSAutoRealm, JSObject};
 use js::jsval::{BooleanValue, JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::rust::wrappers::{Construct1, JS_GetProperty, SameValue};
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
+use script_bindings::conversions::SafeToJSValConvertible;
 
 use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::callback::{CallbackContainer, ExceptionHandling};
@@ -539,24 +539,19 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         // Step 16, 16.3
         let promise = self.when_defined.borrow_mut().remove(&name);
         if let Some(promise) = promise {
-            unsafe {
-                rooted!(in(*cx) let mut constructor = UndefinedValue());
-                definition
-                    .constructor
-                    .to_jsval(*cx, constructor.handle_mut());
-                promise.resolve_native(&constructor.get(), can_gc);
-            }
+            rooted!(in(*cx) let mut constructor = UndefinedValue());
+            definition
+                .constructor
+                .safe_to_jsval(cx, constructor.handle_mut());
+            promise.resolve_native(&constructor.get(), can_gc);
         }
         Ok(())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-get>
-    #[allow(unsafe_code)]
     fn Get(&self, cx: JSContext, name: DOMString, mut retval: MutableHandleValue) {
         match self.definitions.borrow().get(&LocalName::from(&*name)) {
-            Some(definition) => unsafe {
-                definition.constructor.to_jsval(*cx, retval);
-            },
+            Some(definition) => definition.constructor.safe_to_jsval(cx, retval),
             None => retval.set(UndefinedValue()),
         }
     }
@@ -572,7 +567,6 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-whendefined>
-    #[allow(unsafe_code)]
     fn WhenDefined(&self, name: DOMString, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
         let name = LocalName::from(&*name);
 
@@ -592,16 +586,14 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
         // Step 2
         if let Some(definition) = self.definitions.borrow().get(&LocalName::from(&*name)) {
-            unsafe {
-                let cx = GlobalScope::get_cx();
-                rooted!(in(*cx) let mut constructor = UndefinedValue());
-                definition
-                    .constructor
-                    .to_jsval(*cx, constructor.handle_mut());
-                let promise = Promise::new_in_current_realm(comp, can_gc);
-                promise.resolve_native(&constructor.get(), can_gc);
-                return promise;
-            }
+            let cx = GlobalScope::get_cx();
+            rooted!(in(*cx) let mut constructor = UndefinedValue());
+            definition
+                .constructor
+                .safe_to_jsval(cx, constructor.handle_mut());
+            let promise = Promise::new_in_current_realm(comp, can_gc);
+            promise.resolve_native(&constructor.get(), can_gc);
+            return promise;
         }
 
         // Steps 3, 4, 5
@@ -927,9 +919,7 @@ fn run_upgrade_constructor(
     let cx = GlobalScope::get_cx();
     rooted!(in(*cx) let constructor_val = ObjectValue(constructor.callback()));
     rooted!(in(*cx) let mut element_val = UndefinedValue());
-    unsafe {
-        element.to_jsval(*cx, element_val.handle_mut());
-    }
+    element.safe_to_jsval(cx, element_val.handle_mut());
     rooted!(in(*cx) let mut construct_result = ptr::null_mut::<JSObject>());
     {
         // Step 8.1. If definition's disable shadow is true and element's shadow root is non-null,
@@ -1128,7 +1118,6 @@ impl CustomElementReactionStack {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#enqueue-a-custom-element-callback-reaction>
-    #[allow(unsafe_code)]
     pub(crate) fn enqueue_callback_reaction(
         &self,
         element: &Element,
@@ -1174,30 +1163,22 @@ impl CustomElementReactionStack {
 
                 let local_name = DOMString::from(&*local_name);
                 rooted!(in(*cx) let mut name_value = UndefinedValue());
-                unsafe {
-                    local_name.to_jsval(*cx, name_value.handle_mut());
-                }
+                local_name.safe_to_jsval(cx, name_value.handle_mut());
 
                 rooted!(in(*cx) let mut old_value = NullValue());
                 if let Some(old_val) = old_val {
-                    unsafe {
-                        old_val.to_jsval(*cx, old_value.handle_mut());
-                    }
+                    old_val.safe_to_jsval(cx, old_value.handle_mut());
                 }
 
                 rooted!(in(*cx) let mut value = NullValue());
                 if let Some(val) = val {
-                    unsafe {
-                        val.to_jsval(*cx, value.handle_mut());
-                    }
+                    val.safe_to_jsval(cx, value.handle_mut());
                 }
 
                 rooted!(in(*cx) let mut namespace_value = NullValue());
                 if namespace != ns!() {
                     let namespace = DOMString::from(&*namespace);
-                    unsafe {
-                        namespace.to_jsval(*cx, namespace_value.handle_mut());
-                    }
+                    namespace.safe_to_jsval(cx, namespace_value.handle_mut());
                 }
 
                 let args = vec![
