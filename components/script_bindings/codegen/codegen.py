@@ -36,7 +36,7 @@ from WebIDL import (
     IDLWrapperType,
 )
 
-from Configuration import (
+from configuration import (
     Configuration,
     Descriptor,
     DescriptorProvider,
@@ -265,27 +265,7 @@ def indent(s, indentLevel=2):
         return s
     return re.sub(lineStartDetector, indentLevel * " ", s)
 
-
-# dedent() and fill() are often called on the same string multiple
-# times.  We want to memoize their return values so we don't keep
-# recomputing them all the time.
-def memoize(fn):
-    """
-    Decorator to memoize a function of one argument.  The cache just
-    grows without bound.
-    """
-    cache = {}
-
-    @functools.wraps(fn)
-    def wrapper(arg):
-        retval = cache.get(arg)
-        if retval is None:
-            retval = cache[arg] = fn(arg)
-        return retval
-    return wrapper
-
-
-@memoize
+@functools.cache
 def dedent(s):
     """
     Remove all leading whitespace from s, and remove a blank line
@@ -301,7 +281,7 @@ def dedent(s):
 fill_multiline_substitution_re = re.compile(r"( *)\$\*{(\w+)}(\n)?")
 
 
-@memoize
+@functools.cache
 def compile_fill_template(template):
     """
     Helper function for fill().  Given the template string passed to fill(),
