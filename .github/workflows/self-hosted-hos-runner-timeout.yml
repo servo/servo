@@ -1,0 +1,53 @@
+name: Detect Self-hosted HOS Runner Timeout
+on:
+  workflow_call:
+    inputs:
+      unique-id:
+        required: true
+        type: string
+
+jobs:
+  # In the unlikely event self-hosted runners are down, cancel the workflow quickly.
+  # Note: Since we can't fallback to github-hosted runners, since we use these jobs to test
+  # on real hardware, the timeout needs to be balanced between failing quickly (less than the
+  # default of 6 hours) and failing too often, when there are multiple jobs queuing up to use
+  # the self-hosted runners.
+  runner-timeout:
+    name: Detect Runner Timeout
+    runs-on: ubuntu-latest
+    steps:
+      # Todo: Evaluate following optimizations:
+      # - Check if there are other workflows in running status using the hos runner labels,
+      #   and extend queue time if so (since this indicates runners are available, there just might be
+      #   more contention than usual).
+      - name: Cancel if workload job is still queued
+        run: |
+          run_url=/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          export GH_TOKEN=${{ secrets.GITHUB_TOKEN }}
+          sleep_per_iteration=15
+          num_iterations=40
+          # Effective timeout is num_iterations * sleep_per_iteration in seconds.
+          for in in $(seq 1..${num_iterations})
+          do
+            # Wait for a bit between each API call
+            sleep ${sleep_per_iteration}
+            job_status=$(gh api "$run_url/jobs" \
+              | jq -er --arg id '${{ inputs.unique-id }}' \
+                '.jobs[] | select(.name | contains("[" + $id + "]")) | .status')
+            echo "Job status is ${job_status}."
+            if [ "${job_status}" != queued ]; then
+              echo 'Job is not queued anymore. Exiting timeout job'
+              exit 0
+            else
+              echo "Retrying..."
+            fi
+          done
+          echo 'Timeout waiting for runner assignment!'
+          echo 'Hint: does this repo have permission to access the runner group?'
+          echo 'Hint: https://github.com/organizations/servo/settings/actions/runner-groups'
+          echo 'Note: This might happen sporadically if there are a lot of concurrent jobs'
+          echo 'which are competing for the limited number of self-hosted runners'
+          echo
+          echo 'Cancelling workflow run'
+          gh api "$run_url/cancel" --method POST
+          exit 1

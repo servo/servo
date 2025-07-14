@@ -1,0 +1,25 @@
+name: Generate UUID for a self-hosted runner
+on:
+  workflow_call:
+    outputs:
+      unique-id:
+        value: ${{ jobs.runner-select.outputs.unique-id }}
+
+jobs:
+  # Generate a unique ID for the timeout job
+  gen-uuid:
+    name: Generate Runner UUID
+    runs-on: ubuntu-latest
+    outputs:
+      unique-id: ${{ steps.uuid.outputs.unique_id }}
+    steps:
+      - name: Generate a UUID
+        id: uuid
+        run: |
+          set -euo pipefail
+
+          # Generate a unique id that allows the timeout
+          # job to find the workload job run (via the job’s friendly name), even
+          # if there are multiple instances in the workflow call tree.
+          unique_id=$(uuidgen)
+          echo "unique_id=$unique_id" | tee -a $GITHUB_OUTPUT
