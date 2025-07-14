@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html class="reftest-wait">
   <head>
     <meta charset="utf-8">
     <title>incremental trailing whitespace test</title>
@@ -19,9 +19,13 @@
       <div id="a" style="transition: all .1s ease-out;">Hello</div>
     </div>
     <script>
+      let transitioningDiv = document.querySelector('#a');
+      transitioningDiv.addEventListener('transitionend', () => {
+        document.documentElement.classList.remove("reftest-wait");
+      });
+
       document.body.offsetWidth; // force layout
-      document.querySelector('#a').classList.add('go');
-      // FIXME (#10245): Wait for the "transitionend" event.
+      transitioningDiv.classList.add('go');
     </script>
   </body>
 </html>
