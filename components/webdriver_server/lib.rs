@@ -1875,7 +1875,7 @@ impl Handler {
     fn handle_element_click(&mut self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
 
-        // Steps 1 - 7
+        // Steps 1 - 7 + Step 8 for <option>
         let cmd = WebDriverScriptCommand::ElementClick(element.to_string(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
 
@@ -1883,7 +1883,7 @@ impl Handler {
             Ok(element_id) => match element_id {
                 Some(element_id) => {
                     let id = Uuid::new_v4().to_string();
-
+                    // Step 8 for elements other than <option>
                     // Step 8.1
                     self.session_mut()?.input_state_table.borrow_mut().insert(
                         id.clone(),
