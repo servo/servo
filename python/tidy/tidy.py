@@ -20,7 +20,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from typing import Any, Dict, Generator, List, TypedDict, cast, LiteralString
-from collections.abc import Iterator
+from collections.abc import Iterator, Callable
 
 import colorama
 import toml
@@ -829,7 +829,7 @@ def lint_wpt_test_files() -> Iterator[tuple[str, int, str]]:
     messages: List[str] = []
     assert lint.logger is not None
 
-    lint.logger.error = lambda message: messages.append(message)  # pyrefly: ignore
+    lint.logger.error = lambda message: messages.append(message)  # pyrefly: ignore[bad-assignment]
 
     # We do not lint all WPT-like tests because they do not all currently have
     # lint.ignore files.
@@ -1000,7 +1000,8 @@ def parse_config(config_file) -> None:
     dirs_to_check = config_file.get("check_ext", {})
     # Fix the paths (OS-dependent)
     for path, exts in dirs_to_check.items():
-        config["check_ext"][normilize_paths(path)] = exts  # type: ignore
+        # pyrefly: ignore[bad-argument-type]
+        config["check_ext"][normilize_paths(path)] = exts
 
     # Add list of blocked packages
     config["blocked-packages"] = config_file.get("blocked-packages", {})
@@ -1010,7 +1011,8 @@ def parse_config(config_file) -> None:
 
     for pref in user_configs:
         if pref in config:
-            config[pref] = user_configs[pref]  # pyrefly: ignore
+            # pyrefly: ignore[missing-attribute]
+            config[pref] = user_configs[pref]
 
 
 def check_directory_files(directories, print_text=True) -> Iterator[tuple[str, int, str]]:
@@ -1061,8 +1063,10 @@ def scan(only_changed_files=False, progress=False, github_annotations=False) -> 
     directory_errors = check_directory_files(config["check_ext"])
     # standard checks
     files_to_check = filter_files(".", only_changed_files, progress)
-    checking_functions = (check_webidl_spec,)
-    line_checking_functions = (
+    CheckingFunction = Callable[[str, bytes], Iterator[tuple[int, str]]]
+    checking_functions: tuple[CheckingFunction, ...] = (check_webidl_spec,)
+    LineCheckingFunction = Callable[[str, list[bytes]], Iterator[tuple[int, str]]]
+    line_checking_functions: tuple[LineCheckingFunction, ...] = (
         check_license,
         check_by_line,
         check_toml,
