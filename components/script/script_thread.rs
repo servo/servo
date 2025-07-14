@@ -200,7 +200,8 @@ type NodeIdSet = HashSet<String>;
 #[cfg_attr(crown, allow(crown::unrooted_must_root))]
 pub struct ScriptThread {
     /// <https://html.spec.whatwg.org/multipage/#last-render-opportunity-time>
-    last_render_opportunity_time: DomRefCell<Option<Instant>>,
+    last_render_opportunity_time: Cell<Option<Instant>>,
+
     /// The documents for pipelines managed by this thread
     documents: DomRefCell<DocumentCollection>,
     /// The window proxies known by this thread
@@ -336,19 +337,19 @@ pub struct ScriptThread {
     #[no_trace]
     relative_mouse_down_point: Cell<Point2D<f32, DevicePixel>>,
 
-    /// The [`TimerId`] of the scheduled ScriptThread-only animation tick timer, if any.
-    /// This may be non-`None` when rAF callbacks do not trigger display list creation. In
-    /// that case the compositor will never trigger a new animation tick because it's
-    /// dependent on the rendering of a new WebRender frame.
+    /// The [`TimerId`] of a ScriptThread-scheduled "update the rendering" call, if any.
+    /// The ScriptThread schedules calls to "update the rendering," but the renderer can
+    /// also do this when animating. Renderer-based calls always take precedence.
     #[no_trace]
-    scheduled_script_thread_animation_timer: RefCell<Option<TimerId>>,
+    scheduled_update_the_rendering: RefCell<Option<TimerId>>,
 
-    /// Whether an animation tick is pending. This might either be because the Servo renderer
-    /// is managing animations and the [`ScriptThread`] has received a
-    /// [`ScriptThreadMessage::TickAllAnimations`] message or because the [`ScriptThread`]
+    /// Whether an animation tick or ScriptThread-triggered rendering update is pending. This might
+    /// either be because the Servo renderer is managing animations and the [`ScriptThread`] has
+    /// received a [`ScriptThreadMessage::TickAllAnimations`] message, because the [`ScriptThread`]
     /// itself is managing animations the the timer fired triggering a [`ScriptThread`]-based
-    /// animation tick.
-    has_pending_animation_tick: Arc<AtomicBool>,
+    /// animation tick, or if there are no animations running and the [`ScriptThread`] has noticed a
+    /// change that requires a rendering update.
+    needs_rendering_update: Arc<AtomicBool>,
 
     debugger_global: Dom<DebuggerGlobalScope>,
 }
@@ -599,9 +600,11 @@ impl ScriptThread {
         }
     }
 
-    pub(crate) fn set_has_pending_animation_tick(&self) {
-        self.has_pending_animation_tick
-            .store(true, Ordering::Relaxed);
+    /// Inform the `ScriptThread` that it should make a call to
+    /// [`ScriptThread::update_the_rendering`] as soon as possible, as the rendering
+    /// update timer has fired or the renderer has asked us for a new rendering update.
+    pub(crate) fn set_needs_rendering_update(&self) {
+        self.needs_rendering_update.store(true, Ordering::Relaxed);
     }
 
     /// Step 13 of <https://html.spec.whatwg.org/multipage/#navigate>
@@ -998,8 +1001,8 @@ impl ScriptThread {
             inherited_secure_context: state.inherited_secure_context,
             layout_factory,
             relative_mouse_down_point: Cell::new(Point2D::zero()),
-            scheduled_script_thread_animation_timer: Default::default(),
-            has_pending_animation_tick: Arc::new(AtomicBool::new(false)),
+            scheduled_update_the_rendering: Default::default(),
+            needs_rendering_update: Arc::new(AtomicBool::new(false)),
             debugger_global: debugger_global.as_traced(),
         }
     }
@@ -1208,36 +1211,41 @@ impl ScriptThread {
             }));
     }
 
+    fn cancel_scheduled_update_the_rendering(&self) {
+        if let Some(timer_id) = self.scheduled_update_the_rendering.borrow_mut().take() {
+            self.timer_scheduler.borrow_mut().cancel_timer(timer_id);
+        }
+    }
+
+    fn schedule_update_the_rendering_timer_if_necessary(&self, delay: Duration) {
+        if self.scheduled_update_the_rendering.borrow().is_some() {
+            return;
+        }
+
+        debug!("Scheduling ScriptThread animation frame.");
+        let trigger_script_thread_animation = self.needs_rendering_update.clone();
+        let timer_id = self.schedule_timer(TimerEventRequest {
+            callback: Box::new(move || {
+                trigger_script_thread_animation.store(true, Ordering::Relaxed);
+            }),
+            duration: delay,
+        });
+
+        *self.scheduled_update_the_rendering.borrow_mut() = Some(timer_id);
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#update-the-rendering>
     ///
     /// Attempt to update the rendering and then do a microtask checkpoint if rendering was actually
     /// updated.
-    pub(crate) fn update_the_rendering(&self, can_gc: CanGc) {
-        *self.last_render_opportunity_time.borrow_mut() = Some(Instant::now());
-
-        let is_animation_tick = self.has_pending_animation_tick.load(Ordering::Relaxed);
-        if is_animation_tick {
-            self.has_pending_animation_tick
-                .store(false, Ordering::Relaxed);
-            // If this is an animation tick, cancel any upcoming ScriptThread-based animation timer.
-            // This tick serves the purpose and we to limit animation ticks if some are coming from
-            // the renderer.
-            if let Some(timer_id) = self
-                .scheduled_script_thread_animation_timer
-                .borrow_mut()
-                .take()
-            {
-                self.timer_scheduler.borrow_mut().cancel_timer(timer_id);
-            }
-        }
+    pub(crate) fn update_the_rendering(&self, can_gc: CanGc) -> bool {
+        self.last_render_opportunity_time.set(Some(Instant::now()));
+        self.cancel_scheduled_update_the_rendering();
+        self.needs_rendering_update.store(false, Ordering::Relaxed);
 
         if !self.can_continue_running_inner() {
-            return;
+            return false;
         }
-
-        let any_animations_running = self.documents.borrow().iter().any(|(_, document)| {
-            document.is_fully_active() && document.animations().running_animation_count() != 0
-        });
 
         // TODO: The specification says to filter out non-renderable documents,
         // as well as those for which a rendering update would be unnecessary,
@@ -1246,13 +1254,6 @@ impl ScriptThread {
         // TODO(#31242): the filtering of docs is extended to not exclude the ones that
         // has pending initial observation targets
         // https://w3c.github.io/IntersectionObserver/#pending-initial-observation
-
-        // If we aren't explicitly running rAFs, this update wasn't requested by the compositor,
-        // and we are running animations, then wait until the compositor tells us it is time to
-        // update the rendering via a TickAllAnimations message.
-        if !is_animation_tick && any_animations_running {
-            return;
-        }
 
         // > 2. Let docs be all fully active Document objects whose relevant agent's event loop
         // > is eventLoop, sorted arbitrarily except that the following conditions must be
@@ -1326,14 +1327,12 @@ impl ScriptThread {
             // > 14. For each doc of docs, run the animation frame callbacks for doc, passing
             // > in the relative high resolution time given frameTimestamp and doc's
             // > relevant global object as the timestamp.
-            if is_animation_tick {
-                document.run_the_animation_frame_callbacks(can_gc);
-            }
+            document.run_the_animation_frame_callbacks(can_gc);
 
             // Run the resize observer steps.
             let _realm = enter_realm(&*document);
             let mut depth = Default::default();
-            while document.gather_active_resize_observations_at_depth(&depth, can_gc) {
+            while document.gather_active_resize_observations_at_depth(&depth) {
                 // Note: this will reflow the doc.
                 depth = document.broadcast_active_resize_observations(can_gc);
             }
@@ -1341,6 +1340,7 @@ impl ScriptThread {
             if document.has_skipped_resize_observations() {
                 document.deliver_resize_loop_error_notification(can_gc);
             }
+            document.set_resize_observer_started_observing_target(false);
 
             // TODO(#31870): Implement step 17: if the focused area of doc is not a focusable area,
             // then run the focusing steps for document's viewport.
@@ -1358,7 +1358,7 @@ impl ScriptThread {
 
             // > Step 22: For each doc of docs, update the rendering or user interface of
             // > doc and its node navigable to reflect the current state.
-            saw_any_reflows = document.update_the_rendering(can_gc) || saw_any_reflows;
+            saw_any_reflows = document.update_the_rendering() || saw_any_reflows;
 
             // TODO: Process top layer removals according to
             // https://drafts.csswg.org/css-position-4/#process-top-layer-removals.
@@ -1367,107 +1367,99 @@ impl ScriptThread {
         // Perform a microtask checkpoint as the specifications says that *update the rendering*
         // should be run in a task and a microtask checkpoint is always done when running tasks.
         self.perform_a_microtask_checkpoint(can_gc);
-
-        // If there are pending reflows, they were probably caused by the execution of
-        // the microtask checkpoint above and we should spin the event loop one more
-        // time to resolve them.
-        self.schedule_rendering_opportunity_if_necessary();
-
-        // If this was a animation update request, then potentially schedule a new
-        // animation update in the case that the compositor might not do it due to
-        // not receiving any display lists.
-        if is_animation_tick {
-            self.schedule_script_thread_animation_tick_if_necessary(saw_any_reflows);
-        }
+        saw_any_reflows
     }
 
-    // If there are any pending reflows and we are not having rendering opportunities
-    // driven by the compositor, then schedule the next rendering opportunity.
-    //
-    // TODO: This is a workaround until rendering opportunities can be triggered from a
-    // timer in the script thread.
-    fn schedule_rendering_opportunity_if_necessary(&self) {
-        // If any Document has active animations of rAFs, then we should be receiving
-        // regular rendering opportunities from the compositor (or fake animation frame
-        // ticks). In this case, don't schedule an opportunity, just wait for the next
-        // one.
-        if self.documents.borrow().iter().any(|(_, document)| {
-            document.is_fully_active() &&
-                (document.animations().running_animation_count() != 0 ||
-                    document.has_active_request_animation_frame_callbacks())
-        }) {
-            return;
-        }
-
-        let Some((_, document)) = self.documents.borrow().iter().find(|(_, document)| {
-            document.is_fully_active() &&
-                !document.window().layout_blocked() &&
-                !document.restyle_reason().is_empty()
-        }) else {
-            return;
-        };
-
-        // Queues a task to update the rendering.
-        // <https://html.spec.whatwg.org/multipage/#event-loop-processing-model:queue-a-global-task>
-        //
-        // Note: The specification says to queue a task using the navigable's active
-        // window, but then updates the rendering for all documents.
-        //
-        // This task is empty because any new IPC messages in the ScriptThread trigger a
-        // rendering update when animations are not running.
-        let _realm = enter_realm(&*document);
-        document
-            .owner_global()
-            .task_manager()
-            .rendering_task_source()
-            .queue_unconditionally(task!(update_the_rendering: move || { }));
-    }
-
-    /// The renderer triggers animation ticks based on the arrival and painting of new
-    /// display lists. In the case that a `WebView` is animating or has a
-    /// requestAnimationFrame callback, it may be that an animation tick reflow does
-    /// not change anything and thus does not send a new display list to the renderer.
-    /// If that's the case, we need to schedule a ScriptThread-based animation update
-    /// (to avoid waking the renderer up).
-    fn schedule_script_thread_animation_tick_if_necessary(&self, saw_any_reflows: bool) {
-        if saw_any_reflows {
-            return;
-        }
-
-        // Always schedule a ScriptThread-based animation tick, unless none of the
-        // documents are active and have animations running and/or rAF callbacks.
-        if !self.documents.borrow().iter().any(|(_, document)| {
+    /// Schedule a rendering update ("update the rendering"), if necessary. This
+    /// can be necessary for a couple reasons. For instance, when the DOM
+    /// changes a scheduled rendering update becomes necessary if one isn't
+    /// scheduled already. Another example is if rAFs are running but no display
+    /// lists are being produced. In that case the [`ScriptThread`] is
+    /// responsible for scheduling animation ticks.
+    fn maybe_schedule_rendering_opportunity_after_ipc_message(
+        &self,
+        built_any_display_lists: bool,
+    ) {
+        let needs_rendering_update = self
+            .documents
+            .borrow()
+            .iter()
+            .any(|(_, document)| document.needs_rendering_update());
+        let running_animations = self.documents.borrow().iter().any(|(_, document)| {
             document.is_fully_active() &&
                 !document.window().throttled() &&
                 (document.animations().running_animation_count() != 0 ||
                     document.has_active_request_animation_frame_callbacks())
-        }) {
+        });
+
+        // If we are not running animations and no rendering update is
+        // necessary, just exit early and schedule the next rendering update
+        // when it becomes necessary.
+        if !needs_rendering_update && !running_animations {
             return;
         }
 
-        /// The amount of time between ScriptThread animation ticks when nothing is
-        /// changing. In order to be more efficient, only tick at around 30 frames a
-        /// second, which also gives time for any renderer ticks to come in and cancel
-        /// this tick. A renderer tick might happen for a variety of reasons, such as a
-        /// Pipeline in another ScriptThread producing a display list.
-        const SCRIPT_THREAD_ANIMATION_TICK_DELAY: u64 = 30;
+        // If animations are running and a reflow in this event loop iteration
+        // produced a display list, rely on the renderer to inform us of the
+        // next animation tick / rendering opportunity.
+        if running_animations && built_any_display_lists {
+            return;
+        }
 
-        debug!("Scheduling ScriptThread animation frame.");
-        let trigger_script_thread_animation = self.has_pending_animation_tick.clone();
-        let timer_id = self.schedule_timer(TimerEventRequest {
-            callback: Box::new(move || {
-                trigger_script_thread_animation.store(true, Ordering::Relaxed);
-            }),
-            duration: Duration::from_millis(SCRIPT_THREAD_ANIMATION_TICK_DELAY),
-        });
+        // There are two possibilities: rendering needs to be updated or we are
+        // scheduling a new animation tick because animations are running, but
+        // not changing the DOM. In the later case we can wait a bit longer
+        // until the next "update the rendering" call as it's more efficient to
+        // slow down rAFs that don't change the DOM.
+        //
+        // TODO: Should either of these delays be reduced to also reduce update latency?
+        let animation_delay = if running_animations && !needs_rendering_update {
+            // 30 milliseconds (33 FPS) is used here as the rendering isn't changing
+            // so it isn't a problem to slow down rAF callback calls. In addition, this allows
+            // renderer-based ticks to arrive first.
+            Duration::from_millis(30)
+        } else {
+            // 20 milliseconds (50 FPS) is used here in order to allow any renderer-based
+            // animation ticks to arrive first.
+            Duration::from_millis(20)
+        };
 
-        let mut scheduled_script_thread_animation_timer =
-            self.scheduled_script_thread_animation_timer.borrow_mut();
-        assert!(
-            scheduled_script_thread_animation_timer.is_none(),
-            "Should never schedule a new timer when one is already scheduled."
+        let time_since_last_rendering_opportunity = self
+            .last_render_opportunity_time
+            .get()
+            .map(|last_render_opportunity_time| Instant::now() - last_render_opportunity_time)
+            .unwrap_or(Duration::MAX)
+            .min(animation_delay);
+        self.schedule_update_the_rendering_timer_if_necessary(
+            animation_delay - time_since_last_rendering_opportunity,
         );
-        *scheduled_script_thread_animation_timer = Some(timer_id);
+    }
+
+    /// Fulfill the possibly-pending pending `document.fonts.ready` promise if
+    /// all web fonts have loaded.
+    fn maybe_fulfill_font_ready_promises(&self, can_gc: CanGc) {
+        let mut sent_message = false;
+        for (_, document) in self.documents.borrow().iter() {
+            sent_message = document.maybe_fulfill_font_ready_promise(can_gc) || sent_message;
+        }
+
+        if sent_message {
+            self.perform_a_microtask_checkpoint(can_gc);
+        }
+    }
+
+    /// If waiting for an idle `Pipeline` state in order to dump a screenshot at
+    /// the right time, inform the `Constellation` this `Pipeline` has entered
+    /// the idle state when applicable.
+    fn maybe_send_idle_document_state_to_constellation(&self) {
+        if !opts::get().wait_for_stable_image {
+            return;
+        }
+        for (_, document) in self.documents.borrow().iter() {
+            document
+                .window()
+                .maybe_send_idle_document_state_to_constellation();
+        }
     }
 
     /// Handle incoming messages from other tasks and the task queue.
@@ -1554,7 +1546,7 @@ impl ScriptThread {
                 MixedMessage::FromConstellation(ScriptThreadMessage::TickAllAnimations(
                     _webviews,
                 )) => {
-                    self.set_has_pending_animation_tick();
+                    self.set_needs_rendering_update();
                 },
                 MixedMessage::FromConstellation(ScriptThreadMessage::SendInputEvent(id, event)) => {
                     self.handle_input_event(id, event)
@@ -1679,10 +1671,14 @@ impl ScriptThread {
             docs.clear();
         }
 
-        // Update the rendering whenever we receive an IPC message. This may not actually do anything if
-        // we are running animations and the compositor hasn't requested a new frame yet via a TickAllAnimatons
-        // message.
-        self.update_the_rendering(can_gc);
+        let built_any_display_lists = self.needs_rendering_update.load(Ordering::Relaxed) &&
+            self.update_the_rendering(can_gc);
+
+        self.maybe_fulfill_font_ready_promises(can_gc);
+        self.maybe_send_idle_document_state_to_constellation();
+
+        // This must happen last to detect if any change above makes a rendering update necessary.
+        self.maybe_schedule_rendering_opportunity_after_ipc_message(built_any_display_lists);
 
         true
     }
@@ -2194,7 +2190,7 @@ impl ScriptThread {
                 devtools::handle_get_selectors(&documents, id, node_id, reply, can_gc)
             },
             DevtoolScriptControlMsg::GetComputedStyle(id, node_id, reply) => {
-                devtools::handle_get_computed_style(&documents, id, node_id, reply, can_gc)
+                devtools::handle_get_computed_style(&documents, id, node_id, reply)
             },
             DevtoolScriptControlMsg::GetLayout(id, node_id, reply) => {
                 devtools::handle_get_layout(&documents, id, node_id, reply, can_gc)
@@ -2317,7 +2313,6 @@ impl ScriptThread {
                     selector,
                     partial,
                     reply,
-                    can_gc,
                 )
             },
             WebDriverScriptCommand::FindElementsTagName(selector, reply) => {
@@ -2359,7 +2354,6 @@ impl ScriptThread {
                 selector,
                 partial,
                 reply,
-                can_gc,
             ),
             WebDriverScriptCommand::FindElementElementsTagName(selector, element_id, reply) => {
                 webdriver_handlers::handle_find_element_elements_tag_name(
@@ -2406,7 +2400,6 @@ impl ScriptThread {
                 selector,
                 partial,
                 reply,
-                can_gc,
             ),
             WebDriverScriptCommand::FindShadowElementsTagName(selector, shadow_root_id, reply) => {
                 webdriver_handlers::handle_find_shadow_elements_tag_name(
@@ -2489,14 +2482,7 @@ impl ScriptThread {
                 )
             },
             WebDriverScriptCommand::GetElementCSS(node_id, name, reply) => {
-                webdriver_handlers::handle_get_css(
-                    &documents,
-                    pipeline_id,
-                    node_id,
-                    name,
-                    reply,
-                    can_gc,
-                )
+                webdriver_handlers::handle_get_css(&documents, pipeline_id, node_id, name, reply)
             },
             WebDriverScriptCommand::GetElementRect(node_id, reply) => {
                 webdriver_handlers::handle_get_rect(&documents, pipeline_id, node_id, reply, can_gc)
@@ -2511,7 +2497,7 @@ impl ScriptThread {
                 )
             },
             WebDriverScriptCommand::GetElementText(node_id, reply) => {
-                webdriver_handlers::handle_get_text(&documents, pipeline_id, node_id, reply, can_gc)
+                webdriver_handlers::handle_get_text(&documents, pipeline_id, node_id, reply)
             },
             WebDriverScriptCommand::GetElementInViewCenterPoint(node_id, reply) => {
                 webdriver_handlers::handle_get_element_in_view_center_point(

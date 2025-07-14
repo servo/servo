@@ -339,7 +339,7 @@ impl HTMLSelectElement {
             .or_else(|| self.list_of_options().next())
     }
 
-    pub(crate) fn show_menu(&self, can_gc: CanGc) -> Option<usize> {
+    pub(crate) fn show_menu(&self) -> Option<usize> {
         let (ipc_sender, ipc_receiver) = ipc::channel().expect("Failed to create IPC channel!");
 
         // Collect list of optgroups and options
@@ -377,7 +377,7 @@ impl HTMLSelectElement {
             })
             .collect();
 
-        let rect = self.upcast::<Node>().bounding_content_box_or_zero(can_gc);
+        let rect = self.upcast::<Node>().bounding_content_box_or_zero();
         let rect = Rect::new(
             Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
             Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),
@@ -782,7 +782,7 @@ impl Activatable for HTMLSelectElement {
     }
 
     fn activation_behavior(&self, _event: &Event, _target: &EventTarget, can_gc: CanGc) {
-        let Some(selected_value) = self.show_menu(can_gc) else {
+        let Some(selected_value) = self.show_menu() else {
             // The user did not select a value
             return;
         };

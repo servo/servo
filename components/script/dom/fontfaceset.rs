@@ -69,10 +69,17 @@ impl FontFaceSet {
         }
     }
 
-    pub(crate) fn fulfill_ready_promise_if_needed(&self, can_gc: CanGc) {
-        if !self.promise.is_fulfilled() {
-            self.promise.resolve_native(self, can_gc);
+    /// Fulfill the font ready promise, returning true if it was not already fulfilled beforehand.
+    pub(crate) fn fulfill_ready_promise_if_needed(&self, can_gc: CanGc) -> bool {
+        if self.promise.is_fulfilled() {
+            return false;
         }
+        self.promise.resolve_native(self, can_gc);
+        true
+    }
+
+    pub(crate) fn waiting_to_fullfill_promise(&self) -> bool {
+        !self.promise.is_fulfilled()
     }
 }
 

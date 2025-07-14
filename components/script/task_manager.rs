@@ -145,7 +145,6 @@ impl TaskManager {
     task_source_functions!(self, performance_timeline_task_source, PerformanceTimeline);
     task_source_functions!(self, port_message_queue, PortMessage);
     task_source_functions!(self, remote_event_task_source, RemoteEvent);
-    task_source_functions!(self, rendering_task_source, Rendering);
     task_source_functions!(self, timer_task_source, Timer);
     task_source_functions!(self, user_interaction_task_source, UserInteraction);
     task_source_functions!(self, websocket_task_source, WebSocket);

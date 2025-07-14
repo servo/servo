@@ -81,7 +81,6 @@ impl ResizeObserver {
         &self,
         depth: &ResizeObservationDepth,
         has_active: &mut bool,
-        can_gc: CanGc,
     ) {
         // Step 2.1 Clear observer’s [[activeTargets]], and [[skippedTargets]].
         // NOTE: This happens as part of Step 2.2
@@ -91,7 +90,7 @@ impl ResizeObserver {
             observation.state = Default::default();
 
             // Step 2.2.1 If observation.isActive() is true
-            if let Some(size) = observation.is_active(target, can_gc) {
+            if let Some(size) = observation.is_active(target) {
                 // Step 2.2.1.1 Let targetDepth be result of calculate depth for node for observation.target.
                 let target_depth = calculate_depth_for_node(target);
 
@@ -227,6 +226,10 @@ impl ResizeObserverMethods<crate::DomTypeHolder> for ResizeObserver {
         self.observation_targets
             .borrow_mut()
             .push((resize_observation, Dom::from_ref(target)));
+        target
+            .owner_window()
+            .Document()
+            .set_resize_observer_started_observing_target(true);
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-unobserve>
@@ -284,9 +287,9 @@ impl ResizeObservation {
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobservation-isactive>
     /// Returning an optional calculated size, instead of a boolean,
     /// to avoid recalculating the size in the subsequent broadcast.
-    fn is_active(&self, target: &Element, can_gc: CanGc) -> Option<Rect<Au>> {
+    fn is_active(&self, target: &Element) -> Option<Rect<Au>> {
         let last_reported_size = self.last_reported_sizes[0];
-        let box_size = calculate_box_size(target, &self.observed_box, can_gc);
+        let box_size = calculate_box_size(target, &self.observed_box);
         let is_active = box_size.width().to_f64_px() != last_reported_size.inline_size() ||
             box_size.height().to_f64_px() != last_reported_size.block_size();
         if is_active { Some(box_size) } else { None }
@@ -301,18 +304,14 @@ fn calculate_depth_for_node(target: &Element) -> ResizeObservationDepth {
 }
 
 /// <https://drafts.csswg.org/resize-observer/#calculate-box-size>
-fn calculate_box_size(
-    target: &Element,
-    observed_box: &ResizeObserverBoxOptions,
-    can_gc: CanGc,
-) -> Rect<Au> {
+fn calculate_box_size(target: &Element, observed_box: &ResizeObserverBoxOptions) -> Rect<Au> {
     match observed_box {
         ResizeObserverBoxOptions::Content_box => {
             // Note: only taking first fragment,
             // but the spec will expand to cover all fragments.
             target
                 .upcast::<Node>()
-                .content_boxes(can_gc)
+                .content_boxes()
                 .pop()
                 .unwrap_or_else(Rect::zero)
         },

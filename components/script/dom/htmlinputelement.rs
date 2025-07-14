@@ -2736,7 +2736,7 @@ impl HTMLInputElement {
             let (ipc_sender, ipc_receiver) =
                 ipc::channel::<Option<RgbColor>>().expect("Failed to create IPC channel!");
             let document = self.owner_document();
-            let rect = self.upcast::<Node>().bounding_content_box_or_zero(can_gc);
+            let rect = self.upcast::<Node>().bounding_content_box_or_zero();
             let rect = Rect::new(
                 Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
                 Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),
@@ -3074,11 +3074,8 @@ impl VirtualMethods for HTMLInputElement {
                     // now.
                     if let Some(point_in_target) = mouse_event.point_in_target() {
                         let window = self.owner_window();
-                        let index = window.text_index_query(
-                            self.upcast::<Node>(),
-                            point_in_target.to_untyped(),
-                            can_gc,
-                        );
+                        let index = window
+                            .text_index_query(self.upcast::<Node>(), point_in_target.to_untyped());
                         // Position the caret at the click position or at the end of the current
                         // value.
                         let edit_point_index = match index {

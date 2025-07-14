@@ -216,7 +216,7 @@ pub(crate) fn handle_get_attribute_style(
             let name = style.Item(i);
             NodeStyle {
                 name: name.to_string(),
-                value: style.GetPropertyValue(name.clone(), can_gc).to_string(),
+                value: style.GetPropertyValue(name.clone()).to_string(),
                 priority: style.GetPropertyPriority(name).to_string(),
             }
         })
@@ -259,7 +259,7 @@ pub(crate) fn handle_get_stylesheet_style(
                     let name = style.Item(i);
                     NodeStyle {
                         name: name.to_string(),
-                        value: style.GetPropertyValue(name.clone(), can_gc).to_string(),
+                        value: style.GetPropertyValue(name.clone()).to_string(),
                         priority: style.GetPropertyPriority(name).to_string(),
                     }
                 })
@@ -315,7 +315,6 @@ pub(crate) fn handle_get_computed_style(
     pipeline: PipelineId,
     node_id: String,
     reply: IpcSender<Option<Vec<NodeStyle>>>,
-    can_gc: CanGc,
 ) {
     let node = match find_node_by_unique_id(documents, pipeline, &node_id) {
         None => return reply.send(None).unwrap(),
@@ -333,9 +332,7 @@ pub(crate) fn handle_get_computed_style(
             let name = computed_style.Item(i);
             NodeStyle {
                 name: name.to_string(),
-                value: computed_style
-                    .GetPropertyValue(name.clone(), can_gc)
-                    .to_string(),
+                value: computed_style.GetPropertyValue(name.clone()).to_string(),
                 priority: computed_style.GetPropertyPriority(name).to_string(),
             }
         })
@@ -375,7 +372,7 @@ pub(crate) fn handle_get_layout(
             position: String::from(computed_style.Position()),
             z_index: String::from(computed_style.ZIndex()),
             box_sizing: String::from(computed_style.BoxSizing()),
-            auto_margins: determine_auto_margins(&node, can_gc),
+            auto_margins: determine_auto_margins(&node),
             margin_top: String::from(computed_style.MarginTop()),
             margin_right: String::from(computed_style.MarginRight()),
             margin_bottom: String::from(computed_style.MarginBottom()),
@@ -394,8 +391,8 @@ pub(crate) fn handle_get_layout(
         .unwrap();
 }
 
-fn determine_auto_margins(node: &Node, can_gc: CanGc) -> AutoMargins {
-    let style = node.style(can_gc).unwrap();
+fn determine_auto_margins(node: &Node) -> AutoMargins {
+    let style = node.style().unwrap();
     let margin = style.get_margin();
     AutoMargins {
         top: margin.margin_top.is_auto(),

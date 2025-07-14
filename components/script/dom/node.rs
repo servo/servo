@@ -944,29 +944,29 @@ impl Node {
 
     /// Returns the rendered bounding content box if the element is rendered,
     /// and none otherwise.
-    pub(crate) fn bounding_content_box(&self, can_gc: CanGc) -> Option<Rect<Au>> {
-        self.owner_window().content_box_query(self, can_gc)
+    pub(crate) fn bounding_content_box(&self) -> Option<Rect<Au>> {
+        self.owner_window().content_box_query(self)
     }
 
-    pub(crate) fn bounding_content_box_or_zero(&self, can_gc: CanGc) -> Rect<Au> {
-        self.bounding_content_box(can_gc).unwrap_or_else(Rect::zero)
+    pub(crate) fn bounding_content_box_or_zero(&self) -> Rect<Au> {
+        self.bounding_content_box().unwrap_or_else(Rect::zero)
     }
 
     pub(crate) fn bounding_content_box_no_reflow(&self) -> Option<Rect<Au>> {
         self.owner_window().content_box_query_unchecked(self)
     }
 
-    pub(crate) fn content_boxes(&self, can_gc: CanGc) -> Vec<Rect<Au>> {
-        self.owner_window().content_boxes_query(self, can_gc)
+    pub(crate) fn content_boxes(&self) -> Vec<Rect<Au>> {
+        self.owner_window().content_boxes_query(self)
     }
 
-    pub(crate) fn client_rect(&self, can_gc: CanGc) -> Rect<i32> {
-        self.owner_window().client_rect_query(self, can_gc)
+    pub(crate) fn client_rect(&self) -> Rect<i32> {
+        self.owner_window().client_rect_query(self)
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth>
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollheight>
-    pub(crate) fn scroll_area(&self, can_gc: CanGc) -> Rect<i32> {
+    pub(crate) fn scroll_area(&self) -> Rect<i32> {
         // "1. Let document be the element’s node document.""
         let document = self.owner_doc();
 
@@ -992,7 +992,7 @@ impl Node {
         // element is not potentially scrollable, return max(viewport scrolling area
         // width, viewport width)."
         if (is_root && !in_quirks_mode) || (is_body_element && in_quirks_mode) {
-            let viewport_scrolling_area = window.scrolling_area_query(None, can_gc);
+            let viewport_scrolling_area = window.scrolling_area_query(None);
             return Rect::new(
                 viewport_scrolling_area.origin,
                 viewport_scrolling_area.size.max(viewport),
@@ -1002,7 +1002,7 @@ impl Node {
         // "6. If the element does not have any associated box return zero and terminate
         // these steps."
         // "7. Return the width of the element’s scrolling area."
-        window.scrolling_area_query(Some(self), can_gc)
+        window.scrolling_area_query(Some(self))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-before>
@@ -1461,9 +1461,8 @@ impl Node {
         })
     }
 
-    pub(crate) fn style(&self, can_gc: CanGc) -> Option<Arc<ComputedValues>> {
-        self.owner_window()
-            .layout_reflow(QueryMsg::StyleQuery, can_gc);
+    pub(crate) fn style(&self) -> Option<Arc<ComputedValues>> {
+        self.owner_window().layout_reflow(QueryMsg::StyleQuery);
         self.style_data
             .borrow()
             .as_ref()

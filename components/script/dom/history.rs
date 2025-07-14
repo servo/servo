@@ -101,7 +101,7 @@ impl History {
 
         // Step 8
         if let Some(fragment) = url.fragment() {
-            document.check_and_scroll_fragment(fragment, can_gc);
+            document.check_and_scroll_fragment(fragment);
         }
 
         // Step 11

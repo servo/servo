@@ -495,6 +495,10 @@ impl Layout for LayoutThread {
             .as_mut()
             .and_then(|tree| tree.compositor_info.scroll_tree.scroll_offset(id))
     }
+
+    fn needs_new_display_list(&self) -> bool {
+        self.need_new_display_list.get()
+    }
 }
 
 impl LayoutThread {

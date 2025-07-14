@@ -370,12 +370,7 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint
-    fn ElementFromPoint(
-        &self,
-        x: Finite<f64>,
-        y: Finite<f64>,
-        can_gc: CanGc,
-    ) -> Option<DomRoot<Element>> {
+    fn ElementFromPoint(&self, x: Finite<f64>, y: Finite<f64>) -> Option<DomRoot<Element>> {
         // Return the result of running the retargeting algorithm with context object
         // and the original result as input.
         match self.document_or_shadow_root.element_from_point(
@@ -383,7 +378,6 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
             y,
             None,
             self.document.has_browsing_context(),
-            can_gc,
         ) {
             Some(e) => {
                 let retargeted_node = self
@@ -396,18 +390,13 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-document-elementsfrompoint
-    fn ElementsFromPoint(
-        &self,
-        x: Finite<f64>,
-        y: Finite<f64>,
-        can_gc: CanGc,
-    ) -> Vec<DomRoot<Element>> {
+    fn ElementsFromPoint(&self, x: Finite<f64>, y: Finite<f64>) -> Vec<DomRoot<Element>> {
         // Return the result of running the retargeting algorithm with context object
         // and the original result as input
         let mut elements = Vec::new();
         for e in self
             .document_or_shadow_root
-            .elements_from_point(x, y, None, self.document.has_browsing_context(), can_gc)
+            .elements_from_point(x, y, None, self.document.has_browsing_context())
             .iter()
         {
             let retargeted_node = self
