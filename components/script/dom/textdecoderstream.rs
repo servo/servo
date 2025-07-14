@@ -7,13 +7,13 @@ use std::cell::RefCell;
 use dom_struct::dom_struct;
 use encoding_rs::{Decoder, Encoding};
 use js::conversions::{FromJSValConvertible, ToJSValConvertible};
-use js::jsapi::JSContext;
 use js::jsval::UndefinedValue;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 use script_bindings::codegen::GenericBindings::TransformStreamDefaultControllerBinding::TransformStreamDefaultControllerMethods;
 
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferView;
-use crate::dom::types::{TransformStream, TransformStreamDefaultController};
+use crate::dom::transformstreamdefaultcontroller::TransformerTransformAlgorithm;
+use crate::dom::types::{Promise, TransformStream, TransformStreamDefaultController};
 use crate::DomTypes;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::codegen::Bindings::TextDecoderBinding;
@@ -23,6 +23,26 @@ use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+
+#[derive(JSTraceable, MallocSizeOf)]
+struct TextDecoderTransformAlgorithm {
+    decoder_stream: Dom<TextDecoderStream>,
+}
+
+impl TransformerTransformAlgorithm for TextDecoderTransformAlgorithm {
+    fn run(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        _this_obj: &SafeHandleObject,
+        chunk: SafeHandleValue,
+        controller: &TransformStreamDefaultController,
+        can_gc: CanGc,
+    ) -> Fallible<std::rc::Rc<super::types::Promise>> {
+        self.decoder_stream.decode_and_enqueue_a_chunk(cx, chunk, controller, can_gc)
+            .map(|_| Promise::new_resolved(global, cx, (), can_gc))
+    }
+}
 
 #[dom_struct]
 #[allow(non_snake_case)]
@@ -83,7 +103,7 @@ impl TextDecoderStream {
     fn decode_and_enqueue_a_chunk(
         &self, 
         cx: SafeJSContext,
-        chunk: SafeHandleValue, 
+        chunk: SafeHandleValue,
         controller: &TransformStreamDefaultController,
         can_gc: CanGc,
     ) -> Fallible<()> {
