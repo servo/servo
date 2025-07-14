@@ -10,6 +10,7 @@ use std::net::{Ipv4Addr, Ipv6Addr};
 use std::time::SystemTime;
 
 use cookie::Cookie;
+use log::{Level, debug, log_enabled};
 use net_traits::CookieSource;
 use net_traits::pub_domains::is_pub_domain;
 use nom::IResult;
@@ -322,7 +323,21 @@ impl ServoCookie {
 
     /// <http://tools.ietf.org/html/rfc6265#section-5.4> step 1
     pub fn appropriate_for_url(&self, url: &ServoUrl, source: CookieSource) -> bool {
+        if log_enabled!(Level::Debug) {
+            debug!(
+                " === SENT COOKIE : {} {} {:?} {:?}",
+                self.cookie.name(),
+                self.cookie.value(),
+                self.cookie.domain(),
+                self.cookie.path()
+            );
+        }
+
         let domain = url.host_str();
+        // Either: The cookie's host-only-flag is true and the canonicalized host of the
+        // retrieval's URI is identical to the cookie's domain
+        // Or: The cookie's host-only-flag is false and the canonicalized host of the
+        // retrieval's URI domain-matches the cookie's domain
         if self.host_only {
             if self.cookie.domain() != domain {
                 return false;
@@ -333,18 +348,24 @@ impl ServoCookie {
             }
         }
 
+        // The retrieval's URI's path path-matches the cookie's path.
         if let Some(cookie_path) = self.cookie.path() {
             if !ServoCookie::path_match(url.path(), cookie_path) {
                 return false;
             }
         }
 
+        // If the cookie's secure-only-flag is true, then the retrieval's URI must denote a "secure" connection
         if self.cookie.secure().unwrap_or(false) && !url.is_secure_scheme() {
             return false;
         }
+
+        // If the cookie's http-only-flag is true, then exclude the cookie if the retrieval's type is "non-HTTP"
         if self.cookie.http_only().unwrap_or(false) && source == CookieSource::NonHTTP {
             return false;
         }
+        // TODO: Apply same site checks
+        // TOOD: Apply Partitioning checks
 
         true
     }
