@@ -66,7 +66,6 @@ Config = TypedDict(
     },
 )
 
-# Default configs
 config: Config = {
     "skip-check-length": False,
     "skip-check-licenses": False,
