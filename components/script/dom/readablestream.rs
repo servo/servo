@@ -12,7 +12,7 @@ use base::id::{MessagePortId, MessagePortIndex};
 use constellation_traits::MessagePortImpl;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
-use js::conversions::ToJSValConvertible;
+use script_bindings::conversions::SafeToJSValConvertible;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::rust::{
@@ -1595,7 +1595,6 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>
-    #[allow(unsafe_code)]
     pub(crate) fn cancel(
         &self,
         cx: SafeJSContext,
@@ -1613,12 +1612,10 @@ impl ReadableStream {
         // If stream.[[state]] is "errored", return a promise rejected with stream.[[storedError]].
         if self.is_errored() {
             let promise = Promise::new(global, can_gc);
-            unsafe {
-                rooted!(in(*cx) let mut rval = UndefinedValue());
-                self.stored_error.to_jsval(*cx, rval.handle_mut());
-                promise.reject_native(&rval.handle(), can_gc);
-                return promise;
-            }
+            rooted!(in(*cx) let mut rval = UndefinedValue());
+            self.stored_error.safe_to_jsval(cx, rval.handle_mut());
+            promise.reject_native(&rval.handle(), can_gc);
+            return promise;
         }
         // Perform ! ReadableStreamClose(stream).
         self.close(can_gc);
@@ -2322,7 +2319,6 @@ impl CrossRealmTransformReadable {
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
     /// Add a handler for port’s messageerror event with the following steps:
-    #[allow(unsafe_code)]
     pub(crate) fn handle_error(
         &self,
         cx: SafeJSContext,
@@ -2334,7 +2330,7 @@ impl CrossRealmTransformReadable {
         // Let error be a new "DataCloneError" DOMException.
         let error = DOMException::new(global, DOMErrorName::DataCloneError, can_gc);
         rooted!(in(*cx) let mut rooted_error = UndefinedValue());
-        unsafe { error.to_jsval(*cx, rooted_error.handle_mut()) };
+        error.safe_to_jsval(cx, rooted_error.handle_mut());
 
         // Perform ! CrossRealmTransformSendError(port, error).
         port.cross_realm_transform_send_error(rooted_error.handle(), can_gc);

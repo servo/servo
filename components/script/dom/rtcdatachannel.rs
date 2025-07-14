@@ -7,11 +7,11 @@ use std::ptr;
 
 use constellation_traits::BlobImpl;
 use dom_struct::dom_struct;
-use js::conversions::ToJSValConvertible;
 use js::jsapi::{JSAutoRealm, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{ArrayBuffer, ArrayBufferView, CreateWith};
+use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::weakref::WeakRef;
 use servo_media::webrtc::{
     DataChannelId, DataChannelInit, DataChannelMessage, DataChannelState, WebRtcError,
@@ -203,7 +203,7 @@ impl RTCDataChannel {
 
             match channel_message {
                 DataChannelMessage::Text(text) => {
-                    text.to_jsval(*cx, message.handle_mut());
+                    text.safe_to_jsval(cx, message.handle_mut());
                 },
                 DataChannelMessage::Binary(data) => match &**self.binary_type.borrow() {
                     "blob" => {
@@ -212,7 +212,7 @@ impl RTCDataChannel {
                             BlobImpl::new_from_bytes(data, "".to_owned()),
                             can_gc,
                         );
-                        blob.to_jsval(*cx, message.handle_mut());
+                        blob.safe_to_jsval(cx, message.handle_mut());
                     },
                     "arraybuffer" => {
                         rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
@@ -225,7 +225,7 @@ impl RTCDataChannel {
                             .is_ok()
                         );
 
-                        (*array_buffer).to_jsval(*cx, message.handle_mut());
+                        (*array_buffer).safe_to_jsval(cx, message.handle_mut());
                     },
                     _ => unreachable!(),
                 },

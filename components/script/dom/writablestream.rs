@@ -18,6 +18,7 @@ use js::rust::{
     MutableHandleValue as SafeMutableHandleValue,
 };
 use script_bindings::codegen::GenericBindings::MessagePortBinding::MessagePortMethods;
+use script_bindings::conversions::SafeToJSValConvertible;
 
 use super::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
 use crate::dom::bindings::cell::DomRefCell;
@@ -41,7 +42,6 @@ use crate::dom::writablestreamdefaultcontroller::{
     UnderlyingSinkType, WritableStreamDefaultController,
 };
 use crate::dom::writablestreamdefaultwriter::WritableStreamDefaultWriter;
-use crate::js::conversions::ToJSValConvertible;
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
@@ -1191,7 +1191,6 @@ impl CrossRealmTransformWritable {
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
     /// Add a handler for port’s messageerror event with the following steps:
-    #[allow(unsafe_code)]
     pub(crate) fn handle_error(
         &self,
         cx: SafeJSContext,
@@ -1203,7 +1202,7 @@ impl CrossRealmTransformWritable {
         // Let error be a new "DataCloneError" DOMException.
         let error = DOMException::new(global, DOMErrorName::DataCloneError, can_gc);
         rooted!(in(*cx) let mut rooted_error = UndefinedValue());
-        unsafe { error.to_jsval(*cx, rooted_error.handle_mut()) };
+        error.safe_to_jsval(cx, rooted_error.handle_mut());
 
         // Perform ! CrossRealmTransformSendError(port, error).
         port.cross_realm_transform_send_error(rooted_error.handle(), can_gc);

@@ -22,13 +22,13 @@ use net_traits::{
     CoreResourceMsg, FetchChannels, MessageData, WebSocketDomAction, WebSocketNetworkEvent,
 };
 use profile_traits::ipc as ProfiledIpc;
+use script_bindings::conversions::SafeToJSValConvertible;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMethods};
 use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence;
-use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -596,7 +596,7 @@ impl TaskOnce for MessageReceivedTask {
             let _ac = JSAutoRealm::new(*cx, ws.reflector().get_jsobject().get());
             rooted!(in(*cx) let mut message = UndefinedValue());
             match self.message {
-                MessageData::Text(text) => text.to_jsval(*cx, message.handle_mut()),
+                MessageData::Text(text) => text.safe_to_jsval(cx, message.handle_mut()),
                 MessageData::Binary(data) => match ws.binary_type.get() {
                     BinaryType::Blob => {
                         let blob = Blob::new(
@@ -604,7 +604,7 @@ impl TaskOnce for MessageReceivedTask {
                             BlobImpl::new_from_bytes(data, "".to_owned()),
                             CanGc::note(),
                         );
-                        blob.to_jsval(*cx, message.handle_mut());
+                        blob.safe_to_jsval(cx, message.handle_mut());
                     },
                     BinaryType::Arraybuffer => {
                         rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
@@ -617,7 +617,7 @@ impl TaskOnce for MessageReceivedTask {
                             .is_ok()
                         );
 
-                        (*array_buffer).to_jsval(*cx, message.handle_mut());
+                        (*array_buffer).safe_to_jsval(cx, message.handle_mut());
                     },
                 },
             }
