@@ -16,7 +16,7 @@ use std::ptr;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::conversions::{ConversionResult, FromJSValConvertibleRc, ToJSValConvertible};
+use js::conversions::{ConversionResult, FromJSValConvertibleRc};
 use js::jsapi::{
     AddRawValueRoot, CallArgs, GetFunctionNativeReserved, Heap, JS_ClearPendingException,
     JS_GetFunctionObject, JS_NewFunction, JSAutoRealm, JSContext, JSObject,
@@ -157,7 +157,7 @@ impl Promise {
     pub(crate) fn new_resolved(
         global: &GlobalScope,
         cx: SafeJSContext,
-        value: impl ToJSValConvertible,
+        value: impl SafeToJSValConvertible,
         _can_gc: CanGc,
     ) -> Rc<Promise> {
         let _ac = JSAutoRealm::new(*cx, global.reflector().get_jsobject().get());
@@ -175,7 +175,7 @@ impl Promise {
     pub(crate) fn new_rejected(
         global: &GlobalScope,
         cx: SafeJSContext,
-        value: impl ToJSValConvertible,
+        value: impl SafeToJSValConvertible,
         _can_gc: CanGc,
     ) -> Rc<Promise> {
         let _ac = JSAutoRealm::new(*cx, global.reflector().get_jsobject().get());
@@ -190,7 +190,7 @@ impl Promise {
 
     pub(crate) fn resolve_native<T>(&self, val: &T, can_gc: CanGc)
     where
-        T: ToJSValConvertible,
+        T: SafeToJSValConvertible,
     {
         let cx = GlobalScope::get_cx();
         let _ac = enter_realm(self);
@@ -211,7 +211,7 @@ impl Promise {
 
     pub(crate) fn reject_native<T>(&self, val: &T, can_gc: CanGc)
     where
-        T: ToJSValConvertible,
+        T: SafeToJSValConvertible,
     {
         let cx = GlobalScope::get_cx();
         let _ac = enter_realm(self);
