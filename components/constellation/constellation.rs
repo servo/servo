@@ -2000,6 +2000,12 @@ where
         if self.broadcast_routers.remove(&router_id).is_none() {
             warn!("Attempt to remove unknown broadcast-channel router.");
         }
+        // Also remove the router_id from the broadcast_channels list.
+        for channels in self.broadcast_channels.values_mut() {
+            for routers in channels.values_mut() {
+                routers.retain(|router| router != &router_id);
+            }
+        }
     }
 
     /// Add a new broadcast router.
