@@ -139,12 +139,6 @@ impl WebViewRenderer {
         }
     }
 
-    pub(crate) fn animations_or_animation_callbacks_running(&self) -> bool {
-        self.pipelines
-            .values()
-            .any(PipelineDetails::animations_or_animation_callbacks_running)
-    }
-
     pub(crate) fn animation_callbacks_running(&self) -> bool {
         self.pipelines
             .values()

@@ -66,7 +66,6 @@ enum UnableToComposite {
 
 #[derive(Debug, PartialEq)]
 enum NotReadyToPaint {
-    AnimationsActive,
     JustNotifiedConstellation,
     WaitingOnConstellation,
 }
@@ -234,10 +233,6 @@ pub(crate) struct PipelineDetails {
 }
 
 impl PipelineDetails {
-    pub(crate) fn animations_or_animation_callbacks_running(&self) -> bool {
-        self.animations_running || self.animation_callbacks_running
-    }
-
     pub(crate) fn animation_callbacks_running(&self) -> bool {
         self.animation_callbacks_running
     }
@@ -1273,13 +1268,6 @@ impl IOCompositor {
             .get(&pipeline_id)
     }
 
-    // Check if any pipelines currently have active animations or animation callbacks.
-    fn animations_or_animation_callbacks_running(&self) -> bool {
-        self.webview_renderers
-            .iter()
-            .any(WebViewRenderer::animations_or_animation_callbacks_running)
-    }
-
     /// Returns true if any animation callbacks (ie `requestAnimationFrame`) are waiting for a response.
     fn animation_callbacks_running(&self) -> bool {
         self.webview_renderers
@@ -1424,13 +1412,6 @@ impl IOCompositor {
         }
 
         if opts::get().wait_for_stable_image {
-            // The current image may be ready to output. However, if there are animations active,
-            // continue waiting for the image output to be stable AND all active animations to complete.
-            if self.animations_or_animation_callbacks_running() {
-                return Err(UnableToComposite::NotReadyToPaintImage(
-                    NotReadyToPaint::AnimationsActive,
-                ));
-            }
             if let Err(result) = self.is_ready_to_paint_image_output() {
                 return Err(UnableToComposite::NotReadyToPaintImage(result));
             }
