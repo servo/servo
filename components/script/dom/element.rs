@@ -464,34 +464,30 @@ impl Element {
 
     /// style will be `None` for elements in a `display: none` subtree. otherwise, the element has a
     /// layout box iff it doesn't have `display: none`.
-    pub(crate) fn style(&self, can_gc: CanGc) -> Option<Arc<ComputedValues>> {
-        self.upcast::<Node>().style(can_gc)
+    pub(crate) fn style(&self) -> Option<Arc<ComputedValues>> {
+        self.upcast::<Node>().style()
     }
 
     // https://drafts.csswg.org/cssom-view/#css-layout-box
-    pub(crate) fn has_css_layout_box(&self, can_gc: CanGc) -> bool {
-        self.style(can_gc)
+    pub(crate) fn has_css_layout_box(&self) -> bool {
+        self.style()
             .is_some_and(|s| !s.get_box().clone_display().is_none())
     }
 
     /// <https://drafts.csswg.org/cssom-view/#potentially-scrollable>
-    pub(crate) fn is_potentially_scrollable_body(&self, can_gc: CanGc) -> bool {
-        self.is_potentially_scrollable_body_shared_logic(false, can_gc)
+    pub(crate) fn is_potentially_scrollable_body(&self) -> bool {
+        self.is_potentially_scrollable_body_shared_logic(false)
     }
 
     /// <https://drafts.csswg.org/cssom-view/#potentially-scrollable>
-    pub(crate) fn is_potentially_scrollable_body_for_scrolling_element(
-        &self,
-        can_gc: CanGc,
-    ) -> bool {
-        self.is_potentially_scrollable_body_shared_logic(true, can_gc)
+    pub(crate) fn is_potentially_scrollable_body_for_scrolling_element(&self) -> bool {
+        self.is_potentially_scrollable_body_shared_logic(true)
     }
 
     /// <https://drafts.csswg.org/cssom-view/#potentially-scrollable>
     fn is_potentially_scrollable_body_shared_logic(
         &self,
         treat_overflow_clip_on_parent_as_hidden: bool,
-        can_gc: CanGc,
     ) -> bool {
         let node = self.upcast::<Node>();
         debug_assert!(
@@ -502,14 +498,14 @@ impl Element {
         // "An element body (which will be the body element) is potentially
         // scrollable if all of the following conditions are true:
         //  - body has an associated box."
-        if !self.has_css_layout_box(can_gc) {
+        if !self.has_css_layout_box() {
             return false;
         }
 
         // " - body’s parent element’s computed value of the overflow-x or
         //     overflow-y properties is neither visible nor clip."
         if let Some(parent) = node.GetParentElement() {
-            if let Some(style) = parent.style(can_gc) {
+            if let Some(style) = parent.style() {
                 let mut overflow_x = style.get_box().clone_overflow_x();
                 let mut overflow_y = style.get_box().clone_overflow_y();
 
@@ -532,7 +528,7 @@ impl Element {
 
         // " - body’s computed value of the overflow-x or overflow-y properties
         //     is neither visible nor clip."
-        if let Some(style) = self.style(can_gc) {
+        if let Some(style) = self.style() {
             if !style.get_box().clone_overflow_x().is_scrollable() &&
                 !style.get_box().clone_overflow_y().is_scrollable()
             {
@@ -544,18 +540,17 @@ impl Element {
     }
 
     // https://drafts.csswg.org/cssom-view/#scrolling-box
-    fn has_scrolling_box(&self, can_gc: CanGc) -> bool {
+    fn has_scrolling_box(&self) -> bool {
         // TODO: scrolling mechanism, such as scrollbar (We don't have scrollbar yet)
         //       self.has_scrolling_mechanism()
-        self.style(can_gc).is_some_and(|style| {
+        self.style().is_some_and(|style| {
             style.get_box().clone_overflow_x().is_scrollable() ||
                 style.get_box().clone_overflow_y().is_scrollable()
         })
     }
 
-    fn has_overflow(&self, can_gc: CanGc) -> bool {
-        self.ScrollHeight(can_gc) > self.ClientHeight(can_gc) ||
-            self.ScrollWidth(can_gc) > self.ClientWidth(can_gc)
+    fn has_overflow(&self) -> bool {
+        self.ScrollHeight() > self.ClientHeight() || self.ScrollWidth() > self.ClientWidth()
     }
 
     pub(crate) fn shadow_root(&self) -> Option<DomRoot<ShadowRoot>> {
@@ -2477,7 +2472,7 @@ impl Element {
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scroll
     // TODO(stevennovaryo): Need to update the scroll API to follow the spec since it is quite outdated.
-    pub(crate) fn scroll(&self, x_: f64, y_: f64, behavior: ScrollBehavior, can_gc: CanGc) {
+    pub(crate) fn scroll(&self, x_: f64, y_: f64, behavior: ScrollBehavior) {
         // Step 1.2 or 2.3
         let x = if x_.is_finite() { x_ } else { 0.0f64 };
         let y = if y_.is_finite() { y_ } else { 0.0f64 };
@@ -2501,7 +2496,7 @@ impl Element {
         // Step 7
         if *self.root_element() == *self {
             if doc.quirks_mode() != QuirksMode::Quirks {
-                win.scroll(x, y, behavior, can_gc);
+                win.scroll(x, y, behavior);
             }
 
             return;
@@ -2510,22 +2505,19 @@ impl Element {
         // Step 9
         if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
-            !self.is_potentially_scrollable_body(can_gc)
+            !self.is_potentially_scrollable_body()
         {
-            win.scroll(x, y, behavior, can_gc);
+            win.scroll(x, y, behavior);
             return;
         }
 
         // Step 10
-        if !self.has_css_layout_box(can_gc) ||
-            !self.has_scrolling_box(can_gc) ||
-            !self.has_overflow(can_gc)
-        {
+        if !self.has_css_layout_box() || !self.has_scrolling_box() || !self.has_overflow() {
             return;
         }
 
         // Step 11
-        win.scroll_an_element(self, x, y, behavior, can_gc);
+        win.scroll_an_element(self, x, y, behavior);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#fragment-parsing-algorithm-steps>
@@ -3058,7 +3050,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     // https://drafts.csswg.org/cssom-view/#dom-element-getclientrects
     fn GetClientRects(&self, can_gc: CanGc) -> DomRoot<DOMRectList> {
         let win = self.owner_window();
-        let raw_rects = self.upcast::<Node>().content_boxes(can_gc);
+        let raw_rects = self.upcast::<Node>().content_boxes();
         let rects: Vec<DomRoot<DOMRect>> = raw_rects
             .iter()
             .map(|rect| {
@@ -3078,7 +3070,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     // https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect
     fn GetBoundingClientRect(&self, can_gc: CanGc) -> DomRoot<DOMRect> {
         let win = self.owner_window();
-        let rect = self.upcast::<Node>().bounding_content_box_or_zero(can_gc);
+        let rect = self.upcast::<Node>().bounding_content_box_or_zero();
         DOMRect::new(
             win.upcast(),
             rect.origin.x.to_f64_px(),
@@ -3090,52 +3082,47 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scroll
-    fn Scroll(&self, options: &ScrollToOptions, can_gc: CanGc) {
+    fn Scroll(&self, options: &ScrollToOptions) {
         // Step 1
-        let left = options.left.unwrap_or(self.ScrollLeft(can_gc));
-        let top = options.top.unwrap_or(self.ScrollTop(can_gc));
-        self.scroll(left, top, options.parent.behavior, can_gc);
+        let left = options.left.unwrap_or(self.ScrollLeft());
+        let top = options.top.unwrap_or(self.ScrollTop());
+        self.scroll(left, top, options.parent.behavior);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scroll
-    fn Scroll_(&self, x: f64, y: f64, can_gc: CanGc) {
-        self.scroll(x, y, ScrollBehavior::Auto, can_gc);
+    fn Scroll_(&self, x: f64, y: f64) {
+        self.scroll(x, y, ScrollBehavior::Auto);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollto
-    fn ScrollTo(&self, options: &ScrollToOptions, can_gc: CanGc) {
-        self.Scroll(options, can_gc);
+    fn ScrollTo(&self, options: &ScrollToOptions) {
+        self.Scroll(options);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollto
-    fn ScrollTo_(&self, x: f64, y: f64, can_gc: CanGc) {
-        self.Scroll_(x, y, can_gc);
+    fn ScrollTo_(&self, x: f64, y: f64) {
+        self.Scroll_(x, y);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollby
-    fn ScrollBy(&self, options: &ScrollToOptions, can_gc: CanGc) {
+    fn ScrollBy(&self, options: &ScrollToOptions) {
         // Step 2
         let delta_left = options.left.unwrap_or(0.0f64);
         let delta_top = options.top.unwrap_or(0.0f64);
-        let left = self.ScrollLeft(can_gc);
-        let top = self.ScrollTop(can_gc);
-        self.scroll(
-            left + delta_left,
-            top + delta_top,
-            options.parent.behavior,
-            can_gc,
-        );
+        let left = self.ScrollLeft();
+        let top = self.ScrollTop();
+        self.scroll(left + delta_left, top + delta_top, options.parent.behavior);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollby
-    fn ScrollBy_(&self, x: f64, y: f64, can_gc: CanGc) {
-        let left = self.ScrollLeft(can_gc);
-        let top = self.ScrollTop(can_gc);
-        self.scroll(left + x, top + y, ScrollBehavior::Auto, can_gc);
+    fn ScrollBy_(&self, x: f64, y: f64) {
+        let left = self.ScrollLeft();
+        let top = self.ScrollTop();
+        self.scroll(left + x, top + y, ScrollBehavior::Auto);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
-    fn ScrollTop(&self, can_gc: CanGc) -> f64 {
+    fn ScrollTop(&self) -> f64 {
         let node = self.upcast::<Node>();
 
         // Step 1
@@ -3165,24 +3152,24 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 7
         if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
-            !self.is_potentially_scrollable_body(can_gc)
+            !self.is_potentially_scrollable_body()
         {
             return win.ScrollY() as f64;
         }
 
         // Step 8
-        if !self.has_css_layout_box(can_gc) {
+        if !self.has_css_layout_box() {
             return 0.0;
         }
 
         // Step 9
-        let point = win.scroll_offset_query(node, can_gc);
+        let point = win.scroll_offset_query(node);
         point.y.abs() as f64
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
     // TODO(stevennovaryo): Need to update the scroll API to follow the spec since it is quite outdated.
-    fn SetScrollTop(&self, y_: f64, can_gc: CanGc) {
+    fn SetScrollTop(&self, y_: f64) {
         let behavior = ScrollBehavior::Auto;
 
         // Step 1, 2
@@ -3207,7 +3194,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 7
         if *self.root_element() == *self {
             if doc.quirks_mode() != QuirksMode::Quirks {
-                win.scroll(win.ScrollX() as f64, y, behavior, can_gc);
+                win.scroll(win.ScrollX() as f64, y, behavior);
             }
 
             return;
@@ -3216,26 +3203,23 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 9
         if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
-            !self.is_potentially_scrollable_body(can_gc)
+            !self.is_potentially_scrollable_body()
         {
-            win.scroll(win.ScrollX() as f64, y, behavior, can_gc);
+            win.scroll(win.ScrollX() as f64, y, behavior);
             return;
         }
 
         // Step 10
-        if !self.has_css_layout_box(can_gc) ||
-            !self.has_scrolling_box(can_gc) ||
-            !self.has_overflow(can_gc)
-        {
+        if !self.has_css_layout_box() || !self.has_scrolling_box() || !self.has_overflow() {
             return;
         }
 
         // Step 11
-        win.scroll_an_element(self, self.ScrollLeft(can_gc), y, behavior, can_gc);
+        win.scroll_an_element(self, self.ScrollLeft(), y, behavior);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
-    fn ScrollLeft(&self, can_gc: CanGc) -> f64 {
+    fn ScrollLeft(&self) -> f64 {
         let node = self.upcast::<Node>();
 
         // Step 1
@@ -3265,23 +3249,23 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 7
         if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
-            !self.is_potentially_scrollable_body(can_gc)
+            !self.is_potentially_scrollable_body()
         {
             return win.ScrollX() as f64;
         }
 
         // Step 8
-        if !self.has_css_layout_box(can_gc) {
+        if !self.has_css_layout_box() {
             return 0.0;
         }
 
         // Step 9
-        let point = win.scroll_offset_query(node, can_gc);
+        let point = win.scroll_offset_query(node);
         point.x.abs() as f64
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollleft
-    fn SetScrollLeft(&self, x_: f64, can_gc: CanGc) {
+    fn SetScrollLeft(&self, x_: f64) {
         let behavior = ScrollBehavior::Auto;
 
         // Step 1, 2
@@ -3309,59 +3293,56 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
                 return;
             }
 
-            win.scroll(x, win.ScrollY() as f64, behavior, can_gc);
+            win.scroll(x, win.ScrollY() as f64, behavior);
             return;
         }
 
         // Step 9
         if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
-            !self.is_potentially_scrollable_body(can_gc)
+            !self.is_potentially_scrollable_body()
         {
-            win.scroll(x, win.ScrollY() as f64, behavior, can_gc);
+            win.scroll(x, win.ScrollY() as f64, behavior);
             return;
         }
 
         // Step 10
-        if !self.has_css_layout_box(can_gc) ||
-            !self.has_scrolling_box(can_gc) ||
-            !self.has_overflow(can_gc)
-        {
+        if !self.has_css_layout_box() || !self.has_scrolling_box() || !self.has_overflow() {
             return;
         }
 
         // Step 11
-        win.scroll_an_element(self, x, self.ScrollTop(can_gc), behavior, can_gc);
+        win.scroll_an_element(self, x, self.ScrollTop(), behavior);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth
-    fn ScrollWidth(&self, can_gc: CanGc) -> i32 {
-        self.upcast::<Node>().scroll_area(can_gc).size.width
+    fn ScrollWidth(&self) -> i32 {
+        self.upcast::<Node>().scroll_area().size.width
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollheight
-    fn ScrollHeight(&self, can_gc: CanGc) -> i32 {
-        self.upcast::<Node>().scroll_area(can_gc).size.height
+    fn ScrollHeight(&self) -> i32 {
+        self.upcast::<Node>().scroll_area().size.height
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-clienttop
-    fn ClientTop(&self, can_gc: CanGc) -> i32 {
-        self.client_rect(can_gc).origin.y
+    fn ClientTop(&self) -> i32 {
+        self.client_rect().origin.y
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-clientleft
-    fn ClientLeft(&self, can_gc: CanGc) -> i32 {
-        self.client_rect(can_gc).origin.x
+    fn ClientLeft(&self) -> i32 {
+        self.client_rect().origin.x
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-clientwidth
-    fn ClientWidth(&self, can_gc: CanGc) -> i32 {
-        self.client_rect(can_gc).size.width
+    fn ClientWidth(&self) -> i32 {
+        self.client_rect().size.width
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-clientheight
-    fn ClientHeight(&self, can_gc: CanGc) -> i32 {
-        self.client_rect(can_gc).size.height
+    fn ClientHeight(&self) -> i32 {
+        self.client_rect().size.height
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-sethtmlunsafe>
@@ -4777,7 +4758,7 @@ impl SelectorsElement for SelectorWrapper<'_> {
 }
 
 impl Element {
-    fn client_rect(&self, can_gc: CanGc) -> Rect<i32> {
+    fn client_rect(&self) -> Rect<i32> {
         let doc = self.node.owner_doc();
 
         if let Some(rect) = self
@@ -4791,7 +4772,7 @@ impl Element {
             }
         }
 
-        let mut rect = self.upcast::<Node>().client_rect(can_gc);
+        let mut rect = self.upcast::<Node>().client_rect();
         let in_quirks_mode = doc.quirks_mode() == QuirksMode::Quirks;
 
         if (in_quirks_mode && doc.GetBody().as_deref() == self.downcast::<HTMLElement>()) ||

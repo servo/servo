@@ -233,7 +233,7 @@ impl PointerEventMethods<crate::DomTypeHolder> for PointerEvent {
     ) -> DomRoot<PointerEvent> {
         let bubbles = EventBubbles::from(init.parent.parent.parent.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.parent.parent.parent.cancelable);
-        let scroll_offset = window.scroll_offset(can_gc);
+        let scroll_offset = window.scroll_offset();
         let page_point = Point2D::new(
             scroll_offset.x as i32 + init.parent.clientX,
             scroll_offset.y as i32 + init.parent.clientY,

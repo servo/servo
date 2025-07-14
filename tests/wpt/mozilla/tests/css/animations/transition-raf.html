@@ -32,9 +32,12 @@ async_test(function(t) {
 
   window.addEventListener('load', function() {
     assert_equals(getComputedStyle(box).getPropertyValue('width'), '100px');
+
+    box.addEventListener("transitionstart", () => {
+      // Let the first restyle run at zero, then advance the clock.
+      test.advanceClock(500);
+    });
     box.className = "expose";
-    // Let the first restyle run at zero, then advance the clock.
-    setTimeout(function() { test.advanceClock(500) }, 0);
   });
 }, "Transitions should work during RAF loop")
 </script>

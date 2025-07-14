@@ -343,8 +343,8 @@ impl PaintRenderingContext2DMethods<crate::DomTypeHolder> for PaintRenderingCont
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
-    fn SetStrokeStyle(&self, value: StringOrCanvasGradientOrCanvasPattern, can_gc: CanGc) {
-        self.canvas_state.set_stroke_style(None, value, can_gc)
+    fn SetStrokeStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
+        self.canvas_state.set_stroke_style(None, value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
@@ -353,8 +353,8 @@ impl PaintRenderingContext2DMethods<crate::DomTypeHolder> for PaintRenderingCont
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
-    fn SetFillStyle(&self, value: StringOrCanvasGradientOrCanvasPattern, can_gc: CanGc) {
-        self.canvas_state.set_fill_style(None, value, can_gc)
+    fn SetFillStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
+        self.canvas_state.set_fill_style(None, value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createlineargradient
@@ -497,7 +497,7 @@ impl PaintRenderingContext2DMethods<crate::DomTypeHolder> for PaintRenderingCont
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor
-    fn SetShadowColor(&self, value: DOMString, can_gc: CanGc) {
-        self.canvas_state.set_shadow_color(None, value, can_gc)
+    fn SetShadowColor(&self, value: DOMString) {
+        self.canvas_state.set_shadow_color(None, value)
     }
 }

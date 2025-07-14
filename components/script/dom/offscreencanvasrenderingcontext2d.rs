@@ -161,8 +161,8 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor
-    fn SetShadowColor(&self, value: DOMString, can_gc: CanGc) {
-        self.context.SetShadowColor(value, can_gc)
+    fn SetShadowColor(&self, value: DOMString) {
+        self.context.SetShadowColor(value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
@@ -171,8 +171,8 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
-    fn SetStrokeStyle(&self, value: StringOrCanvasGradientOrCanvasPattern, can_gc: CanGc) {
-        self.context.SetStrokeStyle(value, can_gc)
+    fn SetStrokeStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
+        self.context.SetStrokeStyle(value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
@@ -181,8 +181,8 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
-    fn SetFillStyle(&self, value: StringOrCanvasGradientOrCanvasPattern, can_gc: CanGc) {
-        self.context.SetFillStyle(value, can_gc)
+    fn SetFillStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
+        self.context.SetFillStyle(value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createlineargradient
@@ -269,8 +269,8 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-filltext
-    fn FillText(&self, text: DOMString, x: f64, y: f64, max_width: Option<f64>, can_gc: CanGc) {
-        self.context.FillText(text, x, y, max_width, can_gc)
+    fn FillText(&self, text: DOMString, x: f64, y: f64, max_width: Option<f64>) {
+        self.context.FillText(text, x, y, max_width)
     }
 
     // https://html.spec.whatwg.org/multipage/#textmetrics
@@ -284,8 +284,8 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
-    fn SetFont(&self, value: DOMString, can_gc: CanGc) {
-        self.context.SetFont(value, can_gc)
+    fn SetFont(&self, value: DOMString) {
+        self.context.SetFont(value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-textalign

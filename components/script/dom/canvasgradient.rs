@@ -57,12 +57,12 @@ impl CanvasGradient {
 
 impl CanvasGradientMethods<crate::DomTypeHolder> for CanvasGradient {
     // https://html.spec.whatwg.org/multipage/#dom-canvasgradient-addcolorstop
-    fn AddColorStop(&self, offset: Finite<f64>, color: DOMString, can_gc: CanGc) -> ErrorResult {
+    fn AddColorStop(&self, offset: Finite<f64>, color: DOMString) -> ErrorResult {
         if *offset < 0f64 || *offset > 1f64 {
             return Err(Error::IndexSize);
         }
 
-        let color = match parse_color(None, &color, can_gc) {
+        let color = match parse_color(None, &color) {
             Ok(color) => color,
             Err(_) => return Err(Error::Syntax),
         };
