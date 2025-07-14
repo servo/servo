@@ -10,7 +10,7 @@ use js::jsapi::{
     ExceptionStackBehavior, Heap, JS_IsExceptionPending, JS_SetPendingException, JSObject,
 };
 use js::jsval::UndefinedValue;
-use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
+use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, Trace};
 
 use super::bindings::cell::DomRefCell;
 use super::bindings::codegen::Bindings::TransformerBinding::{
@@ -51,6 +51,43 @@ impl Callback for TransformTransformPromiseRejection {
     }
 }
 
+pub(crate) trait TransformerTransformAlgorithm: Trace {
+    fn run(
+        &self,
+        this_obj: &SafeHandleObject,
+        chunk: SafeHandleValue,
+        controller: &TransformStreamDefaultController,
+        can_gc: CanGc,
+    ) -> Fallible<Rc<Promise>>;
+}
+
+#[derive(Clone, JSTraceable)]
+enum TransformAlgorithmType {
+    Js(Rc<TransformerTransformCallback>),
+    Native(Rc<dyn TransformerTransformAlgorithm>),
+}
+
+impl TransformAlgorithmType {
+    fn run(
+        &self,
+        this_obj: &SafeHandleObject,
+        chunk: SafeHandleValue,
+        controller: &TransformStreamDefaultController,
+        can_gc: CanGc,
+    ) -> Fallible<Rc<Promise>> {
+        match self {
+            Self::Js(transform) => transform.Call_(
+                this_obj,
+                chunk,
+                controller,
+                ExceptionHandling::Rethrow,
+                can_gc,
+            ),
+            Self::Native(transform) => transform.run(this_obj, chunk, controller, can_gc),
+        }
+    }
+}
+
 /// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller>
 #[dom_struct]
 pub struct TransformStreamDefaultController {
@@ -66,7 +103,7 @@ pub struct TransformStreamDefaultController {
 
     /// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller-transformalgorithm>
     #[ignore_malloc_size_of = "Rc is hard"]
-    transform: RefCell<Option<Rc<TransformerTransformCallback>>>,
+    transform: RefCell<Option<TransformAlgorithmType>>,
 
     /// The JS object used as `this` when invoking sink algorithms.
     #[ignore_malloc_size_of = "mozjs"]
@@ -87,7 +124,12 @@ impl TransformStreamDefaultController {
             reflector_: Reflector::new(),
             cancel: RefCell::new(transformer.cancel.clone()),
             flush: RefCell::new(transformer.flush.clone()),
-            transform: RefCell::new(transformer.transform.clone()),
+            transform: RefCell::new(
+                transformer
+                    .transform
+                    .clone()
+                    .map(TransformAlgorithmType::Js),
+            ),
             finish_promise: DomRefCell::new(None),
             stream: MutNullableDom::new(None),
             transform_obj: Default::default(),
@@ -166,13 +208,7 @@ impl TransformStreamDefaultController {
         let algo = self.transform.borrow().clone();
         let result = if let Some(transform) = algo {
             rooted!(in(*cx) let this_object = self.transform_obj.get());
-            let call_result = transform.Call_(
-                &this_object.handle(),
-                chunk,
-                self,
-                ExceptionHandling::Rethrow,
-                can_gc,
-            );
+            let call_result = transform.run(&this_object.handle(), chunk, self, can_gc);
             match call_result {
                 Ok(p) => p,
                 Err(e) => {
