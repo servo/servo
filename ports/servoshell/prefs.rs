@@ -589,7 +589,6 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         vec![
             "dom_async_clipboard_enabled",
             "dom_fontface_enabled",
-            "dom_imagebitmap_enabled",
             "dom_intersection_observer_enabled",
             "dom_mouse_event_which_enabled",
             "dom_notification_enabled",
