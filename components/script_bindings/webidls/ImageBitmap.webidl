@@ -9,7 +9,7 @@
  * You are granted a license to use, reproduce and create derivative works of this document.
  */
 
-[Exposed=(Window,Worker), Serializable, Transferable, Pref="dom_imagebitmap_enabled"]
+[Exposed=(Window,Worker), Serializable, Transferable]
 interface ImageBitmap {
   readonly attribute unsigned long width;
   readonly attribute unsigned long height;
