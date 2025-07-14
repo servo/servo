@@ -30,5 +30,6 @@ servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
 stylo_traits = { workspace = true }
+time = { workspace = true }
 uuid = { workspace = true }
 webdriver = { workspace = true }
