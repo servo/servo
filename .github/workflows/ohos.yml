@@ -151,12 +151,88 @@ jobs:
       dromaeo: false
     secrets: inherit
 
+  # Generate a unique id that allows the timeout
+  # jobs to find the workload job run (via the job’s friendly name), even
+  # if there are multiple instances in the workflow call tree.
+  gen-uuids:
+    name: Generate unique runner IDs
+    runs-on: ubuntu-latest
+    outputs:
+      # re-use the same uuid for build, test, bench, with a prefix
+      build-unique-id: build-${{ steps.uuid.outputs.unique_id }}
+      test-unique-id: test-${{ steps.uuid.outputs.unique_id }}
+      bench-unique-id: bench-${{ steps.uuid.outputs.unique_id }}
+    steps:
+      - name: Generate a UUID
+        id: uuid
+        run: |
+          set -euo pipefail
+          unique_id=$(uuidgen)
+          echo "unique_id=$unique_id" | tee -a $GITHUB_OUTPUT
+
+  timeout-build:
+    name: Timeout for build-harmonyos-aarch64
+    needs:
+      - gen-uuids
+    env:
+      UNIQUE_ID: '${{ needs.gen-uuids.outputs.build-unique-id }}'
+      TIMEOUT: '600'
+      # rate limit for normal CI token is 1000/hour, for org token its 15k/hour
+      GH_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
+      RUN_URL: '/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+      # Should be balanced between not burning through our API requests and
+      # freeing the runner that the timeout job is using reasonbly quickly.
+      SLEEP_PER_ITERATION: '100'
+    runs-on: ubuntu-latest
+    # Note: We copy-paste the steps here to avoid the 20 workflow limit of github.
+    # Todo: In the future we should check if we could move this to a composite-action.
+    steps:
+      - name: Initial sleep
+        run: sleep 40
+      - name: Cancel if workload job is still queued
+        run: |
+          num_iterations=$(( TIMEOUT / SLEEP_PER_ITERATION ))
+          echo "Will check every ${SLEEP_PER_ITERATION}, in total ${num_iterations} times"
+          for i in $(seq 1 ${num_iterations})
+          do
+            if ! job_info=$(gh api "${RUN_URL}/jobs");
+            then
+              echo "gh api called failed with $?. Output: ${job_info}"
+              # Rate limit is 1000 API requests per hour using GITHUB_TOKEN, so if the failure is
+              # due to rate-limiting we probably can't do anything anyway
+              exit 1
+            fi
+            job_status=$(jq --exit-status --raw-output --arg id "${UNIQUE_ID}" \
+               '.jobs[] | select(.name | contains("[" + $id + "]")) | .status' <<< "${job_info}")
+            echo "Job status is ${job_status}."
+            if [ "${job_status}" != queued ]; then
+             echo 'Job is not queued anymore. Exiting timeout job'
+             exit 0
+            else
+              # Wait for a bit between each API call
+              echo "Sleep for ${SLEEP_PER_ITERATION}"
+              sleep ${SLEEP_PER_ITERATION}
+              echo "Retrying now..."
+            fi
+          done
+          echo 'Timeout waiting for runner assignment!'
+          echo 'Hint: does this repo have permission to access the runner group?'
+          echo 'Hint: https://github.com/organizations/servo/settings/actions/runner-groups'
+          echo 'Note: This might happen sporadically if there are a lot of concurrent jobs'
+          echo 'which are competing for the limited number of self-hosted runners'
+          echo
+          echo 'Cancelling workflow run'
+          gh api "$run_url/cancel" --method POST
+          exit 1
+
   # Note: We could potentially also merge this build job with the above one,
   # if we figure out how to make hvigor build for harmonyos without the HOS commandline-tools installed.
   build-harmonyos-aarch64:
-    name: HarmonyOS Build (aarch64)
+    name: HarmonyOS Build ${{ inputs.profile }} aarch64 [${{ needs.gen-uuids.outputs.build-unique-id }}]
     continue-on-error: true
     runs-on: hos-builder
+    needs:
+      - gen-uuids
     if: github.repository == 'servo/servo'
     steps:
       - if: ${{ github.event_name != 'pull_request_target' }}
@@ -177,15 +253,73 @@ jobs:
           name: servoshell-hos-${{ inputs.profile }}.hap
           path: target/openharmony/aarch64-unknown-linux-ohos/${{ inputs.profile }}/entry/build/harmonyos/outputs/default/servoshell-default-unsigned.hap
 
+  timeout-test:
+    name: Timeout for test-harmonyos-aarch64
+    needs:
+      - gen-uuids
+      - build-harmonyos-aarch64
+    env:
+      UNIQUE_ID: '${{ needs.gen-uuids.outputs.test-unique-id }}'
+      TIMEOUT: '600'
+      # rate limit for normal CI token is 1000/hour, for org token its 15k/hour
+      GH_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
+      RUN_URL: '/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+      # Should be balanced between not burning through our API requests and
+      # freeing the runner that the timeout job is using reasonbly quickly.
+      SLEEP_PER_ITERATION: '100'
+    runs-on: ubuntu-latest
+    # Note: We copy-paste the steps here to avoid the 20 workflow limit of github.
+    # Todo: In the future we should check if we could move this to a composite-action.
+    steps:
+      - name: Initial sleep
+        run: sleep 40
+      - name: Cancel if workload job is still queued
+        run: |
+          num_iterations=$(( TIMEOUT / SLEEP_PER_ITERATION ))
+          echo "Will check every ${SLEEP_PER_ITERATION}, in total ${num_iterations} times"
+          for i in $(seq 1 ${num_iterations})
+          do
+            if ! job_info=$(gh api "${RUN_URL}/jobs");
+            then
+              echo "gh api called failed with $?. Output: ${job_info}"
+              # Rate limit is 1000 API requests per hour using GITHUB_TOKEN, so if the failure is
+              # due to rate-limiting we probably can't do anything anyway
+              exit 1
+            fi
+            job_status=$(jq --exit-status --raw-output --arg id "${UNIQUE_ID}" \
+               '.jobs[] | select(.name | contains("[" + $id + "]")) | .status' <<< "${job_info}")
+            echo "Job status is ${job_status}."
+            if [ "${job_status}" != queued ]; then
+             echo 'Job is not queued anymore. Exiting timeout job'
+             exit 0
+            else
+              # Wait for a bit between each API call
+              echo "Sleep for ${SLEEP_PER_ITERATION}"
+              sleep ${SLEEP_PER_ITERATION}
+              echo "Retrying now..."
+            fi
+          done
+          echo 'Timeout waiting for runner assignment!'
+          echo 'Hint: does this repo have permission to access the runner group?'
+          echo 'Hint: https://github.com/organizations/servo/settings/actions/runner-groups'
+          echo 'Note: This might happen sporadically if there are a lot of concurrent jobs'
+          echo 'which are competing for the limited number of self-hosted runners'
+          echo
+          echo 'Cancelling workflow run'
+          gh api "$run_url/cancel" --method POST
+          exit 1
+
   test-harmonyos-aarch64:
-    name: Test HarmonyOS aarch64
+    name: Test HarmonyOS aarch64 ${{ inputs.profile }} [${{ needs.gen-uuids.outputs.test-unique-id }}]
     # Don't block servos Merge queue on this job failing.
     # Since we just added this, there might be some hidden issues,
     # so in the beginning we will just do a best effort approach but ignore errors.
     continue-on-error: true
     runs-on: hos-runner
     if: github.repository == 'servo/servo'
-    needs: build-harmonyos-aarch64
+    needs:
+      - build-harmonyos-aarch64
+      - gen-uuids
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -241,11 +375,69 @@ jobs:
           # If the grep fails, then the trace output for the "page loaded" prompt is missing
           grep 'org\.servo\.servo-.* tracing_mark_write.*PageLoadEndedPrompt' test_output/servo.ftrace
 
+  timeout-bench:
+    name: Timeout for bench-harmonyos-aarch64
+    needs:
+      - gen-uuids
+      - test-harmonyos-aarch64
+    env:
+      UNIQUE_ID: '${{ needs.gen-uuids.outputs.bench-unique-id }}'
+      TIMEOUT: '600'
+      # rate limit for normal CI token is 1000/hour, for org token its 15k/hour
+      GH_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
+      RUN_URL: '/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+      # Should be balanced between not burning through our API requests and
+      # freeing the runner that the timeout job is using reasonbly quickly.
+      SLEEP_PER_ITERATION: '100'
+    runs-on: ubuntu-latest
+    # Note: We copy-paste the steps here to avoid the 20 workflow limit of github.
+    # Todo: In the future we should check if we could move this to a composite-action.
+    steps:
+      - name: Initial sleep
+        run: sleep 40
+      - name: Cancel if workload job is still queued
+        run: |
+          num_iterations=$(( TIMEOUT / SLEEP_PER_ITERATION ))
+          echo "Will check every ${SLEEP_PER_ITERATION}, in total ${num_iterations} times"
+          for i in $(seq 1 ${num_iterations})
+          do
+            if ! job_info=$(gh api "${RUN_URL}/jobs");
+            then
+              echo "gh api called failed with $?. Output: ${job_info}"
+              # Rate limit is 1000 API requests per hour using GITHUB_TOKEN, so if the failure is
+              # due to rate-limiting we probably can't do anything anyway
+              exit 1
+            fi
+            job_status=$(jq --exit-status --raw-output --arg id "${UNIQUE_ID}" \
+               '.jobs[] | select(.name | contains("[" + $id + "]")) | .status' <<< "${job_info}")
+            echo "Job status is ${job_status}."
+            if [ "${job_status}" != queued ]; then
+             echo 'Job is not queued anymore. Exiting timeout job'
+             exit 0
+            else
+              # Wait for a bit between each API call
+              echo "Sleep for ${SLEEP_PER_ITERATION}"
+              sleep ${SLEEP_PER_ITERATION}
+              echo "Retrying now..."
+            fi
+          done
+          echo 'Timeout waiting for runner assignment!'
+          echo 'Hint: does this repo have permission to access the runner group?'
+          echo 'Hint: https://github.com/organizations/servo/settings/actions/runner-groups'
+          echo 'Note: This might happen sporadically if there are a lot of concurrent jobs'
+          echo 'which are competing for the limited number of self-hosted runners'
+          echo
+          echo 'Cancelling workflow run'
+          gh api "$run_url/cancel" --method POST
+          exit 1
+
   bench-harmonyos-aarch64:
-    name: Benching HarmonyOS aarch64
+    name: Benching HarmonyOS aarch64 ${{ inputs.profile }} [${{ needs.gen-uuids.outputs.bench-unique-id }}]
     continue-on-error: true
     runs-on: hos-runner
-    needs: test-harmonyos-aarch64
+    needs:
+      - test-harmonyos-aarch64
+      - gen-uuids
     if: github.repository == 'servo/servo'
     steps:
       - uses: actions/download-artifact@v4
