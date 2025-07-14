@@ -658,15 +658,15 @@ fn get_element_in_view_center_point(element: &Element, can_gc: CanGc) -> Option<
             (left: {left}, right: {right}, top: {top}, bottom: {bottom})",
         );
         // Step 6. Let x be floor((left + right) ÷ 2.0).
-        let centre_x = ((left + right) / 2.0).floor() as i64;
+        let center_x = ((left + right) / 2.0).floor() as i64;
         // Step 7. Let y be floor((top + bottom) ÷ 2.0).
-        let centre_y = ((top + bottom) / 2.0).floor() as i64;
+        let center_y = ((top + bottom) / 2.0).floor() as i64;
 
         debug!(
-            "get_element_in_view_center_point: Element center point at ({centre_x}, {centre_y})",
+            "get_element_in_view_center_point: Element center point at ({center_x}, {center_y})",
         );
         // Step 8
-        Point2D::new(centre_x, centre_y)
+        Point2D::new(center_x, center_y)
     })
 }
 
