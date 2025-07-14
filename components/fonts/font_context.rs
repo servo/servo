@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::default::Default;
 use std::hash::{BuildHasherDefault, Hash, Hasher};
 use std::ops::Deref;
@@ -278,19 +278,25 @@ impl FontContext {
         )?)))
     }
 
-    pub(crate) fn create_font_instance_key(&self, font: &Font) -> FontInstanceKey {
+    pub(crate) fn create_font_instance_key(
+        &self,
+        font: &Font,
+        webview_id: WebViewId,
+    ) -> FontInstanceKey {
         match font.template.identifier() {
             FontIdentifier::Local(_) => self.system_font_service_proxy.get_system_font_instance(
                 font.template.identifier(),
                 font.descriptor.pt_size,
                 font.webrender_font_instance_flags(),
                 font.variations().to_owned(),
+                webview_id,
             ),
             FontIdentifier::Web(_) => self.create_web_font_instance(
                 font.template.clone(),
                 font.descriptor.pt_size,
                 font.webrender_font_instance_flags(),
                 font.variations().to_owned(),
+                webview_id,
             ),
         }
     }
@@ -301,6 +307,7 @@ impl FontContext {
         pt_size: Au,
         flags: FontInstanceFlags,
         variations: Vec<FontVariation>,
+        webview_id: WebViewId,
     ) -> FontInstanceKey {
         let identifier = font_template.identifier().clone();
         let font_data = self
@@ -311,7 +318,7 @@ impl FontContext {
             .write()
             .entry(identifier.clone())
             .or_insert_with(|| {
-                let font_key = self.system_font_service_proxy.generate_font_key();
+                let font_key = self.system_font_service_proxy.generate_font_key(webview_id);
                 self.compositor_api.lock().add_font(
                     font_key,
                     font_data.as_ipc_shared_memory(),
@@ -325,7 +332,9 @@ impl FontContext {
             .write()
             .entry((font_key, pt_size, variations.clone()))
             .or_insert_with(|| {
-                let font_instance_key = self.system_font_service_proxy.generate_font_instance_key();
+                let font_instance_key = self
+                    .system_font_service_proxy
+                    .generate_font_instance_key(webview_id);
                 self.compositor_api.lock().add_font_instance(
                     font_instance_key,
                     font_key,
@@ -575,6 +584,8 @@ impl FontContextWebFontMethods for Arc<FontContext> {
         &self,
         all: bool,
     ) -> (Vec<FontKey>, Vec<FontInstanceKey>) {
+        /*
+
         if all {
             let mut webrender_font_keys = self.webrender_font_keys.write();
             let mut webrender_font_instance_keys = self.webrender_font_instance_keys.write();
@@ -636,6 +647,8 @@ impl FontContextWebFontMethods for Arc<FontContext> {
             removed_keys.into_iter().collect(),
             removed_instance_keys.into_iter().collect(),
         )
+         */
+        (vec![], vec![])
     }
 
     fn load_web_font_for_script(

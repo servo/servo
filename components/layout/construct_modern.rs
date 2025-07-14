@@ -63,6 +63,7 @@ impl<'dom> ModernContainerJob<'dom> {
                     true,  /* has_first_formatted_line */
                     false, /* is_single_line_text_box */
                     builder.info.style.to_bidi_level(),
+                    builder.context.webview_id,
                 )?;
 
                 let block_formatting_context = BlockFormattingContext::from_block_container(

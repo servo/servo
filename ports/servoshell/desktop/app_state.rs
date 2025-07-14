@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::path::PathBuf;
 use std::rc::Rc;
+use std::str::FromStr;
 
 use crossbeam_channel::Receiver;
 use embedder_traits::webdriver::WebDriverSenders;
@@ -14,16 +15,17 @@ use euclid::Vector2D;
 use keyboard_types::{Key, Modifiers, NamedKey, ShortcutMatcher};
 use log::{error, info};
 use servo::base::generic_channel::GenericSender;
-use servo::base::id::WebViewId;
+use servo::base::id::{WEBVIEW_ID, WebViewId};
 use servo::config::pref;
 use servo::ipc_channel::ipc::IpcSender;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FocusId, FormControl,
-    GamepadHapticEffectType, JSValue, KeyboardEvent, LoadStatus, PermissionRequest, Servo,
-    ServoDelegate, ServoError, SimpleDialog, TraversalId, WebDriverCommandMsg, WebDriverJSResult,
-    WebDriverLoadStatus, WebDriverUserPrompt, WebView, WebViewBuilder, WebViewDelegate,
+    GamepadHapticEffectType, JSValue, KeyboardEvent, LoadStatus, PermissionRequest,
+    RenderingContext, Servo, ServoDelegate, ServoError, SimpleDialog, TraversalId,
+    WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus, WebDriverUserPrompt, WebView,
+    WebViewBuilder, WebViewDelegate,
 };
 use url::Url;
 
@@ -84,6 +86,14 @@ pub struct RunningAppStateInner {
     /// Whether or not Servo needs to repaint its display. Currently this is global
     /// because every `WebView` shares a `RenderingContext`.
     need_repaint: bool,
+
+    pub(crate) original_rc: Option<Rc<dyn RenderingContext>>,
+
+    pub(crate) webview: Option<WebView>,
+
+    pub(crate) other_webview: Option<WebView>,
+
+    pub(crate) other_rc: Option<Rc<dyn RenderingContext>>,
 }
 
 impl Drop for RunningAppState {
@@ -114,6 +124,10 @@ impl RunningAppState {
                 gamepad_support: GamepadSupport::maybe_new(),
                 need_update: false,
                 need_repaint: false,
+                other_webview: None,
+                other_rc: None,
+                webview: None,
+                original_rc: None,
             }),
         }
     }
@@ -123,15 +137,39 @@ impl RunningAppState {
         webview.focus_and_raise_to_top(true);
     }
 
-    pub(crate) fn create_toplevel_webview(self: &Rc<Self>, url: Url) -> WebView {
+    pub(crate) fn create_toplevel_webview(
+        self: &Rc<Self>,
+        //rc: Rc<dyn RenderingContext>,
+        url: Url,
+    ) -> WebView {
         let webview = WebViewBuilder::new(self.servo())
             .url(url)
             .hidpi_scale_factor(self.inner().window.hidpi_scale_factor())
             .delegate(self.clone())
+            //.add_rendering_context(rc.clone())
             .build();
 
+        //self.inner_mut().original_rc = Some(rc);
         webview.notify_theme_change(self.inner().window.theme());
         self.add(webview.clone());
+        webview
+    }
+
+    pub(crate) fn create_new_window(
+        self: &Rc<Self>,
+        rendering_context: Rc<dyn RenderingContext>,
+    ) -> WebView {
+        error!("Adding window");
+        let webview = WebViewBuilder::new(self.servo())
+            .url(Url::from_str("http://www.giphy.com").unwrap())
+            .delegate(self.clone())
+            .add_rendering_context(rendering_context.clone())
+            .build();
+        assert!(self.inner().other_webview.is_none());
+        assert!(self.inner().other_rc.is_none());
+        let _ = self.inner_mut().other_webview.insert(webview.clone());
+        let _ = self.inner_mut().other_rc.insert(rendering_context);
+        webview.raise_to_top(true);
         webview
     }
 
@@ -162,15 +200,37 @@ impl RunningAppState {
     /// Repaint the Servo view is necessary, returning true if anything was actually
     /// painted or false otherwise. Something may not be painted if Servo is waiting
     /// for a stable image to paint.
-    pub(crate) fn repaint_servo_if_necessary(&self) {
+    pub(crate) fn repaint_servo_if_necessary(&self, paint_other: bool) {
+        /*
+
         if !self.inner().need_repaint {
+            error!("NO REPAINT");
             return;
         }
-        let Some(webview) = self.focused_webview() else {
-            return;
-        };
-        if !webview.paint() {
-            return;
+                let Some(webview) = self.focused_webview() else {
+                    return;
+                };
+                if !webview.paint() {
+                    return;
+                }
+        */
+        if paint_other {
+            error!("PAINT OTHER");
+            if let Some(ref webview) = self.inner().other_webview {
+                if !webview.paint() {
+                    error!("Could not paint other webview");
+                    return;
+                }
+            }
+        } else {
+            error!("PAINT ORIGINAL");
+            error!("focused {:?}", self.focused_webview().map(|wv| wv.id()));
+            if !self.inner().webview.as_ref().unwrap().paint() {
+                //if let Some(ref webview) = self.focused_webview() {
+                //if !webview.paint() {
+                error!("Coult not paint original webview");
+            }
+            //}
         }
 
         // This needs to be done before presenting(), because `ReneringContext::read_to_image` reads
@@ -181,7 +241,17 @@ impl RunningAppState {
         );
 
         let mut inner_mut = self.inner_mut();
-        inner_mut.window.rendering_context().present();
+        if paint_other {
+            if let Some(ref w) = inner_mut.other_rc {
+                error!("PRESENT OTHER");
+                //w.make_current();
+                w.present();
+            }
+        } else {
+            error!("PRESENT NORMAL");
+            //inner_mut.window.rendering_context().make_current();
+            inner_mut.window.rendering_context().present();
+        }
         inner_mut.need_repaint = false;
 
         if self.servoshell_preferences.exit_after_stable_image {
@@ -215,7 +285,14 @@ impl RunningAppState {
 
     pub(crate) fn add(&self, webview: WebView) {
         self.inner_mut().creation_order.push(webview.id());
-        self.inner_mut().webviews.insert(webview.id(), webview);
+        self.inner_mut()
+            .webviews
+            .insert(webview.id(), webview.clone());
+        if self.inner_mut().webview.is_none() {
+            self.inner_mut().webview.insert(webview);
+        } else if self.inner_mut().other_webview.is_none() {
+            self.inner_mut().other_webview.insert(webview);
+        }
     }
 
     pub(crate) fn shutdown(&self) {
@@ -580,8 +657,8 @@ impl WebViewDelegate for RunningAppState {
             let _ = sender.send(WebDriverLoadStatus::Blocked);
         };
 
-        if self.servoshell_preferences.headless &&
-            self.servoshell_preferences.webdriver_port.is_none()
+        if self.servoshell_preferences.headless
+            && self.servoshell_preferences.webdriver_port.is_none()
         {
             // TODO: Avoid copying this from the default trait impl?
             // Return the DOM-specified default value for when we **cannot show simple dialogs**.
@@ -607,8 +684,8 @@ impl WebViewDelegate for RunningAppState {
         webview: WebView,
         authentication_request: AuthenticationRequest,
     ) {
-        if self.servoshell_preferences.headless &&
-            self.servoshell_preferences.webdriver_port.is_none()
+        if self.servoshell_preferences.headless
+            && self.servoshell_preferences.webdriver_port.is_none()
         {
             return;
         }
@@ -652,13 +729,17 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn notify_focus_changed(&self, webview: servo::WebView, focused: bool) {
-        let mut inner_mut = self.inner_mut();
-        if focused {
-            webview.show(true);
-            inner_mut.need_update = true;
-            inner_mut.focused_webview_id = Some(webview.id());
-        } else if inner_mut.focused_webview_id == Some(webview.id()) {
-            inner_mut.focused_webview_id = None;
+        if self.inner().webviews.contains_key(&webview.id()) {
+            let mut inner_mut = self.inner_mut();
+            if focused {
+                webview.show(false);
+                inner_mut.need_update = true;
+                inner_mut.focused_webview_id = Some(webview.id());
+            } else if inner_mut.focused_webview_id == Some(webview.id()) {
+                inner_mut.focused_webview_id = None;
+            }
+        } else {
+            error!("IGNORING FOCUS");
         }
     }
 
@@ -714,8 +795,8 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn request_permission(&self, webview: servo::WebView, permission_request: PermissionRequest) {
-        if self.servoshell_preferences.headless &&
-            self.servoshell_preferences.webdriver_port.is_none()
+        if self.servoshell_preferences.headless
+            && self.servoshell_preferences.webdriver_port.is_none()
         {
             permission_request.deny();
             return;
@@ -776,8 +857,8 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn show_form_control(&self, webview: WebView, form_control: FormControl) {
-        if self.servoshell_preferences.headless &&
-            self.servoshell_preferences.webdriver_port.is_none()
+        if self.servoshell_preferences.headless
+            && self.servoshell_preferences.webdriver_port.is_none()
         {
             return;
         }

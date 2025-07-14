@@ -7,9 +7,10 @@ use std::hash::Hash;
 use std::rc::{Rc, Weak};
 use std::time::Duration;
 
-use base::id::WebViewId;
+use base::id::{RenderingGroupId, WebViewId};
 use compositing::IOCompositor;
 use compositing_traits::WebViewTrait;
+use compositing_traits::rendering_context::RenderingContext;
 use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
@@ -17,6 +18,7 @@ use embedder_traits::{
     MediaSessionActionType, ScreenGeometry, Theme, TraversalId, ViewportDetails,
 };
 use euclid::{Point2D, Scale, Size2D};
+use log::error;
 use servo_geometry::DeviceIndependentPixel;
 use url::Url;
 use webrender_api::ScrollLocation;
@@ -88,6 +90,8 @@ pub(crate) struct WebViewInner {
     focused: bool,
     animating: bool,
     cursor: Cursor,
+
+    webview_group_id: RenderingGroupId,
 }
 
 impl Drop for WebViewInner {
@@ -101,14 +105,19 @@ impl WebView {
     pub(crate) fn new(builder: WebViewBuilder) -> Self {
         let id = WebViewId::new();
         let servo = builder.servo;
+        let rc = builder.rendering_context.clone();
+
         let size = builder.size.map_or_else(
             || {
-                builder
-                    .servo
-                    .compositor
-                    .borrow()
-                    .rendering_context_size()
-                    .to_f32()
+                rc.map_or(
+                    builder
+                        .servo
+                        .compositor
+                        .borrow()
+                        .rendering_context_size()
+                        .to_f32(),
+                    |rc| rc.size2d().to_f32(),
+                )
             },
             |size| Size2D::new(size.width as f32, size.height as f32),
         );
@@ -130,16 +139,25 @@ impl WebView {
             focused: false,
             animating: false,
             cursor: Cursor::Pointer,
+            webview_group_id: builder.group_id.unwrap_or_default(),
         })));
 
         let viewport_details = webview.viewport_details();
-        servo.compositor.borrow_mut().add_webview(
-            Box::new(ServoRendererWebView {
-                weak_handle: webview.weak_handle(),
-                id,
-            }),
-            viewport_details,
-        );
+        let wv = Box::new(ServoRendererWebView {
+            weak_handle: webview.weak_handle(),
+            id,
+        });
+        if let Some(rc) = builder.rendering_context {
+            servo
+                .compositor
+                .borrow_mut()
+                .add_webview_new_group(wv, rc, viewport_details);
+        } else {
+            servo
+                .compositor
+                .borrow_mut()
+                .add_webview(wv, viewport_details);
+        }
 
         servo
             .webviews
@@ -160,7 +178,6 @@ impl WebView {
                     viewport_details,
                 ));
         }
-
         webview
     }
 
@@ -170,6 +187,10 @@ impl WebView {
 
     fn inner_mut(&self) -> RefMut<'_, WebViewInner> {
         self.0.borrow_mut()
+    }
+
+    pub fn rendering_group_id(&self) -> RenderingGroupId {
+        self.inner().webview_group_id.clone()
     }
 
     pub(crate) fn viewport_details(&self) -> ViewportDetails {
@@ -358,13 +379,6 @@ impl WebView {
             .move_resize_webview(self.id(), rect);
     }
 
-    pub fn resize(&self, new_size: PhysicalSize<u32>) {
-        self.inner()
-            .compositor
-            .borrow_mut()
-            .resize_rendering_context(new_size);
-    }
-
     pub fn hidpi_scale_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
         self.inner().hidpi_scale_factor
     }
@@ -500,6 +514,13 @@ impl WebView {
         self.inner().compositor.borrow_mut().on_vsync(self.id());
     }
 
+    pub fn resize(&self, new_size: PhysicalSize<u32>) {
+        self.inner()
+            .compositor
+            .borrow_mut()
+            .resize_rendering_context(self.id(), new_size);
+    }
+
     pub fn set_zoom(&self, new_zoom: f32) {
         self.inner()
             .compositor
@@ -569,7 +590,10 @@ impl WebView {
     /// always paint, unless the `Opts::wait_for_stable_image` option is enabled. In
     /// that case, this might do nothing. Returns true if a paint was actually performed.
     pub fn paint(&self) -> bool {
-        self.inner().compositor.borrow_mut().render()
+        self.inner()
+            .compositor
+            .borrow_mut()
+            .render(self.inner().webview_group_id.clone())
     }
 
     /// Evaluate the specified string of JavaScript code. Once execution is complete or an error
@@ -599,6 +623,12 @@ impl WebViewTrait for ServoRendererWebView {
         self.id
     }
 
+    fn rendering_group_id(&self) -> Option<RenderingGroupId> {
+        self.weak_handle
+            .upgrade()
+            .map(|wv| wv.borrow().webview_group_id.clone())
+    }
+
     fn screen_geometry(&self) -> Option<ScreenGeometry> {
         let webview = WebView::from_weak_handle(&self.weak_handle)?;
         webview.delegate().screen_geometry(webview)
@@ -617,7 +647,9 @@ pub struct WebViewBuilder<'servo> {
     auxiliary: bool,
     url: Option<Url>,
     size: Option<PhysicalSize<u32>>,
+    rendering_context: Option<Rc<dyn RenderingContext>>,
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
+    group_id: Option<RenderingGroupId>,
 }
 
 impl<'servo> WebViewBuilder<'servo> {
@@ -628,7 +660,9 @@ impl<'servo> WebViewBuilder<'servo> {
             url: None,
             size: None,
             hidpi_scale_factor: Scale::new(1.0),
+            rendering_context: None,
             delegate: Rc::new(DefaultWebViewDelegate),
+            group_id: None,
         }
     }
 
@@ -636,6 +670,24 @@ impl<'servo> WebViewBuilder<'servo> {
         let mut builder = Self::new(servo);
         builder.auxiliary = true;
         builder
+    }
+
+    /// Bind this webview to a rendering context, putting it in its own Rendering Group.
+    /// This should be a new Rendering Context that is not yet bound to a webview.
+    pub fn add_rendering_context(mut self, rc: Rc<dyn RenderingContext>) -> Self {
+        assert!(self.group_id.is_none());
+        self.rendering_context = Some(rc);
+        self.group_id = Some(RenderingGroupId::new_rendergroup_id());
+        error!("Webview with group_id = {:?}", self.group_id);
+        self
+    }
+
+    /// Sets the group id
+    pub fn group_id(mut self, group_id: RenderingGroupId) -> Self {
+        assert!(group_id <= RenderingGroupId::current());
+        assert!(self.rendering_context.is_none());
+        self.group_id = Some(group_id);
+        self
     }
 
     pub fn delegate(mut self, delegate: Rc<dyn WebViewDelegate>) -> Self {

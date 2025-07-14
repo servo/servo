@@ -35,7 +35,7 @@ use std::thread;
 
 use base::generic_channel;
 pub use base::id::WebViewId;
-use base::id::{PipelineNamespace, PipelineNamespaceId};
+use base::id::{PipelineNamespace, PipelineNamespaceId, RenderingGroupId};
 #[cfg(feature = "bluetooth")]
 use bluetooth::BluetoothThreadFactory;
 #[cfg(feature = "bluetooth")]
@@ -244,6 +244,7 @@ impl webrender_api::RenderNotifier for RenderNotifier {
         self.compositor_proxy
             .send(CompositorMsg::NewWebRenderFrameReady(
                 document_id,
+                RenderingGroupId::dummy(),
                 frame_ready_params.render,
             ));
     }
@@ -368,6 +369,7 @@ impl Servo {
                     clear_color,
                     upload_method,
                     workers,
+                    panic_on_gl_error: true,
                     size_of_op: Some(servo_allocator::usable_size),
                     ..Default::default()
                 },

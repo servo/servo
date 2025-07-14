@@ -29,6 +29,7 @@ use webrender_api::{ExternalScrollId, HitTestFlags, ScrollLocation};
 
 use crate::compositor::{PipelineDetails, ServoRenderer};
 use crate::touch::{TouchHandler, TouchMoveAction, TouchMoveAllowed, TouchSequenceState};
+use crate::webview_manager::WebRenderInstance;
 
 #[derive(Clone, Copy)]
 struct ScrollEvent {
@@ -312,14 +313,18 @@ impl WebViewRenderer {
         }
     }
 
-    pub(crate) fn dispatch_input_event_with_hit_testing(&self, mut event: InputEvent) -> bool {
+    pub(crate) fn dispatch_input_event_with_hit_testing(
+        &self,
+        mut event: InputEvent,
+        webrender_instance: &WebRenderInstance,
+    ) -> bool {
         let event_point = event.point();
         let hit_test_result = match event_point {
             Some(point) => {
                 let hit_test_result = self
                     .global
                     .borrow()
-                    .hit_test_at_point(point)
+                    .hit_test_at_point(point, webrender_instance)
                     .into_iter()
                     .nth(0);
                 if hit_test_result.is_none() {
@@ -355,13 +360,17 @@ impl WebViewRenderer {
         }
     }
 
-    pub(crate) fn notify_input_event(&mut self, event: InputEvent) {
+    pub(crate) fn notify_input_event(
+        &mut self,
+        event: InputEvent,
+        webrender_instance: &WebRenderInstance,
+    ) {
         if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
 
         if let InputEvent::Touch(event) = event {
-            self.on_touch_event(event);
+            self.on_touch_event(event, webrender_instance);
             return;
         }
 
@@ -371,9 +380,11 @@ impl WebViewRenderer {
                     match (event.button, event.action) {
                         (MouseButton::Left, MouseButtonAction::Down) => self.on_touch_down(
                             TouchEvent::new(TouchEventType::Down, TouchId(0), event.point),
+                            webrender_instance,
                         ),
                         (MouseButton::Left, MouseButtonAction::Up) => self.on_touch_up(
                             TouchEvent::new(TouchEventType::Up, TouchId(0), event.point),
+                            webrender_instance,
                         ),
                         _ => {},
                     }
@@ -386,11 +397,10 @@ impl WebViewRenderer {
                         // reuse the touch handler for tracking the state of pressed buttons.
                         match state.state {
                             TouchSequenceState::Touching | TouchSequenceState::Panning { .. } => {
-                                self.on_touch_move(TouchEvent::new(
-                                    TouchEventType::Move,
-                                    TouchId(0),
-                                    event.point,
-                                ));
+                                self.on_touch_move(
+                                    TouchEvent::new(TouchEventType::Move, TouchId(0), event.point),
+                                    webrender_instance,
+                                );
                             },
                             TouchSequenceState::MultiTouch => {
                                 // Multitouch simulation currently is not implemented.
@@ -421,32 +431,40 @@ impl WebViewRenderer {
             }
         }
 
-        self.dispatch_input_event_with_hit_testing(event);
+        self.dispatch_input_event_with_hit_testing(event, webrender_instance);
     }
 
-    fn send_touch_event(&mut self, event: TouchEvent) -> bool {
-        self.dispatch_input_event_with_hit_testing(InputEvent::Touch(event))
+    fn send_touch_event(
+        &mut self,
+        event: TouchEvent,
+        webrender_instance: &WebRenderInstance,
+    ) -> bool {
+        self.dispatch_input_event_with_hit_testing(InputEvent::Touch(event), webrender_instance)
     }
 
-    pub(crate) fn on_touch_event(&mut self, event: TouchEvent) {
+    pub(crate) fn on_touch_event(
+        &mut self,
+        event: TouchEvent,
+        webrender_instance: &WebRenderInstance,
+    ) {
         if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
 
         match event.event_type {
-            TouchEventType::Down => self.on_touch_down(event),
-            TouchEventType::Move => self.on_touch_move(event),
-            TouchEventType::Up => self.on_touch_up(event),
-            TouchEventType::Cancel => self.on_touch_cancel(event),
+            TouchEventType::Down => self.on_touch_down(event, webrender_instance),
+            TouchEventType::Move => self.on_touch_move(event, webrender_instance),
+            TouchEventType::Up => self.on_touch_up(event, webrender_instance),
+            TouchEventType::Cancel => self.on_touch_cancel(event, webrender_instance),
         }
     }
 
-    fn on_touch_down(&mut self, event: TouchEvent) {
+    fn on_touch_down(&mut self, event: TouchEvent, webrender_instance: &WebRenderInstance) {
         self.touch_handler.on_touch_down(event.id, event.point);
-        self.send_touch_event(event);
+        self.send_touch_event(event, webrender_instance);
     }
 
-    fn on_touch_move(&mut self, mut event: TouchEvent) {
+    fn on_touch_move(&mut self, mut event: TouchEvent, webrender_instance: &WebRenderInstance) {
         let action: TouchMoveAction = self.touch_handler.on_touch_move(event.id, event.point);
         if TouchMoveAction::NoAction != action {
             // if first move processed and allowed, we directly process the move event,
@@ -488,7 +506,7 @@ impl WebViewRenderer {
             if !self
                 .touch_handler
                 .is_handling_touch_move(self.touch_handler.current_sequence_id) &&
-                self.send_touch_event(event) &&
+                self.send_touch_event(event, webrender_instance) &&
                 event.is_cancelable()
             {
                 self.touch_handler
@@ -497,18 +515,22 @@ impl WebViewRenderer {
         }
     }
 
-    fn on_touch_up(&mut self, event: TouchEvent) {
+    fn on_touch_up(&mut self, event: TouchEvent, webrender_instance: &WebRenderInstance) {
         self.touch_handler.on_touch_up(event.id, event.point);
-        self.send_touch_event(event);
+        self.send_touch_event(event, webrender_instance);
     }
 
-    fn on_touch_cancel(&mut self, event: TouchEvent) {
+    fn on_touch_cancel(&mut self, event: TouchEvent, webrender_instance: &WebRenderInstance) {
         // Send the event to script.
         self.touch_handler.on_touch_cancel(event.id, event.point);
-        self.send_touch_event(event);
+        self.send_touch_event(event, webrender_instance);
     }
 
-    pub(crate) fn on_touch_event_processed(&mut self, result: TouchEventResult) {
+    pub(crate) fn on_touch_event_processed(
+        &mut self,
+        result: TouchEventResult,
+        webrender_instance: &WebRenderInstance,
+    ) {
         match result {
             TouchEventResult::DefaultPrevented(sequence_id, event_type) => {
                 debug!(
@@ -653,7 +675,7 @@ impl WebViewRenderer {
                                 // PreventDefault from touch_down may have been processed after
                                 // touch_up already occurred.
                                 if !info.prevent_click {
-                                    self.simulate_mouse_click(point);
+                                    self.simulate_mouse_click(point, webrender_instance);
                                 }
                                 self.touch_handler.remove_touch_sequence(sequence_id);
                             },
@@ -687,21 +709,24 @@ impl WebViewRenderer {
     }
 
     /// <http://w3c.github.io/touch-events/#mouse-events>
-    fn simulate_mouse_click(&mut self, point: DevicePoint) {
+    fn simulate_mouse_click(&mut self, point: DevicePoint, webrender_instance: &WebRenderInstance) {
         let button = MouseButton::Left;
-        self.dispatch_input_event_with_hit_testing(InputEvent::MouseMove(MouseMoveEvent::new(
-            point,
-        )));
-        self.dispatch_input_event_with_hit_testing(InputEvent::MouseButton(MouseButtonEvent::new(
-            MouseButtonAction::Down,
-            button,
-            point,
-        )));
-        self.dispatch_input_event_with_hit_testing(InputEvent::MouseButton(MouseButtonEvent::new(
-            MouseButtonAction::Up,
-            button,
-            point,
-        )));
+        self.dispatch_input_event_with_hit_testing(
+            InputEvent::MouseMove(MouseMoveEvent::new(point)),
+            webrender_instance,
+        );
+        self.dispatch_input_event_with_hit_testing(
+            InputEvent::MouseButton(MouseButtonEvent::new(
+                MouseButtonAction::Down,
+                button,
+                point,
+            )),
+            webrender_instance,
+        );
+        self.dispatch_input_event_with_hit_testing(
+            InputEvent::MouseButton(MouseButtonEvent::new(MouseButtonAction::Up, button, point)),
+            webrender_instance,
+        );
     }
 
     pub(crate) fn notify_scroll_event(
@@ -732,6 +757,7 @@ impl WebViewRenderer {
     /// It is up to the caller to ensure that these events update the rendering appropriately.
     pub(crate) fn process_pending_scroll_and_pinch_zoom_events(
         &mut self,
+        webrender_instance: &WebRenderInstance,
     ) -> (PinchZoomResult, Option<ScrollResult>) {
         if self.pending_scroll_zoom_events.is_empty() {
             return (PinchZoomResult::DidNotPinchZoom, None);
@@ -793,6 +819,7 @@ impl WebViewRenderer {
             self.scroll_node_at_device_point(
                 combined_event.cursor.to_f32(),
                 combined_event.scroll_location,
+                webrender_instance,
             )
         });
         if let Some(scroll_result) = scroll_result.clone() {
@@ -822,6 +849,7 @@ impl WebViewRenderer {
         &mut self,
         cursor: DevicePoint,
         scroll_location: ScrollLocation,
+        webrender_instance: &WebRenderInstance,
     ) -> Option<ScrollResult> {
         let scroll_location = match scroll_location {
             ScrollLocation::Delta(delta) => {
@@ -836,10 +864,11 @@ impl WebViewRenderer {
             ScrollLocation::Start | ScrollLocation::End => scroll_location,
         };
 
-        let hit_test_results = self
-            .global
-            .borrow()
-            .hit_test_at_point_with_flags(cursor, HitTestFlags::FIND_ALL);
+        let hit_test_results = self.global.borrow().hit_test_at_point_with_flags(
+            cursor,
+            HitTestFlags::FIND_ALL,
+            webrender_instance,
+        );
 
         // Iterate through all hit test results, processing only the first node of each pipeline.
         // This is needed to propagate the scroll events from a pipeline representing an iframe to

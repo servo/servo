@@ -411,10 +411,7 @@ impl Window {
                 }
             })
             .shortcut(CMD_OR_CONTROL, 'T', || {
-                state.create_and_focus_toplevel_webview(
-                    Url::parse("servo:newtab")
-                        .expect("Should be able to unconditionally parse 'servo:newtab' as URL"),
-                );
+                //state.create_and_focus_toplevel_webview(Url::parse("servo:newtab").unwrap());
             })
             .shortcut(CMD_OR_CONTROL, 'Q', || state.servo().start_shutting_down())
             .otherwise(|| handled = false);
@@ -614,7 +611,9 @@ impl WindowPortsMethods for Window {
             WindowEvent::MouseInput { state, button, .. } => {
                 self.handle_mouse(&webview, button, state);
             },
-            WindowEvent::CursorMoved { position, .. } => {
+            WindowEvent::CursorMoved { .. } => {
+                //WindowEvent::CursorMoved { position, .. } => {
+                /*
                 let mut point = winit_position_to_euclid_point(position).to_f32();
                 point.y -= (self.toolbar_height() * self.hidpi_scale_factor()).0;
 
@@ -628,16 +627,15 @@ impl WindowPortsMethods for Window {
                 }
 
                 self.webview_relative_mouse_point.set(point);
+                */
             },
             WindowEvent::CursorLeft { .. } => {
-                if webview
-                    .rect()
-                    .contains(self.webview_relative_mouse_point.get())
-                {
-                    webview.notify_input_event(InputEvent::MouseLeftViewport(
-                        MouseLeftViewportEvent::default(),
-                    ));
+                /*
+                let point = self.webview_relative_mouse_point.get();
+                if webview.rect().contains(point) {
+                    webview.notify_input_event(InputEvent::MouseLeave(MouseLeaveEvent::new(point)));
                 }
+                */
             },
             WindowEvent::MouseWheel { delta, .. } => {
                 let (mut dx, mut dy, mode) = match delta {
@@ -658,13 +656,13 @@ impl WindowPortsMethods for Window {
                 };
 
                 // Create wheel event before snapping to the major axis of movement
-                let delta = WheelDelta {
+                let _delta = WheelDelta {
                     x: dx,
                     y: dy,
                     z: 0.0,
                     mode,
                 };
-                let point = self.webview_relative_mouse_point.get();
+                let _point = self.webview_relative_mouse_point.get();
 
                 // Scroll events snap to the major axis of movement, with vertical
                 // preferred over horizontal.
@@ -675,28 +673,32 @@ impl WindowPortsMethods for Window {
                 }
 
                 // Send events
-                webview.notify_input_event(InputEvent::Wheel(WheelEvent::new(delta, point)));
-                let scroll_location = ScrollLocation::Delta(-Vector2D::new(dx as f32, dy as f32));
-                webview.notify_scroll_event(scroll_location, point.to_i32());
+                //webview.notify_input_event(InputEvent::Wheel(WheelEvent::new(delta, point)));
+                let _scroll_location = ScrollLocation::Delta(-Vector2D::new(dx as f32, dy as f32));
+                //webview.notify_scroll_event(scroll_location, point.to_i32());
             },
-            WindowEvent::Touch(touch) => {
+            WindowEvent::Touch(_touch) => {
+                /*
                 webview.notify_input_event(InputEvent::Touch(TouchEvent::new(
                     winit_phase_to_touch_event_type(touch.phase),
                     TouchId(touch.id as i32),
                     Point2D::new(touch.location.x as f32, touch.location.y as f32),
                 )));
+                */
             },
             WindowEvent::PinchGesture { delta, .. } => {
-                webview.set_pinch_zoom(delta as f32 + 1.0);
+                //webview.set_pinch_zoom(delta as f32 + 1.0);
             },
             WindowEvent::CloseRequested => {
-                state.servo().start_shutting_down();
+                //state.servo().start_shutting_down();
             },
             WindowEvent::ThemeChanged(theme) => {
+                /*
                 webview.notify_theme_change(match theme {
                     winit::window::Theme::Light => Theme::Light,
                     winit::window::Theme::Dark => Theme::Dark,
                 });
+                */
             },
             WindowEvent::Resized(new_inner_size) => {
                 if self.inner_size.get() != new_inner_size {
@@ -709,31 +711,37 @@ impl WindowPortsMethods for Window {
             },
             WindowEvent::Ime(ime) => match ime {
                 Ime::Enabled => {
+                    /*
                     webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
                         servo::CompositionEvent {
                             state: servo::CompositionState::Start,
                             data: String::new(),
                         },
                     )));
+                    */
                 },
                 Ime::Preedit(text, _) => {
+                    /*
                     webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
                         servo::CompositionEvent {
                             state: servo::CompositionState::Update,
                             data: text,
                         },
                     )));
+                    */
                 },
                 Ime::Commit(text) => {
+                    /*
                     webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
                         servo::CompositionEvent {
                             state: servo::CompositionState::End,
                             data: text,
                         },
                     )));
+                    */
                 },
                 Ime::Disabled => {
-                    webview.notify_input_event(InputEvent::Ime(ImeEvent::Dismissed));
+                    //webview.notify_input_event(InputEvent::Ime(ImeEvent::Dismissed));
                 },
             },
             _ => {},

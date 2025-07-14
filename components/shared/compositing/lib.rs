@@ -6,7 +6,7 @@
 
 use std::fmt::{Debug, Error, Formatter};
 
-use base::id::{PipelineId, WebViewId};
+use base::id::{PipelineId, RenderingGroupId, WebViewId};
 use crossbeam_channel::Sender;
 use embedder_traits::{AnimationState, EventLoopWaker, TouchEventResult};
 use ipc_channel::ipc::IpcSender;
@@ -105,7 +105,7 @@ pub enum CompositorMsg {
     /// WebRender has produced a new frame. This message informs the compositor that
     /// the frame is ready. It contains a bool to indicate if it needs to composite and the
     /// `DocumentId` of the new frame.
-    NewWebRenderFrameReady(DocumentId, bool),
+    NewWebRenderFrameReady(DocumentId, RenderingGroupId, bool),
     /// Script or the Constellation is notifying the renderer that a Pipeline has finished
     /// shutting down. The renderer will not discard the Pipeline until both report that
     /// they have fully shut it down, to avoid recreating it due to any subsequent
@@ -146,6 +146,7 @@ pub enum CompositorMsg {
         usize,
         usize,
         IpcSender<(Vec<FontKey>, Vec<FontInstanceKey>)>,
+        WebViewId,
     ),
     /// Add a font with the given data and font key.
     AddFont(FontKey, Arc<IpcSharedMemory>, u32),
@@ -352,12 +353,14 @@ impl CrossProcessCompositorApi {
         &self,
         number_of_font_keys: usize,
         number_of_font_instance_keys: usize,
+        webview_id: WebViewId,
     ) -> (Vec<FontKey>, Vec<FontInstanceKey>) {
         let (sender, receiver) = ipc_channel::ipc::channel().expect("Could not create IPC channel");
         let _ = self.0.send(CompositorMsg::GenerateFontKeys(
             number_of_font_keys,
             number_of_font_instance_keys,
             sender,
+            webview_id,
         ));
         receiver.recv().unwrap()
     }
@@ -549,6 +552,7 @@ impl From<SerializableImageData> for ImageData {
 /// layer.
 pub trait WebViewTrait {
     fn id(&self) -> WebViewId;
+    fn rendering_group_id(&self) -> Option<RenderingGroupId>;
     fn screen_geometry(&self) -> Option<ScreenGeometry>;
     fn set_animating(&self, new_value: bool);
 }

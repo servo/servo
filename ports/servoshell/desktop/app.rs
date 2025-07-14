@@ -16,7 +16,7 @@ use constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::unbounded;
 use euclid::{Point2D, Vector2D};
 use ipc_channel::ipc;
-use log::{info, trace, warn};
+use log::{error, info, trace, warn};
 use net::protocols::ProtocolRegistry;
 use servo::config::opts::Opts;
 use servo::config::prefs::Preferences;
@@ -25,13 +25,14 @@ use servo::user_content_manager::{UserContentManager, UserScript};
 use servo::webrender_api::ScrollLocation;
 use servo::{
     EventLoopWaker, ImeEvent, InputEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent,
-    WebDriverCommandMsg, WebDriverScriptCommand, WebDriverUserPromptAction, WheelDelta, WheelEvent,
-    WheelMode,
+    RenderingContext, WebDriverCommandMsg, WebDriverScriptCommand, WebDriverUserPromptAction,
+    WheelDelta, WheelEvent, WheelMode,
 };
 use url::Url;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, ControlFlow};
+use winit::platform::modifier_supplement::KeyEventExtModifierSupplement;
 use winit::window::WindowId;
 
 use super::app_state::AppState;
@@ -58,6 +59,9 @@ pub struct App {
     t: Instant,
     state: AppState,
 
+    other_minibrowser: Option<Minibrowser>,
+    other_window_id: Option<WindowId>,
+
     // This is the last field of the struct to ensure that windows are dropped *after* all other
     // references to the relevant rendering contexts have been destroyed.
     // (https://github.com/servo/servo/issues/36711)
@@ -81,12 +85,15 @@ impl App {
         servo_shell_preferences: ServoShellPreferences,
         events_loop: &EventsLoop,
     ) -> Self {
-        let initial_url = get_default_url(
+        let initial_url = ServoUrl::parse("http://www.giphy.com").unwrap();
+        /*
+        get_default_url(
             servo_shell_preferences.url.as_deref(),
             env::current_dir().unwrap(),
             |path| fs::metadata(path).is_ok(),
             &servo_shell_preferences,
         );
+        */
 
         let t = Instant::now();
         App {
@@ -101,6 +108,8 @@ impl App {
             initial_url: initial_url.clone(),
             t_start: t,
             t,
+            other_window_id: None,
+            other_minibrowser: None,
             state: AppState::Initializing,
         }
     }
@@ -112,13 +121,14 @@ impl App {
         assert_eq!(headless, event_loop.is_none());
         let window = match event_loop {
             Some(event_loop) => {
-                let proxy = self.proxy.take().expect("Must have a proxy available");
+                let proxy = self.proxy.clone().expect("Must have a proxy available");
                 let window = headed_window::Window::new(&self.servoshell_preferences, event_loop);
                 self.minibrowser = Some(Minibrowser::new(
                     &window,
                     event_loop,
                     proxy,
                     self.initial_url.clone(),
+                    window.id(),
                 ));
                 Rc::new(window)
             },
@@ -198,8 +208,16 @@ impl App {
             webdriver_receiver,
         ));
         running_state.create_and_focus_toplevel_webview(self.initial_url.clone().into_url());
+        /*
+        let wv = running_state.create_toplevel_webview(
+            window.rendering_context(),
+            self.initial_url.clone().into_url(),
+        );
+        wv.focus();
+        */
         if let Some(ref mut minibrowser) = self.minibrowser {
-            minibrowser.update(window.as_ref(), &running_state, "init");
+            minibrowser.update(window.as_ref(), &running_state, "init", false);
+            window.set_toolbar_height(minibrowser.toolbar_height);
         }
 
         self.state = AppState::Running(running_state);
@@ -274,7 +292,16 @@ impl App {
                 state.shutdown();
                 self.state = AppState::ShuttingDown;
             },
-            PumpResult::Continue { .. } => state.repaint_servo_if_necessary(),
+            PumpResult::Continue { .. } => {
+                state.repaint_servo_if_necessary(false);
+                state.repaint_servo_if_necessary(true);
+                /*
+                if self.other_minibrowser.is_some() && self.other_window_id.is_some() {
+                    log::error!("trying to render the other thing");
+                    state.repaint_servo_if_necessary(true);
+                }
+                */
+            },
         }
 
         !matches!(self.state, AppState::ShuttingDown)
@@ -323,7 +350,7 @@ impl App {
                 },
                 MinibrowserEvent::NewWebView => {
                     minibrowser.update_location_dirty(false);
-                    state.create_and_focus_toplevel_webview(Url::parse("servo:newtab").unwrap());
+                    //state.create_and_focus_toplevel_webview(Url::parse("servo:newtab").unwrap());
                 },
                 MinibrowserEvent::CloseWebView(id) => {
                     minibrowser.update_location_dirty(false);
@@ -358,15 +385,16 @@ impl App {
                     running_state.servo().execute_webdriver_command(msg);
                 },
                 WebDriverCommandMsg::NewWebView(response_sender, load_status_sender) => {
+                    /*
                     let new_webview =
-                        running_state.create_toplevel_webview(Url::parse("about:blank").unwrap());
+                    running_state.create_toplevel_webview(Url::parse("about:blank").unwrap());
 
                     if let Err(error) = response_sender.send(new_webview.id()) {
                         warn!("Failed to send response of NewWebview: {error}");
                     }
-                    if let Some(load_status_sender) = load_status_sender {
-                        running_state.set_load_status_sender(new_webview.id(), load_status_sender);
-                    }
+
+                    running_state.set_load_status_sender(new_webview.id(), load_status_sender);
+                    */
                 },
                 WebDriverCommandMsg::CloseWebView(webview_id, response_sender) => {
                     running_state.close_webview(webview_id);
@@ -619,8 +647,8 @@ impl App {
         running_state: &RunningAppState,
     ) {
         match msg {
-            WebDriverScriptCommand::ExecuteScript(_webview_id, response_sender) |
-            WebDriverScriptCommand::ExecuteAsyncScript(_webview_id, response_sender) => {
+            WebDriverScriptCommand::ExecuteScript(_webview_id, response_sender)
+            | WebDriverScriptCommand::ExecuteAsyncScript(_webview_id, response_sender) => {
                 // Give embedder a chance to interrupt the script command.
                 // Webdriver only handles 1 script command at a time, so we can
                 // safely set a new interrupt sender and remove the previous one here.
@@ -670,12 +698,28 @@ impl ApplicationHandler<AppEvent> for App {
         let window = window.clone();
         if event == WindowEvent::RedrawRequested {
             // We need to redraw the window for some reason.
-            trace!("RedrawRequested");
+            error!("RedrawRequested");
 
             // WARNING: do not defer painting or presenting to some later tick of the event
+
             // loop or servoshell may become unresponsive! (servo#30312)
+            if Some(window_id) == self.other_window_id {
+                if let Some(ref mut minibrowser) = self.other_minibrowser {
+                    error!("UPDATE WITH OTHER");
+                    minibrowser.update(window.as_ref(), state, "RedrawRequested", true);
+                    if let Some(window_id) = self.other_window_id {
+                        error!("FOUND OTHER WINDOW");
+                        if let Some(window) = self.windows.get(&window_id) {
+                            error!("PAINT ON OTHER WINDOW");
+                            minibrowser.paint(window.winit_window().unwrap());
+                        }
+                    }
+                }
+            }
             if let Some(ref mut minibrowser) = self.minibrowser {
-                minibrowser.update(window.as_ref(), state, "RedrawRequested");
+                error!("UPDATE WITH ORIGINAL");
+                minibrowser.update(window.as_ref(), state, "RedrawRequested", false);
+                error!("PAINT ON NORMAL WINDOW");
                 minibrowser.paint(window.winit_window().unwrap());
             }
         }
@@ -708,15 +752,66 @@ impl ApplicationHandler<AppEvent> for App {
                     window.winit_window().unwrap().request_redraw();
                 },
                 ref event => {
+                    if let WindowEvent::KeyboardInput {
+                        device_id,
+                        event,
+                        is_synthetic,
+                    } = event
+                    {
+                        if event.logical_key == "t" && self.other_minibrowser.is_none() {
+                            let window = headed_window::Window::new(
+                                &self.servoshell_preferences,
+                                event_loop,
+                            );
+                            assert!(self.other_minibrowser.is_none());
+                            let _ = self.other_minibrowser.insert(Minibrowser::new(
+                                &window,
+                                event_loop,
+                                self.proxy.clone().unwrap(),
+                                ServoUrl::parse("file://wikipedia.html").unwrap(),
+                                //ServoUrl::parse("http://www.wikipedia.org").unwrap(),
+                                window.id(),
+                            ));
+
+                            if let AppState::Running(ref state) = self.state {
+                                error!("Creating new window in servo");
+                                let webview = state.create_new_window(window.rendering_context());
+                                webview.focus();
+                            }
+
+                            assert!(self.other_window_id.is_none());
+                            let _ = self.other_window_id.insert(window.id());
+                            self.windows.insert(window.id(), Rc::new(window));
+
+                            return;
+                        }
+                    }
+
                     let response =
                         minibrowser.on_window_event(window.winit_window().unwrap(), state, event);
                     // Update minibrowser if there's resize event to sync up with window.
                     if let WindowEvent::Resized(_) = event {
+                        if self.other_window_id.is_some()
+                            && window.id() == self.other_window_id.unwrap()
+                        {
+                            self.other_minibrowser.as_mut().unwrap().update(
+                                self.windows
+                                    .get(&self.other_window_id.unwrap())
+                                    .unwrap()
+                                    .as_ref(),
+                                state,
+                                "SYN",
+                                false,
+                            )
+                        }
+                        /*
                         minibrowser.update(
                             window.as_ref(),
                             state,
                             "Sync WebView size with Window Resize event",
+                            false,
                         );
+                        */
                     }
                     if response.repaint && *event != WindowEvent::RedrawRequested {
                         // Request a winit redraw event, so we can recomposite, update and paint
