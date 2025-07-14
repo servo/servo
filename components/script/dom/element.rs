@@ -856,691 +856,7 @@ impl Element {
         let result = media_list.evaluate(document.window().layout().device(), quirks_mode);
         result
     }
-}
 
-/// <https://dom.spec.whatwg.org/#valid-shadow-host-name>
-#[inline]
-pub(crate) fn is_valid_shadow_host_name(name: &LocalName) -> bool {
-    // > A valid shadow host name is:
-    // > - a valid custom element name
-    if is_valid_custom_element_name(name) {
-        return true;
-    }
-
-    // > - "article", "aside", "blockquote", "body", "div", "footer", "h1", "h2", "h3",
-    // >   "h4", "h5", "h6", "header", "main", "nav", "p", "section", or "span"
-    matches!(
-        name,
-        &local_name!("article") |
-            &local_name!("aside") |
-            &local_name!("blockquote") |
-            &local_name!("body") |
-            &local_name!("div") |
-            &local_name!("footer") |
-            &local_name!("h1") |
-            &local_name!("h2") |
-            &local_name!("h3") |
-            &local_name!("h4") |
-            &local_name!("h5") |
-            &local_name!("h6") |
-            &local_name!("header") |
-            &local_name!("main") |
-            &local_name!("nav") |
-            &local_name!("p") |
-            &local_name!("section") |
-            &local_name!("span")
-    )
-}
-
-#[inline]
-pub(crate) fn get_attr_for_layout<'dom>(
-    elem: LayoutDom<'dom, Element>,
-    namespace: &Namespace,
-    name: &LocalName,
-) -> Option<LayoutDom<'dom, Attr>> {
-    elem.attrs()
-        .iter()
-        .find(|attr| name == attr.local_name() && namespace == attr.namespace())
-        .cloned()
-}
-
-pub(crate) trait LayoutElementHelpers<'dom> {
-    fn attrs(self) -> &'dom [LayoutDom<'dom, Attr>];
-    fn has_class_or_part_for_layout(
-        self,
-        name: &AtomIdent,
-        attr_name: &LocalName,
-        case_sensitivity: CaseSensitivity,
-    ) -> bool;
-    fn get_classes_for_layout(self) -> Option<&'dom [Atom]>;
-    fn get_parts_for_layout(self) -> Option<&'dom [Atom]>;
-
-    fn synthesize_presentational_hints_for_legacy_attributes<V>(self, hints: &mut V)
-    where
-        V: Push<ApplicableDeclarationBlock>;
-    fn get_span(self) -> Option<u32>;
-    fn get_colspan(self) -> Option<u32>;
-    fn get_rowspan(self) -> Option<u32>;
-    fn is_html_element(&self) -> bool;
-    fn id_attribute(self) -> *const Option<Atom>;
-    fn style_attribute(self) -> *const Option<Arc<Locked<PropertyDeclarationBlock>>>;
-    fn local_name(self) -> &'dom LocalName;
-    fn namespace(self) -> &'dom Namespace;
-    fn get_lang_attr_val_for_layout(self) -> Option<&'dom str>;
-    fn get_lang_for_layout(self) -> String;
-    fn get_state_for_layout(self) -> ElementState;
-    fn insert_selector_flags(self, flags: ElementSelectorFlags);
-    fn get_selector_flags(self) -> ElementSelectorFlags;
-    /// The shadow root this element is a host of.
-    fn get_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>>;
-    fn get_attr_for_layout(
-        self,
-        namespace: &Namespace,
-        name: &LocalName,
-    ) -> Option<&'dom AttrValue>;
-    fn get_attr_val_for_layout(self, namespace: &Namespace, name: &LocalName) -> Option<&'dom str>;
-    fn get_attr_vals_for_layout(self, name: &LocalName) -> Vec<&'dom AttrValue>;
-}
-
-impl LayoutDom<'_, Element> {
-    pub(super) fn focus_state(self) -> bool {
-        self.unsafe_get().state.get().contains(ElementState::FOCUS)
-    }
-}
-
-impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
-    #[allow(unsafe_code)]
-    #[inline]
-    fn attrs(self) -> &'dom [LayoutDom<'dom, Attr>] {
-        unsafe { LayoutDom::to_layout_slice(self.unsafe_get().attrs.borrow_for_layout()) }
-    }
-
-    #[inline]
-    fn has_class_or_part_for_layout(
-        self,
-        name: &AtomIdent,
-        attr_name: &LocalName,
-        case_sensitivity: CaseSensitivity,
-    ) -> bool {
-        get_attr_for_layout(self, &ns!(), attr_name).is_some_and(|attr| {
-            attr.to_tokens()
-                .unwrap()
-                .iter()
-                .any(|atom| case_sensitivity.eq_atom(atom, name))
-        })
-    }
-
-    #[inline]
-    fn get_classes_for_layout(self) -> Option<&'dom [Atom]> {
-        get_attr_for_layout(self, &ns!(), &local_name!("class"))
-            .map(|attr| attr.to_tokens().unwrap())
-    }
-
-    fn get_parts_for_layout(self) -> Option<&'dom [Atom]> {
-        get_attr_for_layout(self, &ns!(), &local_name!("part"))
-            .map(|attr| attr.to_tokens().unwrap())
-    }
-
-    fn synthesize_presentational_hints_for_legacy_attributes<V>(self, hints: &mut V)
-    where
-        V: Push<ApplicableDeclarationBlock>,
-    {
-        // FIXME(emilio): Just a single PDB should be enough.
-        #[inline]
-        fn from_declaration(
-            shared_lock: &SharedRwLock,
-            declaration: PropertyDeclaration,
-        ) -> ApplicableDeclarationBlock {
-            ApplicableDeclarationBlock::from_declarations(
-                Arc::new(shared_lock.wrap(PropertyDeclarationBlock::with_one(
-                    declaration,
-                    Importance::Normal,
-                ))),
-                CascadeLevel::PresHints,
-                LayerOrder::root(),
-            )
-        }
-
-        let document = self.upcast::<Node>().owner_doc_for_layout();
-        let shared_lock = document.style_shared_lock();
-
-        // TODO(xiaochengh): This is probably not enough. When the root element doesn't have a `lang`,
-        // we should check the browser settings and system locale.
-        if let Some(lang) = self.get_lang_attr_val_for_layout() {
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::XLang(specified::XLang(Atom::from(lang.to_owned()))),
-            ));
-        }
-
-        let bgcolor = if let Some(this) = self.downcast::<HTMLBodyElement>() {
-            this.get_background_color()
-        } else if let Some(this) = self.downcast::<HTMLTableElement>() {
-            this.get_background_color()
-        } else if let Some(this) = self.downcast::<HTMLTableCellElement>() {
-            this.get_background_color()
-        } else if let Some(this) = self.downcast::<HTMLTableRowElement>() {
-            this.get_background_color()
-        } else if let Some(this) = self.downcast::<HTMLTableSectionElement>() {
-            this.get_background_color()
-        } else {
-            None
-        };
-
-        if let Some(color) = bgcolor {
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::BackgroundColor(specified::Color::from_absolute_color(color)),
-            ));
-        }
-
-        let background = if let Some(this) = self.downcast::<HTMLBodyElement>() {
-            this.get_background()
-        } else {
-            None
-        };
-
-        if let Some(url) = background {
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::BackgroundImage(background_image::SpecifiedValue(
-                    vec![specified::Image::for_cascade(url.get_arc())].into(),
-                )),
-            ));
-        }
-
-        let color = if let Some(this) = self.downcast::<HTMLFontElement>() {
-            this.get_color()
-        } else if let Some(this) = self.downcast::<HTMLBodyElement>() {
-            // https://html.spec.whatwg.org/multipage/#the-page:the-body-element-20
-            this.get_color()
-        } else if let Some(this) = self.downcast::<HTMLHRElement>() {
-            // https://html.spec.whatwg.org/multipage/#the-hr-element-2:presentational-hints-5
-            this.get_color()
-        } else {
-            None
-        };
-
-        if let Some(color) = color {
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::Color(longhands::color::SpecifiedValue(
-                    specified::Color::from_absolute_color(color),
-                )),
-            ));
-        }
-
-        let font_face = if let Some(this) = self.downcast::<HTMLFontElement>() {
-            this.get_face()
-        } else {
-            None
-        };
-
-        if let Some(font_face) = font_face {
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::FontFamily(font_family::SpecifiedValue::Values(
-                    computed::font::FontFamilyList {
-                        list: ArcSlice::from_iter(
-                            HTMLFontElement::parse_face_attribute(font_face).into_iter(),
-                        ),
-                    },
-                )),
-            ));
-        }
-
-        let font_size = self
-            .downcast::<HTMLFontElement>()
-            .and_then(|this| this.get_size());
-
-        if let Some(font_size) = font_size {
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::FontSize(font_size::SpecifiedValue::from_html_size(
-                    font_size as u8,
-                )),
-            ))
-        }
-
-        let cellspacing = if let Some(this) = self.downcast::<HTMLTableElement>() {
-            this.get_cellspacing()
-        } else {
-            None
-        };
-
-        if let Some(cellspacing) = cellspacing {
-            let width_value = specified::Length::from_px(cellspacing as f32);
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::BorderSpacing(Box::new(border_spacing::SpecifiedValue::new(
-                    width_value.clone().into(),
-                    width_value.into(),
-                ))),
-            ));
-        }
-
-        let size = if let Some(this) = self.downcast::<HTMLInputElement>() {
-            // FIXME(pcwalton): More use of atoms, please!
-            match self.get_attr_val_for_layout(&ns!(), &local_name!("type")) {
-                // Not text entry widget
-                Some("hidden") |
-                Some("date") |
-                Some("month") |
-                Some("week") |
-                Some("time") |
-                Some("datetime-local") |
-                Some("number") |
-                Some("range") |
-                Some("color") |
-                Some("checkbox") |
-                Some("radio") |
-                Some("file") |
-                Some("submit") |
-                Some("image") |
-                Some("reset") |
-                Some("button") => None,
-                // Others
-                _ => match this.size_for_layout() {
-                    0 => None,
-                    s => Some(s as i32),
-                },
-            }
-        } else {
-            None
-        };
-
-        if let Some(size) = size {
-            let value =
-                specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(size));
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::Width(specified::Size::LengthPercentage(NonNegative(
-                    specified::LengthPercentage::Length(value),
-                ))),
-            ));
-        }
-
-        let width = if let Some(this) = self.downcast::<HTMLIFrameElement>() {
-            this.get_width()
-        } else if let Some(this) = self.downcast::<HTMLImageElement>() {
-            this.get_width()
-        } else if let Some(this) = self.downcast::<HTMLVideoElement>() {
-            this.get_width()
-        } else if let Some(this) = self.downcast::<HTMLTableElement>() {
-            this.get_width()
-        } else if let Some(this) = self.downcast::<HTMLTableCellElement>() {
-            this.get_width()
-        } else if let Some(this) = self.downcast::<HTMLTableColElement>() {
-            this.get_width()
-        } else if let Some(this) = self.downcast::<HTMLHRElement>() {
-            // https://html.spec.whatwg.org/multipage/#the-hr-element-2:attr-hr-width
-            this.get_width()
-        } else {
-            LengthOrPercentageOrAuto::Auto
-        };
-
-        // FIXME(emilio): Use from_computed value here and below.
-        match width {
-            LengthOrPercentageOrAuto::Auto => {},
-            LengthOrPercentageOrAuto::Percentage(percentage) => {
-                let width_value = specified::Size::LengthPercentage(NonNegative(
-                    specified::LengthPercentage::Percentage(computed::Percentage(percentage)),
-                ));
-                hints.push(from_declaration(
-                    shared_lock,
-                    PropertyDeclaration::Width(width_value),
-                ));
-            },
-            LengthOrPercentageOrAuto::Length(length) => {
-                let width_value = specified::Size::LengthPercentage(NonNegative(
-                    specified::LengthPercentage::Length(specified::NoCalcLength::Absolute(
-                        specified::AbsoluteLength::Px(length.to_f32_px()),
-                    )),
-                ));
-                hints.push(from_declaration(
-                    shared_lock,
-                    PropertyDeclaration::Width(width_value),
-                ));
-            },
-        }
-
-        let height = if let Some(this) = self.downcast::<HTMLIFrameElement>() {
-            this.get_height()
-        } else if let Some(this) = self.downcast::<HTMLImageElement>() {
-            this.get_height()
-        } else if let Some(this) = self.downcast::<HTMLVideoElement>() {
-            this.get_height()
-        } else if let Some(this) = self.downcast::<HTMLTableElement>() {
-            this.get_height()
-        } else if let Some(this) = self.downcast::<HTMLTableCellElement>() {
-            this.get_height()
-        } else if let Some(this) = self.downcast::<HTMLTableRowElement>() {
-            this.get_height()
-        } else if let Some(this) = self.downcast::<HTMLTableSectionElement>() {
-            this.get_height()
-        } else {
-            LengthOrPercentageOrAuto::Auto
-        };
-
-        match height {
-            LengthOrPercentageOrAuto::Auto => {},
-            LengthOrPercentageOrAuto::Percentage(percentage) => {
-                let height_value = specified::Size::LengthPercentage(NonNegative(
-                    specified::LengthPercentage::Percentage(computed::Percentage(percentage)),
-                ));
-                hints.push(from_declaration(
-                    shared_lock,
-                    PropertyDeclaration::Height(height_value),
-                ));
-            },
-            LengthOrPercentageOrAuto::Length(length) => {
-                let height_value = specified::Size::LengthPercentage(NonNegative(
-                    specified::LengthPercentage::Length(specified::NoCalcLength::Absolute(
-                        specified::AbsoluteLength::Px(length.to_f32_px()),
-                    )),
-                ));
-                hints.push(from_declaration(
-                    shared_lock,
-                    PropertyDeclaration::Height(height_value),
-                ));
-            },
-        }
-
-        // Aspect ratio when providing both width and height.
-        // https://html.spec.whatwg.org/multipage/#attributes-for-embedded-content-and-images
-        if self.downcast::<HTMLImageElement>().is_some() ||
-            self.downcast::<HTMLVideoElement>().is_some()
-        {
-            if let LengthOrPercentageOrAuto::Length(width) = width {
-                if let LengthOrPercentageOrAuto::Length(height) = height {
-                    let width_value = NonNegative(specified::Number::new(width.to_f32_px()));
-                    let height_value = NonNegative(specified::Number::new(height.to_f32_px()));
-                    let aspect_ratio = specified::position::AspectRatio {
-                        auto: true,
-                        ratio: PreferredRatio::Ratio(Ratio(width_value, height_value)),
-                    };
-                    hints.push(from_declaration(
-                        shared_lock,
-                        PropertyDeclaration::AspectRatio(aspect_ratio),
-                    ));
-                }
-            }
-        }
-
-        let cols = if let Some(this) = self.downcast::<HTMLTextAreaElement>() {
-            match this.get_cols() {
-                0 => None,
-                c => Some(c as i32),
-            }
-        } else {
-            None
-        };
-
-        if let Some(cols) = cols {
-            // TODO(mttr) ServoCharacterWidth uses the size math for <input type="text">, but
-            // the math for <textarea> is a little different since we need to take
-            // scrollbar size into consideration (but we don't have a scrollbar yet!)
-            //
-            // https://html.spec.whatwg.org/multipage/#textarea-effective-width
-            let value =
-                specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(cols));
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::Width(specified::Size::LengthPercentage(NonNegative(
-                    specified::LengthPercentage::Length(value),
-                ))),
-            ));
-        }
-
-        let rows = if let Some(this) = self.downcast::<HTMLTextAreaElement>() {
-            match this.get_rows() {
-                0 => None,
-                r => Some(r as i32),
-            }
-        } else {
-            None
-        };
-
-        if let Some(rows) = rows {
-            // TODO(mttr) This should take scrollbar size into consideration.
-            //
-            // https://html.spec.whatwg.org/multipage/#textarea-effective-height
-            let value = specified::NoCalcLength::FontRelative(specified::FontRelativeLength::Em(
-                rows as CSSFloat,
-            ));
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::Height(specified::Size::LengthPercentage(NonNegative(
-                    specified::LengthPercentage::Length(value),
-                ))),
-            ));
-        }
-
-        let border = if let Some(this) = self.downcast::<HTMLTableElement>() {
-            this.get_border()
-        } else {
-            None
-        };
-
-        if let Some(border) = border {
-            let width_value = specified::BorderSideWidth::from_px(border as f32);
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::BorderTopWidth(width_value.clone()),
-            ));
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::BorderLeftWidth(width_value.clone()),
-            ));
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::BorderBottomWidth(width_value.clone()),
-            ));
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::BorderRightWidth(width_value),
-            ));
-        }
-
-        if let Some(cellpadding) = self
-            .downcast::<HTMLTableCellElement>()
-            .and_then(|this| this.get_table())
-            .and_then(|table| table.get_cellpadding())
-        {
-            let cellpadding = NonNegative(specified::LengthPercentage::Length(
-                specified::NoCalcLength::from_px(cellpadding as f32),
-            ));
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::PaddingTop(cellpadding.clone()),
-            ));
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::PaddingLeft(cellpadding.clone()),
-            ));
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::PaddingBottom(cellpadding.clone()),
-            ));
-            hints.push(from_declaration(
-                shared_lock,
-                PropertyDeclaration::PaddingRight(cellpadding),
-            ));
-        }
-
-        // https://html.spec.whatwg.org/multipage/#the-hr-element-2
-        if let Some(size_info) = self
-            .downcast::<HTMLHRElement>()
-            .and_then(|hr_element| hr_element.get_size_info())
-        {
-            match size_info {
-                SizePresentationalHint::SetHeightTo(height) => {
-                    hints.push(from_declaration(
-                        shared_lock,
-                        PropertyDeclaration::Height(height),
-                    ));
-                },
-                SizePresentationalHint::SetAllBorderWidthValuesTo(border_width) => {
-                    hints.push(from_declaration(
-                        shared_lock,
-                        PropertyDeclaration::BorderLeftWidth(border_width.clone()),
-                    ));
-                    hints.push(from_declaration(
-                        shared_lock,
-                        PropertyDeclaration::BorderRightWidth(border_width.clone()),
-                    ));
-                    hints.push(from_declaration(
-                        shared_lock,
-                        PropertyDeclaration::BorderTopWidth(border_width.clone()),
-                    ));
-                    hints.push(from_declaration(
-                        shared_lock,
-                        PropertyDeclaration::BorderBottomWidth(border_width),
-                    ));
-                },
-                SizePresentationalHint::SetBottomBorderWidthToZero => {
-                    hints.push(from_declaration(
-                        shared_lock,
-                        PropertyDeclaration::BorderBottomWidth(
-                            specified::border::BorderSideWidth::from_px(0.),
-                        ),
-                    ));
-                },
-            }
-        }
-    }
-
-    fn get_span(self) -> Option<u32> {
-        // Don't panic since `display` can cause this to be called on arbitrary elements.
-        self.downcast::<HTMLTableColElement>()
-            .and_then(|element| element.get_span())
-    }
-
-    fn get_colspan(self) -> Option<u32> {
-        // Don't panic since `display` can cause this to be called on arbitrary elements.
-        self.downcast::<HTMLTableCellElement>()
-            .and_then(|element| element.get_colspan())
-    }
-
-    fn get_rowspan(self) -> Option<u32> {
-        // Don't panic since `display` can cause this to be called on arbitrary elements.
-        self.downcast::<HTMLTableCellElement>()
-            .and_then(|element| element.get_rowspan())
-    }
-
-    #[inline]
-    fn is_html_element(&self) -> bool {
-        *self.namespace() == ns!(html)
-    }
-
-    #[allow(unsafe_code)]
-    fn id_attribute(self) -> *const Option<Atom> {
-        unsafe { (self.unsafe_get()).id_attribute.borrow_for_layout() }
-    }
-
-    #[allow(unsafe_code)]
-    fn style_attribute(self) -> *const Option<Arc<Locked<PropertyDeclarationBlock>>> {
-        unsafe { (self.unsafe_get()).style_attribute.borrow_for_layout() }
-    }
-
-    #[allow(unsafe_code)]
-    fn local_name(self) -> &'dom LocalName {
-        &(self.unsafe_get()).local_name
-    }
-
-    fn namespace(self) -> &'dom Namespace {
-        &(self.unsafe_get()).namespace
-    }
-
-    fn get_lang_attr_val_for_layout(self) -> Option<&'dom str> {
-        if let Some(attr) = self.get_attr_val_for_layout(&ns!(xml), &local_name!("lang")) {
-            return Some(attr);
-        }
-        if let Some(attr) = self.get_attr_val_for_layout(&ns!(), &local_name!("lang")) {
-            return Some(attr);
-        }
-        None
-    }
-
-    fn get_lang_for_layout(self) -> String {
-        let mut current_node = Some(self.upcast::<Node>());
-        while let Some(node) = current_node {
-            current_node = node.composed_parent_node_ref();
-            match node.downcast::<Element>() {
-                Some(elem) => {
-                    if let Some(attr) = elem.get_lang_attr_val_for_layout() {
-                        return attr.to_owned();
-                    }
-                },
-                None => continue,
-            }
-        }
-        // TODO: Check meta tags for a pragma-set default language
-        // TODO: Check HTTP Content-Language header
-        String::new()
-    }
-
-    #[inline]
-    fn get_state_for_layout(self) -> ElementState {
-        (self.unsafe_get()).state.get()
-    }
-
-    #[inline]
-    fn insert_selector_flags(self, flags: ElementSelectorFlags) {
-        debug_assert!(thread_state::get().is_layout());
-        let f = &(self.unsafe_get()).selector_flags;
-        f.set(f.get() | flags);
-    }
-
-    #[inline]
-    fn get_selector_flags(self) -> ElementSelectorFlags {
-        self.unsafe_get().selector_flags.get()
-    }
-
-    #[inline]
-    #[allow(unsafe_code)]
-    fn get_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>> {
-        unsafe {
-            self.unsafe_get()
-                .rare_data
-                .borrow_for_layout()
-                .as_ref()?
-                .shadow_root
-                .as_ref()
-                .map(|sr| sr.to_layout())
-        }
-    }
-
-    #[inline]
-    fn get_attr_for_layout(
-        self,
-        namespace: &Namespace,
-        name: &LocalName,
-    ) -> Option<&'dom AttrValue> {
-        get_attr_for_layout(self, namespace, name).map(|attr| attr.value())
-    }
-
-    #[inline]
-    fn get_attr_val_for_layout(self, namespace: &Namespace, name: &LocalName) -> Option<&'dom str> {
-        get_attr_for_layout(self, namespace, name).map(|attr| attr.as_str())
-    }
-
-    #[inline]
-    fn get_attr_vals_for_layout(self, name: &LocalName) -> Vec<&'dom AttrValue> {
-        self.attrs()
-            .iter()
-            .filter_map(|attr| {
-                if name == attr.local_name() {
-                    Some(attr.value())
-                } else {
-                    None
-                }
-            })
-            .collect()
-    }
-}
-
-impl Element {
     pub(crate) fn is_html_element(&self) -> bool {
         self.namespace == ns!(html)
     }
@@ -2670,6 +1986,1048 @@ impl Element {
             line_number: line_number + 2,
             column_number: 0,
         }
+    }
+
+    fn client_rect(&self, can_gc: CanGc) -> Rect<i32> {
+        let doc = self.node.owner_doc();
+
+        if let Some(rect) = self
+            .rare_data()
+            .as_ref()
+            .and_then(|data| data.client_rect.as_ref())
+            .and_then(|rect| rect.get().ok())
+        {
+            if doc.restyle_reason().is_empty() {
+                return rect;
+            }
+        }
+
+        let mut rect = self.upcast::<Node>().client_rect(can_gc);
+        let in_quirks_mode = doc.quirks_mode() == QuirksMode::Quirks;
+
+        if (in_quirks_mode && doc.GetBody().as_deref() == self.downcast::<HTMLElement>()) ||
+            (!in_quirks_mode && *self.root_element() == *self)
+        {
+            let viewport_dimensions = doc.window().viewport_details().size.round().to_i32();
+            rect.size = Size2D::<i32>::new(viewport_dimensions.width, viewport_dimensions.height);
+        }
+
+        self.ensure_rare_data().client_rect = Some(self.owner_window().cache_layout_value(rect));
+        rect
+    }
+
+    pub(crate) fn as_maybe_activatable(&self) -> Option<&dyn Activatable> {
+        let element = match self.upcast::<Node>().type_id() {
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLInputElement,
+            )) => {
+                let element = self.downcast::<HTMLInputElement>().unwrap();
+                Some(element as &dyn Activatable)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLButtonElement,
+            )) => {
+                let element = self.downcast::<HTMLButtonElement>().unwrap();
+                Some(element as &dyn Activatable)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLAnchorElement,
+            )) => {
+                let element = self.downcast::<HTMLAnchorElement>().unwrap();
+                Some(element as &dyn Activatable)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLLabelElement,
+            )) => {
+                let element = self.downcast::<HTMLLabelElement>().unwrap();
+                Some(element as &dyn Activatable)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLSelectElement,
+            )) => {
+                let element = self.downcast::<HTMLSelectElement>().unwrap();
+                Some(element as &dyn Activatable)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLElement)) => {
+                let element = self.downcast::<HTMLElement>().unwrap();
+                Some(element as &dyn Activatable)
+            },
+            _ => None,
+        };
+        element.and_then(|elem| {
+            if elem.is_instance_activatable() {
+                Some(elem)
+            } else {
+                None
+            }
+        })
+    }
+
+    pub(crate) fn as_stylesheet_owner(&self) -> Option<&dyn StylesheetOwner> {
+        if let Some(s) = self.downcast::<HTMLStyleElement>() {
+            return Some(s as &dyn StylesheetOwner);
+        }
+
+        if let Some(l) = self.downcast::<HTMLLinkElement>() {
+            return Some(l as &dyn StylesheetOwner);
+        }
+
+        None
+    }
+
+    // https://html.spec.whatwg.org/multipage/#category-submit
+    pub(crate) fn as_maybe_validatable(&self) -> Option<&dyn Validatable> {
+        let element = match self.upcast::<Node>().type_id() {
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLInputElement,
+            )) => {
+                let element = self.downcast::<HTMLInputElement>().unwrap();
+                Some(element as &dyn Validatable)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLButtonElement,
+            )) => {
+                let element = self.downcast::<HTMLButtonElement>().unwrap();
+                Some(element as &dyn Validatable)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLObjectElement,
+            )) => {
+                let element = self.downcast::<HTMLObjectElement>().unwrap();
+                Some(element as &dyn Validatable)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLSelectElement,
+            )) => {
+                let element = self.downcast::<HTMLSelectElement>().unwrap();
+                Some(element as &dyn Validatable)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLTextAreaElement,
+            )) => {
+                let element = self.downcast::<HTMLTextAreaElement>().unwrap();
+                Some(element as &dyn Validatable)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLFieldSetElement,
+            )) => {
+                let element = self.downcast::<HTMLFieldSetElement>().unwrap();
+                Some(element as &dyn Validatable)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLOutputElement,
+            )) => {
+                let element = self.downcast::<HTMLOutputElement>().unwrap();
+                Some(element as &dyn Validatable)
+            },
+            _ => None,
+        };
+        element
+    }
+
+    pub(crate) fn is_invalid(&self, needs_update: bool, can_gc: CanGc) -> bool {
+        if let Some(validatable) = self.as_maybe_validatable() {
+            if needs_update {
+                validatable
+                    .validity_state()
+                    .perform_validation_and_update(ValidationFlags::all(), can_gc);
+            }
+            return validatable.is_instance_validatable() && !validatable.satisfies_constraints();
+        }
+
+        if let Some(internals) = self.get_element_internals() {
+            return internals.is_invalid();
+        }
+        false
+    }
+
+    pub(crate) fn is_instance_validatable(&self) -> bool {
+        if let Some(validatable) = self.as_maybe_validatable() {
+            return validatable.is_instance_validatable();
+        }
+        if let Some(internals) = self.get_element_internals() {
+            return internals.is_instance_validatable();
+        }
+        false
+    }
+
+    pub(crate) fn init_state_for_internals(&self) {
+        self.set_enabled_state(true);
+        self.set_state(ElementState::VALID, true);
+        self.set_state(ElementState::INVALID, false);
+    }
+
+    pub(crate) fn click_in_progress(&self) -> bool {
+        self.upcast::<Node>().get_flag(NodeFlags::CLICK_IN_PROGRESS)
+    }
+
+    pub(crate) fn set_click_in_progress(&self, click: bool) {
+        self.upcast::<Node>()
+            .set_flag(NodeFlags::CLICK_IN_PROGRESS, click)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#nearest-activatable-element
+    pub(crate) fn nearest_activable_element(&self) -> Option<DomRoot<Element>> {
+        match self.as_maybe_activatable() {
+            Some(el) => Some(DomRoot::from_ref(el.as_element())),
+            None => {
+                let node = self.upcast::<Node>();
+                for node in node.ancestors() {
+                    if let Some(node) = node.downcast::<Element>() {
+                        if node.as_maybe_activatable().is_some() {
+                            return Some(DomRoot::from_ref(node));
+                        }
+                    }
+                }
+                None
+            },
+        }
+    }
+
+    pub fn state(&self) -> ElementState {
+        self.state.get()
+    }
+
+    pub(crate) fn set_state(&self, which: ElementState, value: bool) {
+        let mut state = self.state.get();
+        let previous_state = state;
+        if value {
+            state.insert(which);
+        } else {
+            state.remove(which);
+        }
+
+        if previous_state == state {
+            // Nothing to do
+            return;
+        }
+
+        let node = self.upcast::<Node>();
+        node.owner_doc().element_state_will_change(self);
+        self.state.set(state);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#concept-selector-active>
+    pub(crate) fn set_active_state(&self, value: bool) {
+        self.set_state(ElementState::ACTIVE, value);
+
+        if let Some(parent) = self.upcast::<Node>().GetParentElement() {
+            parent.set_active_state(value);
+        }
+    }
+
+    pub(crate) fn focus_state(&self) -> bool {
+        self.state.get().contains(ElementState::FOCUS)
+    }
+
+    pub(crate) fn set_focus_state(&self, value: bool) {
+        self.set_state(ElementState::FOCUS, value);
+        self.upcast::<Node>().dirty(NodeDamage::Other);
+    }
+
+    pub(crate) fn hover_state(&self) -> bool {
+        self.state.get().contains(ElementState::HOVER)
+    }
+
+    pub(crate) fn set_hover_state(&self, value: bool) {
+        self.set_state(ElementState::HOVER, value)
+    }
+
+    pub(crate) fn enabled_state(&self) -> bool {
+        self.state.get().contains(ElementState::ENABLED)
+    }
+
+    pub(crate) fn set_enabled_state(&self, value: bool) {
+        self.set_state(ElementState::ENABLED, value)
+    }
+
+    pub(crate) fn disabled_state(&self) -> bool {
+        self.state.get().contains(ElementState::DISABLED)
+    }
+
+    pub(crate) fn set_disabled_state(&self, value: bool) {
+        self.set_state(ElementState::DISABLED, value)
+    }
+
+    pub(crate) fn read_write_state(&self) -> bool {
+        self.state.get().contains(ElementState::READWRITE)
+    }
+
+    pub(crate) fn set_read_write_state(&self, value: bool) {
+        self.set_state(ElementState::READWRITE, value)
+    }
+
+    pub(crate) fn placeholder_shown_state(&self) -> bool {
+        self.state.get().contains(ElementState::PLACEHOLDER_SHOWN)
+    }
+
+    pub(crate) fn set_placeholder_shown_state(&self, value: bool) {
+        if self.placeholder_shown_state() != value {
+            self.set_state(ElementState::PLACEHOLDER_SHOWN, value);
+            self.upcast::<Node>().dirty(NodeDamage::Other);
+        }
+    }
+
+    pub(crate) fn set_target_state(&self, value: bool) {
+        self.set_state(ElementState::URLTARGET, value)
+    }
+
+    pub(crate) fn set_fullscreen_state(&self, value: bool) {
+        self.set_state(ElementState::FULLSCREEN, value)
+    }
+
+    /// <https://dom.spec.whatwg.org/#connected>
+    pub(crate) fn is_connected(&self) -> bool {
+        self.upcast::<Node>().is_connected()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#cannot-navigate
+    pub(crate) fn cannot_navigate(&self) -> bool {
+        let document = self.owner_document();
+
+        // Step 1.
+        !document.is_fully_active() ||
+            (
+                // Step 2.
+                !self.is::<HTMLAnchorElement>() && !self.is_connected()
+            )
+    }
+
+    pub(crate) fn check_ancestors_disabled_state_for_form_control(&self) {
+        let node = self.upcast::<Node>();
+        if self.disabled_state() {
+            return;
+        }
+        for ancestor in node.ancestors() {
+            if !ancestor.is::<HTMLFieldSetElement>() {
+                continue;
+            }
+            if !ancestor.downcast::<Element>().unwrap().disabled_state() {
+                continue;
+            }
+            if ancestor.is_parent_of(node) {
+                self.set_disabled_state(true);
+                self.set_enabled_state(false);
+                return;
+            }
+            if let Some(ref legend) = ancestor.children().find(|n| n.is::<HTMLLegendElement>()) {
+                // XXXabinader: should we save previous ancestor to avoid this iteration?
+                if node.ancestors().any(|ancestor| ancestor == *legend) {
+                    continue;
+                }
+            }
+            self.set_disabled_state(true);
+            self.set_enabled_state(false);
+            return;
+        }
+    }
+
+    pub(crate) fn check_parent_disabled_state_for_option(&self) {
+        if self.disabled_state() {
+            return;
+        }
+        let node = self.upcast::<Node>();
+        if let Some(ref parent) = node.GetParentNode() {
+            if parent.is::<HTMLOptGroupElement>() &&
+                parent.downcast::<Element>().unwrap().disabled_state()
+            {
+                self.set_disabled_state(true);
+                self.set_enabled_state(false);
+            }
+        }
+    }
+
+    pub(crate) fn check_disabled_attribute(&self) {
+        let has_disabled_attrib = self.has_attribute(&local_name!("disabled"));
+        self.set_disabled_state(has_disabled_attrib);
+        self.set_enabled_state(!has_disabled_attrib);
+    }
+
+    pub(crate) fn update_read_write_state_from_readonly_attribute(&self) {
+        let has_readonly_attribute = self.has_attribute(&local_name!("readonly"));
+        self.set_read_write_state(has_readonly_attribute);
+    }
+}
+
+/// <https://dom.spec.whatwg.org/#valid-shadow-host-name>
+#[inline]
+pub(crate) fn is_valid_shadow_host_name(name: &LocalName) -> bool {
+    // > A valid shadow host name is:
+    // > - a valid custom element name
+    if is_valid_custom_element_name(name) {
+        return true;
+    }
+
+    // > - "article", "aside", "blockquote", "body", "div", "footer", "h1", "h2", "h3",
+    // >   "h4", "h5", "h6", "header", "main", "nav", "p", "section", or "span"
+    matches!(
+        name,
+        &local_name!("article") |
+            &local_name!("aside") |
+            &local_name!("blockquote") |
+            &local_name!("body") |
+            &local_name!("div") |
+            &local_name!("footer") |
+            &local_name!("h1") |
+            &local_name!("h2") |
+            &local_name!("h3") |
+            &local_name!("h4") |
+            &local_name!("h5") |
+            &local_name!("h6") |
+            &local_name!("header") |
+            &local_name!("main") |
+            &local_name!("nav") |
+            &local_name!("p") |
+            &local_name!("section") |
+            &local_name!("span")
+    )
+}
+
+#[inline]
+pub(crate) fn get_attr_for_layout<'dom>(
+    elem: LayoutDom<'dom, Element>,
+    namespace: &Namespace,
+    name: &LocalName,
+) -> Option<LayoutDom<'dom, Attr>> {
+    elem.attrs()
+        .iter()
+        .find(|attr| name == attr.local_name() && namespace == attr.namespace())
+        .cloned()
+}
+
+pub(crate) trait LayoutElementHelpers<'dom> {
+    fn attrs(self) -> &'dom [LayoutDom<'dom, Attr>];
+    fn has_class_or_part_for_layout(
+        self,
+        name: &AtomIdent,
+        attr_name: &LocalName,
+        case_sensitivity: CaseSensitivity,
+    ) -> bool;
+    fn get_classes_for_layout(self) -> Option<&'dom [Atom]>;
+    fn get_parts_for_layout(self) -> Option<&'dom [Atom]>;
+
+    fn synthesize_presentational_hints_for_legacy_attributes<V>(self, hints: &mut V)
+    where
+        V: Push<ApplicableDeclarationBlock>;
+    fn get_span(self) -> Option<u32>;
+    fn get_colspan(self) -> Option<u32>;
+    fn get_rowspan(self) -> Option<u32>;
+    fn is_html_element(&self) -> bool;
+    fn id_attribute(self) -> *const Option<Atom>;
+    fn style_attribute(self) -> *const Option<Arc<Locked<PropertyDeclarationBlock>>>;
+    fn local_name(self) -> &'dom LocalName;
+    fn namespace(self) -> &'dom Namespace;
+    fn get_lang_attr_val_for_layout(self) -> Option<&'dom str>;
+    fn get_lang_for_layout(self) -> String;
+    fn get_state_for_layout(self) -> ElementState;
+    fn insert_selector_flags(self, flags: ElementSelectorFlags);
+    fn get_selector_flags(self) -> ElementSelectorFlags;
+    /// The shadow root this element is a host of.
+    fn get_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>>;
+    fn get_attr_for_layout(
+        self,
+        namespace: &Namespace,
+        name: &LocalName,
+    ) -> Option<&'dom AttrValue>;
+    fn get_attr_val_for_layout(self, namespace: &Namespace, name: &LocalName) -> Option<&'dom str>;
+    fn get_attr_vals_for_layout(self, name: &LocalName) -> Vec<&'dom AttrValue>;
+}
+
+impl LayoutDom<'_, Element> {
+    pub(super) fn focus_state(self) -> bool {
+        self.unsafe_get().state.get().contains(ElementState::FOCUS)
+    }
+}
+
+impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
+    #[allow(unsafe_code)]
+    #[inline]
+    fn attrs(self) -> &'dom [LayoutDom<'dom, Attr>] {
+        unsafe { LayoutDom::to_layout_slice(self.unsafe_get().attrs.borrow_for_layout()) }
+    }
+
+    #[inline]
+    fn has_class_or_part_for_layout(
+        self,
+        name: &AtomIdent,
+        attr_name: &LocalName,
+        case_sensitivity: CaseSensitivity,
+    ) -> bool {
+        get_attr_for_layout(self, &ns!(), attr_name).is_some_and(|attr| {
+            attr.to_tokens()
+                .unwrap()
+                .iter()
+                .any(|atom| case_sensitivity.eq_atom(atom, name))
+        })
+    }
+
+    #[inline]
+    fn get_classes_for_layout(self) -> Option<&'dom [Atom]> {
+        get_attr_for_layout(self, &ns!(), &local_name!("class"))
+            .map(|attr| attr.to_tokens().unwrap())
+    }
+
+    fn get_parts_for_layout(self) -> Option<&'dom [Atom]> {
+        get_attr_for_layout(self, &ns!(), &local_name!("part"))
+            .map(|attr| attr.to_tokens().unwrap())
+    }
+
+    fn synthesize_presentational_hints_for_legacy_attributes<V>(self, hints: &mut V)
+    where
+        V: Push<ApplicableDeclarationBlock>,
+    {
+        // FIXME(emilio): Just a single PDB should be enough.
+        #[inline]
+        fn from_declaration(
+            shared_lock: &SharedRwLock,
+            declaration: PropertyDeclaration,
+        ) -> ApplicableDeclarationBlock {
+            ApplicableDeclarationBlock::from_declarations(
+                Arc::new(shared_lock.wrap(PropertyDeclarationBlock::with_one(
+                    declaration,
+                    Importance::Normal,
+                ))),
+                CascadeLevel::PresHints,
+                LayerOrder::root(),
+            )
+        }
+
+        let document = self.upcast::<Node>().owner_doc_for_layout();
+        let shared_lock = document.style_shared_lock();
+
+        // TODO(xiaochengh): This is probably not enough. When the root element doesn't have a `lang`,
+        // we should check the browser settings and system locale.
+        if let Some(lang) = self.get_lang_attr_val_for_layout() {
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::XLang(specified::XLang(Atom::from(lang.to_owned()))),
+            ));
+        }
+
+        let bgcolor = if let Some(this) = self.downcast::<HTMLBodyElement>() {
+            this.get_background_color()
+        } else if let Some(this) = self.downcast::<HTMLTableElement>() {
+            this.get_background_color()
+        } else if let Some(this) = self.downcast::<HTMLTableCellElement>() {
+            this.get_background_color()
+        } else if let Some(this) = self.downcast::<HTMLTableRowElement>() {
+            this.get_background_color()
+        } else if let Some(this) = self.downcast::<HTMLTableSectionElement>() {
+            this.get_background_color()
+        } else {
+            None
+        };
+
+        if let Some(color) = bgcolor {
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::BackgroundColor(specified::Color::from_absolute_color(color)),
+            ));
+        }
+
+        let background = if let Some(this) = self.downcast::<HTMLBodyElement>() {
+            this.get_background()
+        } else {
+            None
+        };
+
+        if let Some(url) = background {
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::BackgroundImage(background_image::SpecifiedValue(
+                    vec![specified::Image::for_cascade(url.get_arc())].into(),
+                )),
+            ));
+        }
+
+        let color = if let Some(this) = self.downcast::<HTMLFontElement>() {
+            this.get_color()
+        } else if let Some(this) = self.downcast::<HTMLBodyElement>() {
+            // https://html.spec.whatwg.org/multipage/#the-page:the-body-element-20
+            this.get_color()
+        } else if let Some(this) = self.downcast::<HTMLHRElement>() {
+            // https://html.spec.whatwg.org/multipage/#the-hr-element-2:presentational-hints-5
+            this.get_color()
+        } else {
+            None
+        };
+
+        if let Some(color) = color {
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::Color(longhands::color::SpecifiedValue(
+                    specified::Color::from_absolute_color(color),
+                )),
+            ));
+        }
+
+        let font_face = if let Some(this) = self.downcast::<HTMLFontElement>() {
+            this.get_face()
+        } else {
+            None
+        };
+
+        if let Some(font_face) = font_face {
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::FontFamily(font_family::SpecifiedValue::Values(
+                    computed::font::FontFamilyList {
+                        list: ArcSlice::from_iter(
+                            HTMLFontElement::parse_face_attribute(font_face).into_iter(),
+                        ),
+                    },
+                )),
+            ));
+        }
+
+        let font_size = self
+            .downcast::<HTMLFontElement>()
+            .and_then(|this| this.get_size());
+
+        if let Some(font_size) = font_size {
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::FontSize(font_size::SpecifiedValue::from_html_size(
+                    font_size as u8,
+                )),
+            ))
+        }
+
+        let cellspacing = if let Some(this) = self.downcast::<HTMLTableElement>() {
+            this.get_cellspacing()
+        } else {
+            None
+        };
+
+        if let Some(cellspacing) = cellspacing {
+            let width_value = specified::Length::from_px(cellspacing as f32);
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::BorderSpacing(Box::new(border_spacing::SpecifiedValue::new(
+                    width_value.clone().into(),
+                    width_value.into(),
+                ))),
+            ));
+        }
+
+        let size = if let Some(this) = self.downcast::<HTMLInputElement>() {
+            // FIXME(pcwalton): More use of atoms, please!
+            match self.get_attr_val_for_layout(&ns!(), &local_name!("type")) {
+                // Not text entry widget
+                Some("hidden") |
+                Some("date") |
+                Some("month") |
+                Some("week") |
+                Some("time") |
+                Some("datetime-local") |
+                Some("number") |
+                Some("range") |
+                Some("color") |
+                Some("checkbox") |
+                Some("radio") |
+                Some("file") |
+                Some("submit") |
+                Some("image") |
+                Some("reset") |
+                Some("button") => None,
+                // Others
+                _ => match this.size_for_layout() {
+                    0 => None,
+                    s => Some(s as i32),
+                },
+            }
+        } else {
+            None
+        };
+
+        if let Some(size) = size {
+            let value =
+                specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(size));
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::Width(specified::Size::LengthPercentage(NonNegative(
+                    specified::LengthPercentage::Length(value),
+                ))),
+            ));
+        }
+
+        let width = if let Some(this) = self.downcast::<HTMLIFrameElement>() {
+            this.get_width()
+        } else if let Some(this) = self.downcast::<HTMLImageElement>() {
+            this.get_width()
+        } else if let Some(this) = self.downcast::<HTMLVideoElement>() {
+            this.get_width()
+        } else if let Some(this) = self.downcast::<HTMLTableElement>() {
+            this.get_width()
+        } else if let Some(this) = self.downcast::<HTMLTableCellElement>() {
+            this.get_width()
+        } else if let Some(this) = self.downcast::<HTMLTableColElement>() {
+            this.get_width()
+        } else if let Some(this) = self.downcast::<HTMLHRElement>() {
+            // https://html.spec.whatwg.org/multipage/#the-hr-element-2:attr-hr-width
+            this.get_width()
+        } else {
+            LengthOrPercentageOrAuto::Auto
+        };
+
+        // FIXME(emilio): Use from_computed value here and below.
+        match width {
+            LengthOrPercentageOrAuto::Auto => {},
+            LengthOrPercentageOrAuto::Percentage(percentage) => {
+                let width_value = specified::Size::LengthPercentage(NonNegative(
+                    specified::LengthPercentage::Percentage(computed::Percentage(percentage)),
+                ));
+                hints.push(from_declaration(
+                    shared_lock,
+                    PropertyDeclaration::Width(width_value),
+                ));
+            },
+            LengthOrPercentageOrAuto::Length(length) => {
+                let width_value = specified::Size::LengthPercentage(NonNegative(
+                    specified::LengthPercentage::Length(specified::NoCalcLength::Absolute(
+                        specified::AbsoluteLength::Px(length.to_f32_px()),
+                    )),
+                ));
+                hints.push(from_declaration(
+                    shared_lock,
+                    PropertyDeclaration::Width(width_value),
+                ));
+            },
+        }
+
+        let height = if let Some(this) = self.downcast::<HTMLIFrameElement>() {
+            this.get_height()
+        } else if let Some(this) = self.downcast::<HTMLImageElement>() {
+            this.get_height()
+        } else if let Some(this) = self.downcast::<HTMLVideoElement>() {
+            this.get_height()
+        } else if let Some(this) = self.downcast::<HTMLTableElement>() {
+            this.get_height()
+        } else if let Some(this) = self.downcast::<HTMLTableCellElement>() {
+            this.get_height()
+        } else if let Some(this) = self.downcast::<HTMLTableRowElement>() {
+            this.get_height()
+        } else if let Some(this) = self.downcast::<HTMLTableSectionElement>() {
+            this.get_height()
+        } else {
+            LengthOrPercentageOrAuto::Auto
+        };
+
+        match height {
+            LengthOrPercentageOrAuto::Auto => {},
+            LengthOrPercentageOrAuto::Percentage(percentage) => {
+                let height_value = specified::Size::LengthPercentage(NonNegative(
+                    specified::LengthPercentage::Percentage(computed::Percentage(percentage)),
+                ));
+                hints.push(from_declaration(
+                    shared_lock,
+                    PropertyDeclaration::Height(height_value),
+                ));
+            },
+            LengthOrPercentageOrAuto::Length(length) => {
+                let height_value = specified::Size::LengthPercentage(NonNegative(
+                    specified::LengthPercentage::Length(specified::NoCalcLength::Absolute(
+                        specified::AbsoluteLength::Px(length.to_f32_px()),
+                    )),
+                ));
+                hints.push(from_declaration(
+                    shared_lock,
+                    PropertyDeclaration::Height(height_value),
+                ));
+            },
+        }
+
+        // Aspect ratio when providing both width and height.
+        // https://html.spec.whatwg.org/multipage/#attributes-for-embedded-content-and-images
+        if self.downcast::<HTMLImageElement>().is_some() ||
+            self.downcast::<HTMLVideoElement>().is_some()
+        {
+            if let LengthOrPercentageOrAuto::Length(width) = width {
+                if let LengthOrPercentageOrAuto::Length(height) = height {
+                    let width_value = NonNegative(specified::Number::new(width.to_f32_px()));
+                    let height_value = NonNegative(specified::Number::new(height.to_f32_px()));
+                    let aspect_ratio = specified::position::AspectRatio {
+                        auto: true,
+                        ratio: PreferredRatio::Ratio(Ratio(width_value, height_value)),
+                    };
+                    hints.push(from_declaration(
+                        shared_lock,
+                        PropertyDeclaration::AspectRatio(aspect_ratio),
+                    ));
+                }
+            }
+        }
+
+        let cols = if let Some(this) = self.downcast::<HTMLTextAreaElement>() {
+            match this.get_cols() {
+                0 => None,
+                c => Some(c as i32),
+            }
+        } else {
+            None
+        };
+
+        if let Some(cols) = cols {
+            // TODO(mttr) ServoCharacterWidth uses the size math for <input type="text">, but
+            // the math for <textarea> is a little different since we need to take
+            // scrollbar size into consideration (but we don't have a scrollbar yet!)
+            //
+            // https://html.spec.whatwg.org/multipage/#textarea-effective-width
+            let value =
+                specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(cols));
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::Width(specified::Size::LengthPercentage(NonNegative(
+                    specified::LengthPercentage::Length(value),
+                ))),
+            ));
+        }
+
+        let rows = if let Some(this) = self.downcast::<HTMLTextAreaElement>() {
+            match this.get_rows() {
+                0 => None,
+                r => Some(r as i32),
+            }
+        } else {
+            None
+        };
+
+        if let Some(rows) = rows {
+            // TODO(mttr) This should take scrollbar size into consideration.
+            //
+            // https://html.spec.whatwg.org/multipage/#textarea-effective-height
+            let value = specified::NoCalcLength::FontRelative(specified::FontRelativeLength::Em(
+                rows as CSSFloat,
+            ));
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::Height(specified::Size::LengthPercentage(NonNegative(
+                    specified::LengthPercentage::Length(value),
+                ))),
+            ));
+        }
+
+        let border = if let Some(this) = self.downcast::<HTMLTableElement>() {
+            this.get_border()
+        } else {
+            None
+        };
+
+        if let Some(border) = border {
+            let width_value = specified::BorderSideWidth::from_px(border as f32);
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::BorderTopWidth(width_value.clone()),
+            ));
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::BorderLeftWidth(width_value.clone()),
+            ));
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::BorderBottomWidth(width_value.clone()),
+            ));
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::BorderRightWidth(width_value),
+            ));
+        }
+
+        if let Some(cellpadding) = self
+            .downcast::<HTMLTableCellElement>()
+            .and_then(|this| this.get_table())
+            .and_then(|table| table.get_cellpadding())
+        {
+            let cellpadding = NonNegative(specified::LengthPercentage::Length(
+                specified::NoCalcLength::from_px(cellpadding as f32),
+            ));
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::PaddingTop(cellpadding.clone()),
+            ));
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::PaddingLeft(cellpadding.clone()),
+            ));
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::PaddingBottom(cellpadding.clone()),
+            ));
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::PaddingRight(cellpadding),
+            ));
+        }
+
+        // https://html.spec.whatwg.org/multipage/#the-hr-element-2
+        if let Some(size_info) = self
+            .downcast::<HTMLHRElement>()
+            .and_then(|hr_element| hr_element.get_size_info())
+        {
+            match size_info {
+                SizePresentationalHint::SetHeightTo(height) => {
+                    hints.push(from_declaration(
+                        shared_lock,
+                        PropertyDeclaration::Height(height),
+                    ));
+                },
+                SizePresentationalHint::SetAllBorderWidthValuesTo(border_width) => {
+                    hints.push(from_declaration(
+                        shared_lock,
+                        PropertyDeclaration::BorderLeftWidth(border_width.clone()),
+                    ));
+                    hints.push(from_declaration(
+                        shared_lock,
+                        PropertyDeclaration::BorderRightWidth(border_width.clone()),
+                    ));
+                    hints.push(from_declaration(
+                        shared_lock,
+                        PropertyDeclaration::BorderTopWidth(border_width.clone()),
+                    ));
+                    hints.push(from_declaration(
+                        shared_lock,
+                        PropertyDeclaration::BorderBottomWidth(border_width),
+                    ));
+                },
+                SizePresentationalHint::SetBottomBorderWidthToZero => {
+                    hints.push(from_declaration(
+                        shared_lock,
+                        PropertyDeclaration::BorderBottomWidth(
+                            specified::border::BorderSideWidth::from_px(0.),
+                        ),
+                    ));
+                },
+            }
+        }
+    }
+
+    fn get_span(self) -> Option<u32> {
+        // Don't panic since `display` can cause this to be called on arbitrary elements.
+        self.downcast::<HTMLTableColElement>()
+            .and_then(|element| element.get_span())
+    }
+
+    fn get_colspan(self) -> Option<u32> {
+        // Don't panic since `display` can cause this to be called on arbitrary elements.
+        self.downcast::<HTMLTableCellElement>()
+            .and_then(|element| element.get_colspan())
+    }
+
+    fn get_rowspan(self) -> Option<u32> {
+        // Don't panic since `display` can cause this to be called on arbitrary elements.
+        self.downcast::<HTMLTableCellElement>()
+            .and_then(|element| element.get_rowspan())
+    }
+
+    #[inline]
+    fn is_html_element(&self) -> bool {
+        *self.namespace() == ns!(html)
+    }
+
+    #[allow(unsafe_code)]
+    fn id_attribute(self) -> *const Option<Atom> {
+        unsafe { (self.unsafe_get()).id_attribute.borrow_for_layout() }
+    }
+
+    #[allow(unsafe_code)]
+    fn style_attribute(self) -> *const Option<Arc<Locked<PropertyDeclarationBlock>>> {
+        unsafe { (self.unsafe_get()).style_attribute.borrow_for_layout() }
+    }
+
+    #[allow(unsafe_code)]
+    fn local_name(self) -> &'dom LocalName {
+        &(self.unsafe_get()).local_name
+    }
+
+    fn namespace(self) -> &'dom Namespace {
+        &(self.unsafe_get()).namespace
+    }
+
+    fn get_lang_attr_val_for_layout(self) -> Option<&'dom str> {
+        if let Some(attr) = self.get_attr_val_for_layout(&ns!(xml), &local_name!("lang")) {
+            return Some(attr);
+        }
+        if let Some(attr) = self.get_attr_val_for_layout(&ns!(), &local_name!("lang")) {
+            return Some(attr);
+        }
+        None
+    }
+
+    fn get_lang_for_layout(self) -> String {
+        let mut current_node = Some(self.upcast::<Node>());
+        while let Some(node) = current_node {
+            current_node = node.composed_parent_node_ref();
+            match node.downcast::<Element>() {
+                Some(elem) => {
+                    if let Some(attr) = elem.get_lang_attr_val_for_layout() {
+                        return attr.to_owned();
+                    }
+                },
+                None => continue,
+            }
+        }
+        // TODO: Check meta tags for a pragma-set default language
+        // TODO: Check HTTP Content-Language header
+        String::new()
+    }
+
+    #[inline]
+    fn get_state_for_layout(self) -> ElementState {
+        (self.unsafe_get()).state.get()
+    }
+
+    #[inline]
+    fn insert_selector_flags(self, flags: ElementSelectorFlags) {
+        debug_assert!(thread_state::get().is_layout());
+        let f = &(self.unsafe_get()).selector_flags;
+        f.set(f.get() | flags);
+    }
+
+    #[inline]
+    fn get_selector_flags(self) -> ElementSelectorFlags {
+        self.unsafe_get().selector_flags.get()
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    fn get_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>> {
+        unsafe {
+            self.unsafe_get()
+                .rare_data
+                .borrow_for_layout()
+                .as_ref()?
+                .shadow_root
+                .as_ref()
+                .map(|sr| sr.to_layout())
+        }
+    }
+
+    #[inline]
+    fn get_attr_for_layout(
+        self,
+        namespace: &Namespace,
+        name: &LocalName,
+    ) -> Option<&'dom AttrValue> {
+        get_attr_for_layout(self, namespace, name).map(|attr| attr.value())
+    }
+
+    #[inline]
+    fn get_attr_val_for_layout(self, namespace: &Namespace, name: &LocalName) -> Option<&'dom str> {
+        get_attr_for_layout(self, namespace, name).map(|attr| attr.as_str())
+    }
+
+    #[inline]
+    fn get_attr_vals_for_layout(self, name: &LocalName) -> Vec<&'dom AttrValue> {
+        self.attrs()
+            .iter()
+            .filter_map(|attr| {
+                if name == attr.local_name() {
+                    Some(attr.value())
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 }
 
@@ -4739,370 +5097,6 @@ impl SelectorsElement for SelectorWrapper<'_> {
 
     fn has_custom_state(&self, _name: &AtomIdent) -> bool {
         false
-    }
-}
-
-impl Element {
-    fn client_rect(&self, can_gc: CanGc) -> Rect<i32> {
-        let doc = self.node.owner_doc();
-
-        if let Some(rect) = self
-            .rare_data()
-            .as_ref()
-            .and_then(|data| data.client_rect.as_ref())
-            .and_then(|rect| rect.get().ok())
-        {
-            if doc.restyle_reason().is_empty() {
-                return rect;
-            }
-        }
-
-        let mut rect = self.upcast::<Node>().client_rect(can_gc);
-        let in_quirks_mode = doc.quirks_mode() == QuirksMode::Quirks;
-
-        if (in_quirks_mode && doc.GetBody().as_deref() == self.downcast::<HTMLElement>()) ||
-            (!in_quirks_mode && *self.root_element() == *self)
-        {
-            let viewport_dimensions = doc.window().viewport_details().size.round().to_i32();
-            rect.size = Size2D::<i32>::new(viewport_dimensions.width, viewport_dimensions.height);
-        }
-
-        self.ensure_rare_data().client_rect = Some(self.owner_window().cache_layout_value(rect));
-        rect
-    }
-
-    pub(crate) fn as_maybe_activatable(&self) -> Option<&dyn Activatable> {
-        let element = match self.upcast::<Node>().type_id() {
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLInputElement,
-            )) => {
-                let element = self.downcast::<HTMLInputElement>().unwrap();
-                Some(element as &dyn Activatable)
-            },
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLButtonElement,
-            )) => {
-                let element = self.downcast::<HTMLButtonElement>().unwrap();
-                Some(element as &dyn Activatable)
-            },
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLAnchorElement,
-            )) => {
-                let element = self.downcast::<HTMLAnchorElement>().unwrap();
-                Some(element as &dyn Activatable)
-            },
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLLabelElement,
-            )) => {
-                let element = self.downcast::<HTMLLabelElement>().unwrap();
-                Some(element as &dyn Activatable)
-            },
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLSelectElement,
-            )) => {
-                let element = self.downcast::<HTMLSelectElement>().unwrap();
-                Some(element as &dyn Activatable)
-            },
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLElement)) => {
-                let element = self.downcast::<HTMLElement>().unwrap();
-                Some(element as &dyn Activatable)
-            },
-            _ => None,
-        };
-        element.and_then(|elem| {
-            if elem.is_instance_activatable() {
-                Some(elem)
-            } else {
-                None
-            }
-        })
-    }
-
-    pub(crate) fn as_stylesheet_owner(&self) -> Option<&dyn StylesheetOwner> {
-        if let Some(s) = self.downcast::<HTMLStyleElement>() {
-            return Some(s as &dyn StylesheetOwner);
-        }
-
-        if let Some(l) = self.downcast::<HTMLLinkElement>() {
-            return Some(l as &dyn StylesheetOwner);
-        }
-
-        None
-    }
-
-    // https://html.spec.whatwg.org/multipage/#category-submit
-    pub(crate) fn as_maybe_validatable(&self) -> Option<&dyn Validatable> {
-        let element = match self.upcast::<Node>().type_id() {
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLInputElement,
-            )) => {
-                let element = self.downcast::<HTMLInputElement>().unwrap();
-                Some(element as &dyn Validatable)
-            },
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLButtonElement,
-            )) => {
-                let element = self.downcast::<HTMLButtonElement>().unwrap();
-                Some(element as &dyn Validatable)
-            },
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLObjectElement,
-            )) => {
-                let element = self.downcast::<HTMLObjectElement>().unwrap();
-                Some(element as &dyn Validatable)
-            },
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLSelectElement,
-            )) => {
-                let element = self.downcast::<HTMLSelectElement>().unwrap();
-                Some(element as &dyn Validatable)
-            },
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLTextAreaElement,
-            )) => {
-                let element = self.downcast::<HTMLTextAreaElement>().unwrap();
-                Some(element as &dyn Validatable)
-            },
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLFieldSetElement,
-            )) => {
-                let element = self.downcast::<HTMLFieldSetElement>().unwrap();
-                Some(element as &dyn Validatable)
-            },
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLOutputElement,
-            )) => {
-                let element = self.downcast::<HTMLOutputElement>().unwrap();
-                Some(element as &dyn Validatable)
-            },
-            _ => None,
-        };
-        element
-    }
-
-    pub(crate) fn is_invalid(&self, needs_update: bool, can_gc: CanGc) -> bool {
-        if let Some(validatable) = self.as_maybe_validatable() {
-            if needs_update {
-                validatable
-                    .validity_state()
-                    .perform_validation_and_update(ValidationFlags::all(), can_gc);
-            }
-            return validatable.is_instance_validatable() && !validatable.satisfies_constraints();
-        }
-
-        if let Some(internals) = self.get_element_internals() {
-            return internals.is_invalid();
-        }
-        false
-    }
-
-    pub(crate) fn is_instance_validatable(&self) -> bool {
-        if let Some(validatable) = self.as_maybe_validatable() {
-            return validatable.is_instance_validatable();
-        }
-        if let Some(internals) = self.get_element_internals() {
-            return internals.is_instance_validatable();
-        }
-        false
-    }
-
-    pub(crate) fn init_state_for_internals(&self) {
-        self.set_enabled_state(true);
-        self.set_state(ElementState::VALID, true);
-        self.set_state(ElementState::INVALID, false);
-    }
-
-    pub(crate) fn click_in_progress(&self) -> bool {
-        self.upcast::<Node>().get_flag(NodeFlags::CLICK_IN_PROGRESS)
-    }
-
-    pub(crate) fn set_click_in_progress(&self, click: bool) {
-        self.upcast::<Node>()
-            .set_flag(NodeFlags::CLICK_IN_PROGRESS, click)
-    }
-
-    // https://html.spec.whatwg.org/multipage/#nearest-activatable-element
-    pub(crate) fn nearest_activable_element(&self) -> Option<DomRoot<Element>> {
-        match self.as_maybe_activatable() {
-            Some(el) => Some(DomRoot::from_ref(el.as_element())),
-            None => {
-                let node = self.upcast::<Node>();
-                for node in node.ancestors() {
-                    if let Some(node) = node.downcast::<Element>() {
-                        if node.as_maybe_activatable().is_some() {
-                            return Some(DomRoot::from_ref(node));
-                        }
-                    }
-                }
-                None
-            },
-        }
-    }
-
-    pub fn state(&self) -> ElementState {
-        self.state.get()
-    }
-
-    pub(crate) fn set_state(&self, which: ElementState, value: bool) {
-        let mut state = self.state.get();
-        let previous_state = state;
-        if value {
-            state.insert(which);
-        } else {
-            state.remove(which);
-        }
-
-        if previous_state == state {
-            // Nothing to do
-            return;
-        }
-
-        let node = self.upcast::<Node>();
-        node.owner_doc().element_state_will_change(self);
-        self.state.set(state);
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#concept-selector-active>
-    pub(crate) fn set_active_state(&self, value: bool) {
-        self.set_state(ElementState::ACTIVE, value);
-
-        if let Some(parent) = self.upcast::<Node>().GetParentElement() {
-            parent.set_active_state(value);
-        }
-    }
-
-    pub(crate) fn focus_state(&self) -> bool {
-        self.state.get().contains(ElementState::FOCUS)
-    }
-
-    pub(crate) fn set_focus_state(&self, value: bool) {
-        self.set_state(ElementState::FOCUS, value);
-        self.upcast::<Node>().dirty(NodeDamage::Other);
-    }
-
-    pub(crate) fn hover_state(&self) -> bool {
-        self.state.get().contains(ElementState::HOVER)
-    }
-
-    pub(crate) fn set_hover_state(&self, value: bool) {
-        self.set_state(ElementState::HOVER, value)
-    }
-
-    pub(crate) fn enabled_state(&self) -> bool {
-        self.state.get().contains(ElementState::ENABLED)
-    }
-
-    pub(crate) fn set_enabled_state(&self, value: bool) {
-        self.set_state(ElementState::ENABLED, value)
-    }
-
-    pub(crate) fn disabled_state(&self) -> bool {
-        self.state.get().contains(ElementState::DISABLED)
-    }
-
-    pub(crate) fn set_disabled_state(&self, value: bool) {
-        self.set_state(ElementState::DISABLED, value)
-    }
-
-    pub(crate) fn read_write_state(&self) -> bool {
-        self.state.get().contains(ElementState::READWRITE)
-    }
-
-    pub(crate) fn set_read_write_state(&self, value: bool) {
-        self.set_state(ElementState::READWRITE, value)
-    }
-
-    pub(crate) fn placeholder_shown_state(&self) -> bool {
-        self.state.get().contains(ElementState::PLACEHOLDER_SHOWN)
-    }
-
-    pub(crate) fn set_placeholder_shown_state(&self, value: bool) {
-        if self.placeholder_shown_state() != value {
-            self.set_state(ElementState::PLACEHOLDER_SHOWN, value);
-            self.upcast::<Node>().dirty(NodeDamage::Other);
-        }
-    }
-
-    pub(crate) fn set_target_state(&self, value: bool) {
-        self.set_state(ElementState::URLTARGET, value)
-    }
-
-    pub(crate) fn set_fullscreen_state(&self, value: bool) {
-        self.set_state(ElementState::FULLSCREEN, value)
-    }
-
-    /// <https://dom.spec.whatwg.org/#connected>
-    pub(crate) fn is_connected(&self) -> bool {
-        self.upcast::<Node>().is_connected()
-    }
-
-    // https://html.spec.whatwg.org/multipage/#cannot-navigate
-    pub(crate) fn cannot_navigate(&self) -> bool {
-        let document = self.owner_document();
-
-        // Step 1.
-        !document.is_fully_active() ||
-            (
-                // Step 2.
-                !self.is::<HTMLAnchorElement>() && !self.is_connected()
-            )
-    }
-}
-
-impl Element {
-    pub(crate) fn check_ancestors_disabled_state_for_form_control(&self) {
-        let node = self.upcast::<Node>();
-        if self.disabled_state() {
-            return;
-        }
-        for ancestor in node.ancestors() {
-            if !ancestor.is::<HTMLFieldSetElement>() {
-                continue;
-            }
-            if !ancestor.downcast::<Element>().unwrap().disabled_state() {
-                continue;
-            }
-            if ancestor.is_parent_of(node) {
-                self.set_disabled_state(true);
-                self.set_enabled_state(false);
-                return;
-            }
-            if let Some(ref legend) = ancestor.children().find(|n| n.is::<HTMLLegendElement>()) {
-                // XXXabinader: should we save previous ancestor to avoid this iteration?
-                if node.ancestors().any(|ancestor| ancestor == *legend) {
-                    continue;
-                }
-            }
-            self.set_disabled_state(true);
-            self.set_enabled_state(false);
-            return;
-        }
-    }
-
-    pub(crate) fn check_parent_disabled_state_for_option(&self) {
-        if self.disabled_state() {
-            return;
-        }
-        let node = self.upcast::<Node>();
-        if let Some(ref parent) = node.GetParentNode() {
-            if parent.is::<HTMLOptGroupElement>() &&
-                parent.downcast::<Element>().unwrap().disabled_state()
-            {
-                self.set_disabled_state(true);
-                self.set_enabled_state(false);
-            }
-        }
-    }
-
-    pub(crate) fn check_disabled_attribute(&self) {
-        let has_disabled_attrib = self.has_attribute(&local_name!("disabled"));
-        self.set_disabled_state(has_disabled_attrib);
-        self.set_enabled_state(!has_disabled_attrib);
-    }
-
-    pub(crate) fn update_read_write_state_from_readonly_attribute(&self) {
-        let has_readonly_attribute = self.has_attribute(&local_name!("readonly"));
-        self.set_read_write_state(has_readonly_attribute);
     }
 }
 
