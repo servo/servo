@@ -52,6 +52,7 @@ impl Callback for TransformTransformPromiseRejection {
 }
 
 pub(crate) trait TransformerTransformAlgorithm: Trace {
+    // TODO: are all the args necessary?
     fn run(
         &self,
         this_obj: &SafeHandleObject,
@@ -68,7 +69,7 @@ enum TransformAlgorithmType {
 }
 
 impl TransformAlgorithmType {
-    fn run(
+    fn call(
         &self,
         this_obj: &SafeHandleObject,
         chunk: SafeHandleValue,
@@ -88,6 +89,37 @@ impl TransformAlgorithmType {
     }
 }
 
+pub(crate) trait TransformerFlushAlgorithm: Trace {
+    fn run(
+        &self,
+        this_obj: &SafeHandleObject,
+        controller: &TransformStreamDefaultController,
+        can_gc: CanGc,
+    ) -> Fallible<Rc<Promise>>;
+}
+
+#[derive(Clone, JSTraceable)]
+enum FlushAlgorithmType {
+    Js(Rc<TransformerFlushCallback>),
+    Native(Rc<dyn TransformerFlushAlgorithm>),
+}
+
+impl FlushAlgorithmType {
+    fn call(
+        &self,
+        this_obj: &SafeHandleObject,
+        controller: &TransformStreamDefaultController,
+        can_gc: CanGc,
+    ) -> Fallible<Rc<Promise>> {
+        match self {
+            FlushAlgorithmType::Js(flush) => {
+                flush.Call_(this_obj, controller, ExceptionHandling::Rethrow, can_gc)
+            },
+            FlushAlgorithmType::Native(flush) => flush.run(this_obj, controller, can_gc),
+        }
+    }
+}
+
 /// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller>
 #[dom_struct]
 pub struct TransformStreamDefaultController {
@@ -99,7 +131,7 @@ pub struct TransformStreamDefaultController {
 
     /// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller-flushalgorithm>
     #[ignore_malloc_size_of = "Rc is hard"]
-    flush: RefCell<Option<Rc<TransformerFlushCallback>>>,
+    flush: RefCell<Option<FlushAlgorithmType>>,
 
     /// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller-transformalgorithm>
     #[ignore_malloc_size_of = "Rc is hard"]
@@ -123,7 +155,7 @@ impl TransformStreamDefaultController {
         TransformStreamDefaultController {
             reflector_: Reflector::new(),
             cancel: RefCell::new(transformer.cancel.clone()),
-            flush: RefCell::new(transformer.flush.clone()),
+            flush: RefCell::new(transformer.flush.clone().map(FlushAlgorithmType::Js)),
             transform: RefCell::new(
                 transformer
                     .transform
@@ -208,7 +240,7 @@ impl TransformStreamDefaultController {
         let algo = self.transform.borrow().clone();
         let result = if let Some(transform) = algo {
             rooted!(in(*cx) let this_object = self.transform_obj.get());
-            let call_result = transform.run(&this_object.handle(), chunk, self, can_gc);
+            let call_result = transform.call(&this_object.handle(), chunk, self, can_gc);
             match call_result {
                 Ok(p) => p,
                 Err(e) => {
@@ -282,12 +314,7 @@ impl TransformStreamDefaultController {
         let algo = self.flush.borrow().clone();
         let result = if let Some(flush) = algo {
             rooted!(in(*cx) let this_object = self.transform_obj.get());
-            let call_result = flush.Call_(
-                &this_object.handle(),
-                self,
-                ExceptionHandling::Rethrow,
-                can_gc,
-            );
+            let call_result = flush.call(&this_object.handle(), self, can_gc);
             match call_result {
                 Ok(p) => p,
                 Err(e) => {
