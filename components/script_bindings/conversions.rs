@@ -37,9 +37,14 @@ use crate::trace::RootedTraceableBox;
 use crate::utils::{DOMClass, DOMJSClass};
 
 /// A safe wrapper for `ToJSValConvertible`.
-#[allow(unsafe_code)]
-pub fn safe_to_jsval<T: ToJSValConvertible>(cx: SafeJSContext, val: T, rval: MutableHandleValue) {
-    unsafe { val.to_jsval(*cx, rval) };
+pub trait SafeToJSValConvertible {
+    fn safe_to_jsval(&self, cx: SafeJSContext, rval: MutableHandleValue);
+}
+
+impl<T: ToJSValConvertible> SafeToJSValConvertible for T {
+    fn safe_to_jsval(&self, cx: SafeJSContext, rval: MutableHandleValue) {
+        unsafe { self.to_jsval(*cx, rval) };
+    }
 }
 
 /// A trait to check whether a given `JSObject` implements an IDL interface.
