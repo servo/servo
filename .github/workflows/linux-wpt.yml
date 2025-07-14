@@ -39,10 +39,23 @@ jobs:
         with:
           script: |
             return Array.from({length: ${{ inputs.number-of-wpt-chunks }}}, (_, i) => i + 1)
+  unique-id:
+    runs-on: ubuntu-22.04
+    outputs:
+      unique-id: ${{ steps.unique-id.outputs.unique_id }}
+    steps:
+      - id: unique-id
+        run: |
+          # Generate a unique id that allows the workload job to find the runner
+          # we are reserving for it (via runner labels), and allows the timeout
+          # job to find the workload job run (via the job’s friendly name), even
+          # if there are multiple instances in the workflow call tree.
+          unique_id=$(uuidgen)
+          echo "unique_id=$unique_id" | tee -a $GITHUB_OUTPUT
   linux-wpt:
     name: WPT
     runs-on: ubuntu-22.04
-    needs: chunks
+    needs: [chunks, unique-id]
     strategy:
       fail-fast: false
       matrix:
@@ -74,18 +87,29 @@ jobs:
         run: |
           ./mach update-wpt --sync --patch
       - name: Run tests
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p wpt-filtered-logs/linux
           mkdir -p wpt-full-logs/linux
-          ./mach test-wpt \
-            $WPT_ALWAYS_SUCCEED_ARG \
-            --${{ inputs.profile }} --processes $(nproc) --timeout-multiplier 2 \
-            --total-chunks ${{ inputs.number-of-wpt-chunks }} --this-chunk ${{ matrix.chunk_id }} \
-            --log-raw wpt-full-logs/linux/raw/${{ matrix.chunk_id }}.log \
-            --log-wptreport wpt-full-logs/linux/wptreport/${{ matrix.chunk_id }}.json \
-            --log-raw-unexpected wpt-filtered-logs/linux/${{ matrix.chunk_id }}.log \
-            --filter-intermittents wpt-filtered-logs/linux/${{ matrix.chunk_id }}.json \
-            ${{ inputs.wpt-args }}
+          unique_id=${{ needs.unique-id.outputs.unique-id }}
+          total_chunks=400
+          while :; do
+            chunk_id=$(curl -fsSX POST "https://ci0.servo.org/chunker/take?unique_id=$unique_id&total_chunks=$total_chunks")
+            if [ "$chunk_id" = null ]; then
+              break
+            fi
+            >&2 echo "Got chunk $chunk_id (of $total_chunks chunks)"
+            ./mach test-wpt \
+              $WPT_ALWAYS_SUCCEED_ARG \
+              --${{ inputs.profile }} --processes $(nproc) --timeout-multiplier 2 \
+              --total-chunks $total_chunks --this-chunk $chunk_id \
+              --log-raw wpt-full-logs/linux/raw/$chunk_id.log \
+              --log-wptreport wpt-full-logs/linux/wptreport/$chunk_id.json \
+              --log-raw-unexpected wpt-filtered-logs/linux/$chunk_id.log \
+              --filter-intermittents wpt-filtered-logs/linux/$chunk_id.json \
+              ${{ inputs.wpt-args }}
+          done
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
       - name: Archive results (filtered)
