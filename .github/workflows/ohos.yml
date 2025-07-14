@@ -151,26 +151,41 @@ jobs:
       dromaeo: false
     secrets: inherit
 
-  gen-build-uuid:
-    name: Generate unique ID for build-harmonyos-aarch64
-    uses: ./.github/workflows/self-hosted-hos-runner-uuid.yml
+    # Generate a unique id that allows the timeout
+    # jobs to find the workload job run (via the job’s friendly name), even
+    # if there are multiple instances in the workflow call tree.
+  gen-uuids:
+    name: Generate unique runner IDs
+    runs-on: ubuntu-latest
+    outputs:
+      # re-use the same uuid for build, test, bench, with a prefix
+      build-unique-id: build-${{ steps.uuid.outputs.unique_id }}
+      test-unique-id: test-${{ steps.uuid.outputs.unique_id }}
+      bench-unique-id: bench-${{ steps.uuid.outputs.unique_id }}
+    steps:
+      - name: Generate a UUID
+        id: uuid
+        run: |
+          set -euo pipefail
+          unique_id=$(uuidgen)
+          echo "unique_id=$unique_id" | tee -a $GITHUB_OUTPUT
 
   timeout-build:
     name: Timeout for build-harmonyos-aarch64
     needs:
-      - gen-build-uuid
+      - gen-uuids
     uses: ./.github/workflows/self-hosted-hos-runner-timeout.yml
     with:
-      unique-id: '${{ needs.gen-build-uuid.outputs.unique-id }}'
+      unique-id: '${{ needs.gen-uuids.outputs.build-unique-id }}'
 
   # Note: We could potentially also merge this build job with the above one,
   # if we figure out how to make hvigor build for harmonyos without the HOS commandline-tools installed.
   build-harmonyos-aarch64:
-    name: HarmonyOS Build ${{ inputs.profile }} aarch64 [${{ needs.gen-build-uuid.outputs.unique-id }}]
+    name: HarmonyOS Build ${{ inputs.profile }} aarch64 [${{ needs.gen-uuids.outputs.build-unique-id }}]
     continue-on-error: true
     runs-on: hos-builder
     needs:
-      - gen-build-uuid
+      - gen-uuids
     if: github.repository == 'servo/servo'
     steps:
       - if: ${{ github.event_name != 'pull_request_target' }}
@@ -191,20 +206,16 @@ jobs:
           name: servoshell-hos-${{ inputs.profile }}.hap
           path: target/openharmony/aarch64-unknown-linux-ohos/${{ inputs.profile }}/entry/build/harmonyos/outputs/default/servoshell-default-unsigned.hap
 
-  gen-test-uuid:
-    name: Generate unique ID for test-harmonyos-aarch64
-    uses: ./.github/workflows/self-hosted-hos-runner-uuid.yml
-
   timeout-test:
     name: Timeout for test-harmonyos-aarch64
     needs:
-      - gen-test-uuid
+      - gen-uuids
     uses: ./.github/workflows/self-hosted-hos-runner-timeout.yml
     with:
-      unique-id: '${{ needs.gen-test-uuid.outputs.unique-id }}'
+      unique-id: '${{ needs.gen-uuids.outputs.test-unique-id }}'
 
   test-harmonyos-aarch64:
-    name: Test HarmonyOS aarch64 ${{ inputs.profile }} [${{ needs.gen-test-uuid.outputs.unique-id }}]
+    name: Test HarmonyOS aarch64 ${{ inputs.profile }} [${{ needs.gen-uuids.outputs.test-unique-id }}]
     # Don't block servos Merge queue on this job failing.
     # Since we just added this, there might be some hidden issues,
     # so in the beginning we will just do a best effort approach but ignore errors.
@@ -213,7 +224,7 @@ jobs:
     if: github.repository == 'servo/servo'
     needs:
       - build-harmonyos-aarch64
-      - gen-test-uuid
+      - gen-uuids
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -269,26 +280,21 @@ jobs:
           # If the grep fails, then the trace output for the "page loaded" prompt is missing
           grep 'org\.servo\.servo-.* tracing_mark_write.*PageLoadEndedPrompt' test_output/servo.ftrace
 
-
-  gen-bench-uuid:
-    name: Generate unique ID for bench-harmonyos-aarch64
-    uses: ./.github/workflows/self-hosted-hos-runner-uuid.yml
-
   timeout-bench:
     name: Timeout for bench-harmonyos-aarch64
     needs:
-      - gen-bench-uuid
+      - gen-uuids
     uses: ./.github/workflows/self-hosted-hos-runner-timeout.yml
     with:
-      unique-id: '${{ needs.gen-bench-uuid.outputs.unique-id }}'
+      unique-id: '${{ needs.gen-uuids.outputs.bench-unique-id }}'
 
   bench-harmonyos-aarch64:
-    name: Benching HarmonyOS aarch64 ${{ inputs.profile }} [${{ needs.gen-test-uuid.outputs.unique-id }}]
+    name: Benching HarmonyOS aarch64 ${{ inputs.profile }} [${{ needs.gen-uuids.outputs.bench-unique-id }}]
     continue-on-error: true
     runs-on: hos-runner
     needs:
       - test-harmonyos-aarch64
-      - gen-bench-uuid
+      - gen-uuids
     if: github.repository == 'servo/servo'
     steps:
       - uses: actions/download-artifact@v4
