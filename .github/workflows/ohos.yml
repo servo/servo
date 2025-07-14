@@ -174,9 +174,11 @@ jobs:
     name: Timeout for build-harmonyos-aarch64
     needs:
       - gen-uuids
-    uses: ./.github/workflows/self-hosted-hos-runner-timeout.yml
+    uses: ./.github/workflows/self-hosted-runner-timeout.yml
     with:
       unique-id: '${{ needs.gen-uuids.outputs.build-unique-id }}'
+      is-self-hosted: 'true'
+      timeout: '600'
 
   # Note: We could potentially also merge this build job with the above one,
   # if we figure out how to make hvigor build for harmonyos without the HOS commandline-tools installed.
@@ -210,9 +212,11 @@ jobs:
     name: Timeout for test-harmonyos-aarch64
     needs:
       - gen-uuids
-    uses: ./.github/workflows/self-hosted-hos-runner-timeout.yml
+    uses: ./.github/workflows/self-hosted-runner-timeout.yml
     with:
       unique-id: '${{ needs.gen-uuids.outputs.test-unique-id }}'
+      is-self-hosted: 'true'
+      timeout: '600'
 
   test-harmonyos-aarch64:
     name: Test HarmonyOS aarch64 ${{ inputs.profile }} [${{ needs.gen-uuids.outputs.test-unique-id }}]
@@ -284,9 +288,11 @@ jobs:
     name: Timeout for bench-harmonyos-aarch64
     needs:
       - gen-uuids
-    uses: ./.github/workflows/self-hosted-hos-runner-timeout.yml
+    uses: ./.github/workflows/self-hosted-runner-timeout.yml
     with:
       unique-id: '${{ needs.gen-uuids.outputs.bench-unique-id }}'
+      is-self-hosted: 'true'
+      timeout: '600'
 
   bench-harmonyos-aarch64:
     name: Benching HarmonyOS aarch64 ${{ inputs.profile }} [${{ needs.gen-uuids.outputs.bench-unique-id }}]
