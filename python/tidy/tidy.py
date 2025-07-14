@@ -66,6 +66,7 @@ Config = TypedDict(
     },
 )
 
+# Default configs
 config: Config = {
     "skip-check-length": False,
     "skip-check-licenses": False,
@@ -254,7 +255,7 @@ def filter_files(start_dir: str, only_changed_files: bool, progress: bool) -> It
         yield file_name
 
 
-def uncomment(line: bytes):
+def uncomment(line: bytes) -> bytes:
     for c in COMMENTS:
         if line.startswith(c):
             if line.endswith(b"*/"):
@@ -271,7 +272,7 @@ def is_apache_licensed(header: str) -> bool | None:
         return any(c in header for c in COPYRIGHT)
 
 
-def check_license(file_name: str, lines: list[bytes]):
+def check_license(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
     if any(file_name.endswith(ext) for ext in (".toml", ".lock", ".json", ".html")) or config["skip-check-licenses"]:
         return
 
@@ -300,7 +301,7 @@ def check_license(file_name: str, lines: list[bytes]):
         yield (1, "incorrect license")
 
 
-def check_modeline(file_name, lines):
+def check_modeline(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
     for idx, line in enumerate(lines[:5]):
         if re.search(b"^.*[ \t](vi:|vim:|ex:)[ \t]", line):
             yield (idx + 1, "vi modeline present")
@@ -308,7 +309,7 @@ def check_modeline(file_name, lines):
             yield (idx + 1, "emacs file variables present")
 
 
-def check_length(file_name: str, idx: int, line: bytes):
+def check_length(file_name: str, idx: int, line: bytes) -> Iterator[tuple[int, str]]:
     if any(file_name.endswith(ext) for ext in (".lock", ".json", ".html", ".toml")) or config["skip-check-length"]:
         return
 
@@ -318,7 +319,7 @@ def check_length(file_name: str, idx: int, line: bytes):
         yield (idx + 1, "Line is longer than %d characters" % max_length)
 
 
-def contains_url(line) -> bool:
+def contains_url(line: bytes) -> bool:
     return bool(URL_REGEX.search(line))
 
 
@@ -326,21 +327,21 @@ def is_unsplittable(file_name: str, line: bytes):
     return contains_url(line) or file_name.endswith(".rs") and line.startswith(b"use ") and b"{" not in line
 
 
-def check_whatwg_specific_url(idx: int, line: bytes):
+def check_whatwg_specific_url(idx: int, line: bytes) -> Iterator[tuple[int, str]]:
     match = re.search(rb"https://html\.spec\.whatwg\.org/multipage/[\w-]+\.html#([\w\'\:-]+)", line)
     if match is not None:
         preferred_link = "https://html.spec.whatwg.org/multipage/#{}".format(match.group(1).decode("utf-8"))
         yield (idx + 1, "link to WHATWG may break in the future, use this format instead: {}".format(preferred_link))
 
 
-def check_whatwg_single_page_url(idx: int, line: bytes):
+def check_whatwg_single_page_url(idx: int, line: bytes) -> Iterator[tuple[int, str]]:
     match = re.search(rb"https://html\.spec\.whatwg\.org/#([\w\'\:-]+)", line)
     if match is not None:
         preferred_link = "https://html.spec.whatwg.org/multipage/#{}".format(match.group(1).decode("utf-8"))
         yield (idx + 1, "links to WHATWG single-page url, change to multi page: {}".format(preferred_link))
 
 
-def check_whitespace(idx: int, line: bytes):
+def check_whitespace(idx: int, line: bytes) -> Iterator[tuple[int, str]]:
     if line.endswith(b"\n"):
         line = line[:-1]
     else:
@@ -356,7 +357,7 @@ def check_whitespace(idx: int, line: bytes):
         yield (idx + 1, "CR on line")
 
 
-def check_for_raw_urls_in_rustdoc(file_name: str, idx: int, line: bytes):
+def check_for_raw_urls_in_rustdoc(file_name: str, idx: int, line: bytes) -> Iterator[tuple[int, str]]:
     """Check that rustdoc comments in Rust source code do not have raw URLs. These appear
     as warnings when rustdoc is run. rustdoc warnings could be made fatal, but adding this
     check as part of tidy catches this common problem without having to run rustdoc for all
@@ -382,7 +383,7 @@ def check_for_raw_urls_in_rustdoc(file_name: str, idx: int, line: bytes):
         yield (idx + 1, ERROR_RAW_URL_IN_RUSTDOC)
 
 
-def check_by_line(file_name: str, lines: list[bytes]):
+def check_by_line(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
     for idx, line in enumerate(lines):
         errors = itertools.chain(
             check_length(file_name, idx, line),
@@ -396,7 +397,7 @@ def check_by_line(file_name: str, lines: list[bytes]):
             yield error
 
 
-def check_ruff_lints():
+def check_ruff_lints() -> Iterator[tuple[str, int, str]]:
     try:
         args = ["ruff", "check", "--output-format", "json"]
         subprocess.check_output(args, universal_newlines=True)
@@ -487,7 +488,7 @@ def run_cargo_deny_lints():
         yield error
 
 
-def check_toml(file_name: str, lines: list[bytes]):
+def check_toml(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
     if not file_name.endswith("Cargo.toml"):
         return
     ok_licensed = False
@@ -505,7 +506,7 @@ def check_toml(file_name: str, lines: list[bytes]):
         yield (0, ".toml file should contain a valid license.")
 
 
-def check_shell(file_name: str, lines: list[bytes]):
+def check_shell(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
     if not file_name.endswith(".sh"):
         return
 
@@ -552,7 +553,7 @@ def check_shell(file_name: str, lines: list[bytes]):
                     yield (idx + 1, 'variable substitutions should use the full "${VAR}" form')
 
 
-def check_rust(file_name: str, lines: list[bytes]):
+def check_rust(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
     if (
         not file_name.endswith(".rs")
         or file_name.endswith(".mako.rs")
@@ -868,7 +869,7 @@ def run_wpt_lints(only_changed_files: bool) -> Iterator[tuple[str, int, str]]:
     yield from lint_wpt_test_files()
 
 
-def check_spec(file_name, lines):
+def check_spec(file_name, lines) -> Iterator[tuple[int, str]]:
     if SPEC_BASE_PATH not in file_name:
         return
     file_name = os.path.relpath(os.path.splitext(file_name)[0], SPEC_BASE_PATH)
