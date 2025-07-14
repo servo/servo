@@ -55,6 +55,7 @@ pub(crate) trait TransformerTransformAlgorithm: Trace {
     // TODO: are all the args necessary?
     fn run(
         &self,
+        cx: SafeJSContext,
         this_obj: &SafeHandleObject,
         chunk: SafeHandleValue,
         controller: &TransformStreamDefaultController,
@@ -85,7 +86,7 @@ impl TransformAlgorithmType {
                 ExceptionHandling::Rethrow,
                 can_gc,
             ),
-            Self::Native(transform) => transform.run(this_obj, chunk, controller, can_gc),
+            Self::Native(transform) => transform.run(cx, this_obj, chunk, controller, can_gc),
         }
     }
 }
@@ -93,6 +94,7 @@ impl TransformAlgorithmType {
 pub(crate) trait TransformerFlushAlgorithm: Trace {
     fn run(
         &self,
+        cx: SafeJSContext,
         this_obj: &SafeHandleObject,
         controller: &TransformStreamDefaultController,
         can_gc: CanGc,
@@ -117,7 +119,7 @@ impl FlushAlgorithmType {
             FlushAlgorithmType::Js(flush) => {
                 flush.Call_(this_obj, controller, ExceptionHandling::Rethrow, can_gc)
             },
-            FlushAlgorithmType::Native(flush) => flush.run(this_obj, controller, can_gc),
+            FlushAlgorithmType::Native(flush) => flush.run(cx, this_obj, controller, can_gc),
         }
     }
 }
