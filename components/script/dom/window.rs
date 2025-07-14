@@ -1615,7 +1615,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-scrollx>
     fn ScrollX(&self) -> i32 {
-        self.scroll_offset(CanGc::note()).x as i32
+        self.scroll_offset().x as i32
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-pagexoffset
@@ -1625,7 +1625,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-scrolly>
     fn ScrollY(&self) -> i32 {
-        self.scroll_offset(CanGc::note()).y as i32
+        self.scroll_offset().y as i32
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-pageyoffset
@@ -1634,47 +1634,47 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scroll
-    fn Scroll(&self, options: &ScrollToOptions, can_gc: CanGc) {
+    fn Scroll(&self, options: &ScrollToOptions) {
         // Step 1
         let left = options.left.unwrap_or(0.0f64);
         let top = options.top.unwrap_or(0.0f64);
-        self.scroll(left, top, options.parent.behavior, can_gc);
+        self.scroll(left, top, options.parent.behavior);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scroll
-    fn Scroll_(&self, x: f64, y: f64, can_gc: CanGc) {
-        self.scroll(x, y, ScrollBehavior::Auto, can_gc);
+    fn Scroll_(&self, x: f64, y: f64) {
+        self.scroll(x, y, ScrollBehavior::Auto);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollto
     fn ScrollTo(&self, options: &ScrollToOptions) {
-        self.Scroll(options, CanGc::note());
+        self.Scroll(options);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollto
     fn ScrollTo_(&self, x: f64, y: f64) {
-        self.scroll(x, y, ScrollBehavior::Auto, CanGc::note());
+        self.scroll(x, y, ScrollBehavior::Auto);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollby
-    fn ScrollBy(&self, options: &ScrollToOptions, can_gc: CanGc) {
+    fn ScrollBy(&self, options: &ScrollToOptions) {
         // Step 1
         let x = options.left.unwrap_or(0.0f64);
         let y = options.top.unwrap_or(0.0f64);
-        self.ScrollBy_(x, y, can_gc);
-        self.scroll(x, y, options.parent.behavior, can_gc);
+        self.ScrollBy_(x, y);
+        self.scroll(x, y, options.parent.behavior);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollby
-    fn ScrollBy_(&self, x: f64, y: f64, can_gc: CanGc) {
-        let scroll_offset = self.scroll_offset(can_gc);
+    fn ScrollBy_(&self, x: f64, y: f64) {
+        let scroll_offset = self.scroll_offset();
         // Step 3
         let left = x + scroll_offset.x as f64;
         // Step 4
         let top = y + scroll_offset.y as f64;
 
         // Step 5
-        self.scroll(left, top, ScrollBehavior::Auto, can_gc);
+        self.scroll(left, top, ScrollBehavior::Auto);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-resizeto
@@ -1993,11 +1993,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 }
 
 impl Window {
-    pub(crate) fn scroll_offset(&self, can_gc: CanGc) -> Vector2D<f32, LayoutPixel> {
-        self.scroll_offset_query_with_external_scroll_id(
-            self.pipeline_id().root_scroll_id(),
-            can_gc,
-        )
+    pub(crate) fn scroll_offset(&self) -> Vector2D<f32, LayoutPixel> {
+        self.scroll_offset_query_with_external_scroll_id(self.pipeline_id().root_scroll_id())
     }
 
     // https://heycam.github.io/webidl/#named-properties-object
@@ -2095,7 +2092,7 @@ impl Window {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-scroll>
-    pub(crate) fn scroll(&self, x_: f64, y_: f64, behavior: ScrollBehavior, can_gc: CanGc) {
+    pub(crate) fn scroll(&self, x_: f64, y_: f64, behavior: ScrollBehavior) {
         // Step 3
         let xfinite = if x_.is_finite() { x_ } else { 0.0f64 };
         let yfinite = if y_.is_finite() { y_ } else { 0.0f64 };
@@ -2108,7 +2105,7 @@ impl Window {
 
         // Step 7 & 8
         // TODO: Consider `block-end` and `inline-end` overflow direction.
-        let scrolling_area = self.scrolling_area_query(None, can_gc);
+        let scrolling_area = self.scrolling_area_query(None);
         let x = xfinite
             .min(scrolling_area.width() as f64 - viewport.width as f64)
             .max(0.0f64);
@@ -2118,7 +2115,7 @@ impl Window {
 
         // Step 10
         //TODO handling ongoing smooth scrolling
-        let scroll_offset = self.scroll_offset(can_gc);
+        let scroll_offset = self.scroll_offset();
         if x == scroll_offset.x as f64 && y == scroll_offset.y as f64 {
             return;
         }
@@ -2134,7 +2131,6 @@ impl Window {
             self.pipeline_id().root_scroll_id(),
             behavior,
             None,
-            can_gc,
         );
     }
 
@@ -2146,15 +2142,11 @@ impl Window {
         scroll_id: ExternalScrollId,
         _behavior: ScrollBehavior,
         _element: Option<&Element>,
-        can_gc: CanGc,
     ) {
         // TODO Step 1
         // TODO(mrobinson, #18709): Add smooth scrolling support to WebRender so that we can
         // properly process ScrollBehavior here.
-        self.reflow(
-            ReflowGoal::UpdateScrollNode(scroll_id, Vector2D::new(x, y)),
-            can_gc,
-        );
+        self.reflow(ReflowGoal::UpdateScrollNode(scroll_id, Vector2D::new(x, y)));
     }
 
     pub(crate) fn device_pixel_ratio(&self) -> Scale<f32, CSSPixel, DevicePixel> {
@@ -2278,82 +2270,71 @@ impl Window {
     /// NOTE: This method should almost never be called directly! Layout and rendering updates
     /// should happen as part of the HTML event loop via *update the rendering*. Currerntly, the
     /// only exceptions are script queries and scroll requests.
-    pub(crate) fn reflow(&self, reflow_goal: ReflowGoal, can_gc: CanGc) -> bool {
+    pub(crate) fn reflow(&self, reflow_goal: ReflowGoal) -> bool {
         // Never reflow inactive Documents.
-        if !self.Document().is_fully_active() {
+        let document = self.Document();
+        if !document.is_fully_active() {
             return false;
         }
 
-        // Count the pending web fonts before layout, in case a font loads during the layout.
-        let waiting_for_web_fonts_to_load = self.font_context.web_fonts_still_loading() != 0;
+        document.ensure_safe_to_run_script_or_layout();
+        self.force_reflow(reflow_goal)
+    }
 
-        self.Document().ensure_safe_to_run_script_or_layout();
-
-        let updating_the_rendering = reflow_goal == ReflowGoal::UpdateTheRendering;
-        let issued_reflow = self.force_reflow(reflow_goal);
-
-        let document = self.Document();
-        let font_face_set = document.Fonts(can_gc);
-        let is_ready_state_complete = document.ReadyState() == DocumentReadyState::Complete;
-
-        // From https://drafts.csswg.org/css-font-loading/#font-face-set-ready:
-        // > A FontFaceSet is pending on the environment if any of the following are true:
-        // >  - the document is still loading
-        // >  - the document has pending stylesheet requests
-        // >  - the document has pending layout operations which might cause the user agent to request
-        // >    a font, or which depend on recently-loaded fonts
-        //
-        // Thus, we are queueing promise resolution here. This reflow should have been triggered by
-        // a "rendering opportunity" in `ScriptThread::handle_web_font_loaded, which should also
-        // make sure a microtask checkpoint happens, triggering the promise callback.
-        if !waiting_for_web_fonts_to_load && is_ready_state_complete {
-            font_face_set.fulfill_ready_promise_if_needed(can_gc);
+    pub(crate) fn maybe_send_idle_document_state_to_constellation(&self) {
+        if !opts::get().wait_for_stable_image {
+            return;
         }
 
-        // If writing a screenshot, check if the script has reached a state
-        // where it's safe to write the image. This means that:
-        // 1) The reflow is for display (otherwise it could be a query)
-        // 2) The html element doesn't contain the 'reftest-wait' class
-        // 3) The load event has fired.
+        if self.has_sent_idle_message.get() {
+            return;
+        }
+
+        let document = self.Document();
+        if document.ReadyState() != DocumentReadyState::Complete {
+            return;
+        }
+
+        // Checks if the html element has reftest-wait attribute present.
+        // See http://testthewebforward.org/docs/reftests.html
+        // and https://web-platform-tests.org/writing-tests/crashtest.html
+        if document.GetDocumentElement().is_some_and(|elem| {
+            elem.has_class(&atom!("reftest-wait"), CaseSensitivity::CaseSensitive) ||
+                elem.has_class(&Atom::from("test-wait"), CaseSensitivity::CaseSensitive)
+        }) {
+            return;
+        }
+
+        if self.font_context.web_fonts_still_loading() != 0 {
+            return;
+        }
+
+        if !self.pending_layout_images.borrow().is_empty() ||
+            !self.pending_images_for_rasterization.borrow().is_empty()
+        {
+            return;
+        }
+
+        if self.Document().needs_rendering_update() {
+            return;
+        }
+
         // When all these conditions are met, notify the constellation
         // that this pipeline is ready to write the image (from the script thread
         // perspective at least).
-        if opts::get().wait_for_stable_image && updating_the_rendering {
-            // Checks if the html element has reftest-wait attribute present.
-            // See http://testthewebforward.org/docs/reftests.html
-            // and https://web-platform-tests.org/writing-tests/crashtest.html
-            let html_element = document.GetDocumentElement();
-            let reftest_wait = html_element.is_some_and(|elem| {
-                elem.has_class(&atom!("reftest-wait"), CaseSensitivity::CaseSensitive) ||
-                    elem.has_class(&Atom::from("test-wait"), CaseSensitivity::CaseSensitive)
-            });
-
-            let has_sent_idle_message = self.has_sent_idle_message.get();
-            let no_pending_images = self.pending_layout_images.borrow().is_empty() &&
-                self.pending_images_for_rasterization.borrow().is_empty();
-
-            if !has_sent_idle_message &&
-                is_ready_state_complete &&
-                !reftest_wait &&
-                no_pending_images &&
-                !waiting_for_web_fonts_to_load
-            {
-                debug!(
-                    "{:?}: Sending DocumentState::Idle to Constellation",
-                    self.pipeline_id()
-                );
-                let event = ScriptToConstellationMessage::SetDocumentState(DocumentState::Idle);
-                self.send_to_constellation(event);
-                self.has_sent_idle_message.set(true);
-            }
-        }
-
-        issued_reflow
+        debug!(
+            "{:?}: Sending DocumentState::Idle to Constellation",
+            self.pipeline_id()
+        );
+        self.send_to_constellation(ScriptToConstellationMessage::SetDocumentState(
+            DocumentState::Idle,
+        ));
+        self.has_sent_idle_message.set(true);
     }
 
     /// If parsing has taken a long time and reflows are still waiting for the `load` event,
     /// start allowing them. See <https://github.com/servo/servo/pull/6028>.
-    pub(crate) fn reflow_if_reflow_timer_expired(&self, can_gc: CanGc) {
+    pub(crate) fn reflow_if_reflow_timer_expired(&self) {
         // Only trigger a long parsing time reflow if we are in the first parse of `<body>`
         // and it started more than `INITIAL_REFLOW_DELAY` ago.
         if !matches!(
@@ -2362,7 +2343,7 @@ impl Window {
         ) {
             return;
         }
-        self.allow_layout_if_necessary(can_gc);
+        self.allow_layout_if_necessary();
     }
 
     /// Block layout for this `Window` until parsing is done. If parsing takes a long time,
@@ -2381,7 +2362,7 @@ impl Window {
 
     /// Inform the [`Window`] that layout is allowed either because `load` has happened
     /// or because parsing the `<body>` took so long that we cannot wait any longer.
-    pub(crate) fn allow_layout_if_necessary(&self, can_gc: CanGc) {
+    pub(crate) fn allow_layout_if_necessary(&self) {
         if matches!(
             self.layout_blocker.get(),
             LayoutBlocker::FiredLoadEventOrParsingTimerExpired
@@ -2403,7 +2384,7 @@ impl Window {
         // iframe size updates.
         //
         // See <https://github.com/servo/servo/issues/14719>
-        self.Document().update_the_rendering(can_gc);
+        self.Document().update_the_rendering();
     }
 
     pub(crate) fn layout_blocked(&self) -> bool {
@@ -2428,17 +2409,16 @@ impl Window {
         let _ = receiver.recv();
     }
 
-    pub(crate) fn layout_reflow(&self, query_msg: QueryMsg, can_gc: CanGc) -> bool {
-        self.reflow(ReflowGoal::LayoutQuery(query_msg), can_gc)
+    pub(crate) fn layout_reflow(&self, query_msg: QueryMsg) -> bool {
+        self.reflow(ReflowGoal::LayoutQuery(query_msg))
     }
 
     pub(crate) fn resolved_font_style_query(
         &self,
         node: &Node,
         value: String,
-        can_gc: CanGc,
     ) -> Option<ServoArc<Font>> {
-        self.layout_reflow(QueryMsg::ResolvedFontStyleQuery, can_gc);
+        self.layout_reflow(QueryMsg::ResolvedFontStyleQuery);
 
         let document = self.Document();
         let animations = document.animations().sets.clone();
@@ -2457,20 +2437,20 @@ impl Window {
             .query_content_box(node.to_trusted_node_address())
     }
 
-    pub(crate) fn content_box_query(&self, node: &Node, can_gc: CanGc) -> Option<UntypedRect<Au>> {
-        self.layout_reflow(QueryMsg::ContentBox, can_gc);
+    pub(crate) fn content_box_query(&self, node: &Node) -> Option<UntypedRect<Au>> {
+        self.layout_reflow(QueryMsg::ContentBox);
         self.content_box_query_unchecked(node)
     }
 
-    pub(crate) fn content_boxes_query(&self, node: &Node, can_gc: CanGc) -> Vec<UntypedRect<Au>> {
-        self.layout_reflow(QueryMsg::ContentBoxes, can_gc);
+    pub(crate) fn content_boxes_query(&self, node: &Node) -> Vec<UntypedRect<Au>> {
+        self.layout_reflow(QueryMsg::ContentBoxes);
         self.layout
             .borrow()
             .query_content_boxes(node.to_trusted_node_address())
     }
 
-    pub(crate) fn client_rect_query(&self, node: &Node, can_gc: CanGc) -> UntypedRect<i32> {
-        self.layout_reflow(QueryMsg::ClientRectQuery, can_gc);
+    pub(crate) fn client_rect_query(&self, node: &Node) -> UntypedRect<i32> {
+        self.layout_reflow(QueryMsg::ClientRectQuery);
         self.layout
             .borrow()
             .query_client_rect(node.to_trusted_node_address())
@@ -2478,35 +2458,26 @@ impl Window {
 
     /// Find the scroll area of the given node, if it is not None. If the node
     /// is None, find the scroll area of the viewport.
-    pub(crate) fn scrolling_area_query(
-        &self,
-        node: Option<&Node>,
-        can_gc: CanGc,
-    ) -> UntypedRect<i32> {
-        self.layout_reflow(QueryMsg::ScrollingAreaOrOffsetQuery, can_gc);
+    pub(crate) fn scrolling_area_query(&self, node: Option<&Node>) -> UntypedRect<i32> {
+        self.layout_reflow(QueryMsg::ScrollingAreaOrOffsetQuery);
         self.layout
             .borrow()
             .query_scrolling_area(node.map(Node::to_trusted_node_address))
     }
 
-    pub(crate) fn scroll_offset_query(
-        &self,
-        node: &Node,
-        can_gc: CanGc,
-    ) -> Vector2D<f32, LayoutPixel> {
+    pub(crate) fn scroll_offset_query(&self, node: &Node) -> Vector2D<f32, LayoutPixel> {
         let external_scroll_id = ExternalScrollId(
             combine_id_with_fragment_type(node.to_opaque().id(), FragmentType::FragmentBody),
             self.pipeline_id().into(),
         );
-        self.scroll_offset_query_with_external_scroll_id(external_scroll_id, can_gc)
+        self.scroll_offset_query_with_external_scroll_id(external_scroll_id)
     }
 
     fn scroll_offset_query_with_external_scroll_id(
         &self,
         external_scroll_id: ExternalScrollId,
-        can_gc: CanGc,
     ) -> Vector2D<f32, LayoutPixel> {
-        self.layout_reflow(QueryMsg::ScrollingAreaOrOffsetQuery, can_gc);
+        self.layout_reflow(QueryMsg::ScrollingAreaOrOffsetQuery);
         self.layout
             .borrow()
             .scroll_offset(external_scroll_id)
@@ -2514,14 +2485,7 @@ impl Window {
     }
 
     // https://drafts.csswg.org/cssom-view/#element-scrolling-members
-    pub(crate) fn scroll_node(
-        &self,
-        node: &Node,
-        x_: f64,
-        y_: f64,
-        behavior: ScrollBehavior,
-        can_gc: CanGc,
-    ) {
+    pub(crate) fn scroll_node(&self, node: &Node, x_: f64, y_: f64, behavior: ScrollBehavior) {
         let scroll_id = ExternalScrollId(
             combine_id_with_fragment_type(node.to_opaque().id(), FragmentType::FragmentBody),
             self.pipeline_id().into(),
@@ -2534,7 +2498,6 @@ impl Window {
             scroll_id,
             behavior,
             None,
-            can_gc,
         );
     }
 
@@ -2543,9 +2506,8 @@ impl Window {
         element: TrustedNodeAddress,
         pseudo: Option<PseudoElement>,
         property: PropertyId,
-        can_gc: CanGc,
     ) -> DOMString {
-        self.layout_reflow(QueryMsg::ResolvedStyleQuery, can_gc);
+        self.layout_reflow(QueryMsg::ResolvedStyleQuery);
 
         let document = self.Document();
         let animations = document.animations().sets.clone();
@@ -2564,10 +2526,9 @@ impl Window {
     pub(crate) fn get_iframe_viewport_details_if_known(
         &self,
         browsing_context_id: BrowsingContextId,
-        can_gc: CanGc,
     ) -> Option<ViewportDetails> {
         // Reflow might fail, but do a best effort to return the right size.
-        self.layout_reflow(QueryMsg::InnerWindowDimensionsQuery, can_gc);
+        self.layout_reflow(QueryMsg::InnerWindowDimensionsQuery);
         self.Document()
             .iframes()
             .get(browsing_context_id)
@@ -2578,9 +2539,8 @@ impl Window {
     pub(crate) fn offset_parent_query(
         &self,
         node: &Node,
-        can_gc: CanGc,
     ) -> (Option<DomRoot<Element>>, UntypedRect<Au>) {
-        self.layout_reflow(QueryMsg::OffsetParentQuery, can_gc);
+        self.layout_reflow(QueryMsg::OffsetParentQuery);
         let response = self
             .layout
             .borrow()
@@ -2596,9 +2556,8 @@ impl Window {
         &self,
         node: &Node,
         point_in_node: UntypedPoint2D<f32>,
-        can_gc: CanGc,
     ) -> Option<usize> {
-        self.layout_reflow(QueryMsg::TextIndexQuery, can_gc);
+        self.layout_reflow(QueryMsg::TextIndexQuery);
         self.layout
             .borrow()
             .query_text_indext(node.to_opaque(), point_in_node)
@@ -2654,7 +2613,7 @@ impl Window {
                     load_data.url.clone(),
                     history_handling,
                 ));
-                doc.check_and_scroll_fragment(fragment, can_gc);
+                doc.check_and_scroll_fragment(fragment);
                 let this = Trusted::new(self);
                 let old_url = doc.url().into_string();
                 let new_url = load_data.url.clone().into_string();
@@ -2774,6 +2733,11 @@ impl Window {
 
     pub(crate) fn take_unhandled_resize_event(&self) -> Option<(ViewportDetails, WindowSizeType)> {
         self.unhandled_resize_event.borrow_mut().take()
+    }
+
+    /// Whether or not this [`Window`] has any resize events that have not been processed.
+    pub(crate) fn has_unhandled_resize_event(&self) -> bool {
+        self.unhandled_resize_event.borrow().is_some()
     }
 
     pub(crate) fn set_viewport_size(&self, new_viewport_size: UntypedSize2D<f32>) {

@@ -193,14 +193,13 @@ fn matching_links(
     links: &NodeList,
     link_text: String,
     partial: bool,
-    can_gc: CanGc,
 ) -> impl Iterator<Item = String> + '_ {
     links
         .iter()
         .filter(move |node| {
             let content = node
                 .downcast::<HTMLElement>()
-                .map(|element| element.InnerText(can_gc))
+                .map(|element| element.InnerText())
                 .map_or("".to_owned(), String::from)
                 .trim()
                 .to_owned();
@@ -217,7 +216,6 @@ fn all_matching_links(
     root_node: &Node,
     link_text: String,
     partial: bool,
-    can_gc: CanGc,
 ) -> Result<Vec<String>, ErrorStatus> {
     // <https://w3c.github.io/webdriver/#dfn-find>
     // Step 7.2. If a DOMException, SyntaxError, XPathException, or other error occurs
@@ -225,7 +223,7 @@ fn all_matching_links(
     root_node
         .query_selector_all(DOMString::from("a"))
         .map_err(|_| ErrorStatus::InvalidSelector)
-        .map(|nodes| matching_links(&nodes, link_text, partial, can_gc).collect())
+        .map(|nodes| matching_links(&nodes, link_text, partial).collect())
 }
 
 #[allow(unsafe_code)]
@@ -748,7 +746,6 @@ pub(crate) fn handle_find_elements_link_text(
     selector: String,
     partial: bool,
     reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
-    can_gc: CanGc,
 ) {
     match retrieve_document_and_check_root_existence(documents, pipeline) {
         Ok(document) => reply
@@ -756,7 +753,6 @@ pub(crate) fn handle_find_elements_link_text(
                 document.upcast::<Node>(),
                 selector.clone(),
                 partial,
-                can_gc,
             ))
             .unwrap(),
         Err(error) => reply.send(Err(error)).unwrap(),
@@ -895,12 +891,11 @@ pub(crate) fn handle_find_element_elements_link_text(
     selector: String,
     partial: bool,
     reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
-    can_gc: CanGc,
 ) {
     reply
         .send(
             get_known_element(documents, pipeline, element_id).and_then(|element| {
-                all_matching_links(element.upcast::<Node>(), selector.clone(), partial, can_gc)
+                all_matching_links(element.upcast::<Node>(), selector.clone(), partial)
             }),
         )
         .unwrap();
@@ -985,17 +980,11 @@ pub(crate) fn handle_find_shadow_elements_link_text(
     selector: String,
     partial: bool,
     reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
-    can_gc: CanGc,
 ) {
     reply
         .send(
             get_known_shadow_root(documents, pipeline, shadow_root_id).and_then(|shadow_root| {
-                all_matching_links(
-                    shadow_root.upcast::<Node>(),
-                    selector.clone(),
-                    partial,
-                    can_gc,
-                )
+                all_matching_links(shadow_root.upcast::<Node>(), selector.clone(), partial)
             }),
         )
         .unwrap();
@@ -1539,14 +1528,13 @@ pub(crate) fn handle_get_text(
     pipeline: PipelineId,
     node_id: String,
     reply: IpcSender<Result<String, ErrorStatus>>,
-    can_gc: CanGc,
 ) {
     reply
         .send(
             get_known_element(documents, pipeline, node_id).map(|element| {
                 element
                     .downcast::<HTMLElement>()
-                    .map(|htmlelement| htmlelement.InnerText(can_gc).to_string())
+                    .map(|htmlelement| htmlelement.InnerText().to_string())
                     .unwrap_or_else(|| {
                         element
                             .upcast::<Node>()
@@ -1643,7 +1631,6 @@ pub(crate) fn handle_get_css(
     node_id: String,
     name: String,
     reply: IpcSender<Result<String, ErrorStatus>>,
-    can_gc: CanGc,
 ) {
     reply
         .send(
@@ -1652,7 +1639,7 @@ pub(crate) fn handle_get_css(
                 String::from(
                     window
                         .GetComputedStyle(&element, None)
-                        .GetPropertyValue(DOMString::from(name), can_gc),
+                        .GetPropertyValue(DOMString::from(name)),
                 )
             }),
         )
@@ -1920,7 +1907,6 @@ fn get_element_pointer_interactable_paint_tree(
             Some(center_point) => document.ElementsFromPoint(
                 Finite::wrap(center_point.x as f64),
                 Finite::wrap(center_point.y as f64),
-                can_gc,
             ),
             None => Vec::new(),
         }

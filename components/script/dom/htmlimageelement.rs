@@ -1655,9 +1655,9 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
     make_bool_setter!(SetIsMap, "ismap");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-width
-    fn Width(&self, can_gc: CanGc) -> u32 {
+    fn Width(&self) -> u32 {
         let node = self.upcast::<Node>();
-        match node.bounding_content_box(can_gc) {
+        match node.bounding_content_box() {
             Some(rect) => rect.size.width.to_px() as u32,
             None => self.NaturalWidth(),
         }
@@ -1669,9 +1669,9 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-height
-    fn Height(&self, can_gc: CanGc) -> u32 {
+    fn Height(&self) -> u32 {
         let node = self.upcast::<Node>();
-        match node.bounding_content_box(can_gc) {
+        match node.bounding_content_box() {
             Some(rect) => rect.size.height.to_px() as u32,
             None => self.NaturalHeight(),
         }
