@@ -94,13 +94,14 @@ jobs:
           mkdir -p wpt-full-logs/linux
           unique_id=${{ needs.unique-id.outputs.unique-id }}
           total_chunks=400
+          exit_status_file=$(mktemp)
           while :; do
             chunk_id=$(curl -fsSX POST "https://ci0.servo.org/chunker/take?unique_id=$unique_id&total_chunks=$total_chunks")
             if [ "$chunk_id" = null ]; then
               break
             fi
             >&2 echo "Got chunk $chunk_id (of $total_chunks chunks)"
-            ./mach test-wpt \
+            if ./mach test-wpt \
               $WPT_ALWAYS_SUCCEED_ARG \
               --${{ inputs.profile }} --processes $(nproc) --timeout-multiplier 2 \
               --total-chunks $total_chunks --this-chunk $chunk_id \
@@ -108,8 +109,13 @@ jobs:
               --log-wptreport wpt-full-logs/linux/wptreport/$chunk_id.json \
               --log-raw-unexpected wpt-filtered-logs/linux/$chunk_id.log \
               --filter-intermittents wpt-filtered-logs/linux/$chunk_id.json \
-              ${{ inputs.wpt-args }}
+              ${{ inputs.wpt-args }}; then
+              :  # Do nothing
+            else
+              echo $? > $exit_status_file
+            fi
           done
+          exit $(cat $exit_status_file)
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
       - name: Archive results (filtered)
