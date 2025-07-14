@@ -195,27 +195,27 @@ impl RTCDataChannel {
 
     #[allow(unsafe_code)]
     pub(crate) fn on_message(&self, channel_message: DataChannelMessage, can_gc: CanGc) {
-        unsafe {
-            let global = self.global();
-            let cx = GlobalScope::get_cx();
-            let _ac = JSAutoRealm::new(*cx, self.reflector().get_jsobject().get());
-            rooted!(in(*cx) let mut message = UndefinedValue());
+        let global = self.global();
+        let cx = GlobalScope::get_cx();
+        let _ac = JSAutoRealm::new(*cx, self.reflector().get_jsobject().get());
+        rooted!(in(*cx) let mut message = UndefinedValue());
 
-            match channel_message {
-                DataChannelMessage::Text(text) => {
-                    text.safe_to_jsval(cx, message.handle_mut());
+        match channel_message {
+            DataChannelMessage::Text(text) => {
+                text.safe_to_jsval(cx, message.handle_mut());
+            },
+            DataChannelMessage::Binary(data) => match &**self.binary_type.borrow() {
+                "blob" => {
+                    let blob = Blob::new(
+                        &global,
+                        BlobImpl::new_from_bytes(data, "".to_owned()),
+                        can_gc,
+                    );
+                    blob.safe_to_jsval(cx, message.handle_mut());
                 },
-                DataChannelMessage::Binary(data) => match &**self.binary_type.borrow() {
-                    "blob" => {
-                        let blob = Blob::new(
-                            &global,
-                            BlobImpl::new_from_bytes(data, "".to_owned()),
-                            can_gc,
-                        );
-                        blob.safe_to_jsval(cx, message.handle_mut());
-                    },
-                    "arraybuffer" => {
-                        rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
+                "arraybuffer" => {
+                    rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
+                    unsafe {
                         assert!(
                             ArrayBuffer::create(
                                 *cx,
@@ -223,24 +223,24 @@ impl RTCDataChannel {
                                 array_buffer.handle_mut()
                             )
                             .is_ok()
-                        );
+                        )
+                    };
 
-                        (*array_buffer).safe_to_jsval(cx, message.handle_mut());
-                    },
-                    _ => unreachable!(),
+                    (*array_buffer).safe_to_jsval(cx, message.handle_mut());
                 },
-            }
-
-            MessageEvent::dispatch_jsval(
-                self.upcast(),
-                &global,
-                message.handle(),
-                Some(&global.origin().immutable().ascii_serialization()),
-                None,
-                vec![],
-                can_gc,
-            );
+                _ => unreachable!(),
+            },
         }
+
+        MessageEvent::dispatch_jsval(
+            self.upcast(),
+            &global,
+            message.handle(),
+            Some(&global.origin().immutable().ascii_serialization()),
+            None,
+            vec![],
+            can_gc,
+        );
     }
 
     pub(crate) fn on_state_change(&self, state: DataChannelState, can_gc: CanGc) {
