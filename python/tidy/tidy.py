@@ -1117,3 +1117,6 @@ class CargoDenyKrate:
         self.parents = [CargoDenyKrate(parent) for parent in data.get("parents", [])]
         self.version = crate["version"]
         self.parents = [CargoDenyKrate(parent) for parent in data.get("parents", [])]
+
+    def __str__(self):
+        return f"{self.name}@{self.version}"
