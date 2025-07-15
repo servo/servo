@@ -9,7 +9,9 @@ use std::rc::Rc;
 
 use euclid::num::Zero;
 use euclid::{Length, Point2D, Scale, Size2D};
-use servo::servo_geometry::{DeviceIndependentIntRect, DeviceIndependentPixel};
+use servo::servo_geometry::{
+    DeviceIndependentIntRect, DeviceIndependentPixel, convert_size_to_css_pixel,
+};
 use servo::webrender_api::units::{DeviceIntSize, DevicePixel};
 use servo::{RenderingContext, ScreenGeometry, SoftwareRenderingContext};
 use winit::dpi::PhysicalSize;
@@ -136,16 +138,12 @@ impl WindowPortsMethods for Window {
     }
 
     fn window_rect(&self) -> DeviceIndependentIntRect {
-        let inner_size = self.inner_size.get().to_f64();
-        let scale = self.hidpi_scale_factor().get() as f64;
-        // TODO: Find a universal way to convert.
-        // See https://github.com/servo/servo/issues/37937
+        let inner_size = self.inner_size.get();
+        let scale = self.hidpi_scale_factor();
+
         DeviceIndependentIntRect::from_origin_and_size(
             Point2D::zero(),
-            Size2D::new(
-                (inner_size.width / scale).round() as i32,
-                (inner_size.height / scale).round() as i32,
-            ),
+            convert_size_to_css_pixel(inner_size, scale),
         )
     }
 
