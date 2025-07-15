@@ -644,6 +644,13 @@ impl Handler {
         // Step 3. Let origin be equal to the origin property of action object.
         let origin = &action.origin;
 
+        // Pointer origin isn't currently supported for wheel input source
+        // See: https://github.com/w3c/webdriver/issues/1758
+
+        if origin == &PointerOrigin::Pointer {
+            return Err(ErrorStatus::InvalidArgument);
+        }
+
         // Step 4. Let (x, y) be the result of trying to get coordinates relative to an origin
         // with source, x offset, y offset, origin, browsing context, and actions options.
         let (x, y) =
