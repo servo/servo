@@ -49,9 +49,9 @@ pub enum WebDriverCommandMsg {
     /// Refresh the top-level browsing context with the given ID.
     Refresh(WebViewId, IpcSender<WebDriverLoadStatus>),
     /// Navigate the webview with the given ID to the previous page in the browsing context's history.
-    GoBack(WebViewId),
+    GoBack(WebViewId, IpcSender<WebDriverLoadStatus>),
     /// Navigate the webview with the given ID to the next page in the browsing context's history.
-    GoForward(WebViewId),
+    GoForward(WebViewId, IpcSender<WebDriverLoadStatus>),
     /// Pass a webdriver command to the script thread of the current pipeline
     /// of a browsing context.
     ScriptCommand(BrowsingContextId, WebDriverScriptCommand),

@@ -14,7 +14,7 @@ use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
     Cursor, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus, MediaSessionActionType,
-    ScreenGeometry, Theme, ViewportDetails,
+    ScreenGeometry, Theme, TraversalId, ViewportDetails,
 };
 use euclid::{Point2D, Scale, Size2D};
 use servo_geometry::DeviceIndependentPixel;
@@ -416,22 +416,28 @@ impl WebView {
             .send(EmbedderToConstellationMessage::Reload(self.id()))
     }
 
-    pub fn go_back(&self, amount: usize) {
+    pub fn go_back(&self, amount: usize) -> TraversalId {
+        let traversal_id = TraversalId::new();
         self.inner()
             .constellation_proxy
             .send(EmbedderToConstellationMessage::TraverseHistory(
                 self.id(),
                 TraversalDirection::Back(amount),
-            ))
+                traversal_id.clone(),
+            ));
+        traversal_id
     }
 
-    pub fn go_forward(&self, amount: usize) {
+    pub fn go_forward(&self, amount: usize) -> TraversalId {
+        let traversal_id = TraversalId::new();
         self.inner()
             .constellation_proxy
             .send(EmbedderToConstellationMessage::TraverseHistory(
                 self.id(),
                 TraversalDirection::Forward(amount),
-            ))
+                traversal_id.clone(),
+            ));
+        traversal_id
     }
 
     /// Ask the [`WebView`] to scroll web content. Note that positive scroll offsets reveal more

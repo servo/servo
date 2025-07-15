@@ -462,24 +462,34 @@ impl App {
                 },
                 WebDriverCommandMsg::LoadUrl(webview_id, url, load_status_sender) => {
                     if let Some(webview) = running_state.webview_by_id(webview_id) {
-                        webview.load(url.into_url());
                         running_state.set_load_status_sender(webview_id, load_status_sender);
+                        webview.load(url.into_url());
                     }
                 },
                 WebDriverCommandMsg::Refresh(webview_id, load_status_sender) => {
                     if let Some(webview) = running_state.webview_by_id(webview_id) {
-                        webview.reload();
                         running_state.set_load_status_sender(webview_id, load_status_sender);
+                        webview.reload();
                     }
                 },
-                WebDriverCommandMsg::GoBack(webview_id) => {
+                WebDriverCommandMsg::GoBack(webview_id, load_status_sender) => {
                     if let Some(webview) = running_state.webview_by_id(webview_id) {
-                        webview.go_back(1);
+                        let traversal_id = webview.go_back(1);
+                        running_state.set_pending_traversal(
+                            webview_id,
+                            traversal_id,
+                            load_status_sender,
+                        );
                     }
                 },
-                WebDriverCommandMsg::GoForward(webview_id) => {
+                WebDriverCommandMsg::GoForward(webview_id, load_status_sender) => {
                     if let Some(webview) = running_state.webview_by_id(webview_id) {
-                        webview.go_forward(1);
+                        let traversal_id = webview.go_forward(1);
+                        running_state.set_pending_traversal(
+                            webview_id,
+                            traversal_id,
+                            load_status_sender,
+                        );
                     }
                 },
                 // Key events don't need hit test so can be forwarded to constellation for now

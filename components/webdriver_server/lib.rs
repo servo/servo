@@ -946,8 +946,11 @@ impl Handler {
         // return error with error code no such window.
         self.verify_top_level_browsing_context_is_open(webview_id)?;
 
-        self.send_message_to_embedder(WebDriverCommandMsg::GoBack(webview_id))?;
-        Ok(WebDriverResponse::Void)
+        self.send_message_to_embedder(WebDriverCommandMsg::GoBack(
+            webview_id,
+            self.load_status_sender.clone(),
+        ))?;
+        self.wait_for_load()
     }
 
     fn handle_go_forward(&self) -> WebDriverResult<WebDriverResponse> {
@@ -956,8 +959,11 @@ impl Handler {
         // return error with error code no such window.
         self.verify_top_level_browsing_context_is_open(webview_id)?;
 
-        self.send_message_to_embedder(WebDriverCommandMsg::GoForward(webview_id))?;
-        Ok(WebDriverResponse::Void)
+        self.send_message_to_embedder(WebDriverCommandMsg::GoForward(
+            webview_id,
+            self.load_status_sender.clone(),
+        ))?;
+        self.wait_for_load()
     }
 
     fn handle_refresh(&self) -> WebDriverResult<WebDriverResponse> {

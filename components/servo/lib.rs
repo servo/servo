@@ -801,6 +801,13 @@ impl Servo {
                     webview.set_load_status(load_status);
                 }
             },
+            EmbedderMsg::HistoryTraversalComplete(webview_id, traversal_id) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview
+                        .delegate()
+                        .notify_traversal_complete(webview.clone(), traversal_id);
+                }
+            },
             EmbedderMsg::HistoryChanged(webview_id, urls, current_index) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     let urls: Vec<_> = urls.into_iter().map(ServoUrl::into_url).collect();
