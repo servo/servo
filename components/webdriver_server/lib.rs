@@ -781,12 +781,31 @@ impl Handler {
             WebDriverCommandMsg::LoadUrl(webview_id, url, self.load_status_sender.clone());
         self.send_message_to_embedder(cmd_msg)?;
 
-        self.wait_for_load()
+        self.wait_for_navigation_to_complete()
     }
 
-    fn wait_for_load(&self) -> WebDriverResult<WebDriverResponse> {
+    /// <https://w3c.github.io/webdriver/#dfn-wait-for-navigation-to-complete>
+    fn wait_for_navigation_to_complete(&self) -> WebDriverResult<WebDriverResponse> {
         debug!("waiting for load");
+
+        let session = self.session()?;
+
+        // Step 1
+        if session.page_loading_strategy == "none".to_string() {
+            return Ok(WebDriverResponse::Void);
+        }
+
+        // Step 2
+        if self
+            .verify_browsing_context_is_open(session.browsing_context_id)
+            .is_err()
+        {
+            return Ok(WebDriverResponse::Void);
+        }
+
+        // Step 3
         let timeout = self.session()?.load_timeout;
+
         let result = select! {
             recv(self.load_status_receiver) -> res => {
                     match res {
@@ -975,7 +994,7 @@ impl Handler {
         let cmd_msg = WebDriverCommandMsg::Refresh(webview_id, self.load_status_sender.clone());
         self.send_message_to_embedder(cmd_msg)?;
 
-        self.wait_for_load()
+        self.wait_for_navigation_to_complete()
     }
 
     fn handle_title(&self) -> WebDriverResult<WebDriverResponse> {
@@ -1083,7 +1102,7 @@ impl Handler {
             session.window_handles.insert(new_webview_id, new_handle);
         }
 
-        let _ = self.wait_for_load();
+        let _ = self.wait_for_navigation_to_complete();
 
         Ok(WebDriverResponse::NewWindow(NewWindowResponse {
             handle,
