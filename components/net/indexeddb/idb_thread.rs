@@ -11,7 +11,7 @@ use std::thread;
 use ipc_channel::ipc::{self, IpcError, IpcReceiver, IpcSender};
 use log::{debug, warn};
 use net_traits::indexeddb_thread::{
-    AsyncOperation, IndexedDBThreadMsg, IndexedDBTxnMode, SyncOperation,
+    AsyncOperation, IdbResult, IndexedDBThreadMsg, IndexedDBTxnMode, SyncOperation,
 };
 use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
@@ -88,7 +88,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
 
     fn queue_operation(
         &mut self,
-        sender: IpcSender<Option<Vec<u8>>>,
+        sender: IpcSender<Result<Option<IdbResult>, ()>>,
         store_name: SanitizedName,
         serial_number: u64,
         mode: IndexedDBTxnMode,
