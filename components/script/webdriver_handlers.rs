@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cmp;
 use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
 use std::ptr::NonNull;
@@ -630,38 +629,45 @@ pub(crate) fn handle_get_browsing_context_id(
         .unwrap();
 }
 
-// https://w3c.github.io/webdriver/#dfn-center-point
+/// <https://w3c.github.io/webdriver/#dfn-center-point>
 fn get_element_in_view_center_point(element: &Element, can_gc: CanGc) -> Option<Point2D<i64>> {
-    element
-        .owner_document()
-        .GetBody()
-        .map(DomRoot::upcast::<Element>)
-        .and_then(|body| {
-            // Step 1: Let rectangle be the first element of the DOMRect sequence
-            // returned by calling getClientRects() on element.
-            element.GetClientRects(can_gc).first().map(|rectangle| {
-                let x = rectangle.X().round() as i64;
-                let y = rectangle.Y().round() as i64;
-                let width = rectangle.Width().round() as i64;
-                let height = rectangle.Height().round() as i64;
+    let doc = element.owner_document();
+    // Step 1: Let rectangle be the first element of the DOMRect sequence
+    // returned by calling getClientRects() on element.
+    element.GetClientRects(can_gc).first().map(|rectangle| {
+        let x = rectangle.X();
+        let y = rectangle.Y();
+        let width = rectangle.Width();
+        let height = rectangle.Height();
+        debug!(
+            "get_element_in_view_center_point: Element rectangle at \
+            (x: {x}, y: {y}, width: {width}, height: {height})",
+        );
+        let window = doc.window();
+        // Steps 2. Let left be max(0, min(x coordinate, x coordinate + width dimension)).
+        let left = (x.min(x + width)).max(0.0);
+        // Step 3. Let right be min(innerWidth, max(x coordinate, x coordinate + width dimension)).
+        let right = f64::min(window.InnerWidth() as f64, x.max(x + width));
+        // Step 4. Let top be max(0, min(y coordinate, y coordinate + height dimension)).
+        let top = (y.min(y + height)).max(0.0);
+        // Step 5. Let bottom be
+        // min(innerHeight, max(y coordinate, y coordinate + height dimension)).
+        let bottom = f64::min(window.InnerHeight() as f64, y.max(y + height));
+        debug!(
+            "get_element_in_view_center_point: Computed rectangle is \
+            (left: {left}, right: {right}, top: {top}, bottom: {bottom})",
+        );
+        // Step 6. Let x be floor((left + right) ÷ 2.0).
+        let center_x = ((left + right) / 2.0).floor() as i64;
+        // Step 7. Let y be floor((top + bottom) ÷ 2.0).
+        let center_y = ((top + bottom) / 2.0).floor() as i64;
 
-                let client_width = body.ClientWidth(can_gc) as i64;
-                let client_height = body.ClientHeight(can_gc) as i64;
-
-                // Steps 2 - 5
-                let left = cmp::max(0, cmp::min(x, x + width));
-                let right = cmp::min(client_width, cmp::max(x, x + width));
-                let top = cmp::max(0, cmp::min(y, y + height));
-                let bottom = cmp::min(client_height, cmp::max(y, y + height));
-
-                // Steps 6 - 7
-                let x = (left + right) / 2;
-                let y = (top + bottom) / 2;
-
-                // Step 8
-                Point2D::new(x, y)
-            })
-        })
+        debug!(
+            "get_element_in_view_center_point: Element center point at ({center_x}, {center_y})",
+        );
+        // Step 8
+        Point2D::new(center_x, center_y)
+    })
 }
 
 pub(crate) fn handle_get_element_in_view_center_point(
