@@ -168,7 +168,7 @@ def normalize_paths(paths: list[str] | str) -> list[str] | str:
 
 # A simple wrapper for iterators to show progress
 # (Note that it's inefficient for giant iterators, since it iterates once to get the upper bound)
-def progress_wrapper(iterator):
+def progress_wrapper(iterator: Iterator[str]) -> Iterator[str]:
     list_of_stuff = list(iterator)
     total_files, progress = len(list_of_stuff), 0
     for idx, thing in enumerate(list_of_stuff):
@@ -873,7 +873,7 @@ def run_wpt_lints(only_changed_files: bool) -> Iterator[tuple[str, int, str]]:
     yield from lint_wpt_test_files()
 
 
-def check_spec(file_name, lines) -> Iterator[tuple[int, str]]:
+def check_spec(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
     if SPEC_BASE_PATH not in file_name:
         return
     file_name = os.path.relpath(os.path.splitext(file_name)[0], SPEC_BASE_PATH)
@@ -991,7 +991,7 @@ def check_config_file(config_file: LiteralString, print_text: bool = True) -> It
     parse_config(config_content)
 
 
-def parse_config(config_file: dict) -> None:
+def parse_config(config_file: dict[str, Any]) -> None:
     exclude = config_file.get("ignore", {})
     # Add list of ignored directories to config
     ignored_directories = [d for p in exclude.get("directories", []) for d in (glob.glob(p) or [p])]
@@ -1020,7 +1020,7 @@ def parse_config(config_file: dict) -> None:
             config[pref] = user_configs[pref]
 
 
-def check_directory_files(directories, print_text=True) -> Iterator[tuple[str, int, str]]:
+def check_directory_files(directories: dict[str, Any], print_text: bool = True) -> Iterator[tuple[str, int, str]]:
     if print_text:
         print("\r ➤  Checking directories for correct file extensions...")
     for directory, file_extensions in directories.items():
@@ -1037,7 +1037,7 @@ def collect_errors_for_files(
     files_to_check: Iterator[str],
     checking_functions: tuple[GenericCheckingFunction[bytes], ...],
     line_checking_functions: tuple[GenericCheckingFunction[list[bytes]], ...],
-    print_text=True,
+    print_text: bool = True,
 ) -> Iterator[tuple[str, int, str]]:
     (has_element, files_to_check) = is_iter_empty(files_to_check)
     if not has_element:
