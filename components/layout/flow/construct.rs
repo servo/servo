@@ -466,6 +466,7 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         contents: Contents,
         box_slot: BoxSlot<'dom>,
     ) {
+        let old_layout_box = box_slot.take_layout_box_if_undamaged(info.damage);
         let (is_list_item, non_replaced_contents) = match (display_inside, contents) {
             (
                 DisplayInside::Flow { is_list_item },
@@ -485,7 +486,7 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
                         propagated_data,
                     ))
                 };
-                let old_layout_box = box_slot.take_layout_box_if_undamaged(info.damage);
+
                 let atomic = self
                     .ensure_inline_formatting_context_builder()
                     .push_atomic(construction_callback, old_layout_box);
@@ -497,7 +498,11 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         // Otherwise, this is just a normal inline box. Whatever happened before, all we need to do
         // before recurring is to remember this ongoing inline level box.
         self.ensure_inline_formatting_context_builder()
-            .start_inline_box(InlineBox::new(info), None);
+            .start_inline_box(
+                || ArcRefCell::new(InlineBox::new(info)),
+                None,
+                old_layout_box,
+            );
 
         if is_list_item {
             if let Some((marker_info, marker_contents)) =
