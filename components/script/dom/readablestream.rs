@@ -12,7 +12,6 @@ use base::id::{MessagePortId, MessagePortIndex};
 use constellation_traits::MessagePortImpl;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
-use script_bindings::conversions::SafeToJSValConvertible;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::rust::{
@@ -20,6 +19,7 @@ use js::rust::{
     MutableHandleValue as SafeMutableHandleValue,
 };
 use js::typedarray::ArrayBufferViewU8;
+use script_bindings::conversions::SafeToJSValConvertible;
 
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{

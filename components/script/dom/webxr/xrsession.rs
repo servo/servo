@@ -19,9 +19,9 @@ use js::typedarray::Float32Array;
 use profile_traits::ipc;
 use stylo_atoms::Atom;
 use webxr_api::{
-    self, util, ApiSpace, ContextId as WebXRContextId, Display, EntityTypes, EnvironmentBlendMode,
+    self, ApiSpace, ContextId as WebXRContextId, Display, EntityTypes, EnvironmentBlendMode,
     Event as XREvent, Frame, FrameUpdateEvent, HitTestId, HitTestSource, InputFrame, InputId, Ray,
-    SelectEvent, SelectKind, Session, SessionId, View, Viewer, Visibility,
+    SelectEvent, SelectKind, Session, SessionId, View, Viewer, Visibility, util,
 };
 
 use crate::conversions::Convert;
