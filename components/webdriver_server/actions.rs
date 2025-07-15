@@ -437,6 +437,32 @@ impl Handler {
         let _ = self.send_message_to_embedder(cmd_msg);
     }
 
+    /// <https://w3c.github.io/webdriver/#dfn-get-coordinates-relative-to-an-origin>
+    fn get_origin_relative_coordinates(
+        &self,
+        origin: &PointerOrigin,
+        x_offset: f64,
+        y_offset: f64,
+        start_x: f64,
+        start_y: f64
+    ) -> Result<(f64, f64), ErrorStatus> {
+        match origin {
+            PointerOrigin::Viewport => Ok((x_offset, y_offset)),
+            PointerOrigin::Pointer => {
+                // Step 3. Let x equal start x + x offset and y equal start y + y offset.
+                Ok((start_x + x_offset, start_y + y_offset))
+            },
+            PointerOrigin::Element(web_element) => {
+                // Steps 1 - 2: Check "no such element", covered in script thread handler.
+
+                // Step 3. Let x element and y element be the result of calculating the in-view center point of element.
+                let (x_element, y_element) = self.get_element_in_view_center_point(&web_element)?;
+                // Step 4. Let x equal x element + x offset, and y equal y element + y offset.
+                Ok((x_element as f64 + x_offset, y_element as f64 + y_offset))
+            },
+        }
+    }
+
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pointermove-action>
     pub(crate) fn dispatch_pointermove_action(
         &self,
@@ -446,11 +472,14 @@ impl Handler {
     ) -> Result<(), ErrorStatus> {
         let tick_start = Instant::now();
 
-        // Steps 1 - 2
+        // Step 1. Let x offset be equal to the x property of action object.
         let x_offset = action.x;
+        // Step 2. Let y offset be equal to the y property of action object.
         let y_offset = action.y;
 
-        // Steps 3 - 4
+        // Step 3. Let origin be equal to the origin property of action object.
+        let origin = &action.origin;
+
         let (start_x, start_y) = match self
             .session()
             .unwrap()
@@ -465,25 +494,23 @@ impl Handler {
             _ => unreachable!(),
         };
 
-        let (x, y) = match action.origin {
-            PointerOrigin::Viewport => (x_offset, y_offset),
-            PointerOrigin::Pointer => (start_x + x_offset, start_y + y_offset),
-            PointerOrigin::Element(ref web_element) => {
-                let point = self.get_element_origin_relative_coordinates(web_element)?;
-                (point.0 as f64, point.1 as f64)
-            },
-        };
+        // Step 4. Let (x, y) be the result of trying to get coordinates relative to an origin
+        // with source, x offset, y offset, origin, browsing context, and actions options.
+
+        let (x, y) = self.get_origin_relative_coordinates(origin, x_offset, y_offset, start_x, start_y)?;
 
         // Step 5 - 6
         self.check_viewport_bound(x, y)?;
 
-        // Step 7
+        // Step 7. Let duration be equal to action object's duration property
+        // if it is not undefined, or tick duration otherwise.
         let duration = match action.duration {
             Some(duration) => duration,
             None => tick_duration,
         };
 
-        // Step 8
+        // Step 8. If duration is greater than 0 and inside any implementation-defined bounds,
+        // asynchronously wait for an implementation defined amount of time to pass.
         if duration > 0 {
             thread::sleep(Duration::from_millis(POINTERMOVE_INTERVAL));
         }
@@ -605,7 +632,7 @@ impl Handler {
             PointerOrigin::Viewport => (x_offset, y_offset),
             PointerOrigin::Pointer => return Err(ErrorStatus::InvalidArgument),
             PointerOrigin::Element(ref web_element) => {
-                self.get_element_origin_relative_coordinates(web_element)?
+                self.get_element_in_view_center_point(web_element)?
             },
         };
 
@@ -743,7 +770,8 @@ impl Handler {
         }
     }
 
-    fn get_element_origin_relative_coordinates(
+    /// <https://w3c.github.io/webdriver/#dfn-center-point>
+    fn get_element_in_view_center_point(
         &self,
         web_element: &WebElement,
     ) -> Result<(i64, i64), ErrorStatus> {
