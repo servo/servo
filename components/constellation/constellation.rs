@@ -4552,36 +4552,9 @@ where
         // Find the script channel for the given parent pipeline,
         // and pass the event to that script thread.
         match msg {
-            WebDriverCommandMsg::CloseWebView(..) => {
-                unreachable!("This command should be send directly to the embedder.");
-            },
-            WebDriverCommandMsg::NewWebView(..) => {
-                unreachable!("This command should be send directly to the embedder.");
-            },
-            WebDriverCommandMsg::FocusWebView(..) => {
-                unreachable!("This command should be send directly to the embedder.");
-            },
-            WebDriverCommandMsg::IsWebViewOpen(..) => {
-                unreachable!("This command should be send directly to the embedder.");
-            },
             WebDriverCommandMsg::IsBrowsingContextOpen(browsing_context_id, response_sender) => {
                 let is_open = self.browsing_contexts.contains_key(&browsing_context_id);
                 let _ = response_sender.send(is_open);
-            },
-            WebDriverCommandMsg::GetWindowRect(..) => {
-                unreachable!("This command should be send directly to the embedder.");
-            },
-            WebDriverCommandMsg::GetViewportSize(..) => {
-                unreachable!("This command should be send directly to the embedder.");
-            },
-            WebDriverCommandMsg::SetWindowSize(..) => {
-                unreachable!("This command should be send directly to the embedder.");
-            },
-            WebDriverCommandMsg::LoadUrl(..) => {
-                unreachable!("This command should be send directly to the embedder.");
-            },
-            WebDriverCommandMsg::Refresh(..) => {
-                unreachable!("This command should be send directly to the embedder.");
             },
             // TODO: This should use the ScriptThreadMessage::EvaluateJavaScript command
             WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd) => {
@@ -4599,27 +4572,28 @@ where
                     self.handle_send_error(pipeline_id, e);
                 }
             },
-            WebDriverCommandMsg::SendKeys(..) => {
-                unreachable!("This command should be send directly to the embedder.");
-            },
-            WebDriverCommandMsg::KeyboardAction(..) => {
-                unreachable!("This command should be send directly to the embedder.");
-            },
-            WebDriverCommandMsg::MouseButtonAction(..) => {
-                unreachable!("This command should be send directly to the embedder.");
-            },
-            WebDriverCommandMsg::MouseMoveAction(..) => {
-                unreachable!("This command should be send directly to the embedder.");
-            },
-            WebDriverCommandMsg::WheelScrollAction(..) => {
-                unreachable!("This command should be send directly to the embedder.");
-            },
             WebDriverCommandMsg::TakeScreenshot(webview_id, rect, response_sender) => {
                 self.compositor_proxy.send(CompositorMsg::CreatePng(
                     webview_id,
                     rect,
                     response_sender,
                 ));
+            },
+            WebDriverCommandMsg::CloseWebView(..) |
+            WebDriverCommandMsg::NewWebView(..) |
+            WebDriverCommandMsg::FocusWebView(..) |
+            WebDriverCommandMsg::IsWebViewOpen(..) |
+            WebDriverCommandMsg::GetWindowRect(..) |
+            WebDriverCommandMsg::GetViewportSize(..) |
+            WebDriverCommandMsg::SetWindowSize(..) |
+            WebDriverCommandMsg::LoadUrl(..) |
+            WebDriverCommandMsg::Refresh(..) |
+            WebDriverCommandMsg::SendKeys(..) |
+            WebDriverCommandMsg::KeyboardAction(..) |
+            WebDriverCommandMsg::MouseButtonAction(..) |
+            WebDriverCommandMsg::MouseMoveAction(..) |
+            WebDriverCommandMsg::WheelScrollAction(..) => {
+                unreachable!("This command should be send directly to the embedder.");
             },
             _ => {
                 warn!("Unhandled WebDriver command: {:?}", msg);
