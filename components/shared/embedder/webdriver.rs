@@ -86,8 +86,8 @@ pub enum WebDriverCommandMsg {
     /// Act as if the mouse wheel is scrolled in the browsing context given the given ID.
     WheelScrollAction(
         WebViewId,
-        f32,
-        f32,
+        f64,
+        f64,
         f64,
         f64,
         // None if it's not the last `perform_wheel_scroll` since we only

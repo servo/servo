@@ -286,7 +286,7 @@ impl Handler {
                     self.dispatch_general_action(input_id);
                 },
                 ActionItem::Wheel(WheelActionItem::Wheel(WheelAction::Scroll(scroll_action))) => {
-                    self.dispatch_scroll_action(scroll_action, tick_duration)?;
+                    self.dispatch_scroll_action(input_id, scroll_action, tick_duration)?;
                 },
                 _ => {},
             }
@@ -443,12 +443,26 @@ impl Handler {
         origin: &PointerOrigin,
         x_offset: f64,
         y_offset: f64,
-        start_x: f64,
-        start_y: f64
+        source_id: &str,
     ) -> Result<(f64, f64), ErrorStatus> {
         match origin {
             PointerOrigin::Viewport => Ok((x_offset, y_offset)),
             PointerOrigin::Pointer => {
+                // Step 1. Let start x be equal to the x property of source.
+                // Step 2. Let start y be equal to the y property of source.
+                let (start_x, start_y) = match self
+                    .session()
+                    .unwrap()
+                    .input_state_table
+                    .borrow()
+                    .get(source_id)
+                    .unwrap()
+                {
+                    InputSourceState::Pointer(pointer_input_state) => {
+                        (pointer_input_state.x, pointer_input_state.y)
+                    },
+                    _ => unreachable!(),
+                };
                 // Step 3. Let x equal start x + x offset and y equal start y + y offset.
                 Ok((start_x + x_offset, start_y + y_offset))
             },
@@ -480,24 +494,10 @@ impl Handler {
         // Step 3. Let origin be equal to the origin property of action object.
         let origin = &action.origin;
 
-        let (start_x, start_y) = match self
-            .session()
-            .unwrap()
-            .input_state_table
-            .borrow_mut()
-            .get(source_id)
-            .unwrap()
-        {
-            InputSourceState::Pointer(pointer_input_state) => {
-                (pointer_input_state.x, pointer_input_state.y)
-            },
-            _ => unreachable!(),
-        };
-
         // Step 4. Let (x, y) be the result of trying to get coordinates relative to an origin
         // with source, x offset, y offset, origin, browsing context, and actions options.
 
-        let (x, y) = self.get_origin_relative_coordinates(origin, x_offset, y_offset, start_x, start_y)?;
+        let (x, y) = self.get_origin_relative_coordinates(origin, x_offset, y_offset, source_id)?;
 
         // Step 5 - 6
         self.check_viewport_bound(x, y)?;
@@ -514,6 +514,20 @@ impl Handler {
         if duration > 0 {
             thread::sleep(Duration::from_millis(POINTERMOVE_INTERVAL));
         }
+
+        let (start_x, start_y) = match self
+            .session()
+            .unwrap()
+            .input_state_table
+            .borrow()
+            .get(source_id)
+            .unwrap()
+        {
+            InputSourceState::Pointer(pointer_input_state) => {
+                (pointer_input_state.x, pointer_input_state.y)
+            },
+            _ => unreachable!(),
+        };
 
         // Step 9 - 18
         self.perform_pointer_move(source_id, duration, start_x, start_y, x, y, tick_start);
@@ -605,6 +619,7 @@ impl Handler {
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-scroll-action>
     fn dispatch_scroll_action(
         &self,
+        source_id: &str,
         action: &WheelScrollAction,
         tick_duration: u64,
     ) -> Result<(), ErrorStatus> {
@@ -616,51 +631,61 @@ impl Handler {
 
         let tick_start = Instant::now();
 
-        // Step 1
+        // Step 1. Let x offset be equal to the x property of action object.
         let Some(x_offset) = action.x else {
             return Err(ErrorStatus::InvalidArgument);
         };
 
-        // Step 2
+        // Step 2. Let y offset be equal to the y property of action object.
         let Some(y_offset) = action.y else {
             return Err(ErrorStatus::InvalidArgument);
         };
 
-        // Step 3 - 4
-        // Get coordinates relative to an origin.
-        let (x, y) = match action.origin {
-            PointerOrigin::Viewport => (x_offset, y_offset),
-            PointerOrigin::Pointer => return Err(ErrorStatus::InvalidArgument),
-            PointerOrigin::Element(ref web_element) => {
-                self.get_element_in_view_center_point(web_element)?
-            },
-        };
+        // Step 3. Let origin be equal to the origin property of action object.
+        let origin = &action.origin;
+
+        // Step 4. Let (x, y) be the result of trying to get coordinates relative to an origin
+        // with source, x offset, y offset, origin, browsing context, and actions options.
+        let (x, y) =
+            self.get_origin_relative_coordinates(origin, x_offset as _, y_offset as _, source_id)?;
 
         // Step 5 - 6
-        self.check_viewport_bound(x as _, y as _)?;
+        self.check_viewport_bound(x, y)?;
 
-        // Step 7 - 8
+        // Step 7. Let delta x be equal to the deltaX property of action object.
         let Some(delta_x) = action.deltaX else {
             return Err(ErrorStatus::InvalidArgument);
         };
 
+        // Step 8. Let delta y be equal to the deltaY property of action object.
         let Some(delta_y) = action.deltaY else {
             return Err(ErrorStatus::InvalidArgument);
         };
 
-        // Step 9
+        // Step 9. Let duration be equal to action object's duration property
+        // if it is not undefined, or tick duration otherwise.
         let duration = match action.duration {
             Some(duration) => duration,
             None => tick_duration,
         };
 
-        // Step 10
+        // Step 10. If duration is greater than 0 and inside any implementation-defined bounds,
+        // asynchronously wait for an implementation defined amount of time to pass.
         if duration > 0 {
             thread::sleep(Duration::from_millis(WHEELSCROLL_INTERVAL));
         }
 
-        // Step 11
-        self.perform_scroll(duration, x, y, delta_x, delta_y, 0, 0, tick_start);
+        // Step 11. Perform a scroll with arguments global key state, duration, x, y, delta x, delta y, 0, 0.
+        self.perform_scroll(
+            duration,
+            x,
+            y,
+            delta_x as _,
+            delta_y as _,
+            0.0,
+            0.0,
+            tick_start,
+        );
 
         // Step 12
         Ok(())
@@ -671,27 +696,31 @@ impl Handler {
     fn perform_scroll(
         &self,
         duration: u64,
-        x: i64,
-        y: i64,
-        target_delta_x: i64,
-        target_delta_y: i64,
-        mut curr_delta_x: i64,
-        mut curr_delta_y: i64,
+        x: f64,
+        y: f64,
+        target_delta_x: f64,
+        target_delta_y: f64,
+        mut curr_delta_x: f64,
+        mut curr_delta_y: f64,
         tick_start: Instant,
     ) {
         let session = self.session().unwrap();
 
-        // Step 1
+        // Step 1. Let time delta be the time since the beginning of the current tick,
+        // measured in milliseconds on a monotonic clock.
         let time_delta = tick_start.elapsed().as_millis();
 
-        // Step 2
+        // Step 2. Let duration ratio be the ratio of time delta and duration,
+        // if duration is greater than 0, or 1 otherwise.
         let duration_ratio = if duration > 0 {
             time_delta as f64 / duration as f64
         } else {
             1.0
         };
 
-        // Step 3
+        // Step 3. If duration ratio is 1, or close enough to 1 that
+        // the implementation will not further subdivide the move action,
+        // let last be true. Otherwise let last be false.
         let last = 1.0 - duration_ratio < 0.001;
 
         // Step 4
@@ -699,15 +728,15 @@ impl Handler {
             (target_delta_x - curr_delta_x, target_delta_y - curr_delta_y)
         } else {
             (
-                (duration_ratio * target_delta_x as f64) as i64 - curr_delta_x,
-                (duration_ratio * target_delta_y as f64) as i64 - curr_delta_y,
+                duration_ratio * target_delta_x - curr_delta_x,
+                duration_ratio * target_delta_y - curr_delta_y,
             )
         };
 
         // Step 5
         // Actually "last" should not be checked here based on spec.
         // However, we need to send the webdriver id at the final perform.
-        if delta_x != 0 || delta_y != 0 || last {
+        if delta_x != 0.0 || delta_y != 0.0 || last {
             // Perform implementation-specific action dispatch steps
             let msg_id = if last {
                 self.increment_num_pending_actions();
@@ -717,10 +746,10 @@ impl Handler {
             };
             let cmd_msg = WebDriverCommandMsg::WheelScrollAction(
                 session.webview_id,
-                x as f32,
-                y as f32,
-                delta_x as f64,
-                delta_y as f64,
+                x,
+                y,
+                delta_x,
+                delta_y,
                 msg_id,
             );
             let _ = self.send_message_to_embedder(cmd_msg);
