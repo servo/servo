@@ -20,6 +20,7 @@ use log::warn;
 use servo_config::opts::DebugOptions;
 use style::Zero;
 use style::color::AbsoluteColor;
+use style::computed_values::background_attachment::SingleComputedValue as BackgroundAttachment;
 use style::computed_values::float::T as ComputedFloat;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::overflow_x::T as ComputedOverflow;
@@ -644,6 +645,15 @@ impl StackingContext {
             painting_area_override: Some(painting_area),
             positioning_area_override: None,
         };
+
+        // Handling background-attachment: fixed. We set `current_scroll_node_id` to
+        // `root_reference_frame_id`, so that the background won't scroll when scrolling its content.
+        let background = painter.style.get_background();
+        let layer_index = background.background_attachment.0.len() - 1;
+        if BackgroundAttachment::Fixed == background.background_attachment.0[layer_index] {
+            builder.current_scroll_node_id = builder.compositor_info.root_reference_frame_id;
+        }
+
         fragment_builder.build_background_image(builder, &painter);
     }
 
