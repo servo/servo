@@ -791,7 +791,7 @@ impl Handler {
         let session = self.session()?;
 
         // Step 1
-        if session.page_loading_strategy == "none".to_string() {
+        if session.page_loading_strategy == "none" {
             return Ok(WebDriverResponse::Void);
         }
 
