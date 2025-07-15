@@ -154,13 +154,14 @@ impl TextDecoderStream {
     }
 
     pub(crate) fn new_with_proto(
+        cx: SafeJSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
         encoding: &'static Encoding,
         fatal: bool,
         ignoreBOM: bool,
         can_gc: CanGc,
-    ) -> DomRoot<Self> {
+    ) -> Fallible<DomRoot<Self>> {
         let decoder = if ignoreBOM {
             encoding.new_decoder()
         } else {
@@ -173,18 +174,14 @@ impl TextDecoderStream {
             decoder: decoder.clone(),
             in_stream: in_stream.clone(),
         };
+        let cancel = None;
+        let flush = None; // TODO: impl flush and enqueue
         let transform = TransformerTransformAlgorithmType::Native(Rc::new(transform));
-        let controller = TransformStreamDefaultController::new_with_algorithms(
-            global,
-            None,
-            None,
-            Some(transform),
-            can_gc,
-        );
-        let transform_stream = TransformStream::new_with_proto(global, None, can_gc);
-        transform_stream.set_up_transform_stream_default_controller(&controller);
 
-        reflect_dom_object_with_proto(
+        let transform_stream = TransformStream::new_with_proto(global, None, can_gc);
+        transform_stream.set_up(cx, global, cancel, flush, transform, can_gc)?;
+
+        Ok(reflect_dom_object_with_proto(
             Box::new(Self::new_inherited(
                 encoding,
                 fatal,
@@ -196,7 +193,7 @@ impl TextDecoderStream {
             global,
             proto,
             can_gc,
-        )
+        ))
     }
 
     // https://encoding.spec.whatwg.org/#flush-and-enqueue
@@ -224,14 +221,15 @@ impl TextDecoderStreamMethods<crate::DomTypeHolder> for TextDecoderStream {
             },
         };
 
-        Ok(Self::new_with_proto(
+        Self::new_with_proto(
+            GlobalScope::get_cx(),
             global,
             proto,
             encoding,
             options.fatal,
             options.ignoreBOM,
             can_gc,
-        ))
+        )
     }
 
     // https://encoding.spec.whatwg.org/#dom-textdecoder-encoding
