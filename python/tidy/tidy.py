@@ -7,7 +7,6 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-from itertools import chain
 import configparser
 import fnmatch
 import glob
@@ -19,7 +18,7 @@ import re
 import subprocess
 import sys
 from dataclasses import dataclass
-from typing import Any, Dict, Generator, List, TypedDict, cast, LiteralString
+from typing import Any, Dict, List, TypedDict, cast, LiteralString, TypeVar
 from collections.abc import Iterator, Callable
 
 import colorama
@@ -43,6 +42,10 @@ ERROR_RAW_URL_IN_RUSTDOC = "Found raw link in rustdoc. Please escape it with ang
 
 sys.path.append(os.path.join(WPT_PATH, "tests"))
 sys.path.append(os.path.join(WPT_PATH, "tests", "tools", "wptrunner"))
+
+TCF = TypeVar("TCF")
+
+GenericCheckingFunction = Callable[[str, TCF], Iterator[tuple[int, str]]]
 
 IgnoreConfig = TypedDict(
     "IgnoreConfig",
@@ -144,7 +147,7 @@ WEBIDL_STANDARDS = [
 ]
 
 
-def is_iter_empty(iterator: Iterator[str]) -> tuple[bool, Iterator[str]] | tuple[bool, chain[str]]:
+def is_iter_empty(iterator: Iterator[str]) -> tuple[bool, Iterator[str]]:
     try:
         obj = next(iterator)
         return True, itertools.chain((obj,), iterator)
@@ -156,7 +159,7 @@ def normalize_path(path: str) -> str:
     return os.path.relpath(os.path.abspath(path), TOPDIR)
 
 
-def normilize_paths(paths: list[str] | str) -> list[str] | str:
+def normalize_paths(paths: list[str] | str) -> list[str] | str:
     if isinstance(paths, str):
         return os.path.join(*paths.split("/"))
     else:
@@ -182,7 +185,7 @@ def git_changes_since_last_merge(path):
         return []
 
     args = ["git", "diff", "--name-only", last_merge, path]
-    file_list = normilize_paths(subprocess.check_output(args, universal_newlines=True).splitlines())
+    file_list = normalize_paths(subprocess.check_output(args, universal_newlines=True).splitlines())
 
     return file_list
 
@@ -190,7 +193,7 @@ def git_changes_since_last_merge(path):
 class FileList(object):
     directory: str
     excluded: list[str]
-    generator: Generator[str, None, None]
+    generator: Iterator[str]
 
     def __init__(self, directory, only_changed_files=False, exclude_dirs=[], progress=True) -> None:
         self.directory = directory
@@ -201,12 +204,12 @@ class FileList(object):
         if progress:
             self.generator = progress_wrapper(self.generator)
 
-    def _default_walk(self) -> Generator[str, None, None]:
+    def _default_walk(self) -> Iterator[str]:
         for root, _, files in os.walk(self.directory):
             for f in files:
                 yield os.path.join(root, f)
 
-    def _git_changed_files(self) -> Generator[str, None, None]:
+    def _git_changed_files(self) -> Iterator[str]:
         file_list = git_changes_since_last_merge(self.directory)
         if not file_list:
             return
@@ -214,14 +217,14 @@ class FileList(object):
             if not any(os.path.join(".", os.path.dirname(f)).startswith(path) for path in self.excluded):
                 yield os.path.join(".", f)
 
-    def _filter_excluded(self) -> Generator[str, None, None]:
+    def _filter_excluded(self) -> Iterator[str]:
         for root, dirs, files in os.walk(self.directory, topdown=True):
             # modify 'dirs' in-place so that we don't do unnecessary traversals in excluded directories
             dirs[:] = [d for d in dirs if not any(os.path.join(root, d).startswith(name) for name in self.excluded)]
             for rel_path in files:
                 yield os.path.join(root, rel_path)
 
-    def __iter__(self) -> Generator[str, None, None]:
+    def __iter__(self) -> Iterator[str]:
         return self.generator
 
     def next(self) -> str:
@@ -263,12 +266,14 @@ def uncomment(line: bytes) -> bytes:
     return line
 
 
-def is_apache_licensed(header: str) -> bool | None:
+def is_apache_licensed(header: str) -> bool:
     if "SPDX-License-Identifier: Apache-2.0 OR MIT" in header:
         return True
 
     if APACHE in header:
         return any(c in header for c in COPYRIGHT)
+
+    return False
 
 
 def check_license(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
@@ -910,7 +915,7 @@ def check_spec(file_name, lines) -> Iterator[tuple[int, str]]:
                     break
 
 
-def check_config_file(config_file: LiteralString, print_text=True) -> Iterator[tuple[str, int, str]]:
+def check_config_file(config_file: LiteralString, print_text: bool = True) -> Iterator[tuple[str, int, str]]:
     # Check if config file exists
     if not os.path.exists(config_file):
         print("%s config file is required but was not found" % config_file)
@@ -986,13 +991,13 @@ def check_config_file(config_file: LiteralString, print_text=True) -> Iterator[t
     parse_config(config_content)
 
 
-def parse_config(config_file) -> None:
+def parse_config(config_file: dict) -> None:
     exclude = config_file.get("ignore", {})
     # Add list of ignored directories to config
     ignored_directories = [d for p in exclude.get("directories", []) for d in (glob.glob(p) or [p])]
-    config["ignore"]["directories"] += normilize_paths(ignored_directories)
+    config["ignore"]["directories"] += normalize_paths(ignored_directories)
     # Add list of ignored files to config
-    config["ignore"]["files"] += normilize_paths(exclude.get("files", []))
+    config["ignore"]["files"] += normalize_paths(exclude.get("files", []))
     # Add list of ignored packages to config
     config["ignore"]["packages"] = exclude.get("packages", [])
 
@@ -1001,7 +1006,7 @@ def parse_config(config_file) -> None:
     # Fix the paths (OS-dependent)
     for path, exts in dirs_to_check.items():
         # pyrefly: ignore[bad-argument-type]
-        config["check_ext"][normilize_paths(path)] = exts
+        config["check_ext"][normalize_paths(path)] = exts
 
     # Add list of blocked packages
     config["blocked-packages"] = config_file.get("blocked-packages", {})
@@ -1029,7 +1034,10 @@ We only expect files with {ext} extensions in {dir_name}""".format(**details)
 
 
 def collect_errors_for_files(
-    files_to_check, checking_functions, line_checking_functions, print_text=True
+    files_to_check: Iterator[str],
+    checking_functions: tuple[GenericCheckingFunction[bytes], ...],
+    line_checking_functions: tuple[GenericCheckingFunction[list[bytes]], ...],
+    print_text=True,
 ) -> Iterator[tuple[str, int, str]]:
     (has_element, files_to_check) = is_iter_empty(files_to_check)
     if not has_element:
@@ -1063,10 +1071,8 @@ def scan(only_changed_files=False, progress=False, github_annotations=False) -> 
     directory_errors = check_directory_files(config["check_ext"])
     # standard checks
     files_to_check = filter_files(".", only_changed_files, progress)
-    CheckingFunction = Callable[[str, bytes], Iterator[tuple[int, str]]]
-    checking_functions: tuple[CheckingFunction, ...] = (check_webidl_spec,)
-    LineCheckingFunction = Callable[[str, list[bytes]], Iterator[tuple[int, str]]]
-    line_checking_functions: tuple[LineCheckingFunction, ...] = (
+    checking_functions: tuple[GenericCheckingFunction[bytes], ...] = (check_webidl_spec,)
+    line_checking_functions: tuple[GenericCheckingFunction[list[bytes]], ...] = (
         check_license,
         check_by_line,
         check_toml,
