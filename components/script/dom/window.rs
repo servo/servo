@@ -40,7 +40,6 @@ use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as 
 use euclid::{Point2D, Scale, Size2D, Vector2D};
 use fonts::FontContext;
 use ipc_channel::ipc::{self, IpcSender};
-use js::conversions::ToJSValConvertible;
 use js::glue::DumpJSStack;
 use js::jsapi::{
     GCReason, Heap, JS_GC, JSAutoRealm, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE,
@@ -70,6 +69,7 @@ use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_bindings::codegen::GenericBindings::NavigatorBinding::NavigatorMethods;
 use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMethods;
+use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interfaces::WindowHelpers;
 use script_bindings::root::Root;
 use script_traits::ScriptThreadMessage;
@@ -1796,12 +1796,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     // https://dom.spec.whatwg.org/#dom-window-event
-    #[allow(unsafe_code)]
     fn Event(&self, cx: JSContext, rval: MutableHandleValue) {
         if let Some(ref event) = *self.current_event.borrow() {
-            unsafe {
-                event.reflector().get_jsobject().to_jsval(*cx, rval);
-            }
+            event.reflector().get_jsobject().safe_to_jsval(cx, rval);
         }
     }
 

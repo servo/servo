@@ -13,6 +13,7 @@ use js::jsval::{JSVal, UndefinedValue};
 use js::rust::wrappers::JS_GetPendingException;
 use js::rust::{HandleObject, HandleValue as SafeHandleValue, HandleValue, MutableHandleValue};
 use js::typedarray::Uint8;
+use script_bindings::conversions::SafeToJSValConvertible;
 
 use super::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
 use super::bindings::root::Dom;
@@ -30,7 +31,6 @@ use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestream::ReadableStream;
 use crate::dom::readablestreamdefaultreader::ReadRequest;
 use crate::dom::underlyingsourcecontainer::{UnderlyingSourceContainer, UnderlyingSourceType};
-use crate::js::conversions::ToJSValConvertible;
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
@@ -147,18 +147,15 @@ impl EnqueuedValue {
         }
     }
 
-    #[allow(unsafe_code)]
     fn to_jsval(&self, cx: SafeJSContext, rval: MutableHandleValue, can_gc: CanGc) {
         match self {
             EnqueuedValue::Native(chunk) => {
                 rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
                 create_buffer_source::<Uint8>(cx, chunk, array_buffer_ptr.handle_mut(), can_gc)
                     .expect("failed to create buffer source for native chunk.");
-                unsafe { array_buffer_ptr.to_jsval(*cx, rval) };
+                array_buffer_ptr.safe_to_jsval(cx, rval);
             },
-            EnqueuedValue::Js(value_with_size) => unsafe {
-                value_with_size.value.to_jsval(*cx, rval);
-            },
+            EnqueuedValue::Js(value_with_size) => value_with_size.value.safe_to_jsval(cx, rval),
             EnqueuedValue::CloseSentinel => {
                 unreachable!("The close sentinel is never made available as a js val.")
             },

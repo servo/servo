@@ -5,7 +5,6 @@
 use std::ptr;
 
 use dom_struct::dom_struct;
-use js::conversions::ToJSValConvertible;
 use js::jsapi::{
     ESClass, GetBuiltinClass, IsArrayBufferObject, JS_DeleteUCProperty,
     JS_GetOwnUCPropertyDescriptor, JS_GetStringLength, JS_IsArrayBufferViewObject, JSObject,
@@ -20,6 +19,7 @@ use net_traits::indexeddb_thread::{
     IndexedDBThreadMsg, SyncOperation,
 };
 use profile_traits::ipc;
+use script_bindings::conversions::SafeToJSValConvertible;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::IDBDatabaseBinding::IDBObjectStoreParameters;
@@ -236,7 +236,7 @@ impl IDBObjectStore {
                             rooted!(in(*cx) let input_val = current_val.to_string());
                             unsafe {
                                 let string_len = JS_GetStringLength(*input_val) as u64;
-                                string_len.to_jsval(*cx, return_val);
+                                string_len.safe_to_jsval(cx, return_val);
                             }
                             break;
                         }

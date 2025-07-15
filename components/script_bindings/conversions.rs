@@ -31,9 +31,21 @@ use crate::inheritance::Castable;
 use crate::num::Finite;
 use crate::reflector::{DomObject, Reflector};
 use crate::root::DomRoot;
+use crate::script_runtime::JSContext as SafeJSContext;
 use crate::str::{ByteString, DOMString, USVString};
 use crate::trace::RootedTraceableBox;
 use crate::utils::{DOMClass, DOMJSClass};
+
+/// A safe wrapper for `ToJSValConvertible`.
+pub trait SafeToJSValConvertible {
+    fn safe_to_jsval(&self, cx: SafeJSContext, rval: MutableHandleValue);
+}
+
+impl<T: ToJSValConvertible> SafeToJSValConvertible for T {
+    fn safe_to_jsval(&self, cx: SafeJSContext, rval: MutableHandleValue) {
+        unsafe { self.to_jsval(*cx, rval) };
+    }
+}
 
 /// A trait to check whether a given `JSObject` implements an IDL interface.
 pub trait IDLInterface {

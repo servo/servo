@@ -6,11 +6,11 @@ use std::ptr;
 
 use html5ever::interface::QualName;
 use html5ever::{LocalName, local_name, ns};
-use js::conversions::ToJSValConvertible;
 use js::glue::{UnwrapObjectDynamic, UnwrapObjectStatic};
 use js::jsapi::{CallArgs, CurrentGlobalOrNull, JSAutoRealm, JSObject};
 use js::rust::wrappers::{JS_SetPrototype, JS_WrapObject};
 use js::rust::{HandleObject, MutableHandleObject, MutableHandleValue};
+use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interface::get_desired_proto;
 
 use super::utils::ProtoOrIfaceArray;
@@ -242,7 +242,7 @@ fn html_constructor(
 
         JS_SetPrototype(*cx, element.handle(), prototype.handle());
 
-        result.to_jsval(*cx, MutableHandleValue::from_raw(call_args.rval()));
+        result.safe_to_jsval(cx, MutableHandleValue::from_raw(call_args.rval()));
     }
     Ok(())
 }

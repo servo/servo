@@ -22,13 +22,13 @@ use net_traits::{
     CoreResourceMsg, FetchChannels, MessageData, WebSocketDomAction, WebSocketNetworkEvent,
 };
 use profile_traits::ipc as ProfiledIpc;
+use script_bindings::conversions::SafeToJSValConvertible;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMethods};
 use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence;
-use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -590,24 +590,24 @@ impl TaskOnce for MessageReceivedTask {
 
         // Step 2-5.
         let global = ws.global();
-        // GlobalScope::get_cx() returns a valid `JSContext` pointer, so this is safe.
-        unsafe {
-            let cx = GlobalScope::get_cx();
-            let _ac = JSAutoRealm::new(*cx, ws.reflector().get_jsobject().get());
-            rooted!(in(*cx) let mut message = UndefinedValue());
-            match self.message {
-                MessageData::Text(text) => text.to_jsval(*cx, message.handle_mut()),
-                MessageData::Binary(data) => match ws.binary_type.get() {
-                    BinaryType::Blob => {
-                        let blob = Blob::new(
-                            &global,
-                            BlobImpl::new_from_bytes(data, "".to_owned()),
-                            CanGc::note(),
-                        );
-                        blob.to_jsval(*cx, message.handle_mut());
-                    },
-                    BinaryType::Arraybuffer => {
-                        rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
+        let cx = GlobalScope::get_cx();
+        let _ac = JSAutoRealm::new(*cx, ws.reflector().get_jsobject().get());
+        rooted!(in(*cx) let mut message = UndefinedValue());
+        match self.message {
+            MessageData::Text(text) => text.safe_to_jsval(cx, message.handle_mut()),
+            MessageData::Binary(data) => match ws.binary_type.get() {
+                BinaryType::Blob => {
+                    let blob = Blob::new(
+                        &global,
+                        BlobImpl::new_from_bytes(data, "".to_owned()),
+                        CanGc::note(),
+                    );
+                    blob.safe_to_jsval(cx, message.handle_mut());
+                },
+                BinaryType::Arraybuffer => {
+                    rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
+                    // GlobalScope::get_cx() returns a valid `JSContext` pointer, so this is safe.
+                    unsafe {
                         assert!(
                             ArrayBuffer::create(
                                 *cx,
@@ -615,21 +615,21 @@ impl TaskOnce for MessageReceivedTask {
                                 array_buffer.handle_mut()
                             )
                             .is_ok()
-                        );
+                        )
+                    };
 
-                        (*array_buffer).to_jsval(*cx, message.handle_mut());
-                    },
+                    (*array_buffer).safe_to_jsval(cx, message.handle_mut());
                 },
-            }
-            MessageEvent::dispatch_jsval(
-                ws.upcast(),
-                &global,
-                message.handle(),
-                Some(&ws.origin().ascii_serialization()),
-                None,
-                vec![],
-                CanGc::note(),
-            );
+            },
         }
+        MessageEvent::dispatch_jsval(
+            ws.upcast(),
+            &global,
+            message.handle(),
+            Some(&ws.origin().ascii_serialization()),
+            None,
+            vec![],
+            CanGc::note(),
+        );
     }
 }
