@@ -51,26 +51,95 @@ impl Callback for TransformTransformPromiseRejection {
     }
 }
 
+pub(crate) trait TransformerCancelAlgorithm: Trace {
+    fn run(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        chunk: SafeHandleValue,
+        can_gc: CanGc,
+    ) -> Fallible<Rc<Promise>>;
+}
+
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+enum TransformerCancelAlgorithmType {
+    Js(#[ignore_malloc_size_of = "Rc is hard"] Rc<TransformerCancelCallback>),
+    Native(#[ignore_malloc_size_of = "Rc is hard"] Rc<dyn TransformerCancelAlgorithm>),
+}
+
+impl TransformerCancelAlgorithmType {
+    fn call(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        this_obj: &SafeHandleObject,
+        chunk: SafeHandleValue,
+        can_gc: CanGc
+    ) -> Fallible<Rc<Promise>> {
+        match self {
+            TransformerCancelAlgorithmType::Js(cancel) => {
+                cancel.Call_(this_obj, chunk, ExceptionHandling::Rethrow, can_gc)
+            },
+            TransformerCancelAlgorithmType::Native(cancel) => {
+                cancel.run(cx, global, chunk, can_gc)
+            },
+        }
+    }
+}
+
+pub(crate) trait TransformerFlushAlgorithm: Trace {
+    fn run(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        controller: &TransformStreamDefaultController,
+        can_gc: CanGc,
+    ) -> Fallible<Rc<Promise>>;
+}
+
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+enum TransformerFlushAlgorithmType {
+    Js(#[ignore_malloc_size_of = "Rc is hard"] Rc<TransformerFlushCallback>),
+    Native(#[ignore_malloc_size_of = "Rc is hard"] Rc<dyn TransformerFlushAlgorithm>),
+}
+
+impl TransformerFlushAlgorithmType {
+    fn call(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        this_obj: &SafeHandleObject,
+        controller: &TransformStreamDefaultController,
+        can_gc: CanGc,
+    ) -> Fallible<Rc<Promise>> {
+        match self {
+            TransformerFlushAlgorithmType::Js(flush) => {
+                flush.Call_(this_obj, controller, ExceptionHandling::Rethrow, can_gc)
+            },
+            TransformerFlushAlgorithmType::Native(flush) => flush.run(cx, global, controller, can_gc),
+        }
+    }
+}
+
 pub(crate) trait TransformerTransformAlgorithm: Trace {
     // TODO: are all the args necessary?
     fn run(
         &self,
         cx: SafeJSContext,
         global: &GlobalScope,
-        this_obj: &SafeHandleObject,
         chunk: SafeHandleValue,
         controller: &TransformStreamDefaultController,
         can_gc: CanGc,
     ) -> Fallible<Rc<Promise>>;
 }
 
-#[derive(Clone, JSTraceable)]
-enum TransformAlgorithmType {
-    Js(Rc<TransformerTransformCallback>),
-    Native(Rc<dyn TransformerTransformAlgorithm>),
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+enum TransformerTransformAlgorithmType {
+    Js(#[ignore_malloc_size_of = "Rc is hard"] Rc<TransformerTransformCallback>),
+    Native(#[ignore_malloc_size_of = "Rc is hard"] Rc<dyn TransformerTransformAlgorithm>),
 }
 
-impl TransformAlgorithmType {
+impl TransformerTransformAlgorithmType {
     fn call(
         &self,
         cx: SafeJSContext,
@@ -88,42 +157,7 @@ impl TransformAlgorithmType {
                 ExceptionHandling::Rethrow,
                 can_gc,
             ),
-            Self::Native(transform) => transform.run(cx, global, this_obj, chunk, controller, can_gc),
-        }
-    }
-}
-
-pub(crate) trait TransformerFlushAlgorithm: Trace {
-    fn run(
-        &self,
-        cx: SafeJSContext,
-        global: &GlobalScope,
-        this_obj: &SafeHandleObject,
-        controller: &TransformStreamDefaultController,
-        can_gc: CanGc,
-    ) -> Fallible<Rc<Promise>>;
-}
-
-#[derive(Clone, JSTraceable)]
-enum FlushAlgorithmType {
-    Js(Rc<TransformerFlushCallback>),
-    Native(Rc<dyn TransformerFlushAlgorithm>),
-}
-
-impl FlushAlgorithmType {
-    fn call(
-        &self,
-        cx: SafeJSContext,
-        global: &GlobalScope,
-        this_obj: &SafeHandleObject,
-        controller: &TransformStreamDefaultController,
-        can_gc: CanGc,
-    ) -> Fallible<Rc<Promise>> {
-        match self {
-            FlushAlgorithmType::Js(flush) => {
-                flush.Call_(this_obj, controller, ExceptionHandling::Rethrow, can_gc)
-            },
-            FlushAlgorithmType::Native(flush) => flush.run(cx, global, this_obj, controller, can_gc),
+            Self::Native(transform) => transform.run(cx, global, chunk, controller, can_gc),
         }
     }
 }
@@ -134,16 +168,13 @@ pub struct TransformStreamDefaultController {
     reflector_: Reflector,
 
     /// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller-cancelalgorithm>
-    #[ignore_malloc_size_of = "Rc is hard"]
-    cancel: RefCell<Option<Rc<TransformerCancelCallback>>>,
+    cancel: RefCell<Option<TransformerCancelAlgorithmType>>,
 
     /// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller-flushalgorithm>
-    #[ignore_malloc_size_of = "Rc is hard"]
-    flush: RefCell<Option<FlushAlgorithmType>>,
+    flush: RefCell<Option<TransformerFlushAlgorithmType>>,
 
     /// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller-transformalgorithm>
-    #[ignore_malloc_size_of = "Rc is hard"]
-    transform: RefCell<Option<TransformAlgorithmType>>,
+    transform: RefCell<Option<TransformerTransformAlgorithmType>>,
 
     /// The JS object used as `this` when invoking sink algorithms.
     #[ignore_malloc_size_of = "mozjs"]
@@ -162,13 +193,14 @@ impl TransformStreamDefaultController {
     fn new_inherited(transformer: &Transformer) -> TransformStreamDefaultController {
         TransformStreamDefaultController {
             reflector_: Reflector::new(),
-            cancel: RefCell::new(transformer.cancel.clone()),
-            flush: RefCell::new(transformer.flush.clone().map(FlushAlgorithmType::Js)),
+            cancel: RefCell::new(transformer.cancel.clone()
+                .map(TransformerCancelAlgorithmType::Js)),
+            flush: RefCell::new(transformer.flush.clone().map(TransformerFlushAlgorithmType::Js)),
             transform: RefCell::new(
                 transformer
                     .transform
                     .clone()
-                    .map(TransformAlgorithmType::Js),
+                    .map(TransformerTransformAlgorithmType::Js),
             ),
             finish_promise: DomRefCell::new(None),
             stream: MutNullableDom::new(None),
@@ -248,15 +280,11 @@ impl TransformStreamDefaultController {
         let algo = self.transform.borrow().clone();
         let result = if let Some(transform) = algo {
             rooted!(in(*cx) let this_object = self.transform_obj.get());
-            let call_result = transform.call(cx, global, &this_object.handle(), chunk, self, can_gc);
-            match call_result {
-                Ok(p) => p,
-                Err(e) => {
-                    let p = Promise::new(global, can_gc);
-                    p.reject_error(e, can_gc);
-                    p
-                },
-            }
+            transform.call(cx, global, &this_object.handle(), chunk, self, can_gc).unwrap_or_else(|e| {
+                let p = Promise::new(global, can_gc);
+                p.reject_error(e, can_gc);
+                p
+            })
         } else {
             // Let transformAlgorithm be the following steps, taking a chunk argument:
             // Let result be TransformStreamDefaultControllerEnqueue(controller, chunk).
@@ -289,20 +317,17 @@ impl TransformStreamDefaultController {
         let algo = self.cancel.borrow().clone();
         let result = if let Some(cancel) = algo {
             rooted!(in(*cx) let this_object = self.transform_obj.get());
-            let call_result = cancel.Call_(
+            cancel.call(
+                cx, 
+                global,
                 &this_object.handle(),
                 chunk,
-                ExceptionHandling::Rethrow,
                 can_gc,
-            );
-            match call_result {
-                Ok(p) => p,
-                Err(e) => {
-                    let p = Promise::new(global, can_gc);
-                    p.reject_error(e, can_gc);
-                    p
-                },
-            }
+            ).unwrap_or_else(|e| {
+                let p = Promise::new(global, can_gc);
+                p.reject_error(e, can_gc);
+                p
+            })
         } else {
             // Let cancelAlgorithm be an algorithm which returns a promise resolved with undefined.
             Promise::new_resolved(global, cx, (), can_gc)
@@ -322,15 +347,11 @@ impl TransformStreamDefaultController {
         let algo = self.flush.borrow().clone();
         let result = if let Some(flush) = algo {
             rooted!(in(*cx) let this_object = self.transform_obj.get());
-            let call_result = flush.call(cx, global, &this_object.handle(), self, can_gc);
-            match call_result {
-                Ok(p) => p,
-                Err(e) => {
-                    let p = Promise::new(global, can_gc);
-                    p.reject_error(e, can_gc);
-                    p
-                },
-            }
+            flush.call(cx, global, &this_object.handle(), self, can_gc).unwrap_or_else(|e| {
+                let p = Promise::new(global, can_gc);
+                p.reject_error(e, can_gc);
+                p
+            })
         } else {
             // Let flushAlgorithm be an algorithm which returns a promise resolved with undefined.
             Promise::new_resolved(global, cx, (), can_gc)
