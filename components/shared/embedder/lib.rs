@@ -324,6 +324,7 @@ pub struct ScreenMetrics {
 pub struct TraversalId(String);
 
 impl TraversalId {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self(Uuid::new_v4().to_string())
     }
