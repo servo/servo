@@ -62,7 +62,7 @@ pub(crate) trait TransformerCancelAlgorithm: Trace {
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-enum TransformerCancelAlgorithmType {
+pub(crate) enum TransformerCancelAlgorithmType {
     Js(#[ignore_malloc_size_of = "Rc is hard"] Rc<TransformerCancelCallback>),
     Native(#[ignore_malloc_size_of = "Rc is hard"] Rc<dyn TransformerCancelAlgorithm>),
 }
@@ -74,15 +74,13 @@ impl TransformerCancelAlgorithmType {
         global: &GlobalScope,
         this_obj: &SafeHandleObject,
         chunk: SafeHandleValue,
-        can_gc: CanGc
+        can_gc: CanGc,
     ) -> Fallible<Rc<Promise>> {
         match self {
             TransformerCancelAlgorithmType::Js(cancel) => {
                 cancel.Call_(this_obj, chunk, ExceptionHandling::Rethrow, can_gc)
             },
-            TransformerCancelAlgorithmType::Native(cancel) => {
-                cancel.run(cx, global, chunk, can_gc)
-            },
+            TransformerCancelAlgorithmType::Native(cancel) => cancel.run(cx, global, chunk, can_gc),
         }
     }
 }
@@ -98,7 +96,7 @@ pub(crate) trait TransformerFlushAlgorithm: Trace {
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-enum TransformerFlushAlgorithmType {
+pub(crate) enum TransformerFlushAlgorithmType {
     Js(#[ignore_malloc_size_of = "Rc is hard"] Rc<TransformerFlushCallback>),
     Native(#[ignore_malloc_size_of = "Rc is hard"] Rc<dyn TransformerFlushAlgorithm>),
 }
@@ -116,7 +114,9 @@ impl TransformerFlushAlgorithmType {
             TransformerFlushAlgorithmType::Js(flush) => {
                 flush.Call_(this_obj, controller, ExceptionHandling::Rethrow, can_gc)
             },
-            TransformerFlushAlgorithmType::Native(flush) => flush.run(cx, global, controller, can_gc),
+            TransformerFlushAlgorithmType::Native(flush) => {
+                flush.run(cx, global, controller, can_gc)
+            },
         }
     }
 }
@@ -134,7 +134,7 @@ pub(crate) trait TransformerTransformAlgorithm: Trace {
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-enum TransformerTransformAlgorithmType {
+pub(crate) enum TransformerTransformAlgorithmType {
     Js(#[ignore_malloc_size_of = "Rc is hard"] Rc<TransformerTransformCallback>),
     Native(#[ignore_malloc_size_of = "Rc is hard"] Rc<dyn TransformerTransformAlgorithm>),
 }
@@ -191,21 +191,20 @@ pub struct TransformStreamDefaultController {
 impl TransformStreamDefaultController {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(transformer: &Transformer) -> TransformStreamDefaultController {
-        TransformStreamDefaultController {
-            reflector_: Reflector::new(),
-            cancel: RefCell::new(transformer.cancel.clone()
-                .map(TransformerCancelAlgorithmType::Js)),
-            flush: RefCell::new(transformer.flush.clone().map(TransformerFlushAlgorithmType::Js)),
-            transform: RefCell::new(
-                transformer
-                    .transform
-                    .clone()
-                    .map(TransformerTransformAlgorithmType::Js),
-            ),
-            finish_promise: DomRefCell::new(None),
-            stream: MutNullableDom::new(None),
-            transform_obj: Default::default(),
-        }
+        TransformStreamDefaultController::new_inherited_with_algorithms(
+            transformer
+                .cancel
+                .clone()
+                .map(TransformerCancelAlgorithmType::Js),
+            transformer
+                .flush
+                .clone()
+                .map(TransformerFlushAlgorithmType::Js),
+            transformer
+                .transform
+                .clone()
+                .map(TransformerTransformAlgorithmType::Js),
+        )
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
@@ -216,6 +215,40 @@ impl TransformStreamDefaultController {
     ) -> DomRoot<TransformStreamDefaultController> {
         reflect_dom_object(
             Box::new(TransformStreamDefaultController::new_inherited(transformer)),
+            global,
+            can_gc,
+        )
+    }
+
+    pub(crate) fn new_inherited_with_algorithms(
+        cancel: Option<TransformerCancelAlgorithmType>,
+        flush: Option<TransformerFlushAlgorithmType>,
+        transform: Option<TransformerTransformAlgorithmType>,
+    ) -> TransformStreamDefaultController {
+        TransformStreamDefaultController {
+            reflector_: Reflector::new(),
+            cancel: RefCell::new(cancel),
+            flush: RefCell::new(flush),
+            transform: RefCell::new(transform),
+            transform_obj: Default::default(),
+            stream: MutNullableDom::new(None),
+            finish_promise: DomRefCell::new(None),
+        }
+    }
+
+    pub(crate) fn new_with_algorithms(
+        global: &GlobalScope,
+        cancel: Option<TransformerCancelAlgorithmType>,
+        flush: Option<TransformerFlushAlgorithmType>,
+        transform: Option<TransformerTransformAlgorithmType>,
+        can_gc: CanGc,
+    ) -> DomRoot<TransformStreamDefaultController> {
+        reflect_dom_object(
+            Box::new(
+                TransformStreamDefaultController::new_inherited_with_algorithms(
+                    cancel, flush, transform,
+                ),
+            ),
             global,
             can_gc,
         )
@@ -280,11 +313,13 @@ impl TransformStreamDefaultController {
         let algo = self.transform.borrow().clone();
         let result = if let Some(transform) = algo {
             rooted!(in(*cx) let this_object = self.transform_obj.get());
-            transform.call(cx, global, &this_object.handle(), chunk, self, can_gc).unwrap_or_else(|e| {
-                let p = Promise::new(global, can_gc);
-                p.reject_error(e, can_gc);
-                p
-            })
+            transform
+                .call(cx, global, &this_object.handle(), chunk, self, can_gc)
+                .unwrap_or_else(|e| {
+                    let p = Promise::new(global, can_gc);
+                    p.reject_error(e, can_gc);
+                    p
+                })
         } else {
             // Let transformAlgorithm be the following steps, taking a chunk argument:
             // Let result be TransformStreamDefaultControllerEnqueue(controller, chunk).
@@ -317,17 +352,13 @@ impl TransformStreamDefaultController {
         let algo = self.cancel.borrow().clone();
         let result = if let Some(cancel) = algo {
             rooted!(in(*cx) let this_object = self.transform_obj.get());
-            cancel.call(
-                cx, 
-                global,
-                &this_object.handle(),
-                chunk,
-                can_gc,
-            ).unwrap_or_else(|e| {
-                let p = Promise::new(global, can_gc);
-                p.reject_error(e, can_gc);
-                p
-            })
+            cancel
+                .call(cx, global, &this_object.handle(), chunk, can_gc)
+                .unwrap_or_else(|e| {
+                    let p = Promise::new(global, can_gc);
+                    p.reject_error(e, can_gc);
+                    p
+                })
         } else {
             // Let cancelAlgorithm be an algorithm which returns a promise resolved with undefined.
             Promise::new_resolved(global, cx, (), can_gc)
@@ -347,11 +378,13 @@ impl TransformStreamDefaultController {
         let algo = self.flush.borrow().clone();
         let result = if let Some(flush) = algo {
             rooted!(in(*cx) let this_object = self.transform_obj.get());
-            flush.call(cx, global, &this_object.handle(), self, can_gc).unwrap_or_else(|e| {
-                let p = Promise::new(global, can_gc);
-                p.reject_error(e, can_gc);
-                p
-            })
+            flush
+                .call(cx, global, &this_object.handle(), self, can_gc)
+                .unwrap_or_else(|e| {
+                    let p = Promise::new(global, can_gc);
+                    p.reject_error(e, can_gc);
+                    p
+                })
         } else {
             // Let flushAlgorithm be an algorithm which returns a promise resolved with undefined.
             Promise::new_resolved(global, cx, (), can_gc)
