@@ -10,7 +10,7 @@ use embedder_traits::{
     AllowOrDeny, AuthenticationResponse, ContextMenuResult, Cursor, FilterPattern,
     GamepadHapticEffectType, InputMethodType, KeyboardEvent, LoadStatus, MediaSessionEvent,
     Notification, PermissionFeature, RgbColor, ScreenGeometry, SelectElementOptionOrOptgroup,
-    SimpleDialog, WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
+    SimpleDialog, TraversalId, WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
 };
 use ipc_channel::ipc::IpcSender;
 use serde::Serialize;
@@ -438,6 +438,8 @@ pub trait WebViewDelegate {
     /// The history state has changed.
     // changed pattern; maybe wasteful if embedder doesn’t care?
     fn notify_history_changed(&self, _webview: WebView, _: Vec<Url>, _: usize) {}
+    /// A history traversal operation is complete.
+    fn notify_traversal_complete(&self, _webview: WebView, _: TraversalId) {}
     /// Page content has closed this [`WebView`] via `window.close()`. It's the embedder's
     /// responsibility to remove the [`WebView`] from the interface when this notification
     /// occurs.

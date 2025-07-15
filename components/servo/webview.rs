@@ -14,10 +14,9 @@ use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
     Cursor, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus, MediaSessionActionType,
-    ScreenGeometry, Theme, ViewportDetails, WebDriverLoadStatus,
+    ScreenGeometry, Theme, TraversalId, ViewportDetails,
 };
 use euclid::{Point2D, Scale, Size2D};
-use ipc_channel::ipc::IpcSender;
 use servo_geometry::DeviceIndependentPixel;
 use url::Url;
 use webrender_api::ScrollLocation;
@@ -417,38 +416,28 @@ impl WebView {
             .send(EmbedderToConstellationMessage::Reload(self.id()))
     }
 
-    pub fn go_back(&self, amount: usize) {
+    pub fn go_back(&self, amount: usize) -> TraversalId {
+        let traversal_id = TraversalId::new();
         self.inner()
             .constellation_proxy
             .send(EmbedderToConstellationMessage::TraverseHistory(
                 self.id(),
                 TraversalDirection::Back(amount),
-                None,
-            ))
+                traversal_id.clone(),
+            ));
+        traversal_id
     }
 
-    pub fn go_forward(&self, amount: usize) {
+    pub fn go_forward(&self, amount: usize) -> TraversalId {
+        let traversal_id = TraversalId::new();
         self.inner()
             .constellation_proxy
             .send(EmbedderToConstellationMessage::TraverseHistory(
                 self.id(),
                 TraversalDirection::Forward(amount),
-                None,
-            ))
-    }
-
-    pub fn traverse_history(
-        &self,
-        direction: TraversalDirection,
-        webdriver_sender: IpcSender<WebDriverLoadStatus>,
-    ) {
-        self.inner()
-            .constellation_proxy
-            .send(EmbedderToConstellationMessage::TraverseHistory(
-                self.id(),
-                direction,
-                Some(webdriver_sender),
-            ))
+                traversal_id.clone(),
+            ));
+        traversal_id
     }
 
     /// Ask the [`WebView`] to scroll web content. Note that positive scroll offsets reveal more

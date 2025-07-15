@@ -20,7 +20,7 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::id::{MessagePortId, PipelineId, WebViewId};
 use embedder_traits::{
     CompositorHitTestResult, Cursor, InputEvent, JavaScriptEvaluationId, MediaSessionActionType,
-    Theme, ViewportDetails, WebDriverCommandMsg, WebDriverCommandResponse, WebDriverLoadStatus,
+    Theme, TraversalId, ViewportDetails, WebDriverCommandMsg, WebDriverCommandResponse,
 };
 pub use from_script_message::*;
 use ipc_channel::ipc::IpcSender;
@@ -48,11 +48,7 @@ pub enum EmbedderToConstellationMessage {
     /// Clear the network cache.
     ClearCache,
     /// Request to traverse the joint session history of the provided browsing context.
-    TraverseHistory(
-        WebViewId,
-        TraversalDirection,
-        Option<IpcSender<WebDriverLoadStatus>>,
-    ),
+    TraverseHistory(WebViewId, TraversalDirection, TraversalId),
     /// Inform the Constellation that a `WebView`'s [`ViewportDetails`] have changed.
     ChangeViewportDetails(WebViewId, ViewportDetails, WindowSizeType),
     /// Inform the constellation of a theme change.

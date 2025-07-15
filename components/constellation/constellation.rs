@@ -1381,12 +1381,14 @@ where
             EmbedderToConstellationMessage::TraverseHistory(
                 webview_id,
                 direction,
-                response_sender,
+                traversal_id,
             ) => {
                 self.handle_traverse_history_msg(webview_id, direction);
-                if let Some(sender) = response_sender {
-                    let _ = sender.send(WebDriverLoadStatus::Complete);
-                }
+                self.embedder_proxy
+                    .send(EmbedderMsg::HistoryTraversalComplete(
+                        webview_id,
+                        traversal_id,
+                    ));
             },
             EmbedderToConstellationMessage::ChangeViewportDetails(
                 webview_id,

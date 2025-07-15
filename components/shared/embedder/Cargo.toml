@@ -37,6 +37,7 @@ strum_macros = { workspace = true }
 stylo_traits = { workspace = true }
 stylo = { workspace = true }
 url = { workspace = true }
+uuid = { workspace = true }
 webdriver = { workspace = true }
 webrender_api = { workspace = true }
 servo_geometry = { path = "../../geometry" }

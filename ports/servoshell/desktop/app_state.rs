@@ -4,6 +4,7 @@
 
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::path::PathBuf;
 use std::rc::Rc;
 
@@ -19,8 +20,8 @@ use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FormControl, GamepadHapticEffectType,
     KeyboardEvent, LoadStatus, PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog,
-    WebDriverCommandMsg, WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus, WebView,
-    WebViewBuilder, WebViewDelegate,
+    TraversalId, WebDriverCommandMsg, WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus,
+    WebView, WebViewBuilder, WebViewDelegate,
 };
 use url::Url;
 
@@ -44,6 +45,7 @@ pub(crate) enum AppState {
 struct WebDriverSenders {
     pub load_status_senders: HashMap<WebViewId, IpcSender<WebDriverLoadStatus>>,
     pub script_evaluation_interrupt_sender: Option<IpcSender<WebDriverJSResult>>,
+    pub pending_traversals: HashMap<WebViewId, (TraversalId, IpcSender<WebDriverLoadStatus>)>,
 }
 
 pub(crate) struct RunningAppState {
@@ -430,6 +432,18 @@ impl RunningAppState {
             });
     }
 
+    pub(crate) fn set_pending_traversal(
+        &self,
+        webview_id: WebViewId,
+        traversal_id: TraversalId,
+        sender: IpcSender<WebDriverLoadStatus>,
+    ) {
+        self.webdriver_senders
+            .borrow_mut()
+            .pending_traversals
+            .insert(webview_id, (traversal_id, sender));
+    }
+
     pub(crate) fn set_load_status_sender(
         &self,
         webview_id: WebViewId,
@@ -501,6 +515,16 @@ impl WebViewDelegate for RunningAppState {
             let window_title = format!("{} - Servo", title.clone().unwrap_or_default());
             self.inner().window.set_title(&window_title);
             self.inner_mut().need_update = true;
+        }
+    }
+
+    fn notify_traversal_complete(&self, webview: servo::WebView, traversal_id: TraversalId) {
+        let mut webdriver_state = self.webdriver_senders.borrow_mut();
+        if let Entry::Occupied(entry) = webdriver_state.pending_traversals.entry(webview.id()) {
+            if entry.get().0 == traversal_id {
+                let (_, sender) = entry.remove();
+                let _ = sender.send(WebDriverLoadStatus::Complete);
+            }
         }
     }
 

@@ -37,6 +37,7 @@ use strum_macros::IntoStaticStr;
 use style::queries::values::PrefersColorScheme;
 use style_traits::CSSPixel;
 use url::Url;
+use uuid::Uuid;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
 
 pub use crate::input_events::*;
@@ -318,6 +319,16 @@ pub struct ScreenMetrics {
     pub available_size: DeviceIndependentIntSize,
 }
 
+/// An opaque identifier for a single history traversal operation.
+#[derive(Clone, Deserialize, PartialEq, Serialize)]
+pub struct TraversalId(String);
+
+impl TraversalId {
+    pub fn new() -> Self {
+        Self(Uuid::new_v4().to_string())
+    }
+}
+
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum EmbedderMsg {
     /// A status message to be displayed by the browser chrome.
@@ -372,6 +383,8 @@ pub enum EmbedderMsg {
     NewFavicon(WebViewId, ServoUrl),
     /// The history state has changed.
     HistoryChanged(WebViewId, Vec<ServoUrl>, usize),
+    /// A history traversal operation completed.
+    HistoryTraversalComplete(WebViewId, TraversalId),
     /// Get the device independent window rectangle.
     GetWindowRect(WebViewId, IpcSender<DeviceIndependentIntRect>),
     /// Get the device independent screen size and available size.
