@@ -141,7 +141,7 @@ class PostBuildCommands(CommandBase):
             if usb:
                 args += ["-d"]
             shell = subprocess.Popen(args + ["shell"], stdin=subprocess.PIPE)
-            shell.communicate(bytes("\n".join(script) + "\n", "utf8"))
+            shell.communicate("\n".join(script) + "\n")
             return shell.wait()
 
         args = [servo_binary]
@@ -195,6 +195,7 @@ class PostBuildCommands(CommandBase):
     @CommandArgument("args", nargs="...", help="Command-line arguments to be passed through to the emulator")
     def android_emulator(self, args=None):
         if not args:
+            args = []
             print("AVDs created by `./mach bootstrap-android` are servo-arm and servo-x86.")
         emulator = self.android_emulator_path(self.build_env())
         return subprocess.call([emulator] + args)

@@ -25,6 +25,7 @@ def get_folders_list(path):
             folder_name = join(path, filename)
             folder_list.append(folder_name)
         return folder_list
+    return folder_list
 
 
 def mutation_test_for(mutation_path):

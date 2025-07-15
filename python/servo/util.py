@@ -14,7 +14,7 @@ import shutil
 import stat
 import sys
 import time
-import urllib
+import urllib.error
 import urllib.request
 import zipfile
 from typing import Dict, List, Union
@@ -122,7 +122,7 @@ def download_file(description: str, url: str, destination_path: str):
 # https://stackoverflow.com/questions/39296101/python-zipfile-removes-execute-permissions-from-binaries
 # In particular, we want the executable bit for executable files.
 class ZipFileWithUnixPermissions(zipfile.ZipFile):
-    def extract(self, member, path=None, pwd=None):
+    def extract(self, member, path=None, pwd=None) -> str:
         if not isinstance(member, zipfile.ZipInfo):
             member = self.getinfo(member)
 
@@ -136,11 +136,12 @@ class ZipFileWithUnixPermissions(zipfile.ZipFile):
         return extracted
 
     # For Python 3.x
-    def _extract_member(self, member, targetpath, pwd):
-        if sys.version_info[0] >= 3:
+    def _extract_member(self, member, targetpath, pwd) -> str:
+        if int(sys.version_info[0]) >= 3:
             if not isinstance(member, zipfile.ZipInfo):
                 member = self.getinfo(member)
 
+            # pyrefly: ignore  # missing-attribute
             targetpath = super()._extract_member(member, targetpath, pwd)
 
             attr = member.external_attr >> 16
@@ -148,6 +149,7 @@ class ZipFileWithUnixPermissions(zipfile.ZipFile):
                 os.chmod(targetpath, attr)
             return targetpath
         else:
+            # pyrefly: ignore  # missing-attribute
             return super(ZipFileWithUnixPermissions, self)._extract_member(member, targetpath, pwd)
 
 

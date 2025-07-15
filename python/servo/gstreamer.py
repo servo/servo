@@ -228,6 +228,7 @@ def find_non_system_dependencies_with_otool(binary_path: str) -> Set[str]:
     """Given a binary path, find all dylib dependency lines that do not refer to
     system libraries."""
     process = subprocess.Popen(["/usr/bin/otool", "-L", binary_path], stdout=subprocess.PIPE)
+    assert process.stdout is not None
     output = set()
 
     for line in map(lambda line: line.decode("utf8"), process.stdout):
@@ -249,8 +250,10 @@ def package_gstreamer_dylibs(binary_path: str, library_target_directory: str, ta
 
     # This import only works when called from `mach`.
     import servo.platform
+    import servo.platform.macos
 
     gstreamer_root = servo.platform.get().gstreamer_root(target)
+    assert gstreamer_root is not None
     gstreamer_version = servo.platform.macos.GSTREAMER_PLUGIN_VERSION
     gstreamer_root_libs = os.path.join(gstreamer_root, "lib")
 

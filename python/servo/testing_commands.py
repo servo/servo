@@ -19,6 +19,7 @@ import subprocess
 import sys
 import textwrap
 from time import sleep
+from typing import Any
 
 import tidy
 import wpt
@@ -215,14 +216,16 @@ class MachCommands(CommandBase):
             return 0
 
         # Gather Cargo build timings (https://doc.rust-lang.org/cargo/reference/timings.html).
-        args = ["--timings"]
+        args: list[str] = ["--timings"]
 
         if build_type.is_release():
             args += ["--release"]
         elif build_type.is_dev():
             pass  # there is no argument for debug
         else:
-            args += ["--profile", build_type.profile]
+            args += ["--profile"]
+            if build_type.profile is not None:
+                args += [build_type.profile]
 
         for crate in packages:
             args += ["-p", "%s_tests" % crate]
@@ -342,7 +345,7 @@ class MachCommands(CommandBase):
             # For the `import WebIDL` in runtests.py
             sys.path.insert(0, test_file_dir)
             run_file = path.abspath(path.join(test_file_dir, "runtests.py"))
-            run_globals = {"__file__": run_file}
+            run_globals: dict[str, Any] = {"__file__": run_file}
             exec(compile(open(run_file).read(), run_file, "exec"), run_globals)
             passed = run_globals["run_tests"](tests, verbose or very_verbose) and passed
 
@@ -585,7 +588,7 @@ class MachCommands(CommandBase):
 
         return check_call([run_file, "|".join(tests), bin_path, base_dir, bmf_output])
 
-    def speedometer_to_bmf(self, speedometer: str, bmf_output: str | None):
+    def speedometer_to_bmf(self, speedometer: dict[str, Any], bmf_output: str | None):
         output = dict()
 
         def parse_speedometer_result(result):
@@ -606,15 +609,16 @@ class MachCommands(CommandBase):
                     }
                 }
             else:
-                raise "Unknown unit!"
+                raise Exception("Unknown unit!")
 
             for child in result["children"]:
                 parse_speedometer_result(child)
 
         for v in speedometer.values():
             parse_speedometer_result(v)
-        with open(bmf_output, "w", encoding="utf-8") as f:
-            json.dump(output, f, indent=4)
+        if bmf_output is not None:
+            with open(bmf_output, "w", encoding="utf-8") as f:
+                json.dump(output, f, indent=4)
 
     def speedometer_runner(self, binary: str, bmf_output: str | None):
         speedometer = json.loads(
@@ -637,10 +641,9 @@ class MachCommands(CommandBase):
             self.speedometer_to_bmf(speedometer, bmf_output)
 
     def speedometer_runner_ohos(self, bmf_output: str | None):
-        hdc_path: str = shutil.which("hdc")
+        ohos_sdk_native = os.getenv("OHOS_SDK_NATIVE") or ""
+        hdc_path: str = shutil.which("hdc") or path.join(ohos_sdk_native, "../", "toolchains", "hdc")
         log_path: str = "/data/app/el2/100/base/org.servo.servo/cache/servo.log"
-        if hdc_path is None:
-            hdc_path = path.join(os.getenv("OHOS_SDK_NATIVE"), "../", "toolchains", "hdc")
 
         def read_log_file() -> str:
             subprocess.call([hdc_path, "file", "recv", log_path])
@@ -708,7 +711,7 @@ class MachCommands(CommandBase):
         run_file = path.abspath(
             path.join(PROJECT_TOPLEVEL_PATH, "components", "net", "tests", "cookie_http_state_utils.py")
         )
-        run_globals = {"__file__": run_file}
+        run_globals: dict[str, Any] = {"__file__": run_file}
         exec(compile(open(run_file).read(), run_file, "exec"), run_globals)
         return run_globals["update_test_file"](cache_dir)
 
@@ -725,7 +728,7 @@ class MachCommands(CommandBase):
         if os.path.exists(dest_folder):
             shutil.rmtree(dest_folder)
 
-        run_globals = {"__file__": run_file}
+        run_globals: dict[str, Any] = {"__file__": run_file}
         exec(compile(open(run_file).read(), run_file, "exec"), run_globals)
         return run_globals["update_conformance"](version, dest_folder, None, patches_dir)
 

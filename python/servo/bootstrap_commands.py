@@ -18,7 +18,7 @@ import subprocess
 import sys
 import tempfile
 import traceback
-import urllib
+import urllib.error
 
 import toml
 
@@ -122,15 +122,15 @@ class MachCommands(CommandBase):
             for suffix in suffixes:
                 if not_implemented_case.match(suffix):
                     print("Warning: the new list contains a case that servo can't handle: %s" % suffix)
-                fo.write(suffix.encode("idna") + "\n")
+                fo.write(suffix.encode("idna") + b"\n")
 
     @Command("clean-nightlies", description="Clean unused nightly builds of Rust and Cargo", category="bootstrap")
     @CommandArgument("--force", "-f", action="store_true", help="Actually remove stuff")
-    @CommandArgument("--keep", default="1", help="Keep up to this many most recent nightlies")
-    def clean_nightlies(self, force=False, keep=None):
+    @CommandArgument("--keep", default=1, help="Keep up to this many most recent nightlies")
+    def clean_nightlies(self, force=False, keep=1):
         print(f"Current Rust version for Servo: {self.rust_toolchain()}")
         old_toolchains = []
-        keep = int(keep)
+        keep = keep
         stdout = subprocess.check_output(["git", "log", "--format=%H", "rust-toolchain.toml"])
         for i, commit_hash in enumerate(stdout.split(), 1):
             if i > keep:
@@ -157,8 +157,8 @@ class MachCommands(CommandBase):
     @Command("clean-cargo-cache", description="Clean unused Cargo packages", category="bootstrap")
     @CommandArgument("--force", "-f", action="store_true", help="Actually remove stuff")
     @CommandArgument("--show-size", "-s", action="store_true", help="Show packages size")
-    @CommandArgument("--keep", default="1", help="Keep up to this many most recent dependencies")
-    def clean_cargo_cache(self, force=False, show_size=False, keep=None):
+    @CommandArgument("--keep", default=1, help="Keep up to this many most recent dependencies")
+    def clean_cargo_cache(self, force=False, show_size=False, keep=1):
         def get_size(path):
             if os.path.isfile(path):
                 return os.path.getsize(path) / (1024 * 1024.0)
@@ -177,7 +177,7 @@ class MachCommands(CommandBase):
         import toml
 
         if os.environ.get("CARGO_HOME", ""):
-            cargo_dir = os.environ.get("CARGO_HOME")
+            cargo_dir = os.environ.get("CARGO_HOME", "")
         else:
             home_dir = os.path.expanduser("~")
             cargo_dir = path.join(home_dir, ".cargo")
@@ -309,7 +309,7 @@ class MachCommands(CommandBase):
                                 crate_paths.append(path.join(crates_cache_dir, "{}.crate".format(exist)))
                                 crate_paths.append(path.join(crates_src_dir, exist))
 
-                            size = sum(get_size(p) for p in crate_paths) if show_size else 0
+                            size = round(sum(get_size(p) for p in crate_paths)) if show_size else 0
                             total_size += size
                             print_msg = (exist_name, " ({}MB)".format(round(size, 2)) if show_size else "", cargo_dir)
                             if force:

@@ -265,16 +265,16 @@ class Linux(Base):
                 install = True
         elif self.distro in ["CentOS", "CentOS Linux", "Fedora", "Fedora Linux", "Fedora Linux Asahi Remix"]:
             command = ["dnf", "install"]
-            installed_pkgs: [str] = subprocess.check_output(
+            installed_pkgs: list[str] = subprocess.check_output(
                 ["rpm", "--query", "--all", "--queryformat", "%{NAME}\n"], encoding="utf-8"
-            ).split("\n")
+            ).splitlines()
             pkgs = DNF_PKGS
             for pkg in pkgs:
                 if pkg not in installed_pkgs:
                     install = True
                     break
         elif self.distro == "void":
-            installed_pkgs = str(subprocess.check_output(["xbps-query", "-l"]))
+            installed_pkgs = subprocess.check_output(["xbps-query", "-l"], text=True).splitlines()
             pkgs = XBPS_PKGS
             for pkg in pkgs:
                 command = ["xbps-install", "-A"]
@@ -312,10 +312,10 @@ class Linux(Base):
             raise EnvironmentError("Installation of dependencies failed.")
         return True
 
-    def gstreamer_root(self, _target: BuildTarget) -> Optional[str]:
+    def gstreamer_root(self, target: BuildTarget) -> Optional[str]:
         return None
 
-    def _platform_bootstrap_gstreamer(self, _target: BuildTarget, _force: bool) -> bool:
+    def _platform_bootstrap_gstreamer(self, target: BuildTarget, force: bool) -> bool:
         raise EnvironmentError(
             "Bootstrapping GStreamer on Linux is not supported. "
             + "Please install it using your distribution package manager."

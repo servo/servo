@@ -22,13 +22,15 @@ import sys
 import tarfile
 import urllib
 import zipfile
+import urllib.error
+import urllib.request
 from dataclasses import dataclass
 from enum import Enum
 from errno import ENOENT as NO_SUCH_FILE_OR_DIRECTORY
 from glob import glob
 from os import path
 from subprocess import PIPE
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union, cast
 from xml.etree.ElementTree import XML
 
 import toml
@@ -65,7 +67,7 @@ class BuildType:
     def prod() -> BuildType:
         return BuildType(BuildType.Kind.CUSTOM, "production")
 
-    def custom(profile: str) -> BuildType:
+    def custom(profile: Optional[str]) -> BuildType:
         return BuildType(BuildType.Kind.CUSTOM, profile)
 
     def is_dev(self) -> bool:
@@ -81,12 +83,9 @@ class BuildType:
         return self.kind == BuildType.Kind.CUSTOM
 
     def directory_name(self) -> str:
-        if self.is_dev():
-            return "debug"
-        elif self.is_release():
+        if self.is_release():
             return "release"
-        else:
-            return self.profile
+        return "debug"
 
     def __eq__(self, other: object) -> bool:
         raise Exception("BUG: do not compare BuildType with ==")
@@ -182,33 +181,42 @@ def call(*args, **kwargs):
     verbose = kwargs.pop("verbose", False)
     if verbose:
         print(" ".join(args[0]))
+    if not isinstance(kwargs, dict):
+        kwargs = dict(kwargs)
     # we have to use shell=True in order to get PATH handling
-    # when looking for the binary on Windows
-    return subprocess.call(*args, shell=sys.platform == "win32", **kwargs)
+    # when looking for the binary on Windows\
+    kwargs.setdefault("shell", sys.platform == "win32")
+    return subprocess.call(*args, **kwargs)
 
 
-def check_output(*args, **kwargs) -> bytes:
+def check_output(*args, **kwargs) -> Union[str, bytes]:
     """Wrap `subprocess.call`, printing the command if verbose=True."""
     verbose = kwargs.pop("verbose", False)
     if verbose:
         print(" ".join(args[0]))
+    if not isinstance(kwargs, dict):
+        kwargs = dict(kwargs)
     # we have to use shell=True in order to get PATH handling
     # when looking for the binary on Windows
-    return subprocess.check_output(*args, shell=sys.platform == "win32", **kwargs)
+    kwargs.setdefault("shell", sys.platform == "win32")
+    return subprocess.check_output(*args, **kwargs)
 
 
 def check_call(*args, **kwargs):
     """Wrap `subprocess.check_call`, printing the command if verbose=True.
 
     Also fix any unicode-containing `env`, for subprocess"""
+    if not isinstance(kwargs, dict):
+        kwargs = dict(kwargs)
     verbose = kwargs.pop("verbose", False)
 
     if verbose:
         print(" ".join(args[0]))
     # we have to use shell=True in order to get PATH handling
     # when looking for the binary on Windows
-    proc = subprocess.Popen(*args, shell=sys.platform == "win32", **kwargs)
-    status = None
+    kwargs.setdefault("shell", sys.platform == "win32")
+    proc = subprocess.Popen(*args, **kwargs)
+    status: Optional[int] = None
     # Leave it to the subprocess to handle Ctrl+C. If it terminates as
     # a result of Ctrl+C, proc.wait() will return a status code, and,
     # we get out of the loop. If it doesn't, like e.g. gdb, we continue
@@ -248,6 +256,8 @@ class CommandBase(object):
 
     This mostly handles configuration management, such as .servobuild."""
 
+    target: BuildTarget | OpenHarmonyTarget | AndroidTarget
+
     def __init__(self, context):
         self.context = context
         self.enable_media = False
@@ -261,7 +271,7 @@ class CommandBase(object):
             # Contents of env vars are strings by default. This returns the
             # boolean value of the specified environment variable, or the
             # speciried default if the var doesn't contain True or False
-            return {"True": True, "False": False}.get(os.environ.get(var), default)
+            return {"True": True, "False": False}.get(os.environ.get(var, ""), default)
 
         def resolverelative(category, key):
             # Allow ~
@@ -409,9 +419,24 @@ class CommandBase(object):
             response = urllib.request.urlopen(req).read()
             tree = XML(response)
             namespaces = {"ns": tree.tag[1 : tree.tag.index("}")]}
-            file_to_download = tree.find("ns:Contents", namespaces).find("ns:Key", namespaces).text
+            contents = tree.find("ns:Contents", namespaces)
+            if contents is None:
+                raise ValueError("Missing <Contents> element")
+
+            key = contents.find("ns:Key", namespaces)
+            if key is None or key.text is None:
+                raise ValueError("Missing <Key> element or its text")
+
+            file_to_download = key.text
         except urllib.error.URLError as e:
             print("Could not fetch the available nightly versions from the repository : {}".format(e.reason))
+            sys.exit(1)
+        except ValueError as e:
+            print(
+                "Could not fetch a nightly version for date {} and platform {} cause of {}".format(
+                    nightly_date, os_prefix, e
+                )
+            )
             sys.exit(1)
         except AttributeError:
             print("Could not fetch a nightly version for date {} and platform {}".format(nightly_date, os_prefix))
@@ -488,7 +513,7 @@ class CommandBase(object):
         if not (self.config["build"]["ccache"] == ""):
             env["CCACHE"] = self.config["build"]["ccache"]
 
-        env["CARGO_TARGET_DIR"] = servo.util.get_target_dir()
+        env["CARGO_TARGET_DIR"] = util.get_target_dir()
 
         # Work around https://github.com/servo/servo/issues/24446
         # Argument-less str.split normalizes leading, trailing, and double spaces
@@ -805,7 +830,7 @@ class CommandBase(object):
         target_override: Optional[str] = None,
         **_kwargs,
     ):
-        env = env or self.build_env()
+        env = cast(dict[str, str], env or self.build_env())
 
         # NB: On non-Linux platforms we cannot check whether GStreamer is installed until
         # environment variables are set via `self.build_env()`.
@@ -904,7 +929,9 @@ class CommandBase(object):
         if not self.target.is_cross_build():
             return
 
-        installed_targets = check_output(["rustup", "target", "list", "--installed"], cwd=self.context.topdir).decode()
+        installed_targets = check_output(["rustup", "target", "list", "--installed"], cwd=self.context.topdir)
+        if isinstance(installed_targets, bytes):
+            installed_targets = installed_targets.decode("utf-8")
         if self.target.triple() not in installed_targets:
             check_call(["rustup", "target", "add", self.target.triple()], cwd=self.context.topdir)
 
@@ -925,7 +952,12 @@ class CommandBase(object):
                 print()
                 sys.exit(1)
             raise
-        version = tuple(map(int, re.match(rb"rustup (\d+)\.(\d+)\.(\d+)", version_line).groups()))
+        match = re.match(rb"rustup (\d+)\.(\d+)\.(\d+)", version_line)
+        if not match:
+            print("Could not extract version from regex pattern in rustup")
+            sys.exit(1)
+
+        version: tuple[int, int, int] = tuple(map(int, match.groups()))
         version_needed = (1, 23, 0)
         if version < version_needed:
             print("rustup is at version %s.%s.%s, Servo requires %s.%s.%s or more recent." % (version + version_needed))
@@ -955,6 +987,6 @@ class CommandBase(object):
                     Registrar.dispatch("clean", context=self.context, verbose=True)
                     print("Successfully completed auto clobber.")
                 except subprocess.CalledProcessError as error:
-                    sys.exit(error)
+                    sys.exit(error.returncode)
             else:
                 print("Clobber not needed.")

@@ -37,6 +37,7 @@ search-path = [
 ]
 project-includes = [
     "python/wpt/**/*.py",
+    "python/servo/**/*.py",
 ]
 project-excludes = [
     "**/venv/**",

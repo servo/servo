@@ -7,8 +7,10 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+from typing import Union
 import datetime
 import os
+from os import PathLike
 import os.path as path
 import pathlib
 import shutil
@@ -71,7 +73,7 @@ def get_rustc_llvm_version() -> Optional[List[int]]:
                 llvm_version = llvm_version.strip()
                 version = llvm_version.split(".")
                 print(f"Info: rustc is using LLVM version {'.'.join(version)}")
-                return version
+                return list(map(int, version))
         else:
             print(f"Error: Couldn't find LLVM version in output of `rustc --version --verbose`: `{result.stdout}`")
     except Exception as e:
@@ -178,7 +180,7 @@ class MachCommands(CommandBase):
                 # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
                 # like Instruments.app.
                 try:
-                    import Cocoa
+                    import Cocoa  # pyrefly: ignore[import-error]
 
                     icon_path = path.join(self.get_top_dir(), "resources", "servo_1024.png")
                     icon = Cocoa.NSImage.alloc().initWithContentsOfFile_(icon_path)
@@ -355,7 +357,7 @@ def package_gstreamer_dlls(servo_exe_dir: str, target: BuildTarget):
 
 
 def package_msvc_dlls(servo_exe_dir: str, target: BuildTarget):
-    def copy_file(dll_path: Optional[str]) -> bool:
+    def copy_file(dll_path: Union[PathLike[str], str]) -> bool:
         if not dll_path or not os.path.exists(dll_path):
             print(f"WARNING: Could not find DLL at {dll_path}", file=sys.stderr)
             return False

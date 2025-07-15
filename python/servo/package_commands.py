@@ -7,6 +7,7 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+from python.servo.platform.build_target import AndroidTarget, OpenHarmonyTarget
 from datetime import datetime
 import random
 import time
@@ -197,7 +198,7 @@ class PackageCommands(CommandBase):
                 try:
                     with cd(ohos_target_dir):
                         version = check_output(["hvigorw", "--version", "--no-daemon"])
-                    print(f"Found `hvigorw` with version {str(version, 'utf-8').strip()} in system PATH")
+                    print(f"Found `hvigorw` with version {version.strip()} in system PATH")
                     hvigor_command[0:0] = ["hvigorw"]
                 except FileNotFoundError:
                     print(
@@ -216,7 +217,7 @@ class PackageCommands(CommandBase):
                 env["NODE_PATH"] = env["HVIGOR_PATH"] + "/node_modules"
                 hvigor_script = f"{env['HVIGOR_PATH']}/node_modules/@ohos/hvigor/bin/hvigor.js"
                 hvigor_command[0:0] = ["node", hvigor_script]
-
+            assert isinstance(self.target, OpenHarmonyTarget)
             abi_string = self.target.abi_string()
             ohos_libs_dir = path.join(ohos_target_dir, "entry", "libs", abi_string)
             os.makedirs(ohos_libs_dir)
@@ -418,6 +419,7 @@ class PackageCommands(CommandBase):
                 return 1
 
         if self.is_android():
+            assert isinstance(self.target, AndroidTarget)
             pkg_path = self.target.get_package_path(build_type.directory_name())
             exec_command = [self.android_adb_path(env)]
             if emulator and usb:
@@ -429,6 +431,7 @@ class PackageCommands(CommandBase):
                 exec_command += ["-d"]
             exec_command += ["install", "-r", pkg_path]
         elif self.is_openharmony():
+            assert isinstance(self.target, OpenHarmonyTarget)
             pkg_path = self.target.get_package_path(build_type.directory_name(), flavor=flavor)
             hdc_path = path.join(env["OHOS_SDK_NATIVE"], "../", "toolchains", "hdc")
             exec_command = [hdc_path, "install", "-r", pkg_path]
