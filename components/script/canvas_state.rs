@@ -1965,10 +1965,7 @@ impl CanvasState {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-gettransform
     pub(crate) fn get_transform(&self, global: &GlobalScope, can_gc: CanGc) -> DomRoot<DOMMatrix> {
-        let (sender, receiver) = ipc::channel::<Transform2D<f32>>().unwrap();
-        self.send_canvas_2d_msg(Canvas2dMsg::GetTransform(sender));
-        let transform = receiver.recv().unwrap();
-
+        let transform = self.state.borrow_mut().transform;
         DOMMatrix::new(global, true, transform.cast::<f64>().to_3d(), can_gc)
     }
 
