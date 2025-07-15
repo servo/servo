@@ -528,12 +528,17 @@ pub(crate) fn handle_execute_script(
                 Err(WebDriverJSError::JSError)
             };
 
-            reply.send(result).unwrap();
+            if reply.send(result).is_err() {
+                info!("Webdriver might already be released by embedder before reply is sent");
+            };
         },
         None => {
-            reply
+            if reply
                 .send(Err(WebDriverJSError::BrowsingContextNotFound))
-                .unwrap();
+                .is_err()
+            {
+                info!("Webdriver might already be released by embedder before reply is sent");
+            };
         },
     }
 }
