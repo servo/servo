@@ -22,6 +22,7 @@ use js::jsval::{BooleanValue, DoubleValue, Int32Value, NullValue, ObjectValue, U
 use js::rust::{CustomAutoRooterGuard, HandleObject, MutableHandleValue};
 use js::typedarray::{ArrayBufferView, CreateWith, Float32, Int32Array, Uint32, Uint32Array};
 use pixels::{Alpha, Snapshot};
+use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interfaces::WebGL2RenderingContextHelpers;
 use servo_config::pref;
 use url::Host;
@@ -72,7 +73,6 @@ use crate::dom::webgltransformfeedback::WebGLTransformFeedback;
 use crate::dom::webgluniformlocation::WebGLUniformLocation;
 use crate::dom::webglvertexarrayobject::WebGLVertexArrayObject;
 use crate::dom::window::Window;
-use crate::js::conversions::ToJSValConvertible;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -647,7 +647,6 @@ impl WebGL2RenderingContext {
         Ok(())
     }
 
-    #[allow(unsafe_code)]
     fn get_specific_fb_attachment_param(
         &self,
         cx: JSContext,
@@ -692,11 +691,11 @@ impl WebGL2RenderingContext {
 
         if pname == constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME {
             match fb.attachment(attachment) {
-                Some(Renderbuffer(rb)) => unsafe {
-                    rb.to_jsval(*cx, rval);
+                Some(Renderbuffer(rb)) => {
+                    rb.safe_to_jsval(cx, rval);
                 },
-                Some(Texture(texture)) => unsafe {
-                    texture.to_jsval(*cx, rval);
+                Some(Texture(texture)) => {
+                    texture.safe_to_jsval(cx, rval);
                 },
                 _ => rval.set(NullValue()),
             }
@@ -1033,16 +1032,15 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         self.base.get_buffer_param(buffer, parameter, retval)
     }
 
-    #[allow(unsafe_code)]
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn GetParameter(&self, cx: JSContext, parameter: u32, mut rval: MutableHandleValue) {
         match parameter {
-            constants::VERSION => unsafe {
-                "WebGL 2.0".to_jsval(*cx, rval);
+            constants::VERSION => {
+                "WebGL 2.0".safe_to_jsval(cx, rval);
                 return;
             },
-            constants::SHADING_LANGUAGE_VERSION => unsafe {
-                "WebGL GLSL ES 3.00".to_jsval(*cx, rval);
+            constants::SHADING_LANGUAGE_VERSION => {
+                "WebGL GLSL ES 3.00".safe_to_jsval(cx, rval);
                 return;
             },
             constants::MAX_CLIENT_WAIT_TIMEOUT_WEBGL => {
@@ -1057,60 +1055,62 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                 ));
                 return;
             },
-            constants::SAMPLER_BINDING => unsafe {
+            constants::SAMPLER_BINDING => {
                 let idx = (self.base.textures().active_unit_enum() - constants::TEXTURE0) as usize;
                 assert!(idx < self.samplers.len());
                 let sampler = self.samplers[idx].get();
-                sampler.to_jsval(*cx, rval);
+                sampler.safe_to_jsval(cx, rval);
                 return;
             },
-            constants::COPY_READ_BUFFER_BINDING => unsafe {
-                self.bound_copy_read_buffer.get().to_jsval(*cx, rval);
+            constants::COPY_READ_BUFFER_BINDING => {
+                self.bound_copy_read_buffer.get().safe_to_jsval(cx, rval);
                 return;
             },
-            constants::COPY_WRITE_BUFFER_BINDING => unsafe {
-                self.bound_copy_write_buffer.get().to_jsval(*cx, rval);
+            constants::COPY_WRITE_BUFFER_BINDING => {
+                self.bound_copy_write_buffer.get().safe_to_jsval(cx, rval);
                 return;
             },
-            constants::PIXEL_PACK_BUFFER_BINDING => unsafe {
-                self.bound_pixel_pack_buffer.get().to_jsval(*cx, rval);
+            constants::PIXEL_PACK_BUFFER_BINDING => {
+                self.bound_pixel_pack_buffer.get().safe_to_jsval(cx, rval);
                 return;
             },
-            constants::PIXEL_UNPACK_BUFFER_BINDING => unsafe {
-                self.bound_pixel_unpack_buffer.get().to_jsval(*cx, rval);
+            constants::PIXEL_UNPACK_BUFFER_BINDING => {
+                self.bound_pixel_unpack_buffer.get().safe_to_jsval(cx, rval);
                 return;
             },
-            constants::TRANSFORM_FEEDBACK_BUFFER_BINDING => unsafe {
+            constants::TRANSFORM_FEEDBACK_BUFFER_BINDING => {
                 self.bound_transform_feedback_buffer
                     .get()
-                    .to_jsval(*cx, rval);
+                    .safe_to_jsval(cx, rval);
                 return;
             },
-            constants::UNIFORM_BUFFER_BINDING => unsafe {
-                self.bound_uniform_buffer.get().to_jsval(*cx, rval);
+            constants::UNIFORM_BUFFER_BINDING => {
+                self.bound_uniform_buffer.get().safe_to_jsval(cx, rval);
                 return;
             },
-            constants::TRANSFORM_FEEDBACK_BINDING => unsafe {
-                self.current_transform_feedback.get().to_jsval(*cx, rval);
+            constants::TRANSFORM_FEEDBACK_BINDING => {
+                self.current_transform_feedback
+                    .get()
+                    .safe_to_jsval(cx, rval);
                 return;
             },
-            constants::ELEMENT_ARRAY_BUFFER_BINDING => unsafe {
+            constants::ELEMENT_ARRAY_BUFFER_BINDING => {
                 let buffer = self.current_vao().element_array_buffer().get();
-                buffer.to_jsval(*cx, rval);
+                buffer.safe_to_jsval(cx, rval);
                 return;
             },
-            constants::VERTEX_ARRAY_BINDING => unsafe {
+            constants::VERTEX_ARRAY_BINDING => {
                 let vao = self.current_vao();
                 let vao = vao.id().map(|_| &*vao);
-                vao.to_jsval(*cx, rval);
+                vao.safe_to_jsval(cx, rval);
                 return;
             },
             // NOTE: DRAW_FRAMEBUFFER_BINDING is the same as FRAMEBUFFER_BINDING, handled on the WebGL1 side
-            constants::READ_FRAMEBUFFER_BINDING => unsafe {
+            constants::READ_FRAMEBUFFER_BINDING => {
                 self.base
                     .get_read_framebuffer_slot()
                     .get()
-                    .to_jsval(*cx, rval);
+                    .safe_to_jsval(cx, rval);
                 return;
             },
             constants::READ_BUFFER => {
@@ -2034,7 +2034,6 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.2>
-    #[allow(unsafe_code)]
     fn GetIndexedParameter(
         &self,
         cx: JSContext,
@@ -2066,8 +2065,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         };
 
         match target {
-            constants::TRANSFORM_FEEDBACK_BUFFER_BINDING | constants::UNIFORM_BUFFER_BINDING => unsafe {
-                binding.buffer.get().to_jsval(*cx, retval)
+            constants::TRANSFORM_FEEDBACK_BUFFER_BINDING | constants::UNIFORM_BUFFER_BINDING => {
+                binding.buffer.get().safe_to_jsval(cx, retval)
             },
             constants::TRANSFORM_FEEDBACK_BUFFER_START | constants::UNIFORM_BUFFER_START => {
                 retval.set(Int32Value(binding.start.get() as _))
@@ -4494,7 +4493,6 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16>
-    #[allow(unsafe_code)]
     fn GetActiveUniforms(
         &self,
         cx: JSContext,
@@ -4520,12 +4518,12 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             constants::UNIFORM_BLOCK_INDEX |
             constants::UNIFORM_OFFSET |
             constants::UNIFORM_ARRAY_STRIDE |
-            constants::UNIFORM_MATRIX_STRIDE => unsafe {
-                values.to_jsval(*cx, rval);
+            constants::UNIFORM_MATRIX_STRIDE => {
+                values.safe_to_jsval(cx, rval);
             },
-            constants::UNIFORM_IS_ROW_MAJOR => unsafe {
+            constants::UNIFORM_IS_ROW_MAJOR => {
                 let values = values.iter().map(|&v| v != 0).collect::<Vec<_>>();
-                values.to_jsval(*cx, rval);
+                values.safe_to_jsval(cx, rval);
             },
             _ => unreachable!(),
         }

@@ -8,7 +8,6 @@ use std::iter::repeat;
 use constellation_traits::StructuredSerializedData;
 use dom_struct::dom_struct;
 use ipc_channel::router::ROUTER;
-use js::conversions::ToJSValConvertible;
 use js::gc::MutableHandle;
 use js::jsapi::Heap;
 use js::jsval::{DoubleValue, JSVal, UndefinedValue};
@@ -18,6 +17,7 @@ use net_traits::indexeddb_thread::{
     AsyncOperation, IdbResult, IndexedDBKeyType, IndexedDBThreadMsg, IndexedDBTxnMode,
 };
 use profile_traits::ipc;
+use script_bindings::conversions::SafeToJSValConvertible;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::IDBRequestBinding::{
@@ -48,22 +48,22 @@ struct RequestListener {
 fn key_type_to_jsval(cx: SafeJSContext, key: &IndexedDBKeyType, mut result: MutableHandleValue) {
     match key {
         IndexedDBKeyType::Number(n) => result.set(DoubleValue(*n)),
-        IndexedDBKeyType::String(s) => unsafe { s.to_jsval(*cx, result) },
-        IndexedDBKeyType::Binary(b) => unsafe { b.to_jsval(*cx, result) },
+        IndexedDBKeyType::String(s) => s.safe_to_jsval(cx, result),
+        IndexedDBKeyType::Binary(b) => b.safe_to_jsval(cx, result),
         IndexedDBKeyType::Date(_d) => {
             // TODO: implement this when Date's representation is finalized.
             result.set(UndefinedValue());
         },
-        IndexedDBKeyType::Array(a) => unsafe {
+        IndexedDBKeyType::Array(a) => {
             rooted_vec!(let mut values <- repeat(UndefinedValue()).take(a.len()));
-            for (key, value) in a.iter().zip(
+            for (key, value) in a.iter().zip(unsafe {
                 values
                     .iter_mut()
-                    .map(|v| MutableHandle::from_marked_location(v)),
-            ) {
+                    .map(|v| MutableHandle::from_marked_location(v))
+            }) {
                 key_type_to_jsval(cx, key, value);
             }
-            values.to_jsval(*cx, result);
+            values.safe_to_jsval(cx, result);
         },
     }
 }
