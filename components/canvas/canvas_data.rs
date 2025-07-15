@@ -698,23 +698,12 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         self.path_builder().close();
     }
 
-    /// Turn the [`Self::path_state`] into a user-space path, returning `None` if the
-    /// path transformation matrix is uninvertible.
-    fn ensure_path(&mut self) -> Option<Path> {
-        let inverse = self.drawtarget.get_transform().inverse()?;
-        let mut path = self.path_state.clone();
-        path.transform(inverse.cast());
-        Some(path)
-    }
-
     pub(crate) fn fill(&mut self) {
         if self.state.fill_style.is_zero_size_gradient() {
             return; // Paint nothing if gradient size is zero.
         }
 
-        let Some(path) = self.ensure_path() else {
-            return; // Path is uninvertible.
-        };
+        let path = self.path_state.clone();
 
         self.maybe_bound_shape_with_pattern(
             self.state.fill_style.clone(),
@@ -743,9 +732,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
             return; // Paint nothing if gradient size is zero.
         }
 
-        let Some(path) = self.ensure_path() else {
-            return; // Path is uninvertible.
-        };
+        let path = self.path_state.clone();
 
         self.maybe_bound_shape_with_pattern(
             self.state.stroke_style.clone(),
@@ -781,11 +768,9 @@ impl<'a, B: Backend> CanvasData<'a, B> {
     }
 
     pub(crate) fn clip(&mut self) {
-        let Some(path) = self.ensure_path() else {
-            return; // Path is uninvertible.
-        };
+        let path = &self.path_state;
 
-        self.drawtarget.push_clip(&path);
+        self.drawtarget.push_clip(path);
     }
 
     pub(crate) fn clip_path(&mut self, path: &Path) {
@@ -799,8 +784,9 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         fill_rule: FillRule,
         chan: IpcSender<bool>,
     ) {
-        chan.send(self.path_state.is_point_in_path(x, y, fill_rule))
-            .unwrap();
+        let mut path = self.path_state.clone();
+        path.transform(self.get_transform().cast());
+        chan.send(path.is_point_in_path(x, y, fill_rule)).unwrap();
     }
 
     pub(crate) fn move_to(&mut self, point: &Point2D<f32>) {
@@ -814,7 +800,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
     fn path_builder(&mut self) -> PathBuilderRef {
         PathBuilderRef {
             builder: &mut self.path_state,
-            transform: self.drawtarget.get_transform(),
+            transform: Transform2D::identity(),
         }
     }
 
@@ -912,8 +898,12 @@ impl<'a, B: Backend> CanvasData<'a, B> {
     }
 
     pub(crate) fn set_transform(&mut self, transform: &Transform2D<f32>) {
+        self.path_state.transform(self.get_transform().cast());
         self.state.transform = *transform;
-        self.drawtarget.set_transform(transform)
+        self.drawtarget.set_transform(transform);
+        if let Some(inverse) = transform.inverse() {
+            self.path_state.transform(inverse.cast());
+        }
     }
 
     pub(crate) fn set_global_alpha(&mut self, alpha: f32) {
