@@ -470,7 +470,7 @@ impl Handler {
                 // Steps 1 - 2: Check "no such element", covered in script thread handler.
 
                 // Step 3. Let x element and y element be the result of calculating the in-view center point of element.
-                let (x_element, y_element) = self.get_element_in_view_center_point(&web_element)?;
+                let (x_element, y_element) = self.get_element_in_view_center_point(web_element)?;
                 // Step 4. Let x equal x element + x offset, and y equal y element + y offset.
                 Ok((x_element as f64 + x_offset, y_element as f64 + y_offset))
             },
