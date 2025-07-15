@@ -417,7 +417,7 @@ fn prepare_devtools_request(
         is_xhr,
         browsing_context_id,
     };
-    let net_event = NetworkEvent::HttpRequest(request);
+    let net_event = NetworkEvent::HttpRequestUpdate(request);
 
     ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event)
 }
@@ -2052,16 +2052,8 @@ async fn http_network_fetch(
 
     if let Some(ref sender) = devtools_sender {
         let sender = sender.lock().unwrap();
-        if let Some(ChromeToDevtoolsControlMsg::NetworkEvent(
-            _,
-            NetworkEvent::HttpRequest(devtools_request),
-        )) = msg
-        {
-            let update_msg = ChromeToDevtoolsControlMsg::NetworkEvent(
-                request.id.0.to_string(),
-                NetworkEvent::HttpRequestUpdate(devtools_request),
-            );
-            send_request_to_devtools(update_msg, &sender);
+        if let Some(m) = msg {
+            send_request_to_devtools(m, &sender);
         }
     }
 
