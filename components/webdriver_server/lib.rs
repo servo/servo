@@ -1871,9 +1871,11 @@ impl Handler {
         Ok(WebDriverResponse::Void)
     }
 
-    // https://w3c.github.io/webdriver/#element-click
+    /// <https://w3c.github.io/webdriver/#element-click>
     fn handle_element_click(&mut self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
+        let webview_id = self.session()?.webview_id;
+        let browsing_context_id = self.session()?.browsing_context_id;
 
         // Steps 1 - 7 + Step 8 for <option>
         let cmd = WebDriverScriptCommand::ElementClick(element.to_string(), sender);
@@ -1882,71 +1884,35 @@ impl Handler {
         match wait_for_script_response(receiver)? {
             Ok(element_id) => match element_id {
                 Some(element_id) => {
-                    let id = Uuid::new_v4().to_string();
-                    // Step 8 for elements other than <option>
-                    // Step 8.1
-                    self.session_mut()?.input_state_table.borrow_mut().insert(
-                        id.clone(),
-                        InputSourceState::Pointer(PointerInputState::new(PointerType::Mouse)),
-                    );
+                    // Load status sender should be set up before we dispatch actions
+                    self.send_message_to_embedder(WebDriverCommandMsg::AddLoadStatusSender(
+                        webview_id,
+                        self.load_status_sender.clone(),
+                    ))?;
 
-                    // Step 8.7. Construct a pointer move action.
-                    // Step 8.8. Set a property x to 0 on pointer move action.
-                    // Step 8.9. Set a property y to 0 on pointer move action.
-                    // Step 8.10. Set a property origin to element on pointer move action.
-                    let pointer_move_action = PointerMoveAction {
-                        duration: None,
-                        origin: PointerOrigin::Element(WebElement(element_id)),
-                        x: 0.0,
-                        y: 0.0,
-                        ..Default::default()
-                    };
+                    self.perform_element_click(element_id)?;
 
-                    // Step 8.11. Construct pointer down action.
-                    // Step 8.12. Set a property button to 0 on pointer down action.
-                    let pointer_down_action = PointerDownAction {
-                        button: i16::from(MouseButton::Left) as u64,
-                        ..Default::default()
-                    };
+                    // Step 11. Try to wait for navigation to complete with session.
+                    // The most reliable way to try to wait for a potential navigation
+                    // which is caused by element click to check with script thread
+                    let (sender, receiver) = ipc::channel().unwrap();
+                    self.send_message_to_embedder(WebDriverCommandMsg::ScriptCommand(
+                        browsing_context_id,
+                        WebDriverScriptCommand::IsDocumentReadyStateComplete(sender),
+                    ))?;
 
-                    // Step 8.13. Construct pointer up action.
-                    // Step 8.14. Set a property button to 0 on pointer up action.
-                    let pointer_up_action = PointerUpAction {
-                        button: i16::from(MouseButton::Left) as u64,
-                        ..Default::default()
-                    };
-
-                    let action_sequence = ActionSequence {
-                        id: id.clone(),
-                        actions: ActionsType::Pointer {
-                            parameters: PointerActionParameters {
-                                pointer_type: PointerType::Mouse,
-                            },
-                            actions: vec![
-                                PointerActionItem::Pointer(PointerAction::Move(
-                                    pointer_move_action,
-                                )),
-                                PointerActionItem::Pointer(PointerAction::Down(
-                                    pointer_down_action,
-                                )),
-                                PointerActionItem::Pointer(PointerAction::Up(pointer_up_action)),
-                            ],
-                        },
-                    };
-
-                    // Step 8.16. Dispatch a list of actions with session's current browsing context
-                    let actions_by_tick = self.actions_by_tick_from_sequence(vec![action_sequence]);
-                    if let Err(e) =
-                        self.dispatch_actions(actions_by_tick, self.session()?.browsing_context_id)
-                    {
-                        log::error!("handle_element_click: dispatch_actions failed: {:?}", e);
+                    if wait_for_script_response(receiver)? {
+                        self.load_status_receiver.recv().map_err(|_| {
+                            WebDriverError::new(
+                                ErrorStatus::UnknownError,
+                                "Failed to receive load status",
+                            )
+                        })?;
+                    } else {
+                        self.send_message_to_embedder(
+                            WebDriverCommandMsg::RemoveLoadStatusSender(webview_id),
+                        )?;
                     }
-
-                    // Step 8.17 Remove an input source with input state and input id.
-                    self.session_mut()?
-                        .input_state_table
-                        .borrow_mut()
-                        .remove(&id);
 
                     // Step 13
                     Ok(WebDriverResponse::Void)
@@ -1956,6 +1922,72 @@ impl Handler {
             },
             Err(error) => Err(WebDriverError::new(error, "")),
         }
+    }
+
+    fn perform_element_click(&mut self, element: String) -> WebDriverResult<WebDriverResponse> {
+        // Step 8 for elements other than <option>
+        let id = Uuid::new_v4().to_string();
+
+        // Step 8.1
+        self.session_mut()?.input_state_table.borrow_mut().insert(
+            id.clone(),
+            InputSourceState::Pointer(PointerInputState::new(PointerType::Mouse)),
+        );
+
+        // Step 8.7. Construct a pointer move action.
+        // Step 8.8. Set a property x to 0 on pointer move action.
+        // Step 8.9. Set a property y to 0 on pointer move action.
+        // Step 8.10. Set a property origin to element on pointer move action.
+        let pointer_move_action = PointerMoveAction {
+            duration: None,
+            origin: PointerOrigin::Element(WebElement(element)),
+            x: 0.0,
+            y: 0.0,
+            ..Default::default()
+        };
+
+        // Step 8.11. Construct pointer down action.
+        // Step 8.12. Set a property button to 0 on pointer down action.
+        let pointer_down_action = PointerDownAction {
+            button: i16::from(MouseButton::Left) as u64,
+            ..Default::default()
+        };
+
+        // Step 8.13. Construct pointer up action.
+        // Step 8.14. Set a property button to 0 on pointer up action.
+        let pointer_up_action = PointerUpAction {
+            button: i16::from(MouseButton::Left) as u64,
+            ..Default::default()
+        };
+
+        let action_sequence = ActionSequence {
+            id: id.clone(),
+            actions: ActionsType::Pointer {
+                parameters: PointerActionParameters {
+                    pointer_type: PointerType::Mouse,
+                },
+                actions: vec![
+                    PointerActionItem::Pointer(PointerAction::Move(pointer_move_action)),
+                    PointerActionItem::Pointer(PointerAction::Down(pointer_down_action)),
+                    PointerActionItem::Pointer(PointerAction::Up(pointer_up_action)),
+                ],
+            },
+        };
+
+        // Step 8.16. Dispatch a list of actions with session's current browsing context
+        let actions_by_tick = self.actions_by_tick_from_sequence(vec![action_sequence]);
+        if let Err(e) = self.dispatch_actions(actions_by_tick, self.session()?.browsing_context_id)
+        {
+            log::error!("handle_element_click: dispatch_actions failed: {:?}", e);
+        }
+
+        // Step 8.17 Remove an input source with input state and input id.
+        self.session_mut()?
+            .input_state_table
+            .borrow_mut()
+            .remove(&id);
+
+        Ok(WebDriverResponse::Void)
     }
 
     fn take_screenshot(&self, rect: Option<Rect<f32, CSSPixel>>) -> WebDriverResult<String> {
