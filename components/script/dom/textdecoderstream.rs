@@ -48,6 +48,9 @@ fn decode_and_enqueue_a_chunk(
     ))?;
 
     let output_chunk = decoder.decode(Some(buffer_source), true)?;
+    if output_chunk.is_empty() {
+        return Ok(())
+    }
 
     rooted!(in(*cx) let mut rval = UndefinedValue());
     unsafe { output_chunk.to_jsval(*cx, rval.handle_mut()) };
@@ -85,6 +88,9 @@ fn flush_and_enqueue(
     can_gc: CanGc,
 ) -> Fallible<()> {
     let output_chunk = decoder.decode(None, false)?;
+    if output_chunk.is_empty() {
+        return Ok(())
+    }
 
     rooted!(in(*cx) let mut rval = UndefinedValue());
     unsafe { output_chunk.to_jsval(*cx, rval.handle_mut()) };
@@ -129,7 +135,7 @@ impl TextDecoderStream {
         TextDecoderStream {
             reflector_: Reflector::new(),
             decoder,
-            transform: Dom::from_ref(&transform),
+            transform: Dom::from_ref(transform),
         }
     }
 
