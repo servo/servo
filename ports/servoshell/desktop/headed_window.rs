@@ -55,6 +55,8 @@ use crate::prefs::ServoShellPreferences;
 
 pub struct Window {
     screen_size: Size2D<u32, DeviceIndependentPixel>,
+    /// The inner size of the window in physical pixels which excludes OS decorations.
+    /// It equals viewport size + (0, toolbar height).
     inner_size: Cell<PhysicalSize<u32>>,
     toolbar_height: Cell<Length<f32, DeviceIndependentPixel>>,
     monitor: winit::monitor::MonitorHandle,

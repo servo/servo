@@ -150,7 +150,7 @@ pub struct IOCompositor {
     /// The webrender renderer.
     webrender: Option<webrender::Renderer>,
 
-    /// The surfman instance that webrender targets
+    /// The surfman instance that webrender targets, which is the viewport.
     rendering_context: Rc<dyn RenderingContext>,
 
     /// The number of frames pending to receive from WebRender.
