@@ -340,11 +340,18 @@ impl RunningAppState {
     }
 
     pub(crate) fn webview_has_active_dialog(&self, webview_id: WebViewId) -> bool {
-        let inner = self.inner();
-        inner
+        self.inner()
             .dialogs
             .get(&webview_id)
             .is_some_and(|dialogs| !dialogs.is_empty())
+    }
+
+    pub(crate) fn current_active_dialog_type(&self, webview_id: WebViewId) -> Option<&'static str> {
+        self.inner()
+            .dialogs
+            .get(&webview_id)
+            .and_then(|dialogs| dialogs.last())
+            .map(|dialog| dialog.type_string())
     }
 
     pub(crate) fn accept_active_dialogs(&self, webview_id: WebViewId) {

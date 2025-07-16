@@ -2,16 +2,166 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
+use std::collections::{BTreeMap, HashMap};
+
+use base::id::WebViewId;
 use embedder_traits::{WebDriverCommandMsg, WebDriverUserPromptAction};
 use ipc_channel::ipc;
+use serde_json::{Map, Value};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 use webdriver::response::{ValueResponse, WebDriverResponse};
 
 use crate::{Handler, wait_for_script_response};
 
+const KNOWN_PROMPT_HANDLERS: [&str; 5] = [
+    "dismiss",
+    "accept",
+    "dismiss and notify",
+    "accept and notify",
+    "ignore",
+];
+
+const VALID_PROMPT_TYPES: [&str; 6] = [
+    "alert",
+    "beforeUnload",
+    "confirm",
+    "default",
+    "file",
+    "prompt",
+];
+
+/// <https://w3c.github.io/webdriver/#dfn-prompt-handler-configuration>
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct PromptHandlerConfiguration {
+    handler: &'static str,
+    notify: bool,
+}
+
+pub(crate) type UserPromptHandler = HashMap<&'static str, PromptHandlerConfiguration>;
+
+/// <https://w3c.github.io/webdriver/#dfn-deserialize-as-an-unhandled-prompt-behavior>
+pub(crate) fn deserialize_unhandled_prompt_behaviour(
+    value_param: Value,
+) -> Result<UserPromptHandler, WebDriverError> {
+    // Step 2-5.
+    let (value, is_string_value) = match value_param {
+        Value::Object(map) => (map, false),
+        Value::String(..) => {
+            let mut map = Map::new();
+            map.insert("fallbackDefault".to_string(), value_param);
+            (map, true)
+        },
+        _ => {
+            return Err(WebDriverError::new(
+                ErrorStatus::InvalidArgument,
+                "Expected an object or a string for unhandled prompt behavior.",
+            ));
+        },
+    };
+
+    // Step 6. Let user prompt handler be a new empty map.
+    let mut user_prompt_handler = UserPromptHandler::new();
+
+    // Step 7. For each key-value pair in value:
+    for (prompt_type, handler) in value {
+        // Step 7.1. If `is_string_value` is false and prompt type is not one of
+        // the valid prompt types, return error with error code invalid argument.
+        if !is_string_value && !VALID_PROMPT_TYPES.contains(&prompt_type.as_str()) {
+            return Err(WebDriverError::new(
+                ErrorStatus::InvalidArgument,
+                format!("Invalid prompt type: {}", prompt_type),
+            ));
+        }
+
+        // Step 7.2. If known prompt handlers does not contain an entry with
+        // handler key `handler` return error with error code invalid argument.
+        let handle_str = match handler {
+            Value::String(s) => s,
+            _ => {
+                return Err(WebDriverError::new(
+                    ErrorStatus::InvalidArgument,
+                    format!("Expected a string for handler, got: {:?}", handler),
+                ));
+            },
+        };
+        if !KNOWN_PROMPT_HANDLERS.contains(&handle_str.as_str()) {
+            return Err(WebDriverError::new(
+                ErrorStatus::InvalidArgument,
+                format!("Unknown prompt handler: {}", handle_str),
+            ));
+        }
+
+        // Step 7.3 - 7.6.
+        let (handler, notify) = match handle_str.as_str() {
+            "accept and notify" => ("accept", true),
+            "dismiss and notify" => ("dismiss", true),
+            "ignore" => ("ignore", false),
+            "accept" => ("accept", false),
+            "dismiss" => ("dismiss", false),
+            _ => unreachable!(),
+        };
+
+        // Step 7.7 - 7.8.
+        let prompt_type = VALID_PROMPT_TYPES
+            .iter()
+            .find(|&&t| t == prompt_type)
+            .unwrap_or(&"default");
+        user_prompt_handler.insert(prompt_type, PromptHandlerConfiguration { handler, notify });
+    }
+
+    Ok(user_prompt_handler)
+}
+
+pub(crate) fn default_unhandled_prompt_behavior() -> &'static str {
+    "dismiss and notify"
+}
+
+/// <https://www.w3.org/TR/webdriver2/#dfn-get-the-prompt-handler>
+fn get_user_prompt_handler(
+    user_prompt_handler: &UserPromptHandler,
+    prompt_type: &str,
+) -> PromptHandlerConfiguration {
+    // Step 2. If handlers contains type return handlers[type].
+    if let Some(handler) = user_prompt_handler.get(prompt_type) {
+        return (*handler).clone();
+    }
+
+    // Step 3. If handlers contains default return handlers[default].
+    if let Some(handler) = user_prompt_handler.get("default") {
+        return (*handler).clone();
+    }
+
+    // Step 4. If prompt type is "beforeUnload" return a configuration with handler "accept" and notify false.
+    if prompt_type == "beforeUnload" {
+        return PromptHandlerConfiguration {
+            handler: "accept",
+            notify: false,
+        };
+    }
+
+    // Step 5. If handlers contains fallbackDefault return handlers[fallbackDefault].
+    if let Some(handler) = user_prompt_handler.get("fallbackDefault") {
+        return (*handler).clone();
+    }
+
+    // Step 6. Return a configuration with handler "dismiss" and notify true.
+    PromptHandlerConfiguration {
+        handler: "dismiss",
+        notify: true,
+    }
+}
+
+fn webdriver_response_single_data(
+    key: &'static str,
+    value: Value,
+) -> Option<BTreeMap<Cow<'static, str>, Value>> {
+    Some([(Cow::Borrowed(key), value)].into_iter().collect())
+}
+
 impl Handler {
     /// <https://w3c.github.io/webdriver/#dismiss-alert>
-    pub(crate) fn handle_dismiss_alert(&mut self) -> WebDriverResult<WebDriverResponse> {
+    pub(crate) fn handle_dismiss_alert(&self) -> WebDriverResult<WebDriverResponse> {
         // Step 1. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
         self.verify_top_level_browsing_context_is_open(self.session()?.webview_id)?;
@@ -31,12 +181,12 @@ impl Handler {
                 "No user prompt is currently active.",
             )),
             // Step 4. Return success with data null.
-            Ok(()) => Ok(WebDriverResponse::Void),
+            Ok(_) => Ok(WebDriverResponse::Void),
         }
     }
 
     /// <https://w3c.github.io/webdriver/#accept-alert>
-    pub(crate) fn handle_accept_alert(&mut self) -> WebDriverResult<WebDriverResponse> {
+    pub(crate) fn handle_accept_alert(&self) -> WebDriverResult<WebDriverResponse> {
         // Step 1. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
         self.verify_top_level_browsing_context_is_open(self.session()?.webview_id)?;
@@ -56,11 +206,11 @@ impl Handler {
                 "No user prompt is currently active.",
             )),
             // Step 4. Return success with data null.
-            Ok(()) => Ok(WebDriverResponse::Void),
+            Ok(_) => Ok(WebDriverResponse::Void),
         }
     }
 
-    pub(crate) fn handle_get_alert_text(&mut self) -> WebDriverResult<WebDriverResponse> {
+    pub(crate) fn handle_get_alert_text(&self) -> WebDriverResult<WebDriverResponse> {
         // Step 1. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
         self.verify_top_level_browsing_context_is_open(self.session()?.webview_id)?;
@@ -88,6 +238,52 @@ impl Handler {
                     )
                 })?,
             ))),
+        }
+    }
+
+    /// <https://w3c.github.io/webdriver/#dfn-handle-any-user-prompts>
+    pub(crate) fn handle_any_user_prompts(
+        &self,
+        webview_id: WebViewId,
+    ) -> WebDriverResult<WebDriverResponse> {
+        let (sender, receiver) = ipc::channel().unwrap();
+
+        self.send_message_to_embedder(WebDriverCommandMsg::CurrentUserPrompt(webview_id, sender))?;
+
+        match wait_for_script_response(receiver)? {
+            // Step 1. If the current user prompt is null, return success with data null.
+            None => Ok(WebDriverResponse::Void),
+            Some(prompt_type) => {
+                // Step 2 - 4. Get user prompt handler for the prompt type.
+                let handler =
+                    get_user_prompt_handler(&self.session()?.user_prompt_handler, &prompt_type);
+
+                // Step 5. Perform the substeps based on handler's handler
+                let (sender, receiver) = ipc::channel().unwrap();
+                self.send_message_to_embedder(WebDriverCommandMsg::HandleUserPrompt(
+                    webview_id,
+                    WebDriverUserPromptAction::new_from_str(handler.handler)
+                        .unwrap_or(WebDriverUserPromptAction::Ignore),
+                    sender,
+                ))?;
+
+                if handler.notify || handler.handler == "ignore" {
+                    // Step 6. If handler's notify is true, return annotated unexpected alert open error.
+                    let alert_text = wait_for_script_response(receiver)?
+                        .unwrap_or_default()
+                        .unwrap_or_default();
+
+                    Err(WebDriverError::new_with_data(
+                        ErrorStatus::UnexpectedAlertOpen,
+                        "Handle any user prompt: Unexpected alert open.",
+                        webdriver_response_single_data("text", Value::String(alert_text)),
+                        None,
+                    ))
+                } else {
+                    // Step 7. Return success with data null.
+                    Ok(WebDriverResponse::Void)
+                }
+            },
         }
     }
 }

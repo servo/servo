@@ -582,6 +582,18 @@ impl Dialog {
             },
         }
     }
+
+    pub fn type_string(&self) -> &'static str {
+        match self {
+            Dialog::File { .. } => "file",
+            Dialog::SimpleDialog(simple_dialog) => simple_dialog.type_string(),
+            Dialog::Authentication { .. } => "authentication",
+            Dialog::Permission { .. } => "permission",
+            Dialog::SelectDevice { .. } => "select_device",
+            Dialog::SelectElement { .. } => "select_element",
+            Dialog::ColorPicker { .. } => "color_picker",
+        }
+    }
 }
 
 fn make_dialog_label(message: &str, ui: &mut egui::Ui, input_text: Option<&mut String>) {
