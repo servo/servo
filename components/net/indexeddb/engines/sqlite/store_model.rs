@@ -4,7 +4,7 @@
 
 use sea_orm::prelude::*;
 
-#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
+#[derive(Clone, Debug, DeriveEntityModel, Eq, PartialEq)]
 #[sea_orm(table_name = "store")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = true)]
@@ -14,7 +14,7 @@ pub struct Model {
     pub value: Vec<u8>,
 }
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+#[derive(Clone, Copy, Debug, DeriveRelation, EnumIter)]
 pub enum Relation {}
 
 impl ActiveModelBehavior for ActiveModel {}
