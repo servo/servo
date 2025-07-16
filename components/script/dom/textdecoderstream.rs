@@ -47,14 +47,19 @@ fn decode_and_enqueue_a_chunk(
         "Unable to convert chunk into ArrayBuffer or ArrayBufferView".to_string(),
     ))?;
 
+    // Step 2. Push a copy of bufferSource to decoder’s I/O queue. 
+    // Step 3. Let output be the I/O queue of scalar values « end-of-queue ».
+    // Step 4. Implemented by `TextDecoderCommon::decode`, which uses the same process as
+    //      `TextDecoder`
     let output_chunk = decoder.decode(Some(buffer_source), true)?;
+    
+    // Step 4.2.2 If outputChunk is not the empty string, then enqueue
+    //      outputChunk in decoder’s transform. 
     if output_chunk.is_empty() {
         return Ok(());
     }
-
     rooted!(in(*cx) let mut rval = UndefinedValue());
     unsafe { output_chunk.to_jsval(*cx, rval.handle_mut()) };
-
     controller.enqueue(cx, global, rval.handle(), can_gc)
 }
 
@@ -73,6 +78,8 @@ impl TransformerTransformAlgorithm for TextDecoderStreamTransformAlgorithm {
         controller: &TransformStreamDefaultController,
         can_gc: CanGc,
     ) -> Fallible<std::rc::Rc<super::types::Promise>> {
+        // Step 7. Let transformAlgorithm be an algorithm which takes a chunk argument
+        //      and runs the decode and enqueue a chunk algorithm with this and chunk. 
         decode_and_enqueue_a_chunk(cx, global, chunk, &self.decoder, controller, can_gc)
             .map(|_| Promise::new_resolved(global, cx, (), can_gc))
     }
@@ -87,14 +94,17 @@ fn flush_and_enqueue(
     controller: &TransformStreamDefaultController,
     can_gc: CanGc,
 ) -> Fallible<()> {
+    // Step 1. Implemented by `TextDecoderCommon::decode` which uses a similar process
+    //      as `TextDecoder::Decode`.
     let output_chunk = decoder.decode(None, false)?;
+    
+    // Step 2.3.2 If outputChunk is not the empty string, then enqueue
+    //      outputChunk in decoder’s transform. 
     if output_chunk.is_empty() {
         return Ok(());
     }
-
     rooted!(in(*cx) let mut rval = UndefinedValue());
     unsafe { output_chunk.to_jsval(*cx, rval.handle_mut()) };
-
     controller.enqueue(cx, global, rval.handle(), can_gc)
 }
 
@@ -112,6 +122,8 @@ impl TransformerFlushAlgorithm for TextDecoderStreamFlushAlgorithm {
         controller: &TransformStreamDefaultController,
         can_gc: CanGc,
     ) -> Fallible<Rc<Promise>> {
+        // Step 8. Let flushAlgorithm be an algorithm which takes no arguments
+        //      and runs the flush and enqueue algorithm with this. 
         flush_and_enqueue(cx, global, &self.decoder, controller, can_gc)
             .map(|_| Promise::new_resolved(global, cx, (), can_gc))
     }
