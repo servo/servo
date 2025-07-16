@@ -594,9 +594,7 @@ impl WindowPortsMethods for Window {
             WindowEvent::KeyboardInput { event, .. } => self.handle_keyboard_input(state, event),
             WindowEvent::ModifiersChanged(modifiers) => self.modifiers_state.set(modifiers.state()),
             WindowEvent::MouseInput { state, button, .. } => {
-                if button == MouseButton::Left || button == MouseButton::Right {
-                    self.handle_mouse(&webview, button, state);
-                }
+                self.handle_mouse(&webview, button, state);
             },
             WindowEvent::CursorMoved { position, .. } => {
                 let mut point = winit_position_to_euclid_point(position).to_f32();
