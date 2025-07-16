@@ -973,7 +973,7 @@ impl Handler {
             webview_id,
             self.load_status_sender.clone(),
         ))?;
-        self.wait_for_load()
+        self.wait_for_navigation_to_complete()
     }
 
     fn handle_go_forward(&self) -> WebDriverResult<WebDriverResponse> {
@@ -986,7 +986,7 @@ impl Handler {
             webview_id,
             self.load_status_sender.clone(),
         ))?;
-        self.wait_for_load()
+        self.wait_for_navigation_to_complete()
     }
 
     fn handle_refresh(&self) -> WebDriverResult<WebDriverResponse> {
