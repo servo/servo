@@ -61,6 +61,7 @@ pub(crate) trait TransformerCancelAlgorithm: Trace {
     ) -> Fallible<Rc<Promise>>;
 }
 
+#[allow(unused)]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub(crate) enum TransformerCancelAlgorithmType {
     Js(#[ignore_malloc_size_of = "Rc is hard"] Rc<TransformerCancelCallback>),

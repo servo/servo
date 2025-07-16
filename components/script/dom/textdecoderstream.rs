@@ -220,10 +220,12 @@ impl TextDecoderStreamMethods<crate::DomTypeHolder> for TextDecoderStream {
         self.decoder.ignore_bom()
     }
 
+    // https://streams.spec.whatwg.org/#dom-generictransformstream-readable
     fn Readable(&self) -> DomRoot<<crate::DomTypeHolder as DomTypes>::ReadableStream> {
         self.transform.get_readable()
     }
 
+    // https://streams.spec.whatwg.org/#dom-generictransformstream-writable
     fn Writable(&self) -> DomRoot<<crate::DomTypeHolder as DomTypes>::WritableStream> {
         self.transform.get_writable()
     }
