@@ -40,7 +40,7 @@ pub trait WindowPortsMethods {
     fn winit_window(&self) -> Option<&winit::window::Window>;
     fn toolbar_height(&self) -> Length<f32, DeviceIndependentPixel>;
     fn set_toolbar_height(&self, height: Length<f32, DeviceIndependentPixel>);
-    /// Viewport.
+    /// This returns [`RenderingContext`] matching the viewport.
     fn rendering_context(&self) -> Rc<dyn RenderingContext>;
     fn show_ime(
         &self,
