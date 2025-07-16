@@ -30,6 +30,7 @@ use js::typedarray::{
     TypedArrayElementCreator, Uint32Array,
 };
 use pixels::{self, Alpha, PixelFormat, Snapshot, SnapshotPixelFormat};
+use script_bindings::conversions::SafeToJSValConvertible;
 use serde::{Deserialize, Serialize};
 use servo_config::pref;
 use webrender_api::ImageKey;
@@ -48,7 +49,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, Float32ArrayOrUnrestrictedFloatSequence,
     HTMLCanvasElementOrOffscreenCanvas, Int32ArrayOrLongSequence,
 };
-use crate::dom::bindings::conversions::{DerivedFrom, ToJSValConvertible};
+use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, DomObject, Reflector, reflect_dom_object};
@@ -2128,37 +2129,37 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         }
 
         match parameter {
-            constants::ARRAY_BUFFER_BINDING => unsafe {
-                self.bound_buffer_array.get().to_jsval(*cx, retval);
+            constants::ARRAY_BUFFER_BINDING => {
+                self.bound_buffer_array.get().safe_to_jsval(cx, retval);
                 return;
             },
-            constants::CURRENT_PROGRAM => unsafe {
-                self.current_program.get().to_jsval(*cx, retval);
+            constants::CURRENT_PROGRAM => {
+                self.current_program.get().safe_to_jsval(cx, retval);
                 return;
             },
-            constants::ELEMENT_ARRAY_BUFFER_BINDING => unsafe {
+            constants::ELEMENT_ARRAY_BUFFER_BINDING => {
                 let buffer = self.current_vao().element_array_buffer().get();
-                buffer.to_jsval(*cx, retval);
+                buffer.safe_to_jsval(cx, retval);
                 return;
             },
-            constants::FRAMEBUFFER_BINDING => unsafe {
-                self.bound_draw_framebuffer.get().to_jsval(*cx, retval);
+            constants::FRAMEBUFFER_BINDING => {
+                self.bound_draw_framebuffer.get().safe_to_jsval(cx, retval);
                 return;
             },
-            constants::RENDERBUFFER_BINDING => unsafe {
-                self.bound_renderbuffer.get().to_jsval(*cx, retval);
+            constants::RENDERBUFFER_BINDING => {
+                self.bound_renderbuffer.get().safe_to_jsval(cx, retval);
                 return;
             },
-            constants::TEXTURE_BINDING_2D => unsafe {
+            constants::TEXTURE_BINDING_2D => {
                 let texture = self
                     .textures
                     .active_texture_slot(constants::TEXTURE_2D, self.webgl_version())
                     .unwrap()
                     .get();
-                texture.to_jsval(*cx, retval);
+                texture.safe_to_jsval(cx, retval);
                 return;
             },
-            WebGL2RenderingContextConstants::TEXTURE_BINDING_2D_ARRAY => unsafe {
+            WebGL2RenderingContextConstants::TEXTURE_BINDING_2D_ARRAY => {
                 let texture = self
                     .textures
                     .active_texture_slot(
@@ -2167,10 +2168,10 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                     )
                     .unwrap()
                     .get();
-                texture.to_jsval(*cx, retval);
+                texture.safe_to_jsval(cx, retval);
                 return;
             },
-            WebGL2RenderingContextConstants::TEXTURE_BINDING_3D => unsafe {
+            WebGL2RenderingContextConstants::TEXTURE_BINDING_3D => {
                 let texture = self
                     .textures
                     .active_texture_slot(
@@ -2179,21 +2180,21 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                     )
                     .unwrap()
                     .get();
-                texture.to_jsval(*cx, retval);
+                texture.safe_to_jsval(cx, retval);
                 return;
             },
-            constants::TEXTURE_BINDING_CUBE_MAP => unsafe {
+            constants::TEXTURE_BINDING_CUBE_MAP => {
                 let texture = self
                     .textures
                     .active_texture_slot(constants::TEXTURE_CUBE_MAP, self.webgl_version())
                     .unwrap()
                     .get();
-                texture.to_jsval(*cx, retval);
+                texture.safe_to_jsval(cx, retval);
                 return;
             },
-            OESVertexArrayObjectConstants::VERTEX_ARRAY_BINDING_OES => unsafe {
+            OESVertexArrayObjectConstants::VERTEX_ARRAY_BINDING_OES => {
                 let vao = self.current_vao.get().filter(|vao| vao.id().is_some());
-                vao.to_jsval(*cx, retval);
+                vao.safe_to_jsval(cx, retval);
                 return;
             },
             // In readPixels we currently support RGBA/UBYTE only.  If
@@ -2223,16 +2224,16 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                     .unwrap();
                 return retval.set(ObjectValue(rval.get()));
             },
-            constants::VERSION => unsafe {
-                "WebGL 1.0".to_jsval(*cx, retval);
+            constants::VERSION => {
+                "WebGL 1.0".safe_to_jsval(cx, retval);
                 return;
             },
-            constants::RENDERER | constants::VENDOR => unsafe {
-                "Mozilla/Servo".to_jsval(*cx, retval);
+            constants::RENDERER | constants::VENDOR => {
+                "Mozilla/Servo".safe_to_jsval(cx, retval);
                 return;
             },
-            constants::SHADING_LANGUAGE_VERSION => unsafe {
-                "WebGL GLSL ES 1.0".to_jsval(*cx, retval);
+            constants::SHADING_LANGUAGE_VERSION => {
+                "WebGL GLSL ES 1.0".safe_to_jsval(cx, retval);
                 return;
             },
             constants::UNPACK_FLIP_Y_WEBGL => {
@@ -2310,10 +2311,10 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 self.send_command(WebGLCommand::GetParameterBool(param, sender));
                 retval.set(BooleanValue(receiver.recv().unwrap()))
             },
-            Parameter::Bool4(param) => unsafe {
+            Parameter::Bool4(param) => {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.send_command(WebGLCommand::GetParameterBool4(param, sender));
-                receiver.recv().unwrap().to_jsval(*cx, retval);
+                receiver.recv().unwrap().safe_to_jsval(cx, retval);
             },
             Parameter::Int(param) => {
                 let (sender, receiver) = webgl_channel().unwrap();
@@ -3255,7 +3256,6 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         handle_potential_webgl_error!(self, program.get_attrib_location(name), -1)
     }
 
-    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn GetFramebufferAttachmentParameter(
         &self,
@@ -3352,12 +3352,12 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             let fb = self.bound_draw_framebuffer.get().unwrap();
             if let Some(webgl_attachment) = fb.attachment(attachment) {
                 match webgl_attachment {
-                    WebGLFramebufferAttachmentRoot::Renderbuffer(rb) => unsafe {
-                        rb.to_jsval(*cx, retval);
+                    WebGLFramebufferAttachmentRoot::Renderbuffer(rb) => {
+                        rb.safe_to_jsval(cx, retval);
                         return;
                     },
-                    WebGLFramebufferAttachmentRoot::Texture(texture) => unsafe {
-                        texture.to_jsval(*cx, retval);
+                    WebGLFramebufferAttachmentRoot::Texture(texture) => {
+                        texture.safe_to_jsval(cx, retval);
                         return;
                     },
                 }
@@ -3640,9 +3640,9 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                     retval.set(BooleanValue(data.normalized))
                 },
                 constants::VERTEX_ATTRIB_ARRAY_STRIDE => retval.set(Int32Value(data.stride as i32)),
-                constants::VERTEX_ATTRIB_ARRAY_BUFFER_BINDING => unsafe {
+                constants::VERTEX_ATTRIB_ARRAY_BUFFER_BINDING => {
                     if let Some(buffer) = data.buffer() {
-                        buffer.to_jsval(*cx, retval.reborrow());
+                        buffer.safe_to_jsval(cx, retval.reborrow());
                     } else {
                         retval.set(NullValue());
                     }
@@ -4264,14 +4264,14 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 triple,
                 WebGLCommand::GetUniformBool,
             ))),
-            constants::BOOL_VEC2 => unsafe {
-                uniform_get(triple, WebGLCommand::GetUniformBool2).to_jsval(*cx, rval);
+            constants::BOOL_VEC2 => {
+                uniform_get(triple, WebGLCommand::GetUniformBool2).safe_to_jsval(cx, rval)
             },
-            constants::BOOL_VEC3 => unsafe {
-                uniform_get(triple, WebGLCommand::GetUniformBool3).to_jsval(*cx, rval);
+            constants::BOOL_VEC3 => {
+                uniform_get(triple, WebGLCommand::GetUniformBool3).safe_to_jsval(cx, rval)
             },
-            constants::BOOL_VEC4 => unsafe {
-                uniform_get(triple, WebGLCommand::GetUniformBool4).to_jsval(*cx, rval);
+            constants::BOOL_VEC4 => {
+                uniform_get(triple, WebGLCommand::GetUniformBool4).safe_to_jsval(cx, rval)
             },
             constants::INT |
             constants::SAMPLER_2D |

@@ -7,6 +7,7 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, QualName, local_name, ns};
 use js::jsval::NullValue;
 use js::rust::HandleValue;
+use script_bindings::conversions::SafeToJSValConvertible;
 
 use crate::dom::bindings::codegen::Bindings::TrustedTypePolicyFactoryBinding::{
     TrustedTypePolicyFactoryMethods, TrustedTypePolicyOptions,
@@ -22,7 +23,6 @@ use crate::dom::trustedhtml::TrustedHTML;
 use crate::dom::trustedscript::TrustedScript;
 use crate::dom::trustedscripturl::TrustedScriptURL;
 use crate::dom::trustedtypepolicy::{TrustedType, TrustedTypePolicy};
-use crate::js::conversions::ToJSValConvertible;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
@@ -137,7 +137,6 @@ impl TrustedTypePolicyFactory {
         data
     }
     /// <https://w3c.github.io/trusted-types/dist/spec/#process-value-with-a-default-policy-algorithm>
-    #[allow(unsafe_code)]
     pub(crate) fn process_value_with_default_policy(
         expected_type: TrustedType,
         global: &GlobalScope,
@@ -155,15 +154,11 @@ impl TrustedTypePolicyFactory {
         // Step 2: Let policyValue be the result of executing Get Trusted Type policy value,
         // with the following arguments:
         rooted!(in(*cx) let mut trusted_type_name_value = NullValue());
-        unsafe {
-            let trusted_type_name: &'static str = expected_type.clone().into();
-            trusted_type_name.to_jsval(*cx, trusted_type_name_value.handle_mut());
-        }
+        let trusted_type_name: &'static str = expected_type.clone().into();
+        trusted_type_name.safe_to_jsval(cx, trusted_type_name_value.handle_mut());
 
         rooted!(in(*cx) let mut sink_value = NullValue());
-        unsafe {
-            sink.to_jsval(*cx, sink_value.handle_mut());
-        }
+        sink.safe_to_jsval(cx, sink_value.handle_mut());
 
         let arguments = vec![trusted_type_name_value.handle(), sink_value.handle()];
         let policy_value = default_policy.get_trusted_type_policy_value(
