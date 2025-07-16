@@ -17,6 +17,7 @@ import time
 import urllib.error
 import urllib.request
 import zipfile
+from zipfile import ZipInfo
 from typing import Dict, List, Union
 
 from io import BufferedIOBase, BytesIO
@@ -26,20 +27,20 @@ SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
 SERVO_ROOT = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
 
 
-def remove_readonly(func, path, _):
+def remove_readonly(func, path, _) -> None:
     "Clear the readonly bit and reattempt the removal"
     os.chmod(path, stat.S_IWRITE)
     func(path)
 
 
-def delete(path):
+def delete(path) -> None:
     if os.path.isdir(path) and not os.path.islink(path):
         shutil.rmtree(path, onerror=remove_readonly)
     else:
         os.remove(path)
 
 
-def download(description: str, url: str, writer: BufferedIOBase, start_byte: int = 0):
+def download(description: str, url: str, writer: BufferedIOBase, start_byte: int = 0) -> None:
     if start_byte:
         print("Resuming download of {} ...".format(url))
     else:
@@ -101,13 +102,13 @@ def download(description: str, url: str, writer: BufferedIOBase, start_byte: int
         raise
 
 
-def download_bytes(description: str, url: str):
+def download_bytes(description: str, url: str) -> bytes:
     content_writer = BytesIO()
     download(description, url, content_writer)
     return content_writer.getvalue()
 
 
-def download_file(description: str, url: str, destination_path: str):
+def download_file(description: str, url: str, destination_path: str) -> None:
     tmp_path = destination_path + ".part"
     try:
         start_byte = os.path.getsize(tmp_path)
@@ -136,7 +137,7 @@ class ZipFileWithUnixPermissions(zipfile.ZipFile):
         return extracted
 
     # For Python 3.x
-    def _extract_member(self, member, targetpath, pwd) -> str:
+    def _extract_member(self, member: ZipInfo, targetpath, pwd) -> str:
         if int(sys.version_info[0]) >= 3:
             if not isinstance(member, zipfile.ZipInfo):
                 member = self.getinfo(member)
@@ -153,7 +154,7 @@ class ZipFileWithUnixPermissions(zipfile.ZipFile):
             return super(ZipFileWithUnixPermissions, self)._extract_member(member, targetpath, pwd)
 
 
-def extract(src, dst, movedir=None, remove=True):
+def extract(src, dst, movedir=None, remove=True) -> None:
     assert src.endswith(".zip")
     ZipFileWithUnixPermissions(src).extractall(dst)
 
@@ -168,7 +169,7 @@ def extract(src, dst, movedir=None, remove=True):
         os.remove(src)
 
 
-def check_hash(filename, expected, algorithm):
+def check_hash(filename, expected, algorithm) -> None:
     hasher = hashlib.new(algorithm)
     with open(filename, "rb") as f:
         while True:
@@ -181,11 +182,11 @@ def check_hash(filename, expected, algorithm):
         sys.exit(1)
 
 
-def get_default_cache_dir(topdir):
+def get_default_cache_dir(topdir) -> str:
     return os.environ.get("SERVO_CACHE_DIR", os.path.join(topdir, ".servo"))
 
 
-def append_paths_to_env(env: Dict[str, str], key: str, paths: Union[str, List[str]]):
+def append_paths_to_env(env: Dict[str, str], key: str, paths: Union[str, List[str]]) -> None:
     if isinstance(paths, list):
         paths = os.pathsep.join(paths)
 
@@ -197,7 +198,7 @@ def append_paths_to_env(env: Dict[str, str], key: str, paths: Union[str, List[st
     env[key] = new_value
 
 
-def prepend_paths_to_env(env: Dict[str, str], key: str, paths: Union[str, List[str]]):
+def prepend_paths_to_env(env: Dict[str, str], key: str, paths: Union[str, List[str]]) -> None:
     if isinstance(paths, list):
         paths = os.pathsep.join(paths)
 
@@ -208,5 +209,5 @@ def prepend_paths_to_env(env: Dict[str, str], key: str, paths: Union[str, List[s
     env[key] = new_value
 
 
-def get_target_dir():
+def get_target_dir() -> str:
     return os.environ.get("CARGO_TARGET_DIR", os.path.join(SERVO_ROOT, "target"))

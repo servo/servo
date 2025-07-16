@@ -8,6 +8,7 @@
 # except according to those terms.
 
 import argparse
+from argparse import ArgumentParser
 import json
 import logging
 import os
@@ -16,6 +17,7 @@ import platform
 import re
 import shutil
 import subprocess
+from subprocess import CompletedProcess
 import sys
 import textwrap
 from time import sleep
@@ -117,7 +119,7 @@ class MachCommands(CommandBase):
     DEFAULT_RENDER_MODE = "cpu"
     HELP_RENDER_MODE = "Value can be 'cpu', 'gpu' or 'both' (default " + DEFAULT_RENDER_MODE + ")"
 
-    def __init__(self, context):
+    def __init__(self, context) -> None:
         CommandBase.__init__(self, context)
         if not hasattr(self.context, "built_tests"):
             self.context.built_tests = False
@@ -126,7 +128,7 @@ class MachCommands(CommandBase):
     @CommandArgument("--base", default=None, help="the base URL for testcases")
     @CommandArgument("--date", default=None, help="the datestamp for the data")
     @CommandArgument("--submit", "-a", default=False, action="store_true", help="submit the data to perfherder")
-    def test_perf(self, base=None, date=None, submit=False):
+    def test_perf(self, base=None, date=None, submit=False) -> int:
         env = self.build_env()
         cmd = ["bash", "test_perf.sh"]
         if base:
@@ -145,7 +147,9 @@ class MachCommands(CommandBase):
         "--nocapture", default=False, action="store_true", help="Run tests with nocapture ( show test stdout )"
     )
     @CommandBase.common_command_arguments(build_configuration=True, build_type=True)
-    def test_unit(self, build_type: BuildType, test_name=None, package=None, bench=False, nocapture=False, **kwargs):
+    def test_unit(
+        self, build_type: BuildType, test_name=None, package=None, bench=False, nocapture=False, **kwargs
+    ) -> CompletedProcess[bytes] | int:
         if test_name is None:
             test_name = []
 
@@ -243,7 +247,7 @@ class MachCommands(CommandBase):
         return self.run_cargo_build_like_command("bench" if bench else "test", args, env=env, **kwargs)
 
     @Command("test-content", description="Run the content tests", category="testing")
-    def test_content(self):
+    def test_content(self) -> int:
         print("Content tests have been replaced by web-platform-tests under tests/wpt/mozilla/.")
         return 0
 
@@ -262,7 +266,7 @@ class MachCommands(CommandBase):
         action="store_true",
         help="Emit tidy warnings in the Github Actions annotations format",
     )
-    def test_tidy(self, all_files, no_progress, github_annotations):
+    def test_tidy(self, all_files, no_progress, github_annotations) -> int:
         tidy_failed = tidy.scan(not all_files, not no_progress, github_annotations)
 
         print("\r ➤  Checking formatting of Rust files...")
@@ -296,7 +300,7 @@ class MachCommands(CommandBase):
     @CommandArgument(
         "tests", default=None, nargs="...", help="Specific WebIDL tests to run, relative to the tests directory"
     )
-    def test_scripts(self, verbose, very_verbose, all, tests):
+    def test_scripts(self, verbose, very_verbose, all, tests) -> int:
         if very_verbose:
             logging.getLogger().level = logging.DEBUG
         elif verbose:
@@ -353,7 +357,7 @@ class MachCommands(CommandBase):
 
     @Command("test-devtools", description="Run tests for devtools.", category="testing")
     @CommandBase.common_command_arguments(build_type=True)
-    def test_devtools(self, build_type: BuildType, **kwargs):
+    def test_devtools(self, build_type: BuildType, **kwargs) -> int:
         print("Running devtools tests...")
         passed = servo.devtools_tests.run_tests(SCRIPT_PATH, build_type)
         return 0 if passed else 1
@@ -365,7 +369,7 @@ class MachCommands(CommandBase):
         parser=wpt.create_parser,
     )
     @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
-    def test_wpt_failure(self, build_type: BuildType, **kwargs):
+    def test_wpt_failure(self, build_type: BuildType, **kwargs) -> bool:
         kwargs["pause_after_test"] = False
         kwargs["include"] = ["infrastructure/failing-test.html"]
         return not self._test_wpt(build_type=build_type, **kwargs)
@@ -394,7 +398,7 @@ class MachCommands(CommandBase):
         return self._test_wpt(sys.executable, android=True, **kwargs)
 
     @CommandBase.allow_target_configuration
-    def _test_wpt(self, servo_binary: str, **kwargs):
+    def _test_wpt(self, servo_binary: str, **kwargs) -> int:
         # TODO(mrobinson): Why do we pass the wrong binary path in when running WPT on Android?
         return_value = wpt.run.run_tests(servo_binary, **kwargs)
         return return_value if not kwargs["always_succeed"] else 0
@@ -405,11 +409,11 @@ class MachCommands(CommandBase):
         category="testing",
         parser=wpt.manifestupdate.create_parser,
     )
-    def update_manifest(self, **kwargs):
+    def update_manifest(self, **kwargs) -> int:
         return wpt.manifestupdate.update(check_clean=False)
 
     @Command("fmt", description="Format Rust, Python, and TOML files", category="testing")
-    def format_code(self):
+    def format_code(self) -> int:
         result = format_python_files_with_ruff(check_only=False)
         if result != 0:
             return result
@@ -423,7 +427,7 @@ class MachCommands(CommandBase):
     @Command(
         "update-wpt", description="Update the web platform tests", category="testing", parser=wpt.update.create_parser
     )
-    def update_wpt(self, **kwargs):
+    def update_wpt(self, **kwargs) -> int:
         patch = kwargs.get("patch", False)
         if not patch and kwargs["sync"]:
             print("Are you sure you don't want a patch?")
@@ -432,31 +436,31 @@ class MachCommands(CommandBase):
 
     @Command("test-jquery", description="Run the jQuery test suite", category="testing")
     @CommandBase.common_command_arguments(binary_selection=True)
-    def test_jquery(self, servo_binary: str):
+    def test_jquery(self, servo_binary: str) -> int:
         return self.jquery_test_runner("test", servo_binary)
 
     @Command("test-dromaeo", description="Run the Dromaeo test suite", category="testing")
     @CommandArgument("tests", default=["recommended"], nargs="...", help="Specific tests to run")
     @CommandArgument("--bmf-output", default=None, help="Specify BMF JSON output file")
     @CommandBase.common_command_arguments(binary_selection=True)
-    def test_dromaeo(self, tests, servo_binary: str, bmf_output: str | None = None):
+    def test_dromaeo(self, tests, servo_binary: str, bmf_output: str | None = None) -> None:
         return self.dromaeo_test_runner(tests, servo_binary, bmf_output)
 
     @Command("test-speedometer", description="Run servo's speedometer", category="testing")
     @CommandArgument("--bmf-output", default=None, help="Specify BMF JSON output file")
     @CommandBase.common_command_arguments(binary_selection=True)
-    def test_speedometer(self, servo_binary: str, bmf_output: str | None = None):
+    def test_speedometer(self, servo_binary: str, bmf_output: str | None = None) -> None:
         return self.speedometer_runner(servo_binary, bmf_output)
 
     @Command("test-speedometer-ohos", description="Run servo's speedometer on a ohos device", category="testing")
     @CommandArgument("--bmf-output", default=None, help="Specifcy BMF JSON output file")
     # This needs to be a separate command because we do not need a binary locally
-    def test_speedometer_ohos(self, bmf_output: str | None = None):
+    def test_speedometer_ohos(self, bmf_output: str | None = None) -> None:
         return self.speedometer_runner_ohos(bmf_output)
 
     @Command("update-jquery", description="Update the jQuery test suite expected results", category="testing")
     @CommandBase.common_command_arguments(binary_selection=True)
-    def update_jquery(self, servo_binary: str):
+    def update_jquery(self, servo_binary: str) -> int:
         return self.jquery_test_runner("update", servo_binary)
 
     @Command(
@@ -465,7 +469,7 @@ class MachCommands(CommandBase):
     @CommandArgument(
         "params", default=None, nargs="...", help=" filepaths of output files of two runs of dromaeo test "
     )
-    def compare_dromaeo(self, params):
+    def compare_dromaeo(self, params) -> None:
         prev_op_filename = params[0]
         cur_op_filename = params[1]
         result = {"Test": [], "Prev_Time": [], "Cur_Time": [], "Difference(%)": []}
@@ -545,7 +549,7 @@ class MachCommands(CommandBase):
                         )
                     )
 
-    def jquery_test_runner(self, cmd, binary: str):
+    def jquery_test_runner(self, cmd: str, binary: str) -> int:
         base_dir = path.abspath(path.join("tests", "jquery"))
         jquery_dir = path.join(base_dir, "jquery")
         run_file = path.join(base_dir, "run_jquery.py")
@@ -562,7 +566,7 @@ class MachCommands(CommandBase):
 
         return call([run_file, cmd, bin_path, base_dir])
 
-    def dromaeo_test_runner(self, tests, binary: str, bmf_output: str | None):
+    def dromaeo_test_runner(self, tests, binary: str, bmf_output: str | None) -> None:
         base_dir = path.abspath(path.join("tests", "dromaeo"))
         dromaeo_dir = path.join(base_dir, "dromaeo")
         run_file = path.join(base_dir, "run_dromaeo.py")
@@ -588,10 +592,10 @@ class MachCommands(CommandBase):
 
         return check_call([run_file, "|".join(tests), bin_path, base_dir, bmf_output])
 
-    def speedometer_to_bmf(self, speedometer: dict[str, Any], bmf_output: str | None):
+    def speedometer_to_bmf(self, speedometer: dict[str, Any], bmf_output: str | None) -> None:
         output = dict()
 
-        def parse_speedometer_result(result):
+        def parse_speedometer_result(result) -> None:
             if result["unit"] == "ms":
                 output[f"Speedometer/{result['name']}"] = {
                     "latency": {  # speedometer has ms we need to convert to ns
@@ -620,7 +624,7 @@ class MachCommands(CommandBase):
             with open(bmf_output, "w", encoding="utf-8") as f:
                 json.dump(output, f, indent=4)
 
-    def speedometer_runner(self, binary: str, bmf_output: str | None):
+    def speedometer_runner(self, binary: str, bmf_output: str | None) -> None:
         speedometer = json.loads(
             subprocess.check_output(
                 [
@@ -640,7 +644,7 @@ class MachCommands(CommandBase):
         if bmf_output:
             self.speedometer_to_bmf(speedometer, bmf_output)
 
-    def speedometer_runner_ohos(self, bmf_output: str | None):
+    def speedometer_runner_ohos(self, bmf_output: str | None) -> None:
         ohos_sdk_native = os.getenv("OHOS_SDK_NATIVE") or ""
         hdc_path: str = shutil.which("hdc") or path.join(ohos_sdk_native, "../", "toolchains", "hdc")
         log_path: str = "/data/app/el2/100/base/org.servo.servo/cache/servo.log"
@@ -792,7 +796,7 @@ class MachCommands(CommandBase):
     )
     @CommandArgument("params", nargs="...", help="Command-line arguments to be passed through to Servo")
     @CommandBase.common_command_arguments(binary_selection=True)
-    def smoketest(self, servo_binary: str, params, **kwargs):
+    def smoketest(self, servo_binary: str, params, **kwargs) -> int | None:
         # We pass `-f` here so that any thread panic will cause Servo to exit,
         # preventing a panic from hanging execution. This means that these kind
         # of panics won't cause timeouts on CI.
@@ -803,7 +807,7 @@ class MachCommands(CommandBase):
     @CommandArgument(
         "try_strings", default=["full"], nargs="...", help="A list of try strings specifying what kind of job to run."
     )
-    def try_command(self, remote: str, try_strings: list[str]):
+    def try_command(self, remote: str, try_strings: list[str]) -> int:
         if subprocess.check_output(["git", "diff", "--cached", "--name-only"]).strip():
             print("Cannot run `try` with staged and uncommited changes. ")
             print("Please either commit or stash them before running `try`.")
@@ -853,7 +857,7 @@ class MachCommands(CommandBase):
             return result
 
 
-def create_parser_create():
+def create_parser_create() -> ArgumentParser:
     import argparse
 
     p = argparse.ArgumentParser()

@@ -30,11 +30,11 @@ class VisualStudioInstallation:
     installation_path: str
     vc_install_path: str
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> bool:
         return self.version_number < other.version_number
 
 
-def find_vswhere():
+def find_vswhere() -> str | None:
     for path in [PROGRAM_FILES, PROGRAM_FILES_X86]:
         if not path:
             continue

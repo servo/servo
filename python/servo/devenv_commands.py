@@ -27,7 +27,7 @@ class MachCommands(CommandBase):
         "params", default=None, nargs="...", help="Command-line arguments to be passed through to cargo check"
     )
     @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
-    def check(self, params, **kwargs):
+    def check(self, params, **kwargs) -> CompletedProcess[bytes] | int:
         if not params:
             params = []
 
@@ -41,7 +41,7 @@ class MachCommands(CommandBase):
 
     @Command("rustc", description="Run the Rust compiler", category="devenv")
     @CommandArgument("params", default=None, nargs="...", help="Command-line arguments to be passed through to rustc")
-    def rustc(self, params):
+    def rustc(self, params) -> int:
         if params is None:
             params = []
 
@@ -53,7 +53,7 @@ class MachCommands(CommandBase):
         "params", default=None, nargs="...", help="Command-line arguments to be passed through to cargo-fix"
     )
     @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
-    def cargo_fix(self, params, **kwargs):
+    def cargo_fix(self, params, **kwargs) -> CompletedProcess[bytes] | int:
         if not params:
             params = []
 
@@ -70,7 +70,7 @@ class MachCommands(CommandBase):
         help="Emit the clippy warnings in the Github Actions annotations format",
     )
     @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
-    def cargo_clippy(self, params, github_annotations=False, **kwargs):
+    def cargo_clippy(self, params, github_annotations=False, **kwargs) -> CompletedProcess[bytes] | int:
         if not params:
             params = []
 
@@ -99,6 +99,6 @@ class MachCommands(CommandBase):
         return self.run_cargo_build_like_command("clippy", params, env=env, **kwargs)
 
     @Command("fetch", description="Fetch Rust, Cargo and Cargo dependencies", category="devenv")
-    def fetch(self):
+    def fetch(self) -> int:
         self.ensure_bootstrapped()
         return call(["cargo", "fetch"], env=self.build_env())

@@ -29,8 +29,8 @@ from enum import Enum
 from errno import ENOENT as NO_SUCH_FILE_OR_DIRECTORY
 from glob import glob
 from os import path
-from subprocess import PIPE
-from typing import Any, Dict, List, Optional, Union, cast
+from subprocess import PIPE, CompletedProcess
+from typing import Any, Dict, List, Optional, Union, LiteralString, cast
 from xml.etree.ElementTree import XML
 
 import toml
@@ -92,7 +92,7 @@ class BuildType:
 
 
 @contextlib.contextmanager
-def cd(new_path):
+def cd(new_path: str):
     """Context manager for changing the current working directory"""
     previous_path = os.getcwd()
     try:
@@ -103,7 +103,7 @@ def cd(new_path):
 
 
 @contextlib.contextmanager
-def setlocale(name):
+def setlocale(name: str):
     """Context manager for changing the current locale"""
     saved_locale = locale.setlocale(locale.LC_ALL)
     try:
@@ -125,7 +125,7 @@ def find_dep_path_newest(package, bin_path):
     return None
 
 
-def archive_deterministically(dir_to_archive, dest_archive, prepend_path=None):
+def archive_deterministically(dir_to_archive, dest_archive, prepend_path=None) -> None:
     """Create a .tar.gz archive in a deterministic (reproducible) manner.
 
     See https://reproducible-builds.org/docs/archives/ for more details."""
@@ -176,7 +176,7 @@ def archive_deterministically(dir_to_archive, dest_archive, prepend_path=None):
         os.rename(temp_file, dest_archive)
 
 
-def call(*args, **kwargs):
+def call(*args, **kwargs) -> int:
     """Wrap `subprocess.call`, printing the command if verbose=True."""
     verbose = kwargs.pop("verbose", False)
     if verbose:
@@ -202,7 +202,7 @@ def check_output(*args, **kwargs) -> Union[str, bytes]:
     return subprocess.check_output(*args, **kwargs)
 
 
-def check_call(*args, **kwargs):
+def check_call(*args, **kwargs) -> None:
     """Wrap `subprocess.check_call`, printing the command if verbose=True.
 
     Also fix any unicode-containing `env`, for subprocess"""
@@ -231,20 +231,20 @@ def check_call(*args, **kwargs):
         raise subprocess.CalledProcessError(status, " ".join(*args))
 
 
-def is_windows():
+def is_windows() -> bool:
     return sys.platform == "win32"
 
 
-def is_macosx():
+def is_macosx() -> bool:
     return sys.platform == "darwin"
 
 
-def is_linux():
+def is_linux() -> bool:
     return sys.platform.startswith("linux")
 
 
 class BuildNotFound(Exception):
-    def __init__(self, message):
+    def __init__(self, message) -> None:
         self.message = message
 
     def __str__(self):
@@ -258,7 +258,7 @@ class CommandBase(object):
 
     target: BuildTarget | OpenHarmonyTarget | AndroidTarget
 
-    def __init__(self, context):
+    def __init__(self, context) -> None:
         self.context = context
         self.enable_media = False
         self.features = []
@@ -267,13 +267,13 @@ class CommandBase(object):
         # by `configure_build_target`
         self.target = BuildTarget.from_triple(None)
 
-        def get_env_bool(var, default):
+        def get_env_bool(var: str, default: bool) -> bool | None:
             # Contents of env vars are strings by default. This returns the
             # boolean value of the specified environment variable, or the
             # speciried default if the var doesn't contain True or False
             return {"True": True, "False": False}.get(os.environ.get(var, ""), default)
 
-        def resolverelative(category, key):
+        def resolverelative(category: str, key: str) -> None:
             # Allow ~
             self.config[category][key] = path.expanduser(self.config[category][key])
             # Resolve relative paths
@@ -337,7 +337,7 @@ class CommandBase(object):
     def get_top_dir(self):
         return self.context.topdir
 
-    def get_binary_path(self, build_type: BuildType, sanitizer: SanitizerKind = SanitizerKind.NONE):
+    def get_binary_path(self, build_type: BuildType, sanitizer: SanitizerKind = SanitizerKind.NONE) -> str:
         base_path = util.get_target_dir()
         if sanitizer.is_some() or self.target.is_cross_build():
             base_path = path.join(base_path, self.target.triple())
@@ -349,7 +349,7 @@ class CommandBase(object):
 
         return binary_path
 
-    def detach_volume(self, mounted_volume):
+    def detach_volume(self, mounted_volume: LiteralString) -> None:
         print("Detaching volume {}".format(mounted_volume))
         try:
             subprocess.check_call(["hdiutil", "detach", mounted_volume])
@@ -357,11 +357,11 @@ class CommandBase(object):
             print("Could not detach volume {} : {}".format(mounted_volume, e.returncode))
             sys.exit(1)
 
-    def detach_volume_if_attached(self, mounted_volume):
+    def detach_volume_if_attached(self, mounted_volume: LiteralString) -> None:
         if os.path.exists(mounted_volume):
             self.detach_volume(mounted_volume)
 
-    def mount_dmg(self, dmg_path):
+    def mount_dmg(self, dmg_path) -> None:
         print("Mounting dmg {}".format(dmg_path))
         try:
             subprocess.check_call(["hdiutil", "attach", dmg_path])
@@ -369,7 +369,7 @@ class CommandBase(object):
             print("Could not mount Servo dmg : {}".format(e.returncode))
             sys.exit(1)
 
-    def extract_nightly(self, nightlies_folder, destination_folder, destination_file):
+    def extract_nightly(self, nightlies_folder: LiteralString, destination_folder: str, destination_file: str) -> None:
         print("Extracting to {} ...".format(destination_folder))
         if is_macosx():
             mounted_volume = path.join(path.sep, "Volumes", "Servo")
@@ -392,14 +392,14 @@ class CommandBase(object):
                 with tarfile.open(os.path.join(nightlies_folder, destination_file), "r") as tar:
                     tar.extractall(destination_folder)
 
-    def get_executable(self, destination_folder):
+    def get_executable(self, destination_folder: str) -> str:
         if is_windows():
             return path.join(destination_folder, "PFiles", "Mozilla research", "Servo Tech Demo")
         if is_linux:
             return path.join(destination_folder, "servo", "servo")
         return path.join(destination_folder, "servo")
 
-    def get_nightly_binary_path(self, nightly_date):
+    def get_nightly_binary_path(self, nightly_date) -> str | None:
         if nightly_date is None:
             return
         if not nightly_date:
@@ -472,10 +472,10 @@ class CommandBase(object):
 
         return self.get_executable(destination_folder)
 
-    def msvc_package_dir(self, package):
+    def msvc_package_dir(self, package) -> str:
         return servo.platform.windows.get_dependency_dir(package)
 
-    def build_env(self):
+    def build_env(self) -> dict[str, str]:
         """Return an extended environment dictionary."""
         env = os.environ.copy()
 
@@ -751,7 +751,7 @@ class CommandBase(object):
         else:
             return BuildType.custom(profile)
 
-    def configure_build_target(self, kwargs: Dict[str, Any], suppress_log: bool = False):
+    def configure_build_target(self, kwargs: Dict[str, Any], suppress_log: bool = False) -> None:
         if hasattr(self.context, "target"):
             # This call is for a dispatched command and we've already configured
             # the target, so just use it.
@@ -788,10 +788,10 @@ class CommandBase(object):
         if self.target.is_cross_build() and not suppress_log:
             print(f"Targeting '{self.target.triple()}' for cross-compilation")
 
-    def is_android(self):
+    def is_android(self) -> bool:
         return isinstance(self.target, AndroidTarget)
 
-    def is_openharmony(self):
+    def is_openharmony(self) -> bool:
         return isinstance(self.target, OpenHarmonyTarget)
 
     def is_media_enabled(self, media_stack: Optional[str]):
@@ -829,7 +829,7 @@ class CommandBase(object):
         capture_output=False,
         target_override: Optional[str] = None,
         **_kwargs,
-    ):
+    ) -> CompletedProcess[bytes] | int:
         env = cast(dict[str, str], env or self.build_env())
 
         # NB: On non-Linux platforms we cannot check whether GStreamer is installed until
@@ -904,21 +904,21 @@ class CommandBase(object):
 
         return call(["cargo", command] + args + cargo_args, env=env, verbose=verbose)
 
-    def android_adb_path(self, env):
+    def android_adb_path(self, env) -> LiteralString:
         if "ANDROID_SDK_ROOT" in env:
             sdk_adb = path.join(env["ANDROID_SDK_ROOT"], "platform-tools", "adb")
             if path.exists(sdk_adb):
                 return sdk_adb
         return "adb"
 
-    def android_emulator_path(self, env):
+    def android_emulator_path(self, env) -> LiteralString:
         if "ANDROID_SDK_ROOT" in env:
             sdk_adb = path.join(env["ANDROID_SDK_ROOT"], "emulator", "emulator")
             if path.exists(sdk_adb):
                 return sdk_adb
         return "emulator"
 
-    def ensure_bootstrapped(self):
+    def ensure_bootstrapped(self) -> None:
         if self.context.bootstrapped:
             return
 
@@ -935,7 +935,7 @@ class CommandBase(object):
         if self.target.triple() not in installed_targets:
             check_call(["rustup", "target", "add", self.target.triple()], cwd=self.context.topdir)
 
-    def ensure_rustup_version(self):
+    def ensure_rustup_version(self) -> None:
         try:
             version_line = subprocess.check_output(
                 ["rustup" + servo.platform.get().executable_suffix(), "--version"],
@@ -964,7 +964,7 @@ class CommandBase(object):
             print("Try running 'rustup self update'.")
             sys.exit(1)
 
-    def ensure_clobbered(self, target_dir=None):
+    def ensure_clobbered(self, target_dir=None) -> None:
         if target_dir is None:
             target_dir = util.get_target_dir()
         auto = True if os.environ.get("AUTOCLOBBER", False) else False

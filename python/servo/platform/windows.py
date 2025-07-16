@@ -32,12 +32,12 @@ DEPENDENCIES_DIR = os.path.join(util.get_target_dir(), "dependencies")
 WINGET_DEPENDENCIES = ["Kitware.CMake", "LLVM.LLVM", "Ninja-build.Ninja", "WiXToolset.WiXToolset"]
 
 
-def get_dependency_dir(package):
+def get_dependency_dir(package: str) -> str:
     """Get the directory that a given Windows dependency should extract to."""
     return os.path.join(DEPENDENCIES_DIR, package, DEPENDENCIES[package])
 
 
-def _winget_import(force: bool = False):
+def _winget_import(force: bool = False) -> None:
     try:
         # We install tools like LLVM / CMake, so we probably don't want to force-upgrade
         # a user installed version without good reason.
@@ -56,7 +56,7 @@ def _winget_import(force: bool = False):
         raise e
 
 
-def _choco_install(force: bool = False):
+def _choco_install(force: bool = False) -> None:
     try:
         choco_config = os.path.join(util.SERVO_ROOT, "support", "windows", "chocolatey.config")
 
@@ -75,15 +75,15 @@ def _choco_install(force: bool = False):
 
 
 class Windows(Base):
-    def __init__(self, triple: str):
+    def __init__(self, triple: str) -> None:
         super().__init__(triple)
         self.is_windows = True
 
-    def executable_suffix(self):
+    def executable_suffix(self) -> str:
         return ".exe"
 
     @classmethod
-    def download_and_extract_dependency(cls, zip_path: str, full_spec: str):
+    def download_and_extract_dependency(cls, zip_path: str, full_spec: str) -> None:
         if not os.path.isfile(zip_path):
             zip_url = f"{DEPS_URL}/{urllib.parse.quote(full_spec)}.zip"
             util.download_file(full_spec, zip_url, zip_path)

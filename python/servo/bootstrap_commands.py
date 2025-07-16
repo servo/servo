@@ -40,7 +40,7 @@ class MachCommands(CommandBase):
     @CommandArgument("--force", "-f", action="store_true", help="Boostrap without confirmation")
     @CommandArgument("--skip-platform", action="store_true", help="Skip platform bootstrapping.")
     @CommandArgument("--skip-lints", action="store_true", help="Skip tool necessary for linting.")
-    def bootstrap(self, force=False, skip_platform=False, skip_lints=False):
+    def bootstrap(self, force=False, skip_platform=False, skip_lints=False) -> int:
         # Note: This entry point isn't actually invoked by ./mach bootstrap.
         # ./mach bootstrap calls mach_bootstrap.bootstrap_command_only so that
         # it can install dependencies without needing mach's dependencies
@@ -57,7 +57,7 @@ class MachCommands(CommandBase):
         category="bootstrap",
     )
     @CommandArgument("--force", "-f", action="store_true", help="Boostrap without confirmation")
-    def bootstrap_gstreamer(self, force=False):
+    def bootstrap_gstreamer(self, force=False) -> int:
         try:
             servo.platform.get().bootstrap_gstreamer(force)
         except NotImplementedError as exception:
@@ -66,7 +66,7 @@ class MachCommands(CommandBase):
         return 0
 
     @Command("update-hsts-preload", description="Download the HSTS preload list", category="bootstrap")
-    def bootstrap_hsts_preload(self, force=False):
+    def bootstrap_hsts_preload(self, force=False) -> None:
         preload_filename = "hsts_preload.fstmap"
         preload_path = path.join(self.context.topdir, "resources")
 
@@ -104,7 +104,7 @@ class MachCommands(CommandBase):
         description="Download the public domains list and update resources/public_domains.txt",
         category="bootstrap",
     )
-    def bootstrap_pub_suffix(self, force=False):
+    def bootstrap_pub_suffix(self, force=False) -> None:
         list_url = "https://publicsuffix.org/list/public_suffix_list.dat"
         dst_filename = path.join(self.context.topdir, "resources", "public_domains.txt")
         not_implemented_case = re.compile(r"^[^*]+\*")
@@ -127,7 +127,7 @@ class MachCommands(CommandBase):
     @Command("clean-nightlies", description="Clean unused nightly builds of Rust and Cargo", category="bootstrap")
     @CommandArgument("--force", "-f", action="store_true", help="Actually remove stuff")
     @CommandArgument("--keep", default=1, help="Keep up to this many most recent nightlies")
-    def clean_nightlies(self, force=False, keep=1):
+    def clean_nightlies(self, force=False, keep=1) -> None:
         print(f"Current Rust version for Servo: {self.rust_toolchain()}")
         old_toolchains = []
         keep = keep
@@ -158,8 +158,8 @@ class MachCommands(CommandBase):
     @CommandArgument("--force", "-f", action="store_true", help="Actually remove stuff")
     @CommandArgument("--show-size", "-s", action="store_true", help="Show packages size")
     @CommandArgument("--keep", default=1, help="Keep up to this many most recent dependencies")
-    def clean_cargo_cache(self, force=False, show_size=False, keep=1):
-        def get_size(path):
+    def clean_cargo_cache(self, force=False, show_size=False, keep=1) -> None:
+        def get_size(path: str) -> float:
             if os.path.isfile(path):
                 return os.path.getsize(path) / (1024 * 1024.0)
             total_size = 0

@@ -48,7 +48,7 @@ class SanitizerKind(Enum):
 
 
 class BuildTarget(object):
-    def __init__(self, target_triple: str):
+    def __init__(self, target_triple: str) -> None:
         self.target_triple = target_triple
 
     @staticmethod
@@ -69,7 +69,7 @@ class BuildTarget(object):
     def binary_name(self) -> str:
         return f"servo{servo.platform.get().executable_suffix()}"
 
-    def configure_build_environment(self, env: Dict[str, str], config: Dict[str, Any], topdir: pathlib.Path):
+    def configure_build_environment(self, env: Dict[str, str], config: Dict[str, Any], topdir: pathlib.Path) -> None:
         pass
 
     def is_cross_build(self) -> bool:
@@ -124,7 +124,7 @@ class AndroidTarget(CrossBuildTarget):
 
         return config
 
-    def configure_build_environment(self, env: Dict[str, str], config: Dict[str, Any], topdir: pathlib.Path):
+    def configure_build_environment(self, env: Dict[str, str], config: Dict[str, Any], topdir: pathlib.Path) -> None:
         # Paths to Android build tools:
         if config["android"]["sdk"]:
             env["ANDROID_SDK_ROOT"] = config["android"]["sdk"]
@@ -201,7 +201,7 @@ class AndroidTarget(CrossBuildTarget):
         llvm_toolchain = path.join(llvm_prebuilt, host)
         env["PATH"] = env["PATH"] + ":" + path.join(llvm_toolchain, "bin")
 
-        def to_ndk_bin(prog):
+        def to_ndk_bin(prog: str) -> str:
             return path.join(llvm_toolchain, "bin", prog)
 
         # This workaround is due to an issue in the x86_64 Android NDK that introduces
@@ -289,7 +289,7 @@ class AndroidTarget(CrossBuildTarget):
 class OpenHarmonyTarget(CrossBuildTarget):
     DEFAULT_TRIPLE = "aarch64-unknown-linux-ohos"
 
-    def configure_build_environment(self, env: Dict[str, str], config: Dict[str, Any], topdir: pathlib.Path):
+    def configure_build_environment(self, env: Dict[str, str], config: Dict[str, Any], topdir: pathlib.Path) -> None:
         # Paths to OpenHarmony SDK and build tools:
         # Note: `OHOS_SDK_NATIVE` is the CMake variable name the `hvigor` build-system
         # uses for the native directory of the SDK, so we use the same name to be consistent.
@@ -343,7 +343,7 @@ class OpenHarmonyTarget(CrossBuildTarget):
         # on windows, depending on how the wrapper is called.
         # Instead, we ensure that all the necessary flags for the c-compiler are set
         # via environment variables such as `TARGET_CFLAGS`.
-        def to_sdk_llvm_bin(prog: str):
+        def to_sdk_llvm_bin(prog: str) -> str:
             if sys.platform == "win32":
                 prog = prog + ".exe"
             llvm_prog = llvm_bin.joinpath(prog)
