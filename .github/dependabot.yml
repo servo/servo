@@ -18,6 +18,8 @@ updates:
         - "emath"
         - "epaint"
         - "epaint_default_fonts"
+        - "accesskit_winit"
+        - "egui-file-dialog"
     gstreamer-related:
       patterns:
         - "gio*"
