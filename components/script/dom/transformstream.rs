@@ -466,6 +466,7 @@ impl TransformStream {
         // Step 5. Let transformAlgorithmWrapper be an algorithm that runs these steps given a value chunk:
         // Step 6. Let flushAlgorithmWrapper be an algorithm that runs these steps:
         // Step 7. Let cancelAlgorithmWrapper be an algorithm that runs these steps given a value reason:
+        // NOTE: These steps are implemented in `TransformStreamDefaultController`
 
         // Step 8. Let startPromise be a promise resolved with undefined.
         let start_promise = Promise::new_resolved(global, cx, (), can_gc);
@@ -957,6 +958,7 @@ impl TransformStream {
     }
 }
 
+#[allow(non_snake_case)]
 impl TransformStreamMethods<crate::DomTypeHolder> for TransformStream {
     /// <https://streams.spec.whatwg.org/#ts-constructor>
     #[allow(unsafe_code)]
