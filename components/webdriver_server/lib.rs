@@ -790,12 +790,14 @@ impl Handler {
 
         let session = self.session()?;
 
-        // Step 1
+        // Step 1. If session's page loading strategy is "none",
+        // return success with data null.
         if session.page_loading_strategy == "none" {
             return Ok(WebDriverResponse::Void);
         }
 
-        // Step 2
+        // Step 2. If session's current browsing context is no longer open,
+        // return success with data null.
         if self
             .verify_browsing_context_is_open(session.browsing_context_id)
             .is_err()
@@ -803,8 +805,10 @@ impl Handler {
             return Ok(WebDriverResponse::Void);
         }
 
-        // Step 3
+        // Step 3. let timeout be the session's page load timeout.
         let timeout = self.session()?.load_timeout;
+
+        // TODO: Step 4. Implement timer parameter
 
         let result = select! {
             recv(self.load_status_receiver) -> res => {
