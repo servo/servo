@@ -1656,6 +1656,10 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
     /// Whether this element serve as a container of editable text for a text input
     /// that is implemented as an UA widget.
     fn is_single_line_text_inner_editor(&self) -> bool;
+
+    /// Whether this element serve as a container of any text inside a text input
+    /// that is implemented as an UA widget.
+    fn is_text_container_of_single_line_input(&self) -> bool;
     fn text_content(self) -> Cow<'dom, str>;
     fn selection(self) -> Option<Range<usize>>;
     fn image_url(self) -> Option<ServoUrl>;
@@ -1857,6 +1861,23 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
             self.unsafe_get().implemented_pseudo_element(),
             Some(PseudoElement::ServoTextControlInnerEditor)
         )
+    }
+
+    fn is_text_container_of_single_line_input(&self) -> bool {
+        let is_single_line_text_inner_placeholder = matches!(
+            self.unsafe_get().implemented_pseudo_element(),
+            Some(PseudoElement::Placeholder)
+        );
+        // Currently `::placeholder` is only implemented for single line text input element.
+        debug_assert!(
+            !is_single_line_text_inner_placeholder ||
+                self.containing_shadow_root_for_layout()
+                    .map(|root| root.get_host_for_layout())
+                    .map(|host| host.downcast::<HTMLInputElement>())
+                    .is_some()
+        );
+
+        self.is_single_line_text_inner_editor() || is_single_line_text_inner_placeholder
     }
 
     fn text_content(self) -> Cow<'dom, str> {

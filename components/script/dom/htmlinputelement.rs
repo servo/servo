@@ -146,7 +146,7 @@ enum ShadowTree {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#attr-input-type>
-#[derive(Clone, Copy, Default, JSTraceable, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, JSTraceable, PartialEq)]
 #[allow(dead_code)]
 #[derive(MallocSizeOf)]
 pub(crate) enum InputType {
@@ -1221,48 +1221,59 @@ impl HTMLInputElement {
         .expect("UA shadow tree was not created")
     }
 
+    fn update_text_shadow_tree_if_needed(&self, can_gc: CanGc) {
+        // Should only do this for `type=text` input.
+        debug_assert_eq!(self.input_type(), InputType::Text);
+
+        let text_shadow_tree = self.text_shadow_tree(can_gc);
+        let value = self.Value();
+
+        // The addition of zero-width space here forces the text input to have an inline formatting
+        // context that might otherwise be trimmed if there's no text. This is important to ensure
+        // that the input element is at least as tall as the line gap of the caret:
+        // <https://drafts.csswg.org/css-ui/#element-with-default-preferred-size>.
+        //
+        // This is also used to ensure that the caret will still be rendered when the input is empty.
+        // TODO: Could append `<br>` element to prevent collapses and avoid this hack, but we would
+        //       need to fix the rendering of caret beforehand.
+        let value_text = match value.is_empty() {
+            false => value,
+            true => "\u{200B}".into(),
+        };
+
+        // FIXME(stevennovaryo): Refactor this inside a TextControl wrapper
+        text_shadow_tree
+            .text_container
+            .upcast::<Node>()
+            .GetFirstChild()
+            .expect("Text container without child")
+            .downcast::<CharacterData>()
+            .expect("First child is not a CharacterData node")
+            .SetData(value_text);
+    }
+
+    fn update_color_shadow_tree_if_needed(&self, can_gc: CanGc) {
+        // Should only do this for `type=color` input.
+        debug_assert_eq!(self.input_type(), InputType::Color);
+
+        let color_shadow_tree = self.color_shadow_tree(can_gc);
+        let mut value = self.Value();
+        if value.str().is_valid_simple_color_string() {
+            value.make_ascii_lowercase();
+        } else {
+            value = DOMString::from("#000000");
+        }
+        let style = format!("background-color: {value}");
+        color_shadow_tree
+            .color_value
+            .upcast::<Element>()
+            .set_string_attribute(&local_name!("style"), style.into(), can_gc);
+    }
+
     fn update_shadow_tree_if_needed(&self, can_gc: CanGc) {
         match self.input_type() {
-            InputType::Text => {
-                let text_shadow_tree = self.text_shadow_tree(can_gc);
-                let value = self.Value();
-
-                // The addition of zero-width space here forces the text input to have an inline formatting
-                // context that might otherwise be trimmed if there's no text. This is important to ensure
-                // that the input element is at least as tall as the line gap of the caret:
-                // <https://drafts.csswg.org/css-ui/#element-with-default-preferred-size>.
-                //
-                // This is also used to ensure that the caret will still be rendered when the input is empty.
-                // TODO: Is there a less hacky way to do this?
-                let value_text = match value.is_empty() {
-                    false => value,
-                    true => "\u{200B}".into(),
-                };
-
-                // FIXME(stevennovaryo): Refactor this inside a TextControl wrapper
-                text_shadow_tree
-                    .text_container
-                    .upcast::<Node>()
-                    .GetFirstChild()
-                    .expect("Text container without child")
-                    .downcast::<CharacterData>()
-                    .expect("First child is not a CharacterData node")
-                    .SetData(value_text);
-            },
-            InputType::Color => {
-                let color_shadow_tree = self.color_shadow_tree(can_gc);
-                let mut value = self.Value();
-                if value.str().is_valid_simple_color_string() {
-                    value.make_ascii_lowercase();
-                } else {
-                    value = DOMString::from("#000000");
-                }
-                let style = format!("background-color: {value}");
-                color_shadow_tree
-                    .color_value
-                    .upcast::<Element>()
-                    .set_string_attribute(&local_name!("style"), style.into(), can_gc);
-            },
+            InputType::Text => self.update_text_shadow_tree_if_needed(can_gc),
+            InputType::Color => self.update_color_shadow_tree_if_needed(can_gc),
             _ => {},
         }
     }

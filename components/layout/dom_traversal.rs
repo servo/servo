@@ -51,14 +51,16 @@ impl<'dom> NodeAndStyleInfo<'dom> {
         }
     }
 
-    /// Whether this is a container for the editable text within a single-line text input.
-    /// This is used to solve the special case of line height for a text editor.
+    /// Whether this is a container for the text within a single-line text input. This
+    /// is used to solve the special case of line height for a text entry widget.
     /// <https://html.spec.whatwg.org/multipage/#the-input-element-as-a-text-entry-widget>
-    // FIXME(stevennovaryo): Now, this would also refer to HTMLInputElement, to handle input
-    //                       elements that is yet to to be implemented with shadow DOM.
+    // TODO(stevennovaryo): Remove the addition of HTMLInputElement here once all of the
+    //                      input element is implemented with UA shadow DOM. This is temporary
+    //                      workaround for past version of input element where we are
+    //                      rendering it as a bare html element.
     pub(crate) fn is_single_line_text_input(&self) -> bool {
         self.node.type_id() == LayoutNodeType::Element(LayoutElementType::HTMLInputElement) ||
-            self.node.is_single_line_text_inner_editor()
+            self.node.is_text_container_of_single_line_input()
     }
 
     pub(crate) fn pseudo(
@@ -81,7 +83,10 @@ impl<'dom> NodeAndStyleInfo<'dom> {
     }
 
     pub(crate) fn get_selected_style(&self) -> ServoArc<ComputedValues> {
-        if self.node.is_single_line_text_inner_editor() {
+        // This is a workaround for handling the `::selection` pseudos where it would not
+        // propagate to the children and Shadow DOM elements. For this case, UA widget
+        // inner elements should follow the originating element in terms of selection.
+        if self.node.is_in_ua_widget() {
             self.node
                 .containing_shadow_host()
                 .expect("Ua widget inner editor is not contained")
