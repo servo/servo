@@ -560,7 +560,7 @@ impl App {
                             ScrollLocation::Delta(Vector2D::new(dx as f32, dy as f32));
 
                         webview.notify_input_event(
-                            InputEvent::Wheel(WheelEvent::new(delta, point))
+                            InputEvent::Wheel(WheelEvent::new(delta, point.to_f32()))
                                 .with_webdriver_message_id(webdriver_message_id),
                         );
 
