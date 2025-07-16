@@ -189,6 +189,9 @@ skip = [
 
     # duplicated by zbus-xml
     "quick-xml",
+
+    # duplicated by sea-orm
+    "heck",
 ]
 
 # github.com organizations to allow git sources for
