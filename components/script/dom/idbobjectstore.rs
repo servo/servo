@@ -32,7 +32,7 @@ use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence as StrOrSt
 use crate::dom::bindings::conversions::jsstring_to_str;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{DomRoot, Dom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::domstringlist::DOMStringList;
@@ -53,7 +53,7 @@ pub struct IDBObjectStore {
     name: DomRefCell<DOMString>,
     key_path: Option<KeyPath>,
     index_names: DomRoot<DOMStringList>,
-    transaction: MutNullableDom<IDBTransaction>,
+    transaction: Dom<IDBTransaction>,
     auto_increment: bool,
 
     // We store the db name in the object store to be able to find the correct
@@ -62,11 +62,12 @@ pub struct IDBObjectStore {
 }
 
 impl IDBObjectStore {
-    pub fn new_inherited(
+    fn new_inherited(
         global: &GlobalScope,
         db_name: DOMString,
         name: DOMString,
         options: Option<&IDBObjectStoreParameters>,
+        transaction: &IDBTransaction,
         can_gc: CanGc,
     ) -> IDBObjectStore {
         let key_path: Option<KeyPath> = match options {
@@ -85,7 +86,7 @@ impl IDBObjectStore {
             key_path,
 
             index_names: DOMStringList::new(global, Vec::new(), can_gc),
-            transaction: Default::default(),
+            transaction: Dom::from_ref(transaction),
             // FIXME:(arihant2math)
             auto_increment: false,
 
@@ -98,11 +99,12 @@ impl IDBObjectStore {
         db_name: DOMString,
         name: DOMString,
         options: Option<&IDBObjectStoreParameters>,
+        transaction: &IDBTransaction,
         can_gc: CanGc,
     ) -> DomRoot<IDBObjectStore> {
         reflect_dom_object(
             Box::new(IDBObjectStore::new_inherited(
-                global, db_name, name, options, can_gc,
+                global, db_name, name, options, transaction, can_gc,
             )),
             global,
             can_gc,
@@ -113,12 +115,8 @@ impl IDBObjectStore {
         self.name.borrow().clone()
     }
 
-    pub fn set_transaction(&self, transaction: &IDBTransaction) {
-        self.transaction.set(Some(transaction));
-    }
-
-    pub fn transaction(&self) -> Option<DomRoot<IDBTransaction>> {
-        self.transaction.get()
+    pub fn transaction(&self) -> DomRoot<IDBTransaction> {
+        self.transaction.as_rooted()
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#valid-key-path
@@ -396,13 +394,6 @@ impl IDBObjectStore {
         Ok(())
     }
 
-    fn active_transaction(&self) -> Fallible<DomRoot<IDBTransaction>> {
-        let Some(transaction) = self.transaction.get() else {
-            return Err(Error::TransactionInactive);
-        };
-        Ok(transaction)
-    }
-
     /// Checks if the transation is active, throwing a "TransactionInactiveError" DOMException if not.
     fn check_transaction_active(transaction: &IDBTransaction) -> ErrorResult {
         // If transaction is not active, throw a "TransactionInactiveError" DOMException.
@@ -434,7 +425,7 @@ impl IDBObjectStore {
         can_gc: CanGc,
     ) -> Fallible<DomRoot<IDBRequest>> {
         // Step 1. Let transaction be handle’s transaction.
-        let transaction = self.active_transaction()?;
+        let transaction = &*self.transaction;
 
         // Step 2. Let store be this's object store.
         // Step 3. If store has been deleted, throw an "InvalidStateError" DOMException.
@@ -519,7 +510,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-delete
     fn Delete(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
         // Step 1. Let transaction be this’s transaction.
-        let transaction = self.active_transaction()?;
+        let transaction = &*self.transaction;
 
         // Step 2. Let store be this's object store.
         // Step 3. If store has been deleted, throw an "InvalidStateError" DOMException.
@@ -547,7 +538,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-clear
     fn Clear(&self) -> Fallible<DomRoot<IDBRequest>> {
         // Step 1. Let transaction be this’s transaction.
-        let transaction = self.active_transaction()?;
+        let transaction = &*self.transaction;
 
         // Step 2. Let store be this's object store.
         // Step 3. If store has been deleted, throw an "InvalidStateError" DOMException.
@@ -570,7 +561,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-get
     fn Get(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
         // Step 1. Let transaction be this’s transaction.
-        let transaction = self.active_transaction()?;
+        let transaction = &*self.transaction;
 
         // Step 2. Let store be this's object store.
         // Step 3. If store has been deleted, throw an "InvalidStateError" DOMException.
@@ -630,7 +621,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-count
     fn Count(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
         // Step 1. Let transaction be this’s transaction.
-        let transaction = self.active_transaction()?;
+        let transaction = &*self.transaction;
 
         // Step 2. Let store be this's object store.
         // Step 3. If store has been deleted, throw an "InvalidStateError" DOMException.
@@ -662,7 +653,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-setname
     fn SetName(&self, value: DOMString) -> ErrorResult {
         // Step 2. Let transaction be this’s transaction.
-        let transaction = self.active_transaction()?;
+        let transaction = &*self.transaction;
 
         // Step 3. Let store be this's object store.
         // Step 4. If store has been deleted, throw an "InvalidStateError" DOMException.

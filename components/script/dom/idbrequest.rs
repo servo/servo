@@ -207,7 +207,7 @@ impl IDBRequest {
         can_gc: CanGc,
     ) -> Fallible<DomRoot<IDBRequest>> {
         // Step 1: Let transaction be the transaction associated with source.
-        let transaction = source.transaction().expect("Store has no transaction");
+        let transaction = source.transaction();
         let global = transaction.global();
 
         // Step 2: Assert: transaction is active.
