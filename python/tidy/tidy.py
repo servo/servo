@@ -832,6 +832,8 @@ def lint_wpt_test_files() -> Iterator[tuple[str, int, str]]:
     messages: List[str] = []
     assert lint.logger is not None
 
+    # HACK: Ignoring this since only Pyrefly raises an issue about ovveride argument name
+    # https://github.com/facebook/pyrefly/issues/643
     lint.logger.error = lambda message: messages.append(message)  # pyrefly: ignore[bad-assignment]
 
     # We do not lint all WPT-like tests because they do not all currently have
@@ -1003,6 +1005,7 @@ def parse_config(config_file: dict[str, Any]) -> None:
     dirs_to_check = config_file.get("check_ext", {})
     # Fix the paths (OS-dependent)
     for path, exts in dirs_to_check.items():
+        # FIXME: Temporarily ignoring this since only Pyrefly raises an issue about the dynamic key
         # pyrefly: ignore[bad-argument-type]
         config["check_ext"][normalize_paths(path)] = exts
 
@@ -1014,6 +1017,7 @@ def parse_config(config_file: dict[str, Any]) -> None:
 
     for pref in user_configs:
         if pref in config:
+            # FIXME: Temporarily ignoring this since only Pyrefly raises an issue about the dynamic key
             # pyrefly: ignore[missing-attribute]
             config[pref] = user_configs[pref]
 
