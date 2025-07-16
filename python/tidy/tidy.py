@@ -20,6 +20,7 @@ import sys
 from dataclasses import dataclass
 from typing import Any, Dict, List, TypedDict, LiteralString
 from collections.abc import Iterator, Callable
+import types
 
 import colorama
 import toml
@@ -832,9 +833,10 @@ def lint_wpt_test_files() -> Iterator[tuple[str, int, str]]:
     messages: List[str] = []
     assert lint.logger is not None
 
-    # HACK: Ignoring this since only Pyrefly raises an issue about ovveride argument name
-    # https://github.com/facebook/pyrefly/issues/643
-    lint.logger.error = lambda message: messages.append(message)  # pyrefly: ignore[bad-assignment]
+    def collect_messages(_, message):
+        messages.append(message)
+
+    lint.logger.error = types.MethodType(collect_messages, lint.logger)
 
     # We do not lint all WPT-like tests because they do not all currently have
     # lint.ignore files.
@@ -1005,7 +1007,7 @@ def parse_config(config_file: dict[str, Any]) -> None:
     dirs_to_check = config_file.get("check_ext", {})
     # Fix the paths (OS-dependent)
     for path, exts in dirs_to_check.items():
-        # FIXME: Temporarily ignoring this since only Pyrefly raises an issue about the dynamic key
+        # FIXME: Temporarily ignoring this since only Pyrefly raises an issue constrained type variable
         # pyrefly: ignore[bad-argument-type]
         config["check_ext"][normalize_paths(path)] = exts
 
