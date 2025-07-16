@@ -788,6 +788,7 @@ impl Handler {
         );
     }
 
+    /// Verify that the given coordinates are within the boundary of the viewport.
     /// If x or y is less than 0 or greater than the width of the viewport in CSS pixels,
     /// then return error with error code move target out of bounds.
     fn check_viewport_bound(&self, x: f64, y: f64) -> Result<(), ErrorStatus> {
