@@ -99,6 +99,10 @@ skip = [
     "itertools",
     "toml",
 
+    # Duplicated by egui
+    "nix",
+    "windows-strings",
+
     # Duplicated by egui-file-dialog
     "windows",
     "windows-implement",
