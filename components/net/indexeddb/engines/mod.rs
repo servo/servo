@@ -72,6 +72,8 @@ pub trait KvsEngine {
     #[expect(dead_code)]
     fn close_store(&self, store_name: SanitizedName) -> Result<(), Self::Error>;
 
+    fn delete_database(&self) -> Result<(), Self::Error>;
+
     fn process_transaction(
         &self,
         transaction: KvsTransaction,

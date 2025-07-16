@@ -155,6 +155,15 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
             let _ = sender.send(Err(()));
         }
     }
+
+    fn delete_database(&mut self, sender: IpcSender<Result<(), ()>>) {
+        let result = self.engine.delete_database();
+        if result.is_ok() {
+            let _ = sender.send(Ok(()));
+        } else {
+            let _ = sender.send(Err(()));
+        }
+    }
 }
 
 struct IndexedDBManager {
@@ -289,17 +298,8 @@ impl IndexedDBManager {
                     origin,
                     name: db_name,
                 };
-                if self.databases.remove(&idb_description).is_none() {
-                    let _ = sender.send(Ok(()));
-                    return;
-                }
-
-                // FIXME:(rasviitanen) Possible security issue?
-                // FIXME:(arihant2math) using remove_dir_all with arbitrary input ...
-                let mut db_dir = self.idb_base_dir.clone();
-                db_dir.push(idb_description.as_path());
-                if std::fs::remove_dir_all(&db_dir).is_err() {
-                    let _ = sender.send(Err(()));
+                if let Some(mut db) = self.databases.remove(&idb_description) {
+                    db.delete_database(sender);
                 } else {
                     let _ = sender.send(Ok(()));
                 }

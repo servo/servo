@@ -31,7 +31,7 @@ impl SqliteEngine {
         std::fs::create_dir_all(&db_dir).expect("Could not create OS directory for idb");
 
         Self {
-            db_dir: db_dir,
+            db_dir,
             connections: Arc::new(RwLock::new(HashMap::new())),
         }
     }
@@ -87,7 +87,11 @@ impl KvsEngine for SqliteEngine {
                 store_model::Entity::delete_many().exec(&conn).await?;
                 metadata_model::Entity::delete_many().exec(&conn).await?;
                 conn.close().await?;
-                // TODO: perhaps delete the database file as well? (not really needed for now)
+                let db_path = self.db_dir.join(format!("{}.db", store_name.name));
+                if db_path.exists() {
+                    // TODO: log if error occurs
+                    let _ = std::fs::remove_file(db_path);
+                }
             }
             Ok(())
         })
@@ -98,6 +102,22 @@ impl KvsEngine for SqliteEngine {
             let mut connections = self.connections.write().await;
             if let Some(conn) = connections.remove(&store_name) {
                 conn.close().await?;
+            }
+            Ok(())
+        })
+    }
+
+    fn delete_database(&self) -> Result<(), Self::Error> {
+        HANDLE.block_on(async {
+            let mut connections = self.connections.write().await;
+            for (store_name, conn) in connections.drain() {
+                store_model::Entity::delete_many().exec(&conn).await?;
+                metadata_model::Entity::delete_many().exec(&conn).await?;
+                conn.close().await?;
+                let db_path = self.db_dir.join(format!("{}.db", store_name.name));
+                if db_path.exists() {
+                    std::fs::remove_file(db_path).expect("Failed to delete database file");
+                }
             }
             Ok(())
         })
@@ -145,7 +165,7 @@ impl KvsEngine for SqliteEngine {
                                 .unwrap()
                                 .is_none()
                         {
-                            if let Ok(_) = store.insert(conn).await {
+                            if store.insert(conn).await.is_ok() {
                                 results.push((request.sender, Ok(Some(IdbResult::Key(key)))));
                             } else {
                                 results.push((request.sender, Err(())));
@@ -177,11 +197,11 @@ impl KvsEngine for SqliteEngine {
                             .exec(conn)
                             .await
                             .map_err(|_| ())
-                            .and_then(|delete_result| {
+                            .map(|delete_result| {
                                 if delete_result.rows_affected > 0 {
-                                    Ok(Some(IdbResult::Key(key)))
+                                    Some(IdbResult::Key(key))
                                 } else {
-                                    Ok(None)
+                                    None
                                 }
                             });
                         results.push((request.sender, result));
@@ -209,9 +229,7 @@ impl KvsEngine for SqliteEngine {
             }
 
             for (sender, result) in results {
-                if let Err(_) = sender.send(result) {
-                    // The receiver was dropped, we can ignore this.
-                }
+                let _ = sender.send(result);
             }
         });
         rx
