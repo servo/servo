@@ -59,14 +59,14 @@ class GitHubAnnotationManager:
             line_start=line_start,
             line_end=line_end,
             level=annotation_level,
-            column_start=column_start if line_start == line_end and column_start is not None else None,
-            column_end=column_end if line_start == line_end and column_end is not None else None,
+            column_start=column_start,
+            column_end=column_end,
         )
 
         line_info = f"line={annotation.line_start},endLine={annotation.line_end},title={annotation.title}"
 
         column_info = ""
-        if annotation.column_end is not None and annotation.column_start is not None:
+        if line_start == line_end and annotation.column_end is not None and annotation.column_start is not None:
             column_info = f"col={annotation.column_start},endColumn={annotation.column_end},"
 
         print(f"::{annotation.level} file={annotation.file_name},{column_info}{line_info}::{annotation.message}")
