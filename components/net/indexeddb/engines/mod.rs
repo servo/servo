@@ -4,8 +4,7 @@
 
 use std::collections::VecDeque;
 
-use ipc_channel::ipc::IpcSender;
-use net_traits::indexeddb_thread::{AsyncOperation, IdbResult, IndexedDBTxnMode};
+use net_traits::indexeddb_thread::{AsyncOperation, IndexedDBTxnMode, IndexedDbResponseSender};
 use tokio::sync::oneshot;
 
 pub use self::heed::HeedEngine;
@@ -46,7 +45,7 @@ impl std::fmt::Display for SanitizedName {
 }
 
 pub struct KvsOperation {
-    pub sender: IpcSender<Result<Option<IdbResult>, ()>>,
+    pub sender: IndexedDbResponseSender,
     pub store_name: SanitizedName,
     pub operation: AsyncOperation,
 }
