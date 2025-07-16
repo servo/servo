@@ -5,6 +5,7 @@
 use ipc_channel::ipc::IpcSender;
 use serde::{Deserialize, Serialize};
 use servo_url::origin::ImmutableOrigin;
+use malloc_size_of_derive::MallocSizeOf;
 
 // https://www.w3.org/TR/IndexedDB-2/#enumdef-idbtransactionmode
 #[derive(Debug, Deserialize, Serialize)]
@@ -16,7 +17,7 @@ pub enum IndexedDBTxnMode {
 
 // https://www.w3.org/TR/IndexedDB-2/#key-type
 // FIXME:(arihant2math) Ordering needs to completely be reimplemented as per https://www.w3.org/TR/IndexedDB-2/#compare-two-keys
-#[derive(Clone, Debug, Deserialize, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, PartialOrd, Serialize)]
 pub enum IndexedDBKeyType {
     Number(f64),
     String(String),
@@ -28,7 +29,7 @@ pub enum IndexedDBKeyType {
 }
 
 // <https://www.w3.org/TR/IndexedDB-2/#key-range>
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
 #[allow(unused)]
 pub struct IndexedDBKeyRange {
     pub lower: Option<IndexedDBKeyType>,
@@ -48,6 +49,37 @@ impl From<IndexedDBKeyType> for IndexedDBKeyRange {
 }
 
 impl IndexedDBKeyRange {
+    pub fn only(key: IndexedDBKeyType) -> Self {
+        Self::from(key)
+    }
+
+    pub fn new(lower: Option<IndexedDBKeyType>, upper: Option<IndexedDBKeyType>, lower_open: bool, upper_open: bool) -> Self {
+        IndexedDBKeyRange {
+            lower,
+            upper,
+            lower_open,
+            upper_open,
+        }
+    }
+
+    pub fn lower_bound(key: IndexedDBKeyType, open: bool) -> Self {
+        IndexedDBKeyRange {
+            lower: Some(key),
+            upper: None,
+            lower_open: open,
+            upper_open: false,
+        }
+    }
+
+    pub fn upper_bound(key: IndexedDBKeyType, open: bool) -> Self {
+        IndexedDBKeyRange {
+            lower: None,
+            upper: Some(key),
+            lower_open: false,
+            upper_open: open,
+        }
+    }
+
     // <https://www.w3.org/TR/IndexedDB-2/#in>
     pub fn contains(&self, key: &IndexedDBKeyType) -> bool {
         // A key is in a key range if both of the following conditions are fulfilled:
