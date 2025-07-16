@@ -49,7 +49,7 @@ fn decode_and_enqueue_a_chunk(
 
     let output_chunk = decoder.decode(Some(buffer_source), true)?;
     if output_chunk.is_empty() {
-        return Ok(())
+        return Ok(());
     }
 
     rooted!(in(*cx) let mut rval = UndefinedValue());
@@ -89,7 +89,7 @@ fn flush_and_enqueue(
 ) -> Fallible<()> {
     let output_chunk = decoder.decode(None, false)?;
     if output_chunk.is_empty() {
-        return Ok(())
+        return Ok(());
     }
 
     rooted!(in(*cx) let mut rval = UndefinedValue());
@@ -170,10 +170,8 @@ impl TextDecoderStream {
             can_gc,
         )?;
 
-        let stream = TextDecoderStream::new_inherited(decoder, &transform_stream);
-
         Ok(reflect_dom_object_with_proto(
-            Box::new(stream),
+            Box::new(TextDecoderStream::new_inherited(decoder, &transform_stream)),
             global,
             proto,
             can_gc,
