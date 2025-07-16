@@ -381,6 +381,14 @@ impl RunningAppState {
             .and_then(|dialog| dialog.message())
     }
 
+    pub(crate) fn set_alert_text_of_newest_dialog(&self, webview_id: WebViewId, text: String) {
+        if let Some(dialogs) = self.inner_mut().dialogs.get_mut(&webview_id) {
+            if let Some(dialog) = dialogs.last_mut() {
+                dialog.set_message(text);
+            }
+        }
+    }
+
     pub(crate) fn get_focused_webview_index(&self) -> Option<usize> {
         let focused_id = self.inner().focused_webview_id?;
         self.webviews()

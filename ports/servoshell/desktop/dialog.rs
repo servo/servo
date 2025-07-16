@@ -168,6 +168,14 @@ impl Dialog {
         }
     }
 
+    pub fn set_message(&mut self, text: String) {
+        #[allow(clippy::single_match)]
+        match self {
+            Dialog::SimpleDialog(dialog) => dialog.set_message(text),
+            _ => {},
+        }
+    }
+
     pub fn update(&mut self, ctx: &egui::Context) -> bool {
         match self {
             Dialog::File {

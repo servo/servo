@@ -172,6 +172,14 @@ impl SimpleDialog {
         }
     }
 
+    pub fn set_message(&mut self, text: String) {
+        #[allow(clippy::single_match)]
+        match self {
+            SimpleDialog::Prompt { message, .. } => *message = text,
+            _ => {},
+        }
+    }
+
     pub fn dismiss(&self) {
         match self {
             SimpleDialog::Alert {

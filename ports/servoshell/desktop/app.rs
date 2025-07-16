@@ -620,6 +620,9 @@ impl App {
                         warn!("Failed to send response of GetAlertText: {error}");
                     };
                 },
+                WebDriverCommandMsg::SendAlertText(webview_id, text) => {
+                    running_state.set_alert_text_of_newest_dialog(webview_id, text);
+                },
                 WebDriverCommandMsg::TakeScreenshot(..) => {
                     warn!(
                         "WebDriverCommand {:?} is still not moved from constellation to embedder",
