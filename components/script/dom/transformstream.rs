@@ -441,7 +441,7 @@ impl TransformStream {
     }
 
     /// Creates and set up the newly created transform stream following
-    /// https://streams.spec.whatwg.org/#transformstream-set-up
+    /// <https://streams.spec.whatwg.org/#transformstream-set-up>
     pub(crate) fn set_up(
         &self,
         cx: SafeJSContext,
