@@ -194,6 +194,9 @@ pub enum SyncOperation {
     Exit(IpcSender<()>),
 }
 
+/// A channel encapsulating an async response to a fallible IndexedDB operation.
+pub type IndexedDbResponseSender = IpcSender<Result<Option<IdbResult>, ()>>;
+
 /// The set of all kinds of results that can be returned from async operations.
 #[derive(Debug, Deserialize, Serialize)]
 pub enum IdbResult {
@@ -207,7 +210,7 @@ pub enum IdbResult {
 pub enum IndexedDBThreadMsg {
     Sync(SyncOperation),
     Async(
-        IpcSender<Result<Option<IdbResult>, ()>>, // Sender to send the result of the async operation
+        IndexedDbResponseSender, // Sender to send the result of the async operation
         ImmutableOrigin,
         String, // Database
         String, // ObjectStore

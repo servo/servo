@@ -138,9 +138,10 @@ impl KvsEngine for HeedEngine {
                             let stores = stores
                                 .read()
                                 .expect("Could not acquire read lock on stores");
-                            let store = stores
-                                .get(&request.store_name)
-                                .expect("Could not get store");
+                            let Some(store) = stores.get(&request.store_name) else {
+                                results.push((request.sender, None));
+                                continue;
+                            };
                             let result = store.inner.get(&rtxn, &key).expect("Could not get item");
 
                             if let Some(blob) = result {
@@ -155,9 +156,10 @@ impl KvsEngine for HeedEngine {
                             let stores = stores
                                 .read()
                                 .expect("Could not acquire read lock on stores");
-                            let _store = stores
-                                .get(&request.store_name)
-                                .expect("Could not get store");
+                            let Some(_store) = stores.get(&request.store_name) else {
+                                results.push((request.sender, None));
+                                continue;
+                            };
                             // FIXME:(arihant2math) Return count with sender
                         },
                         AsyncOperation::ReadWrite(..) => {
@@ -202,9 +204,10 @@ impl KvsEngine for HeedEngine {
                             let stores = stores
                                 .write()
                                 .expect("Could not acquire write lock on stores");
-                            let store = stores
-                                .get(&request.store_name)
-                                .expect("Could not get store");
+                            let Some(store) = stores.get(&request.store_name) else {
+                                results.push((request.sender, None));
+                                continue;
+                            };
                             if overwrite ||
                                 store
                                     .inner
@@ -227,9 +230,10 @@ impl KvsEngine for HeedEngine {
                             let stores = stores
                                 .read()
                                 .expect("Could not acquire write lock on stores");
-                            let store = stores
-                                .get(&request.store_name)
-                                .expect("Could not get store");
+                            let Some(store) = stores.get(&request.store_name) else {
+                                results.push((request.sender, None));
+                                continue;
+                            };
                             let result = store.inner.get(&wtxn, &key).expect("Could not get item");
 
                             results.push((
@@ -242,9 +246,10 @@ impl KvsEngine for HeedEngine {
                             let stores = stores
                                 .write()
                                 .expect("Could not acquire write lock on stores");
-                            let store = stores
-                                .get(&request.store_name)
-                                .expect("Could not get store");
+                            let Some(store) = stores.get(&request.store_name) else {
+                                results.push((request.sender, None));
+                                continue;
+                            };
                             let result = store
                                 .inner
                                 .delete(&mut wtxn, &serialized_key)
@@ -257,18 +262,20 @@ impl KvsEngine for HeedEngine {
                             let stores = stores
                                 .read()
                                 .expect("Could not acquire read lock on stores");
-                            let _store = stores
-                                .get(&request.store_name)
-                                .expect("Could not get store");
+                            let Some(_store) = stores.get(&request.store_name) else {
+                                results.push((request.sender, None));
+                                continue;
+                            };
                             // FIXME:(arihant2math) Return count with sender
                         },
                         AsyncOperation::ReadWrite(AsyncReadWriteOperation::Clear) => {
                             let stores = stores
                                 .write()
                                 .expect("Could not acquire write lock on stores");
-                            let store = stores
-                                .get(&request.store_name)
-                                .expect("Could not get store");
+                            let Some(store) = stores.get(&request.store_name) else {
+                                results.push((request.sender, None));
+                                continue;
+                            };
                             // FIXME:(arihant2math) Error handling
                             let _ = store.inner.clear(&mut wtxn);
                         },
