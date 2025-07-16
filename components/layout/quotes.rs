@@ -10,7 +10,7 @@
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-use icu_locid::Locale;
+use icu_locale_core::Locale;
 
 #[derive(Clone, Copy, Debug)]
 pub struct QuotePair {
