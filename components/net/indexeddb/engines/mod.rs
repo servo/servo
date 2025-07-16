@@ -4,7 +4,7 @@
 
 use std::collections::VecDeque;
 
-use net_traits::indexeddb_thread::{AsyncOperation, IndexedDbResponseSender, IndexedDBTxnMode};
+use net_traits::indexeddb_thread::{AsyncOperation, IndexedDBTxnMode, IndexedDbResponseSender};
 use tokio::sync::oneshot;
 
 pub use self::heed::HeedEngine;
