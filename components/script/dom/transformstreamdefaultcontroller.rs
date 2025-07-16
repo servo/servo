@@ -123,7 +123,6 @@ impl TransformerFlushAlgorithmType {
 }
 
 pub(crate) trait TransformerTransformAlgorithm: Trace {
-    // TODO: are all the args necessary?
     fn run(
         &self,
         cx: SafeJSContext,
@@ -507,6 +506,7 @@ impl TransformStreamDefaultController {
     }
 }
 
+#[allow(non_snake_case)]
 impl TransformStreamDefaultControllerMethods<crate::DomTypeHolder>
     for TransformStreamDefaultController
 {
