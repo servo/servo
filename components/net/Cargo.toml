@@ -60,6 +60,7 @@ rustls = { workspace = true }
 rustls-pemfile = { workspace = true }
 rustls-pki-types = { workspace = true }
 resvg = { workspace = true }
+sea-orm = { version = "1.1", features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 servo_arc = { workspace = true }

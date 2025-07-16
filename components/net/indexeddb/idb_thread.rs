@@ -5,7 +5,6 @@ use std::borrow::ToOwned;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::thread;
 
 use ipc_channel::ipc::{self, IpcError, IpcReceiver, IpcSender};
@@ -17,9 +16,8 @@ use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
 
 use crate::indexeddb::engines::{
-    HeedEngine, KvsEngine, KvsOperation, KvsTransaction, SanitizedName,
+    KvsEngine, KvsOperation, KvsTransaction, SanitizedName, SqliteEngine,
 };
-use crate::resource_thread::CoreResourceThreadPool;
 
 pub trait IndexedDBThreadFactory {
     fn new(config_dir: Option<PathBuf>) -> Self;
@@ -162,26 +160,17 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
 struct IndexedDBManager {
     port: IpcReceiver<IndexedDBThreadMsg>,
     idb_base_dir: PathBuf,
-    databases: HashMap<IndexedDBDescription, IndexedDBEnvironment<HeedEngine>>,
-    thread_pool: Arc<CoreResourceThreadPool>,
+    databases: HashMap<IndexedDBDescription, IndexedDBEnvironment<SqliteEngine>>,
 }
 
 impl IndexedDBManager {
     fn new(port: IpcReceiver<IndexedDBThreadMsg>, idb_base_dir: PathBuf) -> IndexedDBManager {
         debug!("New indexedDBManager");
 
-        let thread_count = thread::available_parallelism()
-            .map(|i| i.get())
-            .unwrap_or(pref!(threadpools_fallback_worker_num) as usize)
-            .min(pref!(threadpools_indexeddb_workers_max).max(1) as usize);
         IndexedDBManager {
             port,
             idb_base_dir,
             databases: HashMap::new(),
-            thread_pool: Arc::new(CoreResourceThreadPool::new(
-                thread_count,
-                "IndexedDB".to_string(),
-            )),
         }
     }
 }
@@ -236,7 +225,7 @@ impl IndexedDBManager {
         &self,
         origin: ImmutableOrigin,
         db_name: String,
-    ) -> Option<&IndexedDBEnvironment<HeedEngine>> {
+    ) -> Option<&IndexedDBEnvironment<SqliteEngine>> {
         let idb_description = IndexedDBDescription {
             origin,
             name: db_name,
@@ -249,7 +238,7 @@ impl IndexedDBManager {
         &mut self,
         origin: ImmutableOrigin,
         db_name: String,
-    ) -> Option<&mut IndexedDBEnvironment<HeedEngine>> {
+    ) -> Option<&mut IndexedDBEnvironment<SqliteEngine>> {
         let idb_description = IndexedDBDescription {
             origin,
             name: db_name,
@@ -281,11 +270,7 @@ impl IndexedDBManager {
                 match self.databases.entry(idb_description.clone()) {
                     Entry::Vacant(e) => {
                         let db = IndexedDBEnvironment::new(
-                            HeedEngine::new(
-                                idb_base_dir,
-                                &idb_description.as_path(),
-                                self.thread_pool.clone(),
-                            ),
+                            SqliteEngine::new(idb_base_dir, &idb_description.as_path()),
                             version.unwrap_or(0),
                         );
                         let _ = sender.send(db.version);
