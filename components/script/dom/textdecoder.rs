@@ -106,7 +106,7 @@ impl TextDecoderMethods<crate::DomTypeHolder> for TextDecoder {
         options: &TextDecodeOptions,
     ) -> Fallible<USVString> {
         self.decoder
-            .decode((&input).as_ref(), options.stream)
+            .decode(input.as_ref(), options.stream)
             .map(USVString)
     }
 }
