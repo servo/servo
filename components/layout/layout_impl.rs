@@ -81,10 +81,9 @@ use webrender_api::{ExternalScrollId, HitTestFlags};
 use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
 use crate::display_list::{DisplayListBuilder, StackingContextTree};
 use crate::query::{
-    PostCompositeQueryHelper, get_the_text_steps, process_client_rect_request,
-    process_content_box_request, process_content_boxes_request, process_node_scroll_area_request,
-    process_offset_parent_query, process_resolved_font_style_query, process_resolved_style_request,
-    process_text_index_request,
+    get_the_text_steps, process_client_rect_request, process_content_box_request,
+    process_content_boxes_request, process_node_scroll_area_request, process_offset_parent_query,
+    process_resolved_font_style_query, process_resolved_style_request, process_text_index_request,
 };
 use crate::traversal::{RecalcStyle, compute_damage_and_repair_style};
 use crate::{BoxTree, FragmentTree};
@@ -254,9 +253,8 @@ impl Layout for LayoutThread {
             .remove_all_web_fonts_from_stylesheet(&stylesheet);
     }
 
-    /// Return a node's bounding box in physical coordinates corresponding to it's Document
-    /// viewport coordinate space. Variation of [`LayoutThread::query_content_boxes`]
-    /// that returns union of it.
+    /// Return the union of this node's content boxes in the coordinate space of the Document.
+    /// to implement `getBoundingClientRect()`.
     ///
     /// Part of <https://drafts.csswg.org/cssom-view-1/#element-get-the-bounding-box>
     /// TODO(stevennovaryo): Rename and parameterize the function, allowing padding area
@@ -264,16 +262,17 @@ impl Layout for LayoutThread {
     #[servo_tracing::instrument(skip_all)]
     fn query_content_box(&self, node: TrustedNodeAddress) -> Option<UntypedRect<Au>> {
         let node = unsafe { ServoLayoutNode::new(&node) };
-        self.process_post_composite_query(node, process_content_box_request)
+        process_content_box_request(node, self.stacking_context_tree.borrow().as_ref())
     }
 
-    /// boxes are in in physical coordinates and correspond to it's Document
+    /// Get a `Vec` of bounding boxes of this node's `Fragement`s in the coordinate space of the
+    /// Document. This is used to implement `getClientRects()`.
     ///
-    /// Part of <https://drafts.csswg.org/cssom-view-1/#element-get-the-bounding-box>
+    /// See <https://drafts.csswg.org/cssom-view/#dom-element-getclientrects>.
     #[servo_tracing::instrument(skip_all)]
     fn query_content_boxes(&self, node: TrustedNodeAddress) -> Vec<UntypedRect<Au>> {
         let node = unsafe { ServoLayoutNode::new(&node) };
-        self.process_post_composite_query(node, process_content_boxes_request)
+        process_content_boxes_request(node, self.stacking_context_tree.borrow().as_ref())
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -1169,26 +1168,6 @@ impl LayoutThread {
         let sheet_origins_affected_by_device_change = self.stylist.set_device(device, guards);
         self.stylist
             .force_stylesheet_origins_dirty(sheet_origins_affected_by_device_change);
-    }
-
-    /// Main entry point for queries that require [PostCompositeQueryHelper].
-    fn process_post_composite_query<T>(
-        &self,
-        node: ServoLayoutNode<'_>,
-        process_query_internals: fn(
-            node: ServoLayoutNode<'_>,
-            helper: PostCompositeQueryHelper,
-        ) -> T,
-    ) -> T {
-        let stacking_context_tree = self.stacking_context_tree.borrow();
-
-        let helper = PostCompositeQueryHelper::new(
-            stacking_context_tree
-                .as_ref()
-                .map(|tree| &tree.compositor_info.scroll_tree),
-        );
-
-        process_query_internals(node, helper)
     }
 }
 

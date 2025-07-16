@@ -324,6 +324,13 @@ impl Fragment {
             Fragment::IFrame(iframe_fragment) => iframe_fragment.borrow_mut().style = style.clone(),
         }
     }
+
+    pub(crate) fn retrieve_box_fragment(&self) -> Option<&ArcRefCell<BoxFragment>> {
+        match self {
+            Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => Some(box_fragment),
+            _ => None,
+        }
+    }
 }
 
 impl TextFragment {

@@ -43,6 +43,7 @@ use style_traits::{ParsingMode, ToCss};
 use webrender_api::units::LayoutTransform;
 
 use crate::ArcRefCell;
+use crate::display_list::StackingContextTree;
 use crate::dom::NodeExt;
 use crate::flow::inline::construct::{TextTransformation, WhitespaceCollapse, capitalize_string};
 use crate::fragment_tree::{
@@ -63,67 +64,68 @@ impl<'dom> PostCompositeQueryHelper<'dom> {
         PostCompositeQueryHelper { scroll_tree }
     }
 
-    fn retrieve_box_fragment(fragment: &Fragment) -> Option<&ArcRefCell<BoxFragment>> {
-        match fragment {
-            Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => Some(box_fragment),
-            _ => None,
-        }
-    }
-
-    fn get_scroll_node_id_for_query(&self, node: ServoLayoutNode<'_>) -> Option<ScrollTreeNodeId> {
-        let fragments = node.fragments_for_pseudo(None);
-        let box_fragment = fragments
-            .first()
-            .and_then(PostCompositeQueryHelper::retrieve_box_fragment)?
-            .borrow();
-        *box_fragment.scroll_tree_node_id_for_query.borrow()
-    }
-
     /// Get a scroll node that would represents this [ServoLayoutNode]'s transform and
     /// calculate its transfrom from its root scroll node to the scroll node.
     fn layout_node_to_root_transform(&self, node: ServoLayoutNode<'_>) -> Option<LayoutTransform> {
-        let scroll_tree_node_id = self.get_scroll_node_id_for_query(node)?;
+        let scroll_tree = self.scroll_tree?;
 
-        Some(self.scroll_node_to_root_transform(&scroll_tree_node_id))
+        let fragments = node.fragments_for_pseudo(None);
+        let box_fragment = fragments
+            .first()
+            .and_then(Fragment::retrieve_box_fragment)?
+            .borrow();
+        let scroll_tree_node_id = (*box_fragment.scroll_tree_node_id_for_query.borrow())?;
+
+        Some(
+            PostCompositeQueryHelper::cumulative_scroll_node_transform_for_node(
+                scroll_tree,
+                &scroll_tree_node_id,
+            ),
+        )
     }
 
     /// Traverse a scroll node to its root to calculate the transform.
     // TODO(stevennovaryo): Add caching mechanism for this.
-    fn scroll_node_to_root_transform(&self, node_id: &ScrollTreeNodeId) -> LayoutTransform {
-        if let Some(scroll_tree) = self.scroll_tree {
-            let cur_node = scroll_tree.get_node(node_id);
+    fn cumulative_scroll_node_transform_for_node(
+        scroll_tree: &ScrollTree,
+        node_id: &ScrollTreeNodeId,
+    ) -> LayoutTransform {
+        let current_node = scroll_tree.get_node(node_id);
 
-            // FIXME(stevennovaryo): Ideally we should optimize the computation of simpler
-            //                       transformation like translate as it could be done
-            //                       in smaller amount of operation compared to a normal
-            //                       matrix multiplication.
-            let node_transform = match &cur_node.info {
-                // To apply a transformation we need to make sure the rectangle's
-                // coordinate space is the same as reference frame's coordinate space.
-                // TODO(stevennovaryo): we are ignoring scaling (or zoom) consideration
-                //                      in transforming the coordinate space, since we are
-                //                      yet to implement it anyway.
-                SpatialTreeNodeInfo::ReferenceFrame(info) => info.transform.change_basis(
-                    info.frame_origin_for_query.x,
-                    info.frame_origin_for_query.y,
-                    0.0,
-                ),
-                SpatialTreeNodeInfo::Scroll(info) => {
-                    Transform3D::translation(-info.offset.x, -info.offset.y, 0.0)
-                },
-                SpatialTreeNodeInfo::Sticky(_) => Default::default(),
-            };
+        // FIXME(stevennovaryo): Ideally we should optimize the computation of simpler
+        //                       transformation like translate as it could be done
+        //                       in smaller amount of operation compared to a normal
+        //                       matrix multiplication.
+        let node_transform = match &current_node.info {
+            // To apply a transformation we need to make sure the rectangle's
+            // coordinate space is the same as reference frame's coordinate space.
+            // TODO(stevennovaryo): contrary to how Firefox are handling the coordinate space,
+            //                      we are ignoring zoom in transforming the coordinate
+            //                      space, and we might need to consider zoom here if it was
+            //                      implemented completely.
+            SpatialTreeNodeInfo::ReferenceFrame(info) => info.transform.change_basis(
+                info.frame_origin_for_query.x,
+                info.frame_origin_for_query.y,
+                0.0,
+            ),
+            SpatialTreeNodeInfo::Scroll(info) => {
+                Transform3D::translation(-info.offset.x, -info.offset.y, 0.0)
+            },
+            // TODO(stevennovaryo): Need to consider sticky frame accurately.
+            SpatialTreeNodeInfo::Sticky(_) => Default::default(),
+        };
 
-            match cur_node.parent {
-                // If a node is not a root, accumulate the transforms.
-                Some(parent_id) => {
-                    let ancestors_transform = self.scroll_node_to_root_transform(&parent_id);
-                    node_transform.then(&ancestors_transform)
-                },
-                None => node_transform,
-            }
-        } else {
-            Default::default()
+        match current_node.parent {
+            // If a node is not a root, accumulate the transforms.
+            Some(parent_id) => {
+                let ancestors_transform =
+                    PostCompositeQueryHelper::cumulative_scroll_node_transform_for_node(
+                        scroll_tree,
+                        &parent_id,
+                    );
+                node_transform.then(&ancestors_transform)
+            },
+            None => node_transform,
         }
     }
 
@@ -133,17 +135,16 @@ impl<'dom> PostCompositeQueryHelper<'dom> {
     ) -> Rect<Au> {
         let layout_rect_union = au_rect_to_f32_rect(rect_to_transform).cast_unit();
 
-        if let Some(transformed_rect) = transform.outer_transformed_rect(&layout_rect_union) {
-            f32_rect_to_au_rect(transformed_rect.to_untyped())
-        } else {
-            rect_to_transform
-        }
+        transform
+            .outer_transformed_rect(&layout_rect_union)
+            .map(|transformed_rect| f32_rect_to_au_rect(transformed_rect.to_untyped()))
+            .unwrap_or(rect_to_transform)
     }
 }
 
 pub(crate) fn process_content_box_request(
     node: ServoLayoutNode<'_>,
-    helper: PostCompositeQueryHelper<'_>,
+    stacking_context_tree: Option<&StackingContextTree>,
 ) -> Option<Rect<Au>> {
     let rects: Vec<_> = node
         .fragments_for_pseudo(None)
@@ -157,19 +158,22 @@ pub(crate) fn process_content_box_request(
         rect.to_untyped().union(&unioned_rect)
     });
 
-    let maybe_transform = helper.layout_node_to_root_transform(node);
+    let helper = PostCompositeQueryHelper::new(
+        stacking_context_tree.map(|tree| &tree.compositor_info.scroll_tree),
+    );
 
-    match maybe_transform {
-        Some(transform) => Some(PostCompositeQueryHelper::apply_post_composite_transform(
-            rect_union, transform,
-        )),
-        None => Some(rect_union),
-    }
+    let Some(transform) = helper.layout_node_to_root_transform(node) else {
+        return Some(rect_union);
+    };
+
+    Some(PostCompositeQueryHelper::apply_post_composite_transform(
+        rect_union, transform,
+    ))
 }
 
 pub(crate) fn process_content_boxes_request(
     node: ServoLayoutNode<'_>,
-    helper: PostCompositeQueryHelper<'_>,
+    stacking_context_tree: Option<&StackingContextTree>,
 ) -> Vec<Rect<Au>> {
     let fragments = node.fragments_for_pseudo(None);
     let content_boxes = fragments
@@ -177,14 +181,17 @@ pub(crate) fn process_content_boxes_request(
         .filter_map(Fragment::cumulative_border_box_rect)
         .map(|rect| rect.to_untyped());
 
-    let maybe_transform = helper.layout_node_to_root_transform(node);
+    let helper = PostCompositeQueryHelper::new(
+        stacking_context_tree.map(|tree| &tree.compositor_info.scroll_tree),
+    );
 
-    match maybe_transform {
-        Some(transform) => content_boxes
-            .map(|rect| PostCompositeQueryHelper::apply_post_composite_transform(rect, transform))
-            .collect(),
-        None => content_boxes.collect(),
-    }
+    let Some(transform) = helper.layout_node_to_root_transform(node) else {
+        return content_boxes.collect();
+    };
+
+    content_boxes
+        .map(|rect| PostCompositeQueryHelper::apply_post_composite_transform(rect, transform))
+        .collect()
 }
 
 pub fn process_client_rect_request(node: ServoLayoutNode<'_>) -> Rect<i32> {
