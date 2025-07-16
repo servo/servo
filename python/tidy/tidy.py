@@ -18,7 +18,7 @@ import re
 import subprocess
 import sys
 from dataclasses import dataclass
-from typing import Any, Dict, List, TypedDict, cast, LiteralString, TypeVar
+from typing import Any, Dict, List, TypedDict, LiteralString
 from collections.abc import Iterator, Callable
 
 import colorama
@@ -43,9 +43,8 @@ ERROR_RAW_URL_IN_RUSTDOC = "Found raw link in rustdoc. Please escape it with ang
 sys.path.append(os.path.join(WPT_PATH, "tests"))
 sys.path.append(os.path.join(WPT_PATH, "tests", "tools", "wptrunner"))
 
-TCF = TypeVar("TCF")
-
-GenericCheckingFunction = Callable[[str, TCF], Iterator[tuple[int, str]]]
+CheckingFunction = Callable[[str, bytes], Iterator[tuple[int, str]]]
+LineCheckingFunction = Callable[[str, list[bytes]], Iterator[tuple[int, str]]]
 
 IgnoreConfig = TypedDict(
     "IgnoreConfig",
@@ -725,7 +724,6 @@ def check_rust(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
             if (idx - 1) < 0 or "#[macro_use]" not in lines[idx - 1].decode("utf-8"):
                 match = line.find(" {")
                 if indent not in prev_mod:
-                    prev_mod = cast(dict[int, str], prev_mod)
                     prev_mod[indent] = ""
                 if match == -1 and not line.endswith(";"):
                     yield (idx + 1, "mod declaration spans multiple lines")
@@ -1035,8 +1033,8 @@ We only expect files with {ext} extensions in {dir_name}""".format(**details)
 
 def collect_errors_for_files(
     files_to_check: Iterator[str],
-    checking_functions: tuple[GenericCheckingFunction[bytes], ...],
-    line_checking_functions: tuple[GenericCheckingFunction[list[bytes]], ...],
+    checking_functions: tuple[CheckingFunction, ...],
+    line_checking_functions: tuple[LineCheckingFunction, ...],
     print_text: bool = True,
 ) -> Iterator[tuple[str, int, str]]:
     (has_element, files_to_check) = is_iter_empty(files_to_check)
@@ -1071,8 +1069,8 @@ def scan(only_changed_files=False, progress=False, github_annotations=False) -> 
     directory_errors = check_directory_files(config["check_ext"])
     # standard checks
     files_to_check = filter_files(".", only_changed_files, progress)
-    checking_functions: tuple[GenericCheckingFunction[bytes], ...] = (check_webidl_spec,)
-    line_checking_functions: tuple[GenericCheckingFunction[list[bytes]], ...] = (
+    checking_functions: tuple[CheckingFunction, ...] = (check_webidl_spec,)
+    line_checking_functions: tuple[LineCheckingFunction, ...] = (
         check_license,
         check_by_line,
         check_toml,
