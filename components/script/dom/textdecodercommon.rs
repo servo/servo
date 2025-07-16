@@ -69,7 +69,9 @@ impl TextDecoderCommon {
         input: Option<&ArrayBufferViewOrArrayBuffer>,
         do_not_flush: bool,
     ) -> Fallible<String> {
-        // Step 1.
+        // Step 1. If this’s do not flush is false, then set this’s decoder to a
+        // new instance of this’s encoding’s decoder, this’s I/O queue to the
+        // I/O queue of bytes « end-of-queue », and this’s BOM seen to false.
         if !self.do_not_flush.get() {
             if self.ignoreBOM {
                 self.decoder
@@ -80,10 +82,10 @@ impl TextDecoderCommon {
             self.in_stream.replace(Vec::new());
         }
 
-        // Step 2.
+        // Step 2. Set this’s do not flush to options["stream"]. 
         self.do_not_flush.set(do_not_flush);
 
-        // Step 3.
+        // Step 3. If input is given, then push a copy of input to this’s I/O queue. 
         match input {
             Some(ArrayBufferViewOrArrayBuffer::ArrayBufferView(a)) => {
                 self.in_stream
@@ -103,7 +105,7 @@ impl TextDecoderCommon {
             let mut in_stream = self.in_stream.borrow_mut();
 
             let (remaining, s) = if self.fatal {
-                // Step 4.
+                // Step 4. Let output be the I/O queue of scalar values « end-of-queue ». 
                 let mut out_stream = String::with_capacity(
                     decoder
                         .max_utf8_buffer_length_without_replacement(in_stream.len())
@@ -120,7 +122,7 @@ impl TextDecoderCommon {
                     _ => return Err(Error::Type("Decoding failed".to_owned())),
                 }
             } else {
-                // Step 4.
+                // Step 4. Let output be the I/O queue of scalar values « end-of-queue ». 
                 let mut out_stream =
                     String::with_capacity(decoder.max_utf8_buffer_length(in_stream.len()).unwrap());
                 // Step 5: Implemented by encoding_rs::Decoder.

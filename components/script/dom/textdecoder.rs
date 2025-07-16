@@ -61,6 +61,7 @@ impl TextDecoder {
     }
 }
 
+#[allow(non_snake_case)]
 impl TextDecoderMethods<crate::DomTypeHolder> for TextDecoder {
     /// <https://encoding.spec.whatwg.org/#dom-textdecoder>
     fn Constructor(
