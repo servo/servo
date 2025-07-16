@@ -102,8 +102,12 @@ impl<'dom> ServoLayoutNode<'dom> {
         self.node.is_text_input()
     }
 
-    pub fn is_single_line_text_inner_editor(&self) -> bool {
-        self.node.is_single_line_text_inner_editor()
+    pub fn is_text_container_of_single_line_input(&self) -> bool {
+        self.node.is_text_container_of_single_line_input()
+    }
+
+    pub fn is_in_ua_widget(&self) -> bool {
+        self.node.is_in_ua_widget()
     }
 
     pub fn containing_shadow_host(&self) -> Option<ServoLayoutNode> {
