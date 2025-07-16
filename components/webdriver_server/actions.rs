@@ -788,7 +788,13 @@ impl Handler {
         );
     }
 
+    /// Verify that the given coordinates are within the boundary of the viewport.
+    /// If x or y is less than 0 or greater than the width of the viewport in CSS pixels,
+    /// then return error with error code move target out of bounds.
     fn check_viewport_bound(&self, x: f64, y: f64) -> Result<(), ErrorStatus> {
+        if x < 0.0 || y < 0.0 {
+            return Err(ErrorStatus::MoveTargetOutOfBounds);
+        }
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd_msg =
             WebDriverCommandMsg::GetViewportSize(self.session.as_ref().unwrap().webview_id, sender);
@@ -799,7 +805,7 @@ impl Handler {
             Ok(response) => response,
             Err(WebDriverError { error, .. }) => return Err(error),
         };
-        if x < 0.0 || x > viewport_size.width.into() || y < 0.0 || y > viewport_size.height.into() {
+        if x > viewport_size.width.into() || y > viewport_size.height.into() {
             Err(ErrorStatus::MoveTargetOutOfBounds)
         } else {
             Ok(())
