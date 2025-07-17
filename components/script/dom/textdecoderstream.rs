@@ -10,6 +10,7 @@ use js::conversions::{FromJSValConvertible, ToJSValConvertible};
 use js::jsval::UndefinedValue;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 
+use crate::dom::transformstreamdefaultcontroller::TransformerType;
 use crate::DomTypes;
 use crate::dom::bindings::codegen::Bindings::TextDecoderBinding;
 use crate::dom::bindings::codegen::Bindings::TextDecoderStreamBinding::TextDecoderStreamMethods;
@@ -20,16 +21,12 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::textdecodercommon::TextDecoderCommon;
-use crate::dom::transformstreamdefaultcontroller::{
-    TransformerFlushAlgorithm, TransformerFlushAlgorithmType, TransformerTransformAlgorithm,
-    TransformerTransformAlgorithmType,
-};
-use crate::dom::types::{Promise, TransformStream, TransformStreamDefaultController};
+use crate::dom::types::{TransformStream, TransformStreamDefaultController};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 /// <https://encoding.spec.whatwg.org/#decode-and-enqueue-a-chunk>
 #[allow(unsafe_code)]
-fn decode_and_enqueue_a_chunk(
+pub(crate) fn decode_and_enqueue_a_chunk(
     cx: SafeJSContext,
     global: &GlobalScope,
     chunk: SafeHandleValue,
@@ -63,31 +60,9 @@ fn decode_and_enqueue_a_chunk(
     controller.enqueue(cx, global, rval.handle(), can_gc)
 }
 
-#[derive(JSTraceable, MallocSizeOf)]
-struct TextDecoderStreamTransformAlgorithm {
-    #[ignore_malloc_size_of = "Rc is hard"]
-    decoder: Rc<TextDecoderCommon>,
-}
-
-impl TransformerTransformAlgorithm for TextDecoderStreamTransformAlgorithm {
-    fn run(
-        &self,
-        cx: SafeJSContext,
-        global: &GlobalScope,
-        chunk: SafeHandleValue,
-        controller: &TransformStreamDefaultController,
-        can_gc: CanGc,
-    ) -> Fallible<std::rc::Rc<super::types::Promise>> {
-        // Step 7. Let transformAlgorithm be an algorithm which takes a chunk argument
-        //      and runs the decode and enqueue a chunk algorithm with this and chunk.
-        decode_and_enqueue_a_chunk(cx, global, chunk, &self.decoder, controller, can_gc)
-            .map(|_| Promise::new_resolved(global, cx, (), can_gc))
-    }
-}
-
 /// <https://encoding.spec.whatwg.org/#flush-and-enqueue>
 #[allow(unsafe_code)]
-fn flush_and_enqueue(
+pub(crate) fn flush_and_enqueue(
     cx: SafeJSContext,
     global: &GlobalScope,
     decoder: &TextDecoderCommon,
@@ -106,27 +81,6 @@ fn flush_and_enqueue(
     rooted!(in(*cx) let mut rval = UndefinedValue());
     unsafe { output_chunk.to_jsval(*cx, rval.handle_mut()) };
     controller.enqueue(cx, global, rval.handle(), can_gc)
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-struct TextDecoderStreamFlushAlgorithm {
-    #[ignore_malloc_size_of = "Rc is hard"]
-    decoder: Rc<TextDecoderCommon>,
-}
-
-impl TransformerFlushAlgorithm for TextDecoderStreamFlushAlgorithm {
-    fn run(
-        &self,
-        cx: SafeJSContext,
-        global: &GlobalScope,
-        controller: &TransformStreamDefaultController,
-        can_gc: CanGc,
-    ) -> Fallible<Rc<Promise>> {
-        // Step 8. Let flushAlgorithm be an algorithm which takes no arguments
-        //      and runs the flush and enqueue algorithm with this.
-        flush_and_enqueue(cx, global, &self.decoder, controller, can_gc)
-            .map(|_| Promise::new_resolved(global, cx, (), can_gc))
-    }
 }
 
 #[dom_struct]
@@ -160,24 +114,13 @@ impl TextDecoderStream {
         can_gc: CanGc,
     ) -> Fallible<DomRoot<Self>> {
         let decoder = Rc::new(TextDecoderCommon::new_inherited(encoding, fatal, ignoreBOM));
-        let transform = Rc::new(TextDecoderStreamTransformAlgorithm {
-            decoder: decoder.clone(),
-        });
-        let flush = Rc::new(TextDecoderStreamFlushAlgorithm {
-            decoder: decoder.clone(),
-        });
-        let cancel = None;
-
-        let transform_wrapper = TransformerTransformAlgorithmType::Native(transform.clone());
-        let flush_wrapper = TransformerFlushAlgorithmType::Native(flush.clone());
+        let transformer_type = TransformerType::Decoder(decoder.clone());
 
         let transform_stream = TransformStream::new_with_proto(global, None, can_gc);
         transform_stream.set_up(
             cx,
             global,
-            cancel,
-            Some(flush_wrapper),
-            transform_wrapper,
+            transformer_type,
             can_gc,
         )?;
 
