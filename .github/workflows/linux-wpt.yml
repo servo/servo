@@ -153,8 +153,11 @@ jobs:
             if [ "$chunk_id" = null ]; then
               break
             fi
+            >&2 echo
+            >&2 echo
+            >&2 echo
             >&2 echo "Got chunk $chunk_id (of $total_chunks chunks)"
-            if PYTHONUNBUFFERED=1 ./mach test-wpt \
+            if ./mach test-wpt \
               $WPT_ALWAYS_SUCCEED_ARG \
               --${{ inputs.profile }} --processes $(nproc) --timeout-multiplier 2 \
               --total-chunks $total_chunks --this-chunk $chunk_id \
@@ -162,7 +165,7 @@ jobs:
               --log-wptreport wpt-full-logs/linux/wptreport/$chunk_id.json \
               --log-raw-unexpected wpt-filtered-logs/linux/$chunk_id.log \
               --filter-intermittents wpt-filtered-logs/linux/$chunk_id.json \
-              ${{ inputs.wpt-args }} 2>&1 | sed 's|^|'"[Chunk $chunk_id/$total_chunks] "'|'; then
+              ${{ inputs.wpt-args }}; then
               :  # Do nothing
             else
               echo $? > $exit_status_file
