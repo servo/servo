@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::ptr::{self};
 use std::rc::Rc;
@@ -36,10 +36,7 @@ use crate::dom::countqueuingstrategy::{extract_high_water_mark, extract_size_alg
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::{ReadableStream, create_readable_stream};
-use crate::dom::transformstreamdefaultcontroller::{
-    TransformerCancelAlgorithmType, TransformerFlushAlgorithmType,
-    TransformerTransformAlgorithmType,
-};
+use crate::dom::transformstreamdefaultcontroller::TransformerType;
 use crate::dom::types::PromiseNativeHandler;
 use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::dom::writablestream::create_writable_stream;
@@ -446,9 +443,7 @@ impl TransformStream {
         &self,
         cx: SafeJSContext,
         global: &GlobalScope,
-        cancel: Option<TransformerCancelAlgorithmType>,
-        flush: Option<TransformerFlushAlgorithmType>,
-        transform: TransformerTransformAlgorithmType,
+        transformer_type: TransformerType,
         can_gc: CanGc,
     ) -> Fallible<()> {
         // Step1. Let writableHighWaterMark be 1.
@@ -486,11 +481,9 @@ impl TransformStream {
         )?;
 
         // Step 10. Let controller be a new TransformStreamDefaultController.
-        let controller = TransformStreamDefaultController::new_with_algorithms(
+        let controller = TransformStreamDefaultController::new(
             global,
-            cancel,
-            flush,
-            Some(transform),
+            transformer_type,
             can_gc,
         );
 
@@ -633,8 +626,15 @@ impl TransformStream {
         transformer: &Transformer,
         can_gc: CanGc,
     ) {
+        let transformer_type = TransformerType::Js {
+            cancel: RefCell::new(transformer.cancel.clone()),
+            flush: RefCell::new(transformer.flush.clone()),
+            transform: RefCell::new(transformer.transform.clone()),
+            transform_obj: Default::default(),
+        };
+
         // Let controller be a new TransformStreamDefaultController.
-        let controller = TransformStreamDefaultController::new(global, transformer, can_gc);
+        let controller = TransformStreamDefaultController::new(global, transformer_type, can_gc);
 
         // Let transformAlgorithm be the following steps, taking a chunk argument:
         // Let result be TransformStreamDefaultControllerEnqueue(controller, chunk).
