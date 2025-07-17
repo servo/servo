@@ -2397,6 +2397,14 @@ impl ScriptThread {
                     reply,
                 )
             },
+            WebDriverScriptCommand::GetComputedLabel(node_id, reply) => {
+                webdriver_handlers::handle_get_computed_label(
+                    &documents,
+                    pipeline_id,
+                    node_id,
+                    reply,
+                )
+            },
             WebDriverScriptCommand::GetPageSource(reply) => {
                 webdriver_handlers::handle_get_page_source(&documents, pipeline_id, reply, can_gc)
             },
