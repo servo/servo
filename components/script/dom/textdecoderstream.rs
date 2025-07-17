@@ -46,7 +46,7 @@ pub(crate) fn decode_and_enqueue_a_chunk(
 
     // Step 2. Push a copy of bufferSource to decoder’s I/O queue.
     // Step 3. Let output be the I/O queue of scalar values « end-of-queue ».
-    // Step 4. Implemented by `TextDecoderCommon::decode`, which uses the same process as
+    // Step 4. Implemented by `TextDecoderCommon::decode`, which uses the same procedure as
     //      `TextDecoder`
     let output_chunk = decoder.decode(Some(buffer_source), true)?;
 
@@ -135,7 +135,7 @@ impl TextDecoderStream {
 
 #[allow(non_snake_case)]
 impl TextDecoderStreamMethods<crate::DomTypeHolder> for TextDecoderStream {
-    // https://encoding.spec.whatwg.org/#dom-textdecoderstream
+    /// <https://encoding.spec.whatwg.org/#dom-textdecoderstream>
     fn Constructor(
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
@@ -163,27 +163,27 @@ impl TextDecoderStreamMethods<crate::DomTypeHolder> for TextDecoderStream {
         )
     }
 
-    // https://encoding.spec.whatwg.org/#dom-textdecoder-encoding
+    /// <https://encoding.spec.whatwg.org/#dom-textdecoder-encoding>
     fn Encoding(&self) -> DOMString {
         self.decoder.encoding()
     }
 
-    // https://encoding.spec.whatwg.org/#dom-textdecoder-fatal
+    /// <https://encoding.spec.whatwg.org/#dom-textdecoder-fatal>
     fn Fatal(&self) -> bool {
         self.decoder.fatal()
     }
 
-    // https://encoding.spec.whatwg.org/#dom-textdecoder-ignorebom
+    /// <https://encoding.spec.whatwg.org/#dom-textdecoder-ignorebom>
     fn IgnoreBOM(&self) -> bool {
         self.decoder.ignore_bom()
     }
 
-    // https://streams.spec.whatwg.org/#dom-generictransformstream-readable
+    /// <https://streams.spec.whatwg.org/#dom-generictransformstream-readable>
     fn Readable(&self) -> DomRoot<<crate::DomTypeHolder as DomTypes>::ReadableStream> {
         self.transform.get_readable()
     }
 
-    // https://streams.spec.whatwg.org/#dom-generictransformstream-writable
+    /// <https://streams.spec.whatwg.org/#dom-generictransformstream-writable>
     fn Writable(&self) -> DomRoot<<crate::DomTypeHolder as DomTypes>::WritableStream> {
         self.transform.get_writable()
     }
