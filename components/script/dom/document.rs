@@ -4889,7 +4889,7 @@ impl Document {
     pub(crate) fn add_stylesheet(&self, owner: StylesheetSource, sheet: Arc<Stylesheet>) {
         let stylesheets = &mut *self.stylesheets.borrow_mut();
 
-        // TODO(stevennovayo): support ordering of constructed stylesheet for adopted stylesheet
+        // TODO(stevennovayo): support constructed stylesheet for adopted stylesheet and its ordering
         let insertion_point = match &owner {
             StylesheetSource::Element(owner_elem) => stylesheets
                 .iter()
@@ -4898,8 +4898,10 @@ impl Document {
                     StylesheetSource::Element(ref other_elem) => {
                         owner_elem.upcast::<Node>().is_before(other_elem.upcast())
                     },
+                    StylesheetSource::Constructed(_) => unreachable!(),
                 })
                 .cloned(),
+            StylesheetSource::Constructed(_) => unreachable!(),
         };
 
         if self.has_browsing_context() {

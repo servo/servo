@@ -37,19 +37,23 @@ use crate::stylesheet_set::StylesheetSetRef;
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum StylesheetSource {
     Element(Dom<Element>),
-    // TODO(stevennovaryo): Add constructed ss owner here when we are implementing adopted stylesheet
+    // TODO(stevennovaryo): This type of enum would not be used until we implement adopted stylesheet
+    #[allow(dead_code)]
+    Constructed(Dom<CSSStyleSheet>),
 }
 
 impl StylesheetSource {
     pub(crate) fn get_cssom_object(&self) -> Option<DomRoot<CSSStyleSheet>> {
         match self {
             StylesheetSource::Element(el) => el.upcast::<Node>().get_cssom_stylesheet(),
+            StylesheetSource::Constructed(ss) => Some(ss.as_rooted()),
         }
     }
 
     pub(crate) fn is_a_valid_owner(&self) -> bool {
         match self {
             StylesheetSource::Element(el) => el.as_stylesheet_owner().is_some(),
+            StylesheetSource::Constructed(ss) => ss.is_constructed(),
         }
     }
 }

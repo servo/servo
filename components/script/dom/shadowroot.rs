@@ -186,7 +186,7 @@ impl ShadowRoot {
     pub(crate) fn add_stylesheet(&self, owner: StylesheetSource, sheet: Arc<Stylesheet>) {
         let stylesheets = &mut self.author_styles.borrow_mut().stylesheets;
 
-        // TODO(stevennovayo): support ordering of constructed stylesheet for adopted stylesheet
+        // TODO(stevennovayo): support constructed stylesheet for adopted stylesheet and its ordering
         let insertion_point = match &owner {
             StylesheetSource::Element(owner_elem) => stylesheets
                 .iter()
@@ -194,8 +194,10 @@ impl ShadowRoot {
                     StylesheetSource::Element(ref other_elem) => {
                         owner_elem.upcast::<Node>().is_before(other_elem.upcast())
                     },
+                    StylesheetSource::Constructed(_) => unreachable!(),
                 })
                 .cloned(),
+            StylesheetSource::Constructed(_) => unreachable!(),
         };
 
         DocumentOrShadowRoot::add_stylesheet(
