@@ -540,7 +540,8 @@ pub enum CoreResourceMsg {
         IpcSender<Vec<Serde<Cookie<'static>>>>,
         CookieSource,
     ),
-    GetCookiesDataForUrlAsync(CookieStoreId, ServoUrl, String, CookieSource),
+    GetCookieDataForUrlAsync(CookieStoreId, ServoUrl, Option<String>),
+    GetAllCookieDataForUrlAsync(CookieStoreId, ServoUrl, Option<String>),
     DeleteCookies(ServoUrl),
     DeleteCookie(ServoUrl, String),
     DeleteCookieAsync(CookieStoreId, ServoUrl, String),
@@ -995,7 +996,7 @@ pub struct CookieChange {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum CookieData {
     Change(CookieChange),
-    Get(Vec<Serde<Cookie<'static>>>, String),
+    Get(Option<Serde<Cookie<'static>>>),
     GetAll(Vec<Serde<Cookie<'static>>>),
     Set(Result<(), ()>),
     Delete(Result<(), ()>),

@@ -463,14 +463,25 @@ impl ResourceChannelManager {
                     .send(cookie_jar.cookies_for_url(&url, source))
                     .unwrap();
             },
-            CoreResourceMsg::GetCookiesDataForUrlAsync(cookie_store_id, url, name, source) => {
+            CoreResourceMsg::GetCookieDataForUrlAsync(cookie_store_id, url, name) => {
+                let mut cookie_jar = http_state.cookie_jar.write().unwrap();
+                cookie_jar.remove_expired_cookies_for_url(&url);
+                let cookie = cookie_jar
+                    .query_cookies(&url, name)
+                    .into_iter()
+                    .map(Serde)
+                    .next();
+                self.send_cookie_response(cookie_store_id, CookieData::Get(cookie));
+            },
+            CoreResourceMsg::GetAllCookieDataForUrlAsync(cookie_store_id, url, name) => {
                 let mut cookie_jar = http_state.cookie_jar.write().unwrap();
                 cookie_jar.remove_expired_cookies_for_url(&url);
                 let cookies = cookie_jar
-                    .cookies_data_for_url(&url, source)
+                    .query_cookies(&url, name)
+                    .into_iter()
                     .map(Serde)
                     .collect();
-                self.send_cookie_response(cookie_store_id, CookieData::Get(cookies, name));
+                self.send_cookie_response(cookie_store_id, CookieData::GetAll(cookies));
             },
             CoreResourceMsg::NewCookieListener(cookie_store_id, sender, _url) => {
                 // TODO: Use the URL for setting up the actual monitoring

@@ -13,6 +13,7 @@ use dom_struct::dom_struct;
 use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
+use js::jsval::NullValue;
 use net_traits::CookieSource::NonHTTP;
 use net_traits::{CookieAsyncResponse, CookieData, CoreResourceMsg, IpcSend};
 use script_bindings::script_runtime::CanGc;
@@ -63,17 +64,15 @@ impl CookieListener {
                 return;
             };
             match message.data {
-                CookieData::Get(cookies, name) => {
-                    // 3. For each cookie in cookie-list, run these steps:
-                    // 3.1. Assert: cookie’s http-only-flag is false.
-                    // 3.2. If name is given, then run these steps:
-                    // 3.2.1. Let cookieName be the result of running UTF-8 decode without BOM on cookie’s name.
-                    // 3.2.2. If cookieName does not equal name, then continue.
-                    let cookie = cookies.into_iter().find(|c| c.name() == name);
+                CookieData::Get(cookie) => {
+                    // If list is failure, then reject p with a TypeError and abort these steps.
+                    // (There is currently no way for list to result in failure)
                     if let Some(cookie) = cookie {
+                        // Otherwise, resolve p with the first item of list.
                         promise.resolve_native(&cookie_to_list_item(cookie.into_inner()), CanGc::note());
                     } else {
-                        promise.resolve_native(&(), CanGc::note());
+                        // If list is empty, then resolve p with null.
+                        promise.resolve_native(&NullValue(), CanGc::note());
                     }
                 },
                 _ => {promise.resolve_native(&(), CanGc::note());}
@@ -136,11 +135,10 @@ impl CookieStore {
         let _ = self
             .global()
             .resource_threads()
-            .send(CoreResourceMsg::GetCookiesDataForUrlAsync(
+            .send(CoreResourceMsg::GetCookieDataForUrlAsync(
                 self.store_id,
                 url.clone(),
-                name.map_or("".to_owned(), |val| val.0),
-                NonHTTP,
+                name.map(|val| val.0),
             ));
     }
 }
@@ -306,7 +304,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         // 2. Let origin be settings’s origin.
         let origin = global.origin();
 
-        // 7. Let p be a new promise.
+        // 9. Let p be a new promise.
         let p = Promise::new(&global, can_gc);
 
         // 3. If origin is an opaque origin, then return a promise rejected with a "SecurityError" DOMException.
@@ -315,6 +313,11 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
             return p;
         }
 
+        // 4. Let url be settings’s creation URL.
+        // 5. Let domain be null.
+        // 6. Let path be "/".
+        // 7. Let sameSite be strict.
+        // 8. Let partitioned be false.
         let cookie = Cookie::build((Cow::Owned(name.to_string()), Cow::Owned(value.to_string())))
             .path("/")
             .secure(true)
