@@ -27,8 +27,8 @@ jobs:
 
           if [ "$(gh api "$run_url/jobs" \
             | jq -er --arg id '${{ inputs.unique-id }}' \
-              '.jobs[] | select(.name | contains("[" + $id + "]")) | .status'
-          )" = queued ]; then
+              '.jobs | map(select(.name | contains("[" + $id + "]"))) | map(select(.status == "queued")) | length'
+          )" -gt 0 ]; then
             echo 'Timeout waiting for runner assignment!'
             echo 'Hint: does this repo have permission to access the runner group?'
             echo 'Hint: https://github.com/organizations/servo/settings/actions/runner-groups'
