@@ -203,8 +203,8 @@ impl WebDriverSession {
 
         WebDriverSession {
             id: Uuid::new_v4(),
-            browsing_context_id,
             webview_id,
+            browsing_context_id,
 
             window_handles,
 
@@ -760,7 +760,7 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#navigate-to>
-    fn handle_get(&self, parameters: &GetParameters) -> WebDriverResult<WebDriverResponse> {
+    fn handle_get(&mut self, parameters: &GetParameters) -> WebDriverResult<WebDriverResponse> {
         let webview_id = self.session()?.webview_id;
         // Step 2. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
@@ -781,7 +781,13 @@ impl Handler {
             WebDriverCommandMsg::LoadUrl(webview_id, url, self.load_status_sender.clone());
         self.send_message_to_embedder(cmd_msg)?;
 
-        self.wait_for_navigation_to_complete()
+        // Step 8.2.1: try to wait for navigation to complete.
+        self.wait_for_navigation_to_complete()?;
+
+        // Step 8.3. Set current browsing context with session and current top browsing context
+        self.session_mut()?.browsing_context_id = BrowsingContextId::from(webview_id);
+
+        Ok(WebDriverResponse::Void)
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-wait-for-navigation-to-complete>
@@ -989,7 +995,7 @@ impl Handler {
         self.wait_for_navigation_to_complete()
     }
 
-    fn handle_refresh(&self) -> WebDriverResult<WebDriverResponse> {
+    fn handle_refresh(&mut self) -> WebDriverResult<WebDriverResponse> {
         let webview_id = self.session()?.webview_id;
         // Step 1. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
@@ -998,7 +1004,13 @@ impl Handler {
         let cmd_msg = WebDriverCommandMsg::Refresh(webview_id, self.load_status_sender.clone());
         self.send_message_to_embedder(cmd_msg)?;
 
-        self.wait_for_navigation_to_complete()
+        // Step 4.1: Try to wait for navigation to complete.
+        self.wait_for_navigation_to_complete()?;
+
+        // Step 5. Set current browsing context with session and current top browsing context.
+        self.session_mut()?.browsing_context_id = BrowsingContextId::from(webview_id);
+
+        Ok(WebDriverResponse::Void)
     }
 
     fn handle_title(&self) -> WebDriverResult<WebDriverResponse> {
