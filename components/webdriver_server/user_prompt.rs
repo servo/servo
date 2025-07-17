@@ -279,8 +279,15 @@ impl Handler {
             )),
             Some(prompt_type) => {
                 match prompt_type {
-                    // Step 5. If the current user prompt is not a prompt,
-                    // return error with error code invalid argument.
+                    // Step 5. If the current user prompt is alert or confirm,
+                    // return error with error code element not interactable.
+                    WebDriverUserPrompt::Alert | WebDriverUserPrompt::Confirm => {
+                        Err(WebDriverError::new(
+                            ErrorStatus::ElementNotInteractable,
+                            "Cannot send text to an alert or confirm prompt.",
+                        ))
+                    },
+                    // Step 5. If the current user prompt is prompt
                     WebDriverUserPrompt::Prompt => {
                         // Step 6. Send the text to the current user prompt.
                         self.send_message_to_embedder(WebDriverCommandMsg::SendAlertText(
@@ -289,12 +296,7 @@ impl Handler {
 
                         Ok(WebDriverResponse::Void)
                     },
-                    WebDriverUserPrompt::Alert | WebDriverUserPrompt::Confirm => {
-                        Err(WebDriverError::new(
-                            ErrorStatus::ElementNotInteractable,
-                            "Cannot send text to an alert or confirm prompt.",
-                        ))
-                    },
+                    // Step 5. Otherwise, return error with error code unsupported operation.
                     _ => Err(WebDriverError::new(
                         ErrorStatus::UnsupportedOperation,
                         "Current user prompt type is not supported.",

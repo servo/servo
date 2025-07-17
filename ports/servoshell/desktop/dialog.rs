@@ -169,10 +169,8 @@ impl Dialog {
     }
 
     pub fn set_message(&mut self, text: String) {
-        #[allow(clippy::single_match)]
-        match self {
-            Dialog::SimpleDialog(dialog) => dialog.set_message(text),
-            _ => {},
+        if let Dialog::SimpleDialog(dialog) = self {
+            dialog.set_message(text);
         }
     }
 

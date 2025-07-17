@@ -173,10 +173,10 @@ impl SimpleDialog {
     }
 
     pub fn set_message(&mut self, text: String) {
-        #[allow(clippy::single_match)]
         match self {
+            SimpleDialog::Alert { message, .. } => *message = text,
+            SimpleDialog::Confirm { message, .. } => *message = text,
             SimpleDialog::Prompt { message, .. } => *message = text,
-            _ => {},
         }
     }
 
