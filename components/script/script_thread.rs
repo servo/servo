@@ -1133,7 +1133,7 @@ impl ScriptThread {
                     }
                 },
                 InputEvent::Wheel(wheel_event) => {
-                    document.handle_wheel_event(wheel_event, event.hit_test_result, can_gc);
+                    document.handle_wheel_event(wheel_event, &event, can_gc);
                 },
                 InputEvent::Keyboard(keyboard_event) => {
                     document.dispatch_key_event(keyboard_event, can_gc);
