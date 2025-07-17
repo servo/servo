@@ -18,7 +18,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-#[derive(JSTraceable, MallocSizeOf)]
+#[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
 pub(crate) enum StyleSheetListOwner {
     Document(Dom<Document>),
     ShadowRoot(Dom<ShadowRoot>),

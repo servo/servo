@@ -2,11 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cmp::min;
+use std::collections::HashSet;
 use std::fmt;
 
 use embedder_traits::UntrustedNodeAddress;
 use euclid::default::Point2D;
 use layout_api::{NodesFromPointQueryType, QueryMsg};
+use script_bindings::error::{Error, ErrorResult};
 use servo_arc::Arc;
 use style::invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use style::media_queries::MediaList;
@@ -26,6 +29,7 @@ use crate::dom::element::Element;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{self, Node, VecPreOrderInsertionHelper};
 use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::stylesheetlist::StyleSheetListOwner;
 use crate::dom::types::CSSStyleSheet;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
@@ -37,8 +41,6 @@ use crate::stylesheet_set::StylesheetSetRef;
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum StylesheetSource {
     Element(Dom<Element>),
-    // TODO(stevennovaryo): This type of enum would not be used until we implement adopted stylesheet
-    #[allow(dead_code)]
     Constructed(Dom<CSSStyleSheet>),
 }
 
@@ -344,5 +346,82 @@ impl DocumentOrShadowRoot {
         let mut id_map = id_map.borrow_mut();
         let elements = id_map.entry(id.clone()).or_default();
         elements.insert_pre_order(element, &root);
+    }
+
+    pub(crate) fn set_adopted_stylesheet(
+        adopted_stylesheets: &mut Vec<Dom<CSSStyleSheet>>,
+        incoming_stylesheets: &[Dom<CSSStyleSheet>],
+        owner: &StyleSheetListOwner,
+    ) -> ErrorResult {
+        for sheet in incoming_stylesheets.iter() {
+            if !sheet.is_constructed() {
+                return Err(Error::NotAllowed);
+            }
+        }
+
+        let mut stylesheet_set = HashSet::with_capacity(adopted_stylesheets.len());
+        let mut common_prefix = 0;
+
+        // Find the index at which the new array differs from the old array.
+        // We don't want to do extra work for the sheets that both arrays have.
+        let min_size = min(adopted_stylesheets.len(), incoming_stylesheets.len());
+        for i in 0..min_size {
+            if adopted_stylesheets[i] != incoming_stylesheets[i] {
+                break;
+            }
+            common_prefix += 1;
+            stylesheet_set.insert(&incoming_stylesheets[i]);
+        }
+
+        // Try to truncate the sheets to a common prefix.
+        // If the prefix contains duplicates of sheets that we are removing,
+        // we are just going to re-build everything from scratch.
+        if common_prefix != adopted_stylesheets.len() {
+            let mut remove_set = HashSet::with_capacity(adopted_stylesheets.len() - common_prefix);
+            for sheet_to_remove in &adopted_stylesheets[common_prefix..] {
+                if stylesheet_set.contains(&sheet_to_remove) {
+                    // Fixing duplicate sheets would require insertions/removals from the
+                    // style set. We may as well just rebuild the whole thing from scratch.
+                    stylesheet_set.clear();
+                    // Note that setting this to zero means we'll continue the loop until
+                    // all the sheets are cleared.
+                    common_prefix = 0;
+                }
+
+                if remove_set.insert(sheet_to_remove) {
+                    owner.remove_stylesheet(
+                        StylesheetSource::Constructed(sheet_to_remove.clone()),
+                        sheet_to_remove.style_stylesheet_arc(),
+                    );
+                    sheet_to_remove.remove_adopter(owner);
+                }
+            }
+            adopted_stylesheets.truncate(common_prefix);
+        }
+
+        // Only add sheets that are not already in the common prefix.
+        for sheet in &incoming_stylesheets[common_prefix..] {
+            if !stylesheet_set.insert(sheet) {
+                // The idea is that this case is rare, so we pay the price of removing the
+                // old sheet from the styles and append it later rather than the other way
+                // around.
+                owner.remove_stylesheet(
+                    StylesheetSource::Constructed(sheet.clone()),
+                    sheet.style_stylesheet_arc(),
+                );
+            } else {
+                sheet.add_adopter(owner.clone());
+            }
+            adopted_stylesheets.push(sheet.clone());
+
+            owner.add_stylesheet(
+                StylesheetSource::Constructed(sheet.clone()),
+                sheet.style_stylesheet_arc().clone(),
+            );
+        }
+
+        dbg!(adopted_stylesheets.len());
+
+        Ok(())
     }
 }

@@ -8,6 +8,9 @@ use std::collections::hash_map::Entry;
 
 use dom_struct::dom_struct;
 use html5ever::serialize::TraversalScope;
+use js::rust::{HandleValue, MutableHandleValue};
+use script_bindings::error::{Error, ErrorResult};
+use script_bindings::script_runtime::JSContext;
 use servo_arc::Arc;
 use style::author_styles::AuthorStyles;
 use style::dom::TElement;
@@ -24,6 +27,8 @@ use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Bindi
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
     ShadowRootMode, SlotAssignmentMode,
 };
+use crate::dom::bindings::conversions::{ConversionResult, SafeFromJSValConvertible};
+use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::reflect_dom_object;
@@ -92,6 +97,14 @@ pub(crate) struct ShadowRoot {
 
     /// <https://dom.spec.whatwg.org/#shadowroot-delegates-focus>
     delegates_focus: Cell<bool>,
+
+    /// The constructed stylesheet that is adopted by this [ShadowRoot].
+    /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
+    adopted_stylesheets: DomRefCell<Vec<Dom<CSSStyleSheet>>>,
+
+    /// Cached frozen array of [`Self::adopted_stylesheets`]
+    #[ignore_malloc_size_of = "mozjs"]
+    adopted_stylesheets_frozen_types: CachedFrozenArray,
 }
 
 impl ShadowRoot {
@@ -129,6 +142,8 @@ impl ShadowRoot {
             declarative: Cell::new(false),
             serializable: Cell::new(false),
             delegates_focus: Cell::new(false),
+            adopted_stylesheets: Default::default(),
+            adopted_stylesheets_frozen_types: CachedFrozenArray::new(),
         }
     }
 
@@ -194,10 +209,10 @@ impl ShadowRoot {
                     StylesheetSource::Element(ref other_elem) => {
                         owner_elem.upcast::<Node>().is_before(other_elem.upcast())
                     },
-                    StylesheetSource::Constructed(_) => unreachable!(),
+                    StylesheetSource::Constructed(_) => true,
                 })
                 .cloned(),
-            StylesheetSource::Constructed(_) => unreachable!(),
+            StylesheetSource::Constructed(_) => stylesheets.iter().last().cloned(),
         };
 
         DocumentOrShadowRoot::add_stylesheet(
@@ -473,6 +488,50 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
 
     // https://dom.spec.whatwg.org/#dom-shadowroot-onslotchange
     event_handler!(onslotchange, GetOnslotchange, SetOnslotchange);
+
+    /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
+    fn AdoptedStyleSheets(&self, context: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
+        self.adopted_stylesheets_frozen_types.get_or_init(
+            || {
+                self.adopted_stylesheets
+                    .borrow()
+                    .clone()
+                    .iter()
+                    .map(|sheet| sheet.as_rooted())
+                    .collect()
+            },
+            context,
+            retval,
+            can_gc,
+        );
+    }
+
+    /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
+    fn SetAdoptedStyleSheets(&self, context: JSContext, val: HandleValue) -> ErrorResult {
+        let maybe_stylesheets = Vec::<DomRoot<CSSStyleSheet>>::safe_from_jsval(context, val, ());
+
+        let result = match maybe_stylesheets {
+            Ok(ConversionResult::Success(stylesheets)) => {
+                rooted_vec!(let stylesheets <- stylesheets.to_owned().iter().map(|s| s.as_traced()));
+
+                DocumentOrShadowRoot::set_adopted_stylesheet(
+                    self.adopted_stylesheets.borrow_mut().as_mut(),
+                    &stylesheets,
+                    &StyleSheetListOwner::ShadowRoot(Dom::from_ref(self)),
+                )
+            },
+            Ok(ConversionResult::Failure(msg)) => Err(Error::Type(msg.to_string())),
+            Err(_) => Err(Error::Type(
+                "The provided value is not a sequence of 'CSSStylesheet'.".to_owned(),
+            )),
+        };
+
+        if result.is_ok() {
+            self.adopted_stylesheets_frozen_types.clear();
+        }
+
+        result
+    }
 }
 
 impl VirtualMethods for ShadowRoot {
