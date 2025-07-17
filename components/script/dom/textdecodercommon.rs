@@ -12,19 +12,34 @@ use crate::dom::bindings::error::{Error, Fallible};
 
 /// The shared part of `TextDecoder` and `TextDecoderStream`
 ///
-/// Note that this does NOT correspond to the `TextDecoderCommon`
-/// interface defined in the WebIDL
+/// Note that other than the three attributes defined in the `TextDecoderCommon`
+/// interface in the WebIDL, this also performs decoding.
+///
+/// <https://encoding.spec.whatwg.org/#textdecodercommon>
 #[allow(non_snake_case)]
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct TextDecoderCommon {
+    /// <https://encoding.spec.whatwg.org/#dom-textdecoder-encoding>
     #[no_trace]
     encoding: &'static Encoding,
+
+    /// <https://encoding.spec.whatwg.org/#dom-textdecoder-fatal>
     fatal: bool,
+
+    /// <https://encoding.spec.whatwg.org/#dom-textdecoder-ignorebom>
     ignoreBOM: bool,
+
+    /// The native decoder that is used to perform decoding
+    ///
+    /// <https://encoding.spec.whatwg.org/#textdecodercommon-decoder>
     #[ignore_malloc_size_of = "defined in encoding_rs"]
     #[no_trace]
     decoder: RefCell<Decoder>,
+
+    /// <https://encoding.spec.whatwg.org/#textdecodercommon-i-o-queue>
     in_stream: RefCell<Vec<u8>>,
+
+    /// <https://encoding.spec.whatwg.org/#textdecoder-do-not-flush-flag>
     do_not_flush: Cell<bool>,
 }
 
@@ -63,6 +78,7 @@ impl TextDecoderCommon {
         self.ignoreBOM
     }
 
+    /// <https://encoding.spec.whatwg.org/#dom-textdecoder-decode>
     #[allow(unsafe_code)]
     pub(crate) fn decode(
         &self,
