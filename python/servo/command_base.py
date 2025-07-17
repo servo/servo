@@ -56,18 +56,18 @@ class BuildType:
         CUSTOM = 3
 
     kind: Kind
-    profile: Optional[str]
+    profile: str
 
     def dev() -> BuildType:
-        return BuildType(BuildType.Kind.DEV, None)
+        return BuildType(BuildType.Kind.DEV, "debug")
 
     def release() -> BuildType:
-        return BuildType(BuildType.Kind.RELEASE, None)
+        return BuildType(BuildType.Kind.RELEASE, "release")
 
     def prod() -> BuildType:
         return BuildType(BuildType.Kind.CUSTOM, "production")
 
-    def custom(profile: Optional[str]) -> BuildType:
+    def custom(profile: str) -> BuildType:
         return BuildType(BuildType.Kind.CUSTOM, profile)
 
     def is_dev(self) -> bool:
@@ -83,9 +83,12 @@ class BuildType:
         return self.kind == BuildType.Kind.CUSTOM
 
     def directory_name(self) -> str:
-        if self.is_release():
+        if self.is_dev():
+            return "debug"
+        elif self.is_release():
             return "release"
-        return "debug"
+        else:
+            return self.profile
 
     def __eq__(self, other: object) -> bool:
         raise Exception("BUG: do not compare BuildType with ==")
@@ -719,7 +722,7 @@ class CommandBase(object):
 
         return target_configuration_decorator
 
-    def configure_build_type(self, release: bool, dev: bool, prod: bool, profile: Optional[str]) -> BuildType:
+    def configure_build_type(self, release: bool, dev: bool, prod: bool, profile: str) -> BuildType:
         option_count = release + dev + prod + (profile is not None)
 
         if option_count > 1:

@@ -486,6 +486,7 @@ class PackageCommands(CommandBase):
 
             asset_name = f"servo-latest.{extension}"
             release.upload_asset(package, name=asset_name)
+            # pyrefly: ignore[missing-attribute]
             release.upload_asset_from_memory(
                 package_hash_fileobj, package_hash_fileobj.getbuffer().nbytes, name=f"{asset_name}.sha256"
             )
