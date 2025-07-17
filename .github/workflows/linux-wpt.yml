@@ -166,7 +166,7 @@ jobs:
           mkdir -p wpt-filtered-logs/linux
           mkdir -p wpt-full-logs/linux
           unique_id=${{ needs.unique-id.outputs.unique-id }}
-          total_chunks=$(((20 + 6) * 4))
+          total_chunks=$(((20 + 16) * 6))
           exit_status_file=$(mktemp)
           while :; do
             chunk_id=$(curl -fsSX POST "https://ci0.servo.org/chunker/take?unique_id=$unique_id&total_chunks=$total_chunks")
