@@ -2,7 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-from mach.main import Mach
 import hashlib
 import os
 import subprocess
@@ -189,7 +188,7 @@ def bootstrap_command_only(topdir: str) -> int:
     return 0
 
 
-def bootstrap(topdir: str) -> Mach:
+def bootstrap(topdir: str):
     _ensure_case_insensitive_if_windows()
 
     topdir = os.path.abspath(topdir)
