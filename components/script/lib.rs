@@ -34,6 +34,7 @@ mod dom;
 mod canvas_context;
 mod canvas_state;
 pub(crate) mod fetch;
+pub(crate) mod indexed_db;
 mod init;
 mod layout_image;
 

@@ -381,22 +381,6 @@ class MachCommands(CommandBase):
     def test_wpt(self, servo_binary: str, **kwargs):
         return self._test_wpt(servo_binary, **kwargs)
 
-    @Command(
-        "test-wpt-android",
-        description="Run the web platform test suite in an Android emulator",
-        category="testing",
-        parser=wpt.create_parser,
-    )
-    @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
-    def test_wpt_android(self, build_type: BuildType, binary_args=None, **kwargs):
-        kwargs.update(
-            product="servodriver",
-            processes=1,
-            binary_args=self.in_android_emulator(build_type) + (binary_args or []),
-            binary=sys.executable,
-        )
-        return self._test_wpt(sys.executable, android=True, **kwargs)
-
     @CommandBase.allow_target_configuration
     def _test_wpt(self, servo_binary: str, **kwargs) -> int:
         # TODO(mrobinson): Why do we pass the wrong binary path in when running WPT on Android?

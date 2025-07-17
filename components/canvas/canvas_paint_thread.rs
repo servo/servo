@@ -231,10 +231,6 @@ impl<'a> CanvasPaintThread<'a> {
             Canvas2dMsg::SetLineDashOffset(offset) => {
                 self.canvas(canvas_id).set_line_dash_offset(offset)
             },
-            Canvas2dMsg::GetTransform(sender) => {
-                let transform = self.canvas(canvas_id).get_transform();
-                sender.send(transform).unwrap();
-            },
             Canvas2dMsg::SetTransform(ref matrix) => self.canvas(canvas_id).set_transform(matrix),
             Canvas2dMsg::SetGlobalAlpha(alpha) => self.canvas(canvas_id).set_global_alpha(alpha),
             Canvas2dMsg::SetGlobalComposition(op) => {
@@ -567,12 +563,6 @@ impl Canvas<'_> {
     fn clip_path(&mut self, path: &Path) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.clip_path(path),
-        }
-    }
-
-    fn get_transform(&self) -> Transform2D<f32> {
-        match self {
-            Canvas::Raqote(canvas_data) => canvas_data.get_transform(),
         }
     }
 

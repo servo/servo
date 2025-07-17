@@ -21,11 +21,10 @@ use log::{info, trace, warn};
 use net::protocols::ProtocolRegistry;
 use servo::config::opts::Opts;
 use servo::config::prefs::Preferences;
-use servo::servo_geometry::DeviceIndependentIntSize;
+use servo::servo_geometry::convert_size_to_css_pixel;
 use servo::servo_url::ServoUrl;
 use servo::user_content_manager::{UserContentManager, UserScript};
 use servo::webrender_api::ScrollLocation;
-use servo::webrender_api::units::DeviceIntSize;
 use servo::{
     EventLoopWaker, ImeEvent, InputEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent,
     WebDriverCommandMsg, WebDriverScriptCommand, WebDriverUserPromptAction, WheelDelta, WheelEvent,
@@ -407,29 +406,20 @@ impl App {
                         .values()
                         .next()
                         .expect("Should have at least one window in servoshell");
-                    let scale = window.hidpi_scale_factor().get() as f64;
-                    // TODO: Find a universal way to convert.
-                    // See https://github.com/servo/servo/issues/37937
-                    let requested_physical_size = DeviceIntSize::new(
-                        (requested_size.width as f64 * scale).round() as i32,
-                        (requested_size.height as f64 * scale).round() as i32,
-                    );
+                    let scale = window.hidpi_scale_factor();
+
+                    let requested_physical_size =
+                        (requested_size.to_f32() * scale).round().to_i32();
+
                     // When None is returned, it means that the request went to the display system,
                     // and the actual size will be delivered later with the WindowEvent::Resized.
                     let returned_size = window.request_resize(&webview, requested_physical_size);
                     // TODO: Handle None case. For now, we assume always succeed.
                     // In reality, the request may exceed available screen size.
 
-                    // TODO: Find a universal way to convert.
-                    // See https://github.com/servo/servo/issues/37937
                     if let Err(error) = size_sender.send(
                         returned_size
-                            .map(|size| {
-                                DeviceIndependentIntSize::new(
-                                    (size.width as f64 / scale).round() as i32,
-                                    (size.height as f64 / scale).round() as i32,
-                                )
-                            })
+                            .map(|size| convert_size_to_css_pixel(size, scale))
                             .unwrap_or(requested_size),
                     ) {
                         warn!("Failed to send window size: {error}");
@@ -454,26 +444,42 @@ impl App {
                         warn!("Failed to send response of GetFocusedWebView: {error}");
                     };
                 },
+                WebDriverCommandMsg::AddLoadStatusSender(webview_id, load_status_sender) => {
+                    running_state.set_load_status_sender(webview_id, load_status_sender);
+                },
+                WebDriverCommandMsg::RemoveLoadStatusSender(webview_id) => {
+                    running_state.remove_load_status_sender(webview_id);
+                },
                 WebDriverCommandMsg::LoadUrl(webview_id, url, load_status_sender) => {
                     if let Some(webview) = running_state.webview_by_id(webview_id) {
-                        webview.load(url.into_url());
                         running_state.set_load_status_sender(webview_id, load_status_sender);
+                        webview.load(url.into_url());
                     }
                 },
                 WebDriverCommandMsg::Refresh(webview_id, load_status_sender) => {
                     if let Some(webview) = running_state.webview_by_id(webview_id) {
-                        webview.reload();
                         running_state.set_load_status_sender(webview_id, load_status_sender);
+                        webview.reload();
                     }
                 },
-                WebDriverCommandMsg::GoBack(webview_id) => {
+                WebDriverCommandMsg::GoBack(webview_id, load_status_sender) => {
                     if let Some(webview) = running_state.webview_by_id(webview_id) {
-                        webview.go_back(1);
+                        let traversal_id = webview.go_back(1);
+                        running_state.set_pending_traversal(
+                            webview_id,
+                            traversal_id,
+                            load_status_sender,
+                        );
                     }
                 },
-                WebDriverCommandMsg::GoForward(webview_id) => {
+                WebDriverCommandMsg::GoForward(webview_id, load_status_sender) => {
                     if let Some(webview) = running_state.webview_by_id(webview_id) {
-                        webview.go_forward(1);
+                        let traversal_id = webview.go_forward(1);
+                        running_state.set_pending_traversal(
+                            webview_id,
+                            traversal_id,
+                            load_status_sender,
+                        );
                     }
                 },
                 // Key events don't need hit test so can be forwarded to constellation for now
@@ -554,7 +560,7 @@ impl App {
                             ScrollLocation::Delta(Vector2D::new(dx as f32, dy as f32));
 
                         webview.notify_input_event(
-                            InputEvent::Wheel(WheelEvent::new(delta, point))
+                            InputEvent::Wheel(WheelEvent::new(delta, point.to_f32()))
                                 .with_webdriver_message_id(webdriver_message_id),
                         );
 

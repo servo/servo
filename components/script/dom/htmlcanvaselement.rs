@@ -51,6 +51,7 @@ use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 #[cfg(not(feature = "webgpu"))]
 use crate::dom::gpucanvascontext::GPUCanvasContext;
 use crate::dom::htmlelement::HTMLElement;
+use crate::dom::imagebitmaprenderingcontext::ImageBitmapRenderingContext;
 use crate::dom::mediastream::MediaStream;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::node::{Node, NodeTraits};
@@ -164,6 +165,9 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
                 Some(RenderingContext::Context2d(context)) => {
                     context.to_layout().canvas_data_source()
                 },
+                Some(RenderingContext::BitmapRenderer(context)) => {
+                    context.to_layout().canvas_data_source()
+                },
                 Some(RenderingContext::WebGL(context)) => context.to_layout().canvas_data_source(),
                 Some(RenderingContext::WebGL2(context)) => context.to_layout().canvas_data_source(),
                 #[cfg(feature = "webgpu")]
@@ -204,6 +208,37 @@ impl HTMLCanvasElement {
         let context = CanvasRenderingContext2D::new(window.as_global_scope(), self, size, can_gc);
         *self.context_mode.borrow_mut() =
             Some(RenderingContext::Context2d(Dom::from_ref(&*context)));
+        Some(context)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#canvas-context-bitmaprenderer>
+    fn get_or_init_bitmaprenderer_context(
+        &self,
+        can_gc: CanGc,
+    ) -> Option<DomRoot<ImageBitmapRenderingContext>> {
+        // Return the same object as was returned the last time the method was
+        // invoked with this same first argument.
+        if let Some(ctx) = self.context() {
+            return match *ctx {
+                RenderingContext::BitmapRenderer(ref ctx) => Some(DomRoot::from_ref(ctx)),
+                _ => None,
+            };
+        }
+
+        // Step 1. Let context be the result of running the
+        // ImageBitmapRenderingContext creation algorithm given this and
+        // options.
+        let context = ImageBitmapRenderingContext::new(
+            &self.owner_global(),
+            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(self)),
+            can_gc,
+        );
+
+        // Step 2. Set this's context mode to bitmaprenderer.
+        *self.context_mode.borrow_mut() =
+            Some(RenderingContext::BitmapRenderer(Dom::from_ref(&*context)));
+
+        // Step 3. Return context.
         Some(context)
     }
 
@@ -410,6 +445,9 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             "2d" => self
                 .get_or_init_2d_context(can_gc)
                 .map(RootedRenderingContext::CanvasRenderingContext2D),
+            "bitmaprenderer" => self
+                .get_or_init_bitmaprenderer_context(can_gc)
+                .map(RootedRenderingContext::ImageBitmapRenderingContext),
             "webgl" | "experimental-webgl" => self
                 .get_or_init_webgl_context(cx, options, can_gc)
                 .map(RootedRenderingContext::WebGLRenderingContext),

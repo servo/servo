@@ -3,19 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::iter::repeat;
 
 use constellation_traits::StructuredSerializedData;
 use dom_struct::dom_struct;
 use ipc_channel::router::ROUTER;
-use js::conversions::ToJSValConvertible;
-use js::gc::MutableHandle;
 use js::jsapi::Heap;
-use js::jsval::{DoubleValue, JSVal, UndefinedValue};
-use js::rust::{HandleValue, MutableHandleValue};
+use js::jsval::{JSVal, UndefinedValue};
+use js::rust::HandleValue;
 use net_traits::IpcSend;
 use net_traits::indexeddb_thread::{
-    AsyncOperation, IdbResult, IndexedDBKeyType, IndexedDBThreadMsg, IndexedDBTxnMode,
+    AsyncOperation, IdbResult, IndexedDBThreadMsg, IndexedDBTxnMode,
 };
 use profile_traits::ipc;
 use stylo_atoms::Atom;
@@ -36,36 +33,13 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::idbobjectstore::IDBObjectStore;
 use crate::dom::idbtransaction::IDBTransaction;
+use crate::indexed_db::key_type_to_jsval;
 use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[derive(Clone)]
 struct RequestListener {
     request: Trusted<IDBRequest>,
-}
-
-#[allow(unsafe_code)]
-fn key_type_to_jsval(cx: SafeJSContext, key: &IndexedDBKeyType, mut result: MutableHandleValue) {
-    match key {
-        IndexedDBKeyType::Number(n) => result.set(DoubleValue(*n)),
-        IndexedDBKeyType::String(s) => unsafe { s.to_jsval(*cx, result) },
-        IndexedDBKeyType::Binary(b) => unsafe { b.to_jsval(*cx, result) },
-        IndexedDBKeyType::Date(_d) => {
-            // TODO: implement this when Date's representation is finalized.
-            result.set(UndefinedValue());
-        },
-        IndexedDBKeyType::Array(a) => unsafe {
-            rooted_vec!(let mut values <- repeat(UndefinedValue()).take(a.len()));
-            for (key, value) in a.iter().zip(
-                values
-                    .iter_mut()
-                    .map(|v| MutableHandle::from_marked_location(v)),
-            ) {
-                key_type_to_jsval(cx, key, value);
-            }
-            values.to_jsval(*cx, result);
-        },
-    }
 }
 
 impl RequestListener {

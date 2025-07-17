@@ -32,6 +32,7 @@ use net_traits::{
     FetchMetadata, FetchResponseListener, FilteredMetadata, NetworkError, ReferrerPolicy,
     ResourceFetchTiming, ResourceTimingType, trim_http_whitespace,
 };
+use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::num::Finite;
 use script_traits::DocumentActivity;
 use servo_url::ServoUrl;
@@ -47,7 +48,6 @@ use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::{
     XMLHttpRequestMethods, XMLHttpRequestResponseType,
 };
 use crate::dom::bindings::codegen::UnionTypes::DocumentOrBlobOrArrayBufferViewOrArrayBufferOrFormDataOrStringOrURLSearchParams as DocumentOrXMLHttpRequestBodyInit;
-use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -919,20 +919,19 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         }
     }
 
-    #[allow(unsafe_code)]
     /// <https://xhr.spec.whatwg.org/#the-response-attribute>
     fn Response(&self, cx: JSContext, can_gc: CanGc, mut rval: MutableHandleValue) {
         match self.response_type.get() {
-            XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Text => unsafe {
+            XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Text => {
                 let ready_state = self.ready_state.get();
                 // Step 2
                 if ready_state == XMLHttpRequestState::Done ||
                     ready_state == XMLHttpRequestState::Loading
                 {
-                    self.text_response().to_jsval(*cx, rval);
+                    self.text_response().safe_to_jsval(cx, rval);
                 } else {
                     // Step 1
-                    "".to_jsval(*cx, rval);
+                    "".safe_to_jsval(cx, rval);
                 }
             },
             // Step 1
@@ -940,16 +939,14 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 rval.set(NullValue());
             },
             // Step 2
-            XMLHttpRequestResponseType::Document => unsafe {
-                self.document_response(can_gc).to_jsval(*cx, rval);
+            XMLHttpRequestResponseType::Document => {
+                self.document_response(can_gc).safe_to_jsval(cx, rval)
             },
             XMLHttpRequestResponseType::Json => self.json_response(cx, rval),
-            XMLHttpRequestResponseType::Blob => unsafe {
-                self.blob_response(can_gc).to_jsval(*cx, rval);
-            },
+            XMLHttpRequestResponseType::Blob => self.blob_response(can_gc).safe_to_jsval(cx, rval),
             XMLHttpRequestResponseType::Arraybuffer => {
                 match self.arraybuffer_response(cx, can_gc) {
-                    Some(array_buffer) => unsafe { array_buffer.to_jsval(*cx, rval) },
+                    Some(array_buffer) => array_buffer.safe_to_jsval(cx, rval),
                     None => rval.set(NullValue()),
                 }
             },

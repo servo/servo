@@ -1295,7 +1295,7 @@ fn test_fetch_with_devtools() {
     let _ = server.close();
 
     // notification received from devtools
-    let devhttprequest = expect_devtools_http_request(&devtools_port);
+    let devhttprequests = expect_devtools_http_request(&devtools_port);
     let mut devhttpresponse = expect_devtools_http_response(&devtools_port);
 
     //Creating default headers for request
@@ -1335,10 +1335,10 @@ fn test_fetch_with_devtools() {
         headers: headers,
         body: Some(vec![]),
         pipeline_id: TEST_PIPELINE_ID,
-        started_date_time: devhttprequest.started_date_time,
-        time_stamp: devhttprequest.time_stamp,
-        connect_time: devhttprequest.connect_time,
-        send_time: devhttprequest.send_time,
+        started_date_time: devhttprequests.1.started_date_time,
+        time_stamp: devhttprequests.1.time_stamp,
+        connect_time: devhttprequests.1.connect_time,
+        send_time: devhttprequests.1.send_time,
         is_xhr: true,
         browsing_context_id: TEST_WEBVIEW_ID.0,
     };
@@ -1360,7 +1360,7 @@ fn test_fetch_with_devtools() {
         browsing_context_id: TEST_WEBVIEW_ID.0,
     };
 
-    assert_eq!(devhttprequest, httprequest);
+    assert_eq!(devhttprequests.1, httprequest);
     assert_eq!(devhttpresponse, httpresponse);
 }
 

@@ -92,6 +92,8 @@ pub enum AsyncReadWriteOperation {
     RemoveItem(
         IndexedDBKeyType, // Key
     ),
+    /// Clears all key/value pairs in the associated idb data
+    Clear,
 }
 
 /// Operations that are not executed instantly, but rather added to a

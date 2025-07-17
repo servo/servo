@@ -1133,7 +1133,7 @@ impl ScriptThread {
                     }
                 },
                 InputEvent::Wheel(wheel_event) => {
-                    document.handle_wheel_event(wheel_event, event.hit_test_result, can_gc);
+                    document.handle_wheel_event(wheel_event, &event, can_gc);
                 },
                 InputEvent::Keyboard(keyboard_event) => {
                     document.dispatch_key_event(keyboard_event, can_gc);
@@ -2499,6 +2499,13 @@ impl ScriptThread {
                 reply,
                 can_gc,
             ),
+            WebDriverScriptCommand::IsDocumentReadyStateComplete(response_sender) => {
+                webdriver_handlers::handle_try_wait_for_document_navigation(
+                    &documents,
+                    pipeline_id,
+                    response_sender,
+                )
+            },
             _ => (),
         }
     }

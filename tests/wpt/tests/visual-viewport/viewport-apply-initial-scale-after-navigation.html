@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+    <title>Viewport: Apply initial-scale after Navigation</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <link rel="match" href="viewport-apply-initial-scale-after-navigation-ref.html">
+    <script src="/common/reftest-wait.js"></script>
+    <script>
+        function runTest() {
+            const url = "resource/viewport-apply-initial-scale-after-navigation-inner.html";
+            window.location.replace(new URL(url, window.location));
+        }
+        onload = () => runTest();
+    </script>
+</head>
+</html>

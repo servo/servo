@@ -297,11 +297,17 @@ impl IndexedDBManager {
                 }
             },
             SyncOperation::DeleteDatabase(sender, origin, db_name) => {
+                // https://w3c.github.io/IndexedDB/#delete-a-database
+                // Step 4. Let db be the database named name in storageKey,
+                // if one exists. Otherwise, return 0 (zero).
                 let idb_description = IndexedDBDescription {
                     origin,
                     name: db_name,
                 };
-                self.databases.remove(&idb_description);
+                if self.databases.remove(&idb_description).is_none() {
+                    let _ = sender.send(Ok(()));
+                    return;
+                }
 
                 // FIXME:(rasviitanen) Possible security issue?
                 // FIXME:(arihant2math) using remove_dir_all with arbitrary input ...

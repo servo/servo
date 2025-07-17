@@ -459,6 +459,7 @@ pub struct HttpResponse {
 #[derive(Debug)]
 pub enum NetworkEvent {
     HttpRequest(HttpRequest),
+    HttpRequestUpdate(HttpRequest),
     HttpResponse(HttpResponse),
 }
 

@@ -41,7 +41,7 @@ pub trait SafeToJSValConvertible {
     fn safe_to_jsval(&self, cx: SafeJSContext, rval: MutableHandleValue);
 }
 
-impl<T: ToJSValConvertible> SafeToJSValConvertible for T {
+impl<T: ToJSValConvertible + ?Sized> SafeToJSValConvertible for T {
     fn safe_to_jsval(&self, cx: SafeJSContext, rval: MutableHandleValue) {
         unsafe { self.to_jsval(*cx, rval) };
     }

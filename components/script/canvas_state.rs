@@ -36,7 +36,7 @@ use style_traits::{CssWriter, ParsingMode};
 use url::Url;
 use webrender_api::ImageKey;
 
-use crate::canvas_context::{OffscreenRenderingContext, RenderingContext};
+use crate::canvas_context::{CanvasContext, OffscreenRenderingContext, RenderingContext};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
     CanvasDirection, CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,
@@ -623,7 +623,10 @@ impl CanvasState {
         dw: Option<f64>,
         dh: Option<f64>,
     ) -> ErrorResult {
-        let canvas_size = canvas.get_size();
+        let canvas_size = canvas
+            .context()
+            .map_or_else(|| canvas.get_size(), |context| context.size());
+
         let dw = dw.unwrap_or(canvas_size.width as f64);
         let dh = dh.unwrap_or(canvas_size.height as f64);
         let sw = sw.unwrap_or(canvas_size.width as f64);
@@ -646,6 +649,18 @@ impl CanvasState {
                     context.send_canvas_2d_msg(Canvas2dMsg::DrawImageInOther(
                         self.get_canvas_id(),
                         image_size,
+                        dest_rect,
+                        source_rect,
+                        smoothing_enabled,
+                    ));
+                },
+                OffscreenRenderingContext::BitmapRenderer(ref context) => {
+                    let Some(snapshot) = context.get_image_data() else {
+                        return Ok(());
+                    };
+
+                    self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
+                        snapshot.as_ipc(),
                         dest_rect,
                         source_rect,
                         smoothing_enabled,
@@ -679,7 +694,10 @@ impl CanvasState {
         dw: Option<f64>,
         dh: Option<f64>,
     ) -> ErrorResult {
-        let canvas_size = canvas.get_size();
+        let canvas_size = canvas
+            .context()
+            .map_or_else(|| canvas.get_size(), |context| context.size());
+
         let dw = dw.unwrap_or(canvas_size.width as f64);
         let dh = dh.unwrap_or(canvas_size.height as f64);
         let sw = sw.unwrap_or(canvas_size.width as f64);
@@ -707,6 +725,18 @@ impl CanvasState {
                         smoothing_enabled,
                     ));
                 },
+                RenderingContext::BitmapRenderer(ref context) => {
+                    let Some(snapshot) = context.get_image_data() else {
+                        return Ok(());
+                    };
+
+                    self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
+                        snapshot.as_ipc(),
+                        dest_rect,
+                        source_rect,
+                        smoothing_enabled,
+                    ));
+                },
                 RenderingContext::Placeholder(ref context) => {
                     let Some(context) = context.context() else {
                         return Err(Error::InvalidState);
@@ -720,6 +750,18 @@ impl CanvasState {
                                 source_rect,
                                 smoothing_enabled,
                             )),
+                        OffscreenRenderingContext::BitmapRenderer(ref context) => {
+                            let Some(snapshot) = context.get_image_data() else {
+                                return Ok(());
+                            };
+
+                            self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
+                                snapshot.as_ipc(),
+                                dest_rect,
+                                source_rect,
+                                smoothing_enabled,
+                            ));
+                        },
                         OffscreenRenderingContext::Detached => return Err(Error::InvalidState),
                     }
                 },
@@ -1923,10 +1965,7 @@ impl CanvasState {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-gettransform
     pub(crate) fn get_transform(&self, global: &GlobalScope, can_gc: CanGc) -> DomRoot<DOMMatrix> {
-        let (sender, receiver) = ipc::channel::<Transform2D<f32>>().unwrap();
-        self.send_canvas_2d_msg(Canvas2dMsg::GetTransform(sender));
-        let transform = receiver.recv().unwrap();
-
+        let transform = self.state.borrow_mut().transform;
         DOMMatrix::new(global, true, transform.cast::<f64>().to_3d(), can_gc)
     }
 

@@ -9,6 +9,7 @@ import multiprocessing
 import os
 import re
 import sys
+import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -117,7 +118,11 @@ def run_tests(default_binary_path: str, **kwargs) -> int:
     handler = ServoHandler(detect_flakes=kwargs["retry_unexpected"] >= 1)
     logger.add_handler(handler)
 
-    wptrunner.run_tests(**kwargs)
+    with tempfile.TemporaryDirectory(prefix="servo-") as config_dir:
+        kwargs["binary_args"] += ["--config-dir", config_dir]
+
+        wptrunner.run_tests(**kwargs)
+
     return_value = int(handler.any_stable_unexpected())
 
     # Filter intermittents if that was specified on the command-line.

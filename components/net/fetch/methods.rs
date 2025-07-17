@@ -42,7 +42,10 @@ use super::fetch_params::FetchParams;
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::headers::determine_nosniff;
 use crate::filemanager_thread::FileManager;
-use crate::http_loader::{HttpState, determine_requests_referrer, http_fetch, set_default_accept};
+use crate::http_loader::{
+    HttpState, determine_requests_referrer, http_fetch, send_early_httprequest_to_devtools,
+    send_response_to_devtools, set_default_accept,
+};
 use crate::protocols::{ProtocolRegistry, is_url_potentially_trustworthy};
 use crate::request_interceptor::RequestInterceptor;
 use crate::subresource_integrity::is_response_integrity_valid;
@@ -257,7 +260,8 @@ pub async fn main_fetch(
 ) -> Response {
     // Step 1: Let request be fetchParam's request.
     let request = &mut fetch_params.request;
-
+    // send early HTTP request to DevTools
+    send_early_httprequest_to_devtools(request, context);
     // Step 2: Let response be null.
     let mut response = None;
 
@@ -701,6 +705,8 @@ pub async fn main_fetch(
 
     // Step 22.
     target.process_response(request, &response);
+    // Send Response to Devtools
+    send_response_to_devtools(request, context, &response);
 
     // Step 23.
     if !response_loaded {
@@ -709,6 +715,10 @@ pub async fn main_fetch(
 
     // Step 24.
     target.process_response_eof(request, &response);
+    // Send Response to Devtools
+    // This is done after process_response_eof to ensure that the body is fully
+    // processed before sending the response to Devtools.
+    send_response_to_devtools(request, context, &response);
 
     if let Ok(http_cache) = context.state.http_cache.write() {
         http_cache.update_awaiting_consumers(request, &response);

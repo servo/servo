@@ -49,9 +49,9 @@ pub enum WebDriverCommandMsg {
     /// Refresh the top-level browsing context with the given ID.
     Refresh(WebViewId, IpcSender<WebDriverLoadStatus>),
     /// Navigate the webview with the given ID to the previous page in the browsing context's history.
-    GoBack(WebViewId),
+    GoBack(WebViewId, IpcSender<WebDriverLoadStatus>),
     /// Navigate the webview with the given ID to the next page in the browsing context's history.
-    GoForward(WebViewId),
+    GoForward(WebViewId, IpcSender<WebDriverLoadStatus>),
     /// Pass a webdriver command to the script thread of the current pipeline
     /// of a browsing context.
     ScriptCommand(BrowsingContextId, WebDriverScriptCommand),
@@ -86,8 +86,8 @@ pub enum WebDriverCommandMsg {
     /// Act as if the mouse wheel is scrolled in the browsing context given the given ID.
     WheelScrollAction(
         WebViewId,
-        f32,
-        f32,
+        f64,
+        f64,
         f64,
         f64,
         // None if it's not the last `perform_wheel_scroll` since we only
@@ -127,6 +127,8 @@ pub enum WebDriverCommandMsg {
         IpcSender<Result<(), ()>>,
     ),
     GetAlertText(WebViewId, IpcSender<Result<String, ()>>),
+    AddLoadStatusSender(WebViewId, IpcSender<WebDriverLoadStatus>),
+    RemoveLoadStatusSender(WebViewId),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -202,6 +204,7 @@ pub enum WebDriverScriptCommand {
     GetTitle(IpcSender<String>),
     /// Match the element type before sending the event for webdriver `element send keys`.
     WillSendKeys(String, String, bool, IpcSender<Result<bool, ErrorStatus>>),
+    IsDocumentReadyStateComplete(IpcSender<bool>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

@@ -77,6 +77,7 @@ test_interfaces([
   "Headers",
   "History",
   "ImageBitmap",
+  "ImageBitmapRenderingContext",
   "ImageData",
   "MessageChannel",
   "MessageEvent",
