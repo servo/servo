@@ -481,11 +481,7 @@ impl TransformStream {
         )?;
 
         // Step 10. Let controller be a new TransformStreamDefaultController.
-        let controller = TransformStreamDefaultController::new(
-            global,
-            transformer_type,
-            can_gc,
-        );
+        let controller = TransformStreamDefaultController::new(global, transformer_type, can_gc);
 
         // Step 11. Perform ! SetUpTransformStreamDefaultController(stream,
         // controller, transformAlgorithmWrapper, flushAlgorithmWrapper,
@@ -626,7 +622,6 @@ impl TransformStream {
         transformer: &Transformer,
         can_gc: CanGc,
     ) {
-        
         // Let controller be a new TransformStreamDefaultController.
         let transformer_type = TransformerType::new_from_transformer(transformer);
         let controller = TransformStreamDefaultController::new(global, transformer_type, can_gc);

@@ -203,9 +203,11 @@ impl TransformStreamDefaultController {
                 transform_obj,
                 ..
             } => {
-                // If transformerDict["transform"] exists, set transformAlgorithm to an algorithm which
-                // takes an argument chunk and returns the result of invoking transformerDict["transform"] with argument list
-                // « chunk, controller » and callback this value transformer.
+                // If transformerDict["transform"] exists, set
+                // transformAlgorithm to an algorithm which takes an argument
+                // chunk and returns the result of invoking
+                // transformerDict["transform"] with argument list « chunk,
+                // controller » and callback this value transformer.
                 let algo = transform.borrow().clone();
                 if let Some(transform) = algo {
                     rooted!(in(*cx) let this_object = transform_obj.get());
@@ -314,8 +316,10 @@ impl TransformStreamDefaultController {
                 transform_obj,
                 ..
             } => {
-                // If transformerDict["flush"] exists, set flushAlgorithm to an algorithm which returns the result of
-                // invoking transformerDict["flush"] with argument list « controller » and callback this value transformer.
+                // If transformerDict["flush"] exists, set flushAlgorithm to an
+                // algorithm which returns the result of invoking
+                // transformerDict["flush"] with argument list « controller »
+                // and callback this value transformer.
                 let algo = flush.borrow().clone();
                 if let Some(flush) = algo {
                     rooted!(in(*cx) let this_object = transform_obj.get());
@@ -339,7 +343,8 @@ impl TransformStreamDefaultController {
             TransformerType::Decoder(decoder) => {
                 // <https://encoding.spec.whatwg.org/#dom-textdecoderstream>
                 //
-                // Step 8. Let flushAlgorithm be an algorithm which takes no arguments and runs the flush and enqueue algorithm with this.
+                // Step 8. Let flushAlgorithm be an algorithm which takes no
+                // arguments and runs the flush and enqueue algorithm with this.
                 flush_and_enqueue(cx, global, decoder, self, can_gc)
                     .map(|_| Promise::new_resolved(global, cx, (), can_gc))
                     .unwrap_or_else(|e| {
