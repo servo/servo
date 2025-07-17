@@ -9,7 +9,7 @@ use js::gc::MutableHandle;
 use js::jsapi::{
     ESClass, GetBuiltinClass, IsArrayBufferObject, JS_DeleteUCProperty,
     JS_GetOwnUCPropertyDescriptor, JS_GetStringLength, JS_IsArrayBufferViewObject, JSObject,
-    ObjectOpResult, ObjectOpResult_SpecialCodes, PropertyDescriptor,
+    ObjectOpResult, ObjectOpResult_SpecialCodes, PropertyDescriptor
 };
 use js::jsval::{DoubleValue, UndefinedValue};
 use js::rust::{HandleValue, MutableHandleValue};
@@ -24,6 +24,7 @@ use crate::dom::bindings::import::module::SafeJSContext;
 use crate::dom::bindings::structuredclone;
 use crate::dom::idbobjectstore::KeyPath;
 
+// https://www.w3.org/TR/IndexedDB-2/#convert-key-to-value
 #[allow(unsafe_code)]
 pub fn key_type_to_jsval(
     cx: SafeJSContext,
