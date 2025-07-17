@@ -61,6 +61,7 @@ pub(crate) trait CspReporting {
         sink_group: &str,
         source: &str,
     ) -> bool;
+    fn concatenate(self, new_csp_list: Option<CspList>) -> Option<CspList>;
 }
 
 impl CspReporting for Option<CspList> {
@@ -196,6 +197,20 @@ impl CspReporting for Option<CspList> {
 
         allowed_by_csp == CheckResult::Blocked
     }
+
+    fn concatenate(self, new_csp_list: Option<CspList>) -> Option<CspList> {
+        let Some(new_csp_list) = new_csp_list else {
+            return self;
+        };
+
+        match self {
+            None => Some(new_csp_list),
+            Some(mut old_csp_list) => {
+                old_csp_list.append(new_csp_list);
+                Some(old_csp_list)
+            },
+        }
+    }
 }
 
 pub(crate) struct SourcePosition {
@@ -313,12 +328,7 @@ fn parse_and_potentially_append_to_csp_list(
             .to_str()
             .ok()
             .map(|value| CspList::parse(value, PolicySource::Header, disposition));
-        if let Some(new_csp_list_value) = new_csp_list {
-            match csp_list {
-                None => csp_list = Some(new_csp_list_value),
-                Some(ref mut csp_list) => csp_list.append(new_csp_list_value),
-            };
-        }
+        csp_list = csp_list.concatenate(new_csp_list);
     }
     csp_list
 }
