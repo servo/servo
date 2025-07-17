@@ -153,9 +153,9 @@ jobs:
             if [ "$chunk_id" = null ]; then
               break
             fi
-            >&2 echo
-            >&2 echo
-            >&2 echo
+            >&2 echo .
+            >&2 echo .
+            >&2 echo .
             >&2 echo "Got chunk $chunk_id (of $total_chunks chunks)"
             if ./mach test-wpt \
               $WPT_ALWAYS_SUCCEED_ARG \
