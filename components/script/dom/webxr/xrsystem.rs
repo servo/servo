@@ -18,7 +18,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::XRSystemBinding::{
     XRSessionInit, XRSessionMode, XRSystemMethods,
 };
-use crate::dom::bindings::conversions::{ConversionResult, FromJSValConvertible};
+use crate::dom::bindings::conversions::{ConversionResult, SafeFromJSValConvertible};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -192,33 +192,29 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
 
         if let Some(ref r) = init.requiredFeatures {
             for feature in r {
-                unsafe {
-                    if let Ok(ConversionResult::Success(s)) =
-                        String::from_jsval(*cx, feature.handle(), ())
-                    {
-                        required_features.push(s)
-                    } else {
-                        warn!("Unable to convert required feature to string");
-                        if mode != XRSessionMode::Inline {
-                            self.pending_immersive_session.set(false);
-                        }
-                        promise.reject_error(Error::NotSupported, can_gc);
-                        return promise;
+                if let Ok(ConversionResult::Success(s)) =
+                    String::safe_from_jsval(cx, feature.handle(), ())
+                {
+                    required_features.push(s)
+                } else {
+                    warn!("Unable to convert required feature to string");
+                    if mode != XRSessionMode::Inline {
+                        self.pending_immersive_session.set(false);
                     }
+                    promise.reject_error(Error::NotSupported, can_gc);
+                    return promise;
                 }
             }
         }
 
         if let Some(ref o) = init.optionalFeatures {
             for feature in o {
-                unsafe {
-                    if let Ok(ConversionResult::Success(s)) =
-                        String::from_jsval(*cx, feature.handle(), ())
-                    {
-                        optional_features.push(s)
-                    } else {
-                        warn!("Unable to convert optional feature to string");
-                    }
+                if let Ok(ConversionResult::Success(s)) =
+                    String::safe_from_jsval(cx, feature.handle(), ())
+                {
+                    optional_features.push(s)
+                } else {
+                    warn!("Unable to convert optional feature to string");
                 }
             }
         }

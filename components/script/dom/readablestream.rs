@@ -35,7 +35,7 @@ use crate::dom::abortsignal::{AbortAlgorithm, AbortSignal};
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::ReadableStreamDefaultReaderMethods;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultController_Binding::ReadableStreamDefaultControllerMethods;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
-use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult};
+use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult, SafeFromJSValConvertible};
 use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
 use crate::dom::bindings::codegen::GenericBindings::WritableStreamDefaultWriterBinding::WritableStreamDefaultWriter_Binding::WritableStreamDefaultWriterMethods;
 use crate::dom::writablestream::WritableStream;
@@ -58,7 +58,6 @@ use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::dom::writablestreamdefaultwriter::WritableStreamDefaultWriter;
 use script_bindings::codegen::GenericBindings::MessagePortBinding::MessagePortMethods;
 use crate::dom::messageport::MessagePort;
-use crate::js::conversions::FromJSValConvertible;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
@@ -2250,10 +2249,8 @@ pub(crate) unsafe fn get_type_and_value_from_message(
         .expect("Getting the value should not fail.");
 
     // Assert: type is a String.
-    let result = unsafe {
-        DOMString::from_jsval(*cx, type_.handle(), StringificationBehavior::Empty)
-            .expect("The type of the message should be a string")
-    };
+    let result = DOMString::safe_from_jsval(cx, type_.handle(), StringificationBehavior::Empty)
+        .expect("The type of the message should be a string");
     let ConversionResult::Success(type_string) = result else {
         unreachable!("The type of the message should be a string");
     };
@@ -2357,7 +2354,7 @@ pub(crate) fn get_read_promise_done(
         rooted!(in(*cx) let object = v.to_object());
         rooted!(in(*cx) let mut done = UndefinedValue());
         match get_dictionary_property(*cx, object.handle(), "done", done.handle_mut(), can_gc) {
-            Ok(true) => match bool::from_jsval(*cx, done.handle(), ()) {
+            Ok(true) => match bool::safe_from_jsval(cx, done.handle(), ()) {
                 Ok(ConversionResult::Success(val)) => Ok(val),
                 Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.to_string())),
                 _ => Err(Error::Type("Unknown format for done property.".to_string())),
@@ -2385,7 +2382,11 @@ pub(crate) fn get_read_promise_bytes(
         rooted!(in(*cx) let mut bytes = UndefinedValue());
         match get_dictionary_property(*cx, object.handle(), "value", bytes.handle_mut(), can_gc) {
             Ok(true) => {
-                match Vec::<u8>::from_jsval(*cx, bytes.handle(), ConversionBehavior::EnforceRange) {
+                match Vec::<u8>::safe_from_jsval(
+                    cx,
+                    bytes.handle(),
+                    ConversionBehavior::EnforceRange,
+                ) {
                     Ok(ConversionResult::Success(val)) => Ok(val),
                     Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.to_string())),
                     _ => Err(Error::Type("Unknown format for bytes read.".to_string())),

@@ -21,7 +21,9 @@ pub(crate) use script_bindings::error::*;
 
 #[cfg(feature = "js_backtrace")]
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::conversions::{ConversionResult, FromJSValConvertible, root_from_object};
+use crate::dom::bindings::conversions::{
+    ConversionResult, SafeFromJSValConvertible, root_from_object,
+};
 use crate::dom::bindings::str::USVString;
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::globalscope::GlobalScope;
@@ -208,7 +210,7 @@ impl ErrorInfo {
             }
         }
 
-        match unsafe { USVString::from_jsval(*cx, value, ()) } {
+        match USVString::safe_from_jsval(cx, value, ()) {
             Ok(ConversionResult::Success(USVString(string))) => ErrorInfo {
                 message: format!("uncaught exception: {}", string),
                 filename: String::new(),
