@@ -76,6 +76,7 @@ pub(crate) struct WebViewRenderer {
     pub webview: Box<dyn WebViewTrait>,
     /// The root [`PipelineId`] of the currently displayed page in this WebView.
     pub root_pipeline_id: Option<PipelineId>,
+    /// The rectangle of the [`WebView`] in device pixels, which is the viewport.
     pub rect: DeviceRect,
     /// Tracks details about each active pipeline that the compositor knows about.
     pub pipelines: HashMap<PipelineId, PipelineDetails>,

@@ -77,7 +77,7 @@ pub(crate) struct WebViewInner {
     pub(crate) delegate: Rc<dyn WebViewDelegate>,
     pub(crate) clipboard_delegate: Rc<dyn ClipboardDelegate>,
     javascript_evaluator: Rc<RefCell<JavaScriptEvaluator>>,
-
+    /// The rectangle of the [`WebView`] in device pixels, which is the viewport.
     rect: DeviceRect,
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
     load_status: LoadStatus,
