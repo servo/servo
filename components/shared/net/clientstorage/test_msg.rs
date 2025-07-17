@@ -9,4 +9,6 @@ use serde::{Deserialize, Serialize};
 pub enum ClientStorageTestMsg {
     // child to parent:
     SyncPing(IpcSender<()>),
+
+    Delete,
 }

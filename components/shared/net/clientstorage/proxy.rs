@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc::{self, IpcSender};
+use log::debug;
 
 use super::routed_msg::ClientStorageRoutedMsg;
 use super::thread_msg::ClientStorageThreadMsg;
@@ -38,5 +39,11 @@ impl ClientStorageProxy {
             .send(ClientStorageThreadMsg::Exit(sender))
             .unwrap();
         receiver.recv().unwrap();
+    }
+}
+
+impl Drop for ClientStorageProxy {
+    fn drop(&mut self) {
+        debug!("Dropping ClientStorageProxy");
     }
 }

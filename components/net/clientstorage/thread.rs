@@ -2,12 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::rc::Rc;
 
 use crossbeam_channel::{self, Receiver, Sender, unbounded};
 use ipc_channel::ipc::IpcReceiver;
 use ipc_channel::router::ROUTER;
+use log::debug;
 use net_traits::clientstorage::mixed_msg::ClientStorageMixedMsg;
 use net_traits::clientstorage::routed_msg::ClientStorageRoutedMsg;
 use net_traits::clientstorage::thread_msg::ClientStorageThreadMsg;
@@ -19,30 +22,30 @@ pub struct ClientStorageThread {
     _base_dir: PathBuf,
     msg_sender: Sender<ClientStorageThreadMsg>,
     msg_receiver: Receiver<ClientStorageThreadMsg>,
-    actors: HashMap<u64, ClientStorageParent>,
-    next_id: u64,
-    exiting: bool,
+    actors: RefCell<HashMap<u64, ClientStorageParent>>,
+    next_id: Cell<u64>,
+    exiting: Cell<bool>,
 }
 
 impl ClientStorageThread {
-    pub fn new(config_dir: Option<PathBuf>) -> ClientStorageThread {
+    pub fn new(config_dir: Option<PathBuf>) -> Rc<ClientStorageThread> {
         let base_dir = config_dir
             .unwrap_or_else(|| PathBuf::from("."))
             .join("clientstorage");
 
         let (msg_sender, msg_receiver) = unbounded();
 
-        ClientStorageThread {
+        Rc::new(ClientStorageThread {
             _base_dir: base_dir,
             msg_sender,
             msg_receiver,
-            actors: HashMap::new(),
-            next_id: 1,
-            exiting: false,
-        }
+            actors: RefCell::new(HashMap::new()),
+            next_id: Cell::new(1),
+            exiting: Cell::new(false),
+        })
     }
 
-    pub fn start(&mut self, ipc_receiver: IpcReceiver<ClientStorageThreadMsg>) {
+    pub fn start(self: &Rc<Self>, ipc_receiver: IpcReceiver<ClientStorageThreadMsg>) {
         let msg_sender = self.msg_sender.clone();
 
         ROUTER.add_typed_route(
@@ -57,13 +60,13 @@ impl ClientStorageThread {
 
             self.recv_thread_message(msg);
 
-            if self.exiting {
+            if self.exiting.get() {
                 break;
             }
         }
     }
 
-    fn recv_thread_message(&mut self, msg: ClientStorageThreadMsg) {
+    fn recv_thread_message(self: &Rc<Self>, msg: ClientStorageThreadMsg) {
         match msg {
             ClientStorageThreadMsg::TestConstructor {
                 child_to_parent_receiver,
@@ -85,13 +88,13 @@ impl ClientStorageThread {
     }
 
     fn recv_test_constructor(
-        &mut self,
+        self: &Rc<Self>,
         child_to_parent_receiver: IpcReceiver<ClientStorageRoutedMsg>,
     ) -> u64 {
         let msg_sender = self.msg_sender.clone();
 
-        let id = self.next_id;
-        self.next_id += 1;
+        let id = self.next_id.get();
+        self.next_id.set(id + 1);
 
         ROUTER.add_typed_route(
             child_to_parent_receiver,
@@ -103,26 +106,43 @@ impl ClientStorageThread {
 
         let actor = ClientStorageTestParent::new();
 
-        self.actors
-            .insert(id, ClientStorageParent::ClientStorageTest(actor));
+        actor.bind(Rc::clone(self), id);
 
         id
     }
 
-    fn recv_routed_message(&mut self, msg: ClientStorageRoutedMsg) {
-        let actor = self.actors.get(&msg.id).unwrap();
+    fn recv_routed_message(self: &Rc<Self>, msg: ClientStorageRoutedMsg) {
+        if let Some((actor, msg)) = {
+            let actors = self.actors.borrow();
 
-        match (actor, msg.data) {
-            (
-                ClientStorageParent::ClientStorageTest(test_actor),
-                ClientStorageMixedMsg::ClientStorageTest(test_msg),
-            ) => {
-                test_actor.recv_message(test_msg);
-            },
+            let actor = actors.get(&msg.id).unwrap();
+
+            match (actor, msg.data) {
+                (
+                    ClientStorageParent::ClientStorageTest(actor),
+                    ClientStorageMixedMsg::ClientStorageTest(msg),
+                ) => Some((Rc::clone(actor), msg)),
+            }
+        } {
+            actor.recv_message(msg);
         }
     }
 
-    fn recv_exit(&mut self) {
-        self.exiting = true;
+    fn recv_exit(self: &Rc<Self>) {
+        self.exiting.set(true);
+    }
+
+    pub fn register_actor(self: &Rc<Self>, id: u64, actor: ClientStorageParent) {
+        self.actors.borrow_mut().insert(id, actor);
+    }
+
+    pub fn unregister_actor(self: &Rc<Self>, id: u64) {
+        self.actors.borrow_mut().remove(&id);
+    }
+}
+
+impl Drop for ClientStorageThread {
+    fn drop(&mut self) {
+        debug!("Dropping ClientStorageThread");
     }
 }

@@ -20,6 +20,8 @@ fn test_sync_ping() {
 
     child.send_sync_ping();
 
+    child.send_delete();
+
     proxy.send_exit();
 
     // Workaround for https://github.com/servo/servo/issues/32912

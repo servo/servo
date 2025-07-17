@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc::{self, IpcSender};
+use log::debug;
 
 use super::mixed_msg::ClientStorageMixedMsg;
 use super::routed_msg::ClientStorageRoutedMsg;
@@ -24,6 +25,10 @@ impl ClientStorageTestChild {
         receiver.recv().unwrap();
     }
 
+    pub fn send_delete(&self) {
+        self.send_message(ClientStorageTestMsg::Delete);
+    }
+
     fn send_message(&self, msg: ClientStorageTestMsg) {
         self.send_mixed_message(ClientStorageMixedMsg::ClientStorageTest(msg));
     }
@@ -37,5 +42,11 @@ impl ClientStorageTestChild {
 
     fn send_routed_message(&self, msg: ClientStorageRoutedMsg) {
         self.ipc_sender.send(msg).unwrap();
+    }
+}
+
+impl Drop for ClientStorageTestChild {
+    fn drop(&mut self) {
+        debug!("Dropping ClientStorageTestChild");
     }
 }

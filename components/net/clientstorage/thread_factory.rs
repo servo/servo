@@ -21,7 +21,9 @@ impl ClientStorageThreadFactory for IpcSender<ClientStorageThreadMsg> {
         thread::Builder::new()
             .name("ClientStorageThread".to_owned())
             .spawn(move || {
-                ClientStorageThread::new(config_dir).start(ipc_receiver);
+                let thread = ClientStorageThread::new(config_dir);
+
+                thread.start(ipc_receiver);
             })
             .expect("Thread spawning failed");
 
