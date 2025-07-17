@@ -577,8 +577,17 @@ impl App {
                         webdriver_script_command,
                     ));
                 },
+                WebDriverCommandMsg::CurrentUserPrompt(webview_id, response_sender) => {
+                    let current_dialog =
+                        running_state.get_current_active_dialog_webdriver_type(webview_id);
+                    if let Err(error) = response_sender.send(current_dialog) {
+                        warn!("Failed to send response of CurrentUserPrompt: {error}");
+                    };
+                },
                 WebDriverCommandMsg::HandleUserPrompt(webview_id, action, response_sender) => {
                     let response = if running_state.webview_has_active_dialog(webview_id) {
+                        let alert_text = running_state.alert_text_of_newest_dialog(webview_id);
+
                         match action {
                             WebDriverUserPromptAction::Accept => {
                                 running_state.accept_active_dialogs(webview_id)
@@ -586,9 +595,14 @@ impl App {
                             WebDriverUserPromptAction::Dismiss => {
                                 running_state.dismiss_active_dialogs(webview_id)
                             },
+                            WebDriverUserPromptAction::Ignore => {},
                         };
-                        Ok(())
+
+                        // Return success for AcceptAlert and DismissAlert commands.
+                        Ok(alert_text)
                     } else {
+                        // Return error for AcceptAlert and DismissAlert commands
+                        // if there is no active dialog.
                         Err(())
                     };
 
@@ -622,7 +636,8 @@ impl App {
         running_state: &RunningAppState,
     ) {
         match msg {
-            WebDriverScriptCommand::ExecuteScript(_webview_id, response_sender) => {
+            WebDriverScriptCommand::ExecuteScript(_webview_id, response_sender) |
+            WebDriverScriptCommand::ExecuteAsyncScript(_webview_id, response_sender) => {
                 // Give embedder a chance to interrupt the script command.
                 // Webdriver only handles 1 script command at a time, so we can
                 // safely set a new interrupt sender and remove the previous one here.
