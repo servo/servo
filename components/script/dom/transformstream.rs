@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::collections::HashMap;
 use std::ptr::{self};
 use std::rc::Rc;
@@ -626,14 +626,9 @@ impl TransformStream {
         transformer: &Transformer,
         can_gc: CanGc,
     ) {
-        let transformer_type = TransformerType::Js {
-            cancel: RefCell::new(transformer.cancel.clone()),
-            flush: RefCell::new(transformer.flush.clone()),
-            transform: RefCell::new(transformer.transform.clone()),
-            transform_obj: Default::default(),
-        };
-
+        
         // Let controller be a new TransformStreamDefaultController.
+        let transformer_type = TransformerType::new_from_transformer(transformer);
         let controller = TransformStreamDefaultController::new(global, transformer_type, can_gc);
 
         // Let transformAlgorithm be the following steps, taking a chunk argument:
