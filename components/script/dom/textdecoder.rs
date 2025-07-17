@@ -21,10 +21,13 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::textdecodercommon::TextDecoderCommon;
 use crate::script_runtime::CanGc;
 
+/// <https://encoding.spec.whatwg.org/#textdecoder>
 #[dom_struct]
 #[allow(non_snake_case)]
 pub(crate) struct TextDecoder {
     reflector_: Reflector,
+
+    /// <https://encoding.spec.whatwg.org/#textdecodercommon>
     decoder: TextDecoderCommon,
 }
 
@@ -85,22 +88,22 @@ impl TextDecoderMethods<crate::DomTypeHolder> for TextDecoder {
         ))
     }
 
-    // https://encoding.spec.whatwg.org/#dom-textdecoder-encoding
+    /// <https://encoding.spec.whatwg.org/#dom-textdecoder-encoding>
     fn Encoding(&self) -> DOMString {
         self.decoder.encoding()
     }
 
-    // https://encoding.spec.whatwg.org/#dom-textdecoder-fatal
+    /// <https://encoding.spec.whatwg.org/#dom-textdecoder-fatal>
     fn Fatal(&self) -> bool {
         self.decoder.fatal()
     }
 
-    // https://encoding.spec.whatwg.org/#dom-textdecoder-ignorebom
+    /// <https://encoding.spec.whatwg.org/#dom-textdecoder-ignorebom>
     fn IgnoreBOM(&self) -> bool {
         self.decoder.ignore_bom()
     }
 
-    // https://encoding.spec.whatwg.org/#dom-textdecoder-decode
+    /// <https://encoding.spec.whatwg.org/#dom-textdecoder-decode>
     fn Decode(
         &self,
         input: Option<ArrayBufferViewOrArrayBuffer>,
