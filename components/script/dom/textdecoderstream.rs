@@ -10,7 +10,6 @@ use js::conversions::{FromJSValConvertible, ToJSValConvertible};
 use js::jsval::UndefinedValue;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 
-use crate::dom::transformstreamdefaultcontroller::TransformerType;
 use crate::DomTypes;
 use crate::dom::bindings::codegen::Bindings::TextDecoderBinding;
 use crate::dom::bindings::codegen::Bindings::TextDecoderStreamBinding::TextDecoderStreamMethods;
@@ -21,6 +20,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::textdecodercommon::TextDecoderCommon;
+use crate::dom::transformstreamdefaultcontroller::TransformerType;
 use crate::dom::types::{TransformStream, TransformStreamDefaultController};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
@@ -87,9 +87,9 @@ pub(crate) fn flush_and_enqueue(
 #[dom_struct]
 pub(crate) struct TextDecoderStream {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "Rc is hard"]
 
     /// <https://encoding.spec.whatwg.org/#textdecodercommon>
+    #[ignore_malloc_size_of = "Rc is hard"]
     decoder: Rc<TextDecoderCommon>,
 
     /// <https://streams.spec.whatwg.org/#generictransformstream>
@@ -122,12 +122,7 @@ impl TextDecoderStream {
         let transformer_type = TransformerType::Decoder(decoder.clone());
 
         let transform_stream = TransformStream::new_with_proto(global, None, can_gc);
-        transform_stream.set_up(
-            cx,
-            global,
-            transformer_type,
-            can_gc,
-        )?;
+        transform_stream.set_up(cx, global, transformer_type, can_gc)?;
 
         Ok(reflect_dom_object_with_proto(
             Box::new(TextDecoderStream::new_inherited(decoder, &transform_stream)),
