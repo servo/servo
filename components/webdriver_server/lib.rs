@@ -2324,10 +2324,7 @@ impl Handler {
                     serde_json::to_value(encoded)?,
                 )))
             },
-            Err(_) => Err(WebDriverError::new(
-                ErrorStatus::StaleElementReference,
-                "Element not found",
-            )),
+            Err(error) => Err(WebDriverError::new(error, "Element not found")),
         }
     }
 
