@@ -159,6 +159,12 @@ jobs:
         if: ${{ inputs.wpt-sync-from-upstream }}
         run: |
           ./mach update-wpt --sync --patch
+      - name: Set timeout multiplier
+        if: ${{ runner.environment != 'self-hosted' }}
+        run: echo SERVO_WPT_TIMEOUT_MULTIPLIER=2 >> $GITHUB_ENV
+      - name: Set timeout multiplier
+        if: ${{ runner.environment == 'self-hosted' }}
+        run: echo SERVO_WPT_TIMEOUT_MULTIPLIER=0.75 >> $GITHUB_ENV
       - name: Run tests
         shell: bash
         run: |
@@ -179,7 +185,7 @@ jobs:
             >&2 echo "Got chunk $chunk_id (of $total_chunks chunks)"
             if ./mach test-wpt \
               $WPT_ALWAYS_SUCCEED_ARG \
-              --${{ inputs.profile }} --processes $(nproc) --timeout-multiplier 2 \
+              --${{ inputs.profile }} --processes $(nproc) --timeout-multiplier $SERVO_WPT_TIMEOUT_MULTIPLIER \
               --total-chunks $total_chunks --this-chunk $chunk_id \
               --log-raw wpt-full-logs/linux/raw/$chunk_id.log \
               --log-wptreport wpt-full-logs/linux/wptreport/$chunk_id.json \
