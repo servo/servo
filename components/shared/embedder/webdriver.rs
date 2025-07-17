@@ -43,11 +43,12 @@ impl WebDriverUserPrompt {
     pub fn new_from_str(s: &str) -> Option<Self> {
         match s {
             "alert" => Some(WebDriverUserPrompt::Alert),
-            "beforeunload" => Some(WebDriverUserPrompt::BeforeUnload),
+            "beforeUnload" => Some(WebDriverUserPrompt::BeforeUnload),
             "confirm" => Some(WebDriverUserPrompt::Confirm),
             "default" => Some(WebDriverUserPrompt::Default),
             "file" => Some(WebDriverUserPrompt::File),
             "prompt" => Some(WebDriverUserPrompt::Prompt),
+            "fallbackDefault" => Some(WebDriverUserPrompt::FallbackDefault),
             _ => None,
         }
     }
