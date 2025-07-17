@@ -125,6 +125,14 @@ jobs:
             runs-on: self-hosted-image:ubuntu2204-wpt
           - runner: 31
             runs-on: self-hosted-image:ubuntu2204-wpt
+          - runner: 32
+            runs-on: self-hosted-image:ubuntu2204-wpt
+          - runner: 33
+            runs-on: self-hosted-image:ubuntu2204-wpt
+          - runner: 34
+            runs-on: self-hosted-image:ubuntu2204-wpt
+          - runner: 35
+            runs-on: self-hosted-image:ubuntu2204-wpt
     steps:
       - uses: actions/checkout@v4
         if: github.event_name != 'pull_request_target'
