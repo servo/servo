@@ -162,6 +162,7 @@ pub(crate) struct HTMLImageElement {
     form_owner: MutNullableDom<HTMLFormElement>,
     generation: Cell<u32>,
     source_set: DomRefCell<SourceSet>,
+    dimension_attribute_source: MutNullableDom<HTMLSourceElement>,
     last_selected_source: DomRefCell<Option<USVString>>,
     #[ignore_malloc_size_of = "promises are hard"]
     image_decode_promises: DomRefCell<Vec<Rc<Promise>>>,
@@ -737,9 +738,18 @@ impl HTMLImageElement {
             }
 
             // Step 4.9
-            self.normalise_source_densities(&mut source_set, width);
+            if let Some(width) = element.get_attribute(&ns!(), &local_name!("width")) {
+                self.dimension_attribute_source
+                    .set(element.downcast::<HTMLSourceElement>());
+            } else if let Some(height) = element.get_attribute(&ns!(), &local_name!("height")) {
+                self.dimension_attribute_source
+                    .set(element.downcast::<HTMLSourceElement>());
+            }
 
             // Step 4.10
+            self.normalise_source_densities(&mut source_set, width);
+
+            // Step 4.11
             *self.source_set.borrow_mut() = source_set;
             return;
         }
@@ -1348,6 +1358,7 @@ impl HTMLImageElement {
             form_owner: Default::default(),
             generation: Default::default(),
             source_set: DomRefCell::new(SourceSet::new()),
+            dimension_attribute_source: Default::default(),
             last_selected_source: DomRefCell::new(None),
             image_decode_promises: DomRefCell::new(vec![]),
             line_number: creator.return_line_number(),
@@ -1487,6 +1498,15 @@ impl<'dom> LayoutDom<'dom, HTMLImageElement> {
     fn current_request(self) -> &'dom ImageRequest {
         unsafe { self.unsafe_get().current_request.borrow_for_layout() }
     }
+
+    #[allow(unsafe_code)]
+    fn dimension_attribute_source(self) -> Option<LayoutDom<'dom, HTMLSourceElement>> {
+        unsafe {
+            self.unsafe_get()
+                .dimension_attribute_source
+                .get_inner_as_layout()
+        }
+    }
 }
 
 impl LayoutHTMLImageElementHelpers for LayoutDom<'_, HTMLImageElement> {
@@ -1504,19 +1524,35 @@ impl LayoutHTMLImageElementHelpers for LayoutDom<'_, HTMLImageElement> {
     }
 
     fn get_width(self) -> LengthOrPercentageOrAuto {
-        self.upcast::<Element>()
-            .get_attr_for_layout(&ns!(), &local_name!("width"))
-            .map(AttrValue::as_dimension)
-            .cloned()
-            .unwrap_or(LengthOrPercentageOrAuto::Auto)
+        if let Some(dimension_attribute_source) = self.dimension_attribute_source() {
+            dimension_attribute_source
+                .upcast::<Element>()
+                .get_attr_for_layout(&ns!(), &local_name!("width"))
+                .map(|x| *AttrValue::from_dimension(x.to_string()).as_dimension())
+                .unwrap_or(LengthOrPercentageOrAuto::Auto)
+        } else {
+            self.upcast::<Element>()
+                .get_attr_for_layout(&ns!(), &local_name!("width"))
+                .map(AttrValue::as_dimension)
+                .cloned()
+                .unwrap_or(LengthOrPercentageOrAuto::Auto)
+        }
     }
 
     fn get_height(self) -> LengthOrPercentageOrAuto {
-        self.upcast::<Element>()
-            .get_attr_for_layout(&ns!(), &local_name!("height"))
-            .map(AttrValue::as_dimension)
-            .cloned()
-            .unwrap_or(LengthOrPercentageOrAuto::Auto)
+        if let Some(dimension_attribute_source) = self.dimension_attribute_source() {
+            dimension_attribute_source
+                .upcast::<Element>()
+                .get_attr_for_layout(&ns!(), &local_name!("height"))
+                .map(|x| *AttrValue::from_dimension(x.to_string()).as_dimension())
+                .unwrap_or(LengthOrPercentageOrAuto::Auto)
+        } else {
+            self.upcast::<Element>()
+                .get_attr_for_layout(&ns!(), &local_name!("height"))
+                .map(AttrValue::as_dimension)
+                .cloned()
+                .unwrap_or(LengthOrPercentageOrAuto::Auto)
+        }
     }
 }
 
