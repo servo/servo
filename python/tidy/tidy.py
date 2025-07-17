@@ -155,7 +155,7 @@ def is_iter_empty(iterator: Iterator[str]) -> tuple[bool, Iterator[str]]:
         return False, iterator
 
 
-def normalize_path(path: str) -> str:
+def relative_path(path: str) -> str:
     return os.path.relpath(os.path.abspath(path), TOPDIR)
 
 
@@ -443,7 +443,7 @@ def run_python_type_checker() -> Iterator[tuple[str, int, str]]:
     else:
         for error in errors:
             diagnostic = PyreflyDiagnostic(**error)
-            yield normalize_path(diagnostic.path), diagnostic.line, diagnostic.concise_description
+            yield relative_path(diagnostic.path), diagnostic.line, diagnostic.concise_description
 
 
 def run_cargo_deny_lints():
@@ -1007,7 +1007,9 @@ def parse_config(config_file: dict[str, Any]) -> None:
     dirs_to_check = config_file.get("check_ext", {})
     # Fix the paths (OS-dependent)
     for path, exts in dirs_to_check.items():
-        # FIXME: Temporarily ignoring this since only Pyrefly raises an issue constrained type variable
+        # FIXME: Temporarily ignoring this since the type signature for
+        # `normalize_paths` must use a constrained type variable for this to
+        # typecheck but Pyrefly doesn't handle that correctly (but mypy does).
         # pyrefly: ignore[bad-argument-type]
         config["check_ext"][normalize_paths(path)] = exts
 
@@ -1120,5 +1122,5 @@ class CargoDenyKrate:
         self.version = crate["version"]
         self.parents = [CargoDenyKrate(parent) for parent in data.get("parents", [])]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name}@{self.version}"
