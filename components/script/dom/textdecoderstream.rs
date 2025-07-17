@@ -83,11 +83,16 @@ pub(crate) fn flush_and_enqueue(
     controller.enqueue(cx, global, rval.handle(), can_gc)
 }
 
+/// <https://encoding.spec.whatwg.org/#textdecoderstream>
 #[dom_struct]
 pub(crate) struct TextDecoderStream {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "Rc is hard"]
+
+    /// <https://encoding.spec.whatwg.org/#textdecodercommon>
     decoder: Rc<TextDecoderCommon>,
+
+    /// <https://streams.spec.whatwg.org/#generictransformstream>
     transform: Dom<TransformStream>,
 }
 
