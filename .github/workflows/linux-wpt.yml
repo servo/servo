@@ -175,7 +175,7 @@ jobs:
           total_chunks=$(((20 + 16) * 6))
           exit_status_file=$(mktemp)
           while :; do
-            chunk_id=$(curl -fsSX POST "https://ci0.servo.org/chunker/take?unique_id=$unique_id&total_chunks=$total_chunks")
+            chunk_id=$(curl -fsSX POST "https://ci0.servo.org/chunker/take?unique_id=$unique_id&total_chunks=$total_chunks&runs_on=${{ matrix.runs-on }}")
             if [ "$chunk_id" = null ]; then
               break
             fi
