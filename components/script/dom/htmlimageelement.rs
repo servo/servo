@@ -738,10 +738,13 @@ impl HTMLImageElement {
             }
 
             // Step 4.9
-            if let Some(width) = element.get_attribute(&ns!(), &local_name!("width")) {
-                self.dimension_attribute_source
-                    .set(element.downcast::<HTMLSourceElement>());
-            } else if let Some(height) = element.get_attribute(&ns!(), &local_name!("height")) {
+            if element
+                .get_attribute(&ns!(), &local_name!("width"))
+                .is_some() ||
+                element
+                    .get_attribute(&ns!(), &local_name!("height"))
+                    .is_some()
+            {
                 self.dimension_attribute_source
                     .set(element.downcast::<HTMLSourceElement>());
             }
