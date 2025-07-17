@@ -13,6 +13,13 @@ on:
     types: [checks_requested]
   workflow_dispatch:
 
+# When this is a pull request workflow run , ensure that any previously triggered workflows runs for
+# this pull request are canceled to free up runner resources. If this isn't a pull request workflow
+# run, ensure that it has a unique group, so nothing is cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   decision:
     name: Generate Try Configuration
