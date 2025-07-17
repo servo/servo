@@ -172,6 +172,14 @@ impl SimpleDialog {
         }
     }
 
+    pub fn set_message(&mut self, text: String) {
+        match self {
+            SimpleDialog::Alert { message, .. } => *message = text,
+            SimpleDialog::Confirm { message, .. } => *message = text,
+            SimpleDialog::Prompt { message, .. } => *message = text,
+        }
+    }
+
     pub fn dismiss(&self) {
         match self {
             SimpleDialog::Alert {

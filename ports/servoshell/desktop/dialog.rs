@@ -168,6 +168,12 @@ impl Dialog {
         }
     }
 
+    pub fn set_message(&mut self, text: String) {
+        if let Dialog::SimpleDialog(dialog) = self {
+            dialog.set_message(text);
+        }
+    }
+
     pub fn update(&mut self, ctx: &egui::Context) -> bool {
         match self {
             Dialog::File {

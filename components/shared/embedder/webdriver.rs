@@ -166,6 +166,7 @@ pub enum WebDriverCommandMsg {
         IpcSender<Result<Option<String>, ()>>,
     ),
     GetAlertText(WebViewId, IpcSender<Result<String, ()>>),
+    SendAlertText(WebViewId, String),
     AddLoadStatusSender(WebViewId, IpcSender<WebDriverLoadStatus>),
     RemoveLoadStatusSender(WebViewId),
 }
