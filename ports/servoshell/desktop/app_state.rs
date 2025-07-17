@@ -29,7 +29,7 @@ use super::app::PumpResult;
 use super::dialog::Dialog;
 use super::gamepad::GamepadSupport;
 use super::keyutils::CMD_OR_CONTROL;
-use super::window_trait::{LINE_HEIGHT, WindowPortsMethods};
+use super::window_trait::{LINE_HEIGHT, LINE_WIDTH, WindowPortsMethods};
 use crate::output_image::save_output_image_if_necessary;
 use crate::prefs::ServoShellPreferences;
 
@@ -425,19 +425,19 @@ impl RunningAppState {
                 webview.notify_scroll_event(ScrollLocation::End, origin);
             })
             .shortcut(Modifiers::empty(), Key::ArrowUp, || {
-                let location = ScrollLocation::Delta(Vector2D::new(0.0, -3.0 * LINE_HEIGHT));
+                let location = ScrollLocation::Delta(Vector2D::new(0.0, -1.0 * LINE_HEIGHT));
                 webview.notify_scroll_event(location, origin);
             })
             .shortcut(Modifiers::empty(), Key::ArrowDown, || {
-                let location = ScrollLocation::Delta(Vector2D::new(0.0, 3.0 * LINE_HEIGHT));
+                let location = ScrollLocation::Delta(Vector2D::new(0.0, 1.0 * LINE_HEIGHT));
                 webview.notify_scroll_event(location, origin);
             })
             .shortcut(Modifiers::empty(), Key::ArrowLeft, || {
-                let location = ScrollLocation::Delta(Vector2D::new(-LINE_HEIGHT, 0.0));
+                let location = ScrollLocation::Delta(Vector2D::new(-LINE_WIDTH, 0.0));
                 webview.notify_scroll_event(location, origin);
             })
             .shortcut(Modifiers::empty(), Key::ArrowRight, || {
-                let location = ScrollLocation::Delta(Vector2D::new(LINE_HEIGHT, 0.0));
+                let location = ScrollLocation::Delta(Vector2D::new(LINE_WIDTH, 0.0));
                 webview.notify_scroll_event(location, origin);
             });
     }
