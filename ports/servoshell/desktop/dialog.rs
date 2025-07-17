@@ -14,7 +14,7 @@ use servo::servo_geometry::DeviceIndependentPixel;
 use servo::{
     AlertResponse, AuthenticationRequest, ColorPicker, ConfirmResponse, FilterPattern,
     PermissionRequest, PromptResponse, RgbColor, SelectElement, SelectElementOption,
-    SelectElementOptionOrOptgroup, SimpleDialog,
+    SelectElementOptionOrOptgroup, SimpleDialog, WebDriverUserPrompt,
 };
 
 pub enum Dialog {
@@ -583,15 +583,13 @@ impl Dialog {
         }
     }
 
-    pub fn type_string(&self) -> &'static str {
+    pub fn webdriver_diaglog_type(&self) -> WebDriverUserPrompt {
         match self {
-            Dialog::File { .. } => "file",
-            Dialog::SimpleDialog(simple_dialog) => simple_dialog.type_string(),
-            Dialog::Authentication { .. } => "authentication",
-            Dialog::Permission { .. } => "permission",
-            Dialog::SelectDevice { .. } => "select_device",
-            Dialog::SelectElement { .. } => "select_element",
-            Dialog::ColorPicker { .. } => "color_picker",
+            Dialog::File { .. } => WebDriverUserPrompt::File,
+            Dialog::SimpleDialog(SimpleDialog::Alert { .. }) => WebDriverUserPrompt::Alert,
+            Dialog::SimpleDialog(SimpleDialog::Confirm { .. }) => WebDriverUserPrompt::Confirm,
+            Dialog::SimpleDialog(SimpleDialog::Prompt { .. }) => WebDriverUserPrompt::Prompt,
+            _ => WebDriverUserPrompt::Default,
         }
     }
 }

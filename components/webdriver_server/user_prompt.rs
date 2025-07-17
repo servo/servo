@@ -6,7 +6,7 @@ use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap};
 
 use base::id::WebViewId;
-use embedder_traits::{WebDriverCommandMsg, WebDriverUserPromptAction};
+use embedder_traits::{WebDriverCommandMsg, WebDriverUserPrompt, WebDriverUserPromptAction};
 use ipc_channel::ipc;
 use serde_json::{Map, Value};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
@@ -32,13 +32,13 @@ const VALID_PROMPT_TYPES: [&str; 6] = [
 ];
 
 /// <https://w3c.github.io/webdriver/#dfn-prompt-handler-configuration>
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 pub(crate) struct PromptHandlerConfiguration {
-    handler: &'static str,
+    handler: WebDriverUserPromptAction,
     notify: bool,
 }
 
-pub(crate) type UserPromptHandler = HashMap<&'static str, PromptHandlerConfiguration>;
+pub(crate) type UserPromptHandler = HashMap<WebDriverUserPrompt, PromptHandlerConfiguration>;
 
 /// <https://w3c.github.io/webdriver/#dfn-deserialize-as-an-unhandled-prompt-behavior>
 pub(crate) fn deserialize_unhandled_prompt_behaviour(
@@ -94,20 +94,34 @@ pub(crate) fn deserialize_unhandled_prompt_behaviour(
 
         // Step 7.3 - 7.6.
         let (handler, notify) = match handle_str.as_str() {
-            "accept and notify" => ("accept", true),
-            "dismiss and notify" => ("dismiss", true),
-            "ignore" => ("ignore", false),
-            "accept" => ("accept", false),
-            "dismiss" => ("dismiss", false),
+            "accept and notify" => (
+                WebDriverUserPromptAction::new_from_str("accept").unwrap(),
+                true,
+            ),
+            "dismiss and notify" => (
+                WebDriverUserPromptAction::new_from_str("dismiss").unwrap(),
+                true,
+            ),
+            "ignore" => (
+                WebDriverUserPromptAction::new_from_str("ignore").unwrap(),
+                false,
+            ),
+            "accept" => (
+                WebDriverUserPromptAction::new_from_str("accept").unwrap(),
+                false,
+            ),
+            "dismiss" => (
+                WebDriverUserPromptAction::new_from_str("dismiss").unwrap(),
+                false,
+            ),
             _ => unreachable!(),
         };
 
         // Step 7.7 - 7.8.
-        let prompt_type = VALID_PROMPT_TYPES
-            .iter()
-            .find(|&&t| t == prompt_type)
-            .unwrap_or(&"default");
-        user_prompt_handler.insert(prompt_type, PromptHandlerConfiguration { handler, notify });
+        user_prompt_handler.insert(
+            WebDriverUserPrompt::new_from_str(&prompt_type).unwrap(),
+            PromptHandlerConfiguration { handler, notify },
+        );
     }
 
     Ok(user_prompt_handler)
@@ -120,34 +134,34 @@ pub(crate) fn default_unhandled_prompt_behavior() -> &'static str {
 /// <https://www.w3.org/TR/webdriver2/#dfn-get-the-prompt-handler>
 fn get_user_prompt_handler(
     user_prompt_handler: &UserPromptHandler,
-    prompt_type: &str,
+    prompt_type: WebDriverUserPrompt,
 ) -> PromptHandlerConfiguration {
     // Step 2. If handlers contains type return handlers[type].
-    if let Some(handler) = user_prompt_handler.get(prompt_type) {
+    if let Some(handler) = user_prompt_handler.get(&prompt_type) {
         return (*handler).clone();
     }
 
     // Step 3. If handlers contains default return handlers[default].
-    if let Some(handler) = user_prompt_handler.get("default") {
+    if let Some(handler) = user_prompt_handler.get(&WebDriverUserPrompt::Default) {
         return (*handler).clone();
     }
 
     // Step 4. If prompt type is "beforeUnload" return a configuration with handler "accept" and notify false.
-    if prompt_type == "beforeUnload" {
+    if prompt_type == WebDriverUserPrompt::BeforeUnload {
         return PromptHandlerConfiguration {
-            handler: "accept",
+            handler: WebDriverUserPromptAction::Accept,
             notify: false,
         };
     }
 
     // Step 5. If handlers contains fallbackDefault return handlers[fallbackDefault].
-    if let Some(handler) = user_prompt_handler.get("fallbackDefault") {
+    if let Some(handler) = user_prompt_handler.get(&WebDriverUserPrompt::FallbackDefault) {
         return (*handler).clone();
     }
 
     // Step 6. Return a configuration with handler "dismiss" and notify true.
     PromptHandlerConfiguration {
-        handler: "dismiss",
+        handler: WebDriverUserPromptAction::Dismiss,
         notify: true,
     }
 }
@@ -256,18 +270,17 @@ impl Handler {
             Some(prompt_type) => {
                 // Step 2 - 4. Get user prompt handler for the prompt type.
                 let handler =
-                    get_user_prompt_handler(&self.session()?.user_prompt_handler, &prompt_type);
+                    get_user_prompt_handler(&self.session()?.user_prompt_handler, prompt_type);
 
                 // Step 5. Perform the substeps based on handler's handler
                 let (sender, receiver) = ipc::channel().unwrap();
                 self.send_message_to_embedder(WebDriverCommandMsg::HandleUserPrompt(
                     webview_id,
-                    WebDriverUserPromptAction::new_from_str(handler.handler)
-                        .unwrap_or(WebDriverUserPromptAction::Ignore),
+                    handler.handler.clone(),
                     sender,
                 ))?;
 
-                if handler.notify || handler.handler == "ignore" {
+                if handler.notify || handler.handler == WebDriverUserPromptAction::Ignore {
                     // Step 6. If handler's notify is true, return annotated unexpected alert open error.
                     let alert_text = wait_for_script_response(receiver)?
                         .unwrap_or_default()

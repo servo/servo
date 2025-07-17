@@ -578,9 +578,9 @@ impl App {
                     ));
                 },
                 WebDriverCommandMsg::CurrentUserPrompt(webview_id, response_sender) => {
-                    let current_dialog = running_state.current_active_dialog_type(webview_id);
-                    if let Err(error) = response_sender.send(current_dialog.map(|s| s.to_string()))
-                    {
+                    let current_dialog =
+                        running_state.get_current_active_dialog_webdriver_type(webview_id);
+                    if let Err(error) = response_sender.send(current_dialog) {
                         warn!("Failed to send response of CurrentUserPrompt: {error}");
                     };
                 },

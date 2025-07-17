@@ -213,14 +213,6 @@ impl SimpleDialog {
             },
         }
     }
-
-    pub fn type_string(&self) -> &'static str {
-        match self {
-            SimpleDialog::Alert { .. } => "alert",
-            SimpleDialog::Confirm { .. } => "confirm",
-            SimpleDialog::Prompt { .. } => "prompt",
-        }
-    }
 }
 
 #[derive(Debug, Default, Deserialize, PartialEq, Serialize)]

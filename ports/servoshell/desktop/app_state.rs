@@ -21,7 +21,7 @@ use servo::{
     AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FormControl, GamepadHapticEffectType,
     KeyboardEvent, LoadStatus, PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog,
     TraversalId, WebDriverCommandMsg, WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus,
-    WebView, WebViewBuilder, WebViewDelegate,
+    WebDriverUserPrompt, WebView, WebViewBuilder, WebViewDelegate,
 };
 use url::Url;
 
@@ -346,12 +346,15 @@ impl RunningAppState {
             .is_some_and(|dialogs| !dialogs.is_empty())
     }
 
-    pub(crate) fn current_active_dialog_type(&self, webview_id: WebViewId) -> Option<&'static str> {
+    pub(crate) fn get_current_active_dialog_webdriver_type(
+        &self,
+        webview_id: WebViewId,
+    ) -> Option<WebDriverUserPrompt> {
         self.inner()
             .dialogs
             .get(&webview_id)
             .and_then(|dialogs| dialogs.last())
-            .map(|dialog| dialog.type_string())
+            .map(|dialog| dialog.webdriver_diaglog_type())
     }
 
     pub(crate) fn accept_active_dialogs(&self, webview_id: WebViewId) {
