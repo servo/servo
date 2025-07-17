@@ -27,7 +27,7 @@ use crate::dom::transformstreamdefaultcontroller::{
 use crate::dom::types::{Promise, TransformStream, TransformStreamDefaultController};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
-// https://encoding.spec.whatwg.org/#decode-and-enqueue-a-chunk
+/// <https://encoding.spec.whatwg.org/#decode-and-enqueue-a-chunk>
 #[allow(unsafe_code)]
 fn decode_and_enqueue_a_chunk(
     cx: SafeJSContext,
@@ -85,7 +85,7 @@ impl TransformerTransformAlgorithm for TextDecoderStreamTransformAlgorithm {
     }
 }
 
-// https://encoding.spec.whatwg.org/#flush-and-enqueue
+/// <https://encoding.spec.whatwg.org/#flush-and-enqueue>
 #[allow(unsafe_code)]
 fn flush_and_enqueue(
     cx: SafeJSContext,
@@ -130,7 +130,6 @@ impl TransformerFlushAlgorithm for TextDecoderStreamFlushAlgorithm {
 }
 
 #[dom_struct]
-#[allow(non_snake_case)]
 pub(crate) struct TextDecoderStream {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "Rc is hard"]
