@@ -1040,7 +1040,11 @@ We only expect files with {ext} extensions in {dir_name}""".format(**details)
                 yield (filename, 1, message)
 
 
-def file_checking(filename, checking_functions, line_checking_functions):
+def file_checking(
+    filename: str,
+    checking_functions: tuple[CheckingFunction, ...],
+    line_checking_functions: tuple[LineCheckingFunction, ...],
+):
     errors = []
     if not os.path.exists(filename):
         return errors
