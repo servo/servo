@@ -302,7 +302,10 @@ impl CanvasState {
             return;
         }
 
-        self.send_canvas_2d_msg(Canvas2dMsg::ClearRect(self.size.get().to_f32().into()));
+        self.send_canvas_2d_msg(Canvas2dMsg::ClearRect(
+            self.size.get().to_f32().into(),
+            self.state.borrow().transform,
+        ));
     }
 
     fn create_drawable_rect(&self, x: f64, y: f64, w: f64, h: f64) -> Option<Rect<f32>> {
@@ -563,6 +566,7 @@ impl CanvasState {
             dest_rect,
             source_rect,
             smoothing_enabled,
+            self.state.borrow().transform,
         ));
 
         self.mark_as_dirty(canvas);
@@ -609,6 +613,7 @@ impl CanvasState {
             dest_rect,
             source_rect,
             smoothing_enabled,
+            self.state.borrow().transform,
         ));
 
         self.mark_as_dirty(canvas);
@@ -657,6 +662,7 @@ impl CanvasState {
                         dest_rect,
                         source_rect,
                         smoothing_enabled,
+                        self.state.borrow().transform,
                     ));
                 },
                 OffscreenRenderingContext::BitmapRenderer(ref context) => {
@@ -669,6 +675,7 @@ impl CanvasState {
                         dest_rect,
                         source_rect,
                         smoothing_enabled,
+                        self.state.borrow().transform,
                     ));
                 },
                 OffscreenRenderingContext::Detached => return Err(Error::InvalidState),
@@ -678,6 +685,7 @@ impl CanvasState {
                 image_size,
                 dest_rect,
                 source_rect,
+                self.state.borrow().transform,
             ));
         }
 
@@ -728,6 +736,7 @@ impl CanvasState {
                         dest_rect,
                         source_rect,
                         smoothing_enabled,
+                        self.state.borrow().transform,
                     ));
                 },
                 RenderingContext::BitmapRenderer(ref context) => {
@@ -740,6 +749,7 @@ impl CanvasState {
                         dest_rect,
                         source_rect,
                         smoothing_enabled,
+                        self.state.borrow().transform,
                     ));
                 },
                 RenderingContext::Placeholder(ref context) => {
@@ -754,6 +764,7 @@ impl CanvasState {
                                 dest_rect,
                                 source_rect,
                                 smoothing_enabled,
+                                self.state.borrow().transform,
                             )),
                         OffscreenRenderingContext::BitmapRenderer(ref context) => {
                             let Some(snapshot) = context.get_image_data() else {
@@ -765,6 +776,7 @@ impl CanvasState {
                                 dest_rect,
                                 source_rect,
                                 smoothing_enabled,
+                                self.state.borrow().transform,
                             ));
                         },
                         OffscreenRenderingContext::Detached => return Err(Error::InvalidState),
@@ -777,6 +789,7 @@ impl CanvasState {
                 image_size,
                 dest_rect,
                 source_rect,
+                self.state.borrow().transform,
             ));
         }
 
@@ -824,6 +837,7 @@ impl CanvasState {
             dest_rect,
             source_rect,
             smoothing_enabled,
+            self.state.borrow().transform,
         ));
         self.mark_as_dirty(canvas);
         Ok(())
@@ -870,6 +884,7 @@ impl CanvasState {
             dest_rect,
             source_rect,
             smoothing_enabled,
+            self.state.borrow().transform,
         ));
 
         self.mark_as_dirty(canvas);
@@ -952,7 +967,6 @@ impl CanvasState {
             .borrow_mut()
             .transform(state.transform.cast());
         state.transform = transform;
-        self.send_canvas_2d_msg(Canvas2dMsg::SetTransform(state.transform));
         if let Some(inverse) = transform.inverse() {
             self.current_default_path
                 .borrow_mut()
@@ -964,14 +978,18 @@ impl CanvasState {
     pub(crate) fn fill_rect(&self, x: f64, y: f64, width: f64, height: f64) {
         if let Some(rect) = self.create_drawable_rect(x, y, width, height) {
             let style = self.state.borrow().fill_style.to_fill_or_stroke_style();
-            self.send_canvas_2d_msg(Canvas2dMsg::FillRect(rect, style));
+            self.send_canvas_2d_msg(Canvas2dMsg::FillRect(
+                rect,
+                style,
+                self.state.borrow().transform,
+            ));
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-clearrect
     pub(crate) fn clear_rect(&self, x: f64, y: f64, width: f64, height: f64) {
         if let Some(rect) = self.create_drawable_rect(x, y, width, height) {
-            self.send_canvas_2d_msg(Canvas2dMsg::ClearRect(rect));
+            self.send_canvas_2d_msg(Canvas2dMsg::ClearRect(rect, self.state.borrow().transform));
         }
     }
 
@@ -979,7 +997,11 @@ impl CanvasState {
     pub(crate) fn stroke_rect(&self, x: f64, y: f64, width: f64, height: f64) {
         if let Some(rect) = self.create_drawable_rect(x, y, width, height) {
             let style = self.state.borrow().stroke_style.to_fill_or_stroke_style();
-            self.send_canvas_2d_msg(Canvas2dMsg::StrokeRect(rect, style));
+            self.send_canvas_2d_msg(Canvas2dMsg::StrokeRect(
+                rect,
+                style,
+                self.state.borrow().transform,
+            ));
         }
     }
 
@@ -1353,6 +1375,7 @@ impl CanvasState {
             max_width,
             style,
             is_rtl,
+            self.state.borrow().transform,
         ));
     }
 
@@ -1858,7 +1881,11 @@ impl CanvasState {
     pub(crate) fn fill_(&self, path: Path, _fill_rule: CanvasFillRule) {
         // TODO: Process fill rule
         let style = self.state.borrow().fill_style.to_fill_or_stroke_style();
-        self.send_canvas_2d_msg(Canvas2dMsg::FillPath(style, path));
+        self.send_canvas_2d_msg(Canvas2dMsg::FillPath(
+            style,
+            path,
+            self.state.borrow().transform,
+        ));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-stroke
@@ -1869,7 +1896,11 @@ impl CanvasState {
 
     pub(crate) fn stroke_(&self, path: Path) {
         let style = self.state.borrow().stroke_style.to_fill_or_stroke_style();
-        self.send_canvas_2d_msg(Canvas2dMsg::StrokePath(style, path));
+        self.send_canvas_2d_msg(Canvas2dMsg::StrokePath(
+            style,
+            path,
+            self.state.borrow().transform,
+        ));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-clip
@@ -1881,7 +1912,7 @@ impl CanvasState {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-clip
     pub(crate) fn clip_(&self, path: Path, _fill_rule: CanvasFillRule) {
         // TODO: Process fill rule
-        self.send_canvas_2d_msg(Canvas2dMsg::ClipPath(path));
+        self.send_canvas_2d_msg(Canvas2dMsg::ClipPath(path, self.state.borrow().transform));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-ispointinpath
