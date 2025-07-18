@@ -99,7 +99,7 @@ jobs:
       - name: Run tests
         shell: bash
         run: |
-          set -euo pipefail
+          set -xeuo pipefail
           mkdir -p wpt-filtered-logs/linux
           mkdir -p wpt-full-logs/linux
           unique_id=${{ needs.unique-id.outputs.unique-id }}
