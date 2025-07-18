@@ -6737,7 +6737,6 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn AdoptedStyleSheets(&self, context: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
         self.adopted_stylesheets_frozen_types.get_or_init(
             || {
-                dbg!(self.adopted_stylesheets.borrow().len());
                 self.adopted_stylesheets
                     .borrow()
                     .clone()

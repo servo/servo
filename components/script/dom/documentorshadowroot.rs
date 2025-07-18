@@ -348,13 +348,26 @@ impl DocumentOrShadowRoot {
         elements.insert_pre_order(element, &root);
     }
 
+    /// Inner part of adopted stylesheet. We are setting it assuming it was a FrozenArray
+    /// instead of ObservableArray. Thus, it would have a completely different workflow
+    /// compared to the spec. The workflow here is actually following Gecko's implementation
+    /// of AdoptedStylesheet before the implementation of ObservableArray,
+    ///
+    /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
     pub(crate) fn set_adopted_stylesheet(
         adopted_stylesheets: &mut Vec<Dom<CSSStyleSheet>>,
         incoming_stylesheets: &[Dom<CSSStyleSheet>],
         owner: &StyleSheetListOwner,
     ) -> ErrorResult {
+        let owner_doc = match owner {
+            StyleSheetListOwner::Document(doc) => doc,
+            StyleSheetListOwner::ShadowRoot(root) => root.owner_doc(),
+        };
+
         for sheet in incoming_stylesheets.iter() {
-            if !sheet.is_constructed() {
+            // > If value’s constructed flag is not set, or its constructor document is not equal
+            // > to this DocumentOrShadowRoot’s node document, throw a "NotAllowedError" DOMException.
+            if !sheet.constructor_document_matches(owner_doc) {
                 return Err(Error::NotAllowed);
             }
         }
@@ -419,8 +432,6 @@ impl DocumentOrShadowRoot {
                 sheet.style_stylesheet_arc().clone(),
             );
         }
-
-        dbg!(adopted_stylesheets.len());
 
         Ok(())
     }

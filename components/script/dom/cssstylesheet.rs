@@ -6,6 +6,7 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_bindings::root::Dom;
 use servo_arc::Arc;
 use style::media_queries::MediaList as StyleMediaList;
 use style::shared_lock::SharedRwLock;
@@ -27,6 +28,7 @@ use crate::dom::bindings::reflector::{
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::cssrulelist::{CSSRuleList, RulesSource};
+use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::medialist::MediaList;
 use crate::dom::node::NodeTraits;
@@ -44,7 +46,9 @@ pub(crate) struct CSSStyleSheet {
     #[no_trace]
     style_stylesheet: Arc<StyleStyleSheet>,
     origin_clean: Cell<bool>,
-    is_constructed: bool,
+
+    /// In which [Document] that this stylesheet was constructed.
+    constructor_document: Option<Dom<Document>>,
 
     /// Documents or shadow DOMs thats adopt this stylesheet, they will be
     /// notified whenever the stylesheet is modified.
@@ -58,7 +62,7 @@ impl CSSStyleSheet {
         href: Option<DOMString>,
         title: Option<DOMString>,
         stylesheet: Arc<StyleStyleSheet>,
-        is_constructed: bool,
+        constructor_document: Option<&Document>,
     ) -> CSSStyleSheet {
         CSSStyleSheet {
             stylesheet: StyleSheet::new_inherited(type_, href, title),
@@ -66,7 +70,7 @@ impl CSSStyleSheet {
             rulelist: MutNullableDom::new(None),
             style_stylesheet: stylesheet,
             origin_clean: Cell::new(true),
-            is_constructed,
+            constructor_document: constructor_document.map(Dom::from_ref),
             adopters: Default::default(),
         }
     }
@@ -80,7 +84,7 @@ impl CSSStyleSheet {
         href: Option<DOMString>,
         title: Option<DOMString>,
         stylesheet: Arc<StyleStyleSheet>,
-        is_constructed: bool,
+        constructor_document: Option<&Document>,
         can_gc: CanGc,
     ) -> DomRoot<CSSStyleSheet> {
         reflect_dom_object(
@@ -90,7 +94,7 @@ impl CSSStyleSheet {
                 href,
                 title,
                 stylesheet,
-                is_constructed,
+                constructor_document,
             )),
             window,
             can_gc,
@@ -107,7 +111,7 @@ impl CSSStyleSheet {
         href: Option<DOMString>,
         title: Option<DOMString>,
         stylesheet: Arc<StyleStyleSheet>,
-        is_constructed: bool,
+        constructor_document: Option<&Document>,
         can_gc: CanGc,
     ) -> DomRoot<CSSStyleSheet> {
         reflect_dom_object_with_proto(
@@ -117,7 +121,7 @@ impl CSSStyleSheet {
                 href,
                 title,
                 stylesheet,
-                is_constructed,
+                constructor_document,
             )),
             window,
             proto,
@@ -183,7 +187,14 @@ impl CSSStyleSheet {
     /// <https://drafts.csswg.org/cssom/#concept-css-style-sheet-constructed-flag>
     #[inline]
     pub(crate) fn is_constructed(&self) -> bool {
-        self.is_constructed
+        self.constructor_document.is_some()
+    }
+
+    pub(crate) fn constructor_document_matches(&self, other_doc: &Document) -> bool {
+        match &self.constructor_document {
+            Some(doc) => *doc == other_doc,
+            None => false,
+        }
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
@@ -247,7 +258,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
             None, // href
             None, // title
             stylesheet,
-            true, // is_constructed
+            Some(&window.Document()), // constructor_document
             can_gc,
         )
     }
@@ -323,7 +334,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
     /// <https://drafts.csswg.org/cssom/#synchronously-replace-the-rules-of-a-cssstylesheet>
     fn ReplaceSync(&self, text: USVString) -> Result<(), Error> {
         // Step 1. If the constructed flag is not set throw a NotAllowedError
-        if !self.is_constructed {
+        if !self.is_constructed() {
             return Err(Error::NotAllowed);
         }
 

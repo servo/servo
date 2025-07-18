@@ -178,6 +178,10 @@ impl ShadowRoot {
         self.host.set(None);
     }
 
+    pub(crate) fn owner_doc(&self) -> &Document {
+        &self.document
+    }
+
     pub(crate) fn get_focused_element(&self) -> Option<DomRoot<Element>> {
         //XXX get retargeted focused element
         None
