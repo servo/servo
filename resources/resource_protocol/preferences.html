@@ -1,0 +1,114 @@
+<!doctype html>
+<html>
+  <head>
+    <title>servo:preferences</title>
+    <style>
+      ul {
+          list-style: none;
+      }
+      li {
+          padding-bottom: 1em;
+      }
+      select {
+          font-size: 10pt;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Preferences</h2>
+    <ul>
+      <li>
+        <input type="checkbox" class="bool-preference" id="experimental">
+        <label for="experimental">Experimental web platform features</label>
+      </li>
+      <li>
+        <input type="checkbox" class="bool-preference" id="more-experimental">
+        <label for="more-experimental">Even more experimental web platform features</label>
+      </li>
+      <li>
+        <input type="checkbox" class="bool-preference" id="http-cache">
+        <label for="http-cache">Disable HTTP cache</label>
+      </li>
+      <li>
+        <div>
+        <label style="vertical-align: baseline" for="user-agent">User agent:</label>
+        </div>
+        <div>
+          <input class="string-preference" id="user-agent" size=110>
+          <select onchange="updateUserAgent(event)">
+            <option value="servo" selected>Servo</option>
+            <option value="firefox">Firefox</option>
+            <option value="chrome">Chrome</option>
+          </select>
+        </div>
+    </ul>
+    <script>
+      const prefs = {
+          "experimental": [
+              // TODO: de-duplicate this list with servoshell/prefs.rs
+              "dom_async_clipboard_enabled",
+              "dom_fontface_enabled",
+              "dom_intersection_observer_enabled",
+              "dom_mouse_event_which_enabled",
+              "dom_notification_enabled",
+              "dom_offscreen_canvas_enabled",
+              "dom_permissions_enabled",
+              "dom_resize_observer_enabled",
+              "dom_svg_enabled",
+              "dom_trusted_types_enabled",
+              "dom_webgl2_enabled",
+              "dom_webgpu_enabled",
+              "dom_xpath_enabled",
+              "layout_columns_enabled",
+              "layout_container_queries_enabled",
+              "layout_grid_enabled",
+          ],
+          "http-cache": ["network_http_cache_disabled"],
+          "more-experimental": ["dom_abort_controller_enabled"],
+          "user-agent": ["user_agent"],
+      };
+
+      const userAgents = {
+          "firefox": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:137.0) Gecko/20100101 Firefox/137.0",
+          "chrome": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+          "servo": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:128.0) Servo/0.0.1 Firefox/128.0",
+      };
+
+      const boolPrefInputs = document.getElementsByClassName("bool-preference");
+      for (const pref of boolPrefInputs) {
+          const relatedPrefs = prefs[pref.id];
+          let prefValue = true;
+          for (const boolPref of relatedPrefs) {
+              prefValue &= navigator.servo.getBoolPreference(boolPref);
+          }
+          pref.checked = prefValue;
+          pref.onchange = (ev) => {
+              console.log("changing " + ev.target.id);
+              const relatedPrefs = prefs[ev.target.id];
+              for (const boolPref of relatedPrefs) {
+                  navigator.servo.setBoolPreference(boolPref, ev.target.checked);
+              }
+          };
+      }
+
+      const stringPrefInputs = document.getElementsByClassName("string-preference");
+      for (const pref of stringPrefInputs) {
+          const prefValue = navigator.servo.getStringPreference(prefs[pref.id][0]);
+          pref.value = prefValue;
+          pref.oninput = (ev) => updateStringPreference(ev.target);
+      }
+
+      function updateStringPreference(input) {
+          const relatedPref = prefs[input.id][0];
+          navigator.servo.setStringPreference(relatedPref, input.value);
+      }
+
+      function updateUserAgent(event) {
+          const input = document.getElementById("user-agent");
+          const selection = event.target.value
+          input.value = userAgents[selection];
+          updateStringPreference(input);
+      }
+    </script>
+  </body>
+</html>
