@@ -162,6 +162,7 @@ pub(crate) struct HTMLImageElement {
     form_owner: MutNullableDom<HTMLFormElement>,
     generation: Cell<u32>,
     source_set: DomRefCell<SourceSet>,
+    /// If None, height and width dimension attributes are sourced from this element, otherwise the attributes from the linked source element
     dimension_attribute_source: MutNullableDom<HTMLSourceElement>,
     last_selected_source: DomRefCell<Option<USVString>>,
     #[ignore_malloc_size_of = "promises are hard"]
