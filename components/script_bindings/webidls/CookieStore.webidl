@@ -5,7 +5,8 @@
 // https://wicg.github.io/cookie-store/#cookie-change-subscription
 
 [Exposed=(ServiceWorker,Window),
- SecureContext]
+ SecureContext,
+ Pref="dom_cookiestore_enabled"]
 interface CookieStore : EventTarget {
   Promise<CookieListItem?> get(USVString name);
   Promise<CookieListItem?> get(optional CookieStoreGetOptions options = {});
@@ -66,5 +67,5 @@ typedef sequence<CookieListItem> CookieList;
 
 [SecureContext]
 partial interface Window {
-  [SameObject] readonly attribute CookieStore cookieStore;
+  [SameObject, Pref="dom_cookiestore_enabled"] readonly attribute CookieStore cookieStore;
 };
