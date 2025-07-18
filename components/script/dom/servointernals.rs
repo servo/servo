@@ -8,11 +8,13 @@ use constellation_traits::ScriptToConstellationMessage;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use profile_traits::mem::MemoryReportResult;
+use script_bindings::error::{Error, Fallible};
 use script_bindings::interfaces::ServoInternalsHelpers;
 use script_bindings::script_runtime::JSContext;
+use script_bindings::str::USVString;
+use servo_config::prefs::{self, PrefValue};
 
 use crate::dom::bindings::codegen::Bindings::ServoInternalsBinding::ServoInternalsMethods;
-use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
@@ -54,6 +56,51 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
             promise.reject_error(Error::Operation, can_gc);
         }
         promise
+    }
+
+    /// <https://servo.org/internal-no-spec>
+    fn GetBoolPreference(&self, name: USVString) -> Fallible<bool> {
+        if let PrefValue::Bool(b) = prefs::get().get_value(&name) {
+            return Ok(b);
+        }
+        Err(Error::TypeMismatch)
+    }
+
+    /// <https://servo.org/internal-no-spec>
+    fn GetIntPreference(&self, name: USVString) -> Fallible<i64> {
+        if let PrefValue::Int(i) = prefs::get().get_value(&name) {
+            return Ok(i);
+        }
+        Err(Error::TypeMismatch)
+    }
+
+    /// <https://servo.org/internal-no-spec>
+    fn GetStringPreference(&self, name: USVString) -> Fallible<USVString> {
+        if let PrefValue::Str(s) = prefs::get().get_value(&name) {
+            return Ok(s.into());
+        }
+        Err(Error::TypeMismatch)
+    }
+
+    /// <https://servo.org/internal-no-spec>
+    fn SetBoolPreference(&self, name: USVString, value: bool) {
+        let mut current_prefs = prefs::get().clone();
+        current_prefs.set_value(&name, value.into());
+        prefs::set(current_prefs);
+    }
+
+    /// <https://servo.org/internal-no-spec>
+    fn SetIntPreference(&self, name: USVString, value: i64) {
+        let mut current_prefs = prefs::get().clone();
+        current_prefs.set_value(&name, value.into());
+        prefs::set(current_prefs);
+    }
+
+    /// <https://servo.org/internal-no-spec>
+    fn SetStringPreference(&self, name: USVString, value: USVString) {
+        let mut current_prefs = prefs::get().clone();
+        current_prefs.set_value(&name, value.0.into());
+        prefs::set(current_prefs);
     }
 }
 
