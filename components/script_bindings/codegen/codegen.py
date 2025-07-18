@@ -6,7 +6,7 @@
 
 from collections import defaultdict
 from itertools import groupby
-from typing import Generator, Tuple, Optional, List
+from typing import Generator, Tuple, Optional, List, Any, overload
 
 import operator
 import os
@@ -366,10 +366,10 @@ class CGThing():
     """
     Abstract base class for things that spit out code.
     """
-    def __init__(self):
+    def __init__(self) -> None:
         pass  # Nothing for now
 
-    def define(self):
+    def define(self) -> Any:
         """Produce code for a Rust file."""
         raise NotImplementedError  # Override me!
 
@@ -452,7 +452,7 @@ class CGMethodCall(CGThing):
             # Doesn't matter which of the possible signatures we use, since
             # they all have the same types up to that point; just use
             # possibleSignatures[0]
-            caseBody = [
+            caseBody: list = [
                 CGArgumentConverter(possibleSignatures[0][1][i],
                                     i, "args", "argc", descriptor)
                 for i in range(0, distinguishingIndex)]
@@ -574,7 +574,7 @@ class CGMethodCall(CGThing):
             argCountCases.append(CGCase(str(argCount),
                                         CGList(caseBody, "\n")))
 
-        overloadCGThings = []
+        overloadCGThings: list = []
         overloadCGThings.append(
             CGGeneric(f"let argcount = cmp::min(argc, {maxArgCount});"))
         overloadCGThings.append(
@@ -2607,10 +2607,11 @@ class CGGeneric(CGThing):
     A class that spits out a fixed string into the codegen.  Can spit out a
     separate string for the declaration too.
     """
-    def __init__(self, text):
+    text: str
+    def __init__(self, text: str):
         self.text = text
 
-    def define(self):
+    def define(self) -> str:
         return self.text
 
 
@@ -2969,7 +2970,7 @@ class CGAbstractMethod(CGThing):
     def definition_epilogue(self):
         return "\n}\n"
 
-    def definition_body(self):
+    def definition_body(self) -> Any:
         raise NotImplementedError  # Override me!
 
 
@@ -4185,7 +4186,7 @@ class CGSetterCall(CGPerSignatureCall):
     def wrap_return_value(self):
         # We have no return value
         return "\ntrue"
-
+ 
     def getArgc(self):
         return "1"
 
@@ -4245,7 +4246,7 @@ class CGSpecializedMethod(CGAbstractExternMethod):
                 Argument('*const JSJitMethodCallArgs', 'args')]
         CGAbstractExternMethod.__init__(self, descriptor, name, 'bool', args, templateArgs=["D: DomTypes"])
 
-    def definition_body(self):
+    def definition_body(self) -> Any:
         nativeName = CGSpecializedMethod.makeNativeName(self.descriptor,
                                                         self.method)
         return CGWrapper(CGMethodCall([], nativeName, self.method.isStatic(),
@@ -4343,7 +4344,7 @@ class CGDefaultToJSONMethod(CGSpecializedMethod):
     def __init__(self, descriptor, method):
         assert method.isDefaultToJSON()
         CGSpecializedMethod.__init__(self, descriptor, method)
-
+    
     def definition_body(self):
         ret = dedent("""
             use crate::inheritance::HasParent;

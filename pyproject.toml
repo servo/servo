@@ -34,10 +34,13 @@ search-path = [
     "tests/wpt/tests/tools/wptserve",
     "python/mach",
     "python/wpt",
+    "third_party/WebIDL",
+    "components/script_bindings/codegen"
 ]
 project-includes = [
     "python/wpt/**/*.py",
     "python/tidy/**/*.py",
+    "components/script_bindings"
 ]
 project-excludes = [
     "**/venv/**",
