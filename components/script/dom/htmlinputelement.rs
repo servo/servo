@@ -27,7 +27,7 @@ use js::jsval::UndefinedValue;
 use js::rust::wrappers::{CheckRegExpSyntax, ExecuteRegExpNoStatics, ObjectIsRegExp};
 use js::rust::{HandleObject, MutableHandleObject};
 use net_traits::blob_url_store::get_blob_origin;
-use net_traits::filemanager_thread::FileManagerThreadMsg;
+use net_traits::filemanager_thread::{FileManagerResult, FileManagerThreadMsg};
 use net_traits::{CoreResourceMsg, IpcSend};
 use style::attr::AttrValue;
 use style::selector_parser::PseudoElement;
@@ -1754,7 +1754,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     // check-tidy: no specs after this line
     fn SelectFiles(&self, paths: Vec<DOMString>, can_gc: CanGc) {
         if self.input_type() == InputType::File {
-            self.select_files(Some(paths), can_gc);
+            let _ = self.select_files(Some(paths), can_gc);
         }
     }
 
@@ -2026,13 +2026,16 @@ impl HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file)
     // Select files by invoking UI or by passed in argument
-    fn select_files(&self, opt_test_paths: Option<Vec<DOMString>>, can_gc: CanGc) {
+    pub(crate) fn select_files(
+        &self,
+        opt_test_paths: Option<Vec<DOMString>>,
+        can_gc: CanGc,
+    ) -> FileManagerResult<()> {
         let window = self.owner_window();
         let origin = get_blob_origin(&window.get_url());
         let resource_threads = window.as_global_scope().resource_threads();
 
         let mut files: Vec<DomRoot<File>> = vec![];
-        let mut error = None;
 
         let webview_id = window.webview_id();
         let filter = filter_from_accept(&self.Accept());
@@ -2061,13 +2064,16 @@ impl HTMLInputElement {
                         files.push(File::new_from_selected(&window, selected, can_gc));
                     }
                 },
-                Err(err) => error = Some(err),
+                Err(err) => {
+                    debug!("Input multiple file select error: {:?}", err);
+                    return Err(err);
+                },
             };
         } else {
             let opt_test_path = match opt_test_paths {
                 Some(paths) => {
                     if paths.is_empty() {
-                        return;
+                        return Ok(());
                     } else {
                         Some(PathBuf::from(paths[0].to_string())) // neglect other paths
                     }
@@ -2088,19 +2094,20 @@ impl HTMLInputElement {
                 Ok(selected) => {
                     files.push(File::new_from_selected(&window, selected, can_gc));
                 },
-                Err(err) => error = Some(err),
+                Err(err) => {
+                    debug!("Input file select error: {:?}", err);
+                    return Err(err);
+                },
             };
         }
 
-        if let Some(err) = error {
-            debug!("Input file select error: {:?}", err);
-        } else {
-            let filelist = FileList::new(&window, files, can_gc);
-            self.filelist.set(Some(&filelist));
+        let filelist = FileList::new(&window, files, can_gc);
+        self.filelist.set(Some(&filelist));
 
-            target.fire_bubbling_event(atom!("input"), can_gc);
-            target.fire_bubbling_event(atom!("change"), can_gc);
-        }
+        target.fire_bubbling_event(atom!("input"), can_gc);
+        target.fire_bubbling_event(atom!("change"), can_gc);
+
+        Ok(())
     }
 
     // https://html.spec.whatwg.org/multipage/#value-sanitization-algorithm
@@ -3202,7 +3209,9 @@ impl Activatable for HTMLInputElement {
                 target.fire_bubbling_event(atom!("change"), can_gc);
             },
             // https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file):input-activation-behavior
-            InputType::File => self.select_files(None, can_gc),
+            InputType::File => {
+                let _ = self.select_files(None, can_gc);
+            },
             // https://html.spec.whatwg.org/multipage/#color-state-(type=color):input-activation-behavior
             InputType::Color => {
                 self.show_the_picker_if_applicable(can_gc);

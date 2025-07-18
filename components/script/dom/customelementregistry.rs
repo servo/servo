@@ -15,7 +15,7 @@ use js::jsapi::{HandleValueArray, Heap, IsCallable, IsConstructor, JSAutoRealm, 
 use js::jsval::{BooleanValue, JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::rust::wrappers::{Construct1, JS_GetProperty, SameValue};
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
-use script_bindings::conversions::SafeToJSValConvertible;
+use script_bindings::conversions::{SafeFromJSValConvertible, SafeToJSValConvertible};
 
 use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::callback::{CallbackContainer, ExceptionHandling};
@@ -26,9 +26,7 @@ use crate::dom::bindings::codegen::Bindings::CustomElementRegistryBinding::{
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
-use crate::dom::bindings::conversions::{
-    ConversionResult, FromJSValConvertible, StringificationBehavior,
-};
+use crate::dom::bindings::conversions::{ConversionResult, StringificationBehavior};
 use crate::dom::bindings::error::{
     Error, ErrorResult, Fallible, report_pending_exception, throw_dom_exception,
 };
@@ -222,13 +220,11 @@ impl CustomElementRegistry {
             return Ok(Vec::new());
         }
 
-        let conversion = unsafe {
-            FromJSValConvertible::from_jsval(
-                *cx,
-                observed_attributes.handle(),
-                StringificationBehavior::Default,
-            )
-        };
+        let conversion = SafeFromJSValConvertible::safe_from_jsval(
+            cx,
+            observed_attributes.handle(),
+            StringificationBehavior::Default,
+        );
         match conversion {
             Ok(ConversionResult::Success(attributes)) => Ok(attributes),
             Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into())),
@@ -258,7 +254,7 @@ impl CustomElementRegistry {
         }
 
         let conversion =
-            unsafe { FromJSValConvertible::from_jsval(*cx, form_associated_value.handle(), ()) };
+            SafeFromJSValConvertible::safe_from_jsval(cx, form_associated_value.handle(), ());
         match conversion {
             Ok(ConversionResult::Success(flag)) => Ok(flag),
             Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into())),
@@ -287,13 +283,11 @@ impl CustomElementRegistry {
             return Ok(Vec::new());
         }
 
-        let conversion = unsafe {
-            FromJSValConvertible::from_jsval(
-                *cx,
-                disabled_features.handle(),
-                StringificationBehavior::Default,
-            )
-        };
+        let conversion = SafeFromJSValConvertible::safe_from_jsval(
+            cx,
+            disabled_features.handle(),
+            StringificationBehavior::Default,
+        );
         match conversion {
             Ok(ConversionResult::Success(attributes)) => Ok(attributes),
             Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into())),
@@ -750,7 +744,7 @@ impl CustomElementDefinition {
 
         rooted!(in(*cx) let element_val = ObjectValue(element.get()));
         let element: DomRoot<Element> =
-            match unsafe { DomRoot::from_jsval(*cx, element_val.handle(), ()) } {
+            match SafeFromJSValConvertible::safe_from_jsval(cx, element_val.handle(), ()) {
                 Ok(ConversionResult::Success(element)) => element,
                 Ok(ConversionResult::Failure(..)) => {
                     return Err(Error::Type(

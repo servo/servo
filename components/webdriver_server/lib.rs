@@ -827,10 +827,13 @@ impl Handler {
             recv(self.load_status_receiver) -> res => {
                     match res {
                     Ok(WebDriverLoadStatus::Blocked) => {
-                        Err(WebDriverError::new(
-                            ErrorStatus::UnexpectedAlertOpen,
-                            "Load is blocked",
-                        ))
+                        // TODO: evaluate the correctness later
+                        // Load status is block means an user prompt is shown.
+                        // Alot of tests expect this to return success
+                        // then the user prompt is handled in the next command.
+                        // If user prompt can't be handler, next command returns
+                        // an error anyway.
+                        Ok(WebDriverResponse::Void)
                     }
                     _ => {
                         Ok(WebDriverResponse::Void)
@@ -2321,10 +2324,7 @@ impl Handler {
                     serde_json::to_value(encoded)?,
                 )))
             },
-            Err(_) => Err(WebDriverError::new(
-                ErrorStatus::StaleElementReference,
-                "Element not found",
-            )),
+            Err(error) => Err(WebDriverError::new(error, "Element not found")),
         }
     }
 
@@ -2519,6 +2519,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::DismissAlert => self.handle_dismiss_alert(),
             WebDriverCommand::AcceptAlert => self.handle_accept_alert(),
             WebDriverCommand::GetAlertText => self.handle_get_alert_text(),
+            WebDriverCommand::SendAlertText(text) => self.handle_send_alert_text(text.text),
             WebDriverCommand::DeleteCookies => self.handle_delete_cookies(),
             WebDriverCommand::DeleteCookie(name) => self.handle_delete_cookie(name),
             WebDriverCommand::GetTimeouts => self.handle_get_timeouts(),

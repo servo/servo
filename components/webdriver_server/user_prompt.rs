@@ -224,6 +224,7 @@ impl Handler {
         }
     }
 
+    /// <https://www.w3.org/TR/webdriver2/#dfn-get-alert-text>
     pub(crate) fn handle_get_alert_text(&self) -> WebDriverResult<WebDriverResponse> {
         // Step 1. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
@@ -252,6 +253,56 @@ impl Handler {
                     )
                 })?,
             ))),
+        }
+    }
+
+    /// <https://www.w3.org/TR/webdriver2/#dfn-send-alert-text>
+    pub(crate) fn handle_send_alert_text(
+        &self,
+        text: String,
+    ) -> WebDriverResult<WebDriverResponse> {
+        let webview_id = self.session()?.webview_id;
+
+        // Step 3. If session's current top-level browsing context is no longer open,
+        // return error with error code no such window.
+        self.verify_top_level_browsing_context_is_open(webview_id)?;
+
+        let (sender, receiver) = ipc::channel().unwrap();
+
+        self.send_message_to_embedder(WebDriverCommandMsg::CurrentUserPrompt(webview_id, sender))?;
+
+        match wait_for_script_response(receiver)? {
+            // Step 4. If the current user prompt is null, return error with error code no such alert.
+            None => Err(WebDriverError::new(
+                ErrorStatus::NoSuchAlert,
+                "No user prompt is currently active.",
+            )),
+            Some(prompt_type) => {
+                match prompt_type {
+                    // Step 5. If the current user prompt is alert or confirm,
+                    // return error with error code element not interactable.
+                    WebDriverUserPrompt::Alert | WebDriverUserPrompt::Confirm => {
+                        Err(WebDriverError::new(
+                            ErrorStatus::ElementNotInteractable,
+                            "Cannot send text to an alert or confirm prompt.",
+                        ))
+                    },
+                    // Step 5. If the current user prompt is prompt
+                    WebDriverUserPrompt::Prompt => {
+                        // Step 6. Send the text to the current user prompt.
+                        self.send_message_to_embedder(WebDriverCommandMsg::SendAlertText(
+                            webview_id, text,
+                        ))?;
+
+                        Ok(WebDriverResponse::Void)
+                    },
+                    // Step 5. Otherwise, return error with error code unsupported operation.
+                    _ => Err(WebDriverError::new(
+                        ErrorStatus::UnsupportedOperation,
+                        "Current user prompt type is not supported.",
+                    )),
+                }
+            },
         }
     }
 

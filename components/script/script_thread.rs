@@ -107,7 +107,7 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::conversions::{
-    ConversionResult, FromJSValConvertible, StringificationBehavior,
+    ConversionResult, SafeFromJSValConvertible, StringificationBehavior,
 };
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -3681,18 +3681,16 @@ impl ScriptThread {
         );
 
         load_data.js_eval_result = if jsval.get().is_string() {
-            unsafe {
-                let strval = DOMString::from_jsval(
-                    *GlobalScope::get_cx(),
-                    jsval.handle(),
-                    StringificationBehavior::Empty,
-                );
-                match strval {
-                    Ok(ConversionResult::Success(s)) => {
-                        Some(JsEvalResult::Ok(String::from(s).as_bytes().to_vec()))
-                    },
-                    _ => None,
-                }
+            let strval = DOMString::safe_from_jsval(
+                GlobalScope::get_cx(),
+                jsval.handle(),
+                StringificationBehavior::Empty,
+            );
+            match strval {
+                Ok(ConversionResult::Success(s)) => {
+                    Some(JsEvalResult::Ok(String::from(s).as_bytes().to_vec()))
+                },
+                _ => None,
             }
         } else {
             Some(JsEvalResult::NoContent)
