@@ -60,8 +60,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: 0
-            runs-on: ubuntu-22.04
+          # Chunks must be non-zero. Chunk zero always exits without running any tests.
           - runner: 1
             runs-on: ubuntu-22.04
           - runner: 2
@@ -100,9 +99,9 @@ jobs:
             runs-on: ubuntu-22.04
           - runner: 19
             runs-on: ubuntu-22.04
-          # TODO: use self-hosted-runner-select.yml to reserve runners
           - runner: 20
-            runs-on: self-hosted-image:ubuntu2204-wpt
+            runs-on: ubuntu-22.04
+          # TODO: use self-hosted-runner-select.yml to reserve runners
           - runner: 21
             runs-on: self-hosted-image:ubuntu2204-wpt
           - runner: 22
@@ -132,6 +131,8 @@ jobs:
           - runner: 34
             runs-on: self-hosted-image:ubuntu2204-wpt
           - runner: 35
+            runs-on: self-hosted-image:ubuntu2204-wpt
+          - runner: 36
             runs-on: self-hosted-image:ubuntu2204-wpt
     steps:
       - uses: actions/checkout@v4
